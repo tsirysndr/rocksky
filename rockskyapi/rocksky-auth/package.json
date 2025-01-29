@@ -9,9 +9,17 @@
 		"cf-typegen": "wrangler types"
 	},
 	"dependencies": {
+		"@atproto/api": "^0.13.31",
+		"@atproto/common": "^0.4.6",
+		"@atproto/identity": "^0.4.5",
+		"@atproto/lexicon": "^0.4.5",
+		"@atproto/oauth-client-node": "^0.2.8",
+		"@atproto/sync": "^0.1.11",
+		"@atproto/syntax": "^0.3.1",
+		"@atproto/xrpc-server": "^0.7.8",
 		"chanfana": "^2.0.2",
-		"zod": "^3.23.8",
-		"hono": "^4.4.7"
+		"hono": "^4.4.7",
+		"zod": "^3.23.8"
 	},
 	"devDependencies": {
 		"@cloudflare/workers-types": "^4.20250124.3",
