@@ -1,12 +1,16 @@
 import styled from "@emotion/styled";
 import { BlockProps } from "baseui/block";
+import { Button } from "baseui/button";
 import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
+import { Input } from "baseui/input";
+import { HeadingMedium, LabelMedium } from "baseui/typography";
 
 const Container = styled.div`
   display: flex;
   justify-content: center;
   height: 100vh;
   overflow-y: auto;
+  flex-direction: row;
 `;
 
 const Flex = styled.div`
@@ -25,10 +29,6 @@ const Navbar = styled.div`
   z-index: 1;
 `;
 
-const Title = styled.h2`
-  font-size: 2rem;
-`;
-
 const Cover = styled.img`
   border-radius: 8px;
   height: 240px;
@@ -36,12 +36,8 @@ const Cover = styled.img`
   margin-bottom: 10px;
 `;
 
-const Username = styled.div`
-  color: #ff2876;
-`;
-
 const Time = styled.div`
-  color: rgba(66, 87, 108, 0.651);
+  color: #42576ca6;
 `;
 
 const itemProps: BlockProps = {
@@ -60,6 +56,7 @@ const SongTitle = styled.div`
   text-shadow: rgba(0, 0, 0, 0.8) 0px 0px 10px;
   text-size-adjust: 100%;
   font-weight: 600;
+  font-family: RockfordSansRegular;
 `;
 const Artist = styled.div`
   color: #fff;
@@ -70,6 +67,7 @@ const Artist = styled.div`
   text-decoration-thickness: auto;
   text-shadow: rgba(0, 0, 0, 0.8) 0px 0px 10px;
   text-size-adjust: 100%;
+  font-family: RockfordSansRegular;
 `;
 
 const Metadata = styled.div`
@@ -90,7 +88,9 @@ const Home = () => {
           <Navbar>
             <h2 style={{ color: "#ff2876" }}>Rocksky</h2>
           </Navbar>
-          <Title style={{ marginTop: 50 }}>Recently played</Title>
+          <HeadingMedium marginTop={"50px"} marginBottom={"20px"}>
+            Recently played
+          </HeadingMedium>
 
           <div style={{ paddingBottom: 100 }}>
             <FlexGrid
@@ -106,9 +106,11 @@ const Home = () => {
                     <Artist>Kid Ink</Artist>
                   </Metadata>
                 </CoverWrapper>
-                <Username>@tsiry-sandratraina.com</Username>
-                <div>is listening to this song</div>
-                <Time>2 minutes ago</Time>
+                <LabelMedium color={"#ff2876"}>
+                  @tsiry-sandratraina.com
+                </LabelMedium>
+                <LabelMedium>is listening to this song</LabelMedium>
+                <LabelMedium color="#42576ca6">2 minutes ago</LabelMedium>
               </FlexGridItem>
               <FlexGridItem {...itemProps}>
                 <CoverWrapper>
@@ -118,9 +120,11 @@ const Home = () => {
                     <Artist>Fifth Harmony, Gucci Mane</Artist>
                   </Metadata>
                 </CoverWrapper>
-                <Username>@tsiry-sandratraina.com</Username>
-                <div>is listening to this song</div>
-                <Time>5 minutes ago</Time>
+                <LabelMedium color={"#ff2876"}>
+                  @tsiry-sandratraina.com
+                </LabelMedium>
+                <LabelMedium>is listening to this song</LabelMedium>
+                <LabelMedium color="#42576ca6">5 minutes ago</LabelMedium>
               </FlexGridItem>
               <FlexGridItem {...itemProps}>
                 <CoverWrapper>
@@ -132,9 +136,11 @@ const Home = () => {
                     <Artist>Florence + the Machine</Artist>
                   </Metadata>
                 </CoverWrapper>
-                <Username>@tsiry-sandratraina.com</Username>
-                <div>is listening to this song</div>
-                <Time>10 minutes ago</Time>
+                <LabelMedium color={"#ff2876"}>
+                  @tsiry-sandratraina.com
+                </LabelMedium>
+                <LabelMedium>is listening to this song</LabelMedium>
+                <LabelMedium color="#42576ca6">10 minutes ago</LabelMedium>
               </FlexGridItem>
               <FlexGridItem {...itemProps}>
                 <CoverWrapper>
@@ -144,9 +150,11 @@ const Home = () => {
                     <Artist>Tensnake, Chenai</Artist>
                   </Metadata>
                 </CoverWrapper>
-                <Username>@tsiry-sandratraina.com</Username>
-                <div>is listening to this song</div>
-                <Time>14 minutes ago</Time>
+                <LabelMedium color={"#ff2876"}>
+                  @tsiry-sandratraina.com
+                </LabelMedium>
+                <LabelMedium>is listening to this song</LabelMedium>
+                <LabelMedium color="#42576ca6">14 minutes ago</LabelMedium>
               </FlexGridItem>
               <FlexGridItem {...itemProps}>
                 <CoverWrapper>
@@ -156,9 +164,11 @@ const Home = () => {
                     <Artist>Seinabo Sey</Artist>
                   </Metadata>
                 </CoverWrapper>
-                <Username>@tsiry-sandratraina.com</Username>
+                <LabelMedium color={"#ff2876"}>
+                  @tsiry-sandratraina.com
+                </LabelMedium>
                 <div>is listening to this song</div>
-                <Time>16 minutes ago</Time>
+                <LabelMedium color="#42576ca6">16 minutes ago</LabelMedium>
               </FlexGridItem>
               <FlexGridItem {...itemProps}>
                 <CoverWrapper>
@@ -168,9 +178,11 @@ const Home = () => {
                     <Artist>Route 94, Jess Glynne</Artist>
                   </Metadata>
                 </CoverWrapper>
-                <Username>@tsiry-sandratraina.com</Username>
-                <div>is listening to this song</div>
-                <Time>20 minutes ago</Time>
+                <LabelMedium color={"#ff2876"}>
+                  @tsiry-sandratraina.com
+                </LabelMedium>
+                <LabelMedium>is listening to this song</LabelMedium>
+                <LabelMedium color="#42576ca6">20 minutes ago</LabelMedium>
               </FlexGridItem>
               <FlexGridItem {...itemProps}>
                 <CoverWrapper>
@@ -180,9 +192,11 @@ const Home = () => {
                     <Artist>ILOVEMAKONNEN, Drake</Artist>
                   </Metadata>
                 </CoverWrapper>
-                <Username>@tsiry-sandratraina.com</Username>
-                <div>is listening to this song</div>
-                <Time>24 minutes ago</Time>
+                <LabelMedium color={"#ff2876"}>
+                  @tsiry-sandratraina.com
+                </LabelMedium>
+                <LabelMedium>is listening to this song</LabelMedium>
+                <LabelMedium color="#42576ca6">24 minutes ago</LabelMedium>
               </FlexGridItem>
               <FlexGridItem {...itemProps}>
                 <CoverWrapper>
@@ -192,9 +206,11 @@ const Home = () => {
                     <Artist>Rema</Artist>
                   </Metadata>
                 </CoverWrapper>
-                <Username>@tsiry-sandratraina.com</Username>
-                <div>is listening to this song</div>
-                <Time>27 minutes ago</Time>
+                <LabelMedium color={"#ff2876"}>
+                  @tsiry-sandratraina.com
+                </LabelMedium>
+                <LabelMedium>is listening to this song</LabelMedium>
+                <LabelMedium color="#42576ca6">27 minutes ago</LabelMedium>
               </FlexGridItem>
               <FlexGridItem {...itemProps}>
                 <CoverWrapper>
@@ -204,9 +220,11 @@ const Home = () => {
                     <Artist>Rema</Artist>
                   </Metadata>
                 </CoverWrapper>
-                <Username>@tsiry-sandratraina.com</Username>
-                <div>is listening to this song</div>
-                <Time>31 minutes ago</Time>
+                <LabelMedium color={"#ff2876"}>
+                  @tsiry-sandratraina.com
+                </LabelMedium>
+                <LabelMedium>is listening to this song</LabelMedium>
+                <LabelMedium color="#42576ca6">31 minutes ago</LabelMedium>
               </FlexGridItem>
               <FlexGridItem {...itemProps}>
                 <CoverWrapper>
@@ -216,13 +234,55 @@ const Home = () => {
                     <Artist>Patoranking, Tiwa Savage</Artist>
                   </Metadata>
                 </CoverWrapper>
-                <Username>@tsiry-sandratraina.com</Username>
-                <div>is listening to this song</div>
-                <Time>31 minutes ago</Time>
+                <LabelMedium color={"#ff2876"}>
+                  @tsiry-sandratraina.com
+                </LabelMedium>
+                <LabelMedium>is listening to this song</LabelMedium>
+                <LabelMedium color="#42576ca6">31 minutes ago</LabelMedium>
               </FlexGridItem>
             </FlexGrid>
           </div>
         </Flex>
+        <div style={{ position: "relative", width: 300 }}>
+          <div
+            style={{
+              position: "fixed",
+              top: 100,
+              width: 300,
+              padding: 20,
+            }}
+          >
+            <div>
+              <Input placeholder="Search" clearable clearOnEscape />
+            </div>
+            <div style={{ marginTop: 40 }}>
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ marginBottom: 15 }}>
+                  <LabelMedium>Bluesky handle</LabelMedium>
+                </div>
+                <Input startEnhancer="@" placeholder="tsiry.bsky.social" />
+              </div>
+              <Button
+                overrides={{
+                  BaseButton: {
+                    style: {
+                      width: "100%",
+                      backgroundColor: "#ff2876",
+                      ":hover": {
+                        backgroundColor: "#ff2876",
+                      },
+                      ":focus": {
+                        backgroundColor: "#ff2876",
+                      },
+                    },
+                  },
+                }}
+              >
+                Sign In
+              </Button>
+            </div>
+          </div>
+        </div>
       </Container>
     </>
   );
