@@ -9,6 +9,7 @@
         "@styled-icons/bootstrap": "^10.47.0",
         "@styled-icons/boxicons-regular": "^10.47.0",
         "@styled-icons/entypo": "^10.46.0",
+        "@styled-icons/evaicons-solid": "^10.46.0",
         "@styled-icons/evil": "^10.46.0",
         "@styled-icons/feather": "^10.47.0",
         "@styled-icons/fluentui-system-regular": "^10.47.0",
@@ -370,6 +371,8 @@
     "@styled-icons/boxicons-regular": ["@styled-icons/boxicons-regular@10.47.0", "", { "dependencies": { "@babel/runtime": "^7.20.7", "@styled-icons/styled-icon": "^10.7.0" }, "peerDependencies": { "react": "*", "styled-components": "*" } }, "sha512-z8KczDp4VArXvOn8i2j66Xs4oX9oiiJEhMoHydY3uC9kdtImcxhZ/xHPrgTJLkbK6f5ikwB4CKVnSqQGzzAJNw=="],
 
     "@styled-icons/entypo": ["@styled-icons/entypo@10.46.0", "", { "dependencies": { "@babel/runtime": "^7.19.0", "@styled-icons/styled-icon": "^10.7.0" }, "peerDependencies": { "react": "*", "styled-components": "*" } }, "sha512-0ChIqx3EMlMeout4Aa5AwEYtKsgTqrY/NnVQGvhlGfMYq9mC7jq7JuaKvt5SJ9/0cEnVhgW5zwAe4LeyrsJl5g=="],
+
+    "@styled-icons/evaicons-solid": ["@styled-icons/evaicons-solid@10.46.0", "", { "dependencies": { "@babel/runtime": "^7.19.0", "@styled-icons/styled-icon": "^10.7.0" }, "peerDependencies": { "react": "*", "styled-components": "*" } }, "sha512-tRw2/TkmRNV4N2badKPFnnRy+WbVtUkrloNo94CgF5rpxoL0eK+ki3OYZYqbl0T66bJ07hqduqTc3rbxvT/vfw=="],
 
     "@styled-icons/evil": ["@styled-icons/evil@10.46.0", "", { "dependencies": { "@babel/runtime": "^7.19.0", "@styled-icons/styled-icon": "^10.7.0" }, "peerDependencies": { "react": "*", "styled-components": "*" } }, "sha512-r1g2jZmz84XGLgJbAPkMDmuToUF+KyNWkS6GNoP+ygzriNgzgoHkcEvIb/bx/I2/UUHeotRMOknvhvh5C2CwFg=="],
 

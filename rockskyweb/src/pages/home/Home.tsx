@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { Search } from "@styled-icons/evaicons-solid";
 import { BlockProps } from "baseui/block";
 import { Button } from "baseui/button";
 import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
@@ -34,10 +35,6 @@ const Cover = styled.img`
   height: 240px;
   width: 240px;
   margin-bottom: 10px;
-`;
-
-const Time = styled.div`
-  color: #42576ca6;
 `;
 
 const itemProps: BlockProps = {
@@ -253,14 +250,22 @@ const Home = () => {
             }}
           >
             <div>
-              <Input placeholder="Search" clearable clearOnEscape />
+              <Input
+                startEnhancer={<Search size={20} color="#42576ca6" />}
+                placeholder="Search"
+                clearable
+                clearOnEscape
+              />
             </div>
             <div style={{ marginTop: 40 }}>
               <div style={{ marginBottom: 20 }}>
                 <div style={{ marginBottom: 15 }}>
                   <LabelMedium>Bluesky handle</LabelMedium>
                 </div>
-                <Input startEnhancer="@" placeholder="tsiry.bsky.social" />
+                <Input
+                  startEnhancer={<div style={{ color: "#42576ca6" }}>@</div>}
+                  placeholder="tsiry.bsky.social"
+                />
               </div>
               <Button
                 overrides={{
