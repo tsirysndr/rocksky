@@ -8,7 +8,10 @@
       "description": "A declaration of an artist.",
       "record": {
         "type": "object",
-        "required": ["name", "bio"],
+        "required": [
+          "name",
+          "bio"
+        ],
         "properties": {
           "name": {
             "type": "string",
@@ -21,6 +24,15 @@
             "description": "The biography of the artist.",
             "minLength": 1,
             "maxLength": 256
+          },
+          "picture": {
+            "type": "blob",
+            "description": "The picture of the artist.",
+            "accept": [
+              "image/png",
+              "image/jpeg"
+            ],
+            "maxSize": 2000000
           }
         }
       }

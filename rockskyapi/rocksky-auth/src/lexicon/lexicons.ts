@@ -52,7 +52,7 @@ export const schemaDict = {
               type: 'blob',
               description: 'The album art of the album.',
               accept: ['image/png', 'image/jpeg'],
-              maxSize: 1000000,
+              maxSize: 2000000,
             },
             youtubeLink: {
               type: 'string',
@@ -102,6 +102,12 @@ export const schemaDict = {
               description: 'The biography of the artist.',
               minLength: 1,
               maxLength: 256,
+            },
+            picture: {
+              type: 'blob',
+              description: 'The picture of the artist.',
+              accept: ['image/png', 'image/jpeg'],
+              maxSize: 2000000,
             },
           },
         },
@@ -202,7 +208,7 @@ export const schemaDict = {
               type: 'blob',
               description: 'The logo of the radio station.',
               accept: ['image/png', 'image/jpeg'],
-              maxSize: 1000000,
+              maxSize: 2000000,
             },
             website: {
               type: 'string',
@@ -285,7 +291,7 @@ export const schemaDict = {
               type: 'blob',
               description: 'The album art of the song.',
               accept: ['image/png', 'image/jpeg'],
-              maxSize: 1000000,
+              maxSize: 2000000,
             },
             youtubeLink: {
               type: 'string',

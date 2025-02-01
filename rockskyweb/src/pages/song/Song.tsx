@@ -9,9 +9,11 @@ import {
   LabelMedium,
   LabelSmall,
 } from "baseui/typography";
+import { useAtomValue } from "jotai";
 import numeral from "numeral";
 import { useMemo } from "react";
 import { useParams } from "react-router";
+import { profileAtom } from "../../atoms/profile";
 import SongCover from "../../components/SongCover";
 import useFeed from "../../hooks/useFeed";
 import Main from "../../layouts/Main";
@@ -23,6 +25,7 @@ const Group = styled.div`
 `;
 
 const Song = () => {
+  const profile = useAtomValue(profileAtom);
   const { id } = useParams<{ id: string }>();
   const { getFeedById } = useFeed();
   const song = useMemo(() => {
@@ -54,7 +57,7 @@ const Song = () => {
         <div style={{ marginTop: 150 }}>
           <LabelMedium marginBottom={"10px"}>Shoutbox</LabelMedium>
           <Textarea
-            placeholder="@tsiry-sandratraina.com, share your thoughts about this song"
+            placeholder={`@${profile?.handle}, share your thoughts about this song`}
             resize="vertical"
             overrides={{
               Input: {

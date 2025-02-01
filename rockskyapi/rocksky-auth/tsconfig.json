@@ -21,7 +21,6 @@
 		"outDir": "",
 		"target": "esnext",
 		"module": "esnext",
-		"allowImportingTsExtensions": true,
 		"types": [
 			"@types/node",
 			"@types/service-worker-mock",

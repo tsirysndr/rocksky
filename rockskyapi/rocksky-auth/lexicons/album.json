@@ -52,7 +52,7 @@
               "image/png",
               "image/jpeg"
             ],
-            "maxSize": 1000000
+            "maxSize": 2000000
           },
           "youtubeLink": {
             "type": "string",
