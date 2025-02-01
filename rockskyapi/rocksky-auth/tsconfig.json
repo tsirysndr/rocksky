@@ -7,7 +7,7 @@
 		"sourceMap": true,
 		"esModuleInterop": true,
 		"inlineSourceMap": false,
-		"lib": ["esnext"],
+		"lib": ["esnext", "DOM"],
 		"listEmittedFiles": false,
 		"listFiles": false,
 		"moduleResolution": "node",
@@ -21,6 +21,7 @@
 		"outDir": "",
 		"target": "esnext",
 		"module": "esnext",
+		"allowImportingTsExtensions": true,
 		"types": [
 			"@types/node",
 			"@types/service-worker-mock",

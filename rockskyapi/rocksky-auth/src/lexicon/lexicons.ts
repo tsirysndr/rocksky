@@ -1,0 +1,347 @@
+/**
+ * GENERATED CODE - DO NOT MODIFY
+ */
+import { LexiconDoc, Lexicons } from '@atproto/lexicon'
+
+export const schemaDict = {
+  AppRockskyAlbum: {
+    lexicon: 1,
+    id: 'app.rocksky.album',
+    defs: {
+      main: {
+        type: 'record',
+        key: 'tid',
+        description: 'A declaration of an album.',
+        record: {
+          type: 'object',
+          required: ['title', 'artist'],
+          properties: {
+            title: {
+              type: 'string',
+              description: 'The title of the album.',
+              minLength: 1,
+              maxLength: 512,
+            },
+            artist: {
+              type: 'string',
+              description: 'The artist of the album.',
+              minLength: 1,
+              maxLength: 256,
+            },
+            duration: {
+              type: 'integer',
+              description: 'The duration of the album in seconds.',
+              minimum: 1,
+            },
+            releaseDate: {
+              type: 'string',
+              description: 'The release date of the album.',
+              format: 'datetime',
+            },
+            year: {
+              type: 'integer',
+              description: 'The year the album was released.',
+            },
+            genre: {
+              type: 'string',
+              description: 'The genre of the album.',
+              minLength: 1,
+              maxLength: 256,
+            },
+            albumArt: {
+              type: 'blob',
+              description: 'The album art of the album.',
+              accept: ['image/png', 'image/jpeg'],
+              maxSize: 1000000,
+            },
+            youtubeLink: {
+              type: 'string',
+              description: 'The YouTube link of the album.',
+              format: 'uri',
+            },
+            spotifyLink: {
+              type: 'string',
+              description: 'The Spotify link of the album.',
+              format: 'uri',
+            },
+            tidalLink: {
+              type: 'string',
+              description: 'The Tidal link of the album.',
+              format: 'uri',
+            },
+            appleMusicLink: {
+              type: 'string',
+              description: 'The Apple Music link of the album.',
+              format: 'uri',
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyArtist: {
+    lexicon: 1,
+    id: 'app.rocksky.artist',
+    defs: {
+      main: {
+        type: 'record',
+        key: 'tid',
+        description: 'A declaration of an artist.',
+        record: {
+          type: 'object',
+          required: ['name', 'bio'],
+          properties: {
+            name: {
+              type: 'string',
+              description: 'The name of the artist.',
+              minLength: 1,
+              maxLength: 512,
+            },
+            bio: {
+              type: 'string',
+              description: 'The biography of the artist.',
+              minLength: 1,
+              maxLength: 256,
+            },
+          },
+        },
+      },
+    },
+  },
+  AppBskyActorProfile: {
+    lexicon: 1,
+    id: 'app.bsky.actor.profile',
+    defs: {
+      main: {
+        type: 'record',
+        description: 'A declaration of a Bluesky account profile.',
+        key: 'literal:self',
+        record: {
+          type: 'object',
+          properties: {
+            displayName: {
+              type: 'string',
+              maxGraphemes: 64,
+              maxLength: 640,
+            },
+            description: {
+              type: 'string',
+              description: 'Free-form profile description text.',
+              maxGraphemes: 256,
+              maxLength: 2560,
+            },
+            avatar: {
+              type: 'blob',
+              description:
+                "Small image to be displayed next to posts from account. AKA, 'profile picture'",
+              accept: ['image/png', 'image/jpeg'],
+              maxSize: 1000000,
+            },
+            banner: {
+              type: 'blob',
+              description:
+                'Larger horizontal image to display behind profile view.',
+              accept: ['image/png', 'image/jpeg'],
+              maxSize: 1000000,
+            },
+            labels: {
+              type: 'union',
+              description:
+                'Self-label values, specific to the Bluesky application, on the overall account.',
+              refs: ['lex:com.atproto.label.defs#selfLabels'],
+            },
+            joinedViaStarterPack: {
+              type: 'ref',
+              ref: 'lex:com.atproto.repo.strongRef',
+            },
+            createdAt: {
+              type: 'string',
+              format: 'datetime',
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyRadio: {
+    lexicon: 1,
+    id: 'app.rocksky.radio',
+    defs: {
+      main: {
+        type: 'record',
+        key: 'tid',
+        description: 'A declaration of a radio station.',
+        record: {
+          type: 'object',
+          required: ['name', 'url'],
+          properties: {
+            name: {
+              type: 'string',
+              description: 'The name of the radio station.',
+              minLength: 1,
+              maxLength: 512,
+            },
+            url: {
+              type: 'string',
+              description: 'The URL of the radio station.',
+              format: 'uri',
+            },
+            description: {
+              type: 'string',
+              description: 'The description of the radio station.',
+              minLength: 1,
+              maxLength: 256,
+            },
+            genre: {
+              type: 'string',
+              description: 'The genre of the radio station.',
+              minLength: 1,
+              maxLength: 256,
+            },
+            logo: {
+              type: 'blob',
+              description: 'The logo of the radio station.',
+              accept: ['image/png', 'image/jpeg'],
+              maxSize: 1000000,
+            },
+            website: {
+              type: 'string',
+              description: 'The website of the radio station.',
+              format: 'uri',
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskySong: {
+    lexicon: 1,
+    id: 'app.rocksky.song',
+    defs: {
+      main: {
+        type: 'record',
+        key: 'tid',
+        description: 'A declaration of a song.',
+        record: {
+          type: 'object',
+          required: ['title', 'artist', 'album', 'duration'],
+          properties: {
+            title: {
+              type: 'string',
+              description: 'The title of the song.',
+              minLength: 1,
+              maxLength: 512,
+            },
+            artist: {
+              type: 'string',
+              description: 'The artist of the song.',
+              minLength: 1,
+              maxLength: 256,
+            },
+            artistAlbum: {
+              type: 'string',
+              description: 'The artist of the album the song is from.',
+              minLength: 1,
+              maxLength: 256,
+            },
+            album: {
+              type: 'string',
+              description: 'The album the song is from.',
+              minLength: 1,
+              maxLength: 256,
+            },
+            duration: {
+              type: 'integer',
+              description: 'The duration of the song in seconds.',
+              minimum: 1,
+            },
+            releaseDate: {
+              type: 'string',
+              description: 'The release date of the song.',
+              format: 'datetime',
+            },
+            year: {
+              type: 'integer',
+              description: 'The year the song was released.',
+            },
+            genre: {
+              type: 'string',
+              description: 'The genre of the song.',
+              minLength: 1,
+              maxLength: 256,
+            },
+            lyrics: {
+              type: 'string',
+              description: 'The lyrics of the song.',
+              minLength: 1,
+              maxLength: 10000,
+            },
+            wiki: {
+              type: 'string',
+              description: 'Informations about the song',
+              maxLength: 10000,
+            },
+            albumArt: {
+              type: 'blob',
+              description: 'The album art of the song.',
+              accept: ['image/png', 'image/jpeg'],
+              maxSize: 1000000,
+            },
+            youtubeLink: {
+              type: 'string',
+              description: 'The YouTube link of the song.',
+              format: 'uri',
+            },
+            spotifyLink: {
+              type: 'string',
+              description: 'The Spotify link of the song.',
+              format: 'uri',
+            },
+            tidalLink: {
+              type: 'string',
+              description: 'The Tidal link of the song.',
+              format: 'uri',
+            },
+            appleMusicLink: {
+              type: 'string',
+              description: 'The Apple Music link of the song.',
+              format: 'uri',
+            },
+          },
+        },
+      },
+    },
+  },
+  ComAtprotoRepoStrongRef: {
+    lexicon: 1,
+    id: 'com.atproto.repo.strongRef',
+    description: 'A URI with a content-hash fingerprint.',
+    defs: {
+      main: {
+        type: 'object',
+        required: ['uri', 'cid'],
+        properties: {
+          uri: {
+            type: 'string',
+            format: 'at-uri',
+          },
+          cid: {
+            type: 'string',
+            format: 'cid',
+          },
+        },
+      },
+    },
+  },
+} as const satisfies Record<string, LexiconDoc>
+
+export const schemas = Object.values(schemaDict)
+export const lexicons: Lexicons = new Lexicons(schemas)
+export const ids = {
+  AppRockskyAlbum: 'app.rocksky.album',
+  AppRockskyArtist: 'app.rocksky.artist',
+  AppBskyActorProfile: 'app.bsky.actor.profile',
+  AppRockskyRadio: 'app.rocksky.radio',
+  AppRockskySong: 'app.rocksky.song',
+  ComAtprotoRepoStrongRef: 'com.atproto.repo.strongRef',
+}
