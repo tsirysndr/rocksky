@@ -36,7 +36,7 @@ const ctx = {
 app.use(cors());
 
 app.post("/login", async (c) => {
-  const { handle } = await c.req.json();
+  const { handle, cli } = await c.req.json();
   if (typeof handle !== "string" || !isValidHandle(handle)) {
     c.status(400);
     return c.text("Invalid handle");
@@ -46,6 +46,11 @@ app.post("/login", async (c) => {
     const url = await ctx.oauthClient.authorize(handle, {
       scope: "atproto transition:generic",
     });
+
+    if (cli) {
+      ctx.kv.set(`cli:${handle}`, "1");
+    }
+
     return c.redirect(url);
   } catch (e) {
     c.status(500);
@@ -55,17 +60,27 @@ app.post("/login", async (c) => {
 
 app.get("/oauth/callback", async (c) => {
   const params = new URLSearchParams(c.req.url.split("?")[1]);
-  let did;
+  let did, cli;
+
   try {
     const { session } = await ctx.oauthClient.callback(params);
     did = session.did;
+    const handle = await ctx.resolver.resolveDidToHandle(did);
+    cli = ctx.kv.get(`cli:${handle}`);
+    ctx.kv.delete(`cli:${handle}`);
+
     const token = jwt.sign({ did }, env.JWT_SECRET);
     ctx.kv.set(did, token);
   } catch (err) {
     console.error({ err }, "oauth callback failed");
     return c.redirect(`${env.FRONTEND_URL}?error=1`);
   }
-  return c.redirect(`${env.FRONTEND_URL}?did=${did}`);
+
+  if (!cli) {
+    return c.redirect(`${env.FRONTEND_URL}?did=${did}`);
+  }
+
+  return c.redirect(`${env.FRONTEND_URL}?did=${did}&cli=${cli}`);
 });
 
 app.get("/", async (c) => {
@@ -73,7 +88,7 @@ app.get("/", async (c) => {
 });
 
 app.get("/profile", async (c) => {
-  const bearer = (c.req.header("authorization") || "").split(" ")[1].trim();
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   if (!bearer || bearer === "null") {
     c.status(401);
