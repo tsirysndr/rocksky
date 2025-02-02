@@ -97,6 +97,10 @@ app.get("/profile", async (c) => {
   return c.json(profile);
 });
 
+app.get("/client-metadata.json", async (c) => {
+  return c.json(ctx.oauthClient.clientMetadata);
+});
+
 serve({
   fetch: app.fetch,
   port: 8000,
