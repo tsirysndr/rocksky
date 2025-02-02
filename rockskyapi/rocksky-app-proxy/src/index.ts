@@ -38,6 +38,9 @@ export default {
 			return fetch(proxyUrl, request) as any;
 		}
 
+		console.log('headers');
+		console.log(request.headers);
+
 		const proxyUrl = new URL(request.url);
 		proxyUrl.host = 'rocksky.pages.dev';
 		proxyUrl.hostname = 'rocksky.pages.dev';
