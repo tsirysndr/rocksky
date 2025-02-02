@@ -2,6 +2,7 @@ import { isValidHandle } from "@atproto/syntax";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import jwt from "jsonwebtoken";
 import { createAgent } from "lib/agent";
 import { createBidirectionalResolver, createIdResolver } from "lib/idResolver";
 import sqliteKv from "sqliteKv";
@@ -29,6 +30,7 @@ const baseIdResolver = createIdResolver(kv);
 const ctx = {
   oauthClient: await createClient(db),
   resolver: createBidirectionalResolver(baseIdResolver),
+  kv: new Map<string, string>(),
 };
 
 app.use(cors());
@@ -57,12 +59,8 @@ app.get("/oauth/callback", async (c) => {
   try {
     const { session } = await ctx.oauthClient.callback(params);
     did = session.did;
-    // set Cookie
-    c.header(
-      "Set-Cookie",
-      `session-did=${did}; Path=/; HttpOnly; Secure; SameSite=Strict`
-    );
-    c.header("token", "123");
+    const token = jwt.sign({ did }, env.JWT_SECRET);
+    ctx.kv.set(did, token);
   } catch (err) {
     console.error({ err }, "oauth callback failed");
     return c.redirect(`${env.FRONTEND_URL}?error=1`);
@@ -75,12 +73,14 @@ app.get("/", async (c) => {
 });
 
 app.get("/profile", async (c) => {
-  const did = c.req.header("session-did");
+  const bearer = (c.req.header("authorization") || "").split(" ")[1].trim();
 
-  if (typeof did !== "string" || !did || did === "null") {
+  if (!bearer) {
     c.status(401);
     return c.text("Unauthorized");
   }
+
+  const { did } = jwt.verify(bearer, env.JWT_SECRET);
 
   const agent = await createAgent(ctx.oauthClient, did);
 
@@ -105,6 +105,25 @@ app.get("/profile", async (c) => {
 
 app.get("/client-metadata.json", async (c) => {
   return c.json(ctx.oauthClient.clientMetadata);
+});
+
+app.get("/token", async (c) => {
+  const did = c.req.header("session-did");
+
+  if (typeof did !== "string" || !did || did === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const token = ctx.kv.get(did);
+  if (!token) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  ctx.kv.delete(did);
+
+  return c.json({ token });
 });
 
 serve({
