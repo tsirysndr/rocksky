@@ -11,7 +11,7 @@ function useProfile() {
     fetch(`${API_URL}${path}`, {
       method: "GET",
       headers: {
-        "session-did": localStorage.getItem("did")!,
+        Authorization: `bearer ${localStorage.getItem("jwt")!}`,
       },
     }).then((res) => res.text());
 

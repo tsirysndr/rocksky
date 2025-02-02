@@ -75,7 +75,7 @@ app.get("/", async (c) => {
 app.get("/profile", async (c) => {
   const bearer = (c.req.header("authorization") || "").split(" ")[1].trim();
 
-  if (!bearer) {
+  if (!bearer || bearer === "null") {
     c.status(401);
     return c.text("Unauthorized");
   }

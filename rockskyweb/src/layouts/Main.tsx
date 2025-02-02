@@ -3,7 +3,7 @@ import { Search } from "@styled-icons/evaicons-solid";
 import { Button } from "baseui/button";
 import { Input } from "baseui/input";
 import { LabelMedium } from "baseui/typography";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "react-router";
 import { API_URL } from "../consts";
 import useProfile from "../hooks/useProfile";
@@ -28,18 +28,24 @@ const Flex = styled.div`
 function Main({ children }: { children: React.ReactNode }) {
   const [handle, setHandle] = useState("");
   const { search } = useLocation();
-  const did = useMemo(() => {
+  const jwt = localStorage.getItem("token");
+
+  useEffect(() => {
     const query = new URLSearchParams(search);
     if (query.get("did")) {
-      localStorage.setItem("did", query.get("did")!);
-      return query.get("did");
+      const fetchToken = async () => {
+        const response = await fetch(`${API_URL}/token`, {
+          method: "GET",
+          headers: {
+            "session-id": query.get("did")!,
+          },
+        });
+        const data = await response.json();
+        localStorage.setItem("token", data.token);
+        window.location.href = "/";
+      };
+      fetchToken();
     }
-
-    if (localStorage.getItem("did")) {
-      return localStorage.getItem("did");
-    }
-
-    return query.get("did");
   }, [search]);
 
   useProfile();
@@ -86,7 +92,7 @@ function Main({ children }: { children: React.ReactNode }) {
               clearOnEscape
             />
           </div>
-          {!did && (
+          {!jwt && (
             <div style={{ marginTop: 40 }}>
               <div style={{ marginBottom: 20 }}>
                 <div style={{ marginBottom: 15 }}>
