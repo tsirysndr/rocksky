@@ -11,7 +11,7 @@ function useProfile() {
     fetch(`${API_URL}${path}`, {
       method: "GET",
       headers: {
-        Authorization: `bearer ${localStorage.getItem("jwt")!}`,
+        Authorization: `Bearer ${localStorage.getItem("token")!}`,
       },
     }).then((res) => res.text());
 
@@ -38,7 +38,7 @@ function useProfile() {
     !data ||
     data === "Unauthorized" ||
     data === "Internal Server Error" ||
-    (error && localStorage.getItem("did"))
+    (error && localStorage.getItem("token"))
   ) {
     return { data: null, error, isLoading };
   }

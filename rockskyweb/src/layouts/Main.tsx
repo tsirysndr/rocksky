@@ -62,7 +62,6 @@ function Main({ children }: { children: React.ReactNode }) {
       },
       body: JSON.stringify({ handle }),
     });
-    console.log(response);
     const redirectUrl = response.url;
     if (redirectUrl) {
       window.location.href = redirectUrl; // Manually redirect the browser
