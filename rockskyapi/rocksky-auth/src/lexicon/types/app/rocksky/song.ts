@@ -23,6 +23,8 @@ export interface Record {
   year?: number
   /** The genre of the song. */
   genre?: string
+  /** The tags of the song. */
+  tags?: string[]
   /** The lyrics of the song. */
   lyrics?: string
   /** Informations about the song */

@@ -3,9 +3,11 @@
 	"version": "0.0.1",
 	"private": true,
 	"type": "module",
+	"module": "dist/index.js",
 	"scripts": {
 		"lexgen": "lex gen-server ./src/lexicon ./lexicons/*",
-		"dev": "tsx --watch ./src/index.ts"
+		"dev": "tsx --watch ./src/index.ts",
+		"build": "pkgroll"
 	},
 	"dependencies": {
 		"@atproto/api": "^0.13.31",
@@ -35,7 +37,13 @@
 		"@cloudflare/workers-types": "^4.20250124.3",
 		"@types/node": "^22.13.0",
 		"@types/service-worker-mock": "^2.0.1",
+		"pkgroll": "^2.6.1",
 		"tsx": "^4.19.2",
 		"wrangler": "^3.106.0"
+	},
+	"exports": {
+		".": {
+			"import": "./dist/index.js"
+		}
 	}
 }

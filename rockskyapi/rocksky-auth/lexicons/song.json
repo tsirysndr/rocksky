@@ -59,6 +59,15 @@
             "minLength": 1,
             "maxLength": 256
           },
+          "tags": {
+            "type": "array",
+            "description": "The tags of the song.",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
           "lyrics": {
             "type": "string",
             "description": "The lyrics of the song.",

@@ -54,6 +54,14 @@ export const schemaDict = {
               accept: ['image/png', 'image/jpeg'],
               maxSize: 2000000,
             },
+            tracks: {
+              type: 'array',
+              description: 'The tracks in the album.',
+              items: {
+                type: 'ref',
+                ref: 'lex:app.rocksky.song#record',
+              },
+            },
             youtubeLink: {
               type: 'string',
               description: 'The YouTube link of the album.',
@@ -108,6 +116,49 @@ export const schemaDict = {
               description: 'The picture of the artist.',
               accept: ['image/png', 'image/jpeg'],
               maxSize: 2000000,
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyPlaylist: {
+    lexicon: 1,
+    id: 'app.rocksky.playlist',
+    defs: {
+      main: {
+        type: 'record',
+        key: 'tid',
+        description: 'A declaration of a playlist.',
+        record: {
+          type: 'object',
+          required: ['name', 'tracks'],
+          properties: {
+            name: {
+              type: 'string',
+              description: 'The name of the playlist.',
+              minLength: 1,
+              maxLength: 512,
+            },
+            description: {
+              type: 'string',
+              description: 'The playlist description.',
+              minLength: 1,
+              maxLength: 256,
+            },
+            picture: {
+              type: 'blob',
+              description: 'The picture of the playlist.',
+              accept: ['image/png', 'image/jpeg'],
+              maxSize: 2000000,
+            },
+            tracks: {
+              type: 'array',
+              description: 'The tracks in the playlist.',
+              items: {
+                type: 'ref',
+                ref: 'lex:app.rocksky.song#record',
+              },
             },
           },
         },
@@ -276,6 +327,15 @@ export const schemaDict = {
               minLength: 1,
               maxLength: 256,
             },
+            tags: {
+              type: 'array',
+              description: 'The tags of the song.',
+              items: {
+                type: 'string',
+                minLength: 1,
+                maxLength: 256,
+              },
+            },
             lyrics: {
               type: 'string',
               description: 'The lyrics of the song.',
@@ -346,6 +406,7 @@ export const lexicons: Lexicons = new Lexicons(schemas)
 export const ids = {
   AppRockskyAlbum: 'app.rocksky.album',
   AppRockskyArtist: 'app.rocksky.artist',
+  AppRockskyPlaylist: 'app.rocksky.playlist',
   AppBskyActorProfile: 'app.bsky.actor.profile',
   AppRockskyRadio: 'app.rocksky.radio',
   AppRockskySong: 'app.rocksky.song',
