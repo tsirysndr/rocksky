@@ -3,11 +3,10 @@ import { Search } from "@styled-icons/evaicons-solid";
 import { Button } from "baseui/button";
 import { Input } from "baseui/input";
 import { LabelMedium } from "baseui/typography";
-import { useSetAtom } from "jotai";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useLocation } from "react-router";
-import { profileAtom } from "../atoms/profile";
 import { API_URL } from "../consts";
+import useProfile from "../hooks/useProfile";
 import Navbar from "./Navbar";
 
 const Container = styled.div`
@@ -29,7 +28,6 @@ const Flex = styled.div`
 function Main({ children }: { children: React.ReactNode }) {
   const [handle, setHandle] = useState("");
   const { search } = useLocation();
-  const setProfile = useSetAtom(profileAtom);
   const did = useMemo(() => {
     const query = new URLSearchParams(search);
     if (query.get("did")) {
@@ -44,29 +42,7 @@ function Main({ children }: { children: React.ReactNode }) {
     return query.get("did");
   }, [search]);
 
-  useEffect(() => {
-    const getProfile = async () => {
-      const response = await fetch(`${API_URL}/profile`, {
-        method: "GET",
-        headers: {
-          "session-did": did!,
-        },
-      });
-      if (response.status !== 200 && did) {
-        localStorage.removeItem("did");
-        window.location.href = "/";
-        return;
-      }
-      const data = await response.json();
-      setProfile({
-        avatar: `https://cdn.bsky.app/img/avatar/plain/${did}/${data.avatar.ref["$link"]}@jpeg`,
-        displayName: data.displayName,
-        handle: data.handle,
-      });
-    };
-
-    getProfile();
-  }, []);
+  useProfile();
 
   const onLogin = async () => {
     if (!handle.trim()) {

@@ -46,6 +46,7 @@
     "recharts": "^2.15.1",
     "styletron-engine-monolithic": "^1.0.0",
     "styletron-react": "^6.1.1",
+    "swr": "^2.3.0",
     "vitest": "^3.0.4"
   },
   "devDependencies": {
