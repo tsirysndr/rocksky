@@ -1,8 +1,8 @@
-import { Agent } from "@atproto/api";
 import { isValidHandle } from "@atproto/syntax";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { createAgent } from "lib/agent";
 import { createBidirectionalResolver, createIdResolver } from "lib/idResolver";
 import sqliteKv from "sqliteKv";
 import { createStorage } from "unstorage";
@@ -71,13 +71,12 @@ app.get("/", async (c) => {
 app.get("/profile", async (c) => {
   const did = c.req.header("session-did");
 
-  if (typeof did !== "string" || !did) {
+  if (typeof did !== "string" || !did || did === "null") {
     c.status(401);
     return c.text("Unauthorized");
   }
 
-  const oauthSession = await ctx.oauthClient.restore(did, true);
-  const agent = oauthSession ? new Agent(oauthSession) : null;
+  const agent = await createAgent(ctx.oauthClient, did);
 
   if (!agent) {
     c.status(401);

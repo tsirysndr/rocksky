@@ -1,7 +1,9 @@
 import styled from "@emotion/styled";
 import { Avatar } from "baseui/avatar";
+import { Tab, Tabs } from "baseui/tabs-motion";
 import { HeadingMedium, LabelLarge } from "baseui/typography";
 import { useAtomValue } from "jotai";
+import { Key, useState } from "react";
 import { profileAtom } from "../../atoms/profile";
 import Main from "../../layouts/Main";
 
@@ -9,10 +11,12 @@ const Group = styled.div`
   display: flex;
   flex-direction: row;
   margin-top: 20px;
+  margin-bottom: 50px;
 `;
 
 function Profile() {
   const profile = useAtomValue(profileAtom);
+  const [activeKey, setActiveKey] = useState<Key>("0");
 
   return (
     <>
@@ -43,6 +47,19 @@ function Profile() {
               </LabelLarge>
             </div>
           </Group>
+
+          <Tabs
+            activeKey={activeKey}
+            onChange={({ activeKey }) => {
+              setActiveKey(activeKey);
+            }}
+            activateOnFocus
+          >
+            <Tab title="Overview"></Tab>
+            <Tab title="Library"></Tab>
+            <Tab title="Playlists"></Tab>
+            <Tab title="Loved Tracks"></Tab>
+          </Tabs>
         </div>
       </Main>
     </>
