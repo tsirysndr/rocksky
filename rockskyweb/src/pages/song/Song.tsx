@@ -56,27 +56,36 @@ const Song = () => {
 
         <div style={{ marginTop: 150 }}>
           <LabelMedium marginBottom={"10px"}>Shoutbox</LabelMedium>
-          <Textarea
-            placeholder={`@${profile?.handle}, share your thoughts about this song`}
-            resize="vertical"
-            overrides={{
-              Input: {
-                style: {
-                  width: "770px",
-                },
-              },
-            }}
-            maxLength={1000}
-          />
-          <div
-            style={{
-              marginTop: 15,
-              display: "flex",
-              justifyContent: "flex-end",
-            }}
-          >
-            <Button disabled>Post Shout</Button>
-          </div>
+          {profile && (
+            <>
+              <Textarea
+                placeholder={`@${profile?.handle}, share your thoughts about this song`}
+                resize="vertical"
+                overrides={{
+                  Input: {
+                    style: {
+                      width: "770px",
+                    },
+                  },
+                }}
+                maxLength={1000}
+              />
+              <div
+                style={{
+                  marginTop: 15,
+                  display: "flex",
+                  justifyContent: "flex-end",
+                }}
+              >
+                <Button disabled>Post Shout</Button>
+              </div>
+            </>
+          )}
+          {!profile && (
+            <LabelMedium marginTop={"20px"}>
+              Want to share your thoughts? Sign in to leave a shout.
+            </LabelMedium>
+          )}
         </div>
       </div>
     </Main>
