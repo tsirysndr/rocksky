@@ -62,6 +62,7 @@ app.get("/oauth/callback", async (c) => {
       "Set-Cookie",
       `session-did=${did}; Path=/; HttpOnly; Secure; SameSite=Strict`
     );
+    c.header("token", "123");
   } catch (err) {
     console.error({ err }, "oauth callback failed");
     return c.redirect(`${env.FRONTEND_URL}?error=1`);
