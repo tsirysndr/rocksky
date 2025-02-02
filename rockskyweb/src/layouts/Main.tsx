@@ -32,6 +32,7 @@ function Main({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const query = new URLSearchParams(search);
+
     if (query.get("did")) {
       localStorage.setItem("did", query.get("did")!);
 
@@ -44,6 +45,21 @@ function Main({ children }: { children: React.ReactNode }) {
         });
         const data = await response.json();
         localStorage.setItem("token", data.token);
+
+        if (query.get("cli")) {
+          try {
+            await fetch("http://localhost:6996/token", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ token: data.token }),
+            });
+          } catch (e) {
+            console.error(e);
+          }
+        }
+
         window.location.href = "/";
       };
       fetchToken();
