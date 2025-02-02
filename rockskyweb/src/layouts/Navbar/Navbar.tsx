@@ -22,6 +22,7 @@ function Navbar() {
   const setProfile = useSetAtom(profileAtom);
   const profile = useAtomValue(profileAtom);
   const navigate = useNavigate();
+  const did = localStorage.getItem("did");
 
   return (
     <Container>
@@ -31,7 +32,7 @@ function Navbar() {
         </Link>
       </div>
 
-      {profile && (
+      {profile && did && (
         <StatefulPopover
           placement={PLACEMENT.bottomRight}
           overrides={{
@@ -63,7 +64,7 @@ function Navbar() {
                     case "signout":
                       setProfile(null);
                       localStorage.removeItem("did");
-                      navigate("/");
+                      window.location.href = "/";
                       break;
                     default:
                       break;

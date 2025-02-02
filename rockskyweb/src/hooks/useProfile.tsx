@@ -13,29 +13,33 @@ function useProfile() {
       headers: {
         "session-did": localStorage.getItem("did")!,
       },
-    }).then((res) => res.json());
+    }).then((res) => res.text());
 
   const { data, error, isLoading } = useSWR("/profile", fetcher);
 
-  if (error && localStorage.getItem("did")) {
-    localStorage.removeItem("did");
-    window.location.href = "/";
-  }
-
   useEffect(() => {
-    if (data) {
+    if (data !== "Unauthorized" && data) {
+      const profile = JSON.parse(data);
       setProfile({
         avatar: `https://cdn.bsky.app/img/avatar/plain/${localStorage.getItem(
           "did"
-        )}/${data.avatar.ref["$link"]}@jpeg`,
-        displayName: data.displayName,
-        handle: data.handle,
+        )}/${profile.avatar.ref["$link"]}@jpeg`,
+        displayName: profile.displayName,
+        handle: profile.handle,
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
-  return { data, error, isLoading };
+  if (
+    !data ||
+    data === "Unauthorized" ||
+    (error && localStorage.getItem("did"))
+  ) {
+    return { data: null, error, isLoading };
+  }
+
+  return { data: JSON.parse(data), error, isLoading };
 }
 
 export default useProfile;
