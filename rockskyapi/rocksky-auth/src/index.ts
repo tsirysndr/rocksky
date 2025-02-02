@@ -57,6 +57,7 @@ app.get("/oauth/callback", async (c) => {
   try {
     const { session } = await ctx.oauthClient.callback(params);
     did = session.did;
+    c.header("session-did", did);
   } catch (err) {
     console.error({ err }, "oauth callback failed");
     return c.redirect(`${env.FRONTEND_URL}?error=1`);

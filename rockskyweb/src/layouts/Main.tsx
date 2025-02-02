@@ -141,6 +141,7 @@ function Main({ children }: { children: React.ReactNode }) {
                     cursor: "pointer",
                     textAlign: "center",
                   }}
+                  target="_blank"
                 >
                   Sign up for Bluesky
                 </a>{" "}
