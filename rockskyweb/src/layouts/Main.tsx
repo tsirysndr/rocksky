@@ -37,7 +37,7 @@ function Main({ children }: { children: React.ReactNode }) {
         const response = await fetch(`${API_URL}/token`, {
           method: "GET",
           headers: {
-            "session-id": query.get("did")!,
+            "session-did": query.get("did")!,
           },
         });
         const data = await response.json();
