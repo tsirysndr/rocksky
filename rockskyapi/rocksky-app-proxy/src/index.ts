@@ -31,6 +31,10 @@ export default {
 			redirectToApi = true;
 		}
 
+		if (url.pathname === '/token') {
+			redirectToApi = true;
+		}
+
 		if (redirectToApi) {
 			const proxyUrl = new URL(request.url);
 			proxyUrl.host = 'api.rocksky.app';
