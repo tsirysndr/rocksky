@@ -25,6 +25,16 @@
   src: local('RockfordSans'), url(./assets/fonts/RockfordSans-ExtraBold.otf) format('opentype');
 }
 
+@font-face {
+  font-family: 'UberMove';
+  src: local('RockfordSans'), url(./assets/fonts/RockfordSans-Light.otf) format('opentype');
+}
+
+@font-face {
+  font-family: 'UberMoveText';
+  src: local('RockfordSans'), url(./assets/fonts/RockfordSans-Regular.otf) format('opentype');
+}
+
 body {
   margin: 0;
   font-family: RockfordSansLight, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',

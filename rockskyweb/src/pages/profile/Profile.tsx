@@ -6,6 +6,10 @@ import { useAtomValue } from "jotai";
 import { Key, useState } from "react";
 import { profileAtom } from "../../atoms/profile";
 import Main from "../../layouts/Main";
+import Library from "./library";
+import LovedTracks from "./lovedtracks";
+import Overview from "./overview";
+import Playlists from "./playlists";
 
 const Group = styled.div`
   display: flex;
@@ -55,10 +59,19 @@ function Profile() {
             }}
             activateOnFocus
           >
-            <Tab title="Overview"></Tab>
-            <Tab title="Library"></Tab>
-            <Tab title="Playlists"></Tab>
-            <Tab title="Loved Tracks"></Tab>
+            <Tab title="Overview">
+              <Overview />
+            </Tab>
+            <Tab title="Library">
+              <Library />
+            </Tab>
+            <Tab title="Playlists">
+              <Playlists />
+            </Tab>
+            <Tab title="Loved Tracks">
+              <LovedTracks />
+            </Tab>
+            <Tab title="Tags"></Tab>
           </Tabs>
         </div>
       </Main>
