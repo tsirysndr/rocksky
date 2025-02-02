@@ -7,6 +7,7 @@ import { useSetAtom } from "jotai";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router";
 import { profileAtom } from "../atoms/profile";
+import { API_URL } from "../consts";
 import Navbar from "./Navbar";
 
 const Container = styled.div`
@@ -45,7 +46,7 @@ function Main({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const getProfile = async () => {
-      const response = await fetch("http://localhost:8000/profile", {
+      const response = await fetch(`${API_URL}/profile`, {
         method: "GET",
         headers: {
           "session-did": did!,
@@ -72,7 +73,7 @@ function Main({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const response = await fetch("http://localhost:8000/login", {
+    const response = await fetch(`${API_URL}/login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -28,3 +28,6 @@ dist-ssr
 .dev.vars
 
 *storybook.log
+
+.env
+.env.prod

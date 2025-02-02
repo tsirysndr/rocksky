@@ -5,9 +5,15 @@ export async function createAgent(oauthClient: NodeOAuthClient, did: string) {
   let agent = null;
   let retry = 0;
   do {
-    const oauthSession = await oauthClient.restore(did);
-    agent = oauthSession ? new Agent(oauthSession) : null;
-    if (agent === null) {
+    try {
+      const oauthSession = await oauthClient.restore(did);
+      agent = oauthSession ? new Agent(oauthSession) : null;
+      if (agent === null) {
+        await new Promise((r) => setTimeout(r, 1000));
+        retry += 1;
+      }
+    } catch (e) {
+      console.log("Error creating agent");
       await new Promise((r) => setTimeout(r, 1000));
       retry += 1;
     }
