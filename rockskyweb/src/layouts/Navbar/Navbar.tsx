@@ -64,6 +64,7 @@ function Navbar() {
                     case "signout":
                       setProfile(null);
                       localStorage.removeItem("token");
+                      localStorage.removeItem("did");
                       window.location.href = "/";
                       break;
                     default:

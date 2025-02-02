@@ -33,6 +33,8 @@ function Main({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const query = new URLSearchParams(search);
     if (query.get("did")) {
+      localStorage.setItem("did", query.get("did")!);
+
       const fetchToken = async () => {
         const response = await fetch(`${API_URL}/token`, {
           method: "GET",
