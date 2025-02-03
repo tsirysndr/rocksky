@@ -31,7 +31,6 @@ function Main({ children }: { children: React.ReactNode }) {
   const jwt = localStorage.getItem("token");
 
   useEffect(() => {
-    console.log(">>", search);
     const query = new URLSearchParams(search);
 
     if (query.get("did")) {
@@ -47,12 +46,8 @@ function Main({ children }: { children: React.ReactNode }) {
           });
           const data = await response.json();
           localStorage.setItem("token", data.token);
-        } catch (e) {
-          console.error(e);
-        }
 
-        if (query.get("cli")) {
-          try {
+          if (query.get("cli")) {
             await fetch("http://localhost:6996/token", {
               method: "POST",
               headers: {
@@ -60,9 +55,13 @@ function Main({ children }: { children: React.ReactNode }) {
               },
               body: JSON.stringify({ token: data.token }),
             });
-          } catch (e) {
-            console.error(e);
           }
+
+          if (!jwt) {
+            window.location.href = "/";
+          }
+        } catch (e) {
+          console.error(e);
         }
 
         // window.location.href = "/";
