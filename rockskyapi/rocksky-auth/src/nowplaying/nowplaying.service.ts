@@ -71,7 +71,7 @@ export async function scrobbleTrack(
       "sha256",
       equals(
         createHash("sha256")
-          .update(`${track.album} - ${track.artist}`.toLowerCase())
+          .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
           .digest("hex")
       )
     )
@@ -89,7 +89,7 @@ export async function scrobbleTrack(
         : undefined,
       // compute sha256 (lowercase(title + artist))
       sha256: createHash("sha256")
-        .update(`${track.album} - ${track.artist}`.toLowerCase())
+        .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
         .digest("hex"),
     }
   );
