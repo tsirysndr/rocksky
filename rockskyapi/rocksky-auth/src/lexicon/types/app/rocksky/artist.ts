@@ -13,6 +13,14 @@ export interface Record {
   bio: string
   /** The picture of the artist. */
   picture?: BlobRef
+  /** The tags of the artist. */
+  tags?: string[]
+  /** The birth date of the artist. */
+  born?: string
+  /** The death date of the artist. */
+  died?: string
+  /** The birth place of the artist. */
+  bornIn?: string
   [k: string]: unknown
 }
 

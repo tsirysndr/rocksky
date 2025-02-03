@@ -8,6 +8,91 @@ import type {
 
 const tables = [
   {
+    name: "album_tags",
+    checkConstraints: {
+      album_tags_xata_id_length_xata_id: {
+        name: "album_tags_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {
+      album_id_link: {
+        name: "album_id_link",
+        columns: ["album_id"],
+        referencedTable: "albums",
+        referencedColumns: ["xata_id"],
+        onDelete: "SET NULL",
+      },
+      tag_id_link: {
+        name: "tag_id_link",
+        columns: ["tag_id"],
+        referencedTable: "tags",
+        referencedColumns: ["xata_id"],
+        onDelete: "SET NULL",
+      },
+    },
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_album_tags_xata_id_key: {
+        name: "_pgroll_new_album_tags_xata_id_key",
+        columns: ["xata_id"],
+      },
+    },
+    columns: [
+      {
+        name: "album_id",
+        type: "link",
+        link: { table: "albums" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"albums"}',
+      },
+      {
+        name: "tag_id",
+        type: "link",
+        link: { table: "tags" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"tags"}',
+      },
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
     name: "album_tracks",
     checkConstraints: {
       album_tracks_xata_id_length_xata_id: {
@@ -306,6 +391,91 @@ const tables = [
     ],
   },
   {
+    name: "artist_tags",
+    checkConstraints: {
+      artist_tags_xata_id_length_xata_id: {
+        name: "artist_tags_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {
+      artist_id_link: {
+        name: "artist_id_link",
+        columns: ["artist_id"],
+        referencedTable: "artists",
+        referencedColumns: ["xata_id"],
+        onDelete: "SET NULL",
+      },
+      tag_id_link: {
+        name: "tag_id_link",
+        columns: ["tag_id"],
+        referencedTable: "tags",
+        referencedColumns: ["xata_id"],
+        onDelete: "SET NULL",
+      },
+    },
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_artist_tags_xata_id_key: {
+        name: "_pgroll_new_artist_tags_xata_id_key",
+        columns: ["xata_id"],
+      },
+    },
+    columns: [
+      {
+        name: "artist_id",
+        type: "link",
+        link: { table: "artists" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"artists"}',
+      },
+      {
+        name: "tag_id",
+        type: "link",
+        link: { table: "tags" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"tags"}',
+      },
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
     name: "artist_tracks",
     checkConstraints: {
       artist_tracks_xata_id_length_xata_id: {
@@ -406,6 +576,10 @@ const tables = [
         name: "_pgroll_new_artists_xata_id_key",
         columns: ["xata_id"],
       },
+      artists__pgroll_new_sha256_key: {
+        name: "artists__pgroll_new_sha256_key",
+        columns: ["sha256"],
+      },
     },
     columns: [
       {
@@ -417,10 +591,42 @@ const tables = [
         comment: "",
       },
       {
+        name: "born",
+        type: "datetime",
+        notNull: false,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "born_in",
+        type: "text",
+        notNull: false,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "died",
+        type: "datetime",
+        notNull: false,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
         name: "name",
         type: "text",
         notNull: true,
         unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "sha256",
+        type: "text",
+        notNull: true,
+        unique: true,
         defaultValue: null,
         comment: "",
       },
@@ -1186,8 +1392,40 @@ const tables = [
         comment: "",
       },
       {
+        name: "composer",
+        type: "text",
+        notNull: false,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "disc_number",
+        type: "int",
+        notNull: false,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
         name: "duration",
         type: "int",
+        notNull: false,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "genre",
+        type: "text",
+        notNull: false,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "lyrics",
+        type: "text",
         notNull: false,
         unique: false,
         defaultValue: null,
@@ -1465,6 +1703,9 @@ const tables = [
 export type SchemaTables = typeof tables;
 export type InferredTypes = SchemaInference<SchemaTables>;
 
+export type AlbumTags = InferredTypes["album_tags"];
+export type AlbumTagsRecord = AlbumTags & XataRecord;
+
 export type AlbumTracks = InferredTypes["album_tracks"];
 export type AlbumTracksRecord = AlbumTracks & XataRecord;
 
@@ -1473,6 +1714,9 @@ export type AlbumsRecord = Albums & XataRecord;
 
 export type ArtistAlbums = InferredTypes["artist_albums"];
 export type ArtistAlbumsRecord = ArtistAlbums & XataRecord;
+
+export type ArtistTags = InferredTypes["artist_tags"];
+export type ArtistTagsRecord = ArtistTags & XataRecord;
 
 export type ArtistTracks = InferredTypes["artist_tracks"];
 export type ArtistTracksRecord = ArtistTracks & XataRecord;
@@ -1514,9 +1758,11 @@ export type Users = InferredTypes["users"];
 export type UsersRecord = Users & XataRecord;
 
 export type DatabaseSchema = {
+  album_tags: AlbumTagsRecord;
   album_tracks: AlbumTracksRecord;
   albums: AlbumsRecord;
   artist_albums: ArtistAlbumsRecord;
+  artist_tags: ArtistTagsRecord;
   artist_tracks: ArtistTracksRecord;
   artists: ArtistsRecord;
   loved_tracks: LovedTracksRecord;

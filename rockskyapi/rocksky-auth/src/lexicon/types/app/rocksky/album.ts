@@ -22,6 +22,8 @@ export interface Record {
   genre?: string
   /** The album art of the album. */
   albumArt?: BlobRef
+  /** The tags of the album. */
+  tags?: string[]
   /** The tracks in the album. */
   tracks?: AppRockskySong.Record[]
   /** The YouTube link of the album. */

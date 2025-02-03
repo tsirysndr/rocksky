@@ -1,41 +1,20 @@
 import { isValidHandle } from "@atproto/syntax";
 import { serve } from "@hono/node-server";
+import { equals } from "@xata.io/client";
+import { ctx } from "context";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import jwt from "jsonwebtoken";
 import { createAgent } from "lib/agent";
-import { createBidirectionalResolver, createIdResolver } from "lib/idResolver";
-import sqliteKv from "sqliteKv";
-import { createStorage } from "unstorage";
+import { scrobbleTrack } from "nowplaying/nowplaying.service";
+import { trackSchema } from "types/track";
 import { URLSearchParams } from "url";
-import { getXataClient } from "xata";
-import { createClient } from "./auth/client";
-import { createDb, migrateToLatest } from "./db";
 import * as Profile from "./lexicon/types/app/bsky/actor/profile";
 import { env } from "./lib/env";
 
 type Session = { did: string };
 
 const app = new Hono();
-
-const { DB_PATH } = env;
-const db = createDb(DB_PATH);
-await migrateToLatest(db);
-
-const kv = createStorage({
-  driver: sqliteKv({ location: env.KV_DB_PATH, table: "kv" }),
-});
-
-const baseIdResolver = createIdResolver(kv);
-
-const client = getXataClient();
-
-const ctx = {
-  oauthClient: await createClient(db),
-  resolver: createBidirectionalResolver(baseIdResolver),
-  kv: new Map<string, string>(),
-  client,
-};
 
 app.use(cors());
 
@@ -159,6 +138,35 @@ app.get("/token", async (c) => {
   ctx.kv.delete(did);
 
   return c.json({ token });
+});
+
+app.post("/now-playing", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+
+  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const body = await c.req.json();
+  const parsed = trackSchema.safeParse(body);
+
+  if (parsed.error) {
+    c.status(400);
+    return c.text("Invalid track data: " + parsed.error.message);
+  }
+  const track = parsed.data;
+  await scrobbleTrack(ctx, track, user);
+
+  return c.json({ status: "ok" });
 });
 
 serve({

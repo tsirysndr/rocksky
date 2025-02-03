@@ -54,6 +54,15 @@ export const schemaDict = {
               accept: ['image/png', 'image/jpeg'],
               maxSize: 2000000,
             },
+            tags: {
+              type: 'array',
+              description: 'The tags of the album.',
+              items: {
+                type: 'string',
+                minLength: 1,
+                maxLength: 256,
+              },
+            },
             tracks: {
               type: 'array',
               description: 'The tracks in the album.',
@@ -116,6 +125,31 @@ export const schemaDict = {
               description: 'The picture of the artist.',
               accept: ['image/png', 'image/jpeg'],
               maxSize: 2000000,
+            },
+            tags: {
+              type: 'array',
+              description: 'The tags of the artist.',
+              items: {
+                type: 'string',
+                minLength: 1,
+                maxLength: 256,
+              },
+            },
+            born: {
+              type: 'string',
+              description: 'The birth date of the artist.',
+              format: 'datetime',
+            },
+            died: {
+              type: 'string',
+              description: 'The death date of the artist.',
+              format: 'datetime',
+            },
+            bornIn: {
+              type: 'string',
+              description: 'The birth place of the artist.',
+              minLength: 1,
+              maxLength: 256,
             },
           },
         },
@@ -335,6 +369,12 @@ export const schemaDict = {
                 minLength: 1,
                 maxLength: 256,
               },
+            },
+            composer: {
+              type: 'string',
+              description: 'The composer of the song.',
+              minLength: 1,
+              maxLength: 256,
             },
             lyrics: {
               type: 'string',

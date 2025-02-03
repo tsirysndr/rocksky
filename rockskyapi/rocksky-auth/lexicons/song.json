@@ -68,6 +68,12 @@
               "maxLength": 256
             }
           },
+          "composer": {
+            "type": "string",
+            "description": "The composer of the song.",
+            "minLength": 1,
+            "maxLength": 256
+          },
           "lyrics": {
             "type": "string",
             "description": "The lyrics of the song.",

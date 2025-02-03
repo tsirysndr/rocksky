@@ -54,6 +54,15 @@
             ],
             "maxSize": 2000000
           },
+          "tags": {
+            "type": "array",
+            "description": "The tags of the album.",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
           "tracks": {
             "type": "array",
             "description": "The tracks in the album.",
