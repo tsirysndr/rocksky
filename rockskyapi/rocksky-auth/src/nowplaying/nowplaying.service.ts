@@ -81,7 +81,7 @@ export async function scrobbleTrack(
     existingAlbum?.xata_id,
     {
       title: track.album,
-      artist: track.artist,
+      artist: track.albumArtist,
       album_art: track.albumArt,
       year: track.year,
       release_date: track.releaseDate
