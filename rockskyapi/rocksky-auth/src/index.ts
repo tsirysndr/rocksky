@@ -8,6 +8,7 @@ import { createBidirectionalResolver, createIdResolver } from "lib/idResolver";
 import sqliteKv from "sqliteKv";
 import { createStorage } from "unstorage";
 import { URLSearchParams } from "url";
+import { getXataClient } from "xata";
 import { createClient } from "./auth/client";
 import { createDb, migrateToLatest } from "./db";
 import * as Profile from "./lexicon/types/app/bsky/actor/profile";
@@ -27,10 +28,13 @@ const kv = createStorage({
 
 const baseIdResolver = createIdResolver(kv);
 
+const client = getXataClient();
+
 const ctx = {
   oauthClient: await createClient(db),
   resolver: createBidirectionalResolver(baseIdResolver),
   kv: new Map<string, string>(),
+  client,
 };
 
 app.use(cors());
@@ -115,6 +119,22 @@ app.get("/profile", async (c) => {
     Profile.validateRecord(profileRecord.value).success
       ? { ...profileRecord.value, handle }
       : {};
+
+  if (profile.handle) {
+    try {
+      await ctx.client.db.users.create({
+        did,
+        handle,
+        display_name: profile.displayName,
+        avatar: `https://cdn.bsky.app/img/avatar/plain/${did}/${profile.avatar.ref.toString()}@jpeg`,
+      });
+    } catch (e) {
+      if (!e.message.includes("invalid record: column [did]: is not unique")) {
+        console.error(e.message);
+      }
+    }
+  }
+
   return c.json(profile);
 });
 

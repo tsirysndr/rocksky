@@ -1,0 +1,20 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cug2qv634skj7mihofo0",
+    "operations": [
+      {
+        "drop_column": {
+          "down": "''",
+          "table": "tracks",
+          "column": "artist_id"
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cug2qv634skj7mihofo0",
+  "parent": "mig_cug2qq634skj7mihofn0",
+  "schema": "public",
+  "startedAt": "2025-02-03T02:44:13.490337Z"
+}

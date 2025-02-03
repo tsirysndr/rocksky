@@ -31,6 +31,18 @@ function useProfile() {
         handle: profile.handle,
       });
     }
+
+    if (
+      !data ||
+      data === "Unauthorized" ||
+      data === "Internal Server Error" ||
+      (error && localStorage.getItem("token"))
+    ) {
+      if (data === "Unauthorized") {
+        localStorage.removeItem("token");
+      }
+    }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 

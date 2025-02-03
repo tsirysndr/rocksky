@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cug2mi6trfea4ndapdcg",
+    "operations": [
+      {
+        "add_column": {
+          "table": "tracks",
+          "column": {
+            "name": "track_number",
+            "type": "int",
+            "comment": "",
+            "nullable": true
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cug2mi6trfea4ndapdcg",
+  "parent": "mig_cug2m1etrfea4ndapd9g",
+  "schema": "public",
+  "startedAt": "2025-02-03T02:34:49.444796Z"
+}

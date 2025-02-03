@@ -31,20 +31,25 @@ function Main({ children }: { children: React.ReactNode }) {
   const jwt = localStorage.getItem("token");
 
   useEffect(() => {
+    console.log(">>", search);
     const query = new URLSearchParams(search);
 
     if (query.get("did")) {
       localStorage.setItem("did", query.get("did")!);
 
       const fetchToken = async () => {
-        const response = await fetch(`${API_URL}/token`, {
-          method: "GET",
-          headers: {
-            "session-did": query.get("did")!,
-          },
-        });
-        const data = await response.json();
-        localStorage.setItem("token", data.token);
+        try {
+          const response = await fetch(`${API_URL}/token`, {
+            method: "GET",
+            headers: {
+              "session-did": query.get("did")!,
+            },
+          });
+          const data = await response.json();
+          localStorage.setItem("token", data.token);
+        } catch (e) {
+          console.error(e);
+        }
 
         if (query.get("cli")) {
           try {
@@ -60,7 +65,7 @@ function Main({ children }: { children: React.ReactNode }) {
           }
         }
 
-        window.location.href = "/";
+        // window.location.href = "/";
       };
       fetchToken();
     }

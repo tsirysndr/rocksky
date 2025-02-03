@@ -1,5 +1,4 @@
 import { BaseProvider, createLightTheme } from "baseui";
-import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { Client as Styletron } from "styletron-engine-monolithic";
 import { Provider as StyletronProvider } from "styletron-react";
@@ -14,11 +13,11 @@ const theme = createLightTheme(primitives);
 const engine = new Styletron();
 
 createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <StyletronProvider value={engine}>
-      <BaseProvider theme={theme}>
-        <App />
-      </BaseProvider>
-    </StyletronProvider>
-  </StrictMode>
+  //<StrictMode>
+  <StyletronProvider value={engine}>
+    <BaseProvider theme={theme}>
+      <App />
+    </BaseProvider>
+  </StyletronProvider>
+  //</StrictMode>
 );
