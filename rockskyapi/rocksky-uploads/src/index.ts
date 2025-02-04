@@ -32,7 +32,7 @@ export default {
 			await jwt.verify(token, env.JWT_SECRET);
 
 			const fileBuffer = await file.arrayBuffer();
-			const fileName = file.name;
+			const fileName = file.name.includes('/') ? file.name.split('/').pop() : file.name;
 
 			await env.ROCKSKY_BUCKET.put(`covers/${fileName}`, fileBuffer);
 
