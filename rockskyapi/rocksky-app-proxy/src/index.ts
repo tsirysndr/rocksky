@@ -15,36 +15,33 @@ export default {
 	async fetch(request, env, ctx): Promise<Response> {
 		const url = new URL(request.url);
 		let redirectToApi = false;
-		if (url.pathname === '/login') {
-			redirectToApi = true;
-		}
 
-		if (url.pathname === '/profile') {
-			redirectToApi = true;
-		}
+		const API_ROUTES = [
+			"/login",
+			"/profile",
+			"/client-metadata.json",
+			"/token",
+			"/now-playing",
+		];
 
-		if (url.pathname.startsWith('/oauth/callback')) {
-			redirectToApi = true;
-		}
-
-		if (url.pathname === '/client-metadata.json') {
-			redirectToApi = true;
-		}
-
-		if (url.pathname === '/token') {
+		if (
+			API_ROUTES.includes(
+				url.pathname,
+			) || url.pathname.startsWith("/oauth/callback")
+		) {
 			redirectToApi = true;
 		}
 
 		if (redirectToApi) {
 			const proxyUrl = new URL(request.url);
-			proxyUrl.host = 'api.rocksky.app';
-			proxyUrl.hostname = 'api.rocksky.app';
+			proxyUrl.host = "api.rocksky.app";
+			proxyUrl.hostname = "api.rocksky.app";
 			return fetch(proxyUrl, request) as any;
 		}
 
 		const proxyUrl = new URL(request.url);
-		proxyUrl.host = 'rocksky.pages.dev';
-		proxyUrl.hostname = 'rocksky.pages.dev';
+		proxyUrl.host = "rocksky.pages.dev";
+		proxyUrl.hostname = "rocksky.pages.dev";
 		return fetch(proxyUrl, request) as any;
 	},
 } satisfies ExportedHandler<Env>;
