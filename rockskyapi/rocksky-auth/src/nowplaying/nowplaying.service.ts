@@ -42,6 +42,7 @@ export async function scrobbleTrack(
           `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
         )
         .digest("hex"),
+      copyright_message: track.copyrightMessage,
     }
   );
 

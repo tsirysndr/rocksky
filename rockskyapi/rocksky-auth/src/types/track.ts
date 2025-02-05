@@ -19,6 +19,7 @@ export const trackSchema = z.object({
   discNumber: z.number().optional().nullable(),
   lyrics: z.string().optional(),
   composer: z.string().optional(),
+  copyrightMessage: z.string().optional(),
 });
 
 export type Track = z.infer<typeof trackSchema>;
