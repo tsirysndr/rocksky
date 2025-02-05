@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import jwt from "jsonwebtoken";
 import { createAgent } from "lib/agent";
+import { likeTrack } from "lovedtracks/lovedtracks.service";
 import { scrobbleTrack } from "nowplaying/nowplaying.service";
 import { trackSchema } from "types/track";
 import { URLSearchParams } from "url";
@@ -165,6 +166,35 @@ app.post("/now-playing", async (c) => {
   }
   const track = parsed.data;
   await scrobbleTrack(ctx, track, user);
+
+  return c.json({ status: "ok" });
+});
+
+app.post("/likes", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+
+  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const body = await c.req.json();
+  const parsed = trackSchema.safeParse(body);
+
+  if (parsed.error) {
+    c.status(400);
+    return c.text("Invalid track data: " + parsed.error.message);
+  }
+  const track = parsed.data;
+  await likeTrack(ctx, track, user);
 
   return c.json({ status: "ok" });
 });
