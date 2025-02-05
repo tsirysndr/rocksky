@@ -1781,8 +1781,7 @@ export type DatabaseSchema = {
 const DatabaseClient = buildClient();
 
 const defaultOptions = {
-  databaseURL:
-    "https://Tsiry-Sandratraina-s-workspace-b1ficn.us-east-1.xata.sh/db/rocksky",
+  databaseURL: "https://xata.rocksky.app/db/rocksky",
 };
 
 export class XataClient extends DatabaseClient<DatabaseSchema> {
