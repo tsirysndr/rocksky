@@ -139,3 +139,24 @@ export async function likeTrack(ctx: Context, track: Track, user) {
   );
   return created;
 }
+
+export async function unLikeTrack(ctx: Context, trackSha256: string, user) {
+  const track = await ctx.client.db.tracks
+    .filter("sha256", equals(trackSha256))
+    .getFirst();
+
+  if (!track) {
+    return;
+  }
+
+  const lovedTrack = await ctx.client.db.loved_tracks
+    .filter("user_id", equals(user.xata_id))
+    .filter("track_id", equals(track.xata_id))
+    .getFirst();
+
+  if (!lovedTrack) {
+    return;
+  }
+
+  await ctx.client.db.loved_tracks.delete(lovedTrack.xata_id);
+}

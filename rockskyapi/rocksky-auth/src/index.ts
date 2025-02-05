@@ -6,7 +6,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import jwt from "jsonwebtoken";
 import { createAgent } from "lib/agent";
-import { likeTrack } from "lovedtracks/lovedtracks.service";
+import { likeTrack, unLikeTrack } from "lovedtracks/lovedtracks.service";
 import { scrobbleTrack } from "nowplaying/nowplaying.service";
 import { trackSchema } from "types/track";
 import { URLSearchParams } from "url";
@@ -196,6 +196,27 @@ app.post("/likes", async (c) => {
   const track = parsed.data;
   await likeTrack(ctx, track, user);
 
+  return c.json({ status: "ok" });
+});
+
+app.delete("/likes/:sha256", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+
+  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const sha256 = c.req.param("sha256");
+  await unLikeTrack(ctx, sha256, user);
   return c.json({ status: "ok" });
 });
 
