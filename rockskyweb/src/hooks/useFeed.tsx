@@ -7,16 +7,14 @@ function useFeed() {
       method: "GET",
     }).then((res) => res.json());
 
-  const { data, error, isLoading } = useSWR(
-    "/public/scrobbles?size=100",
-    fetcher
-  );
+  const { data } = useSWR("/public/scrobbles?size=100", fetcher);
   const getFeed = () => {
     return data || [];
   };
 
   const getFeedById = (id: string) => {
-    return data.find((song) => song.sha256 === id);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return data.find((song: any) => song.sha256 === id);
   };
 
   return {

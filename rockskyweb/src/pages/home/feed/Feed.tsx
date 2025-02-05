@@ -29,22 +29,25 @@ function Feed() {
           flexGridColumnGap="scale800"
           flexGridRowGap="scale800"
         >
-          {data.map((song) => (
-            <FlexGridItem {...itemProps} key={song.id}>
-              <Link to={`/songs/${song.sha256}`}>
-                <SongCover
-                  cover={song.cover}
-                  artist={song.artist}
-                  title={song.title}
-                />
-              </Link>
-              <LabelMedium color={"#ff2876"}>@{song.user}</LabelMedium>
-              <LabelMedium>is listening to this song</LabelMedium>
-              <LabelMedium color="#42576ca6">
-                {dayjs(song.date).fromNow()}
-              </LabelMedium>
-            </FlexGridItem>
-          ))}
+          {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            data.map((song: any) => (
+              <FlexGridItem {...itemProps} key={song.id}>
+                <Link to={`/songs/${song.sha256}`}>
+                  <SongCover
+                    cover={song.cover}
+                    artist={song.artist}
+                    title={song.title}
+                  />
+                </Link>
+                <LabelMedium color={"#ff2876"}>@{song.user}</LabelMedium>
+                <LabelMedium>is listening to this song</LabelMedium>
+                <LabelMedium color="#42576ca6">
+                  {dayjs(song.date).fromNow()}
+                </LabelMedium>
+              </FlexGridItem>
+            ))
+          }
         </FlexGrid>
       </div>
     </>

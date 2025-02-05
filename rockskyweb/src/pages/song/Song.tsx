@@ -47,12 +47,14 @@ const Song = () => {
             </HeadingXSmall>
           </div>
         </Group>
-
-        {song?.tags.map((tag) => (
-          <Tag closeable={false} kind={KIND.purple}>
-            {tag}
-          </Tag>
-        ))}
+        {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          song?.tags.map((tag: any) => (
+            <Tag closeable={false} kind={KIND.purple}>
+              {tag}
+            </Tag>
+          ))
+        }
 
         <div style={{ marginTop: 150 }}>
           <LabelMedium marginBottom={"10px"}>Shoutbox</LabelMedium>
