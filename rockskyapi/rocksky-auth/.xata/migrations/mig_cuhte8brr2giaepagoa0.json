@@ -1,0 +1,30 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cuhte8brr2giaepagoa0",
+    "operations": [
+      {
+        "add_column": {
+          "table": "scrobbles",
+          "column": {
+            "name": "artist_id",
+            "type": "text",
+            "comment": "{\"xata.link\":\"artists\"}",
+            "nullable": true,
+            "references": {
+              "name": "artist_id_link",
+              "table": "artists",
+              "column": "xata_id",
+              "on_delete": "SET NULL"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cuhte8brr2giaepagoa0",
+  "parent": "mig_cuhtdmjrr2giaepago90",
+  "schema": "public",
+  "startedAt": "2025-02-05T21:24:51.118697Z"
+}

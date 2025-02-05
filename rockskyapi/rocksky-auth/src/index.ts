@@ -503,6 +503,176 @@ app.get("/albums/:sha256/tracks", async (c) => {
   return c.json(tracks);
 });
 
+app.get("/users/:handle/likes", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+
+  const currentUser = await ctx.client.db.users
+    .filter("did", equals(did))
+    .getFirst();
+  if (!currentUser) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const handle = c.req.param("handle");
+  const user = await ctx.client.db.users
+    .filter("handle", equals(handle))
+    .getFirst();
+
+  if (!user) {
+    c.status(404);
+    return c.text("User not found");
+  }
+
+  const size = +c.req.query("size") || 10;
+  const offset = +c.req.query("offset") || 0;
+
+  const lovedTracks = await getLovedTracks(ctx, user, size, offset);
+  return c.json(lovedTracks);
+});
+
+app.get("/users/:handle/scrobbles", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+
+  const currentUser = await ctx.client.db.users
+    .filter("did", equals(did))
+    .getFirst();
+  if (!currentUser) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const handle = c.req.param("handle");
+  const user = await ctx.client.db.users
+    .filter("handle", equals(handle))
+    .getFirst();
+
+  if (!user) {
+    c.status(404);
+    return c.text("User not found");
+  }
+
+  const size = +c.req.query("size") || 10;
+  const offset = +c.req.query("offset") || 0;
+
+  const scrobbles = await ctx.client.db.scrobbles
+    .select(["track_id.*"])
+    .filter("user_id", equals(user.xata_id))
+    .sort("xata_createdat", "desc")
+    .getPaginated({
+      pagination: {
+        size,
+        offset,
+      },
+    });
+
+  return c.json(scrobbles.records);
+});
+
+app.get("/users/:handle/albums", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+
+  const currentUser = await ctx.client.db.users
+    .filter("did", equals(did))
+    .getFirst();
+  if (!currentUser) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const handle = c.req.param("handle");
+  const user = await ctx.client.db.users
+    .filter("handle", equals(handle))
+    .getFirst();
+
+  if (!user) {
+    c.status(404);
+    return c.text("User not found");
+  }
+
+  const size = +c.req.query("size") || 10;
+  const offset = +c.req.query("offset") || 0;
+
+  const albums = await ctx.client.db.scrobbles
+    .select(["album_id.*"])
+    .filter("user_id", equals(user.xata_id))
+    .sort("xata_createdat", "desc")
+    .getPaginated({
+      pagination: {
+        size,
+        offset,
+      },
+    });
+
+  return c.json(albums.records);
+});
+
+app.get("/users/:handle/artists", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+
+  const currentUser = await ctx.client.db.users
+    .filter("did", equals(did))
+    .getFirst();
+  if (!currentUser) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const handle = c.req.param("handle");
+  const user = await ctx.client.db.users
+    .filter("handle", equals(handle))
+    .getFirst();
+
+  if (!user) {
+    c.status(404);
+    return c.text("User not found");
+  }
+
+  const size = +c.req.query("size") || 10;
+  const offset = +c.req.query("offset") || 0;
+
+  const artists = await ctx.client.db.scrobbles
+    .select(["artist_id.*"])
+    .filter("user_id", equals(user.xata_id))
+    .sort("xata_createdat", "desc")
+    .getPaginated({
+      pagination: {
+        size,
+        offset,
+      },
+    });
+
+  return c.json(artists.records);
+});
+
 serve({
   fetch: app.fetch,
   port: 8000,

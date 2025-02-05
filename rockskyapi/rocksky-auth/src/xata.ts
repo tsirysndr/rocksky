@@ -1024,6 +1024,20 @@ const tables = [
       },
     },
     foreignKeys: {
+      album_id_link: {
+        name: "album_id_link",
+        columns: ["album_id"],
+        referencedTable: "albums",
+        referencedColumns: ["xata_id"],
+        onDelete: "SET NULL",
+      },
+      artist_id_link: {
+        name: "artist_id_link",
+        columns: ["artist_id"],
+        referencedTable: "artists",
+        referencedColumns: ["xata_id"],
+        onDelete: "SET NULL",
+      },
       track_id_link: {
         name: "track_id_link",
         columns: ["track_id"],
@@ -1047,6 +1061,24 @@ const tables = [
       },
     },
     columns: [
+      {
+        name: "album_id",
+        type: "link",
+        link: { table: "albums" },
+        notNull: false,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"albums"}',
+      },
+      {
+        name: "artist_id",
+        type: "link",
+        link: { table: "artists" },
+        notNull: false,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"artists"}',
+      },
       {
         name: "track_id",
         type: "link",

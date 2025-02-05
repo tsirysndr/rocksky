@@ -134,6 +134,8 @@ export async function scrobbleTrack(
   const scrobble = await ctx.client.db.scrobbles.create({
     user_id: user.xata_id,
     track_id,
+    album_id,
+    artist_id,
   });
 
   return scrobble;
