@@ -168,6 +168,7 @@ export async function getLovedTracks(
   offset = 0
 ) {
   const lovedTracks = await ctx.client.db.loved_tracks
+    .select(["track_id.*"])
     .filter("user_id", equals(user.xata_id))
     .sort("xata_createdat", "desc")
     .getPaginated({

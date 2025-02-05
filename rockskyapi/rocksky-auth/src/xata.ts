@@ -623,6 +623,14 @@ const tables = [
         comment: "",
       },
       {
+        name: "picture",
+        type: "text",
+        notNull: false,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
         name: "sha256",
         type: "text",
         notNull: true,
