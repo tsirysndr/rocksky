@@ -6,7 +6,11 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import jwt from "jsonwebtoken";
 import { createAgent } from "lib/agent";
-import { likeTrack, unLikeTrack } from "lovedtracks/lovedtracks.service";
+import {
+  getLovedTracks,
+  likeTrack,
+  unLikeTrack,
+} from "lovedtracks/lovedtracks.service";
 import { scrobbleTrack } from "nowplaying/nowplaying.service";
 import { trackSchema } from "types/track";
 import { URLSearchParams } from "url";
@@ -218,6 +222,61 @@ app.delete("/likes/:sha256", async (c) => {
   const sha256 = c.req.param("sha256");
   await unLikeTrack(ctx, sha256, user);
   return c.json({ status: "ok" });
+});
+
+app.get("/likes", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+
+  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const size = +c.req.param("size") || 10;
+  const offset = +c.req.param("offset") || 0;
+
+  const lovedTracks = await getLovedTracks(ctx, user, size, offset);
+  return c.json(lovedTracks);
+});
+
+app.get("/scrobbles", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+
+  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const size = +c.req.param("size") || 10;
+  const offset = +c.req.param("offset") || 0;
+
+  const scrobbles = await ctx.client.db.scrobbles
+    .filter("user_id", equals(user.xata_id))
+    .sort("xata_createdat", "desc")
+    .getPaginated({
+      pagination: {
+        size,
+        offset,
+      },
+    });
+
+  return c.json(scrobbles.records);
 });
 
 serve({

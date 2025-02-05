@@ -160,3 +160,22 @@ export async function unLikeTrack(ctx: Context, trackSha256: string, user) {
 
   await ctx.client.db.loved_tracks.delete(lovedTrack.xata_id);
 }
+
+export async function getLovedTracks(
+  ctx: Context,
+  user,
+  size = 10,
+  offset = 0
+) {
+  const lovedTracks = await ctx.client.db.loved_tracks
+    .filter("user_id", equals(user.xata_id))
+    .sort("xata_createdat", "desc")
+    .getPaginated({
+      pagination: {
+        size,
+        offset,
+      },
+    });
+
+  return lovedTracks.records;
+}
