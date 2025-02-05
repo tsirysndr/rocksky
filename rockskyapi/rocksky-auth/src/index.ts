@@ -247,6 +247,35 @@ app.get("/likes", async (c) => {
   return c.json(lovedTracks);
 });
 
+app.get("/public/scrobbles", async (c) => {
+  const size = +c.req.query("size") || 10;
+  const offset = +c.req.query("offset") || 0;
+
+  const scrobbles = await ctx.client.db.scrobbles
+    .select(["track_id.*", "user_id.*", "xata_createdat"])
+    .sort("xata_createdat", "desc")
+    .getPaginated({
+      pagination: {
+        size,
+        offset,
+      },
+    });
+
+  return c.json(
+    scrobbles.records.map((item) => ({
+      cover: item.track_id.album_art,
+      artist: item.track_id.artist,
+      title: item.track_id.title,
+      date: item.xata_createdat,
+      user: item.user_id.handle,
+      tags: [],
+      listeners: 1,
+      sha256: item.track_id.sha256,
+      id: item.xata_id,
+    }))
+  );
+});
+
 app.get("/scrobbles", async (c) => {
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
@@ -263,8 +292,8 @@ app.get("/scrobbles", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const size = +c.req.param("size") || 10;
-  const offset = +c.req.param("offset") || 0;
+  const size = +c.req.query("size") || 10;
+  const offset = +c.req.query("offset") || 0;
 
   const scrobbles = await ctx.client.db.scrobbles
     .select(["track_id.*"])
