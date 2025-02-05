@@ -240,8 +240,8 @@ app.get("/likes", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const size = +c.req.param("size") || 10;
-  const offset = +c.req.param("offset") || 0;
+  const size = +c.req.query("size") || 10;
+  const offset = +c.req.query("offset") || 0;
 
   const lovedTracks = await getLovedTracks(ctx, user, size, offset);
   return c.json(lovedTracks);
@@ -267,6 +267,7 @@ app.get("/scrobbles", async (c) => {
   const offset = +c.req.param("offset") || 0;
 
   const scrobbles = await ctx.client.db.scrobbles
+    .select(["track_id.*"])
     .filter("user_id", equals(user.xata_id))
     .sort("xata_createdat", "desc")
     .getPaginated({
@@ -277,6 +278,171 @@ app.get("/scrobbles", async (c) => {
     });
 
   return c.json(scrobbles.records);
+});
+
+app.get("/tracks", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+
+  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const size = +c.req.query("size") || 100;
+  const offset = +c.req.query("offset") || 0;
+
+  const tracks = await ctx.client.db.tracks
+    .sort("xata_createdat", "desc")
+    .getPaginated({
+      pagination: {
+        size,
+        offset,
+      },
+    });
+
+  return c.json(tracks.records);
+});
+
+app.get("/albums", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+
+  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const size = +c.req.query("size") || 100;
+  const offset = +c.req.query("offset") || 0;
+
+  const albums = await ctx.client.db.albums
+    .sort("xata_createdat", "desc")
+    .getPaginated({
+      pagination: {
+        size,
+        offset,
+      },
+    });
+
+  return c.json(albums.records);
+});
+
+app.get("/artists", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+
+  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const size = +c.req.query("size") || 100;
+  const offset = +c.req.query("offset") || 0;
+
+  const artists = await ctx.client.db.artists
+    .sort("xata_createdat", "desc")
+    .getPaginated({
+      pagination: {
+        size,
+        offset,
+      },
+    });
+
+  return c.json(artists.records);
+});
+
+app.get("/tracks/:sha256", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+
+  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const sha256 = c.req.param("sha256");
+  const track = await ctx.client.db.tracks
+    .filter("sha256", equals(sha256))
+    .getFirst();
+
+  return c.json(track);
+});
+
+app.get("/albums/:sha256", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+
+  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const sha256 = c.req.param("sha256");
+  const album = await ctx.client.db.albums
+    .filter("sha256", equals(sha256))
+    .getFirst();
+
+  return c.json(album);
+});
+
+app.get("/artists/:sha256", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+
+  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const sha256 = c.req.param("sha256");
+  const artist = await ctx.client.db.artists
+    .filter("sha256", equals(sha256))
+    .getFirst();
+
+  return c.json(artist);
 });
 
 serve({
