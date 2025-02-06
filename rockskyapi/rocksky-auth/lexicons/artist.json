@@ -10,7 +10,8 @@
         "type": "object",
         "required": [
           "name",
-          "bio"
+          "bio",
+          "createdAt"
         ],
         "properties": {
           "name": {
@@ -58,6 +59,11 @@
             "description": "The birth place of the artist.",
             "minLength": 1,
             "maxLength": 256
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "The date the song was created.",
+            "format": "datetime"
           }
         }
       }

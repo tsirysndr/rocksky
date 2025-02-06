@@ -10,7 +10,8 @@
         "type": "object",
         "required": [
           "name",
-          "tracks"
+          "tracks",
+          "createdAt"
         ],
         "properties": {
           "name": {
@@ -41,6 +42,11 @@
               "type": "ref",
               "ref": "app.rocksky.song#record"
             }
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "The date the playlist was created.",
+            "format": "datetime"
           }
         }
       }

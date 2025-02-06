@@ -14,7 +14,7 @@ export const schemaDict = {
         description: 'A declaration of an album.',
         record: {
           type: 'object',
-          required: ['title', 'artist'],
+          required: ['title', 'artist', 'createdAt'],
           properties: {
             title: {
               type: 'string',
@@ -91,6 +91,11 @@ export const schemaDict = {
               description: 'The Apple Music link of the album.',
               format: 'uri',
             },
+            createdAt: {
+              type: 'string',
+              description: 'The date the song was created.',
+              format: 'datetime',
+            },
           },
         },
       },
@@ -106,7 +111,7 @@ export const schemaDict = {
         description: 'A declaration of an artist.',
         record: {
           type: 'object',
-          required: ['name', 'bio'],
+          required: ['name', 'bio', 'createdAt'],
           properties: {
             name: {
               type: 'string',
@@ -151,6 +156,11 @@ export const schemaDict = {
               minLength: 1,
               maxLength: 256,
             },
+            createdAt: {
+              type: 'string',
+              description: 'The date the song was created.',
+              format: 'datetime',
+            },
           },
         },
       },
@@ -166,7 +176,7 @@ export const schemaDict = {
         description: 'A declaration of a playlist.',
         record: {
           type: 'object',
-          required: ['name', 'tracks'],
+          required: ['name', 'tracks', 'createdAt'],
           properties: {
             name: {
               type: 'string',
@@ -193,6 +203,11 @@ export const schemaDict = {
                 type: 'ref',
                 ref: 'lex:app.rocksky.song#record',
               },
+            },
+            createdAt: {
+              type: 'string',
+              description: 'The date the playlist was created.',
+              format: 'datetime',
             },
           },
         },
@@ -264,7 +279,7 @@ export const schemaDict = {
         description: 'A declaration of a radio station.',
         record: {
           type: 'object',
-          required: ['name', 'url'],
+          required: ['name', 'url', 'createdAt'],
           properties: {
             name: {
               type: 'string',
@@ -300,22 +315,27 @@ export const schemaDict = {
               description: 'The website of the radio station.',
               format: 'uri',
             },
+            createdAt: {
+              type: 'string',
+              description: 'The date the radio was created.',
+              format: 'datetime',
+            },
           },
         },
       },
     },
   },
-  AppRockskySong: {
+  AppRockskyScrobble: {
     lexicon: 1,
-    id: 'app.rocksky.song',
+    id: 'app.rocksky.scrobble',
     defs: {
       main: {
         type: 'record',
         key: 'tid',
-        description: 'A declaration of a song.',
+        description: 'A declaration of a scrobble.',
         record: {
           type: 'object',
-          required: ['title', 'artist', 'album', 'duration'],
+          required: ['title', 'artist', 'album', 'duration', 'createdAt'],
           properties: {
             title: {
               type: 'string',
@@ -382,6 +402,12 @@ export const schemaDict = {
               minLength: 1,
               maxLength: 10000,
             },
+            copyrightMessage: {
+              type: 'string',
+              description: 'The copyright message.',
+              minLength: 1,
+              maxLength: 256,
+            },
             wiki: {
               type: 'string',
               description: 'Informations about the song',
@@ -412,6 +438,171 @@ export const schemaDict = {
               type: 'string',
               description: 'The Apple Music link of the song.',
               format: 'uri',
+            },
+            createdAt: {
+              type: 'string',
+              description: 'The date the song was created.',
+              format: 'datetime',
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyShout: {
+    lexicon: 1,
+    id: 'app.rocksky.shout',
+    defs: {
+      main: {
+        type: 'record',
+        key: 'tid',
+        description: 'A declaration of a shout.',
+        record: {
+          type: 'object',
+          required: ['message', 'createdAt', 'parent'],
+          properties: {
+            message: {
+              type: 'string',
+              description: 'The message of the shout.',
+              minLength: 1,
+              maxLength: 1000,
+            },
+            createdAt: {
+              type: 'string',
+              description: 'The date the shout was created.',
+              format: 'datetime',
+            },
+            parent: {
+              type: 'ref',
+              ref: 'lex:com.atproto.repo.strongRef',
+            },
+            song: {
+              type: 'ref',
+              ref: 'lex:com.atproto.repo.strongRef',
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskySong: {
+    lexicon: 1,
+    id: 'app.rocksky.song',
+    defs: {
+      main: {
+        type: 'record',
+        key: 'tid',
+        description: 'A declaration of a song.',
+        record: {
+          type: 'object',
+          required: ['title', 'artist', 'album', 'duration', 'createdAt'],
+          properties: {
+            title: {
+              type: 'string',
+              description: 'The title of the song.',
+              minLength: 1,
+              maxLength: 512,
+            },
+            artist: {
+              type: 'string',
+              description: 'The artist of the song.',
+              minLength: 1,
+              maxLength: 256,
+            },
+            artistAlbum: {
+              type: 'string',
+              description: 'The artist of the album the song is from.',
+              minLength: 1,
+              maxLength: 256,
+            },
+            album: {
+              type: 'string',
+              description: 'The album the song is from.',
+              minLength: 1,
+              maxLength: 256,
+            },
+            duration: {
+              type: 'integer',
+              description: 'The duration of the song in seconds.',
+              minimum: 1,
+            },
+            releaseDate: {
+              type: 'string',
+              description: 'The release date of the song.',
+              format: 'datetime',
+            },
+            year: {
+              type: 'integer',
+              description: 'The year the song was released.',
+            },
+            genre: {
+              type: 'string',
+              description: 'The genre of the song.',
+              minLength: 1,
+              maxLength: 256,
+            },
+            tags: {
+              type: 'array',
+              description: 'The tags of the song.',
+              items: {
+                type: 'string',
+                minLength: 1,
+                maxLength: 256,
+              },
+            },
+            composer: {
+              type: 'string',
+              description: 'The composer of the song.',
+              minLength: 1,
+              maxLength: 256,
+            },
+            lyrics: {
+              type: 'string',
+              description: 'The lyrics of the song.',
+              minLength: 1,
+              maxLength: 10000,
+            },
+            copyrightMessage: {
+              type: 'string',
+              description: 'The copyright message.',
+              minLength: 1,
+              maxLength: 256,
+            },
+            wiki: {
+              type: 'string',
+              description: 'Informations about the song',
+              maxLength: 10000,
+            },
+            albumArt: {
+              type: 'blob',
+              description: 'The album art of the song.',
+              accept: ['image/png', 'image/jpeg'],
+              maxSize: 2000000,
+            },
+            youtubeLink: {
+              type: 'string',
+              description: 'The YouTube link of the song.',
+              format: 'uri',
+            },
+            spotifyLink: {
+              type: 'string',
+              description: 'The Spotify link of the song.',
+              format: 'uri',
+            },
+            tidalLink: {
+              type: 'string',
+              description: 'The Tidal link of the song.',
+              format: 'uri',
+            },
+            appleMusicLink: {
+              type: 'string',
+              description: 'The Apple Music link of the song.',
+              format: 'uri',
+            },
+            createdAt: {
+              type: 'string',
+              description: 'The date the song was created.',
+              format: 'datetime',
             },
           },
         },
@@ -449,6 +640,8 @@ export const ids = {
   AppRockskyPlaylist: 'app.rocksky.playlist',
   AppBskyActorProfile: 'app.bsky.actor.profile',
   AppRockskyRadio: 'app.rocksky.radio',
+  AppRockskyScrobble: 'app.rocksky.scrobble',
+  AppRockskyShout: 'app.rocksky.shout',
   AppRockskySong: 'app.rocksky.song',
   ComAtprotoRepoStrongRef: 'com.atproto.repo.strongRef',
 }

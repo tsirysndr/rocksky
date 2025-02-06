@@ -1,11 +1,11 @@
 {
   "lexicon": 1,
-  "id": "app.rocksky.song",
+  "id": "app.rocksky.scrobble",
   "defs": {
     "main": {
       "type": "record",
       "key": "tid",
-      "description": "A declaration of a song.",
+      "description": "A declaration of a scrobble.",
       "record": {
         "type": "object",
         "required": [

@@ -34,6 +34,8 @@ export interface Record {
   tidalLink?: string
   /** The Apple Music link of the album. */
   appleMusicLink?: string
+  /** The date the song was created. */
+  createdAt: string
   [k: string]: unknown
 }
 

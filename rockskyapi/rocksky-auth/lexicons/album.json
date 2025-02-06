@@ -10,7 +10,8 @@
         "type": "object",
         "required": [
           "title",
-          "artist"
+          "artist",
+          "createdAt"
         ],
         "properties": {
           "title": {
@@ -90,6 +91,11 @@
             "type": "string",
             "description": "The Apple Music link of the album.",
             "format": "uri"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "The date the song was created.",
+            "format": "datetime"
           }
         }
       }

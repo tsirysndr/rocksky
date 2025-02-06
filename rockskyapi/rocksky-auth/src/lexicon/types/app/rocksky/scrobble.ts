@@ -52,10 +52,11 @@ export function isRecord(v: unknown): v is Record {
   return (
     isObj(v) &&
     hasProp(v, '$type') &&
-    (v.$type === 'app.rocksky.song#main' || v.$type === 'app.rocksky.song')
+    (v.$type === 'app.rocksky.scrobble#main' ||
+      v.$type === 'app.rocksky.scrobble')
   )
 }
 
 export function validateRecord(v: unknown): ValidationResult {
-  return lexicons.validate('app.rocksky.song#main', v)
+  return lexicons.validate('app.rocksky.scrobble#main', v)
 }

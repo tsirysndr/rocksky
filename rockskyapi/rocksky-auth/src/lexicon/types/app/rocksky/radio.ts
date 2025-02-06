@@ -19,6 +19,8 @@ export interface Record {
   logo?: BlobRef
   /** The website of the radio station. */
   website?: string
+  /** The date the radio was created. */
+  createdAt: string
   [k: string]: unknown
 }
 

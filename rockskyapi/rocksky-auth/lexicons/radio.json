@@ -10,7 +10,8 @@
         "type": "object",
         "required": [
           "name",
-          "url"
+          "url",
+          "createdAt"
         ],
         "properties": {
           "name": {
@@ -49,6 +50,11 @@
             "type": "string",
             "description": "The website of the radio station.",
             "format": "uri"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "The date the radio was created.",
+            "format": "datetime"
           }
         }
       }
