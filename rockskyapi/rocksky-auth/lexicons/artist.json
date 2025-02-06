@@ -22,8 +22,7 @@
           "bio": {
             "type": "string",
             "description": "The biography of the artist.",
-            "minLength": 1,
-            "maxLength": 256
+            "maxLength": 1000
           },
           "picture": {
             "type": "blob",
@@ -56,7 +55,6 @@
           "bornIn": {
             "type": "string",
             "description": "The birth place of the artist.",
-            "minLength": 1,
             "maxLength": 256
           },
           "createdAt": {

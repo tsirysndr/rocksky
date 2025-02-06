@@ -38,7 +38,7 @@
             "minLength": 1,
             "maxLength": 256
           },
-          "artistAlbum": {
+          "albumArtist": {
             "type": "string",
             "description": "The artist of the album the song is from.",
             "minLength": 1,
@@ -67,7 +67,6 @@
           "genre": {
             "type": "string",
             "description": "The genre of the song.",
-            "minLength": 1,
             "maxLength": 256
           },
           "tags": {
@@ -82,13 +81,11 @@
           "composer": {
             "type": "string",
             "description": "The composer of the song.",
-            "minLength": 1,
             "maxLength": 256
           },
           "lyrics": {
             "type": "string",
             "description": "The lyrics of the song.",
-            "minLength": 1,
             "maxLength": 10000
           },
           "copyrightMessage": {

@@ -31,7 +31,6 @@ export const schemaDict = {
             duration: {
               type: 'integer',
               description: 'The duration of the album in seconds.',
-              minimum: 1,
             },
             releaseDate: {
               type: 'string',
@@ -45,7 +44,6 @@ export const schemaDict = {
             genre: {
               type: 'string',
               description: 'The genre of the album.',
-              minLength: 1,
               maxLength: 256,
             },
             albumArt: {
@@ -122,8 +120,7 @@ export const schemaDict = {
             bio: {
               type: 'string',
               description: 'The biography of the artist.',
-              minLength: 1,
-              maxLength: 256,
+              maxLength: 1000,
             },
             picture: {
               type: 'blob',
@@ -153,7 +150,6 @@ export const schemaDict = {
             bornIn: {
               type: 'string',
               description: 'The birth place of the artist.',
-              minLength: 1,
               maxLength: 256,
             },
             createdAt: {
@@ -200,7 +196,7 @@ export const schemaDict = {
               minLength: 1,
               maxLength: 256,
             },
-            artistAlbum: {
+            albumArtist: {
               type: 'string',
               description: 'The artist of the album the song is from.',
               minLength: 1,
@@ -229,7 +225,6 @@ export const schemaDict = {
             genre: {
               type: 'string',
               description: 'The genre of the song.',
-              minLength: 1,
               maxLength: 256,
             },
             tags: {
@@ -244,13 +239,11 @@ export const schemaDict = {
             composer: {
               type: 'string',
               description: 'The composer of the song.',
-              minLength: 1,
               maxLength: 256,
             },
             lyrics: {
               type: 'string',
               description: 'The lyrics of the song.',
-              minLength: 1,
               maxLength: 10000,
             },
             copyrightMessage: {
@@ -529,7 +522,6 @@ export const schemaDict = {
             genre: {
               type: 'string',
               description: 'The genre of the song.',
-              minLength: 1,
               maxLength: 256,
             },
             tags: {
@@ -544,19 +536,16 @@ export const schemaDict = {
             composer: {
               type: 'string',
               description: 'The composer of the song.',
-              minLength: 1,
               maxLength: 256,
             },
             lyrics: {
               type: 'string',
               description: 'The lyrics of the song.',
-              minLength: 1,
               maxLength: 10000,
             },
             copyrightMessage: {
               type: 'string',
               description: 'The copyright message.',
-              minLength: 1,
               maxLength: 256,
             },
             wiki: {
@@ -721,19 +710,16 @@ export const schemaDict = {
             composer: {
               type: 'string',
               description: 'The composer of the song.',
-              minLength: 1,
               maxLength: 256,
             },
             lyrics: {
               type: 'string',
               description: 'The lyrics of the song.',
-              minLength: 1,
               maxLength: 10000,
             },
             copyrightMessage: {
               type: 'string',
               description: 'The copyright message.',
-              minLength: 1,
               maxLength: 256,
             },
             wiki: {

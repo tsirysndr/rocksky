@@ -16,7 +16,7 @@ export interface Record {
   /** The artist of the song. */
   artist: string
   /** The artist of the album the song is from. */
-  artistAlbum?: string
+  albumArtist?: string
   /** The album the song is from. */
   album: string
   /** The duration of the song in seconds. */
