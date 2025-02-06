@@ -23,6 +23,7 @@ async function putArtistRecord(
   };
 
   if (!Artist.validateRecord(record).success) {
+    console.log(Artist.validateRecord(record));
     throw new Error("Invalid record");
   }
 
@@ -78,6 +79,7 @@ async function putAlbumRecord(
   };
 
   if (!Album.validateRecord(record).success) {
+    console.log(Album.validateRecord(record));
     throw new Error("Invalid record");
   }
 
@@ -125,6 +127,7 @@ async function putSongRecord(
     title: track.title,
     artist: track.artist,
     album: track.album,
+    albumArtist: track.albumArtist,
     duration: track.duration,
     releaseDate: track.releaseDate
       ? track.releaseDate.toISOString()
@@ -140,6 +143,7 @@ async function putSongRecord(
   };
 
   if (!Song.validateRecord(record).success) {
+    console.log(Song.validateRecord(record));
     throw new Error("Invalid record");
   }
 
@@ -201,6 +205,7 @@ async function putScrobbleRecord(
   };
 
   if (!Scrobble.validateRecord(record).success) {
+    console.log(Scrobble.validateRecord(record));
     throw new Error("Invalid record");
   }
 
