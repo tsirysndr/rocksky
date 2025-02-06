@@ -92,6 +92,8 @@ app.get("/profile", async (c) => {
     return c.text("Unauthorized");
   }
 
+  ctx.kv.delete(did);
+
   const { data: profileRecord } = await agent.com.atproto.repo.getRecord({
     repo: agent.assertDid,
     collection: "app.bsky.actor.profile",
@@ -139,8 +141,6 @@ app.get("/token", async (c) => {
     c.status(401);
     return c.text("Unauthorized");
   }
-
-  ctx.kv.delete(did);
 
   return c.json({ token });
 });

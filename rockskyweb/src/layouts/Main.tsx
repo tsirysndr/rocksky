@@ -93,7 +93,7 @@ function Main({ children }: { children: React.ReactNode }) {
       body: JSON.stringify({ handle }),
     });
 
-    if (response.status !== 200) {
+    if ((await response.text()).startsWith("Invalid")) {
       toaster.negative("Invalid Bluesky handle", {});
       return;
     }
