@@ -16,6 +16,11 @@ const Container = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+
+  @media (max-width: 1152px) {
+    width: 100%;
+    padding: 0 20px;
+  }
 `;
 
 function Navbar() {

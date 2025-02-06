@@ -25,6 +25,12 @@ const Flex = styled.div`
   margin-bottom: 200px;
 `;
 
+const RightPane = styled.div`
+  @media (max-width: 1152px) {
+    display: none;
+  }
+`;
+
 function Main({ children }: { children: React.ReactNode }) {
   const [handle, setHandle] = useState("");
   const { search } = useLocation();
@@ -97,7 +103,7 @@ function Main({ children }: { children: React.ReactNode }) {
         <Navbar />
         {children}
       </Flex>
-      <div style={{ position: "relative", width: 300 }}>
+      <RightPane style={{ position: "relative", width: 300 }}>
         <div
           style={{
             position: "fixed",
@@ -178,7 +184,7 @@ function Main({ children }: { children: React.ReactNode }) {
             </div>
           )}
         </div>
-      </div>
+      </RightPane>
     </Container>
   );
 }
