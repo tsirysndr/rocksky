@@ -53,7 +53,7 @@ function Feed() {
                 <LabelMedium color={"#ff2876"}>@{song.user}</LabelMedium>
                 <LabelMedium>is listening to this song</LabelMedium>
                 <StatefulTooltip
-                  content={dayjs(song.date).format("MMMM D YYYY [at] HH:mm:ss")}
+                  content={dayjs(song.date).format("MMMM D, YYYY [at] HH:mm A")}
                   returnFocus
                   autoFocus
                 >

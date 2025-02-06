@@ -7,7 +7,7 @@ function useFeed() {
       method: "GET",
     }).then((res) => res.json());
 
-  const { data } = useSWR("/public/scrobbles?size=100", fetcher);
+  const { data } = useSWR("/public/scrobbles?size=105", fetcher);
   const getFeed = () => {
     return data || [];
   };

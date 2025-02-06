@@ -2,6 +2,7 @@ import styled from "@emotion/styled";
 import { Search } from "@styled-icons/evaicons-solid";
 import { Button } from "baseui/button";
 import { Input } from "baseui/input";
+import { PLACEMENT, toaster, ToasterContainer } from "baseui/toast";
 import { LabelMedium } from "baseui/typography";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router";
@@ -91,6 +92,12 @@ function Main({ children }: { children: React.ReactNode }) {
       },
       body: JSON.stringify({ handle }),
     });
+
+    if (response.status !== 200) {
+      toaster.negative("Invalid Bluesky handle", {});
+      return;
+    }
+
     const redirectUrl = response.url;
     if (redirectUrl) {
       window.location.href = redirectUrl; // Manually redirect the browser
@@ -99,6 +106,17 @@ function Main({ children }: { children: React.ReactNode }) {
 
   return (
     <Container>
+      <ToasterContainer
+        placement={PLACEMENT.top}
+        overrides={{
+          ToastBody: {
+            style: {
+              zIndex: 2,
+              boxShadow: "none",
+            },
+          },
+        }}
+      />
       <Flex>
         <Navbar />
         {children}
