@@ -32,9 +32,10 @@ function Main({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const query = new URLSearchParams(search);
+    const did = query.get("did");
 
-    if (query.get("did")) {
-      localStorage.setItem("did", query.get("did")!);
+    if (did) {
+      localStorage.setItem("did", did);
 
       const fetchToken = async () => {
         try {
@@ -57,7 +58,7 @@ function Main({ children }: { children: React.ReactNode }) {
             });
           }
 
-          if (!jwt) {
+          if (!jwt && data.token) {
             window.location.href = "/";
           }
         } catch (e) {
