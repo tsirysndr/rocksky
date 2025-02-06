@@ -41,7 +41,7 @@ function Main({ children }: { children: React.ReactNode }) {
     const query = new URLSearchParams(search);
     const did = query.get("did");
 
-    if (did) {
+    if (did && did !== "null") {
       localStorage.setItem("did", did);
 
       const fetchToken = async () => {
