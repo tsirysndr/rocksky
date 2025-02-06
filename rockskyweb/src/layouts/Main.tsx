@@ -42,7 +42,7 @@ function Main({ children }: { children: React.ReactNode }) {
           const response = await fetch(`${API_URL}/token`, {
             method: "GET",
             headers: {
-              "session-did": query.get("did")!,
+              "session-did": localStorage.getItem("did")!,
             },
           });
           const data = await response.json();
