@@ -111,7 +111,7 @@ export const schemaDict = {
         description: 'A declaration of an artist.',
         record: {
           type: 'object',
-          required: ['name', 'bio', 'createdAt'],
+          required: ['name', 'createdAt'],
           properties: {
             name: {
               type: 'string',

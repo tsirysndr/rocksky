@@ -10,7 +10,7 @@ export interface Record {
   /** The name of the artist. */
   name: string
   /** The biography of the artist. */
-  bio: string
+  bio?: string
   /** The picture of the artist. */
   picture?: BlobRef
   /** The tags of the artist. */
