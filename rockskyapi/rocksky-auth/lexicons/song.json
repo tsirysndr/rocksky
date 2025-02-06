@@ -12,10 +12,21 @@
           "title",
           "artist",
           "album",
+          "albumArtist",
           "duration",
           "createdAt"
         ],
         "properties": {
+          "trackNumber": {
+            "type": "integer",
+            "description": "The track number of the song in the album.",
+            "minimum": 1
+          },
+          "discNumber": {
+            "type": "integer",
+            "description": "The disc number of the song in the album.",
+            "minimum": 1
+          },
           "title": {
             "type": "string",
             "description": "The title of the song.",
@@ -28,7 +39,7 @@
             "minLength": 1,
             "maxLength": 256
           },
-          "artistAlbum": {
+          "albumArtist": {
             "type": "string",
             "description": "The artist of the album the song is from.",
             "minLength": 1,

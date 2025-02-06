@@ -16,7 +16,7 @@ export interface Record {
   /** The artist of the song. */
   artist: string
   /** The artist of the album the song is from. */
-  albumArtist: string
+  artistAlbum?: string
   /** The album the song is from. */
   album: string
   /** The duration of the song in seconds. */
@@ -56,10 +56,11 @@ export function isRecord(v: unknown): v is Record {
   return (
     isObj(v) &&
     hasProp(v, '$type') &&
-    (v.$type === 'app.rocksky.song#main' || v.$type === 'app.rocksky.song')
+    (v.$type === 'app.rocksky.lovedSong#main' ||
+      v.$type === 'app.rocksky.lovedSong')
   )
 }
 
 export function validateRecord(v: unknown): ValidationResult {
-  return lexicons.validate('app.rocksky.song#main', v)
+  return lexicons.validate('app.rocksky.lovedSong#main', v)
 }

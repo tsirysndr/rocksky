@@ -7,12 +7,16 @@ import { isObj, hasProp } from '../../../util'
 import { CID } from 'multiformats/cid'
 
 export interface Record {
+  /** The track number of the song in the album. */
+  trackNumber?: number
+  /** The disc number of the song in the album. */
+  discNumber?: number
   /** The title of the song. */
   title: string
   /** The artist of the song. */
   artist: string
   /** The artist of the album the song is from. */
-  artistAlbum?: string
+  albumArtist: string
   /** The album the song is from. */
   album: string
   /** The duration of the song in seconds. */

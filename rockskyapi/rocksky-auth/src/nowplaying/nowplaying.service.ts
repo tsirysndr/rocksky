@@ -1,13 +1,231 @@
+import { Agent } from "@atproto/api";
+import { TID } from "@atproto/common";
 import { equals, SelectedPick } from "@xata.io/client";
 import { Context } from "context";
 import { createHash } from "crypto";
+import * as Album from "lexicon/types/app/rocksky/album";
+import * as Artist from "lexicon/types/app/rocksky/artist";
+import * as Scrobble from "lexicon/types/app/rocksky/scrobble";
+import * as Song from "lexicon/types/app/rocksky/song";
+import downloadImage from "lib/downloadImage";
 import { Track } from "types/track";
 import { ScrobblesRecord } from "xata";
+
+async function putArtistRecord(
+  track: Track,
+  agent: Agent
+): Promise<string | null> {
+  const rkey = TID.nextStr();
+  const record = {
+    $type: "app.rocksky.artist",
+    name: track.albumArtist,
+    createdAt: new Date().toISOString(),
+  };
+
+  if (!Artist.validateRecord(record).success) {
+    throw new Error("Invalid record");
+  }
+
+  try {
+    const res = await agent.com.atproto.repo.putRecord({
+      repo: agent.assertDid,
+      collection: "app.rocksky.artist",
+      rkey,
+      record,
+      validate: false,
+    });
+    const uri = res.data.uri;
+    console.log(`Artist record created at ${uri}`);
+    return uri;
+  } catch (e) {
+    console.error("Error creating artist record", e);
+    return null;
+  }
+}
+
+async function putAlbumRecord(
+  track: Track,
+  agent: Agent
+): Promise<string | null> {
+  const rkey = TID.nextStr();
+  let albumArt = undefined;
+
+  if (track.albumArt) {
+    let options = undefined;
+    if (track.albumArt.endsWith(".jpeg") || track.albumArt.endsWith(".jpg")) {
+      options = { encoding: "image/jpeg" };
+    }
+
+    if (track.albumArt.endsWith(".png")) {
+      options = { encoding: "image/png" };
+    }
+
+    const imageBuffer = await downloadImage(track.albumArt);
+    const uploadResponse = await agent.uploadBlob(imageBuffer, options);
+    albumArt = uploadResponse.data.blob;
+  }
+
+  const record = {
+    $type: "app.rocksky.album",
+    title: track.album,
+    artist: track.albumArtist,
+    year: track.year,
+    releaseDate: track.releaseDate
+      ? track.releaseDate.toISOString()
+      : undefined,
+    createdAt: new Date().toISOString(),
+    albumArt,
+  };
+
+  if (!Album.validateRecord(record).success) {
+    throw new Error("Invalid record");
+  }
+
+  try {
+    const res = await agent.com.atproto.repo.putRecord({
+      repo: agent.assertDid,
+      collection: "app.rocksky.album",
+      rkey,
+      record,
+      validate: false,
+    });
+    const uri = res.data.uri;
+    console.log(`Album record created at ${uri}`);
+    return uri;
+  } catch (e) {
+    console.error("Error creating album record", e);
+    return null;
+  }
+}
+
+async function putSongRecord(
+  track: Track,
+  agent: Agent
+): Promise<string | null> {
+  const rkey = TID.nextStr();
+  let albumArt = undefined;
+
+  if (track.albumArt) {
+    let options = undefined;
+    if (track.albumArt.endsWith(".jpeg") || track.albumArt.endsWith(".jpg")) {
+      options = { encoding: "image/jpeg" };
+    }
+
+    if (track.albumArt.endsWith(".png")) {
+      options = { encoding: "image/png" };
+    }
+
+    const imageBuffer = await downloadImage(track.albumArt);
+    const uploadResponse = await agent.uploadBlob(imageBuffer, options);
+    albumArt = uploadResponse.data.blob;
+  }
+
+  const record = {
+    $type: "app.rocksky.song",
+    title: track.title,
+    artist: track.artist,
+    album: track.album,
+    duration: track.duration,
+    releaseDate: track.releaseDate
+      ? track.releaseDate.toISOString()
+      : undefined,
+    year: track.year,
+    composer: track.composer,
+    lyrics: track.lyrics,
+    albumArt,
+    trackNumber: track.trackNumber,
+    discNumber: track.discNumber,
+    copyrightMessage: track.copyrightMessage,
+    createdAt: new Date().toISOString(),
+  };
+
+  if (!Song.validateRecord(record).success) {
+    throw new Error("Invalid record");
+  }
+
+  try {
+    const res = await agent.com.atproto.repo.putRecord({
+      repo: agent.assertDid,
+      collection: "app.rocksky.song",
+      rkey,
+      record,
+      validate: false,
+    });
+    const uri = res.data.uri;
+    console.log(`Song record created at ${uri}`);
+    return uri;
+  } catch (e) {
+    console.error("Error creating song record", e);
+    return null;
+  }
+}
+
+async function putScrobbleRecord(
+  track: Track,
+  agent: Agent
+): Promise<string | null> {
+  const rkey = TID.nextStr();
+  let albumArt = undefined;
+
+  if (track.albumArt) {
+    let options = undefined;
+    if (track.albumArt.endsWith(".jpeg") || track.albumArt.endsWith(".jpg")) {
+      options = { encoding: "image/jpeg" };
+    }
+
+    if (track.albumArt.endsWith(".png")) {
+      options = { encoding: "image/png" };
+    }
+
+    const imageBuffer = await downloadImage(track.albumArt);
+    const uploadResponse = await agent.uploadBlob(imageBuffer, options);
+    albumArt = uploadResponse.data.blob;
+  }
+
+  const record = {
+    $type: "app.rocksky.scrobble",
+    title: track.title,
+    albumArtist: track.albumArtist,
+    albumArt,
+    artist: track.artist,
+    album: track.album,
+    duration: track.duration,
+    releaseDate: track.releaseDate
+      ? track.releaseDate.toISOString()
+      : undefined,
+    year: track.year,
+    composer: track.composer,
+    lyrics: track.lyrics,
+    copyrightMessage: track.copyrightMessage,
+    createdAt: new Date().toISOString(),
+  };
+
+  if (!Scrobble.validateRecord(record).success) {
+    throw new Error("Invalid record");
+  }
+
+  try {
+    const res = await agent.com.atproto.repo.putRecord({
+      repo: agent.assertDid,
+      collection: "app.rocksky.scrobble",
+      rkey,
+      record,
+      validate: false,
+    });
+    const uri = res.data.uri;
+    console.log(`Scrobble record created at ${uri}`);
+    return uri;
+  } catch (e) {
+    console.error("Error creating scrobble record", e);
+    return null;
+  }
+}
 
 export async function scrobbleTrack(
   ctx: Context,
   track: Track,
-  user
+  user,
+  agent: Agent
 ): Promise<Readonly<SelectedPick<ScrobblesRecord, ["*"]>>> {
   const existingTrack = await ctx.client.db.tracks
     .filter(
@@ -21,6 +239,11 @@ export async function scrobbleTrack(
       )
     )
     .getFirst();
+
+  let trackUri = null;
+  if (!existingTrack?.uri) {
+    trackUri = await putSongRecord(track, agent);
+  }
 
   const { xata_id: track_id } = await ctx.client.db.tracks.createOrUpdate(
     existingTrack?.xata_id,
@@ -43,6 +266,7 @@ export async function scrobbleTrack(
         )
         .digest("hex"),
       copyright_message: track.copyrightMessage,
+      uri: trackUri,
     }
   );
 
@@ -56,6 +280,12 @@ export async function scrobbleTrack(
       )
     )
     .getFirst();
+
+  let artistUri = null;
+  if (!existingArtist?.uri) {
+    artistUri = await putArtistRecord(track, agent);
+  }
+
   const { xata_id: artist_id } = await ctx.client.db.artists.createOrUpdate(
     existingArtist?.xata_id,
     {
@@ -64,6 +294,7 @@ export async function scrobbleTrack(
       sha256: createHash("sha256")
         .update(track.albumArtist.toLowerCase())
         .digest("hex"),
+      uri: artistUri,
     }
   );
 
@@ -77,6 +308,11 @@ export async function scrobbleTrack(
       )
     )
     .getFirst();
+
+  let albumUri = null;
+  if (!existingAlbum?.uri) {
+    albumUri = await putAlbumRecord(track, agent);
+  }
 
   const { xata_id: album_id } = await ctx.client.db.albums.createOrUpdate(
     existingAlbum?.xata_id,
@@ -92,6 +328,7 @@ export async function scrobbleTrack(
       sha256: createHash("sha256")
         .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
         .digest("hex"),
+      uri: albumUri,
     }
   );
 
@@ -131,11 +368,14 @@ export async function scrobbleTrack(
     }
   );
 
+  const scrobbleUri = await putScrobbleRecord(track, agent);
+
   const scrobble = await ctx.client.db.scrobbles.create({
     user_id: user.xata_id,
     track_id,
     album_id,
     artist_id,
+    uri: scrobbleUri,
   });
 
   return scrobble;

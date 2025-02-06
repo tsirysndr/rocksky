@@ -169,7 +169,14 @@ app.post("/now-playing", async (c) => {
     return c.text("Invalid track data: " + parsed.error.message);
   }
   const track = parsed.data;
-  await scrobbleTrack(ctx, track, user);
+
+  const agent = await createAgent(ctx.oauthClient, did);
+  if (!agent) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  await scrobbleTrack(ctx, track, user, agent);
 
   return c.json({ status: "ok" });
 });

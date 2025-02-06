@@ -197,6 +197,10 @@ const tables = [
         name: "albums__pgroll_new_sha256_key",
         columns: ["sha256"],
       },
+      albums__pgroll_new_uri_key: {
+        name: "albums__pgroll_new_uri_key",
+        columns: ["uri"],
+      },
     },
     columns: [
       {
@@ -252,6 +256,14 @@ const tables = [
         type: "text",
         notNull: true,
         unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "uri",
+        type: "text",
+        notNull: false,
+        unique: true,
         defaultValue: null,
         comment: "",
       },
@@ -580,6 +592,10 @@ const tables = [
         name: "artists__pgroll_new_sha256_key",
         columns: ["sha256"],
       },
+      artists__pgroll_new_uri_key: {
+        name: "artists__pgroll_new_uri_key",
+        columns: ["uri"],
+      },
     },
     columns: [
       {
@@ -634,6 +650,14 @@ const tables = [
         name: "sha256",
         type: "text",
         notNull: true,
+        unique: true,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "uri",
+        type: "text",
+        notNull: false,
         unique: true,
         defaultValue: null,
         comment: "",
@@ -703,6 +727,10 @@ const tables = [
         name: "_pgroll_new_loved_tracks_xata_id_key",
         columns: ["xata_id"],
       },
+      loved_tracks__pgroll_new_uri_key: {
+        name: "loved_tracks__pgroll_new_uri_key",
+        columns: ["uri"],
+      },
     },
     columns: [
       {
@@ -713,6 +741,14 @@ const tables = [
         unique: false,
         defaultValue: null,
         comment: '{"xata.link":"tracks"}',
+      },
+      {
+        name: "uri",
+        type: "text",
+        notNull: false,
+        unique: true,
+        defaultValue: null,
+        comment: "",
       },
       {
         name: "user_id",
@@ -858,6 +894,10 @@ const tables = [
         name: "_pgroll_new_playlists_xata_id_key",
         columns: ["xata_id"],
       },
+      playlists__pgroll_new_uri_key: {
+        name: "playlists__pgroll_new_uri_key",
+        columns: ["uri"],
+      },
     },
     columns: [
       {
@@ -873,6 +913,14 @@ const tables = [
         type: "text",
         notNull: true,
         unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "uri",
+        type: "text",
+        notNull: false,
+        unique: true,
         defaultValue: null,
         comment: "",
       },
@@ -926,6 +974,10 @@ const tables = [
         name: "_pgroll_new_radios_xata_id_key",
         columns: ["xata_id"],
       },
+      radios__pgroll_new_uri_key: {
+        name: "radios__pgroll_new_uri_key",
+        columns: ["uri"],
+      },
       radios__pgroll_new_url_key: {
         name: "radios__pgroll_new_url_key",
         columns: ["url"],
@@ -961,6 +1013,14 @@ const tables = [
         type: "text",
         notNull: true,
         unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "uri",
+        type: "text",
+        notNull: false,
+        unique: true,
         defaultValue: null,
         comment: "",
       },
@@ -1059,6 +1119,10 @@ const tables = [
         name: "_pgroll_new_scrobbles_xata_id_key",
         columns: ["xata_id"],
       },
+      scrobbles__pgroll_new_uri_key: {
+        name: "scrobbles__pgroll_new_uri_key",
+        columns: ["uri"],
+      },
     },
     columns: [
       {
@@ -1087,6 +1151,14 @@ const tables = [
         unique: false,
         defaultValue: null,
         comment: '{"xata.link":"tracks"}',
+      },
+      {
+        name: "uri",
+        type: "text",
+        notNull: false,
+        unique: true,
+        defaultValue: null,
+        comment: "",
       },
       {
         name: "user_id",
@@ -1162,6 +1234,10 @@ const tables = [
         name: "_pgroll_new_shouts_xata_id_key",
         columns: ["xata_id"],
       },
+      shouts__pgroll_new_uri_key: {
+        name: "shouts__pgroll_new_uri_key",
+        columns: ["uri"],
+      },
     },
     columns: [
       {
@@ -1180,6 +1256,14 @@ const tables = [
         unique: false,
         defaultValue: null,
         comment: '{"xata.link":"tracks"}',
+      },
+      {
+        name: "uri",
+        type: "text",
+        notNull: false,
+        unique: true,
+        defaultValue: null,
+        comment: "",
       },
       {
         name: "user_id",
@@ -1397,6 +1481,10 @@ const tables = [
         name: "tracks__pgroll_new_sha256_key",
         columns: ["sha256"],
       },
+      tracks__pgroll_new_uri_key: {
+        name: "tracks__pgroll_new_uri_key",
+        columns: ["uri"],
+      },
     },
     columns: [
       {
@@ -1524,6 +1612,14 @@ const tables = [
         type: "int",
         notNull: false,
         unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "uri",
+        type: "text",
+        notNull: false,
+        unique: true,
         defaultValue: null,
         comment: "",
       },

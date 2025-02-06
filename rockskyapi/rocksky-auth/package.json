@@ -22,6 +22,7 @@
 		"@hono/node-server": "^1.13.8",
 		"@xata.io/client": "^0.0.0-next.va121e4207b94bfe0a3c025fc00b247b923880930",
 		"assert": "^2.1.0",
+		"axios": "^1.7.9",
 		"better-sqlite3": "^11.8.1",
 		"chanfana": "^2.0.2",
 		"dotenv": "^16.4.7",

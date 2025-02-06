@@ -1,0 +1,25 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cuiiu1dbcvmcu6qfb6q0",
+    "operations": [
+      {
+        "add_column": {
+          "table": "artists",
+          "column": {
+            "name": "uri",
+            "type": "text",
+            "unique": true,
+            "comment": "",
+            "nullable": true
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cuiiu1dbcvmcu6qfb6q0",
+  "parent": "mig_cuiitohfp08bj5ug83rg",
+  "schema": "public",
+  "startedAt": "2025-02-06T21:52:05.789103Z"
+}
