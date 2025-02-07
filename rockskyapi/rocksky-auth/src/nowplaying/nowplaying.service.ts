@@ -133,12 +133,12 @@ async function putSongRecord(
       ? track.releaseDate.toISOString()
       : undefined,
     year: track.year,
-    composer: track.composer,
-    lyrics: track.lyrics,
     albumArt,
-    trackNumber: track.trackNumber,
-    discNumber: track.discNumber,
-    copyrightMessage: track.copyrightMessage,
+    composer: !!track.composer ? track.composer : undefined,
+    lyrics: !!track.lyrics ? track.lyrics : undefined,
+    copyrightMessage: !!track.copyrightMessage
+      ? track.copyrightMessage
+      : undefined,
     createdAt: new Date().toISOString(),
   };
 
@@ -198,9 +198,11 @@ async function putScrobbleRecord(
       ? track.releaseDate.toISOString()
       : undefined,
     year: track.year,
-    composer: track.composer,
-    lyrics: track.lyrics,
-    copyrightMessage: track.copyrightMessage,
+    composer: !!track.composer ? track.composer : undefined,
+    lyrics: !!track.lyrics ? track.lyrics : undefined,
+    copyrightMessage: !!track.copyrightMessage
+      ? track.copyrightMessage
+      : undefined,
     createdAt: new Date().toISOString(),
   };
 
