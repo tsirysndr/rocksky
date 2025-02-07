@@ -13,7 +13,7 @@ import { ScrobblesRecord } from "xata";
 
 async function putArtistRecord(
   track: Track,
-  agent: Agent
+  agent: Agent,
 ): Promise<string | null> {
   const rkey = TID.nextStr();
   const record = {
@@ -46,7 +46,7 @@ async function putArtistRecord(
 
 async function putAlbumRecord(
   track: Track,
-  agent: Agent
+  agent: Agent,
 ): Promise<string | null> {
   const rkey = TID.nextStr();
   let albumArt = undefined;
@@ -102,7 +102,7 @@ async function putAlbumRecord(
 
 async function putSongRecord(
   track: Track,
-  agent: Agent
+  agent: Agent,
 ): Promise<string | null> {
   const rkey = TID.nextStr();
   let albumArt = undefined;
@@ -166,7 +166,7 @@ async function putSongRecord(
 
 async function putScrobbleRecord(
   track: Track,
-  agent: Agent
+  agent: Agent,
 ): Promise<string | null> {
   const rkey = TID.nextStr();
   let albumArt = undefined;
@@ -232,7 +232,7 @@ export async function scrobbleTrack(
   ctx: Context,
   track: Track,
   user,
-  agent: Agent
+  agent: Agent,
 ): Promise<Readonly<SelectedPick<ScrobblesRecord, ["*"]>>> {
   const existingTrack = await ctx.client.db.tracks
     .filter(
@@ -240,10 +240,10 @@ export async function scrobbleTrack(
       equals(
         createHash("sha256")
           .update(
-            `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
+            `${track.title} - ${track.artist} - ${track.album}`.toLowerCase(),
           )
-          .digest("hex")
-      )
+          .digest("hex"),
+      ),
     )
     .getFirst();
 
@@ -269,12 +269,12 @@ export async function scrobbleTrack(
       // compute sha256 (lowercase(title + artist + album))
       sha256: createHash("sha256")
         .update(
-          `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
+          `${track.title} - ${track.artist} - ${track.album}`.toLowerCase(),
         )
         .digest("hex"),
       copyright_message: track.copyrightMessage,
-      uri: trackUri,
-    }
+      uri: trackUri ? trackUri : undefined,
+    },
   );
 
   const existingArtist = await ctx.client.db.artists
@@ -283,8 +283,8 @@ export async function scrobbleTrack(
       equals(
         createHash("sha256")
           .update(track.albumArtist.toLocaleLowerCase())
-          .digest("hex")
-      )
+          .digest("hex"),
+      ),
     )
     .getFirst();
 
@@ -301,8 +301,8 @@ export async function scrobbleTrack(
       sha256: createHash("sha256")
         .update(track.albumArtist.toLowerCase())
         .digest("hex"),
-      uri: artistUri,
-    }
+      uri: artistUri ? artistUri : undefined,
+    },
   );
 
   const existingAlbum = await ctx.client.db.albums
@@ -311,8 +311,8 @@ export async function scrobbleTrack(
       equals(
         createHash("sha256")
           .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
-          .digest("hex")
-      )
+          .digest("hex"),
+      ),
     )
     .getFirst();
 
@@ -335,8 +335,8 @@ export async function scrobbleTrack(
       sha256: createHash("sha256")
         .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
         .digest("hex"),
-      uri: albumUri,
-    }
+      uri: albumUri ? albumUri : undefined,
+    },
   );
 
   const existingAlbumTrack = await ctx.client.db.album_tracks
@@ -359,7 +359,7 @@ export async function scrobbleTrack(
     {
       artist_id,
       track_id,
-    }
+    },
   );
 
   const existingArtistAlbum = await ctx.client.db.artist_albums
@@ -372,7 +372,7 @@ export async function scrobbleTrack(
     {
       artist_id,
       album_id,
-    }
+    },
   );
 
   const scrobbleUri = await putScrobbleRecord(track, agent);
