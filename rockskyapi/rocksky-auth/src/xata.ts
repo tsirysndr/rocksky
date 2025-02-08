@@ -1666,6 +1666,200 @@ const tables = [
     ],
   },
   {
+    name: "user_albums",
+    checkConstraints: {
+      user_albums_xata_id_length_xata_id: {
+        name: "user_albums_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {
+      album_id_link: {
+        name: "album_id_link",
+        columns: ["album_id"],
+        referencedTable: "albums",
+        referencedColumns: ["xata_id"],
+        onDelete: "SET NULL",
+      },
+      user_id_link: {
+        name: "user_id_link",
+        columns: ["user_id"],
+        referencedTable: "users",
+        referencedColumns: ["xata_id"],
+        onDelete: "SET NULL",
+      },
+    },
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_user_albums_xata_id_key: {
+        name: "_pgroll_new_user_albums_xata_id_key",
+        columns: ["xata_id"],
+      },
+      user_albums__pgroll_new_uri_key: {
+        name: "user_albums__pgroll_new_uri_key",
+        columns: ["uri"],
+      },
+    },
+    columns: [
+      {
+        name: "album_id",
+        type: "link",
+        link: { table: "albums" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"albums"}',
+      },
+      {
+        name: "uri",
+        type: "text",
+        notNull: false,
+        unique: true,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "user_id",
+        type: "link",
+        link: { table: "users" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"users"}',
+      },
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
+    name: "user_artists",
+    checkConstraints: {
+      user_artists_xata_id_length_xata_id: {
+        name: "user_artists_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {
+      artist_id_link: {
+        name: "artist_id_link",
+        columns: ["artist_id"],
+        referencedTable: "artists",
+        referencedColumns: ["xata_id"],
+        onDelete: "SET NULL",
+      },
+      user_id_link: {
+        name: "user_id_link",
+        columns: ["user_id"],
+        referencedTable: "users",
+        referencedColumns: ["xata_id"],
+        onDelete: "SET NULL",
+      },
+    },
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_user_artists_xata_id_key: {
+        name: "_pgroll_new_user_artists_xata_id_key",
+        columns: ["xata_id"],
+      },
+      user_artists__pgroll_new_uri_key: {
+        name: "user_artists__pgroll_new_uri_key",
+        columns: ["uri"],
+      },
+    },
+    columns: [
+      {
+        name: "artist_id",
+        type: "link",
+        link: { table: "artists" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"artists"}',
+      },
+      {
+        name: "uri",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "user_id",
+        type: "link",
+        link: { table: "users" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"users"}',
+      },
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
     name: "user_playlists",
     checkConstraints: {
       user_playlists_xata_id_length_xata_id: {
@@ -1696,6 +1890,10 @@ const tables = [
         name: "_pgroll_new_user_playlists_xata_id_key",
         columns: ["xata_id"],
       },
+      user_playlists__pgroll_new_uri_key: {
+        name: "user_playlists__pgroll_new_uri_key",
+        columns: ["uri"],
+      },
     },
     columns: [
       {
@@ -1706,6 +1904,111 @@ const tables = [
         unique: false,
         defaultValue: null,
         comment: '{"xata.link":"playlists"}',
+      },
+      {
+        name: "uri",
+        type: "text",
+        notNull: false,
+        unique: true,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "user_id",
+        type: "link",
+        link: { table: "users" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"users"}',
+      },
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
+    name: "user_tracks",
+    checkConstraints: {
+      user_tracks_xata_id_length_xata_id: {
+        name: "user_tracks_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {
+      track_id_link: {
+        name: "track_id_link",
+        columns: ["track_id"],
+        referencedTable: "tracks",
+        referencedColumns: ["xata_id"],
+        onDelete: "SET NULL",
+      },
+      user_id_link: {
+        name: "user_id_link",
+        columns: ["user_id"],
+        referencedTable: "users",
+        referencedColumns: ["xata_id"],
+        onDelete: "SET NULL",
+      },
+    },
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_user_tracks_xata_id_key: {
+        name: "_pgroll_new_user_tracks_xata_id_key",
+        columns: ["xata_id"],
+      },
+      user_tracks__pgroll_new_uri_key: {
+        name: "user_tracks__pgroll_new_uri_key",
+        columns: ["uri"],
+      },
+    },
+    columns: [
+      {
+        name: "track_id",
+        type: "link",
+        link: { table: "tracks" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"tracks"}',
+      },
+      {
+        name: "uri",
+        type: "text",
+        notNull: false,
+        unique: true,
+        defaultValue: null,
+        comment: "",
       },
       {
         name: "user_id",
@@ -1895,8 +2198,17 @@ export type TrackTagsRecord = TrackTags & XataRecord;
 export type Tracks = InferredTypes["tracks"];
 export type TracksRecord = Tracks & XataRecord;
 
+export type UserAlbums = InferredTypes["user_albums"];
+export type UserAlbumsRecord = UserAlbums & XataRecord;
+
+export type UserArtists = InferredTypes["user_artists"];
+export type UserArtistsRecord = UserArtists & XataRecord;
+
 export type UserPlaylists = InferredTypes["user_playlists"];
 export type UserPlaylistsRecord = UserPlaylists & XataRecord;
+
+export type UserTracks = InferredTypes["user_tracks"];
+export type UserTracksRecord = UserTracks & XataRecord;
 
 export type Users = InferredTypes["users"];
 export type UsersRecord = Users & XataRecord;
@@ -1918,7 +2230,10 @@ export type DatabaseSchema = {
   tags: TagsRecord;
   track_tags: TrackTagsRecord;
   tracks: TracksRecord;
+  user_albums: UserAlbumsRecord;
+  user_artists: UserArtistsRecord;
   user_playlists: UserPlaylistsRecord;
+  user_tracks: UserTracksRecord;
   users: UsersRecord;
 };
 
