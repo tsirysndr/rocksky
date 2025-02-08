@@ -294,7 +294,7 @@ export async function scrobbleTrack(
     )
     .getFirst();
 
-  let trackUri = null;
+  let trackUri = existingTrack?.uri;
   if (!existingTrack?.uri) {
     trackUri = await putSongRecord(track, agent);
   }
@@ -335,7 +335,7 @@ export async function scrobbleTrack(
     )
     .getFirst();
 
-  let artistUri = null;
+  let artistUri = existingArtist?.uri;
   if (!existingArtist?.uri) {
     artistUri = await putArtistRecord(track, agent);
   }
@@ -363,7 +363,7 @@ export async function scrobbleTrack(
     )
     .getFirst();
 
-  let albumUri = null;
+  let albumUri = existingAlbum?.uri;
   if (!existingAlbum?.uri) {
     albumUri = await putAlbumRecord(track, agent);
   }
