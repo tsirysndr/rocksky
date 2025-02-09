@@ -12,14 +12,14 @@ function useFeed() {
     return data || [];
   };
 
-  const getFeedById = (id: string) => {
+  const getFeedByUri = (uri: string) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return data.find((song: any) => song.sha256 === id);
+    return data.find((song: any) => song.uri === uri);
   };
 
   return {
     getFeed,
-    getFeedById,
+    getFeedByUri,
   };
 }
 

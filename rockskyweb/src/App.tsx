@@ -8,7 +8,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/songs/:id" element={<SongPage />} />
+        <Route path="/:did/app.rocksky.scrobble/:rkey" element={<SongPage />} />
         <Route path="/profile/:handle" element={<ProfilePage />} />
       </Routes>
     </BrowserRouter>

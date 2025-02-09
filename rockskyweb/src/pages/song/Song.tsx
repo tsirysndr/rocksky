@@ -26,12 +26,12 @@ const Group = styled.div`
 
 const Song = () => {
   const profile = useAtomValue(profileAtom);
-  const { id } = useParams<{ id: string }>();
-  const { getFeedById } = useFeed();
+  const { did, rkey } = useParams<{ did: string; rkey: string }>();
+  const { getFeedByUri } = useFeed();
   const song = useMemo(() => {
-    return getFeedById(id!);
+    return getFeedByUri(`at://${did}/app.rocksky.scrobble/${rkey}`);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [did, rkey]);
 
   return (
     <Main>

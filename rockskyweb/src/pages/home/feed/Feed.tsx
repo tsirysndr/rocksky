@@ -43,7 +43,7 @@ function Feed() {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             data.map((song: any) => (
               <FlexGridItem {...itemProps} key={song.id}>
-                <Link to={`/songs/${song.sha256}`}>
+                <Link to={`/${song.uri.split("at://")[1]}`}>
                   <SongCover
                     cover={song.cover}
                     artist={song.artist}
