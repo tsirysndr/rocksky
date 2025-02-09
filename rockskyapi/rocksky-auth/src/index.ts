@@ -259,7 +259,7 @@ app.get("/public/scrobbles", async (c) => {
   const offset = +c.req.query("offset") || 0;
 
   const scrobbles = await ctx.client.db.scrobbles
-    .select(["track_id.*", "user_id.*", "xata_createdat"])
+    .select(["track_id.*", "user_id.*", "xata_createdat", "uri"])
     .sort("xata_createdat", "desc")
     .getPaginated({
       pagination: {
@@ -275,6 +275,7 @@ app.get("/public/scrobbles", async (c) => {
       title: item.track_id.title,
       date: item.xata_createdat,
       user: item.user_id.handle,
+      uri: item.uri,
       tags: [],
       listeners: 1,
       sha256: item.track_id.sha256,
@@ -303,7 +304,7 @@ app.get("/scrobbles", async (c) => {
   const offset = +c.req.query("offset") || 0;
 
   const scrobbles = await ctx.client.db.scrobbles
-    .select(["track_id.*"])
+    .select(["track_id.*", "uri"])
     .filter("user_id", equals(user.xata_id))
     .sort("xata_createdat", "desc")
     .getPaginated({
@@ -707,6 +708,75 @@ app.get("/users/:handle/artists", async (c) => {
     });
 
   return c.json(artists.records);
+});
+
+app.get("/users/:did/app.rocksky.scrobble/:rkey", async (c) => {
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+  const uri = `at://${did}/app.rocksky.scrobble/${rkey}`;
+
+  const scrobble = await ctx.client.db.scrobbles
+    .select(["track_id.*", "user_id.*", "xata_createdat", "uri"])
+    .filter("uri", equals(uri))
+    .getFirst();
+
+  if (!scrobble) {
+    c.status(404);
+    return c.text("Scrobble not found");
+  }
+
+  return c.json(scrobble);
+});
+
+app.get("/users/:did/app.rocksky.artist/:rkey", async (c) => {
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+  const uri = `at://${did}/app.rocksky.artist/${rkey}`;
+
+  const artist = await ctx.client.db.artists
+    .filter("uri", equals(uri))
+    .getFirst();
+
+  if (!artist) {
+    c.status(404);
+    return c.text("Artist not found");
+  }
+
+  return c.json(artist);
+});
+
+app.get("/users/:did/app.rocksky.album/:rkey", async (c) => {
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+  const uri = `at://${did}/app.rocksky.album/${rkey}`;
+
+  const album = await ctx.client.db.albums
+    .filter("uri", equals(uri))
+    .getFirst();
+
+  if (!album) {
+    c.status(404);
+    return c.text("Album not found");
+  }
+
+  return c.json(album);
+});
+
+app.get("/users/:did/app.rocksky.song/:rkey", async (c) => {
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+  const uri = `at://${did}/app.rocksky.song/${rkey}`;
+
+  const track = await ctx.client.db.tracks
+    .filter("uri", equals(uri))
+    .getFirst();
+
+  if (!track) {
+    c.status(404);
+    return c.text("Track not found");
+  }
+
+  return c.json(track);
 });
 
 serve({
