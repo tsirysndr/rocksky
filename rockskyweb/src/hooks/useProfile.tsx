@@ -1,11 +1,36 @@
+import axios from "axios";
 import { useSetAtom } from "jotai";
 import { useEffect } from "react";
+import { useNavigate } from "react-router";
 import useSWR from "swr";
 import { profileAtom } from "../atoms/profile";
 import { API_URL } from "../consts";
 
 function useProfile() {
   const setProfile = useSetAtom(profileAtom);
+  const navigate = useNavigate();
+
+  const getProfileByDid = async (did: string) => {
+    try {
+      const response = await axios.get(`${API_URL}/users/${did}`);
+      return response.data;
+    } catch {
+      navigate("/");
+      return null;
+    }
+  };
+
+  const getProfileStatsByDid = async (did: string) => {
+    const response = await axios.get(`${API_URL}/users/${did}/stats`);
+    return response.data;
+  };
+
+  const getRecentTracksByDid = async (did: string) => {
+    const response = await axios.get(
+      `${API_URL}/users/${did}/scrobbles?size=10`
+    );
+    return response.data;
+  };
 
   const fetcher = (path: string) =>
     fetch(`${API_URL}${path}`, {
@@ -52,10 +77,24 @@ function useProfile() {
     data === "Internal Server Error" ||
     (error && localStorage.getItem("token"))
   ) {
-    return { data: null, error, isLoading };
+    return {
+      data: null,
+      error,
+      isLoading,
+      getProfileByDid,
+      getProfileStatsByDid,
+      getRecentTracksByDid,
+    };
   }
 
-  return { data: JSON.parse(data), error, isLoading };
+  return {
+    data: JSON.parse(data),
+    error,
+    isLoading,
+    getProfileByDid,
+    getProfileStatsByDid,
+    getRecentTracksByDid,
+  };
 }
 
 export default useProfile;

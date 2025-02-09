@@ -1,17 +1,112 @@
-import { HeadingSmall, ParagraphMedium } from "baseui/typography";
+import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
+import { StatefulTooltip } from "baseui/tooltip";
+import { HeadingSmall } from "baseui/typography";
+import dayjs from "dayjs";
+import { useAtomValue, useSetAtom } from "jotai";
+import { useEffect } from "react";
+import { useParams } from "react-router";
+import { recentTracksAtom } from "../../../../atoms/recentTracks";
+import useProfile from "../../../../hooks/useProfile";
+
+type Row = {
+  id: string;
+  title: string;
+  artist: string;
+  albumArt: string;
+  date: string;
+};
 
 function RecentTracks() {
+  const { did } = useParams<{ did: string }>();
+  const { getRecentTracksByDid } = useProfile();
+  const setRecentTracks = useSetAtom(recentTracksAtom);
+  const recentTracks = useAtomValue(recentTracksAtom);
+
+  useEffect(() => {
+    if (!did) {
+      return;
+    }
+
+    const getRecentTracks = async () => {
+      const data = await getRecentTracksByDid(did);
+      setRecentTracks(
+        data.map(({ track_id, uri, xata_createdat }) => ({
+          id: track_id.id,
+          title: track_id.title,
+          artist: track_id.artist,
+          album: track_id.album,
+          albumArt: track_id.album_art,
+          albumArtist: track_id.album_artist,
+          duration: track_id.duration,
+          uri: track_id.uri,
+          date: xata_createdat,
+          scrobbleUri: uri,
+        }))
+      );
+    };
+
+    getRecentTracks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [did]);
   return (
     <>
-      <HeadingSmall>Recent Tracks</HeadingSmall>
-      <ParagraphMedium
-        style={{
-          textAlign: "center",
+      <HeadingSmall marginBottom={"10px"}>Recent Tracks</HeadingSmall>
+      <TableBuilder
+        data={recentTracks.map((x) => ({
+          id: x.id,
+          albumArt: x.albumArt,
+          title: x.title,
+          artist: x.artist,
+          date: x.date,
+        }))}
+        emptyMessage="You haven't listened to any music yet."
+        divider="clean"
+        overrides={{
+          TableHeadRow: {
+            style: {
+              display: "none",
+            },
+          },
+          TableBodyCell: {
+            style: {
+              verticalAlign: "center",
+            },
+          },
         }}
-        width={"100%"}
       >
-        You haven't listened to any music yet.
-      </ParagraphMedium>
+        <TableBuilderColumn header="Title">
+          {(row: Row) => (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+              }}
+            >
+              <img
+                src={row.albumArt}
+                alt={row.title}
+                style={{ width: 60, marginRight: 20, borderRadius: 5 }}
+              />
+              <div>{row.title}</div>
+            </div>
+          )}
+        </TableBuilderColumn>
+        <TableBuilderColumn header="Artist">
+          {(row: Row) => <div>{row.artist}</div>}
+        </TableBuilderColumn>
+        <TableBuilderColumn header="Date">
+          {(row: Row) => (
+            <StatefulTooltip
+              content={dayjs(row.date).format("MMMM D, YYYY [at] HH:mm A")}
+              returnFocus
+              autoFocus
+            >
+              <div style={{ width: 120 }}>{dayjs(row.date).fromNow()}</div>
+            </StatefulTooltip>
+          )}
+        </TableBuilderColumn>
+      </TableBuilder>
     </>
   );
 }

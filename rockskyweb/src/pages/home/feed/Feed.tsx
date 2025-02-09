@@ -78,7 +78,12 @@ function Feed() {
                       title={song.title}
                     />
                   </Link>
-                  <LabelMedium color={"#ff2876"}>@{song.user}</LabelMedium>
+                  <Link
+                    to={`/profile/${song.user}`}
+                    style={{ textDecoration: "none" }}
+                  >
+                    <LabelMedium color={"#ff2876"}>@{song.user}</LabelMedium>
+                  </Link>
                   <LabelMedium>is listening to this song</LabelMedium>
                   <StatefulTooltip
                     content={dayjs(song.date).format(

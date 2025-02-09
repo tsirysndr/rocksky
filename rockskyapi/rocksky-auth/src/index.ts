@@ -576,39 +576,23 @@ app.get("/users/:handle/likes", async (c) => {
 });
 
 app.get("/users/:handle/scrobbles", async (c) => {
-  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
-
-  if (!bearer || bearer === "null") {
-    c.status(401);
-    return c.text("Unauthorized");
-  }
-
-  const { did } = jwt.verify(bearer, env.JWT_SECRET);
-
-  const currentUser = await ctx.client.db.users
-    .filter("did", equals(did))
-    .getFirst();
-  if (!currentUser) {
-    c.status(401);
-    return c.text("Unauthorized");
-  }
-
   const handle = c.req.param("handle");
-  const user = await ctx.client.db.users
-    .filter("handle", equals(handle))
-    .getFirst();
-
-  if (!user) {
-    c.status(404);
-    return c.text("User not found");
-  }
 
   const size = +c.req.query("size") || 10;
   const offset = +c.req.query("offset") || 0;
 
   const scrobbles = await ctx.client.db.scrobbles
-    .select(["track_id.*"])
-    .filter("user_id", equals(user.xata_id))
+    .select(["track_id.*", "uri"])
+    .filter({
+      $any: [
+        {
+          "user_id.did": handle,
+        },
+        {
+          "user_id.handle": handle,
+        },
+      ],
+    })
     .sort("xata_createdat", "desc")
     .getPaginated({
       pagination: {
@@ -777,6 +761,80 @@ app.get("/users/:did/app.rocksky.song/:rkey", async (c) => {
   }
 
   return c.json(track);
+});
+
+app.get("/users/:did", async (c) => {
+  const did = c.req.param("did");
+
+  const user = await ctx.client.db.users
+    .filter({
+      $any: [{ did }, { handle: did }],
+    })
+    .getFirst();
+
+  if (!user) {
+    c.status(404);
+    return c.text("User not found");
+  }
+
+  return c.json(user);
+});
+
+app.get("/users/:did/stats", async (c) => {
+  const did = c.req.param("did");
+  const scrobbles = await ctx.client.db.scrobbles
+    .select(["user_id.*"])
+    .filter({
+      $any: [
+        {
+          "user_id.did": did,
+        },
+        {
+          "user_id.handle": did,
+        },
+      ],
+    })
+    .summarize({
+      summaries: {
+        total: {
+          count: "*",
+        },
+      },
+    });
+
+  const artists = await ctx.client.db.user_artists
+    .select(["artist_id.*", "user_id.*"])
+    .filter({
+      $any: [
+        {
+          "user_id.did": did,
+        },
+        {
+          "user_id.handle": did,
+        },
+      ],
+    })
+    .getAll();
+
+  const lovedTracks = await ctx.client.db.loved_tracks
+    .select(["track_id.*", "user_id.*"])
+    .filter({
+      $any: [
+        {
+          "user_id.did": did,
+        },
+        {
+          "user_id.handle": did,
+        },
+      ],
+    })
+    .getAll();
+
+  return c.json({
+    scrobbles: scrobbles.summaries[0].total,
+    artists: artists.length,
+    lovedTracks: lovedTracks.length,
+  });
 });
 
 serve({

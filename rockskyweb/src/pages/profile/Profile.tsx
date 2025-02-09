@@ -2,9 +2,10 @@ import styled from "@emotion/styled";
 import { Avatar } from "baseui/avatar";
 import { Tab, Tabs } from "baseui/tabs-motion";
 import { HeadingMedium, LabelLarge } from "baseui/typography";
-import { useAtomValue } from "jotai";
-import { Key, useState } from "react";
-import { profileAtom } from "../../atoms/profile";
+import dayjs from "dayjs";
+import { Key, useEffect, useState } from "react";
+import { useParams } from "react-router";
+import useProfile from "../../hooks/useProfile";
 import Main from "../../layouts/Main";
 import Library from "./library";
 import LovedTracks from "./lovedtracks";
@@ -19,8 +20,34 @@ const Group = styled.div`
 `;
 
 function Profile() {
-  const profile = useAtomValue(profileAtom);
+  const { getProfileByDid } = useProfile();
+  const [profile, setProfile] = useState<{
+    handle: string;
+    avatar: string;
+    displayName: string;
+    createdAt: string;
+  } | null>(null);
   const [activeKey, setActiveKey] = useState<Key>("0");
+  const { did } = useParams<{ did: string }>();
+
+  useEffect(() => {
+    if (!did) {
+      return;
+    }
+
+    const getProfile = async () => {
+      const data = await getProfileByDid(did);
+      setProfile({
+        avatar: data.avatar,
+        displayName: data.display_name,
+        handle: data.handle,
+        createdAt: data.xata_createdat,
+      });
+    };
+
+    getProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [did]);
 
   return (
     <>
@@ -48,6 +75,11 @@ function Profile() {
                 >
                   @{profile?.handle}
                 </a>
+                <span style={{ color: "#42576ca6", fontSize: "15px" }}>
+                  {" "}
+                  • scrobbling since{" "}
+                  {dayjs(profile?.createdAt).format("DD MMM YYYY")}
+                </span>
               </LabelLarge>
             </div>
           </Group>
