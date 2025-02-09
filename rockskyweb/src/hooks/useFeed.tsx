@@ -1,3 +1,4 @@
+import axios from "axios";
 import useSWR from "swr";
 import { API_URL } from "../consts";
 
@@ -12,9 +13,22 @@ function useFeed() {
     return data || [];
   };
 
-  const getFeedByUri = (uri: string) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return data.find((song: any) => song.uri === uri);
+  const getFeedByUri = async (uri: string) => {
+    const response = await axios.get(`${API_URL}/users/${uri}`);
+
+    if (response.status !== 200) {
+      return null;
+    }
+
+    return {
+      id: response.data.track_id?.xata_id,
+      title: response.data.track_id?.title,
+      artist: response.data.track_id?.artist,
+      album: response.data.track_id?.album,
+      cover: response.data.track_id?.album_art,
+      tags: [],
+      listeners: 1,
+    };
   };
 
   return {

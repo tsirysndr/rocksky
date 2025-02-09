@@ -11,7 +11,7 @@ import {
 } from "baseui/typography";
 import { useAtomValue } from "jotai";
 import numeral from "numeral";
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { profileAtom } from "../../atoms/profile";
 import SongCover from "../../components/SongCover";
@@ -28,68 +28,75 @@ const Song = () => {
   const profile = useAtomValue(profileAtom);
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
   const { getFeedByUri } = useFeed();
-  const song = useMemo(() => {
-    return getFeedByUri(`at://${did}/app.rocksky.scrobble/${rkey}`);
+  const [song, setSong] = useState<any>(null);
+  useEffect(() => {
+    const getSong = async () => {
+      const data = await getFeedByUri(`${did}/app.rocksky.scrobble/${rkey}`);
+      setSong(data);
+    };
+    getSong();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [did, rkey]);
 
   return (
     <Main>
-      <div style={{ paddingBottom: 100, paddingTop: 50 }}>
-        <Group>
-          <SongCover cover={song!.cover} size={150} />
-          <div style={{ marginLeft: 20 }}>
-            <HeadingMedium margin={0}>{song?.title}</HeadingMedium>
-            <LabelLarge margin={0}>{song?.artist}</LabelLarge>
-            <LabelSmall marginTop={"15px"}>Listeners</LabelSmall>
-            <HeadingXSmall margin={0}>
-              {numeral(song?.listeners).format("0,0")}
-            </HeadingXSmall>
-          </div>
-        </Group>
-        {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          song?.tags.map((tag: any) => (
-            <Tag closeable={false} kind={KIND.purple}>
-              {tag}
-            </Tag>
-          ))
-        }
+      {song && (
+        <div style={{ paddingBottom: 100, paddingTop: 50 }}>
+          <Group>
+            <SongCover cover={song?.cover} size={150} />
+            <div style={{ marginLeft: 20 }}>
+              <HeadingMedium margin={0}>{song?.title}</HeadingMedium>
+              <LabelLarge margin={0}>{song?.artist}</LabelLarge>
+              <LabelSmall marginTop={"15px"}>Listeners</LabelSmall>
+              <HeadingXSmall margin={0}>
+                {numeral(song?.listeners).format("0,0")}
+              </HeadingXSmall>
+            </div>
+          </Group>
+          {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            song?.tags.map((tag: any) => (
+              <Tag closeable={false} kind={KIND.purple}>
+                {tag}
+              </Tag>
+            ))
+          }
 
-        <div style={{ marginTop: 150 }}>
-          <LabelMedium marginBottom={"10px"}>Shoutbox</LabelMedium>
-          {profile && (
-            <>
-              <Textarea
-                placeholder={`@${profile?.handle}, share your thoughts about this song`}
-                resize="vertical"
-                overrides={{
-                  Input: {
-                    style: {
-                      width: "770px",
+          <div style={{ marginTop: 150 }}>
+            <LabelMedium marginBottom={"10px"}>Shoutbox</LabelMedium>
+            {profile && (
+              <>
+                <Textarea
+                  placeholder={`@${profile?.handle}, share your thoughts about this song`}
+                  resize="vertical"
+                  overrides={{
+                    Input: {
+                      style: {
+                        width: "770px",
+                      },
                     },
-                  },
-                }}
-                maxLength={1000}
-              />
-              <div
-                style={{
-                  marginTop: 15,
-                  display: "flex",
-                  justifyContent: "flex-end",
-                }}
-              >
-                <Button disabled>Post Shout</Button>
-              </div>
-            </>
-          )}
-          {!profile && (
-            <LabelMedium marginTop={"20px"}>
-              Want to share your thoughts? Sign in to leave a shout.
-            </LabelMedium>
-          )}
+                  }}
+                  maxLength={1000}
+                />
+                <div
+                  style={{
+                    marginTop: 15,
+                    display: "flex",
+                    justifyContent: "flex-end",
+                  }}
+                >
+                  <Button disabled>Post Shout</Button>
+                </div>
+              </>
+            )}
+            {!profile && (
+              <LabelMedium marginTop={"20px"}>
+                Want to share your thoughts? Sign in to leave a shout.
+              </LabelMedium>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </Main>
   );
 };
