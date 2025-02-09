@@ -220,6 +220,14 @@ const tables = [
         comment: "",
       },
       {
+        name: "artist_uri",
+        type: "text",
+        notNull: false,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
         name: "release_date",
         type: "text",
         notNull: false,

@@ -404,6 +404,7 @@ export async function scrobbleTrack(
         .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
         .digest("hex"),
       uri: albumUri ? albumUri : undefined,
+      artist_uri: new_artist_uri,
     });
 
   const existingAlbumTrack = await ctx.client.db.album_tracks

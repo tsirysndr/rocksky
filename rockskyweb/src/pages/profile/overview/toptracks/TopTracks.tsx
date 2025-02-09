@@ -160,6 +160,7 @@ function TopTracks() {
                     to={`/${row.uri?.split("at://")[1]}`}
                     style={{
                       fontFamily: "RockfordSansLight",
+                      color: "rgba(36, 49, 61, 0.65)",
                     }}
                   >
                     {row.albumArtist}
@@ -169,6 +170,7 @@ function TopTracks() {
                   <div
                     style={{
                       fontFamily: "RockfordSansLight",
+                      color: "rgba(36, 49, 61, 0.65)",
                     }}
                   >
                     {row.albumArtist}
