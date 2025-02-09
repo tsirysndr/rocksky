@@ -17,6 +17,7 @@ import { useParams } from "react-router";
 import { profileAtom } from "../../atoms/profile";
 import SongCover from "../../components/SongCover";
 import useFeed from "../../hooks/useFeed";
+import useLibrary from "../../hooks/useLibrary";
 import Main from "../../layouts/Main";
 
 const Group = styled.div`
@@ -29,15 +30,28 @@ const Song = () => {
   const profile = useAtomValue(profileAtom);
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
   const { getFeedByUri } = useFeed();
+  const { getSongByUri } = useLibrary();
   const [song, setSong] = useState<any>(null);
   useEffect(() => {
     const getSong = async () => {
-      const data = await getFeedByUri(`${did}/app.rocksky.scrobble/${rkey}`);
-      setSong(data);
+      // if path contains app.rocksky.scrobble, get the song
+      if (window.location.pathname.includes("app.rocksky.scrobble")) {
+        const data = await getFeedByUri(`${did}/app.rocksky.scrobble/${rkey}`);
+        console.log(">>scrobble", data);
+        setSong(data);
+      }
+
+      // if path contains app.rocksky.track, get the song
+      if (window.location.pathname.includes("app.rocksky.song")) {
+        const data = await getSongByUri(`${did}/app.rocksky.song/${rkey}`);
+        setSong(data);
+      }
     };
     getSong();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [did, rkey]);
+
+  console.log(">>io", song);
 
   return (
     <Main>

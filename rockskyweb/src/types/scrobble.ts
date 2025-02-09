@@ -9,6 +9,15 @@ export type Scrobble = {
     uri: string;
     duration: number;
   };
+  album_id: {
+    uri: string;
+    album_art?: string;
+    artist: string;
+    release_date: string;
+    title: string;
+    xata_id: string;
+    year: number;
+  };
   uri: string;
   xata_createdat: string;
   xata_id: string;

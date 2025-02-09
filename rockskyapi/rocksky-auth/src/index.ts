@@ -582,7 +582,7 @@ app.get("/users/:handle/scrobbles", async (c) => {
   const offset = +c.req.query("offset") || 0;
 
   const scrobbles = await ctx.client.db.scrobbles
-    .select(["track_id.*", "uri"])
+    .select(["track_id.*", "uri", "album_id.*"])
     .filter({
       $any: [
         {
@@ -760,7 +760,7 @@ app.get("/users/:did/app.rocksky.song/:rkey", async (c) => {
     return c.text("Track not found");
   }
 
-  return c.json(track);
+  return c.json({ ...track, tags: [] });
 });
 
 app.get("/users/:did", async (c) => {

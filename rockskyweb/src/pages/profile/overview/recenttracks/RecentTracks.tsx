@@ -4,7 +4,7 @@ import { HeadingSmall } from "baseui/typography";
 import dayjs from "dayjs";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect } from "react";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import { recentTracksAtom } from "../../../../atoms/recentTracks";
 import useProfile from "../../../../hooks/useProfile";
 
@@ -14,6 +14,9 @@ type Row = {
   artist: string;
   albumArt: string;
   date: string;
+  albumUri: string;
+  scrobbleUri: string;
+  uri: string;
 };
 
 function RecentTracks() {
@@ -30,7 +33,7 @@ function RecentTracks() {
     const getRecentTracks = async () => {
       const data = await getRecentTracksByDid(did);
       setRecentTracks(
-        data.map(({ track_id, uri, xata_createdat }) => ({
+        data.map(({ track_id, album_id, uri, xata_createdat }) => ({
           id: track_id.xata_id,
           title: track_id.title,
           artist: track_id.artist,
@@ -41,6 +44,7 @@ function RecentTracks() {
           uri: track_id.uri,
           date: xata_createdat,
           scrobbleUri: uri,
+          albumUri: album_id.uri,
         }))
       );
     };
@@ -58,6 +62,8 @@ function RecentTracks() {
           title: x.title,
           artist: x.artist,
           date: x.date,
+          uri: x.uri,
+          albumUri: x.albumUri,
         }))}
         emptyMessage="You haven't listened to any music yet."
         divider="clean"
@@ -83,17 +89,31 @@ function RecentTracks() {
                 alignItems: "center",
               }}
             >
-              <img
-                src={row.albumArt}
-                alt={row.title}
-                style={{ width: 60, marginRight: 20, borderRadius: 5 }}
-              />
-              <div>{row.title}</div>
+              <Link to={`/${row.albumUri.split("at://")[1]}`}>
+                <img
+                  src={row.albumArt}
+                  alt={row.title}
+                  style={{ width: 60, marginRight: 20, borderRadius: 5 }}
+                />
+              </Link>
+              <div>
+                <Link
+                  to={`/${row.uri.split("at://")[1]}`}
+                  style={{
+                    color: "initial",
+                    textDecoration: "none",
+                  }}
+                >
+                  {row.title}
+                </Link>
+              </div>
             </div>
           )}
         </TableBuilderColumn>
         <TableBuilderColumn header="Artist">
-          {(row: Row) => <div>{row.artist}</div>}
+          {(row: Row) => (
+            <div style={{ fontFamily: "RockfordSansLight" }}>{row.artist}</div>
+          )}
         </TableBuilderColumn>
         <TableBuilderColumn header="Date">
           {(row: Row) => (
@@ -102,7 +122,9 @@ function RecentTracks() {
               returnFocus
               autoFocus
             >
-              <div style={{ width: 120 }}>{dayjs(row.date).fromNow()}</div>
+              <div style={{ width: 120, color: "rgba(66, 87, 108, 0.65)" }}>
+                {dayjs(row.date).fromNow()}
+              </div>
             </StatefulTooltip>
           )}
         </TableBuilderColumn>
