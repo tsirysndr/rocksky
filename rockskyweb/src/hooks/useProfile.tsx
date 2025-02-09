@@ -5,6 +5,7 @@ import { useNavigate } from "react-router";
 import useSWR from "swr";
 import { profileAtom } from "../atoms/profile";
 import { API_URL } from "../consts";
+import { Scrobble } from "../types/scrobble";
 
 function useProfile() {
   const setProfile = useSetAtom(profileAtom);
@@ -25,8 +26,8 @@ function useProfile() {
     return response.data;
   };
 
-  const getRecentTracksByDid = async (did: string) => {
-    const response = await axios.get(
+  const getRecentTracksByDid = async (did: string): Promise<Scrobble[]> => {
+    const response = await axios.get<Scrobble[]>(
       `${API_URL}/users/${did}/scrobbles?size=10`
     );
     return response.data;

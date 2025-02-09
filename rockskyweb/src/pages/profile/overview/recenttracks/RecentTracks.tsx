@@ -31,7 +31,7 @@ function RecentTracks() {
       const data = await getRecentTracksByDid(did);
       setRecentTracks(
         data.map(({ track_id, uri, xata_createdat }) => ({
-          id: track_id.id,
+          id: track_id.xata_id,
           title: track_id.title,
           artist: track_id.artist,
           album: track_id.album,
