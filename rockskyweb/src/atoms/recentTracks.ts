@@ -7,6 +7,7 @@ export const recentTracksAtom = atom<
     artist: string;
     albumArtist: string;
     albumUri: string;
+    artistUri: string;
     uri: string;
     title: string;
     date: string;

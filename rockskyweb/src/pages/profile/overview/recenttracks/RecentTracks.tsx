@@ -1,20 +1,31 @@
+import styled from "@emotion/styled";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import { StatefulTooltip } from "baseui/tooltip";
 import { HeadingSmall } from "baseui/typography";
 import dayjs from "dayjs";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect } from "react";
-import { Link, useParams } from "react-router";
+import { Link as DefaultLink, useParams } from "react-router";
 import { recentTracksAtom } from "../../../../atoms/recentTracks";
 import useProfile from "../../../../hooks/useProfile";
+
+const Link = styled(DefaultLink)`
+  color: inherit;
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
+`;
 
 type Row = {
   id: string;
   title: string;
   artist: string;
+  albumArtist: string;
   albumArt: string;
   date: string;
   albumUri: string;
+  artistUri: string;
   scrobbleUri: string;
   uri: string;
 };
@@ -33,7 +44,7 @@ function RecentTracks() {
     const getRecentTracks = async () => {
       const data = await getRecentTracksByDid(did);
       setRecentTracks(
-        data.map(({ track_id, album_id, uri, xata_createdat }) => ({
+        data.map(({ track_id, album_id, artist_id, uri, xata_createdat }) => ({
           id: track_id.xata_id,
           title: track_id.title,
           artist: track_id.artist,
@@ -45,6 +56,7 @@ function RecentTracks() {
           date: xata_createdat,
           scrobbleUri: uri,
           albumUri: album_id.uri,
+          artistUri: artist_id.uri,
         }))
       );
     };
@@ -64,6 +76,8 @@ function RecentTracks() {
           date: x.date,
           uri: x.uri,
           albumUri: x.albumUri,
+          artistUri: x.artistUri,
+          albumArtist: x.albumArtist,
         }))}
         emptyMessage="You haven't listened to any music yet."
         divider="clean"
@@ -97,22 +111,19 @@ function RecentTracks() {
                 />
               </Link>
               <div>
-                <Link
-                  to={`/${row.uri.split("at://")[1]}`}
-                  style={{
-                    color: "initial",
-                    textDecoration: "none",
-                  }}
-                >
-                  {row.title}
-                </Link>
+                <Link to={`/${row.uri.split("at://")[1]}`}>{row.title}</Link>
               </div>
             </div>
           )}
         </TableBuilderColumn>
         <TableBuilderColumn header="Artist">
           {(row: Row) => (
-            <div style={{ fontFamily: "RockfordSansLight" }}>{row.artist}</div>
+            <Link
+              to={`/${row.artistUri.split("at://")[1]}`}
+              style={{ fontFamily: "RockfordSansLight" }}
+            >
+              {row.albumArtist}
+            </Link>
           )}
         </TableBuilderColumn>
         <TableBuilderColumn header="Date">

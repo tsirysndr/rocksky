@@ -18,6 +18,13 @@ export type Scrobble = {
     xata_id: string;
     year: number;
   };
+  artist_id: {
+    uri: string;
+    name: string;
+    xata_id: string;
+    bio?: string;
+    picture?: string;
+  };
   uri: string;
   xata_createdat: string;
   xata_id: string;

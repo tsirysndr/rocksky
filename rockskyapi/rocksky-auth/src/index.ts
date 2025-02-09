@@ -318,21 +318,6 @@ app.get("/scrobbles", async (c) => {
 });
 
 app.get("/tracks", async (c) => {
-  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
-
-  if (!bearer || bearer === "null") {
-    c.status(401);
-    return c.text("Unauthorized");
-  }
-
-  const { did } = jwt.verify(bearer, env.JWT_SECRET);
-
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
-  if (!user) {
-    c.status(401);
-    return c.text("Unauthorized");
-  }
-
   const size = +c.req.query("size") || 100;
   const offset = +c.req.query("offset") || 0;
 
@@ -349,21 +334,6 @@ app.get("/tracks", async (c) => {
 });
 
 app.get("/albums", async (c) => {
-  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
-
-  if (!bearer || bearer === "null") {
-    c.status(401);
-    return c.text("Unauthorized");
-  }
-
-  const { did } = jwt.verify(bearer, env.JWT_SECRET);
-
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
-  if (!user) {
-    c.status(401);
-    return c.text("Unauthorized");
-  }
-
   const size = +c.req.query("size") || 100;
   const offset = +c.req.query("offset") || 0;
 
@@ -380,21 +350,6 @@ app.get("/albums", async (c) => {
 });
 
 app.get("/artists", async (c) => {
-  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
-
-  if (!bearer || bearer === "null") {
-    c.status(401);
-    return c.text("Unauthorized");
-  }
-
-  const { did } = jwt.verify(bearer, env.JWT_SECRET);
-
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
-  if (!user) {
-    c.status(401);
-    return c.text("Unauthorized");
-  }
-
   const size = +c.req.query("size") || 100;
   const offset = +c.req.query("offset") || 0;
 
@@ -411,45 +366,14 @@ app.get("/artists", async (c) => {
 });
 
 app.get("/tracks/:sha256", async (c) => {
-  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
-
-  if (!bearer || bearer === "null") {
-    c.status(401);
-    return c.text("Unauthorized");
-  }
-
-  const { did } = jwt.verify(bearer, env.JWT_SECRET);
-
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
-  if (!user) {
-    c.status(401);
-    return c.text("Unauthorized");
-  }
-
   const sha256 = c.req.param("sha256");
   const track = await ctx.client.db.tracks
     .filter("sha256", equals(sha256))
     .getFirst();
-
   return c.json(track);
 });
 
 app.get("/albums/:sha256", async (c) => {
-  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
-
-  if (!bearer || bearer === "null") {
-    c.status(401);
-    return c.text("Unauthorized");
-  }
-
-  const { did } = jwt.verify(bearer, env.JWT_SECRET);
-
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
-  if (!user) {
-    c.status(401);
-    return c.text("Unauthorized");
-  }
-
   const sha256 = c.req.param("sha256");
   const album = await ctx.client.db.albums
     .filter("sha256", equals(sha256))
@@ -459,21 +383,6 @@ app.get("/albums/:sha256", async (c) => {
 });
 
 app.get("/artists/:sha256", async (c) => {
-  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
-
-  if (!bearer || bearer === "null") {
-    c.status(401);
-    return c.text("Unauthorized");
-  }
-
-  const { did } = jwt.verify(bearer, env.JWT_SECRET);
-
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
-  if (!user) {
-    c.status(401);
-    return c.text("Unauthorized");
-  }
-
   const sha256 = c.req.param("sha256");
   const artist = await ctx.client.db.artists
     .filter("sha256", equals(sha256))
@@ -483,95 +392,50 @@ app.get("/artists/:sha256", async (c) => {
 });
 
 app.get("/artists/:sha256/tracks", async (c) => {
-  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
-
-  if (!bearer || bearer === "null") {
-    c.status(401);
-    return c.text("Unauthorized");
-  }
-
-  const { did } = jwt.verify(bearer, env.JWT_SECRET);
-
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
-  if (!user) {
-    c.status(401);
-    return c.text("Unauthorized");
-  }
-
   const sha256 = c.req.param("sha256");
-  const artist = await ctx.client.db.artists
-    .filter("sha256", equals(sha256))
-    .getFirst();
 
   const tracks = await ctx.client.db.artist_tracks
     .select(["track_id.*"])
-    .filter("artist_id", equals(artist.xata_id))
+    .filter("artist_id.sha256", equals(sha256))
     .getAll();
 
   return c.json(tracks);
 });
 
 app.get("/albums/:sha256/tracks", async (c) => {
-  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
-
-  if (!bearer || bearer === "null") {
-    c.status(401);
-    return c.text("Unauthorized");
-  }
-
-  const { did } = jwt.verify(bearer, env.JWT_SECRET);
-
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
-  if (!user) {
-    c.status(401);
-    return c.text("Unauthorized");
-  }
-
   const sha256 = c.req.param("sha256");
-  const album = await ctx.client.db.albums
-    .filter("sha256", equals(sha256))
-    .getFirst();
-
   const tracks = await ctx.client.db.album_tracks
     .select(["track_id.*"])
-    .filter("album_id", equals(album.xata_id))
+    .filter("album_id.sha256", equals(sha256))
     .getAll();
 
   return c.json(tracks);
 });
 
-app.get("/users/:handle/likes", async (c) => {
-  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
-
-  if (!bearer || bearer === "null") {
-    c.status(401);
-    return c.text("Unauthorized");
-  }
-
-  const { did } = jwt.verify(bearer, env.JWT_SECRET);
-
-  const currentUser = await ctx.client.db.users
-    .filter("did", equals(did))
-    .getFirst();
-  if (!currentUser) {
-    c.status(401);
-    return c.text("Unauthorized");
-  }
-
-  const handle = c.req.param("handle");
-  const user = await ctx.client.db.users
-    .filter("handle", equals(handle))
-    .getFirst();
-
-  if (!user) {
-    c.status(404);
-    return c.text("User not found");
-  }
-
+app.get("/users/:did/likes", async (c) => {
+  const did = c.req.param("handle");
   const size = +c.req.query("size") || 10;
   const offset = +c.req.query("offset") || 0;
 
-  const lovedTracks = await getLovedTracks(ctx, user, size, offset);
+  const lovedTracks = await ctx.client.db.loved_tracks
+    .select(["track_id.*"])
+    .filter({
+      $any: [
+        {
+          "user_id.did": did,
+        },
+        {
+          "user_id.handle": did,
+        },
+      ],
+    })
+    .sort("xata_createdat", "desc")
+    .getPaginated({
+      pagination: {
+        size,
+        offset,
+      },
+    });
   return c.json(lovedTracks);
 });
 
@@ -582,7 +446,7 @@ app.get("/users/:handle/scrobbles", async (c) => {
   const offset = +c.req.query("offset") || 0;
 
   const scrobbles = await ctx.client.db.scrobbles
-    .select(["track_id.*", "uri", "album_id.*"])
+    .select(["track_id.*", "uri", "album_id.*", "artist_id.*"])
     .filter({
       $any: [
         {
@@ -604,41 +468,24 @@ app.get("/users/:handle/scrobbles", async (c) => {
   return c.json(scrobbles.records);
 });
 
-app.get("/users/:handle/albums", async (c) => {
-  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
-
-  if (!bearer || bearer === "null") {
-    c.status(401);
-    return c.text("Unauthorized");
-  }
-
-  const { did } = jwt.verify(bearer, env.JWT_SECRET);
-
-  const currentUser = await ctx.client.db.users
-    .filter("did", equals(did))
-    .getFirst();
-  if (!currentUser) {
-    c.status(401);
-    return c.text("Unauthorized");
-  }
-
-  const handle = c.req.param("handle");
-  const user = await ctx.client.db.users
-    .filter("handle", equals(handle))
-    .getFirst();
-
-  if (!user) {
-    c.status(404);
-    return c.text("User not found");
-  }
-
+app.get("/users/:did/albums", async (c) => {
+  const did = c.req.param("did");
   const size = +c.req.query("size") || 10;
   const offset = +c.req.query("offset") || 0;
 
-  const albums = await ctx.client.db.scrobbles
-    .select(["album_id.*"])
-    .filter("user_id", equals(user.xata_id))
-    .sort("xata_createdat", "desc")
+  const albums = await ctx.client.db.user_albums
+    .select(["album_id.*", "scrobbles"])
+    .filter({
+      $any: [
+        {
+          "user_id.did": did,
+        },
+        {
+          "user_id.handle": did,
+        },
+      ],
+    })
+    .sort("scrobbles", "desc")
     .getPaginated({
       pagination: {
         size,
@@ -646,44 +493,27 @@ app.get("/users/:handle/albums", async (c) => {
       },
     });
 
-  return c.json(albums.records);
+  return c.json(albums.records.map((item) => ({ ...item.album_id, tags: [] })));
 });
 
-app.get("/users/:handle/artists", async (c) => {
-  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
-
-  if (!bearer || bearer === "null") {
-    c.status(401);
-    return c.text("Unauthorized");
-  }
-
-  const { did } = jwt.verify(bearer, env.JWT_SECRET);
-
-  const currentUser = await ctx.client.db.users
-    .filter("did", equals(did))
-    .getFirst();
-  if (!currentUser) {
-    c.status(401);
-    return c.text("Unauthorized");
-  }
-
-  const handle = c.req.param("handle");
-  const user = await ctx.client.db.users
-    .filter("handle", equals(handle))
-    .getFirst();
-
-  if (!user) {
-    c.status(404);
-    return c.text("User not found");
-  }
-
+app.get("/users/:did/artists", async (c) => {
+  const did = c.req.param("did");
   const size = +c.req.query("size") || 10;
   const offset = +c.req.query("offset") || 0;
 
-  const artists = await ctx.client.db.scrobbles
-    .select(["artist_id.*"])
-    .filter("user_id", equals(user.xata_id))
-    .sort("xata_createdat", "desc")
+  const artists = await ctx.client.db.user_artists
+    .select(["artist_id.*", "scrobbles"])
+    .filter({
+      $any: [
+        {
+          "user_id.did": did,
+        },
+        {
+          "user_id.handle": did,
+        },
+      ],
+    })
+    .sort("scrobbles", "desc")
     .getPaginated({
       pagination: {
         size,
@@ -691,7 +521,39 @@ app.get("/users/:handle/artists", async (c) => {
       },
     });
 
-  return c.json(artists.records);
+  return c.json(
+    artists.records.map((item) => ({ ...item.artist_id, tags: [] }))
+  );
+});
+
+app.get("/users/:did/tracks", async (c) => {
+  const did = c.req.param("did");
+  const size = +c.req.query("size") || 10;
+  const offset = +c.req.query("offset") || 0;
+
+  const artists = await ctx.client.db.user_tracks
+    .select(["track_id.*", "scrobbles"])
+    .filter({
+      $any: [
+        {
+          "user_id.did": did,
+        },
+        {
+          "user_id.handle": did,
+        },
+      ],
+    })
+    .sort("scrobbles", "desc")
+    .getPaginated({
+      pagination: {
+        size,
+        offset,
+      },
+    });
+
+  return c.json(
+    artists.records.map((item) => ({ ...item.track_id, tags: [] }))
+  );
 });
 
 app.get("/users/:did/app.rocksky.scrobble/:rkey", async (c) => {
@@ -709,7 +571,7 @@ app.get("/users/:did/app.rocksky.scrobble/:rkey", async (c) => {
     return c.text("Scrobble not found");
   }
 
-  return c.json(scrobble);
+  return c.json({ ...scrobble, listeners: 1, tags: [] });
 });
 
 app.get("/users/:did/app.rocksky.artist/:rkey", async (c) => {
@@ -726,7 +588,20 @@ app.get("/users/:did/app.rocksky.artist/:rkey", async (c) => {
     return c.text("Artist not found");
   }
 
-  return c.json(artist);
+  const { summaries } = await ctx.client.db.user_artists
+    .select(["artist_id.*"])
+    .filter({
+      "artist_id.uri": equals(uri),
+    })
+    .summarize({
+      summaries: {
+        total: {
+          count: "*",
+        },
+      },
+    });
+
+  return c.json({ ...artist, listeners: summaries[0].total, tags: [] });
 });
 
 app.get("/users/:did/app.rocksky.album/:rkey", async (c) => {
@@ -743,7 +618,20 @@ app.get("/users/:did/app.rocksky.album/:rkey", async (c) => {
     return c.text("Album not found");
   }
 
-  return c.json(album);
+  const { summaries } = await ctx.client.db.user_albums
+    .select(["album_id.*"])
+    .filter({
+      "album_id.uri": equals(uri),
+    })
+    .summarize({
+      summaries: {
+        total: {
+          count: "*",
+        },
+      },
+    });
+
+  return c.json({ ...album, listeners: summaries[0].total, tags: [] });
 });
 
 app.get("/users/:did/app.rocksky.song/:rkey", async (c) => {
@@ -760,7 +648,20 @@ app.get("/users/:did/app.rocksky.song/:rkey", async (c) => {
     return c.text("Track not found");
   }
 
-  return c.json({ ...track, tags: [] });
+  const { summaries } = await ctx.client.db.user_tracks
+    .select(["track_id.*"])
+    .filter({
+      "track_id.uri": equals(uri),
+    })
+    .summarize({
+      summaries: {
+        total: {
+          count: "*",
+        },
+      },
+    });
+
+  return c.json({ ...track, tags: [], listeners: summaries[0].total });
 });
 
 app.get("/users/:did", async (c) => {

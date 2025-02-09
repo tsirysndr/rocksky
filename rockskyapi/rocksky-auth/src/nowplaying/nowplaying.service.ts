@@ -247,6 +247,14 @@ export async function updateUserLibrary(
       user_id: user.xata_id,
       track_id,
       uri: trackUri,
+      scrobbles: 1,
+    });
+  } else {
+    await ctx.client.db.user_tracks.update({
+      xata_id: existingUserTrack.xata_id,
+      scrobbles: existingUserTrack.scrobbles
+        ? existingUserTrack.scrobbles + 1
+        : 1,
     });
   }
 
@@ -259,6 +267,14 @@ export async function updateUserLibrary(
       user_id: user.xata_id,
       artist_id,
       uri: artistUri,
+      scrobbles: 1,
+    });
+  } else {
+    await ctx.client.db.user_artists.update({
+      xata_id: existingUserArtist.xata_id,
+      scrobbles: existingUserArtist.scrobbles
+        ? existingUserArtist.scrobbles + 1
+        : 1,
     });
   }
 
@@ -271,6 +287,14 @@ export async function updateUserLibrary(
       user_id: user.xata_id,
       album_id,
       uri: albumUri,
+      scrobbles: 1,
+    });
+  } else {
+    await ctx.client.db.user_albums.update({
+      xata_id: existingUserAlbum.xata_id,
+      scrobbles: existingUserAlbum.scrobbles
+        ? existingUserAlbum.scrobbles + 1
+        : 1,
     });
   }
 }
@@ -340,17 +364,15 @@ export async function scrobbleTrack(
     artistUri = await putArtistRecord(track, agent);
   }
 
-  const { xata_id: artist_id } = await ctx.client.db.artists.createOrUpdate(
-    existingArtist?.xata_id,
-    {
+  const { xata_id: artist_id, uri: new_artist_uri } =
+    await ctx.client.db.artists.createOrUpdate(existingArtist?.xata_id, {
       name: track.albumArtist,
       // compute sha256 (lowercase(name))
       sha256: createHash("sha256")
         .update(track.albumArtist.toLowerCase())
         .digest("hex"),
       uri: artistUri ? artistUri : undefined,
-    }
-  );
+    });
 
   const existingAlbum = await ctx.client.db.albums
     .filter(
@@ -368,9 +390,8 @@ export async function scrobbleTrack(
     albumUri = await putAlbumRecord(track, agent);
   }
 
-  const { xata_id: album_id } = await ctx.client.db.albums.createOrUpdate(
-    existingAlbum?.xata_id,
-    {
+  const { xata_id: album_id, uri: new_album_uri } =
+    await ctx.client.db.albums.createOrUpdate(existingAlbum?.xata_id, {
       title: track.album,
       artist: track.albumArtist,
       album_art: track.albumArt,
@@ -383,8 +404,7 @@ export async function scrobbleTrack(
         .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
         .digest("hex"),
       uri: albumUri ? albumUri : undefined,
-    }
-  );
+    });
 
   const existingAlbumTrack = await ctx.client.db.album_tracks
     .filter("album_id", equals(album_id))
@@ -434,6 +454,12 @@ export async function scrobbleTrack(
     albumUri,
     artistUri
   );
+
+  await ctx.client.db.tracks.update({
+    xata_id: track_id,
+    artist_uri: new_artist_uri,
+    album_uri: new_album_uri,
+  });
 
   const scrobble = await ctx.client.db.scrobbles.create({
     user_id: user.xata_id,

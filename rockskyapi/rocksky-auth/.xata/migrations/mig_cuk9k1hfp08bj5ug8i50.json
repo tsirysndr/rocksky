@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cuk9k1hfp08bj5ug8i50",
+    "operations": [
+      {
+        "add_column": {
+          "table": "user_tracks",
+          "column": {
+            "name": "score",
+            "type": "int",
+            "comment": "",
+            "nullable": true
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cuk9k1hfp08bj5ug8i50",
+  "parent": "mig_cuk9jjtbcvmcu6qfbjdg",
+  "schema": "public",
+  "startedAt": "2025-02-09T12:05:26.99782Z"
+}

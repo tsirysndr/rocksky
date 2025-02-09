@@ -37,7 +37,6 @@ const Song = () => {
       // if path contains app.rocksky.scrobble, get the song
       if (window.location.pathname.includes("app.rocksky.scrobble")) {
         const data = await getFeedByUri(`${did}/app.rocksky.scrobble/${rkey}`);
-        console.log(">>scrobble", data);
         setSong(data);
       }
 
@@ -50,8 +49,6 @@ const Song = () => {
     getSong();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [did, rkey]);
-
-  console.log(">>io", song);
 
   return (
     <Main>
