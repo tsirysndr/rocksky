@@ -344,8 +344,14 @@ app.post("/tracks", async (c) => {
 
   const track = parsed.data;
 
+  const agent = await createAgent(ctx.oauthClient, did);
+  if (!agent) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
   try {
-    await saveTrack(ctx, track);
+    await saveTrack(ctx, track, agent);
   } catch (e) {
     if (!e.message.includes("invalid record: column [sha256]: is not unique")) {
       console.error(e.message);

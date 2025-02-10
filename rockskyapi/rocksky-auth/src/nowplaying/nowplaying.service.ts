@@ -11,7 +11,7 @@ import downloadImage from "lib/downloadImage";
 import { Track } from "types/track";
 import { ScrobblesRecord } from "xata";
 
-async function putArtistRecord(
+export async function putArtistRecord(
   track: Track,
   agent: Agent
 ): Promise<string | null> {
@@ -44,7 +44,7 @@ async function putArtistRecord(
   }
 }
 
-async function putAlbumRecord(
+export async function putAlbumRecord(
   track: Track,
   agent: Agent
 ): Promise<string | null> {
@@ -100,7 +100,7 @@ async function putAlbumRecord(
   }
 }
 
-async function putSongRecord(
+export async function putSongRecord(
   track: Track,
   agent: Agent
 ): Promise<string | null> {

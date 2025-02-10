@@ -1,9 +1,15 @@
+import { Agent } from "@atproto/api";
 import { equals } from "@xata.io/client";
 import { Context } from "context";
 import { createHash } from "crypto";
+import {
+  putAlbumRecord,
+  putArtistRecord,
+  putSongRecord,
+} from "nowplaying/nowplaying.service";
 import { Track } from "types/track";
 
-export async function saveTrack(ctx: Context, track: Track) {
+export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
   const existingTrack = await ctx.client.db.tracks
     .filter(
       "sha256",
@@ -16,6 +22,11 @@ export async function saveTrack(ctx: Context, track: Track) {
       )
     )
     .getFirst();
+
+  let trackUri = existingTrack?.uri;
+  if (!existingTrack?.uri) {
+    trackUri = await putSongRecord(track, agent);
+  }
 
   const { xata_id: track_id } = await ctx.client.db.tracks.createOrUpdate(
     existingTrack?.xata_id,
@@ -38,6 +49,7 @@ export async function saveTrack(ctx: Context, track: Track) {
         )
         .digest("hex"),
       copyright_message: track.copyrightMessage,
+      uri: trackUri ? trackUri : undefined,
     }
   );
 
@@ -52,6 +64,11 @@ export async function saveTrack(ctx: Context, track: Track) {
     )
     .getFirst();
 
+  let artistUri = existingArtist?.uri;
+  if (!existingArtist?.uri) {
+    artistUri = await putArtistRecord(track, agent);
+  }
+
   const { xata_id: artist_id, uri: new_artist_uri } =
     await ctx.client.db.artists.createOrUpdate(existingArtist?.xata_id, {
       name: track.albumArtist,
@@ -59,6 +76,7 @@ export async function saveTrack(ctx: Context, track: Track) {
       sha256: createHash("sha256")
         .update(track.albumArtist.toLowerCase())
         .digest("hex"),
+      uri: artistUri ? artistUri : undefined,
     });
 
   const existingAlbum = await ctx.client.db.albums
@@ -71,6 +89,11 @@ export async function saveTrack(ctx: Context, track: Track) {
       )
     )
     .getFirst();
+
+  let albumUri = existingAlbum?.uri;
+  if (!existingAlbum?.uri) {
+    albumUri = await putAlbumRecord(track, agent);
+  }
 
   const { xata_id: album_id, uri: new_album_uri } =
     await ctx.client.db.albums.createOrUpdate(existingAlbum?.xata_id, {
@@ -86,6 +109,7 @@ export async function saveTrack(ctx: Context, track: Track) {
         .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
         .digest("hex"),
       artist_uri: new_artist_uri,
+      uri: albumUri ? albumUri : undefined,
     });
 
   const existingAlbumTrack = await ctx.client.db.album_tracks
