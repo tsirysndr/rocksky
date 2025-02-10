@@ -42,6 +42,7 @@ const Album = () => {
   const { formatTime } = useTimeFormat();
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
   const { getAlbum } = useLibrary();
+  const [disc, setDisc] = useState(1);
   const [album, setAlbum] = useState<{
     id: string;
     albumArt?: string;
@@ -65,6 +66,7 @@ const Album = () => {
       album_uri: string;
       artist_uri: string;
       duration: number;
+      disc_number: number;
     }[];
   } | null>(null);
 
@@ -86,10 +88,13 @@ const Album = () => {
         scrobbles: data.scrobbles,
         tracks: data.tracks,
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setDisc(Math.max(...data.tracks.map((track: any) => track.disc_number)));
     };
     fetchAlbum();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [did, rkey]);
+  console.log(">> disc", disc, Array(disc));
 
   return (
     <Main>
@@ -140,83 +145,196 @@ const Album = () => {
         )}
 
         <div style={{ marginTop: 20 }}>
-          <TableBuilder
-            data={album?.tracks.map((x) => ({
-              id: x.xata_id,
-              trackNumber: x.track_number,
-              albumArt: x.album_art,
-              title: x.title,
-              artist: x.artist,
-              uri: x.uri,
-              albumUri: album?.uri,
-              artistUri: x.artist_uri,
-              albumArtist: x.album_artist,
-              duration: x.duration,
-            }))}
-            emptyMessage="You haven't listened to any music yet."
-            divider="clean"
-            overrides={{
-              TableHeadRow: {
-                style: {
-                  display: "none",
+          {disc < 2 && (
+            <TableBuilder
+              data={album?.tracks.map((x) => ({
+                id: x.xata_id,
+                trackNumber: x.track_number,
+                albumArt: x.album_art,
+                title: x.title,
+                artist: x.artist,
+                uri: x.uri,
+                albumUri: album?.uri,
+                artistUri: x.artist_uri,
+                albumArtist: x.album_artist,
+                duration: x.duration,
+                discNumber: x.disc_number,
+              }))}
+              emptyMessage="You haven't listened to any music yet."
+              divider="clean"
+              overrides={{
+                TableHeadRow: {
+                  style: {
+                    display: "none",
+                  },
                 },
-              },
-              TableBodyCell: {
-                style: {
-                  verticalAlign: "center",
+                TableBodyCell: {
+                  style: {
+                    verticalAlign: "center",
+                  },
                 },
-              },
-            }}
-          >
-            <TableBuilderColumn header="Title">
-              {(row: Row) => <div>{row.trackNumber}</div>}
-            </TableBuilderColumn>
-            <TableBuilderColumn header="Title">
-              {(row: Row) => (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "row",
-                    alignItems: "center",
-                  }}
-                >
-                  <div>
+              }}
+            >
+              <TableBuilderColumn header="Title">
+                {(row: Row) => <div>{row.trackNumber}</div>}
+              </TableBuilderColumn>
+              <TableBuilderColumn header="Title">
+                {(row: Row) => (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "row",
+                      alignItems: "center",
+                    }}
+                  >
                     <div>
-                      <Link to={`/${row.uri.split("at://")[1]}`}>
-                        {row.title}
-                      </Link>
-                    </div>
-                    <div>
-                      {row.artistUri && (
-                        <Link
-                          to={`/${row.artistUri.split("at://")[1]}`}
-                          style={{
-                            fontFamily: "RockfordSansLight",
-                            color: "rgba(36, 49, 61, 0.65)",
-                          }}
-                        >
-                          {row.albumArtist}
-                        </Link>
-                      )}
-                      {!row.artistUri && (
-                        <div
-                          style={{
-                            fontFamily: "RockfordSansLight",
-                            color: "rgba(36, 49, 61, 0.65)",
-                          }}
-                        >
-                          {row.albumArtist}
-                        </div>
-                      )}
+                      <div>
+                        {row.uri && (
+                          <Link to={`/${row.uri.split("at://")[1]}`}>
+                            {row.title}
+                          </Link>
+                        )}
+                        {!row.uri && <div>{row.title}</div>}
+                      </div>
+                      <div>
+                        {row.artistUri && (
+                          <Link
+                            to={`/${row.artistUri.split("at://")[1]}`}
+                            style={{
+                              fontFamily: "RockfordSansLight",
+                              color: "rgba(36, 49, 61, 0.65)",
+                            }}
+                          >
+                            {row.albumArtist}
+                          </Link>
+                        )}
+                        {!row.artistUri && (
+                          <div
+                            style={{
+                              fontFamily: "RockfordSansLight",
+                              color: "rgba(36, 49, 61, 0.65)",
+                            }}
+                          >
+                            {row.albumArtist}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
+                )}
+              </TableBuilderColumn>
+              <TableBuilderColumn header="Duration">
+                {(row: Row) => <div>{formatTime(row.duration)}</div>}
+              </TableBuilderColumn>
+            </TableBuilder>
+          )}
+          {disc > 1 && (
+            <div>
+              {[...Array(disc)].map((_, i) => (
+                <div style={{ marginBottom: 20 }}>
+                  <LabelLarge>Volume {i + 1}</LabelLarge>
+                  <TableBuilder
+                    data={album?.tracks
+                      .filter((x) => x.disc_number == i + 1)
+                      .map((x) => ({
+                        id: x.xata_id,
+                        trackNumber: x.track_number,
+                        albumArt: x.album_art,
+                        title: x.title,
+                        artist: x.artist,
+                        uri: x.uri,
+                        albumUri: album?.uri,
+                        artistUri: x.artist_uri,
+                        albumArtist: x.album_artist,
+                        duration: x.duration,
+                        discNumber: x.disc_number,
+                      }))}
+                    emptyMessage="You haven't listened to any music yet."
+                    divider="clean"
+                    overrides={{
+                      TableHeadRow: {
+                        style: {
+                          display: "none",
+                        },
+                      },
+                      TableBodyCell: {
+                        style: {
+                          verticalAlign: "center",
+                        },
+                      },
+                    }}
+                  >
+                    <TableBuilderColumn header="Track">
+                      {(row: Row) => <div>{row.trackNumber}</div>}
+                    </TableBuilderColumn>
+                    <TableBuilderColumn
+                      header="Title"
+                      overrides={{
+                        TableBodyCell: {
+                          style: {
+                            width: "100%",
+                          },
+                        },
+                      }}
+                    >
+                      {(row: Row) => (
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "row",
+                            alignItems: "center",
+                            flex: 1,
+                            width: "100%",
+                          }}
+                        >
+                          <div>
+                            <div>
+                              {row.uri && (
+                                <Link to={`/${row.uri.split("at://")[1]}`}>
+                                  {row.title}
+                                </Link>
+                              )}
+                              {!row.uri && <div>{row.title}</div>}
+                            </div>
+                            <div>
+                              {row.artistUri && (
+                                <Link
+                                  to={`/${row.artistUri.split("at://")[1]}`}
+                                  style={{
+                                    fontFamily: "RockfordSansLight",
+                                    color: "rgba(36, 49, 61, 0.65)",
+                                  }}
+                                >
+                                  {row.albumArtist}
+                                </Link>
+                              )}
+                              {!row.artistUri && (
+                                <div
+                                  style={{
+                                    fontFamily: "RockfordSansLight",
+                                    color: "rgba(36, 49, 61, 0.65)",
+                                  }}
+                                >
+                                  {row.albumArtist}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </TableBuilderColumn>
+                    <TableBuilderColumn header="Duration">
+                      {(row: Row) => (
+                        <div style={{ width: 80 }}>
+                          {formatTime(row.duration)}
+                        </div>
+                      )}
+                    </TableBuilderColumn>
+                  </TableBuilder>
                 </div>
-              )}
-            </TableBuilderColumn>
-            <TableBuilderColumn header="Duration">
-              {(row: Row) => <div>{formatTime(row.duration)}</div>}
-            </TableBuilderColumn>
-          </TableBuilder>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </Main>
