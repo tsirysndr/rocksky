@@ -174,10 +174,28 @@ const Album = () => {
                 },
               }}
             >
-              <TableBuilderColumn header="Title">
+              <TableBuilderColumn
+                header="Title"
+                overrides={{
+                  TableBodyCell: {
+                    style: {
+                      width: "50px",
+                    },
+                  },
+                }}
+              >
                 {(row: Row) => <div>{row.trackNumber}</div>}
               </TableBuilderColumn>
-              <TableBuilderColumn header="Title">
+              <TableBuilderColumn
+                header="Title"
+                overrides={{
+                  TableBodyCell: {
+                    style: {
+                      width: "100%",
+                    },
+                  },
+                }}
+              >
                 {(row: Row) => (
                   <div
                     style={{
@@ -263,7 +281,16 @@ const Album = () => {
                       },
                     }}
                   >
-                    <TableBuilderColumn header="Track">
+                    <TableBuilderColumn
+                      header="Track"
+                      overrides={{
+                        TableBodyCell: {
+                          style: {
+                            width: "50px",
+                          },
+                        },
+                      }}
+                    >
                       {(row: Row) => <div>{row.trackNumber}</div>}
                     </TableBuilderColumn>
                     <TableBuilderColumn
