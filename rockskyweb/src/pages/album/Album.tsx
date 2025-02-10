@@ -94,7 +94,6 @@ const Album = () => {
     fetchAlbum();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [did, rkey]);
-  console.log(">> disc", disc, Array(disc));
 
   return (
     <Main>
