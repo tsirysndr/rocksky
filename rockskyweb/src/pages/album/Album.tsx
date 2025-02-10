@@ -184,7 +184,18 @@ const Album = () => {
                   },
                 }}
               >
-                {(row: Row) => <div>{row.trackNumber}</div>}
+                {(row: Row) => (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      flex: 1,
+                    }}
+                  >
+                    {row.trackNumber}
+                  </div>
+                )}
               </TableBuilderColumn>
               <TableBuilderColumn
                 header="Title"
@@ -291,7 +302,18 @@ const Album = () => {
                         },
                       }}
                     >
-                      {(row: Row) => <div>{row.trackNumber}</div>}
+                      {(row: Row) => (
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "row",
+                            alignItems: "center",
+                            flex: 1,
+                          }}
+                        >
+                          {row.trackNumber}
+                        </div>
+                      )}
                     </TableBuilderColumn>
                     <TableBuilderColumn
                       header="Title"
