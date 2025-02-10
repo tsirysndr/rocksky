@@ -485,8 +485,10 @@ app.get("/users/:did/albums", async (c) => {
         },
       ],
     })
-    .sort("scrobbles", "desc")
     .getPaginated({
+      sort: {
+        scrobbles: "desc",
+      },
       pagination: {
         size,
         offset,
@@ -513,8 +515,10 @@ app.get("/users/:did/artists", async (c) => {
         },
       ],
     })
-    .sort("scrobbles", "desc")
     .getPaginated({
+      sort: {
+        scrobbles: "desc",
+      },
       pagination: {
         size,
         offset,
@@ -543,8 +547,10 @@ app.get("/users/:did/tracks", async (c) => {
         },
       ],
     })
-    .sort("scrobbles", "desc")
     .getPaginated({
+      sort: {
+        scrobbles: "desc",
+      },
       pagination: {
         size,
         offset,
@@ -552,7 +558,11 @@ app.get("/users/:did/tracks", async (c) => {
     });
 
   return c.json(
-    artists.records.map((item) => ({ ...item.track_id, tags: [] }))
+    artists.records.map((item) => ({
+      ...item.track_id,
+      scrobles: item.scrobbles,
+      tags: [],
+    }))
   );
 });
 
@@ -618,6 +628,12 @@ app.get("/users/:did/app.rocksky.album/:rkey", async (c) => {
     return c.text("Album not found");
   }
 
+  const tracks = await ctx.client.db.album_tracks
+    .select(["track_id.*"])
+    .filter("album_id.uri", equals(uri))
+    .sort("track_id.track_number", "asc")
+    .getAll();
+
   const { summaries } = await ctx.client.db.user_albums
     .select(["album_id.*"])
     .filter({
@@ -631,7 +647,14 @@ app.get("/users/:did/app.rocksky.album/:rkey", async (c) => {
       },
     });
 
-  return c.json({ ...album, listeners: summaries[0].total, tags: [] });
+  return c.json({
+    ...album,
+    listeners: summaries[0].total,
+    tracks: tracks
+      .map((track) => track.track_id)
+      .sort((a, b) => a.track_number - b.track_number),
+    tags: [],
+  });
 });
 
 app.get("/users/:did/app.rocksky.song/:rkey", async (c) => {

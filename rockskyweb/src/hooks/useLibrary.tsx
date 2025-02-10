@@ -43,12 +43,28 @@ function useLibrary() {
     return response.data;
   };
 
+  const getAlbum = async (did: string, rkey: string) => {
+    const response = await axios.get(
+      `${API_URL}/users/${did}/app.rocksky.album/${rkey}`
+    );
+    return response.data;
+  };
+
+  const getArtist = async (did: string, rkey: string) => {
+    const response = await axios.get(
+      `${API_URL}/users/${did}/app.rocksky.artist/${rkey}`
+    );
+    return response.data;
+  };
+
   return {
     getSongByUri,
     getArtists,
     getAlbums,
     getTracks,
     getLovedTracks,
+    getAlbum,
+    getArtist,
   };
 }
 

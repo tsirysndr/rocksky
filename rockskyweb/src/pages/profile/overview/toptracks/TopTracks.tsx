@@ -157,7 +157,7 @@ function TopTracks() {
                 <Link to={`/${row.uri?.split("at://")[1]}`}>{row.title}</Link>
                 {row.artistUri && (
                   <Link
-                    to={`/${row.uri?.split("at://")[1]}`}
+                    to={`/${row.artistUri?.split("at://")[1]}`}
                     style={{
                       fontFamily: "RockfordSansLight",
                       color: "rgba(36, 49, 61, 0.65)",

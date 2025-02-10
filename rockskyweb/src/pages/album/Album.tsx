@@ -1,0 +1,226 @@
+import styled from "@emotion/styled";
+import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
+import { HeadingMedium, LabelLarge, LabelMedium } from "baseui/typography";
+import numeral from "numeral";
+import { useEffect, useState } from "react";
+import ContentLoader from "react-content-loader";
+import { Link as DefaultLink, useParams } from "react-router";
+import SongCover from "../../components/SongCover";
+import { useTimeFormat } from "../../hooks/useFormat";
+import useLibrary from "../../hooks/useLibrary";
+import Main from "../../layouts/Main";
+
+const Group = styled.div`
+  display: flex;
+  flex-direction: row;
+  margin-top: 20px;
+`;
+
+const Link = styled(DefaultLink)`
+  color: inherit;
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
+type Row = {
+  id: string;
+  title: string;
+  artist: string;
+  albumArtist: string;
+  albumArt: string;
+  albumUri: string;
+  artistUri: string;
+  scrobbleUri: string;
+  duration: number;
+  trackNumber: number;
+  uri: string;
+};
+
+const Album = () => {
+  const { formatTime } = useTimeFormat();
+  const { did, rkey } = useParams<{ did: string; rkey: string }>();
+  const { getAlbum } = useLibrary();
+  const [album, setAlbum] = useState<{
+    id: string;
+    albumArt?: string;
+    artist: string;
+    title: string;
+    year: string;
+    uri: string;
+    releaseDate: string;
+    listeners: number;
+    scrobbles: number;
+    tracks: {
+      xata_id: string;
+      track_number: number;
+      album: string;
+      album_art: string;
+      album_artist: string;
+      title: string;
+      artist: string;
+      xata_created: string;
+      uri: string;
+      album_uri: string;
+      artist_uri: string;
+      duration: number;
+    }[];
+  } | null>(null);
+
+  useEffect(() => {
+    if (!did || !rkey) {
+      return;
+    }
+    const fetchAlbum = async () => {
+      const data = await getAlbum(did, rkey);
+      setAlbum({
+        id: data.xata_id,
+        albumArt: data.album_art,
+        artist: data.artist,
+        title: data.title,
+        year: data.year,
+        uri: data.uri,
+        releaseDate: data.release_date,
+        listeners: data.listeners,
+        scrobbles: data.scrobbles,
+        tracks: data.tracks,
+      });
+    };
+    fetchAlbum();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [did, rkey]);
+
+  return (
+    <Main>
+      <div style={{ paddingBottom: 100, paddingTop: 50 }}>
+        {!album && (
+          <ContentLoader viewBox="100 0 850 700" height={520} width={700}>
+            <rect x="400" y="21" rx="10" ry="10" width="694" height="20" />
+            <rect x="400" y="61" rx="10" ry="10" width="80" height="20" />
+            <rect x="500" y="-46" rx="3" ry="3" width="350" height="6" />
+            <rect x="471" y="-45" rx="3" ry="3" width="380" height="6" />
+            <rect x="484" y="-45" rx="3" ry="3" width="201" height="6" />
+            <rect x="10" y="21" rx="8" ry="8" width="360" height="300" />
+          </ContentLoader>
+        )}
+        {album && (
+          <Group>
+            <SongCover cover={album.albumArt!} />
+            <div style={{ marginLeft: 20 }}>
+              <HeadingMedium margin={0}>{album.title}</HeadingMedium>
+              <LabelLarge margin={0}>{album.artist}</LabelLarge>
+
+              <div
+                style={{ marginTop: 20, display: "flex", flexDirection: "row" }}
+              >
+                <div
+                  style={{
+                    marginRight: 20,
+                  }}
+                >
+                  <LabelMedium margin={0} color="rgba(36, 49, 61, 0.65)">
+                    Listeners
+                  </LabelMedium>
+                  <LabelLarge margin={0}>
+                    {numeral(album.listeners).format("0,0")}
+                  </LabelLarge>
+                </div>
+                <div>
+                  <LabelMedium margin={0} color="rgba(36, 49, 61, 0.65)">
+                    Scrobbles
+                  </LabelMedium>
+                  <LabelLarge margin={0}>
+                    {numeral(album.scrobbles || 1).format("0,0")}
+                  </LabelLarge>
+                </div>
+              </div>
+            </div>
+          </Group>
+        )}
+
+        <div style={{ marginTop: 20 }}>
+          <TableBuilder
+            data={album?.tracks.map((x) => ({
+              id: x.xata_id,
+              trackNumber: x.track_number,
+              albumArt: x.album_art,
+              title: x.title,
+              artist: x.artist,
+              uri: x.uri,
+              albumUri: album?.uri,
+              artistUri: x.artist_uri,
+              albumArtist: x.album_artist,
+              duration: x.duration,
+            }))}
+            emptyMessage="You haven't listened to any music yet."
+            divider="clean"
+            overrides={{
+              TableHeadRow: {
+                style: {
+                  display: "none",
+                },
+              },
+              TableBodyCell: {
+                style: {
+                  verticalAlign: "center",
+                },
+              },
+            }}
+          >
+            <TableBuilderColumn header="Title">
+              {(row: Row) => <div>{row.trackNumber}</div>}
+            </TableBuilderColumn>
+            <TableBuilderColumn header="Title">
+              {(row: Row) => (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "center",
+                  }}
+                >
+                  <div>
+                    <div>
+                      <Link to={`/${row.uri.split("at://")[1]}`}>
+                        {row.title}
+                      </Link>
+                    </div>
+                    <div>
+                      {row.artistUri && (
+                        <Link
+                          to={`/${row.artistUri.split("at://")[1]}`}
+                          style={{
+                            fontFamily: "RockfordSansLight",
+                            color: "rgba(36, 49, 61, 0.65)",
+                          }}
+                        >
+                          {row.albumArtist}
+                        </Link>
+                      )}
+                      {!row.artistUri && (
+                        <div
+                          style={{
+                            fontFamily: "RockfordSansLight",
+                            color: "rgba(36, 49, 61, 0.65)",
+                          }}
+                        >
+                          {row.albumArtist}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </TableBuilderColumn>
+            <TableBuilderColumn header="Duration">
+              {(row: Row) => <div>{formatTime(row.duration)}</div>}
+            </TableBuilderColumn>
+          </TableBuilder>
+        </div>
+      </div>
+    </Main>
+  );
+};
+
+export default Album;
