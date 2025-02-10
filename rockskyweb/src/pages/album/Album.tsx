@@ -175,11 +175,12 @@ const Album = () => {
               }}
             >
               <TableBuilderColumn
-                header="Title"
+                header="Track"
                 overrides={{
                   TableBodyCell: {
                     style: {
                       width: "50px",
+                      verticalAlign: "center",
                     },
                   },
                 }}
@@ -298,6 +299,7 @@ const Album = () => {
                         TableBodyCell: {
                           style: {
                             width: "50px",
+                            verticalAlign: "center",
                           },
                         },
                       }}
