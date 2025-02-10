@@ -12,6 +12,7 @@ import {
   unLikeTrack,
 } from "lovedtracks/lovedtracks.service";
 import { scrobbleTrack } from "nowplaying/nowplaying.service";
+import { saveTrack } from "tracks/tracks.service";
 import { trackSchema } from "types/track";
 import { URLSearchParams } from "url";
 import * as Profile from "./lexicon/types/app/bsky/actor/profile";
@@ -315,6 +316,43 @@ app.get("/scrobbles", async (c) => {
     });
 
   return c.json(scrobbles.records);
+});
+
+app.post("/tracks", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+
+  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const body = await c.req.json();
+  const parsed = trackSchema.safeParse(body);
+
+  if (parsed.error) {
+    c.status(400);
+    return c.text("Invalid track data: " + parsed.error.message);
+  }
+
+  const track = parsed.data;
+
+  try {
+    await saveTrack(ctx, track);
+  } catch (e) {
+    if (!e.message.includes("invalid record: column [sha256]: is not unique")) {
+      console.error(e.message);
+    }
+  }
+
+  return c.json({ status: "ok" });
 });
 
 app.get("/tracks", async (c) => {
