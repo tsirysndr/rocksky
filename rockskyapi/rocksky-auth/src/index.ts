@@ -656,7 +656,11 @@ app.get("/users/:did/app.rocksky.artist/:rkey", async (c) => {
       },
     });
 
-  return c.json({ ...artist, listeners: summaries[0].total, tags: [] });
+  return c.json({
+    ...artist,
+    listeners: _.get(summaries, "0.total", 1),
+    tags: [],
+  });
 });
 
 app.get("/users/:did/app.rocksky.album/:rkey", async (c) => {
@@ -729,7 +733,11 @@ app.get("/users/:did/app.rocksky.song/:rkey", async (c) => {
       },
     });
 
-  return c.json({ ...track, tags: [], listeners: summaries[0].total });
+  return c.json({
+    ...track,
+    tags: [],
+    listeners: _.get(summaries, "0.total", 1),
+  });
 });
 
 app.get("/users/:did/app.rocksky.artist/:rkey/tracks", async (c) => {
@@ -854,7 +862,7 @@ app.get("/users/:did/stats", async (c) => {
     .getAll();
 
   return c.json({
-    scrobbles: scrobbles.summaries[0].total,
+    scrobbles: _.get(scrobbles, "summaries.0.total", 1),
     artists: artists.length,
     lovedTracks: lovedTracks.length,
   });
