@@ -43,12 +43,18 @@ function Albums(props: AlbumsProps) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           props.topAlbums.map((album: any) => (
             <FlexGridItem {...itemProps} key={album.id}>
-              <Link to={`/${album.uri.split("at://")[1]}`}>
-                <SongCover cover={album.album_art} size={230} />
-              </Link>
-              <Link to={`/${album.uri.split("at://")[1]}`}>
-                <LabelMedium>{album.title}</LabelMedium>
-              </Link>
+              {album.uri && (
+                <Link to={`/${album.uri.split("at://")[1]}`}>
+                  <SongCover cover={album.album_art} size={230} />
+                </Link>
+              )}
+              {!album.uri && <SongCover cover={album.album_art} size={230} />}
+              {album.uri && (
+                <Link to={`/${album.uri.split("at://")[1]}`}>
+                  <LabelMedium>{album.title}</LabelMedium>
+                </Link>
+              )}
+              {!album.uri && <LabelMedium>{album.title}</LabelMedium>}
               {album.artist_uri && (
                 <Link to={`/${album.artist_uri.split("at://")[1]}`}>
                   <LabelSmall color="rgba(36, 49, 61, 0.65)">
