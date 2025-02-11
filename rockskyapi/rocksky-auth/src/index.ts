@@ -731,6 +731,60 @@ app.get("/users/:did/app.rocksky.song/:rkey", async (c) => {
   return c.json({ ...track, tags: [], listeners: summaries[0].total });
 });
 
+app.get("/users/:did/app.rocksky.artist/:rkey/tracks", async (c) => {
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+  const uri = `at://${did}/app.rocksky.artist/${rkey}`;
+  const size = +c.req.query("size") || 10;
+  const offset = +c.req.query("offset") || 0;
+
+  const tracks = await ctx.client.db.artist_tracks
+    .select(["track_id.*", "xata_version"])
+    .filter({
+      "artist_id.uri": equals(uri),
+    })
+    .sort("xata_version", "desc")
+    .getPaginated({
+      pagination: {
+        size,
+        offset,
+      },
+    });
+  return c.json(
+    tracks.records.map((item) => ({
+      ...item.track_id,
+      xata_version: item.xata_version,
+    }))
+  );
+});
+
+app.get("/users/:did/app.rocksky.artist/:rkey/albums", async (c) => {
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+  const uri = `at://${did}/app.rocksky.artist/${rkey}`;
+  const size = +c.req.query("size") || 10;
+  const offset = +c.req.query("offset") || 0;
+
+  const albums = await ctx.client.db.artist_albums
+    .select(["album_id.*", "xata_version"])
+    .filter({
+      "artist_id.uri": equals(uri),
+    })
+    .sort("xata_version", "desc")
+    .getPaginated({
+      pagination: {
+        size,
+        offset,
+      },
+    });
+  return c.json(
+    albums.records.map((item) => ({
+      ...item.album_id,
+      xata_version: item.xata_version,
+    }))
+  );
+});
+
 app.get("/users/:did", async (c) => {
   const did = c.req.param("did");
 

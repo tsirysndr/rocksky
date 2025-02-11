@@ -24,10 +24,13 @@ function useFeed() {
       id: response.data.track_id?.xata_id,
       title: response.data.track_id?.title,
       artist: response.data.track_id?.artist,
+      albumArtist: response.data.track_id?.album_artist,
       album: response.data.track_id?.album,
       cover: response.data.track_id?.album_art,
       tags: [],
-      listeners: 1,
+      artistUri: response.data.track_id?.artist_uri,
+      albumUri: response.data.track_id?.album_uri,
+      listeners: response.data.listeners || 1,
     };
   };
 

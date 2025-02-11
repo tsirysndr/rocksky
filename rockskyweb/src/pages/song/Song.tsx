@@ -13,7 +13,7 @@ import { useAtomValue } from "jotai";
 import numeral from "numeral";
 import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
-import { useParams } from "react-router";
+import { Link as DefaultLink, useParams } from "react-router";
 import { profileAtom } from "../../atoms/profile";
 import SongCover from "../../components/SongCover";
 import useFeed from "../../hooks/useFeed";
@@ -26,12 +26,28 @@ const Group = styled.div`
   margin-top: 20px;
 `;
 
+const Link = styled(DefaultLink)`
+  text-decoration: none;
+  color: #000;
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
 const Song = () => {
   const profile = useAtomValue(profileAtom);
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
   const { getFeedByUri } = useFeed();
   const { getSongByUri } = useLibrary();
-  const [song, setSong] = useState<any>(null);
+  const [song, setSong] = useState<{
+    title: string;
+    albumArtist: string;
+    cover: string;
+    listeners: number;
+    tags: string[];
+    artistUri?: string;
+    albumUri?: string;
+  } | null>(null);
   useEffect(() => {
     const getSong = async () => {
       // if path contains app.rocksky.scrobble, get the song
@@ -66,10 +82,22 @@ const Song = () => {
         {song && (
           <>
             <Group>
-              <SongCover cover={song?.cover} size={150} />
+              {song?.albumUri && (
+                <Link to={`/${song.albumUri.split("at://")[1]}`}>
+                  <SongCover cover={song?.cover} size={150} />
+                </Link>
+              )}
+              {!song?.albumUri && <SongCover cover={song?.cover} size={150} />}
               <div style={{ marginLeft: 20 }}>
                 <HeadingMedium margin={0}>{song?.title}</HeadingMedium>
-                <LabelLarge margin={0}>{song?.artist}</LabelLarge>
+                {song?.artistUri && (
+                  <Link to={`/${song.artistUri.split("at://")[1]}`}>
+                    <LabelLarge margin={0}>{song?.albumArtist}</LabelLarge>
+                  </Link>
+                )}
+                {!song?.artistUri && (
+                  <LabelLarge margin={0}>{song?.albumArtist}</LabelLarge>
+                )}
                 <LabelSmall marginTop={"15px"}>Listeners</LabelSmall>
                 <HeadingXSmall margin={0}>
                   {numeral(song?.listeners).format("0,0")}

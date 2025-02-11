@@ -8,11 +8,55 @@ function useLibrary() {
       id: response.data?.xata_id,
       title: response.data?.title,
       artist: response.data?.artist,
+      albumArtist: response.data?.album_artist,
       album: response.data?.album,
       cover: response.data?.album_art,
       tags: [],
-      listeners: 1,
+      artistUri: response.data?.artist_uri,
+      albumUri: response.data?.album_uri,
+      listeners: response.data?.listeners || 1,
     };
+  };
+
+  const getArtistTracks = async (
+    uri: string,
+    limit = 10
+  ): Promise<
+    {
+      xata_id: string;
+      title: string;
+      artist: string;
+      album_artist: string;
+      album_art: string;
+      uri: string;
+      scrobbles: number;
+      album_uri?: string;
+      artist_uri?: string;
+    }[]
+  > => {
+    const response = await axios.get(
+      `${API_URL}/users/${uri}/tracks?size=${limit}`
+    );
+    return response.data;
+  };
+
+  const getArtistAlbums = async (
+    uri: string,
+    limit = 10
+  ): Promise<
+    {
+      xata_id: string;
+      title: string;
+      artist: string;
+      album_art: string;
+      artist_uri: string;
+      uri: string;
+    }[]
+  > => {
+    const response = await axios.get(
+      `${API_URL}/users/${uri}/albums?size=${limit}`
+    );
+    return response.data;
   };
 
   const getArtists = async (did: string, limit = 30) => {
@@ -65,6 +109,8 @@ function useLibrary() {
     getLovedTracks,
     getAlbum,
     getArtist,
+    getArtistTracks,
+    getArtistAlbums,
   };
 }
 
