@@ -116,7 +116,7 @@ const Song = () => {
 
             {song?.lyrics && (
               <>
-                <HeadingXSmall marginTop={"20px"} marginBottom={"15px"}>
+                <HeadingXSmall marginTop={"20px"} marginBottom={"0px"}>
                   Lyrics
                 </HeadingXSmall>
                 <div style={{ marginTop: 10 }}>
@@ -124,7 +124,7 @@ const Song = () => {
                     style={{
                       whiteSpace: "pre-line",
                       lineHeight: "2",
-                      fontSize: "18px",
+                      fontSize: "20px",
                     }}
                   >
                     {song.lyrics.replace(/\[\d{2}:\d{2}\.\d{2}\]\s*/g, "")}
