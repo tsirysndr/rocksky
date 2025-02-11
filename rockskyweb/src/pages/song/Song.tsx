@@ -45,6 +45,7 @@ const Song = () => {
     cover: string;
     listeners: number;
     tags: string[];
+    lyrics?: string;
     artistUri?: string;
     albumUri?: string;
   } | null>(null);
@@ -112,6 +113,25 @@ const Song = () => {
                 </Tag>
               ))
             }
+
+            {song?.lyrics && (
+              <>
+                <HeadingXSmall marginTop={"20px"} marginBottom={"15px"}>
+                  Lyrics
+                </HeadingXSmall>
+                <div style={{ marginTop: 10 }}>
+                  <p
+                    style={{
+                      whiteSpace: "pre-line",
+                      lineHeight: "2",
+                      fontSize: "18px",
+                    }}
+                  >
+                    {song.lyrics.replace(/\[\d{2}:\d{2}\.\d{2}\]\s*/g, "")}
+                  </p>
+                </div>
+              </>
+            )}
 
             <div style={{ marginTop: 150 }}>
               <LabelMedium marginBottom={"10px"}>Shoutbox</LabelMedium>

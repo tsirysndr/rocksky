@@ -15,6 +15,7 @@ function useLibrary() {
       artistUri: response.data?.artist_uri,
       albumUri: response.data?.album_uri,
       listeners: response.data?.listeners || 1,
+      lyrics: response.data?.lyrics,
     };
   };
 
