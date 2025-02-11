@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import jwt from "jsonwebtoken";
 import { createAgent } from "lib/agent";
+import _ from "lodash";
 import {
   getLovedTracks,
   likeTrack,
@@ -693,7 +694,7 @@ app.get("/users/:did/app.rocksky.album/:rkey", async (c) => {
 
   return c.json({
     ...album,
-    listeners: summaries[0].total,
+    listeners: _.get(summaries, "0.total", 1),
     tracks: tracks
       .map((track) => track.track_id)
       .sort((a, b) => a.track_number - b.track_number),
