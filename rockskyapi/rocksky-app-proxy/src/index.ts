@@ -16,32 +16,39 @@ export default {
 		const url = new URL(request.url);
 		let redirectToApi = false;
 
-		const API_ROUTES = ['/login', '/profile', '/client-metadata.json', '/token', '/now-playing'];
+		const API_ROUTES = [
+			"/login",
+			"/profile",
+			"/client-metadata.json",
+			"/token",
+			"/now-playing",
+		];
 
 		if (
 			API_ROUTES.includes(url.pathname) ||
-			url.pathname.startsWith('/oauth/callback') ||
-			url.pathname.startsWith('/users') ||
-			url.pathname.startsWith('/albums') ||
-			url.pathname.startsWith('/artists') ||
-			url.pathname.startsWith('/tracks') ||
-			url.pathname.startsWith('/scrobbles') ||
-			url.pathname.startsWith('/likes') ||
-			url.pathname.startsWith('/public/scrobbles')
+			url.pathname.startsWith("/oauth/callback") ||
+			url.pathname.startsWith("/users") ||
+			url.pathname.startsWith("/albums") ||
+			url.pathname.startsWith("/artists") ||
+			url.pathname.startsWith("/tracks") ||
+			url.pathname.startsWith("/scrobbles") ||
+			url.pathname.startsWith("/likes") ||
+			url.pathname.startsWith("/spotify") ||
+			url.pathname.startsWith("/public/scrobbles")
 		) {
 			redirectToApi = true;
 		}
 
 		if (redirectToApi) {
 			const proxyUrl = new URL(request.url);
-			proxyUrl.host = 'api.rocksky.app';
-			proxyUrl.hostname = 'api.rocksky.app';
+			proxyUrl.host = "api.rocksky.app";
+			proxyUrl.hostname = "api.rocksky.app";
 			return fetch(proxyUrl, request) as any;
 		}
 
 		const proxyUrl = new URL(request.url);
-		proxyUrl.host = 'rocksky.pages.dev';
-		proxyUrl.hostname = 'rocksky.pages.dev';
+		proxyUrl.host = "rocksky.pages.dev";
+		proxyUrl.hostname = "rocksky.pages.dev";
 		return fetch(proxyUrl, request) as any;
 	},
 } satisfies ExportedHandler<Env>;
