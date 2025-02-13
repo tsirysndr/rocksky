@@ -83,7 +83,7 @@ function useLibrary() {
 
   const getLovedTracks = async (did: string, limit = 20) => {
     const response = await axios.get(
-      `${API_URL}/users/${did}/loved?size=${limit}`
+      `${API_URL}/users/${did}/likes?size=${limit}`
     );
     return response.data;
   };
