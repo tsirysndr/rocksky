@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cun3kgcq7gi7283okqo0",
+    "operations": [
+      {
+        "add_column": {
+          "table": "spotify_accounts",
+          "column": {
+            "name": "is_beta_user",
+            "type": "bool",
+            "comment": "",
+            "default": "'false'"
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cun3kgcq7gi7283okqo0",
+  "parent": "mig_cun3jqpoos2v56d5q5e0",
+  "schema": "public",
+  "startedAt": "2025-02-13T18:30:26.903658Z"
+}

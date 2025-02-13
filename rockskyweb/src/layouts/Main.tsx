@@ -1,22 +1,17 @@
 import styled from "@emotion/styled";
-import { Spotify } from "@styled-icons/boxicons-logos";
 import { Search } from "@styled-icons/evaicons-solid";
 import { Button } from "baseui/button";
 import { Input } from "baseui/input";
-import {
-  Modal,
-  ModalBody,
-  ModalButton,
-  ModalFooter,
-  ModalHeader,
-} from "baseui/modal";
 import { PLACEMENT, toaster, ToasterContainer } from "baseui/toast";
 import { LabelMedium } from "baseui/typography";
+import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router";
+import { profileAtom } from "../atoms/profile";
 import { API_URL } from "../consts";
 import useProfile from "../hooks/useProfile";
 import Navbar from "./Navbar";
+import SpotifyLogin from "./SpotifyLogin";
 
 const Container = styled.div`
   display: flex;
@@ -40,19 +35,11 @@ const RightPane = styled.div`
   }
 `;
 
-const ConnectSpotify = styled.span`
-  font-weight: bolder;
-  &:hover {
-    cursor: pointer;
-    text-decoration: underline;
-  }
-`;
-
 function Main({ children }: { children: React.ReactNode }) {
   const [handle, setHandle] = useState("");
   const { search } = useLocation();
   const jwt = localStorage.getItem("token");
-  const [isOpen, setIsOpen] = useState(false);
+  const profile = useAtomValue(profileAtom);
 
   useEffect(() => {
     const query = new URLSearchParams(search);
@@ -121,35 +108,6 @@ function Main({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const onConnectSpotify = async () => {
-    const did = localStorage.getItem("did");
-    if (!did) {
-      return;
-    }
-
-    if (did === "did:plc:7vdlgi2bflelz7mmuxoqjfcr") {
-      setIsOpen(true);
-      return;
-    }
-    const response = await fetch(`${API_URL}/spotify/login`, {
-      headers: {
-        Authorization: `Bearer ${jwt}`,
-      },
-    });
-    const data = await response.json();
-    if (data.redirectUrl) {
-      window.location.href = data.redirectUrl;
-    }
-  };
-
-  const onJoinBeta = async () => {
-    close();
-  };
-
-  const close = () => {
-    setIsOpen(false);
-  };
-
   return (
     <Container>
       <ToasterContainer
@@ -184,26 +142,7 @@ function Main({ children }: { children: React.ReactNode }) {
               clearOnEscape
             />
           </div>
-          {jwt && (
-            <div
-              style={{
-                marginTop: 30,
-                marginBottom: 30,
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              <div style={{ marginRight: 15 }}>
-                <Spotify size={52} />
-              </div>
-              <p style={{ margin: 0 }}>
-                <ConnectSpotify onClick={onConnectSpotify}>
-                  Connect
-                </ConnectSpotify>{" "}
-                your Spotify account to share what you're listening
-              </p>
-            </div>
-          )}
+          {jwt && profile && !profile.spotifyConnected && <SpotifyLogin />}
           {!jwt && (
             <div style={{ marginTop: 40 }}>
               <div style={{ marginBottom: 20 }}>
@@ -269,25 +208,6 @@ function Main({ children }: { children: React.ReactNode }) {
           )}
         </div>
       </RightPane>
-      <Modal
-        onClose={close}
-        isOpen={isOpen}
-        overrides={{
-          Root: {
-            style: {
-              zIndex: 1,
-            },
-          },
-        }}
-      >
-        <ModalHeader>Send your spotify account to join the beta</ModalHeader>
-        <ModalBody>
-          <Input placeholder="Spotify email" clearable clearOnEscape />
-        </ModalBody>
-        <ModalFooter>
-          <ModalButton onClick={onJoinBeta}>Join the beta</ModalButton>
-        </ModalFooter>
-      </Modal>
     </Container>
   );
 }

@@ -55,6 +55,10 @@ function useProfile() {
         )}/${profile.avatar.ref["$link"]}@jpeg`,
         displayName: profile.displayName,
         handle: profile.handle,
+        spotifyUser: {
+          isBeta: profile.spotifyUser?.is_beta_user,
+        },
+        spotifyConnected: profile.spotifyConnected,
       });
     }
 
@@ -78,6 +82,10 @@ function useProfile() {
     data === "Internal Server Error" ||
     (error && localStorage.getItem("token"))
   ) {
+    if (data === "Unauthorized" && localStorage.getItem("token")) {
+      localStorage.clear();
+      window.location.href = "/";
+    }
     return {
       data: null,
       error,

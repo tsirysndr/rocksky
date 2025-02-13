@@ -1,0 +1,30 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cun3jqpoos2v56d5q5e0",
+    "operations": [
+      {
+        "add_column": {
+          "up": "''",
+          "table": "spotify_accounts",
+          "column": {
+            "name": "user_id",
+            "type": "text",
+            "comment": "{\"xata.link\":\"users\"}",
+            "references": {
+              "name": "user_id_link",
+              "table": "users",
+              "column": "xata_id",
+              "on_delete": "SET NULL"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cun3jqpoos2v56d5q5e0",
+  "parent": "mig_cun3j8poos2v56d5q5d0",
+  "schema": "public",
+  "startedAt": "2025-02-13T18:28:59.614215Z"
+}

@@ -1,0 +1,25 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cun3j8poos2v56d5q5d0",
+    "operations": [
+      {
+        "add_column": {
+          "up": "''",
+          "table": "spotify_accounts",
+          "column": {
+            "name": "email",
+            "type": "text",
+            "unique": true,
+            "comment": ""
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cun3j8poos2v56d5q5d0",
+  "parent": "mig_cun3iis27onfu5mm41b0",
+  "schema": "public",
+  "startedAt": "2025-02-13T18:27:47.773649Z"
+}

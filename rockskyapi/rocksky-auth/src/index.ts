@@ -16,6 +16,7 @@ import {
 } from "lovedtracks/lovedtracks.service";
 import { scrobbleTrack } from "nowplaying/nowplaying.service";
 import { saveTrack } from "tracks/tracks.service";
+import { emailSchema } from "types/email";
 import { trackSchema } from "types/track";
 import { URLSearchParams } from "url";
 import * as Profile from "./lexicon/types/app/bsky/actor/profile";
@@ -149,6 +150,50 @@ app.get("/spotify/callback", async (c) => {
   return c.redirect(env.FRONTEND_URL);
 });
 
+app.post("/spotify/join", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+
+  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const body = await c.req.json();
+  const parsed = emailSchema.safeParse(body);
+
+  if (parsed.error) {
+    c.status(400);
+    return c.text("Invalid email: " + parsed.error.message);
+  }
+
+  const { email } = parsed.data;
+
+  try {
+    await ctx.client.db.spotify_accounts.create({
+      user_id: user.xata_id,
+      email,
+      is_beta_user: false,
+    });
+  } catch (e) {
+    if (
+      !e.message.includes("invalid record: column [user_id]: is not unique")
+    ) {
+      console.error(e.message);
+    } else {
+      throw e;
+    }
+  }
+  return c.json({ status: "ok" });
+});
+
 app.get("/", async (c) => {
   return c.json({ status: "ok" });
 });
@@ -199,7 +244,16 @@ app.get("/profile", async (c) => {
     }
   }
 
-  return c.json(profile);
+  const spotifyUser = await ctx.client.db.spotify_accounts
+    .select(["user_id.*", "email", "is_beta_user"])
+    .filter("user_id.did", equals(did))
+    .getFirst();
+
+  const spotifyToken = await ctx.client.db.spotify_tokens
+    .filter("user_id.did", equals(did))
+    .getFirst();
+
+  return c.json({ ...profile, spotifyUser, spotifyConnected: !!spotifyToken });
 });
 
 app.get("/client-metadata.json", async (c) => {
@@ -431,7 +485,7 @@ app.post("/tracks", async (c) => {
     await saveTrack(ctx, track, agent);
   } catch (e) {
     if (!e.message.includes("invalid record: column [sha256]: is not unique")) {
-      console.error(e.message);
+      console.error("[spotify user]", e.message);
     }
   }
 

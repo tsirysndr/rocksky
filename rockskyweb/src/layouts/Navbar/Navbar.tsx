@@ -2,8 +2,10 @@ import styled from "@emotion/styled";
 import { Avatar } from "baseui/avatar";
 import { StatefulMenu } from "baseui/menu";
 import { PLACEMENT, StatefulPopover } from "baseui/popover";
+import { DURATION, useSnackbar } from "baseui/snackbar";
 import { LabelMedium } from "baseui/typography";
 import { useAtomValue, useSetAtom } from "jotai";
+import { useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { profileAtom } from "../../atoms/profile";
 
@@ -28,6 +30,19 @@ function Navbar() {
   const profile = useAtomValue(profileAtom);
   const navigate = useNavigate();
   const jwt = localStorage.getItem("token");
+  const { enqueue } = useSnackbar();
+
+  useEffect(() => {
+    if (profile?.spotifyConnected && !!localStorage.getItem("spotify")) {
+      localStorage.removeItem("spotify");
+      enqueue(
+        {
+          message: "Spotify account connected successfully!",
+        },
+        DURATION.long
+      );
+    }
+  }, [enqueue, profile]);
 
   return (
     <Container>
