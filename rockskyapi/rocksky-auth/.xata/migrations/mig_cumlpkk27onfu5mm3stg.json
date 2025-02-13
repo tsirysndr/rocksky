@@ -1,0 +1,57 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cumlpkk27onfu5mm3stg",
+    "operations": [
+      {
+        "create_table": {
+          "name": "spotify_token",
+          "columns": [
+            {
+              "name": "xata_id",
+              "type": "text",
+              "check": {
+                "name": "spotify_token_xata_id_length_xata_id",
+                "constraint": "length(\"xata_id\") < 256"
+              },
+              "unique": true,
+              "default": "'rec_' || xata_private.xid()"
+            },
+            {
+              "name": "xata_version",
+              "type": "integer",
+              "default": "0"
+            },
+            {
+              "name": "xata_createdat",
+              "type": "timestamptz",
+              "default": "now()"
+            },
+            {
+              "name": "xata_updatedat",
+              "type": "timestamptz",
+              "default": "now()"
+            }
+          ]
+        }
+      },
+      {
+        "sql": {
+          "up": "ALTER TABLE \"spotify_token\" REPLICA IDENTITY FULL",
+          "onComplete": true
+        }
+      },
+      {
+        "sql": {
+          "up": "CREATE TRIGGER xata_maintain_metadata_trigger_pgroll\n  BEFORE INSERT OR UPDATE\n  ON \"spotify_token\"\n  FOR EACH ROW\n  EXECUTE FUNCTION xata_private.maintain_metadata_trigger_pgroll()",
+          "onComplete": true
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cumlpkk27onfu5mm3stg",
+  "parent": "mig_cukf0v5bcvmcu6qfbkug",
+  "schema": "public",
+  "startedAt": "2025-02-13T02:45:38.830459Z"
+}

@@ -16,4 +16,11 @@ export const env = cleanEnv(process.env, {
   COOKIE_SECRET: str({ devDefault: "00000000000000000000000000000000" }),
   FRONTEND_URL: str({ devDefault: "http://localhost:5174" }),
   JWT_SECRET: str({ devDefault: "00000000000000000000000000000000" }),
+  SPOTIFY_REDIRECT_URI: str({
+    devDefault: "http://localhost:8000/spotify/callback",
+  }),
+  SPOTIFY_CLIENT_ID: str({}),
+  SPOTIFY_CLIENT_SECRET: str({}),
+  SPOTIFY_ENCRYPTION_KEY: str({}),
+  SPOTIFY_ENCRYPTION_IV: str(),
 });

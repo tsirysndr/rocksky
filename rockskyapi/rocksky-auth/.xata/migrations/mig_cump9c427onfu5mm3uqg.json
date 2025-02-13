@@ -1,0 +1,18 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cump9c427onfu5mm3uqg",
+    "operations": [
+      {
+        "drop_table": {
+          "name": "spotify_tokens"
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cump9c427onfu5mm3uqg",
+  "parent": "mig_cumnoak27onfu5mm3uag",
+  "schema": "public",
+  "startedAt": "2025-02-13T06:44:01.066562Z"
+}

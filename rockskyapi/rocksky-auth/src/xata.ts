@@ -1317,6 +1317,91 @@ const tables = [
     ],
   },
   {
+    name: "spotify_tokens",
+    checkConstraints: {
+      spotify_tokens_xata_id_length_xata_id: {
+        name: "spotify_tokens_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {
+      user_id_link: {
+        name: "user_id_link",
+        columns: ["user_id"],
+        referencedTable: "users",
+        referencedColumns: ["xata_id"],
+        onDelete: "SET NULL",
+      },
+    },
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_spotify_tokens_xata_id_key: {
+        name: "_pgroll_new_spotify_tokens_xata_id_key",
+        columns: ["xata_id"],
+      },
+    },
+    columns: [
+      {
+        name: "access_token",
+        type: "text",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "refresh_token",
+        type: "text",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "user_id",
+        type: "link",
+        link: { table: "users" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"users"}',
+      },
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
     name: "tags",
     checkConstraints: {
       tags_xata_id_length_xata_id: {
@@ -2237,6 +2322,9 @@ export type ScrobblesRecord = Scrobbles & XataRecord;
 export type Shouts = InferredTypes["shouts"];
 export type ShoutsRecord = Shouts & XataRecord;
 
+export type SpotifyTokens = InferredTypes["spotify_tokens"];
+export type SpotifyTokensRecord = SpotifyTokens & XataRecord;
+
 export type Tags = InferredTypes["tags"];
 export type TagsRecord = Tags & XataRecord;
 
@@ -2275,6 +2363,7 @@ export type DatabaseSchema = {
   radios: RadiosRecord;
   scrobbles: ScrobblesRecord;
   shouts: ShoutsRecord;
+  spotify_tokens: SpotifyTokensRecord;
   tags: TagsRecord;
   track_tags: TrackTagsRecord;
   tracks: TracksRecord;

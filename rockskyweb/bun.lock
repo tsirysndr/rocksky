@@ -7,6 +7,7 @@
         "@emotion/react": "^11.14.0",
         "@emotion/styled": "^11.14.0",
         "@styled-icons/bootstrap": "^10.47.0",
+        "@styled-icons/boxicons-logos": "^10.47.0",
         "@styled-icons/boxicons-regular": "^10.47.0",
         "@styled-icons/entypo": "^10.46.0",
         "@styled-icons/evaicons-solid": "^10.46.0",
@@ -375,6 +376,8 @@
     "@storybook/theming": ["@storybook/theming@8.5.2", "", { "peerDependencies": { "storybook": "^8.2.0 || ^8.3.0-0 || ^8.4.0-0 || ^8.5.0-0 || ^8.6.0-0" } }, "sha512-vro8vJx16rIE0UehawEZbxFFA4/VGYS20PMKP6Y6Fpsce0t2/cF/U9qg3jOzVb/XDwfx+ne3/V+8rjfWx8wwJw=="],
 
     "@styled-icons/bootstrap": ["@styled-icons/bootstrap@10.47.0", "", { "dependencies": { "@babel/runtime": "^7.20.7", "@styled-icons/styled-icon": "^10.7.0" }, "peerDependencies": { "react": "*", "styled-components": "*" } }, "sha512-xpnPdrLhAhpTRE4iljQIEK73twVj7VPglwHSL+8nQdH7EsW5RJIOWsmlkZMyqhQHN0H7fGmT10F3/6OQhSpfGg=="],
+
+    "@styled-icons/boxicons-logos": ["@styled-icons/boxicons-logos@10.47.0", "", { "dependencies": { "@babel/runtime": "^7.20.7", "@styled-icons/styled-icon": "^10.7.0" }, "peerDependencies": { "react": "*", "styled-components": "*" } }, "sha512-eDZfiTjBth4MsCX83ZfiWIoYGU494NxZgAxyf7S0ky2ZRsJnq/Cs7crH4hKWUTaLvCo0XRJmLeA3Us2tZFiItg=="],
 
     "@styled-icons/boxicons-regular": ["@styled-icons/boxicons-regular@10.47.0", "", { "dependencies": { "@babel/runtime": "^7.20.7", "@styled-icons/styled-icon": "^10.7.0" }, "peerDependencies": { "react": "*", "styled-components": "*" } }, "sha512-z8KczDp4VArXvOn8i2j66Xs4oX9oiiJEhMoHydY3uC9kdtImcxhZ/xHPrgTJLkbK6f5ikwB4CKVnSqQGzzAJNw=="],
 
