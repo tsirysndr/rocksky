@@ -191,6 +191,16 @@ app.post("/spotify/join", async (c) => {
       throw e;
     }
   }
+
+  await fetch("https://beta.rocksky.app", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${env.ROCKSKY_BETA_TOKEN}`,
+    },
+    body: JSON.stringify({ email }),
+  });
+
   return c.json({ status: "ok" });
 });
 
