@@ -60,30 +60,30 @@ function useLibrary() {
     return response.data;
   };
 
-  const getArtists = async (did: string, limit = 30) => {
+  const getArtists = async (did: string, offset = 0, limit = 30) => {
     const response = await axios.get(
-      `${API_URL}/users/${did}/artists?size=${limit}`
+      `${API_URL}/users/${did}/artists?size=${limit}&offset=${offset}`
     );
     return response.data;
   };
 
-  const getAlbums = async (did: string, limit = 12) => {
+  const getAlbums = async (did: string, offset = 0, limit = 12) => {
     const response = await axios.get(
-      `${API_URL}/users/${did}/albums?size=${limit}`
+      `${API_URL}/users/${did}/albums?size=${limit}&offset=${offset}`
     );
     return response.data;
   };
 
-  const getTracks = async (did: string, limit = 20) => {
+  const getTracks = async (did: string, offset = 0, limit = 20) => {
     const response = await axios.get(
-      `${API_URL}/users/${did}/tracks?size=${limit}`
+      `${API_URL}/users/${did}/tracks?size=${limit}&offset=${offset}`
     );
     return response.data;
   };
 
-  const getLovedTracks = async (did: string, limit = 20) => {
+  const getLovedTracks = async (did: string, offset = 0, limit = 20) => {
     const response = await axios.get(
-      `${API_URL}/users/${did}/likes?size=${limit}`
+      `${API_URL}/users/${did}/likes?size=${limit}&offset=${offset}`
     );
     return response.data;
   };

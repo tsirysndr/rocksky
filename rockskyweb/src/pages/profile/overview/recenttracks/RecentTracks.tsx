@@ -30,7 +30,17 @@ type Row = {
   uri: string;
 };
 
-function RecentTracks() {
+interface RecentTracksProps {
+  showTitle?: boolean;
+  size?: number;
+}
+
+function RecentTracks(props: RecentTracksProps) {
+  props = {
+    showTitle: true,
+    size: 10,
+    ...props,
+  };
   const { did } = useParams<{ did: string }>();
   const { getRecentTracksByDid } = useProfile();
   const setRecentTracks = useSetAtom(recentTracksAtom);
@@ -42,7 +52,7 @@ function RecentTracks() {
     }
 
     const getRecentTracks = async () => {
-      const data = await getRecentTracksByDid(did);
+      const data = await getRecentTracksByDid(did, 0, props.size);
       setRecentTracks(
         data.map(({ track_id, album_id, artist_id, uri, xata_createdat }) => ({
           id: track_id.xata_id,
@@ -66,7 +76,9 @@ function RecentTracks() {
   }, [did]);
   return (
     <>
-      <HeadingSmall marginBottom={"10px"}>Recent Tracks</HeadingSmall>
+      {props.showTitle && (
+        <HeadingSmall marginBottom={"10px"}>Recent Tracks</HeadingSmall>
+      )}
       <TableBuilder
         data={recentTracks.map((x) => ({
           id: x.id,

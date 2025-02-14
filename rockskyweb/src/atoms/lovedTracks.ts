@@ -12,5 +12,6 @@ export const lovedTracksAtom = atom<
     scrobbles: number | null;
     albumUri?: string;
     artistUri?: string;
+    date: string;
   }[]
 >([]);

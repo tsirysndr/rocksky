@@ -26,9 +26,13 @@ function useProfile() {
     return response.data;
   };
 
-  const getRecentTracksByDid = async (did: string): Promise<Scrobble[]> => {
+  const getRecentTracksByDid = async (
+    did: string,
+    offset = 0,
+    size = 10
+  ): Promise<Scrobble[]> => {
     const response = await axios.get<Scrobble[]>(
-      `${API_URL}/users/${did}/scrobbles?size=10`
+      `${API_URL}/users/${did}/scrobbles?size=${size}&offset=${offset}`
     );
     return response.data;
   };

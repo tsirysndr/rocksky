@@ -1,19 +1,16 @@
 import styled from "@emotion/styled";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
-import { HeadingSmall } from "baseui/typography";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect } from "react";
 import { Link as DefaultLink, useParams } from "react-router";
-import { topTracksAtom } from "../../../../atoms/topTracks";
+import { topAlbumsAtom } from "../../../../atoms/topAlbums";
 import useLibrary from "../../../../hooks/useLibrary";
 
 type Row = {
   id: string;
   title: string;
   artist: string;
-  albumArtist: string;
   albumArt: string;
-  albumUri?: string;
   artistUri?: string;
   uri: string;
   scrobbles: number;
@@ -28,60 +25,49 @@ const Link = styled(DefaultLink)`
   }
 `;
 
-interface TopTracksProps {
-  showTitle?: boolean;
-  size?: number;
-}
-
-function TopTracks(props: TopTracksProps) {
-  props = {
-    showTitle: true,
-    size: 20,
-    ...props,
-  };
-  const setTopTracks = useSetAtom(topTracksAtom);
-  const topTracks = useAtomValue(topTracksAtom);
+function Albums() {
+  const setTopAlbums = useSetAtom(topAlbumsAtom);
+  const topAlbums = useAtomValue(topAlbumsAtom);
   const { did } = useParams<{ did: string }>();
-  const { getTracks } = useLibrary();
+  const { getAlbums } = useLibrary();
 
   useEffect(() => {
     if (!did) {
       return;
     }
 
-    const getTopTracks = async () => {
-      const data = await getTracks(did, 0, props.size);
-      setTopTracks(
+    const getTopAlbums = async () => {
+      const data = await getAlbums(did, 0, 100);
+
+      setTopAlbums(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        data.map((track: any) => ({
-          ...track,
-          albumArt: track.album_art,
-          albumArtist: track.album_artist,
-          albumUri: track.album_uri,
-          artistUri: track.artist_uri,
+        data.map((x: any) => ({
+          id: x.id,
+          title: x.title,
+          artist: x.artist,
+          albumArt: x.album_art,
+          artistUri: x.artist_uri,
+          uri: x.uri,
+          scrobbles: x.scrobbles,
         }))
       );
     };
-    getTopTracks();
+
+    getTopAlbums();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [did]);
 
   return (
-    <div>
-      {props.showTitle && (
-        <HeadingSmall marginBottom={"15px"}>Top Tracks</HeadingSmall>
-      )}
+    <>
       <TableBuilder
-        data={topTracks.map((x, index) => ({
+        data={topAlbums.map((x, index) => ({
           id: x.id,
           title: x.title,
           artist: x.artist,
-          albumArtist: x.albumArtist,
           albumArt: x.albumArt,
+          artistUri: x.artistUri,
           uri: x.uri,
           scrobbles: x.scrobbles,
-          albumUri: x.albumUri,
-          artistUri: x.artistUri,
           index,
         }))}
         emptyMessage="You haven't listened to any music yet."
@@ -111,8 +97,8 @@ function TopTracks(props: TopTracksProps) {
               <div>
                 <div style={{ marginRight: 20 }}>{row.index + 1}</div>
               </div>
-              {row.albumUri && (
-                <Link to={`/${row.albumUri?.split("at://")[1]}`}>
+              {row.uri && (
+                <Link to={`/${row.uri?.split("at://")[1]}`}>
                   {!!row.albumArt && (
                     <img
                       src={row.albumArt}
@@ -138,7 +124,7 @@ function TopTracks(props: TopTracksProps) {
                   )}
                 </Link>
               )}
-              {!row.albumUri && (
+              {!row.uri && (
                 <div>
                   {!!row.albumArt && (
                     <img
@@ -175,7 +161,7 @@ function TopTracks(props: TopTracksProps) {
                       color: "rgba(36, 49, 61, 0.65)",
                     }}
                   >
-                    {row.albumArtist}
+                    {row.artist}
                   </Link>
                 )}
                 {!row.artistUri && (
@@ -185,7 +171,7 @@ function TopTracks(props: TopTracksProps) {
                       color: "rgba(36, 49, 61, 0.65)",
                     }}
                   >
-                    {row.albumArtist}
+                    {row.artist}
                   </div>
                 )}
               </div>
@@ -196,8 +182,8 @@ function TopTracks(props: TopTracksProps) {
           {(row: Row) => <div>{row.scrobbles}</div>}
         </TableBuilderColumn>
       </TableBuilder>
-    </div>
+    </>
   );
 }
 
-export default TopTracks;
+export default Albums;

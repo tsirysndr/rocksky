@@ -16,7 +16,12 @@ type Row = {
   index: number;
 };
 
-function TopArtists() {
+interface TopArtistsProps {
+  showTitle?: boolean;
+  size?: number;
+}
+
+function TopArtists({ showTitle = true, size = 30 }: TopArtistsProps) {
   const setTopArtists = useSetAtom(topArtistsAtom);
   const topArtists = useAtomValue(topArtistsAtom);
   const { did } = useParams<{ did: string }>();
@@ -28,7 +33,7 @@ function TopArtists() {
     }
 
     const getTopArtists = async () => {
-      const data = await getArtists(did);
+      const data = await getArtists(did, 0, size);
       setTopArtists(data);
     };
     getTopArtists();
@@ -37,7 +42,9 @@ function TopArtists() {
 
   return (
     <>
-      <HeadingSmall marginBottom={"15px"}>Top Artists</HeadingSmall>
+      {showTitle && (
+        <HeadingSmall marginBottom={"15px"}>Top Artists</HeadingSmall>
+      )}
       <TableBuilder
         data={topArtists.map((x, index) => ({
           id: x.id,

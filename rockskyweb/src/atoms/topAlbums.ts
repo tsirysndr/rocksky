@@ -6,6 +6,7 @@ export const topAlbumsAtom = atom<
     title: string;
     artist: string;
     albumArt?: string;
+    artistUri?: string;
     year: string;
     uri: string;
     scrobbles: number | null;

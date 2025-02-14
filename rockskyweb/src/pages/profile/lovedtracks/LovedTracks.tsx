@@ -1,6 +1,8 @@
 import styled from "@emotion/styled";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
+import { StatefulTooltip } from "baseui/tooltip";
 import { HeadingSmall } from "baseui/typography";
+import dayjs from "dayjs";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect } from "react";
 import { Link as DefaultLink, useParams } from "react-router";
@@ -18,6 +20,7 @@ type Row = {
   uri: string;
   scrobbles: number;
   index: number;
+  date: string;
 };
 
 const Link = styled(DefaultLink)`
@@ -179,8 +182,18 @@ function LovedTracks() {
             </div>
           )}
         </TableBuilderColumn>
-        <TableBuilderColumn header="Scrobbles">
-          {(row: Row) => <div>{row.scrobbles}</div>}
+        <TableBuilderColumn header="Date">
+          {(row: Row) => (
+            <StatefulTooltip
+              content={dayjs(row.date).format("MMMM D, YYYY [at] HH:mm A")}
+              returnFocus
+              autoFocus
+            >
+              <div style={{ width: 120, color: "rgba(66, 87, 108, 0.65)" }}>
+                {dayjs(row.date).fromNow()}
+              </div>
+            </StatefulTooltip>
+          )}
         </TableBuilderColumn>
       </TableBuilder>
     </>
