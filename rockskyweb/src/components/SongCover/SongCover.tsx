@@ -21,10 +21,10 @@ const SongTitle = styled.div`
   text-decoration-line: none;
   text-decoration-style: solid;
   text-decoration-thickness: auto;
-  text-shadow: rgba(0, 0, 0, 0.8) 0px 0px 10px;
   text-size-adjust: 100%;
   font-weight: 600;
   font-family: RockfordSansRegular;
+  text-shadow: rgba(0, 0, 0, 1) 0px 0px 12px;
 `;
 const Artist = styled.div`
   color: #fff;
@@ -33,7 +33,7 @@ const Artist = styled.div`
   text-decoration-line: none;
   text-decoration-style: solid;
   text-decoration-thickness: auto;
-  text-shadow: rgba(0, 0, 0, 0.8) 0px 0px 10px;
+  background-color: rgb(120 105 131 / 60%);
   text-size-adjust: 100%;
   font-family: RockfordSansRegular;
 `;
