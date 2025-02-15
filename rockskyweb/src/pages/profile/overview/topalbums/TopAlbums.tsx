@@ -6,6 +6,7 @@ import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect } from "react";
 import { Link as DefaultLink, useParams } from "react-router";
 import { topAlbumsAtom } from "../../../../atoms/topAlbums";
+import { userAtom } from "../../../../atoms/user";
 import SongCover from "../../../../components/SongCover";
 import useLibrary from "../../../../hooks/useLibrary";
 
@@ -28,6 +29,7 @@ function TopAlbums() {
   const topAlbums = useAtomValue(topAlbumsAtom);
   const { did } = useParams<{ did: string }>();
   const { getAlbums } = useLibrary();
+  const user = useAtomValue(userAtom);
 
   useEffect(() => {
     if (!did) {
@@ -46,37 +48,42 @@ function TopAlbums() {
   return (
     <>
       <HeadingSmall marginBottom={"15px"}>Top Albums</HeadingSmall>
-      <FlexGrid
-        flexGridColumnCount={[1, 2, 3]}
-        flexGridColumnGap="scale800"
-        flexGridRowGap="scale800"
-      >
-        {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          topAlbums.map((album: any) => (
-            <FlexGridItem {...itemProps} key={album.id}>
-              <Link to={`/${album.uri.split("at://")[1]}`}>
-                <SongCover cover={album.album_art} size={230} />
-              </Link>
-              <Link to={`/${album.uri.split("at://")[1]}`}>
-                <LabelMedium>{album.title}</LabelMedium>
-              </Link>
-              {album.artist_uri && (
-                <Link to={`/${album.artist_uri.split("at://")[1]}`}>
+      {!topAlbums.length && (
+        <div>@{user?.handle} has not listened to any albums yet.</div>
+      )}
+      {topAlbums.length > 0 && (
+        <FlexGrid
+          flexGridColumnCount={[1, 2, 3]}
+          flexGridColumnGap="scale800"
+          flexGridRowGap="scale800"
+        >
+          {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            topAlbums.map((album: any) => (
+              <FlexGridItem {...itemProps} key={album.id}>
+                <Link to={`/${album.uri.split("at://")[1]}`}>
+                  <SongCover cover={album.album_art} size={230} />
+                </Link>
+                <Link to={`/${album.uri.split("at://")[1]}`}>
+                  <LabelMedium>{album.title}</LabelMedium>
+                </Link>
+                {album.artist_uri && (
+                  <Link to={`/${album.artist_uri.split("at://")[1]}`}>
+                    <LabelSmall color="rgba(36, 49, 61, 0.65)">
+                      {album.artist}
+                    </LabelSmall>
+                  </Link>
+                )}
+                {!album.artist_uri && (
                   <LabelSmall color="rgba(36, 49, 61, 0.65)">
                     {album.artist}
                   </LabelSmall>
-                </Link>
-              )}
-              {!album.artist_uri && (
-                <LabelSmall color="rgba(36, 49, 61, 0.65)">
-                  {album.artist}
-                </LabelSmall>
-              )}
-            </FlexGridItem>
-          ))
-        }
-      </FlexGrid>
+                )}
+              </FlexGridItem>
+            ))
+          }
+        </FlexGrid>
+      )}
     </>
   );
 }

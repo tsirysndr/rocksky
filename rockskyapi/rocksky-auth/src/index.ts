@@ -598,12 +598,12 @@ app.get("/albums/:sha256/tracks", async (c) => {
 });
 
 app.get("/users/:did/likes", async (c) => {
-  const did = c.req.param("handle");
+  const did = c.req.param("did");
   const size = +c.req.query("size") || 10;
   const offset = +c.req.query("offset") || 0;
 
   const lovedTracks = await ctx.client.db.loved_tracks
-    .select(["track_id.*"])
+    .select(["track_id.*", "user_id.*"])
     .filter({
       $any: [
         {
@@ -1002,10 +1002,48 @@ app.get("/users/:did/stats", async (c) => {
     .getAll();
 
   return c.json({
-    scrobbles: _.get(scrobbles, "summaries.0.total", 1),
+    scrobbles: _.get(scrobbles, "summaries.0.total", 0),
     artists: artists.length,
     lovedTracks: lovedTracks.length,
   });
+});
+
+app.get("/search", async (c) => {
+  const query = c.req.query("q");
+  const size = +c.req.query("size") || 10;
+  const offset = +c.req.query("offset") || 0;
+
+  if (!query) {
+    return c.json([]);
+  }
+
+  const results = await ctx.client.search.all(query, {
+    tables: [
+      {
+        table: "users",
+        target: ["handle"],
+      },
+      {
+        table: "albums",
+        target: ["title"],
+      },
+      {
+        table: "artists",
+        target: ["name"],
+      },
+      {
+        table: "tracks",
+        target: ["title", "composer", "copyright_message"],
+      },
+    ],
+    fuzziness: 1,
+    prefix: "phrase",
+    page: {
+      size,
+      offset,
+    },
+  });
+  return c.json(results);
 });
 
 serve({

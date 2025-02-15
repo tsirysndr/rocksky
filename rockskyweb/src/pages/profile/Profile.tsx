@@ -3,8 +3,10 @@ import { Avatar } from "baseui/avatar";
 import { Tab, Tabs } from "baseui/tabs-motion";
 import { HeadingMedium, LabelLarge } from "baseui/typography";
 import dayjs from "dayjs";
+import { useSetAtom } from "jotai";
 import { Key, useEffect, useState } from "react";
 import { useParams } from "react-router";
+import { userAtom } from "../../atoms/user";
 import useProfile from "../../hooks/useProfile";
 import Main from "../../layouts/Main";
 import Library from "./library";
@@ -29,6 +31,7 @@ function Profile() {
   } | null>(null);
   const [activeKey, setActiveKey] = useState<Key>("0");
   const { did } = useParams<{ did: string }>();
+  const setUser = useSetAtom(userAtom);
 
   useEffect(() => {
     if (!did) {
@@ -42,6 +45,15 @@ function Profile() {
         displayName: data.display_name,
         handle: data.handle,
         createdAt: data.xata_createdat,
+      });
+      setUser({
+        avatar: data.avatar,
+        displayName: data.displayName,
+        handle: data.handle,
+        spotifyUser: {
+          isBeta: data.spotifyUser?.is_beta_user,
+        },
+        spotifyConnected: data.spotifyConnected,
       });
     };
 

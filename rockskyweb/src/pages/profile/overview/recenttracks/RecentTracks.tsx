@@ -7,6 +7,7 @@ import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect } from "react";
 import { Link as DefaultLink, useParams } from "react-router";
 import { recentTracksAtom } from "../../../../atoms/recentTracks";
+import { userAtom } from "../../../../atoms/user";
 import useProfile from "../../../../hooks/useProfile";
 
 const Link = styled(DefaultLink)`
@@ -45,6 +46,7 @@ function RecentTracks(props: RecentTracksProps) {
   const { getRecentTracksByDid } = useProfile();
   const setRecentTracks = useSetAtom(recentTracksAtom);
   const recentTracks = useAtomValue(recentTracksAtom);
+  const user = useAtomValue(userAtom);
 
   useEffect(() => {
     if (!did) {
@@ -91,7 +93,7 @@ function RecentTracks(props: RecentTracksProps) {
           artistUri: x.artistUri,
           albumArtist: x.albumArtist,
         }))}
-        emptyMessage="You haven't listened to any music yet."
+        emptyMessage={`@${user?.handle} has not listened to any tracks yet.`}
         divider="clean"
         overrides={{
           TableHeadRow: {

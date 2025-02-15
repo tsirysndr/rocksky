@@ -34,6 +34,7 @@ export default {
 			url.pathname.startsWith("/scrobbles") ||
 			url.pathname.startsWith("/likes") ||
 			url.pathname.startsWith("/spotify") ||
+			url.pathname.startsWith("/search") ||
 			url.pathname.startsWith("/public/scrobbles")
 		) {
 			redirectToApi = true;

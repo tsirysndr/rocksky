@@ -4,6 +4,7 @@ import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect } from "react";
 import { Link as DefaultLink, useParams } from "react-router";
 import { topAlbumsAtom } from "../../../../atoms/topAlbums";
+import { userAtom } from "../../../../atoms/user";
 import useLibrary from "../../../../hooks/useLibrary";
 
 type Row = {
@@ -30,6 +31,7 @@ function Albums() {
   const topAlbums = useAtomValue(topAlbumsAtom);
   const { did } = useParams<{ did: string }>();
   const { getAlbums } = useLibrary();
+  const user = useAtomValue(userAtom);
 
   useEffect(() => {
     if (!did) {
@@ -70,7 +72,7 @@ function Albums() {
           scrobbles: x.scrobbles,
           index,
         }))}
-        emptyMessage="You haven't listened to any music yet."
+        emptyMessage={`@${user?.handle} has not listened to any albums yet.`}
         divider="clean"
         overrides={{
           TableHeadRow: {

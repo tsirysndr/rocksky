@@ -7,6 +7,7 @@ import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect } from "react";
 import { Link as DefaultLink, useParams } from "react-router";
 import { lovedTracksAtom } from "../../../atoms/lovedTracks";
+import { userAtom } from "../../../atoms/user";
 import useLibrary from "../../../hooks/useLibrary";
 
 type Row = {
@@ -36,6 +37,7 @@ function LovedTracks() {
   const lovedTracks = useAtomValue(lovedTracksAtom);
   const setLovedTracks = useSetAtom(lovedTracksAtom);
   const { getLovedTracks } = useLibrary();
+  const user = useAtomValue(userAtom);
 
   useEffect(() => {
     const fetchLovedTracks = async () => {
@@ -77,7 +79,7 @@ function LovedTracks() {
           date: x.date,
           index,
         }))}
-        emptyMessage="You haven't listened to any music yet."
+        emptyMessage={`@${user?.handle} has not loved any tracks yet.`}
         divider="clean"
         overrides={{
           TableHeadRow: {
@@ -156,7 +158,10 @@ function LovedTracks() {
                 </div>
               )}
               <div style={{ display: "flex", flexDirection: "column" }}>
-                <Link to={`/${row.uri?.split("at://")[1]}`}>{row.title}</Link>
+                {row.uri && (
+                  <Link to={`/${row.uri?.split("at://")[1]}`}>{row.title}</Link>
+                )}
+                {!row.uri && <div>{row.title}</div>}
                 {row.artistUri && (
                   <Link
                     to={`/${row.artistUri?.split("at://")[1]}`}

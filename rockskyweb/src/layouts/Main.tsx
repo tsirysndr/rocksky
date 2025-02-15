@@ -1,5 +1,4 @@
 import styled from "@emotion/styled";
-import { Search } from "@styled-icons/evaicons-solid";
 import { Button } from "baseui/button";
 import { Input } from "baseui/input";
 import { PLACEMENT, toaster, ToasterContainer } from "baseui/toast";
@@ -11,6 +10,7 @@ import { profileAtom } from "../atoms/profile";
 import { API_URL } from "../consts";
 import useProfile from "../hooks/useProfile";
 import Navbar from "./Navbar";
+import Search from "./Search";
 import SpotifyLogin from "./SpotifyLogin";
 
 const Container = styled.div`
@@ -135,12 +135,7 @@ function Main({ children }: { children: React.ReactNode }) {
           }}
         >
           <div>
-            <Input
-              startEnhancer={<Search size={20} color="#42576ca6" />}
-              placeholder="Search"
-              clearable
-              clearOnEscape
-            />
+            <Search />
           </div>
           {jwt && profile && !profile.spotifyConnected && <SpotifyLogin />}
           {!jwt && (

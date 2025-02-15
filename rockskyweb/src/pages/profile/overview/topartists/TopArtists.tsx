@@ -4,6 +4,7 @@ import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect } from "react";
 import { Link, useParams } from "react-router";
 import { topArtistsAtom } from "../../../../atoms/topArtists";
+import { userAtom } from "../../../../atoms/user";
 import Artist from "../../../../components/Icons/Artist";
 import useLibrary from "../../../../hooks/useLibrary";
 
@@ -26,6 +27,7 @@ function TopArtists({ showTitle = true, size = 30 }: TopArtistsProps) {
   const topArtists = useAtomValue(topArtistsAtom);
   const { did } = useParams<{ did: string }>();
   const { getArtists } = useLibrary();
+  const user = useAtomValue(userAtom);
 
   useEffect(() => {
     if (!did) {
@@ -54,7 +56,7 @@ function TopArtists({ showTitle = true, size = 30 }: TopArtistsProps) {
           scrobbles: x.scrobbles,
           index,
         }))}
-        emptyMessage="You haven't listened to any music yet."
+        emptyMessage={`@${user?.handle} has not listened to any artists yet.`}
         divider="clean"
         overrides={{
           TableHeadRow: {
