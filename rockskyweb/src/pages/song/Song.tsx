@@ -6,12 +6,10 @@ import {
   LabelLarge,
   LabelSmall,
 } from "baseui/typography";
-import { useAtomValue } from "jotai";
 import numeral from "numeral";
 import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
 import { Link as DefaultLink, useParams } from "react-router";
-import { profileAtom } from "../../atoms/profile";
 import Disc from "../../components/Icons/Disc";
 import Shout from "../../components/Shout/Shout";
 import SongCover from "../../components/SongCover";
@@ -34,7 +32,6 @@ const Link = styled(DefaultLink)`
 `;
 
 const Song = () => {
-  const profile = useAtomValue(profileAtom);
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
   const { getFeedByUri } = useFeed();
   const { getSongByUri } = useLibrary();
