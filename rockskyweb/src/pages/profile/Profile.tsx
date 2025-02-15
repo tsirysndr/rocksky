@@ -7,6 +7,7 @@ import { useSetAtom } from "jotai";
 import { Key, useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { userAtom } from "../../atoms/user";
+import Shout from "../../components/Shout/Shout";
 import useProfile from "../../hooks/useProfile";
 import Main from "../../layouts/Main";
 import Library from "./library";
@@ -117,6 +118,7 @@ function Profile() {
             </Tab>
             <Tab title="Tags"></Tab>
           </Tabs>
+          <Shout type="profile" />
         </div>
       </Main>
     </>

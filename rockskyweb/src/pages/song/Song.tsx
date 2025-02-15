@@ -179,7 +179,7 @@ const Song = () => {
               </>
             )}
 
-            <Shout />
+            <Shout type="song" />
           </>
         )}
       </div>

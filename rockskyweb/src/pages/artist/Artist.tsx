@@ -159,7 +159,7 @@ const Artist = () => {
         <PopularSongs topTracks={topTracks} />
         <Albums topAlbums={topAlbums} />
 
-        <Shout />
+        <Shout type="artist" />
       </div>
     </Main>
   );

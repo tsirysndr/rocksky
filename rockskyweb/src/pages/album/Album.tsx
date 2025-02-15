@@ -419,7 +419,7 @@ const Album = () => {
             </div>
           )}
         </div>
-        <Shout />
+        <Shout type="album" />
       </div>
     </Main>
   );

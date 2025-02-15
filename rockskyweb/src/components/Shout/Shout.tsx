@@ -3,16 +3,30 @@ import { Textarea } from "baseui/textarea";
 import { LabelLarge, LabelMedium } from "baseui/typography";
 import { useAtomValue } from "jotai";
 import { profileAtom } from "../../atoms/profile";
+import { userAtom } from "../../atoms/user";
 
-function Shout() {
+interface ShoutProps {
+  type?: "album" | "artist" | "song" | "playlist" | "profile";
+}
+
+function Shout(props: ShoutProps) {
+  props = {
+    type: "song",
+    ...props,
+  };
   const profile = useAtomValue(profileAtom);
+  const user = useAtomValue(userAtom);
   return (
     <div style={{ marginTop: 150 }}>
       <LabelLarge marginBottom={"10px"}>Shoutbox</LabelLarge>
       {profile && (
         <>
           <Textarea
-            placeholder={`@${profile?.handle}, share your thoughts about this song`}
+            placeholder={
+              props.type === "profile"
+                ? `@${profile?.handle}, leave a shout for @${user?.handle} ...`
+                : `@${profile?.handle}, share your thoughts about this ${props.type}`
+            }
             resize="vertical"
             overrides={{
               Input: {
