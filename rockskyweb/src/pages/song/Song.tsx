@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
 import { Link as DefaultLink, useParams } from "react-router";
 import { profileAtom } from "../../atoms/profile";
+import Disc from "../../components/Icons/Disc";
 import SongCover from "../../components/SongCover";
 import useFeed from "../../hooks/useFeed";
 import useLibrary from "../../hooks/useLibrary";
@@ -85,10 +86,60 @@ const Song = () => {
             <Group>
               {song?.albumUri && (
                 <Link to={`/${song.albumUri.split("at://")[1]}`}>
-                  <SongCover cover={song?.cover} size={150} />
+                  {song.cover && <SongCover cover={song?.cover} size={150} />}
+                  {!song.cover && (
+                    <div
+                      style={{
+                        width: 150,
+                        height: 150,
+                        marginRight: 12,
+                        borderRadius: 8,
+                        backgroundColor: "rgba(243, 243, 243, 0.725)",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: 90,
+                          width: 90,
+                        }}
+                      >
+                        <Disc color="rgba(66, 87, 108, 0.65)" />
+                      </div>
+                    </div>
+                  )}
                 </Link>
               )}
-              {!song?.albumUri && <SongCover cover={song?.cover} size={150} />}
+              {!song?.albumUri && (
+                <>
+                  {song.cover && <SongCover cover={song?.cover} size={150} />}
+                  {!song.cover && (
+                    <div
+                      style={{
+                        width: 150,
+                        height: 150,
+                        marginRight: 12,
+                        borderRadius: 8,
+                        backgroundColor: "rgba(243, 243, 243, 0.725)",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: 90,
+                          width: 90,
+                        }}
+                      >
+                        <Disc color="rgba(66, 87, 108, 0.65)" />
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
               <div style={{ marginLeft: 20 }}>
                 <HeadingMedium margin={0}>{song?.title}</HeadingMedium>
                 {song?.artistUri && (

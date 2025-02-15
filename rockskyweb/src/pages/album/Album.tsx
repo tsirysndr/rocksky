@@ -5,6 +5,7 @@ import numeral from "numeral";
 import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
 import { Link as DefaultLink, useParams } from "react-router";
+import Disc from "../../components/Icons/Disc";
 import SongCover from "../../components/SongCover";
 import { useTimeFormat } from "../../hooks/useFormat";
 import useLibrary from "../../hooks/useLibrary";
@@ -110,7 +111,30 @@ const Album = () => {
         )}
         {album && (
           <Group>
-            <SongCover cover={album.albumArt!} />
+            {album.albumArt && <SongCover cover={album.albumArt!} />}
+            {!album.albumArt && (
+              <div
+                style={{
+                  width: 240,
+                  height: 240,
+                  marginRight: 12,
+                  borderRadius: 8,
+                  backgroundColor: "rgba(243, 243, 243, 0.725)",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <div
+                  style={{
+                    height: 130,
+                    width: 130,
+                  }}
+                >
+                  <Disc color="rgba(66, 87, 108, 0.65)" />
+                </div>
+              </div>
+            )}
             <div style={{ marginLeft: 20 }}>
               <HeadingMedium margin={0}>{album.title}</HeadingMedium>
               <LabelLarge margin={0}>{album.artist}</LabelLarge>

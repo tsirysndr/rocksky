@@ -4,6 +4,7 @@ import { HeadingMedium, HeadingXSmall, LabelSmall } from "baseui/typography";
 import numeral from "numeral";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
+import ArtistIcon from "../../components/Icons/Artist";
 import useLibrary from "../../hooks/useLibrary";
 import Main from "../../layouts/Main";
 import Albums from "./Albums";
@@ -116,7 +117,32 @@ const Artist = () => {
       <div style={{ paddingBottom: 100, paddingTop: 50 }}>
         <Group>
           <div style={{ marginRight: 20 }}>
-            <Avatar name={artist?.name} src={artist?.picture} size="150px" />
+            {artist?.picture && (
+              <Avatar name={artist?.name} src={artist?.picture} size="150px" />
+            )}
+            {!artist?.picture && (
+              <div
+                style={{
+                  width: 150,
+                  height: 150,
+                  marginRight: 12,
+                  borderRadius: 80,
+                  backgroundColor: "rgba(243, 243, 243, 0.725)",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <div
+                  style={{
+                    height: 60,
+                    width: 60,
+                  }}
+                >
+                  <ArtistIcon color="rgba(66, 87, 108, 0.65)" />
+                </div>
+              </div>
+            )}
           </div>
           {artist && (
             <div>
