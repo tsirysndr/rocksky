@@ -5,6 +5,7 @@ import numeral from "numeral";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import ArtistIcon from "../../components/Icons/Artist";
+import Shout from "../../components/Shout/Shout";
 import useLibrary from "../../hooks/useLibrary";
 import Main from "../../layouts/Main";
 import Albums from "./Albums";
@@ -157,6 +158,8 @@ const Artist = () => {
 
         <PopularSongs topTracks={topTracks} />
         <Albums topAlbums={topAlbums} />
+
+        <Shout />
       </div>
     </Main>
   );

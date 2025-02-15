@@ -1,12 +1,9 @@
 import styled from "@emotion/styled";
-import { Button } from "baseui/button";
 import { KIND, Tag } from "baseui/tag";
-import { Textarea } from "baseui/textarea";
 import {
   HeadingMedium,
   HeadingXSmall,
   LabelLarge,
-  LabelMedium,
   LabelSmall,
 } from "baseui/typography";
 import { useAtomValue } from "jotai";
@@ -16,6 +13,7 @@ import ContentLoader from "react-content-loader";
 import { Link as DefaultLink, useParams } from "react-router";
 import { profileAtom } from "../../atoms/profile";
 import Disc from "../../components/Icons/Disc";
+import Shout from "../../components/Shout/Shout";
 import SongCover from "../../components/SongCover";
 import useFeed from "../../hooks/useFeed";
 import useLibrary from "../../hooks/useLibrary";
@@ -184,39 +182,7 @@ const Song = () => {
               </>
             )}
 
-            <div style={{ marginTop: 150 }}>
-              <LabelMedium marginBottom={"10px"}>Shoutbox</LabelMedium>
-              {profile && (
-                <>
-                  <Textarea
-                    placeholder={`@${profile?.handle}, share your thoughts about this song`}
-                    resize="vertical"
-                    overrides={{
-                      Input: {
-                        style: {
-                          width: "770px",
-                        },
-                      },
-                    }}
-                    maxLength={1000}
-                  />
-                  <div
-                    style={{
-                      marginTop: 15,
-                      display: "flex",
-                      justifyContent: "flex-end",
-                    }}
-                  >
-                    <Button disabled>Post Shout</Button>
-                  </div>
-                </>
-              )}
-              {!profile && (
-                <LabelMedium marginTop={"20px"}>
-                  Want to share your thoughts? Sign in to leave a shout.
-                </LabelMedium>
-              )}
-            </div>
+            <Shout />
           </>
         )}
       </div>

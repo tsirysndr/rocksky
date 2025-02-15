@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
 import { Link as DefaultLink, useParams } from "react-router";
 import Disc from "../../components/Icons/Disc";
+import Shout from "../../components/Shout/Shout";
 import SongCover from "../../components/SongCover";
 import { useTimeFormat } from "../../hooks/useFormat";
 import useLibrary from "../../hooks/useLibrary";
@@ -54,6 +55,7 @@ const Album = () => {
     releaseDate: string;
     listeners: number;
     scrobbles: number;
+    artistUri?: string;
     tracks: {
       xata_id: string;
       track_number: number;
@@ -80,6 +82,7 @@ const Album = () => {
       setAlbum({
         id: data.xata_id,
         albumArt: data.album_art,
+        artistUri: data.artist_uri,
         artist: data.artist,
         title: data.title,
         year: data.year,
@@ -137,8 +140,14 @@ const Album = () => {
             )}
             <div style={{ marginLeft: 20 }}>
               <HeadingMedium margin={0}>{album.title}</HeadingMedium>
-              <LabelLarge margin={0}>{album.artist}</LabelLarge>
-
+              {album.artistUri && (
+                <Link to={`/${album.artistUri.split("at://")[1]}`}>
+                  <LabelLarge margin={0}>{album.artist}</LabelLarge>
+                </Link>
+              )}
+              {!album.artistUri && (
+                <LabelLarge margin={0}>{album.artist}</LabelLarge>
+              )}
               <div
                 style={{ marginTop: 20, display: "flex", flexDirection: "row" }}
               >
@@ -410,6 +419,7 @@ const Album = () => {
             </div>
           )}
         </div>
+        <Shout />
       </div>
     </Main>
   );
