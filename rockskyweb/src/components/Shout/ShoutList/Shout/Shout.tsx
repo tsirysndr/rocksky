@@ -76,6 +76,7 @@ function Shout(props: ShoutProps) {
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const { like, unlike } = useLike();
   const [liked, setLiked] = useState(shout.liked);
+  const [likes, setLikes] = useState(shout.likes);
 
   const onReply = () => {
     if (!localStorage.getItem("token")) {
@@ -93,12 +94,14 @@ function Shout(props: ShoutProps) {
 
     if (shout.liked) {
       setLiked(false);
+      setLikes(likes - 1);
       await onUnlike();
       await refetch();
       return;
     }
 
     setLiked(true);
+    setLikes(likes + 1);
     await like(shout.uri);
     await refetch();
   };
@@ -168,7 +171,7 @@ function Shout(props: ShoutProps) {
               {!liked && <HeartOutline color="rgba(66, 87, 108, 0.65)" />}
               {liked && <HeartOutline color="#ff2876" />}
             </LikeButton>
-            {shout.likes > 0 && (
+            {likes > 0 && (
               <span
                 style={{
                   color: liked ? "#ff2876" : "rgba(66, 87, 108, 0.65)",
@@ -176,7 +179,7 @@ function Shout(props: ShoutProps) {
                   marginTop: -5,
                 }}
               >
-                {shout.likes}
+                {likes}
               </span>
             )}
           </Actions>
