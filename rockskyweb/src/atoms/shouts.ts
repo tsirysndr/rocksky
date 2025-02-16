@@ -5,6 +5,8 @@ export const shoutsAtom = atom<{
     uri: string;
     message: string;
     date: string;
+    liked: boolean;
+    likes: number;
     user: {
       avatar: string;
       displayName: string;

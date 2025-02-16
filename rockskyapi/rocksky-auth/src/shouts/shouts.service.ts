@@ -267,6 +267,19 @@ export async function likeShout(
     });
     const uri = res.data.uri;
     console.log(`Like record created at: ${uri}`);
+    const shout = await ctx.client.db.shouts
+      .select(["xata_id", "uri"])
+      .filter("uri", shoutUri)
+      .getFirst();
+    if (!shout) {
+      throw new Error("Shout not found");
+    }
+
+    await ctx.client.db.shout_likes.create({
+      shout_id: shout.xata_id,
+      user_id: user.xata_id,
+      uri,
+    });
   } catch (e) {
     console.error(`Error creating like record: ${e.message}`);
   }

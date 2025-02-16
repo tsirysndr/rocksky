@@ -13,48 +13,14 @@ function ShoutList() {
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
 
   useEffect(() => {
-    const fetchShouts = async () => {
-      let uri = `at://${did}`;
+    fetchShouts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [getShouts, pathname, did, rkey]);
 
-      if (pathname.startsWith("/profile")) {
-        const data = await getShouts(uri);
-        setShouts({
-          ...shouts,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          [pathname]: data.map((x: any) => ({
-            uri: x.shouts.uri,
-            message: x.shouts.content,
-            date: x.shouts.createdAt,
-            user: {
-              avatar: x.users.avatar,
-              displayName: x.users.displayName,
-              handle: x.users.handle,
-            },
-          })),
-        });
-        return;
-      }
+  const fetchShouts = async () => {
+    let uri = `at://${did}`;
 
-      if (!did || !rkey) {
-        return;
-      }
-
-      if (pathname.includes("app.rocksky.scrobble")) {
-        uri = `at://${did}/app.rocksky.scrobble/${rkey}`;
-      }
-
-      if (pathname.includes("app.rocksky.song")) {
-        uri = `at://${did}/app.rocksky.song/${rkey}`;
-      }
-
-      if (pathname.includes("app.rocksky.album")) {
-        uri = `at://${did}/app.rocksky.album/${rkey}`;
-      }
-
-      if (pathname.includes("app.rocksky.artist")) {
-        uri = `at://${did}/app.rocksky.artist/${rkey}`;
-      }
-
+    if (pathname.startsWith("/profile")) {
       const data = await getShouts(uri);
       setShouts({
         ...shouts,
@@ -63,6 +29,8 @@ function ShoutList() {
           uri: x.shouts.uri,
           message: x.shouts.content,
           date: x.shouts.createdAt,
+          liked: x.shouts.liked,
+          likes: x.shouts.likes,
           user: {
             avatar: x.users.avatar,
             displayName: x.users.displayName,
@@ -70,15 +38,52 @@ function ShoutList() {
           },
         })),
       });
-    };
-    fetchShouts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [getShouts, pathname, did, rkey]);
+      return;
+    }
+
+    if (!did || !rkey) {
+      return;
+    }
+
+    if (pathname.includes("app.rocksky.scrobble")) {
+      uri = `at://${did}/app.rocksky.scrobble/${rkey}`;
+    }
+
+    if (pathname.includes("app.rocksky.song")) {
+      uri = `at://${did}/app.rocksky.song/${rkey}`;
+    }
+
+    if (pathname.includes("app.rocksky.album")) {
+      uri = `at://${did}/app.rocksky.album/${rkey}`;
+    }
+
+    if (pathname.includes("app.rocksky.artist")) {
+      uri = `at://${did}/app.rocksky.artist/${rkey}`;
+    }
+
+    const data = await getShouts(uri);
+    setShouts({
+      ...shouts,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      [pathname]: data.map((x: any) => ({
+        uri: x.shouts.uri,
+        message: x.shouts.content,
+        date: x.shouts.createdAt,
+        liked: x.shouts.liked,
+        likes: x.shouts.likes,
+        user: {
+          avatar: x.users.avatar,
+          displayName: x.users.displayName,
+          handle: x.users.handle,
+        },
+      })),
+    });
+  };
 
   return (
     <div style={{ marginTop: 50 }}>
       {(shouts[pathname] || []).map((shout) => (
-        <Shout shout={shout} />
+        <Shout shout={shout} refetch={fetchShouts} />
       ))}
     </div>
   );

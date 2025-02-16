@@ -1,6 +1,6 @@
 import { equals } from "@xata.io/client";
 import { ctx } from "context";
-import { desc, eq, or } from "drizzle-orm";
+import { count, desc, eq, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import jwt from "jsonwebtoken";
 import { createAgent } from "lib/agent";
@@ -785,12 +785,74 @@ app.get("/:did/app.rocksky.scrobble/:rkey/shouts", async (c) => {
 app.get("/:did/shouts", async (c) => {
   const did = c.req.param("did");
 
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  let user;
+  if (bearer && bearer !== "null") {
+    const payload = jwt.verify(bearer, env.JWT_SECRET);
+
+    user = await ctx.client.db.users
+      .filter("did", equals(payload.did))
+      .getFirst();
+  }
+
   const shouts = await ctx.db
-    .select()
+    .select({
+      profileShouts: {
+        id: tables.profileShouts.id,
+        createdAt: tables.profileShouts.createdAt,
+      },
+      shouts: user
+        ? {
+            id: tables.shouts.id,
+            content: tables.shouts.content,
+            createdAt: tables.shouts.createdAt,
+            uri: tables.shouts.uri,
+            likes: count(tables.shoutLikes.id).as("likes"),
+            liked: sql<boolean>`
+        EXISTS (
+          SELECT 1
+          FROM ${tables.shoutLikes}
+          WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.xata_id
+            AND ${tables.shoutLikes}.user_id = ${user.xata_id}
+        )`.as("liked"),
+          }
+        : {
+            id: tables.shouts.id,
+            content: tables.shouts.content,
+            createdAt: tables.shouts.createdAt,
+            uri: tables.shouts.uri,
+            likes: count(tables.shoutLikes.id).as("likes"),
+          },
+      users: {
+        id: tables.users.id,
+        did: tables.users.did,
+        handle: tables.users.handle,
+        displayName: tables.users.displayName,
+        avatar: tables.users.avatar,
+      },
+    })
     .from(tables.profileShouts)
     .where(or(eq(tables.users.did, did), eq(tables.users.handle, did)))
     .leftJoin(tables.users, eq(tables.profileShouts.userId, tables.users.id))
     .leftJoin(tables.shouts, eq(tables.profileShouts.shoutId, tables.shouts.id))
+    .leftJoin(
+      tables.shoutLikes,
+      eq(tables.shouts.id, tables.shoutLikes.shoutId)
+    )
+    .groupBy(
+      tables.profileShouts.id,
+      tables.profileShouts.createdAt,
+      tables.shouts.id,
+      tables.shouts.uri,
+      tables.shouts.content,
+      tables.shouts.createdAt,
+      tables.users.id,
+      tables.users.did,
+      tables.users.handle,
+      tables.users.displayName,
+      tables.users.avatar
+    )
     .orderBy(desc(tables.profileShouts.createdAt))
     .execute();
 

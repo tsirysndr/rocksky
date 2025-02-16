@@ -4,10 +4,8 @@ import { ListItem } from "baseui/list";
 import { StatefulTooltip } from "baseui/tooltip";
 import { LabelMedium } from "baseui/typography";
 import dayjs from "dayjs";
-import { useAtomValue, useSetAtom } from "jotai";
 import { useState } from "react";
 import { Link as DefaultLink } from "react-router";
-import { likesAtom } from "../../../../atoms/likes";
 import useLike from "../../../../hooks/useLike";
 import HeartOutline from "../../../Icons/HeartOutline";
 import SignInModal from "../../../SignInModal";
@@ -61,21 +59,23 @@ interface ShoutProps {
     uri: string;
     message: string;
     date: string;
+    liked: boolean;
+    likes: number;
     user: {
       avatar: string;
       displayName: string;
       handle: string;
     };
   };
+  refetch: () => Promise<void>;
 }
 
 function Shout(props: ShoutProps) {
-  const { shout } = props;
+  const { shout, refetch } = props;
   const [isOpen, setIsOpen] = useState(false);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
-  const likes = useAtomValue(likesAtom);
-  const setLikes = useSetAtom(likesAtom);
-  const { like } = useLike();
+  const { like, unlike } = useLike();
+  const [liked, setLiked] = useState(shout.liked);
 
   const onReply = () => {
     if (!localStorage.getItem("token")) {
@@ -85,30 +85,27 @@ function Shout(props: ShoutProps) {
     setIsOpen(true);
   };
 
-  const onLike = () => {
+  const onLike = async () => {
     if (!localStorage.getItem("token")) {
       setIsSignInOpen(true);
       return;
     }
 
-    if (likes[shout.uri]) {
-      onUnlike();
+    if (shout.liked) {
+      setLiked(false);
+      await onUnlike();
+      await refetch();
       return;
     }
 
-    setLikes({
-      ...likes,
-      [shout.uri]: true,
-    });
+    setLiked(true);
+    await like(shout.uri);
+    await refetch();
   };
 
-  const onUnlike = () => {
-    setLikes({
-      ...likes,
-      [shout.uri]: false,
-    });
+  const onUnlike = async () => {
+    await unlike(shout.uri);
   };
-  console.log(">> likes", likes);
 
   return (
     <div style={{ marginBottom: 40 }}>
@@ -168,22 +165,18 @@ function Shout(props: ShoutProps) {
               <ReplyLabel>Reply</ReplyLabel>
             </ReplyButton>
             <LikeButton onClick={onLike}>
-              {!likes[shout.uri] && (
-                <HeartOutline color="rgba(66, 87, 108, 0.65)" />
-              )}
-              {likes[shout.uri] && <HeartOutline color="#ff2876" />}
+              {!liked && <HeartOutline color="rgba(66, 87, 108, 0.65)" />}
+              {liked && <HeartOutline color="#ff2876" />}
             </LikeButton>
-            {Object.values(likes).filter((like) => like).length > 0 && (
+            {shout.likes > 0 && (
               <span
                 style={{
-                  color: likes[shout.uri]
-                    ? "#ff2876"
-                    : "rgba(66, 87, 108, 0.65)",
+                  color: liked ? "#ff2876" : "rgba(66, 87, 108, 0.65)",
                   marginLeft: 5,
                   marginTop: -5,
                 }}
               >
-                {Object.values(likes).filter((like) => like).length}
+                {shout.likes}
               </span>
             )}
           </Actions>

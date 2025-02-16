@@ -19,7 +19,12 @@ function useShout() {
 
   const getShouts = useCallback(async (uri: string) => {
     const response = await axios.get(
-      `${API_URL}/users/${uri.replace("at://", "")}/shouts`
+      `${API_URL}/users/${uri.replace("at://", "")}/shouts`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
     );
     return response.data;
   }, []);
