@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cuo2smpdsuem1m1rhso0",
+    "operations": [
+      {
+        "add_column": {
+          "table": "artists",
+          "column": {
+            "name": "spotify_link",
+            "type": "text",
+            "comment": "",
+            "nullable": true
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cuo2smpdsuem1m1rhso0",
+  "parent": "mig_cuo2simfvuvgoi6as0g0",
+  "schema": "public",
+  "startedAt": "2025-02-15T06:04:11.630689Z"
+}

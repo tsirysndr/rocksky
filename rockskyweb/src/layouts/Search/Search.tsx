@@ -57,7 +57,7 @@ function Search() {
       };
 
       // debounce
-      _.debounce(_search, 200)();
+      _.debounce(_search, 100)();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyword]);

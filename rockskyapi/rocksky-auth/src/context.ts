@@ -1,5 +1,6 @@
 import { createClient } from "auth/client";
 import { createDb, migrateToLatest } from "db";
+import drizzle from "drizzle";
 import { env } from "lib/env";
 import { createBidirectionalResolver, createIdResolver } from "lib/idResolver";
 import sqliteKv from "sqliteKv";
@@ -23,6 +24,7 @@ export const ctx = {
   resolver: createBidirectionalResolver(baseIdResolver),
   kv: new Map<string, string>(),
   client,
+  db: drizzle.db,
 };
 
 export type Context = typeof ctx;

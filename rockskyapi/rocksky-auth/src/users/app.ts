@@ -1,0 +1,874 @@
+import { equals } from "@xata.io/client";
+import { ctx } from "context";
+import { desc, eq, or } from "drizzle-orm";
+import { Hono } from "hono";
+import jwt from "jsonwebtoken";
+import { createAgent } from "lib/agent";
+import { env } from "lib/env";
+import _ from "lodash";
+import { likeTrack } from "lovedtracks/lovedtracks.service";
+import tables from "schema";
+import {
+  createShout,
+  likeShout,
+  replyShout,
+  unlikeShout,
+} from "shouts/shouts.service";
+import { shoutSchema } from "types/shout";
+
+const app = new Hono();
+
+app.get("/:did/likes", async (c) => {
+  const did = c.req.param("did");
+  const size = +c.req.query("size") || 10;
+  const offset = +c.req.query("offset") || 0;
+
+  const lovedTracks = await ctx.client.db.loved_tracks
+    .select(["track_id.*", "user_id.*"])
+    .filter({
+      $any: [
+        {
+          "user_id.did": did,
+        },
+        {
+          "user_id.handle": did,
+        },
+      ],
+    })
+    .sort("xata_createdat", "desc")
+    .getPaginated({
+      pagination: {
+        size,
+        offset,
+      },
+    });
+  return c.json(lovedTracks);
+});
+
+app.get("/:handle/scrobbles", async (c) => {
+  const handle = c.req.param("handle");
+
+  const size = +c.req.query("size") || 10;
+  const offset = +c.req.query("offset") || 0;
+
+  const scrobbles = await ctx.client.db.scrobbles
+    .select(["track_id.*", "uri", "album_id.*", "artist_id.*"])
+    .filter({
+      $any: [
+        {
+          "user_id.did": handle,
+        },
+        {
+          "user_id.handle": handle,
+        },
+      ],
+    })
+    .sort("xata_createdat", "desc")
+    .getPaginated({
+      pagination: {
+        size,
+        offset,
+      },
+    });
+
+  return c.json(scrobbles.records);
+});
+
+app.get("/:did/albums", async (c) => {
+  const did = c.req.param("did");
+  const size = +c.req.query("size") || 10;
+  const offset = +c.req.query("offset") || 0;
+
+  const albums = await ctx.client.db.user_albums
+    .select(["album_id.*", "scrobbles"])
+    .filter({
+      $any: [
+        {
+          "user_id.did": did,
+        },
+        {
+          "user_id.handle": did,
+        },
+      ],
+    })
+    .getPaginated({
+      sort: {
+        scrobbles: "desc",
+      },
+      pagination: {
+        size,
+        offset,
+      },
+    });
+
+  return c.json(albums.records.map((item) => ({ ...item.album_id, tags: [] })));
+});
+
+app.get("/:did/artists", async (c) => {
+  const did = c.req.param("did");
+  const size = +c.req.query("size") || 10;
+  const offset = +c.req.query("offset") || 0;
+
+  const artists = await ctx.client.db.user_artists
+    .select(["artist_id.*", "scrobbles"])
+    .filter({
+      $any: [
+        {
+          "user_id.did": did,
+        },
+        {
+          "user_id.handle": did,
+        },
+      ],
+    })
+    .getPaginated({
+      sort: {
+        scrobbles: "desc",
+      },
+      pagination: {
+        size,
+        offset,
+      },
+    });
+
+  return c.json(
+    artists.records.map((item) => ({ ...item.artist_id, tags: [] }))
+  );
+});
+
+app.get("/:did/tracks", async (c) => {
+  const did = c.req.param("did");
+  const size = +c.req.query("size") || 10;
+  const offset = +c.req.query("offset") || 0;
+
+  const artists = await ctx.client.db.user_tracks
+    .select(["track_id.*", "scrobbles"])
+    .filter({
+      $any: [
+        {
+          "user_id.did": did,
+        },
+        {
+          "user_id.handle": did,
+        },
+      ],
+    })
+    .getPaginated({
+      sort: {
+        scrobbles: "desc",
+      },
+      pagination: {
+        size,
+        offset,
+      },
+    });
+
+  return c.json(
+    artists.records.map((item) => ({
+      ...item.track_id,
+      scrobles: item.scrobbles,
+      tags: [],
+    }))
+  );
+});
+
+app.get("/:did/app.rocksky.scrobble/:rkey", async (c) => {
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+  const uri = `at://${did}/app.rocksky.scrobble/${rkey}`;
+
+  const scrobble = await ctx.client.db.scrobbles
+    .select(["track_id.*", "user_id.*", "xata_createdat", "uri"])
+    .filter("uri", equals(uri))
+    .getFirst();
+
+  if (!scrobble) {
+    c.status(404);
+    return c.text("Scrobble not found");
+  }
+
+  return c.json({ ...scrobble, listeners: 1, tags: [] });
+});
+
+app.get("/:did/app.rocksky.artist/:rkey", async (c) => {
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+  const uri = `at://${did}/app.rocksky.artist/${rkey}`;
+
+  const artist = await ctx.client.db.artists
+    .filter("uri", equals(uri))
+    .getFirst();
+
+  if (!artist) {
+    c.status(404);
+    return c.text("Artist not found");
+  }
+
+  const { summaries } = await ctx.client.db.user_artists
+    .select(["artist_id.*"])
+    .filter({
+      "artist_id.uri": equals(uri),
+    })
+    .summarize({
+      summaries: {
+        total: {
+          count: "*",
+        },
+      },
+    });
+
+  return c.json({
+    ...artist,
+    listeners: _.get(summaries, "0.total", 1),
+    tags: [],
+  });
+});
+
+app.get("/:did/app.rocksky.album/:rkey", async (c) => {
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+  const uri = `at://${did}/app.rocksky.album/${rkey}`;
+
+  const album = await ctx.client.db.albums
+    .filter("uri", equals(uri))
+    .getFirst();
+
+  if (!album) {
+    c.status(404);
+    return c.text("Album not found");
+  }
+
+  const tracks = await ctx.client.db.album_tracks
+    .select(["track_id.*"])
+    .filter("album_id.uri", equals(uri))
+    .sort("track_id.track_number", "asc")
+    .getAll();
+
+  const { summaries } = await ctx.client.db.user_albums
+    .select(["album_id.*"])
+    .filter({
+      "album_id.uri": equals(uri),
+    })
+    .summarize({
+      summaries: {
+        total: {
+          count: "*",
+        },
+      },
+    });
+
+  return c.json({
+    ...album,
+    listeners: _.get(summaries, "0.total", 1),
+    tracks: tracks
+      .map((track) => track.track_id)
+      .sort((a, b) => a.track_number - b.track_number),
+    tags: [],
+  });
+});
+
+app.get("/:did/app.rocksky.song/:rkey", async (c) => {
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+  const uri = `at://${did}/app.rocksky.song/${rkey}`;
+
+  const track = await ctx.client.db.tracks
+    .filter("uri", equals(uri))
+    .getFirst();
+
+  if (!track) {
+    c.status(404);
+    return c.text("Track not found");
+  }
+
+  const { summaries } = await ctx.client.db.user_tracks
+    .select(["track_id.*"])
+    .filter({
+      "track_id.uri": equals(uri),
+    })
+    .summarize({
+      summaries: {
+        total: {
+          count: "*",
+        },
+      },
+    });
+
+  return c.json({
+    ...track,
+    tags: [],
+    listeners: _.get(summaries, "0.total", 1),
+  });
+});
+
+app.get("/:did/app.rocksky.artist/:rkey/tracks", async (c) => {
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+  const uri = `at://${did}/app.rocksky.artist/${rkey}`;
+  const size = +c.req.query("size") || 10;
+  const offset = +c.req.query("offset") || 0;
+
+  const tracks = await ctx.client.db.artist_tracks
+    .select(["track_id.*", "xata_version"])
+    .filter({
+      "artist_id.uri": equals(uri),
+    })
+    .sort("xata_version", "desc")
+    .getPaginated({
+      pagination: {
+        size,
+        offset,
+      },
+    });
+  return c.json(
+    tracks.records.map((item) => ({
+      ...item.track_id,
+      xata_version: item.xata_version,
+    }))
+  );
+});
+
+app.get("/:did/app.rocksky.artist/:rkey/albums", async (c) => {
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+  const uri = `at://${did}/app.rocksky.artist/${rkey}`;
+  const size = +c.req.query("size") || 10;
+  const offset = +c.req.query("offset") || 0;
+
+  const albums = await ctx.client.db.artist_albums
+    .select(["album_id.*", "xata_version"])
+    .filter({
+      "artist_id.uri": equals(uri),
+    })
+    .sort("xata_version", "desc")
+    .getPaginated({
+      pagination: {
+        size,
+        offset,
+      },
+    });
+  return c.json(
+    albums.records.map((item) => ({
+      ...item.album_id,
+      xata_version: item.xata_version,
+    }))
+  );
+});
+
+app.get("/:did", async (c) => {
+  const did = c.req.param("did");
+
+  const user = await ctx.client.db.users
+    .filter({
+      $any: [{ did }, { handle: did }],
+    })
+    .getFirst();
+
+  if (!user) {
+    c.status(404);
+    return c.text("User not found");
+  }
+
+  return c.json(user);
+});
+
+app.post("/:did/app.rocksky.artist/:rkey/shouts", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const payload = jwt.verify(bearer, env.JWT_SECRET);
+  const agent = await createAgent(ctx.oauthClient, payload.did);
+
+  const user = await ctx.client.db.users
+    .filter("did", equals(payload.did))
+    .getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+  const body = await c.req.json();
+  const parsed = shoutSchema.safeParse(body);
+
+  if (parsed.error) {
+    c.status(400);
+    return c.text("Invalid shout data: " + parsed.error.message);
+  }
+
+  await createShout(
+    ctx,
+    parsed.data,
+    `at://${did}/app.rocksky.artist/${rkey}`,
+    user,
+    agent
+  );
+  return c.json({});
+});
+
+app.post("/:did/app.rocksky.album/:rkey/shouts", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const payload = jwt.verify(bearer, env.JWT_SECRET);
+  const agent = await createAgent(ctx.oauthClient, payload.did);
+
+  const user = await ctx.client.db.users
+    .filter("did", equals(payload.did))
+    .getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+  const body = await c.req.json();
+  const parsed = shoutSchema.safeParse(body);
+
+  if (parsed.error) {
+    c.status(400);
+    return c.text("Invalid shout data: " + parsed.error.message);
+  }
+
+  await createShout(
+    ctx,
+    parsed.data,
+    `at://${did}/app.rocksky.album/${rkey}`,
+    user,
+    agent
+  );
+  return c.json({});
+});
+
+app.post("/:did/app.rocksky.song/:rkey/shouts", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const payload = jwt.verify(bearer, env.JWT_SECRET);
+  const agent = await createAgent(ctx.oauthClient, payload.did);
+
+  const user = await ctx.client.db.users
+    .filter("did", equals(payload.did))
+    .getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+  const body = await c.req.json();
+
+  const parsed = shoutSchema.safeParse(body);
+  if (parsed.error) {
+    c.status(400);
+    return c.text("Invalid shout data: " + parsed.error.message);
+  }
+
+  await createShout(
+    ctx,
+    parsed.data,
+    `at://${did}/app.rocksky.song/${rkey}`,
+    user,
+    agent
+  );
+
+  return c.json({});
+});
+
+app.post("/:did/app.rocksky.scrobble/:rkey/shouts", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const payload = jwt.verify(bearer, env.JWT_SECRET);
+  const agent = await createAgent(ctx.oauthClient, payload.did);
+
+  const user = await ctx.client.db.users
+    .filter("did", equals(payload.did))
+    .getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+  const body = await c.req.json();
+
+  const parsed = shoutSchema.safeParse(body);
+  if (parsed.error) {
+    c.status(400);
+    return c.text("Invalid shout data: " + parsed.error.message);
+  }
+
+  await createShout(
+    ctx,
+    parsed.data,
+    `at://${did}/app.rocksky.scrobble/${rkey}`,
+    user,
+    agent
+  );
+
+  return c.json({});
+});
+
+app.post("/:did/shouts", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const payload = jwt.verify(bearer, env.JWT_SECRET);
+  const agent = await createAgent(ctx.oauthClient, payload.did);
+
+  const user = await ctx.client.db.users
+    .filter("did", equals(payload.did))
+    .getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const did = c.req.param("did");
+  const body = await c.req.json();
+  const parsed = shoutSchema.safeParse(body);
+  if (parsed.error) {
+    c.status(400);
+    return c.text("Invalid shout data: " + parsed.error.message);
+  }
+
+  const _user = await ctx.client.db.users
+    .filter({
+      $any: [{ did }, { handle: did }],
+    })
+    .getFirst();
+
+  if (!_user) {
+    c.status(404);
+    return c.text("User not found");
+  }
+
+  await createShout(ctx, parsed.data, `at://${_user.did}`, user, agent);
+
+  return c.json({});
+});
+
+app.post("/:did/app.rocksky.shout/:rkey/likes", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const payload = jwt.verify(bearer, env.JWT_SECRET);
+  const agent = await createAgent(ctx.oauthClient, payload.did);
+
+  const user = await ctx.client.db.users
+    .filter("did", equals(payload.did))
+    .getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+  await likeShout(ctx, `at://${did}/app.rocksky.shout/${rkey}`, user, agent);
+
+  return c.json({});
+});
+
+app.delete("/:did/app.rocksky.shout/:rkey/likes", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const payload = jwt.verify(bearer, env.JWT_SECRET);
+  const agent = await createAgent(ctx.oauthClient, payload.did);
+
+  const user = await ctx.client.db.users
+    .filter("did", equals(payload.did))
+    .getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+
+  await unlikeShout(ctx, `at://${did}/app.rocksky.shout/${rkey}`, user, agent);
+
+  return c.json({});
+});
+
+app.post("/:did/app.rocksky.song/:rkey/likes", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const payload = jwt.verify(bearer, env.JWT_SECRET);
+
+  const user = await ctx.client.db.users
+    .filter("did", equals(payload.did))
+    .getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+
+  const track = await ctx.client.db.tracks
+    .filter("uri", equals(`at://${did}/app.rocksky.song/${rkey}`))
+    .getFirst();
+
+  await likeTrack(ctx, track, user);
+
+  return c.json({});
+});
+
+app.delete("/:did/app.rocksky.song/:rkey/likes", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const payload = jwt.verify(bearer, env.JWT_SECRET);
+
+  const user = await ctx.client.db.users
+    .filter("did", equals(payload.did))
+    .getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+  return c.json([]);
+});
+
+app.post("/:did/app.rocksky.shout/:rkey/replies", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const payload = jwt.verify(bearer, env.JWT_SECRET);
+  const agent = await createAgent(ctx.oauthClient, payload.did);
+
+  const user = await ctx.client.db.users
+    .filter("did", equals(payload.did))
+    .getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+
+  const body = await c.req.json();
+  const parsed = shoutSchema.safeParse(body);
+
+  if (parsed.error) {
+    c.status(400);
+    return c.text("Invalid shout data: " + parsed.error.message);
+  }
+
+  await replyShout(
+    ctx,
+    parsed.data,
+    `at://${did}/app.rocksky.shout/${rkey}`,
+    user,
+    agent
+  );
+  return c.json({});
+});
+
+app.get("/:did/app.rocksky.artist/:rkey/shouts", async (c) => {
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+  const shouts = await ctx.db
+    .select()
+    .from(tables.shouts)
+    .leftJoin(tables.users, eq(tables.shouts.authorId, tables.users.id))
+    .leftJoin(tables.artists, eq(tables.shouts.artistId, tables.artists.id))
+    .where(eq(tables.artists.uri, `at://${did}/app.rocksky.artist/${rkey}`))
+    .orderBy(desc(tables.shouts.createdAt))
+    .execute();
+  return c.json(shouts);
+});
+
+app.get("/:did/app.rocksky.album/:rkey/shouts", async (c) => {
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+  const shouts = await ctx.db
+    .select()
+    .from(tables.shouts)
+    .leftJoin(tables.users, eq(tables.shouts.authorId, tables.users.id))
+    .leftJoin(tables.albums, eq(tables.shouts.albumId, tables.albums.id))
+    .where(eq(tables.albums.uri, `at://${did}/app.rocksky.album/${rkey}`))
+    .orderBy(desc(tables.shouts.createdAt))
+    .execute();
+
+  return c.json(shouts);
+});
+
+app.get("/:did/app.rocksky.song/:rkey/shouts", async (c) => {
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+  const shouts = await ctx.db
+    .select()
+    .from(tables.shouts)
+    .leftJoin(tables.users, eq(tables.shouts.authorId, tables.users.id))
+    .leftJoin(tables.tracks, eq(tables.shouts.trackId, tables.tracks.id))
+    .where(eq(tables.tracks.uri, `at://${did}/app.rocksky.song/${rkey}`))
+    .orderBy(desc(tables.shouts.createdAt))
+    .execute();
+
+  return c.json(shouts);
+});
+
+app.get("/:did/app.rocksky.scrobble/:rkey/shouts", async (c) => {
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+  const shouts = await ctx.db
+    .select()
+    .from(tables.shouts)
+    .leftJoin(tables.users, eq(tables.shouts.authorId, tables.users.id))
+    .leftJoin(tables.tracks, eq(tables.shouts.trackId, tables.tracks.id))
+    .where(eq(tables.tracks.uri, `at://${did}/app.rocksky.scrobble/${rkey}`))
+    .orderBy(desc(tables.shouts.createdAt))
+    .execute();
+
+  return c.json(shouts);
+});
+
+app.get("/:did/shouts", async (c) => {
+  const did = c.req.param("did");
+
+  const shouts = await ctx.db
+    .select()
+    .from(tables.profileShouts)
+    .where(or(eq(tables.users.did, did), eq(tables.users.handle, did)))
+    .leftJoin(tables.users, eq(tables.profileShouts.userId, tables.users.id))
+    .leftJoin(tables.shouts, eq(tables.profileShouts.shoutId, tables.shouts.id))
+    .orderBy(desc(tables.profileShouts.createdAt))
+    .execute();
+
+  return c.json(shouts);
+});
+
+app.get("/:did/app.rocksky.shout/:rkey/likes", async (c) => {
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+  const likes = await ctx.client.db.shout_likes
+    .select(["user_id.*", "xata_createdat"])
+    .filter("shout_id.uri", `at://${did}/app.rocksky.shout/${rkey}`)
+    .getAll();
+  return c.json(likes);
+});
+
+app.get("/:did/app.rocksky.shout/:rkey/replies", async (c) => {
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+  const shouts = await ctx.client.db.shouts
+    .select(["author_id.*", "xata_createdat"])
+    .filter("parent_id.uri", `at://${did}/app.rocksky.shout/${rkey}`)
+    .sort("xata_createdat", "asc")
+    .getAll();
+  return c.json(shouts);
+});
+
+app.get("/:did/stats", async (c) => {
+  const did = c.req.param("did");
+  const scrobbles = await ctx.client.db.scrobbles
+    .select(["user_id.*"])
+    .filter({
+      $any: [
+        {
+          "user_id.did": did,
+        },
+        {
+          "user_id.handle": did,
+        },
+      ],
+    })
+    .summarize({
+      summaries: {
+        total: {
+          count: "*",
+        },
+      },
+    });
+
+  const artists = await ctx.client.db.user_artists
+    .select(["artist_id.*", "user_id.*"])
+    .filter({
+      $any: [
+        {
+          "user_id.did": did,
+        },
+        {
+          "user_id.handle": did,
+        },
+      ],
+    })
+    .getAll();
+
+  const lovedTracks = await ctx.client.db.loved_tracks
+    .select(["track_id.*", "user_id.*"])
+    .filter({
+      $any: [
+        {
+          "user_id.did": did,
+        },
+        {
+          "user_id.handle": did,
+        },
+      ],
+    })
+    .getAll();
+
+  return c.json({
+    scrobbles: _.get(scrobbles, "summaries.0.total", 0),
+    artists: artists.length,
+    lovedTracks: lovedTracks.length,
+  });
+});
+
+export default app;

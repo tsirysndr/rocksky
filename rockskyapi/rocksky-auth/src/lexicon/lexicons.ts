@@ -162,6 +162,32 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyLike: {
+    lexicon: 1,
+    id: 'app.rocksky.like',
+    defs: {
+      main: {
+        type: 'record',
+        key: 'tid',
+        description: 'A declaration of a like.',
+        record: {
+          type: 'object',
+          required: ['subject', 'createdAt'],
+          properties: {
+            createdAt: {
+              type: 'string',
+              description: 'The date the like was created.',
+              format: 'datetime',
+            },
+            subject: {
+              type: 'ref',
+              ref: 'lex:com.atproto.repo.strongRef',
+            },
+          },
+        },
+      },
+    },
+  },
   AppRockskyLovedSong: {
     lexicon: 1,
     id: 'app.rocksky.lovedSong',
@@ -599,7 +625,7 @@ export const schemaDict = {
         description: 'A declaration of a shout.',
         record: {
           type: 'object',
-          required: ['message', 'createdAt', 'parent'],
+          required: ['message', 'createdAt', 'subject'],
           properties: {
             message: {
               type: 'string',
@@ -616,7 +642,7 @@ export const schemaDict = {
               type: 'ref',
               ref: 'lex:com.atproto.repo.strongRef',
             },
-            song: {
+            subject: {
               type: 'ref',
               ref: 'lex:com.atproto.repo.strongRef',
             },
@@ -791,6 +817,7 @@ export const lexicons: Lexicons = new Lexicons(schemas)
 export const ids = {
   AppRockskyAlbum: 'app.rocksky.album',
   AppRockskyArtist: 'app.rocksky.artist',
+  AppRockskyLike: 'app.rocksky.like',
   AppRockskyLovedSong: 'app.rocksky.lovedSong',
   AppRockskyPlaylist: 'app.rocksky.playlist',
   AppBskyActorProfile: 'app.bsky.actor.profile',

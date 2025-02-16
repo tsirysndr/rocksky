@@ -183,6 +183,7 @@ function Main({ children }: { children: React.ReactNode }) {
               <div
                 style={{
                   color: "#42576ca6",
+                  textAlign: "center",
                 }}
               >
                 <a

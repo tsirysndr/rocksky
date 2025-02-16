@@ -1,0 +1,17 @@
+import albums from "./albums";
+import artists from "./artists";
+import profileShouts from "./profile-shouts";
+import shoutLikes from "./shout-likes";
+import shouts from "./shouts";
+import tracks from "./tracks";
+import users from "./users";
+
+export default {
+  profileShouts,
+  shoutLikes,
+  shouts,
+  users,
+  albums,
+  artists,
+  tracks,
+};

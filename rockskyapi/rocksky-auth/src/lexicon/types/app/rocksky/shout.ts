@@ -12,8 +12,8 @@ export interface Record {
   message: string
   /** The date the shout was created. */
   createdAt: string
-  parent: ComAtprotoRepoStrongRef.Main
-  song?: ComAtprotoRepoStrongRef.Main
+  parent?: ComAtprotoRepoStrongRef.Main
+  subject: ComAtprotoRepoStrongRef.Main
   [k: string]: unknown
 }
 

@@ -24,4 +24,5 @@ export const env = cleanEnv(process.env, {
   SPOTIFY_ENCRYPTION_KEY: str({}),
   SPOTIFY_ENCRYPTION_IV: str(),
   ROCKSKY_BETA_TOKEN: str({}),
+  XATA_POSTGRES_URL: str({}),
 });

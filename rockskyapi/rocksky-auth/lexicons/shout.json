@@ -11,7 +11,7 @@
         "required": [
           "message",
           "createdAt",
-          "parent"
+          "subject"
         ],
         "properties": {
           "message": {
@@ -29,7 +29,7 @@
             "type": "ref",
             "ref": "com.atproto.repo.strongRef"
           },
-          "song": {
+          "subject": {
             "type": "ref",
             "ref": "com.atproto.repo.strongRef"
           }

@@ -1,0 +1,30 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cuo3i75v5omnnkb7aq3g",
+    "operations": [
+      {
+        "add_column": {
+          "table": "shouts",
+          "column": {
+            "name": "album_id",
+            "type": "text",
+            "comment": "{\"xata.link\":\"albums\"}",
+            "nullable": true,
+            "references": {
+              "name": "album_id_link",
+              "table": "albums",
+              "column": "xata_id",
+              "on_delete": "SET NULL"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cuo3i75v5omnnkb7aq3g",
+  "parent": "mig_cuo3hplv5omnnkb7aq2g",
+  "schema": "public",
+  "startedAt": "2025-02-15T06:50:04.640395Z"
+}
