@@ -1,6 +1,7 @@
 import albums from "./albums";
 import artists from "./artists";
 import profileShouts from "./profile-shouts";
+import scrobbles from "./scrobbles";
 import shoutLikes from "./shout-likes";
 import shouts from "./shouts";
 import tracks from "./tracks";
@@ -14,4 +15,5 @@ export default {
   albums,
   artists,
   tracks,
+  scrobbles,
 };

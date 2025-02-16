@@ -25,7 +25,7 @@ export async function createShout(
     collection = "app.rocksky.artist";
   } else if (uri.includes("app.rocksky.scrobble")) {
     scrobble = await ctx.client.db.scrobbles
-      .select(["track_id.*", "album_id.*", "artist_id.*"])
+      .select(["track_id.*", "album_id.*", "artist_id.*", "uri"])
       .filter("uri", uri)
       .getFirst();
     collection = "app.rocksky.scrobble";

@@ -68,6 +68,10 @@ function Shout(props: ShoutProps) {
       uri = `at://${did}/app.rocksky.artist/${rkey}`;
     }
 
+    if (location.pathname.includes("app.rocksky.scrobble")) {
+      uri = `at://${did}/app.rocksky.scrobble/${rkey}`;
+    }
+
     await shout(uri, message);
 
     const data = await getShouts(uri);

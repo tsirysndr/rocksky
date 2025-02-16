@@ -771,7 +771,11 @@ app.get("/:did/app.rocksky.scrobble/:rkey/shouts", async (c) => {
     .from(tables.shouts)
     .leftJoin(tables.users, eq(tables.shouts.authorId, tables.users.id))
     .leftJoin(tables.tracks, eq(tables.shouts.trackId, tables.tracks.id))
-    .where(eq(tables.tracks.uri, `at://${did}/app.rocksky.scrobble/${rkey}`))
+    .leftJoin(
+      tables.scrobbles,
+      eq(tables.shouts.scrobbleId, tables.scrobbles.id)
+    )
+    .where(eq(tables.scrobbles.uri, `at://${did}/app.rocksky.scrobble/${rkey}`))
     .orderBy(desc(tables.shouts.createdAt))
     .execute();
 
