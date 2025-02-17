@@ -107,16 +107,12 @@ export async function replyShout(
   agent: Agent
 ) {
   const shout = await ctx.client.db.shouts
-    .select(["track_id.*", "album_id.*", "artist_id.*", "uri"])
+    .select(["track_id.*", "album_id.*", "artist_id.*", "scrobble_id.*", "uri"])
     .filter("uri", shoutUri)
     .getFirst();
   if (!shout) {
     throw new Error("Shout not found");
   }
-  const profile = await ctx.client.db.profile_shouts
-    .select(["user_id.*", "shout_id.*"])
-    .filter("shout_id.uri", shoutUri)
-    .getFirst();
 
   const { data: profileRecord } = await agent.com.atproto.repo.getRecord({
     repo: agent.assertDid,
@@ -138,10 +134,15 @@ export async function replyShout(
     collection = "app.rocksky.artist";
   }
 
+  if (shout.scrobble_id) {
+    collection = "app.rocksky.scrobble";
+  }
+
   const subjectUri =
     shout.track_id?.uri ||
     shout.album_id?.uri ||
     shout.artist_id?.uri ||
+    shout.scrobble_id?.uri ||
     profileRecord.uri;
 
   const subjectRecord = await agent.com.atproto.repo.getRecord({
@@ -203,12 +204,23 @@ export async function replyShout(
       uri,
       parent_id: shout.xata_id,
       author_id: user.xata_id,
+      track_id: shout.track_id?.xata_id,
+      album_id: shout.album_id?.xata_id,
+      artist_id: shout.artist_id?.xata_id,
+      scrobble_id: shout.scrobble_id?.xata_id,
     });
 
-    await ctx.client.db.profile_shouts.create({
-      shout_id: createdShout.xata_id,
-      user_id: user.xata_id,
-    });
+    if (
+      !shout.track_id &&
+      !shout.album_id &&
+      !shout.artist_id &&
+      !shout.scrobble_id
+    ) {
+      await ctx.client.db.profile_shouts.create({
+        shout_id: createdShout.xata_id,
+        user_id: user.xata_id,
+      });
+    }
   } catch (e) {
     console.error(`Error creating reply record: ${e.message}`);
   }
