@@ -722,12 +722,69 @@ app.post("/:did/app.rocksky.shout/:rkey/replies", async (c) => {
 app.get("/:did/app.rocksky.artist/:rkey/shouts", async (c) => {
   const did = c.req.param("did");
   const rkey = c.req.param("rkey");
+
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  let user;
+  if (bearer && bearer !== "null") {
+    const payload = jwt.verify(bearer, env.JWT_SECRET);
+
+    user = await ctx.client.db.users
+      .filter("did", equals(payload.did))
+      .getFirst();
+  }
+
   const shouts = await ctx.db
-    .select()
+    .select({
+      shouts: user
+        ? {
+            id: tables.shouts.id,
+            content: tables.shouts.content,
+            createdAt: tables.shouts.createdAt,
+            uri: tables.shouts.uri,
+            likes: count(tables.shoutLikes.id).as("likes"),
+            liked: sql<boolean>`
+      EXISTS (
+        SELECT 1
+        FROM ${tables.shoutLikes}
+        WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.xata_id
+          AND ${tables.shoutLikes}.user_id = ${user.xata_id}
+      )`.as("liked"),
+          }
+        : {
+            id: tables.shouts.id,
+            content: tables.shouts.content,
+            createdAt: tables.shouts.createdAt,
+            uri: tables.shouts.uri,
+            likes: count(tables.shoutLikes.id).as("likes"),
+          },
+      users: {
+        id: tables.users.id,
+        did: tables.users.did,
+        handle: tables.users.handle,
+        displayName: tables.users.displayName,
+        avatar: tables.users.avatar,
+      },
+    })
     .from(tables.shouts)
     .leftJoin(tables.users, eq(tables.shouts.authorId, tables.users.id))
     .leftJoin(tables.artists, eq(tables.shouts.artistId, tables.artists.id))
+    .leftJoin(
+      tables.shoutLikes,
+      eq(tables.shouts.id, tables.shoutLikes.shoutId)
+    )
     .where(eq(tables.artists.uri, `at://${did}/app.rocksky.artist/${rkey}`))
+    .groupBy(
+      tables.shouts.id,
+      tables.shouts.content,
+      tables.shouts.createdAt,
+      tables.shouts.uri,
+      tables.users.id,
+      tables.users.did,
+      tables.users.handle,
+      tables.users.displayName,
+      tables.users.avatar
+    )
     .orderBy(desc(tables.shouts.createdAt))
     .execute();
   return c.json(shouts);
@@ -736,12 +793,69 @@ app.get("/:did/app.rocksky.artist/:rkey/shouts", async (c) => {
 app.get("/:did/app.rocksky.album/:rkey/shouts", async (c) => {
   const did = c.req.param("did");
   const rkey = c.req.param("rkey");
+
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  let user;
+  if (bearer && bearer !== "null") {
+    const payload = jwt.verify(bearer, env.JWT_SECRET);
+
+    user = await ctx.client.db.users
+      .filter("did", equals(payload.did))
+      .getFirst();
+  }
+
   const shouts = await ctx.db
-    .select()
+    .select({
+      shouts: user
+        ? {
+            id: tables.shouts.id,
+            content: tables.shouts.content,
+            createdAt: tables.shouts.createdAt,
+            uri: tables.shouts.uri,
+            likes: count(tables.shoutLikes.id).as("likes"),
+            liked: sql<boolean>`
+      EXISTS (
+        SELECT 1
+        FROM ${tables.shoutLikes}
+        WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.xata_id
+          AND ${tables.shoutLikes}.user_id = ${user.xata_id}
+      )`.as("liked"),
+          }
+        : {
+            id: tables.shouts.id,
+            content: tables.shouts.content,
+            createdAt: tables.shouts.createdAt,
+            uri: tables.shouts.uri,
+            likes: count(tables.shoutLikes.id).as("likes"),
+          },
+      users: {
+        id: tables.users.id,
+        did: tables.users.did,
+        handle: tables.users.handle,
+        displayName: tables.users.displayName,
+        avatar: tables.users.avatar,
+      },
+    })
     .from(tables.shouts)
     .leftJoin(tables.users, eq(tables.shouts.authorId, tables.users.id))
     .leftJoin(tables.albums, eq(tables.shouts.albumId, tables.albums.id))
+    .leftJoin(
+      tables.shoutLikes,
+      eq(tables.shouts.id, tables.shoutLikes.shoutId)
+    )
     .where(eq(tables.albums.uri, `at://${did}/app.rocksky.album/${rkey}`))
+    .groupBy(
+      tables.shouts.id,
+      tables.shouts.content,
+      tables.shouts.createdAt,
+      tables.shouts.uri,
+      tables.users.id,
+      tables.users.did,
+      tables.users.handle,
+      tables.users.displayName,
+      tables.users.avatar
+    )
     .orderBy(desc(tables.shouts.createdAt))
     .execute();
 
@@ -751,12 +865,69 @@ app.get("/:did/app.rocksky.album/:rkey/shouts", async (c) => {
 app.get("/:did/app.rocksky.song/:rkey/shouts", async (c) => {
   const did = c.req.param("did");
   const rkey = c.req.param("rkey");
+
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  let user;
+  if (bearer && bearer !== "null") {
+    const payload = jwt.verify(bearer, env.JWT_SECRET);
+
+    user = await ctx.client.db.users
+      .filter("did", equals(payload.did))
+      .getFirst();
+  }
+
   const shouts = await ctx.db
-    .select()
+    .select({
+      shouts: user
+        ? {
+            id: tables.shouts.id,
+            content: tables.shouts.content,
+            createdAt: tables.shouts.createdAt,
+            uri: tables.shouts.uri,
+            likes: count(tables.shoutLikes.id).as("likes"),
+            liked: sql<boolean>`
+      EXISTS (
+        SELECT 1
+        FROM ${tables.shoutLikes}
+        WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.xata_id
+          AND ${tables.shoutLikes}.user_id = ${user.xata_id}
+      )`.as("liked"),
+          }
+        : {
+            id: tables.shouts.id,
+            content: tables.shouts.content,
+            createdAt: tables.shouts.createdAt,
+            uri: tables.shouts.uri,
+            likes: count(tables.shoutLikes.id).as("likes"),
+          },
+      users: {
+        id: tables.users.id,
+        did: tables.users.did,
+        handle: tables.users.handle,
+        displayName: tables.users.displayName,
+        avatar: tables.users.avatar,
+      },
+    })
     .from(tables.shouts)
     .leftJoin(tables.users, eq(tables.shouts.authorId, tables.users.id))
     .leftJoin(tables.tracks, eq(tables.shouts.trackId, tables.tracks.id))
+    .leftJoin(
+      tables.shoutLikes,
+      eq(tables.shouts.id, tables.shoutLikes.shoutId)
+    )
     .where(eq(tables.tracks.uri, `at://${did}/app.rocksky.song/${rkey}`))
+    .groupBy(
+      tables.shouts.id,
+      tables.shouts.content,
+      tables.shouts.createdAt,
+      tables.shouts.uri,
+      tables.users.id,
+      tables.users.did,
+      tables.users.handle,
+      tables.users.displayName,
+      tables.users.avatar
+    )
     .orderBy(desc(tables.shouts.createdAt))
     .execute();
 
@@ -766,16 +937,72 @@ app.get("/:did/app.rocksky.song/:rkey/shouts", async (c) => {
 app.get("/:did/app.rocksky.scrobble/:rkey/shouts", async (c) => {
   const did = c.req.param("did");
   const rkey = c.req.param("rkey");
+
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  let user;
+  if (bearer && bearer !== "null") {
+    const payload = jwt.verify(bearer, env.JWT_SECRET);
+
+    user = await ctx.client.db.users
+      .filter("did", equals(payload.did))
+      .getFirst();
+  }
+
   const shouts = await ctx.db
-    .select()
+    .select({
+      shouts: user
+        ? {
+            id: tables.shouts.id,
+            content: tables.shouts.content,
+            createdAt: tables.shouts.createdAt,
+            uri: tables.shouts.uri,
+            likes: count(tables.shoutLikes.id).as("likes"),
+            liked: sql<boolean>`
+        EXISTS (
+          SELECT 1
+          FROM ${tables.shoutLikes}
+          WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.xata_id
+            AND ${tables.shoutLikes}.user_id = ${user.xata_id}
+        )`.as("liked"),
+          }
+        : {
+            id: tables.shouts.id,
+            content: tables.shouts.content,
+            createdAt: tables.shouts.createdAt,
+            uri: tables.shouts.uri,
+            likes: count(tables.shoutLikes.id).as("likes"),
+          },
+      users: {
+        id: tables.users.id,
+        did: tables.users.did,
+        handle: tables.users.handle,
+        displayName: tables.users.displayName,
+        avatar: tables.users.avatar,
+      },
+    })
     .from(tables.shouts)
     .leftJoin(tables.users, eq(tables.shouts.authorId, tables.users.id))
-    .leftJoin(tables.tracks, eq(tables.shouts.trackId, tables.tracks.id))
     .leftJoin(
       tables.scrobbles,
       eq(tables.shouts.scrobbleId, tables.scrobbles.id)
     )
+    .leftJoin(
+      tables.shoutLikes,
+      eq(tables.shouts.id, tables.shoutLikes.shoutId)
+    )
     .where(eq(tables.scrobbles.uri, `at://${did}/app.rocksky.scrobble/${rkey}`))
+    .groupBy(
+      tables.shouts.id,
+      tables.shouts.content,
+      tables.shouts.createdAt,
+      tables.shouts.uri,
+      tables.users.id,
+      tables.users.did,
+      tables.users.handle,
+      tables.users.displayName,
+      tables.users.avatar
+    )
     .orderBy(desc(tables.shouts.createdAt))
     .execute();
 
