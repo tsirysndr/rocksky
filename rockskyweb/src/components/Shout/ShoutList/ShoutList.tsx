@@ -4,6 +4,7 @@ import { useLocation, useParams } from "react-router";
 import { shoutsAtom } from "../../../atoms/shouts";
 import useShout from "../../../hooks/useShout";
 import Shout from "./Shout";
+import "./styles.css";
 
 function ShoutList() {
   const shouts = useAtomValue(shoutsAtom);
@@ -24,19 +25,42 @@ function ShoutList() {
       const data = await getShouts(uri);
       setShouts({
         ...shouts,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        [pathname]: data.map((x: any) => ({
-          uri: x.shouts.uri,
-          message: x.shouts.content,
-          date: x.shouts.createdAt,
-          liked: x.shouts.liked,
-          likes: x.shouts.likes,
-          user: {
-            avatar: x.users.avatar,
-            displayName: x.users.displayName,
-            handle: x.users.handle,
-          },
-        })),
+        [pathname]: data
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .filter((x: any) => !x.shouts.parent)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map((x: any) => ({
+            id: x.shouts.id,
+            uri: x.shouts.uri,
+            message: x.shouts.content,
+            date: x.shouts.createdAt,
+            liked: x.shouts.liked,
+            likes: x.shouts.likes,
+            user: {
+              avatar: x.users.avatar,
+              displayName: x.users.displayName,
+              handle: x.users.handle,
+            },
+            // filter all replies
+            replies: data
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .filter((y: any) => y.shouts.parent === x.shouts.id)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .map((y: any) => ({
+                id: y.shouts.id,
+                uri: y.shouts.uri,
+                message: y.shouts.content,
+                date: y.shouts.createdAt,
+                liked: y.shouts.liked,
+                likes: y.shouts.likes,
+                user: {
+                  avatar: y.users.avatar,
+                  displayName: y.users.displayName,
+                  handle: y.users.handle,
+                },
+                replies: [], // Initialize replies as an empty array
+              })),
+          })),
       });
       return;
     }
@@ -66,6 +90,7 @@ function ShoutList() {
       ...shouts,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       [pathname]: data.map((x: any) => ({
+        id: x.shouts.id,
         uri: x.shouts.uri,
         message: x.shouts.content,
         date: x.shouts.createdAt,
@@ -76,15 +101,40 @@ function ShoutList() {
           displayName: x.users.displayName,
           handle: x.users.handle,
         },
+        replies: data
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .filter((y: any) => y.shouts.parent === x.shouts.id)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map((y: any) => ({
+            id: y.shouts.id,
+            uri: y.shouts.uri,
+            message: y.shouts.content,
+            date: y.shouts.createdAt,
+            liked: y.shouts.liked,
+            likes: y.shouts.likes,
+            user: {
+              avatar: y.users.avatar,
+              displayName: y.users.displayName,
+              handle: y.users.handle,
+            },
+            replies: [], // Initialize replies as an empty array
+          })),
       })),
     });
   };
 
+  const renderShout = (shout) => (
+    <div key={shout.id} className="shout-container">
+      <Shout shout={shout} refetch={fetchShouts} />
+      <div className="replies-container">
+        {shout.replies.map((reply) => renderShout(reply))}
+      </div>
+    </div>
+  );
+
   return (
     <div style={{ marginTop: 50 }}>
-      {(shouts[pathname] || []).map((shout) => (
-        <Shout shout={shout} refetch={fetchShouts} />
-      ))}
+      {(shouts[pathname] || []).map((shout) => renderShout(shout))}
     </div>
   );
 }

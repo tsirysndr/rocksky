@@ -742,6 +742,7 @@ app.get("/:did/app.rocksky.artist/:rkey/shouts", async (c) => {
             content: tables.shouts.content,
             createdAt: tables.shouts.createdAt,
             uri: tables.shouts.uri,
+            parent: tables.shouts.parentId,
             likes: count(tables.shoutLikes.id).as("likes"),
             liked: sql<boolean>`
       EXISTS (
@@ -755,6 +756,7 @@ app.get("/:did/app.rocksky.artist/:rkey/shouts", async (c) => {
             id: tables.shouts.id,
             content: tables.shouts.content,
             createdAt: tables.shouts.createdAt,
+            parent: tables.shouts.parentId,
             uri: tables.shouts.uri,
             likes: count(tables.shoutLikes.id).as("likes"),
           },
@@ -779,6 +781,7 @@ app.get("/:did/app.rocksky.artist/:rkey/shouts", async (c) => {
       tables.shouts.content,
       tables.shouts.createdAt,
       tables.shouts.uri,
+      tables.shouts.parentId,
       tables.users.id,
       tables.users.did,
       tables.users.handle,
@@ -812,6 +815,7 @@ app.get("/:did/app.rocksky.album/:rkey/shouts", async (c) => {
             id: tables.shouts.id,
             content: tables.shouts.content,
             createdAt: tables.shouts.createdAt,
+            parent: tables.shouts.parentId,
             uri: tables.shouts.uri,
             likes: count(tables.shoutLikes.id).as("likes"),
             liked: sql<boolean>`
@@ -826,6 +830,7 @@ app.get("/:did/app.rocksky.album/:rkey/shouts", async (c) => {
             id: tables.shouts.id,
             content: tables.shouts.content,
             createdAt: tables.shouts.createdAt,
+            parent: tables.shouts.parentId,
             uri: tables.shouts.uri,
             likes: count(tables.shoutLikes.id).as("likes"),
           },
@@ -850,6 +855,7 @@ app.get("/:did/app.rocksky.album/:rkey/shouts", async (c) => {
       tables.shouts.content,
       tables.shouts.createdAt,
       tables.shouts.uri,
+      tables.shouts.parentId,
       tables.users.id,
       tables.users.did,
       tables.users.handle,
@@ -885,6 +891,7 @@ app.get("/:did/app.rocksky.song/:rkey/shouts", async (c) => {
             content: tables.shouts.content,
             createdAt: tables.shouts.createdAt,
             uri: tables.shouts.uri,
+            parent: tables.shouts.parentId,
             likes: count(tables.shoutLikes.id).as("likes"),
             liked: sql<boolean>`
       EXISTS (
@@ -899,6 +906,7 @@ app.get("/:did/app.rocksky.song/:rkey/shouts", async (c) => {
             content: tables.shouts.content,
             createdAt: tables.shouts.createdAt,
             uri: tables.shouts.uri,
+            parent: tables.shouts.parentId,
             likes: count(tables.shoutLikes.id).as("likes"),
           },
       users: {
@@ -922,6 +930,7 @@ app.get("/:did/app.rocksky.song/:rkey/shouts", async (c) => {
       tables.shouts.content,
       tables.shouts.createdAt,
       tables.shouts.uri,
+      tables.shouts.parentId,
       tables.users.id,
       tables.users.did,
       tables.users.handle,
@@ -957,6 +966,7 @@ app.get("/:did/app.rocksky.scrobble/:rkey/shouts", async (c) => {
             content: tables.shouts.content,
             createdAt: tables.shouts.createdAt,
             uri: tables.shouts.uri,
+            parent: tables.shouts.parentId,
             likes: count(tables.shoutLikes.id).as("likes"),
             liked: sql<boolean>`
         EXISTS (
@@ -971,6 +981,7 @@ app.get("/:did/app.rocksky.scrobble/:rkey/shouts", async (c) => {
             content: tables.shouts.content,
             createdAt: tables.shouts.createdAt,
             uri: tables.shouts.uri,
+            parent: tables.shouts.parentId,
             likes: count(tables.shoutLikes.id).as("likes"),
           },
       users: {
@@ -997,6 +1008,7 @@ app.get("/:did/app.rocksky.scrobble/:rkey/shouts", async (c) => {
       tables.shouts.content,
       tables.shouts.createdAt,
       tables.shouts.uri,
+      tables.shouts.parentId,
       tables.users.id,
       tables.users.did,
       tables.users.handle,
@@ -1035,6 +1047,7 @@ app.get("/:did/shouts", async (c) => {
             content: tables.shouts.content,
             createdAt: tables.shouts.createdAt,
             uri: tables.shouts.uri,
+            parent: tables.shouts.parentId,
             likes: count(tables.shoutLikes.id).as("likes"),
             liked: sql<boolean>`
         EXISTS (
@@ -1049,6 +1062,7 @@ app.get("/:did/shouts", async (c) => {
             content: tables.shouts.content,
             createdAt: tables.shouts.createdAt,
             uri: tables.shouts.uri,
+            parent: tables.shouts.parentId,
             likes: count(tables.shoutLikes.id).as("likes"),
           },
       users: {
@@ -1074,6 +1088,7 @@ app.get("/:did/shouts", async (c) => {
       tables.shouts.uri,
       tables.shouts.content,
       tables.shouts.createdAt,
+      tables.shouts.parentId,
       tables.users.id,
       tables.users.did,
       tables.users.handle,

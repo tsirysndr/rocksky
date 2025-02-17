@@ -1,0 +1,19 @@
+.shout-container {
+  position: relative;
+  padding-left: 20px;
+  margin-bottom: 20px;
+}
+
+.shout-container::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+}
+
+.replies-container {
+  margin-left: 20px;
+  padding-left: 20px;
+}
