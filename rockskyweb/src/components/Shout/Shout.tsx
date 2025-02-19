@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "baseui/button";
 import { Spinner } from "baseui/spinner";
@@ -34,13 +35,9 @@ function Shout(props: ShoutProps) {
   const profile = useAtomValue(profileAtom);
   const user = useAtomValue(userAtom);
   const { shout, getShouts } = useShout();
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-    watch,
-    reset,
-  } = useForm<z.infer<typeof ShoutSchema>>({
+  const { control, handleSubmit, watch, reset } = useForm<
+    z.infer<typeof ShoutSchema>
+  >({
     mode: "onChange",
     resolver: zodResolver(ShoutSchema),
     defaultValues: {
@@ -88,16 +85,17 @@ function Shout(props: ShoutProps) {
     reset();
   };
 
-  const processShouts = (data) => {
-    const mapShouts = (parentId) => {
+  const processShouts = (data: any) => {
+    const mapShouts = (parentId: string | null) => {
       return data
-        .filter((x) => x.shouts.parent === parentId)
-        .map((x) => ({
+        .filter((x: any) => x.shouts.parent === parentId)
+        .map((x: any) => ({
           id: x.shouts.id,
           uri: x.shouts.uri,
           message: x.shouts.content,
           date: x.shouts.createdAt,
           liked: x.shouts.liked,
+          reported: x.shouts.reported,
           likes: x.shouts.likes,
           user: {
             did: x.users.did,

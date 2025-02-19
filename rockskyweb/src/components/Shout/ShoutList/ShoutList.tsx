@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect } from "react";
 import { useLocation, useParams } from "react-router";
@@ -57,16 +58,17 @@ function ShoutList() {
     });
   };
 
-  const processShouts = (data) => {
-    const mapShouts = (parentId) => {
+  const processShouts = (data: any) => {
+    const mapShouts = (parentId: string | null) => {
       return data
-        .filter((x) => x.shouts.parent === parentId)
-        .map((x) => ({
+        .filter((x: any) => x.shouts.parent === parentId)
+        .map((x: any) => ({
           id: x.shouts.id,
           uri: x.shouts.uri,
           message: x.shouts.content,
           date: x.shouts.createdAt,
           liked: x.shouts.liked,
+          reported: x.shouts.reported,
           likes: x.shouts.likes,
           user: {
             did: x.users.did,
@@ -81,12 +83,12 @@ function ShoutList() {
     return mapShouts(null);
   };
 
-  const renderShout = (shout) => {
+  const renderShout = (shout: any) => {
     return (
       <div key={shout.id} className="shout-container">
         <Shout shout={shout} refetch={fetchShouts} />
         <div className="replies-container">
-          {(shout.replies || []).map((reply) => renderShout(reply))}
+          {(shout.replies || []).map((reply: any) => renderShout(reply))}
         </div>
       </div>
     );

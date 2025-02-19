@@ -1056,6 +1056,13 @@ app.get("/:did/shouts", async (c) => {
           WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.xata_id
             AND ${tables.shoutLikes}.user_id = ${user.xata_id}
         )`.as("liked"),
+            reported: sql<boolean>`
+        EXISTS (
+          SELECT 1
+          FROM ${tables.shoutReports}
+          WHERE ${tables.shoutReports}.shout_id = ${tables.shouts}.xata_id
+            AND ${tables.shoutReports}.user_id = ${user.xata_id}
+        )`.as("reported"),
           }
         : {
             id: tables.shouts.id,

@@ -61,12 +61,22 @@ const Actions = styled.div`
   align-items: center;
 `;
 
+const Undo = styled.span`
+  color: rgb(255, 40, 118);
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
 interface ShoutProps {
   shout: {
     uri: string;
     message: string;
     date: string;
     liked: boolean;
+    reported: boolean;
     likes: number;
     user: {
       did: string;
@@ -87,7 +97,7 @@ function Shout(props: ShoutProps) {
   const [liked, setLiked] = useState(shout.liked);
   const [likes, setLikes] = useState(shout.likes);
   const profile = useAtomValue(profileAtom);
-  const { reportShout } = useShout();
+  const { reportShout, cancelReport } = useShout();
 
   const onReply = () => {
     if (!localStorage.getItem("token")) {
@@ -131,6 +141,11 @@ function Shout(props: ShoutProps) {
     await refetch();
   };
 
+  const onCancelReport = async () => {
+    await cancelReport(shout.uri);
+    await refetch();
+  };
+
   return (
     <div style={{ marginBottom: 40 }}>
       <ListItem
@@ -142,147 +157,165 @@ function Shout(props: ShoutProps) {
             },
           },
         }}
-        artwork={(props) => (
-          <div {...props}>
-            <Link to={`/profile/${shout.user.handle}`}>
-              <img
-                src={shout.user.avatar}
-                style={{
-                  width: 65,
-                  height: 65,
-                  borderRadius: 35,
-                }}
-              />
-            </Link>
-          </div>
-        )}
+        artwork={
+          !shout.reported
+            ? () => (
+                <div>
+                  <Link to={`/profile/${shout.user.handle}`}>
+                    <img
+                      src={shout.user.avatar}
+                      style={{
+                        width: 65,
+                        height: 65,
+                        borderRadius: 35,
+                      }}
+                    />
+                  </Link>
+                </div>
+              )
+            : undefined
+        }
       >
-        <div style={{ marginLeft: 20, width: "100%" }}>
-          <Header>
-            <div>
-              <Link to={`/profile/${shout.user.handle}`}>
-                <LabelMedium>{shout.user.displayName}</LabelMedium>
-              </Link>
-            </div>
-            <div>
-              <StatefulTooltip
-                content={dayjs(shout.date).format("MMMM D, YYYY [at] HH:mm A")}
-                returnFocus
-                autoFocus
-              >
-                <LabelMedium
-                  style={{
-                    color: "rgba(66, 87, 108, 0.65)",
-                    fontSize: "14px",
-                  }}
+        {shout.reported && (
+          <span>
+            You have reported this message.{" "}
+            <Undo onClick={onCancelReport}>Undo</Undo>
+          </span>
+        )}
+        {!shout.reported && (
+          <div style={{ marginLeft: 20, width: "100%" }}>
+            <Header>
+              <div>
+                <Link to={`/profile/${shout.user.handle}`}>
+                  <LabelMedium>{shout.user.displayName}</LabelMedium>
+                </Link>
+              </div>
+              <div>
+                <StatefulTooltip
+                  content={dayjs(shout.date).format(
+                    "MMMM D, YYYY [at] HH:mm A"
+                  )}
+                  returnFocus
+                  autoFocus
                 >
-                  {dayjs(shout.date).fromNow()}
-                </LabelMedium>
-              </StatefulTooltip>
-            </div>
-          </Header>
-          <Message>{shout.message}</Message>
-
-          <Actions>
-            <ReplyButton onClick={onReply}>
-              <ArrowReplyDown size={28} style={{ color: "inherit" }} />
-              <ReplyLabel>Reply</ReplyLabel>
-            </ReplyButton>
-            <LikeButton onClick={onLike}>
-              {!liked && <HeartOutline color="rgba(66, 87, 108, 0.65)" />}
-              {liked && <HeartOutline color="#ff2876" />}
-            </LikeButton>
-            {likes > 0 && (
-              <span
-                style={{
-                  color: liked ? "#ff2876" : "rgba(66, 87, 108, 0.65)",
-                  marginLeft: 5,
-                  marginTop: -5,
-                }}
-              >
-                {likes}
-              </span>
-            )}
-            <div
-              style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}
-            >
-              <StatefulPopover
-                placement={PLACEMENT.bottomRight}
-                overrides={{
-                  Body: {
-                    style: {
-                      zIndex: 2,
-                      boxShadow: "none",
-                    },
-                  },
-                }}
-                content={({ close }) => (
-                  <div>
-                    <NestedMenus>
-                      <StatefulMenu
-                        items={
-                          profile?.did === shout.user.did
-                            ? [
-                                {
-                                  id: "delete",
-                                  label: <LabelMedium>Delete</LabelMedium>,
-                                },
-                                {
-                                  id: "report",
-                                  label: (
-                                    <LabelMedium>Report this shout</LabelMedium>
-                                  ),
-                                },
-                              ]
-                            : [
-                                {
-                                  id: "report",
-                                  label: (
-                                    <LabelMedium>Report this shout</LabelMedium>
-                                  ),
-                                },
-                              ]
-                        }
-                        onItemSelect={({ item }) => {
-                          switch (item.id) {
-                            case "delete":
-                              setIsDeleteOpen(true);
-                              break;
-                            case "report":
-                              onReport();
-                              break;
-                            default:
-                              break;
-                          }
-                          close();
-                        }}
-                        overrides={{
-                          List: { style: { width: "200px" } },
-                        }}
-                      />
-                    </NestedMenus>
-                  </div>
-                )}
-              >
-                <button
-                  style={{
-                    border: "none",
-                    cursor: "pointer",
-                    background: "none",
-                  }}
-                >
-                  <Ellipsis
-                    size={20}
+                  <LabelMedium
                     style={{
                       color: "rgba(66, 87, 108, 0.65)",
-                      marginTop: -7,
+                      fontSize: "14px",
                     }}
-                  />
-                </button>
-              </StatefulPopover>
-            </div>
-          </Actions>
-        </div>
+                  >
+                    {dayjs(shout.date).fromNow()}
+                  </LabelMedium>
+                </StatefulTooltip>
+              </div>
+            </Header>
+            <Message>{shout.message}</Message>
+
+            <Actions>
+              <ReplyButton onClick={onReply}>
+                <ArrowReplyDown size={28} style={{ color: "inherit" }} />
+                <ReplyLabel>Reply</ReplyLabel>
+              </ReplyButton>
+              <LikeButton onClick={onLike}>
+                {!liked && <HeartOutline color="rgba(66, 87, 108, 0.65)" />}
+                {liked && <HeartOutline color="#ff2876" />}
+              </LikeButton>
+              {likes > 0 && (
+                <span
+                  style={{
+                    color: liked ? "#ff2876" : "rgba(66, 87, 108, 0.65)",
+                    marginLeft: 5,
+                    marginTop: -5,
+                  }}
+                >
+                  {likes}
+                </span>
+              )}
+              <div
+                style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}
+              >
+                <StatefulPopover
+                  placement={PLACEMENT.bottomRight}
+                  overrides={{
+                    Body: {
+                      style: {
+                        zIndex: 2,
+                        boxShadow: "none",
+                      },
+                    },
+                  }}
+                  content={({ close }) => (
+                    <div>
+                      <NestedMenus>
+                        <StatefulMenu
+                          items={
+                            profile?.did === shout.user.did
+                              ? [
+                                  {
+                                    id: "delete",
+                                    label: <LabelMedium>Delete</LabelMedium>,
+                                  },
+                                  {
+                                    id: "report",
+                                    label: (
+                                      <LabelMedium>
+                                        Report this shout
+                                      </LabelMedium>
+                                    ),
+                                  },
+                                ]
+                              : [
+                                  {
+                                    id: "report",
+                                    label: (
+                                      <LabelMedium>
+                                        Report this shout
+                                      </LabelMedium>
+                                    ),
+                                  },
+                                ]
+                          }
+                          onItemSelect={({ item }) => {
+                            switch (item.id) {
+                              case "delete":
+                                setIsDeleteOpen(true);
+                                break;
+                              case "report":
+                                onReport();
+                                break;
+                              default:
+                                break;
+                            }
+                            close();
+                          }}
+                          overrides={{
+                            List: { style: { width: "200px" } },
+                          }}
+                        />
+                      </NestedMenus>
+                    </div>
+                  )}
+                >
+                  <button
+                    style={{
+                      border: "none",
+                      cursor: "pointer",
+                      background: "none",
+                    }}
+                  >
+                    <Ellipsis
+                      size={20}
+                      style={{
+                        color: "rgba(66, 87, 108, 0.65)",
+                        marginTop: -7,
+                      }}
+                    />
+                  </button>
+                </StatefulPopover>
+              </div>
+            </Actions>
+          </div>
+        )}
       </ListItem>
       <ReplyModal
         isOpen={isOpen}
