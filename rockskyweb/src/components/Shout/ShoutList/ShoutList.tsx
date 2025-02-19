@@ -25,42 +25,7 @@ function ShoutList() {
       const data = await getShouts(uri);
       setShouts({
         ...shouts,
-        [pathname]: data
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .filter((x: any) => !x.shouts.parent)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .map((x: any) => ({
-            id: x.shouts.id,
-            uri: x.shouts.uri,
-            message: x.shouts.content,
-            date: x.shouts.createdAt,
-            liked: x.shouts.liked,
-            likes: x.shouts.likes,
-            user: {
-              avatar: x.users.avatar,
-              displayName: x.users.displayName,
-              handle: x.users.handle,
-            },
-            // filter all replies
-            replies: data
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              .filter((y: any) => y.shouts.parent === x.shouts.id)
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              .map((y: any) => ({
-                id: y.shouts.id,
-                uri: y.shouts.uri,
-                message: y.shouts.content,
-                date: y.shouts.createdAt,
-                liked: y.shouts.liked,
-                likes: y.shouts.likes,
-                user: {
-                  avatar: y.users.avatar,
-                  displayName: y.users.displayName,
-                  handle: y.users.handle,
-                },
-                replies: [], // Initialize replies as an empty array
-              })),
-          })),
+        [pathname]: processShouts(data),
       });
       return;
     }
@@ -88,49 +53,44 @@ function ShoutList() {
     const data = await getShouts(uri);
     setShouts({
       ...shouts,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      [pathname]: data.map((x: any) => ({
-        id: x.shouts.id,
-        uri: x.shouts.uri,
-        message: x.shouts.content,
-        date: x.shouts.createdAt,
-        liked: x.shouts.liked,
-        likes: x.shouts.likes,
-        user: {
-          avatar: x.users.avatar,
-          displayName: x.users.displayName,
-          handle: x.users.handle,
-        },
-        replies: data
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .filter((y: any) => y.shouts.parent === x.shouts.id)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .map((y: any) => ({
-            id: y.shouts.id,
-            uri: y.shouts.uri,
-            message: y.shouts.content,
-            date: y.shouts.createdAt,
-            liked: y.shouts.liked,
-            likes: y.shouts.likes,
-            user: {
-              avatar: y.users.avatar,
-              displayName: y.users.displayName,
-              handle: y.users.handle,
-            },
-            replies: [], // Initialize replies as an empty array
-          })),
-      })),
+      [pathname]: processShouts(data),
     });
   };
 
-  const renderShout = (shout) => (
-    <div key={shout.id} className="shout-container">
-      <Shout shout={shout} refetch={fetchShouts} />
-      <div className="replies-container">
-        {shout.replies.map((reply) => renderShout(reply))}
+  const processShouts = (data) => {
+    const mapShouts = (parentId) => {
+      return data
+        .filter((x) => x.shouts.parent === parentId)
+        .map((x) => ({
+          id: x.shouts.id,
+          uri: x.shouts.uri,
+          message: x.shouts.content,
+          date: x.shouts.createdAt,
+          liked: x.shouts.liked,
+          likes: x.shouts.likes,
+          user: {
+            did: x.users.did,
+            avatar: x.users.avatar,
+            displayName: x.users.displayName,
+            handle: x.users.handle,
+          },
+          replies: mapShouts(x.shouts.id).reverse(),
+        }));
+    };
+
+    return mapShouts(null);
+  };
+
+  const renderShout = (shout) => {
+    return (
+      <div key={shout.id} className="shout-container">
+        <Shout shout={shout} refetch={fetchShouts} />
+        <div className="replies-container">
+          {(shout.replies || []).map((reply) => renderShout(reply))}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div style={{ marginTop: 50 }}>

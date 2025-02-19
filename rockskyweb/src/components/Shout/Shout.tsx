@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "baseui/button";
+import { Spinner } from "baseui/spinner";
 import { Textarea } from "baseui/textarea";
 import { LabelLarge, LabelMedium } from "baseui/typography";
 import { useAtomValue, useSetAtom } from "jotai";
@@ -48,8 +49,10 @@ function Shout(props: ShoutProps) {
   });
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
   const location = useLocation();
+  const [loading, setLoading] = useState(false);
 
   const onShout = async ({ message }: z.infer<typeof ShoutSchema>) => {
+    setLoading(true);
     let uri = "";
 
     if (location.pathname.startsWith("/profile")) {
@@ -77,20 +80,36 @@ function Shout(props: ShoutProps) {
     const data = await getShouts(uri);
     setShouts({
       ...shouts,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      [location.pathname]: data.map((x: any) => ({
-        uri: (x.shouts || x).uri,
-        message: (x.shouts || x).content,
-        date: (x.shouts || x).createdAt,
-        user: {
-          avatar: (x.users || x.authors).avatar,
-          displayName: (x.users || x.authors).displayName,
-          handle: (x.users || x.authors).handle,
-        },
-      })),
+      [location.pathname]: processShouts(data),
     });
 
+    setLoading(false);
+
     reset();
+  };
+
+  const processShouts = (data) => {
+    const mapShouts = (parentId) => {
+      return data
+        .filter((x) => x.shouts.parent === parentId)
+        .map((x) => ({
+          id: x.shouts.id,
+          uri: x.shouts.uri,
+          message: x.shouts.content,
+          date: x.shouts.createdAt,
+          liked: x.shouts.liked,
+          likes: x.shouts.likes,
+          user: {
+            did: x.users.did,
+            avatar: x.users.avatar,
+            displayName: x.users.displayName,
+            handle: x.users.handle,
+          },
+          replies: mapShouts(x.shouts.id).reverse(),
+        }));
+    };
+
+    return mapShouts(null);
   };
 
   return (
@@ -129,14 +148,18 @@ function Shout(props: ShoutProps) {
               justifyContent: "flex-end",
             }}
           >
-            <Button
-              disabled={
-                watch("message").length === 0 || watch("message").length > 1000
-              }
-              onClick={handleSubmit(onShout)}
-            >
-              Post Shout
-            </Button>
+            {!loading && (
+              <Button
+                disabled={
+                  watch("message").length === 0 ||
+                  watch("message").length > 1000
+                }
+                onClick={handleSubmit(onShout)}
+              >
+                Post Shout
+              </Button>
+            )}
+            {loading && <Spinner $size={25} $color="rgb(255, 40, 118)" />}
           </div>
         </>
       )}

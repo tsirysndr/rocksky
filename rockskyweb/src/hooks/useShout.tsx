@@ -50,7 +50,52 @@ function useShout() {
     return response.data;
   }, []);
 
-  return { shout, getShouts, reply, getReplies };
+  const reportShout = async (uri: string) => {
+    const response = await axios.post(
+      `${API_URL}/users/${uri.replace("at://", "")}/report`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    );
+    return response.data;
+  };
+
+  const deleteShout = async (uri: string) => {
+    const response = await axios.delete(
+      `${API_URL}/users/${uri.replace("at://", "")}`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    );
+    return response.data;
+  };
+
+  const cancelReport = async (uri: string) => {
+    const response = await axios.delete(
+      `${API_URL}/users/${uri.replace("at://", "")}/report`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    );
+    return response.data;
+  };
+
+  return {
+    shout,
+    getShouts,
+    reply,
+    getReplies,
+    reportShout,
+    deleteShout,
+    cancelReport,
+  };
 }
 
 export default useShout;

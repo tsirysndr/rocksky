@@ -63,6 +63,7 @@ function useProfile() {
           isBeta: profile.spotifyUser?.is_beta_user,
         },
         spotifyConnected: profile.spotifyConnected,
+        did: profile.did,
       });
     }
 

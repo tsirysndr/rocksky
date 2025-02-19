@@ -1434,6 +1434,91 @@ const tables = [
     ],
   },
   {
+    name: "shout_reports",
+    checkConstraints: {
+      shout_reports_xata_id_length_xata_id: {
+        name: "shout_reports_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {
+      shout_id_link: {
+        name: "shout_id_link",
+        columns: ["shout_id"],
+        referencedTable: "shouts",
+        referencedColumns: ["xata_id"],
+        onDelete: "SET NULL",
+      },
+      user_id_link: {
+        name: "user_id_link",
+        columns: ["user_id"],
+        referencedTable: "users",
+        referencedColumns: ["xata_id"],
+        onDelete: "SET NULL",
+      },
+    },
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_shout_reports_xata_id_key: {
+        name: "_pgroll_new_shout_reports_xata_id_key",
+        columns: ["xata_id"],
+      },
+    },
+    columns: [
+      {
+        name: "shout_id",
+        type: "link",
+        link: { table: "shouts" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"shouts"}',
+      },
+      {
+        name: "user_id",
+        type: "link",
+        link: { table: "users" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"users"}',
+      },
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
     name: "shouts",
     checkConstraints: {
       shouts_xata_id_length_xata_id: {
@@ -2708,6 +2793,9 @@ export type ScrobblesRecord = Scrobbles & XataRecord;
 export type ShoutLikes = InferredTypes["shout_likes"];
 export type ShoutLikesRecord = ShoutLikes & XataRecord;
 
+export type ShoutReports = InferredTypes["shout_reports"];
+export type ShoutReportsRecord = ShoutReports & XataRecord;
+
 export type Shouts = InferredTypes["shouts"];
 export type ShoutsRecord = Shouts & XataRecord;
 
@@ -2756,6 +2844,7 @@ export type DatabaseSchema = {
   radios: RadiosRecord;
   scrobbles: ScrobblesRecord;
   shout_likes: ShoutLikesRecord;
+  shout_reports: ShoutReportsRecord;
   shouts: ShoutsRecord;
   spotify_accounts: SpotifyAccountsRecord;
   spotify_tokens: SpotifyTokensRecord;

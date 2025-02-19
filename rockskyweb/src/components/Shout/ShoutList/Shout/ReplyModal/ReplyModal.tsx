@@ -7,9 +7,11 @@ import {
   ModalFooter,
   ModalHeader,
 } from "baseui/modal";
+import { Spinner } from "baseui/spinner";
 import { Textarea } from "baseui/textarea";
 import { LabelMedium } from "baseui/typography";
 import { useAtomValue, useSetAtom } from "jotai";
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Link as DefaultLink, useParams } from "react-router";
 import z from "zod";
@@ -65,6 +67,7 @@ function ReplyModal(props: ReplyModalProps) {
   const shouts = useAtomValue(shoutsAtom);
   const setShouts = useSetAtom(shoutsAtom);
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
+  const [loading, setLoading] = useState(false);
 
   const {
     control,
@@ -86,7 +89,9 @@ function ReplyModal(props: ReplyModalProps) {
   };
 
   const onReply = async ({ message }: z.infer<typeof ShoutSchema>) => {
+    setLoading(true);
     await reply(shout.uri, message);
+    setLoading(false);
     reset();
     close();
 
@@ -115,18 +120,32 @@ function ReplyModal(props: ReplyModalProps) {
     const data = await getShouts(uri);
     setShouts({
       ...shouts,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      [location.pathname]: data.map((x: any) => ({
-        uri: (x.shouts || x).uri,
-        message: (x.shouts || x).content,
-        date: (x.shouts || x).createdAt,
-        user: {
-          avatar: (x.users || x.authors).avatar,
-          displayName: (x.users || x.authors).displayName,
-          handle: (x.users || x.authors).handle,
-        },
-      })),
+      [location.pathname]: processShouts(data),
     });
+  };
+
+  const processShouts = (data) => {
+    const mapShouts = (parentId) => {
+      return data
+        .filter((x) => x.shouts.parent === parentId)
+        .map((x) => ({
+          id: x.shouts.id,
+          uri: x.shouts.uri,
+          message: x.shouts.content,
+          date: x.shouts.createdAt,
+          liked: x.shouts.liked,
+          likes: x.shouts.likes,
+          user: {
+            did: x.users.did,
+            avatar: x.users.avatar,
+            displayName: x.users.displayName,
+            handle: x.users.handle,
+          },
+          replies: mapShouts(x.shouts.id).reverse(),
+        }));
+    };
+
+    return mapShouts(null);
   };
 
   return (
@@ -157,15 +176,26 @@ function ReplyModal(props: ReplyModalProps) {
         <ModalButton kind="tertiary" onClick={close} shape="pill">
           Cancel
         </ModalButton>
-        <ModalButton
-          onClick={handleSubmit(onReply)}
-          shape={"pill"}
-          disabled={
-            watch("message").length === 0 || watch("message").length > 1000
-          }
-        >
-          Reply
-        </ModalButton>
+        {!loading && (
+          <ModalButton
+            onClick={handleSubmit(onReply)}
+            shape={"pill"}
+            disabled={
+              watch("message").length === 0 || watch("message").length > 1000
+            }
+          >
+            Reply
+          </ModalButton>
+        )}
+        {loading && (
+          <Spinner
+            $size={22}
+            $color="rgb(255, 40, 118)"
+            style={{
+              margin: 10,
+            }}
+          />
+        )}
       </ModalHeader>
       <ModalBody>
         <div

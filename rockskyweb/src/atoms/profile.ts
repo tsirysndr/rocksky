@@ -8,4 +8,5 @@ export const profileAtom = atom<{
     isBeta: boolean;
   };
   spotifyConnected: boolean;
+  did: string;
 } | null>(null);

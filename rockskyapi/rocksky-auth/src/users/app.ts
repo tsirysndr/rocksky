@@ -1179,4 +1179,184 @@ app.get("/:did/stats", async (c) => {
   });
 });
 
+app.post("/:did/app.rocksky.shout/:rkey/report", async (c) => {
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const payload = jwt.verify(bearer, env.JWT_SECRET);
+  const shout = await ctx.client.db.shouts
+    .filter("uri", `at://${did}/app.rocksky.shout/${rkey}`)
+    .getFirst();
+
+  const user = await ctx.client.db.users
+    .filter("did", equals(payload.did))
+    .getFirst();
+
+  if (!shout) {
+    c.status(404);
+    return c.text("Shout not found");
+  }
+
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const existingReport = await ctx.client.db.shout_reports
+    .filter({
+      user_id: user.xata_id,
+      shout_id: shout.xata_id,
+    })
+    .getFirst();
+
+  if (existingReport) {
+    return c.json(existingReport);
+  }
+
+  const report = await ctx.client.db.shout_reports.create({
+    user_id: user.xata_id,
+    shout_id: shout.xata_id,
+  });
+
+  return c.json(report);
+});
+
+app.delete("/:did/app.rocksky.shout/:rkey/report", async (c) => {
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const payload = jwt.verify(bearer, env.JWT_SECRET);
+  const shout = await ctx.client.db.shouts
+    .filter("uri", `at://${did}/app.rocksky.shout/${rkey}`)
+    .getFirst();
+
+  const user = await ctx.client.db.users
+    .filter("did", equals(payload.did))
+    .getFirst();
+
+  if (!shout) {
+    c.status(404);
+    return c.text("Shout not found");
+  }
+
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const report = await ctx.client.db.shout_reports
+    .select(["user_id.*", "shout_id.*"])
+    .filter({
+      user_id: user.xata_id,
+      shout_id: shout.xata_id,
+    })
+    .getFirst();
+
+  if (!report) {
+    c.status(404);
+    return c.text("Report not found");
+  }
+
+  if (report.user_id.xata_id !== user.xata_id) {
+    c.status(403);
+    return c.text("Forbidden");
+  }
+
+  await ctx.client.db.shout_reports.delete(report.xata_id);
+
+  return c.json(report);
+});
+
+app.delete("/:did/app.rocksky.shout/:rkey", async (c) => {
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const payload = jwt.verify(bearer, env.JWT_SECRET);
+  const agent = await createAgent(ctx.oauthClient, payload.did);
+
+  const user = await ctx.client.db.users
+    .filter("did", equals(payload.did))
+    .getFirst();
+
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const shout = await ctx.client.db.shouts
+    .select(["author_id.*", "uri", "content", "xata_id", "xata_createdat"])
+    .filter("uri", `at://${did}/app.rocksky.shout/${rkey}`)
+    .getFirst();
+
+  if (!shout) {
+    c.status(404);
+    return c.text("Shout not found");
+  }
+
+  if (shout.author_id.xata_id !== user.xata_id) {
+    c.status(403);
+    return c.text("Forbidden");
+  }
+
+  const profileShout = await ctx.client.db.profile_shouts
+    .filter({
+      user_id: user.xata_id,
+      shout_id: shout.xata_id,
+    })
+    .getFirst();
+
+  if (profileShout) {
+    await ctx.client.db.profile_shouts.delete(profileShout.xata_id);
+  }
+
+  await Promise.all([
+    ctx.db
+      .delete(tables.shouts)
+      .where(
+        or(
+          eq(tables.shouts.parentId, shout.xata_id),
+          eq(tables.shouts.id, shout.xata_id)
+        )
+      )
+      .execute(),
+    ctx.db
+      .delete(tables.shoutReports)
+      .where(
+        or(
+          eq(tables.shoutReports.userId, user.xata_id),
+          eq(tables.shoutReports.shoutId, shout.xata_id)
+        )
+      )
+      .execute(),
+    agent.com.atproto.repo.deleteRecord({
+      repo: agent.assertDid,
+      collection: "app.rocksky.shout",
+      rkey: shout.uri.split("/").pop(),
+    }),
+  ]);
+
+  return c.json(shout);
+});
+
 export default app;

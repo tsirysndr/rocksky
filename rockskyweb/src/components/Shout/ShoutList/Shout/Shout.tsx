@@ -1,14 +1,21 @@
 import styled from "@emotion/styled";
+import { Ellipsis } from "@styled-icons/fa-solid";
 import { ArrowReplyDown } from "@styled-icons/fluentui-system-filled";
 import { ListItem } from "baseui/list";
+import { NestedMenus, StatefulMenu } from "baseui/menu";
+import { PLACEMENT, StatefulPopover } from "baseui/popover";
 import { StatefulTooltip } from "baseui/tooltip";
 import { LabelMedium } from "baseui/typography";
 import dayjs from "dayjs";
+import { useAtomValue } from "jotai";
 import { useState } from "react";
 import { Link as DefaultLink } from "react-router";
+import { profileAtom } from "../../../../atoms/profile";
 import useLike from "../../../../hooks/useLike";
+import useShout from "../../../../hooks/useShout";
 import HeartOutline from "../../../Icons/HeartOutline";
 import SignInModal from "../../../SignInModal";
+import DeleteShoutModal from "./DeleteShoutModal";
 import ReplyModal from "./ReplyModal";
 
 const Link = styled(DefaultLink)`
@@ -62,6 +69,7 @@ interface ShoutProps {
     liked: boolean;
     likes: number;
     user: {
+      did: string;
       avatar: string;
       displayName: string;
       handle: string;
@@ -74,9 +82,12 @@ function Shout(props: ShoutProps) {
   const { shout, refetch } = props;
   const [isOpen, setIsOpen] = useState(false);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const { like, unlike } = useLike();
   const [liked, setLiked] = useState(shout.liked);
   const [likes, setLikes] = useState(shout.likes);
+  const profile = useAtomValue(profileAtom);
+  const { reportShout } = useShout();
 
   const onReply = () => {
     if (!localStorage.getItem("token")) {
@@ -92,7 +103,7 @@ function Shout(props: ShoutProps) {
       return;
     }
 
-    if (shout.liked) {
+    if (liked) {
       setLiked(false);
       setLikes(likes - 1);
       await onUnlike();
@@ -108,6 +119,16 @@ function Shout(props: ShoutProps) {
 
   const onUnlike = async () => {
     await unlike(shout.uri);
+  };
+
+  const onReport = async () => {
+    if (!localStorage.getItem("token")) {
+      setIsSignInOpen(true);
+      return;
+    }
+
+    await reportShout(shout.uri);
+    await refetch();
   };
 
   return (
@@ -182,6 +203,84 @@ function Shout(props: ShoutProps) {
                 {likes}
               </span>
             )}
+            <div
+              style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}
+            >
+              <StatefulPopover
+                placement={PLACEMENT.bottomRight}
+                overrides={{
+                  Body: {
+                    style: {
+                      zIndex: 2,
+                      boxShadow: "none",
+                    },
+                  },
+                }}
+                content={({ close }) => (
+                  <div>
+                    <NestedMenus>
+                      <StatefulMenu
+                        items={
+                          profile?.did === shout.user.did
+                            ? [
+                                {
+                                  id: "delete",
+                                  label: <LabelMedium>Delete</LabelMedium>,
+                                },
+                                {
+                                  id: "report",
+                                  label: (
+                                    <LabelMedium>Report this shout</LabelMedium>
+                                  ),
+                                },
+                              ]
+                            : [
+                                {
+                                  id: "report",
+                                  label: (
+                                    <LabelMedium>Report this shout</LabelMedium>
+                                  ),
+                                },
+                              ]
+                        }
+                        onItemSelect={({ item }) => {
+                          switch (item.id) {
+                            case "delete":
+                              setIsDeleteOpen(true);
+                              break;
+                            case "report":
+                              onReport();
+                              break;
+                            default:
+                              break;
+                          }
+                          close();
+                        }}
+                        overrides={{
+                          List: { style: { width: "200px" } },
+                        }}
+                      />
+                    </NestedMenus>
+                  </div>
+                )}
+              >
+                <button
+                  style={{
+                    border: "none",
+                    cursor: "pointer",
+                    background: "none",
+                  }}
+                >
+                  <Ellipsis
+                    size={20}
+                    style={{
+                      color: "rgba(66, 87, 108, 0.65)",
+                      marginTop: -7,
+                    }}
+                  />
+                </button>
+              </StatefulPopover>
+            </div>
           </Actions>
         </div>
       </ListItem>
@@ -195,6 +294,12 @@ function Shout(props: ShoutProps) {
       <SignInModal
         isOpen={isSignInOpen}
         onClose={() => setIsSignInOpen(false)}
+      />
+      <DeleteShoutModal
+        isOpen={isDeleteOpen}
+        onClose={() => setIsDeleteOpen(false)}
+        shoutUri={shout.uri}
+        refetch={refetch}
       />
     </div>
   );

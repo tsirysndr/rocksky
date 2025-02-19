@@ -13,6 +13,7 @@
         "@styled-icons/entypo": "^10.46.0",
         "@styled-icons/evaicons-solid": "^10.46.0",
         "@styled-icons/evil": "^10.46.0",
+        "@styled-icons/fa-solid": "^10.47.0",
         "@styled-icons/feather": "^10.47.0",
         "@styled-icons/fluentui-system-filled": "^10.47.0",
         "@styled-icons/fluentui-system-regular": "^10.47.0",
@@ -393,6 +394,8 @@
     "@styled-icons/evaicons-solid": ["@styled-icons/evaicons-solid@10.46.0", "", { "dependencies": { "@babel/runtime": "^7.19.0", "@styled-icons/styled-icon": "^10.7.0" }, "peerDependencies": { "react": "*", "styled-components": "*" } }, "sha512-tRw2/TkmRNV4N2badKPFnnRy+WbVtUkrloNo94CgF5rpxoL0eK+ki3OYZYqbl0T66bJ07hqduqTc3rbxvT/vfw=="],
 
     "@styled-icons/evil": ["@styled-icons/evil@10.46.0", "", { "dependencies": { "@babel/runtime": "^7.19.0", "@styled-icons/styled-icon": "^10.7.0" }, "peerDependencies": { "react": "*", "styled-components": "*" } }, "sha512-r1g2jZmz84XGLgJbAPkMDmuToUF+KyNWkS6GNoP+ygzriNgzgoHkcEvIb/bx/I2/UUHeotRMOknvhvh5C2CwFg=="],
+
+    "@styled-icons/fa-solid": ["@styled-icons/fa-solid@10.47.0", "", { "dependencies": { "@babel/runtime": "^7.20.7", "@styled-icons/styled-icon": "^10.7.0" }, "peerDependencies": { "react": "*", "styled-components": "*" } }, "sha512-8AJjbOAkvPlB/ypFzWo++CZxRDlFQfvWQSjWzVU/v/4kjGRWIiVB+rJrTB7joDUd5Oas/se4cSiDkSA+XR/Fqg=="],
 
     "@styled-icons/feather": ["@styled-icons/feather@10.47.0", "", { "dependencies": { "@babel/runtime": "^7.20.7", "@styled-icons/styled-icon": "^10.7.0" }, "peerDependencies": { "react": "*", "styled-components": "*" } }, "sha512-w6F3s1B4DaQGLr4AZZ0PffZQOnPSRqr3npHoTvk4Juz4uTjw9/oHolcrTxPyJas9gXAV1kCLbeiaxTR6JVxJPw=="],
 

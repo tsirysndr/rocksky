@@ -112,7 +112,12 @@ app.get("/profile", async (c) => {
     .filter("user_id.did", equals(did))
     .getFirst();
 
-  return c.json({ ...profile, spotifyUser, spotifyConnected: !!spotifyToken });
+  return c.json({
+    ...profile,
+    spotifyUser,
+    spotifyConnected: !!spotifyToken,
+    did,
+  });
 });
 
 app.get("/client-metadata.json", async (c) => {

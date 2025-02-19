@@ -1,6 +1,6 @@
 import styled from "@emotion/styled";
 import { Avatar } from "baseui/avatar";
-import { StatefulMenu } from "baseui/menu";
+import { NestedMenus, StatefulMenu } from "baseui/menu";
 import { PLACEMENT, StatefulPopover } from "baseui/popover";
 import { DURATION, useSnackbar } from "baseui/snackbar";
 import { LabelMedium } from "baseui/typography";
@@ -64,7 +64,7 @@ function Navbar() {
             },
           }}
           content={({ close }) => (
-            <div>
+            <NestedMenus>
               <StatefulMenu
                 items={[
                   {
@@ -96,7 +96,7 @@ function Navbar() {
                   List: { style: { width: "200px" } },
                 }}
               />
-            </div>
+            </NestedMenus>
           )}
         >
           <button
