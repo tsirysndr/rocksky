@@ -1346,12 +1346,11 @@ app.delete("/:did/app.rocksky.shout/:rkey", async (c) => {
   const replyIds = replies.map(({ replies: r }) => r.id);
 
   // Delete related records in the correct order
-  await ctx.db
-    .delete(tables.shoutLikes)
-    .where(inArray(tables.shoutLikes.shoutId, replyIds))
-    .execute();
-
   await Promise.all([
+    await ctx.db
+      .delete(tables.shoutLikes)
+      .where(inArray(tables.shoutLikes.shoutId, replyIds))
+      .execute(),
     ctx.db
       .delete(tables.shoutReports)
       .where(inArray(tables.shoutReports.shoutId, replyIds))
