@@ -1,6 +1,6 @@
 import { equals } from "@xata.io/client";
 import { ctx } from "context";
-import { count, desc, eq, or, sql } from "drizzle-orm";
+import { count, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import jwt from "jsonwebtoken";
 import { createAgent } from "lib/agent";
@@ -1312,7 +1312,14 @@ app.delete("/:did/app.rocksky.shout/:rkey", async (c) => {
   }
 
   const shout = await ctx.client.db.shouts
-    .select(["author_id.*", "uri", "content", "xata_id", "xata_createdat"])
+    .select([
+      "author_id.*",
+      "uri",
+      "content",
+      "xata_id",
+      "xata_createdat",
+      "parent_id",
+    ])
     .filter("uri", `at://${did}/app.rocksky.shout/${rkey}`)
     .getFirst();
 
@@ -1326,42 +1333,64 @@ app.delete("/:did/app.rocksky.shout/:rkey", async (c) => {
     return c.text("Forbidden");
   }
 
-  const profileShout = await ctx.client.db.profile_shouts
-    .filter({
-      user_id: user.xata_id,
-      shout_id: shout.xata_id,
+  const replies = await ctx.db
+    .select({
+      replies: {
+        id: tables.shouts.id,
+      },
     })
-    .getFirst();
+    .from(tables.shouts)
+    .where(eq(tables.shouts.parentId, shout.xata_id))
+    .execute();
 
-  if (profileShout) {
-    await ctx.client.db.profile_shouts.delete(profileShout.xata_id);
-  }
+  const replyIds = replies.map(({ replies: r }) => r.id);
 
-  await Promise.all([
-    ctx.db
-      .delete(tables.shouts)
-      .where(
-        or(
-          eq(tables.shouts.parentId, shout.xata_id),
-          eq(tables.shouts.id, shout.xata_id)
-        )
-      )
-      .execute(),
-    ctx.db
-      .delete(tables.shoutReports)
-      .where(
-        or(
-          eq(tables.shoutReports.userId, user.xata_id),
-          eq(tables.shoutReports.shoutId, shout.xata_id)
-        )
-      )
-      .execute(),
-    agent.com.atproto.repo.deleteRecord({
-      repo: agent.assertDid,
-      collection: "app.rocksky.shout",
-      rkey: shout.uri.split("/").pop(),
-    }),
-  ]);
+  // Delete related records in the correct order
+  await ctx.db
+    .delete(tables.shoutLikes)
+    .where(inArray(tables.shoutLikes.shoutId, replyIds))
+    .execute();
+
+  await ctx.db
+    .delete(tables.shoutReports)
+    .where(inArray(tables.shoutReports.shoutId, replyIds))
+    .execute();
+
+  await ctx.db
+    .delete(tables.profileShouts)
+    .where(eq(tables.profileShouts.shoutId, shout.xata_id))
+    .execute();
+
+  await ctx.db
+    .delete(tables.profileShouts)
+    .where(inArray(tables.profileShouts.shoutId, replyIds))
+    .execute();
+
+  await ctx.db
+    .delete(tables.shoutLikes)
+    .where(eq(tables.shoutLikes.shoutId, shout.xata_id))
+    .execute();
+
+  await ctx.db
+    .delete(tables.shoutReports)
+    .where(eq(tables.shoutReports.shoutId, shout.xata_id))
+    .execute();
+
+  await ctx.db
+    .delete(tables.shouts)
+    .where(inArray(tables.shouts.id, replyIds))
+    .execute();
+
+  await ctx.db
+    .delete(tables.shouts)
+    .where(eq(tables.shouts.id, shout.xata_id))
+    .execute();
+
+  await agent.com.atproto.repo.deleteRecord({
+    repo: agent.assertDid,
+    collection: "app.rocksky.shout",
+    rkey: shout.uri.split("/").pop(),
+  });
 
   return c.json(shout);
 });
