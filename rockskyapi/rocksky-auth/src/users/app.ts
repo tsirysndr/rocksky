@@ -1351,35 +1351,32 @@ app.delete("/:did/app.rocksky.shout/:rkey", async (c) => {
     .where(inArray(tables.shoutLikes.shoutId, replyIds))
     .execute();
 
-  await ctx.db
-    .delete(tables.shoutReports)
-    .where(inArray(tables.shoutReports.shoutId, replyIds))
-    .execute();
-
-  await ctx.db
-    .delete(tables.profileShouts)
-    .where(eq(tables.profileShouts.shoutId, shout.xata_id))
-    .execute();
-
-  await ctx.db
-    .delete(tables.profileShouts)
-    .where(inArray(tables.profileShouts.shoutId, replyIds))
-    .execute();
-
-  await ctx.db
-    .delete(tables.shoutLikes)
-    .where(eq(tables.shoutLikes.shoutId, shout.xata_id))
-    .execute();
-
-  await ctx.db
-    .delete(tables.shoutReports)
-    .where(eq(tables.shoutReports.shoutId, shout.xata_id))
-    .execute();
-
-  await ctx.db
-    .delete(tables.shouts)
-    .where(inArray(tables.shouts.id, replyIds))
-    .execute();
+  await Promise.all([
+    ctx.db
+      .delete(tables.shoutReports)
+      .where(inArray(tables.shoutReports.shoutId, replyIds))
+      .execute(),
+    ctx.db
+      .delete(tables.profileShouts)
+      .where(eq(tables.profileShouts.shoutId, shout.xata_id))
+      .execute(),
+    ctx.db
+      .delete(tables.profileShouts)
+      .where(inArray(tables.profileShouts.shoutId, replyIds))
+      .execute(),
+    ctx.db
+      .delete(tables.shoutLikes)
+      .where(eq(tables.shoutLikes.shoutId, shout.xata_id))
+      .execute(),
+    ctx.db
+      .delete(tables.shoutReports)
+      .where(eq(tables.shoutReports.shoutId, shout.xata_id))
+      .execute(),
+    ctx.db
+      .delete(tables.shouts)
+      .where(inArray(tables.shouts.id, replyIds))
+      .execute(),
+  ]);
 
   await ctx.db
     .delete(tables.shouts)
