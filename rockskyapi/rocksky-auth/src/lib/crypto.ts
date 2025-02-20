@@ -8,7 +8,10 @@ export function encrypt(text: string, key: string) {
     Buffer.from(key, "hex"),
     iv
   );
-  const encrypted = Buffer.concat([cipher.update(text), cipher.final()]);
+  const encrypted = Buffer.concat([
+    cipher.update(text, "utf8"),
+    cipher.final(),
+  ]);
   return encrypted.toString("hex");
 }
 
@@ -21,5 +24,5 @@ export function decrypt(encrypted: string, key: string) {
     iv
   );
   const decrypted = Buffer.concat([decipher.update(content), decipher.final()]);
-  return decrypted.toString();
+  return decrypted.toString("utf8");
 }
