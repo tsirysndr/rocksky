@@ -5,7 +5,7 @@ use crypto::decrypt_aes_256_ctr;
 use dotenv::dotenv;
 use reqwest::Client;
 use anyhow::Error;
-use rocksky::scrobble;
+use rocksky::{scrobble, update_library};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use types::{album_tracks::AlbumTracks, currently_playing::{Album, Artist, CurrentlyPlaying}, spotify_token::SpotifyTokenWithEmail, token::AccessToken};
 use owo_colors::OwoColorize;
@@ -28,10 +28,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
   for user in users {
     let email = user.0.clone();
     let token = user.1.clone();
+    let did = user.2.clone();
     thread::spawn(move || {
       let rt = tokio::runtime::Runtime::new().unwrap();
       rt.block_on(async {
-        watch_currently_playing(email, token).await;
+        watch_currently_playing(email, token, did).await?;
         Ok::<(), Error>(())
       }).unwrap();
     });
@@ -151,30 +152,48 @@ pub async fn get_album(cache: Cache, album_id: &str, token: &str) -> Result<Opti
 }
 
 pub async fn get_album_tracks(cache: Cache, album_id: &str, token: &str) -> Result<AlbumTracks, Error> {
-  if let Ok(Some(data)) = cache.get(&format!("{}:tracks",  album_id)) {
-    return Ok(serde_json::from_str(&data)?);
+  if let Ok(Some(data)) = cache.get(&format!("{}:tracks", album_id)) {
+      return Ok(serde_json::from_str(&data)?);
   }
 
   let token = refresh_token(token).await?;
   let client = Client::new();
-  let response = client.get(&format!("{}/albums/{}/tracks", BASE_URL, album_id))
-    .bearer_auth(token.access_token)
-    .send()
-    .await?;
+  let mut all_tracks = Vec::new();
+  let mut offset = 0;
+  let limit = 50;
 
-  let data = response.text().await?;
-  cache.setex(
-    &format!("{}:tracks", album_id)
-    , &data, 20)?;
+  loop {
+      let response = client.get(&format!("{}/albums/{}/tracks", BASE_URL, album_id))
+          .bearer_auth(&token.access_token)
+          .query(&[("limit", &limit.to_string()), ("offset", &offset.to_string())])
+          .send()
+          .await?;
 
-  Ok(serde_json::from_str(&data)?)
+      let data = response.text().await?;
+      let album_tracks: AlbumTracks = serde_json::from_str(&data)?;
+
+      if album_tracks.items.is_empty() {
+          break;
+      }
+
+      all_tracks.extend(album_tracks.items);
+      offset += limit;
+  }
+
+  let all_tracks_json = serde_json::to_string(&all_tracks)?;
+  cache.setex(&format!("{}:tracks", album_id), &all_tracks_json, 20)?;
+
+  Ok(AlbumTracks {
+    items: all_tracks,
+    ..Default::default()
+  })
 }
 
 pub async fn find_spotify_users(
   pool: &Pool<Postgres>,
   offset: usize,
   limit: usize
-) -> Result<Vec<(String, String)>, Error> {
+) -> Result<Vec<(String, String, String)>, Error> {
   let results: Vec<SpotifyTokenWithEmail> = sqlx::query_as(r#"
     SELECT * FROM spotify_tokens
     LEFT JOIN spotify_accounts ON spotify_tokens.user_id = spotify_accounts.user_id
@@ -193,33 +212,41 @@ pub async fn find_spotify_users(
       &result.refresh_token,
       &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?
     )?;
-    user_tokens.push((result.email.clone(), token));
+    user_tokens.push((result.email.clone(), token, result.did.clone()));
   }
 
   Ok(user_tokens)
 }
 
-pub async fn watch_currently_playing(spotify_email: String, token: String) {
+pub async fn watch_currently_playing(spotify_email: String, token: String, did: String) -> Result<(), Error> {
+  let cache = Cache::new()?;
   loop {
     let spotify_email = spotify_email.clone();
     let token = token.clone();
+    let did = did.clone();
+    let cache = cache.clone();
     thread::spawn(move || {
       let rt = tokio::runtime::Runtime::new().unwrap();
       rt.block_on(async {
         let currently_playing = get_currently_playing(
-          Cache::new()?,
+          cache.clone(),
           &spotify_email,
           &token
         ).await?;
 
         if let Some((data, changed)) = currently_playing {
-          get_artist(Cache::new()?, &data.item.artists[0].id, &token).await?;
-          get_album(Cache::new()?, &data.item.album.id, &token).await?;
-          get_album_tracks(Cache::new()?, &data.item.album.id, &token).await?;
-          println!("{} {}, is_playing: {} changed: {}", format!("[{}]", spotify_email).bright_green(), format!("{} - {}", data.item.name, data.item.artists[0].name).cyan(), data.is_playing, changed);
+          get_artist(cache.clone(), &data.item.artists[0].id, &token).await?;
+          get_album(cache.clone(), &data.item.album.id, &token).await?;
+          get_album_tracks(cache.clone(), &data.item.album.id, &token).await?;
+          println!("{} {} is_playing: {} changed: {}", format!("[{}]", spotify_email).bright_green(), format!("{} - {}", data.item.name, data.item.artists[0].name).cyan(), data.is_playing, changed);
 
           if changed {
-            scrobble().await?;
+            scrobble(
+              cache.clone(),
+              &spotify_email,
+              &did
+            ).await?;
+            update_library(cache.clone(), &spotify_email, &did).await?;
           }
         }
 
@@ -229,5 +256,6 @@ pub async fn watch_currently_playing(spotify_email: String, token: String) {
       Ok::<(), Error>(())
     });
     tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+    ()
   }
 }

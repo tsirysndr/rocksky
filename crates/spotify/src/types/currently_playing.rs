@@ -31,7 +31,7 @@ pub struct Context {
     pub uri: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ExternalUrls {
     pub spotify: String,
 }
@@ -85,7 +85,7 @@ pub struct Copyright {
     pub r#type: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Artist {
     pub external_urls: ExternalUrls,
     pub href: String,

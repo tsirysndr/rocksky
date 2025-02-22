@@ -2,6 +2,7 @@ use anyhow::Error;
 use redis::Client;
 use std::env;
 
+#[derive(Clone)]
 pub struct Cache {
     pub client: Client,
 }

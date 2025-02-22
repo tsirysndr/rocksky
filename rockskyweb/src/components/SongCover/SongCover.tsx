@@ -27,15 +27,18 @@ const SongTitle = styled.div`
   text-shadow: rgba(0, 0, 0, 1) 0px 0px 12px;
 `;
 const Artist = styled.div`
-  color: #fff;
+  color: #000;
   font-size: 14px;
   text-decoration-color: rgb(255, 255, 255);
   text-decoration-line: none;
   text-decoration-style: solid;
   text-decoration-thickness: auto;
-  background-color: rgb(120 105 131 / 60%);
+  background-color: #00fff3;
   text-size-adjust: 100%;
   font-family: RockfordSansRegular;
+  width: fit-content;
+  padding-left: 2px;
+  padding-right: 2px;
 `;
 
 const Metadata = styled.div`

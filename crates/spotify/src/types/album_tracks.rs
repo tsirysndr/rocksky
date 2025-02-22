@@ -1,8 +1,8 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use super::currently_playing::{Artist, ExternalUrls};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct AlbumTracks {
     pub href: String,
     pub items: Vec<Track>,
@@ -13,7 +13,7 @@ pub struct AlbumTracks {
     pub total: u32,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Track {
     pub artists: Vec<Artist>,
     pub available_markets: Vec<String>,

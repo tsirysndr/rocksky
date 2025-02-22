@@ -13,13 +13,16 @@ export const trackSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format. Use YYYY-MM-DD.")
     .transform((v) => new Date(v))
-    .optional().nullable(),
+    .optional()
+    .nullable(),
 
   year: z.number().optional().nullable(),
   discNumber: z.number().optional().nullable(),
   lyrics: z.string().optional().nullable(),
   composer: z.string().optional().nullable(),
   copyrightMessage: z.string().optional().nullable(),
+  label: z.string().optional().nullable(),
+  artistPicture: z.string().optional().nullable(),
 });
 
 export type Track = z.infer<typeof trackSchema>;

@@ -48,8 +48,11 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
           `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
         )
         .digest("hex"),
-      copyright_message: track.copyrightMessage,
+      copyright_message: track.copyrightMessage
+        ? track.copyrightMessage
+        : undefined,
       uri: trackUri ? trackUri : undefined,
+      label: track.label ? track.label : undefined,
     }
   );
 
@@ -77,6 +80,7 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
         .update(track.albumArtist.toLowerCase())
         .digest("hex"),
       uri: artistUri ? artistUri : undefined,
+      picture: track.artistPicture ? track.artistPicture : undefined,
     });
 
   const existingAlbum = await ctx.client.db.albums
