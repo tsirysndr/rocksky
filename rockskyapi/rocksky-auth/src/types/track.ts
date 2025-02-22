@@ -23,6 +23,7 @@ export const trackSchema = z.object({
   copyrightMessage: z.string().optional().nullable(),
   label: z.string().optional().nullable(),
   artistPicture: z.string().optional().nullable(),
+  spotifyLink: z.string().optional().nullable(),
 });
 
 export type Track = z.infer<typeof trackSchema>;

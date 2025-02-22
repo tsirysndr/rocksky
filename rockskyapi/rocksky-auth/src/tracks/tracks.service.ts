@@ -53,6 +53,7 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
         : undefined,
       uri: trackUri ? trackUri : undefined,
       label: track.label ? track.label : undefined,
+      spotify_link: track.spotifyLink ? track.spotifyLink : undefined,
     }
   );
 

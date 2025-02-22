@@ -345,6 +345,7 @@ export async function scrobbleTrack(
         .digest("hex"),
       copyright_message: track.copyrightMessage,
       uri: trackUri ? trackUri : undefined,
+      spotify_link: track.spotifyLink ? track.spotifyLink : undefined,
     }
   );
 
