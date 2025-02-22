@@ -1,11 +1,11 @@
 use anyhow::Error;
 use reqwest::Client;
 
-use crate::{cache::Cache, token::generate_token, types::{album_tracks::AlbumTracks, currently_playing::{Album, CurrentlyPlaying}}};
+use crate::{cache::Cache, get_artist, token::generate_token, types::{album_tracks::AlbumTracks, currently_playing::{Album, CurrentlyPlaying}}};
 
 const ROCKSKY_API: &str = "https://api.rocksky.app";
 
-pub async fn scrobble(cache: Cache, spotify_email: &str,  did: &str) -> Result<(), Error> {
+pub async fn scrobble(cache: Cache, spotify_email: &str,  did: &str, refresh_token: &str) -> Result<(), Error> {
   let cached = cache.get(spotify_email)?;
   if cached.is_none() {
     println!("No currently playing song is cached for {}, skipping", spotify_email);
@@ -13,6 +13,7 @@ pub async fn scrobble(cache: Cache, spotify_email: &str,  did: &str) -> Result<(
   }
 
   let track = serde_json::from_str::<CurrentlyPlaying>(&cached.unwrap())?;
+  let artist = get_artist(cache.clone(), &track.item.artists.first().unwrap().id, &refresh_token).await?;
 
   let token = generate_token(did)?;
   let client = Client::new();
@@ -32,13 +33,17 @@ pub async fn scrobble(cache: Cache, spotify_email: &str,  did: &str) -> Result<(
       "albumArt": track.item.album.images.first().map(|image| image.url.clone()),
       "spotifyLink": track.item.external_urls.spotify,
       "label": track.item.album.label,
-      "artistPicture": track.item.artists.first().map(|artist| match &artist.images {
-        Some(images) => Some(images.first().map(|image| image.url.clone())),
+      "artistPicture":  match artist {
+        Some(artist) => match artist.images {
+          Some(images) => Some(images.first().map(|image| image.url.clone())),
+          None => None
+        },
         None => None
-      }),
+      },
   }))
   .send()
   .await?;
+
 
   if !response.status().is_success() {
     println!("Failed to scrobble: {}", response.text().await?);

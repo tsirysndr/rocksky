@@ -128,7 +128,16 @@ pub async fn get_artist(cache: Cache, artist_id: &str, token: &str) -> Result<Op
     .send()
     .await?;
 
+
+  let headers = response.headers().clone();
   let data = response.text().await?;
+
+  if data == "Too many requests" {
+    println!("> retry-after {}", headers.get("retry-after").unwrap().to_str().unwrap());
+    println!("> {} [get_artist]", data);
+    return Ok(None);
+  }
+
   cache.setex(artist_id, &data, 20)?;
 
   Ok(Some(serde_json::from_str(&data)?))
@@ -150,8 +159,8 @@ pub async fn get_album(cache: Cache, album_id: &str, token: &str) -> Result<Opti
     let data = response.text().await?;
 
     if data == "Too many requests" {
-      println!("{:#?}", headers);
-      println!("> {}", data);
+      println!("> retry-after {}", headers.get("retry-after").unwrap().to_str().unwrap());
+      println!("> {} [get_album]", data);
       return Ok(None);
     }
 
@@ -182,8 +191,8 @@ pub async fn get_album_tracks(cache: Cache, album_id: &str, token: &str) -> Resu
       let headers = response.headers().clone();
       let data = response.text().await?;
       if data == "Too many requests" {
-        println!("{:#?}", headers);
-        println!("> {}", data);
+        println!("> retry-after {}", headers.get("retry-after").unwrap().to_str().unwrap());
+        println!("> {} [get_album_tracks]", data);
         continue;
       }
 
@@ -259,7 +268,8 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
             scrobble(
               cache.clone(),
               &spotify_email,
-              &did
+              &did,
+              &token
             ).await?;
             get_album(cache.clone(), &data.item.album.id, &token).await?;
             get_album_tracks(cache.clone(), &data.item.album.id, &token).await?;
