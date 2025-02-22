@@ -90,29 +90,30 @@ pub async fn get_currently_playing(cache: Cache, user_id: &str, token: &str) -> 
     .send()
     .await?;
 
-    // check if status code is 204
-    if response.status().as_u16() == 204 {
-      println!("No content");
-      return Ok(None);
-    }
 
-    let data = response.json::<CurrentlyPlaying>().await?;
+  // check if status code is 204
+  if response.status().as_u16() == 204 {
+    println!("No content");
+    return Ok(None);
+  }
 
-    cache.setex(user_id, &serde_json::to_string(&data)?, 15)?;
-    // detect if the song has changed
-    let previous = cache.get(&format!("{}:previous", user_id))?;
-    let changed = match previous {
-      Some(previous) => {
-        let previous: CurrentlyPlaying = serde_json::from_str(&previous)?;
-        previous.item.id != data.item.id && previous.progress_ms.unwrap_or(0) != data.progress_ms.unwrap_or(0)
-      },
-      _ => false
-    };
+  let data = response.json::<CurrentlyPlaying>().await?;
 
-    // save as previous song
-    cache.set(&format!("{}:previous", user_id), &serde_json::to_string(&data)?)?;
+  cache.setex(user_id, &serde_json::to_string(&data)?, 15)?;
+  // detect if the song has changed
+  let previous = cache.get(&format!("{}:previous", user_id))?;
+  let changed = match previous {
+    Some(previous) => {
+      let previous: CurrentlyPlaying = serde_json::from_str(&previous)?;
+      previous.item.id != data.item.id && previous.progress_ms.unwrap_or(0) != data.progress_ms.unwrap_or(0)
+    },
+    _ => false
+  };
 
-    Ok(Some((data, changed)))
+  // save as previous song
+  cache.set(&format!("{}:previous", user_id), &serde_json::to_string(&data)?)?;
+
+  Ok(Some((data, changed)))
 }
 
 pub async fn get_artist(cache: Cache, artist_id: &str, token: &str) -> Result<Option<Artist>, Error> {
@@ -145,7 +146,15 @@ pub async fn get_album(cache: Cache, album_id: &str, token: &str) -> Result<Opti
     .send()
     .await?;
 
-  let data = response.text().await?;
+    let headers = response.headers().clone();
+    let data = response.text().await?;
+
+    if data == "Too many requests" {
+      println!("{:#?}", headers);
+      println!("> {}", data);
+      return Ok(None);
+    }
+
   cache.setex(album_id, &data, 20)?;
 
   Ok(Some(serde_json::from_str(&data)?))
@@ -162,6 +171,7 @@ pub async fn get_album_tracks(cache: Cache, album_id: &str, token: &str) -> Resu
   let mut offset = 0;
   let limit = 50;
 
+
   loop {
       let response = client.get(&format!("{}/albums/{}/tracks", BASE_URL, album_id))
           .bearer_auth(&token.access_token)
@@ -169,7 +179,14 @@ pub async fn get_album_tracks(cache: Cache, album_id: &str, token: &str) -> Resu
           .send()
           .await?;
 
+      let headers = response.headers().clone();
       let data = response.text().await?;
+      if data == "Too many requests" {
+        println!("{:#?}", headers);
+        println!("> {}", data);
+        continue;
+      }
+
       let album_tracks: AlbumTracks = serde_json::from_str(&data)?;
 
       if album_tracks.items.is_empty() {
@@ -225,6 +242,7 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
     let token = token.clone();
     let did = did.clone();
     let cache = cache.clone();
+
     thread::spawn(move || {
       let rt = tokio::runtime::Runtime::new().unwrap();
       rt.block_on(async {
@@ -235,9 +253,6 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
         ).await?;
 
         if let Some((data, changed)) = currently_playing {
-          get_artist(cache.clone(), &data.item.artists[0].id, &token).await?;
-          get_album(cache.clone(), &data.item.album.id, &token).await?;
-          get_album_tracks(cache.clone(), &data.item.album.id, &token).await?;
           println!("{} {} is_playing: {} changed: {}", format!("[{}]", spotify_email).bright_green(), format!("{} - {}", data.item.name, data.item.artists[0].name).cyan(), data.is_playing, changed);
 
           if changed {
@@ -246,6 +261,8 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
               &spotify_email,
               &did
             ).await?;
+            get_album(cache.clone(), &data.item.album.id, &token).await?;
+            get_album_tracks(cache.clone(), &data.item.album.id, &token).await?;
             update_library(cache.clone(), &spotify_email, &did).await?;
           }
         }

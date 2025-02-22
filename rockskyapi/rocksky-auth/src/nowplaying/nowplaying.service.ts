@@ -346,6 +346,7 @@ export async function scrobbleTrack(
       copyright_message: track.copyrightMessage,
       uri: trackUri ? trackUri : undefined,
       spotify_link: track.spotifyLink ? track.spotifyLink : undefined,
+      label: track.label ? track.label : undefined,
     }
   );
 
@@ -373,6 +374,7 @@ export async function scrobbleTrack(
         .update(track.albumArtist.toLowerCase())
         .digest("hex"),
       uri: artistUri ? artistUri : undefined,
+      picture: track.artistPicture ? track.artistPicture : undefined,
     });
 
   const existingAlbum = await ctx.client.db.albums
