@@ -1,4 +1,4 @@
-import { Agent } from "@atproto/api";
+import { Agent, BlobRef } from "@atproto/api";
 import { TID } from "@atproto/common";
 import { equals, SelectedPick } from "@xata.io/client";
 import { Context } from "context";
@@ -7,7 +7,7 @@ import * as Album from "lexicon/types/app/rocksky/album";
 import * as Artist from "lexicon/types/app/rocksky/artist";
 import * as Scrobble from "lexicon/types/app/rocksky/scrobble";
 import * as Song from "lexicon/types/app/rocksky/song";
-import downloadImage from "lib/downloadImage";
+import downloadImage, { getContentType } from "lib/downloadImage";
 import { Track } from "types/track";
 import { ScrobblesRecord } from "xata";
 
@@ -16,11 +16,25 @@ export async function putArtistRecord(
   agent: Agent
 ): Promise<string | null> {
   const rkey = TID.nextStr();
-  const record = {
+  const record: {
+    $type: string;
+    name: string;
+    createdAt: string;
+    picture?: BlobRef;
+  } = {
     $type: "app.rocksky.artist",
     name: track.albumArtist,
     createdAt: new Date().toISOString(),
   };
+
+  if (track.artistPicture) {
+    const imageBuffer = await downloadImage(track.artistPicture);
+    const encoding = await getContentType(track.artistPicture);
+    const uploadResponse = await agent.uploadBlob(imageBuffer, {
+      encoding,
+    });
+    record.picture = uploadResponse.data.blob;
+  }
 
   if (!Artist.validateRecord(record).success) {
     console.log(Artist.validateRecord(record));
@@ -59,6 +73,10 @@ export async function putAlbumRecord(
 
     if (track.albumArt.endsWith(".png")) {
       options = { encoding: "image/png" };
+    }
+
+    if (!options?.encoding) {
+      options = { encoding: await getContentType(track.albumArt) };
     }
 
     const imageBuffer = await downloadImage(track.albumArt);
