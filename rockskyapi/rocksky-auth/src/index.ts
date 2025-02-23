@@ -192,6 +192,13 @@ app.get("/scrobbles", async (c) => {
   const scrobbles = await ctx.client.db.scrobbles
     .select(["track_id.*", "uri"])
     .filter("user_id", equals(user.xata_id))
+    .filter({
+      $not: [
+        {
+          uri: null,
+        },
+      ],
+    })
     .sort("xata_createdat", "desc")
     .getPaginated({
       pagination: {
