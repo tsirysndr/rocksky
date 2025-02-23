@@ -27,8 +27,15 @@ pub async fn scrobble(cache: Cache, spotify_email: &str,  did: &str, refresh_tok
       "albumArtist": track.item.album.artists.first().map(|artist| artist.name.clone()),
       "duration": track.item.duration_ms,
       "trackNumber": track.item.track_number,
-      "releaseDate": track.item.album.release_date,
-      "year": track.item.album.release_date.split('-').next().unwrap().parse::<u32>().unwrap(),
+      "releaseDate": match track.item.album.release_date_precision.as_str() {
+        "day" => Some(track.item.album.release_date.clone()),
+        _ => None
+      },
+      "year":  match track.item.album.release_date_precision.as_str() {
+        "day" => Some(track.item.album.release_date.split('-').next().unwrap().parse::<u32>().unwrap()),
+        "year" => Some(track.item.album.release_date.parse::<u32>().unwrap()),
+        _ =>  None
+      },
       "discNumber": track.item.disc_number,
       "albumArt": track.item.album.images.first().map(|image| image.url.clone()),
       "spotifyLink": track.item.external_urls.spotify,
@@ -85,8 +92,15 @@ pub async fn update_library(cache: Cache, spotify_email: &str, did: &str) -> Res
         "albumArtist": album.artists.first().map(|artist| artist.name.clone()),
         "duration": track.duration_ms,
         "trackNumber": track.track_number,
-        "releaseDate": album.release_date,
-        "year": album.release_date.split('-').next().unwrap().parse::<u32>().unwrap(),
+        "releaseDate": match album.release_date_precision.as_str() {
+          "day" => Some(album.release_date.clone()),
+          _ => None
+        },
+        "year":  match album.release_date_precision.as_str() {
+          "day" => Some(album.release_date.split('-').next().unwrap().parse::<u32>().unwrap()),
+          "year" => Some(album.release_date.parse::<u32>().unwrap()),
+          _ =>  None
+        },
         "discNumber": track.disc_number,
         "albumArt": album.images.first().map(|image| image.url.clone()),
         "spotifyLink": track.external_urls.spotify,
