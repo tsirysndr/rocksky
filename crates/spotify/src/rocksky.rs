@@ -70,6 +70,7 @@ pub async fn update_library(cache: Cache, spotify_email: &str, did: &str, refres
     ).await?;
   }
 
+  let cached = cache.get(spotify_email)?;
   let track = serde_json::from_str::<CurrentlyPlaying>(&cached.unwrap())?;
   let cached = cache.get(&format!("{}:tracks", track.item.album.id))?;
   if cached.is_none() {
