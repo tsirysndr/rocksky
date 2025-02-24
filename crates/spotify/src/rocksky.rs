@@ -118,6 +118,9 @@ pub async fn update_library(cache: Cache, spotify_email: &str, did: &str, refres
     .send()
     .await?;
 
+    // wait 10 seconds to avoid rate limiting
+    tokio::time::sleep(tokio::time::Duration::from_secs(6)).await;
+
     if !response.status().is_success() {
       println!("Failed to save track: {}", response.text().await?);
     }
