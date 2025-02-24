@@ -1,7 +1,7 @@
 use anyhow::Error;
 use reqwest::Client;
 
-use crate::{cache::Cache, get_artist, token::generate_token, types::{album_tracks::Track, currently_playing::{Album, CurrentlyPlaying}}};
+use crate::{cache::Cache, get_artist, get_currently_playing, token::generate_token, types::{album_tracks::Track, currently_playing::{Album, CurrentlyPlaying}}};
 
 const ROCKSKY_API: &str = "https://api.rocksky.app";
 
@@ -59,11 +59,15 @@ pub async fn scrobble(cache: Cache, spotify_email: &str,  did: &str, refresh_tok
   Ok(())
 }
 
-pub async fn update_library(cache: Cache, spotify_email: &str, did: &str) -> Result<(), Error> {
+pub async fn update_library(cache: Cache, spotify_email: &str, did: &str, refresh_token: &str) -> Result<(), Error> {
   let cached = cache.get(spotify_email)?;
   if cached.is_none() {
-    println!("No currently playing song is cached for {}, skipping", spotify_email);
-    return Ok(());
+    println!("No currently playing song is cached for {}, refreshing", spotify_email);
+    get_currently_playing(
+      cache.clone(),
+      &spotify_email,
+      &refresh_token,
+    ).await?;
   }
 
   let track = serde_json::from_str::<CurrentlyPlaying>(&cached.unwrap())?;

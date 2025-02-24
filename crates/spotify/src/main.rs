@@ -271,9 +271,9 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
               &did,
               &token
             ).await?;
-            get_album(cache.clone(), &data.item.album.id, &token).await?;
             get_album_tracks(cache.clone(), &data.item.album.id, &token).await?;
-            update_library(cache.clone(), &spotify_email, &did).await?;
+            get_album(cache.clone(), &data.item.album.id, &token).await?;
+            update_library(cache.clone(), &spotify_email, &did, &token).await?;
           }
         }
 
