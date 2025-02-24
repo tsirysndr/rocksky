@@ -111,7 +111,7 @@ pub async fn get_currently_playing(cache: Cache, user_id: &str, token: &str) -> 
   };
 
   // save as previous song
-  cache.setex(&format!("{}:previous", user_id), &serde_json::to_string(&data)?, 20)?;
+  cache.setex(&format!("{}:previous", user_id), &serde_json::to_string(&data)?, 600)?;
 
   Ok(Some((data, changed)))
 }
