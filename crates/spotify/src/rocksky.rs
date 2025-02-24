@@ -1,7 +1,7 @@
 use anyhow::Error;
 use reqwest::Client;
 
-use crate::{cache::Cache, get_artist, token::generate_token, types::{album_tracks::AlbumTracks, currently_playing::{Album, CurrentlyPlaying}}};
+use crate::{cache::Cache, get_artist, token::generate_token, types::{album_tracks::Track, currently_playing::{Album, CurrentlyPlaying}}};
 
 const ROCKSKY_API: &str = "https://api.rocksky.app";
 
@@ -73,14 +73,14 @@ pub async fn update_library(cache: Cache, spotify_email: &str, did: &str) -> Res
     return Ok(());
   }
 
-  let tracks = serde_json::from_str::<AlbumTracks>(&cached.unwrap())?;
+  let tracks = serde_json::from_str::<Vec<Track>>(&cached.unwrap())?;
 
   let cached = cache.get(&track.item.album.id)?;
   let album = serde_json::from_str::<Album>(&cached.unwrap())?;
 
   let token = generate_token(did)?;
 
-  for track in tracks.items {
+  for track in tracks {
     let client = Client::new();
     let response = client
       .post(&format!("{}/tracks", ROCKSKY_API))
