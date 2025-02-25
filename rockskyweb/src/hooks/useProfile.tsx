@@ -1,15 +1,17 @@
 import axios from "axios";
 import { useSetAtom } from "jotai";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import useSWR from "swr";
 import { profileAtom } from "../atoms/profile";
 import { API_URL } from "../consts";
 import { Scrobble } from "../types/scrobble";
 
-function useProfile() {
+function useProfile(token: string | null) {
   const setProfile = useSetAtom(profileAtom);
   const navigate = useNavigate();
+  const [data, setData] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+  const isLoading = !data && !error;
 
   const getProfileByDid = async (did: string) => {
     try {
@@ -37,18 +39,27 @@ function useProfile() {
     return response.data;
   };
 
-  const fetcher = (path: string) =>
-    fetch(`${API_URL}${path}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")!}`,
-      },
-    }).then((res) => res.text());
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
 
-  const { data, error, isLoading } = useSWR("/profile", fetcher, {
-    errorRetryCount: 5,
-    errorRetryInterval: 1000,
-  });
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch(`${API_URL}/profile`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }).then((res) => res.text());
+        setData(response);
+        setError(null);
+      } catch (e) {
+        setError(e as Error);
+        setData(null);
+      }
+    };
+    fetchProfile();
+  }, [token]);
 
   useEffect(() => {
     if (data !== "Unauthorized" && data !== "Internal Server Error" && data) {

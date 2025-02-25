@@ -40,6 +40,7 @@ function Main({ children }: { children: React.ReactNode }) {
   const { search } = useLocation();
   const jwt = localStorage.getItem("token");
   const profile = useAtomValue(profileAtom);
+  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
     const query = new URLSearchParams(search);
@@ -53,11 +54,12 @@ function Main({ children }: { children: React.ReactNode }) {
           const response = await fetch(`${API_URL}/token`, {
             method: "GET",
             headers: {
-              "session-did": localStorage.getItem("did")!,
+              "session-did": did,
             },
           });
           const data = await response.json();
           localStorage.setItem("token", data.token);
+          setToken(data.token);
 
           if (query.get("cli")) {
             await fetch("http://localhost:6996/token", {
@@ -75,14 +77,12 @@ function Main({ children }: { children: React.ReactNode }) {
         } catch (e) {
           console.error(e);
         }
-
-        // window.location.href = "/";
       };
       fetchToken();
     }
   }, [search]);
 
-  useProfile();
+  useProfile(token || localStorage.getItem("token"));
 
   const onLogin = async () => {
     if (!handle.trim()) {
