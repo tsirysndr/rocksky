@@ -31,6 +31,7 @@ function useFeed() {
       artistUri: response.data.track_id?.artist_uri,
       albumUri: response.data.track_id?.album_uri,
       listeners: response.data.listeners || 1,
+      scrobbles: response.data.scrobbles || 1,
       lyrics: response.data.track_id?.lyrics,
     };
   };

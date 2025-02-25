@@ -187,7 +187,37 @@ app.get("/:did/app.rocksky.scrobble/:rkey", async (c) => {
     return c.text("Scrobble not found");
   }
 
-  return c.json({ ...scrobble, listeners: 1, tags: [] });
+  const [listeners, scrobbles] = await Promise.all([
+    ctx.client.db.user_tracks.select(["track_id.*"]).summarize({
+      filter: {
+        "track_id.xata_id": scrobble.track_id.xata_id,
+      },
+      columns: ["track_id.*"],
+      summaries: {
+        total: {
+          count: "*",
+        },
+      },
+    }),
+    ctx.client.db.scrobbles.select(["track_id.*", "xata_createdat"]).summarize({
+      filter: {
+        "track_id.xata_id": scrobble.track_id.xata_id,
+      },
+      columns: ["track_id.*"],
+      summaries: {
+        total: {
+          count: "*",
+        },
+      },
+    }),
+  ]);
+
+  return c.json({
+    ...scrobble,
+    listeners: _.get(listeners.summaries, "0.total", 1),
+    scrobbles: _.get(scrobbles.summaries, "0.total", 1),
+    tags: [],
+  });
 });
 
 app.get("/:did/app.rocksky.artist/:rkey", async (c) => {
@@ -204,22 +234,37 @@ app.get("/:did/app.rocksky.artist/:rkey", async (c) => {
     return c.text("Artist not found");
   }
 
-  const { summaries } = await ctx.client.db.user_artists
-    .select(["artist_id.*"])
-    .filter({
-      "artist_id.uri": equals(uri),
-    })
-    .summarize({
+  const [listeners, scrobbles] = await Promise.all([
+    ctx.client.db.user_artists.select(["artist_id.*"]).summarize({
+      filter: {
+        "artist_id.uri": equals(uri),
+      },
+      columns: ["artist_id.*"],
       summaries: {
         total: {
           count: "*",
         },
       },
-    });
+    }),
+    ctx.client.db.scrobbles
+      .select(["artist_id.*", "xata_createdat"])
+      .summarize({
+        filter: {
+          "artist_id.xata_id": artist.xata_id,
+        },
+        columns: ["artist_id.*"],
+        summaries: {
+          total: {
+            count: "*",
+          },
+        },
+      }),
+  ]);
 
   return c.json({
     ...artist,
-    listeners: _.get(summaries, "0.total", 1),
+    listeners: _.get(listeners.summaries, "0.total", 1),
+    scrobbles: _.get(scrobbles.summaries, "0.total", 1),
     tags: [],
   });
 });
@@ -244,22 +289,35 @@ app.get("/:did/app.rocksky.album/:rkey", async (c) => {
     .sort("track_id.track_number", "asc")
     .getAll();
 
-  const { summaries } = await ctx.client.db.user_albums
-    .select(["album_id.*"])
-    .filter({
-      "album_id.uri": equals(uri),
-    })
-    .summarize({
+  const [listeners, scrobbles] = await Promise.all([
+    ctx.client.db.user_albums.select(["album_id.*"]).summarize({
+      filter: {
+        "album_id.uri": uri,
+      },
+      columns: ["album_id.*"],
       summaries: {
         total: {
           count: "*",
         },
       },
-    });
+    }),
+    ctx.client.db.scrobbles.select(["album_id.*", "xata_createdat"]).summarize({
+      filter: {
+        "album_id.uri": uri,
+      },
+      columns: ["album_id.*"],
+      summaries: {
+        total: {
+          count: "*",
+        },
+      },
+    }),
+  ]);
 
   return c.json({
     ...album,
-    listeners: _.get(summaries, "0.total", 1),
+    listeners: _.get(listeners.summaries, "0.total", 1),
+    scrobbles: _.get(scrobbles.summaries, "0.total", 1),
     tracks: tracks
       .map((track) => track.track_id)
       .sort((a, b) => a.track_number - b.track_number),
@@ -281,23 +339,36 @@ app.get("/:did/app.rocksky.song/:rkey", async (c) => {
     return c.text("Track not found");
   }
 
-  const { summaries } = await ctx.client.db.user_tracks
-    .select(["track_id.*"])
-    .filter({
-      "track_id.uri": equals(uri),
-    })
-    .summarize({
+  const [listeners, scrobbles] = await Promise.all([
+    ctx.client.db.user_tracks.select(["track_id.*"]).summarize({
+      filter: {
+        "track_id.uri": uri,
+      },
+      columns: ["track_id.*"],
       summaries: {
         total: {
           count: "*",
         },
       },
-    });
+    }),
+    ctx.client.db.scrobbles.select(["track_id.*", "xata_createdat"]).summarize({
+      filter: {
+        "track_id.uri": uri,
+      },
+      columns: ["track_id.*"],
+      summaries: {
+        total: {
+          count: "*",
+        },
+      },
+    }),
+  ]);
 
   return c.json({
     ...track,
     tags: [],
-    listeners: _.get(summaries, "0.total", 1),
+    listeners: _.get(listeners.summaries, "0.total", 1),
+    scrobbles: _.get(scrobbles.summaries, "0.total", 1),
   });
 });
 

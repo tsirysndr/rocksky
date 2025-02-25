@@ -4,7 +4,7 @@ import {
   HeadingMedium,
   HeadingXSmall,
   LabelLarge,
-  LabelSmall,
+  LabelMedium,
 } from "baseui/typography";
 import numeral from "numeral";
 import { useEffect, useState } from "react";
@@ -40,6 +40,7 @@ const Song = () => {
     albumArtist: string;
     cover: string;
     listeners: number;
+    scrobbles: number;
     tags: string[];
     lyrics?: string;
     artistUri?: string;
@@ -145,10 +146,34 @@ const Song = () => {
                 {!song?.artistUri && (
                   <LabelLarge margin={0}>{song?.albumArtist}</LabelLarge>
                 )}
-                <LabelSmall marginTop={"15px"}>Listeners</LabelSmall>
-                <HeadingXSmall margin={0}>
-                  {numeral(song?.listeners).format("0,0")}
-                </HeadingXSmall>
+                <div
+                  style={{
+                    marginTop: 20,
+                    display: "flex",
+                    flexDirection: "row",
+                  }}
+                >
+                  <div
+                    style={{
+                      marginRight: 20,
+                    }}
+                  >
+                    <LabelMedium margin={0} color="rgba(36, 49, 61, 0.65)">
+                      Listeners
+                    </LabelMedium>
+                    <HeadingXSmall margin={0}>
+                      {numeral(song?.listeners).format("0,0")}
+                    </HeadingXSmall>
+                  </div>
+                  <div>
+                    <LabelMedium margin={0} color="rgba(36, 49, 61, 0.65)">
+                      Scrobbles
+                    </LabelMedium>
+                    <HeadingXSmall margin={0}>
+                      {numeral(song?.scrobbles).format("0,0")}
+                    </HeadingXSmall>
+                  </div>
+                </div>
               </div>
             </Group>
             {

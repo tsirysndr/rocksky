@@ -1,6 +1,6 @@
 import styled from "@emotion/styled";
 import { Avatar } from "baseui/avatar";
-import { HeadingMedium, HeadingXSmall, LabelSmall } from "baseui/typography";
+import { HeadingMedium, HeadingXSmall, LabelMedium } from "baseui/typography";
 import numeral from "numeral";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
@@ -28,6 +28,7 @@ const Artist = () => {
     bornIn?: string;
     died?: string;
     listeners: number;
+    scrobbles: number;
     picture?: string;
     tags: string[];
     uri: string;
@@ -69,6 +70,7 @@ const Artist = () => {
         bornIn: data.born_in,
         died: data.died,
         listeners: data.listeners,
+        scrobbles: data.scrobbles,
         picture: data.picture,
         tags: data.tags,
         uri: data.uri,
@@ -148,10 +150,30 @@ const Artist = () => {
           {artist && (
             <div>
               <HeadingMedium marginBottom={0}>{artist?.name}</HeadingMedium>
-              <LabelSmall marginTop={"15px"}>Listeners</LabelSmall>
-              <HeadingXSmall margin={0}>
-                {numeral(artist?.listeners).format("0,0")}
-              </HeadingXSmall>
+              <div
+                style={{ marginTop: 20, display: "flex", flexDirection: "row" }}
+              >
+                <div
+                  style={{
+                    marginRight: 20,
+                  }}
+                >
+                  <LabelMedium margin={0} color="rgba(36, 49, 61, 0.65)">
+                    Listeners
+                  </LabelMedium>
+                  <HeadingXSmall margin={0}>
+                    {numeral(artist?.listeners).format("0,0")}
+                  </HeadingXSmall>
+                </div>
+                <div>
+                  <LabelMedium margin={0} color="rgba(36, 49, 61, 0.65)">
+                    Scrobbles
+                  </LabelMedium>
+                  <HeadingXSmall margin={0}>
+                    {numeral(artist?.scrobbles).format("0,0")}
+                  </HeadingXSmall>
+                </div>
+              </div>
             </div>
           )}
         </Group>
