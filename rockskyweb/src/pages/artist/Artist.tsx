@@ -1,9 +1,11 @@
 import styled from "@emotion/styled";
 import { Avatar } from "baseui/avatar";
 import { HeadingMedium, HeadingXSmall, LabelMedium } from "baseui/typography";
+import { useAtomValue, useSetAtom } from "jotai";
 import numeral from "numeral";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
+import { artistAtom } from "../../atoms/artist";
 import ArtistIcon from "../../components/Icons/Artist";
 import Shout from "../../components/Shout/Shout";
 import useLibrary from "../../hooks/useLibrary";
@@ -21,18 +23,8 @@ const Group = styled.div`
 const Artist = () => {
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
   const { getArtist, getArtistTracks, getArtistAlbums } = useLibrary();
-  const [artist, setArtist] = useState<{
-    id: string;
-    name: string;
-    born?: string;
-    bornIn?: string;
-    died?: string;
-    listeners: number;
-    scrobbles: number;
-    picture?: string;
-    tags: string[];
-    uri: string;
-  } | null>(null);
+  const artist = useAtomValue(artistAtom);
+  const setArtist = useSetAtom(artistAtom);
   const [topTracks, setTopTracks] = useState<
     {
       id: string;
@@ -74,6 +66,7 @@ const Artist = () => {
         picture: data.picture,
         tags: data.tags,
         uri: data.uri,
+        spotifyLink: data.spotify_link,
       });
     };
     fetchArtist();

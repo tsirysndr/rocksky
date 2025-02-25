@@ -9,6 +9,7 @@ import { useLocation } from "react-router";
 import { profileAtom } from "../atoms/profile";
 import { API_URL } from "../consts";
 import useProfile from "../hooks/useProfile";
+import ExternalLinks from "./ExternalLinks";
 import Navbar from "./Navbar";
 import Search from "./Search";
 import SpotifyLogin from "./SpotifyLogin";
@@ -202,6 +203,8 @@ function Main({ children }: { children: React.ReactNode }) {
               </div>
             </div>
           )}
+
+          <ExternalLinks />
         </div>
       </RightPane>
     </Container>

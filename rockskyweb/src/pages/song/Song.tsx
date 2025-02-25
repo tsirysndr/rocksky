@@ -6,10 +6,12 @@ import {
   LabelLarge,
   LabelMedium,
 } from "baseui/typography";
+import { useAtomValue, useSetAtom } from "jotai";
 import numeral from "numeral";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import ContentLoader from "react-content-loader";
 import { Link as DefaultLink, useParams } from "react-router";
+import { songAtom } from "../../atoms/song";
 import Disc from "../../components/Icons/Disc";
 import Shout from "../../components/Shout/Shout";
 import SongCover from "../../components/SongCover";
@@ -35,17 +37,8 @@ const Song = () => {
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
   const { getFeedByUri } = useFeed();
   const { getSongByUri } = useLibrary();
-  const [song, setSong] = useState<{
-    title: string;
-    albumArtist: string;
-    cover: string;
-    listeners: number;
-    scrobbles: number;
-    tags: string[];
-    lyrics?: string;
-    artistUri?: string;
-    albumUri?: string;
-  } | null>(null);
+  const song = useAtomValue(songAtom);
+  const setSong = useSetAtom(songAtom);
   useEffect(() => {
     const getSong = async () => {
       // if path contains app.rocksky.scrobble, get the song
