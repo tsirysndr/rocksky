@@ -5,7 +5,7 @@ import { Search as SearchIcon } from "@styled-icons/evaicons-solid";
 import { Input } from "baseui/input";
 import { PLACEMENT, Popover } from "baseui/popover";
 import _ from "lodash";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Link as DefaultLink } from "react-router";
 import z from "zod";
@@ -45,19 +45,20 @@ function Search() {
 
   const keyword = watch("keyword");
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const debouncedSearch = useCallback(
+    _.debounce(async (keyword) => {
+      const data = await search(keyword);
+      setResults(data.records);
+    }, 300),
+    [search]
+  );
+
   useEffect(() => {
     if (keyword.length === 0) {
       setResults([]);
-    }
-
-    if (keyword.length > 1) {
-      const _search = async () => {
-        const data = await search(keyword);
-        setResults(data.records);
-      };
-
-      // debounce
-      _.debounce(_search, 100)();
+    } else if (keyword.length > 1) {
+      debouncedSearch(keyword);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyword]);
