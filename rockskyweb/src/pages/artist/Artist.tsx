@@ -21,6 +21,7 @@ const Group = styled.div`
 `;
 
 const Artist = () => {
+  const [loading, setLoading] = useState(true);
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
   const { getArtist, getArtistTracks, getArtistAlbums } = useLibrary();
   const artist = useAtomValue(artistAtom);
@@ -54,6 +55,7 @@ const Artist = () => {
       return;
     }
     const fetchArtist = async () => {
+      setLoading(true);
       const data = await getArtist(did, rkey);
       setArtist({
         id: data.xata_id,
@@ -68,6 +70,7 @@ const Artist = () => {
         uri: data.uri,
         spotifyLink: data.spotify_link,
       });
+      setLoading(false);
     };
     fetchArtist();
 
@@ -113,10 +116,10 @@ const Artist = () => {
       <div style={{ paddingBottom: 100, paddingTop: 50 }}>
         <Group>
           <div style={{ marginRight: 20 }}>
-            {artist?.picture && (
+            {artist?.picture && !loading && (
               <Avatar name={artist?.name} src={artist?.picture} size="150px" />
             )}
-            {!artist?.picture && (
+            {!artist?.picture && !loading && (
               <div
                 style={{
                   width: 150,
@@ -140,7 +143,7 @@ const Artist = () => {
               </div>
             )}
           </div>
-          {artist && (
+          {artist && !loading && (
             <div>
               <HeadingMedium marginBottom={0}>{artist?.name}</HeadingMedium>
               <div
