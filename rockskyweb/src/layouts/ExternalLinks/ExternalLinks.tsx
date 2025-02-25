@@ -3,7 +3,7 @@ import { Spotify } from "@styled-icons/boxicons-logos";
 import { LabelLarge } from "baseui/typography";
 import { useAtomValue } from "jotai";
 import { useLocation } from "react-router";
-import { artistAtom } from "../../atoms/artist";
+import { songAtom } from "../../atoms/song";
 
 const Link = styled.a`
   text-decoration: none;
@@ -14,7 +14,7 @@ const Link = styled.a`
 `;
 
 function ExternalLinks() {
-  const artist = useAtomValue(artistAtom);
+  const song = useAtomValue(songAtom);
   const location = useLocation();
   const { pathname } = location;
   const display =
@@ -22,10 +22,10 @@ function ExternalLinks() {
     pathname.includes("app.rocksky.song");
   return (
     <>
-      {display && artist?.spotifyLink && (
+      {display && song?.spotifyLink && (
         <div style={{ marginTop: 50 }}>
           <LabelLarge marginBottom={"10px"}>External Links</LabelLarge>
-          <Link href={artist?.spotifyLink} target="_blank">
+          <Link href={song?.spotifyLink} target="_blank">
             <Spotify size={25} color="#1dd05d" />
             <span style={{ marginLeft: 10 }}>Spotify</span>
           </Link>

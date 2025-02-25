@@ -8,7 +8,7 @@ import {
 } from "baseui/typography";
 import { useAtomValue, useSetAtom } from "jotai";
 import numeral from "numeral";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
 import { Link as DefaultLink, useParams } from "react-router";
 import { songAtom } from "../../atoms/song";
@@ -39,8 +39,10 @@ const Song = () => {
   const { getSongByUri } = useLibrary();
   const song = useAtomValue(songAtom);
   const setSong = useSetAtom(songAtom);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     const getSong = async () => {
+      setLoading(true);
       // if path contains app.rocksky.scrobble, get the song
       if (window.location.pathname.includes("app.rocksky.scrobble")) {
         const data = await getFeedByUri(`${did}/app.rocksky.scrobble/${rkey}`);
@@ -52,6 +54,7 @@ const Song = () => {
         const data = await getSongByUri(`${did}/app.rocksky.song/${rkey}`);
         setSong(data);
       }
+      setLoading(false);
     };
     getSong();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -60,7 +63,7 @@ const Song = () => {
   return (
     <Main>
       <div style={{ paddingBottom: 100, paddingTop: 50 }}>
-        {!song && (
+        {loading && (
           <ContentLoader viewBox="0 0 520 160" height={160} width={400}>
             <rect x="220" y="21" rx="10" ry="10" width="294" height="20" />
             <rect x="221" y="61" rx="10" ry="10" width="185" height="20" />
@@ -70,7 +73,7 @@ const Song = () => {
             <rect x="48" y="21" rx="8" ry="8" width="150" height="150" />
           </ContentLoader>
         )}
-        {song && (
+        {!loading && (
           <>
             <Group>
               {song?.albumUri && (

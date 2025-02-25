@@ -33,6 +33,7 @@ function useFeed() {
       listeners: response.data.listeners || 1,
       scrobbles: response.data.scrobbles || 1,
       lyrics: response.data.track_id?.lyrics,
+      spotifyLink: response.data.track_id?.spotify_link,
     };
   };
 
