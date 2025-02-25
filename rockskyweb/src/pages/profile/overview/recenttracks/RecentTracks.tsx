@@ -43,7 +43,7 @@ function RecentTracks(props: RecentTracksProps) {
     ...props,
   };
   const { did } = useParams<{ did: string }>();
-  const { getRecentTracksByDid } = useProfile(localStorage.getItem("token"));
+  const { getRecentTracksByDid } = useProfile();
   const setRecentTracks = useSetAtom(recentTracksAtom);
   const recentTracks = useAtomValue(recentTracksAtom);
   const user = useAtomValue(userAtom);

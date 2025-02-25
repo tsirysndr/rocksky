@@ -6,7 +6,7 @@ import { profileAtom } from "../atoms/profile";
 import { API_URL } from "../consts";
 import { Scrobble } from "../types/scrobble";
 
-function useProfile(token: string | null) {
+function useProfile(token?: string | null) {
   const setProfile = useSetAtom(profileAtom);
   const navigate = useNavigate();
   const [data, setData] = useState<string | null>(null);
