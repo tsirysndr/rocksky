@@ -73,7 +73,7 @@ const Song = () => {
             <rect x="48" y="21" rx="8" ry="8" width="150" height="150" />
           </ContentLoader>
         )}
-        {!loading && (
+        {!loading && song && (
           <>
             <Group>
               {song?.albumUri && (
