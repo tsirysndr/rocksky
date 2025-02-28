@@ -1,8 +1,48 @@
-use duckdb::Connection;
+use core::create_tables;
+use std::env;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let conn = Connection::open_in_memory()?;
-    conn.execute_batch("CREATE TABLE items (name STRING, value INTEGER);")?;
-    println!("Hello, world!");
+use clap::Command;
+use cmd::{serve::serve, sync::sync};
+use duckdb::Connection;
+use sqlx::postgres::PgPoolOptions;
+use dotenv::dotenv;
+
+pub mod types;
+pub mod xata;
+pub mod cmd;
+pub  mod core;
+
+fn cli() -> Command {
+    Command::new("analytics")
+        .version(env!("CARGO_PKG_VERSION"))
+        .about("Rocksky Analytics CLI built with Rust and DuckDB")
+        .subcommand(
+            Command::new("sync")
+            .about("Sync data from Xata to DuckDB")
+        )
+        .subcommand(
+            Command::new("serve")
+            .about("Serve the Rocksky Analytics API")
+        )
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    dotenv().ok();
+
+
+    let pool=  PgPoolOptions::new().max_connections(5).connect(&env::var("XATA_POSTGRES_URL")?).await?;
+    let conn = Connection::open("./rocksky-analytics.ddb")?;
+
+    create_tables(&conn).await?;
+
+    let args = cli().get_matches();
+
+    match args.subcommand() {
+        Some(("sync", _)) => sync(&conn, &pool).await?,
+        Some(("serve", _)) => serve(&conn).await?,
+        _ => serve(&conn).await?,
+    }
+
     Ok(())
 }

@@ -1,0 +1,12 @@
+pub mod album;
+pub mod album_track;
+pub mod artist;
+pub mod artist_track;
+pub mod playlist;
+pub mod playlist_track;
+pub mod scrobble;
+pub mod track;
+pub mod user;
+pub mod user_album;
+pub mod user_artist;
+pub mod user_playlist;
