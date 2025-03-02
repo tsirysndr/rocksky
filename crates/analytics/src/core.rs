@@ -580,19 +580,19 @@ pub async fn load_artist_albums(conn: Arc<Mutex<Connection>>, pool: &Pool<Postgr
     .await?;
 
     for (i, artist_album) in artist_albums.clone().into_iter().enumerate() {
-    println!("artist_albums {} - {} - {}", i, artist_album.artist_id.bright_green(), artist_album.album_id);
-    match conn.execute(
-        "INSERT INTO artist_albums (id, artist_id, album_id, created_at) VALUES (?, ?, ?, ?)",
-            params![
-            artist_album.xata_id,
-            artist_album.artist_id,
-            artist_album.album_id,
-            artist_album.xata_createdat,
-            ],
-    ) {
-        Ok(_) => (),
-        Err(e) => println!("error: {}", e),
-    }
+        println!("artist_albums {} - {} - {}", i, artist_album.artist_id.bright_green(), artist_album.album_id);
+        match conn.execute(
+            "INSERT INTO artist_albums (id, artist_id, album_id, created_at) VALUES (?, ?, ?, ?)",
+                params![
+                artist_album.xata_id,
+                artist_album.artist_id,
+                artist_album.album_id,
+                artist_album.xata_createdat,
+                ],
+        ) {
+            Ok(_) => (),
+            Err(e) => println!("error: {}", e),
+        }
     }
 
     println!("artist_albums: {:?}", artist_albums.len());

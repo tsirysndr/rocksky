@@ -323,29 +323,40 @@ export async function publishScrobble(ctx: Context, id: string) {
     .filter("xata_id", equals(id))
     .getFirst();
 
-  const [user_album, user_artist, user_track, album_track, artist_track] =
-    await Promise.all([
-      ctx.client.db.user_albums
-        .select(["*"])
-        .filter("album_id.xata_id", equals(scrobble.album_id.xata_id))
-        .getFirst(),
-      ctx.client.db.user_artists
-        .select(["*"])
-        .filter("artist_id.xata_id", equals(scrobble.artist_id.xata_id))
-        .getFirst(),
-      ctx.client.db.user_tracks
-        .select(["*"])
-        .filter("track_id.xata_id", equals(scrobble.track_id.xata_id))
-        .getFirst(),
-      ctx.client.db.album_tracks
-        .select(["*"])
-        .filter("track_id.xata_id", equals(scrobble.track_id.xata_id))
-        .getFirst(),
-      ctx.client.db.artist_tracks
-        .select(["*"])
-        .filter("track_id.xata_id", equals(scrobble.track_id.xata_id))
-        .getFirst(),
-    ]);
+  const [
+    user_album,
+    user_artist,
+    user_track,
+    album_track,
+    artist_track,
+    artist_album,
+  ] = await Promise.all([
+    ctx.client.db.user_albums
+      .select(["*"])
+      .filter("album_id.xata_id", equals(scrobble.album_id.xata_id))
+      .getFirst(),
+    ctx.client.db.user_artists
+      .select(["*"])
+      .filter("artist_id.xata_id", equals(scrobble.artist_id.xata_id))
+      .getFirst(),
+    ctx.client.db.user_tracks
+      .select(["*"])
+      .filter("track_id.xata_id", equals(scrobble.track_id.xata_id))
+      .getFirst(),
+    ctx.client.db.album_tracks
+      .select(["*"])
+      .filter("track_id.xata_id", equals(scrobble.track_id.xata_id))
+      .getFirst(),
+    ctx.client.db.artist_tracks
+      .select(["*"])
+      .filter("track_id.xata_id", equals(scrobble.track_id.xata_id))
+      .getFirst(),
+    ctx.client.db.artist_albums
+      .select(["*"])
+      .filter("album_id.xata_id", equals(scrobble.album_id.xata_id))
+      .filter("artist_id.xata_id", equals(scrobble.artist_id.xata_id))
+      .getFirst(),
+  ]);
 
   const message = JSON.stringify({
     scrobble,
@@ -354,6 +365,7 @@ export async function publishScrobble(ctx: Context, id: string) {
     user_track,
     album_track,
     artist_track,
+    artist_album,
   });
 
   ctx.nc.publish("rocksky.scrobble", Buffer.from(message));

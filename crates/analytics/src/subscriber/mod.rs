@@ -337,6 +337,24 @@ pub async fn save_scrobble(conn: Arc<Mutex<Connection>>, payload: ScrobblePayloa
     }
 
     match conn.execute(
+      "INSERT INTO artist_albums (id, artist_id, album_id, created_at) VALUES (?, ?, ?, ?)",
+          params![
+            payload.artist_album.xata_id,
+            payload.artist_album.artist_id.xata_id,
+            payload.artist_album.album_id.xata_id,
+            payload.artist_album.xata_createdat,
+          ],
+  ) {
+      Ok(_) => (),
+      Err(e) => {
+        if !e.to_string().contains("violates primary key constraint") {
+          println!("[artist_albums] error: {}", e);
+          return Err(e.into());
+        }
+      }
+  }
+
+    match conn.execute(
       "INSERT INTO user_albums (id, user_id, album_id, created_at) VALUES (?, ?, ?, ?)",
        params![
           payload.user_album.xata_id,

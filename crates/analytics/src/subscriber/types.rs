@@ -33,6 +33,7 @@ pub struct ScrobblePayload {
     pub user_track: UserTrack,
     pub album_track: AlbumTrack,
     pub artist_track: ArtistTrack,
+    pub artist_album: ArtistAlbum,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -203,6 +204,16 @@ pub struct AlbumTrack {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ArtistTrack {
     pub track_id: Ref,
+    pub artist_id: Ref,
+    pub xata_createdat: DateTime<Utc>,
+    pub xata_id: String,
+    pub xata_updatedat: DateTime<Utc>,
+    pub xata_version: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ArtistAlbum {
+    pub album_id: Ref,
     pub artist_id: Ref,
     pub xata_createdat: DateTime<Utc>,
     pub xata_id: String,
