@@ -72,7 +72,6 @@ pub struct Track {
     pub uri: Option<String>,
     pub artist_uri: Option<String>,
     pub album_uri: Option<String>,
-    #[serde(with = "chrono::serde::ts_seconds")]
     pub xata_createdat: DateTime<Utc>,
 }
 
