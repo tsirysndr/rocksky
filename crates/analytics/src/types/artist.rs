@@ -1,33 +1,46 @@
-use actix_web::{body::BoxBody, http::header::ContentType, HttpRequest, HttpResponse, Responder};
+use super::pagination::Pagination;
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Artist {
     pub id: String,
     pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub biography: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub born: Option<NaiveDate>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub born_in: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub died: Option<NaiveDate>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub picture: Option<String>,
     pub sha256: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub spotify_link: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tidal_link: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub youtube_link: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub apple_music_link: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub uri: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub play_count: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unique_listeners: Option<i32>,
 }
 
-impl Responder for Artist {
-    type Body = BoxBody;
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct GetArtistsParams {
+    pub user_did: Option<String>,
+    pub pagination: Option<Pagination>,
+}
 
-    fn respond_to(self, _req: &HttpRequest) -> HttpResponse<Self::Body> {
-        let body = serde_json::to_string(&self).unwrap();
-
-        // Create response and set content type
-        HttpResponse::Ok()
-            .content_type(ContentType::json())
-            .body(body)
-    }
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct GetTopArtistsParams {
+    pub user_did: Option<String>,
+    pub pagination: Option<Pagination>,
 }

@@ -1,44 +1,72 @@
-use actix_web::{body::BoxBody, http::header::ContentType, HttpRequest, HttpResponse, Responder};
+use super::pagination::Pagination;
+
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Track {
     pub id: String,
     pub title: String,
     pub artist: String,
     pub album_artist: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub album_art: Option<String>,
     pub album: String,
     pub track_number: i32,
     pub duration: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub mb_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub youtube_link: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub spotify_link: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tidal_link: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub apple_music_link: Option<String>,
     pub sha256: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub lyrics: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub composer: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub genre: Option<String>,
     pub disc_number: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub copyright_message: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub uri: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub artist_uri: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub album_uri: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub handle: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub did: Option<String>,
     pub created_at: NaiveDateTime,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub play_count: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unique_listeners: Option<i32>,
 }
 
-impl Responder for Track {
-    type Body = BoxBody;
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct GetTracksParams {
+    pub user_did: Option<String>,
+    pub pagination: Option<Pagination>,
+}
 
-    fn respond_to(self, _req: &HttpRequest) -> HttpResponse<Self::Body> {
-        let body = serde_json::to_string(&self).unwrap();
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct GetTopTracksParams {
+    pub user_did: Option<String>,
+    pub pagination: Option<Pagination>,
+}
 
-        // Create response and set content type
-        HttpResponse::Ok()
-            .content_type(ContentType::json())
-            .body(body)
-    }
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct GetLovedTracksParams {
+    pub user_did: String,
+    pub pagination: Option<Pagination>,
 }

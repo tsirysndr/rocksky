@@ -277,6 +277,7 @@ dependencies = [
  "clap",
  "dotenv",
  "duckdb",
+ "futures-util",
  "owo-colors",
  "polars",
  "serde",

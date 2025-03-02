@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use duckdb::{params, Connection};
 use anyhow::Error;
 use owo_colors::OwoColorize;
@@ -174,7 +176,8 @@ pub async fn create_tables(conn: &Connection) -> Result<(), Error> {
   Ok(())
 }
 
-pub async fn load_tracks(conn: &Connection, pool: &Pool<Postgres>) -> Result<(), Error> {
+pub async fn load_tracks(conn: Arc<Mutex<Connection>>, pool: &Pool<Postgres>) -> Result<(), Error> {
+  let conn = conn.lock().unwrap();
   let tracks: Vec<xata::track::Track> = sqlx::query_as(r#"
       SELECT * FROM tracks
   "#)
@@ -246,7 +249,8 @@ pub async fn load_tracks(conn: &Connection, pool: &Pool<Postgres>) -> Result<(),
   Ok(())
 }
 
-pub async fn load_artists(conn: &Connection, pool: &Pool<Postgres>) -> Result<(), Error> {
+pub async fn load_artists(conn: Arc<Mutex<Connection>>, pool: &Pool<Postgres>) -> Result<(), Error> {
+  let conn = conn.lock().unwrap();
   let artists: Vec<xata::artist::Artist> = sqlx::query_as(r#"
       SELECT * FROM artists
   "#)
@@ -308,7 +312,8 @@ pub async fn load_artists(conn: &Connection, pool: &Pool<Postgres>) -> Result<()
   Ok(())
 }
 
-pub async fn load_albums(conn: &Connection, pool: &Pool<Postgres>) -> Result<(), Error> {
+pub async fn load_albums(conn: Arc<Mutex<Connection>>, pool: &Pool<Postgres>) -> Result<(), Error> {
+  let conn = conn.lock().unwrap();
   let albums: Vec<xata::album::Album> = sqlx::query_as(r#"
       SELECT * FROM albums
   "#)
@@ -370,7 +375,8 @@ pub async fn load_albums(conn: &Connection, pool: &Pool<Postgres>) -> Result<(),
   Ok(())
 }
 
-pub async fn load_users(conn: &Connection, pool: &Pool<Postgres>) -> Result<(), Error> {
+pub async fn load_users(conn: Arc<Mutex<Connection>>, pool: &Pool<Postgres>) -> Result<(), Error> {
+  let conn = conn.lock().unwrap();
   let users: Vec<xata::user::User> = sqlx::query_as(r#"
       SELECT * FROM users
   "#)
@@ -408,7 +414,8 @@ pub async fn load_users(conn: &Connection, pool: &Pool<Postgres>) -> Result<(), 
   Ok(())
 }
 
-pub async fn load_scrobbles(conn: &Connection, pool: &Pool<Postgres>) -> Result<(), Error> {
+pub async fn load_scrobbles(conn: Arc<Mutex<Connection>>, pool: &Pool<Postgres>) -> Result<(), Error> {
+  let conn = conn.lock().unwrap();
   let scrobbles: Vec<xata::scrobble::Scrobble> = sqlx::query_as(r#"
       SELECT * FROM scrobbles
   "#)
@@ -457,7 +464,8 @@ pub async fn load_scrobbles(conn: &Connection, pool: &Pool<Postgres>) -> Result<
   Ok(())
 }
 
-pub async fn load_album_tracks(conn: &Connection, pool: &Pool<Postgres>) -> Result<(), Error> {
+pub async fn load_album_tracks(conn: Arc<Mutex<Connection>>, pool: &Pool<Postgres>) -> Result<(), Error> {
+  let conn = conn.lock().unwrap();
   let album_tracks: Vec<xata::album_track::AlbumTrack> = sqlx::query_as(r#"
       SELECT * FROM album_tracks
   "#)
@@ -488,7 +496,8 @@ pub async fn load_album_tracks(conn: &Connection, pool: &Pool<Postgres>) -> Resu
   Ok(())
 }
 
-pub async fn load_loved_tracks(conn: &Connection, pool: &Pool<Postgres>) -> Result<(), Error> {
+pub async fn load_loved_tracks(conn: Arc<Mutex<Connection>>, pool: &Pool<Postgres>) -> Result<(), Error> {
+  let conn = conn.lock().unwrap();
   let loved_tracks: Vec<xata::user_track::UserTrack> = sqlx::query_as(r#"
       SELECT * FROM loved_tracks
   "#)
@@ -523,7 +532,8 @@ pub async fn load_loved_tracks(conn: &Connection, pool: &Pool<Postgres>) -> Resu
   Ok(())
 }
 
-pub async fn load_artist_tracks(conn: &Connection, pool: &Pool<Postgres>) -> Result<(), Error> {
+pub async fn load_artist_tracks(conn: Arc<Mutex<Connection>>, pool: &Pool<Postgres>) -> Result<(), Error> {
+  let conn = conn.lock().unwrap();
   let artist_tracks: Vec<xata::artist_track::ArtistTrack> = sqlx::query_as(r#"
       SELECT * FROM artist_tracks
   "#)
@@ -550,7 +560,8 @@ pub async fn load_artist_tracks(conn: &Connection, pool: &Pool<Postgres>) -> Res
   Ok(())
 }
 
-pub async fn load_user_albums(conn: &Connection, pool: &Pool<Postgres>) -> Result<(), Error> {
+pub async fn load_user_albums(conn: Arc<Mutex<Connection>>, pool: &Pool<Postgres>) -> Result<(), Error> {
+  let conn = conn.lock().unwrap();
   let user_albums: Vec<xata::user_album::UserAlbum> = sqlx::query_as(r#"
       SELECT * FROM user_albums
   "#)
@@ -577,7 +588,8 @@ pub async fn load_user_albums(conn: &Connection, pool: &Pool<Postgres>) -> Resul
   Ok(())
 }
 
-pub async fn load_user_artists(conn: &Connection, pool: &Pool<Postgres>) -> Result<(), Error> {
+pub async fn load_user_artists(conn: Arc<Mutex<Connection>>, pool: &Pool<Postgres>) -> Result<(), Error> {
+  let conn = conn.lock().unwrap();
   let user_artists: Vec<xata::user_artist::UserArtist> = sqlx::query_as(r#"
       SELECT * FROM user_artists
   "#)
@@ -604,7 +616,8 @@ pub async fn load_user_artists(conn: &Connection, pool: &Pool<Postgres>) -> Resu
   Ok(())
 }
 
-pub async fn load_user_tracks(conn: &Connection, pool: &Pool<Postgres>) -> Result<(), Error> {
+pub async fn load_user_tracks(conn: Arc<Mutex<Connection>>, pool: &Pool<Postgres>) -> Result<(), Error> {
+  let conn = conn.lock().unwrap();
   let user_tracks: Vec<xata::user_track::UserTrack> = sqlx::query_as(r#"
       SELECT * FROM user_tracks
   "#)

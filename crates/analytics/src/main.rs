@@ -1,5 +1,5 @@
 use core::create_tables;
-use std::env;
+use std::{env, sync::{Arc, Mutex}};
 
 use clap::Command;
 use cmd::{serve::serve, sync::sync};
@@ -10,7 +10,8 @@ use dotenv::dotenv;
 pub mod types;
 pub mod xata;
 pub mod cmd;
-pub  mod core;
+pub mod core;
+pub mod handlers;
 
 fn cli() -> Command {
     Command::new("analytics")
@@ -37,11 +38,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     create_tables(&conn).await?;
 
     let args = cli().get_matches();
+    let conn = Arc::new(Mutex::new(conn));
 
     match args.subcommand() {
-        Some(("sync", _)) => sync(&conn, &pool).await?,
-        Some(("serve", _)) => serve(&conn).await?,
-        _ => serve(&conn).await?,
+        Some(("sync", _)) => sync(conn, &pool).await?,
+        Some(("serve", _)) => serve(conn).await?,
+        _ => serve(conn).await?,
     }
 
     Ok(())
