@@ -28,7 +28,7 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
     trackUri = await putSongRecord(track, agent);
   }
 
-  const { xata_id: track_id } = await ctx.client.db.tracks.createOrUpdate(
+  const newTrack = await ctx.client.db.tracks.createOrUpdate(
     existingTrack?.xata_id,
     {
       title: track.title,
@@ -56,6 +56,7 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
       spotify_link: track.spotifyLink ? track.spotifyLink : undefined,
     }
   );
+  const track_id = newTrack.xata_id;
 
   const existingArtist = await ctx.client.db.artists
     .filter(
@@ -122,17 +123,20 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
     .filter("track_id", equals(track_id))
     .getFirst();
 
-  await ctx.client.db.album_tracks.createOrUpdate(existingAlbumTrack?.xata_id, {
-    album_id,
-    track_id,
-  });
+  const album_track = await ctx.client.db.album_tracks.createOrUpdate(
+    existingAlbumTrack?.xata_id,
+    {
+      album_id,
+      track_id,
+    }
+  );
 
   const existingArtistTrack = await ctx.client.db.artist_tracks
     .filter("artist_id", equals(artist_id))
     .filter("track_id", equals(track_id))
     .getFirst();
 
-  await ctx.client.db.artist_tracks.createOrUpdate(
+  const artist_track = await ctx.client.db.artist_tracks.createOrUpdate(
     existingArtistTrack?.xata_id,
     {
       artist_id,
@@ -145,11 +149,20 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
     .filter("album_id", equals(album_id))
     .getFirst();
 
-  await ctx.client.db.artist_albums.createOrUpdate(
+  const artist_album = await ctx.client.db.artist_albums.createOrUpdate(
     existingArtistAlbum?.xata_id,
     {
       artist_id,
       album_id,
     }
   );
+
+  const message = JSON.stringify({
+    track,
+    album_track,
+    artist_track,
+    artist_album,
+  });
+
+  ctx.nc.publish("rocksky.track", Buffer.from(message));
 }
