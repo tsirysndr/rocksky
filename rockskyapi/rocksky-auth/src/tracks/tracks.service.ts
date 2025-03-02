@@ -158,7 +158,7 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
   );
 
   const message = JSON.stringify({
-    track,
+    track: newTrack,
     album_track,
     artist_track,
     artist_album,
