@@ -28,9 +28,6 @@ pub struct UnlikePayload {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NewTrackPayload {
     pub track: Track,
-    pub user_album: UserAlbum,
-    pub user_artist: UserArtist,
-    pub user_track: UserTrack,
     pub album_track: AlbumTrack,
     pub artist_track: ArtistTrack,
     pub artist_album: ArtistAlbum,
