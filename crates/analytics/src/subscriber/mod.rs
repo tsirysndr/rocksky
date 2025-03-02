@@ -16,6 +16,7 @@ pub async fn subscribe(conn: Arc<Mutex<Connection>>) -> Result<(), Error> {
 
     let nc = Arc::new(Mutex::new(nc));
     on_scrobble(nc.clone(), conn.clone());
+    on_new_track(nc.clone(), conn.clone());
     on_like(nc.clone(), conn.clone());
     on_unlike(nc.clone(), conn.clone());
 
