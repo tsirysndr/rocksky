@@ -596,70 +596,15 @@ pub async fn save_track(conn: Arc<Mutex<Connection>>, payload: NewTrackPayload) 
           payload.artist_album.album_id.xata_id,
           payload.artist_album.xata_createdat,
         ],
-) {
-    Ok(_) => (),
-    Err(e) => {
-      if !e.to_string().contains("violates primary key constraint") {
-        println!("[artist_albums] error: {}", e);
-        return Err(e.into());
-      }
-    }
-}
-
-  match conn.execute(
-    "INSERT INTO user_albums (id, user_id, album_id, created_at) VALUES (?, ?, ?, ?)",
-     params![
-        payload.user_album.xata_id,
-        payload.user_album.user_id.xata_id,
-        payload.user_album.album_id.xata_id,
-        payload.user_album.xata_createdat,
-     ],
   ) {
       Ok(_) => (),
       Err(e) => {
         if !e.to_string().contains("violates primary key constraint") {
-          println!("[user_albums] error: {}", e);
+          println!("[artist_albums] error: {}", e);
           return Err(e.into());
         }
       }
   }
-
-  match conn.execute(
-    "INSERT INTO user_artists (id, user_id, artist_id, created_at) VALUES (?, ?, ?, ?)",
-     params![
-        payload.user_artist.xata_id,
-        payload.user_artist.user_id.xata_id,
-        payload.user_artist.artist_id.xata_id,
-        payload.user_artist.xata_createdat,
-     ],
-  ) {
-      Ok(_) => (),
-      Err(e) => {
-        if !e.to_string().contains("violates primary key constraint") {
-          println!("[user_artists] error: {}", e);
-          return Err(e.into());
-        }
-      }
-  }
-
-  match conn.execute(
-    "INSERT INTO user_tracks (id, user_id, track_id, created_at) VALUES (?, ?, ?, ?)",
-     params![
-        payload.user_track.xata_id,
-        payload.user_track.user_id.xata_id,
-        payload.user_track.track_id.xata_id,
-        payload.user_track.xata_createdat,
-     ],
-  ) {
-      Ok(_) => (),
-      Err(e) => {
-        if !e.to_string().contains("violates primary key constraint") {
-          println!("[user_tracks] error: {}", e);
-          return Err(e.into());
-        }
-      }
-  }
-
   Ok(())
 }
 
