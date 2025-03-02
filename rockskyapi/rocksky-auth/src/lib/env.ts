@@ -25,4 +25,6 @@ export const env = cleanEnv(process.env, {
   SPOTIFY_ENCRYPTION_IV: str(),
   ROCKSKY_BETA_TOKEN: str({}),
   XATA_POSTGRES_URL: str({}),
+  NATS_URL: str({ devDefault: "nats://localhost:4222" }),
+  ANALYTICS: str({ devDefault: "http://localhost:7879" }),
 });

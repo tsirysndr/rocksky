@@ -277,13 +277,13 @@ dependencies = [
  "clap",
  "dotenv",
  "duckdb",
- "futures-util",
  "owo-colors",
  "polars",
  "serde",
  "serde_json",
  "sqlx",
  "tokio",
+ "tokio-stream",
 ]
 
 [[package]]
@@ -4519,6 +4519,7 @@ dependencies = [
  "futures-core",
  "pin-project-lite",
  "tokio",
+ "tokio-util",
 ]
 
 [[package]]

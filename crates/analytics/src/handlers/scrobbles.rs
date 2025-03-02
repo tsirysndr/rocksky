@@ -4,7 +4,7 @@ use actix_web::{web, HttpRequest, HttpResponse};
 use analytics::types::scrobble::{GetScrobblesParams, ScrobbleTrack};
 use duckdb::Connection;
 use anyhow::Error;
-use futures_util::StreamExt;
+use tokio_stream::StreamExt;
 
 use crate::read_payload;
 
@@ -38,7 +38,7 @@ pub async fn get_scrobbles(payload: &mut web::Payload, _req: &HttpRequest, conn:
             LEFT JOIN albums al ON s.album_id = al.id
             LEFT JOIN tracks t ON s.track_id = t.id
             LEFT JOIN users u ON s.user_id = u.id
-            WHERE u.did = ?
+            WHERE u.did = ? OR u.handle = ?
             GROUP BY s.id, s.created_at, t.id, t.title, t.artist, t.album_artist, t.album, t.album_art, s.uri, t.uri, u.handle, a.uri, al.uri, s.created_at
             ORDER BY s.created_at DESC
             OFFSET ?
@@ -72,7 +72,7 @@ pub async fn get_scrobbles(payload: &mut web::Payload, _req: &HttpRequest, conn:
     };
     match did {
         Some(did) => {
-            let scrobbles = stmt.query_map([did, limit.to_string(), offset.to_string()], |row| {
+            let scrobbles = stmt.query_map([&did, &did, &limit.to_string(), &offset.to_string()], |row| {
                 Ok(ScrobbleTrack {
                     id: row.get(0)?,
                     track_id: row.get(1)?,

@@ -1,10 +1,10 @@
 use std::sync::{Arc, Mutex};
 
 use actix_web::{web, HttpRequest, HttpResponse};
-use analytics::types::album::{Album, GetAlbumsParams, GetTopAlbumsParams};
+use analytics::types::{album::{Album, GetAlbumTracksParams, GetAlbumsParams, GetTopAlbumsParams}, track::Track};
 use duckdb::Connection;
 use anyhow::Error;
-use futures_util::StreamExt;
+use tokio_stream::StreamExt;
 
 use crate::read_payload;
 
@@ -23,7 +23,7 @@ pub async fn get_albums(payload: &mut web::Payload, _req: &HttpRequest, conn: Ar
         SELECT a.* FROM user_albums ua
         LEFT JOIN albums a ON ua.album_id = a.id
         LEFT JOIN users u ON ua.user_id = u.id
-        WHERE u.did = ?
+        WHERE u.did = ? OR u.handle = ?
         ORDER BY a.title ASC OFFSET ? LIMIT ?;
       "#)?
     },
@@ -34,7 +34,7 @@ pub async fn get_albums(payload: &mut web::Payload, _req: &HttpRequest, conn: Ar
 
   match did {
     Some(did) => {
-      let albums_iter = stmt.query_map([did, limit.to_string(), offset.to_string()], |row| {
+      let albums_iter = stmt.query_map([&did, &did, &limit.to_string(), &offset.to_string()], |row| {
         Ok(Album {
           id: row.get(0)?,
           title: row.get(1)?,
@@ -101,7 +101,8 @@ pub async fn get_top_albums(payload: &mut web::Payload, _req: &HttpRequest, conn
           a.album_art AS album_art,
           a.release_date,
           a.year,
-          a.uri AS uri,
+          a.uri,
+          a.sha256,
           COUNT(*) AS play_count,
           COUNT(DISTINCT s.user_id) AS unique_listeners
       FROM
@@ -112,9 +113,9 @@ pub async fn get_top_albums(payload: &mut web::Payload, _req: &HttpRequest, conn
           artists ar ON a.artist_uri = ar.uri
       LEFT JOIN
           users u ON s.user_id = u.id
-      WHERE s.album_id IS NOT NULL AND u.did = ?
+      WHERE s.album_id IS NOT NULL AND (u.did = ? OR u.handle = ?)
       GROUP BY
-          s.album_id, a.title, ar.name, a.release_date, a.year, a.uri, a.album_art
+          s.album_id, a.title, ar.name, a.release_date, a.year, a.uri, a.album_art, a.sha256
       ORDER BY
           play_count DESC
       OFFSET ?
@@ -128,7 +129,8 @@ pub async fn get_top_albums(payload: &mut web::Payload, _req: &HttpRequest, conn
           a.album_art AS album_art,
           a.release_date,
           a.year,
-          a.uri AS uri,
+          a.uri,
+          a.sha256,
           COUNT(*) AS play_count,
           COUNT(DISTINCT s.user_id) AS unique_listeners
       FROM
@@ -138,7 +140,7 @@ pub async fn get_top_albums(payload: &mut web::Payload, _req: &HttpRequest, conn
       LEFT JOIN
           artists ar ON a.artist_uri = ar.uri WHERE s.album_id IS NOT NULL
       GROUP BY
-          s.album_id, a.title, ar.name, a.release_date, a.year, a.uri, a.album_art
+          s.album_id, a.title, ar.name, a.release_date, a.year, a.uri, a.album_art, a.sha256
       ORDER BY
           play_count DESC
       OFFSET ?
@@ -148,7 +150,7 @@ pub async fn get_top_albums(payload: &mut web::Payload, _req: &HttpRequest, conn
 
   match did {
     Some(did) => {
-      let albums = stmt.query_map([did, limit.to_string(), offset.to_string()], |row| {
+      let albums = stmt.query_map([&did, &did, &limit.to_string(), &offset.to_string()], |row| {
         Ok(Album {
           id: row.get(0)?,
           title: row.get(1)?,
@@ -157,8 +159,9 @@ pub async fn get_top_albums(payload: &mut web::Payload, _req: &HttpRequest, conn
           release_date: row.get(4)?,
           year: row.get(5)?,
           uri: row.get(6)?,
-          play_count: Some(row.get(7)?),
-          unique_listeners: Some(row.get(8)?),
+          sha256: row.get(7)?,
+          play_count: Some(row.get(8)?),
+          unique_listeners: Some(row.get(9)?),
           ..Default::default()
         })
       })?;
@@ -175,8 +178,9 @@ pub async fn get_top_albums(payload: &mut web::Payload, _req: &HttpRequest, conn
           release_date: row.get(4)?,
           year: row.get(5)?,
           uri: row.get(6)?,
-          play_count: Some(row.get(7)?),
-          unique_listeners: Some(row.get(8)?),
+          sha256: row.get(7)?,
+          play_count: Some(row.get(8)?),
+          unique_listeners: Some(row.get(9)?),
           ..Default::default()
         })
       })?;
@@ -184,4 +188,66 @@ pub async fn get_top_albums(payload: &mut web::Payload, _req: &HttpRequest, conn
       Ok(HttpResponse::Ok().json(web::Json(albums?)))
     }
   }
+}
+
+pub async fn get_album_tracks(payload: &mut web::Payload, _req: &HttpRequest, conn: Arc<Mutex<Connection>>) -> Result<HttpResponse, Error> {
+  let body = read_payload!(payload);
+  let params = serde_json::from_slice::<GetAlbumTracksParams>(&body)?;
+  let conn = conn.lock().unwrap();
+  let mut stmt = conn.prepare(r#"
+    SELECT
+      t.id,
+      t.title,
+      t.artist,
+      t.album_artist,
+      t.album,
+      t.uri,
+      t.album_art,
+      t.duration,
+      t.disc_number,
+      t.track_number,
+      t.artist_uri,
+      t.album_uri,
+      t.sha256,
+      t.copyright_message,
+      t.label,
+      t.created_at,
+      COUNT(*) AS play_count,
+      COUNT(DISTINCT s.user_id) AS unique_listeners
+    FROM album_tracks at
+    LEFT JOIN tracks t ON at.track_id = t.id
+    LEFT JOIN albums a ON at.album_id = a.id
+    LEFT JOIN scrobbles s ON s.track_id = t.id
+    WHERE at.album_id = ? OR a.uri = ?
+    GROUP BY
+      t.id, t.title, t.artist, t.album_artist, t.album, t.uri, t.album_art, t.duration, t.disc_number, t.track_number, t.artist_uri, t.album_uri, t.sha256, t.copyright_message, t.label, t.created_at
+    ORDER BY t.track_number ASC;
+  "#)?;
+
+  let tracks = stmt.query_map([&params.album_id, &params.album_id], |row| {
+    Ok(Track {
+      id: row.get(0)?,
+      title: row.get(1)?,
+      artist: row.get(2)?,
+      album_artist: row.get(3)?,
+      album: row.get(4)?,
+      uri: row.get(5)?,
+      album_art: row.get(6)?,
+      duration: row.get(7)?,
+      disc_number: row.get(8)?,
+      track_number: row.get(9)?,
+      artist_uri: row.get(10)?,
+      album_uri: row.get(11)?,
+      sha256: row.get(12)?,
+      copyright_message: row.get(13)?,
+      label: row.get(14)?,
+      created_at: row.get(15)?,
+      play_count: Some(row.get(16)?),
+      unique_listeners: Some(row.get(17)?),
+      ..Default::default()
+    })
+  })?;
+
+  let tracks: Result<Vec<_>, _> = tracks.collect();
+  Ok(HttpResponse::Ok().json(web::Json(tracks?)))
 }

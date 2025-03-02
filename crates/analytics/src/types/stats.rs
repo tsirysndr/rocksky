@@ -68,3 +68,63 @@ impl Default for GetScrobblesPerYearParams {
         }
     }
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetAlbumScrobblesParams {
+    pub album_id: String,
+    pub start: Option<String>,
+    pub end: Option<String>,
+}
+
+impl Default for GetAlbumScrobblesParams {
+    fn default() -> Self {
+        let current_date = Utc::now().naive_utc();
+        let date_30_days_ago = current_date - Duration::days(30);
+
+        GetAlbumScrobblesParams {
+            album_id: "".to_string(),
+            start: Some(date_30_days_ago.to_string()),
+            end: Some(current_date.to_string()),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetArtistScrobblesParams {
+    pub artist_id: String,
+    pub start: Option<String>,
+    pub end: Option<String>,
+}
+
+impl Default for GetArtistScrobblesParams {
+    fn default() -> Self {
+        let current_date = Utc::now().naive_utc();
+        let date_30_days_ago = current_date - Duration::days(30);
+
+        GetArtistScrobblesParams {
+            artist_id: "".to_string(),
+            start: Some(date_30_days_ago.to_string()),
+            end: Some(current_date.to_string()),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetTrackScrobblesParams {
+    pub track_id: String,
+    pub start: Option<String>,
+    pub end: Option<String>,
+}
+
+impl Default for GetTrackScrobblesParams {
+    fn default() -> Self {
+        let current_date = Utc::now().naive_utc();
+        let date_30_days_ago = current_date - Duration::days(30);
+
+        GetTrackScrobblesParams {
+            track_id: "".to_string(),
+            start: Some(date_30_days_ago.to_string()),
+            end: Some(current_date.to_string()),
+        }
+    }
+}

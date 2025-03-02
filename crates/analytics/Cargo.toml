@@ -27,4 +27,4 @@ anyhow = "1.0.96"
 polars = "0.46.0"
 clap = "4.5.31"
 actix-web = "4.9.0"
-futures-util = "0.3.31"
+tokio-stream = { version = "0.1.17", features = ["full"] }

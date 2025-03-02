@@ -51,27 +51,15 @@ app.get("/:handle/scrobbles", async (c) => {
   const size = +c.req.query("size") || 10;
   const offset = +c.req.query("offset") || 0;
 
-  const scrobbles = await ctx.client.db.scrobbles
-    .select(["track_id.*", "uri", "album_id.*", "artist_id.*"])
-    .filter({
-      $any: [
-        {
-          "user_id.did": handle,
-        },
-        {
-          "user_id.handle": handle,
-        },
-      ],
-    })
-    .sort("xata_createdat", "desc")
-    .getPaginated({
-      pagination: {
-        size,
-        offset,
-      },
-    });
+  const { data } = await ctx.analytics.post("library.getScrobbles", {
+    user_did: handle,
+    pagination: {
+      skip: offset,
+      take: size,
+    },
+  });
 
-  return c.json(scrobbles.records);
+  return c.json(data);
 });
 
 app.get("/:did/albums", async (c) => {
@@ -79,29 +67,15 @@ app.get("/:did/albums", async (c) => {
   const size = +c.req.query("size") || 10;
   const offset = +c.req.query("offset") || 0;
 
-  const albums = await ctx.client.db.user_albums
-    .select(["album_id.*", "scrobbles"])
-    .filter({
-      $any: [
-        {
-          "user_id.did": did,
-        },
-        {
-          "user_id.handle": did,
-        },
-      ],
-    })
-    .getPaginated({
-      sort: {
-        scrobbles: "desc",
-      },
-      pagination: {
-        size,
-        offset,
-      },
-    });
+  const { data } = await ctx.analytics.post("library.getTopAlbums", {
+    user_did: did,
+    pagination: {
+      skip: offset,
+      take: size,
+    },
+  });
 
-  return c.json(albums.records.map((item) => ({ ...item.album_id, tags: [] })));
+  return c.json(data.map((item) => ({ ...item, tags: [] })));
 });
 
 app.get("/:did/artists", async (c) => {
@@ -109,31 +83,15 @@ app.get("/:did/artists", async (c) => {
   const size = +c.req.query("size") || 10;
   const offset = +c.req.query("offset") || 0;
 
-  const artists = await ctx.client.db.user_artists
-    .select(["artist_id.*", "scrobbles"])
-    .filter({
-      $any: [
-        {
-          "user_id.did": did,
-        },
-        {
-          "user_id.handle": did,
-        },
-      ],
-    })
-    .getPaginated({
-      sort: {
-        scrobbles: "desc",
-      },
-      pagination: {
-        size,
-        offset,
-      },
-    });
+  const { data } = await ctx.analytics.post("library.getTopArtists", {
+    user_did: did,
+    pagination: {
+      skip: offset,
+      take: size,
+    },
+  });
 
-  return c.json(
-    artists.records.map((item) => ({ ...item.artist_id, tags: [] }))
-  );
+  return c.json(data.map((item) => ({ ...item, tags: [] })));
 });
 
 app.get("/:did/tracks", async (c) => {
@@ -141,32 +99,17 @@ app.get("/:did/tracks", async (c) => {
   const size = +c.req.query("size") || 10;
   const offset = +c.req.query("offset") || 0;
 
-  const artists = await ctx.client.db.user_tracks
-    .select(["track_id.*", "scrobbles"])
-    .filter({
-      $any: [
-        {
-          "user_id.did": did,
-        },
-        {
-          "user_id.handle": did,
-        },
-      ],
-    })
-    .getPaginated({
-      sort: {
-        scrobbles: "desc",
-      },
-      pagination: {
-        size,
-        offset,
-      },
-    });
+  const { data } = await ctx.analytics.post("library.getTopTracks", {
+    user_did: did,
+    pagination: {
+      skip: offset,
+      take: size,
+    },
+  });
 
   return c.json(
-    artists.records.map((item) => ({
-      ...item.track_id,
-      scrobles: item.scrobbles,
+    data.map((item) => ({
+      ...item,
       tags: [],
     }))
   );
@@ -1202,58 +1145,15 @@ app.get("/:did/app.rocksky.shout/:rkey/replies", async (c) => {
 
 app.get("/:did/stats", async (c) => {
   const did = c.req.param("did");
-  const scrobbles = await ctx.client.db.scrobbles
-    .select(["user_id.*"])
-    .filter({
-      $any: [
-        {
-          "user_id.did": did,
-        },
-        {
-          "user_id.handle": did,
-        },
-      ],
-    })
-    .summarize({
-      summaries: {
-        total: {
-          count: "*",
-        },
-      },
-    });
 
-  const artists = await ctx.client.db.user_artists
-    .select(["artist_id.*", "user_id.*"])
-    .filter({
-      $any: [
-        {
-          "user_id.did": did,
-        },
-        {
-          "user_id.handle": did,
-        },
-      ],
-    })
-    .getAll();
-
-  const lovedTracks = await ctx.client.db.loved_tracks
-    .select(["track_id.*", "user_id.*"])
-    .filter({
-      $any: [
-        {
-          "user_id.did": did,
-        },
-        {
-          "user_id.handle": did,
-        },
-      ],
-    })
-    .getAll();
+  const { data } = await ctx.analytics.post("library.getStats", {
+    user_did: did,
+  });
 
   return c.json({
-    scrobbles: _.get(scrobbles, "summaries.0.total", 0),
-    artists: artists.length,
-    lovedTracks: lovedTracks.length,
+    scrobbles: data.scrobbles,
+    artists: data.artists,
+    lovedTracks: data.loved_tracks,
   });
 });
 

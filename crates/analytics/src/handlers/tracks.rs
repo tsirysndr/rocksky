@@ -4,7 +4,7 @@ use actix_web::{web, HttpRequest, HttpResponse};
 use analytics::types::track::{GetLovedTracksParams, GetTopTracksParams, GetTracksParams, Track};
 use duckdb::Connection;
 use anyhow::Error;
-use futures_util::StreamExt;
+use tokio_stream::StreamExt;
 
 use crate::read_payload;
 
@@ -48,12 +48,12 @@ pub async fn get_tracks(payload: &mut web::Payload, _req: &HttpRequest, conn: Ar
                 FROM tracks t
                 LEFT JOIN user_tracks ut ON t.id = ut.track_id
                 LEFT JOIN users u ON ut.user_id = u.id
-                WHERE u.did = ?
+                WHERE u.did = ? OR u.handle = ?
                 ORDER BY t.title ASC
                 OFFSET ?
                 LIMIT ?;
             "#)?;
-            let tracks = stmt.query_map([did, limit.to_string(), offset.to_string()], |row| {
+            let tracks = stmt.query_map([&did, &did, &limit.to_string(), &offset.to_string()], |row| {
                 Ok(Track {
                     id: row.get(0)?,
                     title: row.get(1)?,
@@ -186,12 +186,12 @@ pub async fn get_loved_tracks(payload: &mut web::Payload, _req: &HttpRequest, co
         FROM loved_tracks l
         LEFT JOIN users u ON l.user_id = u.id
         LEFT JOIN tracks t ON l.track_id = t.id
-        WHERE u.did = ?
+        WHERE u.did = ? OR u.handle = ?
         ORDER BY l.created_at DESC
         OFFSET ?
         LIMIT ?;
     "#)?;
-    let loved_tracks = stmt.query_map([did, limit.to_string(), offset.to_string()], |row| {
+    let loved_tracks = stmt.query_map([&did, &did, &limit.to_string(), &offset.to_string()], |row| {
         Ok(Track {
             id: row.get(0)?,
             title: row.get(1)?,
@@ -257,13 +257,13 @@ pub async fn get_top_tracks(payload: &mut web::Payload, _req: &HttpRequest, conn
                 LEFT JOIN artists ar ON s.artist_id = ar.id
                 LEFT JOIN albums a ON s.album_id = a.id
                 LEFT JOIN users u ON s.user_id = u.id
-                WHERE u.did = ?
+                WHERE u.did = ? OR u.handle = ?
                 GROUP BY t.id, s.track_id, t.title, ar.name, a.title, t.artist, t.uri, t.album_art, t.duration, t.disc_number, t.track_number, t.artist_uri, t.album_uri, t.created_at, t.sha256, t.album_artist, t.album
                 ORDER BY play_count DESC
                 OFFSET ?
                 LIMIT ?;
             "#)?;
-            let top_tracks = stmt.query_map([did, limit.to_string(), offset.to_string()], |row| {
+            let top_tracks = stmt.query_map([&did, &did, &limit.to_string(), &offset.to_string()], |row| {
                 Ok(Track {
                     id: row.get(0)?,
                     title: row.get(1)?,

@@ -43,3 +43,8 @@ pub struct GetTopAlbumsParams {
     pub user_did: Option<String>,
     pub pagination: Option<Pagination>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetAlbumTracksParams {
+    pub album_id: String,
+}

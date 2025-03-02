@@ -317,6 +317,48 @@ export async function updateUserLibrary(
   }
 }
 
+export async function publishScrobble(ctx: Context, id: string) {
+  const scrobble = await ctx.client.db.scrobbles
+    .select(["*", "track_id.*", "album_id.*", "artist_id.*", "user_id.*"])
+    .filter("xata_id", equals(id))
+    .getFirst();
+
+  const [user_album, user_artist, user_track, album_track, artist_track] =
+    await Promise.all([
+      ctx.client.db.user_albums
+        .select(["*"])
+        .filter("album_id.xata_id", equals(scrobble.album_id.xata_id))
+        .getFirst(),
+      ctx.client.db.user_artists
+        .select(["*"])
+        .filter("artist_id.xata_id", equals(scrobble.artist_id.xata_id))
+        .getFirst(),
+      ctx.client.db.user_tracks
+        .select(["*"])
+        .filter("track_id.xata_id", equals(scrobble.track_id.xata_id))
+        .getFirst(),
+      ctx.client.db.album_tracks
+        .select(["*"])
+        .filter("track_id.xata_id", equals(scrobble.track_id.xata_id))
+        .getFirst(),
+      ctx.client.db.artist_tracks
+        .select(["*"])
+        .filter("track_id.xata_id", equals(scrobble.track_id.xata_id))
+        .getFirst(),
+    ]);
+
+  const message = JSON.stringify({
+    scrobble,
+    user_album,
+    user_artist,
+    user_track,
+    album_track,
+    artist_track,
+  });
+
+  ctx.nc.publish("rocksky.scrobble", Buffer.from(message));
+}
+
 export async function scrobbleTrack(
   ctx: Context,
   track: Track,
@@ -490,6 +532,8 @@ export async function scrobbleTrack(
     artist_id,
     uri: scrobbleUri,
   });
+
+  await publishScrobble(ctx, scrobble.xata_id);
 
   return scrobble;
 }

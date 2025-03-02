@@ -137,6 +137,10 @@ export async function likeTrack(ctx: Context, track: Track, user) {
       track_id,
     }
   );
+
+  const message = JSON.stringify(created);
+  ctx.nc.publish("rocksky.like", Buffer.from(message));
+
   return created;
 }
 
@@ -157,6 +161,9 @@ export async function unLikeTrack(ctx: Context, trackSha256: string, user) {
   if (!lovedTrack) {
     return;
   }
+
+  const message = JSON.stringify(lovedTrack);
+  ctx.nc.publish("rocksky.unlike", Buffer.from(message));
 
   await ctx.client.db.loved_tracks.delete(lovedTrack.xata_id);
 }

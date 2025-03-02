@@ -12,6 +12,7 @@ pub mod xata;
 pub mod cmd;
 pub mod core;
 pub mod handlers;
+pub mod subscriber;
 
 fn cli() -> Command {
     Command::new("analytics")

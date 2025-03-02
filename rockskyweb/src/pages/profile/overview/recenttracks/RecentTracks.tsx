@@ -56,19 +56,18 @@ function RecentTracks(props: RecentTracksProps) {
     const getRecentTracks = async () => {
       const data = await getRecentTracksByDid(did, 0, props.size);
       setRecentTracks(
-        data.map(({ track_id, album_id, artist_id, uri, xata_createdat }) => ({
-          id: track_id.xata_id,
-          title: track_id.title,
-          artist: track_id.artist,
-          album: track_id.album,
-          albumArt: track_id.album_art,
-          albumArtist: track_id.album_artist,
-          duration: track_id.duration,
-          uri: track_id.uri,
-          date: xata_createdat,
-          scrobbleUri: uri,
-          albumUri: album_id.uri,
-          artistUri: artist_id.uri,
+        data.map((item) => ({
+          id: item.id,
+          title: item.title,
+          artist: item.artist,
+          album: item.album,
+          albumArt: item.album_art,
+          albumArtist: item.album_artist,
+          uri: item.uri,
+          date: item.created_at,
+          scrobbleUri: item.uri,
+          albumUri: item.album_uri,
+          artistUri: item.artist_uri,
         }))
       );
     };

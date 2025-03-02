@@ -149,6 +149,14 @@ pub async fn create_tables(conn: &Connection) -> Result<(), Error> {
           FOREIGN KEY (artist_id) REFERENCES artists(id),
           FOREIGN KEY (track_id) REFERENCES tracks(id),
       );
+      CREATE TABLE IF NOT EXISTS artist_albums (
+          id VARCHAR PRIMARY KEY,
+          artist_id VARCHAR,
+          album_id VARCHAR,
+          created_at TIMESTAMP,
+          FOREIGN KEY (artist_id) REFERENCES artists(id),
+          FOREIGN KEY (album_id) REFERENCES albums(id),
+      );
       CREATE TABLE IF NOT EXISTS album_tracks (
           id VARCHAR PRIMARY KEY,
           album_id VARCHAR,
@@ -438,13 +446,15 @@ pub async fn load_scrobbles(conn: Arc<Mutex<Connection>>, pool: &Pool<Postgres>)
               artist_id,
               uri,
               created_at
-          ) VALUES (?,
+          ) VALUES (
               ?,
               ?,
               ?,
               ?,
               ?,
-              ?)",
+              ?,
+              ?
+            )",
            params![
               scrobble.xata_id,
               scrobble.user_id,
@@ -558,6 +568,35 @@ pub async fn load_artist_tracks(conn: Arc<Mutex<Connection>>, pool: &Pool<Postgr
 
   println!("artist_tracks: {:?}", artist_tracks.len());
   Ok(())
+}
+
+
+pub async fn load_artist_albums(conn: Arc<Mutex<Connection>>, pool: &Pool<Postgres>) -> Result<(), Error> {
+    let conn = conn.lock().unwrap();
+    let artist_albums: Vec<xata::artist_album::ArtistAlbum> = sqlx::query_as(r#"
+        SELECT * FROM artist_albums
+    "#)
+    .fetch_all(pool)
+    .await?;
+
+    for (i, artist_album) in artist_albums.clone().into_iter().enumerate() {
+    println!("artist_albums {} - {} - {}", i, artist_album.artist_id.bright_green(), artist_album.album_id);
+    match conn.execute(
+        "INSERT INTO artist_albums (id, artist_id, album_id, created_at) VALUES (?, ?, ?, ?)",
+            params![
+            artist_album.xata_id,
+            artist_album.artist_id,
+            artist_album.album_id,
+            artist_album.xata_createdat,
+            ],
+    ) {
+        Ok(_) => (),
+        Err(e) => println!("error: {}", e),
+    }
+    }
+
+    println!("artist_albums: {:?}", artist_albums.len());
+    Ok(())
 }
 
 pub async fn load_user_albums(conn: Arc<Mutex<Connection>>, pool: &Pool<Postgres>) -> Result<(), Error> {
