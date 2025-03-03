@@ -615,7 +615,7 @@ pub async fn save_track(conn: Arc<Mutex<Connection>>, payload: NewTrackPayload) 
 pub async fn like(conn: Arc<Mutex<Connection>>, payload: LikePayload) -> Result<(), Error> {
   let conn = conn.lock().unwrap();
   match conn.execute(
-    "INSERT INTO likes (
+    "INSERT INTO loved_tracks (
         id,
         user_id,
         track_id,
@@ -647,7 +647,7 @@ pub async fn like(conn: Arc<Mutex<Connection>>, payload: LikePayload) -> Result<
 pub async fn unlike(conn: Arc<Mutex<Connection>>, payload: UnlikePayload) -> Result<(), Error> {
   let conn = conn.lock().unwrap();
   match conn.execute(
-    "DELETE FROM likes WHERE user_id = ? AND track_id = ?",
+    "DELETE FROM loved_tracks WHERE user_id = ? AND track_id = ?",
     params![
         payload.user_id.xata_id,
         payload.track_id.xata_id,
