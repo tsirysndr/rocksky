@@ -44,6 +44,7 @@ pub fn on_scrobble(nc: Arc<Mutex<Client>>, conn: Arc<Mutex<Connection>>) {
           },
           Err(e) => {
             eprintln!("Error parsing payload: {}", e);
+            println!("{}", data);
           }
         }
       }
@@ -76,6 +77,7 @@ pub fn on_new_track(nc: Arc<Mutex<Client>>, conn: Arc<Mutex<Connection>>) {
           },
           Err(e) => {
             eprintln!("Error parsing payload: {}", e);
+            println!("{}", data);
           }
         }
       }
@@ -109,6 +111,7 @@ pub fn on_like(nc: Arc<Mutex<Client>>, conn: Arc<Mutex<Connection>>) {
           },
           Err(e) => {
             eprintln!("Error parsing payload: {}", e);
+            println!("{}", data);
           }
         }
       }
@@ -141,6 +144,7 @@ pub fn on_unlike(nc: Arc<Mutex<Client>>, conn: Arc<Mutex<Connection>>) {
           },
           Err(e) => {
             eprintln!("Error parsing payload: {}", e);
+            println!("{}", data);
           }
         }
       }
