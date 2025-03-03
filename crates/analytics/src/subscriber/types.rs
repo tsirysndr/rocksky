@@ -151,7 +151,6 @@ pub struct TrackId {
     pub disc_number: i32,
     pub duration: i32,
     pub sha256: String,
-    pub spotify_link: String,
     pub title: String,
     pub track_number: i32,
     pub uri: String,
@@ -159,6 +158,8 @@ pub struct TrackId {
     pub xata_id: String,
     pub xata_updatedat: DateTime<Utc>,
     pub xata_version: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub spotify_link: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub apple_music_link: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

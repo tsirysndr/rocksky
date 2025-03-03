@@ -661,3 +661,186 @@ pub async fn unlike(conn: Arc<Mutex<Connection>>, payload: UnlikePayload) -> Res
   }
   Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+
+    use super::types;
+
+    #[test]
+  fn test_parse_scrobble() {
+    let data = r#"
+    {
+  "scrobble": {
+    "album_id": {
+      "album_art": "https://cdn.rocksky.app/covers/9e004bc175df6c338cab2a9e465b736f.jpg",
+      "artist": "Kid Ink",
+      "artist_uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.artist/3lhlly4tvws2k",
+      "release_date": "2012-06-26T00:00:00.000Z",
+      "sha256": "8d3f54501cf22aeb5d7ecb2a21c43b8a0b21839df3c61007ec781b278ec2806f",
+      "title": "Up & Away",
+      "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lhlly5k7sk2k",
+      "xata_createdat": "2025-02-05T22:54:59.422Z",
+      "xata_id": "rec_cuhuogpo74fi003af7og",
+      "xata_updatedat": "2025-03-03T07:20:51.237Z",
+      "xata_version": 29,
+      "year": 2012,
+      "apple_music_link": null,
+      "spotify_link": null,
+      "tidal_link": null,
+      "youtube_link": null
+    },
+    "artist_id": {
+      "name": "Kid Ink",
+      "picture": "https://i.scdn.co/image/ab6761610000e5ebf4904a817005f3b96f4e6e53",
+      "sha256": "7e9e30fecceedb10bf69e0c81dd036aeb5cf83befb0c3aeedf84684fe1ab1860",
+      "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.artist/3lhlly4tvws2k",
+      "xata_createdat": "2025-02-05T22:40:50.310Z",
+      "xata_id": "rec_cuhuhsho74fi003af740",
+      "xata_updatedat": "2025-03-03T07:20:50.648Z",
+      "xata_version": 82,
+      "apple_music_link": null,
+      "biography": null,
+      "born": null,
+      "born_in": null,
+      "died": null,
+      "spotify_link": null,
+      "tidal_link": null,
+      "youtube_link": null
+    },
+    "track_id": {
+      "album": "Up & Away",
+      "album_art": "https://cdn.rocksky.app/covers/9e004bc175df6c338cab2a9e465b736f.jpg",
+      "album_artist": "Kid Ink",
+      "album_uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lhlly5k7sk2k",
+      "artist": "Kid Ink",
+      "artist_uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.artist/3lhlly4tvws2k",
+      "composer": "The Arsenals",
+      "copyright_message": "2012 Tha Alumni",
+      "disc_number": 1,
+      "duration": 251922,
+      "lyrics": "[00:11.91] I know, they ain't know what I'm on\n[00:26.97] Sorry excuse me, how I'm feelin' right now\n[00:30.12] Soon they gon' understand that\n[00:32.80] Try to do it like me you can tell 'em\n[00:35.63] I'm a beast, I'm a dog, they let me off the leash\n[00:39.12] Now I'm comin' for 'em all\n[00:40.87] Man I need another drink, it's the last call\n[00:43.79] Just gimme a minute lemme show 'em how I ball\n[00:46.60] Then we'll roll out, let's roll out\n[00:50.31] Let's roll out, we could roll out\n[00:59.92] Live, reportin' from the cockpit\n[01:02.62] Red eyes but I'm tryna get my mind clear\n[01:05.60] Celebratin' like we just won a contest\n[01:08.80] No contest, motherfuckers couldn't digest\n[01:11.66] What I'm on, man of my home\n[01:14.46] Bands on deck, you ain't gotta blow my horn\n[01:17.54] Paint a perfect picture like frida kahlo\n[01:20.41] Red or green pill don't trip just swallow that\n[01:23.77] And gon' have the time of your life\n[01:26.21] On me, no strings up, high as a kite\n[01:29.22] Watch the molly turn a straight girl right into a dyke\n[01:31.84] Soon you'll understand by the end of the night\n[01:35.04] Tell 'em\n[01:36.01] I know, they ain't know what I'm on\n[01:38.55] Sorry excuse me, how I'm feelin' right now\n[01:41.98] Soon they gon' understand that\n[01:44.63] Try to do it like me you can tell 'em\n[01:47.16] I'm a beast, I'm a dog, they let me off the leash\n[01:51.15] Now I'm comin' for 'em all\n[01:52.79] Man I need another drink, it's the last call\n[01:55.62] Just gimme a minute lemme show 'em how I ball\n[01:58.76] Then we'll roll out, let's roll out\n[02:02.97] Let's roll out, we could roll out\n[02:11.86] Just sayin', I need to get a point across\n[02:14.77] Somebody find these niggas cuz they fuckin' lost\n[02:17.70] Tryna be the boss, couldn't pay the cost\n[02:20.77] Let my chain speak for me we ain't gotta talk\n[02:23.73] I go, til, the bottle's, hollow\n[02:27.50] Smokin' on diablo, smellin' like patron and\n[02:30.68] Marc jacob's cologne, up & away new generation\n[02:34.65] Apollo shit, so ready to roll, and rockout\n[02:38.72] These lames can't ball like the nba lockout\n[02:41.11] Hit 'em in the head, might pull a knot out\n[02:44.65] Show these motherfuckers what they not 'bout\n[02:47.11] Tell 'em\n[02:48.17] ",
+      "sha256": "0565f7815bc60c7fd96341073dd6420ca0e21ee36279d381ac5acf361fd27183",
+      "title": "Roll Out",
+      "track_number": 8,
+      "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.song/3lhlly2gob22k",
+      "xata_createdat": "2025-02-05T22:54:58.062Z",
+      "xata_id": "rec_cuhuogho74fi003af7o0",
+      "xata_updatedat": "2025-03-03T07:21:04.449Z",
+      "xata_version": 16,
+      "apple_music_link": "null",
+      "genre": "null",
+      "label": "null",
+      "mb_id": "null",
+      "spotify_link": null,
+      "tidal_link": null,
+      "youtube_link": null
+    },
+    "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.scrobble/3ljhfzlkhy225",
+    "user_id": {
+      "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:7vdlgi2bflelz7mmuxoqjfcr/bafkreiabxfnhhk72ik2vgze6yjnjzbxps37nutkzbmnoo67ffoasgyeqwm@jpeg",
+      "did": "did:plc:7vdlgi2bflelz7mmuxoqjfcr",
+      "display_name": "Tsiry Sandratraina 🦀",
+      "handle": "tsiry-sandratraina.com",
+      "xata_createdat": "2025-02-03T04:39:54.139Z",
+      "xata_id": "rec_cug4h6ibhfbm7uq5dte0",
+      "xata_updatedat": "2025-02-03T04:39:54.139Z",
+      "xata_version": 0
+    },
+    "xata_createdat": "2025-03-03T07:21:04.679Z",
+    "xata_id": "rec_cv2lgo4ddc7scqp7svv0",
+    "xata_updatedat": "2025-03-03T07:21:04.679Z",
+    "xata_version": 0
+  },
+  "user_album": {
+    "album_id": {
+      "xata_id": "rec_cuhuogpo74fi003af7og"
+    },
+    "scrobbles": 10,
+    "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lhlly5k7sk2k",
+    "user_id": {
+      "xata_id": "rec_cug4h6ibhfbm7uq5dte0"
+    },
+    "xata_createdat": "2025-02-09T05:27:35.019Z",
+    "xata_id": "rec_cuk3phssvaqtev3d9l60",
+    "xata_updatedat": "2025-03-03T07:21:04.220Z",
+    "xata_version": 10
+  },
+  "user_artist": {
+    "artist_id": {
+      "xata_id": "rec_cuhuhsho74fi003af740"
+    },
+    "scrobbles": 21,
+    "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.artist/3lhlly4tvws2k",
+    "user_id": {
+      "xata_id": "rec_cug4h6ibhfbm7uq5dte0"
+    },
+    "xata_createdat": "2025-02-08T21:38:11.888Z",
+    "xata_id": "rec_cujstgpdl6q579droij0",
+    "xata_updatedat": "2025-03-03T07:21:03.643Z",
+    "xata_version": 21
+  },
+  "user_track": {
+    "scrobbles": 6,
+    "track_id": {
+      "xata_id": "rec_cuhuogho74fi003af7o0"
+    },
+    "uri": "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.song/3lhlly2gob22k",
+    "user_id": {
+      "xata_id": "rec_cug4h6ibhfbm7uq5dte0"
+    },
+    "xata_createdat": "2025-02-09T05:27:34.172Z",
+    "xata_id": "rec_cuk3phhdl6q579drp6f0",
+    "xata_updatedat": "2025-03-03T07:21:02.405Z",
+    "xata_version": 6
+  },
+  "album_track": {
+    "album_id": {
+      "xata_id": "rec_cuhuogpo74fi003af7og"
+    },
+    "track_id": {
+      "xata_id": "rec_cuhuogho74fi003af7o0"
+    },
+    "xata_createdat": "2025-02-05T22:54:59.922Z",
+    "xata_id": "rec_cuhuogpo74fi003af7p0",
+    "xata_updatedat": "2025-03-03T07:20:51.736Z",
+    "xata_version": 11
+  },
+  "artist_track": {
+    "artist_id": {
+      "xata_id": "rec_cuhuhsho74fi003af740"
+    },
+    "track_id": {
+      "xata_id": "rec_cuhuogho74fi003af7o0"
+    },
+    "xata_createdat": "2025-02-05T22:55:00.706Z",
+    "xata_id": "rec_cuhuoh2e5drjqa1arhf0",
+    "xata_updatedat": "2025-03-03T07:20:52.218Z",
+    "xata_version": 11
+  },
+  "artist_album": {
+    "album_id": {
+      "xata_id": "rec_cuhuogpo74fi003af7og"
+    },
+    "artist_id": {
+      "xata_id": "rec_cuhuhsho74fi003af740"
+    },
+    "xata_createdat": "2025-02-05T22:55:01.205Z",
+    "xata_id": "rec_cuhuohe7vkdf9dh0pkh0",
+    "xata_updatedat": "2025-03-03T07:20:53.007Z",
+    "xata_version": 29
+  }
+}
+    "#;
+
+    match serde_json::from_str::<types::ScrobblePayload>(data) {
+      Err(e) => {
+        eprintln!("Error parsing payload: {}", e);
+         println!("{}", data);
+      },
+      Ok(_) => {
+      }
+    }
+    assert!(true);
+  }
+}
