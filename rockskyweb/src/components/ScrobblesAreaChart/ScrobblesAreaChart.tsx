@@ -52,7 +52,6 @@ function ScrobblesAreaChart() {
   useEffect(() => {
     const fetchScrobblesChart = async () => {
       if (pathname === "/") {
-        setData(getScrobblesChart());
         return;
       }
 
@@ -104,7 +103,7 @@ function ScrobblesAreaChart() {
       <AreaChart
         width={300}
         height={120}
-        data={data}
+        data={pathname === "/" ? getScrobblesChart() : data}
         margin={{
           top: 5,
           right: 0,
