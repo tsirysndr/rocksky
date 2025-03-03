@@ -37,6 +37,18 @@ const RightPane = styled.div`
   }
 `;
 
+const Link = styled.a`
+  color: #ff2876;
+  text-decoration: none;
+  cursor: pointer;
+  display: block;
+  font-size: 13px;
+
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
 function Main({ children }: { children: React.ReactNode }) {
   const [handle, setHandle] = useState("");
   const { search } = useLocation();
@@ -209,6 +221,11 @@ function Main({ children }: { children: React.ReactNode }) {
             <ScrobblesAreaChart />
           </div>
           <ExternalLinks />
+          <div style={{ marginTop: 40 }}>
+            <Link href="https://doc.rocksky.app/" target="_blank">
+              API Documentation
+            </Link>
+          </div>
         </div>
       </RightPane>
     </Container>
