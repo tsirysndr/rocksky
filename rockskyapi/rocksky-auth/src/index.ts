@@ -170,6 +170,53 @@ app.get("/public/scrobbles", async (c) => {
   );
 });
 
+app.get("/public/scrobbleschart", async (c) => {
+  const did = c.req.query("did");
+  const artisturi = c.req.query("artisturi");
+  const albumuri = c.req.query("albumuri");
+  const songuri = c.req.query("songuri");
+
+  if (did) {
+    const chart = await ctx.analytics.post("library.getScrobblesPerDay", {
+      user_did: did,
+    });
+    return c.json(chart.data);
+  }
+
+  if (artisturi) {
+    const chart = await ctx.analytics.post("library.getArtistScrobbles", {
+      artist_id: artisturi,
+    });
+    return c.json(chart.data);
+  }
+
+  if (albumuri) {
+    const chart = await ctx.analytics.post("library.getAlbumScrobbles", {
+      album_id: albumuri,
+    });
+    return c.json(chart.data);
+  }
+
+  if (songuri) {
+    let uri = songuri;
+    if (songuri.includes("app.rocksky.scrobble")) {
+      const scrobble = await ctx.client.db.scrobbles
+        .select(["track_id.*", "uri"])
+        .filter("uri", equals(songuri))
+        .getFirst();
+
+      uri = scrobble.track_id.uri;
+    }
+    const chart = await ctx.analytics.post("library.getTrackScrobbles", {
+      track_id: uri,
+    });
+    return c.json(chart.data);
+  }
+
+  const chart = await ctx.analytics.post("library.getScrobblesPerDay", {});
+  return c.json(chart.data);
+});
+
 app.get("/scrobbles", async (c) => {
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 

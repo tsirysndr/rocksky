@@ -7,6 +7,7 @@ import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router";
 import { profileAtom } from "../atoms/profile";
+import ScrobblesAreaChart from "../components/ScrobblesAreaChart";
 import { API_URL } from "../consts";
 import useProfile from "../hooks/useProfile";
 import ExternalLinks from "./ExternalLinks";
@@ -204,6 +205,9 @@ function Main({ children }: { children: React.ReactNode }) {
             </div>
           )}
 
+          <div style={{ marginTop: 40 }}>
+            <ScrobblesAreaChart />
+          </div>
           <ExternalLinks />
         </div>
       </RightPane>
