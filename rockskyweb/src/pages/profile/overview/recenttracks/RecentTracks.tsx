@@ -64,7 +64,9 @@ function RecentTracks(props: RecentTracksProps) {
           albumArt: item.album_art,
           albumArtist: item.album_artist,
           uri: item.uri,
-          date: item.created_at,
+          date: item.created_at.endsWith("Z")
+            ? item.created_at
+            : `${item.created_at}Z`,
           scrobbleUri: item.uri,
           albumUri: item.album_uri,
           artistUri: item.artist_uri,
