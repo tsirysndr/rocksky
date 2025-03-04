@@ -91,7 +91,8 @@ pub struct AlbumId {
     pub album_art: Option<String>,
     pub artist: String,
     pub artist_uri: String,
-    pub release_date: DateTime<Utc>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release_date: Option<DateTime<Utc>>,
     pub sha256: String,
     pub title: String,
     pub uri: String,
