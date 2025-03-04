@@ -20,15 +20,26 @@ pub async fn get_albums(payload: &mut web::Payload, _req: &HttpRequest, conn: Ar
   let mut stmt = match did {
     Some(_) => {
       conn.prepare(r#"
-        SELECT a.* FROM user_albums ua
+        SELECT a.*,
+          COUNT(*) AS play_count,
+          COUNT(DISTINCT s.user_id) AS unique_listeners
+         FROM user_albums ua
         LEFT JOIN albums a ON ua.album_id = a.id
         LEFT JOIN users u ON ua.user_id = u.id
+        LEFT JOIN scrobbles s ON s.album_id = a.id
         WHERE u.did = ? OR u.handle = ?
-        ORDER BY a.title ASC OFFSET ? LIMIT ?;
+        GROUP BY a.*
+        ORDER BY play_count DESC OFFSET ? LIMIT ?;
       "#)?
     },
     None => {
-      conn.prepare("SELECT * FROM albums ORDER BY title ASC OFFSET ? LIMIT ?")?
+      conn.prepare("SELECT a.*,
+        COUNT(*) AS play_count,
+        COUNT(DISTINCT s.user_id) AS unique_listeners
+       FROM albums a
+       LEFT JOIN scrobbles s ON s.album_id = a.id
+       GROUP BY a.*
+       ORDER BY play_count DESC OFFSET ? LIMIT ?")?
     }
   };
 
@@ -49,6 +60,8 @@ pub async fn get_albums(payload: &mut web::Payload, _req: &HttpRequest, conn: Ar
           sha256: row.get(10)?,
           uri: row.get(11)?,
           artist_uri: row.get(12)?,
+          play_count: Some(row.get(13)?),
+          unique_listeners: Some(row.get(14)?),
           ..Default::default()
         })
       })?;
@@ -72,6 +85,8 @@ pub async fn get_albums(payload: &mut web::Payload, _req: &HttpRequest, conn: Ar
           sha256: row.get(10)?,
           uri: row.get(11)?,
           artist_uri: row.get(12)?,
+          play_count: Some(row.get(13)?),
+          unique_listeners: Some(row.get(14)?),
           ..Default::default()
         })
         })?;

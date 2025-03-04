@@ -20,15 +20,26 @@ pub async fn get_artists(payload: &mut web::Payload, _req: &HttpRequest, conn: A
     let mut stmt = match did {
         Some(_) => {
             conn.prepare(r#"
-            SELECT a.* FROM user_artists ua
+            SELECT a.*,
+                COUNT(*) AS play_count,
+                COUNT(DISTINCT s.user_id) AS unique_listeners
+             FROM user_artists ua
             LEFT JOIN artists a ON ua.artist_id = a.id
             LEFT JOIN users u ON ua.user_id = u.id
+            LEFT JOIN scrobbles s ON s.artist_id = a.id
             WHERE u.did = ? OR u.handle = ?
-            ORDER BY a.name ASC OFFSET ? LIMIT ?;
+            GROUP BY a.*
+            ORDER BY play_count DESC OFFSET ? LIMIT ?;
             "#)?
         },
         None => {
-            conn.prepare("SELECT * FROM artists ORDER BY name ASC OFFSET ? LIMIT ?")?
+            conn.prepare("SELECT a.*,
+                COUNT(*) AS play_count,
+                COUNT(DISTINCT s.user_id) AS unique_listeners
+             FROM artists a
+             LEFT JOIN scrobbles s ON s.artist_id = a.id
+             GROUP BY a.*
+             ORDER BY play_count DESC OFFSET ? LIMIT ?")?
         }
     };
 
@@ -49,8 +60,8 @@ pub async fn get_artists(payload: &mut web::Payload, _req: &HttpRequest, conn: A
                     youtube_link: row.get(10)?,
                     apple_music_link: row.get(11)?,
                     uri: row.get(12)?,
-                    play_count: None,
-                    unique_listeners: None,
+                    play_count: row.get(13)?,
+                    unique_listeners: row.get(14)?,
                 })
             })?;
 
@@ -73,8 +84,8 @@ pub async fn get_artists(payload: &mut web::Payload, _req: &HttpRequest, conn: A
                     youtube_link: row.get(10)?,
                     apple_music_link: row.get(11)?,
                     uri: row.get(12)?,
-                    play_count: None,
-                    unique_listeners: None,
+                    play_count: row.get(13)?,
+                    unique_listeners: row.get(14)?,
                 })
             })?;
 

@@ -45,11 +45,15 @@ pub async fn get_tracks(payload: &mut web::Payload, _req: &HttpRequest, conn: Ar
                     t.artist_uri,
                     t.album_uri,
                     t.created_at,
+                    COUNT(*) AS play_count,
+                    COUNT(DISTINCT s.user_id) AS unique_listeners
                 FROM tracks t
                 LEFT JOIN user_tracks ut ON t.id = ut.track_id
                 LEFT JOIN users u ON ut.user_id = u.id
+                LEFT JOIN scrobbles s ON s.track_id = t.id
                 WHERE u.did = ? OR u.handle = ?
-                ORDER BY t.title ASC
+                GROUP BY t.id, t.title, t.artist, t.album_artist, t.album_art, t.album, t.track_number, t.duration, t.mb_id, t.youtube_link, t.spotify_link, t.tidal_link, t.apple_music_link, t.sha256, t.composer, t.genre, t.disc_number, t.label, t.copyright_message, t.uri, t.created_at, t.artist_uri, t.album_uri
+                ORDER BY play_count DESC
                 OFFSET ?
                 LIMIT ?;
             "#)?;
@@ -78,6 +82,8 @@ pub async fn get_tracks(payload: &mut web::Payload, _req: &HttpRequest, conn: Ar
                     artist_uri: row.get(20)?,
                     album_uri: row.get(21)?,
                     created_at: row.get(22)?,
+                    play_count: row.get(23)?,
+                    unique_listeners: row.get(24)?,
                     ..Default::default()
                 })
             })?;
@@ -87,31 +93,35 @@ pub async fn get_tracks(payload: &mut web::Payload, _req: &HttpRequest, conn: Ar
         None => {
             let mut stmt = conn.prepare(r#"
                 SELECT
-                    id,
-                    title,
-                    artist,
-                    album_artist,
-                    album_art,
-                    album,
-                    track_number,
-                    duration,
-                    mb_id,
-                    youtube_link,
-                    spotify_link,
-                    tidal_link,
-                    apple_music_link,
-                    sha256,
-                    composer,
-                    genre,
-                    disc_number,
-                    label,
-                    uri,
-                    copyright_message,
-                    artist_uri,
-                    album_uri,
-                    created_at,
-                FROM tracks
-                ORDER BY title ASC
+                    t.id,
+                    t.title,
+                    t.artist,
+                    t.album_artist,
+                    t.album_art,
+                    t.album,
+                    t.track_number,
+                    t.duration,
+                    t.mb_id,
+                    t.youtube_link,
+                    t.spotify_link,
+                    t.tidal_link,
+                    t.apple_music_link,
+                    t.sha256,
+                    t.composer,
+                    t.genre,
+                    t.disc_number,
+                    t.label,
+                    t.uri,
+                    t.copyright_message,
+                    t.artist_uri,
+                    t.album_uri,
+                    t.created_at,
+                    COUNT(*) AS play_count,
+                    COUNT(DISTINCT s.user_id) AS unique_listeners
+                FROM tracks t
+                LEFT JOIN scrobbles s ON s.track_id = t.id
+                GROUP BY t.id, t.title, t.artist, t.album_artist, t.album_art, t.album, t.track_number, t.duration, t.mb_id, t.youtube_link, t.spotify_link, t.tidal_link, t.apple_music_link, t.sha256, t.composer, t.genre, t.disc_number, t.label, t.copyright_message, t.uri, t.created_at, t.artist_uri, t.album_uri
+                ORDER BY play_count DESC
                 OFFSET ?
                 LIMIT ?;
             "#)?;
@@ -140,6 +150,8 @@ pub async fn get_tracks(payload: &mut web::Payload, _req: &HttpRequest, conn: Ar
                     artist_uri: row.get(20)?,
                     album_uri: row.get(21)?,
                     created_at: row.get(22)?,
+                    play_count: row.get(23)?,
+                    unique_listeners: row.get(24)?,
                     ..Default::default()
                 })
             })?;

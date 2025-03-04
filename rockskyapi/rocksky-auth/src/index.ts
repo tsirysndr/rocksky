@@ -304,48 +304,42 @@ app.get("/tracks", async (c) => {
   const size = +c.req.query("size") || 100;
   const offset = +c.req.query("offset") || 0;
 
-  const tracks = await ctx.client.db.tracks
-    .sort("xata_createdat", "desc")
-    .getPaginated({
-      pagination: {
-        size,
-        offset,
-      },
-    });
+  const tracks = await ctx.analytics.post("library.getTracks", {
+    pagination: {
+      skip: offset,
+      take: size,
+    },
+  });
 
-  return c.json(tracks.records);
+  return c.json(tracks.data);
 });
 
 app.get("/albums", async (c) => {
   const size = +c.req.query("size") || 100;
   const offset = +c.req.query("offset") || 0;
 
-  const albums = await ctx.client.db.albums
-    .sort("xata_createdat", "desc")
-    .getPaginated({
-      pagination: {
-        size,
-        offset,
-      },
-    });
+  const albums = await ctx.analytics.post("library.getAlbums", {
+    pagination: {
+      skip: offset,
+      take: size,
+    },
+  });
 
-  return c.json(albums.records);
+  return c.json(albums.data);
 });
 
 app.get("/artists", async (c) => {
   const size = +c.req.query("size") || 100;
   const offset = +c.req.query("offset") || 0;
 
-  const artists = await ctx.client.db.artists
-    .sort("xata_createdat", "desc")
-    .getPaginated({
-      pagination: {
-        size,
-        offset,
-      },
-    });
+  const artists = await ctx.analytics.post("library.getArtists", {
+    pagination: {
+      skip: offset,
+      take: size,
+    },
+  });
 
-  return c.json(artists.records);
+  return c.json(artists.data);
 });
 
 app.get("/tracks/:sha256", async (c) => {
