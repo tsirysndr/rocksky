@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CurrentlyPlaying {
     pub actions: Actions,
     pub context: Context,
@@ -11,18 +11,18 @@ pub struct CurrentlyPlaying {
     pub timestamp: u64,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Actions {
     pub disallows: Disallows,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Disallows {
     pub resuming: Option<bool>,
     pub skipping_prev: Option<bool>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Context {
     pub external_urls: ExternalUrls,
     pub href: String,
@@ -31,12 +31,12 @@ pub struct Context {
     pub uri: String,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct ExternalUrls {
     pub spotify: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Item {
     pub album: Album,
     pub artists: Vec<Artist>,
@@ -58,7 +58,7 @@ pub struct Item {
     pub uri: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Album {
     pub album_type: String,
     pub artists: Vec<Artist>,
@@ -79,13 +79,13 @@ pub struct Album {
     pub copyrights: Option<Vec<Copyright>>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Copyright {
     pub text: String,
     pub r#type: String,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct Artist {
     pub external_urls: ExternalUrls,
     pub href: String,
@@ -97,14 +97,14 @@ pub struct Artist {
     pub images: Option<Vec<Image>>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Image {
     pub height: u32,
     pub url: String,
     pub width: u32,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ExternalIds {
     pub isrc: String,
 }

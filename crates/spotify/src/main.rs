@@ -24,6 +24,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
   let pool=  PgPoolOptions::new().max_connections(5).connect(&env::var("XATA_POSTGRES_URL")?).await?;
 
   let users = find_spotify_users(&pool, 0, 100).await?;
+  println!("Found {} users", users.len().bright_green());
 
   for user in users {
     let email = user.0.clone();
@@ -246,6 +247,8 @@ pub async fn find_spotify_users(
 
 pub async fn watch_currently_playing(spotify_email: String, token: String, did: String) -> Result<(), Error> {
   let cache = Cache::new()?;
+  println!("{} {}", format!("[{}]", spotify_email).bright_green(), "Checking currently playing".cyan());
+
   loop {
     let spotify_email = spotify_email.clone();
     let token = token.clone();

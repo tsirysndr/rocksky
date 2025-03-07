@@ -45,7 +45,7 @@ pub async fn serve(conn: Arc<Mutex<Connection>>) -> Result<(), Error> {
   let conn = conn.clone();
   HttpServer::new(move || {
     App::new()
-      .app_data(Data::new( conn.clone()))
+      .app_data(Data::new(conn.clone()))
       .service(index)
       .service(call_method)
   })
