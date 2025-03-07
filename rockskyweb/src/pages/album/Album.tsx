@@ -1,6 +1,12 @@
 import styled from "@emotion/styled";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
-import { HeadingMedium, LabelLarge, LabelMedium } from "baseui/typography";
+import {
+  HeadingMedium,
+  LabelLarge,
+  LabelMedium,
+  LabelXSmall,
+} from "baseui/typography";
+import dayjs from "dayjs";
 import numeral from "numeral";
 import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
@@ -50,12 +56,13 @@ const Album = () => {
     albumArt?: string;
     artist: string;
     title: string;
-    year: string;
+    year: number;
     uri: string;
     releaseDate: string;
     listeners: number;
     scrobbles: number;
     artistUri?: string;
+    label?: string;
     tracks: {
       xata_id: string;
       track_number: number;
@@ -87,10 +94,13 @@ const Album = () => {
         title: data.title,
         year: data.year,
         uri: data.uri,
-        releaseDate: data.release_date,
         listeners: data.listeners,
         scrobbles: data.scrobbles,
         tracks: data.tracks,
+        releaseDate: data.release_date
+          ? dayjs(data.release_date).format("MMMM D, YYYY")
+          : data.year.toString(),
+        label: data.tracks[0].copyright_message || data.tracks[0].label,
       });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setDisc(Math.max(...data.tracks.map((track: any) => track.disc_number)));
@@ -418,6 +428,15 @@ const Album = () => {
               ))}
             </div>
           )}
+
+          <div style={{ marginTop: 20 }}>
+            <LabelMedium margin={0} color="rgba(36, 49, 61, 0.65)">
+              {album?.releaseDate}
+            </LabelMedium>
+            <LabelXSmall margin={0} color={"rgba(36, 49, 61, 0.65)"}>
+              {album?.label}
+            </LabelXSmall>
+          </div>
         </div>
         <Shout type="album" />
       </div>

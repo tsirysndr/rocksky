@@ -1,0 +1,218 @@
+use std::env;
+
+use anyhow::Error;
+use duckdb::{params, Connection};
+use owo_colors::OwoColorize;
+use sqlx::{Pool, Postgres};
+
+use crate::{crypto::decrypt_aes_256_ctr, types::{self, spotify_token::SpotifyTokenWithEmail}, xata};
+
+pub fn create_tables(conn: &Connection) -> Result<(), Error> {
+    conn.execute_batch(r#"
+    CREATE TABLE IF NOT EXISTS playlists (
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      description TEXT,
+      picture TEXT,
+      spotify_link TEXT,
+      tidal_link TEXT,
+      apple_music_link TEXT,
+      xata_createdat TIMESTAMP,
+      xata_updatedat TIMESTAMP,
+      uri TEXT,
+      created_by TEXT
+    );
+    CREATE TABLE IF NOT EXISTS tracks (
+        id VARCHAR PRIMARY KEY,
+        title VARCHAR,
+        artist VARCHAR,
+        album_artist VARCHAR,
+        album_art VARCHAR,
+        album VARCHAR,
+        track_number INTEGER,
+        duration INTEGER,
+        mb_id VARCHAR,
+        youtube_link VARCHAR,
+        spotify_link VARCHAR,
+        tidal_link VARCHAR,
+        apple_music_link VARCHAR,
+        sha256 VARCHAR NOT NULL,
+        lyrics TEXT,
+        composer VARCHAR,
+        genre VARCHAR,
+        disc_number INTEGER,
+        copyright_message VARCHAR,
+        label VARCHAR,
+        uri VARCHAR,
+        artist_uri VARCHAR,
+        album_uri VARCHAR,
+        created_at TIMESTAMP,
+    );
+     CREATE TABLE IF NOT EXISTS users (
+        id VARCHAR PRIMARY KEY,
+        display_name VARCHAR,
+        did VARCHAR,
+        handle VARCHAR,
+        avatar VARCHAR,
+    );
+     CREATE TABLE IF NOT EXISTS playlist_tracks (
+        id VARCHAR PRIMARY KEY,
+        playlist_id VARCHAR,
+        track_id VARCHAR,
+        added_by VARCHAR,
+        created_at TIMESTAMP,
+        FOREIGN KEY (playlist_id) REFERENCES playlists(id),
+        FOREIGN KEY (track_id) REFERENCES tracks(id),
+    );
+    CREATE TABLE IF NOT EXISTS user_playlists (
+        id VARCHAR PRIMARY KEY,
+        user_id VARCHAR,
+        playlist_id VARCHAR,
+        created_at TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (playlist_id) REFERENCES playlists(id),
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS user_playlists_unique_index ON user_playlists (user_id, playlist_id);
+  "#)?;
+    Ok(())
+}
+
+
+pub async fn load_users(conn: &Connection, pool: &Pool<Postgres>) -> Result<(), Error> {
+  let users: Vec<xata::user::User> = sqlx::query_as(r#"
+      SELECT * FROM users
+  "#)
+  .fetch_all(pool)
+  .await?;
+
+  for (i, user) in users.clone().into_iter().enumerate() {
+      println!("user {} - {}", i, user.display_name.bright_green());
+      match conn.execute(
+          "INSERT INTO users (
+              id,
+              display_name,
+              did,
+              handle,
+              avatar
+          ) VALUES (?,
+              ?,
+              ?,
+              ?,
+              ?) ON CONFLICT DO NOTHING",
+           params![
+              user.xata_id,
+              user.display_name,
+              user.did,
+              user.handle,
+              user.avatar,
+           ],
+      ) {
+          Ok(_) => (),
+          Err(e) => println!("error: {}", e),
+      }
+  }
+
+  println!("users: {:?}", users.len());
+  Ok(())
+}
+
+pub async fn find_spotify_users(
+  pool: &Pool<Postgres>,
+  offset: usize,
+  limit: usize
+) -> Result<Vec<(String, String, String, String)>, Error> {
+  let results: Vec<SpotifyTokenWithEmail> = sqlx::query_as(r#"
+    SELECT * FROM spotify_tokens
+    LEFT JOIN spotify_accounts ON spotify_tokens.user_id = spotify_accounts.user_id
+    LEFT JOIN users ON spotify_accounts.user_id = users.xata_id
+    LIMIT $1 OFFSET $2
+  "#)
+    .bind(limit as i64)
+    .bind(offset as i64)
+    .fetch_all(pool)
+    .await?;
+
+  let mut user_tokens = vec![];
+
+  for result in &results {
+    let token = decrypt_aes_256_ctr(
+      &result.refresh_token,
+      &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?
+    )?;
+    user_tokens.push((result.email.clone(), token, result.did.clone(), result.user_id.clone()));
+  }
+
+  Ok(user_tokens)
+}
+
+pub async fn save_playlists(pool: &Pool<Postgres>, conn: &Connection, playlists: Vec<types::playlist::Playlist>, user_id: &str) -> Result<(), Error> {
+  for playlist in playlists {
+    println!("Saving playlist: {} - {} tracks", playlist.name.bright_green(), playlist.tracks.total);
+    sqlx::query(r#"
+      INSERT INTO playlists (name, description, picture, spotify_link, created_by)
+      VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (spotify_link) DO UPDATE set
+      name = EXCLUDED.name,
+      description = EXCLUDED.description,
+      picture = EXCLUDED.picture,
+      spotify_link = EXCLUDED.spotify_link,
+      created_by = EXCLUDED.created_by
+    "#)
+      .bind(playlist.name)
+      .bind(playlist.description)
+      .bind(playlist.images.first().map(|i| i.url.clone()))
+      .bind(&playlist.external_urls.spotify)
+      .bind(user_id)
+      .execute(pool)
+      .await?;
+
+    let playlist: Vec<xata::playlist::Playlist> = sqlx::query_as(r#"SELECT * FROM playlists WHERE spotify_link = $1"#)
+      .bind(&playlist.external_urls.spotify)
+      .fetch_all(pool)
+      .await?;
+
+    let playlist = playlist.first().unwrap();
+
+    sqlx::query(r#"
+      INSERT INTO user_playlists (user_id, playlist_id)
+      VALUES ($1, $2)
+      ON CONFLICT (user_id, playlist_id) DO NOTHING
+    "#)
+      .bind(user_id)
+      .bind(&playlist.xata_id)
+      .execute(pool)
+      .await?;
+
+    let user_playlist: Vec<xata::user_playlist::UserPlaylist> = sqlx::query_as("SELECT * FROM user_playlists WHERE user_id = $1 AND playlist_id = $2")
+      .bind(user_id)
+      .bind(&playlist.xata_id)
+      .fetch_all(pool)
+      .await?;
+    let user_playlist = user_playlist.first().unwrap();
+
+    conn.execute("INSERT INTO playlists (id, name, description, picture, spotify_link, uri, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT DO NOTHING",
+      params![
+        &playlist.xata_id,
+        &playlist.name,
+        playlist.description,
+        playlist.picture,
+        playlist.spotify_link,
+        playlist.uri,
+        user_id
+      ]
+    )?;
+
+    conn.execute(
+      "INSERT INTO user_playlists (id, user_id, playlist_id, created_at) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING",
+      params![
+        &user_playlist.xata_id,
+        user_id,
+        &playlist.xata_id,
+        chrono::Utc::now()
+      ]
+    )?;
+
+  }
+  Ok(())
+}
