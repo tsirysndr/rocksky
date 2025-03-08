@@ -113,6 +113,7 @@ pub async fn refresh_token(token: &str) -> Result<AccessToken, Error> {
 
 pub async fn get_currently_playing(cache: Cache, user_id: &str, token: &str) -> Result<Option<(CurrentlyPlaying, bool)>, Error> {
   if let Ok(Some(data)) = cache.get(user_id) {
+    println!("{} {}", format!("[{}]", user_id).bright_green(), "Using cache".cyan());
     if data == "No content" {
       return Ok(None);
     }
