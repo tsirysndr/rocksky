@@ -283,6 +283,7 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
 
   loop {
     if stop_flag.load(std::sync::atomic::Ordering::Relaxed) {
+      println!("{} Stopping", format!("[{}]", spotify_email).bright_green());
       break;
     }
     let spotify_email = spotify_email.clone();
