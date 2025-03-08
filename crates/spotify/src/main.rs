@@ -23,6 +23,7 @@ const BASE_URL: &str = "https://api.spotify.com/v1";
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
   dotenv().ok();
+  let cache = Cache::new()?;
   let pool=  PgPoolOptions::new().max_connections(5).connect(&env::var("XATA_POSTGRES_URL")?).await?;
 
   let stop_flag = Arc::new(AtomicBool::new(false));
@@ -41,10 +42,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = user.1.clone();
     let did = user.2.clone();
     let stop_flag = Arc::clone(&stop_flag);
+    let cache = cache.clone();
     thread::spawn(move || {
       let rt = tokio::runtime::Runtime::new().unwrap();
       rt.block_on(async {
-        watch_currently_playing(email, token, did, stop_flag).await?;
+        watch_currently_playing(email, token, did, stop_flag, cache.clone()).await?;
         Ok::<(), Error>(())
       }).unwrap();
     });
@@ -61,16 +63,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let users = find_spotify_users(&pool, 0, 100).await?;
     println!("Found {} users", users.len().bright_green());
 
+    let cache = cache.clone();
     thread::spawn(move || {
       for user in users {
         let email = user.0.clone();
         let token = user.1.clone();
         let did = user.2.clone();
         let stop_flag = Arc::clone(&stop_flag);
+        let cache = cache.clone();
         thread::spawn(move || {
           let rt = tokio::runtime::Runtime::new().unwrap();
           rt.block_on(async {
-            watch_currently_playing(email, token, did, stop_flag).await?;
+            watch_currently_playing(email, token, did, stop_flag, cache.clone()).await?;
             Ok::<(), Error>(())
           }).unwrap();
         });
@@ -293,8 +297,7 @@ pub async fn find_spotify_users(
   Ok(user_tokens)
 }
 
-pub async fn watch_currently_playing(spotify_email: String, token: String, did: String, stop_flag: Arc<AtomicBool>) -> Result<(), Error> {
-  let cache = Cache::new()?;
+pub async fn watch_currently_playing(spotify_email: String, token: String, did: String, stop_flag: Arc<AtomicBool>, cache: Cache) -> Result<(), Error> {
   println!("{} {}", format!("[{}]", spotify_email).bright_green(), "Checking currently playing".cyan());
 
   loop {
