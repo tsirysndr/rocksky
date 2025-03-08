@@ -71,6 +71,8 @@ function Profile() {
             paddingTop: 75,
             paddingLeft: 25,
             paddingRight: 25,
+            maxWidth: "90vw",
+            overflowX: "hidden",
           }}
         >
           <Group style={{ paddingLeft: "15px", paddingRight: "15px" }}>
@@ -86,20 +88,24 @@ function Profile() {
                 {profile?.displayName}
               </HeadingMedium>
               <LabelLarge>
-                <a
-                  href={`https://bsky.app/profile/${profile?.handle}`}
-                  style={{
-                    textDecoration: "none",
-                    color: "#ff2876",
-                  }}
-                >
-                  @{profile?.handle}
-                </a>
-                <span style={{ color: "#42576ca6", fontSize: "15px" }}>
-                  {" "}
-                  • scrobbling since{" "}
-                  {dayjs(profile?.createdAt).format("DD MMM YYYY")}
-                </span>
+                <div>
+                  <a
+                    href={`https://bsky.app/profile/${profile?.handle}`}
+                    style={{
+                      textDecoration: "none",
+                      color: "#ff2876",
+                    }}
+                  >
+                    @{profile?.handle}
+                  </a>
+                </div>
+                <div>
+                  <span style={{ color: "#42576ca6", fontSize: "15px" }}>
+                    {" "}
+                    scrobbling since{" "}
+                    {dayjs(profile?.createdAt).format("DD MMM YYYY")}
+                  </span>
+                </div>
               </LabelLarge>
             </div>
           </Group>

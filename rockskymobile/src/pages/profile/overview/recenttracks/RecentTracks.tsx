@@ -151,7 +151,7 @@ function RecentTracks(props: RecentTracksProps) {
               returnFocus
               autoFocus
             >
-              <div style={{ width: 120, color: "rgba(66, 87, 108, 0.65)" }}>
+              <div style={{ width: 118, color: "rgba(66, 87, 108, 0.65)" }}>
                 {dayjs(row.date).fromNow()}
               </div>
             </StatefulTooltip>

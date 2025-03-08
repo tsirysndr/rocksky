@@ -20,6 +20,7 @@ const Flex = styled.div`
   margin-top: 50px;
   flex-direction: column;
   margin-bottom: 200px;
+  height: 100vh;
 `;
 
 function Main({ children }: { children: React.ReactNode }) {
