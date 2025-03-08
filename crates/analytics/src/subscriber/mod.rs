@@ -704,10 +704,8 @@ pub async fn save_user(conn: Arc<Mutex<Connection>>, payload: UserPayload) -> Re
         avatar,
         did,
         display_name,
-        handle,
-        created_at
+        handle
       ) VALUES (
-          ?,
           ?,
           ?,
           ?,
@@ -718,8 +716,7 @@ pub async fn save_user(conn: Arc<Mutex<Connection>>, payload: UserPayload) -> Re
         avatar = EXCLUDED.avatar,
         did = EXCLUDED.did,
         display_name = EXCLUDED.display_name,
-        handle = EXCLUDED.handle,
-        created_at = EXCLUDED.created_at",
+        handle = EXCLUDED.handle",
       params![
           payload.xata_id,
           payload.avatar,
