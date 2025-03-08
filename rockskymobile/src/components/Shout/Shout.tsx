@@ -130,7 +130,7 @@ function Shout(props: ShoutProps) {
                 overrides={{
                   Input: {
                     style: {
-                      width: "770px",
+                      width: "calc(95vw - 25px)",
                     },
                   },
                 }}
