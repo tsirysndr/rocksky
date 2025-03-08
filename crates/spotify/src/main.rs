@@ -50,7 +50,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Ok::<(), Error>(())
       }).unwrap();
     });
-    thread::sleep(std::time::Duration::from_secs(2));
+    thread::sleep(std::time::Duration::from_millis(900));
   }
 
 
@@ -78,9 +78,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Ok::<(), Error>(())
           }).unwrap();
         });
-        thread::sleep(std::time::Duration::from_secs(2));
+        thread::sleep(std::time::Duration::from_millis(900));
       }
-      thread::sleep(std::time::Duration::from_secs(1));
     });
 
   }

@@ -1,13 +1,18 @@
-use std::env;
+use std::{env, sync::{Arc, Mutex}};
 
 use anyhow::Error;
 use duckdb::{params, Connection};
 use owo_colors::OwoColorize;
+use reqwest::Client;
+use sha2::Digest;
 use sqlx::{Pool, Postgres};
 
-use crate::{crypto::decrypt_aes_256_ctr, types::{self, spotify_token::SpotifyTokenWithEmail}, xata};
+use crate::{crypto::{decrypt_aes_256_ctr, generate_token}, types::{self, spotify_token::SpotifyTokenWithEmail}, xata};
 
-pub fn create_tables(conn: &Connection) -> Result<(), Error> {
+const ROCKSKY_API: &str = "https://api.rocksky.app";
+
+pub fn create_tables(conn: Arc<Mutex<Connection>>) -> Result<(), Error> {
+    let conn = conn.lock().unwrap();
     conn.execute_batch(r#"
     CREATE TABLE IF NOT EXISTS playlists (
       id TEXT PRIMARY KEY,
@@ -79,7 +84,8 @@ pub fn create_tables(conn: &Connection) -> Result<(), Error> {
 }
 
 
-pub async fn load_users(conn: &Connection, pool: &Pool<Postgres>) -> Result<(), Error> {
+pub async fn load_users(conn: Arc<Mutex<Connection>>, pool: &Pool<Postgres>) -> Result<(), Error> {
+  let conn = conn.lock().unwrap();
   let users: Vec<xata::user::User> = sqlx::query_as(r#"
       SELECT * FROM users
   "#)
@@ -146,9 +152,11 @@ pub async fn find_spotify_users(
   Ok(user_tokens)
 }
 
-pub async fn save_playlists(pool: &Pool<Postgres>, conn: &Connection, playlists: Vec<types::playlist::Playlist>, user_id: &str) -> Result<(), Error> {
+pub async fn save_playlists(pool: &Pool<Postgres>, conn: Arc<Mutex<Connection>>, playlists: Vec<types::playlist::Playlist>, user_id: &str, did: &str) -> Result<(), Error> {
+  let token = generate_token(did)?;
   for playlist in playlists {
     println!("Saving playlist: {} - {} tracks", playlist.name.bright_green(), playlist.tracks.total);
+
     sqlx::query(r#"
       INSERT INTO playlists (name, description, picture, spotify_link, created_by)
       VALUES ($1, $2, $3, $4, $5)
@@ -167,12 +175,33 @@ pub async fn save_playlists(pool: &Pool<Postgres>, conn: &Connection, playlists:
       .execute(pool)
       .await?;
 
-    let playlist: Vec<xata::playlist::Playlist> = sqlx::query_as(r#"SELECT * FROM playlists WHERE spotify_link = $1"#)
+    let new_playlist: Vec<xata::playlist::Playlist> = sqlx::query_as(r#"SELECT * FROM playlists WHERE spotify_link = $1"#)
       .bind(&playlist.external_urls.spotify)
       .fetch_all(pool)
       .await?;
 
-    let playlist = playlist.first().unwrap();
+    let new_playlist = new_playlist.first().unwrap();
+
+    for track in playlist.tracks.items.unwrap_or_default() {
+      println!("Saving track: {}", track.track.name.bright_green());
+      match save_track(track.track, &token).await? {
+        Some(track) => {
+          println!("Saved track: {}", track.xata_id.bright_green());
+          sqlx::query(r#"
+            INSERT INTO playlist_tracks (playlist_id, track_id)
+            VALUES ($1, $2)
+            ON CONFLICT DO NOTHING
+          "#)
+            .bind(&new_playlist.xata_id)
+            .bind(&track.xata_id)
+            .execute(pool)
+            .await?;
+        },
+        None => {
+          println!("Failed to save track");
+        }
+      };
+    }
 
     sqlx::query(r#"
       INSERT INTO user_playlists (user_id, playlist_id)
@@ -180,25 +209,26 @@ pub async fn save_playlists(pool: &Pool<Postgres>, conn: &Connection, playlists:
       ON CONFLICT (user_id, playlist_id) DO NOTHING
     "#)
       .bind(user_id)
-      .bind(&playlist.xata_id)
+      .bind(&new_playlist.xata_id)
       .execute(pool)
       .await?;
 
     let user_playlist: Vec<xata::user_playlist::UserPlaylist> = sqlx::query_as("SELECT * FROM user_playlists WHERE user_id = $1 AND playlist_id = $2")
       .bind(user_id)
-      .bind(&playlist.xata_id)
+      .bind(&new_playlist.xata_id)
       .fetch_all(pool)
       .await?;
     let user_playlist = user_playlist.first().unwrap();
 
+    let conn = conn.lock().unwrap();
     conn.execute("INSERT INTO playlists (id, name, description, picture, spotify_link, uri, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT DO NOTHING",
       params![
-        &playlist.xata_id,
-        &playlist.name,
-        playlist.description,
-        playlist.picture,
-        playlist.spotify_link,
-        playlist.uri,
+        &new_playlist.xata_id,
+        &new_playlist.name,
+        new_playlist.description,
+        new_playlist.picture,
+        new_playlist.spotify_link,
+        new_playlist.uri,
         user_id
       ]
     )?;
@@ -208,11 +238,68 @@ pub async fn save_playlists(pool: &Pool<Postgres>, conn: &Connection, playlists:
       params![
         &user_playlist.xata_id,
         user_id,
-        &playlist.xata_id,
+        &new_playlist.xata_id,
         chrono::Utc::now()
       ]
     )?;
 
   }
   Ok(())
+}
+
+
+pub async fn save_track(track: types::playlist::Track, token: &str) -> Result<Option<xata::track::Track>, Error> {
+  let client = Client::new();
+    let response = client
+      .post(&format!("{}/tracks", ROCKSKY_API))
+      .bearer_auth(token)
+      .json(&serde_json::json!({
+        "title": track.name,
+        "album": track.album.name,
+        "artist": track.artists.iter().map(|artist| artist.name.clone()).collect::<Vec<String>>().join(", "),
+        "albumArtist": track.album.artists.first().map(|artist| artist.name.clone()),
+        "duration": track.duration_ms,
+        "trackNumber": track.track_number,
+        "releaseDate": match track.album.release_date_precision.as_str() {
+          "day" => Some(track.album.release_date.clone()),
+          _ => None
+        },
+        "year":  match track.album.release_date_precision.as_str() {
+          "day" => Some(track.album.release_date.split('-').next().unwrap().parse::<u32>().unwrap()),
+          "year" => Some(track.album.release_date.parse::<u32>().unwrap()),
+          _ =>  None
+        },
+        "discNumber": track.disc_number,
+        "albumArt": track.album.images.first().map(|image| image.url.clone()),
+        "spotifyLink": track.external_urls.spotify,
+    }))
+    .send()
+    .await?;
+
+    if !response.status().is_success() {
+      println!("Failed to save track: {}", response.text().await?);
+      return Ok(None);
+    }
+
+    //  `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
+    let sha256 = format!("{:x}", sha2::Sha256::digest(format!("{} - {} - {}", track.name, track.artists.iter().map(|artist| artist.name.clone()).collect::<Vec<String>>().join(", "), track.album.name).to_lowercase().as_bytes()));
+    // get by sha256
+    let response = client
+      .get(&format!("{}/tracks/{}", ROCKSKY_API, sha256))
+      .bearer_auth(token)
+      .send()
+      .await?;
+
+    // wait 6 seconds to avoid rate limiting
+    tokio::time::sleep(tokio::time::Duration::from_secs(6)).await;
+    let status = response.status();
+    let data = response.text().await?;
+
+    if !status.is_success() {
+      println!("Failed to get track: {}", data);
+    }
+
+  let track: xata::track::Track = serde_json::from_str(&data)?;
+
+  Ok(Some(track))
 }
