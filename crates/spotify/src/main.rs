@@ -113,6 +113,9 @@ pub async fn refresh_token(token: &str) -> Result<AccessToken, Error> {
 
 pub async fn get_currently_playing(cache: Cache, user_id: &str, token: &str) -> Result<Option<(CurrentlyPlaying, bool)>, Error> {
   if let Ok(Some(data)) = cache.get(user_id) {
+    if data == "No content" {
+      return Ok(None);
+    }
     let data: CurrentlyPlaying = serde_json::from_str(&data)?;
     // detect if the song has changed
     let previous = cache.get(&format!("{}:previous", user_id))?;
@@ -147,6 +150,7 @@ pub async fn get_currently_playing(cache: Cache, user_id: &str, token: &str) -> 
   // check if status code is 204
   if status == 204 {
     println!("No content");
+    cache.setex(user_id, "No content", 10)?;
     return Ok(None);
   }
 
