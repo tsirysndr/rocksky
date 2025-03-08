@@ -82,7 +82,7 @@ app.get("/profile", async (c) => {
     rkey: "self",
   });
   const handle = await ctx.resolver.resolveDidToHandle(did);
-  const profile =
+  const profile: { handle?: string; displayName?: string } =
     Profile.isRecord(profileRecord.value) &&
     Profile.validateRecord(profileRecord.value).success
       ? { ...profileRecord.value, handle }
@@ -101,6 +101,12 @@ app.get("/profile", async (c) => {
         console.error(e.message);
       }
     }
+    const user = await ctx.client.db.users
+      .select(["*"])
+      .filter("did", equals(did))
+      .getFirst();
+
+    ctx.nc.publish("rocksky.user", Buffer.from(JSON.stringify(user)));
   }
 
   const spotifyUser = await ctx.client.db.spotify_accounts

@@ -4,7 +4,7 @@ use async_nats::{connect, Client};
 use duckdb::{params, Connection};
 use owo_colors::OwoColorize;
 use tokio_stream::StreamExt;
-use types::{LikePayload, NewTrackPayload, ScrobblePayload, UnlikePayload};
+use types::{LikePayload, NewTrackPayload, ScrobblePayload, UnlikePayload, UserPayload};
 
 pub mod types;
 
@@ -19,6 +19,7 @@ pub async fn subscribe(conn: Arc<Mutex<Connection>>) -> Result<(), Error> {
     on_new_track(nc.clone(), conn.clone());
     on_like(nc.clone(), conn.clone());
     on_unlike(nc.clone(), conn.clone());
+    on_new_user(nc.clone(), conn.clone());
 
     Ok(())
 }
@@ -89,7 +90,6 @@ pub fn on_new_track(nc: Arc<Mutex<Client>>, conn: Arc<Mutex<Connection>>) {
   });
 }
 
-
 pub fn on_like(nc: Arc<Mutex<Client>>, conn: Arc<Mutex<Connection>>) {
   thread::spawn(move || {
     let rt = tokio::runtime::Runtime::new().unwrap();
@@ -139,6 +139,39 @@ pub fn on_unlike(nc: Arc<Mutex<Client>>, conn: Arc<Mutex<Connection>>) {
           Ok(payload) => {
             match unlike(conn.clone(), payload.clone()).await {
               Ok(_) => println!("Unlike saved successfully for {}", payload.track_id.xata_id.cyan()),
+              Err(e) => eprintln!("Error saving unlike: {}", e),
+            }
+          },
+          Err(e) => {
+            eprintln!("Error parsing payload: {}", e);
+            println!("{}", data);
+          }
+        }
+      }
+
+      Ok::<(), Error>(())
+    })?;
+
+    Ok::<(), Error>(())
+  });
+}
+
+pub fn on_new_user(nc: Arc<Mutex<Client>>, conn: Arc<Mutex<Connection>>) {
+  thread::spawn(move || {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    let conn = conn.clone();
+    let nc = nc.clone();
+    rt.block_on(async {
+      let nc = nc.lock().unwrap();
+      let mut sub = nc.subscribe("rocksky.user".to_string()).await?;
+      drop(nc);
+
+      while let Some(msg) = sub.next().await {
+        let data = String::from_utf8(msg.payload.to_vec()).unwrap();
+        match serde_json::from_str::<UserPayload>(&data) {
+          Ok(payload) => {
+            match save_user(conn.clone(), payload.clone()).await {
+              Ok(_) => println!("User saved successfully for {}{}", "@".cyan(), payload.handle.cyan()),
               Err(e) => eprintln!("Error saving unlike: {}", e),
             }
           },
@@ -657,6 +690,51 @@ pub async fn unlike(conn: Arc<Mutex<Connection>>, payload: UnlikePayload) -> Res
       Err(e) => {
           println!("[unlikes] error: {}", e);
           return Err(e.into());
+      }
+  }
+  Ok(())
+}
+
+pub async fn save_user(conn: Arc<Mutex<Connection>>, payload: UserPayload) -> Result<(), Error> {
+  let conn = conn.lock().unwrap();
+
+  match conn.execute(
+    "INSERT INTO users (
+        id,
+        avatar,
+        did,
+        display_name,
+        handle,
+        created_at
+      ) VALUES (
+          ?,
+          ?,
+          ?,
+          ?,
+          ?,
+          ?
+        )
+        ON CONFLICT (id) DO UPDATE SET
+        avatar = EXCLUDED.avatar,
+        did = EXCLUDED.did,
+        display_name = EXCLUDED.display_name,
+        handle = EXCLUDED.handle,
+        created_at = EXCLUDED.created_at",
+      params![
+          payload.xata_id,
+          payload.avatar,
+          payload.did,
+          payload.display_name,
+          payload.handle,
+          payload.xata_createdat,
+      ],
+  ) {
+      Ok(_) => (),
+      Err(e) => {
+          if !e.to_string().contains("violates primary key constraint") {
+              println!("[users] error: {}", e);
+              return Err(e.into());
+          }
       }
   }
   Ok(())
