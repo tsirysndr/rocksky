@@ -53,6 +53,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
   while let Some(_) = sub.next().await {
     let stop_flag = Arc::clone(&stop_flag);
     stop_flag.store(true, std::sync::atomic::Ordering::Relaxed);
+    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+    println!("Restarting threads");
+    stop_flag.store(false, std::sync::atomic::Ordering::Relaxed);
     let users = find_spotify_users(&pool, 0, 100).await?;
     println!("Found {} users", users.len().bright_green());
 
@@ -283,7 +286,7 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
 
   loop {
     if stop_flag.load(std::sync::atomic::Ordering::Relaxed) {
-      println!("{} Stopping", format!("[{}]", spotify_email).bright_green());
+      println!("{} Stopping Thread", format!("[{}]", spotify_email).bright_green());
       break;
     }
     let spotify_email = spotify_email.clone();
