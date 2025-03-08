@@ -48,7 +48,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Ok::<(), Error>(())
       }).unwrap();
     });
+    thread::sleep(std::time::Duration::from_secs(2));
   }
+
 
   while let Some(_) = sub.next().await {
     let stop_flag = Arc::clone(&stop_flag);
@@ -72,7 +74,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Ok::<(), Error>(())
           }).unwrap();
         });
+        thread::sleep(std::time::Duration::from_secs(2));
       }
+      thread::sleep(std::time::Duration::from_secs(1));
     });
 
   }
@@ -127,13 +131,22 @@ pub async fn get_currently_playing(cache: Cache, user_id: &str, token: &str) -> 
     .await?;
 
 
+  let headers = response.headers().clone();
+  let status = response.status().as_u16();
+  let data = response.text().await?;
+
+  if status == 429 {
+    println!("{}  Too many requests, retry-after {}", format!("[{}]", user_id).bright_green(), headers.get("retry-after").unwrap().to_str().unwrap().bright_green());
+    return Ok(None);
+  }
+
   // check if status code is 204
-  if response.status().as_u16() == 204 {
+  if status == 204 {
     println!("No content");
     return Ok(None);
   }
 
-  let data = response.json::<CurrentlyPlaying>().await?;
+  let data = serde_json::from_str::<CurrentlyPlaying>(&data)?;
 
   cache.setex(user_id, &serde_json::to_string(&data)?, 15)?;
   // detect if the song has changed
@@ -301,7 +314,14 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
           cache.clone(),
           &spotify_email,
           &token
-        ).await?;
+        ).await;
+        let currently_playing = match currently_playing {
+          Ok(currently_playing) => currently_playing,
+          Err(e) => {
+            println!("{} {}", format!("[{}]", spotify_email).bright_green(), e.to_string().bright_red());
+            return Ok::<(), Error>(());
+          }
+        };
 
         if let Some((data, changed)) = currently_playing {
           println!("{} {} is_playing: {} changed: {}", format!("[{}]", spotify_email).bright_green(), format!("{} - {}", data.item.name, data.item.artists[0].name).cyan(), data.is_playing, changed);
