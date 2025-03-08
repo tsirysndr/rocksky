@@ -55,7 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
   while let Some(_) = sub.next().await {
     let stop_flag = Arc::clone(&stop_flag);
     stop_flag.store(true, std::sync::atomic::Ordering::Relaxed);
-    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
     println!("Restarting threads");
     stop_flag.store(false, std::sync::atomic::Ordering::Relaxed);
     let users = find_spotify_users(&pool, 0, 100).await?;
