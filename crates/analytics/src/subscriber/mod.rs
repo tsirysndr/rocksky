@@ -172,7 +172,7 @@ pub fn on_new_user(nc: Arc<Mutex<Client>>, conn: Arc<Mutex<Connection>>) {
           Ok(payload) => {
             match save_user(conn.clone(), payload.clone()).await {
               Ok(_) => println!("User saved successfully for {}{}", "@".cyan(), payload.handle.cyan()),
-              Err(e) => eprintln!("Error saving unlike: {}", e),
+              Err(e) => eprintln!("Error saving user: {}", e),
             }
           },
           Err(e) => {
@@ -723,7 +723,6 @@ pub async fn save_user(conn: Arc<Mutex<Connection>>, payload: UserPayload) -> Re
           payload.did,
           payload.display_name,
           payload.handle,
-          payload.xata_createdat,
       ],
   ) {
       Ok(_) => (),
