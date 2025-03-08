@@ -126,19 +126,22 @@ function RecentTracks(props: RecentTracksProps) {
                 />
               </Link>
               <div>
-                <Link to={`/${row.uri.split("at://")[1]}`}>{row.title}</Link>
+                <div>
+                  <Link to={`/${row.uri.split("at://")[1]}`}>{row.title}</Link>
+                </div>
+                <div>
+                  <Link
+                    to={`/${row.artistUri.split("at://")[1]}`}
+                    style={{
+                      fontFamily: "RockfordSansLight",
+                      color: "rgba(36, 49, 61, 0.65)",
+                    }}
+                  >
+                    {row.albumArtist}
+                  </Link>
+                </div>
               </div>
             </div>
-          )}
-        </TableBuilderColumn>
-        <TableBuilderColumn header="Artist">
-          {(row: Row) => (
-            <Link
-              to={`/${row.artistUri.split("at://")[1]}`}
-              style={{ fontFamily: "RockfordSansLight" }}
-            >
-              {row.albumArtist}
-            </Link>
           )}
         </TableBuilderColumn>
         <TableBuilderColumn header="Date">

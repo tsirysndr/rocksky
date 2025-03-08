@@ -45,10 +45,10 @@ function Albums(props: AlbumsProps) {
             <FlexGridItem {...itemProps} key={album.id}>
               {album.uri && (
                 <Link to={`/${album.uri.split("at://")[1]}`}>
-                  <SongCover cover={album.album_art} size={230} />
+                  <SongCover cover={album.album_art} size={180} />
                 </Link>
               )}
-              {!album.uri && <SongCover cover={album.album_art} size={230} />}
+              {!album.uri && <SongCover cover={album.album_art} size={180} />}
               {album.uri && (
                 <Link to={`/${album.uri.split("at://")[1]}`}>
                   <LabelMedium>{album.title}</LabelMedium>

@@ -124,12 +124,12 @@ const Album = () => {
         )}
         {album && (
           <Group>
-            {album.albumArt && <SongCover cover={album.albumArt!} />}
+            {album.albumArt && <SongCover cover={album.albumArt!} size={150} />}
             {!album.albumArt && (
               <div
                 style={{
-                  width: 240,
-                  height: 240,
+                  width: 150,
+                  height: 150,
                   marginRight: 12,
                   borderRadius: 8,
                   backgroundColor: "rgba(243, 243, 243, 0.725)",
