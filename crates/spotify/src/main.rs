@@ -33,6 +33,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
   let mut sub = nc.subscribe("rocksky.user".to_string()).await?;
   println!("Subscribed to {}", "rocksky.user".bright_green());
 
+  let users = find_spotify_users(&pool, 0, 100).await?;
+  println!("Found {} users", users.len().bright_green());
+
+  for user in users {
+    let email = user.0.clone();
+    let token = user.1.clone();
+    let did = user.2.clone();
+    let stop_flag = Arc::clone(&stop_flag);
+    thread::spawn(move || {
+      let rt = tokio::runtime::Runtime::new().unwrap();
+      rt.block_on(async {
+        watch_currently_playing(email, token, did, stop_flag).await?;
+        Ok::<(), Error>(())
+      }).unwrap();
+    });
+  }
+
   while let Some(_) = sub.next().await {
     let stop_flag = Arc::clone(&stop_flag);
     stop_flag.store(true, std::sync::atomic::Ordering::Relaxed);
