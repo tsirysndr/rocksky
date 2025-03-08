@@ -1,4 +1,4 @@
-use std::{env, thread};
+use std::{env, sync::{atomic::AtomicBool, Arc}, thread};
 
 use cache::Cache;
 use crypto::decrypt_aes_256_ctr;
@@ -7,8 +7,10 @@ use reqwest::Client;
 use anyhow::Error;
 use rocksky::{scrobble, update_library};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
+use tokio_stream::StreamExt;
 use types::{album_tracks::AlbumTracks, currently_playing::{Album, Artist, CurrentlyPlaying}, spotify_token::SpotifyTokenWithEmail, token::AccessToken};
 use owo_colors::OwoColorize;
+use async_nats::connect;
 
 pub mod types;
 pub mod cache;
@@ -23,26 +25,39 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
   dotenv().ok();
   let pool=  PgPoolOptions::new().max_connections(5).connect(&env::var("XATA_POSTGRES_URL")?).await?;
 
-  let users = find_spotify_users(&pool, 0, 100).await?;
-  println!("Found {} users", users.len().bright_green());
+  let stop_flag = Arc::new(AtomicBool::new(false));
+  let addr = env::var("NATS_URL").unwrap_or_else(|_| "nats://localhost:4222".to_string());
+  let nc = connect(&addr).await?;
+  println!("Connected to NATS server at {}", addr.bright_green());
 
-  for user in users {
-    let email = user.0.clone();
-    let token = user.1.clone();
-    let did = user.2.clone();
+  let mut sub = nc.subscribe("rocksky.user".to_string()).await?;
+  println!("Subscribed to {}", "rocksky.user".bright_green());
+
+  while let Some(_) = sub.next().await {
+    let stop_flag = Arc::clone(&stop_flag);
+    stop_flag.store(true, std::sync::atomic::Ordering::Relaxed);
+    let users = find_spotify_users(&pool, 0, 100).await?;
+    println!("Found {} users", users.len().bright_green());
+
     thread::spawn(move || {
-      let rt = tokio::runtime::Runtime::new().unwrap();
-      rt.block_on(async {
-        watch_currently_playing(email, token, did).await?;
-        Ok::<(), Error>(())
-      }).unwrap();
+      for user in users {
+        let email = user.0.clone();
+        let token = user.1.clone();
+        let did = user.2.clone();
+        let stop_flag = Arc::clone(&stop_flag);
+        thread::spawn(move || {
+          let rt = tokio::runtime::Runtime::new().unwrap();
+          rt.block_on(async {
+            watch_currently_playing(email, token, did, stop_flag).await?;
+            Ok::<(), Error>(())
+          }).unwrap();
+        });
+      }
     });
+
   }
 
-  // wait for all threads to finish
-  loop {
-    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-  }
+  Ok(())
 }
 
 pub async fn refresh_token(token: &str) -> Result<AccessToken, Error> {
@@ -245,11 +260,14 @@ pub async fn find_spotify_users(
   Ok(user_tokens)
 }
 
-pub async fn watch_currently_playing(spotify_email: String, token: String, did: String) -> Result<(), Error> {
+pub async fn watch_currently_playing(spotify_email: String, token: String, did: String, stop_flag: Arc<AtomicBool>) -> Result<(), Error> {
   let cache = Cache::new()?;
   println!("{} {}", format!("[{}]", spotify_email).bright_green(), "Checking currently playing".cyan());
 
   loop {
+    if stop_flag.load(std::sync::atomic::Ordering::Relaxed) {
+      break;
+    }
     let spotify_email = spotify_email.clone();
     let token = token.clone();
     let did = did.clone();
@@ -288,4 +306,6 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
     tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
     ()
   }
+
+  Ok(())
 }

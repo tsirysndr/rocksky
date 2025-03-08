@@ -3982,6 +3982,7 @@ version = "0.1.0"
 dependencies = [
  "aes",
  "anyhow",
+ "async-nats",
  "chrono",
  "ctr",
  "dotenv",
@@ -3994,6 +3995,7 @@ dependencies = [
  "serde_json",
  "sqlx",
  "tokio",
+ "tokio-stream",
 ]
 
 [[package]]
