@@ -115,6 +115,23 @@ app.get("/:did/tracks", async (c) => {
   );
 });
 
+app.get("/:did/playlists", async (c) => {
+  const did = c.req.param("did");
+  const size = +c.req.query("size") || 10;
+  const offset = +c.req.query("offset") || 0;
+
+  const results = await ctx.db
+    .select()
+    .from(tables.playlists)
+    .leftJoin(tables.users, eq(tables.playlists.createdBy, tables.users.id))
+    .where(eq(tables.users.did, did))
+    .offset(offset)
+    .limit(size)
+    .execute();
+
+  return c.json(results);
+});
+
 app.get("/:did/app.rocksky.scrobble/:rkey", async (c) => {
   const did = c.req.param("did");
   const rkey = c.req.param("rkey");
@@ -368,6 +385,8 @@ app.get("/:did/app.rocksky.artist/:rkey/albums", async (c) => {
     }))
   );
 });
+
+app.get("/:did/app.rocksky.playlist/:rkey", async (c) => {});
 
 app.get("/:did", async (c) => {
   const did = c.req.param("did");
