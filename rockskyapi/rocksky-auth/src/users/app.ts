@@ -124,7 +124,7 @@ app.get("/:did/playlists", async (c) => {
     .select()
     .from(tables.playlists)
     .leftJoin(tables.users, eq(tables.playlists.createdBy, tables.users.id))
-    .where(eq(tables.users.did, did))
+    .where(or(eq(tables.users.did, did), eq(tables.users.handle, did)))
     .offset(offset)
     .limit(size)
     .execute();
