@@ -121,7 +121,14 @@ app.get("/:did/playlists", async (c) => {
   const offset = +c.req.query("offset") || 0;
 
   const results = await ctx.db
-    .select()
+    .select({
+      playlists: tables.playlists,
+      trackCount: sql<number>`
+      (SELECT COUNT(*)
+       FROM ${tables.playlistTracks}
+       WHERE ${tables.playlistTracks.playlistId} = ${tables.playlists.id}
+      )`.as("trackCount"),
+    })
     .from(tables.playlists)
     .leftJoin(tables.users, eq(tables.playlists.createdBy, tables.users.id))
     .where(or(eq(tables.users.did, did), eq(tables.users.handle, did)))
@@ -129,7 +136,12 @@ app.get("/:did/playlists", async (c) => {
     .limit(size)
     .execute();
 
-  return c.json(results.map((x) => x.playlists));
+  return c.json(
+    results.map((x) => ({
+      ...x.playlists,
+      trackCount: x.trackCount,
+    }))
+  );
 });
 
 app.get("/:did/app.rocksky.scrobble/:rkey", async (c) => {
