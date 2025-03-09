@@ -8,7 +8,7 @@ use serde_json::json;
 use sha2::Digest;
 use sqlx::{Pool, Postgres};
 
-use crate::{crypto::{decrypt_aes_256_ctr, generate_token}, types::{self, spotify_token::SpotifyTokenWithEmail}, xata};
+use crate::{crypto::{decrypt_aes_256_ctr, generate_token}, types::{self, spotify_token::SpotifyTokenWithEmail}, xata::{self, track::Track}};
 
 const ROCKSKY_API: &str = "https://api.rocksky.app";
 
@@ -193,14 +193,7 @@ pub async fn save_playlists(pool: &Pool<Postgres>, conn: Arc<Mutex<Connection>>,
     ).await?;
     drop(nc);
 
-    // remove all tracks from playlist
-    sqlx::query(r#"
-      DELETE FROM playlist_tracks WHERE playlist_id = $1
-    "#)
-      .bind(&new_playlist.xata_id)
-      .execute(pool)
-      .await?;
-
+    let mut tracks_to_save: Vec<(String, String)> = vec![];
     let mut i = 1;
     for track in playlist.tracks.items.unwrap_or_default() {
       println!("Saving track: {} - {}/{}", track.track.name.bright_green(), i, playlist.tracks.total);
@@ -208,20 +201,33 @@ pub async fn save_playlists(pool: &Pool<Postgres>, conn: Arc<Mutex<Connection>>,
       match save_track(track.track, &token).await? {
         Some(track) => {
           println!("Saved track: {}", track.xata_id.bright_green());
-          sqlx::query(r#"
-            INSERT INTO playlist_tracks (playlist_id, track_id)
-            VALUES ($1, $2)
-            ON CONFLICT DO NOTHING
-          "#)
-            .bind(&new_playlist.xata_id)
-            .bind(&track.xata_id)
-            .execute(pool)
-            .await?;
+          tracks_to_save.push((new_playlist.xata_id.clone(), track.xata_id.clone()));
         },
         None => {
           println!("Failed to save track");
         }
       };
+    }
+
+    // delete all tracks from playlist
+    sqlx::query(r#"
+      DELETE FROM playlist_tracks WHERE playlist_id = $1
+    "#)
+      .bind(&new_playlist.xata_id)
+      .execute(pool)
+      .await?;
+
+    // save tracks to playlist
+    for (playlist_id, track_id) in tracks_to_save {
+      sqlx::query(r#"
+        INSERT INTO playlist_tracks (playlist_id, track_id)
+        VALUES ($1, $2)
+        ON CONFLICT DO NOTHING
+      "#)
+        .bind(&playlist_id)
+        .bind(&track_id)
+        .execute(pool)
+        .await?;
     }
 
     sqlx::query(r#"
