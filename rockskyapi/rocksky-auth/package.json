@@ -24,6 +24,7 @@
 		"assert": "^2.1.0",
 		"axios": "^1.7.9",
 		"better-sqlite3": "^11.8.1",
+		"chalk": "^5.4.1",
 		"chanfana": "^2.0.2",
 		"dotenv": "^16.4.7",
 		"drizzle-orm": "^0.39.3",

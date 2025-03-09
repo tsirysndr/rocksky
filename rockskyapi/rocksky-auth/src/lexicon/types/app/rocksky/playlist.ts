@@ -15,7 +15,7 @@ export interface Record {
   /** The picture of the playlist. */
   picture?: BlobRef
   /** The tracks in the playlist. */
-  tracks: AppRockskySong.Record[]
+  tracks?: AppRockskySong.Record[]
   /** The date the playlist was created. */
   createdAt: string
   [k: string]: unknown

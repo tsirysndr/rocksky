@@ -11,6 +11,7 @@ import {
   unLikeTrack,
 } from "lovedtracks/lovedtracks.service";
 import { scrobbleTrack } from "nowplaying/nowplaying.service";
+import subscribe from "subscribers";
 import { saveTrack } from "tracks/tracks.service";
 import { trackSchema } from "types/track";
 import bsky from "./bsky/app";
@@ -18,6 +19,8 @@ import { env } from "./lib/env";
 import search from "./search/app";
 import spotify from "./spotify/app";
 import users from "./users/app";
+
+subscribe(ctx);
 
 const app = new Hono();
 

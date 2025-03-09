@@ -329,7 +329,7 @@ export const schemaDict = {
         description: 'A declaration of a playlist.',
         record: {
           type: 'object',
-          required: ['name', 'tracks', 'createdAt'],
+          required: ['name', 'createdAt'],
           properties: {
             name: {
               type: 'string',

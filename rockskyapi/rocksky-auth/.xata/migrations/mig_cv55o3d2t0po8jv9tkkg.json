@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cv55o3d2t0po8jv9tkkg",
+    "operations": [
+      {
+        "alter_column": {
+          "up": "\"tidal_link\"",
+          "down": "\"tidal_link\"",
+          "table": "tracks",
+          "column": "tidal_link",
+          "unique": {
+            "name": "tracks_tidal_link_unique"
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cv55o3d2t0po8jv9tkkg",
+  "parent": "mig_cv55nu2tb4rhvnj37rog",
+  "schema": "public",
+  "startedAt": "2025-03-07T02:38:06.483745Z"
+}

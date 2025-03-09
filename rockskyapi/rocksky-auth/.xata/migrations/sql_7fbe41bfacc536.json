@@ -1,0 +1,18 @@
+{
+  "done": true,
+  "migration": {
+    "name": "sql_7fbe41bfacc536",
+    "operations": [
+      {
+        "sql": {
+          "up": "CREATE UNIQUE INDEX IF NOT EXISTS user_playlists_unique_index ON user_playlists USING btree (user_id, playlist_id)"
+        }
+      }
+    ]
+  },
+  "migrationType": "inferred",
+  "name": "sql_7fbe41bfacc536",
+  "parent": "mig_cv55o952t0po8jv9tklg",
+  "schema": "public",
+  "startedAt": "2025-03-07T04:52:51.842079Z"
+}

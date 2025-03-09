@@ -11,7 +11,7 @@ pub struct SpotifyResponse {
     pub items: Vec<Playlist>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Playlist {
     pub collaborative: bool,
     pub description: String,
@@ -29,19 +29,19 @@ pub struct Playlist {
     pub uri: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ExternalUrls {
     pub spotify: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Image {
     pub height: u32,
     pub url: String,
     pub width: u32,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Owner {
     pub display_name: Option<String>,
     pub external_urls: ExternalUrls,
@@ -51,7 +51,7 @@ pub struct Owner {
     pub uri: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Tracks {
     pub href: String,
     pub limit: Option<u32>,
@@ -62,7 +62,7 @@ pub struct Tracks {
     pub items: Option<Vec<TrackItem>>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TrackItem {
     pub added_at: String,
     pub added_by: Owner,
@@ -70,7 +70,7 @@ pub struct TrackItem {
     pub track: Track,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Track {
     pub album: Album,
     pub artists: Vec<Artist>,
@@ -94,7 +94,7 @@ pub struct Track {
     pub is_local: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Album {
     pub album_type: String,
     pub total_tracks: u32,
@@ -112,7 +112,7 @@ pub struct Album {
     pub artists: Vec<Artist>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Artist {
     pub external_urls: ExternalUrls,
     pub href: String,
@@ -122,17 +122,17 @@ pub struct Artist {
     pub uri: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ExternalIds {
     pub isrc: String,
     pub ean: Option<String>,
     pub upc: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LinkedFrom {}
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Restrictions {
     pub reason: String,
 }

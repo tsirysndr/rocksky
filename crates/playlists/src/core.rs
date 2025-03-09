@@ -4,6 +4,7 @@ use anyhow::Error;
 use duckdb::{params, Connection};
 use owo_colors::OwoColorize;
 use reqwest::Client;
+use serde_json::json;
 use sha2::Digest;
 use sqlx::{Pool, Postgres};
 
@@ -152,7 +153,7 @@ pub async fn find_spotify_users(
   Ok(user_tokens)
 }
 
-pub async fn save_playlists(pool: &Pool<Postgres>, conn: Arc<Mutex<Connection>>, playlists: Vec<types::playlist::Playlist>, user_id: &str, did: &str) -> Result<(), Error> {
+pub async fn save_playlists(pool: &Pool<Postgres>, conn: Arc<Mutex<Connection>>, nc: Arc<Mutex<async_nats::Client>>, playlists: Vec<types::playlist::Playlist>, user_id: &str, did: &str) -> Result<(), Error> {
   let token = generate_token(did)?;
   for playlist in playlists {
     println!("Saving playlist: {} - {} tracks", playlist.name.bright_green(), playlist.tracks.total);
@@ -182,8 +183,20 @@ pub async fn save_playlists(pool: &Pool<Postgres>, conn: Arc<Mutex<Connection>>,
 
     let new_playlist = new_playlist.first().unwrap();
 
+    let nc = nc.lock().unwrap();
+    nc.publish("rocksky.playlist",
+     serde_json::to_string(&json!({
+        "id": new_playlist.xata_id.clone(),
+        "did": did,
+      })
+      ).unwrap().into()
+    ).await?;
+    drop(nc);
+
+    let mut i = 1;
     for track in playlist.tracks.items.unwrap_or_default() {
-      println!("Saving track: {}", track.track.name.bright_green());
+      println!("Saving track: {} - {}/{}", track.track.name.bright_green(), i, playlist.tracks.total);
+      i += 1;
       match save_track(track.track, &token).await? {
         Some(track) => {
           println!("Saved track: {}", track.xata_id.bright_green());
