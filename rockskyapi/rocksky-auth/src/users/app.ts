@@ -139,7 +139,7 @@ app.get("/:did/playlists", async (c) => {
   return c.json(
     results.map((x) => ({
       ...x.playlists,
-      trackCount: x.trackCount,
+      trackCount: +x.trackCount,
     }))
   );
 });
