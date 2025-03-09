@@ -193,6 +193,14 @@ pub async fn save_playlists(pool: &Pool<Postgres>, conn: Arc<Mutex<Connection>>,
     ).await?;
     drop(nc);
 
+    // remove all tracks from playlist
+    sqlx::query(r#"
+      DELETE FROM playlist_tracks WHERE playlist_id = $1
+    "#)
+      .bind(&new_playlist.xata_id)
+      .execute(pool)
+      .await?;
+
     let mut i = 1;
     for track in playlist.tracks.items.unwrap_or_default() {
       println!("Saving track: {} - {}/{}", track.track.name.bright_green(), i, playlist.tracks.total);
