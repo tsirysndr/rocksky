@@ -406,10 +406,30 @@ app.get("/:did/app.rocksky.playlist/:rkey", async (c) => {
     .select()
     .from(tables.playlistTracks)
     .leftJoin(
+      tables.playlists,
+      eq(tables.playlistTracks.playlistId, tables.playlists.id)
+    )
+    .leftJoin(
       tables.tracks,
       eq(tables.playlistTracks.trackId, tables.tracks.id)
     )
-    .where(eq(tables.playlistTracks.playlistId, playlist[0].id))
+    .where(eq(tables.playlists.uri, uri))
+    .groupBy(
+      tables.playlistTracks.createdAt,
+      tables.tracks.id,
+      tables.playlists.updatedAt,
+      tables.tracks.title,
+      tables.playlists.id,
+      tables.playlists.createdAt,
+      tables.playlists.name,
+      tables.playlists.description,
+      tables.playlists.uri,
+      tables.playlists.createdBy,
+      tables.playlists.picture,
+      tables.playlists.spotifyLink,
+      tables.playlists.tidalLink,
+      tables.playlists.appleMusicLink
+    )
     .orderBy(asc(tables.playlistTracks.createdAt))
     .execute();
 
