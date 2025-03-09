@@ -386,7 +386,37 @@ app.get("/:did/app.rocksky.artist/:rkey/albums", async (c) => {
   );
 });
 
-app.get("/:did/app.rocksky.playlist/:rkey", async (c) => {});
+app.get("/:did/app.rocksky.playlist/:rkey", async (c) => {
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+  const uri = `at://${did}/app.rocksky.playlist/${rkey}`;
+
+  const playlist = await ctx.db
+    .select()
+    .from(tables.playlists)
+    .where(eq(tables.playlists.uri, uri))
+    .execute();
+
+  if (!playlist.length) {
+    c.status(404);
+    return c.text("Playlist not found");
+  }
+
+  const results = await ctx.db
+    .select()
+    .from(tables.playlistTracks)
+    .leftJoin(
+      tables.tracks,
+      eq(tables.playlistTracks.trackId, tables.tracks.id)
+    )
+    .where(eq(tables.playlistTracks.playlistId, playlist[0].id))
+    .execute();
+
+  return c.json({
+    ...playlist[0],
+    tracks: results.map((x) => x.tracks),
+  });
+});
 
 app.get("/:did", async (c) => {
   const did = c.req.param("did");
