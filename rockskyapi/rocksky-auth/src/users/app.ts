@@ -129,7 +129,7 @@ app.get("/:did/playlists", async (c) => {
     .limit(size)
     .execute();
 
-  return c.json(results);
+  return c.json(results.map((x) => x.playlists));
 });
 
 app.get("/:did/app.rocksky.scrobble/:rkey", async (c) => {
