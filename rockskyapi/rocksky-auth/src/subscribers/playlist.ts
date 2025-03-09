@@ -65,7 +65,7 @@ async function putPlaylistRecord(
     spotifyLink: playlist.spotify_link,
   };
 
-  if (playlist.picture) {
+  if (playlist.picture && !playlist.uri) {
     const imageBuffer = await downloadImage(playlist.picture);
     const encoding = await getContentType(playlist.picture);
     const uploadResponse = await agent.uploadBlob(imageBuffer, {
