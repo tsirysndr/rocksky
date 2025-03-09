@@ -41,50 +41,56 @@ async function putPlaylistRecord(
     .filter("xata_id", payload.id)
     .getFirst();
 
-  if (!playlist.uri) {
-    const rkey = TID.nextStr();
-    const record: {
-      $type: string;
-      name: string;
-      description?: string;
-      createdAt: string;
-      picture?: BlobRef;
-    } = {
-      $type: "app.rocksky.playlist",
-      name: playlist.name,
-      description: playlist.description,
-      createdAt: new Date().toISOString(),
-    };
+  let rkey = TID.nextStr();
 
-    if (playlist.picture) {
-      const imageBuffer = await downloadImage(playlist.picture);
-      const encoding = await getContentType(playlist.picture);
-      const uploadResponse = await agent.uploadBlob(imageBuffer, {
-        encoding,
-      });
-      record.picture = uploadResponse.data.blob;
-    }
+  if (playlist.uri) {
+    rkey = playlist.uri.split("/").pop();
+  }
 
-    if (!Playlist.validateRecord(record)) {
-      console.error(
-        `Invalid record: ${chalk.redBright(JSON.stringify(record))}`
-      );
-      return;
-    }
+  const record: {
+    $type: string;
+    name: string;
+    description?: string;
+    createdAt: string;
+    picture?: BlobRef;
+    spotifyLink?: string;
+    tidalLink?: string;
+    appleMusicLink?: string;
+    youtubeLink?: string;
+  } = {
+    $type: "app.rocksky.playlist",
+    name: playlist.name,
+    description: playlist.description,
+    createdAt: new Date().toISOString(),
+    spotifyLink: playlist.spotify_link,
+  };
 
-    try {
-      const res = await agent.com.atproto.repo.putRecord({
-        repo: agent.assertDid,
-        collection: "app.rocksky.playlist",
-        rkey,
-        record,
-        validate: false,
-      });
-      const uri = res.data.uri;
-      console.log(`Playlist record created: ${chalk.greenBright(uri)}`);
-      await ctx.client.db.playlists.update(payload.id, { uri });
-    } catch (e) {
-      console.error(`Failed to put record: ${chalk.redBright(e.message)}`);
-    }
+  if (playlist.picture) {
+    const imageBuffer = await downloadImage(playlist.picture);
+    const encoding = await getContentType(playlist.picture);
+    const uploadResponse = await agent.uploadBlob(imageBuffer, {
+      encoding,
+    });
+    record.picture = uploadResponse.data.blob;
+  }
+
+  if (!Playlist.validateRecord(record)) {
+    console.error(`Invalid record: ${chalk.redBright(JSON.stringify(record))}`);
+    return;
+  }
+
+  try {
+    const res = await agent.com.atproto.repo.putRecord({
+      repo: agent.assertDid,
+      collection: "app.rocksky.playlist",
+      rkey,
+      record,
+      validate: false,
+    });
+    const uri = res.data.uri;
+    console.log(`Playlist record created: ${chalk.greenBright(uri)}`);
+    await ctx.client.db.playlists.update(payload.id, { uri });
+  } catch (e) {
+    console.error(`Failed to put record: ${chalk.redBright(e.message)}`);
   }
 }

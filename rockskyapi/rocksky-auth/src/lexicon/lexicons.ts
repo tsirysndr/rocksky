@@ -362,6 +362,22 @@ export const schemaDict = {
               description: 'The date the playlist was created.',
               format: 'datetime',
             },
+            spotifyLink: {
+              type: 'string',
+              description: 'The Spotify link of the playlist.',
+            },
+            tidalLink: {
+              type: 'string',
+              description: 'The Tidal link of the playlist.',
+            },
+            youtubeLink: {
+              type: 'string',
+              description: 'The YouTube link of the playlist.',
+            },
+            appleMusicLink: {
+              type: 'string',
+              description: 'The Apple Music link of the playlist.',
+            },
           },
         },
       },

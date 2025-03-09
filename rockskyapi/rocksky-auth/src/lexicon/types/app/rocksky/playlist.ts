@@ -18,6 +18,14 @@ export interface Record {
   tracks?: AppRockskySong.Record[]
   /** The date the playlist was created. */
   createdAt: string
+  /** The Spotify link of the playlist. */
+  spotifyLink?: string
+  /** The Tidal link of the playlist. */
+  tidalLink?: string
+  /** The YouTube link of the playlist. */
+  youtubeLink?: string
+  /** The Apple Music link of the playlist. */
+  appleMusicLink?: string
   [k: string]: unknown
 }
 
