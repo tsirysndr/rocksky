@@ -30,6 +30,7 @@
         "dayjs": "^1.11.13",
         "i18next": "^24.2.2",
         "jotai": "^2.11.3",
+        "jotai-effect": "^2.0.1",
         "lodash": "^4.17.21",
         "numeral": "^2.0.6",
         "react": "^18.3.1",
@@ -946,6 +947,8 @@
     "isobject": ["isobject@3.0.1", "", {}, "sha512-WhB9zCku7EGTj/HQQRz5aUQEUeoQZH2bWcltRErOpymJ4boYE6wL9Tbr23krRPSZ+C5zqNSrSw+Cc7sZZ4b7vg=="],
 
     "jotai": ["jotai@2.11.3", "", { "peerDependencies": { "@types/react": ">=17.0.0", "react": ">=17.0.0" }, "optionalPeers": ["@types/react", "react"] }, "sha512-B/PsewAQ0UOS5e2+TTWegUPQ3SCLPCjPY24LYUjfn2EorGlluTA2dFjVLgF1+xHLjK9Jit3y5mKHyMG3Xq/GZg=="],
+
+    "jotai-effect": ["jotai-effect@2.0.1", "", { "peerDependencies": { "jotai": ">=2.12.1" } }, "sha512-jZw18vUzlerIMQCaB75Ndxr9+6BR/fCt7Ah0CO2RpR5UhtBbXurgIprAZoVSzADaWoTN/qj0pyT6IQQWWP6dpA=="],
 
     "js-tokens": ["js-tokens@4.0.0", "", {}, "sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ=="],
 

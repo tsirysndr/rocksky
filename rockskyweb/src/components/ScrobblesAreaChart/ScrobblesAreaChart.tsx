@@ -99,35 +99,39 @@ function ScrobblesAreaChart() {
 
   return (
     <>
-      <LabelMedium marginBottom={"20px"}>Scrobble Stats</LabelMedium>
-      <AreaChart
-        width={300}
-        height={120}
-        data={pathname === "/" ? getScrobblesChart() : data}
-        margin={{
-          top: 5,
-          right: 0,
-          left: 0,
-          bottom: 5,
-        }}
-      >
-        <XAxis
-          dataKey="date"
-          axisLine={{ stroke: "#ccc", strokeWidth: 1 }}
-          tick={{ fontSize: 10 }}
-          tickFormatter={formatXAxis}
-        />
-        <Tooltip
-          content={<CustomTooltip />}
-          labelFormatter={(label) => dayjs(label).format("YYYY-MM-DD")}
-        />
-        <Area
-          type="monotone"
-          dataKey="count"
-          stroke="#710de4"
-          fill="#9754e463"
-        />
-      </AreaChart>
+      {!pathname.includes("app.rocksky.playlist") && (
+        <>
+          <LabelMedium marginBottom={"20px"}>Scrobble Stats</LabelMedium>
+          <AreaChart
+            width={300}
+            height={120}
+            data={pathname === "/" ? getScrobblesChart() : data}
+            margin={{
+              top: 5,
+              right: 0,
+              left: 0,
+              bottom: 5,
+            }}
+          >
+            <XAxis
+              dataKey="date"
+              axisLine={{ stroke: "#ccc", strokeWidth: 1 }}
+              tick={{ fontSize: 10 }}
+              tickFormatter={formatXAxis}
+            />
+            <Tooltip
+              content={<CustomTooltip />}
+              labelFormatter={(label) => dayjs(label).format("YYYY-MM-DD")}
+            />
+            <Area
+              type="monotone"
+              dataKey="count"
+              stroke="#710de4"
+              fill="#9754e463"
+            />
+          </AreaChart>
+        </>
+      )}
     </>
   );
 }

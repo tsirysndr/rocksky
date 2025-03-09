@@ -30,6 +30,10 @@ app.get("/", async (c) => {
         table: "tracks",
         target: ["title", "composer", "copyright_message"],
       },
+      {
+        table: "playlists",
+        target: ["name"],
+      },
     ],
     fuzziness: 1,
     prefix: "phrase",
