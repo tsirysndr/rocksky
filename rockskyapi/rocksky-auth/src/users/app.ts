@@ -1,6 +1,6 @@
 import { equals } from "@xata.io/client";
 import { ctx } from "context";
-import { count, desc, eq, inArray, or, sql } from "drizzle-orm";
+import { asc, count, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import jwt from "jsonwebtoken";
 import { createAgent } from "lib/agent";
@@ -410,6 +410,7 @@ app.get("/:did/app.rocksky.playlist/:rkey", async (c) => {
       eq(tables.playlistTracks.trackId, tables.tracks.id)
     )
     .where(eq(tables.playlistTracks.playlistId, playlist[0].id))
+    .orderBy(asc(tables.playlistTracks.createdAt))
     .execute();
 
   return c.json({
