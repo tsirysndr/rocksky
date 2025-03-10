@@ -1,11 +1,13 @@
 import { isValidHandle } from "@atproto/syntax";
 import { equals } from "@xata.io/client";
 import { ctx } from "context";
+import { desc } from "drizzle-orm";
 import { Hono } from "hono";
 import jwt from "jsonwebtoken";
 import * as Profile from "lexicon/types/app/bsky/actor/profile";
 import { createAgent } from "lib/agent";
 import { env } from "lib/env";
+import users from "schema/users";
 
 const app = new Hono();
 
@@ -106,7 +108,17 @@ app.get("/profile", async (c) => {
       .filter("did", equals(did))
       .getFirst();
 
-    ctx.nc.publish("rocksky.user", Buffer.from(JSON.stringify(user)));
+    const lastUser = await ctx.db
+      .select()
+      .from(users)
+      .orderBy(desc(users.createdAt))
+      .limit(1)
+      .execute();
+    const previousLastUser = await ctx.kv.get("lastUser");
+    await ctx.kv.set("lastUser", lastUser[0].id);
+    if (lastUser[0].id !== previousLastUser) {
+      ctx.nc.publish("rocksky.user", Buffer.from(JSON.stringify(user)));
+    }
   }
 
   const spotifyUser = await ctx.client.db.spotify_accounts
