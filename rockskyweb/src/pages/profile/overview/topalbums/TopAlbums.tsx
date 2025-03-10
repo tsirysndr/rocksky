@@ -79,6 +79,9 @@ function TopAlbums() {
                     {album.artist}
                   </LabelSmall>
                 )}
+                <LabelSmall color="rgba(36, 49, 61, 0.65)">
+                  {album.scrobbles} plays
+                </LabelSmall>
               </FlexGridItem>
             ))
           }

@@ -66,21 +66,27 @@ function useLibrary() {
     const response = await axios.get(
       `${API_URL}/users/${did}/artists?size=${limit}&offset=${offset}`
     );
-    return response.data;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return response.data.map((x: any) => ({ ...x, scrobbles: x.play_count }));
   };
 
   const getAlbums = async (did: string, offset = 0, limit = 12) => {
     const response = await axios.get(
       `${API_URL}/users/${did}/albums?size=${limit}&offset=${offset}`
     );
-    return response.data;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return response.data.map((x: any) => ({
+      ...x,
+      scrobbles: x.play_count,
+    }));
   };
 
   const getTracks = async (did: string, offset = 0, limit = 20) => {
     const response = await axios.get(
       `${API_URL}/users/${did}/tracks?size=${limit}&offset=${offset}`
     );
-    return response.data;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return response.data.map((x: any) => ({ ...x, scrobbles: x.play_count }));
   };
 
   const getLovedTracks = async (did: string, offset = 0, limit = 20) => {

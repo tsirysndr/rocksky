@@ -1,6 +1,7 @@
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import { HeadingSmall } from "baseui/typography";
 import { useAtomValue, useSetAtom } from "jotai";
+import numeral from "numeral";
 import { useEffect } from "react";
 import { Link, useParams } from "react-router";
 import { topArtistsAtom } from "../../../../atoms/topArtists";
@@ -42,6 +43,8 @@ function TopArtists({ showTitle = true, size = 30 }: TopArtistsProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [did]);
 
+  const maxScrobbles = topArtists.length > 0 ? topArtists[0].scrobbles || 1 : 0;
+
   return (
     <>
       {showTitle && (
@@ -66,7 +69,7 @@ function TopArtists({ showTitle = true, size = 30 }: TopArtistsProps) {
           },
           TableBodyCell: {
             style: {
-              verticalAlign: "center",
+              verticalAlign: "middle",
             },
           },
         }}
@@ -135,7 +138,29 @@ function TopArtists({ showTitle = true, size = 30 }: TopArtistsProps) {
           )}
         </TableBuilderColumn>
         <TableBuilderColumn header="Scrobbles">
-          {(row: Row) => <div>{row.scrobbles}</div>}
+          {(row: Row, index?: number) => (
+            <div style={{ position: "relative", width: 250, marginTop: -20 }}>
+              <div
+                style={{
+                  position: "absolute",
+                  width: "100%",
+                  top: 10,
+                  left: 10,
+                }}
+              >
+                {numeral(row.scrobbles).format("0,0")}{" "}
+                {index == 0 && " scrobbles"}
+              </div>
+              <span
+                style={{
+                  position: "absolute",
+                  height: 40,
+                  width: `${(row.scrobbles / maxScrobbles) * 100}%`,
+                  backgroundColor: "rgba(255, 40, 118, 0.1)",
+                }}
+              ></span>
+            </div>
+          )}
         </TableBuilderColumn>
       </TableBuilder>
     </>
