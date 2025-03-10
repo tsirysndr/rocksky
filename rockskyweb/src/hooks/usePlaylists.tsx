@@ -33,6 +33,13 @@ const usePlaylists = () => {
     spotifyLink?: string;
     tidalLink?: string;
     appleMusicLink?: string;
+    curatedBy: {
+      id: string;
+      displayName: string;
+      did: string;
+      avatar: string;
+      handle: string;
+    };
     trackCount: number;
     tracks: {
       id: string;

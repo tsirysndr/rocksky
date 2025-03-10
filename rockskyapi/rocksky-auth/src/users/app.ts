@@ -406,6 +406,7 @@ app.get("/:did/app.rocksky.playlist/:rkey", async (c) => {
   const playlist = await ctx.db
     .select()
     .from(tables.playlists)
+    .leftJoin(tables.users, eq(tables.playlists.createdBy, tables.users.id))
     .where(eq(tables.playlists.uri, uri))
     .execute();
 
@@ -471,7 +472,8 @@ app.get("/:did/app.rocksky.playlist/:rkey", async (c) => {
     .execute();
 
   return c.json({
-    ...playlist[0],
+    ...playlist[0].playlists,
+    curatedBy: playlist[0].users,
     tracks: results.map((x) => x.tracks),
   });
 });

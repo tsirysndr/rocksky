@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { Avatar } from "baseui/avatar";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import { HeadingMedium, LabelMedium } from "baseui/typography";
 import { useEffect, useState } from "react";
@@ -52,6 +53,13 @@ function Playlist() {
     spotifyLink?: string;
     tidalLink?: string;
     appleMusicLink?: string;
+    curatedBy: {
+      id: string;
+      displayName: string;
+      did: string;
+      avatar: string;
+      handle: string;
+    };
     trackCount: number;
     tracks: {
       id: string;
@@ -135,6 +143,28 @@ function Playlist() {
                 </div>
               </div>
             </Group>
+
+            <Group style={{ marginBottom: 20 }}>
+              <Avatar
+                name={playlist.curatedBy.displayName}
+                src={playlist.curatedBy.avatar}
+                size="45px"
+              />
+              <div style={{ marginLeft: 10 }}>
+                <LabelMedium
+                  color="rgba(36, 49, 61, 0.65)"
+                  style={{ textTransform: "uppercase", fontSize: "12px" }}
+                >
+                  Curated By
+                </LabelMedium>
+                <LabelMedium style={{ fontSize: "14px" }}>
+                  <Link to={`/profile/${playlist.curatedBy.handle}`}>
+                    {playlist.curatedBy.displayName}
+                  </Link>
+                </LabelMedium>
+              </div>
+            </Group>
+
             <TableBuilder
               data={playlist.tracks.map((x, index) => ({
                 id: x.id,
