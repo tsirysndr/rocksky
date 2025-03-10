@@ -113,6 +113,7 @@ pub async fn get_top_albums(payload: &mut web::Payload, _req: &HttpRequest, conn
           s.album_id AS id,
           a.title AS title,
           ar.name AS artist,
+          ar.uri AS artist_uri,
           a.album_art AS album_art,
           a.release_date,
           a.year,
@@ -130,7 +131,7 @@ pub async fn get_top_albums(payload: &mut web::Payload, _req: &HttpRequest, conn
           users u ON s.user_id = u.id
       WHERE s.album_id IS NOT NULL AND (u.did = ? OR u.handle = ?)
       GROUP BY
-          s.album_id, a.title, ar.name, a.release_date, a.year, a.uri, a.album_art, a.sha256
+          s.album_id, a.title, ar.name, a.release_date, a.year, a.uri, a.album_art, a.sha256, ar.uri
       ORDER BY
           play_count DESC
       OFFSET ?
@@ -141,6 +142,7 @@ pub async fn get_top_albums(payload: &mut web::Payload, _req: &HttpRequest, conn
           s.album_id AS id,
           a.title AS title,
           ar.name AS artist,
+          ar.uri AS artist_uri,
           a.album_art AS album_art,
           a.release_date,
           a.year,
@@ -155,7 +157,7 @@ pub async fn get_top_albums(payload: &mut web::Payload, _req: &HttpRequest, conn
       LEFT JOIN
           artists ar ON a.artist_uri = ar.uri WHERE s.album_id IS NOT NULL
       GROUP BY
-          s.album_id, a.title, ar.name, a.release_date, a.year, a.uri, a.album_art, a.sha256
+          s.album_id, a.title, ar.name, a.release_date, a.year, a.uri, a.album_art, a.sha256, ar.uri
       ORDER BY
           play_count DESC
       OFFSET ?
@@ -170,13 +172,14 @@ pub async fn get_top_albums(payload: &mut web::Payload, _req: &HttpRequest, conn
           id: row.get(0)?,
           title: row.get(1)?,
           artist: row.get(2)?,
-          album_art: row.get(3)?,
-          release_date: row.get(4)?,
-          year: row.get(5)?,
-          uri: row.get(6)?,
-          sha256: row.get(7)?,
-          play_count: Some(row.get(8)?),
-          unique_listeners: Some(row.get(9)?),
+          artist_uri: row.get(3)?,
+          album_art: row.get(4)?,
+          release_date: row.get(5)?,
+          year: row.get(6)?,
+          uri: row.get(7)?,
+          sha256: row.get(8)?,
+          play_count: Some(row.get(9)?),
+          unique_listeners: Some(row.get(10)?),
           ..Default::default()
         })
       })?;
@@ -189,13 +192,14 @@ pub async fn get_top_albums(payload: &mut web::Payload, _req: &HttpRequest, conn
           id: row.get(0)?,
           title: row.get(1)?,
           artist: row.get(2)?,
-          album_art: row.get(3)?,
-          release_date: row.get(4)?,
-          year: row.get(5)?,
-          uri: row.get(6)?,
-          sha256: row.get(7)?,
-          play_count: Some(row.get(8)?),
-          unique_listeners: Some(row.get(9)?),
+          artist_uri: row.get(3)?,
+          album_art: row.get(4)?,
+          release_date: row.get(5)?,
+          year: row.get(6)?,
+          uri: row.get(7)?,
+          sha256: row.get(8)?,
+          play_count: Some(row.get(9)?),
+          unique_listeners: Some(row.get(10)?),
           ..Default::default()
         })
       })?;
