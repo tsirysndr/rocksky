@@ -28,6 +28,8 @@ export default {
 			url.pathname.startsWith('/scrobbles') ||
 			url.pathname.startsWith('/likes') ||
 			url.pathname.startsWith('/spotify') ||
+			url.pathname.startsWith('/dropbox') ||
+			url.pathname.startsWith('/googledrive') ||
 			url.pathname.startsWith('/search') ||
 			url.pathname.startsWith('/public/scrobbles')
 		) {
