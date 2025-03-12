@@ -27,4 +27,8 @@ export const env = cleanEnv(process.env, {
   XATA_POSTGRES_URL: str({}),
   NATS_URL: str({ devDefault: "nats://localhost:4222" }),
   ANALYTICS: str({ devDefault: "http://localhost:7879" }),
+  DROPBOX_CLIENT_ID: str({}),
+  DROPBOX_CLIENT_SECRET: str({}),
+  DROPBOX_REDIRECT_URI: str({}),
+  GOOGLE_REDIRECT_URI: str({}),
 });

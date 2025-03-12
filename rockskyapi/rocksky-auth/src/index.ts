@@ -15,6 +15,8 @@ import subscribe from "subscribers";
 import { saveTrack } from "tracks/tracks.service";
 import { trackSchema } from "types/track";
 import bsky from "./bsky/app";
+import dropbox from "./dropbox/app";
+import googledrive from "./googledrive/app";
 import { env } from "./lib/env";
 import search from "./search/app";
 import spotify from "./spotify/app";
@@ -29,6 +31,10 @@ app.use(cors());
 app.route("/", bsky);
 
 app.route("/spotify", spotify);
+
+app.route("/dropbox", dropbox);
+
+app.route("/googledrive", googledrive);
 
 app.get("/", async (c) => {
   return c.json({ status: "ok" });
