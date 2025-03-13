@@ -85,7 +85,7 @@ const Artist = () => {
           albumArtist: x.album_artist,
           albumArt: x.album_art,
           uri: x.uri,
-          scrobbles: x.scrobbles,
+          scrobbles: x.play_count,
           albumUri: x.album_uri,
           artistUri: x.artist_uri,
         }))

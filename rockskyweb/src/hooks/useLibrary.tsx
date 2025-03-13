@@ -32,7 +32,7 @@ function useLibrary() {
       album_artist: string;
       album_art: string;
       uri: string;
-      scrobbles: number;
+      play_count: number;
       album_uri?: string;
       artist_uri?: string;
     }[]
