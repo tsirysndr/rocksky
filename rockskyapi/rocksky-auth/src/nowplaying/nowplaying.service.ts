@@ -154,6 +154,8 @@ export async function putSongRecord(
     albumArt,
     composer: !!track.composer ? track.composer : undefined,
     lyrics: !!track.lyrics ? track.lyrics : undefined,
+    trackNumber: track.trackNumber,
+    discNumber: track.discNumber,
     copyrightMessage: !!track.copyrightMessage
       ? track.copyrightMessage
       : undefined,
@@ -212,6 +214,8 @@ async function putScrobbleRecord(
     artist: track.artist,
     album: track.album,
     duration: track.duration,
+    trackNumber: track.trackNumber,
+    discNumber: track.discNumber,
     releaseDate: track.releaseDate
       ? track.releaseDate.toISOString()
       : undefined,
