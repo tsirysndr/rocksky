@@ -1,0 +1,25 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cv8uugqglbhgau6cq6e0",
+    "operations": [
+      {
+        "add_column": {
+          "up": "''",
+          "table": "builtin_storage_paths",
+          "column": {
+            "name": "path",
+            "type": "text",
+            "unique": true,
+            "comment": ""
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cv8uugqglbhgau6cq6e0",
+  "parent": "mig_cv8utv81g95li4qghhs0",
+  "schema": "public",
+  "startedAt": "2025-03-12T20:32:05.065795Z"
+}

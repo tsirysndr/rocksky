@@ -1,0 +1,19 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cv8tt0g1g95li4qghh6g",
+    "operations": [
+      {
+        "rename_table": {
+          "to": "s3_bucket",
+          "from": "s3"
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cv8tt0g1g95li4qghh6g",
+  "parent": "mig_cv8tsfkld6k2hsabcgqg",
+  "schema": "public",
+  "startedAt": "2025-03-12T19:20:35.26839Z"
+}

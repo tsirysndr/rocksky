@@ -1,6 +1,8 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import AlbumPage from "./pages/album";
 import ArtistPage from "./pages/artist";
+import Dropbox from "./pages/dropbox";
+import GoogleDrive from "./pages/googledrive";
 import HomePage from "./pages/home";
 import PlaylistPage from "./pages/playlist";
 import ProfilePage from "./pages/profile";
@@ -20,6 +22,8 @@ function App() {
           element={<PlaylistPage />}
         />
         <Route path="/profile/:did" element={<ProfilePage />} />
+        <Route path="/dropbox" element={<Dropbox />} />
+        <Route path="/googledrive" element={<GoogleDrive />} />
       </Routes>
     </BrowserRouter>
   );

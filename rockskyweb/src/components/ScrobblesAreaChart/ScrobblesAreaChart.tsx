@@ -105,7 +105,13 @@ function ScrobblesAreaChart() {
           <AreaChart
             width={300}
             height={120}
-            data={pathname === "/" ? getScrobblesChart() : data}
+            data={
+              pathname === "/" ||
+              pathname.startsWith("/dropbox") ||
+              pathname.startsWith("/googledrive")
+                ? getScrobblesChart()
+                : data
+            }
             margin={{
               top: 5,
               right: 0,

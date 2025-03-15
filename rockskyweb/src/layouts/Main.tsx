@@ -10,6 +10,7 @@ import { profileAtom } from "../atoms/profile";
 import ScrobblesAreaChart from "../components/ScrobblesAreaChart";
 import { API_URL } from "../consts";
 import useProfile from "../hooks/useProfile";
+import CloudDrive from "./CloudDrive";
 import ExternalLinks from "./ExternalLinks";
 import Navbar from "./Navbar";
 import Search from "./Search";
@@ -148,10 +149,11 @@ function Main({ children }: { children: React.ReactNode }) {
             padding: 20,
           }}
         >
-          <div>
+          <div style={{ marginBottom: 30 }}>
             <Search />
           </div>
           {jwt && profile && !profile.spotifyConnected && <SpotifyLogin />}
+          {jwt && profile && <CloudDrive />}
           {!jwt && (
             <div style={{ marginTop: 40 }}>
               <div style={{ marginBottom: 20 }}>

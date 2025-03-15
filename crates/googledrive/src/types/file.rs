@@ -1,0 +1,32 @@
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct File {
+    pub id: String,
+    pub name: String,
+    #[serde(rename = "mimeType")]
+    pub mime_type: String,
+    pub parents: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FileList {
+    pub files: Vec<File>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetFilesParams {
+    pub did: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetFilesInParentsParams {
+    pub did: String,
+    pub parent_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DownloadFileParams {
+    pub did: String,
+    pub file_id: String,
+}

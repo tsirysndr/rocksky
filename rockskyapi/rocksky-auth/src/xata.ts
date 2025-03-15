@@ -769,6 +769,583 @@ const tables = [
     ],
   },
   {
+    name: "builtin_storage_paths",
+    checkConstraints: {
+      builtin_storage_paths_xata_id_length_xata_id: {
+        name: "builtin_storage_paths_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {
+      track_id_link: {
+        name: "track_id_link",
+        columns: ["track_id"],
+        referencedTable: "tracks",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+      user_id_link: {
+        name: "user_id_link",
+        columns: ["user_id"],
+        referencedTable: "users",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+    },
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_builtin_storage_paths_xata_id_key: {
+        name: "_pgroll_new_builtin_storage_paths_xata_id_key",
+        columns: ["xata_id"],
+      },
+      builtin_storage_paths__pgroll_new_path_key: {
+        name: "builtin_storage_paths__pgroll_new_path_key",
+        columns: ["path"],
+      },
+    },
+    columns: [
+      {
+        name: "path",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "track_id",
+        type: "link",
+        link: { table: "tracks" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"tracks"}',
+      },
+      {
+        name: "user_id",
+        type: "link",
+        link: { table: "users" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"users"}',
+      },
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
+    name: "dropbox",
+    checkConstraints: {
+      dropbox_xata_id_length_xata_id: {
+        name: "dropbox_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {
+      dropbox_token_id_link: {
+        name: "dropbox_token_id_link",
+        columns: ["dropbox_token_id"],
+        referencedTable: "dropbox_tokens",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+      user_id_link: {
+        name: "user_id_link",
+        columns: ["user_id"],
+        referencedTable: "users",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+    },
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_dropbox_xata_id_key: {
+        name: "_pgroll_new_dropbox_xata_id_key",
+        columns: ["xata_id"],
+      },
+    },
+    columns: [
+      {
+        name: "dropbox_token_id",
+        type: "link",
+        link: { table: "dropbox_tokens" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"dropbox_tokens"}',
+      },
+      {
+        name: "user_id",
+        type: "link",
+        link: { table: "users" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"users"}',
+      },
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
+    name: "dropbox_paths",
+    checkConstraints: {
+      dropbox_paths_xata_id_length_xata_id: {
+        name: "dropbox_paths_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {
+      dropbox_id_link: {
+        name: "dropbox_id_link",
+        columns: ["dropbox_id"],
+        referencedTable: "dropbox",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+      track_id_link: {
+        name: "track_id_link",
+        columns: ["track_id"],
+        referencedTable: "tracks",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+    },
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_dropbox_paths_xata_id_key: {
+        name: "_pgroll_new_dropbox_paths_xata_id_key",
+        columns: ["xata_id"],
+      },
+    },
+    columns: [
+      {
+        name: "dropbox_id",
+        type: "link",
+        link: { table: "dropbox" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"dropbox"}',
+      },
+      {
+        name: "path",
+        type: "text",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "track_id",
+        type: "link",
+        link: { table: "tracks" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"tracks"}',
+      },
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
+    name: "dropbox_tokens",
+    checkConstraints: {
+      dropbox_tokens_xata_id_length_xata_id: {
+        name: "dropbox_tokens_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {},
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_dropbox_tokens_xata_id_key: {
+        name: "_pgroll_new_dropbox_tokens_xata_id_key",
+        columns: ["xata_id"],
+      },
+    },
+    columns: [
+      {
+        name: "refresh_token",
+        type: "text",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
+    name: "google_drive",
+    checkConstraints: {
+      google_drive_xata_id_length_xata_id: {
+        name: "google_drive_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {
+      google_drive_token_id_link: {
+        name: "google_drive_token_id_link",
+        columns: ["google_drive_token_id"],
+        referencedTable: "google_drive_tokens",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+      user_id_link: {
+        name: "user_id_link",
+        columns: ["user_id"],
+        referencedTable: "users",
+        referencedColumns: ["xata_id"],
+        onDelete: "SET NULL",
+      },
+    },
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_google_drive_xata_id_key: {
+        name: "_pgroll_new_google_drive_xata_id_key",
+        columns: ["xata_id"],
+      },
+    },
+    columns: [
+      {
+        name: "google_drive_token_id",
+        type: "link",
+        link: { table: "google_drive_tokens" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"google_drive_tokens"}',
+      },
+      {
+        name: "user_id",
+        type: "link",
+        link: { table: "users" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"users"}',
+      },
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
+    name: "google_drive_paths",
+    checkConstraints: {
+      google_drive_paths_xata_id_length_xata_id: {
+        name: "google_drive_paths_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {
+      google_drive_id_link: {
+        name: "google_drive_id_link",
+        columns: ["google_drive_id"],
+        referencedTable: "google_drive",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+      track_id_link: {
+        name: "track_id_link",
+        columns: ["track_id"],
+        referencedTable: "tracks",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+    },
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_google_drive_paths_xata_id_key: {
+        name: "_pgroll_new_google_drive_paths_xata_id_key",
+        columns: ["xata_id"],
+      },
+      google_drive_paths__pgroll_new_google_drive_file_id_key: {
+        name: "google_drive_paths__pgroll_new_google_drive_file_id_key",
+        columns: ["file_id"],
+      },
+    },
+    columns: [
+      {
+        name: "file_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "google_drive_id",
+        type: "link",
+        link: { table: "google_drive" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"google_drive"}',
+      },
+      {
+        name: "track_id",
+        type: "link",
+        link: { table: "tracks" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"tracks"}',
+      },
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
+    name: "google_drive_tokens",
+    checkConstraints: {
+      google_drive_tokens_xata_id_length_xata_id: {
+        name: "google_drive_tokens_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {},
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_google_drive_tokens_xata_id_key: {
+        name: "_pgroll_new_google_drive_tokens_xata_id_key",
+        columns: ["xata_id"],
+      },
+    },
+    columns: [
+      {
+        name: "refresh_token",
+        type: "text",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
     name: "loved_tracks",
     checkConstraints: {
       loved_tracks_xata_id_length_xata_id: {
@@ -1293,6 +1870,252 @@ const tables = [
     ],
   },
   {
+    name: "s3_bucket",
+    checkConstraints: {
+      s3_xata_id_length_xata_id: {
+        name: "s3_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {
+      s3_token_id_link: {
+        name: "s3_token_id_link",
+        columns: ["s3_token_id"],
+        referencedTable: "s3_tokens",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+      user_id_link: {
+        name: "user_id_link",
+        columns: ["user_id"],
+        referencedTable: "users",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+    },
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_s3_xata_id_key: {
+        name: "_pgroll_new_s3_xata_id_key",
+        columns: ["xata_id"],
+      },
+    },
+    columns: [
+      {
+        name: "name",
+        type: "text",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "s3_token_id",
+        type: "link",
+        link: { table: "s3_tokens" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"s3_tokens"}',
+      },
+      {
+        name: "user_id",
+        type: "link",
+        link: { table: "users" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"users"}',
+      },
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
+    name: "s3_paths",
+    checkConstraints: {
+      s3_paths_xata_id_length_xata_id: {
+        name: "s3_paths_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {
+      s3_bucket_id_link: {
+        name: "s3_bucket_id_link",
+        columns: ["s3_bucket_id"],
+        referencedTable: "s3_bucket",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+      track_id_link: {
+        name: "track_id_link",
+        columns: ["track_id"],
+        referencedTable: "tracks",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+    },
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_s3_paths_xata_id_key: {
+        name: "_pgroll_new_s3_paths_xata_id_key",
+        columns: ["xata_id"],
+      },
+    },
+    columns: [
+      {
+        name: "s3_bucket_id",
+        type: "link",
+        link: { table: "s3_bucket" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"s3_bucket"}',
+      },
+      {
+        name: "track_id",
+        type: "link",
+        link: { table: "tracks" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"tracks"}',
+      },
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
+    name: "s3_tokens",
+    checkConstraints: {
+      s3_tokens_xata_id_length_xata_id: {
+        name: "s3_tokens_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {},
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_s3_tokens_xata_id_key: {
+        name: "_pgroll_new_s3_tokens_xata_id_key",
+        columns: ["xata_id"],
+      },
+    },
+    columns: [
+      {
+        name: "client_access_key",
+        type: "text",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "secret_access_key",
+        type: "text",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
     name: "scrobbles",
     checkConstraints: {
       scrobbles_xata_id_length_xata_id: {
@@ -1386,6 +2209,203 @@ const tables = [
         unique: false,
         defaultValue: null,
         comment: '{"xata.link":"users"}',
+      },
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
+    name: "sftp",
+    checkConstraints: {
+      sftp_xata_id_length_xata_id: {
+        name: "sftp_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {},
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_sftp_xata_id_key: {
+        name: "_pgroll_new_sftp_xata_id_key",
+        columns: ["xata_id"],
+      },
+    },
+    columns: [
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
+    name: "sftp_access",
+    checkConstraints: {
+      sftp_access_xata_id_length_xata_id: {
+        name: "sftp_access_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {},
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_sftp_access_xata_id_key: {
+        name: "_pgroll_new_sftp_access_xata_id_key",
+        columns: ["xata_id"],
+      },
+    },
+    columns: [
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
+    name: "sftp_path",
+    checkConstraints: {
+      sftp_path_xata_id_length_xata_id: {
+        name: "sftp_path_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {
+      sftp_id_link: {
+        name: "sftp_id_link",
+        columns: ["sftp_id"],
+        referencedTable: "sftp",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+      track_id_link: {
+        name: "track_id_link",
+        columns: ["track_id"],
+        referencedTable: "tracks",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+    },
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_sftp_path_xata_id_key: {
+        name: "_pgroll_new_sftp_path_xata_id_key",
+        columns: ["xata_id"],
+      },
+    },
+    columns: [
+      {
+        name: "path",
+        type: "text",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "sftp_id",
+        type: "link",
+        link: { table: "sftp" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"sftp"}',
+      },
+      {
+        name: "track_id",
+        type: "link",
+        link: { table: "tracks" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"tracks"}',
       },
       {
         name: "xata_createdat",
@@ -2877,6 +3897,27 @@ export type ArtistTracksRecord = ArtistTracks & XataRecord;
 export type Artists = InferredTypes["artists"];
 export type ArtistsRecord = Artists & XataRecord;
 
+export type BuiltinStoragePaths = InferredTypes["builtin_storage_paths"];
+export type BuiltinStoragePathsRecord = BuiltinStoragePaths & XataRecord;
+
+export type Dropbox = InferredTypes["dropbox"];
+export type DropboxRecord = Dropbox & XataRecord;
+
+export type DropboxPaths = InferredTypes["dropbox_paths"];
+export type DropboxPathsRecord = DropboxPaths & XataRecord;
+
+export type DropboxTokens = InferredTypes["dropbox_tokens"];
+export type DropboxTokensRecord = DropboxTokens & XataRecord;
+
+export type GoogleDrive = InferredTypes["google_drive"];
+export type GoogleDriveRecord = GoogleDrive & XataRecord;
+
+export type GoogleDrivePaths = InferredTypes["google_drive_paths"];
+export type GoogleDrivePathsRecord = GoogleDrivePaths & XataRecord;
+
+export type GoogleDriveTokens = InferredTypes["google_drive_tokens"];
+export type GoogleDriveTokensRecord = GoogleDriveTokens & XataRecord;
+
 export type LovedTracks = InferredTypes["loved_tracks"];
 export type LovedTracksRecord = LovedTracks & XataRecord;
 
@@ -2892,8 +3933,26 @@ export type ProfileShoutsRecord = ProfileShouts & XataRecord;
 export type Radios = InferredTypes["radios"];
 export type RadiosRecord = Radios & XataRecord;
 
+export type S3Bucket = InferredTypes["s3_bucket"];
+export type S3BucketRecord = S3Bucket & XataRecord;
+
+export type S3Paths = InferredTypes["s3_paths"];
+export type S3PathsRecord = S3Paths & XataRecord;
+
+export type S3Tokens = InferredTypes["s3_tokens"];
+export type S3TokensRecord = S3Tokens & XataRecord;
+
 export type Scrobbles = InferredTypes["scrobbles"];
 export type ScrobblesRecord = Scrobbles & XataRecord;
+
+export type Sftp = InferredTypes["sftp"];
+export type SftpRecord = Sftp & XataRecord;
+
+export type SftpAccess = InferredTypes["sftp_access"];
+export type SftpAccessRecord = SftpAccess & XataRecord;
+
+export type SftpPath = InferredTypes["sftp_path"];
+export type SftpPathRecord = SftpPath & XataRecord;
 
 export type ShoutLikes = InferredTypes["shout_likes"];
 export type ShoutLikesRecord = ShoutLikes & XataRecord;
@@ -2942,12 +4001,25 @@ export type DatabaseSchema = {
   artist_tags: ArtistTagsRecord;
   artist_tracks: ArtistTracksRecord;
   artists: ArtistsRecord;
+  builtin_storage_paths: BuiltinStoragePathsRecord;
+  dropbox: DropboxRecord;
+  dropbox_paths: DropboxPathsRecord;
+  dropbox_tokens: DropboxTokensRecord;
+  google_drive: GoogleDriveRecord;
+  google_drive_paths: GoogleDrivePathsRecord;
+  google_drive_tokens: GoogleDriveTokensRecord;
   loved_tracks: LovedTracksRecord;
   playlist_tracks: PlaylistTracksRecord;
   playlists: PlaylistsRecord;
   profile_shouts: ProfileShoutsRecord;
   radios: RadiosRecord;
+  s3_bucket: S3BucketRecord;
+  s3_paths: S3PathsRecord;
+  s3_tokens: S3TokensRecord;
   scrobbles: ScrobblesRecord;
+  sftp: SftpRecord;
+  sftp_access: SftpAccessRecord;
+  sftp_path: SftpPathRecord;
   shout_likes: ShoutLikesRecord;
   shout_reports: ShoutReportsRecord;
   shouts: ShoutsRecord;
