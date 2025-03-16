@@ -10,6 +10,7 @@ import { useNavigate } from "react-router";
 import googleDriveAtom from "../../atoms/googledrive";
 import ArrowBack from "../../components/Icons/ArrowBack";
 import Table from "../../components/Table";
+import { AUDIO_EXTENSIONS } from "../../consts";
 import useGoogleDrive from "../../hooks/useGoogleDrive";
 import Main from "../../layouts/Main";
 import { File } from "../../types/file";
@@ -74,12 +75,18 @@ const GoogleDrive = (props: GoogleDriveProps) => {
       setLoading(true);
       const { files } = await getFiles(props.fileId);
       const cache = { ...googleDrive?.cache };
-      cache[props.fileId || "/Music"] = files.map((x) => ({
-        id: x.id,
-        name: x.name,
-        mime_type: x.mimeType,
-        parents: x.parents,
-      }));
+      cache[props.fileId || "/Music"] = files
+        .filter(
+          (x) =>
+            x.mimeType.includes("folder") ||
+            AUDIO_EXTENSIONS.includes(x.name.split(".").pop() || "")
+        )
+        .map((x) => ({
+          id: x.id,
+          name: x.name,
+          mime_type: x.mimeType,
+          parents: x.parents,
+        }));
       setGoogleDrive({
         current_folder: _.get(files, "0.parents.0"),
         cache,

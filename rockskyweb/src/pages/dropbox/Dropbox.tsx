@@ -10,6 +10,7 @@ import { useNavigate } from "react-router";
 import { dropboxAtom } from "../../atoms/dropbox";
 import ArrowBack from "../../components/Icons/ArrowBack";
 import Table from "../../components/Table";
+import { AUDIO_EXTENSIONS } from "../../consts";
 import useDropbox from "../../hooks/useDropbox";
 import Main from "../../layouts/Main";
 import { File } from "../../types/file";
@@ -74,7 +75,13 @@ const Dropbox = (props: DropboxProps) => {
       setLoading(true);
       const files = await getFiles(props.fileId);
       const cache = { ...dropbox?.cache };
-      cache[props.fileId || "/Music"] = _.orderBy(files.entries, "name", "asc");
+      cache[props.fileId || "/Music"] = files.entries.filter(
+        (entry) =>
+          entry[".tag"] === "folder" ||
+          (entry[".tag"] === "file" &&
+            AUDIO_EXTENSIONS.includes(entry.name.split(".").pop() || ""))
+      );
+      _.orderBy(files.entries, "name", "asc");
       setDropbox({
         current_path: props.fileId || "/Music",
         cache,
