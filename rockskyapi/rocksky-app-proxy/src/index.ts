@@ -28,8 +28,14 @@ export default {
 			url.pathname.startsWith('/scrobbles') ||
 			url.pathname.startsWith('/likes') ||
 			url.pathname.startsWith('/spotify') ||
-			url.pathname.startsWith('/dropbox') ||
-			url.pathname.startsWith('/googledrive') ||
+			url.pathname.startsWith('/dropbox/oauth/callback') ||
+			url.pathname.startsWith('/googledrive/oauth/callback') ||
+			url.pathname.startsWith('/dropbox/files') ||
+			url.pathname.startsWith('/googledrive/files') ||
+			url.pathname.startsWith('/dropbox/login') ||
+			url.pathname.startsWith('/googledrive/login') ||
+			url.pathname.startsWith('/dropbox/join') ||
+			url.pathname.startsWith('/googledrive/join') ||
 			url.pathname.startsWith('/search') ||
 			url.pathname.startsWith('/public/scrobbles')
 		) {
