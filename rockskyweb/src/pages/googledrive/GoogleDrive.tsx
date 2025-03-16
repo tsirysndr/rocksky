@@ -3,6 +3,7 @@ import { Folder2, MusicNoteBeamed } from "@styled-icons/bootstrap";
 import { createColumnHelper } from "@tanstack/react-table";
 import { HeadingMedium } from "baseui/typography";
 import { useAtom } from "jotai";
+import _ from "lodash";
 import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
 import { useNavigate } from "react-router";
@@ -80,7 +81,7 @@ const GoogleDrive = (props: GoogleDriveProps) => {
         parents: x.parents,
       }));
       setGoogleDrive({
-        current_folder: files[0].parents[0],
+        current_folder: _.get(files, "0.parents.0"),
         cache,
       });
       setLoading(false);

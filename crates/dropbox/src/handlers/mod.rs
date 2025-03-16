@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::Error;
-use files::{download_file, get_files, get_files_at, get_temporary_link};
+use files::{create_music_folder, download_file, get_files, get_files_at, get_temporary_link};
 use sqlx::{Pool, Postgres};
 
 pub mod files;
@@ -24,6 +24,7 @@ macro_rules! read_payload {
 pub async fn handle(method: &str, payload: &mut web::Payload, req: &HttpRequest, conn: Arc<Mutex<Pool<Postgres>>>) -> Result<HttpResponse, Error> {
   match method {
     "dropbox.getFiles" => get_files(payload, req, conn.clone()).await,
+    "dropbox.createMusicFolder" => create_music_folder(payload, req, conn.clone()).await,
     "dropbox.getFilesAt" => get_files_at(payload, req, conn.clone()).await,
     "dropbox.downloadFile" => download_file(payload, req, conn.clone()).await,
     "dropbox.getTemporaryLink" => get_temporary_link(payload, req, conn.clone()).await,

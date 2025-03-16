@@ -142,11 +142,21 @@ app.get("/files", async (c) => {
   const path = c.req.query("path");
 
   if (!path) {
-    const { data } = await ctx.dropbox.post("dropbox.getFiles", {
-      did,
-    });
+    try {
+      const { data } = await ctx.dropbox.post("dropbox.getFiles", {
+        did,
+      });
 
-    return c.json(data);
+      return c.json(data);
+    } catch {
+      await ctx.dropbox.post("dropbox.createMusicFolder", {
+        did,
+      });
+      const response = await ctx.dropbox.post("dropbox.getFiles", {
+        did,
+      });
+      return c.json(response.data);
+    }
   }
 
   const { data } = await ctx.dropbox.post("dropbox.getFilesAt", {

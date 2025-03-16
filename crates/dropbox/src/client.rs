@@ -38,6 +38,17 @@ impl DropboxClient {
     })
   }
 
+  pub async fn create_music_folder(&self) -> Result<(), Error> {
+    let client = Client::new();
+    client.post(&format!("{}/files/create_folder_v2", BASE_URL))
+      .bearer_auth(&self.access_token)
+      .json(&json!({ "path": "/Music" }))
+      .send()
+      .await?;
+
+    Ok(())
+  }
+
   pub async fn get_files(&self, path: &str) -> Result<EntryList, Error> {
     let client = Client::new();
     let res = client.post(&format!("{}/files/list_folder", BASE_URL))

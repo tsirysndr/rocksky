@@ -37,6 +37,28 @@ pub async fn get_files(payload: &mut web::Payload, _req: &HttpRequest, pool: Arc
   Ok(HttpResponse::Ok().json(web::Json(entries)))
 }
 
+
+pub async fn create_music_folder(payload: &mut web::Payload, _req: &HttpRequest, pool: Arc<Mutex<Pool<Postgres>>>) -> Result<HttpResponse, Error> {
+  let body = read_payload!(payload);
+  let params = serde_json::from_slice::<GetFilesParams>(&body)?;
+  let pool = pool.lock().unwrap();
+  let refresh_token = find_dropbox_refresh_token(&pool, &params.did).await?;
+
+  if refresh_token.is_none() {
+    return Ok(HttpResponse::Unauthorized().finish());
+  }
+
+  let refresh_token = decrypt_aes_256_ctr(
+    &refresh_token.unwrap(),
+    &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?
+  )?;
+
+  let client = DropboxClient::new(&refresh_token).await?;
+  client.create_music_folder().await?;
+
+  Ok(HttpResponse::Ok().finish())
+}
+
 pub async fn get_files_at(payload: &mut web::Payload, _req: &HttpRequest, pool: Arc<Mutex<Pool<Postgres>>>) -> Result<HttpResponse, Error> {
   let body = read_payload!(payload);
   let params = serde_json::from_slice::<GetFilesAtParams>(&body)?;

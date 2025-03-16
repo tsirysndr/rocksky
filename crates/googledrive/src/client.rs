@@ -3,6 +3,7 @@ use std::env;
 use actix_web::HttpResponse;
 use anyhow::Error;
 use reqwest::Client;
+use serde_json::json;
 
 use crate::types::{file::{File, FileList}, token::AccessToken};
 
@@ -57,6 +58,21 @@ impl GoogleDriveClient {
     Ok(res.json::<FileList>().await?)
   }
 
+  pub async fn create_music_directory(&self) -> Result<File, Error> {
+    let client = Client::new();
+    let url = format!("{}/files", BASE_URL);
+    let res = client.post(&url)
+      .bearer_auth(&self.access_token)
+      .json(&json!({
+        "name": "Music",
+        "mimeType": "application/vnd.google-apps.folder",
+      }))
+      .send()
+      .await?;
+
+    Ok(res.json::<File>().await?)
+  }
+
   pub async fn get_music_directory(&self) -> Result<FileList, Error> {
     let client = Client::new();
     let url = format!("{}/files", BASE_URL);
@@ -70,7 +86,16 @@ impl GoogleDriveClient {
       .send()
       .await?;
 
-    Ok(res.json::<FileList>().await?)
+    let files = res.json::<FileList>().await?;
+
+    if files.files.len() == 0 {
+      let music_dir = self.create_music_directory().await?;
+      return Ok(FileList {
+        files: vec![music_dir],
+      });
+    }
+
+    Ok(files)
   }
 
   pub async fn get_files_in_parents(&self, parent_id: &str) -> Result<FileList, Error> {

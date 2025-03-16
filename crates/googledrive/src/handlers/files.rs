@@ -14,6 +14,29 @@ use crate::{
   repo::google_drive_token::find_google_drive_refresh_token, types::file::{DownloadFileParams, GetFilesInParentsParams, GetFilesParams}
 };
 
+pub async fn create_music_directory(payload: &mut web::Payload, _req: &HttpRequest, pool: Arc<Mutex<Pool<Postgres>>>) -> Result<HttpResponse, Error> {
+  let body = read_payload!(payload);
+  let params = serde_json::from_slice::<GetFilesParams>(&body)?;
+
+  let pool = pool.lock().unwrap();
+  let refresh_token = find_google_drive_refresh_token(&pool, &params.did).await?;
+  drop(pool);
+
+  if refresh_token.is_none() {
+    return Ok(HttpResponse::Unauthorized().finish());
+  }
+
+  let refresh_token = decrypt_aes_256_ctr(
+    &refresh_token.unwrap(),
+    &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?
+  )?;
+
+  let client = GoogleDriveClient::new(&refresh_token).await?;
+  let file = client.create_music_directory().await?;
+
+  Ok(HttpResponse::Ok().json(web::Json(file)))
+}
+
 pub async fn get_music_directory(payload: &mut web::Payload, _req: &HttpRequest, pool: Arc<Mutex<Pool<Postgres>>>) -> Result<HttpResponse, Error> {
   let body = read_payload!(payload);
   let params = serde_json::from_slice::<GetFilesParams>(&body)?;

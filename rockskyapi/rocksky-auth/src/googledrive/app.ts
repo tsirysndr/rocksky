@@ -173,9 +173,17 @@ app.get("/files", async (c) => {
     return c.json(data);
   }
 
-  const response = await ctx.googledrive.post("googledrive.getMusicDirectory", {
+  let response = await ctx.googledrive.post("googledrive.getMusicDirectory", {
     did,
   });
+
+  if (response.data.files.length === 0) {
+    await ctx.googledrive.post("googledrive.createMusicDirectory", { did });
+    response = await ctx.googledrive.post("googledrive.getMusicDirectory", {
+      did,
+    });
+  }
+
   const { data } = await ctx.googledrive.post("googledrive.getFilesInParents", {
     did,
     parent_id: response.data.files[0].id,
