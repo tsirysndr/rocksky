@@ -951,6 +951,95 @@ const tables = [
     ],
   },
   {
+    name: "dropbox_accounts",
+    checkConstraints: {
+      dropbox_accounts_xata_id_length_xata_id: {
+        name: "dropbox_accounts_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {
+      user_id_link: {
+        name: "user_id_link",
+        columns: ["user_id"],
+        referencedTable: "users",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+    },
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_dropbox_accounts_xata_id_key: {
+        name: "_pgroll_new_dropbox_accounts_xata_id_key",
+        columns: ["xata_id"],
+      },
+      dropbox_accounts__pgroll_new_email_key: {
+        name: "dropbox_accounts__pgroll_new_email_key",
+        columns: ["email"],
+      },
+    },
+    columns: [
+      {
+        name: "email",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "is_beta_user",
+        type: "bool",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "user_id",
+        type: "link",
+        link: { table: "users" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"users"}',
+      },
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
     name: "dropbox_paths",
     checkConstraints: {
       dropbox_paths_xata_id_length_xata_id: {
@@ -991,6 +1080,14 @@ const tables = [
         unique: false,
         defaultValue: null,
         comment: '{"xata.link":"dropbox"}',
+      },
+      {
+        name: "name",
+        type: "text",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
       },
       {
         name: "path",
@@ -1189,6 +1286,95 @@ const tables = [
     ],
   },
   {
+    name: "google_drive_accounts",
+    checkConstraints: {
+      google_drive_accounts_xata_id_length_xata_id: {
+        name: "google_drive_accounts_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {
+      user_id_link: {
+        name: "user_id_link",
+        columns: ["user_id"],
+        referencedTable: "users",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+    },
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_google_drive_accounts_xata_id_key: {
+        name: "_pgroll_new_google_drive_accounts_xata_id_key",
+        columns: ["xata_id"],
+      },
+      google_drive_accounts__pgroll_new_email_key: {
+        name: "google_drive_accounts__pgroll_new_email_key",
+        columns: ["email"],
+      },
+    },
+    columns: [
+      {
+        name: "email",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "is_beta_user",
+        type: "bool",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "user_id",
+        type: "link",
+        link: { table: "users" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"users"}',
+      },
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
     name: "google_drive_paths",
     checkConstraints: {
       google_drive_paths_xata_id_length_xata_id: {
@@ -1241,6 +1427,14 @@ const tables = [
         unique: false,
         defaultValue: null,
         comment: '{"xata.link":"google_drive"}',
+      },
+      {
+        name: "name",
+        type: "text",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
       },
       {
         name: "track_id",
@@ -1996,6 +2190,22 @@ const tables = [
     },
     columns: [
       {
+        name: "name",
+        type: "text",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "path",
+        type: "text",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
         name: "s3_bucket_id",
         type: "link",
         link: { table: "s3_bucket" },
@@ -2381,6 +2591,14 @@ const tables = [
       },
     },
     columns: [
+      {
+        name: "name",
+        type: "text",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
       {
         name: "path",
         type: "text",
@@ -3903,6 +4121,9 @@ export type BuiltinStoragePathsRecord = BuiltinStoragePaths & XataRecord;
 export type Dropbox = InferredTypes["dropbox"];
 export type DropboxRecord = Dropbox & XataRecord;
 
+export type DropboxAccounts = InferredTypes["dropbox_accounts"];
+export type DropboxAccountsRecord = DropboxAccounts & XataRecord;
+
 export type DropboxPaths = InferredTypes["dropbox_paths"];
 export type DropboxPathsRecord = DropboxPaths & XataRecord;
 
@@ -3911,6 +4132,9 @@ export type DropboxTokensRecord = DropboxTokens & XataRecord;
 
 export type GoogleDrive = InferredTypes["google_drive"];
 export type GoogleDriveRecord = GoogleDrive & XataRecord;
+
+export type GoogleDriveAccounts = InferredTypes["google_drive_accounts"];
+export type GoogleDriveAccountsRecord = GoogleDriveAccounts & XataRecord;
 
 export type GoogleDrivePaths = InferredTypes["google_drive_paths"];
 export type GoogleDrivePathsRecord = GoogleDrivePaths & XataRecord;
@@ -4003,9 +4227,11 @@ export type DatabaseSchema = {
   artists: ArtistsRecord;
   builtin_storage_paths: BuiltinStoragePathsRecord;
   dropbox: DropboxRecord;
+  dropbox_accounts: DropboxAccountsRecord;
   dropbox_paths: DropboxPathsRecord;
   dropbox_tokens: DropboxTokensRecord;
   google_drive: GoogleDriveRecord;
+  google_drive_accounts: GoogleDriveAccountsRecord;
   google_drive_paths: GoogleDrivePathsRecord;
   google_drive_tokens: GoogleDriveTokensRecord;
   loved_tracks: LovedTracksRecord;

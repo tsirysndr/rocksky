@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cvb902cld6k2hsabd580",
+    "operations": [
+      {
+        "add_column": {
+          "up": "''",
+          "table": "s3_paths",
+          "column": {
+            "name": "path",
+            "type": "text",
+            "comment": ""
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cvb902cld6k2hsabd580",
+  "parent": "mig_cvb8vpsld6k2hsabd55g",
+  "schema": "public",
+  "startedAt": "2025-03-16T08:47:06.501691Z"
+}

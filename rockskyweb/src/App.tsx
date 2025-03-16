@@ -2,7 +2,9 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import AlbumPage from "./pages/album";
 import ArtistPage from "./pages/artist";
 import Dropbox from "./pages/dropbox";
+import DropboxWithId from "./pages/dropbox/DropboxWithId";
 import GoogleDrive from "./pages/googledrive";
+import GoogleDriveWithId from "./pages/googledrive/GoogleDriveWithId";
 import HomePage from "./pages/home";
 import PlaylistPage from "./pages/playlist";
 import ProfilePage from "./pages/profile";
@@ -24,6 +26,8 @@ function App() {
         <Route path="/profile/:did" element={<ProfilePage />} />
         <Route path="/dropbox" element={<Dropbox />} />
         <Route path="/googledrive" element={<GoogleDrive />} />
+        <Route path="/dropbox/:id" element={<DropboxWithId />} />
+        <Route path="/googledrive/:id" element={<GoogleDriveWithId />} />
       </Routes>
     </BrowserRouter>
   );

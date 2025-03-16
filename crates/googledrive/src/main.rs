@@ -40,17 +40,6 @@ async fn call_method(
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
   dotenv().ok();
 
-  /*
-  let pool =  PgPoolOptions::new().max_connections(5).connect(&env::var("XATA_POSTGRES_URL")?).await?;
-  let refresh_token = find_google_drive_refresh_token(&pool, "did:plc:7vdlgi2bflelz7mmuxoqjfcr").await?;
-
-  let refresh_token = decrypt_aes_256_ctr(
-    &refresh_token.unwrap(),
-    &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?
-  )?;
-
-  println!("Refresh token: {}", refresh_token);
-  */
   let host = env::var("GOOGLE_DRIVE_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
   let port = env::var("GOOGLE_DRIVE_PORT_PORT").unwrap_or_else(|_| "7880".to_string());
   let addr = format!("{}:{}", host, port);

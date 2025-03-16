@@ -8,5 +8,11 @@ export const profileAtom = atom<{
     isBeta: boolean;
   };
   spotifyConnected: boolean;
+  googledriveUser?: {
+    isBeta: boolean;
+  };
+  dropboxUser?: {
+    isBeta: boolean;
+  };
   did: string;
 } | null>(null);

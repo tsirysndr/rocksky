@@ -1,3 +1,4 @@
+import { BlobRef } from "@atproto/lexicon";
 import { isValidHandle } from "@atproto/syntax";
 import { equals } from "@xata.io/client";
 import { ctx } from "context";
@@ -84,7 +85,7 @@ app.get("/profile", async (c) => {
     rkey: "self",
   });
   const handle = await ctx.resolver.resolveDidToHandle(did);
-  const profile: { handle?: string; displayName?: string } =
+  const profile: { handle?: string; displayName?: string; avatar?: BlobRef } =
     Profile.isRecord(profileRecord.value) &&
     Profile.validateRecord(profileRecord.value).success
       ? { ...profileRecord.value, handle }
@@ -103,37 +104,46 @@ app.get("/profile", async (c) => {
         console.error(e.message);
       }
     }
-    const user = await ctx.client.db.users
-      .select(["*"])
-      .filter("did", equals(did))
-      .getFirst();
 
-    const lastUser = await ctx.db
-      .select()
-      .from(users)
-      .orderBy(desc(users.createdAt))
-      .limit(1)
-      .execute();
-    const previousLastUser = await ctx.kv.get("lastUser");
+    const [user, lastUser, previousLastUser] = await Promise.all([
+      ctx.client.db.users.select(["*"]).filter("did", equals(did)).getFirst(),
+      ctx.db
+        .select()
+        .from(users)
+        .orderBy(desc(users.createdAt))
+        .limit(1)
+        .execute(),
+      ctx.kv.get("lastUser"),
+    ]);
+
     await ctx.kv.set("lastUser", lastUser[0].id);
     if (lastUser[0].id !== previousLastUser) {
       ctx.nc.publish("rocksky.user", Buffer.from(JSON.stringify(user)));
     }
   }
 
-  const spotifyUser = await ctx.client.db.spotify_accounts
-    .select(["user_id.*", "email", "is_beta_user"])
-    .filter("user_id.did", equals(did))
-    .getFirst();
-
-  const spotifyToken = await ctx.client.db.spotify_tokens
-    .filter("user_id.did", equals(did))
-    .getFirst();
+  const [spotifyUser, spotifyToken, googledrive, dropbox] = await Promise.all([
+    ctx.client.db.spotify_accounts
+      .select(["user_id.*", "email", "is_beta_user"])
+      .filter("user_id.did", equals(did))
+      .getFirst(),
+    ctx.client.db.spotify_tokens.filter("user_id.did", equals(did)).getFirst(),
+    ctx.client.db.google_drive_accounts
+      .select(["user_id.*", "email", "is_beta_user"])
+      .filter("user_id.did", equals(did))
+      .getFirst(),
+    ctx.client.db.dropbox_accounts
+      .select(["user_id.*", "email", "is_beta_user"])
+      .filter("user_id.did", equals(did))
+      .getFirst(),
+  ]);
 
   return c.json({
     ...profile,
     spotifyUser,
     spotifyConnected: !!spotifyToken,
+    googledrive,
+    dropbox,
     did,
   });
 });

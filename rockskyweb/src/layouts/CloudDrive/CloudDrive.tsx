@@ -1,8 +1,14 @@
 import styled from "@emotion/styled";
 import { LabelMedium } from "baseui/typography";
+import { useAtomValue } from "jotai";
+import { useState } from "react";
+import { useNavigate } from "react-router";
+import { profileAtom } from "../../atoms/profile";
 import Dropbox from "../../components/Icons/Dropbox";
 import GoogleDrive from "../../components/Icons/GoogleDrive";
 import { API_URL } from "../../consts";
+import DropboxBeta from "./DropboxBeta";
+import GoogleDriveBeta from "./GoogleDriveBeta";
 
 const MenuItem = styled.div`
   display: flex;
@@ -19,9 +25,25 @@ const MenuItem = styled.div`
 `;
 
 function CloudDrive() {
+  const profile = useAtomValue(profileAtom);
+  const navigate = useNavigate();
+  const [isGoogleDriveBetaModalOpen, setIsGoogleDriveBetaModalOpen] =
+    useState(false);
+  const [isDropboxBetaModalOpen, setIsDropboxBetaModalOpen] = useState(false);
+
   const onSelectGoogleDrive = async () => {
     const did = localStorage.getItem("did");
     if (!did) {
+      return;
+    }
+
+    if (profile?.googledriveUser?.isBeta) {
+      navigate("/googledrive");
+      return;
+    }
+
+    if (profile!.did !== "did:plc:7vdlgi2bflelz7mmuxoqjfcr") {
+      setIsGoogleDriveBetaModalOpen(true);
       return;
     }
 
@@ -39,6 +61,16 @@ function CloudDrive() {
   const onSelectDropbox = async () => {
     const did = localStorage.getItem("did");
     if (!did) {
+      return;
+    }
+
+    if (profile?.dropboxUser?.isBeta) {
+      navigate("/dropbox");
+      return;
+    }
+
+    if (profile!.did !== "did:plc:7vdlgi2bflelz7mmuxoqjfcr") {
+      setIsDropboxBetaModalOpen(true);
       return;
     }
 
@@ -70,6 +102,14 @@ function CloudDrive() {
         </div>
         <div style={{ flex: 1, marginLeft: 15, marginBottom: 5 }}>Dropbox</div>
       </MenuItem>
+      <GoogleDriveBeta
+        isOpen={isGoogleDriveBetaModalOpen}
+        close={() => setIsGoogleDriveBetaModalOpen(false)}
+      />
+      <DropboxBeta
+        isOpen={isDropboxBetaModalOpen}
+        close={() => setIsDropboxBetaModalOpen(false)}
+      />
     </div>
   );
 }

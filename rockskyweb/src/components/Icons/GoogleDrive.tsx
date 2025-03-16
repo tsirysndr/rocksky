@@ -1,9 +1,12 @@
-const GoogleDrive = () => (
+import React from "react";
+
+const GoogleDrive = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="24"
     height="24"
     viewBox="0 0 256 229"
+    {...props}
   >
     <path
       fill="#0066DA"

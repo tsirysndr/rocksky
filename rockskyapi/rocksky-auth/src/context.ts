@@ -29,6 +29,8 @@ export const ctx = {
   db: drizzle.db,
   nc: await connect({ servers: env.NATS_URL }),
   analytics: axios.create({ baseURL: env.ANALYTICS }),
+  dropbox: axios.create({ baseURL: env.DROPBOX }),
+  googledrive: axios.create({ baseURL: env.GOOGLE_DRIVE }),
 };
 
 export type Context = typeof ctx;

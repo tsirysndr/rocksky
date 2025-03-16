@@ -7,6 +7,7 @@ import { Hono } from "hono";
 import jwt from "jsonwebtoken";
 import { encrypt } from "lib/crypto";
 import { env } from "lib/env";
+import { emailSchema } from "types/email";
 
 const app = new Hono();
 
@@ -87,6 +88,135 @@ app.get("/oauth/callback", async (c) => {
   });
 
   return c.redirect(`${env.FRONTEND_URL}/googledrive`);
+});
+
+app.post("/join", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+
+  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const body = await c.req.json();
+  const parsed = emailSchema.safeParse(body);
+
+  if (parsed.error) {
+    c.status(400);
+    return c.text("Invalid email: " + parsed.error.message);
+  }
+
+  const { email } = parsed.data;
+
+  try {
+    await ctx.client.db.google_drive_accounts.create({
+      user_id: user.xata_id,
+      email,
+      is_beta_user: false,
+    });
+  } catch (e) {
+    if (
+      !e.message.includes("invalid record: column [user_id]: is not unique")
+    ) {
+      console.error(e.message);
+    } else {
+      throw e;
+    }
+  }
+
+  await fetch("https://beta.rocksky.app", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${env.ROCKSKY_BETA_TOKEN}`,
+    },
+    body: JSON.stringify({ email }),
+  });
+
+  return c.json({ status: "ok" });
+});
+
+app.get("/files", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+
+  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const parent_id = c.req.query("parent_id");
+
+  if (parent_id) {
+    const { data } = await ctx.googledrive.post(
+      "googledrive.getFilesInParents",
+      {
+        did,
+        parent_id,
+      }
+    );
+    return c.json(data);
+  }
+
+  const response = await ctx.googledrive.post("googledrive.getMusicDirectory", {
+    did,
+  });
+  const { data } = await ctx.googledrive.post("googledrive.getFilesInParents", {
+    did,
+    parent_id: response.data.files[0].id,
+  });
+  return c.json(data);
+});
+
+app.get("/files/:id/download", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+
+  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const id = c.req.param("id");
+  const response = await ctx.googledrive.post("googledrive.downloadFile", {
+    did,
+    file_id: id,
+  });
+
+  c.header(
+    "Content-Type",
+    response.headers["content-type"] || "application/octet-stream"
+  );
+  c.header(
+    "Content-Disposition",
+    response.headers["content-disposition"] || "attachment"
+  );
+
+  return new Response(response.data, {
+    headers: c.res.headers,
+  });
 });
 
 export default app;

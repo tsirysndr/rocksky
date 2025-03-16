@@ -2,11 +2,10 @@ use std::sync::{Arc, Mutex};
 
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::Error;
-use files::{download_file, get_files, get_files_in_parents};
+use files::{download_file, get_file, get_files_in_parents, get_music_directory};
 use sqlx::{Pool, Postgres};
 
 pub mod files;
-
 
 #[macro_export]
 macro_rules! read_payload {
@@ -25,8 +24,9 @@ macro_rules! read_payload {
 
 pub async fn handle(method: &str, payload: &mut web::Payload, req: &HttpRequest, conn: Arc<Mutex<Pool<Postgres>>>) -> Result<HttpResponse, Error> {
   match method {
-    "googledrive.getFiles" => get_files(payload, req, conn.clone()).await,
     "googledrive.getFilesInParents" => get_files_in_parents(payload, req, conn.clone()).await,
+    "googledrive.getMusicDirectory" => get_music_directory(payload, req, conn.clone()).await,
+    "googledrive.getFile" => get_file(payload, req, conn.clone()).await,
     "googledrive.downloadFile" => download_file(payload, req, conn.clone()).await,
     _ => return Err(anyhow::anyhow!("Method not found")),
   }

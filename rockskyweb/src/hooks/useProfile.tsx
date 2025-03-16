@@ -75,6 +75,12 @@ function useProfile(token?: string | null) {
         },
         spotifyConnected: profile.spotifyConnected,
         did: profile.did,
+        googledriveUser: {
+          isBeta: profile.googledrive?.is_beta_user,
+        },
+        dropboxUser: {
+          isBeta: profile.dropbox?.is_beta_user,
+        },
       });
     }
 

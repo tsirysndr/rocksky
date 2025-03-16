@@ -95,6 +95,7 @@ function Main({ children }: { children: React.ReactNode }) {
       };
       fetchToken();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
   useProfile(token || localStorage.getItem("token"));
@@ -138,7 +139,13 @@ function Main({ children }: { children: React.ReactNode }) {
       />
       <Flex>
         <Navbar />
-        {children}
+        <div
+          style={{
+            position: "relative",
+          }}
+        >
+          {children}
+        </div>
       </Flex>
       <RightPane style={{ position: "relative", width: 300 }}>
         <div

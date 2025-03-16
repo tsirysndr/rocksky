@@ -31,4 +31,6 @@ export const env = cleanEnv(process.env, {
   DROPBOX_CLIENT_SECRET: str({}),
   DROPBOX_REDIRECT_URI: str({}),
   GOOGLE_REDIRECT_URI: str({}),
+  GOOGLE_DRIVE: str({ default: "http://localhost:7880" }),
+  DROPBOX: str({ default: "http://localhost:7881" }),
 });

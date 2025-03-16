@@ -4,7 +4,7 @@ use actix_web::HttpResponse;
 use anyhow::Error;
 use reqwest::Client;
 
-use crate::types::{file::FileList, token::AccessToken};
+use crate::types::{file::{File, FileList}, token::AccessToken};
 
 pub const BASE_URL: &str = "https://www.googleapis.com/drive/v3";
 
@@ -49,6 +49,23 @@ impl GoogleDriveClient {
       .query(&[
         ("q", format!("name='{}' and mimeType='application/vnd.google-apps.folder'", name).as_str()),
         ("fields", "files(id, name, mimeType, parents)"),
+        ("orderBy", "name"),
+        ])
+      .send()
+      .await?;
+
+    Ok(res.json::<FileList>().await?)
+  }
+
+  pub async fn get_music_directory(&self) -> Result<FileList, Error> {
+    let client = Client::new();
+    let url = format!("{}/files", BASE_URL);
+    let res = client.get(&url)
+      .bearer_auth(&self.access_token)
+      .query(&[
+        ("q", "name='Music' and mimeType='application/vnd.google-apps.folder' and 'root' in parents"),
+        ("fields", "files(id, name, mimeType, parents)"),
+        ("orderBy", "name"),
         ])
       .send()
       .await?;
@@ -64,10 +81,22 @@ impl GoogleDriveClient {
       .query(&[
         ("q", format!("'{}' in parents", parent_id).as_str()),
         ("fields", "files(id, name, mimeType, parents)"),
+        ("orderBy", "name"),
         ])
       .send()
       .await?;
     Ok(res.json::<FileList>().await?)
+  }
+
+  pub async fn get_file(&self, file_id: &str) -> Result<File, Error> {
+    let client = Client::new();
+    let url = format!("{}/files/{}", BASE_URL, file_id);
+    let res = client.get(&url)
+      .bearer_auth(&self.access_token)
+      .send()
+      .await?;
+
+    Ok(res.json::<File>().await?)
   }
 
   pub async fn download_file(&self, file_id: &str) -> Result<HttpResponse, Error> {

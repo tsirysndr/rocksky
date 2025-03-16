@@ -69,7 +69,7 @@ function SpotifyLogin() {
       }
 
       const { email } = getValues();
-      await joinBeta(email);
+      await joinBeta(email, "spotify");
       enqueue(
         {
           message:
