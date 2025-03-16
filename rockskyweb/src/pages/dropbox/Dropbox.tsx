@@ -73,11 +73,11 @@ const Dropbox = (props: DropboxProps) => {
     const fetchFiles = async () => {
       setLoading(true);
       const files = await getFiles(props.fileId);
-      const cache = dropbox?.cache || {};
+      const cache = { ...dropbox?.cache };
       cache[props.fileId || "/Music"] = _.orderBy(files.entries, "name", "asc");
       setDropbox({
         current_path: props.fileId || "/Music",
-        cache: dropbox?.cache || {},
+        cache,
       });
       setLoading(false);
     };
