@@ -131,33 +131,36 @@ const GoogleDrive = (props: GoogleDriveProps) => {
     googleDrive?.parent_id;
   return (
     <Main>
-      <div
-        style={{
-          paddingTop: 80,
-          position: "fixed",
-          backgroundColor: "#fff",
-          top: 19,
-          width: 770,
-        }}
-      >
-        <Breadcrumbs>
-          {parent_dir && current_dir !== "Music" && (
-            <Link
-              to={
-                current_dir === "Music"
-                  ? `/googledrive`
-                  : `/googledrive/${parent_id}`
-              }
-              style={{ color: "#000" }}
-            >
-              {parent_dir}
-            </Link>
-          )}
-        </Breadcrumbs>
-        <HeadingMedium marginTop={"10px"} marginBottom={"25px"}>
-          {current_dir === "Music" ? "Google Drive" : current_dir}
-        </HeadingMedium>
-      </div>
+      {((props.fileId && googleDrive?.cache[props.fileId]) || !loading) && (
+        <div
+          style={{
+            paddingTop: 80,
+            position: "fixed",
+            backgroundColor: "#fff",
+            top: 19,
+            width: 770,
+          }}
+        >
+          <Breadcrumbs>
+            {parent_dir && current_dir !== "Music" && (
+              <Link
+                to={
+                  current_dir === "Music"
+                    ? `/googledrive`
+                    : `/googledrive/${parent_id}`
+                }
+                style={{ color: "#000" }}
+              >
+                {parent_dir}
+              </Link>
+            )}
+          </Breadcrumbs>
+          <HeadingMedium marginTop={"10px"} marginBottom={"25px"}>
+            {current_dir === "Music" ? "Google Drive" : current_dir}
+          </HeadingMedium>
+        </div>
+      )}
+
       <div style={{ marginTop: 100 }}>
         {loading && !googleDrive?.cache[props.fileId || "/Music"]?.files && (
           <ContentLoader

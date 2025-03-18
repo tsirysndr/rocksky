@@ -128,31 +128,34 @@ const Dropbox = (props: DropboxProps) => {
     dropbox?.cache[props.fileId || "/Music"]?.parent_id || dropbox?.parent_id;
   return (
     <Main>
-      <div
-        style={{
-          paddingTop: 80,
-          position: "fixed",
-          backgroundColor: "#fff",
-          top: 19,
-          width: 770,
-        }}
-      >
-        <Breadcrumbs>
-          {parent_dir && current_dir !== "Music" && (
-            <Link
-              to={
-                current_dir === "Music" ? `/dropbox` : `/dropbox/${parent_id}`
-              }
-              style={{ color: "#000" }}
-            >
-              {parent_dir}
-            </Link>
-          )}
-        </Breadcrumbs>
-        <HeadingMedium marginTop={"10px"} marginBottom={"25px"}>
-          {current_dir === "Music" ? "Dropbox" : current_dir}
-        </HeadingMedium>
-      </div>
+      {((props.fileId && dropbox?.cache[props.fileId]) || !loading) && (
+        <div
+          style={{
+            paddingTop: 80,
+            position: "fixed",
+            backgroundColor: "#fff",
+            top: 19,
+            width: 770,
+          }}
+        >
+          <Breadcrumbs>
+            {parent_dir && current_dir !== "Music" && (
+              <Link
+                to={
+                  current_dir === "Music" ? `/dropbox` : `/dropbox/${parent_id}`
+                }
+                style={{ color: "#000" }}
+              >
+                {parent_dir}
+              </Link>
+            )}
+          </Breadcrumbs>
+          <HeadingMedium marginTop={"10px"} marginBottom={"25px"}>
+            {current_dir === "Music" ? "Dropbox" : current_dir}
+          </HeadingMedium>
+        </div>
+      )}
+
       <div style={{ marginTop: 100 }}>
         {loading && !dropbox?.cache[props.fileId || "/Music"] && (
           <ContentLoader
