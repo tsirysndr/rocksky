@@ -1,4 +1,4 @@
-use std::{env, sync::{Arc, Mutex}};
+use std::{env, sync::Arc};
 
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::Error;
@@ -15,12 +15,10 @@ use crate::{
 
 pub const MUSIC_DIR: &str = "/Music";
 
-pub async fn get_files(payload: &mut web::Payload, _req: &HttpRequest, pool: Arc<Mutex<Pool<Postgres>>>) -> Result<HttpResponse, Error> {
+pub async fn get_files(payload: &mut web::Payload, _req: &HttpRequest, pool: Arc<Pool<Postgres>>) -> Result<HttpResponse, Error> {
   let body = read_payload!(payload);
   let params = serde_json::from_slice::<GetFilesParams>(&body)?;
-  let pool = pool.lock().unwrap();
-  // let did = "did:plc:7vdlgi2bflelz7mmuxoqjfcr";
-  let refresh_token = find_dropbox_refresh_token(&pool, &params.did).await?;
+  let refresh_token = find_dropbox_refresh_token(&pool.clone(), &params.did).await?;
 
   if refresh_token.is_none() {
     return Ok(HttpResponse::Unauthorized().finish());
@@ -38,11 +36,10 @@ pub async fn get_files(payload: &mut web::Payload, _req: &HttpRequest, pool: Arc
 }
 
 
-pub async fn create_music_folder(payload: &mut web::Payload, _req: &HttpRequest, pool: Arc<Mutex<Pool<Postgres>>>) -> Result<HttpResponse, Error> {
+pub async fn create_music_folder(payload: &mut web::Payload, _req: &HttpRequest, pool: Arc<Pool<Postgres>>) -> Result<HttpResponse, Error> {
   let body = read_payload!(payload);
   let params = serde_json::from_slice::<GetFilesParams>(&body)?;
-  let pool = pool.lock().unwrap();
-  let refresh_token = find_dropbox_refresh_token(&pool, &params.did).await?;
+  let refresh_token = find_dropbox_refresh_token(&pool.clone(), &params.did).await?;
 
   if refresh_token.is_none() {
     return Ok(HttpResponse::Unauthorized().finish());
@@ -59,11 +56,10 @@ pub async fn create_music_folder(payload: &mut web::Payload, _req: &HttpRequest,
   Ok(HttpResponse::Ok().finish())
 }
 
-pub async fn get_files_at(payload: &mut web::Payload, _req: &HttpRequest, pool: Arc<Mutex<Pool<Postgres>>>) -> Result<HttpResponse, Error> {
+pub async fn get_files_at(payload: &mut web::Payload, _req: &HttpRequest, pool: Arc<Pool<Postgres>>) -> Result<HttpResponse, Error> {
   let body = read_payload!(payload);
   let params = serde_json::from_slice::<GetFilesAtParams>(&body)?;
-  let pool = pool.lock().unwrap();
-  let refresh_token = find_dropbox_refresh_token(&pool, &params.did).await?;
+  let refresh_token = find_dropbox_refresh_token(&pool.clone(), &params.did).await?;
 
   if refresh_token.is_none() {
     return Ok(HttpResponse::Unauthorized().finish());
@@ -80,11 +76,10 @@ pub async fn get_files_at(payload: &mut web::Payload, _req: &HttpRequest, pool: 
   Ok(HttpResponse::Ok().json(web::Json(entries)))
 }
 
-pub async fn download_file(payload: &mut web::Payload, _req: &HttpRequest, pool: Arc<Mutex<Pool<Postgres>>>) -> Result<HttpResponse, Error> {
+pub async fn download_file(payload: &mut web::Payload, _req: &HttpRequest, pool: Arc<Pool<Postgres>>) -> Result<HttpResponse, Error> {
   let body = read_payload!(payload);
   let params = serde_json::from_slice::<DownloadFileParams>(&body)?;
-  let pool = pool.lock().unwrap();
-  let refresh_token = find_dropbox_refresh_token(&pool, &params.did).await?;
+  let refresh_token = find_dropbox_refresh_token(&pool.clone(), &params.did).await?;
 
   if refresh_token.is_none() {
     return Ok(HttpResponse::Unauthorized().finish());
@@ -99,11 +94,10 @@ pub async fn download_file(payload: &mut web::Payload, _req: &HttpRequest, pool:
   client.download_file(&params.path).await
 }
 
-pub async fn get_temporary_link(payload: &mut web::Payload, _req: &HttpRequest, pool: Arc<Mutex<Pool<Postgres>>>) -> Result<HttpResponse, Error> {
+pub async fn get_temporary_link(payload: &mut web::Payload, _req: &HttpRequest, pool: Arc<Pool<Postgres>>) -> Result<HttpResponse, Error> {
   let body = read_payload!(payload);
   let params = serde_json::from_slice::<DownloadFileParams>(&body)?;
-  let pool = pool.lock().unwrap();
-  let refresh_token = find_dropbox_refresh_token(&pool, &params.did).await?;
+  let refresh_token = find_dropbox_refresh_token(&pool.clone(), &params.did).await?;
 
   if refresh_token.is_none() {
     return Ok(HttpResponse::Unauthorized().finish());
@@ -121,11 +115,10 @@ pub async fn get_temporary_link(payload: &mut web::Payload, _req: &HttpRequest, 
 }
 
 
-pub async fn get_metadata(payload: &mut web::Payload, _req: &HttpRequest, pool: Arc<Mutex<Pool<Postgres>>>) -> Result<HttpResponse, Error> {
+pub async fn get_metadata(payload: &mut web::Payload, _req: &HttpRequest, pool: Arc<Pool<Postgres>>) -> Result<HttpResponse, Error> {
   let body = read_payload!(payload);
   let params = serde_json::from_slice::<DownloadFileParams>(&body)?;
-  let pool = pool.lock().unwrap();
-  let refresh_token = find_dropbox_refresh_token(&pool, &params.did).await?;
+  let refresh_token = find_dropbox_refresh_token(&pool.clone(), &params.did).await?;
 
   if refresh_token.is_none() {
     return Ok(HttpResponse::Unauthorized().finish());

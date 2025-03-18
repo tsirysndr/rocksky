@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::Error;
@@ -22,7 +22,7 @@ macro_rules! read_payload {
   }};
 }
 
-pub async fn handle(method: &str, payload: &mut web::Payload, req: &HttpRequest, conn: Arc<Mutex<Pool<Postgres>>>) -> Result<HttpResponse, Error> {
+pub async fn handle(method: &str, payload: &mut web::Payload, req: &HttpRequest, conn: Arc<Pool<Postgres>>) -> Result<HttpResponse, Error> {
   match method {
     "googledrive.getFilesInParents" => get_files_in_parents(payload, req, conn.clone()).await,
     "googledrive.createMusicDirectory" => create_music_directory(payload, req, conn.clone()).await,

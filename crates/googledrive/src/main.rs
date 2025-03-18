@@ -1,4 +1,4 @@
-use std::{env, sync::{Arc, Mutex}};
+use std::{env, sync::Arc};
 use actix_web::{get, post, web::{self, Data}, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use anyhow::Error;
 use dotenv::dotenv;
@@ -24,7 +24,7 @@ async fn index(_req: HttpRequest) -> HttpResponse {
 
 #[post("/{method}")]
 async fn call_method(
-  data: web::Data<Arc<Mutex<Pool<Postgres>>>>,
+  data: web::Data<Arc<Pool<Postgres>>>,
   mut payload: web::Payload,
   req: HttpRequest) -> Result<impl Responder, actix_web::Error> {
   let method = req.match_info().get("method").unwrap_or("unknown");
@@ -48,7 +48,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
   println!("Listening on {}", url.bright_green());
 
   let pool =  PgPoolOptions::new().max_connections(5).connect(&env::var("XATA_POSTGRES_URL")?).await?;
-  let conn = Arc::new(Mutex::new(pool));
+  let conn = Arc::new(pool);
 
   let conn = conn.clone();
   HttpServer::new(move || {
