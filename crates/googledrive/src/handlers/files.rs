@@ -20,7 +20,6 @@ pub async fn create_music_directory(payload: &mut web::Payload, _req: &HttpReque
 
   let pool = pool.lock().unwrap();
   let refresh_token = find_google_drive_refresh_token(&pool, &params.did).await?;
-  drop(pool);
 
   if refresh_token.is_none() {
     return Ok(HttpResponse::Unauthorized().finish());
@@ -43,7 +42,6 @@ pub async fn get_music_directory(payload: &mut web::Payload, _req: &HttpRequest,
 
   let pool = pool.lock().unwrap();
   let refresh_token = find_google_drive_refresh_token(&pool, &params.did).await?;
-  drop(pool);
 
   if refresh_token.is_none() {
     return Ok(HttpResponse::Unauthorized().finish());
@@ -66,7 +64,6 @@ pub async fn get_files_in_parents(payload: &mut web::Payload, _req: &HttpRequest
 
   let pool = pool.lock().unwrap();
   let refresh_token = find_google_drive_refresh_token(&pool, &params.did).await?;
-  drop(pool);
 
   if refresh_token.is_none() {
     return Ok(HttpResponse::Unauthorized().finish());
@@ -89,7 +86,6 @@ pub async fn get_file(payload: &mut web::Payload, _req: &HttpRequest, pool: Arc<
 
   let pool = pool.lock().unwrap();
   let refresh_token = find_google_drive_refresh_token(&pool, &params.did).await?;
-  drop(pool);
 
   if refresh_token.is_none() {
     return Ok(HttpResponse::Unauthorized().finish());
@@ -113,7 +109,6 @@ pub async fn download_file(payload: &mut web::Payload, _req: &HttpRequest, pool:
 
   let pool = pool.lock().unwrap();
   let refresh_token = find_google_drive_refresh_token(&pool, &params.did).await?;
-  drop(pool);
 
   if refresh_token.is_none() {
     return Ok(HttpResponse::Unauthorized().finish());

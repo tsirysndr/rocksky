@@ -7,7 +7,7 @@ import { useAtom } from "jotai";
 import _ from "lodash";
 import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { dropboxAtom } from "../../atoms/dropbox";
 import Table from "../../components/Table";
 import { AUDIO_EXTENSIONS } from "../../consts";
@@ -26,6 +26,7 @@ const Dropbox = (props: DropboxProps) => {
   const [dropbox, setDropbox] = useAtom(dropboxAtom);
   const { getFiles, getFile } = useDropbox();
   const [loading, setLoading] = useState(true);
+  const { pathname } = useLocation();
 
   const columns = [
     columnHelper.accessor("name", {
@@ -128,7 +129,9 @@ const Dropbox = (props: DropboxProps) => {
     dropbox?.cache[props.fileId || "/Music"]?.parent_id || dropbox?.parent_id;
   return (
     <Main>
-      {((props.fileId && dropbox?.cache[props.fileId]) || !loading) && (
+      {((props.fileId && dropbox?.cache[props.fileId]) ||
+        !loading ||
+        pathname === "/dropbox") && (
         <div
           style={{
             paddingTop: 80,

@@ -7,7 +7,7 @@ import { useAtom } from "jotai";
 import _ from "lodash";
 import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import googleDriveAtom from "../../atoms/googledrive";
 import Table from "../../components/Table";
 import { AUDIO_EXTENSIONS } from "../../consts";
@@ -26,6 +26,7 @@ const GoogleDrive = (props: GoogleDriveProps) => {
   const [googleDrive, setGoogleDrive] = useAtom(googleDriveAtom);
   const { getFiles, getFile } = useGoogleDrive();
   const [loading, setLoading] = useState(true);
+  const { pathname } = useLocation();
 
   const columns = [
     columnHelper.accessor("name", {
@@ -131,7 +132,9 @@ const GoogleDrive = (props: GoogleDriveProps) => {
     googleDrive?.parent_id;
   return (
     <Main>
-      {((props.fileId && googleDrive?.cache[props.fileId]) || !loading) && (
+      {((props.fileId && googleDrive?.cache[props.fileId]) ||
+        !loading ||
+        pathname === "/googledrive") && (
         <div
           style={{
             paddingTop: 80,
