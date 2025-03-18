@@ -137,7 +137,7 @@ const GoogleDrive = (props: GoogleDriveProps) => {
           position: "fixed",
           backgroundColor: "#fff",
           top: 19,
-          width: "60vw",
+          width: 770,
         }}
       >
         <Breadcrumbs>

@@ -93,8 +93,10 @@ const Dropbox = (props: DropboxProps) => {
         // extract the parent directory from the path
         const parent_path = file.path_display.split("/").slice(0, -1).join("/");
         parent_dir = file.path_display.split("/").slice(0, -1).pop();
-        const parent = await getFile(parent_path);
-        parent_id = parent.id;
+        if (parent_path) {
+          const parent = await getFile(parent_path);
+          parent_id = parent.id;
+        }
       }
 
       setDropbox({
@@ -132,7 +134,7 @@ const Dropbox = (props: DropboxProps) => {
           position: "fixed",
           backgroundColor: "#fff",
           top: 19,
-          width: "60vw",
+          width: 770,
         }}
       >
         <Breadcrumbs>
