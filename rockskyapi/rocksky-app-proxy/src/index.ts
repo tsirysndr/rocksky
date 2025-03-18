@@ -31,6 +31,7 @@ export default {
 			url.pathname.startsWith('/dropbox/oauth/callback') ||
 			url.pathname.startsWith('/googledrive/oauth/callback') ||
 			url.pathname.startsWith('/dropbox/files') ||
+			url.pathname.startsWith('/dropbox/file') ||
 			url.pathname.startsWith('/googledrive/files') ||
 			url.pathname.startsWith('/dropbox/login') ||
 			url.pathname.startsWith('/googledrive/login') ||
