@@ -8,6 +8,8 @@ pub struct File {
     pub mime_type: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub parents: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -48,4 +48,8 @@ export const BackButton = styled.button`
   margin-bottom: 46px;
   position: fixed;
   z-index: 1;
+  // media query for mobile
+  @media (max-width: 1820px) {
+    left: 10px;
+  }
 `;

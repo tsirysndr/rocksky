@@ -197,6 +197,63 @@ app.get("/temporary-link", async (c) => {
   return c.json(data);
 });
 
+app.get("/files/:id", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+
+  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const path = c.req.param("id");
+
+  const response = await ctx.dropbox.post("dropbox.getMetadata", {
+    did,
+    path,
+  });
+
+  return c.json(response.data);
+});
+
+app.get("/file", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+
+  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const path = c.req.query("path");
+
+  if (!path) {
+    c.status(400);
+    return c.text("Bad Request, path is required");
+  }
+
+  const response = await ctx.dropbox.post("dropbox.getMetadata", {
+    did,
+    path,
+  });
+
+  return c.json(response.data);
+});
+
 app.get("/download", async (c) => {
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 

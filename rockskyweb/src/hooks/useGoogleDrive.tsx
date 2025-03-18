@@ -21,8 +21,23 @@ function useGoogleDrive() {
     return response.data;
   };
 
+  const getFile = async (id: string) => {
+    const response = await axios.get<{
+      id: string;
+      mimeType: string;
+      name: string;
+      parents: string[];
+    }>(`${API_URL}/googledrive/files/${id}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+    return response.data;
+  };
+
   return {
     getFiles,
+    getFile,
   };
 }
 

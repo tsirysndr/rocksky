@@ -5,7 +5,7 @@ use anyhow::Error;
 use reqwest::Client;
 use serde_json::json;
 
-use crate::types::{file::{EntryList, TemporaryLink}, token::AccessToken};
+use crate::types::{file::{Entry, EntryList, TemporaryLink}, token::AccessToken};
 
 pub const BASE_URL: &str = "https://api.dropboxapi.com/2";
 pub const CONTENT_URL: &str = "https://content.dropboxapi.com/2";
@@ -47,6 +47,17 @@ impl DropboxClient {
       .await?;
 
     Ok(())
+  }
+
+  pub async fn get_metadata(&self, path: &str) -> Result<Entry, Error> {
+    let client = Client::new();
+    let res = client.post(&format!("{}/files/get_metadata", BASE_URL))
+      .bearer_auth(&self.access_token)
+      .json(&json!({ "path": path }))
+      .send()
+      .await?;
+
+    Ok(res.json::<Entry>().await?)
   }
 
   pub async fn get_files(&self, path: &str) -> Result<EntryList, Error> {

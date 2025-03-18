@@ -1,20 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Folder2, MusicNoteBeamed } from "@styled-icons/bootstrap";
 import { createColumnHelper } from "@tanstack/react-table";
+import { Breadcrumbs } from "baseui/breadcrumbs";
 import { HeadingMedium } from "baseui/typography";
 import { useAtom } from "jotai";
 import _ from "lodash";
 import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
-import { useNavigate } from "react-router";
+import { Link } from "react-router";
 import googleDriveAtom from "../../atoms/googledrive";
-import ArrowBack from "../../components/Icons/ArrowBack";
 import Table from "../../components/Table";
 import { AUDIO_EXTENSIONS } from "../../consts";
 import useGoogleDrive from "../../hooks/useGoogleDrive";
 import Main from "../../layouts/Main";
 import { File } from "../../types/file";
-import { AudioFile, BackButton, Directory } from "./styles";
+import { AudioFile, Directory } from "./styles";
 
 const columnHelper = createColumnHelper<File>();
 
@@ -24,9 +24,8 @@ export type GoogleDriveProps = {
 
 const GoogleDrive = (props: GoogleDriveProps) => {
   const [googleDrive, setGoogleDrive] = useAtom(googleDriveAtom);
-  const { getFiles } = useGoogleDrive();
+  const { getFiles, getFile } = useGoogleDrive();
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   const columns = [
     columnHelper.accessor("name", {
@@ -75,21 +74,45 @@ const GoogleDrive = (props: GoogleDriveProps) => {
       setLoading(true);
       const { files } = await getFiles(props.fileId);
       const cache = { ...googleDrive?.cache };
-      cache[props.fileId || "/Music"] = files
-        .filter(
-          (x) =>
-            x.mimeType.includes("folder") ||
-            AUDIO_EXTENSIONS.includes(x.name.split(".").pop() || "")
-        )
-        .map((x) => ({
-          id: x.id,
-          name: x.name,
-          mime_type: x.mimeType,
-          parents: x.parents,
-        }));
+      cache[props.fileId || "/Music"] = {
+        files: files
+          .filter(
+            (x) =>
+              x.mimeType.includes("folder") ||
+              AUDIO_EXTENSIONS.includes(x.name.split(".").pop() || "")
+          )
+          .map((x) => ({
+            id: x.id,
+            name: x.name,
+            mime_type: x.mimeType,
+            parents: x.parents,
+          })),
+      };
+
+      let current_dir = "Music";
+      let parent_dir;
+      let parent_id;
+      if (props.fileId) {
+        const current = await getFile(props.fileId);
+        current_dir = current.name;
+        parent_id = _.get(current, "parents.0");
+        const parent = await getFile(_.get(current, "parents.0"));
+        parent_dir = parent.name;
+      }
+
       setGoogleDrive({
-        current_folder: _.get(files, "0.parents.0"),
-        cache,
+        current_dir,
+        parent_dir,
+        parent_id,
+        cache: {
+          ...cache,
+          [props.fileId || "/Music"]: {
+            parent_id,
+            parent_dir,
+            current_dir,
+            ...cache[props.fileId || "/Music"],
+          },
+        },
       });
       setLoading(false);
     };
@@ -97,49 +120,81 @@ const GoogleDrive = (props: GoogleDriveProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.fileId]);
 
+  const parent_dir =
+    googleDrive?.cache[props.fileId || "/Music"]?.parent_dir ||
+    googleDrive?.parent_dir;
+  const current_dir =
+    googleDrive?.cache[props.fileId || "/Music"]?.current_dir ||
+    googleDrive?.current_dir;
+  const parent_id =
+    googleDrive?.cache[props.fileId || "/Music"]?.parent_id ||
+    googleDrive?.parent_id;
   return (
     <Main>
-      <HeadingMedium marginTop={"50px"} marginBottom={"0px"}>
-        Google Drive
-      </HeadingMedium>
-      {props.fileId && (
-        <BackButton onClick={() => navigate(-1)}>
-          <ArrowBack />
-        </BackButton>
-      )}
-      {loading && !googleDrive?.cache[props.fileId || "/Music"] && (
-        <ContentLoader
-          width={700}
-          height={350}
-          viewBox="0 0 700 350"
-          backgroundColor="#f5f5f5"
-          foregroundColor="#dbdbdb"
-          {...props}
-        >
-          <rect x="66" y="52" rx="6" ry="6" width="483" height="15" />
-          <circle cx="20" cy="60" r="15" />
-          <rect x="66" y="105" rx="6" ry="6" width="420" height="15" />
-          <circle cx="20" cy="113" r="15" />
-          <rect x="66" y="158" rx="6" ry="6" width="483" height="15" />
-          <circle cx="20" cy="166" r="15" />
-          <rect x="66" y="211" rx="6" ry="6" width="444" height="15" />
-          <circle cx="20" cy="219" r="15" />
-          <rect x="66" y="263" rx="6" ry="6" width="483" height="15" />
-          <circle cx="20" cy="271" r="15" />
-        </ContentLoader>
-      )}
-      {(!loading || googleDrive?.cache[props.fileId || "/Music"]) && (
-        <Table
-          columns={columns as any}
-          files={
-            googleDrive?.cache[props.fileId || "/Music"]?.map((entry) => ({
-              id: entry.id,
-              name: entry.name,
-              tag: entry.mime_type.includes("folder") ? "folder" : "file",
-            })) || []
-          }
-        />
-      )}
+      <div
+        style={{
+          paddingTop: 80,
+          position: "fixed",
+          backgroundColor: "#fff",
+          top: 19,
+          width: "60vw",
+        }}
+      >
+        <Breadcrumbs>
+          {parent_dir && current_dir !== "Music" && (
+            <Link
+              to={
+                current_dir === "Music"
+                  ? `/googledrive`
+                  : `/googledrive/${parent_id}`
+              }
+              style={{ color: "#000" }}
+            >
+              {parent_dir}
+            </Link>
+          )}
+        </Breadcrumbs>
+        <HeadingMedium marginTop={"10px"} marginBottom={"25px"}>
+          {current_dir === "Music" ? "Google Drive" : current_dir}
+        </HeadingMedium>
+      </div>
+      <div style={{ marginTop: 100 }}>
+        {loading && !googleDrive?.cache[props.fileId || "/Music"]?.files && (
+          <ContentLoader
+            width={700}
+            height={350}
+            viewBox="0 0 700 350"
+            backgroundColor="#f5f5f5"
+            foregroundColor="#dbdbdb"
+            {...props}
+          >
+            <rect x="66" y="52" rx="6" ry="6" width="483" height="15" />
+            <circle cx="20" cy="60" r="15" />
+            <rect x="66" y="105" rx="6" ry="6" width="420" height="15" />
+            <circle cx="20" cy="113" r="15" />
+            <rect x="66" y="158" rx="6" ry="6" width="483" height="15" />
+            <circle cx="20" cy="166" r="15" />
+            <rect x="66" y="211" rx="6" ry="6" width="444" height="15" />
+            <circle cx="20" cy="219" r="15" />
+            <rect x="66" y="263" rx="6" ry="6" width="483" height="15" />
+            <circle cx="20" cy="271" r="15" />
+          </ContentLoader>
+        )}
+        {(!loading || googleDrive?.cache[props.fileId || "/Music"]?.files) && (
+          <Table
+            columns={columns as any}
+            files={
+              googleDrive?.cache[props.fileId || "/Music"]?.files.map(
+                (entry) => ({
+                  id: entry.id,
+                  name: entry.name,
+                  tag: entry.mime_type.includes("folder") ? "folder" : "file",
+                })
+              ) || []
+            }
+          />
+        )}
+      </div>
     </Main>
   );
 };

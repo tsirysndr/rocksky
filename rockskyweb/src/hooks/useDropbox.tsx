@@ -23,8 +23,41 @@ function useDropbox() {
     return response.data;
   };
 
+  const getFile = async (id: string) => {
+    const response = await axios.get<{
+      ".tag": string;
+      id: string;
+      name: string;
+      path_display: string;
+    }>(`${API_URL}/dropbox/file`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      params: {
+        path: id,
+      },
+    });
+    return response.data;
+  };
+
+  const getTemporaryLink = async (id: string) => {
+    const response = await axios.get<{
+      link: string;
+    }>(`${API_URL}/dropbox/temporary-link`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      params: {
+        path: id,
+      },
+    });
+    return response.data;
+  };
+
   return {
     getFiles,
+    getFile,
+    getTemporaryLink,
   };
 }
 

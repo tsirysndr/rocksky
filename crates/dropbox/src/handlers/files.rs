@@ -119,3 +119,25 @@ pub async fn get_temporary_link(payload: &mut web::Payload, _req: &HttpRequest, 
 
   Ok(HttpResponse::Ok().json(web::Json(temporary_link)))
 }
+
+
+pub async fn get_metadata(payload: &mut web::Payload, _req: &HttpRequest, pool: Arc<Mutex<Pool<Postgres>>>) -> Result<HttpResponse, Error> {
+  let body = read_payload!(payload);
+  let params = serde_json::from_slice::<DownloadFileParams>(&body)?;
+  let pool = pool.lock().unwrap();
+  let refresh_token = find_dropbox_refresh_token(&pool, &params.did).await?;
+
+  if refresh_token.is_none() {
+    return Ok(HttpResponse::Unauthorized().finish());
+  }
+
+  let refresh_token = decrypt_aes_256_ctr(
+    &refresh_token.unwrap(),
+    &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?
+  )?;
+
+  let client = DropboxClient::new(&refresh_token).await?;
+  let metadata = client.get_metadata(&params.path).await?;
+
+  Ok(HttpResponse::Ok().json(web::Json(metadata)))
+}

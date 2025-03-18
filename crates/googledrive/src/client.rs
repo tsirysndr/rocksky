@@ -118,6 +118,9 @@ impl GoogleDriveClient {
     let url = format!("{}/files/{}", BASE_URL, file_id);
     let res = client.get(&url)
       .bearer_auth(&self.access_token)
+      .query(&[
+        ("fields", "id, name, mimeType, parents"),
+      ])
       .send()
       .await?;
 
