@@ -1,3 +1,4 @@
+import styled from "@emotion/styled";
 import {
   AccessorKeyColumnDefBase,
   flexRender,
@@ -7,6 +8,13 @@ import {
 } from "@tanstack/react-table";
 import { FC, useEffect, useState } from "react";
 import { File } from "../../types/file";
+
+const TableRow = styled.tr`
+  height: 48px;
+  &:hover {
+    background-color: #f7f7f7;
+  }
+`;
 
 export type TableProps = {
   columns: (AccessorKeyColumnDefBase<File, string | undefined> &
@@ -50,7 +58,7 @@ const Table: FC<TableProps> = ({ columns, files }) => {
       </thead>
       <tbody>
         {table.getRowModel().rows.map((row) => (
-          <tr key={row.id} style={{ height: 48 }}>
+          <TableRow key={row.id}>
             {row.getVisibleCells().map((cell) => (
               <td
                 key={cell.id}
@@ -61,7 +69,7 @@ const Table: FC<TableProps> = ({ columns, files }) => {
                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
               </td>
             ))}
-          </tr>
+          </TableRow>
         ))}
       </tbody>
     </table>
