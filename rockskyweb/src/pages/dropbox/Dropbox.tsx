@@ -13,6 +13,7 @@ import Table from "../../components/Table";
 import { AUDIO_EXTENSIONS } from "../../consts";
 import useDropbox from "../../hooks/useDropbox";
 import Main from "../../layouts/Main";
+import Metadata from "../../lib/metadata";
 import { File } from "../../types/file";
 import { AudioFile, Directory } from "./styles";
 
@@ -24,9 +25,17 @@ export type DropboxProps = {
 
 const Dropbox = (props: DropboxProps) => {
   const [dropbox, setDropbox] = useAtom(dropboxAtom);
-  const { getFiles, getFile } = useDropbox();
+  const { getFiles, getFile, getTemporaryLink } = useDropbox();
   const [loading, setLoading] = useState(true);
   const { pathname } = useLocation();
+
+  const playFile = async (id: string) => {
+    const { link } = await getTemporaryLink(id);
+    console.log(">> Playing file:", link);
+    const m = new Metadata();
+    await m.load(link);
+    console.log(">> Metadata:", m.get_metadata());
+  };
 
   const columns = [
     columnHelper.accessor("name", {
@@ -63,7 +72,9 @@ const Dropbox = (props: DropboxProps) => {
             </Directory>
           )}
           {info.row.original.tag === "file" && (
-            <AudioFile>{info.row.original.name}</AudioFile>
+            <AudioFile onClick={() => playFile(info.row.original.id)}>
+              {info.row.original.name}
+            </AudioFile>
           )}
         </>
       ),
