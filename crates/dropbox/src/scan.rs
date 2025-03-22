@@ -105,7 +105,7 @@ pub fn scan_audio_files(
           .send()
           .await?;
 
-        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
 
         entry_list = res.json::<EntryList>().await?;
         entries.extend(entry_list.entries);
@@ -119,7 +119,7 @@ pub fn scan_audio_files(
           did.clone(),
           dropbox_id.clone()
         ).await?;
-        tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
       }
 
       return Ok(());

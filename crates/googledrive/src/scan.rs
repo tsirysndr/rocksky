@@ -273,7 +273,7 @@ pub fn scan_audio_files(
 
           println!("status: {:?}", status);
 
-          tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+          tokio::time::sleep(std::time::Duration::from_secs(1)).await;
 
           return Ok(());
         }
