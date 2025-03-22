@@ -12,7 +12,7 @@ pub async fn create_dropbox_path(
   sqlx::query(r#"
     INSERT INTO dropbox_paths (dropbox_id, path, file_id, track_id, name)
     VALUES ($1, $2, $3, $4, $5)
-    ON CONFLICT file_id DO NOTHING
+    ON CONFLICT DO NOTHING
   "#)
     .bind(dropbox_id)
     .bind(&file.path_display)
