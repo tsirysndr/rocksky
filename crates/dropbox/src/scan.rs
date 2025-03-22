@@ -218,7 +218,7 @@ pub fn scan_audio_files(
               }),
               "year": tag.year(),
               "discNumber": tag.disk().map(|disc| match disc {
-                  0 => None,
+                  0 => Some(1),
                   _ => Some(disc),
               }),
               "composer": tag.get_string(&lofty::tag::ItemKey::Composer),
