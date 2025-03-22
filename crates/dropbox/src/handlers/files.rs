@@ -1,4 +1,4 @@
-use std::{env, sync::Arc};
+use std::{env, sync::Arc, thread};
 
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::Error;
@@ -6,11 +6,7 @@ use sqlx::{Pool, Postgres};
 use tokio_stream::StreamExt;
 
 use crate::{
-  client::DropboxClient,
-  crypto::decrypt_aes_256_ctr,
-  read_payload,
-  repo::dropbox_token::find_dropbox_refresh_token,
-  types::file::{DownloadFileParams, GetFilesAtParams, GetFilesParams},
+  client::DropboxClient, crypto::decrypt_aes_256_ctr, read_payload, repo::dropbox_token::find_dropbox_refresh_token, scan, types::file::{DownloadFileParams, GetFilesAtParams, GetFilesParams, ScanFolderParams}
 };
 
 pub const MUSIC_DIR: &str = "/Music";
@@ -25,7 +21,7 @@ pub async fn get_files(payload: &mut web::Payload, _req: &HttpRequest, pool: Arc
   }
 
   let refresh_token = decrypt_aes_256_ctr(
-    &refresh_token.unwrap(),
+    &refresh_token.unwrap().0,
     &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?
   )?;
 
@@ -46,7 +42,7 @@ pub async fn create_music_folder(payload: &mut web::Payload, _req: &HttpRequest,
   }
 
   let refresh_token = decrypt_aes_256_ctr(
-    &refresh_token.unwrap(),
+    &refresh_token.unwrap().0,
     &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?
   )?;
 
@@ -66,7 +62,7 @@ pub async fn get_files_at(payload: &mut web::Payload, _req: &HttpRequest, pool: 
   }
 
   let refresh_token = decrypt_aes_256_ctr(
-    &refresh_token.unwrap(),
+    &refresh_token.unwrap().0,
     &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?
   )?;
 
@@ -86,7 +82,7 @@ pub async fn download_file(payload: &mut web::Payload, _req: &HttpRequest, pool:
   }
 
   let refresh_token = decrypt_aes_256_ctr(
-    &refresh_token.unwrap(),
+    &refresh_token.unwrap().0,
     &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?
   )?;
 
@@ -104,7 +100,7 @@ pub async fn get_temporary_link(payload: &mut web::Payload, _req: &HttpRequest, 
   }
 
   let refresh_token = decrypt_aes_256_ctr(
-    &refresh_token.unwrap(),
+    &refresh_token.unwrap().0,
     &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?
   )?;
 
@@ -125,7 +121,7 @@ pub async fn get_metadata(payload: &mut web::Payload, _req: &HttpRequest, pool: 
   }
 
   let refresh_token = decrypt_aes_256_ctr(
-    &refresh_token.unwrap(),
+    &refresh_token.unwrap().0,
     &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?
   )?;
 
@@ -133,4 +129,18 @@ pub async fn get_metadata(payload: &mut web::Payload, _req: &HttpRequest, pool: 
   let metadata = client.get_metadata(&params.path).await?;
 
   Ok(HttpResponse::Ok().json(web::Json(metadata)))
+}
+
+pub async fn scan_folder(payload: &mut web::Payload, _req: &HttpRequest, pool: Arc<Pool<Postgres>>) -> Result<HttpResponse, Error> {
+  let body = read_payload!(payload);
+  let params = serde_json::from_slice::<ScanFolderParams>(&body)?;
+
+  let pool = pool.clone();
+  thread::spawn(move || {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(scan::scan_folder(pool, &params.did, &params.path))?;
+    Ok::<(), Error>(())
+  });
+
+  Ok(HttpResponse::Ok().finish())
 }

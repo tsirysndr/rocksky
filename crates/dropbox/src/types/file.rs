@@ -52,3 +52,9 @@ pub struct TemporaryLink {
     pub metadata: Entry,
     pub link: String,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ScanFolderParams {
+    pub did: String,
+    pub path: String,
+}

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::Error;
-use files::{create_music_directory, download_file, get_file, get_files_in_parents, get_music_directory};
+use files::{create_music_directory, download_file, get_file, get_files_in_parents, get_music_directory, scan_folder};
 use sqlx::{Pool, Postgres};
 
 pub mod files;
@@ -29,6 +29,7 @@ pub async fn handle(method: &str, payload: &mut web::Payload, req: &HttpRequest,
     "googledrive.getMusicDirectory" => get_music_directory(payload, req, conn.clone()).await,
     "googledrive.getFile" => get_file(payload, req, conn.clone()).await,
     "googledrive.downloadFile" => download_file(payload, req, conn.clone()).await,
+    "googledrive.scanFolder" => scan_folder(payload, req, conn.clone()).await,
     _ => return Err(anyhow::anyhow!("Method not found")),
   }
 }

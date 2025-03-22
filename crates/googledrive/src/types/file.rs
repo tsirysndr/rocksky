@@ -34,3 +34,9 @@ pub struct DownloadFileParams {
     pub did: String,
     pub file_id: String,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ScanFolderParams {
+    pub did: String,
+    pub folder_id: String,
+}

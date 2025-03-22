@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::Error;
-use files::{create_music_folder, download_file, get_files, get_files_at, get_metadata, get_temporary_link};
+use files::{create_music_folder, download_file, get_files, get_files_at, get_metadata, get_temporary_link, scan_folder};
 use sqlx::{Pool, Postgres};
 
 pub mod files;
@@ -29,6 +29,7 @@ pub async fn handle(method: &str, payload: &mut web::Payload, req: &HttpRequest,
     "dropbox.downloadFile" => download_file(payload, req, conn.clone()).await,
     "dropbox.getTemporaryLink" => get_temporary_link(payload, req, conn.clone()).await,
     "dropbox.getMetadata" => get_metadata(payload, req, conn.clone()).await,
+    "dropbox.scanFolder" => scan_folder(payload, req, conn.clone()).await,
     _ => return Err(anyhow::anyhow!("Method not found")),
   }
 }

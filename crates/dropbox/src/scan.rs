@@ -13,7 +13,7 @@ use tempfile::TempDir;
 use crate::{
   client::{get_access_token, BASE_URL, CONTENT_URL},
   consts::AUDIO_EXTENSIONS, crypto::decrypt_aes_256_ctr,
-  repo::{dropbox_path::create_dropbox_path, dropbox_token::find_dropbox_refresh_tokens, track::get_track_by_hash},
+  repo::{dropbox_path::create_dropbox_path, dropbox_token::{find_dropbox_refresh_token, find_dropbox_refresh_tokens}, track::get_track_by_hash},
   token::generate_token,
   types::file::{Entry, EntryList}
 };
@@ -37,6 +37,28 @@ pub async fn scan_dropbox(pool: Arc<Pool<Postgres>>) -> Result<(), Error>{
   }
   Ok(())
 }
+
+
+pub async fn scan_folder(pool: Arc<Pool<Postgres>>, did: &str, path: &str) -> Result<(), Error>{
+  let refresh_tokens = find_dropbox_refresh_token(&pool, did).await?;
+  if let Some((refresh_token, dropbox_id)) = refresh_tokens {
+    let refresh_token = decrypt_aes_256_ctr(
+      &refresh_token,
+      &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?
+    )?;
+
+    let res = get_access_token(&refresh_token).await?;
+    scan_audio_files(
+      pool.clone(),
+     path.to_string(),
+      res.access_token,
+      did.to_string(),
+      dropbox_id,
+    ).await?;
+  }
+  Ok(())
+}
+
 
 pub fn scan_audio_files(
     pool: Arc<Pool<Postgres>>,

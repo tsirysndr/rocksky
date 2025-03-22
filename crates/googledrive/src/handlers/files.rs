@@ -1,4 +1,4 @@
-use std::{env, sync::Arc};
+use std::{env, sync::Arc, thread};
 
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::Error;
@@ -8,10 +8,7 @@ use tokio_stream::StreamExt;
 pub const MUSIC_DIR: &str = "Music";
 
 use crate::{
-  client::GoogleDriveClient,
-  crypto::decrypt_aes_256_ctr,
-  read_payload,
-  repo::google_drive_token::find_google_drive_refresh_token, types::file::{DownloadFileParams, GetFilesInParentsParams, GetFilesParams}
+  client::GoogleDriveClient, crypto::decrypt_aes_256_ctr, read_payload, repo::google_drive_token::find_google_drive_refresh_token, scan, types::file::{DownloadFileParams, GetFilesInParentsParams, GetFilesParams, ScanFolderParams}
 };
 
 pub async fn create_music_directory(payload: &mut web::Payload, _req: &HttpRequest, pool: Arc<Pool<Postgres>>) -> Result<HttpResponse, Error> {
@@ -25,7 +22,7 @@ pub async fn create_music_directory(payload: &mut web::Payload, _req: &HttpReque
   }
 
   let refresh_token = decrypt_aes_256_ctr(
-    &refresh_token.unwrap(),
+    &refresh_token.unwrap().0,
     &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?
   )?;
 
@@ -46,7 +43,7 @@ pub async fn get_music_directory(payload: &mut web::Payload, _req: &HttpRequest,
   }
 
   let refresh_token = decrypt_aes_256_ctr(
-    &refresh_token.unwrap(),
+    &refresh_token.unwrap().0,
     &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?
   )?;
 
@@ -67,7 +64,7 @@ pub async fn get_files_in_parents(payload: &mut web::Payload, _req: &HttpRequest
   }
 
   let refresh_token = decrypt_aes_256_ctr(
-    &refresh_token.unwrap(),
+    &refresh_token.unwrap().0,
     &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?
   )?;
 
@@ -87,7 +84,7 @@ pub async fn get_file(payload: &mut web::Payload, _req: &HttpRequest, pool: Arc<
   }
 
   let refresh_token = decrypt_aes_256_ctr(
-    &refresh_token.unwrap(),
+    &refresh_token.unwrap().0,
     &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?
   )?;
 
@@ -109,10 +106,24 @@ pub async fn download_file(payload: &mut web::Payload, _req: &HttpRequest, pool:
   }
 
   let refresh_token = decrypt_aes_256_ctr(
-    &refresh_token.unwrap(),
+    &refresh_token.unwrap().0,
     &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?
   )?;
 
   let client = GoogleDriveClient::new(&refresh_token).await?;
   client.download_file(&params.file_id).await
+}
+
+pub async fn scan_folder(payload: &mut web::Payload, _req: &HttpRequest, pool: Arc<Pool<Postgres>>) -> Result<HttpResponse, Error> {
+  let body = read_payload!(payload);
+  let params = serde_json::from_slice::<ScanFolderParams>(&body)?;
+
+  let pool = pool.clone();
+  thread::spawn(move || {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(scan::scan_folder(pool, &params.did, &params.folder_id))?;
+    Ok::<(), Error>(())
+  });
+
+  Ok(HttpResponse::Ok().finish())
 }

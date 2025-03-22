@@ -3,7 +3,7 @@ use sqlx::{Pool, Postgres};
 
 use crate::xata::dropbox_token::DropboxTokenWithDid;
 
-pub async fn find_dropbox_refresh_token(pool: &Pool<Postgres>, did: &str) -> Result<Option<String>, Error> {
+pub async fn find_dropbox_refresh_token(pool: &Pool<Postgres>, did: &str) -> Result<Option<(String, String)>, Error> {
   let results: Vec<DropboxTokenWithDid> = sqlx::query_as(r#"
     SELECT
       d.xata_id,
@@ -25,7 +25,7 @@ pub async fn find_dropbox_refresh_token(pool: &Pool<Postgres>, did: &str) -> Res
     return Ok(None);
   }
 
-  Ok(Some(results[0].refresh_token.clone()))
+  Ok(Some((results[0].refresh_token.clone(), results[0].xata_id.clone())))
 }
 
 pub async fn find_dropbox_refresh_tokens(pool: &Pool<Postgres>) -> Result<Vec<DropboxTokenWithDid>, Error> {

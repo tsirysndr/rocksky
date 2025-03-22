@@ -9,7 +9,7 @@ use sqlx::{Pool, Postgres};
 use symphonia::core::{formats::FormatOptions, io::MediaSourceStream, meta::MetadataOptions, probe::Hint};
 use tempfile::TempDir;
 
-use crate::{client::{GoogleDriveClient, BASE_URL}, consts::AUDIO_EXTENSIONS, crypto::decrypt_aes_256_ctr, repo::{google_drive_path::create_google_drive_path, google_drive_token::find_google_drive_refresh_tokens, track::get_track_by_hash}, token::generate_token, types::file::{File, FileList}};
+use crate::{client::{GoogleDriveClient, BASE_URL}, consts::AUDIO_EXTENSIONS, crypto::decrypt_aes_256_ctr, repo::{google_drive_path::create_google_drive_path, google_drive_token::{find_google_drive_refresh_token, find_google_drive_refresh_tokens}, track::get_track_by_hash}, token::generate_token, types::file::{File, FileList}};
 
 pub async fn scan_googledrive(pool: Arc<Pool<Postgres>>) -> Result<(), Error> {
   let refresh_tokens = find_google_drive_refresh_tokens(&pool).await?;
@@ -33,6 +33,29 @@ pub async fn scan_googledrive(pool: Arc<Pool<Postgres>>) -> Result<(), Error> {
   }
   Ok(())
 }
+
+pub async fn scan_folder(pool: Arc<Pool<Postgres>>, did: &str, folder_id: &str) -> Result<(), Error> {
+  let refresh_token = find_google_drive_refresh_token(&pool, did).await?;
+  if let Some((refresh_token, google_drive_id)) = refresh_token {
+    let refresh_token = decrypt_aes_256_ctr(
+      &refresh_token,
+      &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?
+    )?;
+
+    let client = GoogleDriveClient::new(&refresh_token).await?;
+    let access_token = client.access_token.clone();
+    scan_audio_files(
+      pool.clone(),
+      folder_id.to_string(),
+      access_token,
+      did.to_string(),
+      google_drive_id.clone()
+    ).await?;
+  }
+
+  Ok(())
+}
+
 
 pub fn scan_audio_files(
     pool: Arc<Pool<Postgres>>,

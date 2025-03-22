@@ -3,7 +3,7 @@ use anyhow::Error;
 
 use crate::xata::google_drive_token::GoogleDriveTokenWithDid;
 
-pub async fn find_google_drive_refresh_token(pool: &Pool<Postgres>, did: &str) -> Result<Option<String>, Error> {
+pub async fn find_google_drive_refresh_token(pool: &Pool<Postgres>, did: &str) -> Result<Option<(String, String)>, Error> {
   let results: Vec<GoogleDriveTokenWithDid> = sqlx::query_as(r#"
     SELECT
       gd.xata_id,
@@ -25,7 +25,7 @@ pub async fn find_google_drive_refresh_token(pool: &Pool<Postgres>, did: &str) -
     return Ok(None);
   }
 
- Ok(Some(results[0].refresh_token.clone()))
+ Ok(Some((results[0].refresh_token.clone(), results[0].xata_id.clone())))
 }
 
 pub async fn find_google_drive_refresh_tokens(pool: &Pool<Postgres>) -> Result<Vec<GoogleDriveTokenWithDid>, Error> {
