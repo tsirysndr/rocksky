@@ -217,7 +217,10 @@ pub fn scan_audio_files(
                   false => None,
               }),
               "year": tag.year(),
-              "discNumber": tag.disk(),
+              "discNumber": tag.disk().map(|disc| match disc {
+                  0 => None,
+                  _ => Some(disc),
+              }),
               "composer": tag.get_string(&lofty::tag::ItemKey::Composer),
               "albumArt": match album_art{
                   Some(album_art) => Some(format!("https://cdn.rocksky.app/covers/{}", album_art)),
