@@ -171,7 +171,7 @@ pub fn scan_audio_files(
           &dropbox_id,
         )
         .await;
-      println!("status {:?}", status);
+      println!("status: {:?}", status);
       },
       None => {
         println!("Creating track: {}", title.bright_green());

@@ -216,13 +216,16 @@ pub fn scan_audio_files(
 
         let track = get_track_by_hash(&pool, &hash).await?;
         if let Some(track) = track {
-          create_google_drive_path(
+          let status = create_google_drive_path(
             &pool,
             &file,
             &track,
             &google_drive_id,
           )
-          .await?;
+          .await;
+
+          println!("status: {:?}", status);
+
           return Ok(());
         }
 
