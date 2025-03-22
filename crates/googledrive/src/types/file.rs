@@ -15,6 +15,7 @@ pub struct File {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FileList {
     pub files: Vec<File>,
+    pub next_page_token: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

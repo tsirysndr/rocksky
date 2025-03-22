@@ -92,6 +92,7 @@ impl GoogleDriveClient {
       let music_dir = self.create_music_directory().await?;
       return Ok(FileList {
         files: vec![music_dir],
+        next_page_token: None,
       });
     }
 

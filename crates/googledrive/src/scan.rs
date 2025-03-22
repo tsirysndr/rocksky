@@ -57,19 +57,37 @@ pub fn scan_audio_files(
     if file.mime_type == "application/vnd.google-apps.folder" {
       println!("Scanning folder: {}", file.name.bright_green());
 
-      let url = format!("{}/files", BASE_URL);
-      let res = client.get(&url)
-        .bearer_auth(&access_token)
-        .query(&[
-          ("q", format!("'{}' in parents", file.id).as_str()),
-          ("fields", "files(id, name, mimeType, parents)"),
-          ("orderBy", "name"),
-          ])
-        .send()
-        .await?;
-      let filelist = res.json::<FileList>().await?;
+      let mut page_token: Option<String> = None;
+      let mut files: Vec<File> = Vec::new();
 
-      for file in filelist.files {
+      loop {
+        let mut req = client.get(&format!("{}/files", BASE_URL))
+          .bearer_auth(&access_token)
+          .query(&[
+            ("q", format!("'{}' in parents", file.id).as_str()),
+            ("fields", "nextPageToken, files(id, name, mimeType, parents)"),
+            ("orderBy", "name"),
+            ("pageSize", "1000"), // max is 1000
+          ]);
+
+        if let Some(token) = &page_token {
+          req = req.query(&[("pageToken", token)]);
+        }
+
+        let res = req.send().await?;
+        let filelist = res.json::<FileList>().await?;
+
+        files.extend(filelist.files);
+
+        if let Some(token) = filelist.next_page_token {
+          page_token = Some(token);
+        } else {
+          break;
+        }
+      }
+
+
+      for file in files {
         scan_audio_files(
           pool.clone(),
           file.id,

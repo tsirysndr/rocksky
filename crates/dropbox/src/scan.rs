@@ -63,16 +63,40 @@ pub fn scan_audio_files(
 
     if entry.tag.clone().unwrap().as_str() == "folder" {
       println!("Scanning folder: {}", path.bright_green());
+
+      let mut entries: Vec<Entry> = Vec::new();
+
       let res = client.post(&format!("{}/files/list_folder", BASE_URL))
         .bearer_auth(&access_token)
         .json(&json!({ "path": path }))
         .send()
         .await?;
 
-      let entries = res.json::<EntryList>().await?;
+      let mut entry_list = res.json::<EntryList>().await?;
+      entries.extend(entry_list.entries);
 
-      for entry in entries.entries {
-        scan_audio_files(pool.clone(), entry.path_display, access_token.clone(), did.clone(), dropbox_id.clone()).await?;
+       // Handle pagination using list_folder/continue
+      while entry_list.has_more {
+        let res = client.post(&format!("{}/files/list_folder/continue", BASE_URL))
+          .bearer_auth(&access_token)
+          .json(&json!({ "cursor": entry_list.cursor }))
+          .send()
+          .await?;
+
+        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+
+        entry_list = res.json::<EntryList>().await?;
+        entries.extend(entry_list.entries);
+      }
+
+      for entry in entries {
+        scan_audio_files(
+          pool.clone(),
+          entry.path_display,
+          access_token.clone(),
+          did.clone(),
+          dropbox_id.clone()
+        ).await?;
         tokio::time::sleep(std::time::Duration::from_secs(3)).await;
       }
 
