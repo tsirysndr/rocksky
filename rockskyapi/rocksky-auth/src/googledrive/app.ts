@@ -69,20 +69,18 @@ app.get("/oauth/callback", async (c) => {
     .filter("user_id.xata_id", equals(entries.state))
     .getFirst();
 
-  if (googledrive) {
-    await ctx.client.db.google_drive_tokens.delete(
-      googledrive.google_drive_token_id.xata_id
+  const newGoogleDriveToken =
+    await ctx.client.db.google_drive_tokens.createOrUpdate(
+      googledrive?.google_drive_token_id?.xata_id,
+      {
+        refresh_token: encrypt(
+          response.data.refresh_token,
+          env.SPOTIFY_ENCRYPTION_KEY
+        ),
+      }
     );
-  }
 
-  const newGoogleDriveToken = await ctx.client.db.google_drive_tokens.create({
-    refresh_token: encrypt(
-      response.data.refresh_token,
-      env.SPOTIFY_ENCRYPTION_KEY
-    ),
-  });
-
-  await ctx.client.db.google_drive.create({
+  await ctx.client.db.google_drive.createOrUpdate(googledrive?.xata_id, {
     google_drive_token_id: newGoogleDriveToken.xata_id,
     user_id: entries.state,
   });

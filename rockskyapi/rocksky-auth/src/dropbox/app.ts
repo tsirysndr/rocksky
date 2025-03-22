@@ -50,18 +50,17 @@ app.get("/oauth/callback", async (c) => {
     .filter("user_id.xata_id", equals(entries.state))
     .getFirst();
 
-  if (dropbox) {
-    await ctx.client.db.dropbox_tokens.delete(dropbox.dropbox_token_id.xata_id);
-  }
+  const newDropboxToken = await ctx.client.db.dropbox_tokens.createOrUpdate(
+    dropbox?.dropbox_token_id?.xata_id,
+    {
+      refresh_token: encrypt(
+        response.data.refresh_token,
+        env.SPOTIFY_ENCRYPTION_KEY
+      ),
+    }
+  );
 
-  const newDropboxToken = await ctx.client.db.dropbox_tokens.create({
-    refresh_token: encrypt(
-      response.data.refresh_token,
-      env.SPOTIFY_ENCRYPTION_KEY
-    ),
-  });
-
-  await ctx.client.db.dropbox.create({
+  await ctx.client.db.dropbox.createOrUpdate(dropbox?.xata_id, {
     dropbox_token_id: newDropboxToken.xata_id,
     user_id: entries.state,
   });
