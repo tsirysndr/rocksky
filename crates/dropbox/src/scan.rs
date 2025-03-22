@@ -25,12 +25,10 @@ pub async fn scan_dropbox(pool: Arc<Pool<Postgres>>) -> Result<(), Error>{
       &token.refresh_token,
       &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?
     )?;
-
-    let res = get_access_token(&refresh_token).await?;
     scan_audio_files(
       pool.clone(),
       "/Music".to_string(),
-      res.access_token,
+      refresh_token,
       token.did,
       token.xata_id
     ).await?;
