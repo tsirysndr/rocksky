@@ -14,8 +14,11 @@ async-nats = "0.39.0"
 chrono = { version = "0.4.39", features = ["serde"] }
 ctr = "0.9.2"
 dotenv = "0.15.0"
+futures = "0.3.31"
 hex = "0.4.3"
 jsonwebtoken = "9.3.1"
+lofty = "0.22.2"
+md5 = "0.7.0"
 owo-colors = "4.1.0"
 redis = "0.29.0"
 reqwest = { version = "0.12.12", features = [
@@ -26,6 +29,7 @@ reqwest = { version = "0.12.12", features = [
 ], default-features = false }
 serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.139"
+sha256 = "1.6.0"
 sqlx = { version = "0.8.3", features = [
   "runtime-tokio",
   "tls-rustls",
@@ -34,5 +38,7 @@ sqlx = { version = "0.8.3", features = [
   "derive",
   "macros",
 ] }
+symphonia = { version = "0.5.4", features = ["all"] }
+tempfile = "3.19.1"
 tokio = { version = "1.43.0", features = ["full"] }
 tokio-stream = { version = "0.1.17", features = ["full"] }

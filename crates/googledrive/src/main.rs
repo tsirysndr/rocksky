@@ -1,18 +1,22 @@
-use std::{env, sync::Arc};
+use std::{env, sync::Arc, thread};
 use actix_web::{get, post, web::{self, Data}, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use anyhow::Error;
 use dotenv::dotenv;
 use handlers::handle;
 use owo_colors::OwoColorize;
+use scan::scan_googledrive;
 use serde_json::json;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
+pub mod token;
 pub mod xata;
 pub mod crypto;
 pub mod handlers;
 pub mod repo;
 pub mod types;
 pub mod client;
+pub mod consts;
+pub mod scan;
 
 #[get("/")]
 async fn index(_req: HttpRequest) -> HttpResponse {
@@ -49,6 +53,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
   let pool =  PgPoolOptions::new().max_connections(5).connect(&env::var("XATA_POSTGRES_URL")?).await?;
   let conn = Arc::new(pool);
+
+  let cloned_conn = conn.clone();
+
+  thread::spawn(move || {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(
+    scan_googledrive(cloned_conn)
+    )?;
+    Ok::<(), Error>(())
+  });
 
   let conn = conn.clone();
   HttpServer::new(move || {
