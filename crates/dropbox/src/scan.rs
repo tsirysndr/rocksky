@@ -67,10 +67,10 @@ pub fn scan_audio_files(
     dropbox_id: String,
 ) -> BoxFuture<'static, Result<(), Error>> {
   Box::pin(async move {
-    let client = Client::new();
-
     let res = get_access_token(&refresh_token).await?;
     let access_token = res.access_token;
+
+    let client = Client::new();
 
     let res = client.post(&format!("{}/files/get_metadata", BASE_URL))
       .bearer_auth(&access_token)
@@ -117,7 +117,7 @@ pub fn scan_audio_files(
         scan_audio_files(
           pool.clone(),
           entry.path_display,
-          access_token.clone(),
+          refresh_token.clone(),
           did.clone(),
           dropbox_id.clone()
         ).await?;

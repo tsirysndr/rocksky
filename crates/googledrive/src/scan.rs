@@ -22,11 +22,10 @@ pub async fn scan_googledrive(pool: Arc<Pool<Postgres>>) -> Result<(), Error> {
     let client = GoogleDriveClient::new(&refresh_token).await?;
     let filelist = client.get_music_directory().await?;
     let music_dir = filelist.files.first().unwrap();
-    let access_token = client.access_token.clone();
     scan_audio_files(
       pool.clone(),
       music_dir.id.clone(),
-      access_token,
+      refresh_token.clone(),
       token.did.clone(),
       token.xata_id.clone()
     ).await?;
@@ -115,7 +114,7 @@ pub fn scan_audio_files(
         scan_audio_files(
           pool.clone(),
           file.id,
-          access_token.clone(),
+          refresh_token.clone(),
           did.clone(),
           google_drive_id.clone()
         ).await?;
