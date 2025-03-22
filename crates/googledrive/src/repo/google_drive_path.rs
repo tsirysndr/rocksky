@@ -11,7 +11,7 @@ pub async fn create_google_drive_path(
   sqlx::query(r#"
     INSERT INTO google_drive_paths (google_drive_id, file_id, track_id, name)
     VALUES ($1, $2, $3, $4)
-    ON CONFLICT (google_drive_id, file_id, track_id) DO NOTHING
+    ON CONFLICT file_id DO NOTHING
   "#)
     .bind(google_drive_id)
     .bind(&file.id)
