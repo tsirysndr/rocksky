@@ -233,7 +233,10 @@ pub fn scan_audio_files(
               "title": tag.get_string(&lofty::tag::ItemKey::TrackTitle),
               "album": tag.get_string(&lofty::tag::ItemKey::AlbumTitle),
               "artist": tag.get_string(&lofty::tag::ItemKey::TrackArtist),
-              "albumArtist": tag.get_string(&lofty::tag::ItemKey::AlbumArtist),
+              "albumArtist": match tag.get_string(&lofty::tag::ItemKey::AlbumArtist) {
+                  Some(album_artist) => Some(album_artist),
+                  None => Some(tag.get_string(&lofty::tag::ItemKey::TrackArtist).unwrap_or_default()),
+              },
               "duration": duration,
               "trackNumber": tag.track(),
               "releaseDate": tag.get_string(&lofty::tag::ItemKey::OriginalReleaseDate).map(|date| match date.contains("-") {
