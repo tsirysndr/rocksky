@@ -42,12 +42,10 @@ pub async fn scan_folder(pool: Arc<Pool<Postgres>>, did: &str, folder_id: &str) 
       &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?
     )?;
 
-    let client = GoogleDriveClient::new(&refresh_token).await?;
-    let access_token = client.access_token.clone();
     scan_audio_files(
       pool.clone(),
       folder_id.to_string(),
-      access_token,
+      refresh_token,
       did.to_string(),
       google_drive_id.clone()
     ).await?;
@@ -60,11 +58,14 @@ pub async fn scan_folder(pool: Arc<Pool<Postgres>>, did: &str, folder_id: &str) 
 pub fn scan_audio_files(
     pool: Arc<Pool<Postgres>>,
     file_id: String,
-    access_token: String,
+    refresh_token: String,
     did: String,
     google_drive_id: String,
 ) -> BoxFuture<'static, Result<(), Error>> {
   Box::pin(async move {
+    let client = GoogleDriveClient::new(&refresh_token).await?;
+    let access_token = client.access_token.clone();
+
     let client = Client::new();
     let url = format!("{}/files/{}", BASE_URL, file_id);
     let res = client.get(&url)

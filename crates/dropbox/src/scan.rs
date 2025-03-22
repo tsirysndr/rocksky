@@ -47,11 +47,10 @@ pub async fn scan_folder(pool: Arc<Pool<Postgres>>, did: &str, path: &str) -> Re
       &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?
     )?;
 
-    let res = get_access_token(&refresh_token).await?;
     scan_audio_files(
       pool.clone(),
      path.to_string(),
-      res.access_token,
+      refresh_token,
       did.to_string(),
       dropbox_id,
     ).await?;
@@ -63,12 +62,15 @@ pub async fn scan_folder(pool: Arc<Pool<Postgres>>, did: &str, path: &str) -> Re
 pub fn scan_audio_files(
     pool: Arc<Pool<Postgres>>,
     path: String,
-    access_token: String,
+    refresh_token: String,
     did: String,
     dropbox_id: String,
 ) -> BoxFuture<'static, Result<(), Error>> {
   Box::pin(async move {
     let client = Client::new();
+
+    let res = get_access_token(&refresh_token).await?;
+    let access_token = res.access_token;
 
     let res = client.post(&format!("{}/files/get_metadata", BASE_URL))
       .bearer_auth(&access_token)
