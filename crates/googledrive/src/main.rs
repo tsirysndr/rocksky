@@ -1,80 +1,43 @@
-use std::{env, sync::Arc, thread};
-use actix_web::{get, post, web::{self, Data}, App, HttpRequest, HttpResponse, HttpServer, Responder};
-use anyhow::Error;
+use clap::Command;
+use cmd::{serve::serve, scan::scan};
 use dotenv::dotenv;
-use handlers::handle;
-use owo_colors::OwoColorize;
-use scan::scan_googledrive;
-use serde_json::json;
-use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
-pub mod token;
+pub mod types;
 pub mod xata;
-pub mod crypto;
+pub mod cmd;
 pub mod handlers;
 pub mod repo;
-pub mod types;
 pub mod client;
+pub mod crypto;
+pub mod token;
 pub mod consts;
 pub mod scan;
 
-#[get("/")]
-async fn index(_req: HttpRequest) -> HttpResponse {
-  HttpResponse::Ok().json(json!({
-    "server": "Rocksky GoogleDrive Server",
-    "version": "0.1.0",
-  }))
+fn cli() -> Command {
+    Command::new("googledrive")
+        .version(env!("CARGO_PKG_VERSION"))
+        .about("Rocksky Google Drive Service")
+        .subcommand(
+            Command::new("scan")
+            .about("Scan Google Drive Music Folder")
+        )
+        .subcommand(
+            Command::new("serve")
+            .about("Serve Rocksky Google Drive API")
+        )
 }
-
-#[post("/{method}")]
-async fn call_method(
-  data: web::Data<Arc<Pool<Postgres>>>,
-  mut payload: web::Payload,
-  req: HttpRequest) -> Result<impl Responder, actix_web::Error> {
-  let method = req.match_info().get("method").unwrap_or("unknown");
-  println!("Method: {}", method.bright_green());
-
-  let conn = data.get_ref().clone();
-  handle(method, &mut payload, &req, conn).await
-      .map_err(actix_web::error::ErrorInternalServerError)
-}
-
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-  dotenv().ok();
+    dotenv().ok();
 
-  let host = env::var("GOOGLE_DRIVE_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
-  let port = env::var("GOOGLE_DRIVE_PORT_PORT").unwrap_or_else(|_| "7880".to_string());
-  let addr = format!("{}:{}", host, port);
+    let args = cli().get_matches();
 
-  let url = format!("http://{}", addr);
-  println!("Listening on {}", url.bright_green());
+    match args.subcommand() {
+        Some(("scan", _)) => scan().await?,
+        Some(("serve", _)) => serve().await?,
+        _ => serve().await?,
+    }
 
-  let pool =  PgPoolOptions::new().max_connections(5).connect(&env::var("XATA_POSTGRES_URL")?).await?;
-  let conn = Arc::new(pool);
-
-  let cloned_conn = conn.clone();
-
-  thread::spawn(move || {
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    rt.block_on(
-    scan_googledrive(cloned_conn)
-    )?;
-    Ok::<(), Error>(())
-  });
-
-  let conn = conn.clone();
-  HttpServer::new(move || {
-    App::new()
-      .app_data(Data::new(conn.clone()))
-      .service(index)
-      .service(call_method)
-  })
-  .bind(&addr)?
-  .run()
-  .await
-  .map_err(Error::new)?;
-
-  Ok(())
+    Ok(())
 }
