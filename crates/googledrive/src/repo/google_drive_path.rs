@@ -20,6 +20,7 @@ pub async fn create_google_drive_path(
     .execute(pool)
     .await?;
 
+  println!(" {} \n {} \n {} \n {}", google_drive_id, file.id, track.xata_id, file.name);
   println!("{:?}", result);
 
   Ok(())
