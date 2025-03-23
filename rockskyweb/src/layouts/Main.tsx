@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router";
 import { profileAtom } from "../atoms/profile";
 import ScrobblesAreaChart from "../components/ScrobblesAreaChart";
+import StickyPlayer from "../components/StickyPlayer";
 import { API_URL } from "../consts";
 import useProfile from "../hooks/useProfile";
 import CloudDrive from "./CloudDrive";
@@ -237,6 +238,7 @@ function Main({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </RightPane>
+      <StickyPlayer />
     </Container>
   );
 }

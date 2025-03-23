@@ -125,5 +125,8 @@ pub async fn scan_folder(payload: &mut web::Payload, _req: &HttpRequest, pool: A
     Ok::<(), Error>(())
   });
 
+  // sleep for 2 second to allow the thread to start
+  tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+
   Ok(HttpResponse::Ok().finish())
 }
