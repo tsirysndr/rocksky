@@ -211,13 +211,15 @@ pub fn scan_audio_files(
     match track {
       Some(track) => {
         println!("Track exists: {}", title.bright_green());
-        create_google_drive_path(
+        let status = create_google_drive_path(
           &pool,
           &file,
           &track,
           &google_drive_id,
         )
         .await?;
+
+        println!("status: {:?}", status);
       },
       None => {
         println!("Creating track: {}", title.bright_green());
