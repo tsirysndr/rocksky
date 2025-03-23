@@ -259,6 +259,7 @@ pub fn scan_audio_files(
           .send()
           .await?;
         println!("Track Saved: {} {}", title, response.status());
+        tokio::time::sleep(std::time::Duration::from_secs(3)).await;
 
 
         let track = get_track_by_hash(&pool, &hash).await?;
