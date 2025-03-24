@@ -1,6 +1,6 @@
 import { equals } from "@xata.io/client";
 import { ctx } from "context";
-import crypto from "crypto";
+import crypto, { createHash } from "crypto";
 import { Hono } from "hono";
 import jwt from "jsonwebtoken";
 import { encrypt } from "lib/crypto";
@@ -163,7 +163,23 @@ app.get("/currently-playing", async (c) => {
     return c.json({});
   }
 
-  return c.json(JSON.parse(currentSong));
+  const track = JSON.parse(currentSong);
+  const sha256 = createHash("sha256")
+    .update(
+      `${track.item.name} - ${track.item.artists.map((x) => x.name).join(", ")} - ${track.item.album.name}`.toLowerCase()
+    )
+    .digest("hex");
+
+  const result = await ctx.client.db.tracks
+    .filter("sha256", equals(sha256))
+    .getFirst();
+
+  return c.json({
+    ...JSON.parse(currentSong),
+    songUri: result?.uri,
+    artistUri: result?.artist_uri,
+    albumUri: result?.album_uri,
+  });
 });
 
 export default app;

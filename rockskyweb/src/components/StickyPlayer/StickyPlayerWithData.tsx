@@ -1,54 +1,89 @@
 import axios from "axios";
+import { useAtom } from "jotai";
 import _ from "lodash";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import { nowPlayingAtom } from "../../atoms/nowpaying";
 import { API_URL } from "../../consts";
 import StickyPlayer from "./StrickyPlayer";
 
 function StickyPlayerWithData() {
-  /*const nowPlaying = {
-    title: "OUT OUT (feat. Charli XCX & Saweetie)",
-    artist: "Joel Corry",
-    artistUri:
-      "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.artist/3lhlp5opmak2k",
-    songUri:
-      "at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.song/3lhlhdt3htc2i",
-    duration: 180000,
-    progress: 120000,
-  };*/
+  const [nowPlaying, setNowPlaying] = useAtom(nowPlayingAtom);
+  const progressInterval = useRef<number | null>(null);
+  const lastFetchedRef = useRef(0);
 
-  const [nowPlaying, setNowPlaying] = useState<{
-    title: string;
-    artist: string;
-    artistUri: string;
-    songUri: string;
-    duration: number;
-    progress: number;
-    albumArt?: string;
-  } | null>(null);
-
-  useEffect(() => {
-    fetchCurrentlyPlaying();
-  }, []);
-
-  const fetchCurrentlyPlaying = async () => {
+  const fetchCurrentlyPlaying = useCallback(async () => {
     const { data } = await axios.get(`${API_URL}/spotify/currently-playing`, {
       headers: {
         authorization: `Bearer ${localStorage.getItem("token")}`,
       },
     });
-    console.log(">>", data);
-    if (data) {
+    if (data.item) {
       setNowPlaying({
         title: data.item.name,
         artist: data.item.artists[0].name,
-        artistUri: data.item.artists[0].uri,
-        songUri: data.item.uri,
+        artistUri: data.artistUri,
+        songUri: data.songUri,
         duration: data.item.duration_ms,
         progress: data.progress_ms,
         albumArt: _.get(data, "item.album.images.0.url"),
+        isPlaying: data.is_playing,
       });
+    } else {
+      setNowPlaying(null);
     }
-  };
+    lastFetchedRef.current = Date.now();
+  }, [setNowPlaying]);
+
+  const startProgressTracking = useCallback(() => {
+    if (progressInterval.current) {
+      clearInterval(progressInterval.current);
+    }
+    progressInterval.current = setInterval(() => {
+      if (!nowPlaying || !nowPlaying.duration) {
+        return;
+      }
+
+      if (nowPlaying.progress >= nowPlaying.duration) {
+        fetchCurrentlyPlaying();
+        return;
+      }
+
+      if (nowPlaying.isPlaying) {
+        setNowPlaying((prev) => {
+          if (prev) {
+            return {
+              ...prev,
+              progress: prev.progress + 100,
+            };
+          }
+          return prev;
+        });
+      }
+    }, 100);
+
+    // Fetch currently playing every 10 seconds
+    if (Date.now() - lastFetchedRef.current > 10000) {
+      fetchCurrentlyPlaying();
+    }
+  }, [fetchCurrentlyPlaying, nowPlaying, setNowPlaying]);
+
+  useEffect(() => {
+    startProgressTracking();
+
+    return () => {
+      if (progressInterval.current) {
+        clearInterval(progressInterval.current);
+      }
+    };
+  }, [startProgressTracking]);
+
+  useEffect(() => {
+    fetchCurrentlyPlaying();
+  }, [fetchCurrentlyPlaying]);
+
+  if (!nowPlaying) {
+    return <></>;
+  }
 
   return (
     <StickyPlayer
@@ -61,7 +96,7 @@ function StickyPlayerWithData() {
       onEqualizer={() => {}}
       onPlaylist={() => {}}
       onSeek={() => {}}
-      isPlaying={true}
+      isPlaying={nowPlaying.isPlaying}
     />
   );
 }
