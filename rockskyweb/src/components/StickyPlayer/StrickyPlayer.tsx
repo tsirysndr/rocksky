@@ -177,13 +177,13 @@ function StickyPlayer(props: StickyPlayerProps) {
             <LabelSmall>{formatTime(nowPlaying?.duration || 0)}</LabelSmall>
           </div>
           <RightActions>
-            <Button onClick={onSpeaker}>
+            <Button onClick={onSpeaker} disabled>
               <Speaker />
             </Button>
-            <Button onClick={onEqualizer}>
+            <Button onClick={onEqualizer} disabled>
               <Equalizer />
             </Button>
-            <Button onClick={onPlaylist}>
+            <Button onClick={onPlaylist} disabled>
               <Playlist />
             </Button>
           </RightActions>

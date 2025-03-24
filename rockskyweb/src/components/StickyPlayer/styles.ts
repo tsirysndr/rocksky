@@ -1,3 +1,4 @@
+import { css } from "@emotion/react";
 import styled from "@emotion/styled";
 
 export const PlayButton = styled.button`
@@ -46,12 +47,20 @@ export const Controls = styled.div`
   flex-direction: row;
 `;
 
-export const Button = styled.div`
+export const Button = styled.button<{ disabled?: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
   width: 60px;
   cursor: pointer;
+  border: none;
+  background-color: #fff;
+  ${(props) =>
+    props.disabled &&
+    css`
+      opacity: 0.5;
+      cursor: not-allowed;
+    `}
 `;
 
 export const MainWrapper = styled.div`

@@ -137,4 +137,33 @@ app.post("/join", async (c) => {
   return c.json({ status: "ok" });
 });
 
+app.get("/currently-playing", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+
+  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const spotifyAccount = await ctx.client.db.spotify_accounts
+    .filter("user_id", equals(user.xata_id))
+    .getFirst();
+
+  const currentSong = await ctx.redis.get(spotifyAccount.email);
+
+  if (!currentSong || currentSong === "null" || currentSong === "No content") {
+    return c.json({});
+  }
+
+  return c.json(JSON.parse(currentSong));
+});
+
 export default app;

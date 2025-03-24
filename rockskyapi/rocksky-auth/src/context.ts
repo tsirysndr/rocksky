@@ -5,6 +5,7 @@ import drizzle from "drizzle";
 import { env } from "lib/env";
 import { createBidirectionalResolver, createIdResolver } from "lib/idResolver";
 import { connect } from "nats";
+import redis from "redis";
 import sqliteKv from "sqliteKv";
 import { createStorage } from "unstorage";
 import { getXataClient } from "xata";
@@ -31,6 +32,7 @@ export const ctx = {
   analytics: axios.create({ baseURL: env.ANALYTICS }),
   dropbox: axios.create({ baseURL: env.DROPBOX }),
   googledrive: axios.create({ baseURL: env.GOOGLE_DRIVE }),
+  redis: await redis.createClient({ url: env.REDIS_URL }),
 };
 
 export type Context = typeof ctx;
