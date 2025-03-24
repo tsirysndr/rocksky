@@ -10,6 +10,7 @@ function StickyPlayerWithData() {
   const [nowPlaying, setNowPlaying] = useAtom(nowPlayingAtom);
   const progressInterval = useRef<number | null>(null);
   const lastFetchedRef = useRef(0);
+  const nowPlayingInterval = useRef<number | null>(null);
 
   const fetchCurrentlyPlaying = useCallback(async () => {
     const { data } = await axios.get(`${API_URL}/spotify/currently-playing`, {
@@ -38,34 +39,29 @@ function StickyPlayerWithData() {
     if (progressInterval.current) {
       clearInterval(progressInterval.current);
     }
+
     progressInterval.current = setInterval(() => {
-      if (!nowPlaying || !nowPlaying.duration) {
-        return;
-      }
-
-      if (nowPlaying.progress >= nowPlaying.duration) {
-        fetchCurrentlyPlaying();
-        return;
-      }
-
-      if (nowPlaying.isPlaying) {
-        setNowPlaying((prev) => {
-          if (prev) {
-            return {
-              ...prev,
-              progress: prev.progress + 100,
-            };
-          }
+      setNowPlaying((prev) => {
+        if (!prev || !prev.duration) {
           return prev;
-        });
-      }
-    }, 100);
+        }
 
-    // Fetch currently playing every 10 seconds
-    if (Date.now() - lastFetchedRef.current > 10000) {
-      fetchCurrentlyPlaying();
-    }
-  }, [fetchCurrentlyPlaying, nowPlaying, setNowPlaying]);
+        if (prev.progress >= prev.duration) {
+          fetchCurrentlyPlaying();
+          return prev;
+        }
+
+        if (prev.isPlaying) {
+          return {
+            ...prev,
+            progress: prev.progress + 100,
+          };
+        }
+
+        return prev;
+      });
+    }, 100);
+  }, [fetchCurrentlyPlaying, setNowPlaying]);
 
   useEffect(() => {
     startProgressTracking();
@@ -75,11 +71,26 @@ function StickyPlayerWithData() {
         clearInterval(progressInterval.current);
       }
     };
-  }, [startProgressTracking]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
+    if (nowPlayingInterval.current) {
+      clearInterval(nowPlayingInterval.current);
+    }
+    nowPlayingInterval.current = setInterval(() => {
+      fetchCurrentlyPlaying();
+    }, 15000);
+
     fetchCurrentlyPlaying();
-  }, [fetchCurrentlyPlaying]);
+
+    return () => {
+      if (nowPlayingInterval.current) {
+        clearInterval(nowPlayingInterval.current);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!nowPlaying) {
     return <></>;
