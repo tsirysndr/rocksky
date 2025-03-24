@@ -24,6 +24,7 @@ function StickyPlayerWithData() {
         artist: data.item.artists[0].name,
         artistUri: data.artistUri,
         songUri: data.songUri,
+        albumUri: data.albumUri,
         duration: data.item.duration_ms,
         progress: data.progress_ms,
         albumArt: _.get(data, "item.album.images.0.url"),
@@ -47,7 +48,7 @@ function StickyPlayerWithData() {
         }
 
         if (prev.progress >= prev.duration) {
-          fetchCurrentlyPlaying();
+          setTimeout(fetchCurrentlyPlaying, 2000);
           return prev;
         }
 

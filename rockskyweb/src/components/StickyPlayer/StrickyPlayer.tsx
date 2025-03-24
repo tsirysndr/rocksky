@@ -73,6 +73,7 @@ export type StickyPlayerProps = {
     artist: string;
     artistUri: string;
     songUri: string;
+    albumUri: string;
     duration: number;
     progress: number;
     albumArt?: string;
@@ -120,25 +121,31 @@ function StickyPlayer(props: StickyPlayerProps) {
     <Container>
       <MiniPlayerWrapper>
         <MiniPlayer>
-          <Cover src={nowPlaying?.albumArt} />
-          <div>
-            <div>
+          <Link to={`/${nowPlaying?.albumUri.split("at://")[1]}`}>
+            <Cover src={nowPlaying?.albumArt} />
+          </Link>
+          <div style={{ maxWidth: 310, overflow: "hidden" }}>
+            <div style={{ maxWidth: 310, overflow: "hidden" }}>
               <Link
                 to={`/${nowPlaying?.songUri.split("at://")[1]}`}
                 style={{
                   fontWeight: 600,
+                  textOverflow: "ellipsis",
+                  textWrap: "nowrap",
                 }}
               >
                 {nowPlaying?.title}
               </Link>
             </div>
-            <div>
+            <div style={{ maxWidth: 310, overflow: "hidden" }}>
               <Link
                 to={`/${nowPlaying?.artistUri.split("at://")[1]}`}
                 style={{
                   fontFamily: "RockfordSansLight",
                   color: "rgba(36, 49, 61, 0.65)",
                   fontWeight: 600,
+                  textOverflow: "ellipsis",
+                  textWrap: "nowrap",
                 }}
               >
                 {nowPlaying?.artist}

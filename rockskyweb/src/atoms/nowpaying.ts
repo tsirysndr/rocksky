@@ -5,6 +5,7 @@ export const nowPlayingAtom = atom<{
   artist: string;
   artistUri: string;
   songUri: string;
+  albumUri: string;
   duration: number;
   progress: number;
   albumArt?: string;
