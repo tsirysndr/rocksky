@@ -190,8 +190,6 @@ app.get("/currently-playing", async (c) => {
     }),
   });
 
-  console.log("> spotify response status: ", newAccessToken.status);
-
   const { access_token } = await newAccessToken.json();
 
   const response = await fetch(
@@ -209,7 +207,7 @@ app.get("/currently-playing", async (c) => {
   }
 
   const track = await response.json();
-  console.log("> track: ", JSON.stringify(track, null, 2));
+
   const sha256 = createHash("sha256")
     .update(
       `${track.item.name} - ${track.item.artists.map((x) => x.name).join(", ")} - ${track.item.album.name}`.toLowerCase()
