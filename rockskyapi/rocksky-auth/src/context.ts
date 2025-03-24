@@ -32,7 +32,7 @@ export const ctx = {
   analytics: axios.create({ baseURL: env.ANALYTICS }),
   dropbox: axios.create({ baseURL: env.DROPBOX }),
   googledrive: axios.create({ baseURL: env.GOOGLE_DRIVE }),
-  redis: await redis.createClient({ url: env.REDIS_URL }),
+  redis: await redis.createClient({ url: env.REDIS_URL }).connect(),
 };
 
 export type Context = typeof ctx;
