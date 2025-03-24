@@ -56,6 +56,7 @@ const Cover = styled.img`
   width: 54px;
   height: 54px;
   margin-right: 16px;
+  border-radius: 5px;
 `;
 
 const Link = styled(DefaultLink)`
@@ -74,6 +75,7 @@ export type StickyPlayerProps = {
     songUri: string;
     duration: number;
     progress: number;
+    albumArt?: string;
   } | null;
   onPlay: () => void;
   onPause: () => void;
@@ -118,7 +120,7 @@ function StickyPlayer(props: StickyPlayerProps) {
     <Container>
       <MiniPlayerWrapper>
         <MiniPlayer>
-          <Cover src="https://cdn.rocksky.app/covers/ec9bbc208b04182f315f8137cfb2125b.jpg" />
+          <Cover src={nowPlaying?.albumArt} />
           <div>
             <div>
               <Link
@@ -168,7 +170,14 @@ function StickyPlayer(props: StickyPlayerProps) {
             </Controls>
             <div>
               <ProgressbarContainer ref={progressbarRef} onClick={handleSeek}>
-                <ProgressBar value={50} overrides={styles.Progressbar} />
+                <ProgressBar
+                  value={
+                    nowPlaying?.progress && nowPlaying?.duration
+                      ? (nowPlaying.progress / nowPlaying.duration) * 100
+                      : 0
+                  }
+                  overrides={styles.Progressbar}
+                />
               </ProgressbarContainer>
             </div>
           </MainWrapper>
