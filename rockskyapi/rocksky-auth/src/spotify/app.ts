@@ -172,7 +172,7 @@ app.get("/currently-playing", async (c) => {
   }
 
   const refreshToken = decrypt(
-    spotifyToken.access_token,
+    spotifyToken.refresh_token,
     env.SPOTIFY_ENCRYPTION_KEY
   );
 
