@@ -174,3 +174,5 @@ dist
 
 credentials.json
 *.sqlite
+*.ddb
+*.ddb.wal
