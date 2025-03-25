@@ -27,7 +27,7 @@ app.get("/login", async (c) => {
 
   const state = crypto.randomBytes(16).toString("hex");
   ctx.kv.set(state, did);
-  const redirectUrl = `https://accounts.spotify.com/en/authorize?client_id=${env.SPOTIFY_CLIENT_ID}&response_type=code&redirect_uri=${env.SPOTIFY_REDIRECT_URI}&scope=user-read-private%20user-read-email%20user-read-playback-state%20user-read-currently-playing%20user-modify-playback-state&state=${state}`;
+  const redirectUrl = `https://accounts.spotify.com/en/authorize?client_id=${env.SPOTIFY_CLIENT_ID}&response_type=code&redirect_uri=${env.SPOTIFY_REDIRECT_URI}&scope=user-read-private%20user-read-email%20user-read-playback-state%20user-read-currently-playing%20user-modify-playback-state%20playlist-modify-public%20playlist-modify-private%20playlist-read-private%20playlist-read-collaborative&state=${state}`;
   c.header(
     "Set-Cookie",
     `session-id=${state}; Path=/; HttpOnly; SameSite=Strict; Secure`
