@@ -125,7 +125,13 @@ function StickyPlayer(props: StickyPlayerProps) {
             <Cover src={nowPlaying?.albumArt} />
           </Link>
           <div style={{ maxWidth: 310, overflow: "hidden" }}>
-            <div style={{ maxWidth: 310, overflow: "hidden" }}>
+            <div
+              style={{
+                maxWidth: 310,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
               <Link
                 to={`/${nowPlaying?.songUri?.split("at://")[1]}`}
                 style={{
@@ -137,7 +143,13 @@ function StickyPlayer(props: StickyPlayerProps) {
                 {nowPlaying?.title}
               </Link>
             </div>
-            <div style={{ maxWidth: 310, overflow: "hidden" }}>
+            <div
+              style={{
+                maxWidth: 310,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
               <Link
                 to={`/${nowPlaying?.artistUri?.split("at://")[1]}`}
                 style={{
