@@ -145,16 +145,22 @@ app.get("/currently-playing", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+  const payload = jwt.verify(bearer, env.JWT_SECRET);
 
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  const user = await ctx.client.db.users
+    .filter("did", equals(payload.did))
+    .getFirst();
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
   }
 
+  const did = c.req.query("did") || payload.did;
+
   const spotifyAccount = await ctx.client.db.spotify_accounts
-    .filter("user_id", equals(user.xata_id))
+    .filter({
+      $any: [{ "user_id.did": did }, { "user_id.handle": did }],
+    })
     .getFirst();
 
   if (!spotifyAccount) {
@@ -163,7 +169,9 @@ app.get("/currently-playing", async (c) => {
   }
 
   const spotifyToken = await ctx.client.db.spotify_tokens
-    .filter("user_id", equals(user.xata_id))
+    .filter({
+      $any: [{ "user_id.did": did }, { "user_id.handle": did }],
+    })
     .getFirst();
 
   if (!spotifyToken) {

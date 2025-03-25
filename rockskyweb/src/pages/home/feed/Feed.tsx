@@ -7,6 +7,7 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import ContentLoader from "react-content-loader";
 import { Link } from "react-router";
+import Handle from "../../../components/Handle";
 import SongCover from "../../../components/SongCover";
 import useFeed from "../../../hooks/useFeed";
 
@@ -78,12 +79,7 @@ function Feed() {
                       title={song.title}
                     />
                   </Link>
-                  <Link
-                    to={`/profile/${song.user}`}
-                    style={{ textDecoration: "none" }}
-                  >
-                    <LabelMedium color={"#ff2876"}>@{song.user}</LabelMedium>
-                  </Link>
+                  <Handle link={`/profile/${song.user}`} did={song.user} />{" "}
                   <LabelMedium>is listening to this song</LabelMedium>
                   <StatefulTooltip
                     content={dayjs(song.date).format(
