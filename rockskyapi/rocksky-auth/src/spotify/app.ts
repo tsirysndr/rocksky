@@ -151,7 +151,7 @@ app.get("/currently-playing", async (c) => {
 
   const user = await ctx.client.db.users
     .filter({
-      $any: [{ "user_id.did": did }, { "user_id.handle": did }],
+      $any: [{ did }, { handle: did }],
     })
     .getFirst();
 
