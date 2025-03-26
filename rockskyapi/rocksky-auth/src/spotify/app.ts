@@ -302,7 +302,8 @@ app.put("/pause", async (c) => {
   });
 
   if (response.status === 403) {
-    return c.status(403);
+    c.status(403);
+    return c.text(await response.text());
   }
 
   return c.json(await response.json());
@@ -364,7 +365,8 @@ app.put("/play", async (c) => {
   });
 
   if (response.status === 403) {
-    return c.status(403);
+    c.status(403);
+    return c.text(await response.text());
   }
 
   return c.json(await response.json());
@@ -426,7 +428,8 @@ app.post("/next", async (c) => {
   });
 
   if (response.status === 403) {
-    return c.status(403);
+    c.status(403);
+    return c.text(await response.text());
   }
 
   return c.json(await response.json());
@@ -491,7 +494,8 @@ app.post("/previous", async (c) => {
   );
 
   if (response.status === 403) {
-    return c.status(403);
+    c.status(403);
+    return c.text(await response.text());
   }
 
   return c.json(await response.json());
@@ -557,7 +561,8 @@ app.put("/seek", async (c) => {
   );
 
   if (response.status === 403) {
-    return c.status(403);
+    c.status(403);
+    return c.text(await response.text());
   }
 
   return c.json(await response.json());
