@@ -22,7 +22,14 @@ function Overview() {
 
     const getProfileStats = async () => {
       const stats = await getProfileStatsByDid(did);
-      setStats(stats);
+      setStats((prev) => ({
+        ...prev,
+        [did]: {
+          scrobbles: stats.scrobbles,
+          artists: stats.artists,
+          lovedTracks: stats.lovedTracks,
+        },
+      }));
     };
 
     getProfileStats();
@@ -31,7 +38,7 @@ function Overview() {
 
   return (
     <>
-      {stats && <Stats stats={stats} />}
+      {did && stats[did] && <Stats stats={stats[did]} />}
       <RecentTracks />
       <TopArtists />
       <TopAlbums />

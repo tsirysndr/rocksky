@@ -6,7 +6,7 @@ import { useAtom } from "jotai";
 import { useEffect } from "react";
 import { Link } from "react-router";
 import { profilesAtom } from "../../atoms/profiles";
-import { userStatsAtom } from "../../atoms/userStats";
+import { statsAtom } from "../../atoms/stats";
 import useProfile from "../../hooks/useProfile";
 import Stats from "../Stats";
 import NowPlaying from "./NowPlaying";
@@ -20,7 +20,7 @@ function Handle(props: HandleProps) {
   const { link, did } = props;
   const [profiles, setProfiles] = useAtom(profilesAtom);
   const { getProfileByDid, getProfileStatsByDid } = useProfile();
-  const [stats, setStats] = useAtom(userStatsAtom);
+  const [stats, setStats] = useAtom(statsAtom);
 
   useEffect(() => {
     const getProfile = async () => {
