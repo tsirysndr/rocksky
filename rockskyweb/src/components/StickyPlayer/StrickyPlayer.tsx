@@ -85,7 +85,7 @@ export type StickyPlayerProps = {
   onSpeaker: () => void;
   onEqualizer: () => void;
   onPlaylist: () => void;
-  onSeek: (time: number) => void;
+  onSeek: (position: number) => void;
   isPlaying: boolean;
 };
 

@@ -75,7 +75,9 @@ export const RightActions = styled.div`
   align-items: center;
 `;
 
-export const ProgressbarContainer = styled.div``;
+export const ProgressbarContainer = styled.div`
+  cursor: pointer;
+`;
 
 export const styles = {
   Progressbar: {

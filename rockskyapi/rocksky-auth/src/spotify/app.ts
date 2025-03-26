@@ -246,4 +246,321 @@ app.get("/currently-playing", async (c) => {
   });
 });
 
+app.put("/pause", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  const { did } =
+    bearer && bearer !== "null" ? jwt.verify(bearer, env.JWT_SECRET) : {};
+
+  if (!did) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const spotifyToken = await ctx.client.db.spotify_tokens
+    .filter("user_id", equals(user.xata_id))
+    .getFirst();
+
+  if (!spotifyToken) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const refreshToken = decrypt(
+    spotifyToken.refresh_token,
+    env.SPOTIFY_ENCRYPTION_KEY
+  );
+
+  // get new access token
+  const newAccessToken = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+      client_id: env.SPOTIFY_CLIENT_ID,
+      client_secret: env.SPOTIFY_CLIENT_SECRET,
+    }),
+  });
+
+  const { access_token } = await newAccessToken.json();
+
+  const response = await fetch("https://api.spotify.com/v1/me/player/pause", {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${access_token}`,
+    },
+  });
+
+  if (response.status === 403) {
+    return c.status(403);
+  }
+
+  return c.json(await response.json());
+});
+
+app.put("/play", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  const { did } =
+    bearer && bearer !== "null" ? jwt.verify(bearer, env.JWT_SECRET) : {};
+
+  if (!did) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const spotifyToken = await ctx.client.db.spotify_tokens
+    .filter("user_id", equals(user.xata_id))
+    .getFirst();
+
+  if (!spotifyToken) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const refreshToken = decrypt(
+    spotifyToken.refresh_token,
+    env.SPOTIFY_ENCRYPTION_KEY
+  );
+
+  // get new access token
+  const newAccessToken = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+      client_id: env.SPOTIFY_CLIENT_ID,
+      client_secret: env.SPOTIFY_CLIENT_SECRET,
+    }),
+  });
+
+  const { access_token } = await newAccessToken.json();
+
+  const response = await fetch("https://api.spotify.com/v1/me/player/play", {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${access_token}`,
+    },
+  });
+
+  if (response.status === 403) {
+    return c.status(403);
+  }
+
+  return c.json(await response.json());
+});
+
+app.post("/next", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  const { did } =
+    bearer && bearer !== "null" ? jwt.verify(bearer, env.JWT_SECRET) : {};
+
+  if (!did) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const spotifyToken = await ctx.client.db.spotify_tokens
+    .filter("user_id", equals(user.xata_id))
+    .getFirst();
+
+  if (!spotifyToken) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const refreshToken = decrypt(
+    spotifyToken.refresh_token,
+    env.SPOTIFY_ENCRYPTION_KEY
+  );
+
+  // get new access token
+  const newAccessToken = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+      client_id: env.SPOTIFY_CLIENT_ID,
+      client_secret: env.SPOTIFY_CLIENT_SECRET,
+    }),
+  });
+
+  const { access_token } = await newAccessToken.json();
+
+  const response = await fetch("https://api.spotify.com/v1/me/player/next", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${access_token}`,
+    },
+  });
+
+  if (response.status === 403) {
+    return c.status(403);
+  }
+
+  return c.json(await response.json());
+});
+
+app.post("/previous", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  const { did } =
+    bearer && bearer !== "null" ? jwt.verify(bearer, env.JWT_SECRET) : {};
+
+  if (!did) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const spotifyToken = await ctx.client.db.spotify_tokens
+    .filter("user_id", equals(user.xata_id))
+    .getFirst();
+
+  if (!spotifyToken) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const refreshToken = decrypt(
+    spotifyToken.refresh_token,
+    env.SPOTIFY_ENCRYPTION_KEY
+  );
+
+  // get new access token
+  const newAccessToken = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+      client_id: env.SPOTIFY_CLIENT_ID,
+      client_secret: env.SPOTIFY_CLIENT_SECRET,
+    }),
+  });
+
+  const { access_token } = await newAccessToken.json();
+
+  const response = await fetch(
+    "https://api.spotify.com/v1/me/player/previous",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+      },
+    }
+  );
+
+  if (response.status === 403) {
+    return c.status(403);
+  }
+
+  return c.json(await response.json());
+});
+
+app.put("/seek", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  const { did } =
+    bearer && bearer !== "null" ? jwt.verify(bearer, env.JWT_SECRET) : {};
+
+  if (!did) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const spotifyToken = await ctx.client.db.spotify_tokens
+    .filter("user_id", equals(user.xata_id))
+    .getFirst();
+
+  if (!spotifyToken) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const refreshToken = decrypt(
+    spotifyToken.refresh_token,
+    env.SPOTIFY_ENCRYPTION_KEY
+  );
+
+  // get new access token
+  const newAccessToken = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+      client_id: env.SPOTIFY_CLIENT_ID,
+      client_secret: env.SPOTIFY_CLIENT_SECRET,
+    }),
+  });
+
+  const { access_token } = await newAccessToken.json();
+
+  const position = c.req.query("position_ms");
+  const response = await fetch(
+    `https://api.spotify.com/v1/me/player/seek?position_ms=${position}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+      },
+    }
+  );
+
+  if (response.status === 403) {
+    return c.status(403);
+  }
+
+  return c.json(await response.json());
+});
+
 export default app;

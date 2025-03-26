@@ -4,6 +4,7 @@ import _ from "lodash";
 import { useCallback, useEffect, useRef } from "react";
 import { nowPlayingAtom } from "../../atoms/nowpaying";
 import { API_URL } from "../../consts";
+import useSpotify from "../../hooks/useSpotify";
 import StickyPlayer from "./StrickyPlayer";
 
 function StickyPlayerWithData() {
@@ -11,6 +12,7 @@ function StickyPlayerWithData() {
   const progressInterval = useRef<number | null>(null);
   const lastFetchedRef = useRef(0);
   const nowPlayingInterval = useRef<number | null>(null);
+  const { play, pause, next, previous, seek } = useSpotify();
 
   const fetchCurrentlyPlaying = useCallback(async () => {
     const { data } = await axios.get(`${API_URL}/spotify/currently-playing`, {
@@ -100,14 +102,14 @@ function StickyPlayerWithData() {
   return (
     <StickyPlayer
       nowPlaying={nowPlaying}
-      onPlay={() => {}}
-      onPause={() => {}}
-      onPrevious={() => {}}
-      onNext={() => {}}
+      onPlay={play}
+      onPause={pause}
+      onPrevious={previous}
+      onNext={next}
       onSpeaker={() => {}}
       onEqualizer={() => {}}
       onPlaylist={() => {}}
-      onSeek={() => {}}
+      onSeek={seek}
       isPlaying={nowPlaying.isPlaying}
     />
   );
