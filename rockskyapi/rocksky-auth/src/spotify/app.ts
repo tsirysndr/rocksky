@@ -149,7 +149,12 @@ app.get("/currently-playing", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  const user = await ctx.client.db.users
+    .filter({
+      $any: [{ "user_id.did": did }, { "user_id.handle": did }],
+    })
+    .getFirst();
+
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
