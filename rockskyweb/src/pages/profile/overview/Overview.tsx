@@ -1,22 +1,13 @@
-import styled from "@emotion/styled";
-import { HeadingSmall, LabelMedium } from "baseui/typography";
 import { useAtomValue, useSetAtom } from "jotai";
-import numeral from "numeral";
 import { useEffect } from "react";
 import { useParams } from "react-router";
 import { statsAtom } from "../../../atoms/stats";
+import Stats from "../../../components/Stats/Stats";
 import useProfile from "../../../hooks/useProfile";
 import RecentTracks from "./recenttracks";
 import TopAlbums from "./topalbums";
 import TopArtists from "./topartists";
 import TopTracks from "./toptracks";
-
-const Group = styled.div`
-  display: flex;
-  flex-direction: row;
-  margin-top: 20px;
-  margin-bottom: 50px;
-`;
 
 function Overview() {
   const { did } = useParams<{ did: string }>();
@@ -40,29 +31,7 @@ function Overview() {
 
   return (
     <>
-      {stats && (
-        <Group>
-          <div style={{ marginRight: 20 }}>
-            <LabelMedium>SCROBBLES</LabelMedium>
-            <HeadingSmall margin={0}>
-              {numeral(stats?.scrobbles).format("0,0")}
-            </HeadingSmall>
-          </div>
-          <div style={{ marginRight: 20 }}>
-            <LabelMedium>ARTISTS</LabelMedium>
-            <HeadingSmall margin={0}>
-              {numeral(stats?.artists).format("0,0")}
-            </HeadingSmall>
-          </div>
-          <div style={{ marginRight: 20 }}>
-            <LabelMedium>LOVED TRACKS</LabelMedium>
-            <HeadingSmall margin={0}>
-              {numeral(stats?.lovedTracks).format("0,0")}
-            </HeadingSmall>
-          </div>
-        </Group>
-      )}
-
+      {stats && <Stats stats={stats} />}
       <RecentTracks />
       <TopArtists />
       <TopAlbums />

@@ -140,10 +140,17 @@ function NowPlaying({ did }: NowPlayingProps) {
               display: "flex",
               flexDirection: "row",
               alignItems: "center",
-              marginTop: 15,
+              marginTop: 25,
             }}
           >
-            <Cover src={nowPlaying[did]?.albumArt} />
+            {!!nowPlaying[did]?.albumUri && (
+              <Link to={`/${nowPlaying[did]?.albumUri?.split("at://")[1]}`}>
+                <Cover src={nowPlaying[did]?.albumArt} />
+              </Link>
+            )}
+            {!nowPlaying[did]?.albumUri && (
+              <Cover src={nowPlaying[did]?.albumArt} />
+            )}
             <div
               style={{
                 maxWidth: "calc(340px - 54px + 30px)",

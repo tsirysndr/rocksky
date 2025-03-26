@@ -2,9 +2,12 @@ import { Avatar } from "baseui/avatar";
 import { Block } from "baseui/block";
 import { StatefulPopover, TRIGGER_TYPE } from "baseui/popover";
 import { LabelMedium, LabelSmall } from "baseui/typography";
+import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
+import { userStatsAtom } from "../../atoms/userStats";
 import useProfile from "../../hooks/useProfile";
+import Stats from "../Stats";
 import NowPlaying from "./NowPlaying";
 
 export type HandleProps = {
@@ -20,7 +23,8 @@ function Handle(props: HandleProps) {
     displayName: string;
     createdAt: string;
   } | null>(null);
-  const { getProfileByDid } = useProfile();
+  const { getProfileByDid, getProfileStatsByDid } = useProfile();
+  const [stats, setStats] = useAtom(userStatsAtom);
 
   useEffect(() => {
     const getProfile = async () => {
@@ -35,6 +39,27 @@ function Handle(props: HandleProps) {
     getProfile();
   }, []);
 
+  useEffect(() => {
+    if (!did) {
+      return;
+    }
+
+    const getProfileStats = async () => {
+      const stats = await getProfileStatsByDid(did);
+      setStats({
+        ...stats,
+        [did]: {
+          scrobbles: stats.scrobbles,
+          artists: stats.artists,
+          lovedTracks: stats.lovedTracks,
+        },
+      });
+    };
+
+    getProfileStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [did]);
+
   return (
     <>
       <StatefulPopover
@@ -44,7 +69,7 @@ function Handle(props: HandleProps) {
             backgroundColor={"#fff"}
             style={{
               borderRadius: "12px",
-              width: "340px",
+              width: "380px",
               border: "none",
             }}
           >
@@ -85,6 +110,8 @@ function Handle(props: HandleProps) {
                 </a>
               </div>
             </div>
+
+            {stats[did] && <Stats stats={stats[did]} mb={1} />}
 
             <NowPlaying did={did} />
           </Block>
