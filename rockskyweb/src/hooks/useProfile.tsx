@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useSetAtom } from "jotai";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { profileAtom } from "../atoms/profile";
 import { API_URL } from "../consts";
@@ -13,15 +13,18 @@ function useProfile(token?: string | null) {
   const [error, setError] = useState<Error | null>(null);
   const isLoading = !data && !error;
 
-  const getProfileByDid = async (did: string) => {
-    try {
-      const response = await axios.get(`${API_URL}/users/${did}`);
-      return response.data;
-    } catch {
-      navigate("/");
-      return null;
-    }
-  };
+  const getProfileByDid = useCallback(
+    async (did: string) => {
+      try {
+        const response = await axios.get(`${API_URL}/users/${did}`);
+        return response.data;
+      } catch {
+        navigate("/");
+        return null;
+      }
+    },
+    [navigate]
+  );
 
   const getProfileStatsByDid = async (did: string) => {
     const response = await axios.get(`${API_URL}/users/${did}/stats`);

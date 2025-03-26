@@ -3,9 +3,10 @@ import { Avatar } from "baseui/avatar";
 import { Tab, Tabs } from "baseui/tabs-motion";
 import { HeadingMedium, LabelLarge } from "baseui/typography";
 import dayjs from "dayjs";
-import { useSetAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import { Key, useEffect, useState } from "react";
 import { useParams } from "react-router";
+import { profilesAtom } from "../../atoms/profiles";
 import { userAtom } from "../../atoms/user";
 import Shout from "../../components/Shout/Shout";
 import useProfile from "../../hooks/useProfile";
@@ -24,43 +25,54 @@ const Group = styled.div`
 
 function Profile() {
   const { getProfileByDid } = useProfile();
-  const [profile, setProfile] = useState<{
-    handle: string;
-    avatar: string;
-    displayName: string;
-    createdAt: string;
-  } | null>(null);
+  const [profiles, setProfiles] = useAtom(profilesAtom);
   const [activeKey, setActiveKey] = useState<Key>("0");
   const { did } = useParams<{ did: string }>();
   const setUser = useSetAtom(userAtom);
 
   useEffect(() => {
+    console.log(">> didd", did);
+
     if (!did) {
       return;
     }
 
     const getProfile = async () => {
       const data = await getProfileByDid(did);
-      setProfile({
-        avatar: data.avatar,
-        displayName: data.display_name,
-        handle: data.handle,
-        createdAt: data.xata_createdat,
-      });
+      console.log(">> did", did);
+      console.log(">> data", data);
       setUser({
         avatar: data.avatar,
-        displayName: data.displayName,
+        displayName: data.display_name,
         handle: data.handle,
         spotifyUser: {
           isBeta: data.spotifyUser?.is_beta_user,
         },
         spotifyConnected: data.spotifyConnected,
       });
+      setProfiles((profiles) => ({
+        ...profiles,
+        [did]: {
+          avatar: data.avatar,
+          displayName: data.display_name,
+          handle: data.handle,
+          spotifyConnected: data.spotifyConnected,
+          createdAt: data.xata_createdat,
+          did,
+        },
+      }));
     };
 
     getProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [did]);
+
+  console.log(">> profiles", profiles);
+  console.log(">> did >", did);
+
+  if (!did) {
+    return <></>;
+  }
 
   return (
     <>
@@ -69,29 +81,29 @@ function Profile() {
           <Group>
             <div style={{ marginRight: 20 }}>
               <Avatar
-                name={profile?.displayName}
-                src={profile?.avatar}
+                name={profiles[did]?.displayName}
+                src={profiles[did]?.avatar}
                 size="150px"
               />
             </div>
             <div>
               <HeadingMedium marginBottom={0}>
-                {profile?.displayName}
+                {profiles[did]?.displayName}
               </HeadingMedium>
               <LabelLarge>
                 <a
-                  href={`https://bsky.app/profile/${profile?.handle}`}
+                  href={`https://bsky.app/profile/${profiles[did]?.handle}`}
                   style={{
                     textDecoration: "none",
                     color: "#ff2876",
                   }}
                 >
-                  @{profile?.handle}
+                  @{profiles[did]?.handle}
                 </a>
                 <span style={{ color: "#42576ca6", fontSize: "15px" }}>
                   {" "}
                   • scrobbling since{" "}
-                  {dayjs(profile?.createdAt).format("DD MMM YYYY")}
+                  {dayjs(profiles[did]?.createdAt).format("DD MMM YYYY")}
                 </span>
               </LabelLarge>
             </div>

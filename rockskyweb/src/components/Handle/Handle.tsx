@@ -3,8 +3,9 @@ import { Block } from "baseui/block";
 import { StatefulPopover, TRIGGER_TYPE } from "baseui/popover";
 import { LabelMedium, LabelSmall } from "baseui/typography";
 import { useAtom } from "jotai";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Link } from "react-router";
+import { profilesAtom } from "../../atoms/profiles";
 import { userStatsAtom } from "../../atoms/userStats";
 import useProfile from "../../hooks/useProfile";
 import Stats from "../Stats";
@@ -17,33 +18,31 @@ export type HandleProps = {
 
 function Handle(props: HandleProps) {
   const { link, did } = props;
-  const [profile, setProfile] = useState<{
-    handle: string;
-    avatar: string;
-    displayName: string;
-    createdAt: string;
-  } | null>(null);
+  const [profiles, setProfiles] = useAtom(profilesAtom);
   const { getProfileByDid, getProfileStatsByDid } = useProfile();
   const [stats, setStats] = useAtom(userStatsAtom);
 
   useEffect(() => {
     const getProfile = async () => {
       const data = await getProfileByDid(did);
-      setProfile({
-        avatar: data.avatar,
-        displayName: data.display_name,
-        handle: data.handle,
-        createdAt: data.xata_createdat,
-      });
+      setProfiles((profiles) => ({
+        ...profiles,
+        [did]: {
+          avatar: data.avatar,
+          displayName: data.display_name,
+          handle: data.handle,
+          spotifyConnected: data.spotifyConnected,
+          createdAt: data.xata_createdat,
+          did,
+        },
+      }));
     };
+
     getProfile();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [did]);
 
   useEffect(() => {
-    if (!did) {
-      return;
-    }
-
     const getProfileStats = async () => {
       const stats = await getProfileStatsByDid(did);
       setStats({
@@ -82,19 +81,19 @@ function Handle(props: HandleProps) {
             >
               <Link to={link} style={{ textDecoration: "none" }}>
                 <Avatar
-                  src={profile?.avatar}
-                  name={profile?.displayName}
+                  src={profiles[did]?.avatar}
+                  name={profiles[did]?.displayName}
                   size={"60px"}
                 />
               </Link>
               <div style={{ marginLeft: "16px" }}>
                 <Link to={link} style={{ textDecoration: "none" }}>
                   <LabelMedium marginTop={"10px"}>
-                    {profile?.displayName}
+                    {profiles[did]?.displayName}
                   </LabelMedium>
                 </Link>
                 <a
-                  href={`https://bsky.app/profile/${profile?.handle}`}
+                  href={`https://bsky.app/profile/${profiles[did]?.handle}`}
                   style={{
                     textDecoration: "none",
                     color: "#ff2876",
