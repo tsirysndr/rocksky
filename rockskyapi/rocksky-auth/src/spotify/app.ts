@@ -140,22 +140,20 @@ app.post("/join", async (c) => {
 app.get("/currently-playing", async (c) => {
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
-  if (!bearer || bearer === "null") {
+  const payload =
+    bearer && bearer !== "null" ? jwt.verify(bearer, env.JWT_SECRET) : {};
+  const did = c.req.query("did") || payload.did;
+
+  if (!did) {
     c.status(401);
     return c.text("Unauthorized");
   }
 
-  const payload = jwt.verify(bearer, env.JWT_SECRET);
-
-  const user = await ctx.client.db.users
-    .filter("did", equals(payload.did))
-    .getFirst();
+  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
   }
-
-  const did = c.req.query("did") || payload.did;
 
   const spotifyAccount = await ctx.client.db.spotify_accounts
     .filter({
