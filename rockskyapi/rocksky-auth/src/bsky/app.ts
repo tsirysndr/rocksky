@@ -53,6 +53,15 @@ app.get("/oauth/callback", async (c) => {
     return c.redirect(`${env.FRONTEND_URL}?error=1`);
   }
 
+  const spotifyUser = await ctx.client.db.spotify_accounts
+    .filter("user_id.did", equals(did))
+    .filter("is_beta_user", equals(true))
+    .getFirst();
+
+  if (spotifyUser?.email) {
+    ctx.nc.publish("rocksky.spotify.user", Buffer.from(spotifyUser.email));
+  }
+
   if (!cli) {
     return c.redirect(`${env.FRONTEND_URL}?did=${did}`);
   }

@@ -80,6 +80,15 @@ app.get("/callback", async (c) => {
     refresh_token: encrypt(refresh_token, env.SPOTIFY_ENCRYPTION_KEY),
   });
 
+  const spotifyUser = await ctx.client.db.spotify_accounts
+    .filter("user_id", equals(user.xata_id))
+    .filter("is_beta_user", equals(true))
+    .getFirst();
+
+  if (spotifyUser?.email) {
+    ctx.nc.publish("rocksky.spotify.user", Buffer.from(spotifyUser.email));
+  }
+
   return c.redirect(env.FRONTEND_URL);
 });
 

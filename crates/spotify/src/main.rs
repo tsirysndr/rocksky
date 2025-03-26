@@ -1,4 +1,4 @@
-use std::{env, sync::{atomic::AtomicBool, Arc}, thread};
+use std::{collections::HashMap, env, sync::{atomic::AtomicBool, Arc, Mutex}, thread};
 
 use cache::Cache;
 use crypto::decrypt_aes_256_ctr;
@@ -22,69 +22,112 @@ const BASE_URL: &str = "https://api.spotify.com/v1";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-  dotenv().ok();
-  let cache = Cache::new()?;
-  let pool=  PgPoolOptions::new().max_connections(5).connect(&env::var("XATA_POSTGRES_URL")?).await?;
+    dotenv().ok();
+    let cache = Cache::new()?;
+    let pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&env::var("XATA_POSTGRES_URL")?)
+        .await?;
 
-  let stop_flag = Arc::new(AtomicBool::new(false));
-  let addr = env::var("NATS_URL").unwrap_or_else(|_| "nats://localhost:4222".to_string());
-  let nc = connect(&addr).await?;
-  println!("Connected to NATS server at {}", addr.bright_green());
+    let addr = env::var("NATS_URL").unwrap_or_else(|_| "nats://localhost:4222".to_string());
+    let nc = connect(&addr).await?;
+    println!("Connected to NATS server at {}", addr.bright_green());
 
-  let mut sub = nc.subscribe("rocksky.user".to_string()).await?;
-  println!("Subscribed to {}", "rocksky.user".bright_green());
+    let mut sub = nc.subscribe("rocksky.spotify.user".to_string()).await?;
+    println!("Subscribed to {}", "rocksky.spotify.user".bright_green());
 
-  let users = find_spotify_users(&pool, 0, 100).await?;
-  println!("Found {} users", users.len().bright_green());
-
-  for user in users {
-    let email = user.0.clone();
-    let token = user.1.clone();
-    let did = user.2.clone();
-    let stop_flag = Arc::clone(&stop_flag);
-    let cache = cache.clone();
-    thread::spawn(move || {
-      let rt = tokio::runtime::Runtime::new().unwrap();
-      rt.block_on(async {
-        watch_currently_playing(email, token, did, stop_flag, cache.clone()).await?;
-        Ok::<(), Error>(())
-      }).unwrap();
-    });
-    thread::sleep(std::time::Duration::from_millis(900));
-  }
-
-
-  while let Some(_) = sub.next().await {
-    let stop_flag = Arc::clone(&stop_flag);
-    stop_flag.store(true, std::sync::atomic::Ordering::Relaxed);
-    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-    println!("Restarting threads");
-    stop_flag.store(false, std::sync::atomic::Ordering::Relaxed);
     let users = find_spotify_users(&pool, 0, 100).await?;
     println!("Found {} users", users.len().bright_green());
 
-    let cache = cache.clone();
-    thread::spawn(move || {
-      for user in users {
+    // Shared HashMap to manage threads and their stop flags
+    let thread_map: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>> = Arc::new(Mutex::new(HashMap::new()));
+
+    // Start threads for all users
+    for user in users {
         let email = user.0.clone();
         let token = user.1.clone();
         let did = user.2.clone();
-        let stop_flag = Arc::clone(&stop_flag);
+        let stop_flag = Arc::new(AtomicBool::new(false));
         let cache = cache.clone();
+        let thread_map = Arc::clone(&thread_map);
+
+        thread_map.lock().unwrap().insert(email.clone(), Arc::clone(&stop_flag));
+
         thread::spawn(move || {
-          let rt = tokio::runtime::Runtime::new().unwrap();
-          rt.block_on(async {
-            watch_currently_playing(email, token, did, stop_flag, cache.clone()).await?;
-            Ok::<(), Error>(())
-          }).unwrap();
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            rt.block_on(async {
+                watch_currently_playing(email, token, did, stop_flag, cache.clone()).await?;
+                Ok::<(), Error>(())
+            })
+            .unwrap();
         });
-        thread::sleep(std::time::Duration::from_millis(900));
-      }
-    });
+    }
 
-  }
+    // Handle subscription messages
+    while let Some(message) = sub.next().await {
+        let user_id = String::from_utf8(message.payload.to_vec()).unwrap();
+        println!("Received message to restart thread for user: {}", user_id.bright_green());
 
-  Ok(())
+        let mut thread_map = thread_map.lock().unwrap();
+
+        // Check if the user exists in the thread map
+        if let Some(stop_flag) = thread_map.get(&user_id) {
+            // Stop the existing thread
+            stop_flag.store(true, std::sync::atomic::Ordering::Relaxed);
+
+            // Create a new stop flag and restart the thread
+            let new_stop_flag = Arc::new(AtomicBool::new(false));
+            thread_map.insert(user_id.clone(), Arc::clone(&new_stop_flag));
+
+            let user = find_spotify_user(&pool, &user_id).await?;
+
+            if user.is_none() {
+              println!("Spotify user not found: {}, skipping", user_id.bright_green());
+              continue;
+            }
+
+            let user = user.unwrap();
+
+            let email = user.0.clone();
+            let token = user.1.clone();
+            let did = user.2.clone();
+            let cache = cache.clone();
+
+            thread::spawn(move || {
+                let rt = tokio::runtime::Runtime::new().unwrap();
+                rt.block_on(async {
+                    watch_currently_playing(email, token, did, new_stop_flag, cache.clone()).await?;
+                    Ok::<(), Error>(())
+                })
+                .unwrap();
+            });
+
+            println!("Restarted thread for user: {}", user_id.bright_green());
+        } else {
+            println!("No thread found for user: {}, starting new thread", user_id.bright_green());
+            let user = find_spotify_user(&pool, &user_id).await?;
+            if let Some(user) = user {
+              let email = user.0.clone();
+              let token = user.1.clone();
+              let did = user.2.clone();
+              let stop_flag = Arc::new(AtomicBool::new(false));
+              let cache = cache.clone();
+
+              thread_map.insert(email.clone(), Arc::clone(&stop_flag));
+
+              thread::spawn(move || {
+                  let rt = tokio::runtime::Runtime::new().unwrap();
+                  rt.block_on(async {
+                      watch_currently_playing(email, token, did, stop_flag, cache.clone()).await?;
+                      Ok::<(), Error>(())
+                  })
+                  .unwrap();
+              });
+            }
+        }
+    }
+
+    Ok(())
 }
 
 pub async fn refresh_token(token: &str) -> Result<AccessToken, Error> {
@@ -299,6 +342,32 @@ pub async fn find_spotify_users(
   }
 
   Ok(user_tokens)
+}
+
+pub async fn find_spotify_user(
+  pool: &Pool<Postgres>,
+  email: &str
+) -> Result<Option<(String, String, String)>, Error> {
+  let result: Vec<SpotifyTokenWithEmail> = sqlx::query_as(r#"
+    SELECT * FROM spotify_tokens
+    LEFT JOIN spotify_accounts ON spotify_tokens.user_id = spotify_accounts.user_id
+    LEFT JOIN users ON spotify_accounts.user_id = users.xata_id
+    WHERE spotify_accounts.email = $1
+  "#)
+    .bind(email)
+    .fetch_all(pool)
+    .await?;
+
+  match result.first() {
+    Some(result) => {
+      let token = decrypt_aes_256_ctr(
+        &result.refresh_token,
+        &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?
+      )?;
+      Ok(Some((result.email.clone(), token, result.did.clone())))
+    },
+    None => Ok(None)
+  }
 }
 
 pub async fn watch_currently_playing(spotify_email: String, token: String, did: String, stop_flag: Arc<AtomicBool>, cache: Cache) -> Result<(), Error> {
