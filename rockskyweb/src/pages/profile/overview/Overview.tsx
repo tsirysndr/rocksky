@@ -22,6 +22,11 @@ function Overview() {
 
     const getProfileStats = async () => {
       const stats = await getProfileStatsByDid(did);
+
+      if (!stats) {
+        return;
+      }
+
       setStats((prev) => ({
         ...prev,
         [did]: {

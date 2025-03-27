@@ -38,24 +38,26 @@ function Handle(props: HandleProps) {
       }));
     };
 
-    getProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [did]);
-
-  useEffect(() => {
     const getProfileStats = async () => {
       const stats = await getProfileStatsByDid(did);
-      setStats({
-        ...stats,
+
+      if (!stats) {
+        return;
+      }
+
+      setStats((prev) => ({
+        ...prev,
         [did]: {
           scrobbles: stats.scrobbles,
           artists: stats.artists,
           lovedTracks: stats.lovedTracks,
         },
-      });
+      }));
     };
 
     getProfileStats();
+
+    getProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [did]);
 
