@@ -234,15 +234,21 @@ app.get("/currently-playing", async (c) => {
     )
     .digest("hex");
 
-  const result = await ctx.client.db.tracks
-    .filter("sha256", equals(sha256))
-    .getFirst();
+  const [result, liked] = await Promise.all([
+    ctx.client.db.tracks.filter("sha256", equals(sha256)).getFirst(),
+    ctx.client.db.loved_tracks
+      .filter("user_id", equals(user.xata_id))
+      .filter("track_id.sha256", equals(sha256))
+      .getFirst(),
+  ]);
 
   return c.json({
     ...track,
     songUri: result?.uri,
     artistUri: result?.artist_uri,
     albumUri: result?.album_uri,
+    liked: !!liked,
+    sha256,
   });
 });
 

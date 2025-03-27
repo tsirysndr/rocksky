@@ -85,6 +85,7 @@ app.post("/likes", async (c) => {
   }
 
   const { did } = jwt.verify(bearer, env.JWT_SECRET);
+  const agent = await createAgent(ctx.oauthClient, did);
 
   const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
   if (!user) {
@@ -100,7 +101,7 @@ app.post("/likes", async (c) => {
     return c.text("Invalid track data: " + parsed.error.message);
   }
   const track = parsed.data;
-  await likeTrack(ctx, track, user);
+  await likeTrack(ctx, track, user, agent);
 
   return c.json({ status: "ok" });
 });
@@ -114,6 +115,7 @@ app.delete("/likes/:sha256", async (c) => {
   }
 
   const { did } = jwt.verify(bearer, env.JWT_SECRET);
+  const agent = await createAgent(ctx.oauthClient, did);
 
   const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
   if (!user) {
@@ -122,7 +124,7 @@ app.delete("/likes/:sha256", async (c) => {
   }
 
   const sha256 = c.req.param("sha256");
-  await unLikeTrack(ctx, sha256, user);
+  await unLikeTrack(ctx, sha256, user, agent);
   return c.json({ status: "ok" });
 });
 

@@ -6,7 +6,7 @@ import jwt from "jsonwebtoken";
 import { createAgent } from "lib/agent";
 import { env } from "lib/env";
 import _ from "lodash";
-import { likeTrack } from "lovedtracks/lovedtracks.service";
+import { likeTrack, unLikeTrack } from "lovedtracks/lovedtracks.service";
 import tables from "schema";
 import {
   createShout,
@@ -15,6 +15,7 @@ import {
   unlikeShout,
 } from "shouts/shouts.service";
 import { shoutSchema } from "types/shout";
+import { Track } from "types/track";
 
 const app = new Hono();
 
@@ -758,6 +759,50 @@ app.post("/:did/app.rocksky.song/:rkey/likes", async (c) => {
   }
 
   const payload = jwt.verify(bearer, env.JWT_SECRET);
+  const agent = await createAgent(ctx.oauthClient, payload.did);
+
+  const user = await ctx.client.db.users
+    .filter("did", equals(payload.did))
+    .getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+
+  const result = await ctx.client.db.tracks
+    .filter("uri", equals(`at://${did}/app.rocksky.song/${rkey}`))
+    .getFirst();
+
+  const track: Track = {
+    title: result.title,
+    artist: result.artist,
+    album: result.album,
+    albumArt: result.album_art,
+    albumArtist: result.album_artist,
+    trackNumber: result.track_number,
+    duration: result.duration,
+    composer: result.composer,
+    lyrics: result.lyrics,
+    discNumber: result.disc_number,
+  };
+  await likeTrack(ctx, track, user, agent);
+
+  return c.json({});
+});
+
+app.delete("/:did/app.rocksky.song/:rkey/likes", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const payload = jwt.verify(bearer, env.JWT_SECRET);
+  const agent = await createAgent(ctx.oauthClient, payload.did);
 
   const user = await ctx.client.db.users
     .filter("did", equals(payload.did))
@@ -774,31 +819,13 @@ app.post("/:did/app.rocksky.song/:rkey/likes", async (c) => {
     .filter("uri", equals(`at://${did}/app.rocksky.song/${rkey}`))
     .getFirst();
 
-  await likeTrack(ctx, track, user);
-
-  return c.json({});
-});
-
-app.delete("/:did/app.rocksky.song/:rkey/likes", async (c) => {
-  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
-
-  if (!bearer || bearer === "null") {
-    c.status(401);
-    return c.text("Unauthorized");
+  if (!track) {
+    c.status(404);
+    return c.text("Track not found");
   }
 
-  const payload = jwt.verify(bearer, env.JWT_SECRET);
+  await unLikeTrack(ctx, track.sha256, user, agent);
 
-  const user = await ctx.client.db.users
-    .filter("did", equals(payload.did))
-    .getFirst();
-  if (!user) {
-    c.status(401);
-    return c.text("Unauthorized");
-  }
-
-  const did = c.req.param("did");
-  const rkey = c.req.param("rkey");
   return c.json([]);
 });
 

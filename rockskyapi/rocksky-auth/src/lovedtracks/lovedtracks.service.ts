@@ -1,9 +1,18 @@
+import { Agent } from "@atproto/api";
+import { TID } from "@atproto/common";
 import { equals } from "@xata.io/client";
 import { Context } from "context";
 import { createHash } from "crypto";
+import * as LikeLexicon from "lexicon/types/app/rocksky/like";
+import { validateMain } from "lexicon/types/com/atproto/repo/strongRef";
 import { Track } from "types/track";
 
-export async function likeTrack(ctx: Context, track: Track, user) {
+export async function likeTrack(
+  ctx: Context,
+  track: Track,
+  user,
+  agent: Agent
+) {
   const existingTrack = await ctx.client.db.tracks
     .filter(
       "sha256",
@@ -130,7 +139,7 @@ export async function likeTrack(ctx: Context, track: Track, user) {
     .filter("track_id", equals(track_id))
     .getFirst();
 
-  const created = await ctx.client.db.loved_tracks.createOrUpdate(
+  let created = await ctx.client.db.loved_tracks.createOrUpdate(
     lovedTrack?.xata_id,
     {
       user_id: user.xata_id,
@@ -138,13 +147,67 @@ export async function likeTrack(ctx: Context, track: Track, user) {
     }
   );
 
+  if (existingTrack.uri) {
+    const rkey = TID.nextStr();
+    const subjectRecord = await agent.com.atproto.repo.getRecord({
+      repo: existingTrack.uri
+        .split("/")
+        .slice(0, 3)
+        .join("/")
+        .split("at://")[1],
+      collection: "app.rocksky.song",
+      rkey: existingTrack.uri.split("/").pop(),
+    });
+
+    const subjectRef = validateMain({
+      uri: existingTrack.uri,
+      cid: subjectRecord.data.cid,
+    });
+    if (!subjectRef.success) {
+      throw new Error("[like] invalid ref");
+    }
+
+    const record = {
+      $type: "app.rocksky.like",
+      subject: subjectRef.value,
+      createdAt: new Date().toISOString(),
+    };
+
+    if (!LikeLexicon.validateRecord(record).success) {
+      console.log(LikeLexicon.validateRecord(record));
+      throw new Error("Invalid record");
+    }
+
+    try {
+      const res = await agent.com.atproto.repo.createRecord({
+        repo: agent.assertDid,
+        collection: "app.rocksky.like",
+        rkey,
+        record,
+        validate: false,
+      });
+      const uri = res.data.uri;
+      console.log(`Like record created at: ${uri}`);
+      created = await ctx.client.db.loved_tracks.update(created.xata_id, {
+        uri,
+      });
+    } catch (e) {
+      console.error(`Error creating like record: ${e.message}`);
+    }
+  }
+
   const message = JSON.stringify(created);
   ctx.nc.publish("rocksky.like", Buffer.from(message));
 
   return created;
 }
 
-export async function unLikeTrack(ctx: Context, trackSha256: string, user) {
+export async function unLikeTrack(
+  ctx: Context,
+  trackSha256: string,
+  user,
+  agent: Agent
+) {
   const track = await ctx.client.db.tracks
     .filter("sha256", equals(trackSha256))
     .getFirst();
@@ -162,10 +225,19 @@ export async function unLikeTrack(ctx: Context, trackSha256: string, user) {
     return;
   }
 
+  const rkey = lovedTrack.uri.split("/").pop();
+
+  await Promise.all([
+    agent.com.atproto.repo.deleteRecord({
+      repo: agent.assertDid,
+      collection: "app.rocksky.like",
+      rkey,
+    }),
+    ctx.client.db.loved_tracks.delete(lovedTrack.xata_id),
+  ]);
+
   const message = JSON.stringify(lovedTrack);
   ctx.nc.publish("rocksky.unlike", Buffer.from(message));
-
-  await ctx.client.db.loved_tracks.delete(lovedTrack.xata_id);
 }
 
 export async function getLovedTracks(

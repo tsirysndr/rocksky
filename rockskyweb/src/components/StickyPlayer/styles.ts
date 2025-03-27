@@ -79,6 +79,12 @@ export const ProgressbarContainer = styled.div`
   cursor: pointer;
 `;
 
+export const LikeButton = styled.button`
+  border: none;
+  background: none;
+  cursor: pointer;
+`;
+
 export const styles = {
   Progressbar: {
     BarContainer: {

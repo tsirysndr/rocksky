@@ -10,4 +10,6 @@ export const nowPlayingAtom = atom<{
   progress: number;
   albumArt?: string;
   isPlaying: boolean;
+  liked: boolean;
+  sha256: string;
 } | null>(null);

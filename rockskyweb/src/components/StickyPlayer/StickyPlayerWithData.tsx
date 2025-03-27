@@ -4,6 +4,7 @@ import _ from "lodash";
 import { useCallback, useEffect, useRef } from "react";
 import { nowPlayingAtom } from "../../atoms/nowpaying";
 import { API_URL } from "../../consts";
+import useLike from "../../hooks/useLike";
 import useSpotify from "../../hooks/useSpotify";
 import StickyPlayer from "./StrickyPlayer";
 
@@ -13,6 +14,33 @@ function StickyPlayerWithData() {
   const lastFetchedRef = useRef(0);
   const nowPlayingInterval = useRef<number | null>(null);
   const { play, pause, next, previous, seek } = useSpotify();
+  const { like, unlike } = useLike();
+
+  const onLike = (uri: string) => {
+    like(uri);
+    setNowPlaying((prev) => {
+      if (!prev) {
+        return prev;
+      }
+      return {
+        ...prev,
+        liked: true,
+      };
+    });
+  };
+
+  const onDislike = (uri: string) => {
+    unlike(uri);
+    setNowPlaying((prev) => {
+      if (!prev) {
+        return prev;
+      }
+      return {
+        ...prev,
+        liked: false,
+      };
+    });
+  };
 
   const fetchCurrentlyPlaying = useCallback(async () => {
     const { data } = await axios.get(`${API_URL}/spotify/currently-playing`, {
@@ -31,6 +59,8 @@ function StickyPlayerWithData() {
         progress: data.progress_ms,
         albumArt: _.get(data, "item.album.images.0.url"),
         isPlaying: data.is_playing,
+        sha256: data.sha256,
+        liked: data.liked,
       });
     } else {
       setNowPlaying(null);
@@ -111,6 +141,8 @@ function StickyPlayerWithData() {
       onPlaylist={() => {}}
       onSeek={seek}
       isPlaying={nowPlaying.isPlaying}
+      onLike={onLike}
+      onDislike={onDislike}
     />
   );
 }

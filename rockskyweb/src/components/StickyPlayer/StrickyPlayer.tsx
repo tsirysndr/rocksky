@@ -5,6 +5,8 @@ import { useRef } from "react";
 import { Link as DefaultLink } from "react-router-dom";
 import { useTimeFormat } from "../../hooks/useFormat";
 import Equalizer from "../Icons/Equalizer";
+import Heart from "../Icons/Heart";
+import HeartOutline from "../Icons/HeartOutline";
 import Next from "../Icons/Next";
 import Pause from "../Icons/Pause";
 import Play from "../Icons/Play";
@@ -14,6 +16,7 @@ import Speaker from "../Icons/Speaker";
 import {
   Button,
   Controls,
+  LikeButton,
   MainWrapper,
   NextButton,
   PlayButton,
@@ -77,6 +80,8 @@ export type StickyPlayerProps = {
     duration: number;
     progress: number;
     albumArt?: string;
+    liked: boolean;
+    sha256: string;
   } | null;
   onPlay: () => void;
   onPause: () => void;
@@ -86,6 +91,8 @@ export type StickyPlayerProps = {
   onEqualizer: () => void;
   onPlaylist: () => void;
   onSeek: (position: number) => void;
+  onLike: (id: string) => void;
+  onDislike: (id: string) => void;
   isPlaying: boolean;
 };
 
@@ -100,6 +107,8 @@ function StickyPlayer(props: StickyPlayerProps) {
     onEqualizer,
     onPlaylist,
     onSeek,
+    onLike,
+    onDislike,
     isPlaying,
   } = props;
   const progressbarRef = useRef<HTMLDivElement>(null);
@@ -166,6 +175,20 @@ function StickyPlayer(props: StickyPlayerProps) {
                 {nowPlaying?.artist}
               </Link>
             </div>
+          </div>
+          <div style={{ marginTop: -14, marginLeft: 16 }}>
+            <LikeButton
+              onClick={() => {
+                if (nowPlaying?.liked) {
+                  onDislike(nowPlaying!.songUri);
+                  return;
+                }
+                onLike(nowPlaying!.songUri);
+              }}
+            >
+              {nowPlaying?.liked && <Heart color="#ff2876" />}
+              {!nowPlaying?.liked && <HeartOutline />}
+            </LikeButton>
           </div>
           <div style={{ marginLeft: 16 }}>
             <div style={{ height: 45 }}></div>
