@@ -16,7 +16,7 @@ export default {
 		const url = new URL(request.url);
 		let redirectToApi = false;
 
-		const API_ROUTES = ['/login', '/profile', '/client-metadata.json', '/token', '/now-playing', 'ws'];
+		const API_ROUTES = ['/login', '/profile', '/client-metadata.json', '/token', '/now-playing', '/ws'];
 
 		if (
 			API_ROUTES.includes(url.pathname) ||
