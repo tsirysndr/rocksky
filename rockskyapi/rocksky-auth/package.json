@@ -20,6 +20,7 @@
 		"@atproto/syntax": "^0.3.1",
 		"@atproto/xrpc-server": "^0.7.8",
 		"@hono/node-server": "^1.13.8",
+		"@hono/node-ws": "^1.1.0",
 		"@xata.io/client": "^0.0.0-next.va121e4207b94bfe0a3c025fc00b247b923880930",
 		"assert": "^2.1.0",
 		"axios": "^1.7.9",
@@ -42,6 +43,7 @@
 		"redis": "^4.7.0",
 		"unstorage": "^1.14.4",
 		"url": "^0.11.4",
+		"ws": "^8.18.1",
 		"zod": "^3.24.1"
 	},
 	"devDependencies": {

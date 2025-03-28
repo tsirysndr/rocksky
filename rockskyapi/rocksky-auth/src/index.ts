@@ -1,4 +1,5 @@
 import { serve } from "@hono/node-server";
+import { createNodeWebSocket } from "@hono/node-ws";
 import { equals } from "@xata.io/client";
 import { ctx } from "context";
 import { Hono } from "hono";
@@ -25,6 +26,7 @@ import users from "./users/app";
 subscribe(ctx);
 
 const app = new Hono();
+const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 
 app.use(cors());
 
@@ -35,6 +37,21 @@ app.route("/spotify", spotify);
 app.route("/dropbox", dropbox);
 
 app.route("/googledrive", googledrive);
+
+app.get(
+  "/ws",
+  upgradeWebSocket((c) => {
+    return {
+      onMessage(event, ws) {
+        console.log(`Message from client: ${event.data}`);
+        ws.send("Hello from server!");
+      },
+      onClose: () => {
+        console.log("Connection closed");
+      },
+    };
+  })
+);
 
 app.get("/", async (c) => {
   return c.json({ status: "ok" });
@@ -404,7 +421,9 @@ app.route("/users", users);
 
 app.route("/search", search);
 
-serve({
+const server = serve({
   fetch: app.fetch,
   port: 8000,
 });
+
+injectWebSocket(server);
