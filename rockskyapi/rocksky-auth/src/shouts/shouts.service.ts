@@ -146,7 +146,7 @@ export async function replyShout(
     profileRecord.uri;
 
   const subjectRecord = await agent.com.atproto.repo.getRecord({
-    repo: agent.assertDid,
+    repo: subjectUri.split("/").slice(0, 3).join("/").split("at://")[1],
     collection,
     rkey: subjectUri.split("/").pop(),
   });
@@ -160,7 +160,7 @@ export async function replyShout(
   }
 
   const parentRecord = await agent.com.atproto.repo.getRecord({
-    repo: agent.assertDid,
+    repo: shoutUri.split("/").slice(0, 3).join("/").split("at://")[1],
     collection: "app.rocksky.shout",
     rkey: shoutUri.split("/").pop(),
   });
@@ -245,7 +245,7 @@ export async function likeShout(
   }
 
   const subjectRecord = await agent.com.atproto.repo.getRecord({
-    repo: agent.assertDid,
+    repo: shoutUri.split("/").slice(0, 3).join("/").split("at://")[1],
     collection: "app.rocksky.shout",
     rkey: shoutUri.split("/").pop(),
   });
