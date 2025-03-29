@@ -57,10 +57,10 @@ function Playlists() {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             playlists.map((playlist: any) => (
               <FlexGridItem {...itemProps} key={playlist.id}>
-                <Link to={`/${playlist.uri.split("at://")[1]}`}>
-                  <SongCover cover={playlist.picture} />
+                <Link to={`/${playlist.uri?.split("at://")[1]}`}>
+                  <SongCover cover={playlist?.picture} />
                 </Link>
-                <Link to={`/${playlist.uri.split("at://")[1]}`}>
+                <Link to={`/${playlist.uri?.split("at://")[1]}`}>
                   <LabelMedium>{playlist.name}</LabelMedium>
                 </Link>
                 <LabelSmall color="rgba(36, 49, 61, 0.65)" marginTop={"3px"}>

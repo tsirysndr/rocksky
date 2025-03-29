@@ -15,6 +15,7 @@ import { scrobbleTrack } from "nowplaying/nowplaying.service";
 import subscribe from "subscribers";
 import { saveTrack } from "tracks/tracks.service";
 import { trackSchema } from "types/track";
+import handleWebsocket from "websocket/handler";
 import bsky from "./bsky/app";
 import dropbox from "./dropbox/app";
 import googledrive from "./googledrive/app";
@@ -38,20 +39,7 @@ app.route("/dropbox", dropbox);
 
 app.route("/googledrive", googledrive);
 
-app.get(
-  "/ws",
-  upgradeWebSocket((c) => {
-    return {
-      onMessage(event, ws) {
-        console.log(`Message from client: ${event.data}`);
-        ws.send("Hello from server!");
-      },
-      onClose: () => {
-        console.log("Connection closed");
-      },
-    };
-  })
-);
+app.get("/ws", upgradeWebSocket(handleWebsocket));
 
 app.get("/", async (c) => {
   return c.json({ status: "ok" });

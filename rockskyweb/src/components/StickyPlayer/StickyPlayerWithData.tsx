@@ -3,6 +3,7 @@ import { useAtom } from "jotai";
 import _ from "lodash";
 import { useCallback, useEffect, useRef } from "react";
 import { nowPlayingAtom } from "../../atoms/nowpaying";
+import { playerAtom } from "../../atoms/player";
 import { API_URL } from "../../consts";
 import useLike from "../../hooks/useLike";
 import useSpotify from "../../hooks/useSpotify";
@@ -13,8 +14,10 @@ function StickyPlayerWithData() {
   const progressInterval = useRef<number | null>(null);
   const lastFetchedRef = useRef(0);
   const nowPlayingInterval = useRef<number | null>(null);
+  const socketRef = useRef<WebSocket | null>(null);
   const { play, pause, next, previous, seek } = useSpotify();
   const { like, unlike } = useLike();
+  const [player, setPlayer] = useAtom(playerAtom);
 
   const onLike = (uri: string) => {
     like(uri);
@@ -42,7 +45,83 @@ function StickyPlayerWithData() {
     });
   };
 
+  const onPlay = () => {
+    if (player === "rockbox" && socketRef.current) {
+      socketRef.current.send(
+        JSON.stringify({
+          type: "command",
+          action: "play",
+          token: localStorage.getItem("token"),
+        })
+      );
+      return;
+    }
+    play();
+  };
+
+  const onPause = () => {
+    if (player === "rockbox" && socketRef.current) {
+      socketRef.current.send(
+        JSON.stringify({
+          type: "command",
+          action: "pause",
+          token: localStorage.getItem("token"),
+        })
+      );
+      return;
+    }
+    pause();
+  };
+
+  const onNext = () => {
+    if (player === "rockbox" && socketRef.current) {
+      socketRef.current.send(
+        JSON.stringify({
+          type: "command",
+          action: "next",
+          token: localStorage.getItem("token"),
+        })
+      );
+      return;
+    }
+    next();
+  };
+
+  const onPrevious = () => {
+    if (player === "rockbox" && socketRef.current) {
+      socketRef.current.send(
+        JSON.stringify({
+          type: "command",
+          action: "previous",
+          token: localStorage.getItem("token"),
+        })
+      );
+      return;
+    }
+    previous();
+  };
+
+  const onSeek = (position: number) => {
+    if (player === "rockbox" && socketRef.current) {
+      socketRef.current.send(
+        JSON.stringify({
+          type: "command",
+          action: "seek",
+          token: localStorage.getItem("token"),
+          args: {
+            position,
+          },
+        })
+      );
+      return;
+    }
+    seek(position);
+  };
+
   const fetchCurrentlyPlaying = useCallback(async () => {
+    if (player === "rockbox") {
+      return;
+    }
     const { data } = await axios.get(`${API_URL}/spotify/currently-playing`, {
       headers: {
         authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -79,7 +158,7 @@ function StickyPlayerWithData() {
           return prev;
         }
 
-        if (prev.progress >= prev.duration) {
+        if (prev.progress >= prev.duration && player === "spotify") {
           setTimeout(fetchCurrentlyPlaying, 2000);
           return prev;
         }
@@ -108,6 +187,10 @@ function StickyPlayerWithData() {
   }, []);
 
   useEffect(() => {
+    if (player === "rockbox") {
+      return;
+    }
+
     if (nowPlayingInterval.current) {
       clearInterval(nowPlayingInterval.current);
     }
@@ -125,6 +208,82 @@ function StickyPlayerWithData() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (!localStorage.getItem("token")) {
+      return;
+    }
+    const ws = new WebSocket(`${API_URL.replace("http", "ws")}/ws`);
+    socketRef.current = ws;
+
+    ws.onopen = () => {
+      ws.send(
+        JSON.stringify({
+          type: "register",
+          clientName: "rocksky",
+          token: localStorage.getItem("token"),
+        })
+      );
+
+      ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        if (msg.type === "message" && msg.data?.type === "track") {
+          if (
+            lastFetchedRef.current &&
+            Date.now() - lastFetchedRef.current < 3000
+          ) {
+            return;
+          }
+          if (nowPlaying?.isPlaying === undefined) {
+            return;
+          }
+
+          setNowPlaying((prev) => ({
+            ...prev,
+            title: msg.data.title,
+            artist: msg.data.album_artist || msg.data.artist,
+            artistUri: msg.data.artist_uri,
+            songUri: msg.data.song_uri,
+            albumUri: msg.data.album_uri,
+            duration: msg.data.length,
+            progress: msg.data.elapsed,
+            albumArt: _.get(msg, "data.album_art"),
+            isPlaying: !!prev?.isPlaying,
+            sha256: msg.data.sha256,
+            liked: msg.data.liked,
+          }));
+          setPlayer("rockbox");
+          lastFetchedRef.current = Date.now();
+        }
+
+        if (msg.data?.status === 0) {
+          setNowPlaying(null);
+        }
+
+        if (msg.data?.status === 1) {
+          setNowPlaying((prev) => ({
+            ...prev!,
+            isPlaying: true,
+          }));
+        }
+        if (msg.data?.status === 2 || msg.data?.status === 3) {
+          setNowPlaying((prev) => ({
+            ...prev!,
+            isPlaying: false,
+          }));
+        }
+      };
+
+      console.log(">> WebSocket connection opened");
+    };
+
+    return () => {
+      if (ws) {
+        ws.close();
+      }
+      console.log(">> WebSocket connection closed");
+    };
+  }, []);
+
   if (!nowPlaying) {
     return <></>;
   }
@@ -132,14 +291,14 @@ function StickyPlayerWithData() {
   return (
     <StickyPlayer
       nowPlaying={nowPlaying}
-      onPlay={play}
-      onPause={pause}
-      onPrevious={previous}
-      onNext={next}
+      onPlay={onPlay}
+      onPause={onPause}
+      onPrevious={onPrevious}
+      onNext={onNext}
       onSpeaker={() => {}}
       onEqualizer={() => {}}
       onPlaylist={() => {}}
-      onSeek={seek}
+      onSeek={onSeek}
       isPlaying={nowPlaying.isPlaying}
       onLike={onLike}
       onDislike={onDislike}
