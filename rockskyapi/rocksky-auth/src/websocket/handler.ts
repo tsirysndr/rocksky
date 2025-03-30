@@ -99,6 +99,11 @@ function handleWebsocket(c: Context) {
                   data.song_uri = cachedData.uri;
                   data.album_uri = cachedData.albumUri;
                   data.artist_uri = cachedData.artistUri;
+                  await ctx.redis.setEx(`nowplaying:${did}`, 3, {
+                    ...data,
+                    sha256,
+                    liked: data.liked,
+                  });
                 } else {
                   const [track] = await ctx.db
                     .select()
@@ -110,17 +115,28 @@ function handleWebsocket(c: Context) {
                     data.song_uri = track.uri;
                     data.album_uri = track.albumUri;
                     data.artist_uri = track.artistUri;
-                    await ctx.redis.setEx(
-                      `track:${sha256}`,
-                      10,
-                      JSON.stringify({
-                        albumArt: track.albumArt,
-                        uri: track.uri,
-                        albumUri: track.albumUri,
-                        artistUri: track.artistUri,
-                        liked: data.liked,
-                      })
-                    );
+                    await Promise.all([
+                      ctx.redis.setEx(
+                        `track:${sha256}`,
+                        10,
+                        JSON.stringify({
+                          albumArt: track.albumArt,
+                          uri: track.uri,
+                          albumUri: track.albumUri,
+                          artistUri: track.artistUri,
+                          liked: data.liked,
+                        })
+                      ),
+                      ctx.redis.setEx(
+                        `nowplaying:${did}`,
+                        3,
+                        JSON.stringify({
+                          ...data,
+                          sha256,
+                          liked: data.liked,
+                        })
+                      ),
+                    ]);
                   }
                 }
               }
