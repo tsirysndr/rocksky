@@ -40,7 +40,7 @@ function NowPlaying({ did }: NowPlayingProps) {
   const player = useAtomValue(playerAtom);
 
   const fetchCurrentlyPlaying = useCallback(async () => {
-    if (player === "rockbox") {
+    if (player === "rockbox" || player === null) {
       const { data } = await axios.get(`${API_URL}/now-playing`, {
         headers: {
           authorization: `Bearer ${localStorage.getItem("token")}`,
