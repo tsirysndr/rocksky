@@ -15,6 +15,7 @@ function StickyPlayerWithData() {
   const lastFetchedRef = useRef(0);
   const nowPlayingInterval = useRef<number | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
+  const heartbeatInterval = useRef<number | null>(null);
   const { play, pause, next, previous, seek } = useSpotify();
   const { like, unlike } = useLike();
   const [player, setPlayer] = useAtom(playerAtom);
@@ -224,6 +225,19 @@ function StickyPlayerWithData() {
         })
       );
 
+      if (heartbeatInterval.current) {
+        clearInterval(heartbeatInterval.current);
+      }
+
+      heartbeatInterval.current = setInterval(() => {
+        ws.send(
+          JSON.stringify({
+            type: "heartbeat",
+            token: localStorage.getItem("token"),
+          })
+        );
+      }, 3000);
+
       ws.onmessage = (event) => {
         const msg = JSON.parse(event.data);
         if (msg.type === "message" && msg.data?.type === "track") {
@@ -278,6 +292,9 @@ function StickyPlayerWithData() {
 
     return () => {
       if (ws) {
+        if (heartbeatInterval.current) {
+          clearInterval(heartbeatInterval.current);
+        }
         ws.close();
       }
       console.log(">> WebSocket connection closed");
