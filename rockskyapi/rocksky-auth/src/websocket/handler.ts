@@ -1,11 +1,13 @@
 import chalk from "chalk";
 import { ctx } from "context";
 import { createHash } from "crypto";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { Context } from "hono";
 import jwt from "jsonwebtoken";
 import { env } from "lib/env";
+import lovedTracks from "schema/loved-tracks";
 import tracks from "schema/tracks";
+import users from "schema/users";
 import { v4 as uuidv4 } from "uuid";
 import z from "zod";
 
@@ -67,10 +69,32 @@ function handleWebsocket(c: Context) {
                     `${data.title} - ${data.artist} - ${data.album}`.toLowerCase()
                   )
                   .digest("hex");
-                const cached = await ctx.redis.get(`track:${sha256}`);
+                const [cachedTrack, cachedLikes] = await Promise.all([
+                  ctx.redis.get(`track:${sha256}`),
+                  ctx.redis.get(`likes:${did}:${sha256}`),
+                ]);
 
-                if (cached) {
-                  const cachedData = JSON.parse(cached);
+                if (cachedLikes) {
+                  const cachedData = JSON.parse(cachedLikes);
+                  data.liked = cachedData.liked;
+                } else {
+                  const [likes] = await ctx.db
+                    .select()
+                    .from(lovedTracks)
+                    .leftJoin(tracks, eq(lovedTracks.trackId, tracks.id))
+                    .leftJoin(users, eq(lovedTracks.userId, users.id))
+                    .where(and(eq(users.did, did), eq(tracks.sha256, sha256)))
+                    .execute();
+                  data.liked = likes ? true : false;
+                  await ctx.redis.setEx(
+                    `likes:${did}:${sha256}`,
+                    2,
+                    JSON.stringify({ liked: data.liked })
+                  );
+                }
+
+                if (cachedTrack) {
+                  const cachedData = JSON.parse(cachedTrack);
                   data.album_art = cachedData.albumArt;
                   data.song_uri = cachedData.uri;
                   data.album_uri = cachedData.albumUri;
@@ -94,6 +118,7 @@ function handleWebsocket(c: Context) {
                         uri: track.uri,
                         albumUri: track.albumUri,
                         artistUri: track.artistUri,
+                        liked: data.liked,
                       })
                     );
                   }
