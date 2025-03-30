@@ -126,6 +126,10 @@ function StickyPlayer(props: StickyPlayerProps) {
     }
   };
 
+  if (!nowPlaying) {
+    return <></>;
+  }
+
   return (
     <Container>
       <MiniPlayerWrapper>

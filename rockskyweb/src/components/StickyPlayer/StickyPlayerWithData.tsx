@@ -19,6 +19,8 @@ function StickyPlayerWithData() {
   const { play, pause, next, previous, seek } = useSpotify();
   const { like, unlike } = useLike();
   const [player, setPlayer] = useAtom(playerAtom);
+  const nowPlayingRef = useRef(nowPlaying);
+  const playerRef = useRef(player);
 
   const onLike = (uri: string) => {
     like(uri);
@@ -142,11 +144,16 @@ function StickyPlayerWithData() {
         sha256: data.sha256,
         liked: data.liked,
       });
+      setPlayer("spotify");
     } else {
-      setNowPlaying(null);
+      if (player === "spotify") {
+        setNowPlaying(null);
+        setPlayer(null);
+      }
     }
     lastFetchedRef.current = Date.now();
-  }, [setNowPlaying]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setNowPlaying, player]);
 
   const startProgressTracking = useCallback(() => {
     if (progressInterval.current) {
@@ -174,6 +181,7 @@ function StickyPlayerWithData() {
         return prev;
       });
     }, 100);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchCurrentlyPlaying, setNowPlaying]);
 
   useEffect(() => {
@@ -186,6 +194,11 @@ function StickyPlayerWithData() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    nowPlayingRef.current = nowPlaying;
+    playerRef.current = player;
+  }, [nowPlaying, player]);
 
   useEffect(() => {
     if (player === "rockbox") {
@@ -239,6 +252,10 @@ function StickyPlayerWithData() {
       }, 3000);
 
       ws.onmessage = (event) => {
+        if (playerRef.current !== "rockbox" && playerRef.current !== null) {
+          return;
+        }
+
         const msg = JSON.parse(event.data);
         if (msg.type === "message" && msg.data?.type === "track") {
           if (
@@ -247,12 +264,16 @@ function StickyPlayerWithData() {
           ) {
             return;
           }
-          if (nowPlaying?.isPlaying === undefined) {
+
+          if (
+            nowPlayingRef.current !== null &&
+            nowPlayingRef.current.isPlaying === undefined
+          ) {
             return;
           }
 
-          setNowPlaying((prev) => ({
-            ...prev,
+          setNowPlaying({
+            ...(nowPlayingRef.current ? nowPlayingRef.current : {}),
             title: msg.data.title,
             artist: msg.data.album_artist || msg.data.artist,
             artistUri: msg.data.artist_uri,
@@ -261,10 +282,10 @@ function StickyPlayerWithData() {
             duration: msg.data.length,
             progress: msg.data.elapsed,
             albumArt: _.get(msg, "data.album_art"),
-            isPlaying: !!prev?.isPlaying,
+            isPlaying: !!nowPlayingRef.current?.isPlaying,
             sha256: msg.data.sha256,
             liked: msg.data.liked,
-          }));
+          });
           setPlayer("rockbox");
           lastFetchedRef.current = Date.now();
         }
@@ -273,17 +294,20 @@ function StickyPlayerWithData() {
           setNowPlaying(null);
         }
 
-        if (msg.data?.status === 1) {
-          setNowPlaying((prev) => ({
-            ...prev!,
+        if (msg.data?.status === 1 && nowPlayingRef.current) {
+          setNowPlaying({
+            ...nowPlayingRef.current,
             isPlaying: true,
-          }));
+          });
         }
-        if (msg.data?.status === 2 || msg.data?.status === 3) {
-          setNowPlaying((prev) => ({
-            ...prev!,
+        if (
+          (msg.data?.status === 2 || msg.data?.status === 3) &&
+          nowPlayingRef.current
+        ) {
+          setNowPlaying({
+            ...nowPlayingRef.current,
             isPlaying: false,
-          }));
+          });
         }
       };
 
