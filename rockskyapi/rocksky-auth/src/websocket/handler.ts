@@ -63,7 +63,6 @@ function handleWebsocket(c: Context) {
           userDevices[did].forEach(async (id) => {
             const targetDevice = devices[id];
             if (targetDevice) {
-              console.log(">> type:", data.type);
               // check if message is a track or a status
               // otherwise, it's a status
               if (data.type === "track") {
@@ -150,18 +149,11 @@ function handleWebsocket(c: Context) {
                   }
                 }
               } else {
-                const cachedTrack = await ctx.redis.get(`nowplaying:${did}`);
-                if (cachedTrack && data.type === "status") {
-                  const cachedData = JSON.parse(cachedTrack);
-                  await ctx.redis.setEx(
-                    `nowplaying:${did}`,
-                    3,
-                    JSON.stringify({
-                      ...cachedData,
-                      is_playing: data.status === 3,
-                    })
-                  );
-                }
+                await ctx.redis.setEx(
+                  `nowplaying:${did}:status`,
+                  3,
+                  `${data.status}`
+                );
               }
 
               targetDevice.send(

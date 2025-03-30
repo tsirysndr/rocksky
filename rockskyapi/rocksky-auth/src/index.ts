@@ -104,8 +104,13 @@ app.get("/now-playing", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const nowPlaying = await ctx.redis.get(`nowplaying:${user.did}`);
-  return c.json(nowPlaying ? JSON.parse(nowPlaying) : {});
+  const [nowPlaying, status] = await Promise.all([
+    ctx.redis.get(`nowplaying:${user.did}`),
+    ctx.redis.get(`nowplaying:${user.did}:status`),
+  ]);
+  return c.json(
+    nowPlaying ? { ...JSON.parse(nowPlaying), is_playing: status === "3" } : {}
+  );
 });
 
 app.post("/likes", async (c) => {
