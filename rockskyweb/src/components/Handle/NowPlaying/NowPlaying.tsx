@@ -2,10 +2,11 @@ import styled from "@emotion/styled";
 import axios from "axios";
 import { ProgressBar } from "baseui/progress-bar";
 import { LabelXSmall } from "baseui/typography";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import _ from "lodash";
 import { useCallback, useEffect, useRef } from "react";
 import { Link as DefaultLink } from "react-router";
+import { playerAtom } from "../../../atoms/player";
 import { userNowPlayingAtom } from "../../../atoms/userNowplaying";
 import { API_URL } from "../../../consts";
 import { useTimeFormat } from "../../../hooks/useFormat";
@@ -36,8 +37,43 @@ function NowPlaying({ did }: NowPlayingProps) {
   const lastFetchedRef = useRef(0);
   const nowPlayingInterval = useRef<number | null>(null);
   const [nowPlaying, setNowPlaying] = useAtom(userNowPlayingAtom);
+  const player = useAtomValue(playerAtom);
 
   const fetchCurrentlyPlaying = useCallback(async () => {
+    if (player === "rockbox") {
+      const { data } = await axios.get(`${API_URL}/now-playing`, {
+        headers: {
+          authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        params: {
+          did,
+        },
+      });
+
+      if (data.title) {
+        setNowPlaying({
+          ...nowPlaying,
+          [did]: {
+            title: data.title,
+            artist: data.album_artist || data.artist,
+            artistUri: data.artist_uri,
+            songUri: data.song_uri,
+            albumUri: data.album_uri,
+            duration: data.length,
+            progress: data.elapsed,
+            albumArt: _.get(data, "album_art"),
+            isPlaying: data.is_playing,
+          },
+        });
+      } else {
+        setNowPlaying({
+          ...nowPlaying,
+          [did]: null,
+        });
+      }
+
+      return;
+    }
     const { data } = await axios.get(`${API_URL}/spotify/currently-playing`, {
       headers: {
         authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -68,7 +104,7 @@ function NowPlaying({ did }: NowPlayingProps) {
       });
     }
     lastFetchedRef.current = Date.now();
-  }, [setNowPlaying, did]);
+  }, [setNowPlaying, did, player]);
 
   const startProgressTracking = useCallback(() => {
     if (progressInterval.current) {
@@ -100,7 +136,7 @@ function NowPlaying({ did }: NowPlayingProps) {
         return prev;
       });
     }, 100);
-  }, [fetchCurrentlyPlaying, setNowPlaying]);
+  }, [fetchCurrentlyPlaying, setNowPlaying, did]);
 
   useEffect(() => {
     startProgressTracking();

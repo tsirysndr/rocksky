@@ -63,6 +63,9 @@ function handleWebsocket(c: Context) {
           userDevices[did].forEach(async (id) => {
             const targetDevice = devices[id];
             if (targetDevice) {
+              // check if message is a track or a status
+              // if it has an album, it's a track
+              // otherwise, it's a status
               if (data.album) {
                 const sha256 = createHash("sha256")
                   .update(
@@ -93,6 +96,9 @@ function handleWebsocket(c: Context) {
                   );
                 }
 
+                // Check if the track is cached,
+                // if not, fetch it from the database
+                // and cache it for 10 seconds
                 if (cachedTrack) {
                   const cachedData = JSON.parse(cachedTrack);
                   data.album_art = cachedData.albumArt;
@@ -142,6 +148,19 @@ function handleWebsocket(c: Context) {
                       ),
                     ]);
                   }
+                }
+              } else {
+                const cachedTrack = await ctx.redis.get(`nowplaying:${did}`);
+                if (cachedTrack && data.type === "status") {
+                  const cachedData = JSON.parse(cachedTrack);
+                  await ctx.redis.setEx(
+                    `nowplaying:${did}`,
+                    3,
+                    JSON.stringify({
+                      ...cachedData,
+                      is_playing: data.status === 3,
+                    })
+                  );
                 }
               }
 
