@@ -99,11 +99,15 @@ function handleWebsocket(c: Context) {
                   data.song_uri = cachedData.uri;
                   data.album_uri = cachedData.albumUri;
                   data.artist_uri = cachedData.artistUri;
-                  await ctx.redis.setEx(`nowplaying:${did}`, 3, {
-                    ...data,
-                    sha256,
-                    liked: data.liked,
-                  });
+                  await ctx.redis.setEx(
+                    `nowplaying:${did}`,
+                    3,
+                    JSON.stringify({
+                      ...data,
+                      sha256,
+                      liked: data.liked,
+                    })
+                  );
                 } else {
                   const [track] = await ctx.db
                     .select()
