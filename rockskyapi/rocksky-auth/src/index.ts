@@ -109,7 +109,7 @@ app.get("/now-playing", async (c) => {
     ctx.redis.get(`nowplaying:${user.did}:status`),
   ]);
   return c.json(
-    nowPlaying ? { ...JSON.parse(nowPlaying), is_playing: status === "3" } : {}
+    nowPlaying ? { ...JSON.parse(nowPlaying), is_playing: status === "1" } : {}
   );
 });
 
