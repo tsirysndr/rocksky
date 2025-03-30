@@ -41,38 +41,52 @@ function NowPlaying({ did }: NowPlayingProps) {
 
   const fetchCurrentlyPlaying = useCallback(async () => {
     if (player === "rockbox" || player === null) {
-      const { data } = await axios.get(`${API_URL}/now-playing`, {
-        headers: {
-          authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        params: {
-          did,
-        },
-      });
+      const [rockbox, spotify] = await Promise.all([
+        axios.get(`${API_URL}/now-playing`, {
+          headers: {
+            authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          params: {
+            did,
+          },
+        }),
+        axios.get(`${API_URL}/spotify/currently-playing`, {
+          headers: {
+            authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          params: {
+            did,
+          },
+        }),
+      ]);
 
-      if (data.title) {
+      if (rockbox.data.title) {
         setNowPlaying({
           ...nowPlaying,
           [did]: {
-            title: data.title,
-            artist: data.album_artist || data.artist,
-            artistUri: data.artist_uri,
-            songUri: data.song_uri,
-            albumUri: data.album_uri,
-            duration: data.length,
-            progress: data.elapsed,
-            albumArt: _.get(data, "album_art"),
-            isPlaying: data.is_playing,
+            title: rockbox.data.title,
+            artist: rockbox.data.album_artist || rockbox.data.artist,
+            artistUri: rockbox.data.artist_uri,
+            songUri: rockbox.data.song_uri,
+            albumUri: rockbox.data.album_uri,
+            duration: rockbox.data.length,
+            progress: rockbox.data.elapsed,
+            albumArt: _.get(rockbox.data, "album_art"),
+            isPlaying: rockbox.data.is_playing,
           },
         });
       } else {
-        setNowPlaying({
-          ...nowPlaying,
-          [did]: null,
-        });
+        if (!spotify.data.item) {
+          setNowPlaying({
+            ...nowPlaying,
+            [did]: null,
+          });
+        }
       }
 
-      return;
+      if (rockbox.data.title) {
+        return;
+      }
     }
     const { data } = await axios.get(`${API_URL}/spotify/currently-playing`, {
       headers: {
@@ -104,6 +118,7 @@ function NowPlaying({ did }: NowPlayingProps) {
       });
     }
     lastFetchedRef.current = Date.now();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setNowPlaying, did, player]);
 
   const startProgressTracking = useCallback(() => {
