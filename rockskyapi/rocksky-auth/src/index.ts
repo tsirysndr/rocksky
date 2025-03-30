@@ -81,6 +81,33 @@ app.post("/now-playing", async (c) => {
   return c.json({ status: "ok" });
 });
 
+app.get("/now-playing", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  const payload =
+    bearer && bearer !== "null" ? jwt.verify(bearer, env.JWT_SECRET) : {};
+  const did = c.req.query("did") || payload.did;
+
+  if (!did) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const user = await ctx.client.db.users
+    .filter({
+      $any: [{ did }, { handle: did }],
+    })
+    .getFirst();
+
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const nowPlaying = await ctx.redis.get(`nowplaying:${user.did}`);
+  return c.json(nowPlaying ? JSON.parse(nowPlaying) : null);
+});
+
 app.post("/likes", async (c) => {
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
