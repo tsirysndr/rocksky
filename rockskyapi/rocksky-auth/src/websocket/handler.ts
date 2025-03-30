@@ -63,10 +63,10 @@ function handleWebsocket(c: Context) {
           userDevices[did].forEach(async (id) => {
             const targetDevice = devices[id];
             if (targetDevice) {
+              console.log(">> type:", data.type);
               // check if message is a track or a status
-              // if it has an album, it's a track
               // otherwise, it's a status
-              if (data.album) {
+              if (data.type === "track") {
                 const sha256 = createHash("sha256")
                   .update(
                     `${data.title} - ${data.artist} - ${data.album}`.toLowerCase()
