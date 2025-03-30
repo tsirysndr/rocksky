@@ -105,7 +105,7 @@ app.get("/now-playing", async (c) => {
   }
 
   const nowPlaying = await ctx.redis.get(`nowplaying:${user.did}`);
-  return c.json(nowPlaying ? JSON.parse(nowPlaying) : null);
+  return c.json(nowPlaying ? JSON.parse(nowPlaying) : {});
 });
 
 app.post("/likes", async (c) => {
