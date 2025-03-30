@@ -166,8 +166,10 @@ function StickyPlayerWithData() {
           return prev;
         }
 
-        if (prev.progress >= prev.duration && player === "spotify") {
-          setTimeout(fetchCurrentlyPlaying, 2000);
+        if (prev.progress >= prev.duration) {
+          if (player === "spotify") {
+            setTimeout(fetchCurrentlyPlaying, 2000);
+          }
           return prev;
         }
 
