@@ -160,33 +160,66 @@ app.get("/files", async (c) => {
 
   const parent_id = c.req.query("parent_id");
 
-  if (parent_id) {
+  try {
+    if (parent_id) {
+      const { data } = await ctx.googledrive.post(
+        "googledrive.getFilesInParents",
+        {
+          did,
+          parent_id,
+        }
+      );
+      return c.json(data);
+    }
+
+    let response = await ctx.googledrive.post("googledrive.getMusicDirectory", {
+      did,
+    });
+
+    if (response.data.files.length === 0) {
+      await ctx.googledrive.post("googledrive.createMusicDirectory", { did });
+      response = await ctx.googledrive.post("googledrive.getMusicDirectory", {
+        did,
+      });
+    }
+
     const { data } = await ctx.googledrive.post(
       "googledrive.getFilesInParents",
       {
         did,
-        parent_id,
+        parent_id: response.data.files[0].id,
       }
     );
     return c.json(data);
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error("Axios error:", error.response?.data || error.message);
+
+      const credentials = JSON.parse(
+        fs.readFileSync("credentials.json").toString("utf-8")
+      );
+      const { client_id, client_secret } =
+        credentials.installed || credentials.web;
+      const oAuth2Client = new google.auth.OAuth2(
+        client_id,
+        client_secret,
+        env.GOOGLE_REDIRECT_URI
+      );
+
+      // Generate Auth URL
+      const authUrl = oAuth2Client.generateAuthUrl({
+        access_type: "offline",
+        prompt: "consent",
+        scope: ["https://www.googleapis.com/auth/drive"],
+        state: user.xata_id,
+      });
+
+      return c.json({
+        error: "Failed to fetch files",
+        authUrl,
+      });
+    }
   }
-
-  let response = await ctx.googledrive.post("googledrive.getMusicDirectory", {
-    did,
-  });
-
-  if (response.data.files.length === 0) {
-    await ctx.googledrive.post("googledrive.createMusicDirectory", { did });
-    response = await ctx.googledrive.post("googledrive.getMusicDirectory", {
-      did,
-    });
-  }
-
-  const { data } = await ctx.googledrive.post("googledrive.getFilesInParents", {
-    did,
-    parent_id: response.data.files[0].id,
-  });
-  return c.json(data);
 });
 
 app.get("/files/:id", async (c) => {

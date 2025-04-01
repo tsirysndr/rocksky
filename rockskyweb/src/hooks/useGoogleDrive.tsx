@@ -10,6 +10,8 @@ function useGoogleDrive() {
         name: string;
         parents: string[];
       }[];
+      authUrl?: string;
+      error?: string;
     }>(`${API_URL}/googledrive/files`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,

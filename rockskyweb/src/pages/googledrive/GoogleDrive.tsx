@@ -73,7 +73,13 @@ const GoogleDrive = (props: GoogleDriveProps) => {
   useEffect(() => {
     const fetchGoogleDrive = async () => {
       setLoading(true);
-      const { files } = await getFiles(props.fileId);
+      const { files, authUrl } = await getFiles(props.fileId);
+
+      if (authUrl) {
+        window.location.href = authUrl;
+        return;
+      }
+
       const cache = { ...googleDrive?.cache };
       cache[props.fileId || "/Music"] = {
         files: files
