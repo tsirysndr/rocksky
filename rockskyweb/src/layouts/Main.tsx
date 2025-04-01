@@ -231,9 +231,27 @@ function Main({ children }: { children: React.ReactNode }) {
             <ScrobblesAreaChart />
           </div>
           <ExternalLinks />
-          <div style={{ marginTop: 40 }}>
-            <Link href="https://doc.rocksky.app/" target="_blank">
-              API Documentation
+          <div style={{ marginTop: 40, display: "inline-flex" }}>
+            <Link
+              href="https://docs.rocksky.app/introduction-918639m0"
+              target="_blank"
+              style={{ marginRight: 10 }}
+            >
+              About
+            </Link>
+            <Link
+              href="https://docs.rocksky.app/faq-918661m0"
+              target="_blank"
+              style={{ marginRight: 10 }}
+            >
+              FAQ
+            </Link>
+            <Link
+              href="https://doc.rocksky.app/"
+              target="_blank"
+              style={{ marginRight: 10 }}
+            >
+              API Docs
             </Link>
           </div>
         </div>
