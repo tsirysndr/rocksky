@@ -282,7 +282,16 @@ export async function updateUserLibrary(
 
   const existingUserArtist = await ctx.client.db.user_artists
     .filter("user_id", equals(user.xata_id))
-    .filter("artist_id", equals(artist_id))
+    .filter({
+      $any: [
+        {
+          artist_id,
+        },
+        {
+          uri: artistUri,
+        },
+      ],
+    })
     .getFirst();
   if (!existingUserArtist) {
     await ctx.client.db.user_artists.create({
