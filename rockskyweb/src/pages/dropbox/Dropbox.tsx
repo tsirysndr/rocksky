@@ -170,7 +170,7 @@ const Dropbox = (props: DropboxProps) => {
         </div>
       )}
 
-      <div style={{ marginTop: 100, overflowX: "hidden" }}>
+      <div style={{ marginTop: 100, overflowX: "hidden", marginBottom: 140 }}>
         {loading && !dropbox?.cache[props.fileId || "/Music"] && (
           <ContentLoader
             width={700}

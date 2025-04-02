@@ -170,7 +170,7 @@ const GoogleDrive = (props: GoogleDriveProps) => {
         </div>
       )}
 
-      <div style={{ marginTop: 100, overflowX: "hidden" }}>
+      <div style={{ marginTop: 100, overflowX: "hidden", marginBottom: 140 }}>
         {loading && !googleDrive?.cache[props.fileId || "/Music"]?.files && (
           <ContentLoader
             width={700}
