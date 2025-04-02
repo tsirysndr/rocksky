@@ -4,6 +4,7 @@ import { ToasterContainer } from "baseui/toast/toaster";
 import { createRoot } from "react-dom/client";
 import { Client as Styletron } from "styletron-engine-monolithic";
 import { Provider as StyletronProvider } from "styletron-react";
+import { PostHogProvider } from "posthog-js/react";
 import App from "./App.tsx";
 import "./index.css";
 
@@ -20,10 +21,17 @@ createRoot(document.getElementById("root")!).render(
     <BaseProvider theme={theme}>
       <ToasterContainer placement={PLACEMENT.bottom}>
         <SnackbarProvider placement={PLACEMENT.bottom}>
-          <App />
+          <PostHogProvider
+            apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
+            options={{
+              api_host: "https://us.i.posthog.com",
+            }}
+          >
+            <App />
+          </PostHogProvider>
         </SnackbarProvider>
       </ToasterContainer>
     </BaseProvider>
-  </StyletronProvider>
+  </StyletronProvider>,
   //</StrictMode>
 );
