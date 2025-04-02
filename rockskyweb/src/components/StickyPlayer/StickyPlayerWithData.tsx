@@ -1,7 +1,7 @@
 import axios from "axios";
 import { useAtom } from "jotai";
 import _ from "lodash";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { nowPlayingAtom } from "../../atoms/nowpaying";
 import { playerAtom } from "../../atoms/player";
 import { API_URL } from "../../consts";
@@ -10,6 +10,7 @@ import useSpotify from "../../hooks/useSpotify";
 import StickyPlayer from "./StrickyPlayer";
 
 function StickyPlayerWithData() {
+  const [liked, setLiked] = useState<Record<string, boolean>>({});
   const [nowPlaying, setNowPlaying] = useAtom(nowPlayingAtom);
   const progressInterval = useRef<number | null>(null);
   const lastFetchedRef = useRef(0);
@@ -21,8 +22,13 @@ function StickyPlayerWithData() {
   const [player, setPlayer] = useAtom(playerAtom);
   const nowPlayingRef = useRef(nowPlaying);
   const playerRef = useRef(player);
+  const likedRef = useRef(liked);
 
   const onLike = (uri: string) => {
+    setLiked({
+      ...liked,
+      [uri]: true,
+    });
     like(uri);
     setNowPlaying((prev) => {
       if (!prev) {
@@ -36,6 +42,10 @@ function StickyPlayerWithData() {
   };
 
   const onDislike = (uri: string) => {
+    setLiked({
+      ...liked,
+      [uri]: false,
+    });
     unlike(uri);
     setNowPlaying((prev) => {
       if (!prev) {
@@ -142,7 +152,10 @@ function StickyPlayerWithData() {
         albumArt: _.get(data, "item.album.images.0.url"),
         isPlaying: data.is_playing,
         sha256: data.sha256,
-        liked: data.liked,
+        liked:
+          likedRef.current[data.songUri] !== undefined
+            ? likedRef.current[data.songUri]
+            : data.liked,
       });
       setPlayer("spotify");
     } else {
@@ -200,7 +213,8 @@ function StickyPlayerWithData() {
   useEffect(() => {
     nowPlayingRef.current = nowPlaying;
     playerRef.current = player;
-  }, [nowPlaying, player]);
+    likedRef.current = liked;
+  }, [nowPlaying, player, liked]);
 
   useEffect(() => {
     if (player === "rockbox") {
@@ -286,7 +300,10 @@ function StickyPlayerWithData() {
             albumArt: _.get(msg, "data.album_art"),
             isPlaying: !!nowPlayingRef.current?.isPlaying,
             sha256: msg.data.sha256,
-            liked: msg.data.liked,
+            liked:
+              likedRef.current[msg.data.song_uri] !== undefined
+                ? likedRef.current[msg.data.song_uri]
+                : msg.data.liked,
           });
           setPlayer("rockbox");
           lastFetchedRef.current = Date.now();
