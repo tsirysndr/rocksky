@@ -1,6 +1,15 @@
 import { equals } from "@xata.io/client";
 import { ctx } from "context";
-import { asc, count, desc, eq, inArray, or, sql } from "drizzle-orm";
+import {
+  aliasedTable,
+  asc,
+  count,
+  desc,
+  eq,
+  inArray,
+  or,
+  sql,
+} from "drizzle-orm";
 import { Hono } from "hono";
 import jwt from "jsonwebtoken";
 import { createAgent } from "lib/agent";
@@ -1223,17 +1232,21 @@ app.get("/:did/shouts", async (c) => {
             likes: count(tables.shoutLikes.id).as("likes"),
           },
       users: {
-        id: tables.users.id,
-        did: tables.users.did,
-        handle: tables.users.handle,
-        displayName: tables.users.displayName,
-        avatar: tables.users.avatar,
+        id: aliasedTable(tables.users, "authors").id,
+        did: aliasedTable(tables.users, "authors").did,
+        handle: aliasedTable(tables.users, "authors").handle,
+        displayName: aliasedTable(tables.users, "authors").displayName,
+        avatar: aliasedTable(tables.users, "authors").avatar,
       },
     })
     .from(tables.profileShouts)
     .where(or(eq(tables.users.did, did), eq(tables.users.handle, did)))
-    .leftJoin(tables.users, eq(tables.profileShouts.userId, tables.users.id))
     .leftJoin(tables.shouts, eq(tables.profileShouts.shoutId, tables.shouts.id))
+    .leftJoin(
+      aliasedTable(tables.users, "authors"),
+      eq(tables.shouts.authorId, aliasedTable(tables.users, "authors").id)
+    )
+    .leftJoin(tables.users, eq(tables.profileShouts.userId, tables.users.id))
     .leftJoin(
       tables.shoutLikes,
       eq(tables.shouts.id, tables.shoutLikes.shoutId)
@@ -1250,7 +1263,12 @@ app.get("/:did/shouts", async (c) => {
       tables.users.did,
       tables.users.handle,
       tables.users.displayName,
-      tables.users.avatar
+      tables.users.avatar,
+      aliasedTable(tables.users, "authors").id,
+      aliasedTable(tables.users, "authors").did,
+      aliasedTable(tables.users, "authors").handle,
+      aliasedTable(tables.users, "authors").displayName,
+      aliasedTable(tables.users, "authors").avatar
     )
     .orderBy(desc(tables.profileShouts.createdAt))
     .execute();

@@ -216,9 +216,12 @@ export async function replyShout(
       !shout.artist_id &&
       !shout.scrobble_id
     ) {
+      const profileShout = await ctx.client.db.profile_shouts
+        .filter("shout_id", shout.xata_id)
+        .getFirst();
       await ctx.client.db.profile_shouts.create({
         shout_id: createdShout.xata_id,
-        user_id: user.xata_id,
+        user_id: profileShout.user_id,
       });
     }
   } catch (e) {
