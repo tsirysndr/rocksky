@@ -11,12 +11,31 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
+const metadata = {
+	redirect_uris: ['https://rocksky.app/oauth/callback'],
+	response_types: ['code'],
+	grant_types: ['authorization_code', 'refresh_token'],
+	scope: 'atproto transition:generic',
+	token_endpoint_auth_method: 'none',
+	application_type: 'web',
+	client_id: 'https://rocksky.app/client-metadata.json',
+	client_name: 'AT Protocol Express App',
+	client_uri: 'https://rocksky.app',
+	dpop_bound_access_tokens: true,
+};
+
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
 		const url = new URL(request.url);
 		let redirectToApi = false;
 
-		const API_ROUTES = ['/login', '/profile', '/client-metadata.json', '/token', '/now-playing', '/ws'];
+		const API_ROUTES = ['/login', '/profile', '/token', '/now-playing', '/ws'];
+
+		console.log('Request URL:', url.pathname, url.pathname === '/client-metadata.json');
+
+		if (url.pathname === '/client-metadata.json') {
+			return Response.json(metadata);
+		}
 
 		if (
 			API_ROUTES.includes(url.pathname) ||

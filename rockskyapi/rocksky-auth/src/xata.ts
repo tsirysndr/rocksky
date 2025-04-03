@@ -1070,6 +1070,10 @@ const tables = [
         name: "_pgroll_new_dropbox_paths_xata_id_key",
         columns: ["xata_id"],
       },
+      dropbox_paths__pgroll_new_file_id_key: {
+        name: "dropbox_paths__pgroll_new_file_id_key",
+        columns: ["file_id"],
+      },
     },
     columns: [
       {
@@ -1080,6 +1084,14 @@ const tables = [
         unique: false,
         defaultValue: null,
         comment: '{"xata.link":"dropbox"}',
+      },
+      {
+        name: "file_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: null,
+        comment: "",
       },
       {
         name: "name",
@@ -1637,6 +1649,107 @@ const tables = [
     ],
   },
   {
+    name: "playback_state",
+    checkConstraints: {
+      playback_states_xata_id_length_xata_id: {
+        name: "playback_states_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {
+      track_id_link: {
+        name: "track_id_link",
+        columns: ["track_id"],
+        referencedTable: "tracks",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+      user_id_link: {
+        name: "user_id_link",
+        columns: ["user_id"],
+        referencedTable: "users",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+    },
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_playback_states_xata_id_key: {
+        name: "_pgroll_new_playback_states_xata_id_key",
+        columns: ["xata_id"],
+      },
+    },
+    columns: [
+      {
+        name: "progress_ms",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "queue_position",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "track_id",
+        type: "link",
+        link: { table: "tracks" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"tracks"}',
+      },
+      {
+        name: "user_id",
+        type: "link",
+        link: { table: "users" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"users"}',
+      },
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
     name: "playlist_tracks",
     checkConstraints: {
       playlist_tracks_xata_id_length_xata_id: {
@@ -1903,6 +2016,99 @@ const tables = [
         unique: false,
         defaultValue: null,
         comment: '{"xata.link":"shouts"}',
+      },
+      {
+        name: "user_id",
+        type: "link",
+        link: { table: "users" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"users"}',
+      },
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
+    name: "queue_tracks",
+    checkConstraints: {
+      queue_tracks_xata_id_length_xata_id: {
+        name: "queue_tracks_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {
+      track_id_link: {
+        name: "track_id_link",
+        columns: ["track_id"],
+        referencedTable: "tracks",
+        referencedColumns: ["xata_id"],
+        onDelete: "SET NULL",
+      },
+      user_id_link: {
+        name: "user_id_link",
+        columns: ["user_id"],
+        referencedTable: "users",
+        referencedColumns: ["xata_id"],
+        onDelete: "SET NULL",
+      },
+    },
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_queue_tracks_xata_id_key: {
+        name: "_pgroll_new_queue_tracks_xata_id_key",
+        columns: ["xata_id"],
+      },
+    },
+    columns: [
+      {
+        name: "position",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "track_id",
+        type: "link",
+        link: { table: "tracks" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"tracks"}',
       },
       {
         name: "user_id",
@@ -2370,10 +2576,7 @@ const tables = [
         name: "_pgroll_new_scrobbles_xata_id_key",
         columns: ["xata_id"],
       },
-      scrobbles__pgroll_new_uri_key: {
-        name: "scrobbles__pgroll_new_uri_key",
-        columns: ["uri"],
-      },
+      scrobbles_uri_unique: { name: "scrobbles_uri_unique", columns: ["uri"] },
     },
     columns: [
       {
@@ -3616,10 +3819,6 @@ const tables = [
         name: "_pgroll_new_user_albums_xata_id_key",
         columns: ["xata_id"],
       },
-      user_albums__pgroll_new_uri_key: {
-        name: "user_albums__pgroll_new_uri_key",
-        columns: ["uri"],
-      },
     },
     columns: [
       {
@@ -3643,7 +3842,7 @@ const tables = [
         name: "uri",
         type: "text",
         notNull: false,
-        unique: true,
+        unique: false,
         defaultValue: null,
         comment: "",
       },
@@ -3721,10 +3920,6 @@ const tables = [
         name: "_pgroll_new_user_artists_xata_id_key",
         columns: ["xata_id"],
       },
-      user_artists__pgroll_new_uri_key: {
-        name: "user_artists__pgroll_new_uri_key",
-        columns: ["uri"],
-      },
     },
     columns: [
       {
@@ -3748,7 +3943,7 @@ const tables = [
         name: "uri",
         type: "text",
         notNull: true,
-        unique: true,
+        unique: false,
         defaultValue: null,
         comment: "",
       },
@@ -4145,6 +4340,9 @@ export type GoogleDriveTokensRecord = GoogleDriveTokens & XataRecord;
 export type LovedTracks = InferredTypes["loved_tracks"];
 export type LovedTracksRecord = LovedTracks & XataRecord;
 
+export type PlaybackState = InferredTypes["playback_state"];
+export type PlaybackStateRecord = PlaybackState & XataRecord;
+
 export type PlaylistTracks = InferredTypes["playlist_tracks"];
 export type PlaylistTracksRecord = PlaylistTracks & XataRecord;
 
@@ -4153,6 +4351,9 @@ export type PlaylistsRecord = Playlists & XataRecord;
 
 export type ProfileShouts = InferredTypes["profile_shouts"];
 export type ProfileShoutsRecord = ProfileShouts & XataRecord;
+
+export type QueueTracks = InferredTypes["queue_tracks"];
+export type QueueTracksRecord = QueueTracks & XataRecord;
 
 export type Radios = InferredTypes["radios"];
 export type RadiosRecord = Radios & XataRecord;
@@ -4235,9 +4436,11 @@ export type DatabaseSchema = {
   google_drive_paths: GoogleDrivePathsRecord;
   google_drive_tokens: GoogleDriveTokensRecord;
   loved_tracks: LovedTracksRecord;
+  playback_state: PlaybackStateRecord;
   playlist_tracks: PlaylistTracksRecord;
   playlists: PlaylistsRecord;
   profile_shouts: ProfileShoutsRecord;
+  queue_tracks: QueueTracksRecord;
   radios: RadiosRecord;
   s3_bucket: S3BucketRecord;
   s3_paths: S3PathsRecord;

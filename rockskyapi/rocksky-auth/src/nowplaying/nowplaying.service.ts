@@ -265,6 +265,7 @@ export async function updateUserLibrary(
     .filter("track_id", equals(track_id))
     .getFirst();
   if (!existingUserTrack) {
+    // artistUri = await putArtistRecord(track, agent);
     await ctx.client.db.user_tracks.create({
       user_id: user.xata_id,
       track_id,
@@ -294,6 +295,7 @@ export async function updateUserLibrary(
     })
     .getFirst();
   if (!existingUserArtist) {
+    // artistUri = await putArtistRecord(track, agent);
     await ctx.client.db.user_artists.create({
       user_id: user.xata_id,
       artist_id,
@@ -314,6 +316,7 @@ export async function updateUserLibrary(
     .filter("album_id", equals(album_id))
     .getFirst();
   if (!existingUserAlbum) {
+    // albumUri = await putAlbumRecord(track, agent);
     await ctx.client.db.user_albums.create({
       user_id: user.xata_id,
       album_id,

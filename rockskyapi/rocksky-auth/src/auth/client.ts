@@ -4,7 +4,7 @@ import { env } from "../lib/env";
 import { SessionStore, StateStore } from "./storage";
 
 export const createClient = async (db: Database) => {
-  const publicUrl = env.PUBLIC_URL;
+  const publicUrl = "https://api.rocksky.app"; // env.PUBLIC_URL;
   const url = publicUrl || `http://127.0.0.1:${env.PORT}`;
   const enc = encodeURIComponent;
   return new NodeOAuthClient({
@@ -15,7 +15,7 @@ export const createClient = async (db: Database) => {
         : `http://localhost?redirect_uri=${enc(
             `${url}/oauth/callback`
           )}&scope=${enc("atproto transition:generic")}`,
-      client_uri: url,
+      client_uri: "https://rocksky.app", // url,
       redirect_uris: [`${url}/oauth/callback`],
       scope: "atproto transition:generic",
       grant_types: ["authorization_code", "refresh_token"],
