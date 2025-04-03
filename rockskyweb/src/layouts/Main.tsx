@@ -114,15 +114,13 @@ function Main({ children }: { children: React.ReactNode }) {
       body: JSON.stringify({ handle }),
     });
 
-    if ((await response.text()).startsWith("Invalid")) {
+    const redirectUrl = await response.text();
+    if (redirectUrl?.startsWith("Invalid")) {
       toaster.negative("Invalid Bluesky handle", {});
       return;
     }
 
-    const redirectUrl = response.url;
-    if (redirectUrl) {
-      window.location.href = redirectUrl; // Manually redirect the browser
-    }
+    window.location.href = redirectUrl; // Manually redirect the browser
   };
 
   return (

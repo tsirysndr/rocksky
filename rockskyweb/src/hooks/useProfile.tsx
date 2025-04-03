@@ -94,6 +94,7 @@ function useProfile(token?: string | null) {
       (error && localStorage.getItem("token"))
     ) {
       if (data === "Unauthorized") {
+        console.log(">> Unauthorized");
         localStorage.removeItem("token");
       }
     }
@@ -108,7 +109,7 @@ function useProfile(token?: string | null) {
     (error && localStorage.getItem("token"))
   ) {
     if (data === "Unauthorized" && localStorage.getItem("token")) {
-      localStorage.clear();
+      console.log(">> error", error, ">> data", data); // localStorage.clear();
       window.location.href = "/";
     }
     return {

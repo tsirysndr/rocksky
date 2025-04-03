@@ -28,7 +28,7 @@ app.post("/login", async (c) => {
       ctx.kv.set(`cli:${handle}`, "1");
     }
 
-    return c.redirect(url);
+    return c.text(url.toString());
   } catch (e) {
     c.status(500);
     return c.text(e.toString());
