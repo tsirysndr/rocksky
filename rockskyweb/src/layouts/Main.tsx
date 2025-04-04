@@ -120,7 +120,8 @@ function Main({ children }: { children: React.ReactNode }) {
       return;
     }*/
 
-    window.location.href = `${API_URL}/login?handle=${handle}`;
+    // window.location.href = `${API_URL}/login?handle=${handle}`;
+    window.location.href = `https://rocksky.pages.dev/loading?handle=${handle}`;
   };
 
   return (

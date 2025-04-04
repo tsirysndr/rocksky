@@ -6,6 +6,7 @@ import DropboxWithId from "./pages/dropbox/DropboxWithId";
 import GoogleDrive from "./pages/googledrive";
 import GoogleDriveWithId from "./pages/googledrive/GoogleDriveWithId";
 import HomePage from "./pages/home";
+import Loading from "./pages/loading";
 import PlaylistPage from "./pages/playlist";
 import ProfilePage from "./pages/profile";
 import SongPage from "./pages/song";
@@ -49,6 +50,7 @@ function App() {
           path="/googledrive/:id"
           element={<GoogleDriveWithId key={window.location.pathname} />}
         />
+        <Route path="/loading" element={<Loading />} />
       </Routes>
     </BrowserRouter>
   );
