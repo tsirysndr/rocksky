@@ -31,7 +31,7 @@ const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 
 app.use(
   cors({
-    origin: "*",
+    origin: "https://rocksky.app",
     credentials: true,
   })
 );
