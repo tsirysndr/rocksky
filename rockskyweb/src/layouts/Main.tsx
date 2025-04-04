@@ -1,7 +1,7 @@
 import styled from "@emotion/styled";
 import { Button } from "baseui/button";
 import { Input } from "baseui/input";
-import { PLACEMENT, toaster, ToasterContainer } from "baseui/toast";
+import { PLACEMENT, ToasterContainer } from "baseui/toast";
 import { LabelMedium } from "baseui/typography";
 import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
@@ -106,22 +106,21 @@ function Main({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const response = await fetch(`${API_URL}/login`, {
+    /* const response = await fetch(`${API_URL}/login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ handle }),
-      credentials: "include",
     });
 
     const redirectUrl = await response.text();
     if (redirectUrl?.startsWith("Invalid")) {
       toaster.negative("Invalid Bluesky handle", {});
       return;
-    }
+    }*/
 
-    window.location.href = redirectUrl; // Manually redirect the browser
+    window.location.href = `${API_URL}/login?handle=${handle}`;
   };
 
   return (

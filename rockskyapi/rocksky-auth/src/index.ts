@@ -29,12 +29,7 @@ subscribe(ctx);
 const app = new Hono();
 const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 
-app.use(
-  cors({
-    origin: "https://rocksky.app",
-    credentials: true,
-  })
-);
+app.use(cors());
 
 app.route("/", bsky);
 

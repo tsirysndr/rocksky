@@ -12,6 +12,26 @@ import users from "schema/users";
 
 const app = new Hono();
 
+app.get("/login", async (c) => {
+  const { handle, cli } = c.req.query();
+  if (typeof handle !== "string" || !isValidHandle(handle)) {
+    c.status(400);
+    return c.text("Invalid handle");
+  }
+  try {
+    const url = await ctx.oauthClient.authorize(handle, {
+      scope: "atproto transition:generic",
+    });
+    if (cli) {
+      ctx.kv.set(`cli:${handle}`, "1");
+    }
+    return c.redirect(url.toString());
+  } catch (e) {
+    c.status(500);
+    return c.text(e.toString());
+  }
+});
+
 app.post("/login", async (c) => {
   const { handle, cli } = await c.req.json();
   if (typeof handle !== "string" || !isValidHandle(handle)) {
