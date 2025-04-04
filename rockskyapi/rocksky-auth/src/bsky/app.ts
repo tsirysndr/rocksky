@@ -2,7 +2,7 @@ import { BlobRef } from "@atproto/lexicon";
 import { isValidHandle } from "@atproto/syntax";
 import { equals } from "@xata.io/client";
 import { ctx } from "context";
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import jwt from "jsonwebtoken";
 import * as Profile from "lexicon/types/app/bsky/actor/profile";
@@ -131,6 +131,16 @@ app.get("/profile", async (c) => {
     } catch (e) {
       if (!e.message.includes("invalid record: column [did]: is not unique")) {
         console.error(e.message);
+      } else {
+        await ctx.db
+          .update(users)
+          .set({
+            handle,
+            displayName: profile.displayName,
+            avatar: `https://cdn.bsky.app/img/avatar/plain/${did}/${profile.avatar.ref.toString()}@jpeg`,
+          })
+          .where(eq(users.did, did))
+          .execute();
       }
     }
 
