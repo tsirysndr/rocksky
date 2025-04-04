@@ -18,6 +18,7 @@ function useLibrary() {
       scrobbles: response.data?.scrobbles || 1,
       lyrics: response.data?.lyrics,
       spotifyLink: response.data?.spotify_link,
+      composer: response.data?.composer,
     };
   };
 

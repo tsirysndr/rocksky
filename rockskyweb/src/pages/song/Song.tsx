@@ -18,6 +18,7 @@ import SongCover from "../../components/SongCover";
 import useFeed from "../../hooks/useFeed";
 import useLibrary from "../../hooks/useLibrary";
 import Main from "../../layouts/Main";
+import Credits from "./Credits";
 
 const Group = styled.div`
   display: flex;
@@ -208,7 +209,7 @@ const Song = () => {
                 <HeadingXSmall marginTop={"20px"} marginBottom={"0px"}>
                   Lyrics
                 </HeadingXSmall>
-                <div style={{ marginTop: 10 }}>
+                <div style={{ marginTop: 10, marginBottom: 40 }}>
                   {song.lyrics
                     .replace(/\[\d{2}:\d{2}\.\d{2}\]\s*/g, "")
                     .split("\n")
@@ -242,6 +243,16 @@ const Song = () => {
                 </div>
               </>
             )}
+
+            {
+              <Credits
+                composers={
+                  song?.composer
+                    ? song?.composer.split(",").map((x) => x.trim())
+                    : null
+                }
+              />
+            }
 
             <Shout type="song" />
           </>

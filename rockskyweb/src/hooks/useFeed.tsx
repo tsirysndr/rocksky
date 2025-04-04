@@ -34,6 +34,7 @@ function useFeed() {
       scrobbles: response.data.scrobbles || 1,
       lyrics: response.data.track_id?.lyrics,
       spotifyLink: response.data.track_id?.spotify_link,
+      composer: response.data.track_id?.composer,
     };
   };
 
