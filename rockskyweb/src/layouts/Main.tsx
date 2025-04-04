@@ -112,6 +112,7 @@ function Main({ children }: { children: React.ReactNode }) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ handle }),
+      credentials: "include",
     });
 
     const redirectUrl = await response.text();
