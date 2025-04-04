@@ -33,6 +33,18 @@ const Link = styled(DefaultLink)`
   }
 `;
 
+const ShowMore = styled.div`
+  display: flex;
+  justify-content: start;
+  align-items: center;
+  cursor: pointer;
+  margin-top: -10px;
+  width: 140px;
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
 const Song = () => {
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
   const { getFeedByUri } = useFeed();
@@ -40,6 +52,16 @@ const Song = () => {
   const song = useAtomValue(songAtom);
   const setSong = useSetAtom(songAtom);
   const [loading, setLoading] = useState(true);
+  const [lyricsMaxLines, setLyricsMaxLines] = useState(8);
+
+  const onShowMore = () => {
+    if (lyricsMaxLines === 8) {
+      setLyricsMaxLines(song?.lyrics?.split("\n").length || 0);
+    } else {
+      setLyricsMaxLines(8);
+    }
+  };
+
   useEffect(() => {
     const getSong = async () => {
       setLoading(true);
@@ -187,15 +209,36 @@ const Song = () => {
                   Lyrics
                 </HeadingXSmall>
                 <div style={{ marginTop: 10 }}>
-                  <p
-                    style={{
-                      whiteSpace: "pre-line",
-                      lineHeight: "2",
-                      fontSize: "20px",
-                    }}
-                  >
-                    {song.lyrics.replace(/\[\d{2}:\d{2}\.\d{2}\]\s*/g, "")}
-                  </p>
+                  {song.lyrics
+                    .replace(/\[\d{2}:\d{2}\.\d{2}\]\s*/g, "")
+                    .split("\n")
+                    .slice(0, lyricsMaxLines)
+                    .map((line: string, index: number) => (
+                      <p
+                        key={index}
+                        style={{
+                          whiteSpace: "pre-line",
+                          lineHeight: "1.5",
+                          fontSize: "20px",
+                          margin: 0,
+                        }}
+                      >
+                        {line}
+                      </p>
+                    ))}
+                  <ShowMore onClick={onShowMore}>
+                    <LabelMedium
+                      marginTop={"20px"}
+                      style={{
+                        textAlign: "center",
+                        color: "#000",
+                      }}
+                    >
+                      {lyricsMaxLines < song.lyrics.split("\n").length
+                        ? "Show More..."
+                        : "Show Less..."}
+                    </LabelMedium>
+                  </ShowMore>
                 </div>
               </>
             )}
