@@ -1,4 +1,5 @@
 import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
+import { StatefulTooltip } from "baseui/tooltip";
 import { HeadingXSmall, LabelMedium } from "baseui/typography";
 import Composer from "../../../components/Icons/Composer";
 
@@ -24,47 +25,49 @@ function Credits({ composers }: CreditsProps) {
                   overflow: "hidden",
                 }}
               >
-                <div
-                  style={{
-                    backgroundColor: "rgba(0, 0, 0, 0.04)",
-                    height: "48px",
-                    borderRadius: "24px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: "0 25px", // Add padding to prevent text from touching the edges
-                  }}
-                >
-                  <Composer />
+                <StatefulTooltip content={composer} returnFocus autoFocus>
                   <div
                     style={{
-                      marginLeft: "10px",
-                      width: "100%", // Ensure the container takes full width
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap", // Prevent wrapping
+                      backgroundColor: "rgba(0, 0, 0, 0.04)",
+                      height: "48px",
+                      borderRadius: "24px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "0 25px", // Add padding to prevent text from touching the edges
                     }}
                   >
-                    <LabelMedium
-                      marginTop={"0px"}
-                      marginBottom={"0px"}
-                      style={{
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden", // Ensure the LabelMedium also applies ellipsis
-                      }}
-                    >
-                      {composer}
-                    </LabelMedium>
+                    <Composer />
                     <div
                       style={{
-                        fontSize: "11px",
+                        marginLeft: "10px",
+                        width: "100%", // Ensure the container takes full width
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap", // Prevent wrapping
                       }}
                     >
-                      Composer
+                      <LabelMedium
+                        marginTop={"0px"}
+                        marginBottom={"0px"}
+                        style={{
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden", // Ensure the LabelMedium also applies ellipsis
+                        }}
+                      >
+                        {composer}
+                      </LabelMedium>
+                      <div
+                        style={{
+                          fontSize: "11px",
+                        }}
+                      >
+                        Composer
+                      </div>
                     </div>
                   </div>
-                </div>
+                </StatefulTooltip>
               </FlexGridItem>
             ))}
           </FlexGrid>
