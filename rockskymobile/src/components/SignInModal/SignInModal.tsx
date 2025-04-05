@@ -1,10 +1,8 @@
 import { Button } from "baseui/button";
 import { Input } from "baseui/input";
 import { Modal, ModalBody, ModalHeader } from "baseui/modal";
-import { toaster } from "baseui/toast";
 import { LabelMedium } from "baseui/typography";
 import { useState } from "react";
-import { API_URL } from "../../consts";
 
 interface SignInModalProps {
   isOpen: boolean;
@@ -20,25 +18,9 @@ function SignInModal(props: SignInModalProps) {
       return;
     }
 
-    const response = await fetch(`${API_URL}/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ handle }),
-    });
-
-    if ((await response.text()).startsWith("Invalid")) {
-      toaster.negative("Invalid Bluesky handle", {});
-      return;
-    }
-
-    const redirectUrl = response.url;
-    if (redirectUrl) {
-      window.location.href = redirectUrl; // Manually redirect the browser
-    }
-
     onClose();
+
+    window.location.href = `https://rocksky.pages.dev/loading?handle=${handle}`;
   };
 
   return (
