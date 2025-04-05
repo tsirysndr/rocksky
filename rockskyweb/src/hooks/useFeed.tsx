@@ -35,6 +35,7 @@ function useFeed() {
       lyrics: response.data.track_id?.lyrics,
       spotifyLink: response.data.track_id?.spotify_link,
       composer: response.data.track_id?.composer,
+      uri: response.data.track_id?.uri,
     };
   };
 

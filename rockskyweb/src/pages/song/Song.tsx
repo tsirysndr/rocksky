@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { ExternalLink } from "@styled-icons/evaicons-solid";
 import { KIND, Tag } from "baseui/tag";
 import {
   HeadingMedium,
@@ -54,6 +55,12 @@ const Song = () => {
   const setSong = useSetAtom(songAtom);
   const [loading, setLoading] = useState(true);
   const [lyricsMaxLines, setLyricsMaxLines] = useState(8);
+
+  let uri = `${did}/app.rocksky.scrobble/${rkey}`;
+
+  if (window.location.pathname.includes("app.rocksky.song")) {
+    uri = `${did}/app.rocksky.song/${rkey}`;
+  }
 
   const onShowMore = () => {
     if (lyricsMaxLines === 8) {
@@ -155,7 +162,7 @@ const Song = () => {
                   )}
                 </>
               )}
-              <div style={{ marginLeft: 20 }}>
+              <div style={{ marginLeft: 20, flex: 1 }}>
                 <HeadingMedium margin={0}>{song?.title}</HeadingMedium>
                 {song?.artistUri && (
                   <Link to={`/${song.artistUri.split("at://")[1]}`}>
@@ -192,9 +199,37 @@ const Song = () => {
                       {numeral(song?.scrobbles).format("0,0")}
                     </HeadingXSmall>
                   </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "end",
+                      flex: 1,
+                      marginRight: 10,
+                    }}
+                  >
+                    <a
+                      href={`https://pdsls.dev/at/${uri}`}
+                      target="_blank"
+                      style={{
+                        color: "#000",
+                        textDecoration: "none",
+                        padding: 16,
+                        backgroundColor: "rgba(0, 0, 0, 0.05)",
+                        fontWeight: 600,
+                        borderRadius: 10,
+                        paddingLeft: 25,
+                        paddingRight: 25,
+                      }}
+                    >
+                      <ExternalLink size={24} style={{ marginRight: 10 }} />
+                      View on PDSls
+                    </a>
+                  </div>
                 </div>
               </div>
             </Group>
+
             {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               song?.tags.map((tag: any) => (

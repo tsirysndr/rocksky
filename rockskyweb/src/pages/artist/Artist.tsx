@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { ExternalLink } from "@styled-icons/evaicons-solid";
 import { Avatar } from "baseui/avatar";
 import { HeadingMedium, HeadingXSmall, LabelMedium } from "baseui/typography";
 import { useAtomValue, useSetAtom } from "jotai";
@@ -49,6 +50,7 @@ const Artist = () => {
       uri: string;
     }[]
   >([]);
+  const uri = `${did}/app.rocksky.artist/${rkey}`;
 
   useEffect(() => {
     if (!did || !rkey) {
@@ -144,8 +146,10 @@ const Artist = () => {
             )}
           </div>
           {artist && !loading && (
-            <div>
-              <HeadingMedium marginBottom={0}>{artist?.name}</HeadingMedium>
+            <div style={{ flex: 1 }}>
+              <HeadingMedium marginTop={"20px"} marginBottom={0}>
+                {artist?.name}
+              </HeadingMedium>
               <div
                 style={{ marginTop: 20, display: "flex", flexDirection: "row" }}
               >
@@ -168,6 +172,35 @@ const Artist = () => {
                   <HeadingXSmall margin={0}>
                     {numeral(artist?.scrobbles).format("0,0")}
                   </HeadingXSmall>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "end",
+                    flex: 1,
+                    marginRight: 10,
+                  }}
+                >
+                  <div>
+                    <a
+                      href={`https://pdsls.dev/at/${uri}`}
+                      target="_blank"
+                      style={{
+                        color: "#000",
+                        textDecoration: "none",
+                        padding: 16,
+                        backgroundColor: "rgba(0, 0, 0, 0.05)",
+                        fontWeight: 600,
+                        borderRadius: 10,
+                        paddingLeft: 25,
+                        paddingRight: 25,
+                      }}
+                    >
+                      <ExternalLink size={24} style={{ marginRight: 10 }} />
+                      View on PDSls
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>

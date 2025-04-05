@@ -8,4 +8,5 @@ export const userAtom = atom<{
     isBeta: boolean;
   };
   spotifyConnected: boolean;
+  did: string;
 } | null>(null);

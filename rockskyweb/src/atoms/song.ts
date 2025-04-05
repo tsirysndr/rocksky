@@ -12,4 +12,5 @@ export const songAtom = atom<{
   albumUri?: string;
   spotifyLink?: string;
   composer?: string | null;
+  uri?: string;
 } | null>(null);

@@ -19,6 +19,7 @@ function useLibrary() {
       lyrics: response.data?.lyrics,
       spotifyLink: response.data?.spotify_link,
       composer: response.data?.composer,
+      uri: response.data?.uri,
     };
   };
 

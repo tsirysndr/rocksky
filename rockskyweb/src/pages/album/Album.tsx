@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { ExternalLink } from "@styled-icons/evaicons-solid";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import {
   HeadingMedium,
@@ -79,6 +80,7 @@ const Album = () => {
       disc_number: number;
     }[];
   } | null>(null);
+  const uri = `${did}/app.rocksky.album/${rkey}`;
 
   useEffect(() => {
     if (!did || !rkey) {
@@ -148,7 +150,7 @@ const Album = () => {
                 </div>
               </div>
             )}
-            <div style={{ marginLeft: 20 }}>
+            <div style={{ marginLeft: 20, flex: 1 }}>
               <HeadingMedium margin={0}>{album.title}</HeadingMedium>
               {album.artistUri && (
                 <Link to={`/${album.artistUri.split("at://")[1]}`}>
@@ -180,6 +182,33 @@ const Album = () => {
                   <LabelLarge margin={0}>
                     {numeral(album.scrobbles || 1).format("0,0")}
                   </LabelLarge>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "end",
+                    flex: 1,
+                    marginRight: 10,
+                  }}
+                >
+                  <a
+                    href={`https://pdsls.dev/at/${uri}`}
+                    target="_blank"
+                    style={{
+                      color: "#000",
+                      textDecoration: "none",
+                      padding: 16,
+                      backgroundColor: "rgba(0, 0, 0, 0.05)",
+                      fontWeight: 600,
+                      borderRadius: 10,
+                      paddingLeft: 25,
+                      paddingRight: 25,
+                    }}
+                  >
+                    <ExternalLink size={24} style={{ marginRight: 10 }} />
+                    View on PDSls
+                  </a>
                 </div>
               </div>
             </div>

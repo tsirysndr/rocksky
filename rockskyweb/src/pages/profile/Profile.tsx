@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { ExternalLink } from "@styled-icons/evaicons-solid";
 import { Avatar } from "baseui/avatar";
 import { Tab, Tabs } from "baseui/tabs-motion";
 import { HeadingMedium, LabelLarge } from "baseui/typography";
@@ -39,8 +40,6 @@ function Profile() {
 
     const getProfile = async () => {
       const data = await getProfileByDid(did);
-      console.log(">> did", did);
-      console.log(">> data", data);
       setUser({
         avatar: data.avatar,
         displayName: data.display_name,
@@ -49,6 +48,7 @@ function Profile() {
           isBeta: data.spotifyUser?.is_beta_user,
         },
         spotifyConnected: data.spotifyConnected,
+        did: data.did,
       });
       setProfiles((profiles) => ({
         ...profiles,
@@ -58,7 +58,7 @@ function Profile() {
           handle: data.handle,
           spotifyConnected: data.spotifyConnected,
           createdAt: data.xata_createdat,
-          did,
+          did: data.did,
         },
       }));
     };
@@ -66,9 +66,6 @@ function Profile() {
     getProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [did]);
-
-  console.log(">> profiles", profiles);
-  console.log(">> did >", did);
 
   if (!did) {
     return <></>;
@@ -106,6 +103,33 @@ function Profile() {
                   {dayjs(profiles[did]?.createdAt).format("DD MMM YYYY")}
                 </span>
               </LabelLarge>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "end",
+                flex: 1,
+                marginRight: 10,
+              }}
+            >
+              <a
+                href={`https://pdsls.dev/at/${profiles[did]?.did}`}
+                target="_blank"
+                style={{
+                  color: "#000",
+                  textDecoration: "none",
+                  padding: 16,
+                  backgroundColor: "rgba(0, 0, 0, 0.05)",
+                  fontWeight: 600,
+                  borderRadius: 10,
+                  paddingLeft: 25,
+                  paddingRight: 25,
+                }}
+              >
+                <ExternalLink size={24} style={{ marginRight: 10 }} />
+                View on PDSls
+              </a>
             </div>
           </Group>
 
