@@ -301,9 +301,9 @@ app.get("/:did/app.rocksky.album/:rkey", async (c) => {
     ...album,
     listeners: _.get(listeners.summaries, "0.total", 1),
     scrobbles: _.get(scrobbles.summaries, "0.total", 1),
-    tracks: dedupeTracksKeepLyrics(tracks)
-      .map((track) => track.track_id)
-      .sort((a, b) => a.track_number - b.track_number),
+    tracks: dedupeTracksKeepLyrics(tracks.map((track) => track.track_id)).sort(
+      (a, b) => a.track_number - b.track_number
+    ),
     tags: [],
   });
 });
