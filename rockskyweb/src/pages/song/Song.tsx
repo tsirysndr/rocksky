@@ -20,6 +20,8 @@ import useFeed from "../../hooks/useFeed";
 import useLibrary from "../../hooks/useLibrary";
 import Main from "../../layouts/Main";
 import Credits from "./Credits";
+import PopularAlbums from "./PopularAlbums";
+import PopularTracks from "./PopularTracks";
 
 const Group = styled.div`
   display: flex;
@@ -50,11 +52,34 @@ const ShowMore = styled.div`
 const Song = () => {
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
   const { getFeedByUri } = useFeed();
-  const { getSongByUri } = useLibrary();
+  const { getSongByUri, getArtistTracks, getArtistAlbums } = useLibrary();
   const song = useAtomValue(songAtom);
   const setSong = useSetAtom(songAtom);
   const [loading, setLoading] = useState(true);
   const [lyricsMaxLines, setLyricsMaxLines] = useState(8);
+  const [topTracks, setTopTracks] = useState<
+    {
+      id: string;
+      title: string;
+      artist: string;
+      albumArtist: string;
+      albumArt: string;
+      uri: string;
+      scrobbles: number;
+      albumUri?: string;
+      artistUri?: string;
+    }[]
+  >([]);
+  const [topAlbums, setTopAlbums] = useState<
+    {
+      id: string;
+      title: string;
+      artist: string;
+      album_art: string;
+      artist_uri: string;
+      uri: string;
+    }[]
+  >([]);
 
   let uri = `${did}/app.rocksky.scrobble/${rkey}`;
 
@@ -89,6 +114,56 @@ const Song = () => {
     getSong();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [did, rkey]);
+
+  useEffect(() => {
+    if (!song) {
+      return;
+    }
+
+    const fetchArtistTracks = async () => {
+      const uri = song.artistUri?.split("at://")[1];
+      if (!uri) {
+        return;
+      }
+
+      const data = await getArtistTracks(uri, 5);
+      setTopTracks(
+        data.map((x) => ({
+          id: x.xata_id,
+          title: x.title,
+          artist: x.artist,
+          albumArtist: x.album_artist,
+          albumArt: x.album_art,
+          uri: x.uri,
+          scrobbles: x.play_count,
+          albumUri: x.album_uri,
+          artistUri: x.artist_uri,
+        }))
+      );
+    };
+    fetchArtistTracks();
+
+    const fetchArtistAlbums = async () => {
+      const uri = song.artistUri?.split("at://")[1];
+      if (!uri) {
+        return;
+      }
+
+      const data = await getArtistAlbums(uri, 10);
+      setTopAlbums(
+        data.map((x) => ({
+          id: x.xata_id,
+          title: x.title,
+          artist: x.artist,
+          album_art: x.album_art,
+          artist_uri: x.artist_uri,
+          uri: x.uri,
+        }))
+      );
+    };
+    fetchArtistAlbums();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [song]);
 
   return (
     <Main>
@@ -288,6 +363,18 @@ const Song = () => {
                 }
               />
             }
+            {song?.artistUri && (
+              <>
+                <PopularTracks
+                  topTracks={topTracks}
+                  artist={song.albumArtist}
+                />
+                <PopularAlbums
+                  topAlbums={topAlbums}
+                  artist={song.albumArtist}
+                />
+              </>
+            )}
 
             <Shout type="song" />
           </>
