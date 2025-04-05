@@ -14,6 +14,7 @@ export function dedupeTracksKeepLyrics(tracks) {
     }
   }
   console.log("deduped tracks", trackMap);
+  console.log(trackMap.values());
 
   return Array.from(trackMap.values());
 }
