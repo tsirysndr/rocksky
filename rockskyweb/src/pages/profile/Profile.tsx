@@ -32,8 +32,6 @@ function Profile() {
   const setUser = useSetAtom(userAtom);
 
   useEffect(() => {
-    console.log(">> didd", did);
-
     if (!did) {
       return;
     }
@@ -84,7 +82,7 @@ function Profile() {
               />
             </div>
             <div>
-              <HeadingMedium marginBottom={0}>
+              <HeadingMedium marginTop="10px" marginBottom={0}>
                 {profiles[did]?.displayName}
               </HeadingMedium>
               <LabelLarge>
@@ -103,33 +101,31 @@ function Profile() {
                   {dayjs(profiles[did]?.createdAt).format("DD MMM YYYY")}
                 </span>
               </LabelLarge>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "end",
-                flex: 1,
-                marginRight: 10,
-              }}
-            >
-              <a
-                href={`https://pdsls.dev/at/${profiles[did]?.did}`}
-                target="_blank"
+              <div
                 style={{
-                  color: "#000",
-                  textDecoration: "none",
-                  padding: 16,
-                  backgroundColor: "rgba(0, 0, 0, 0.05)",
-                  fontWeight: 600,
-                  borderRadius: 10,
-                  paddingLeft: 25,
-                  paddingRight: 25,
+                  marginTop: 30,
+                  flex: 1,
+                  marginRight: 10,
                 }}
               >
-                <ExternalLink size={24} style={{ marginRight: 10 }} />
-                View on PDSls
-              </a>
+                <a
+                  href={`https://pdsls.dev/at/${profiles[did]?.did}`}
+                  target="_blank"
+                  style={{
+                    color: "#000",
+                    textDecoration: "none",
+                    padding: 16,
+                    backgroundColor: "rgba(0, 0, 0, 0.05)",
+                    fontWeight: 600,
+                    borderRadius: 10,
+                    paddingLeft: 25,
+                    paddingRight: 25,
+                  }}
+                >
+                  <ExternalLink size={24} style={{ marginRight: 10 }} />
+                  View on PDSls
+                </a>
+              </div>
             </div>
           </Group>
 
