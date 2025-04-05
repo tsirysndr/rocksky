@@ -2,7 +2,7 @@ export function dedupeTracksKeepLyrics(tracks) {
   const trackMap = new Map();
 
   for (const track of tracks) {
-    const key = track.title?.trim().toLowerCase(); // normalize title for matching
+    const key = track.track_number;
 
     if (!key) continue;
 
