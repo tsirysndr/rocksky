@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { ExternalLink } from "@styled-icons/evaicons-solid";
 import { Avatar } from "baseui/avatar";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import { HeadingMedium, LabelMedium } from "baseui/typography";
@@ -78,6 +79,8 @@ function Playlist() {
     }[];
   } | null>(null);
   const { getPlaylist } = usePlaylists();
+  const uri = `${did}/app.rocksky.playlist/${rkey}`;
+
   useEffect(() => {
     if (!did || !rkey) {
       return;
@@ -140,6 +143,31 @@ function Playlist() {
                 </div>
                 <div style={{ marginTop: 40 }}>
                   <LabelMedium>{playlist.description}</LabelMedium>
+                </div>
+                <div
+                  style={{
+                    marginTop: 30,
+                    flex: 1,
+                    marginRight: 10,
+                  }}
+                >
+                  <a
+                    href={`https://pdsls.dev/at/${uri}`}
+                    target="_blank"
+                    style={{
+                      color: "#000",
+                      textDecoration: "none",
+                      padding: 16,
+                      backgroundColor: "rgba(0, 0, 0, 0.05)",
+                      fontWeight: 600,
+                      borderRadius: 10,
+                      paddingLeft: 25,
+                      paddingRight: 25,
+                    }}
+                  >
+                    <ExternalLink size={24} style={{ marginRight: 10 }} />
+                    View on PDSls
+                  </a>
                 </div>
               </div>
             </Group>
