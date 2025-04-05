@@ -13,6 +13,7 @@ export function dedupeTracksKeepLyrics(tracks) {
       trackMap.set(key, track);
     }
   }
+  console.log("deduped tracks", trackMap);
 
   return Array.from(trackMap.values());
 }
