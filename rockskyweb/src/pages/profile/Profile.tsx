@@ -81,8 +81,8 @@ function Profile() {
                 size="150px"
               />
             </div>
-            <div>
-              <HeadingMedium marginTop="10px" marginBottom={0}>
+            <div style={{ marginTop: profiles[did]?.displayName ? 10 : 30 }}>
+              <HeadingMedium marginTop="0px" marginBottom={0}>
                 {profiles[did]?.displayName}
               </HeadingMedium>
               <LabelLarge>

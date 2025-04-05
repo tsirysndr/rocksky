@@ -25,6 +25,7 @@ import {
 } from "shouts/shouts.service";
 import { shoutSchema } from "types/shout";
 import { Track } from "types/track";
+import { dedupeTracksKeepLyrics } from "./utils";
 
 const app = new Hono();
 
@@ -300,7 +301,7 @@ app.get("/:did/app.rocksky.album/:rkey", async (c) => {
     ...album,
     listeners: _.get(listeners.summaries, "0.total", 1),
     scrobbles: _.get(scrobbles.summaries, "0.total", 1),
-    tracks: tracks
+    tracks: dedupeTracksKeepLyrics(tracks)
       .map((track) => track.track_id)
       .sort((a, b) => a.track_number - b.track_number),
     tags: [],
