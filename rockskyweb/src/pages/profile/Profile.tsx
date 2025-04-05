@@ -6,7 +6,7 @@ import { HeadingMedium, LabelLarge } from "baseui/typography";
 import dayjs from "dayjs";
 import { useAtom, useSetAtom } from "jotai";
 import { Key, useEffect, useState } from "react";
-import { useParams } from "react-router";
+import { useParams, useSearchParams } from "react-router";
 import { profilesAtom } from "../../atoms/profiles";
 import { userAtom } from "../../atoms/user";
 import Shout from "../../components/Shout/Shout";
@@ -30,6 +30,17 @@ function Profile() {
   const [activeKey, setActiveKey] = useState<Key>("0");
   const { did } = useParams<{ did: string }>();
   const setUser = useSetAtom(userAtom);
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+
+    if (!tab) {
+      return;
+    }
+
+    setActiveKey(1);
+  }, [searchParams]);
 
   useEffect(() => {
     if (!did) {

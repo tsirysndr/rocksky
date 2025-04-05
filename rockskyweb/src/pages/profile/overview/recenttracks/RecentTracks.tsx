@@ -80,7 +80,26 @@ function RecentTracks(props: RecentTracksProps) {
   return (
     <>
       {props.showTitle && (
-        <HeadingSmall marginBottom={"10px"}>Recent Tracks</HeadingSmall>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <HeadingSmall marginBottom={"10px"}>Recent Tracks</HeadingSmall>
+          <a
+            href={`/profile/${user?.handle}?tab=0`}
+            style={{
+              marginTop: 40,
+              textDecoration: "none",
+              color: "#ff2876",
+            }}
+          >
+            See All
+          </a>
+        </div>
       )}
       <TableBuilder
         data={recentTracks.map((x) => ({

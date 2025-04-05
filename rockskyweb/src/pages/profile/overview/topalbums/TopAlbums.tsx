@@ -47,7 +47,26 @@ function TopAlbums() {
 
   return (
     <>
-      <HeadingSmall marginBottom={"15px"}>Top Albums</HeadingSmall>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <HeadingSmall marginBottom={"15px"}>Top Albums</HeadingSmall>
+        <a
+          href={`/profile/${user?.handle}?tab=2`}
+          style={{
+            marginTop: 40,
+            textDecoration: "none",
+            color: "#ff2876",
+          }}
+        >
+          See All
+        </a>
+      </div>
       {!topAlbums.length && (
         <div>@{user?.handle} has not listened to any albums yet.</div>
       )}

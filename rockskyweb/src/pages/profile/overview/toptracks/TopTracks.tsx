@@ -74,7 +74,26 @@ function TopTracks(props: TopTracksProps) {
   return (
     <div>
       {props.showTitle && (
-        <HeadingSmall marginBottom={"15px"}>Top Tracks</HeadingSmall>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <HeadingSmall marginBottom={"15px"}>Top Tracks</HeadingSmall>
+          <a
+            href={`/profile/${user?.handle}?tab=3`}
+            style={{
+              marginTop: 40,
+              textDecoration: "none",
+              color: "#ff2876",
+            }}
+          >
+            See All
+          </a>
+        </div>
       )}
       <TableBuilder
         data={topTracks.map((x, index) => ({
