@@ -2,7 +2,7 @@ export function dedupeTracksKeepLyrics(tracks) {
   const trackMap = new Map();
 
   for (const track of tracks) {
-    const key = track.track_number;
+    const key = `${track.disc_number} - ${track.track_number}`;
 
     if (!key) continue;
 
