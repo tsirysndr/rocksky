@@ -18,9 +18,9 @@ function SignInModal(props: SignInModalProps) {
       return;
     }
 
-    window.location.href = `https://rocksky.pages.dev/loading?handle=${handle}`;
-
     onClose();
+
+    window.location.href = `https://rocksky.pages.dev/loading?handle=${handle}`;
   };
 
   return (
