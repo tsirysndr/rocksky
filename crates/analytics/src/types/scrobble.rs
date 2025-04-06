@@ -25,6 +25,7 @@ pub struct ScrobbleTrack {
     pub album: String,
     pub handle: String,
     pub did: String,
+    pub avatar: Option<String>,
     pub uri: Option<String>,
     pub track_uri: Option<String>,
     pub artist_uri: Option<String>,
