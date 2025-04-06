@@ -165,28 +165,34 @@ function NowPlayings() {
           style={{
             color: "#fff",
             fontSize: 15,
-            display: "flex",
-            alignItems: "center",
           }}
         >
-          <div>
-            <Avatar src={currentlyPlaying?.avatar} />
-          </div>
-          <Link to={`/profile/${currentlyPlaying?.handle}`}>
-            <div
-              style={{
-                color: "#fff",
-                textDecoration: "none",
-              }}
-            >
-              @{currentlyPlaying?.handle}
-            </div>
-          </Link>
-          <span style={{ marginLeft: 10, opacity: 0.6 }}>
-            {dayjs.utc(currentlyPlaying?.created_at).local().fromNow()}
-          </span>
-          <div style={{ flex: 1, marginLeft: 40, marginRight: 354 }}>
+          <div style={{ width: 380, margin: "0 auto" }}>
             <ProgressBar value={progress} overrides={styles.progressbar} />
+          </div>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "center",
+            }}
+          >
+            <div>
+              <Avatar src={currentlyPlaying?.avatar} />
+            </div>
+            <Link to={`/profile/${currentlyPlaying?.handle}`}>
+              <div
+                style={{
+                  color: "#fff",
+                  textDecoration: "none",
+                }}
+              >
+                @{currentlyPlaying?.handle}
+              </div>
+            </Link>
+            <span style={{ marginLeft: 10, opacity: 0.6 }}>
+              {dayjs.utc(currentlyPlaying?.created_at).local().fromNow()}
+            </span>
           </div>
         </ModalHeader>
         <ModalBody
