@@ -190,6 +190,7 @@ function TopTracks(props: TopTracksProps) {
                         marginRight: 20,
                         borderRadius: 5,
                       }}
+                      key={row.id}
                     />
                   )}
                   {!row.albumArt && (
@@ -217,6 +218,7 @@ function TopTracks(props: TopTracksProps) {
                         marginRight: 20,
                         borderRadius: 5,
                       }}
+                      key={row.id}
                     />
                   )}
                   {!row.albumArt && (

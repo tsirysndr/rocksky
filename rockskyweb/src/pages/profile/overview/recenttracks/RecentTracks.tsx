@@ -184,6 +184,7 @@ function RecentTracks(props: RecentTracksProps) {
                   src={row.albumArt}
                   alt={row.title}
                   style={{ width: 60, marginRight: 20, borderRadius: 5 }}
+                  key={row.id}
                 />
               </Link>
               <div>

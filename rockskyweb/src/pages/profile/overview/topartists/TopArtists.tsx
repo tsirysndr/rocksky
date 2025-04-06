@@ -142,7 +142,9 @@ function TopArtists(props: TopArtistsProps) {
             >
               <div>
                 <div style={{ marginRight: 20 }}>
-                  {(currentPage - 1) * props.size! + row.index + 1}
+                  {props.showPagination
+                    ? (currentPage - 1) * props.size! + row.index + 1
+                    : row.index + 1}
                 </div>
               </div>
               <Link to={`/${row.uri.split("at://")[1]}`}>
@@ -156,6 +158,7 @@ function TopArtists(props: TopArtistsProps) {
                       marginRight: 20,
                       borderRadius: 30,
                     }}
+                    key={row.id}
                   />
                 )}
                 {!row.picture && (
