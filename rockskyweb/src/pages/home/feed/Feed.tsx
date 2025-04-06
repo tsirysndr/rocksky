@@ -31,7 +31,7 @@ function Feed() {
   const data = getFeed();
   return (
     <Container>
-      <HeadingMedium marginTop={"50px"} marginBottom={"20px"}>
+      <HeadingMedium marginTop={"0px"} marginBottom={"20px"}>
         Recently played
       </HeadingMedium>
 
