@@ -40,7 +40,7 @@ pub async fn get_scrobbles(payload: &mut web::Payload, _req: &HttpRequest, conn:
             LEFT JOIN tracks t ON s.track_id = t.id
             LEFT JOIN users u ON s.user_id = u.id
             WHERE u.did = ? OR u.handle = ?
-            GROUP BY s.id, s.created_at, t.id, t.title, t.artist, t.album_artist, t.album, t.album_art, s.uri, t.uri, u.handle, a.uri, al.uri, s.created_at
+            GROUP BY s.id, s.created_at, t.id, t.title, t.artist, t.album_artist, t.album, t.album_art, s.uri, t.uri, u.handle, u.did, a.uri, al.uri, s.created_at
             ORDER BY s.created_at DESC
             OFFSET ?
             LIMIT ?;
