@@ -113,6 +113,18 @@ app.get("/now-playing", async (c) => {
   );
 });
 
+app.get("/now-playings", async (c) => {
+  const size = +c.req.query("size") || 10;
+  const offset = +c.req.query("offset") || 0;
+  const { data } = await ctx.analytics.post("library.getDistinctScrobbles", {
+    pagination: {
+      skip: offset,
+      take: size,
+    },
+  });
+  return c.json(data);
+});
+
 app.post("/likes", async (c) => {
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
