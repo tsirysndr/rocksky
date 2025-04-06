@@ -5,6 +5,7 @@ import { StatefulTooltip } from "baseui/tooltip";
 import { HeadingSmall } from "baseui/typography";
 import dayjs from "dayjs";
 import { useAtomValue, useSetAtom } from "jotai";
+import numeral from "numeral";
 import { useEffect, useMemo, useState } from "react";
 import { Link as DefaultLink, useParams } from "react-router";
 import { lovedTracksAtom } from "../../../atoms/lovedTracks";
@@ -75,7 +76,11 @@ function LovedTracks() {
 
   return (
     <>
-      <HeadingSmall>Loved Tracks</HeadingSmall>
+      {did && (
+        <HeadingSmall>
+          Loved Tracks ({numeral(stats[did]?.lovedTracks).format("0,0")})
+        </HeadingSmall>
+      )}
       <TableBuilder
         data={lovedTracks.map((x, index) => ({
           id: x.id,
