@@ -136,10 +136,12 @@ function StickyPlayer(props: StickyPlayerProps) {
         <MiniPlayer>
           {nowPlaying?.albumUri && (
             <Link to={`/${nowPlaying.albumUri.split("at://")[1]}`}>
-              <Cover src={nowPlaying?.albumArt} />
+              <Cover src={nowPlaying?.albumArt} key={nowPlaying.albumUri} />
             </Link>
           )}
-          {!nowPlaying?.albumUri && <Cover src={nowPlaying?.albumArt} />}
+          {!nowPlaying?.albumUri && (
+            <Cover src={nowPlaying?.albumArt} key={nowPlaying.albumUri} />
+          )}
           <div style={{ maxWidth: 310, overflow: "hidden" }}>
             <div
               style={{
