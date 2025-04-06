@@ -55,7 +55,7 @@ function LovedTracks() {
       if (!did) {
         return;
       }
-      const data = await getLovedTracks(did);
+      const data = await getLovedTracks(did, (currentPage - 1) * size, size);
 
       setLovedTracks(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -71,7 +71,7 @@ function LovedTracks() {
     };
     fetchLovedTracks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [did]);
+  }, [did, currentPage]);
 
   return (
     <>
