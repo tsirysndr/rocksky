@@ -32,16 +32,16 @@ function Library() {
         activateOnFocus
       >
         <Tab title="Scrobbles">
-          <RecentTracks showTitle={false} size={100} />
+          <RecentTracks showTitle={false} size={50} showPagination />
         </Tab>
         <Tab title="Artists">
-          <TopArtists showTitle={false} size={100} />
+          <TopArtists showTitle={false} size={50} showPagination />
         </Tab>
         <Tab title="Albums">
-          <Albums />
+          <Albums size={50} />
         </Tab>
         <Tab title="Tracks">
-          <TopTracks showTitle={false} size={100} />
+          <TopTracks showTitle={false} size={50} showPagination />
         </Tab>
       </Tabs>
     </>

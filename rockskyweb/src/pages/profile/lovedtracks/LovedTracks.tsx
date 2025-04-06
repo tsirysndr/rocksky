@@ -1,12 +1,14 @@
 import styled from "@emotion/styled";
+import { Pagination } from "baseui/pagination";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import { StatefulTooltip } from "baseui/tooltip";
 import { HeadingSmall } from "baseui/typography";
 import dayjs from "dayjs";
 import { useAtomValue, useSetAtom } from "jotai";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link as DefaultLink, useParams } from "react-router";
 import { lovedTracksAtom } from "../../../atoms/lovedTracks";
+import { statsAtom } from "../../../atoms/stats";
 import { userAtom } from "../../../atoms/user";
 import useLibrary from "../../../hooks/useLibrary";
 
@@ -33,11 +35,20 @@ const Link = styled(DefaultLink)`
 `;
 
 function LovedTracks() {
+  const size = 50;
   const { did } = useParams<{ did: string }>();
   const lovedTracks = useAtomValue(lovedTracksAtom);
   const setLovedTracks = useSetAtom(lovedTracksAtom);
   const { getLovedTracks } = useLibrary();
   const user = useAtomValue(userAtom);
+  const stats = useAtomValue(statsAtom);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pages = useMemo(() => {
+    if (!did || !stats[did]) {
+      return 1;
+    }
+    return Math.ceil(stats[did].lovedTracks / size) || 1;
+  }, [stats, did]);
 
   useEffect(() => {
     const fetchLovedTracks = async () => {
@@ -201,6 +212,21 @@ function LovedTracks() {
           )}
         </TableBuilderColumn>
       </TableBuilder>
+      <Pagination
+        numPages={pages}
+        currentPage={currentPage}
+        onPageChange={({ nextPage }) => {
+          setCurrentPage(Math.min(Math.max(nextPage, 1), pages));
+        }}
+        overrides={{
+          Root: {
+            style: {
+              justifyContent: "center",
+              marginTop: "30px",
+            },
+          },
+        }}
+      />
     </>
   );
 }

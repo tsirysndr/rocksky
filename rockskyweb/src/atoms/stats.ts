@@ -5,5 +5,7 @@ export const statsAtom = atom<{
     scrobbles: number;
     artists: number;
     lovedTracks: number;
+    albums: number;
+    tracks: number;
   } | null;
 }>({});

@@ -1,9 +1,13 @@
+import { css } from "@emotion/react";
 import styled from "@emotion/styled";
+import { Pagination } from "baseui/pagination";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
+import { HeadingXSmall, LabelSmall } from "baseui/typography";
 import { useAtomValue, useSetAtom } from "jotai";
 import numeral from "numeral";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link as DefaultLink, useParams } from "react-router";
+import { statsAtom } from "../../../../atoms/stats";
 import { topAlbumsAtom } from "../../../../atoms/topAlbums";
 import { userAtom } from "../../../../atoms/user";
 import useLibrary from "../../../../hooks/useLibrary";
@@ -27,12 +31,38 @@ const Link = styled(DefaultLink)`
   }
 `;
 
-function Albums() {
+const Group = styled.div<{ mb?: number }>`
+  display: flex;
+  flex-direction: row;
+  margin-top: 20px;
+  margin-bottom: 50px;
+  ${({ mb }) =>
+    mb &&
+    css`
+      margin-bottom: ${mb}px;
+    `}
+`;
+
+interface AlbumsProps {
+  offset?: number;
+  size?: number;
+}
+
+function Albums(props: AlbumsProps) {
+  const { size = 50 } = props;
   const setTopAlbums = useSetAtom(topAlbumsAtom);
   const topAlbums = useAtomValue(topAlbumsAtom);
+  const stats = useAtomValue(statsAtom);
   const { did } = useParams<{ did: string }>();
   const { getAlbums } = useLibrary();
   const user = useAtomValue(userAtom);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pages = useMemo(() => {
+    if (!did || !stats[did] || !props.size) {
+      return 1;
+    }
+    return Math.ceil(stats[did].albums / props.size) || 1;
+  }, [stats, did, props.size]);
 
   useEffect(() => {
     if (!did) {
@@ -40,7 +70,7 @@ function Albums() {
     }
 
     const getTopAlbums = async () => {
-      const data = await getAlbums(did, 0, 100);
+      const data = await getAlbums(did, (currentPage - 1) * size, size);
 
       setTopAlbums(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -58,12 +88,20 @@ function Albums() {
 
     getTopAlbums();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [did]);
+  }, [did, currentPage]);
 
   const maxScrobbles = topAlbums.length > 0 ? topAlbums[0].scrobbles || 1 : 0;
 
   return (
     <>
+      <Group mb={20}>
+        <div style={{ marginRight: 20 }}>
+          <LabelSmall>ALBUMS SCROBBLED</LabelSmall>
+          <HeadingXSmall margin={0}>
+            {did ? numeral(stats[did]?.albums).format("0,0") : ""}
+          </HeadingXSmall>
+        </div>
+      </Group>
       <TableBuilder
         data={topAlbums.map((x, index) => ({
           id: x.id,
@@ -100,7 +138,9 @@ function Albums() {
               }}
             >
               <div>
-                <div style={{ marginRight: 20 }}>{row.index + 1}</div>
+                <div style={{ marginRight: 20 }}>
+                  {(currentPage - 1) * size + row.index + 1}
+                </div>
               </div>
               {row.uri && (
                 <Link to={`/${row.uri?.split("at://")[1]}`}>
@@ -209,6 +249,21 @@ function Albums() {
           )}
         </TableBuilderColumn>
       </TableBuilder>
+      <Pagination
+        numPages={pages}
+        currentPage={currentPage}
+        onPageChange={({ nextPage }) => {
+          setCurrentPage(Math.min(Math.max(nextPage, 1), pages));
+        }}
+        overrides={{
+          Root: {
+            style: {
+              justifyContent: "center",
+              marginTop: "30px",
+            },
+          },
+        }}
+      />
     </>
   );
 }

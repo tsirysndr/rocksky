@@ -1,13 +1,29 @@
+import { css } from "@emotion/react";
+import styled from "@emotion/styled";
+import { Pagination } from "baseui/pagination";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
-import { HeadingSmall } from "baseui/typography";
+import { HeadingSmall, HeadingXSmall, LabelSmall } from "baseui/typography";
 import { useAtomValue, useSetAtom } from "jotai";
 import numeral from "numeral";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
+import { statsAtom } from "../../../../atoms/stats";
 import { topArtistsAtom } from "../../../../atoms/topArtists";
 import { userAtom } from "../../../../atoms/user";
 import Artist from "../../../../components/Icons/Artist";
 import useLibrary from "../../../../hooks/useLibrary";
+
+const Group = styled.div<{ mb?: number }>`
+  display: flex;
+  flex-direction: row;
+  margin-top: 20px;
+  margin-bottom: 50px;
+  ${({ mb }) =>
+    mb &&
+    css`
+      margin-bottom: ${mb}px;
+    `}
+`;
 
 type Row = {
   id: string;
@@ -17,18 +33,28 @@ type Row = {
   scrobbles: number;
   index: number;
 };
-
 interface TopArtistsProps {
   showTitle?: boolean;
+  offset?: number;
   size?: number;
+  showPagination?: boolean;
 }
 
-function TopArtists({ showTitle = true, size = 30 }: TopArtistsProps) {
+function TopArtists(props: TopArtistsProps) {
+  const { showTitle = true, size = 30, showPagination } = props;
   const setTopArtists = useSetAtom(topArtistsAtom);
   const topArtists = useAtomValue(topArtistsAtom);
+  const stats = useAtomValue(statsAtom);
   const { did } = useParams<{ did: string }>();
   const { getArtists } = useLibrary();
   const user = useAtomValue(userAtom);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pages = useMemo(() => {
+    if (!did || !stats[did] || !props.size) {
+      return 1;
+    }
+    return Math.ceil(stats[did].artists / props.size) || 1;
+  }, [stats, did, props.size]);
 
   useEffect(() => {
     if (!did) {
@@ -36,12 +62,12 @@ function TopArtists({ showTitle = true, size = 30 }: TopArtistsProps) {
     }
 
     const getTopArtists = async () => {
-      const data = await getArtists(did, 0, size);
+      const data = await getArtists(did, (currentPage - 1) * size, size);
       setTopArtists(data);
     };
     getTopArtists();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [did]);
+  }, [did, currentPage]);
 
   const maxScrobbles = topArtists.length > 0 ? topArtists[0].scrobbles || 1 : 0;
 
@@ -69,6 +95,18 @@ function TopArtists({ showTitle = true, size = 30 }: TopArtistsProps) {
           </a>
         </div>
       )}
+
+      {props.showPagination && (
+        <Group mb={20}>
+          <div style={{ marginRight: 20 }}>
+            <LabelSmall>ARTISTS SCROBBLED</LabelSmall>
+            <HeadingXSmall margin={0}>
+              {did ? numeral(stats[did]?.artists).format("0,0") : ""}
+            </HeadingXSmall>
+          </div>
+        </Group>
+      )}
+
       <TableBuilder
         data={topArtists.map((x, index) => ({
           id: x.id,
@@ -103,7 +141,9 @@ function TopArtists({ showTitle = true, size = 30 }: TopArtistsProps) {
               }}
             >
               <div>
-                <div style={{ marginRight: 20 }}>{row.index + 1}</div>
+                <div style={{ marginRight: 20 }}>
+                  {(currentPage - 1) * props.size! + row.index + 1}
+                </div>
               </div>
               <Link to={`/${row.uri.split("at://")[1]}`}>
                 {!!row.picture && (
@@ -182,6 +222,23 @@ function TopArtists({ showTitle = true, size = 30 }: TopArtistsProps) {
           )}
         </TableBuilderColumn>
       </TableBuilder>
+      {showPagination && (
+        <Pagination
+          numPages={pages}
+          currentPage={currentPage}
+          onPageChange={({ nextPage }) => {
+            setCurrentPage(Math.min(Math.max(nextPage, 1), pages));
+          }}
+          overrides={{
+            Root: {
+              style: {
+                justifyContent: "center",
+                marginTop: "30px",
+              },
+            },
+          }}
+        />
+      )}
     </>
   );
 }

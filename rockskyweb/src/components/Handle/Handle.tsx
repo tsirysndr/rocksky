@@ -51,6 +51,8 @@ function Handle(props: HandleProps) {
           scrobbles: stats.scrobbles,
           artists: stats.artists,
           lovedTracks: stats.lovedTracks,
+          albums: stats.albums,
+          tracks: stats.tracks,
         },
       }));
     };

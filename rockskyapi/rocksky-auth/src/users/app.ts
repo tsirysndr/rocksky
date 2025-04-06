@@ -1309,6 +1309,8 @@ app.get("/:did/stats", async (c) => {
     scrobbles: data.scrobbles,
     artists: data.artists,
     lovedTracks: data.loved_tracks,
+    albums: data.albums,
+    tracks: data.tracks,
   });
 });
 
