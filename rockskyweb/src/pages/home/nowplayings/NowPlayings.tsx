@@ -69,6 +69,10 @@ const TrackArtist = styled.div`
   width: 500px;
   text-align: center;
   text-decoration: none;
+  opacity: 0.6;
+  &:hover {
+    text-decoration: underline;
+  }
 `;
 
 const Avatar = styled.img`
