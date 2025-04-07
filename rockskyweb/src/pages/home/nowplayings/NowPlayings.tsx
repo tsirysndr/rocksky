@@ -208,12 +208,22 @@ function NowPlayings() {
             marginBottom: 100,
           }}
         >
-          <Link to={`/${currentlyPlaying?.track_uri.split("at://")[1]}`}>
+          {currentlyPlaying?.track_uri && (
+            <Link to={`/${currentlyPlaying?.track_uri.split("at://")[1]}`}>
+              <Cover src={currentlyPlaying?.album_art} />
+            </Link>
+          )}
+          {currentlyPlaying?.track_uri && (
+            <Link to={`/${currentlyPlaying?.track_uri.split("at://")[1]}`}>
+              <TrackTitle>{currentlyPlaying?.title}</TrackTitle>
+            </Link>
+          )}
+          {!currentlyPlaying?.track_uri && (
             <Cover src={currentlyPlaying?.album_art} />
-          </Link>
-          <Link to={`/${currentlyPlaying?.track_uri.split("at://")[1]}`}>
+          )}
+          {!currentlyPlaying?.track_uri && (
             <TrackTitle>{currentlyPlaying?.title}</TrackTitle>
-          </Link>
+          )}
           <Link to={`/${currentlyPlaying?.artist_uri?.split("at://")[1]}`}>
             <TrackArtist>{currentlyPlaying?.artist}</TrackArtist>
           </Link>
