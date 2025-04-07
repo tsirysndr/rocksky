@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CurrentlyPlaying {
     pub actions: Actions,
-    pub context: Context,
+    pub context: Option<Context>,
     pub currently_playing_type: String,
     pub is_playing: bool,
     pub item: Item,
