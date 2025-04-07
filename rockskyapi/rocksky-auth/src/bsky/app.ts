@@ -155,10 +155,12 @@ app.get("/profile", async (c) => {
       ctx.kv.get("lastUser"),
     ]);
 
+    ctx.nc.publish("rocksky.user", Buffer.from(JSON.stringify(user)));
+
     await ctx.kv.set("lastUser", lastUser[0].id);
-    if (lastUser[0].id !== previousLastUser) {
-      ctx.nc.publish("rocksky.user", Buffer.from(JSON.stringify(user)));
-    }
+    // if (lastUser[0].id !== previousLastUser) {
+    //  ctx.nc.publish("rocksky.user", Buffer.from(JSON.stringify(user)));
+    // }
   }
 
   const [spotifyUser, spotifyToken, googledrive, dropbox] = await Promise.all([
