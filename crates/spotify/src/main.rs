@@ -406,9 +406,19 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
           &did,
           &token
         ).await?;
-        get_album_tracks(cache.clone(), &data.item.album.id, &token).await?;
-        get_album(cache.clone(), &data.item.album.id, &token).await?;
-        update_library(cache.clone(), &spotify_email, &did, &token).await?;
+
+        thread::spawn(move || {
+          let rt = tokio::runtime::Runtime::new().unwrap();
+          rt.block_on(async {
+            get_album_tracks(cache.clone(), &data.item.album.id, &token).await?;
+            get_album(cache.clone(), &data.item.album.id, &token).await?;
+            update_library(cache.clone(), &spotify_email, &did, &token).await?;
+            Ok::<(), Error>(())
+          })
+          .unwrap();
+        });
+
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
       }
     }
   }
