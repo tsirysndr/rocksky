@@ -7,7 +7,7 @@ function useNowPlaying() {
       method: "GET",
     }).then((res) => res.json());
 
-  const { data } = useSWR("/now-playings", fetcher);
+  const { data } = useSWR("/now-playings?size=7", fetcher);
 
   return {
     nowPlayings: (data || []) as {

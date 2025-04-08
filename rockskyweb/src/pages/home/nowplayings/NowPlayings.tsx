@@ -186,7 +186,7 @@ function NowPlayings() {
         closeable
         isOpen={isOpen}
         animate
-        autoFocus
+        autoFocus={false}
         size={"60vw"}
         role={ROLE.dialog}
         overrides={styles.modal}
@@ -207,9 +207,9 @@ function NowPlayings() {
               alignItems: "center",
             }}
           >
-            <div>
+            <Link to={`/profile/${currentlyPlaying?.handle}`}>
               <Avatar src={currentlyPlaying?.avatar} />
-            </div>
+            </Link>
             <Link to={`/profile/${currentlyPlaying?.handle}`}>
               <div
                 style={{
@@ -242,7 +242,14 @@ function NowPlayings() {
               width: "60vw",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", height: 500 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                height: 500,
+                width: 50,
+              }}
+            >
               {currentIndex > 0 && (
                 <div style={{ cursor: "pointer" }} onClick={onPrev}>
                   <ChevronLeft size={50} color="rgba(255, 255, 255, 0.5)" />
@@ -277,7 +284,14 @@ function NowPlayings() {
                 />
               )}
             </div>
-            <div style={{ display: "flex", alignItems: "center", height: 500 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                height: 500,
+                width: 50,
+              }}
+            >
               {currentIndex < nowPlayings.length - 1 && (
                 <div style={{ cursor: "pointer" }} onClick={onNext}>
                   <ChevronRight size={50} color="rgba(255, 255, 255, 0.5)" />

@@ -383,45 +383,34 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
     let did = did.clone();
     let cache = cache.clone();
 
-    thread::spawn(move || {
-      let rt = tokio::runtime::Runtime::new().unwrap();
-      rt.block_on(async {
-        let currently_playing = get_currently_playing(
+    let currently_playing = get_currently_playing(
+      cache.clone(),
+      &spotify_email,
+      &token
+    ).await;
+    let currently_playing = match currently_playing {
+      Ok(currently_playing) => currently_playing,
+      Err(e) => {
+        println!("{} {}", format!("[{}]", spotify_email).bright_green(), e.to_string().bright_red());
+        return Ok::<(), Error>(());
+      }
+    };
+
+    if let Some((data, changed)) = currently_playing {
+      println!("{} {} is_playing: {} changed: {}", format!("[{}]", spotify_email).bright_green(), format!("{} - {}", data.item.name, data.item.artists[0].name).cyan(), data.is_playing, changed);
+
+      if changed {
+        scrobble(
           cache.clone(),
           &spotify_email,
+          &did,
           &token
-        ).await;
-        let currently_playing = match currently_playing {
-          Ok(currently_playing) => currently_playing,
-          Err(e) => {
-            println!("{} {}", format!("[{}]", spotify_email).bright_green(), e.to_string().bright_red());
-            return Ok::<(), Error>(());
-          }
-        };
-
-        if let Some((data, changed)) = currently_playing {
-          println!("{} {} is_playing: {} changed: {}", format!("[{}]", spotify_email).bright_green(), format!("{} - {}", data.item.name, data.item.artists[0].name).cyan(), data.is_playing, changed);
-
-          if changed {
-            scrobble(
-              cache.clone(),
-              &spotify_email,
-              &did,
-              &token
-            ).await?;
-            get_album_tracks(cache.clone(), &data.item.album.id, &token).await?;
-            get_album(cache.clone(), &data.item.album.id, &token).await?;
-            update_library(cache.clone(), &spotify_email, &did, &token).await?;
-          }
-        }
-
-        Ok::<(), Error>(())
-      })?;
-
-      Ok::<(), Error>(())
-    });
-    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-    ()
+        ).await?;
+        get_album_tracks(cache.clone(), &data.item.album.id, &token).await?;
+        get_album(cache.clone(), &data.item.album.id, &token).await?;
+        update_library(cache.clone(), &spotify_email, &did, &token).await?;
+      }
+    }
   }
 
   Ok(())
