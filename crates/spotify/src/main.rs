@@ -420,7 +420,7 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
       }
     }
 
-    tokio::time::sleep(tokio::time::Duration::from_millis(800)).await;
+    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
   }
 
   Ok(())
