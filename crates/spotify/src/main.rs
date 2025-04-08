@@ -413,7 +413,7 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
       Ok(currently_playing) => currently_playing,
       Err(e) => {
         println!("{} {}", format!("[{}]", spotify_email).bright_green(), e.to_string().bright_red());
-        return Ok::<(), Error>(());
+        continue;
       }
     };
 
