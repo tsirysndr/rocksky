@@ -173,7 +173,13 @@ pub async fn get_currently_playing(cache: Cache, user_id: &str, token: &str) -> 
     let changed = match previous {
       Some(previous) => {
         let previous: CurrentlyPlaying = serde_json::from_str(&previous)?;
-        previous.item.id != data.item.id && previous.progress_ms.unwrap_or(0) != data.progress_ms.unwrap_or(0)
+        if previous.item.is_none() || data.item.is_none() {
+          return Ok(Some((data, false)));
+        }
+
+        let previous_item = previous.item.unwrap();
+        let data_item = data.clone().item.unwrap();
+        previous_item.id != data_item.id && previous.progress_ms.unwrap_or(0) != data.progress_ms.unwrap_or(0)
       },
       _ => true
     };
@@ -213,7 +219,14 @@ pub async fn get_currently_playing(cache: Cache, user_id: &str, token: &str) -> 
   let changed = match previous {
     Some(previous) => {
       let previous: CurrentlyPlaying = serde_json::from_str(&previous)?;
-      previous.item.id != data.item.id && previous.progress_ms.unwrap_or(0) != data.progress_ms.unwrap_or(0)
+      if previous.item.is_none() || data.item.is_none() {
+        return Ok(Some((data, false)));
+      }
+
+      let previous_item = previous.item.unwrap();
+      let data_item = data.clone().item.unwrap();
+
+      previous_item.id != data_item.id && previous.progress_ms.unwrap_or(0) != data.progress_ms.unwrap_or(0)
     },
     _ => false
   };
@@ -405,7 +418,12 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
     };
 
     if let Some((data, changed)) = currently_playing {
-      println!("{} {} is_playing: {} changed: {}", format!("[{}]", spotify_email).bright_green(), format!("{} - {}", data.item.name, data.item.artists[0].name).yellow(), data.is_playing, changed);
+      if data.item.is_none() {
+        println!("{} {}", format!("[{}]", spotify_email).bright_green(), "No song playing".yellow());
+        continue;
+      }
+      let data_item = data.item.unwrap();
+      println!("{} {} is_playing: {} changed: {}", format!("[{}]", spotify_email).bright_green(), format!("{} - {}", data_item.name, data_item.artists[0].name).yellow(), data.is_playing, changed);
 
       if changed {
         scrobble(
@@ -418,8 +436,8 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
         thread::spawn(move || {
           let rt = tokio::runtime::Runtime::new().unwrap();
           rt.block_on(async {
-            get_album_tracks(cache.clone(), &data.item.album.id, &token).await?;
-            get_album(cache.clone(), &data.item.album.id, &token).await?;
+            get_album_tracks(cache.clone(), &data_item.album.id, &token).await?;
+            get_album(cache.clone(), &data_item.album.id, &token).await?;
             update_library(cache.clone(), &spotify_email, &did, &token).await?;
             Ok::<(), Error>(())
           })
