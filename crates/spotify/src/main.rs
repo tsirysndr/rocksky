@@ -159,7 +159,15 @@ pub async fn get_currently_playing(cache: Cache, user_id: &str, token: &str) -> 
     if data == "No content" {
       return Ok(None);
     }
-    let data: CurrentlyPlaying = serde_json::from_str(&data)?;
+    let decoded_data = serde_json::from_str::<CurrentlyPlaying>(&data);
+
+    if decoded_data.is_err() {
+      println!("{} {} {}", format!("[{}]", user_id).bright_green(), "Cache is invalid".red(), data);
+      cache.setex(user_id, "No content", 10)?;
+      return Ok(None);
+    }
+
+    let data: CurrentlyPlaying = decoded_data.unwrap();
     // detect if the song has changed
     let previous = cache.get(&format!("{}:previous", user_id))?;
     let changed = match previous {
