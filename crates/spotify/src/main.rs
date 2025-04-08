@@ -405,7 +405,7 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
     };
 
     if let Some((data, changed)) = currently_playing {
-      println!("{} {} is_playing: {} changed: {}", format!("[{}]", spotify_email).bright_green(), format!("{} - {}", data.item.name, data.item.artists[0].name).cyan(), data.is_playing, changed);
+      println!("{} {} is_playing: {} changed: {}", format!("[{}]", spotify_email).bright_green(), format!("{} - {}", data.item.name, data.item.artists[0].name).yellow(), data.is_playing, changed);
 
       if changed {
         scrobble(
