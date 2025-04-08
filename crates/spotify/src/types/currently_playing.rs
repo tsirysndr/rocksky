@@ -6,7 +6,7 @@ pub struct CurrentlyPlaying {
     pub context: Option<Context>,
     pub currently_playing_type: String,
     pub is_playing: bool,
-    pub item: Option<Item>,
+    pub item: Item,
     pub progress_ms: Option<u64>,
     pub timestamp: u64,
 }
