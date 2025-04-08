@@ -417,10 +417,10 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
           })
           .unwrap();
         });
-
-        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
       }
     }
+
+    tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
   }
 
   Ok(())
