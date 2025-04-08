@@ -154,6 +154,7 @@ function Main({ children }: { children: React.ReactNode }) {
             top: 100,
             width: 300,
             padding: 20,
+            backgroundColor: "#fff",
           }}
         >
           <div style={{ marginBottom: 30 }}>
