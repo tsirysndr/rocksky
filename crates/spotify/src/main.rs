@@ -55,11 +55,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         thread::spawn(move || {
             let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on(async {
-                watch_currently_playing(email, token, did, stop_flag, cache.clone()).await?;
+            match rt.block_on(async {
+                watch_currently_playing(email.clone(), token, did, stop_flag, cache.clone()).await?;
                 Ok::<(), Error>(())
-            })
-            .unwrap();
+            }) {
+                Ok(_) => {
+                    }
+                Err(e) => {
+                    println!("{} Error starting thread for user: {} - {}", format!("[{}]", email).bright_green(), email.bright_green(), e.to_string().bright_red());
+                }
+            }
         });
     }
 
@@ -421,6 +426,7 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
     if let Some((data, changed)) = currently_playing {
       if data.item.is_none() {
         println!("{} {}", format!("[{}]", spotify_email).bright_green(), "No song playing".yellow());
+        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
         continue;
       }
       let data_item = data.item.unwrap();
@@ -436,13 +442,17 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
 
         thread::spawn(move || {
           let rt = tokio::runtime::Runtime::new().unwrap();
-          rt.block_on(async {
+          match rt.block_on(async {
             get_album_tracks(cache.clone(), &data_item.album.id, &token).await?;
             get_album(cache.clone(), &data_item.album.id, &token).await?;
             update_library(cache.clone(), &spotify_email, &did, &token).await?;
             Ok::<(), Error>(())
-          })
-          .unwrap();
+          }) {
+            Ok(_) => {},
+            Err(e) => {
+              println!("{} {}", format!("[{}]", spotify_email).bright_green(), e.to_string().bright_red());
+            }
+          }
         });
       }
     }
