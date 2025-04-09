@@ -178,7 +178,15 @@ pub async fn get_currently_playing(cache: Cache, user_id: &str, token: &str) -> 
     let changed = match previous {
       Some(previous) => {
         let previous: CurrentlyPlaying = serde_json::from_str(&previous)?;
-        if previous.item.is_none() || data.item.is_none() {
+        if previous.item.is_none() && data.item.is_some() {
+          return Ok(Some((data, true)));
+        }
+
+        if previous.item.is_some() && data.item.is_none() {
+          return Ok(Some((data, false)));
+        }
+
+        if previous.item.is_none() && data.item.is_none() {
           return Ok(Some((data, false)));
         }
 
