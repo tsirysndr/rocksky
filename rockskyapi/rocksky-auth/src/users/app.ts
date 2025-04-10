@@ -319,9 +319,14 @@ app.get("/:did/app.rocksky.song/:rkey", async (c) => {
   const rkey = c.req.param("rkey");
   const uri = `at://${did}/app.rocksky.song/${rkey}`;
 
-  const track = await ctx.client.db.tracks
-    .filter("uri", equals(uri))
-    .getFirst();
+  const [_track, user_track] = await Promise.all([
+    ctx.client.db.tracks.filter("uri", equals(uri)).getFirst(),
+    ctx.client.db.user_tracks
+      .select(["track_id.*"])
+      .filter("uri", equals(uri))
+      .getFirst(),
+  ]);
+  const track = _track || user_track.track_id;
 
   if (!track) {
     c.status(404);
