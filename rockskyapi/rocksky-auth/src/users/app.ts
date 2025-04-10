@@ -208,8 +208,11 @@ app.get("/:did/app.rocksky.artist/:rkey", async (c) => {
   const rkey = c.req.param("rkey");
   const uri = `at://${did}/app.rocksky.artist/${rkey}`;
 
-  const artist = await ctx.client.db.artists
-    .filter("uri", equals(uri))
+  const artist = await ctx.client.db.user_artists
+    .select(["artist_id.*"])
+    .filter({
+      $any: [{ uri }, { "artist_id.uri": uri }],
+    })
     .getFirst();
 
   if (!artist) {
@@ -220,7 +223,7 @@ app.get("/:did/app.rocksky.artist/:rkey", async (c) => {
   const [listeners, scrobbles] = await Promise.all([
     ctx.client.db.user_artists.select(["artist_id.*"]).summarize({
       filter: {
-        "artist_id.uri": equals(uri),
+        "artist_id.xata_id": equals(artist.artist_id.xata_id),
       },
       columns: ["artist_id.*"],
       summaries: {
@@ -233,7 +236,7 @@ app.get("/:did/app.rocksky.artist/:rkey", async (c) => {
       .select(["artist_id.*", "xata_createdat"])
       .summarize({
         filter: {
-          "artist_id.xata_id": artist.xata_id,
+          "artist_id.xata_id": artist.artist_id.xata_id,
         },
         columns: ["artist_id.*"],
         summaries: {
@@ -245,7 +248,7 @@ app.get("/:did/app.rocksky.artist/:rkey", async (c) => {
   ]);
 
   return c.json({
-    ...artist,
+    ...artist.artist_id,
     listeners: _.get(listeners.summaries, "0.total", 1),
     scrobbles: _.get(scrobbles.summaries, "0.total", 1),
     tags: [],
@@ -257,8 +260,11 @@ app.get("/:did/app.rocksky.album/:rkey", async (c) => {
   const rkey = c.req.param("rkey");
   const uri = `at://${did}/app.rocksky.album/${rkey}`;
 
-  const album = await ctx.client.db.albums
-    .filter("uri", equals(uri))
+  const album = await ctx.client.db.user_albums
+    .select(["album_id.*"])
+    .filter({
+      $any: [{ uri }, { "album_id.uri": uri }],
+    })
     .getFirst();
 
   if (!album) {
@@ -268,14 +274,14 @@ app.get("/:did/app.rocksky.album/:rkey", async (c) => {
 
   const tracks = await ctx.client.db.album_tracks
     .select(["track_id.*"])
-    .filter("album_id.uri", equals(uri))
+    .filter("album_id.xata_id", equals(album.album_id.xata_id))
     .sort("track_id.track_number", "asc")
     .getAll();
 
   const [listeners, scrobbles] = await Promise.all([
     ctx.client.db.user_albums.select(["album_id.*"]).summarize({
       filter: {
-        "album_id.uri": uri,
+        "album_id.xata_id": equals(album.album_id.xata_id),
       },
       columns: ["album_id.*"],
       summaries: {
@@ -286,7 +292,7 @@ app.get("/:did/app.rocksky.album/:rkey", async (c) => {
     }),
     ctx.client.db.scrobbles.select(["album_id.*", "xata_createdat"]).summarize({
       filter: {
-        "album_id.uri": uri,
+        "album_id.xata_id": album.album_id.xata_id,
       },
       columns: ["album_id.*"],
       summaries: {
@@ -298,7 +304,7 @@ app.get("/:did/app.rocksky.album/:rkey", async (c) => {
   ]);
 
   return c.json({
-    ...album,
+    ...album.album_id,
     listeners: _.get(listeners.summaries, "0.total", 1),
     scrobbles: _.get(scrobbles.summaries, "0.total", 1),
     tracks: dedupeTracksKeepLyrics(tracks.map((track) => track.track_id)).sort(
@@ -325,7 +331,7 @@ app.get("/:did/app.rocksky.song/:rkey", async (c) => {
   const [listeners, scrobbles] = await Promise.all([
     ctx.client.db.user_tracks.select(["track_id.*"]).summarize({
       filter: {
-        "track_id.uri": uri,
+        "track_id.xata_id": equals(track.xata_id),
       },
       columns: ["track_id.*"],
       summaries: {
@@ -336,7 +342,7 @@ app.get("/:did/app.rocksky.song/:rkey", async (c) => {
     }),
     ctx.client.db.scrobbles.select(["track_id.*", "xata_createdat"]).summarize({
       filter: {
-        "track_id.uri": uri,
+        "track_id.xata_id": track.xata_id,
       },
       columns: ["track_id.*"],
       summaries: {

@@ -150,16 +150,29 @@ function StickyPlayer(props: StickyPlayerProps) {
                 textOverflow: "ellipsis",
               }}
             >
-              <Link
-                to={`/${nowPlaying?.songUri?.split("at://")[1]}`}
-                style={{
-                  fontWeight: 600,
-                  textOverflow: "ellipsis",
-                  textWrap: "nowrap",
-                }}
-              >
-                {nowPlaying?.title}
-              </Link>
+              {!!nowPlaying?.songUri && (
+                <Link
+                  to={`/${nowPlaying?.songUri?.split("at://")[1]}`}
+                  style={{
+                    fontWeight: 600,
+                    textOverflow: "ellipsis",
+                    textWrap: "nowrap",
+                  }}
+                >
+                  {nowPlaying?.title}
+                </Link>
+              )}
+              {!nowPlaying?.songUri && (
+                <div
+                  style={{
+                    fontWeight: 600,
+                    textOverflow: "ellipsis",
+                    textWrap: "nowrap",
+                  }}
+                >
+                  {nowPlaying?.title}
+                </div>
+              )}
             </div>
             <div
               style={{
@@ -168,18 +181,33 @@ function StickyPlayer(props: StickyPlayerProps) {
                 textOverflow: "ellipsis",
               }}
             >
-              <Link
-                to={`/${nowPlaying?.artistUri?.split("at://")[1]}`}
-                style={{
-                  fontFamily: "RockfordSansLight",
-                  color: "rgba(36, 49, 61, 0.65)",
-                  fontWeight: 600,
-                  textOverflow: "ellipsis",
-                  textWrap: "nowrap",
-                }}
-              >
-                {nowPlaying?.artist}
-              </Link>
+              {!!nowPlaying?.artistUri && (
+                <Link
+                  to={`/${nowPlaying?.artistUri?.split("at://")[1]}`}
+                  style={{
+                    fontFamily: "RockfordSansLight",
+                    color: "rgba(36, 49, 61, 0.65)",
+                    fontWeight: 600,
+                    textOverflow: "ellipsis",
+                    textWrap: "nowrap",
+                  }}
+                >
+                  {nowPlaying?.artist}
+                </Link>
+              )}
+              {!nowPlaying?.artistUri && (
+                <div
+                  style={{
+                    fontFamily: "RockfordSansLight",
+                    color: "rgba(36, 49, 61, 0.65)",
+                    fontWeight: 600,
+                    textOverflow: "ellipsis",
+                    textWrap: "nowrap",
+                  }}
+                >
+                  {nowPlaying?.artist}
+                </div>
+              )}
             </div>
           </div>
           <div style={{ marginTop: -14, marginLeft: 16 }}>

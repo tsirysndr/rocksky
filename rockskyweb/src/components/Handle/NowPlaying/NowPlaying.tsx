@@ -215,16 +215,29 @@ function NowPlaying({ did }: NowPlayingProps) {
                   textOverflow: "ellipsis",
                 }}
               >
-                <Link
-                  to={`/${nowPlaying[did]?.songUri?.split("at://")[1]}`}
-                  style={{
-                    fontWeight: 600,
-                    textOverflow: "ellipsis",
-                    textWrap: "nowrap",
-                  }}
-                >
-                  {nowPlaying[did]?.title}
-                </Link>
+                {nowPlaying[did]?.songUri && (
+                  <Link
+                    to={`/${nowPlaying[did]?.songUri?.split("at://")[1]}`}
+                    style={{
+                      fontWeight: 600,
+                      textOverflow: "ellipsis",
+                      textWrap: "nowrap",
+                    }}
+                  >
+                    {nowPlaying[did]?.title}
+                  </Link>
+                )}
+                {!nowPlaying[did]?.songUri && (
+                  <div
+                    style={{
+                      fontWeight: 600,
+                      textOverflow: "ellipsis",
+                      textWrap: "nowrap",
+                    }}
+                  >
+                    {nowPlaying[did]?.title}
+                  </div>
+                )}
               </div>
               <div
                 style={{
@@ -233,19 +246,35 @@ function NowPlaying({ did }: NowPlayingProps) {
                   textOverflow: "ellipsis",
                 }}
               >
-                <Link
-                  to={`/${nowPlaying[did]?.artistUri?.split("at://")[1]}`}
-                  style={{
-                    fontFamily: "RockfordSansLight",
-                    color: "rgba(36, 49, 61, 0.65)",
-                    fontWeight: 600,
-                    textOverflow: "ellipsis",
-                    textWrap: "nowrap",
-                    fontSize: "14px",
-                  }}
-                >
-                  {nowPlaying[did]?.artist}
-                </Link>
+                {!!nowPlaying[did]?.artistUri?.split("at://")[1] && (
+                  <Link
+                    to={`/${nowPlaying[did]?.artistUri?.split("at://")[1]}`}
+                    style={{
+                      fontFamily: "RockfordSansLight",
+                      color: "rgba(36, 49, 61, 0.65)",
+                      fontWeight: 600,
+                      textOverflow: "ellipsis",
+                      textWrap: "nowrap",
+                      fontSize: "14px",
+                    }}
+                  >
+                    {nowPlaying[did]?.artist}
+                  </Link>
+                )}
+                {!nowPlaying[did]?.artistUri?.split("at://")[1] && (
+                  <div
+                    style={{
+                      fontFamily: "RockfordSansLight",
+                      color: "rgba(36, 49, 61, 0.65)",
+                      fontWeight: 600,
+                      textOverflow: "ellipsis",
+                      textWrap: "nowrap",
+                      fontSize: "14px",
+                    }}
+                  >
+                    {nowPlaying[did]?.artist}
+                  </div>
+                )}
               </div>
             </div>
           </div>

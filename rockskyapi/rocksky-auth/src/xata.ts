@@ -4118,10 +4118,6 @@ const tables = [
         name: "_pgroll_new_user_tracks_xata_id_key",
         columns: ["xata_id"],
       },
-      user_tracks__pgroll_new_uri_key: {
-        name: "user_tracks__pgroll_new_uri_key",
-        columns: ["uri"],
-      },
     },
     columns: [
       {
@@ -4145,7 +4141,7 @@ const tables = [
         name: "uri",
         type: "text",
         notNull: false,
-        unique: true,
+        unique: false,
         defaultValue: null,
         comment: "",
       },

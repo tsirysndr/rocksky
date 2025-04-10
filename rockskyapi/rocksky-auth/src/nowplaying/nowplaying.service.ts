@@ -253,6 +253,8 @@ async function putScrobbleRecord(
 export async function updateUserLibrary(
   ctx: Context,
   user,
+  track: Track,
+  agent: Agent,
   track_id: string,
   album_id: string,
   artist_id: string,
@@ -264,8 +266,12 @@ export async function updateUserLibrary(
     .filter("user_id", equals(user.xata_id))
     .filter("track_id", equals(track_id))
     .getFirst();
+
+  if (!trackUri.includes(user.did)) {
+    trackUri = await putSongRecord(track, agent);
+  }
+
   if (!existingUserTrack) {
-    // artistUri = await putArtistRecord(track, agent);
     await ctx.client.db.user_tracks.create({
       user_id: user.xata_id,
       track_id,
@@ -275,6 +281,7 @@ export async function updateUserLibrary(
   } else {
     await ctx.client.db.user_tracks.update({
       xata_id: existingUserTrack.xata_id,
+      uri: trackUri,
       scrobbles: existingUserTrack.scrobbles
         ? existingUserTrack.scrobbles + 1
         : 1,
@@ -294,8 +301,12 @@ export async function updateUserLibrary(
       ],
     })
     .getFirst();
+
+  if (!artistUri.includes(user.did)) {
+    artistUri = await putArtistRecord(track, agent);
+  }
+
   if (!existingUserArtist) {
-    // artistUri = await putArtistRecord(track, agent);
     await ctx.client.db.user_artists.create({
       user_id: user.xata_id,
       artist_id,
@@ -305,6 +316,7 @@ export async function updateUserLibrary(
   } else {
     await ctx.client.db.user_artists.update({
       xata_id: existingUserArtist.xata_id,
+      uri: artistUri,
       scrobbles: existingUserArtist.scrobbles
         ? existingUserArtist.scrobbles + 1
         : 1,
@@ -315,8 +327,12 @@ export async function updateUserLibrary(
     .filter("user_id", equals(user.xata_id))
     .filter("album_id", equals(album_id))
     .getFirst();
+
+  if (!albumUri.includes(user.did)) {
+    albumUri = await putAlbumRecord(track, agent);
+  }
+
   if (!existingUserAlbum) {
-    // albumUri = await putAlbumRecord(track, agent);
     await ctx.client.db.user_albums.create({
       user_id: user.xata_id,
       album_id,
@@ -326,6 +342,7 @@ export async function updateUserLibrary(
   } else {
     await ctx.client.db.user_albums.update({
       xata_id: existingUserAlbum.xata_id,
+      uri: albumUri,
       scrobbles: existingUserAlbum.scrobbles
         ? existingUserAlbum.scrobbles + 1
         : 1,
@@ -539,6 +556,8 @@ export async function scrobbleTrack(
   await updateUserLibrary(
     ctx,
     user,
+    track,
+    agent,
     track_id,
     album_id,
     artist_id,
