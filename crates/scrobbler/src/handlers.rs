@@ -1,8 +1,10 @@
 use actix_web::{post, web, HttpResponse, Responder};
 use serde_json::json;
 use std::collections::BTreeMap;
+use crate::musicbrainz::client::MusicbrainzClient;
 use crate::signature::generate_signature;
 use crate::models::Scrobble;
+use crate::spotify::client::SpotifyClient;
 
 fn parse_batch(form: &BTreeMap<String, String>) -> Vec<Scrobble> {
     let mut result = vec![];
@@ -77,6 +79,27 @@ pub async fn scrobble(form: web::Form<BTreeMap<String, String>>) -> impl Respond
     }
 
     // You can now save these scrobbles to your database here.
+    let client = MusicbrainzClient::new();
+    // let result = client.get_recording("47fb34da-5d07-4772-8cdb-af352699ee67").await;
+    let result = client.search(r#"
+        recording:"Don't stay" AND artist:"Linkin Park"
+    "#).await;
+    println!("Musicbrainz result: {:#?}", result);
+
+    /*
+    let client = SpotifyClient::new("BQDhXOoiiSNCmmOKFvtvpuT3gwXJGOdXvjpkfb4JTc8GPLhNOhLrgy_tAVA7i8c3VipA4mbQfwvc9rAGDaNyzpVw26SXtQXFMNw_na2VRAeBXMcHMqrJ-Cfg4XQoLzAvQwX8RkuRAKtaBpMSFtwiHYHeYj2GybiqinRZ8ZDNRzIn3GvoYQjcYqfEKR39iNHtlToDPkdPxO1caZh8DDc2VltMLxOUyNs8po_OLpp6-7WgED3_CmHEbOfdc_DD4-btRcsmvri8O58lOioxBgCgrKx0Ww-xq7oNk0-mdDJcUat805Fuh2PHRIoWK2rOLtbVAtU8PnpfLzUbbiejxBfXubl5J3EST7tB9N_OkVz8ZQs92tp-QQk");
+    let results = match client.search("track:one more time artist:daft punk").await {
+        Ok(res) => res,
+        Err(e) => {
+            return HttpResponse::InternalServerError().json(json!({
+                "error": 9,
+                "message": format!("Internal server error: {}", e)
+            }));
+        }
+    };
+
+    println!("Search results: {:?}", results);
+     */
 
     let response = json!({
         "scrobbles": {

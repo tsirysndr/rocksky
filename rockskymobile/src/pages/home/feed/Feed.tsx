@@ -35,7 +35,7 @@ function Feed() {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               data.map((song: any) => (
                 <div key={song.id} style={{ marginBottom: 50 }}>
-                  <Link to={`/${song.uri.split("at://")[1]}`}>
+                  <Link to={`/${song.uri?.split("at://")[1]}`}>
                     <SongCover
                       cover={song.cover}
                       artist={song.artist}

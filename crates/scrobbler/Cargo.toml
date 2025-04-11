@@ -36,3 +36,4 @@ reqwest = { version = "0.12.12", features = [
   "multipart",
 ], default-features = false }
 quick-xml = { version = "0.37.4", features = ["serialize"] }
+chrono = { version = "0.4.39", features = ["serde"] }

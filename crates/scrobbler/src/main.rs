@@ -1,6 +1,10 @@
 pub mod handlers;
 pub mod models;
 pub mod signature;
+pub mod musicbrainz;
+pub mod spotify;
+pub mod xata;
+pub mod cache;
 
 use std::env;
 
