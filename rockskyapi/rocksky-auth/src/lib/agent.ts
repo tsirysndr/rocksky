@@ -17,6 +17,7 @@ export async function createAgent(
       }
     } catch (e) {
       console.log("Error creating agent");
+      console.log(e);
       await new Promise((r) => setTimeout(r, 1000));
       retry += 1;
     }
