@@ -146,7 +146,7 @@ pub async fn scrobble(pool: &Pool<Postgres>, cache: &Cache, form: &BTreeMap<Stri
             let artist = repo::artist::get_artist_by_track_id(pool, &track.xata_id).await?;
             let mut track: Track = track.into();
             track.year = album.year.map(|x| x as u32);
-            track.release_date = album.release_date;
+            track.release_date = album.release_date.map(|x| x.split("T").next().unwrap().to_string());
             track.artist_picture = artist.picture.clone();
 
             rocksky::scrobble(cache, &did, track, scrobble.timestamp).await?;
