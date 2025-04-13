@@ -9,9 +9,11 @@ import { Textarea } from "baseui/textarea";
 import { StatefulTooltip } from "baseui/tooltip";
 import { HeadingMedium } from "baseui/typography";
 import copy from "copy-to-clipboard";
+import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import z from "zod";
+import { apiKeysAtom } from "../../atoms/apikeys";
 import useApikey from "../../hooks/useApikey";
 import Main from "../../layouts/Main";
 import { ApiKey } from "../../types/apikey";
@@ -24,7 +26,7 @@ const schema = z.object({
 
 function ApiKeys() {
   const [isOpen, setIsOpen] = useState(false);
-  const [apikeys, setApikeys] = useState<ApiKey[]>([]);
+  const [apikeys, setApikeys] = useAtom(apiKeysAtom);
   const [enabled, setEnabled] = useState<{
     [key: string]: boolean;
   }>({});

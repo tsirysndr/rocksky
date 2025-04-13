@@ -21,9 +21,22 @@ use dotenv::dotenv;
 use owo_colors::OwoColorize;
 use sqlx::postgres::PgPoolOptions;
 
+
+pub const BANNER: &str = r#"
+    ___             ___          _____                 __    __    __
+   /   | __  ______/ (_)___     / ___/______________  / /_  / /_  / /__  _____
+  / /| |/ / / / __  / / __ \    \__ \/ ___/ ___/ __ \/ __ \/ __ \/ / _ \/ ___/
+ / ___ / /_/ / /_/ / / /_/ /   ___/ / /__/ /  / /_/ / /_/ / /_/ / /  __/ /
+/_/  |_\__,_/\__,_/_/\____/   /____/\___/_/   \____/_.___/_.___/_/\___/_/
+
+ This is the Rocksky Scrobbler API compatible with Last.fm AudioScrobbler API
+"#;
+
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     dotenv().ok();
+
+    println!("{}", BANNER.magenta());
 
     let cache = Cache::new()?;
 
@@ -43,6 +56,8 @@ async fn main() -> Result<(), Error> {
             .app_data(Data::new(conn.clone()))
             .app_data(Data::new(cache.clone()))
             .service(handlers::handle_scrobble)
+            .service(handlers::index)
+            .service(handlers::handle_get)
     })
     .bind((host, port))?
     .run()

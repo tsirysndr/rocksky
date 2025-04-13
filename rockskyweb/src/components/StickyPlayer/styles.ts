@@ -41,7 +41,7 @@ export const NextButton = styled.button`
 
 export const Controls = styled.div`
   display: flex;
-  height: 40px;
+  height: 48px;
   align-items: center;
   justify-content: center;
   flex-direction: row;

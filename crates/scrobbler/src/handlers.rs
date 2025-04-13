@@ -1,4 +1,4 @@
-use actix_web::{post, web, HttpResponse, Responder};
+use actix_web::{get, post, web, HttpResponse, Responder};
 use serde_json::json;
 use sqlx::{Pool, Postgres};
 use std::collections::BTreeMap;
@@ -8,7 +8,18 @@ use crate::cache::Cache;
 use crate::params::validate_required_params;
 use crate::response::build_response;
 use crate::scrobbler::scrobble;
+use crate::BANNER;
 
+
+#[get("/")]
+pub async fn index() -> impl Responder {
+    HttpResponse::Ok().body(BANNER)
+}
+
+#[get("/2.0")]
+pub async fn handle_get() -> impl Responder {
+    HttpResponse::Ok().body(BANNER)
+}
 
 #[post("/2.0")]
 pub async fn handle_scrobble(
