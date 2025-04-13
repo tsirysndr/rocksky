@@ -142,7 +142,14 @@ pub async fn scrobble(pool: &Pool<Postgres>, cache: &Cache, form: &BTreeMap<Stri
         if let Some(track) = result {
             println!("{}", "Xata (track)".yellow());
             scrobble.album = Some(track.album.clone());
-            rocksky::scrobble(cache, &did, track.into(), scrobble.timestamp).await?;
+            let album = repo::album::get_album_by_track_id(pool, &track.xata_id).await?;
+            let artist = repo::artist::get_artist_by_track_id(pool, &track.xata_id).await?;
+            let mut track: Track = track.into();
+            track.year = album.year.map(|x| x as u32);
+            track.release_date = album.release_date;
+            track.artist_picture = artist.picture.clone();
+
+            rocksky::scrobble(cache, &did, track, scrobble.timestamp).await?;
             tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             continue;
         }
@@ -176,7 +183,7 @@ pub async fn scrobble(pool: &Pool<Postgres>, cache: &Cache, form: &BTreeMap<Stri
             }
 
             if let Some(artist) = spotify_client.get_artist(&track.album.artists[0].id).await? {
-                track.artists[0] = artist;
+                track.album.artists[0] = artist;
             }
 
             rocksky::scrobble(cache, &did, track.into(), scrobble.timestamp).await?;
