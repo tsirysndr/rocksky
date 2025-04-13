@@ -1,4 +1,5 @@
 pub mod album;
+pub mod api_key;
 pub mod artist;
 pub mod spotify_account;
 pub mod spotify_token;

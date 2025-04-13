@@ -16,6 +16,7 @@ import subscribe from "subscribers";
 import { saveTrack } from "tracks/tracks.service";
 import { trackSchema } from "types/track";
 import handleWebsocket from "websocket/handler";
+import apikeys from "./apikeys/app";
 import bsky from "./bsky/app";
 import dropbox from "./dropbox/app";
 import googledrive from "./googledrive/app";
@@ -38,6 +39,8 @@ app.route("/spotify", spotify);
 app.route("/dropbox", dropbox);
 
 app.route("/googledrive", googledrive);
+
+app.route("/apikeys", apikeys);
 
 app.get("/ws", upgradeWebSocket(handleWebsocket));
 

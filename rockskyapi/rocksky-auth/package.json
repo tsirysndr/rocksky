@@ -27,6 +27,7 @@
 		"better-sqlite3": "^11.8.1",
 		"chalk": "^5.4.1",
 		"chanfana": "^2.0.2",
+		"dayjs": "^1.11.13",
 		"dotenv": "^16.4.7",
 		"drizzle-orm": "^0.39.3",
 		"dropbox": "^10.34.0",
@@ -49,6 +50,7 @@
 	},
 	"devDependencies": {
 		"@types/node": "^22.13.0",
+		"@types/ramda": "^0.30.2",
 		"@types/service-worker-mock": "^2.0.1",
 		"pkgroll": "^2.6.1",
 		"tsx": "^4.19.2"

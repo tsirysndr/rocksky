@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import AlbumPage from "./pages/album";
+import ApiKeys from "./pages/apikeys";
 import ArtistPage from "./pages/artist";
 import Dropbox from "./pages/dropbox";
 import DropboxWithId from "./pages/dropbox/DropboxWithId";
@@ -50,6 +51,7 @@ function App() {
           path="/googledrive/:id"
           element={<GoogleDriveWithId key={window.location.pathname} />}
         />
+        <Route path="/apikeys" element={<ApiKeys />} />
         <Route path="/loading" element={<Loading />} />
       </Routes>
     </BrowserRouter>

@@ -6,7 +6,7 @@ use super::{
     recording::Recording,
 };
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Release {
     #[serde(rename = "release-events")]
     pub release_events: Option<Vec<ReleaseEvent>>,
@@ -35,7 +35,7 @@ pub struct Release {
     pub asin: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct CoverArtArchive {
     pub back: bool,
     pub artwork: bool,
@@ -44,19 +44,19 @@ pub struct CoverArtArchive {
     pub darkened: bool,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct ReleaseEvent {
     pub area: Option<Area>,
     pub date: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct TextRepresentation {
     pub language: Option<String>,
     pub script: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Media {
     #[serde(rename = "format-id")]
     pub format_id: Option<String>,
@@ -71,7 +71,7 @@ pub struct Media {
     pub format: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Disc {
     pub offset: Option<u32>,
     pub sectors: u32,
@@ -79,7 +79,7 @@ pub struct Disc {
     pub offsets: Option<Vec<u32>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Track {
     pub length: i64,
     pub id: String,

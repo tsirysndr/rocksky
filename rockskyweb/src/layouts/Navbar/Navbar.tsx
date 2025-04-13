@@ -72,6 +72,10 @@ function Navbar() {
                     label: <LabelMedium>Profile</LabelMedium>,
                   },
                   {
+                    id: "api-applications",
+                    label: <LabelMedium>API Applications</LabelMedium>,
+                  },
+                  {
                     id: "signout",
                     label: <LabelMedium>Sign out</LabelMedium>,
                   },
@@ -80,6 +84,9 @@ function Navbar() {
                   switch (item.id) {
                     case "profile":
                       navigate(`/profile/${profile.handle}`);
+                      break;
+                    case "api-applications":
+                      navigate("/apikeys");
                       break;
                     case "signout":
                       setProfile(null);

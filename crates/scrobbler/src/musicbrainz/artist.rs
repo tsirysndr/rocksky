@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Artist {
     pub name: String,
     #[serde(rename = "sort-name")]
@@ -29,14 +29,14 @@ pub struct Artist {
     pub aliases: Option<Vec<Alias>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct ArtistCredit {
     pub joinphrase: Option<String>,
     pub name: String,
     pub artist: Artist,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Alias {
     pub name: String,
     #[serde(rename = "sort-name")]
@@ -51,7 +51,7 @@ pub struct Alias {
     pub ended: Option<bool>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Area {
     pub disambiguation: Option<String>,
     pub id: String,
@@ -65,7 +65,7 @@ pub struct Area {
     pub iso_3166_1_codes: Option<Vec<String>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct LifeSpan {
     pub begin: Option<String>,
     pub end: Option<String>,

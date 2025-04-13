@@ -51,7 +51,14 @@ const Link = styled.a`
   }
 `;
 
-function Main({ children }: { children: React.ReactNode }) {
+export type MainProps = {
+  children: React.ReactNode;
+  withRightPane?: boolean;
+};
+
+function Main(props: MainProps) {
+  const { children } = props;
+  const withRightPane = props.withRightPane ?? true;
   const [handle, setHandle] = useState("");
   const { search } = useLocation();
   const jwt = localStorage.getItem("token");
@@ -121,6 +128,12 @@ function Main({ children }: { children: React.ReactNode }) {
     }*/
 
     // window.location.href = `${API_URL}/login?handle=${handle}`;
+
+    if (API_URL.includes("localhost")) {
+      window.location.href = `${API_URL}/login?handle=${handle}`;
+      return;
+    }
+
     window.location.href = `https://rocksky.pages.dev/loading?handle=${handle}`;
   };
 
@@ -137,7 +150,7 @@ function Main({ children }: { children: React.ReactNode }) {
           },
         }}
       />
-      <Flex>
+      <Flex style={{ width: withRightPane ? "770px" : "1090px" }}>
         <Navbar />
         <div
           style={{
@@ -147,115 +160,117 @@ function Main({ children }: { children: React.ReactNode }) {
           {children}
         </div>
       </Flex>
-      <RightPane style={{ position: "relative", width: 300 }}>
-        <div
-          style={{
-            position: "fixed",
-            top: 100,
-            width: 300,
-            padding: 20,
-            backgroundColor: "#fff",
-          }}
-        >
-          <div style={{ marginBottom: 30 }}>
-            <Search />
-          </div>
-          {jwt && profile && !profile.spotifyConnected && <SpotifyLogin />}
-          {jwt && profile && <CloudDrive />}
-          {!jwt && (
-            <div style={{ marginTop: 40 }}>
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ marginBottom: 15 }}>
-                  <LabelMedium>Bluesky handle</LabelMedium>
+      {withRightPane && (
+        <RightPane style={{ position: "relative", width: 300 }}>
+          <div
+            style={{
+              position: "fixed",
+              top: 100,
+              width: 300,
+              padding: 20,
+              backgroundColor: "#fff",
+            }}
+          >
+            <div style={{ marginBottom: 30 }}>
+              <Search />
+            </div>
+            {jwt && profile && !profile.spotifyConnected && <SpotifyLogin />}
+            {jwt && profile && <CloudDrive />}
+            {!jwt && (
+              <div style={{ marginTop: 40 }}>
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ marginBottom: 15 }}>
+                    <LabelMedium>Bluesky handle</LabelMedium>
+                  </div>
+                  <Input
+                    name="handle"
+                    startEnhancer={<div style={{ color: "#42576ca6" }}>@</div>}
+                    placeholder="<username>.bsky.social"
+                    value={handle}
+                    onChange={(e) => setHandle(e.target.value)}
+                  />
                 </div>
-                <Input
-                  name="handle"
-                  startEnhancer={<div style={{ color: "#42576ca6" }}>@</div>}
-                  placeholder="<username>.bsky.social"
-                  value={handle}
-                  onChange={(e) => setHandle(e.target.value)}
-                />
-              </div>
-              <Button
-                onClick={onLogin}
-                overrides={{
-                  BaseButton: {
-                    style: {
-                      width: "100%",
-                      backgroundColor: "#ff2876",
-                      ":hover": {
+                <Button
+                  onClick={onLogin}
+                  overrides={{
+                    BaseButton: {
+                      style: {
+                        width: "100%",
                         backgroundColor: "#ff2876",
-                      },
-                      ":focus": {
-                        backgroundColor: "#ff2876",
+                        ":hover": {
+                          backgroundColor: "#ff2876",
+                        },
+                        ":focus": {
+                          backgroundColor: "#ff2876",
+                        },
                       },
                     },
-                  },
-                }}
-              >
-                Sign In
-              </Button>
-              <LabelMedium
-                marginTop={"20px"}
-                style={{
-                  textAlign: "center",
-                  color: "#42576ca6",
-                }}
-              >
-                Don't have an account?
-              </LabelMedium>
-              <div
-                style={{
-                  color: "#42576ca6",
-                  textAlign: "center",
-                }}
-              >
-                <a
-                  href="https://bsky.app"
+                  }}
+                >
+                  Sign In
+                </Button>
+                <LabelMedium
+                  marginTop={"20px"}
                   style={{
-                    color: "#ff2876",
-                    textDecoration: "none",
-                    cursor: "pointer",
+                    textAlign: "center",
+                    color: "#42576ca6",
+                  }}
+                >
+                  Don't have an account?
+                </LabelMedium>
+                <div
+                  style={{
+                    color: "#42576ca6",
                     textAlign: "center",
                   }}
-                  target="_blank"
                 >
-                  Sign up for Bluesky
-                </a>{" "}
-                to create one now!
+                  <a
+                    href="https://bsky.app"
+                    style={{
+                      color: "#ff2876",
+                      textDecoration: "none",
+                      cursor: "pointer",
+                      textAlign: "center",
+                    }}
+                    target="_blank"
+                  >
+                    Sign up for Bluesky
+                  </a>{" "}
+                  to create one now!
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <div style={{ marginTop: 40 }}>
-            <ScrobblesAreaChart />
+            <div style={{ marginTop: 40 }}>
+              <ScrobblesAreaChart />
+            </div>
+            <ExternalLinks />
+            <div style={{ marginTop: 40, display: "inline-flex" }}>
+              <Link
+                href="https://docs.rocksky.app/introduction-918639m0"
+                target="_blank"
+                style={{ marginRight: 10 }}
+              >
+                About
+              </Link>
+              <Link
+                href="https://docs.rocksky.app/faq-918661m0"
+                target="_blank"
+                style={{ marginRight: 10 }}
+              >
+                FAQ
+              </Link>
+              <Link
+                href="https://doc.rocksky.app/"
+                target="_blank"
+                style={{ marginRight: 10 }}
+              >
+                API Docs
+              </Link>
+            </div>
           </div>
-          <ExternalLinks />
-          <div style={{ marginTop: 40, display: "inline-flex" }}>
-            <Link
-              href="https://docs.rocksky.app/introduction-918639m0"
-              target="_blank"
-              style={{ marginRight: 10 }}
-            >
-              About
-            </Link>
-            <Link
-              href="https://docs.rocksky.app/faq-918661m0"
-              target="_blank"
-              style={{ marginRight: 10 }}
-            >
-              FAQ
-            </Link>
-            <Link
-              href="https://doc.rocksky.app/"
-              target="_blank"
-              style={{ marginRight: 10 }}
-            >
-              API Docs
-            </Link>
-          </div>
-        </div>
-      </RightPane>
+        </RightPane>
+      )}
       <StickyPlayer />
     </Container>
   );

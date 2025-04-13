@@ -3,6 +3,7 @@ import { TID } from "@atproto/common";
 import { equals, SelectedPick } from "@xata.io/client";
 import { Context } from "context";
 import { createHash } from "crypto";
+import dayjs from "dayjs";
 import * as Album from "lexicon/types/app/rocksky/album";
 import * as Artist from "lexicon/types/app/rocksky/artist";
 import * as Scrobble from "lexicon/types/app/rocksky/scrobble";
@@ -225,7 +226,10 @@ async function putScrobbleRecord(
     copyrightMessage: !!track.copyrightMessage
       ? track.copyrightMessage
       : undefined,
-    createdAt: new Date().toISOString(),
+    // if track.timestamp is not null, set it to the timestamp
+    createdAt: track.timestamp
+      ? dayjs.unix(track.timestamp).toISOString()
+      : new Date().toISOString(),
   };
 
   if (!Scrobble.validateRecord(record).success) {
@@ -578,6 +582,9 @@ export async function scrobbleTrack(
     album_id,
     artist_id,
     uri: scrobbleUri,
+    xata_createdat: track.timestamp
+      ? dayjs.unix(track.timestamp).toDate()
+      : undefined,
   });
 
   await publishScrobble(ctx, scrobble.xata_id);

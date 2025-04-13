@@ -8,6 +8,7 @@ pub struct User {
     pub did: String,
     pub handle: String,
     pub avatar: String,
+    pub shared_secret: Option<String>,
     #[serde(with = "chrono::serde::ts_seconds")]
     pub xata_createdat: DateTime<Utc>,
 }

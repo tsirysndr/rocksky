@@ -84,7 +84,10 @@ function Search() {
                     {results.map((item: any) => (
                       <>
                         {item.table === "users" && (
-                          <Link to={`/profile/${item.record.handle}`}>
+                          <Link
+                            to={`/profile/${item.record.handle}`}
+                            key={item.record.xata_id}
+                          >
                             <div
                               style={{
                                 display: "flex",
@@ -92,6 +95,7 @@ function Search() {
                               }}
                             >
                               <img
+                                key={item.record.did}
                                 src={item.record.avatar}
                                 alt={item.record.display_name}
                                 style={{
@@ -134,9 +138,12 @@ function Search() {
                         {item.record.uri &&
                           (item.record.name || item.record.title) &&
                           item.record.type !== "users" && (
-                            <Link to={`/${item.record.uri?.split("at://")[1]}`}>
+                            <Link
+                              to={`/${item.record.uri?.split("at://")[1]}`}
+                              key={item.record.xata_id}
+                            >
                               <div
-                                key={item.id}
+                                key={item.record.xata_id}
                                 style={{
                                   height: 64,
                                   display: "flex",
@@ -147,6 +154,7 @@ function Search() {
                                 {item.table === "artists" &&
                                   item.record.picture && (
                                     <img
+                                      key={item.record.xata_id}
                                       src={item.record.picture}
                                       alt={item.record.name}
                                       style={{
@@ -160,6 +168,7 @@ function Search() {
                                 {item.table === "artists" &&
                                   !item.record.picture && (
                                     <div
+                                      key={item.record.xata_id}
                                       style={{
                                         width: 50,
                                         height: 50,
@@ -185,6 +194,7 @@ function Search() {
                                 {item.table === "albums" &&
                                   item.record.album_art && (
                                     <img
+                                      key={item.record.xata_id}
                                       src={item.record.album_art}
                                       alt={item.record.title}
                                       style={{
@@ -225,6 +235,7 @@ function Search() {
                                 {item.table === "tracks" &&
                                   item.record.album_art && (
                                     <img
+                                      key={item.record.xata_id}
                                       src={item.record.album_art}
                                       alt={item.record.title}
                                       style={{

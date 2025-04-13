@@ -342,6 +342,124 @@ const tables = [
     ],
   },
   {
+    name: "api_keys",
+    checkConstraints: {
+      api_keys_xata_id_length_xata_id: {
+        name: "api_keys_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {
+      user_id_link: {
+        name: "user_id_link",
+        columns: ["user_id"],
+        referencedTable: "users",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+    },
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_api_keys_xata_id_key: {
+        name: "_pgroll_new_api_keys_xata_id_key",
+        columns: ["xata_id"],
+      },
+      api_keys__pgroll_new_api_key_key: {
+        name: "api_keys__pgroll_new_api_key_key",
+        columns: ["api_key"],
+      },
+      api_keys__pgroll_new_shared_secret_key: {
+        name: "api_keys__pgroll_new_shared_secret_key",
+        columns: ["shared_secret"],
+      },
+      api_keys_name_unique: { name: "api_keys_name_unique", columns: ["name"] },
+    },
+    columns: [
+      {
+        name: "api_key",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "description",
+        type: "text",
+        notNull: false,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "enabled",
+        type: "bool",
+        notNull: true,
+        unique: false,
+        defaultValue: "true",
+        comment: "",
+      },
+      {
+        name: "name",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "shared_secret",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "user_id",
+        type: "link",
+        link: { table: "users" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"users"}',
+      },
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
     name: "artist_albums",
     checkConstraints: {
       artist_albums_xata_id_length_xata_id: {
@@ -4294,6 +4412,9 @@ export type AlbumTracksRecord = AlbumTracks & XataRecord;
 export type Albums = InferredTypes["albums"];
 export type AlbumsRecord = Albums & XataRecord;
 
+export type ApiKeys = InferredTypes["api_keys"];
+export type ApiKeysRecord = ApiKeys & XataRecord;
+
 export type ArtistAlbums = InferredTypes["artist_albums"];
 export type ArtistAlbumsRecord = ArtistAlbums & XataRecord;
 
@@ -4418,6 +4539,7 @@ export type DatabaseSchema = {
   album_tags: AlbumTagsRecord;
   album_tracks: AlbumTracksRecord;
   albums: AlbumsRecord;
+  api_keys: ApiKeysRecord;
   artist_albums: ArtistAlbumsRecord;
   artist_tags: ArtistTagsRecord;
   artist_tracks: ArtistTracksRecord;

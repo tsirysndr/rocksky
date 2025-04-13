@@ -24,6 +24,7 @@ export const trackSchema = z.object({
   label: z.string().optional().nullable(),
   artistPicture: z.string().optional().nullable(),
   spotifyLink: z.string().optional().nullable(),
+  timestamp: z.number().optional().nullable(),
 });
 
 export type Track = z.infer<typeof trackSchema>;

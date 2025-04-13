@@ -1,0 +1,18 @@
+{
+  "done": true,
+  "migration": {
+    "name": "sql_8b4842daf1e1a9",
+    "operations": [
+      {
+        "sql": {
+          "up": "CREATE INDEX idx_tracks_lower_album_artist ON tracks USING btree (lower(album_artist))"
+        }
+      }
+    ]
+  },
+  "migrationType": "inferred",
+  "name": "sql_8b4842daf1e1a9",
+  "parent": "sql_525dccb0e69e3a",
+  "schema": "public",
+  "startedAt": "2025-04-12T15:29:33.3105Z"
+}

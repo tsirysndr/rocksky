@@ -1,4 +1,5 @@
 import albums from "./albums";
+import apiKeys from "./api-keys";
 import artists from "./artists";
 import playlistTracks from "./playlist-tracks";
 import playlists from "./playlists";
@@ -22,4 +23,5 @@ export default {
   shoutReports,
   playlists,
   playlistTracks,
+  apiKeys,
 };

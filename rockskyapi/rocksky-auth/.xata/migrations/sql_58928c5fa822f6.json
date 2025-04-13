@@ -1,0 +1,18 @@
+{
+  "done": true,
+  "migration": {
+    "name": "sql_58928c5fa822f6",
+    "operations": [
+      {
+        "sql": {
+          "up": "CREATE INDEX idx_tracks_lower_title ON tracks USING btree (lower(title))"
+        }
+      }
+    ]
+  },
+  "migrationType": "inferred",
+  "name": "sql_58928c5fa822f6",
+  "parent": "mig_cvsnc0tfchh2dtob91cg",
+  "schema": "public",
+  "startedAt": "2025-04-12T15:28:47.092727Z"
+}

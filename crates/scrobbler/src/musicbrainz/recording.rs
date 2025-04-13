@@ -10,7 +10,7 @@ pub struct Recordings {
     pub created: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Recording {
     #[serde(rename = "first-release-date")]
     pub first_release_date: Option<String>,

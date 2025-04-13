@@ -2,7 +2,7 @@ use serde::Deserialize;
 
 use super::artist::{Area, LifeSpan};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Label {
     #[serde(rename = "type-id")]
     pub type_id: String,
@@ -22,7 +22,7 @@ pub struct Label {
     pub life_span: Option<LifeSpan>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct LabelInfo {
     #[serde(rename = "catalog-number")]
     pub catalog_number: String,

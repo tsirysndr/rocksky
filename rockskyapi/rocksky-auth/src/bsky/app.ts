@@ -66,7 +66,10 @@ app.get("/oauth/callback", async (c) => {
     cli = ctx.kv.get(`cli:${handle}`);
     ctx.kv.delete(`cli:${handle}`);
 
-    const token = jwt.sign({ did }, env.JWT_SECRET);
+    const token = jwt.sign(
+      { did, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7 },
+      env.JWT_SECRET
+    );
     ctx.kv.set(did, token);
   } catch (err) {
     console.error({ err }, "oauth callback failed");

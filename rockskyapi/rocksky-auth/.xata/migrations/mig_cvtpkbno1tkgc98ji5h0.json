@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cvtpkbno1tkgc98ji5h0",
+    "operations": [
+      {
+        "add_column": {
+          "up": "''",
+          "table": "api_keys",
+          "column": {
+            "name": "name",
+            "type": "text",
+            "comment": ""
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cvtpkbno1tkgc98ji5h0",
+  "parent": "mig_cvtnv0d1cltn5mtppjhg",
+  "schema": "public",
+  "startedAt": "2025-04-13T11:04:14.578022Z"
+}
