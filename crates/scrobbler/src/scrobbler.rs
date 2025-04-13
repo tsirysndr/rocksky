@@ -175,6 +175,10 @@ pub async fn scrobble(pool: &Pool<Postgres>, cache: &Cache, form: &BTreeMap<Stri
                 track.album = album;
             }
 
+            if let Some(artist) = spotify_client.get_artist(&track.album.artists[0].id).await? {
+                track.artists[0] = artist;
+            }
+
             rocksky::scrobble(cache, &did, track.into(), scrobble.timestamp).await?;
             tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             continue;

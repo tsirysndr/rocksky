@@ -1,4 +1,4 @@
-use super::types::{Album, SearchResponse};
+use super::types::{Album, Artist, SearchResponse};
 use anyhow::Error;
 
 pub const BASE_URL: &str = "https://api.spotify.com/v1";
@@ -41,6 +41,25 @@ impl SpotifyClient {
       if data == "Too many requests" {
         println!("> retry-after {}", headers.get("retry-after").unwrap().to_str().unwrap());
         println!("> {} [get_album]", data);
+        return Ok(None);
+      }
+
+    Ok(Some(serde_json::from_str(&data)?))
+  }
+
+  pub async fn get_artist(&self, id: &str) -> Result<Option<Artist>, Error> {
+      let url = format!("{}/artists/{}", BASE_URL, id);
+      let client = reqwest::Client::new();
+      let response = client.get(&url)
+          .bearer_auth(&self.token)
+          .send().await?;
+
+      let headers = response.headers().clone();
+      let data = response.text().await?;
+
+      if data == "Too many requests" {
+        println!("> retry-after {}", headers.get("retry-after").unwrap().to_str().unwrap());
+        println!("> {} [get_artist]", data);
         return Ok(None);
       }
 

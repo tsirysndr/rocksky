@@ -139,7 +139,7 @@ impl From<&spotify::types::Track> for Track {
             duration: track.duration_ms as u32,
             album_art: track.album.images.first().map(|image| image.url.clone()),
             spotify_link: Some(track.external_urls.spotify.clone()),
-            artist_picture: track.artists.first().and_then(|artist| {
+            artist_picture: track.album.artists.first().and_then(|artist| {
                 artist
                     .images
                     .as_ref()
