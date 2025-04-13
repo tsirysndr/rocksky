@@ -208,7 +208,7 @@ app.get("/public/scrobbles", async (c) => {
   const offset = +c.req.query("offset") || 0;
 
   const scrobbles = await ctx.client.db.scrobbles
-    .select(["track_id.*", "user_id.*", "xata_createdat", "uri"])
+    .select(["track_id.*", "user_id.*", "timestamp", "xata_createdat", "uri"])
     .sort("timestamp", "desc")
     .getPaginated({
       pagination: {
@@ -222,7 +222,7 @@ app.get("/public/scrobbles", async (c) => {
       cover: item.track_id.album_art,
       artist: item.track_id.artist,
       title: item.track_id.title,
-      date: item.xata_createdat,
+      date: item.timestamp,
       user: item.user_id.handle,
       uri: item.uri,
       tags: [],
