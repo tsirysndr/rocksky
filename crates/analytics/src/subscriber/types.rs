@@ -91,6 +91,7 @@ pub struct Scrobble {
     pub track_id: TrackId,
     pub uri: String,
     pub user_id: UserId,
+    pub timestamp: DateTime<Utc>,
     pub xata_createdat: DateTime<Utc>,
     pub xata_id: String,
     pub xata_updatedat: DateTime<Utc>,

@@ -11,4 +11,6 @@ pub struct Scrobble {
     pub uri: Option<String>,
     #[serde(with = "chrono::serde::ts_seconds")]
     pub xata_createdat: DateTime<Utc>,
+    #[serde(with = "chrono::serde::ts_seconds")]
+    pub timestamp: DateTime<Utc>,
 }

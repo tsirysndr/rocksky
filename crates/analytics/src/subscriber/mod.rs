@@ -503,7 +503,7 @@ pub async fn save_scrobble(conn: Arc<Mutex<Connection>>, payload: ScrobblePayloa
               payload.scrobble.album_id.xata_id,
               payload.scrobble.artist_id.xata_id,
               payload.scrobble.uri,
-              payload.scrobble.xata_createdat,
+              payload.scrobble.timestamp,
           ],
       ) {
           Ok(_) => (),
