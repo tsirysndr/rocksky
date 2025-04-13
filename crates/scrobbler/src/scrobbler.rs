@@ -145,7 +145,16 @@ pub async fn scrobble(pool: &Pool<Postgres>, cache: &Cache, form: &BTreeMap<Stri
             let album = repo::album::get_album_by_track_id(pool, &track.xata_id).await?;
             let artist = repo::artist::get_artist_by_track_id(pool, &track.xata_id).await?;
             let mut track: Track = track.into();
-            track.year = album.year.map(|x| x as u32);
+            track.year = match album.year {
+                Some(year) => Some(year as u32),
+                None => match album.release_date.clone() {
+                    Some(release_date) => {
+                        let year = release_date.split("-").next();
+                        year.and_then(|x| x.parse::<u32>().ok())
+                    }
+                    None => None,
+                },
+            };
             track.release_date = album.release_date.map(|x| x.split("T").next().unwrap().to_string());
             track.artist_picture = artist.picture.clone();
 
