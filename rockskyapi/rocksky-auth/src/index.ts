@@ -209,7 +209,7 @@ app.get("/public/scrobbles", async (c) => {
 
   const scrobbles = await ctx.client.db.scrobbles
     .select(["track_id.*", "user_id.*", "xata_createdat", "uri"])
-    .sort("xata_createdat", "desc")
+    .sort("timestamp", "desc")
     .getPaginated({
       pagination: {
         size,

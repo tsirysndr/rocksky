@@ -2716,6 +2716,14 @@ const tables = [
         comment: '{"xata.link":"artists"}',
       },
       {
+        name: "timestamp",
+        type: "datetime",
+        notNull: false,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
         name: "track_id",
         type: "link",
         link: { table: "tracks" },

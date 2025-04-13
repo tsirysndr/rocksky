@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cvu23dtfchh2dtob9esg",
+    "operations": [
+      {
+        "add_column": {
+          "table": "scrobbles",
+          "column": {
+            "name": "timestamp",
+            "type": "timestamptz",
+            "comment": "",
+            "nullable": true
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cvu23dtfchh2dtob9esg",
+  "parent": "mig_cvtpku7o1tkgc98ji5j0",
+  "schema": "public",
+  "startedAt": "2025-04-13T20:42:32.054392Z"
+}

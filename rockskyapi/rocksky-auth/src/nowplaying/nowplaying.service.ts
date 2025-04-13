@@ -582,9 +582,9 @@ export async function scrobbleTrack(
     album_id,
     artist_id,
     uri: scrobbleUri,
-    xata_createdat: track.timestamp
+    timestamp: track.timestamp
       ? dayjs.unix(track.timestamp).toDate()
-      : undefined,
+      : new Date(),
   });
 
   await publishScrobble(ctx, scrobble.xata_id);

@@ -13,6 +13,7 @@ const scrobbles = pgTable("scrobbles", {
   artistId: text("artist_id").references(() => artists.id),
   uri: text("uri").unique(),
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
 });
 
 export default scrobbles;
