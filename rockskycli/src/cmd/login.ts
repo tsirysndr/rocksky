@@ -11,8 +11,11 @@ export async function login(handle: string): Promise<void> {
   const server = app.listen(6996);
 
   app.post("/token", (req: Request, res: Response) => {
-    console.log(req.body);
-
+    console.log("Login successful!");
+    console.log(
+      "You can use this session key (Token) to authenticate with the API."
+    );
+    console.log("Received token (session key):", req.body.sessionKey);
     res.json({
       ok: 1,
     });
