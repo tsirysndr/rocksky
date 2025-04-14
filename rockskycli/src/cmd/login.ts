@@ -15,7 +15,7 @@ export async function login(handle: string): Promise<void> {
     console.log(
       "You can use this session key (Token) to authenticate with the API."
     );
-    console.log("Received token (session key):", req.body.sessionKey);
+    console.log("Received token (session key):", req.body.token);
     res.json({
       ok: 1,
     });
