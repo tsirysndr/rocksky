@@ -1,4 +1,5 @@
 import axios from "axios";
+import chalk from "chalk";
 import cors from "cors";
 import express, { Request, Response } from "express";
 import open from "open";
@@ -11,11 +12,11 @@ export async function login(handle: string): Promise<void> {
   const server = app.listen(6996);
 
   app.post("/token", (req: Request, res: Response) => {
-    console.log("Login successful!");
+    console.log(chalk.bold(chalk.greenBright("Login successful!")));
     console.log(
       "You can use this session key (Token) to authenticate with the API."
     );
-    console.log("Received token (session key):", req.body.token);
+    console.log("Received token (session key):", chalk.green(req.body.token));
     res.json({
       ok: 1,
     });
@@ -37,7 +38,7 @@ export async function login(handle: string): Promise<void> {
   }
 
   console.log("Please visit this URL to authorize the app:");
-  console.log(redirectUrl);
+  console.log(chalk.cyan(redirectUrl));
 
   open(redirectUrl);
 }
