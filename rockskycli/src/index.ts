@@ -1,3 +1,4 @@
+import { whoami } from "cmd/whoami";
 import { Command } from "commander";
 import version from "../package.json" assert { type: "json" };
 import { login } from "./cmd/login";
@@ -13,8 +14,13 @@ program
 
 program
   .command("login")
-  .argument("<handle>", "Your BlueSky handle (e.g., @username.bsky.social)")
+  .argument("<handle>", "Your BlueSky handle (e.g., <username>.bsky.social)")
   .description("Login with your BlueSky account and get a session token.")
   .action(login);
+
+program
+  .command("whoami")
+  .description("Get the current logged-in user.")
+  .action(whoami);
 
 program.parse(process.argv);

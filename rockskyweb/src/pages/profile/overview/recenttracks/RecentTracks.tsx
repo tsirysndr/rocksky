@@ -179,7 +179,7 @@ function RecentTracks(props: RecentTracksProps) {
                 alignItems: "center",
               }}
             >
-              <Link to={`/${row.albumUri.split("at://")[1]}`}>
+              <Link to={`/${row.albumUri?.split("at://")[1]}`}>
                 <img
                   src={row.albumArt}
                   alt={row.title}
@@ -188,7 +188,7 @@ function RecentTracks(props: RecentTracksProps) {
                 />
               </Link>
               <div>
-                <Link to={`/${row.uri.split("at://")[1]}`}>{row.title}</Link>
+                <Link to={`/${row.uri?.split("at://")[1]}`}>{row.title}</Link>
               </div>
             </div>
           )}
@@ -196,7 +196,7 @@ function RecentTracks(props: RecentTracksProps) {
         <TableBuilderColumn header="Artist">
           {(row: Row) => (
             <Link
-              to={`/${row.artistUri.split("at://")[1]}`}
+              to={`/${row.artistUri?.split("at://")[1]}`}
               style={{ fontFamily: "RockfordSansLight" }}
             >
               {row.albumArtist}

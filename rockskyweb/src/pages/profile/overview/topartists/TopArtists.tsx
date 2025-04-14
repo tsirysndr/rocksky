@@ -147,7 +147,7 @@ function TopArtists(props: TopArtistsProps) {
                     : row.index + 1}
                 </div>
               </div>
-              <Link to={`/${row.uri.split("at://")[1]}`}>
+              <Link to={`/${row.uri?.split("at://")[1]}`}>
                 {!!row.picture && (
                   <img
                     src={row.picture}
@@ -187,7 +187,7 @@ function TopArtists(props: TopArtistsProps) {
               </Link>
               <div>
                 <Link
-                  to={`/${row.uri.split("at://")[1]}`}
+                  to={`/${row.uri?.split("at://")[1]}`}
                   style={{
                     color: "initial",
                     textDecoration: "none",
