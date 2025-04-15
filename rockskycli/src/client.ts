@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 export const ROCKSKY_API_URL = "https://api.rocksky.app";
 
 export class RockskyClient {

@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { nowplaying } from "cmd/nowplaying";
 import { whoami } from "cmd/whoami";
 import { Command } from "commander";
