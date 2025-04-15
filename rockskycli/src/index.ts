@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { nowplaying } from "cmd/nowplaying";
+import { scrobbles } from "cmd/scrobbles";
 import { whoami } from "cmd/whoami";
 import { Command } from "commander";
 import version from "../package.json" assert { type: "json" };
@@ -34,5 +35,13 @@ program
   )
   .description("Get the currently playing track.")
   .action(nowplaying);
+
+program
+  .command("scrobbles")
+  .option("-s, --skip <number>", "Number of scrobbles to skip")
+  .option("-l, --limit <number>", "Number of scrobbles to limit")
+  .argument("[did]", "The DID or handle of the user to get the scrobbles for.")
+  .description("Display recently played tracks.")
+  .action(scrobbles);
 
 program.parse(process.argv);

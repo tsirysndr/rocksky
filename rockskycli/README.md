@@ -29,3 +29,8 @@ rocksky login
 rocksky nowplaying
 ```
 
+`scrobbles` - Lists all recently scrobbled tracks.
+
+```bash
+rocksky scrobbles
+```

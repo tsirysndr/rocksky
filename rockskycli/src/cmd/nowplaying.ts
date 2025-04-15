@@ -3,7 +3,6 @@ import { RockskyClient } from "client";
 import fs from "fs/promises";
 import os from "os";
 import path from "path";
-import chalk from "chalk";
 
 export async function nowplaying(did?: string) {
   const tokenPath = path.join(os.homedir(), ".rocksky", "token.json");
@@ -11,11 +10,9 @@ export async function nowplaying(did?: string) {
     await fs.access(tokenPath);
   } catch (err) {
     console.error(
-      `You are not logged in. Please run ${
-        chalk.greenBright(
-          "`rocksky login <username>.bsky.social`",
-        )
-      } first.`,
+      `You are not logged in. Please run ${chalk.greenBright(
+        "`rocksky login <username>.bsky.social`"
+      )} first.`
     );
     return;
   }
@@ -24,11 +21,9 @@ export async function nowplaying(did?: string) {
   const { token } = JSON.parse(tokenData);
   if (!token) {
     console.error(
-      `You are not logged in. Please run ${
-        chalk.greenBright(
-          "`rocksky login <username>.bsky.social`",
-        )
-      } first.`,
+      `You are not logged in. Please run ${chalk.greenBright(
+        "`rocksky login <username>.bsky.social`"
+      )} first.`
     );
     return;
   }
@@ -49,18 +44,16 @@ export async function nowplaying(did?: string) {
 
     console.log(
       chalk.magenta(
-        `${nowPlaying.item.name} - ${
-          nowPlaying.item.artists
-            .map((a) => a.name)
-            .join(", ")
-        }`,
-      ),
+        `${nowPlaying.item.name} - ${nowPlaying.item.artists
+          .map((a) => a.name)
+          .join(", ")}`
+      )
     );
     console.log(`${nowPlaying.item.album.name}`);
   } catch (err) {
     console.log(err);
     console.error(
-      `Failed to fetch now playing data. Please check your token and try again.`,
+      `Failed to fetch now playing data. Please check your token and try again.`
     );
   }
 }

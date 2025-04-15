@@ -1,10 +1,7 @@
 export const ROCKSKY_API_URL = "https://api.rocksky.app";
 
 export class RockskyClient {
-  constructor(private readonly token: string) {
-    if (!token) {
-      throw new Error("Token is required to create a RockskyClient instance.");
-    }
+  constructor(private readonly token?: string) {
     this.token = token;
   }
 
@@ -12,7 +9,7 @@ export class RockskyClient {
     const response = await fetch(`${ROCKSKY_API_URL}/profile`, {
       method: "GET",
       headers: {
-        Authorization: `Bearer ${this.token}`,
+        Authorization: this.token ? `Bearer ${this.token}` : undefined,
         "Content-Type": "application/json",
       },
     });
@@ -31,7 +28,7 @@ export class RockskyClient {
       {
         method: "GET",
         headers: {
-          Authorization: `Bearer ${this.token}`,
+          Authorization: this.token ? `Bearer ${this.token}` : undefined,
           "Content-Type": "application/json",
         },
       }
@@ -52,7 +49,7 @@ export class RockskyClient {
       {
         method: "GET",
         headers: {
-          Authorization: `Bearer ${this.token}`,
+          Authorization: this.token ? `Bearer ${this.token}` : undefined,
           "Content-Type": "application/json",
         },
       }
@@ -62,6 +59,43 @@ export class RockskyClient {
       throw new Error(
         `Failed to fetch now playing data: ${response.statusText}`
       );
+    }
+
+    return response.json();
+  }
+
+  async scrobbles(did?: string, { skip = 0, limit = 20 } = {}) {
+    if (did) {
+      const response = await fetch(
+        `${ROCKSKY_API_URL}/users/${did}/scrobbles?offset=${skip}&size=${limit}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: this.token ? `Bearer ${this.token}` : undefined,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch scrobbles data: ${response.statusText}`
+        );
+      }
+      return response.json();
+    }
+
+    const response = await fetch(
+      `${ROCKSKY_API_URL}/public/scrobbles?offset=${skip}&size=${limit}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: this.token ? `Bearer ${this.token}` : undefined,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    if (!response.ok) {
+      throw new Error(`Failed to fetch scrobbles data: ${response.statusText}`);
     }
 
     return response.json();
