@@ -506,7 +506,7 @@ app.get("/:did", async (c) => {
   const did = c.req.param("did");
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
   if (bearer && bearer !== "null") {
-    const claims = jwt.verify(did, env.JWT_SECRET);
+    const claims = jwt.verify(bearer, env.JWT_SECRET);
     const agent = await createAgent(ctx.oauthClient, claims.did);
 
     if (agent) {
