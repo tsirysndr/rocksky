@@ -1,3 +1,4 @@
+import { BlobRef } from "@atproto/lexicon";
 import { equals } from "@xata.io/client";
 import { ctx } from "context";
 import {
@@ -12,6 +13,7 @@ import {
 } from "drizzle-orm";
 import { Hono } from "hono";
 import jwt from "jsonwebtoken";
+import * as Profile from "lexicon/types/app/bsky/actor/profile";
 import { createAgent } from "lib/agent";
 import { env } from "lib/env";
 import _ from "lodash";
@@ -502,6 +504,48 @@ app.get("/:did/app.rocksky.playlist/:rkey", async (c) => {
 
 app.get("/:did", async (c) => {
   const did = c.req.param("did");
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+  if (bearer && bearer !== "null") {
+    const claims = jwt.verify(did, env.JWT_SECRET);
+    const agent = await createAgent(ctx.oauthClient, claims.did);
+
+    if (agent) {
+      const { data: profileRecord } = await agent.com.atproto.repo.getRecord({
+        repo: agent.assertDid,
+        collection: "app.bsky.actor.profile",
+        rkey: "self",
+      });
+      const handle = await ctx.resolver.resolveDidToHandle(claims.did);
+      const profile: {
+        handle?: string;
+        displayName?: string;
+        avatar?: BlobRef;
+      } =
+        Profile.isRecord(profileRecord.value) &&
+        Profile.validateRecord(profileRecord.value).success
+          ? { ...profileRecord.value, handle }
+          : {};
+
+      if (profile.handle) {
+        await ctx.db
+          .update(tables.users)
+          .set({
+            handle,
+            displayName: profile.displayName,
+            avatar: `https://cdn.bsky.app/img/avatar/plain/${did}/${profile.avatar.ref.toString()}@jpeg`,
+          })
+          .where(eq(tables.users.did, did))
+          .execute();
+
+        const user = await ctx.client.db.users
+          .select(["*"])
+          .filter("did", equals(did))
+          .getFirst();
+
+        ctx.nc.publish("rocksky.user", Buffer.from(JSON.stringify(user)));
+      }
+    }
+  }
 
   const user = await ctx.client.db.users
     .filter({
