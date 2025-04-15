@@ -9,7 +9,7 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "tsx --watch ./src/index.ts",
+    "dev": "tsx ./src/index.ts",
     "build": "pkgroll && chmod +x ./dist/index.js"
   },
   "keywords": [

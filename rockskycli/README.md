@@ -9,6 +9,20 @@
 - 📤 Manually scrobble tracks
 - 🛠️ Useful developer tools for integrating Rocksky into your workflows
 
+## Run in development
+To run the CLI in development mode, install the dependencies:
+
+```bash
+bun install
+```
+
+Then, run the CLI with:
+
+```bash
+bun run dev --help
+```
+
+
 ## Usage
 
 ```bash
