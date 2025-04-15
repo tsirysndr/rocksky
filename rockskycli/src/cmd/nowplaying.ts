@@ -30,19 +30,24 @@ export async function nowplaying(did?: string) {
 
   const client = new RockskyClient(token);
   try {
-    const nowPlaying = await client.getNowPlaying(did);
+    const nowPlaying = await client.getSpotifyNowPlaying(did);
     if (!nowPlaying || Object.keys(nowPlaying).length === 0) {
-      console.log("No track is currently playing.");
+      const nowPlaying = await client.getNowPlaying(did);
+      if (!nowPlaying || Object.keys(nowPlaying).length === 0) {
+        console.log("No track is currently playing.");
+        return;
+      }
+      console.log(`${nowPlaying.title} - ${nowPlaying.artist}`);
+      console.log(`${nowPlaying.album}`);
       return;
     }
 
     console.log(
-      chalk.cyan(
-        `${nowPlaying.item.name} - ${nowPlaying.item.artists
-          .map((a) => a.name)
-          .join(", ")}`
-      )
+      `${nowPlaying.item.name} - ${nowPlaying.item.artists
+        .map((a) => a.name)
+        .join(", ")}`
     );
+    console.log(`${nowPlaying.item.album.name}`);
   } catch (err) {
     console.log(err);
     console.error(

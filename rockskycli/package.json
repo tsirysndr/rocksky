@@ -1,13 +1,16 @@
 {
-  "name": "rocksky",
+  "name": "@rocksky/cli",
   "version": "0.1.0",
   "description": "Command-line interface for Rocksky – scrobble tracks, view stats, and manage your listening history",
   "main": "dist/index.js",
   "type": "module",
+  "bin": {
+    "rocksky": "./dist/index.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx --watch ./src/index.ts",
-    "build": "pkgroll"
+    "build": "pkgroll && chmod +x ./dist/index.js"
   },
   "keywords": [
     "audioscrobbler",
