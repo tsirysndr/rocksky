@@ -515,7 +515,7 @@ app.get("/:did", async (c) => {
         collection: "app.bsky.actor.profile",
         rkey: "self",
       });
-      const handle = await ctx.resolver.resolveDidToHandle(claims.did);
+      const handle = await ctx.resolver.resolveDidToHandle(did);
       const profile: {
         handle?: string;
         displayName?: string;
