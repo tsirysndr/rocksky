@@ -511,7 +511,7 @@ app.get("/:did", async (c) => {
 
     if (agent) {
       const { data: profileRecord } = await agent.com.atproto.repo.getRecord({
-        repo: agent.assertDid,
+        repo: did,
         collection: "app.bsky.actor.profile",
         rkey: "self",
       });
