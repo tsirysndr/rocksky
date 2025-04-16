@@ -17,7 +17,6 @@ export async function search(
     ...record,
     type: record.table,
   }));
-  mergedResults.sort((a, b) => b.xata_score - a.xata_score);
 
   if (albums) {
     mergedResults = mergedResults.filter((record) => record.table === "albums");
@@ -36,6 +35,8 @@ export async function search(
   if (users) {
     mergedResults = mergedResults.filter(({ table }) => table === "users");
   }
+
+  mergedResults.sort((a, b) => b.xata_score - a.xata_score);
 
   for (const { table, record } of mergedResults) {
     if (table === "users") {

@@ -1,3 +1,4 @@
+import { JoseKey } from "@atproto/jwk-jose";
 import { NodeOAuthClient } from "@atproto/oauth-client-node";
 import type { Database } from "../db";
 import { env } from "../lib/env";
@@ -21,9 +22,22 @@ export const createClient = async (db: Database) => {
       grant_types: ["authorization_code", "refresh_token"],
       response_types: ["code"],
       application_type: "web",
-      token_endpoint_auth_method: "none",
+      token_endpoint_auth_method: url.startsWith("https")
+        ? "private_key_jwt"
+        : "none",
+      token_endpoint_auth_signing_alg: url.startsWith("https")
+        ? "ES256"
+        : undefined,
       dpop_bound_access_tokens: true,
+      jwks_uri: url.startsWith("https") ? `${url}/jwks.json` : undefined,
     },
+    keyset: url.startsWith("https")
+      ? await Promise.all([
+          JoseKey.fromImportable(env.PRIVATE_KEY_1),
+          JoseKey.fromImportable(env.PRIVATE_KEY_2),
+          JoseKey.fromImportable(env.PRIVATE_KEY_3),
+        ])
+      : undefined,
     stateStore: new StateStore(db),
     sessionStore: new SessionStore(db),
   });

@@ -34,4 +34,7 @@ export const env = cleanEnv(process.env, {
   GOOGLE_DRIVE: str({ default: "http://localhost:7880" }),
   DROPBOX: str({ default: "http://localhost:7881" }),
   REDIS_URL: str({ default: "redis://localhost:6379" }),
+  PRIVATE_KEY_1: str({}),
+  PRIVATE_KEY_2: str({}),
+  PRIVATE_KEY_3: str({}),
 });
