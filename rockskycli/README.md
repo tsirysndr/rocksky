@@ -48,3 +48,9 @@ rocksky nowplaying
 ```bash
 rocksky scrobbles
 ```
+
+`search` - Searches for tracks, albums, artists or Rocksky users.
+
+```bash
+rocksky search <query>
+```
