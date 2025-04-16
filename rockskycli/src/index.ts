@@ -2,6 +2,7 @@
 
 import { nowplaying } from "cmd/nowplaying";
 import { scrobbles } from "cmd/scrobbles";
+import { search } from "cmd/search";
 import { whoami } from "cmd/whoami";
 import { Command } from "commander";
 import version from "../package.json" assert { type: "json" };
@@ -43,5 +44,18 @@ program
   .argument("[did]", "The DID or handle of the user to get the scrobbles for.")
   .description("Display recently played tracks.")
   .action(scrobbles);
+
+program
+  .command("search")
+  .option("-a, --albums", "Search for albums")
+  .option("-t, --tracks", "Search for tracks")
+  .option("-u, --users", "Search for users")
+  .option("-l, --limit <number>", "Number of results to limit")
+  .argument(
+    "<query>",
+    "The search query, e.g., artist, album, title or account"
+  )
+  .description("Search for tracks, albums, or accounts.")
+  .action(search);
 
 program.parse(process.argv);

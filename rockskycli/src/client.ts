@@ -100,4 +100,23 @@ export class RockskyClient {
 
     return response.json();
   }
+
+  async search(query: string, { size }) {
+    const response = await fetch(
+      `${ROCKSKY_API_URL}/search?q=${query}&size=${size}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: this.token ? `Bearer ${this.token}` : undefined,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch search data: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
 }
