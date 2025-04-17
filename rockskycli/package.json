@@ -29,7 +29,8 @@
     "dayjs": "^1.11.13",
     "express": "^5.1.0",
     "md5": "^2.3.0",
-    "open": "^10.1.0"
+    "open": "^10.1.0",
+    "table": "^6.9.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.1",

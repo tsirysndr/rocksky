@@ -54,3 +54,9 @@ rocksky scrobbles
 ```bash
 rocksky search <query>
 ```
+
+`stats` - Displays your Rocksky account statistics.
+
+```bash
+rocksky stats [did]
+```

@@ -3,6 +3,7 @@
 import { nowplaying } from "cmd/nowplaying";
 import { scrobbles } from "cmd/scrobbles";
 import { search } from "cmd/search";
+import { stats } from "cmd/stats";
 import { whoami } from "cmd/whoami";
 import { Command } from "commander";
 import version from "../package.json" assert { type: "json" };
@@ -57,5 +58,11 @@ program
   )
   .description("Search for tracks, albums, or accounts.")
   .action(search);
+
+program
+  .command("stats")
+  .argument("[did]", "The DID or handle of the user to get stats for.")
+  .description("Get the user's listening stats.")
+  .action(stats);
 
 program.parse(process.argv);

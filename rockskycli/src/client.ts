@@ -119,4 +119,24 @@ export class RockskyClient {
 
     return response.json();
   }
+
+  async stats(did?: string) {
+    if (!did) {
+      const user = await this.getCurrentUser();
+      did = user.handle;
+    }
+
+    const response = await fetch(`${ROCKSKY_API_URL}/users/${did}/stats`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch stats data: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
 }

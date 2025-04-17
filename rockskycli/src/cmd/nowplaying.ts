@@ -9,17 +9,19 @@ export async function nowplaying(did?: string) {
   try {
     await fs.access(tokenPath);
   } catch (err) {
-    console.error(
-      `You are not logged in. Please run ${chalk.greenBright(
-        "`rocksky login <username>.bsky.social`"
-      )} first.`
-    );
-    return;
+    if (!did) {
+      console.error(
+        `You are not logged in. Please run ${chalk.greenBright(
+          "`rocksky login <username>.bsky.social`"
+        )} first.`
+      );
+      return;
+    }
   }
 
   const tokenData = await fs.readFile(tokenPath, "utf-8");
   const { token } = JSON.parse(tokenData);
-  if (!token) {
+  if (!token && !did) {
     console.error(
       `You are not logged in. Please run ${chalk.greenBright(
         "`rocksky login <username>.bsky.social`"
