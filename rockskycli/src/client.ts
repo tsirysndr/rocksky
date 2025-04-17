@@ -1,3 +1,7 @@
+import fs from "fs";
+import os from "os";
+import path from "path";
+
 export const ROCKSKY_API_URL = "https://api.rocksky.app";
 
 export class RockskyClient {
@@ -122,8 +126,17 @@ export class RockskyClient {
 
   async stats(did?: string) {
     if (!did) {
-      const user = await this.getCurrentUser();
-      did = user.handle;
+      const didFile = path.join(os.homedir(), ".rocksky", "did");
+      try {
+        await fs.promises.access(didFile);
+        did = await fs.promises.readFile(didFile, "utf-8");
+      } catch (err) {
+        const user = await this.getCurrentUser();
+        did = user.did;
+        const didPath = path.join(os.homedir(), ".rocksky");
+        fs.promises.mkdir(didPath, { recursive: true });
+        await fs.promises.writeFile(didFile, did);
+      }
     }
 
     const response = await fetch(`${ROCKSKY_API_URL}/users/${did}/stats`, {
