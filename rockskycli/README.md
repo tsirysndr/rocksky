@@ -60,3 +60,21 @@ rocksky search <query>
 ```bash
 rocksky stats [did]
 ```
+
+`artists` - Lists the user's top artists.
+
+```bash
+rocksky artists [did]
+```
+
+`albums` - Lists the user's top albums.
+
+```bash
+rocksky albums [did]
+```
+
+`tracks` - Lists the user's top tracks.
+
+```bash
+rocksky tracks [did]
+```
