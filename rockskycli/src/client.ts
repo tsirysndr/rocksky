@@ -152,4 +152,97 @@ export class RockskyClient {
 
     return response.json();
   }
+
+  async getArtists(did?: string, { skip = 0, limit = 20 } = {}) {
+    if (!did) {
+      const didFile = path.join(os.homedir(), ".rocksky", "did");
+      try {
+        await fs.promises.access(didFile);
+        did = await fs.promises.readFile(didFile, "utf-8");
+      } catch (err) {
+        const user = await this.getCurrentUser();
+        did = user.did;
+        const didPath = path.join(os.homedir(), ".rocksky");
+        fs.promises.mkdir(didPath, { recursive: true });
+        await fs.promises.writeFile(didFile, did);
+      }
+    }
+
+    const response = await fetch(
+      `${ROCKSKY_API_URL}/users/${did}/artists?offset=${skip}&size=${limit}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: this.token ? `Bearer ${this.token}` : undefined,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    if (!response.ok) {
+      throw new Error(`Failed to fetch artists data: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  async getAlbums(did?: string, { skip = 0, limit = 20 } = {}) {
+    if (!did) {
+      const didFile = path.join(os.homedir(), ".rocksky", "did");
+      try {
+        await fs.promises.access(didFile);
+        did = await fs.promises.readFile(didFile, "utf-8");
+      } catch (err) {
+        const user = await this.getCurrentUser();
+        did = user.did;
+        const didPath = path.join(os.homedir(), ".rocksky");
+        fs.promises.mkdir(didPath, { recursive: true });
+        await fs.promises.writeFile(didFile, did);
+      }
+    }
+
+    const response = await fetch(
+      `${ROCKSKY_API_URL}/users/${did}/albums?offset=${skip}&size=${limit}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: this.token ? `Bearer ${this.token}` : undefined,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    if (!response.ok) {
+      throw new Error(`Failed to fetch albums data: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  async getTracks(did?: string, { skip = 0, limit = 20 } = {}) {
+    if (!did) {
+      const didFile = path.join(os.homedir(), ".rocksky", "did");
+      try {
+        await fs.promises.access(didFile);
+        did = await fs.promises.readFile(didFile, "utf-8");
+      } catch (err) {
+        const user = await this.getCurrentUser();
+        did = user.did;
+        const didPath = path.join(os.homedir(), ".rocksky");
+        fs.promises.mkdir(didPath, { recursive: true });
+        await fs.promises.writeFile(didFile, did);
+      }
+    }
+
+    const response = await fetch(
+      `${ROCKSKY_API_URL}/users/${did}/tracks?offset=${skip}&size=${limit}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: this.token ? `Bearer ${this.token}` : undefined,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    if (!response.ok) {
+      throw new Error(`Failed to fetch tracks data: ${response.statusText}`);
+    }
+    return response.json();
+  }
 }

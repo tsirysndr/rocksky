@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 
+import { albums } from "cmd/albums";
+import { artists } from "cmd/artists";
 import { nowplaying } from "cmd/nowplaying";
 import { scrobbles } from "cmd/scrobbles";
 import { search } from "cmd/search";
 import { stats } from "cmd/stats";
+import { tracks } from "cmd/tracks";
 import { whoami } from "cmd/whoami";
 import { Command } from "commander";
 import version from "../package.json" assert { type: "json" };
@@ -61,8 +64,30 @@ program
 
 program
   .command("stats")
+  .option("-l, --limit <number>", "Number of results to limit")
   .argument("[did]", "The DID or handle of the user to get stats for.")
   .description("Get the user's listening stats.")
   .action(stats);
+
+program
+  .command("artists")
+  .option("-l, --limit <number>", "Number of results to limit")
+  .argument("[did]", "The DID or handle of the user to get artists for.")
+  .description("Get the user's top artists.")
+  .action(artists);
+
+program
+  .command("albums")
+  .option("-l, --limit <number>", "Number of results to limit")
+  .argument("[did]", "The DID or handle of the user to get albums for.")
+  .description("Get the user's top albums.")
+  .action(albums);
+
+program
+  .command("tracks")
+  .option("-l, --limit <number>", "Number of results to limit")
+  .argument("[did]", "The DID or handle of the user to get tracks for.")
+  .description("Get the user's top tracks.")
+  .action(tracks);
 
 program.parse(process.argv);
