@@ -1,6 +1,6 @@
 ## Rocksky CLI
 
-🎧 The official command-line interface for [Rocksky](https://rocksky.app) — a modern, decentralized music tracking and discovery platform built on the AT Protocol.
+🎧 The official command-line interface for [Rocksky](https://rocksky.app) — a modern, decentralized music tracking and discovery platform built on the [AT Protocol](https://atproto.com).
 
 ## Features
 - 🔐 Authenticate with your Rocksky account using OAuth
