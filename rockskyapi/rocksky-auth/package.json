@@ -7,7 +7,7 @@
 	"scripts": {
 		"lexgen": "lex gen-server ./src/lexicon ./lexicons/*",
 		"dev": "tsx --watch ./src/index.ts",
-		"prod": "tsx ./src/index.ts",
+		"prod": "OTEL_LOG_LEVEL=debug tsx ./src/index.ts",
 		"build": "pkgroll"
 	},
 	"dependencies": {
