@@ -1,6 +1,6 @@
 {
   "name": "@rocksky/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Command-line interface for Rocksky – scrobble tracks, view stats, and manage your listening history",
   "main": "dist/index.js",
   "type": "module",
