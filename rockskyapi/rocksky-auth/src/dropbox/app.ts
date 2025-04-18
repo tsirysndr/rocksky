@@ -5,11 +5,13 @@ import { Hono } from "hono";
 import jwt from "jsonwebtoken";
 import { encrypt } from "lib/crypto";
 import { env } from "lib/env";
+import { requestCounter } from "metrics";
 import { emailSchema } from "types/email";
 
 const app = new Hono();
 
 app.get("/login", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/dropbox/login" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   if (!bearer || bearer === "null") {
@@ -31,6 +33,7 @@ app.get("/login", async (c) => {
 });
 
 app.get("/oauth/callback", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/dropbox/oauth/callback" });
   const params = new URLSearchParams(c.req.url.split("?")[1]);
   const entries = Object.fromEntries(params.entries());
   // entries.code
@@ -69,6 +72,7 @@ app.get("/oauth/callback", async (c) => {
 });
 
 app.post("/join", async (c) => {
+  requestCounter.add(1, { method: "POST", route: "/dropbox/join" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   if (!bearer || bearer === "null") {
@@ -123,6 +127,7 @@ app.post("/join", async (c) => {
 });
 
 app.get("/files", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/dropbox/files" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   if (!bearer || bearer === "null") {
@@ -167,6 +172,7 @@ app.get("/files", async (c) => {
 });
 
 app.get("/temporary-link", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/dropbox/temporary-link" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   if (!bearer || bearer === "null") {
@@ -197,6 +203,7 @@ app.get("/temporary-link", async (c) => {
 });
 
 app.get("/files/:id", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/dropbox/files/:id" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   if (!bearer || bearer === "null") {
@@ -223,6 +230,7 @@ app.get("/files/:id", async (c) => {
 });
 
 app.get("/file", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/dropbox/file" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   if (!bearer || bearer === "null") {
@@ -254,6 +262,7 @@ app.get("/file", async (c) => {
 });
 
 app.get("/download", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/dropbox/download" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   if (!bearer || bearer === "null") {

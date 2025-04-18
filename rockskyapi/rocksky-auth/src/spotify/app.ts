@@ -5,11 +5,13 @@ import { Hono } from "hono";
 import jwt from "jsonwebtoken";
 import { decrypt, encrypt } from "lib/crypto";
 import { env } from "lib/env";
+import { requestCounter } from "metrics";
 import { emailSchema } from "types/email";
 
 const app = new Hono();
 
 app.get("/login", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/spotify/login" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   if (!bearer || bearer === "null") {
@@ -36,6 +38,7 @@ app.get("/login", async (c) => {
 });
 
 app.get("/callback", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/spotify/callback" });
   const params = new URLSearchParams(c.req.url.split("?")[1]);
   const { code, state } = Object.fromEntries(params.entries());
 
@@ -93,6 +96,7 @@ app.get("/callback", async (c) => {
 });
 
 app.post("/join", async (c) => {
+  requestCounter.add(1, { method: "POST", route: "/spotify/join" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   if (!bearer || bearer === "null") {
@@ -147,6 +151,7 @@ app.post("/join", async (c) => {
 });
 
 app.get("/currently-playing", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/spotify/currently-playing" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   const payload =
@@ -253,6 +258,7 @@ app.get("/currently-playing", async (c) => {
 });
 
 app.put("/pause", async (c) => {
+  requestCounter.add(1, { method: "PUT", route: "/spotify/pause" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   const { did } =
@@ -316,6 +322,7 @@ app.put("/pause", async (c) => {
 });
 
 app.put("/play", async (c) => {
+  requestCounter.add(1, { method: "PUT", route: "/spotify/play" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   const { did } =
@@ -379,6 +386,7 @@ app.put("/play", async (c) => {
 });
 
 app.post("/next", async (c) => {
+  requestCounter.add(1, { method: "POST", route: "/spotify/next" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   const { did } =
@@ -442,6 +450,7 @@ app.post("/next", async (c) => {
 });
 
 app.post("/previous", async (c) => {
+  requestCounter.add(1, { method: "POST", route: "/spotify/previous" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   const { did } =
@@ -508,6 +517,7 @@ app.post("/previous", async (c) => {
 });
 
 app.put("/seek", async (c) => {
+  requestCounter.add(1, { method: "PUT", route: "/spotify/seek" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   const { did } =

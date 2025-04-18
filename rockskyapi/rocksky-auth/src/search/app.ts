@@ -1,9 +1,11 @@
 import { ctx } from "context";
 import { Hono } from "hono";
+import { requestCounter } from "metrics";
 
 const app = new Hono();
 
 app.get("/", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/search" });
   const query = c.req.query("q");
   const size = +c.req.query("size") || 10;
   const offset = +c.req.query("offset") || 0;

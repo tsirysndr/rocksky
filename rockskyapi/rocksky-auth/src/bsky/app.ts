@@ -8,11 +8,13 @@ import jwt from "jsonwebtoken";
 import * as Profile from "lexicon/types/app/bsky/actor/profile";
 import { createAgent } from "lib/agent";
 import { env } from "lib/env";
+import { requestCounter } from "metrics";
 import users from "schema/users";
 
 const app = new Hono();
 
 app.get("/login", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/login" });
   const { handle, cli } = c.req.query();
   if (typeof handle !== "string" || !isValidHandle(handle)) {
     c.status(400);
@@ -33,6 +35,7 @@ app.get("/login", async (c) => {
 });
 
 app.post("/login", async (c) => {
+  requestCounter.add(1, { method: "POST", route: "/login" });
   const { handle, cli } = await c.req.json();
   if (typeof handle !== "string" || !isValidHandle(handle)) {
     c.status(400);
@@ -56,6 +59,7 @@ app.post("/login", async (c) => {
 });
 
 app.get("/oauth/callback", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/oauth/callback" });
   const params = new URLSearchParams(c.req.url.split("?")[1]);
   let did, cli;
 
@@ -93,6 +97,7 @@ app.get("/oauth/callback", async (c) => {
 });
 
 app.get("/profile", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/profile" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   if (!bearer || bearer === "null") {
@@ -191,10 +196,12 @@ app.get("/profile", async (c) => {
 });
 
 app.get("/client-metadata.json", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/client-metadata.json" });
   return c.json(ctx.oauthClient.clientMetadata);
 });
 
 app.get("/token", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/token" });
   const did = c.req.header("session-did");
 
   if (typeof did !== "string" || !did || did === "null") {

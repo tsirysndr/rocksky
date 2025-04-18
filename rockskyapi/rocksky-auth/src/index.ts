@@ -1,5 +1,6 @@
 import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
+import { trace } from "@opentelemetry/api";
 import { equals } from "@xata.io/client";
 import { ctx } from "context";
 import { Hono } from "hono";
@@ -21,14 +22,32 @@ import bsky from "./bsky/app";
 import dropbox from "./dropbox/app";
 import googledrive from "./googledrive/app";
 import { env } from "./lib/env";
+import { requestCounter, requestDuration } from "./metrics";
 import search from "./search/app";
 import spotify from "./spotify/app";
+import "./tracing";
 import users from "./users/app";
 
 subscribe(ctx);
 
 const app = new Hono();
 const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
+
+app.use("*", async (c, next) => {
+  const span = trace.getActiveSpan();
+  span?.setAttribute("http.route", c.req.path);
+  await next();
+});
+
+app.use("*", async (c, next) => {
+  const start = Date.now();
+  await next();
+  const duration = (Date.now() - start) / 1000;
+  requestDuration.record(duration, {
+    route: c.req.path,
+    method: c.req.method,
+  });
+});
 
 app.use(cors());
 
@@ -49,6 +68,7 @@ app.get("/", async (c) => {
 });
 
 app.post("/now-playing", async (c) => {
+  requestCounter.add(1, { method: "POST", route: "/now-playing" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   if (!bearer || bearer === "null") {
@@ -85,6 +105,8 @@ app.post("/now-playing", async (c) => {
 });
 
 app.get("/now-playing", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/now-playing" });
+
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   const payload =
@@ -117,6 +139,7 @@ app.get("/now-playing", async (c) => {
 });
 
 app.get("/now-playings", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/now-playings" });
   const size = +c.req.query("size") || 10;
   const offset = +c.req.query("offset") || 0;
   const { data } = await ctx.analytics.post("library.getDistinctScrobbles", {
@@ -129,6 +152,7 @@ app.get("/now-playings", async (c) => {
 });
 
 app.post("/likes", async (c) => {
+  requestCounter.add(1, { method: "POST", route: "/likes" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   if (!bearer || bearer === "null") {
@@ -159,6 +183,7 @@ app.post("/likes", async (c) => {
 });
 
 app.delete("/likes/:sha256", async (c) => {
+  requestCounter.add(1, { method: "DELETE", route: "/likes/:sha256" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   if (!bearer || bearer === "null") {
@@ -181,6 +206,7 @@ app.delete("/likes/:sha256", async (c) => {
 });
 
 app.get("/likes", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/likes" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   if (!bearer || bearer === "null") {
@@ -204,6 +230,8 @@ app.get("/likes", async (c) => {
 });
 
 app.get("/public/scrobbles", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/public/scrobbles" });
+
   const size = +c.req.query("size") || 10;
   const offset = +c.req.query("offset") || 0;
 
@@ -234,6 +262,8 @@ app.get("/public/scrobbles", async (c) => {
 });
 
 app.get("/public/scrobbleschart", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/public/scrobbleschart" });
+
   const did = c.req.query("did");
   const artisturi = c.req.query("artisturi");
   const albumuri = c.req.query("albumuri");
@@ -281,6 +311,8 @@ app.get("/public/scrobbleschart", async (c) => {
 });
 
 app.get("/scrobbles", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/scrobbles" });
+
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   if (!bearer || bearer === "null") {
@@ -321,6 +353,8 @@ app.get("/scrobbles", async (c) => {
 });
 
 app.post("/tracks", async (c) => {
+  requestCounter.add(1, { method: "POST", route: "/tracks" });
+
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   if (!bearer || bearer === "null") {
@@ -364,6 +398,8 @@ app.post("/tracks", async (c) => {
 });
 
 app.get("/tracks", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/tracks" });
+
   const size = +c.req.query("size") || 100;
   const offset = +c.req.query("offset") || 0;
 
@@ -378,6 +414,8 @@ app.get("/tracks", async (c) => {
 });
 
 app.get("/albums", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/albums" });
+
   const size = +c.req.query("size") || 100;
   const offset = +c.req.query("offset") || 0;
 
@@ -392,6 +430,8 @@ app.get("/albums", async (c) => {
 });
 
 app.get("/artists", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/artists" });
+
   const size = +c.req.query("size") || 100;
   const offset = +c.req.query("offset") || 0;
 
@@ -406,6 +446,8 @@ app.get("/artists", async (c) => {
 });
 
 app.get("/tracks/:sha256", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/tracks/:sha256" });
+
   const sha256 = c.req.param("sha256");
   const track = await ctx.client.db.tracks
     .filter("sha256", equals(sha256))
@@ -414,6 +456,8 @@ app.get("/tracks/:sha256", async (c) => {
 });
 
 app.get("/albums/:sha256", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/albums/:sha256" });
+
   const sha256 = c.req.param("sha256");
   const album = await ctx.client.db.albums
     .filter("sha256", equals(sha256))
@@ -423,6 +467,8 @@ app.get("/albums/:sha256", async (c) => {
 });
 
 app.get("/artists/:sha256", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/artists/:sha256" });
+
   const sha256 = c.req.param("sha256");
   const artist = await ctx.client.db.artists
     .filter("sha256", equals(sha256))
@@ -432,6 +478,7 @@ app.get("/artists/:sha256", async (c) => {
 });
 
 app.get("/artists/:sha256/tracks", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/artists/:sha256/tracks" });
   const sha256 = c.req.param("sha256");
 
   const tracks = await ctx.client.db.artist_tracks
@@ -443,6 +490,7 @@ app.get("/artists/:sha256/tracks", async (c) => {
 });
 
 app.get("/albums/:sha256/tracks", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/albums/:sha256/tracks" });
   const sha256 = c.req.param("sha256");
   const tracks = await ctx.client.db.album_tracks
     .select(["track_id.*"])

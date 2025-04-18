@@ -18,6 +18,7 @@ import { createAgent } from "lib/agent";
 import { env } from "lib/env";
 import _ from "lodash";
 import { likeTrack, unLikeTrack } from "lovedtracks/lovedtracks.service";
+import { requestCounter } from "metrics";
 import tables from "schema";
 import {
   createShout,
@@ -32,6 +33,7 @@ import { dedupeTracksKeepLyrics } from "./utils";
 const app = new Hono();
 
 app.get("/:did/likes", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/users/:did/likes" });
   const did = c.req.param("did");
   const size = +c.req.query("size") || 10;
   const offset = +c.req.query("offset") || 0;
@@ -59,6 +61,7 @@ app.get("/:did/likes", async (c) => {
 });
 
 app.get("/:handle/scrobbles", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/users/:handle/scrobbles" });
   const handle = c.req.param("handle");
 
   const size = +c.req.query("size") || 10;
@@ -76,6 +79,7 @@ app.get("/:handle/scrobbles", async (c) => {
 });
 
 app.get("/:did/albums", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/users/:did/albums" });
   const did = c.req.param("did");
   const size = +c.req.query("size") || 10;
   const offset = +c.req.query("offset") || 0;
@@ -92,6 +96,7 @@ app.get("/:did/albums", async (c) => {
 });
 
 app.get("/:did/artists", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/users/:did/artists" });
   const did = c.req.param("did");
   const size = +c.req.query("size") || 10;
   const offset = +c.req.query("offset") || 0;
@@ -108,6 +113,7 @@ app.get("/:did/artists", async (c) => {
 });
 
 app.get("/:did/tracks", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/users/:did/tracks" });
   const did = c.req.param("did");
   const size = +c.req.query("size") || 10;
   const offset = +c.req.query("offset") || 0;
@@ -129,6 +135,7 @@ app.get("/:did/tracks", async (c) => {
 });
 
 app.get("/:did/playlists", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/users/:did/playlists" });
   const did = c.req.param("did");
   const size = +c.req.query("size") || 10;
   const offset = +c.req.query("offset") || 0;
@@ -158,6 +165,10 @@ app.get("/:did/playlists", async (c) => {
 });
 
 app.get("/:did/app.rocksky.scrobble/:rkey", async (c) => {
+  requestCounter.add(1, {
+    method: "GET",
+    route: "/users/:did/app.rocksky.scrobble/:rkey",
+  });
   const did = c.req.param("did");
   const rkey = c.req.param("rkey");
   const uri = `at://${did}/app.rocksky.scrobble/${rkey}`;
@@ -206,6 +217,10 @@ app.get("/:did/app.rocksky.scrobble/:rkey", async (c) => {
 });
 
 app.get("/:did/app.rocksky.artist/:rkey", async (c) => {
+  requestCounter.add(1, {
+    method: "GET",
+    route: "/users/:did/app.rocksky.artist/:rkey",
+  });
   const did = c.req.param("did");
   const rkey = c.req.param("rkey");
   const uri = `at://${did}/app.rocksky.artist/${rkey}`;
@@ -258,6 +273,11 @@ app.get("/:did/app.rocksky.artist/:rkey", async (c) => {
 });
 
 app.get("/:did/app.rocksky.album/:rkey", async (c) => {
+  requestCounter.add(1, {
+    method: "GET",
+    route: "/users/:did/app.rocksky.album/:rkey",
+  });
+
   const did = c.req.param("did");
   const rkey = c.req.param("rkey");
   const uri = `at://${did}/app.rocksky.album/${rkey}`;
@@ -317,6 +337,10 @@ app.get("/:did/app.rocksky.album/:rkey", async (c) => {
 });
 
 app.get("/:did/app.rocksky.song/:rkey", async (c) => {
+  requestCounter.add(1, {
+    method: "GET",
+    route: "/users/:did/app.rocksky.song/:rkey",
+  });
   const did = c.req.param("did");
   const rkey = c.req.param("rkey");
   const uri = `at://${did}/app.rocksky.song/${rkey}`;
@@ -369,6 +393,10 @@ app.get("/:did/app.rocksky.song/:rkey", async (c) => {
 });
 
 app.get("/:did/app.rocksky.artist/:rkey/tracks", async (c) => {
+  requestCounter.add(1, {
+    method: "GET",
+    route: "/users/:did/app.rocksky.artist/:rkey/tracks",
+  });
   const did = c.req.param("did");
   const rkey = c.req.param("rkey");
   const uri = `at://${did}/app.rocksky.artist/${rkey}`;
@@ -396,6 +424,10 @@ app.get("/:did/app.rocksky.artist/:rkey/tracks", async (c) => {
 });
 
 app.get("/:did/app.rocksky.artist/:rkey/albums", async (c) => {
+  requestCounter.add(1, {
+    method: "GET",
+    route: "/users/:did/app.rocksky.artist/:rkey/albums",
+  });
   const did = c.req.param("did");
   const rkey = c.req.param("rkey");
   const uri = `at://${did}/app.rocksky.artist/${rkey}`;
@@ -423,6 +455,10 @@ app.get("/:did/app.rocksky.artist/:rkey/albums", async (c) => {
 });
 
 app.get("/:did/app.rocksky.playlist/:rkey", async (c) => {
+  requestCounter.add(1, {
+    method: "GET",
+    route: "/users/:did/app.rocksky.playlist/:rkey",
+  });
   const did = c.req.param("did");
   const rkey = c.req.param("rkey");
   const uri = `at://${did}/app.rocksky.playlist/${rkey}`;
@@ -503,6 +539,7 @@ app.get("/:did/app.rocksky.playlist/:rkey", async (c) => {
 });
 
 app.get("/:did", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/users/:did" });
   const did = c.req.param("did");
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
   if (bearer && bearer !== "null") {
@@ -562,6 +599,10 @@ app.get("/:did", async (c) => {
 });
 
 app.post("/:did/app.rocksky.artist/:rkey/shouts", async (c) => {
+  requestCounter.add(1, {
+    method: "POST",
+    route: "/users/:did/app.rocksky.artist/:rkey/shouts",
+  });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   if (!bearer || bearer === "null") {
@@ -601,6 +642,10 @@ app.post("/:did/app.rocksky.artist/:rkey/shouts", async (c) => {
 });
 
 app.post("/:did/app.rocksky.album/:rkey/shouts", async (c) => {
+  requestCounter.add(1, {
+    method: "POST",
+    route: "/users/:did/app.rocksky.album/:rkey/shouts",
+  });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   if (!bearer || bearer === "null") {
@@ -640,6 +685,10 @@ app.post("/:did/app.rocksky.album/:rkey/shouts", async (c) => {
 });
 
 app.post("/:did/app.rocksky.song/:rkey/shouts", async (c) => {
+  requestCounter.add(1, {
+    method: "POST",
+    route: "/users/:did/app.rocksky.song/:rkey/shouts",
+  });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   if (!bearer || bearer === "null") {
@@ -680,6 +729,10 @@ app.post("/:did/app.rocksky.song/:rkey/shouts", async (c) => {
 });
 
 app.post("/:did/app.rocksky.scrobble/:rkey/shouts", async (c) => {
+  requestCounter.add(1, {
+    method: "POST",
+    route: "/users/:did/app.rocksky.scrobble/:rkey/shouts",
+  });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   if (!bearer || bearer === "null") {
@@ -720,6 +773,7 @@ app.post("/:did/app.rocksky.scrobble/:rkey/shouts", async (c) => {
 });
 
 app.post("/:did/shouts", async (c) => {
+  requestCounter.add(1, { method: "POST", route: "/users/:did/shouts" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   if (!bearer || bearer === "null") {
@@ -763,6 +817,10 @@ app.post("/:did/shouts", async (c) => {
 });
 
 app.post("/:did/app.rocksky.shout/:rkey/likes", async (c) => {
+  requestCounter.add(1, {
+    method: "POST",
+    route: "/users/:did/app.rocksky.shout/:rkey/likes",
+  });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   if (!bearer || bearer === "null") {
@@ -789,6 +847,10 @@ app.post("/:did/app.rocksky.shout/:rkey/likes", async (c) => {
 });
 
 app.delete("/:did/app.rocksky.shout/:rkey/likes", async (c) => {
+  requestCounter.add(1, {
+    method: "DELETE",
+    route: "/users/:did/app.rocksky.shout/:rkey/likes",
+  });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   if (!bearer || bearer === "null") {
@@ -816,6 +878,10 @@ app.delete("/:did/app.rocksky.shout/:rkey/likes", async (c) => {
 });
 
 app.post("/:did/app.rocksky.song/:rkey/likes", async (c) => {
+  requestCounter.add(1, {
+    method: "POST",
+    route: "/users/:did/app.rocksky.song/:rkey/likes",
+  });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   if (!bearer || bearer === "null") {
@@ -859,6 +925,10 @@ app.post("/:did/app.rocksky.song/:rkey/likes", async (c) => {
 });
 
 app.delete("/:did/app.rocksky.song/:rkey/likes", async (c) => {
+  requestCounter.add(1, {
+    method: "DELETE",
+    route: "/users/:did/app.rocksky.song/:rkey/likes",
+  });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   if (!bearer || bearer === "null") {
@@ -895,6 +965,10 @@ app.delete("/:did/app.rocksky.song/:rkey/likes", async (c) => {
 });
 
 app.post("/:did/app.rocksky.shout/:rkey/replies", async (c) => {
+  requestCounter.add(1, {
+    method: "POST",
+    route: "/users/:did/app.rocksky.shout/:rkey/replies",
+  });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   if (!bearer || bearer === "null") {
@@ -935,6 +1009,10 @@ app.post("/:did/app.rocksky.shout/:rkey/replies", async (c) => {
 });
 
 app.get("/:did/app.rocksky.artist/:rkey/shouts", async (c) => {
+  requestCounter.add(1, {
+    method: "GET",
+    route: "/users/:did/app.rocksky.artist/:rkey/shouts",
+  });
   const did = c.req.param("did");
   const rkey = c.req.param("rkey");
 
@@ -1009,6 +1087,11 @@ app.get("/:did/app.rocksky.artist/:rkey/shouts", async (c) => {
 });
 
 app.get("/:did/app.rocksky.album/:rkey/shouts", async (c) => {
+  requestCounter.add(1, {
+    method: "GET",
+    route: "/users/:did/app.rocksky.album/:rkey/shouts",
+  });
+
   const did = c.req.param("did");
   const rkey = c.req.param("rkey");
 
@@ -1084,6 +1167,10 @@ app.get("/:did/app.rocksky.album/:rkey/shouts", async (c) => {
 });
 
 app.get("/:did/app.rocksky.song/:rkey/shouts", async (c) => {
+  requestCounter.add(1, {
+    method: "GET",
+    route: "/users/:did/app.rocksky.song/:rkey/shouts",
+  });
   const did = c.req.param("did");
   const rkey = c.req.param("rkey");
 
@@ -1159,6 +1246,10 @@ app.get("/:did/app.rocksky.song/:rkey/shouts", async (c) => {
 });
 
 app.get("/:did/app.rocksky.scrobble/:rkey/shouts", async (c) => {
+  requestCounter.add(1, {
+    method: "GET",
+    route: "/users/:did/app.rocksky.scrobble/:rkey/shouts",
+  });
   const did = c.req.param("did");
   const rkey = c.req.param("rkey");
 
@@ -1237,6 +1328,7 @@ app.get("/:did/app.rocksky.scrobble/:rkey/shouts", async (c) => {
 });
 
 app.get("/:did/shouts", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/users/:did/shouts" });
   const did = c.req.param("did");
 
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
@@ -1333,6 +1425,10 @@ app.get("/:did/shouts", async (c) => {
 });
 
 app.get("/:did/app.rocksky.shout/:rkey/likes", async (c) => {
+  requestCounter.add(1, {
+    method: "GET",
+    route: "/users/:did/app.rocksky.shout/:rkey/likes",
+  });
   const did = c.req.param("did");
   const rkey = c.req.param("rkey");
   const likes = await ctx.client.db.shout_likes
@@ -1343,6 +1439,10 @@ app.get("/:did/app.rocksky.shout/:rkey/likes", async (c) => {
 });
 
 app.get("/:did/app.rocksky.shout/:rkey/replies", async (c) => {
+  requestCounter.add(1, {
+    method: "GET",
+    route: "/users/:did/app.rocksky.shout/:rkey/replies",
+  });
   const did = c.req.param("did");
   const rkey = c.req.param("rkey");
   const shouts = await ctx.client.db.shouts
@@ -1354,6 +1454,7 @@ app.get("/:did/app.rocksky.shout/:rkey/replies", async (c) => {
 });
 
 app.get("/:did/stats", async (c) => {
+  requestCounter.add(1, { method: "GET", route: "/users/:did/stats" });
   const did = c.req.param("did");
 
   const { data } = await ctx.analytics.post("library.getStats", {
@@ -1370,6 +1471,10 @@ app.get("/:did/stats", async (c) => {
 });
 
 app.post("/:did/app.rocksky.shout/:rkey/report", async (c) => {
+  requestCounter.add(1, {
+    method: "POST",
+    route: "/users/:did/app.rocksky.shout/:rkey/report",
+  });
   const did = c.req.param("did");
   const rkey = c.req.param("rkey");
 
@@ -1419,6 +1524,10 @@ app.post("/:did/app.rocksky.shout/:rkey/report", async (c) => {
 });
 
 app.delete("/:did/app.rocksky.shout/:rkey/report", async (c) => {
+  requestCounter.add(1, {
+    method: "DELETE",
+    route: "/users/:did/app.rocksky.shout/:rkey/report",
+  });
   const did = c.req.param("did");
   const rkey = c.req.param("rkey");
 
@@ -1472,6 +1581,10 @@ app.delete("/:did/app.rocksky.shout/:rkey/report", async (c) => {
 });
 
 app.delete("/:did/app.rocksky.shout/:rkey", async (c) => {
+  requestCounter.add(1, {
+    method: "DELETE",
+    route: "/users/:did/app.rocksky.shout/:rkey",
+  });
   const did = c.req.param("did");
   const rkey = c.req.param("rkey");
 
