@@ -2,7 +2,9 @@
 
 import { albums } from "cmd/albums";
 import { artists } from "cmd/artists";
+import { createApiKey } from "cmd/create";
 import { nowplaying } from "cmd/nowplaying";
+import { scrobble } from "cmd/scrobble";
 import { scrobbles } from "cmd/scrobbles";
 import { search } from "cmd/search";
 import { stats } from "cmd/stats";
@@ -89,5 +91,21 @@ program
   .argument("[did]", "The DID or handle of the user to get tracks for.")
   .description("Get the user's top tracks.")
   .action(tracks);
+
+program
+  .command("scrobble")
+  .argument("<track>", "The title of the track")
+  .argument("<artist>", "The artist of the track")
+  .option("-t, --timestamp <timestamp>", "The timestamp of the scrobble")
+  .description("Scrobble a track to your profile.")
+  .action(scrobble);
+
+program
+  .command("create")
+  .command("apikey")
+  .argument("<name>", "The name of the API key")
+  .option("-d, --description <description>", "The description of the API key")
+  .description("Create a new API key.")
+  .action(createApiKey);
 
 program.parse(process.argv);

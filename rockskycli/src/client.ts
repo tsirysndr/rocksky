@@ -245,4 +245,80 @@ export class RockskyClient {
     }
     return response.json();
   }
+
+  async scrobble(api_key, api_sig, track, artist, timestamp) {
+    const tokenPath = path.join(os.homedir(), ".rocksky", "token.json");
+    try {
+      await fs.promises.access(tokenPath);
+    } catch (err) {
+      console.error(
+        `You are not logged in. Please run the login command first.`
+      );
+      return;
+    }
+    const tokenData = await fs.promises.readFile(tokenPath, "utf-8");
+    const { token: sk } = JSON.parse(tokenData);
+    const response = await fetch("https://audioscrobbler.rocksky.app/2.0", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        method: "track.scrobble",
+        "track[0]": track,
+        "artist[0]": artist,
+        "timestamp[0]": timestamp || Math.floor(Date.now() / 1000),
+        api_key,
+        api_sig,
+        sk,
+        format: "json",
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to scrobble track: ${
+          response.statusText
+        } ${await response.text()}`
+      );
+    }
+
+    return response.json();
+  }
+
+  async getApiKeys() {
+    const response = await fetch(`${ROCKSKY_API_URL}/apikeys`, {
+      method: "GET",
+      headers: {
+        Authorization: this.token ? `Bearer ${this.token}` : undefined,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch API keys: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  async createApiKey(name: string, description?: string) {
+    const response = await fetch(`${ROCKSKY_API_URL}/apikeys`, {
+      method: "POST",
+      headers: {
+        Authorization: this.token ? `Bearer ${this.token}` : undefined,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name,
+        description,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to create API key: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
 }

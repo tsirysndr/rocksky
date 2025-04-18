@@ -78,3 +78,9 @@ rocksky albums [did]
 ```bash
 rocksky tracks [did]
 ```
+
+`scrobble` - Manually scrobbles a track.
+
+```bash
+rocksky scrobble "Karma Police" "Radiohead"
+```
