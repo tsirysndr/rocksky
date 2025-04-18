@@ -4,7 +4,7 @@ import { NodeSDK } from "@opentelemetry/sdk-node";
 
 const sdk = new NodeSDK({
   traceExporter: new OTLPTraceExporter({
-    url: "http://localhost:3200/v1/traces",
+    url: "http://localhost:4319/v1/traces",
   }),
   instrumentations: [getNodeAutoInstrumentations()],
 });
