@@ -23,6 +23,7 @@ import dropbox from "./dropbox/app";
 import googledrive from "./googledrive/app";
 import { env } from "./lib/env";
 import { requestCounter, requestDuration } from "./metrics";
+import "./profiling";
 import search from "./search/app";
 import spotify from "./spotify/app";
 import "./tracing";
