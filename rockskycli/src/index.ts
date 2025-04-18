@@ -25,87 +25,88 @@ program
 
 program
   .command("login")
-  .argument("<handle>", "Your BlueSky handle (e.g., <username>.bsky.social)")
-  .description("Login with your BlueSky account and get a session token.")
+  .argument("<handle>", "your BlueSky handle (e.g., <username>.bsky.social)")
+  .description("login with your BlueSky account and get a session token.")
   .action(login);
 
 program
   .command("whoami")
-  .description("Get the current logged-in user.")
+  .description("get the current logged-in user.")
   .action(whoami);
 
 program
   .command("nowplaying")
   .argument(
     "[did]",
-    "The DID or handle of the user to get the now playing track for."
+    "the DID or handle of the user to get the now playing track for."
   )
-  .description("Get the currently playing track.")
+  .description("get the currently playing track.")
   .action(nowplaying);
 
 program
   .command("scrobbles")
-  .option("-s, --skip <number>", "Number of scrobbles to skip")
-  .option("-l, --limit <number>", "Number of scrobbles to limit")
-  .argument("[did]", "The DID or handle of the user to get the scrobbles for.")
-  .description("Display recently played tracks.")
+  .option("-s, --skip <number>", "number of scrobbles to skip")
+  .option("-l, --limit <number>", "number of scrobbles to limit")
+  .argument("[did]", "the DID or handle of the user to get the scrobbles for.")
+  .description("display recently played tracks.")
   .action(scrobbles);
 
 program
   .command("search")
-  .option("-a, --albums", "Search for albums")
-  .option("-t, --tracks", "Search for tracks")
-  .option("-u, --users", "Search for users")
-  .option("-l, --limit <number>", "Number of results to limit")
+  .option("-a, --albums", "search for albums")
+  .option("-t, --tracks", "search for tracks")
+  .option("-u, --users", "search for users")
+  .option("-l, --limit <number>", "number of results to limit")
   .argument(
     "<query>",
-    "The search query, e.g., artist, album, title or account"
+    "the search query, e.g., artist, album, title or account"
   )
-  .description("Search for tracks, albums, or accounts.")
+  .description("search for tracks, albums, or accounts.")
   .action(search);
 
 program
   .command("stats")
-  .option("-l, --limit <number>", "Number of results to limit")
-  .argument("[did]", "The DID or handle of the user to get stats for.")
-  .description("Get the user's listening stats.")
+  .option("-l, --limit <number>", "number of results to limit")
+  .argument("[did]", "the DID or handle of the user to get stats for.")
+  .description("get the user's listening stats.")
   .action(stats);
 
 program
   .command("artists")
-  .option("-l, --limit <number>", "Number of results to limit")
-  .argument("[did]", "The DID or handle of the user to get artists for.")
-  .description("Get the user's top artists.")
+  .option("-l, --limit <number>", "number of results to limit")
+  .argument("[did]", "the DID or handle of the user to get artists for.")
+  .description("get the user's top artists.")
   .action(artists);
 
 program
   .command("albums")
-  .option("-l, --limit <number>", "Number of results to limit")
-  .argument("[did]", "The DID or handle of the user to get albums for.")
-  .description("Get the user's top albums.")
+  .option("-l, --limit <number>", "number of results to limit")
+  .argument("[did]", "the DID or handle of the user to get albums for.")
+  .description("get the user's top albums.")
   .action(albums);
 
 program
   .command("tracks")
-  .option("-l, --limit <number>", "Number of results to limit")
-  .argument("[did]", "The DID or handle of the user to get tracks for.")
-  .description("Get the user's top tracks.")
+  .option("-l, --limit <number>", "number of results to limit")
+  .argument("[did]", "the DID or handle of the user to get tracks for.")
+  .description("get the user's top tracks.")
   .action(tracks);
 
 program
   .command("scrobble")
-  .argument("<track>", "The title of the track")
-  .argument("<artist>", "The artist of the track")
-  .option("-t, --timestamp <timestamp>", "The timestamp of the scrobble")
-  .description("Scrobble a track to your profile.")
+  .argument("<track>", "the title of the track")
+  .argument("<artist>", "the artist of the track")
+  .option("-t, --timestamp <timestamp>", "the timestamp of the scrobble")
+  .description("scrobble a track to your profile.")
   .action(scrobble);
 
 program
   .command("create")
+  .description("create a new API key.")
   .command("apikey")
-  .argument("<name>", "The name of the API key")
-  .option("-d, --description <description>", "The description of the API key")
-  .description("Create a new API key.")
+  .argument("<name>", "the name of the API key")
+  .option("-d, --description <description>", "the description of the API key")
+  .description("create a new API key.")
   .action(createApiKey);
 
 program.parse(process.argv);
