@@ -51,6 +51,16 @@ const Link = styled.a`
   }
 `;
 
+const Text = styled.span`
+  color: #ff2876;
+  font-size: 13px;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
 export type MainProps = {
   children: React.ReactNode;
   withRightPane?: boolean;
@@ -135,6 +145,13 @@ function Main(props: MainProps) {
     }
 
     window.location.href = `https://rocksky.pages.dev/loading?handle=${handle}`;
+  };
+
+  const displaySurvey = () => {
+    Object.keys(localStorage)
+      .filter((key) => key.startsWith("seenSurvey"))
+      .reverse()
+      .forEach((key) => localStorage.removeItem(key));
   };
 
   return (
@@ -267,6 +284,9 @@ function Main(props: MainProps) {
               >
                 API Docs
               </Link>
+              <Text style={{ marginRight: 10 }} onClick={displaySurvey}>
+                Feedback
+              </Text>
             </div>
           </div>
         </RightPane>

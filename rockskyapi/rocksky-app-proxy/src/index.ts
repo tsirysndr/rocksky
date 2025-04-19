@@ -82,7 +82,6 @@ export default {
 			url.pathname.startsWith('/scrobbles') ||
 			url.pathname.startsWith('/likes') ||
 			url.pathname.startsWith('/spotify') ||
-			url.pathname.startsWith('/apikeys') ||
 			url.pathname.startsWith('/dropbox/oauth/callback') ||
 			url.pathname.startsWith('/googledrive/oauth/callback') ||
 			url.pathname.startsWith('/dropbox/files') ||
