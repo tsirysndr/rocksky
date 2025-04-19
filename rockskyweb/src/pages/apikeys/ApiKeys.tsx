@@ -12,6 +12,7 @@ import copy from "copy-to-clipboard";
 import { useAtom } from "jotai";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
+import { useNavigate } from "react-router";
 import z from "zod";
 import { apiKeysAtom } from "../../atoms/apikeys";
 import useApikey from "../../hooks/useApikey";
@@ -25,8 +26,10 @@ const schema = z.object({
 });
 
 function ApiKeys() {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [apikeys, setApikeys] = useAtom(apiKeysAtom);
+  const jwt = localStorage.getItem("token");
   const [enabled, setEnabled] = useState<{
     [key: string]: boolean;
   }>({});
@@ -94,6 +97,10 @@ function ApiKeys() {
     await deleteApiKey(id);
     await fetchApiKeys();
   };
+
+  if (!jwt) {
+    navigate("/");
+  }
 
   return (
     <Main withRightPane={false}>
