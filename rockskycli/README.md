@@ -9,6 +9,18 @@
 - 📤 Manually scrobble tracks
 - 🛠️ Useful developer tools for integrating Rocksky into your workflows
 
+## Installation
+
+```sh
+npm install -g @rocksky/cli
+```
+
+You can also use the CLI without installing it globally by running `npx`:
+
+```sh
+npx @rocksky/cli --help
+```
+
 ## Run in development
 To run the CLI in development mode, install the dependencies:
 
