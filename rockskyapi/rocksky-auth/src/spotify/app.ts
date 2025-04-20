@@ -6,9 +6,19 @@ import jwt from "jsonwebtoken";
 import { decrypt, encrypt } from "lib/crypto";
 import { env } from "lib/env";
 import { requestCounter } from "metrics";
+import { rateLimiter } from "ratelimiter";
 import { emailSchema } from "types/email";
 
 const app = new Hono();
+
+app.use(
+  "/*",
+  rateLimiter({
+    limit: 35, // max Spotify API calls
+    window: 30, // per 30 seconds
+    keyPrefix: "spotify-ratelimit",
+  })
+);
 
 app.get("/login", async (c) => {
   requestCounter.add(1, { method: "GET", route: "/spotify/login" });
