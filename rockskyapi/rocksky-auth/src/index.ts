@@ -13,6 +13,7 @@ import {
   unLikeTrack,
 } from "lovedtracks/lovedtracks.service";
 import { scrobbleTrack } from "nowplaying/nowplaying.service";
+import { rateLimiter } from "ratelimiter";
 import subscribe from "subscribers";
 import { saveTrack } from "tracks/tracks.service";
 import { trackSchema } from "types/track";
@@ -33,6 +34,15 @@ subscribe(ctx);
 
 const app = new Hono();
 const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
+
+app.use(
+  "*",
+  rateLimiter({
+    redis: ctx.redis,
+    limit: 100,
+    window: 30, // 👈 30 seconds
+  })
+);
 
 app.use("*", async (c, next) => {
   const span = trace.getActiveSpan();

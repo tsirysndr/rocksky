@@ -231,6 +231,11 @@ app.get("/currently-playing", async (c) => {
     return c.json({});
   }
 
+  if (response.status === 429) {
+    c.status(429);
+    return c.text(await response.text());
+  }
+
   const track = await response.json();
 
   const sha256 = createHash("sha256")
