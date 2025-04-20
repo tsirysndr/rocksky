@@ -29,6 +29,8 @@ export const rateLimiter = (options: RateLimitOptions): MiddlewareHandler => {
 
     if (current > limit) {
       c.status(429);
+      const reset = await ctx.redis.ttl(key);
+      c.header("X-RateLimit-Reset", reset.toString());
       return c.text("Too Many Requests");
     }
 
