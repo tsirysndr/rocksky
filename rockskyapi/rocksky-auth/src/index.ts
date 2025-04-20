@@ -38,7 +38,7 @@ const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 app.use(
   "*",
   rateLimiter({
-    limit: 500,
+    limit: 1000,
     window: 30, // 👈 30 seconds
   })
 );
