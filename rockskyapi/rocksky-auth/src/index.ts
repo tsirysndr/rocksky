@@ -14,6 +14,7 @@ import {
 } from "lovedtracks/lovedtracks.service";
 import { scrobbleTrack } from "nowplaying/nowplaying.service";
 import { rateLimiter } from "ratelimiter";
+import { refreshSessions } from "sessions";
 import subscribe from "subscribers";
 import { saveTrack } from "tracks/tracks.service";
 import { trackSchema } from "types/track";
@@ -31,6 +32,8 @@ import "./tracing";
 import users from "./users/app";
 
 subscribe(ctx);
+
+refreshSessions();
 
 const app = new Hono();
 const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
