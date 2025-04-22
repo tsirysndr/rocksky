@@ -74,6 +74,10 @@ pub struct ScrobbleRecord {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub apple_music_link: Option<String>,
     pub created_at: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mbid: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -122,3 +126,15 @@ pub struct PinnedPost {
     pub cid: String,
     pub uri: String,
 }
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ArtistRecord {}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct AlbumRecord {}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct SongRecord {}

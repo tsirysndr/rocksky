@@ -225,7 +225,14 @@ app.get("/currently-playing", async (c) => {
     }),
   });
 
-  const { access_token } = await newAccessToken.json();
+  const responseToken = await newAccessToken.text();
+
+  if (!responseToken.startsWith("{")) {
+    console.log("[spotify] ", did);
+    console.log("[spotify] ", responseToken);
+  }
+
+  const { access_token } = JSON.parse(responseToken);
 
   const response = await fetch(
     "https://api.spotify.com/v1/me/player/currently-playing",

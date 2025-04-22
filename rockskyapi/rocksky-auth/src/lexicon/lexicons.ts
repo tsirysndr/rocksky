@@ -626,6 +626,15 @@ export const schemaDict = {
               description: 'The date the song was created.',
               format: 'datetime',
             },
+            mbid: {
+              type: 'string',
+              description: 'The MusicBrainz ID of the song.',
+            },
+            label: {
+              type: 'string',
+              description: 'The label of the song.',
+              maxLength: 256,
+            },
           },
         },
       },
@@ -799,6 +808,15 @@ export const schemaDict = {
               type: 'string',
               description: 'The date the song was created.',
               format: 'datetime',
+            },
+            mbid: {
+              type: 'string',
+              description: 'The MusicBrainz ID of the song.',
+            },
+            label: {
+              type: 'string',
+              description: 'The label of the song.',
+              maxLength: 256,
             },
           },
         },

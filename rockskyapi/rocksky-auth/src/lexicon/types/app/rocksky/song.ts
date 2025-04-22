@@ -49,6 +49,10 @@ export interface Record {
   appleMusicLink?: string
   /** The date the song was created. */
   createdAt: string
+  /** The MusicBrainz ID of the song. */
+  mbid?: string
+  /** The label of the song. */
+  label?: string
   [k: string]: unknown
 }
 
