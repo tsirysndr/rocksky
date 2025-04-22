@@ -14,8 +14,8 @@ const app = new Hono();
 app.use(
   "/currently-playing",
   rateLimiter({
-    limit: 20, // max Spotify API calls
-    window: 30, // per 30 seconds
+    limit: 2, // max Spotify API calls
+    window: 3, // per 3 seconds
     keyPrefix: "spotify-ratelimit",
   })
 );
