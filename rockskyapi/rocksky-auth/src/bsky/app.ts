@@ -135,6 +135,13 @@ app.get("/profile", async (c) => {
 
   const { did } = jwt.verify(bearer, env.JWT_SECRET);
 
+  const agent = await createAgent(ctx.oauthClient, did);
+
+  if (!agent) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
   await fetch(`http://localhost:8000/refresh/${did}`, {
     method: "POST",
     headers: {
@@ -142,13 +149,6 @@ app.get("/profile", async (c) => {
     },
     body: JSON.stringify({}),
   });
-
-  const agent = await createAgent(ctx.oauthClient, did);
-
-  if (!agent) {
-    c.status(401);
-    return c.text("Unauthorized");
-  }
 
   const { data: profileRecord } = await agent.com.atproto.repo.getRecord({
     repo: agent.assertDid,
