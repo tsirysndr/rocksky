@@ -135,6 +135,14 @@ app.get("/profile", async (c) => {
 
   const { did } = jwt.verify(bearer, env.JWT_SECRET);
 
+  await fetch(`http://localhost:8000/refresh/${did}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({}),
+  });
+
   const agent = await createAgent(ctx.oauthClient, did);
 
   if (!agent) {

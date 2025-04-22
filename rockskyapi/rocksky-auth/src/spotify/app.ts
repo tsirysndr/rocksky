@@ -12,9 +12,9 @@ import { emailSchema } from "types/email";
 const app = new Hono();
 
 app.use(
-  "/*",
+  "/currently-playing",
   rateLimiter({
-    limit: 35, // max Spotify API calls
+    limit: 20, // max Spotify API calls
     window: 30, // per 30 seconds
     keyPrefix: "spotify-ratelimit",
   })
