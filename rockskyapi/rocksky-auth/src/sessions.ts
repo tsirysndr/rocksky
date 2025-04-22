@@ -6,7 +6,7 @@ export async function refreshSessions() {
   const keys = await ctx.redis.keys("refresh:*");
   return new Promise<void>((resolve) => {
     for (const key of keys) {
-      const did = key.split(":")[1];
+      const did = key.split("refresh:")[1];
       setTimeout(() => {
         setInterval(
           async () => {
