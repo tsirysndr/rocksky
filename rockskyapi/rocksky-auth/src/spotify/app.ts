@@ -15,7 +15,7 @@ app.use(
   "/currently-playing",
   rateLimiter({
     limit: 2, // max Spotify API calls
-    window: 3, // per 3 seconds
+    window: 5, // per 3 seconds
     keyPrefix: "spotify-ratelimit",
   })
 );
