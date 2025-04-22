@@ -228,6 +228,7 @@ app.get("/currently-playing", async (c) => {
   const responseToken = await newAccessToken.text();
 
   if (!responseToken.startsWith("{")) {
+    console.log("[spotify] ", newAccessToken.status);
     console.log("[spotify] ", did);
     console.log("[spotify] ", responseToken);
   }
