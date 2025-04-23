@@ -1,8 +1,76 @@
 import chalk from "chalk";
 import { ctx } from "context";
+import { createHash } from "crypto";
 import { publishScrobble } from "nowplaying/nowplaying.service";
+import { equals } from "ramda";
 
 const args = process.argv.slice(2);
+
+async function updateUris(did: string) {
+  const { records } = await ctx.client.db.scrobbles
+    .select(["track_id.*"])
+    .filter({
+      $any: [{ "user_id.did": did }, { "user_id.handle": did }],
+    })
+    .getPaginated({
+      pagination: {
+        size: process.env.SYNC_SIZE ? parseInt(process.env.SYNC_SIZE) : 20,
+      },
+      sort: [{ xata_createdat: "desc" }],
+    });
+  for (const { track_id: track } of records) {
+    const existingTrack = await ctx.client.db.tracks
+      .filter(
+        "sha256",
+        equals(
+          createHash("sha256")
+            .update(
+              `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
+            )
+            .digest("hex")
+        )
+      )
+      .getFirst();
+
+    if (existingTrack && !existingTrack.album_uri) {
+      console.log(`Updating album uri for ${chalk.cyan(track.xata_id)} ...`);
+      const album = await ctx.client.db.albums
+        .filter(
+          "sha256",
+          equals(
+            createHash("sha256")
+              .update(`${track.album} - ${track.album_artist}`.toLowerCase())
+              .digest("hex")
+          )
+        )
+        .getFirst();
+      if (album) {
+        await ctx.client.db.tracks.update(existingTrack.xata_id, {
+          album_uri: album.uri,
+        });
+      }
+    }
+
+    if (existingTrack && !existingTrack.artist_uri) {
+      console.log(`Updating artist uri for ${chalk.cyan(track.xata_id)} ...`);
+      const artist = await ctx.client.db.artists
+        .filter(
+          "sha256",
+          equals(
+            createHash("sha256")
+              .update(track.album_artist.toLowerCase())
+              .digest("hex")
+          )
+        )
+        .getFirst();
+      if (artist) {
+        await ctx.client.db.tracks.update(existingTrack.xata_id, {
+          artist_uri: artist.uri,
+        });
+      }
+    }
+  }
+}
 
 for (const arg of args) {
   console.log(`Syncing scrobbles ${chalk.magenta(arg)} ...`);
