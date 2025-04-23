@@ -8,7 +8,8 @@
 		"lexgen": "lex gen-server ./src/lexicon ./lexicons/*",
 		"dev": "tsx --watch ./src/index.ts",
 		"prod": "tsx ./src/index.ts",
-		"build": "pkgroll"
+		"build": "pkgroll",
+		"sync": "tsx ./src/scripts/sync.ts"
 	},
 	"dependencies": {
 		"@atproto/api": "^0.13.31",
