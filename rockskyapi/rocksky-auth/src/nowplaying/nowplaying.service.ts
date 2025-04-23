@@ -326,6 +326,42 @@ export async function scrobbleTrack(
     )
     .getFirst();
 
+  if (existingTrack && !existingTrack.album_uri) {
+    const album = await ctx.client.db.albums
+      .filter(
+        "sha256",
+        equals(
+          createHash("sha256")
+            .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
+            .digest("hex")
+        )
+      )
+      .getFirst();
+    if (album) {
+      await ctx.client.db.tracks.update(existingTrack.xata_id, {
+        album_uri: album.uri,
+      });
+    }
+  }
+
+  if (existingTrack && !existingTrack.artist_uri) {
+    const artist = await ctx.client.db.artists
+      .filter(
+        "sha256",
+        equals(
+          createHash("sha256")
+            .update(track.albumArtist.toLowerCase())
+            .digest("hex")
+        )
+      )
+      .getFirst();
+    if (artist) {
+      await ctx.client.db.tracks.update(existingTrack.xata_id, {
+        artist_uri: artist.uri,
+      });
+    }
+  }
+
   if (!existingTrack?.uri) {
     await putSongRecord(track, agent);
   }
