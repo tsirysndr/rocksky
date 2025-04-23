@@ -426,7 +426,7 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
       Ok(currently_playing) => currently_playing,
       Err(e) => {
         println!("{} {}", format!("[{}]", spotify_email).bright_green(), e.to_string().bright_red());
-        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
         continue;
       }
     };
@@ -434,7 +434,7 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
     if let Some((data, changed)) = currently_playing {
       if data.item.is_none() {
         println!("{} {}", format!("[{}]", spotify_email).bright_green(), "No song playing".yellow());
-        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
         continue;
       }
       let data_item = data.item.unwrap();
@@ -465,7 +465,7 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
       }
     }
 
-    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+    tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
   }
 
   Ok(())
