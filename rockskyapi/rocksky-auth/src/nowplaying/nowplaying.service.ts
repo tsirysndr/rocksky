@@ -366,21 +366,6 @@ export async function scrobbleTrack(
     await putSongRecord(track, agent);
   }
 
-  const existingArtist = await ctx.client.db.artists
-    .filter(
-      "sha256",
-      equals(
-        createHash("sha256")
-          .update(track.albumArtist.toLocaleLowerCase())
-          .digest("hex")
-      )
-    )
-    .getFirst();
-
-  if (!existingArtist?.uri) {
-    await putArtistRecord(track, agent);
-  }
-
   const existingAlbum = await ctx.client.db.albums
     .filter(
       "sha256",
@@ -394,6 +379,23 @@ export async function scrobbleTrack(
 
   if (!existingAlbum?.uri) {
     await putAlbumRecord(track, agent);
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 600));
+
+  const existingArtist = await ctx.client.db.artists
+    .filter(
+      "sha256",
+      equals(
+        createHash("sha256")
+          .update(track.albumArtist.toLocaleLowerCase())
+          .digest("hex")
+      )
+    )
+    .getFirst();
+
+  if (!existingArtist?.uri) {
+    await putArtistRecord(track, agent);
   }
 
   const scrobbleUri = await putScrobbleRecord(track, agent);
