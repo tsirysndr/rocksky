@@ -375,7 +375,10 @@ export async function scrobbleTrack(
       scrobble &&
       scrobble.track_id &&
       scrobble.album_id &&
-      scrobble.artist_id
+      scrobble.artist_id &&
+      scrobble.album_id.artist_uri &&
+      scrobble.track_id.artist_uri &&
+      scrobble.track_id.album_uri
     ) {
       await publishScrobble(ctx, scrobble.xata_id);
       console.log("Scrobble published");
