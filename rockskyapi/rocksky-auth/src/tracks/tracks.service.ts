@@ -100,7 +100,14 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
       .filter("album_id", equals(album_id.xata_id))
       .getFirst();
 
-    if (album_track && artist_track && artist_album && track_id) {
+    if (
+      album_track &&
+      artist_track &&
+      artist_album &&
+      track_id &&
+      track_id.album_uri &&
+      track_id.artist_uri
+    ) {
       console.log("Track saved successfully after", tries + 1, "tries");
 
       const message = JSON.stringify({
@@ -116,6 +123,16 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
 
     tries += 1;
     console.log("Track not yet saved, retrying...", tries + 1);
+    if (tries == 15) {
+      console.log(">>>");
+      console.log(album_track);
+      console.log(artist_track);
+      console.log(artist_album);
+      console.log(track_id);
+      console.log(track_id.album_uri);
+      console.log(track_id.artist_uri);
+      console.log("<<<");
+    }
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 
