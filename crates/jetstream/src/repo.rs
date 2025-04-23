@@ -46,14 +46,16 @@ pub async fn save_scrobble(pool: Arc<Mutex<Pool<Postgres>>>, did: &str, commit: 
             artist_id,
             track_id,
             uri,
-            user_id
-          ) VALUES ($1, $2, $3, $4, $5)
+            user_id,
+            timestamp,
+          ) VALUES ($1, $2, $3, $4, $5, $6)
         "#)
           .bind(album_id)
           .bind(artist_id)
           .bind(track_id)
           .bind(uri)
           .bind(user_id)
+          .bind(scrobble_record.created_at)
           .execute(&mut *tx).await?;
 
         tx.commit().await?;
