@@ -365,7 +365,7 @@ export async function scrobbleTrack(
   // loop while scrobble is null, try 5 times, sleep 1 second between tries
   let tries = 0,
     scrobble = null;
-  while (!scrobble && tries < 5) {
+  while (!scrobble && tries < 15) {
     scrobble = await ctx.client.db.scrobbles
       .select(["*", "track_id.*", "album_id.*", "artist_id.*", "user_id.*"])
       .filter("uri", equals(scrobbleUri))
@@ -381,7 +381,7 @@ export async function scrobbleTrack(
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 
-  if (tries === 5 && !scrobble) {
-    console.log(`Scrobble not found after ${chalk.magenta("5 tries")}`);
+  if (tries === 15 && !scrobble) {
+    console.log(`Scrobble not found after ${chalk.magenta("15 tries")}`);
   }
 }
