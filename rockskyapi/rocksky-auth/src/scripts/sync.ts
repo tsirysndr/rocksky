@@ -67,6 +67,22 @@ async function updateUris(did: string) {
         await ctx.client.db.tracks.update(existingTrack.xata_id, {
           artist_uri: artist.uri,
         });
+
+        const album = await ctx.client.db.albums
+          .filter(
+            "sha256",
+            equals(
+              createHash("sha256")
+                .update(`${track.album} - ${track.album_artist}`.toLowerCase())
+                .digest("hex")
+            )
+          )
+          .getFirst();
+        if (album) {
+          await ctx.client.db.albums.update(album.xata_id, {
+            artist_uri: artist.uri,
+          });
+        }
       }
     }
   }
