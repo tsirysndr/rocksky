@@ -22,3 +22,5 @@ for (const arg of args) {
   }
   console.log(`Synced ${chalk.greenBright(records.length)} scrobbles`);
 }
+
+process.exit(0);
