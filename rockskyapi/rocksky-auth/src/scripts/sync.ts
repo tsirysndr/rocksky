@@ -74,6 +74,8 @@ async function updateUris(did: string) {
 
 for (const arg of args) {
   console.log(`Syncing scrobbles ${chalk.magenta(arg)} ...`);
+  await updateUris(arg);
+
   const { records } = await ctx.client.db.scrobbles
     .filter({
       $any: [{ "user_id.did": arg }, { "user_id.handle": arg }],
