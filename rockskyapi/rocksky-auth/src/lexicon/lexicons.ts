@@ -61,14 +61,6 @@ export const schemaDict = {
                 maxLength: 256,
               },
             },
-            tracks: {
-              type: 'array',
-              description: 'The tracks in the album.',
-              items: {
-                type: 'ref',
-                ref: 'lex:app.rocksky.song#record',
-              },
-            },
             youtubeLink: {
               type: 'string',
               description: 'The YouTube link of the album.',

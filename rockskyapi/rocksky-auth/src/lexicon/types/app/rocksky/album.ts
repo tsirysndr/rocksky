@@ -5,7 +5,6 @@ import { ValidationResult, BlobRef } from '@atproto/lexicon'
 import { lexicons } from '../../../lexicons'
 import { isObj, hasProp } from '../../../util'
 import { CID } from 'multiformats/cid'
-import * as AppRockskySong from './song'
 
 export interface Record {
   /** The title of the album. */
@@ -24,8 +23,6 @@ export interface Record {
   albumArt?: BlobRef
   /** The tags of the album. */
   tags?: string[]
-  /** The tracks in the album. */
-  tracks?: AppRockskySong.Record[]
   /** The YouTube link of the album. */
   youtubeLink?: string
   /** The Spotify link of the album. */
