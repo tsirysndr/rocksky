@@ -1,5 +1,4 @@
 use anyhow::Error;
-use tokio::io::split;
 
 use crate::types::{Profile, ProfileResponse};
 
@@ -49,6 +48,22 @@ mod tests {
     assert_eq!(profile.r#type, "app.bsky.actor.profile");
     assert!(profile.display_name.map(|s| s.starts_with("Tsiry Sandratraina")).unwrap_or(false));
     assert!(profile.handle.map(|s| s == "tsiry-sandratraina.com").unwrap_or(false));
+
+    let did = "did:plc:fgvx5xqinqoqgpfhito5er3s";
+    let profile = did_to_profile(did).await?;
+
+    assert_eq!(profile.r#type, "app.bsky.actor.profile");
+    assert!(profile.display_name.map(|s| s.starts_with("Lixtrix")).unwrap_or(false));
+    assert!(profile.handle.map(|s| s == "lixtrix.art").unwrap_or(false));
+
+    let did = "did:plc:d5jvs7uo4z6lw63zzreukgt4";
+    let profile = did_to_profile(did).await?;
+    assert_eq!(profile.r#type, "app.bsky.actor.profile");
+
+    let did = "did:plc:gwxwdfmun3aqaiu5mx7nnyof";
+    let profile = did_to_profile(did).await?;
+    assert_eq!(profile.r#type, "app.bsky.actor.profile");
+
     Ok(())
   }
 }

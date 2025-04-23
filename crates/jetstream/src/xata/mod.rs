@@ -9,4 +9,5 @@ pub mod track;
 pub mod user;
 pub mod user_album;
 pub mod user_artist;
+pub mod user_playlist;
 pub mod user_track;

@@ -1,6 +1,6 @@
 use std::env;
 
-use subscriber::{ScrobbleSubscriber, ALBUM_NSID, ARTIST_NSID, SCROBBLE_NSID, SONG_NSID};
+use subscriber::ScrobbleSubscriber;
 use dotenv::dotenv;
 
 pub mod subscriber;
@@ -13,8 +13,9 @@ pub mod profile;
 async fn main() -> Result<(), anyhow::Error> {
     dotenv()?;
     let jetstream_server = env::var("JETSTREAM_SERVER").unwrap_or_else(|_| "wss://jetstream2.us-east.bsky.network".to_string());
-    let url = format!("{}/subscribe?wantedCollections={},{},{},{}", jetstream_server, SCROBBLE_NSID, ARTIST_NSID, ALBUM_NSID, SONG_NSID);
+    let url = format!("{}/subscribe?wantedCollections=app.rocksky.*", jetstream_server);
     let subscriber = ScrobbleSubscriber::new(&url);
+
     subscriber.run().await?;
     Ok(())
 }

@@ -112,7 +112,7 @@ app.post("/now-playing", async (c) => {
     return c.text("Unauthorized");
   }
 
-  await scrobbleTrack(ctx, track, user, agent);
+  await scrobbleTrack(ctx, track, agent);
 
   return c.json({ status: "ok" });
 });
