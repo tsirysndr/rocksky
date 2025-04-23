@@ -55,7 +55,7 @@ pub async fn save_scrobble(pool: Arc<Mutex<Pool<Postgres>>>, did: &str, commit: 
           .bind(track_id)
           .bind(uri)
           .bind(user_id)
-          .bind(scrobble_record.created_at)
+          .bind(chrono::DateTime::parse_from_rfc3339(&scrobble_record.created_at).unwrap().with_timezone(&chrono::Utc))
           .execute(&mut *tx).await?;
 
         tx.commit().await?;
