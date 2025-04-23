@@ -19,6 +19,8 @@ async function updateUris(did: string) {
       sort: [{ xata_createdat: "desc" }],
     });
   for (const { track_id: track } of records) {
+    console.log(track);
+    console.log(records[0]);
     const existingTrack = await ctx.client.db.tracks
       .filter(
         "sha256",
