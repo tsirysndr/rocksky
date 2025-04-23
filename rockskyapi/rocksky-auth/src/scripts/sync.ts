@@ -8,7 +8,7 @@ const args = process.argv.slice(2);
 
 async function updateUris(did: string) {
   const { records } = await ctx.client.db.scrobbles
-    .select(["track_id.*"])
+    .select(["track_id.*", "user_id.*"])
     .filter({
       $any: [{ "user_id.did": did }, { "user_id.handle": did }],
     })
