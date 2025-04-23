@@ -47,7 +47,7 @@ pub async fn save_scrobble(pool: Arc<Mutex<Pool<Postgres>>>, did: &str, commit: 
             track_id,
             uri,
             user_id,
-            timestamp,
+            timestamp
           ) VALUES ($1, $2, $3, $4, $5, $6)
         "#)
           .bind(album_id)
