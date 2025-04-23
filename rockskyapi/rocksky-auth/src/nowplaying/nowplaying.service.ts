@@ -371,7 +371,12 @@ export async function scrobbleTrack(
       .filter("uri", equals(scrobbleUri))
       .getFirst();
 
-    if (scrobble) {
+    if (
+      scrobble &&
+      scrobble.track_id &&
+      scrobble.album_id &&
+      scrobble.artist_id
+    ) {
       await publishScrobble(ctx, scrobble.xata_id);
       console.log("Scrobble published");
       break;
