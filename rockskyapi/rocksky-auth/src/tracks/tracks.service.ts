@@ -28,36 +28,6 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
     trackUri = await putSongRecord(track, agent);
   }
 
-  const newTrack = await ctx.client.db.tracks.createOrUpdate(
-    existingTrack?.xata_id,
-    {
-      title: track.title,
-      artist: track.artist,
-      album: track.album,
-      album_art: track.albumArt,
-      album_artist: track.albumArtist,
-      track_number: track.trackNumber,
-      duration: track.duration,
-      mb_id: track.mbId,
-      composer: track.composer,
-      lyrics: track.lyrics,
-      disc_number: track.discNumber,
-      // compute sha256 (lowercase(title + artist + album))
-      sha256: createHash("sha256")
-        .update(
-          `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
-        )
-        .digest("hex"),
-      copyright_message: track.copyrightMessage
-        ? track.copyrightMessage
-        : undefined,
-      uri: trackUri ? trackUri : undefined,
-      label: track.label ? track.label : undefined,
-      spotify_link: track.spotifyLink ? track.spotifyLink : undefined,
-    }
-  );
-  const track_id = newTrack.xata_id;
-
   const existingArtist = await ctx.client.db.artists
     .filter(
       "sha256",
@@ -73,17 +43,6 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
   if (!existingArtist?.uri) {
     artistUri = await putArtistRecord(track, agent);
   }
-
-  const { xata_id: artist_id, uri: new_artist_uri } =
-    await ctx.client.db.artists.createOrUpdate(existingArtist?.xata_id, {
-      name: track.albumArtist,
-      // compute sha256 (lowercase(name))
-      sha256: createHash("sha256")
-        .update(track.albumArtist.toLowerCase())
-        .digest("hex"),
-      uri: artistUri ? artistUri : undefined,
-      picture: track.artistPicture ? track.artistPicture : undefined,
-    });
 
   const existingAlbum = await ctx.client.db.albums
     .filter(
@@ -101,68 +60,66 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
     albumUri = await putAlbumRecord(track, agent);
   }
 
-  const { xata_id: album_id, uri: new_album_uri } =
-    await ctx.client.db.albums.createOrUpdate(existingAlbum?.xata_id, {
-      title: track.album,
-      artist: track.albumArtist,
-      album_art: track.albumArt,
-      year: track.year,
-      release_date: track.releaseDate
-        ? track.releaseDate.toISOString()
-        : undefined,
-      // compute sha256 (lowercase(title + artist))
-      sha256: createHash("sha256")
-        .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
-        .digest("hex"),
-      artist_uri: new_artist_uri,
-      uri: albumUri ? albumUri : undefined,
-    });
+  let tries = 0;
 
-  const existingAlbumTrack = await ctx.client.db.album_tracks
-    .filter("album_id", equals(album_id))
-    .filter("track_id", equals(track_id))
-    .getFirst();
+  while (tries < 15) {
+    const track_id = await ctx.client.db.tracks
+      .filter("uri", equals(trackUri))
+      .getFirst();
 
-  const album_track = await ctx.client.db.album_tracks.createOrUpdate(
-    existingAlbumTrack?.xata_id,
-    {
-      album_id,
-      track_id,
+    const album_id = await ctx.client.db.albums
+      .filter("uri", equals(albumUri))
+      .getFirst();
+
+    const artist_id = await ctx.client.db.artists
+      .filter("uri", equals(artistUri))
+      .getFirst();
+
+    if (!track_id || !album_id || !artist_id) {
+      console.log(
+        "Track not yet saved (uri not saved), retrying...",
+        tries + 1
+      );
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      tries += 1;
+      continue;
     }
-  );
 
-  const existingArtistTrack = await ctx.client.db.artist_tracks
-    .filter("artist_id", equals(artist_id))
-    .filter("track_id", equals(track_id))
-    .getFirst();
+    const album_track = await ctx.client.db.album_tracks
+      .filter("album_id", equals(album_id.xata_id))
+      .filter("track_id", equals(track_id.xata_id))
+      .getFirst();
 
-  const artist_track = await ctx.client.db.artist_tracks.createOrUpdate(
-    existingArtistTrack?.xata_id,
-    {
-      artist_id,
-      track_id,
+    const artist_track = await ctx.client.db.artist_tracks
+      .filter("artist_id", equals(artist_id.xata_id))
+      .filter("track_id", equals(track_id.xata_id))
+      .getFirst();
+
+    const artist_album = await ctx.client.db.artist_albums
+      .filter("artist_id", equals(artist_id.xata_id))
+      .filter("album_id", equals(album_id.xata_id))
+      .getFirst();
+
+    if (album_track && artist_track && artist_album && track_id) {
+      console.log("Track saved successfully after", tries + 1, "tries");
+
+      const message = JSON.stringify({
+        track: track_id,
+        album_track,
+        artist_track,
+        artist_album,
+      });
+
+      ctx.nc.publish("rocksky.track", Buffer.from(message));
+      break;
     }
-  );
 
-  const existingArtistAlbum = await ctx.client.db.artist_albums
-    .filter("artist_id", equals(artist_id))
-    .filter("album_id", equals(album_id))
-    .getFirst();
+    tries += 1;
+    console.log("Track not yet saved, retrying...", tries + 1);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
 
-  const artist_album = await ctx.client.db.artist_albums.createOrUpdate(
-    existingArtistAlbum?.xata_id,
-    {
-      artist_id,
-      album_id,
-    }
-  );
-
-  const message = JSON.stringify({
-    track: newTrack,
-    album_track,
-    artist_track,
-    artist_album,
-  });
-
-  ctx.nc.publish("rocksky.track", Buffer.from(message));
+  if (tries == 15) {
+    console.log("Failed to save track after 15 tries");
+  }
 }
