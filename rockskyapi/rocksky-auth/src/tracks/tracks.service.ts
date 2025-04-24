@@ -138,6 +138,18 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
       .filter("album_id", equals(album_id.xata_id))
       .getFirst();
 
+    if (existingTrack && !existingTrack.album_uri) {
+      await ctx.client.db.tracks.update(existingTrack.xata_id, {
+        album_uri: album_id.uri,
+      });
+    }
+
+    if (existingTrack && !existingTrack.artist_uri) {
+      await ctx.client.db.tracks.update(existingTrack.xata_id, {
+        artist_uri: artist_id.uri,
+      });
+    }
+
     if (
       album_track &&
       artist_track &&
@@ -166,6 +178,8 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
       console.log(album_track);
       console.log(artist_track);
       console.log(artist_album);
+      console.log(artist_id);
+      console.log(album_id);
       console.log(track_id);
       console.log(track_id.album_uri);
       console.log(track_id.artist_uri);
