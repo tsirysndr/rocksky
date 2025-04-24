@@ -138,6 +138,20 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
       .filter("album_id", equals(album_id.xata_id))
       .getFirst();
 
+    if (!album_track) {
+      await ctx.client.db.album_tracks.create({
+        album_id: album_id.xata_id,
+        track_id: track_id.xata_id,
+      });
+    }
+
+    if (!artist_track) {
+      await ctx.client.db.artist_tracks.create({
+        artist_id: artist_id.xata_id,
+        track_id: track_id.xata_id,
+      });
+    }
+
     if (track_id && !track_id.album_uri) {
       await ctx.client.db.tracks.update(track_id.xata_id, {
         album_uri: album_id.uri,
