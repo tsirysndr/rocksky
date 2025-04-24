@@ -397,7 +397,7 @@ export async function scrobbleTrack(
   }
 
   if (tries === 30 && !existingTrack) {
-    console.log(`Song not found after ${chalk.magenta("15 tries")}`);
+    console.log(`Song not found after ${chalk.magenta("30 tries")}`);
   }
 
   if (existingTrack) {
@@ -459,7 +459,7 @@ export async function scrobbleTrack(
   }
 
   if (tries === 30 && !existingTrack?.artist_uri) {
-    console.log(`Artist uri not ready after ${chalk.magenta("15 tries")}`);
+    console.log(`Artist uri not ready after ${chalk.magenta("30 tries")}`);
   }
 
   if (existingTrack?.artist_uri) {
@@ -470,7 +470,7 @@ export async function scrobbleTrack(
 
   const scrobbleUri = await putScrobbleRecord(track, agent);
 
-  // loop while scrobble is null, try 15 times, sleep 1 second between tries
+  // loop while scrobble is null, try 30 times, sleep 1 second between tries
   tries = 0;
   let scrobble = null;
   while (!scrobble && tries < 30) {
@@ -498,6 +498,6 @@ export async function scrobbleTrack(
   }
 
   if (tries === 30 && !scrobble) {
-    console.log(`Scrobble not found after ${chalk.magenta("15 tries")}`);
+    console.log(`Scrobble not found after ${chalk.magenta("30 tries")}`);
   }
 }
