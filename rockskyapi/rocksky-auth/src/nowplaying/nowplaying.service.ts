@@ -515,7 +515,7 @@ export async function scrobbleTrack(
       scrobble.track_id.artist_uri &&
       scrobble.track_id.album_uri
     ) {
-      console.log("Scrobble found: ", scrobble);
+      console.log("Scrobble found after ", chalk.magenta(tries + 1), " tries");
       await publishScrobble(ctx, scrobble.xata_id);
       console.log("Scrobble published");
       break;
