@@ -300,6 +300,7 @@ export async function publishScrobble(ctx: Context, id: string) {
     await ctx.client.db.user_artists.create({
       user_id: scrobble.user_id.xata_id,
       artist_id: scrobble.artist_id.xata_id,
+      uri: scrobble.artist_id.uri,
     });
     user_artist = await ctx.client.db.user_artists
       .select(["*"])
