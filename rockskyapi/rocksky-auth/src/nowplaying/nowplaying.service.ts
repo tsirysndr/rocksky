@@ -313,7 +313,7 @@ export async function scrobbleTrack(
   track: Track,
   agent: Agent
 ): Promise<void> {
-  const existingTrack = await ctx.client.db.tracks
+  let existingTrack = await ctx.client.db.tracks
     .filter(
       "sha256",
       equals(
@@ -377,7 +377,34 @@ export async function scrobbleTrack(
     )
     .getFirst();
 
-  await new Promise((resolve) => setTimeout(resolve, 2000));
+  let tries = 0;
+  while (!existingTrack && tries < 15) {
+    console.log(`Song not found, trying again: ${chalk.magenta(tries + 1)}`);
+    existingTrack = await ctx.client.db.tracks
+      .filter(
+        "sha256",
+        equals(
+          createHash("sha256")
+            .update(
+              `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
+            )
+            .digest("hex")
+        )
+      )
+      .getFirst();
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    tries += 1;
+  }
+
+  if (tries === 15 && !existingTrack) {
+    console.log(`Song not found after ${chalk.magenta("15 tries")}`);
+  }
+
+  if (existingTrack) {
+    console.log(
+      `Song found: ${chalk.cyan(existingTrack.xata_id)} - ${track.title}, after ${chalk.magenta(tries)} tries`
+    );
+  }
 
   if (!existingAlbum?.uri) {
     await putAlbumRecord(track, agent);
@@ -398,11 +425,54 @@ export async function scrobbleTrack(
     await putArtistRecord(track, agent);
   }
 
+  tries = 0;
+  existingTrack = await ctx.client.db.tracks
+    .filter(
+      "sha256",
+      equals(
+        createHash("sha256")
+          .update(
+            `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
+          )
+          .digest("hex")
+      )
+    )
+    .getFirst();
+  while (!existingTrack?.artist_uri && tries < 15) {
+    console.log(
+      `Artist uri not ready, trying again: ${chalk.magenta(tries + 1)}`
+    );
+    existingTrack = await ctx.client.db.tracks
+      .filter(
+        "sha256",
+        equals(
+          createHash("sha256")
+            .update(
+              `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
+            )
+            .digest("hex")
+        )
+      )
+      .getFirst();
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    tries += 1;
+  }
+
+  if (tries === 15 && !existingTrack?.artist_uri) {
+    console.log(`Artist uri not ready after ${chalk.magenta("15 tries")}`);
+  }
+
+  if (existingTrack?.artist_uri) {
+    console.log(
+      `Artist uri ready: ${chalk.cyan(existingTrack.xata_id)} - ${track.title}, after ${chalk.magenta(tries)} tries`
+    );
+  }
+
   const scrobbleUri = await putScrobbleRecord(track, agent);
 
-  // loop while scrobble is null, try 5 times, sleep 1 second between tries
-  let tries = 0,
-    scrobble = null;
+  // loop while scrobble is null, try 15 times, sleep 1 second between tries
+  tries = 0;
+  let scrobble = null;
   while (!scrobble && tries < 15) {
     scrobble = await ctx.client.db.scrobbles
       .select(["*", "track_id.*", "album_id.*", "artist_id.*", "user_id.*"])
