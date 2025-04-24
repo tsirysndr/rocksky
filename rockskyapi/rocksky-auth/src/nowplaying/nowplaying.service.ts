@@ -377,11 +377,11 @@ export async function scrobbleTrack(
     )
     .getFirst();
 
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+
   if (!existingAlbum?.uri) {
     await putAlbumRecord(track, agent);
   }
-
-  await new Promise((resolve) => setTimeout(resolve, 800));
 
   const existingArtist = await ctx.client.db.artists
     .filter(
