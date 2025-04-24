@@ -500,6 +500,12 @@ export async function scrobbleTrack(
       .filter("uri", equals(scrobbleUri))
       .getFirst();
 
+    if (scrobble && !scrobble.album_id.artist_uri && scrobble.artist_id.uri) {
+      await ctx.client.db.albums.update(scrobble.album_id.xata_id, {
+        artist_uri: scrobble.artist_id.uri,
+      });
+    }
+
     if (
       scrobble &&
       scrobble.track_id &&
@@ -509,7 +515,7 @@ export async function scrobbleTrack(
       scrobble.track_id.artist_uri &&
       scrobble.track_id.album_uri
     ) {
-      console.log("> Scrobble found: ", scrobble);
+      console.log("Scrobble found: ", scrobble);
       await publishScrobble(ctx, scrobble.xata_id);
       console.log("Scrobble published");
       break;
@@ -521,8 +527,5 @@ export async function scrobbleTrack(
 
   if (tries === 30 && !scrobble) {
     console.log(`Scrobble not found after ${chalk.magenta("30 tries")}`);
-  }
-  if (scrobble) {
-    console.log(`>> Scrobble found:`, scrobble);
   }
 }
