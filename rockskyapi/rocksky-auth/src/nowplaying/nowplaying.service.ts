@@ -522,4 +522,7 @@ export async function scrobbleTrack(
   if (tries === 30 && !scrobble) {
     console.log(`Scrobble not found after ${chalk.magenta("30 tries")}`);
   }
+  if (scrobble) {
+    console.log(`Scrobble found:`, scrobble);
+  }
 }
