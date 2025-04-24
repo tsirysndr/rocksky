@@ -500,11 +500,21 @@ export async function scrobbleTrack(
       .filter("uri", equals(scrobbleUri))
       .getFirst();
 
-    if (scrobble && !scrobble.album_id.artist_uri && scrobble.artist_id.uri) {
+    if (
+      scrobble &&
+      scrobble.album_id &&
+      !scrobble.album_id.artist_uri &&
+      scrobble.artist_id.uri
+    ) {
       await ctx.client.db.albums.update(scrobble.album_id.xata_id, {
         artist_uri: scrobble.artist_id.uri,
       });
     }
+
+    scrobble = await ctx.client.db.scrobbles
+      .select(["*", "track_id.*", "album_id.*", "artist_id.*", "user_id.*"])
+      .filter("uri", equals(scrobbleUri))
+      .getFirst();
 
     if (
       scrobble &&
