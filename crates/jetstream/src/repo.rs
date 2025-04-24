@@ -174,9 +174,12 @@ pub async fn save_track(tx: &mut sqlx::Transaction<'_, Postgres>, scrobble_recor
       copyright_message,
       uri,
       spotify_link,
+      apple_music_link,
+      tidal_link,
+      youtube_link,
       label
     ) VALUES (
-      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
     )
   "#)
   .bind(scrobble_record.title)
@@ -194,6 +197,9 @@ pub async fn save_track(tx: &mut sqlx::Transaction<'_, Postgres>, scrobble_recor
   .bind(scrobble_record.copyright_message)
   .bind(uri)
   .bind(scrobble_record.spotify_link)
+  .bind(scrobble_record.apple_music_link)
+  .bind(scrobble_record.tidal_link)
+  .bind(scrobble_record.youtube_link)
   .bind(scrobble_record.label)
   .execute(&mut **tx).await?;
 
