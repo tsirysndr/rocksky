@@ -378,7 +378,7 @@ export async function scrobbleTrack(
     .getFirst();
 
   let tries = 0;
-  while (!existingTrack && tries < 15) {
+  while (!existingTrack && tries < 30) {
     console.log(`Song not found, trying again: ${chalk.magenta(tries + 1)}`);
     existingTrack = await ctx.client.db.tracks
       .filter(
@@ -396,7 +396,7 @@ export async function scrobbleTrack(
     tries += 1;
   }
 
-  if (tries === 15 && !existingTrack) {
+  if (tries === 30 && !existingTrack) {
     console.log(`Song not found after ${chalk.magenta("15 tries")}`);
   }
 
@@ -438,7 +438,7 @@ export async function scrobbleTrack(
       )
     )
     .getFirst();
-  while (!existingTrack?.artist_uri && tries < 15) {
+  while (!existingTrack?.artist_uri && tries < 30) {
     console.log(
       `Artist uri not ready, trying again: ${chalk.magenta(tries + 1)}`
     );
@@ -458,7 +458,7 @@ export async function scrobbleTrack(
     tries += 1;
   }
 
-  if (tries === 15 && !existingTrack?.artist_uri) {
+  if (tries === 30 && !existingTrack?.artist_uri) {
     console.log(`Artist uri not ready after ${chalk.magenta("15 tries")}`);
   }
 
@@ -473,7 +473,7 @@ export async function scrobbleTrack(
   // loop while scrobble is null, try 15 times, sleep 1 second between tries
   tries = 0;
   let scrobble = null;
-  while (!scrobble && tries < 15) {
+  while (!scrobble && tries < 30) {
     scrobble = await ctx.client.db.scrobbles
       .select(["*", "track_id.*", "album_id.*", "artist_id.*", "user_id.*"])
       .filter("uri", equals(scrobbleUri))
@@ -497,7 +497,7 @@ export async function scrobbleTrack(
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 
-  if (tries === 15 && !scrobble) {
+  if (tries === 30 && !scrobble) {
     console.log(`Scrobble not found after ${chalk.magenta("15 tries")}`);
   }
 }
