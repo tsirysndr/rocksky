@@ -263,7 +263,7 @@ export async function publishScrobble(ctx: Context, id: string) {
     .getFirst();
 
   const [
-    user_album,
+    _user_album,
     _user_artist,
     user_track,
     album_track,
@@ -308,6 +308,20 @@ export async function publishScrobble(ctx: Context, id: string) {
     user_artist = await ctx.client.db.user_artists
       .select(["*"])
       .filter("artist_id.xata_id", equals(scrobble.artist_id.xata_id))
+      .getFirst();
+  }
+
+  let user_album = _user_album;
+  if (!user_album) {
+    await ctx.client.db.user_albums.create({
+      user_id: scrobble.user_id.xata_id,
+      album_id: scrobble.album_id.xata_id,
+      uri: scrobble.album_id.uri,
+      scrobbles: 1,
+    });
+    user_album = await ctx.client.db.user_albums
+      .select(["*"])
+      .filter("album_id.xata_id", equals(scrobble.album_id.xata_id))
       .getFirst();
   }
 
