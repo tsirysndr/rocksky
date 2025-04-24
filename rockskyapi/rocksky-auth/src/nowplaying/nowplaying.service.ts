@@ -161,6 +161,7 @@ export async function putSongRecord(
       ? track.copyrightMessage
       : undefined,
     createdAt: new Date().toISOString(),
+    spotifyLink: track.spotifyLink,
   };
 
   if (!Song.validateRecord(record).success) {
