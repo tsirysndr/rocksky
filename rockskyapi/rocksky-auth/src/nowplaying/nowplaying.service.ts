@@ -539,5 +539,5 @@ export async function scrobbleTrack(
     console.log(`Scrobble not found after ${chalk.magenta("30 tries")}`);
   }
 
-  console.log("> Scrobble: ", srcobble);
+  console.log("> Scrobble: ", scrobble);
 }
