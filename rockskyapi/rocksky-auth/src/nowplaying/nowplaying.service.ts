@@ -509,7 +509,7 @@ export async function scrobbleTrack(
       scrobble.track_id.artist_uri &&
       scrobble.track_id.album_uri
     ) {
-      console.log("Scrobble found: ", scrobble);
+      console.log("> Scrobble found: ", scrobble);
       await publishScrobble(ctx, scrobble.xata_id);
       console.log("Scrobble published");
       break;
@@ -523,6 +523,6 @@ export async function scrobbleTrack(
     console.log(`Scrobble not found after ${chalk.magenta("30 tries")}`);
   }
   if (scrobble) {
-    console.log(`Scrobble found:`, scrobble);
+    console.log(`>> Scrobble found:`, scrobble);
   }
 }
