@@ -509,7 +509,7 @@ export async function scrobbleTrack(
       scrobble.track_id.artist_uri &&
       scrobble.track_id.album_uri
     ) {
-      console.log("Scrobble found: ", chalk.cyan(scrobble));
+      console.log("Scrobble found: ", scrobble);
       await publishScrobble(ctx, scrobble.xata_id);
       console.log("Scrobble published");
       break;
