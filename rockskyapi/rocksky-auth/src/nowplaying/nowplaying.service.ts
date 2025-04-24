@@ -381,7 +381,7 @@ export async function scrobbleTrack(
     await putAlbumRecord(track, agent);
   }
 
-  await new Promise((resolve) => setTimeout(resolve, 600));
+  await new Promise((resolve) => setTimeout(resolve, 800));
 
   const existingArtist = await ctx.client.db.artists
     .filter(
