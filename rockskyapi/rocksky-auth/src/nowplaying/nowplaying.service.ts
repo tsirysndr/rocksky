@@ -454,6 +454,27 @@ export async function scrobbleTrack(
         )
       )
       .getFirst();
+
+    // start update artist uri if it is not set
+    if (existingTrack && !existingTrack.artist_uri) {
+      const artist = await ctx.client.db.artists
+        .filter(
+          "sha256",
+          equals(
+            createHash("sha256")
+              .update(track.albumArtist.toLowerCase())
+              .digest("hex")
+          )
+        )
+        .getFirst();
+      if (artist) {
+        await ctx.client.db.tracks.update(existingTrack.xata_id, {
+          artist_uri: artist.uri,
+        });
+      }
+    }
+    // end update artist uri
+
     await new Promise((resolve) => setTimeout(resolve, 1000));
     tries += 1;
   }
