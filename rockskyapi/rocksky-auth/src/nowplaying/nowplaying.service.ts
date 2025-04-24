@@ -262,7 +262,7 @@ export async function publishScrobble(ctx: Context, id: string) {
 
   const [
     user_album,
-    user_artist,
+    _user_artist,
     user_track,
     album_track,
     artist_track,
@@ -294,6 +294,18 @@ export async function publishScrobble(ctx: Context, id: string) {
       .filter("artist_id.xata_id", equals(scrobble.artist_id.xata_id))
       .getFirst(),
   ]);
+
+  let user_artist = _user_artist;
+  if (!user_artist) {
+    await ctx.client.db.user_artists.create({
+      user_id: scrobble.user_id.xata_id,
+      artist_id: scrobble.artist_id.xata_id,
+    });
+    user_artist = await ctx.client.db.user_artists
+      .select(["*"])
+      .filter("artist_id.xata_id", equals(scrobble.artist_id.xata_id))
+      .getFirst();
+  }
 
   const message = JSON.stringify({
     scrobble,
@@ -538,6 +550,4 @@ export async function scrobbleTrack(
   if (tries === 30 && !scrobble) {
     console.log(`Scrobble not found after ${chalk.magenta("30 tries")}`);
   }
-
-  console.log("> Scrobble: ", scrobble);
 }
