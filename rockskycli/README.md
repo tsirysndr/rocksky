@@ -16,6 +16,7 @@
 - [Usage](#usage)
 - [Available Commands](#available-commands)
 - [Rocksky MCP Server Tools](#rocksky-mcp-server-tools)
+  - [whoami](#whoami)
   - [nowplaying](#nowplaying)
   - [scrobbles](#scrobbles)
   - [search](#search)
@@ -23,8 +24,6 @@
   - [artists](#artists)
   - [albums](#albums)
   - [tracks](#tracks)
-  - [scrobble](#scrobble)
-  - [mcp](#mcp)
 
 ## Installation
 
