@@ -105,7 +105,7 @@ rocksky mcp
 
 # Rocksky MCP Server Tools
 
-This document provides a comprehensive list of all tools available in the Rocksky MCP server.
+Here is a list of tools provided by the Rocksky MCP server:
 
 ## whoami
 
