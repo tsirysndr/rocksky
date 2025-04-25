@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 
+import chalk from "chalk";
 import { albums } from "cmd/albums";
 import { artists } from "cmd/artists";
 import { createApiKey } from "cmd/create";
+import { mcp } from "cmd/mcp";
 import { nowplaying } from "cmd/nowplaying";
 import { scrobble } from "cmd/scrobble";
 import { scrobbles } from "cmd/scrobbles";
@@ -19,7 +21,9 @@ const program = new Command();
 program
   .name("rocksky")
   .description(
-    "Command-line interface for Rocksky – scrobble tracks, view stats, and manage your listening history."
+    `Command-line interface for Rocksky (${chalk.underline(
+      "https://rocksky.app"
+    )}) – scrobble tracks, view stats, and manage your listening history.`
   )
   .version(version.version);
 
@@ -108,5 +112,10 @@ program
   .option("-d, --description <description>", "the description of the API key")
   .description("create a new API key.")
   .action(createApiKey);
+
+program
+  .command("mcp")
+  .description("Starts an MCP server to use with Claude or other LLMs.")
+  .action(mcp);
 
 program.parse(process.argv);
