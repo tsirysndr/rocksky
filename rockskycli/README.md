@@ -136,6 +136,17 @@ Here is a list of tools provided by the Rocksky MCP server:
 
 Get the current user's information.
 
+**Example:**
+```json
+{
+  "name": "whoami"
+}
+```
+
+**Returns:**
+
+The current user's information, including their DID, handle, and other relevant details.
+
 ### nowplaying
 
 Get the currently playing track.
@@ -155,6 +166,7 @@ Get the currently playing track.
 ```
 
 **Returns:**
+
 The currently playing track for the specified user.
 
 ### scrobbles
@@ -175,6 +187,7 @@ Display recently played tracks (recent scrobbles).
 ```
 
 **Returns:**
+
 A list of recently played tracks for the specified user.
 
 ### my-scrobbles
@@ -189,6 +202,7 @@ Display recently played tracks (recent scrobbles) for the current user.
 ```
 
 **Returns:**
+
 A list of recently played tracks for the current user.
 
 ### search
@@ -218,6 +232,7 @@ Search for tracks, albums, artists, or Rocksky users.
 ```
 
 **Returns:**
+
 A list of search results based on the specified query and filters.
 
 ### artists
@@ -239,6 +254,7 @@ List the user's top artists or current user's top artists if no `did` is provide
 ```
 
 **Returns:**
+
 A list of the user's top artists, including their names and play counts.
 
 ### albums
@@ -260,6 +276,7 @@ List the user's top albums or current user's top albums if no `did` is provided.
 ```
 
 **Returns:**
+
 A list of the user's top albums, including their names and play counts.
 
 ### tracks
@@ -281,6 +298,7 @@ List the user's top tracks or current user's top tracks if no `did` is provided.
 ```
 
 **Returns:**
+
 A list of the user's top tracks, including their names and play counts.
 
 ### stats
@@ -318,6 +336,7 @@ Create a new API key for the current user.
 ```
 
 **Returns:**
+
 A confirmation message indicating that the API key was created successfully.
 
 
