@@ -164,6 +164,15 @@ app.get("/currently-playing", async (c) => {
   requestCounter.add(1, { method: "GET", route: "/spotify/currently-playing" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
+  try {
+    jwt.verify(bearer, env.JWT_SECRET);
+  } catch (err) {
+    if (!(err instanceof jwt.TokenExpiredError)) {
+      c.status(401);
+      return c.text("Unauthorized");
+    }
+  }
+
   const payload =
     bearer && bearer !== "null" ? jwt.verify(bearer, env.JWT_SECRET) : {};
   const did = c.req.query("did") || payload.did;
