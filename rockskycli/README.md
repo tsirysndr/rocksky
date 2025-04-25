@@ -15,7 +15,7 @@
 - [Run in development](#run-in-development)
 - [Usage](#usage)
 - [Available Commands](#available-commands)
-  - [login](#login)
+- [Rocksky MCP Server Tools](#rocksky-mcp-server-tools)
   - [nowplaying](#nowplaying)
   - [scrobbles](#scrobbles)
   - [search](#search)
@@ -25,8 +25,6 @@
   - [tracks](#tracks)
   - [scrobble](#scrobble)
   - [mcp](#mcp)
-- [Rocksky MCP Server Tools](#rocksky-mcp-server-tools)
-
 
 ## Installation
 
