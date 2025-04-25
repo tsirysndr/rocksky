@@ -80,7 +80,12 @@ app.get("/oauth/callback", async (c) => {
     });
 
     const token = jwt.sign(
-      { did, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7 },
+      {
+        did,
+        exp: cli
+          ? Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365 * 1000
+          : Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
+      },
       env.JWT_SECRET
     );
     ctx.kv.set(did, token);
