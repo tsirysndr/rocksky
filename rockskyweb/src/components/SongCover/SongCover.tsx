@@ -25,6 +25,10 @@ const SongTitle = styled.div`
   font-weight: 600;
   font-family: RockfordSansRegular;
   text-shadow: rgba(0, 0, 0, 1) 0px 0px 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 210px;
 `;
 const Artist = styled.div`
   color: #000;
@@ -39,6 +43,10 @@ const Artist = styled.div`
   width: fit-content;
   padding-left: 2px;
   padding-right: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 210px;
 `;
 
 const Metadata = styled.div`
