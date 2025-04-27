@@ -18,7 +18,7 @@ pub mod crypto;
 pub mod rocksky;
 pub mod token;
 
-const BASE_URL: &str = "https://api.spotify.com/v1";
+const BASE_URL: &str = "https://spotify-api.rocksky.app/v1";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

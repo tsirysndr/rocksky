@@ -238,7 +238,7 @@ app.get("/currently-playing", async (c) => {
   const { access_token } = JSON.parse(responseToken);
 
   const response = await fetch(
-    "https://api.spotify.com/v1/me/player/currently-playing",
+    "https://spotify-api.rocksky.app/v1/me/player/currently-playing",
     {
       headers: {
         Authorization: `Bearer ${access_token}`,
