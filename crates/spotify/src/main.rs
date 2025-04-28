@@ -169,6 +169,7 @@ pub async fn get_currently_playing(cache: Cache, user_id: &str, token: &str) -> 
     if decoded_data.is_err() {
       println!("{} {} {}", format!("[{}]", user_id).bright_green(), "Cache is invalid".red(), data);
       cache.setex(user_id, "No content", 10)?;
+      cache.del(&format!("{}:current", user_id))?;
       return Ok(None);
     }
 
@@ -221,12 +222,15 @@ pub async fn get_currently_playing(cache: Cache, user_id: &str, token: &str) -> 
   if status == 204 {
     println!("No content");
     cache.setex(user_id, "No content", 10)?;
+    cache.del(&format!("{}:current", user_id))?;
     return Ok(None);
   }
 
   let data = serde_json::from_str::<CurrentlyPlaying>(&data)?;
 
   cache.setex(user_id, &serde_json::to_string(&data)?, 15)?;
+  cache.del(&format!("{}:current", user_id))?;
+
   // detect if the song has changed
   let previous = cache.get(&format!("{}:previous", user_id))?;
   let changed = match previous {
@@ -407,6 +411,42 @@ pub async fn find_spotify_user(
 pub async fn watch_currently_playing(spotify_email: String, token: String, did: String, stop_flag: Arc<AtomicBool>, cache: Cache) -> Result<(), Error> {
   println!("{} {}", format!("[{}]", spotify_email).bright_green(), "Checking currently playing".cyan());
 
+  let stop_flag_clone = stop_flag.clone();
+  let spotify_email_clone = spotify_email.clone();
+  let cache_clone = cache.clone();
+  thread::spawn(move || {
+    loop {
+      if stop_flag_clone.load(std::sync::atomic::Ordering::Relaxed) {
+        println!("{} Stopping Thread", format!("[{}]", spotify_email_clone).bright_green());
+        break;
+      }
+      if let Some(cached) = cache_clone.get(&format!("{}:current", spotify_email_clone))? {
+        let mut current_song = serde_json::from_str::<CurrentlyPlaying>(&cached)?;
+
+        if current_song.is_playing && current_song.progress_ms.unwrap_or(0) < current_song.item.clone().unwrap().duration_ms.into() {
+          current_song.progress_ms = Some(current_song.progress_ms.unwrap_or(0) + 500);
+          cache_clone.setex(&format!("{}:current", spotify_email_clone), &serde_json::to_string(&current_song)?, 16)?;
+          thread::sleep(std::time::Duration::from_millis(500));
+          continue;
+        }
+        continue;
+      }
+
+      if let Some(cached) = cache_clone.get(&spotify_email_clone)? {
+        if cached == "No content" {
+          thread::sleep(std::time::Duration::from_millis(500));
+          continue;
+        }
+        let data = serde_json::from_str::<CurrentlyPlaying>(&cached)?;
+        cache_clone.setex(&format!("{}:current", spotify_email_clone), &serde_json::to_string(&data)?, 16)?;
+      }
+
+
+      thread::sleep(std::time::Duration::from_millis(500));
+    }
+    Ok::<(), Error>(())
+  });
+
   loop {
     if stop_flag.load(std::sync::atomic::Ordering::Relaxed) {
       println!("{} Stopping Thread", format!("[{}]", spotify_email).bright_green());
@@ -426,7 +466,7 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
       Ok(currently_playing) => currently_playing,
       Err(e) => {
         println!("{} {}", format!("[{}]", spotify_email).bright_green(), e.to_string().bright_red());
-        tokio::time::sleep(tokio::time::Duration::from_millis(3000)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
         continue;
       }
     };
@@ -434,7 +474,7 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
     if let Some((data, changed)) = currently_playing {
       if data.item.is_none() {
         println!("{} {}", format!("[{}]", spotify_email).bright_green(), "No song playing".yellow());
-        tokio::time::sleep(tokio::time::Duration::from_millis(3000)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
         continue;
       }
       let data_item = data.item.unwrap();
@@ -465,7 +505,7 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
       }
     }
 
-    tokio::time::sleep(tokio::time::Duration::from_millis(3000)).await;
+    tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
   }
 
   Ok(())

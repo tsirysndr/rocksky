@@ -38,4 +38,10 @@ impl Cache {
             .query::<()>(&mut con)?;
         Ok(())
     }
+
+    pub fn del(&self, key: &str) -> Result<(), Error> {
+        let mut con = self.client.get_connection()?;
+        redis::cmd("DEL").arg(key).query::<()>(&mut con)?;
+        Ok(())
+    }
 }
