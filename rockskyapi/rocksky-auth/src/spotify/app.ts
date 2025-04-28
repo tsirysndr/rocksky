@@ -14,7 +14,7 @@ const app = new Hono();
 app.use(
   "/currently-playing",
   rateLimiter({
-    limit: 2, // max Spotify API calls
+    limit: 10, // max Spotify API calls
     window: 15, // per 10 seconds
     keyPrefix: "spotify-ratelimit",
   })
@@ -197,66 +197,12 @@ app.get("/currently-playing", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const spotifyToken = await ctx.client.db.spotify_tokens
-    .filter({
-      $any: [{ "user_id.did": did }, { "user_id.handle": did }],
-    })
-    .getFirst();
-
-  if (!spotifyToken) {
-    c.status(401);
-    return c.text("Unauthorized");
-  }
-
-  const refreshToken = decrypt(
-    spotifyToken.refresh_token,
-    env.SPOTIFY_ENCRYPTION_KEY
-  );
-
-  // get new access token
-  const newAccessToken = await fetch("https://accounts.spotify.com/api/token", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams({
-      grant_type: "refresh_token",
-      refresh_token: refreshToken,
-      client_id: env.SPOTIFY_CLIENT_ID,
-      client_secret: env.SPOTIFY_CLIENT_SECRET,
-    }),
-  });
-
-  const responseToken = await newAccessToken.text();
-
-  if (!responseToken.startsWith("{")) {
-    console.log("[spotify] ", newAccessToken.status);
-    console.log("[spotify] ", did);
-    console.log("[spotify] ", responseToken);
-  }
-
-  const { access_token } = JSON.parse(responseToken);
-
-  const response = await fetch(
-    "https://spotify-api.rocksky.app/v1/me/player/currently-playing",
-    {
-      headers: {
-        Authorization: `Bearer ${access_token}`,
-      },
-    }
-  );
-
-  // No content means no track is playing
-  if (response.status === 204) {
+  const cached = await ctx.redis.get(`${spotifyAccount.email}:current`);
+  if (!cached) {
     return c.json({});
   }
 
-  if (response.status === 429) {
-    c.status(429);
-    return c.text(await response.text());
-  }
-
-  const track = await response.json();
+  const track = JSON.parse(cached);
 
   const sha256 = createHash("sha256")
     .update(
