@@ -20,7 +20,6 @@ const Cover = styled.img`
 `;
 
 const Link = styled(DefaultLink)`
-  color: inherit;
   text-decoration: none;
   &:hover {
     text-decoration: underline;
@@ -186,14 +185,7 @@ function NowPlaying({ did }: NowPlayingProps) {
     <>
       {!!nowPlaying[did]?.duration && (
         <>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "row",
-              alignItems: "center",
-              marginTop: 25,
-            }}
-          >
+          <div className="flex flex-row items-center mt-[25px]">
             {!!nowPlaying[did]?.albumUri && (
               <Link to={`/${nowPlaying[did]?.albumUri?.split("at://")[1]}`}>
                 <Cover src={nowPlaying[did]?.albumArt} />
@@ -202,74 +194,37 @@ function NowPlaying({ did }: NowPlayingProps) {
             {!nowPlaying[did]?.albumUri && (
               <Cover src={nowPlaying[did]?.albumArt} />
             )}
-            <div
-              style={{
-                maxWidth: "calc(340px - 54px + 30px)",
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  maxWidth: "calc(340px - 54px + 30px)",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
+            <div className="max-w-[316px] overflow-hidden">
+              <div className="max-w-[316px] overflow-hidden truncate">
                 {nowPlaying[did]?.songUri && (
                   <Link
                     to={`/${nowPlaying[did]?.songUri?.split("at://")[1]}`}
-                    style={{
-                      fontWeight: 600,
-                      textOverflow: "ellipsis",
-                      textWrap: "nowrap",
-                    }}
+                    className="font-semibold truncate whitespace-nowrap"
                   >
                     {nowPlaying[did]?.title}
                   </Link>
                 )}
                 {!nowPlaying[did]?.songUri && (
-                  <div
-                    style={{
-                      fontWeight: 600,
-                      textOverflow: "ellipsis",
-                      textWrap: "nowrap",
-                    }}
-                  >
+                  <div className="font-semibold truncate whitespace-nowrap">
                     {nowPlaying[did]?.title}
                   </div>
                 )}
               </div>
-              <div
-                style={{
-                  maxWidth: "calc(340px - 54px + 30px)",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
+              <div className="max-w-[316px] overflow-hidden truncate">
                 {!!nowPlaying[did]?.artistUri?.split("at://")[1] && (
                   <Link
                     to={`/${nowPlaying[did]?.artistUri?.split("at://")[1]}`}
-                    style={{
-                      fontFamily: "RockfordSansLight",
-                      color: "rgba(36, 49, 61, 0.65)",
-                      fontWeight: 600,
-                      textOverflow: "ellipsis",
-                      textWrap: "nowrap",
-                      fontSize: "14px",
-                    }}
+                    className="font-rockford-light text-[rgba(36, 49, 61, 0.65)] font-semibold truncate whitespace-nowrap text-sm"
+                    style={{ color: "rgba(36, 49, 61, 0.65)" }}
                   >
                     {nowPlaying[did]?.artist}
                   </Link>
                 )}
                 {!nowPlaying[did]?.artistUri?.split("at://")[1] && (
                   <div
+                    className="font-rockford-light text-[rgba(36, 49, 61, 0.65)] font-semibold truncate whitespace-nowrap text-sm"
                     style={{
-                      fontFamily: "RockfordSansLight",
                       color: "rgba(36, 49, 61, 0.65)",
-                      fontWeight: 600,
-                      textOverflow: "ellipsis",
-                      textWrap: "nowrap",
-                      fontSize: "14px",
                     }}
                   >
                     {nowPlaying[did]?.artist}
@@ -278,20 +233,13 @@ function NowPlaying({ did }: NowPlayingProps) {
               </div>
             </div>
           </div>
-          <div
-            style={{
-              marginTop: 0,
-              display: "flex",
-              flexDirection: "row",
-              alignItems: "center",
-            }}
-          >
+          <div className="mt-[0px] flex flex-row items-center">
             <div>
               <LabelXSmall color={"rgba(36, 49, 61, 0.65)"}>
                 {formatTime(nowPlaying[did]?.progress || 0)}
               </LabelXSmall>
             </div>
-            <div style={{ flex: 1, marginLeft: 10, marginRight: 10 }}>
+            <div className="flex-1 ml-[10px] mr-[10px]">
               <ProgressBar
                 value={
                   nowPlaying[did]?.progress && nowPlaying[did]?.duration

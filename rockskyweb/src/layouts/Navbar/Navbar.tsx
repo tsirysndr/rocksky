@@ -48,7 +48,7 @@ function Navbar() {
     <Container>
       <div>
         <Link to="/" style={{ textDecoration: "none" }}>
-          <h2 style={{ color: "#ff2876" }}>Rocksky</h2>
+          <h2 className="text-[#ff2876] text-[26px] font-bold">Rocksky</h2>
         </Link>
       </div>
 
