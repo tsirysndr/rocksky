@@ -430,6 +430,10 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
         break;
       }
       if let Some(cached) = cache_clone.get(&format!("{}:current", spotify_email_clone))? {
+        if serde_json::from_str::<CurrentlyPlaying>(&cached).is_err() {
+          thread::sleep(std::time::Duration::from_millis(500));
+          continue;
+        }
         let mut current_song = serde_json::from_str::<CurrentlyPlaying>(&cached)?;
 
         if current_song.is_playing && current_song.progress_ms.unwrap_or(0) < current_song.item.clone().unwrap().duration_ms.into() {
@@ -446,8 +450,7 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
           thread::sleep(std::time::Duration::from_millis(500));
           continue;
         }
-        let data = serde_json::from_str::<CurrentlyPlaying>(&cached)?;
-        cache_clone.setex(&format!("{}:current", spotify_email_clone), &serde_json::to_string(&data)?, 16)?;
+        cache_clone.setex(&format!("{}:current", spotify_email_clone), &cached, 16)?;
       }
 
 
