@@ -218,17 +218,26 @@ pub async fn get_currently_playing(cache: Cache, user_id: &str, token: &str) -> 
     return Ok(None);
   }
 
+  let previous = cache.get(&format!("{}:previous", user_id))?;
+
   // check if status code is 204
   if status == 204 {
     println!("No content");
-    cache.setex(user_id, "No content", 10)?;
+    cache.setex(user_id, "No content", match previous.is_none() {
+      true => 30,
+      false => 10,
+    }
+  )?;
     cache.del(&format!("{}:current", user_id))?;
     return Ok(None);
   }
 
   let data = serde_json::from_str::<CurrentlyPlaying>(&data)?;
 
-  cache.setex(user_id, &serde_json::to_string(&data)?, 15)?;
+  cache.setex(user_id, &serde_json::to_string(&data)?, match previous.is_none() {
+    true => 30,
+    false => 15,
+  })?;
   cache.del(&format!("{}:current", user_id))?;
 
   // detect if the song has changed
