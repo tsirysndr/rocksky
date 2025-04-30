@@ -144,15 +144,7 @@ function ApiKeys() {
         <TableBuilder data={apikeys} emptyMessage="No API keys found">
           <TableBuilderColumn header="Name">
             {(row: ApiKey) => (
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "row",
-                  alignItems: "center",
-                }}
-              >
-                {row.name}
-              </div>
+              <div className="flex flex-row items-center">{row.name}</div>
             )}
           </TableBuilderColumn>
           <TableBuilderColumn
