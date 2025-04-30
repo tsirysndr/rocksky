@@ -104,12 +104,7 @@ function ApiKeys() {
 
   return (
     <Main withRightPane={false}>
-      <div
-        style={{
-          marginTop: 70,
-          marginBottom: 150,
-        }}
-      >
+      <div className="mt-[70px] mb-[150px]">
         <Header>
           <HeadingMedium marginTop={"0px"} marginBottom={"20px"}>
             API Applications
@@ -171,7 +166,7 @@ function ApiKeys() {
             }}
           >
             {(row: ApiKey) => (
-              <div>
+              <div className="w-[300px]">
                 <div>API Key:</div>
                 <Code>{row.apiKey}</Code>
                 <StatefulTooltip content="Copy API Key">
@@ -209,7 +204,7 @@ function ApiKeys() {
             }}
           >
             {(row: ApiKey) => (
-              <div>
+              <div className="w-[150px]">
                 {(enabled[row.id] || row.enabled) && (
                   <Button kind="secondary" onClick={() => onDisable(row.id)}>
                     Disable
