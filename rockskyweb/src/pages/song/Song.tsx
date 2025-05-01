@@ -129,7 +129,7 @@ const Song = () => {
       const data = await getArtistTracks(uri, 5);
       setTopTracks(
         data.map((x) => ({
-          id: x.xata_id,
+          id: x.id,
           title: x.title,
           artist: x.artist,
           albumArtist: x.album_artist,
@@ -152,7 +152,7 @@ const Song = () => {
       const data = await getArtistAlbums(uri, 10);
       setTopAlbums(
         data.map((x) => ({
-          id: x.xata_id,
+          id: x.id,
           title: x.title,
           artist: x.artist,
           album_art: x.album_art,

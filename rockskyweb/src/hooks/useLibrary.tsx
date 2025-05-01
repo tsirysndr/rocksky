@@ -5,7 +5,7 @@ function useLibrary() {
   const getSongByUri = async (uri: string) => {
     const response = await axios.get(`${API_URL}/users/${uri}`);
     return {
-      id: response.data?.xata_id,
+      id: response.data?.id,
       title: response.data?.title,
       artist: response.data?.artist,
       albumArtist: response.data?.album_artist,
@@ -28,7 +28,7 @@ function useLibrary() {
     limit = 10
   ): Promise<
     {
-      xata_id: string;
+      id: string;
       title: string;
       artist: string;
       album_artist: string;
@@ -50,7 +50,7 @@ function useLibrary() {
     limit = 10
   ): Promise<
     {
-      xata_id: string;
+      id: string;
       title: string;
       artist: string;
       album_art: string;

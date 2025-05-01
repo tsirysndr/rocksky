@@ -89,7 +89,7 @@ const Album = () => {
     const fetchAlbum = async () => {
       const data = await getAlbum(did, rkey);
       setAlbum({
-        id: data.xata_id,
+        id: data.id,
         albumArt: data.album_art,
         artistUri: data.artist_uri,
         artist: data.artist,

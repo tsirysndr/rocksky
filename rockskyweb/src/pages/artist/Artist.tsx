@@ -60,7 +60,7 @@ const Artist = () => {
       setLoading(true);
       const data = await getArtist(did, rkey);
       setArtist({
-        id: data.xata_id,
+        id: data.id,
         name: data.name,
         born: data.born,
         bornIn: data.born_in,
@@ -81,7 +81,7 @@ const Artist = () => {
       const data = await getArtistTracks(uri, 10);
       setTopTracks(
         data.map((x) => ({
-          id: x.xata_id,
+          id: x.id,
           title: x.title,
           artist: x.artist,
           albumArtist: x.album_artist,
@@ -100,7 +100,7 @@ const Artist = () => {
       const data = await getArtistAlbums(uri, 10);
       setTopAlbums(
         data.map((x) => ({
-          id: x.xata_id,
+          id: x.id,
           title: x.title,
           artist: x.artist,
           album_art: x.album_art,

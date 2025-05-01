@@ -19,6 +19,7 @@ import { env } from "lib/env";
 import _ from "lodash";
 import { likeTrack, unLikeTrack } from "lovedtracks/lovedtracks.service";
 import { requestCounter } from "metrics";
+import R from "ramda";
 import tables from "schema";
 import {
   createShout,
@@ -209,7 +210,8 @@ app.get("/:did/app.rocksky.scrobble/:rkey", async (c) => {
   ]);
 
   return c.json({
-    ...scrobble,
+    ...R.omit(["xata_id"], scrobble),
+    id: scrobble.xata_id,
     listeners: _.get(listeners.summaries, "0.total", 1),
     scrobbles: _.get(scrobbles.summaries, "0.total", 1),
     tags: [],
@@ -265,7 +267,8 @@ app.get("/:did/app.rocksky.artist/:rkey", async (c) => {
   ]);
 
   return c.json({
-    ...artist.artist_id,
+    ...R.omit(["xata_id"], artist.artist_id),
+    id: artist.artist_id.xata_id,
     listeners: _.get(listeners.summaries, "0.total", 1),
     scrobbles: _.get(scrobbles.summaries, "0.total", 1),
     tags: [],
@@ -326,7 +329,8 @@ app.get("/:did/app.rocksky.album/:rkey", async (c) => {
   ]);
 
   return c.json({
-    ...album.album_id,
+    ...R.omit(["xata_id"], album.album_id),
+    id: album.album_id.xata_id,
     listeners: _.get(listeners.summaries, "0.total", 1),
     scrobbles: _.get(scrobbles.summaries, "0.total", 1),
     tracks: dedupeTracksKeepLyrics(tracks.map((track) => track.track_id)).sort(
@@ -385,7 +389,8 @@ app.get("/:did/app.rocksky.song/:rkey", async (c) => {
   ]);
 
   return c.json({
-    ...track,
+    ...R.omit(["xata_id"], track),
+    id: track.xata_id,
     tags: [],
     listeners: _.get(listeners.summaries, "0.total", 1),
     scrobbles: _.get(scrobbles.summaries, "0.total", 1),
@@ -417,7 +422,8 @@ app.get("/:did/app.rocksky.artist/:rkey/tracks", async (c) => {
     });
   return c.json(
     tracks.records.map((item) => ({
-      ...item.track_id,
+      ...R.omit(["xata_id"], item.track_id),
+      id: item.track_id.xata_id,
       xata_version: item.xata_version,
     }))
   );
@@ -448,7 +454,8 @@ app.get("/:did/app.rocksky.artist/:rkey/albums", async (c) => {
     });
   return c.json(
     albums.records.map((item) => ({
-      ...item.album_id,
+      ...R.omit(["xata_id"], item.album_id),
+      id: item.album_id.xata_id,
       xata_version: item.xata_version,
     }))
   );
