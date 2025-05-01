@@ -19,7 +19,7 @@ import { env } from "lib/env";
 import _ from "lodash";
 import { likeTrack, unLikeTrack } from "lovedtracks/lovedtracks.service";
 import { requestCounter } from "metrics";
-import R from "ramda";
+import * as R from "ramda";
 import tables from "schema";
 import {
   createShout,
