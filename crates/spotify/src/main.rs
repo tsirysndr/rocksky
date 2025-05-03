@@ -100,11 +100,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             thread::spawn(move || {
                 let rt = tokio::runtime::Runtime::new().unwrap();
-                rt.block_on(async {
-                    watch_currently_playing(email, token, did, new_stop_flag, cache.clone()).await?;
+                match rt.block_on(async {
+                    watch_currently_playing(email.clone(), token, did, new_stop_flag, cache.clone()).await?;
                     Ok::<(), Error>(())
-                })
-                .unwrap();
+                }) {
+                  Ok(_) => {},
+                  Err(e) => {
+                    println!("{} Error restarting thread for user: {} - {}", format!("[{}]", email).bright_green(), email.bright_green(), e.to_string().bright_red());
+                  }
+                }
             });
 
             println!("Restarted thread for user: {}", user_id.bright_green());
@@ -122,11 +126,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
               thread::spawn(move || {
                   let rt = tokio::runtime::Runtime::new().unwrap();
-                  rt.block_on(async {
-                      watch_currently_playing(email, token, did, stop_flag, cache.clone()).await?;
+                  match rt.block_on(async {
+                      watch_currently_playing(email.clone(), token, did, stop_flag, cache.clone()).await?;
                       Ok::<(), Error>(())
-                  })
-                  .unwrap();
+                  }) {
+                    Ok(_) => {},
+                    Err(e) => {
+                      println!("{} Error starting thread for user: {} - {}", format!("[{}]", email).bright_green(), email.bright_green(), e.to_string().bright_red());
+                    }
+                  }
               });
             }
         }
@@ -452,7 +460,12 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
           thread::sleep(std::time::Duration::from_millis(500));
           continue;
         }
-        cache_clone.setex(&format!("{}:current", spotify_email_clone), &cached, 16)?;
+        match cache_clone.setex(&format!("{}:current", spotify_email_clone), &cached, 16) {
+          Ok(_) => {},
+          Err(e) => {
+            println!("{} {}", format!("[{}]", spotify_email_clone).bright_green(), e.to_string().bright_red());
+          }
+        }
       }
 
 
