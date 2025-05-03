@@ -439,37 +439,42 @@ pub async fn watch_currently_playing(spotify_email: String, token: String, did: 
       }
       if let Some(cached) = cache_clone.get(&format!("{}:current", spotify_email_clone))? {
         if serde_json::from_str::<CurrentlyPlaying>(&cached).is_err() {
-          thread::sleep(std::time::Duration::from_millis(500));
+          thread::sleep(std::time::Duration::from_millis(800));
           continue;
         }
         let mut current_song = serde_json::from_str::<CurrentlyPlaying>(&cached)?;
 
         if let Some(item) = current_song.item.clone() {
           if current_song.is_playing && current_song.progress_ms.unwrap_or(0) < item.duration_ms.into() {
-            current_song.progress_ms = Some(current_song.progress_ms.unwrap_or(0) + 500);
-            cache_clone.setex(&format!("{}:current", spotify_email_clone), &serde_json::to_string(&current_song)?, 16)?;
-            thread::sleep(std::time::Duration::from_millis(500));
+            current_song.progress_ms = Some(current_song.progress_ms.unwrap_or(0) + 800);
+            match cache_clone.setex(&format!("{}:current", spotify_email_clone), &serde_json::to_string(&current_song)?, 16) {
+              Ok(_) => {},
+              Err(e) => {
+                println!("{} redis error: {}", format!("[{}]", spotify_email_clone).bright_green(), e.to_string().bright_red());
+              }
+            }
+            thread::sleep(std::time::Duration::from_millis(800));
             continue;
           }
         }
         continue;
       }
 
-      if let Some(cached) = cache_clone.get(&spotify_email_clone)? {
+      if let Ok(Some(cached)) = cache_clone.get(&spotify_email_clone) {
         if cached == "No content" {
-          thread::sleep(std::time::Duration::from_millis(500));
+          thread::sleep(std::time::Duration::from_millis(800));
           continue;
         }
         match cache_clone.setex(&format!("{}:current", spotify_email_clone), &cached, 16) {
           Ok(_) => {},
           Err(e) => {
-            println!("{} {}", format!("[{}]", spotify_email_clone).bright_green(), e.to_string().bright_red());
+            println!("{} redis error: {}", format!("[{}]", spotify_email_clone).bright_green(), e.to_string().bright_red());
           }
         }
       }
 
 
-      thread::sleep(std::time::Duration::from_millis(500));
+      thread::sleep(std::time::Duration::from_millis(800));
     }
     Ok::<(), Error>(())
   });
