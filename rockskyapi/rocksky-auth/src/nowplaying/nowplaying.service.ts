@@ -482,7 +482,12 @@ export async function scrobbleTrack(
       )
     )
     .getFirst();
-  while (!existingTrack?.artist_uri && tries < 30) {
+
+  while (
+    !existingTrack?.artist_uri &&
+    !existingTrack?.album_uri &&
+    tries < 30
+  ) {
     console.log(
       `Artist uri not ready, trying again: ${chalk.magenta(tries + 1)}`
     );
@@ -518,6 +523,26 @@ export async function scrobbleTrack(
       }
     }
     // end update artist uri
+
+    // start update album uri if it is not set
+    if (existingTrack && !existingTrack.album_uri) {
+      const album = await ctx.client.db.albums
+        .filter(
+          "sha256",
+          equals(
+            createHash("sha256")
+              .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
+              .digest("hex")
+          )
+        )
+        .getFirst();
+      if (album) {
+        await ctx.client.db.tracks.update(existingTrack.xata_id, {
+          album_uri: album.uri,
+        });
+      }
+    }
+    // end update album uri
 
     await new Promise((resolve) => setTimeout(resolve, 1000));
     tries += 1;

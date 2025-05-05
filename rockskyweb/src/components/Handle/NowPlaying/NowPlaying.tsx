@@ -214,7 +214,7 @@ function NowPlaying({ did }: NowPlayingProps) {
                 {!!nowPlaying[did]?.artistUri?.split("at://")[1] && (
                   <Link
                     to={`/${nowPlaying[did]?.artistUri?.split("at://")[1]}`}
-                    className="font-rockford-light text-[rgba(36, 49, 61, 0.65)] font-semibold truncate whitespace-nowrap text-sm"
+                    className="text-[rgba(36, 49, 61, 0.65)] font-semibold truncate whitespace-nowrap text-sm"
                     style={{ color: "rgba(36, 49, 61, 0.65)" }}
                   >
                     {nowPlaying[did]?.artist}
@@ -222,7 +222,7 @@ function NowPlaying({ did }: NowPlayingProps) {
                 )}
                 {!nowPlaying[did]?.artistUri?.split("at://")[1] && (
                   <div
-                    className="font-rockford-light text-[rgba(36, 49, 61, 0.65)] font-semibold truncate whitespace-nowrap text-sm"
+                    className="text-[rgba(36, 49, 61, 0.65)] font-semibold truncate whitespace-nowrap text-sm"
                     style={{
                       color: "rgba(36, 49, 61, 0.65)",
                     }}
