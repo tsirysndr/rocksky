@@ -46,10 +46,18 @@ function Overview() {
   return (
     <>
       {did && stats[did] && <Stats stats={stats[did]} />}
-      <RecentTracks />
-      <TopArtists />
-      <TopAlbums />
-      <TopTracks />
+      <div className="mb-20">
+        <RecentTracks />
+      </div>
+      <div className="mb-20">
+        <TopArtists />
+      </div>
+      <div className="mb-20">
+        <TopAlbums />
+      </div>
+      <div className="mb-20">
+        <TopTracks />
+      </div>
     </>
   );
 }

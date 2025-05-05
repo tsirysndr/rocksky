@@ -199,13 +199,13 @@ function NowPlaying({ did }: NowPlayingProps) {
                 {nowPlaying[did]?.songUri && (
                   <Link
                     to={`/${nowPlaying[did]?.songUri?.split("at://")[1]}`}
-                    className="font-semibold truncate whitespace-nowrap"
+                    className="font-semibold truncate whitespace-nowrap text-[#000]"
                   >
                     {nowPlaying[did]?.title}
                   </Link>
                 )}
                 {!nowPlaying[did]?.songUri && (
-                  <div className="font-semibold truncate whitespace-nowrap">
+                  <div className="font-semibold truncate whitespace-nowrap text-[#000]">
                     {nowPlaying[did]?.title}
                   </div>
                 )}

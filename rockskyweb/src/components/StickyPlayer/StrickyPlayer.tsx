@@ -42,7 +42,7 @@ const MiniPlayerWrapper = styled.div`
 const MiniPlayer = styled.div`
   background-color: white;
   width: 1120px;
-  height: 99px;
+  height: 80px;
   padding: 16px;
   border-radius: 16px;
   box-shadow: 0px 0px 24px rgba(19, 19, 19, 0.08);
