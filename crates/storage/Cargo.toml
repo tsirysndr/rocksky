@@ -1,0 +1,28 @@
+[package]
+name = "storage"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+rust-s3 = { version = "0.35.1", features = [
+  "tokio-rustls-tls",
+], default-features = false }
+tokio = { version = "1.43.0", features = ["full"] }
+owo-colors = "4.1.0"
+dotenv = "0.15.0"
+anyhow = "1.0.96"
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.139"
+sqlx = { version = "0.8.3", features = [
+  "runtime-tokio",
+  "tls-rustls",
+  "postgres",
+  "chrono",
+  "derive",
+  "macros",
+] }
+actix-web = "4.9.0"
+tokio-stream = { version = "0.1.17", features = ["full"] }
