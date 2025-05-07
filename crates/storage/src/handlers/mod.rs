@@ -2,6 +2,7 @@ use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::Error;
 use files::presign_get;
 use folders::list;
+use s3::Bucket;
 
 pub mod files;
 pub mod folders;
@@ -20,9 +21,10 @@ macro_rules! read_payload {
   }};
 }
 
-pub async fn handle(method: &str, payload: &mut web::Payload, req: &HttpRequest) -> Result<HttpResponse, Error> {
+pub async fn handle(method: &str, payload: &mut web::Payload, req: &HttpRequest, bucket: Box<Bucket>) -> Result<HttpResponse, Error> {
   match method {
-    "storage.list" => list(payload, req).await,
-    "storage.presignGet" => presign_get(payload, req).await,    _ => return Err(anyhow::anyhow!("Method not found")),
+    "storage.list" => list(payload, req, bucket.clone()).await,
+    "storage.presignGet" => presign_get(payload, req, bucket.clone()).await,
+     _ => return Err(anyhow::anyhow!("Method not found")),
   }
 }
