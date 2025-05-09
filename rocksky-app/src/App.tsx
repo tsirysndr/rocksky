@@ -1,3 +1,4 @@
+import Constants from "expo-constants";
 import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
 import { Text, View } from "react-native";
@@ -18,4 +19,17 @@ const App = () => {
   );
 };
 
-export default App;
+let AppEntryPoint = App;
+
+if (Constants.expoConfig?.extra?.storybookEnabled === "true") {
+  const Storybook = require("../.storybook").default;
+  const StorybookApp = () => {
+    useFonts({
+      RockfordSansRegular: require("../assets/fonts/RockfordSans-Regular.otf"),
+    });
+    return <Storybook />;
+  };
+  AppEntryPoint = StorybookApp;
+}
+
+export default AppEntryPoint;

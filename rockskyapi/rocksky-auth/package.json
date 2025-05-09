@@ -42,6 +42,7 @@
 		"dotenv": "^16.4.7",
 		"drizzle-orm": "^0.39.3",
 		"dropbox": "^10.34.0",
+		"effect": "^3.14.22",
 		"envalid": "^8.0.0",
 		"googleapis": "^146.0.0",
 		"hono": "^4.4.7",
