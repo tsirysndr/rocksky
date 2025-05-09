@@ -138,7 +138,9 @@ app.get("/profile", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
+    ignoreExpiration: true,
+  });
 
   const agent = await createAgent(ctx.oauthClient, did);
 
