@@ -180,5 +180,11 @@ export type RootStackParamList = {
   Story: {
     avatar: string;
     handle: string;
+    title: string;
+    artist: string;
+    albumArt: string;
+    albumUri: string;
+    artistUri: string;
+    trackUri: string;
   };
 };

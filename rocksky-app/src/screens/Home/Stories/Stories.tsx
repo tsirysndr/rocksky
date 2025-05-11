@@ -35,7 +35,7 @@ const stories = [
       "https://cdn.bsky.app/img/avatar/plain/did:plc:d5jvs7uo4z6lw63zzreukgt4/bafkreifcgsam3qlqrwxrxe6t7aq6jj4ok7kqijg25r33j26k3cjawu32fm@jpeg",
   },
   {
-    handle: "flaky.blue",
+    handle: "@flaky.blue",
     image:
       "https://cdn.bsky.app/img/avatar/plain/did:plc:6x3sa4qcuhtc4yky2f6eu2ki/bafkreibu2l2mab74we6sotx3sm4xawxgbmendixfvdunadidgspjer2yoq@jpeg",
   },
@@ -57,6 +57,13 @@ const Stories = () => {
               navigation.navigate("Story", {
                 avatar: story.image,
                 handle: story.handle,
+                title: "unravel (acoustic version)",
+                artist: "TK from Ling tosite sigure",
+                albumArt:
+                  "https://cdn.bsky.app/img/feed_thumbnail/plain/did:plc:fip3nyk6tjo3senpq4ei2cxw/bafkreibgrplda7ysj6znh356kiu5m2nmip7dcunywxrnl6rv7aoioohsja@jpeg",
+                albumUri: "",
+                artistUri: "",
+                trackUri: "",
               });
             }}
           />

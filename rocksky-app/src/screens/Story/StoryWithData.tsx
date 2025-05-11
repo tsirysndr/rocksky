@@ -22,7 +22,16 @@ const StoryWithData: FC<StoryWithDataProps> = (props) => {
     <Story
       handle={route!.params.handle}
       avatar={route!.params.avatar}
+      title={route!.params.title}
+      albumArt={route!.params.albumArt}
+      artist={route!.params.artist}
+      artistUri={route!.params.artistUri}
+      albumUri={route!.params.albumUri}
+      trackUri={route!.params.trackUri}
       onOpenBlueskyProfile={() => navigation!.navigate("UserProfile")}
+      onPressAlbum={() => navigation!.navigate("AlbumDetails")}
+      onPressArtist={() => navigation!.navigate("ArtistDetails")}
+      onPressTrack={() => navigation!.navigate("SongDetails")}
     />
   );
 };

@@ -1,12 +1,32 @@
 import StickyPlayer from "@/src/components/StickyPlayer";
-import { Text, View } from "react-native";
+import { Image, ScrollView, Text, View } from "react-native";
 
 const AlbumDetails = () => {
   return (
     <View className="h-full w-full bg-black pt-[50px]">
-      <Text className="font-rockford-medium text-[#fff] text-[21px]">
-        Album Details
-      </Text>
+      <ScrollView>
+        <View className="items-center justify-start">
+          <Image
+            source={{
+              uri: "https://cdn.rocksky.app/covers/da9e82337eb069388e05b93f89c9c41c.jpg",
+            }}
+            style={{
+              width: 200,
+              height: 200,
+            }}
+          />
+          <Text
+            className="font-rockford-medium text-[#fff] mt-[10px] text-center"
+            style={{ fontSize: 16 }}
+          >
+            Meteora 20th Anniversary Edition
+          </Text>
+          <Text className="font-rockford-medium text-[#A0A0A0] text-[14px] mt-[5px] text-center">
+            Linkin Park
+          </Text>
+        </View>
+      </ScrollView>
+
       <View className="w-full absolute bottom-0 bg-black">
         <StickyPlayer
           isPlaying={true}
