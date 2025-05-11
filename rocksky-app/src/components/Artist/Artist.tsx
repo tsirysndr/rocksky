@@ -1,31 +1,50 @@
 import { FC } from "react";
-import { Image, Text, View } from "react-native";
+import { Image, Pressable, Text, View } from "react-native";
 
 export type ArtistProps = {
   row?: boolean;
   size?: number;
   name: string;
   image: string;
+  className?: string;
+  rank?: number;
+  did: string;
+  onPress: (did: string) => void;
 };
 
 const Artist: FC<ArtistProps> = (props) => {
-  const { row, size, name, image } = props;
+  const { row, size, name, image, rank, className, did, onPress } = props;
   const imageSize = size ? size : 80;
   const direction = row ? "flex-row" : "flex-col";
   return (
-    <View className={`flex ${direction} items-center justify-center`}>
-      <Image
-        source={{
-          uri: image,
-        }}
-        className={`w-[${imageSize}px] h-[${imageSize}px] rounded-full`}
-      />
-      <Text
-        className={`font-rockford-regular text-white mt-[10px] ${row ? "ml-[15px]" : ""}`}
+    <Pressable onPress={() => onPress(did)}>
+      <View
+        className={`flex ${direction} items-center ${row ? "justify-start" : "justify-center"} ${className}`}
       >
-        {name}
-      </Text>
-    </View>
+        {rank && row && (
+          <Text className="font-rockford-regular text-white mr-[20px]">
+            {rank}
+          </Text>
+        )}
+        <Image
+          source={{
+            uri: image,
+          }}
+          className="rounded-full"
+          style={{
+            width: imageSize,
+            height: imageSize,
+          }}
+        />
+        <Text
+          className={`font-rockford-regular text-white  ${row ? "ml-[20px]" : "text-center mt-[10px]" + " w-[" + (imageSize + 30) + "px]"}`}
+          numberOfLines={2}
+          ellipsizeMode="tail"
+        >
+          {name}
+        </Text>
+      </View>
+    </Pressable>
   );
 };
 

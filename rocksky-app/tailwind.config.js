@@ -6,8 +6,9 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        'rockford-regular': ['RockfordSansRegular']
-      }
+        "rockford-regular": ["RockfordSansRegular"],
+        "rockford-medium": ["RockfordSansMedium"],
+      },
     },
   },
   plugins: [],

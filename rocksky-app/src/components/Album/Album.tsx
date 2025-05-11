@@ -1,5 +1,5 @@
 import { FC } from "react";
-import { Image, Text, View } from "react-native";
+import { Image, Pressable, Text, View } from "react-native";
 
 export type AlbumProps = {
   row?: boolean;
@@ -7,27 +7,52 @@ export type AlbumProps = {
   artist: string;
   title: string;
   image: string;
+  did: string;
+  className?: string;
+  onPress: (did: string) => void;
 };
 
 const Album: FC<AlbumProps> = (props) => {
-  const { row, size, artist, title, image } = props;
+  const { row, size, artist, title, image, className, did, onPress } = props;
   const imageSize = size ? size : 120;
   const direction = row ? "flex-row" : "flex-col";
   return (
-    <View className="flex flex-col items-center justify-center">
-      <Image
-        source={{
-          uri: "https://cdn.rocksky.app/covers/ec9bbc208b04182f315f8137cfb2125b.jpg",
-        }}
-        className="w-[120px] h-[120px]"
-      />
-      <Text className="font-rockford-regular text-white mt-[12px]">
-        {title}
-      </Text>
-      <Text className="font-rockford-regular text-[#A0A0A0] mt-[2px]">
-        {artist}
-      </Text>
-    </View>
+    <Pressable onPress={() => onPress(did)}>
+      <View className={`flex ${direction} justify-center ${className}`}>
+        <Image
+          source={{
+            uri: image,
+          }}
+          className={`${row ? "mr-[15px]" : ""}`}
+          style={{
+            width: imageSize,
+            height: imageSize,
+          }}
+        />
+        <View
+          className={` ${row ? "flex-1 justify-center" : "mt-[12px]"} max-h-[80px]`}
+          style={{
+            width: !row ? imageSize : undefined,
+            height: !row ? imageSize : undefined,
+          }}
+        >
+          <Text
+            className="font-rockford-regular text-white"
+            numberOfLines={2}
+            ellipsizeMode="tail"
+          >
+            {title}
+          </Text>
+          <Text
+            className="font-rockford-regular text-[#A0A0A0] mt-[2px]"
+            numberOfLines={2}
+            ellipsizeMode="tail"
+          >
+            {artist}
+          </Text>
+        </View>
+      </View>
+    </Pressable>
   );
 };
 

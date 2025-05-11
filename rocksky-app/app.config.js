@@ -1,5 +1,5 @@
 module.exports = {
-  name: "rocksky",
+  name: "Rocksky",
   slug: "rocksky",
   version: "1.0.0",
   orientation: "portrait",

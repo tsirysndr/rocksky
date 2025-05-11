@@ -1,0 +1,30 @@
+import { RootStackParamList } from "@/src/Navigation";
+import { RouteProp } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { FC } from "react";
+import Story from "./Story";
+
+type StoryScreenRouteProp = RouteProp<RootStackParamList, "Story">;
+type StoryScreenNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  "Story"
+>;
+
+export type StoryWithDataProps = Partial<{
+  route: StoryScreenRouteProp;
+  navigation: StoryScreenNavigationProp;
+}>;
+
+const StoryWithData: FC<StoryWithDataProps> = (props) => {
+  const { route, navigation } = props;
+
+  return (
+    <Story
+      handle={route!.params.handle}
+      avatar={route!.params.avatar}
+      onOpenBlueskyProfile={() => navigation!.navigate("UserProfile")}
+    />
+  );
+};
+
+export default StoryWithData;

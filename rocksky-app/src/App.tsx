@@ -1,20 +1,23 @@
+import { NavigationContainer } from "@react-navigation/native";
 import Constants from "expo-constants";
 import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
-import { Text, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { RootStack } from "./Navigation";
 
 const App = () => {
   useFonts({
     RockfordSansRegular: require("../assets/fonts/RockfordSans-Regular.otf"),
+    RockfordSansMedium: require("../assets/fonts/RockfordSans-Medium.otf"),
+    RockfordSansBold: require("../assets/fonts/RockfordSans-Bold.otf"),
   });
 
   return (
     <SafeAreaProvider>
       <StatusBar style="auto" />
-      <View className="flex-1 justify-center items-center">
-        <Text className="font-rockford-regular text-[#fff]">Hello all!</Text>
-      </View>
+      <NavigationContainer>
+        <RootStack />
+      </NavigationContainer>
     </SafeAreaProvider>
   );
 };
@@ -26,6 +29,8 @@ if (Constants.expoConfig?.extra?.storybookEnabled === "true") {
   const StorybookApp = () => {
     useFonts({
       RockfordSansRegular: require("../assets/fonts/RockfordSans-Regular.otf"),
+      RockfordSansMedium: require("../assets/fonts/RockfordSans-Medium.otf"),
+      RockfordSansBold: require("../assets/fonts/RockfordSans-Bold.otf"),
     });
     return <Storybook />;
   };

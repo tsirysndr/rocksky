@@ -26,5 +26,20 @@ export const Basic: Story = {
       "https://cdn.rocksky.app/covers/ec9bbc208b04182f315f8137cfb2125b.jpg",
     title: "Another Friday Night",
     artist: "Joel Corry",
+    did: "",
+    onPress: () => {},
+  },
+};
+
+export const Row: Story = {
+  args: {
+    image:
+      "https://cdn.rocksky.app/covers/ec9bbc208b04182f315f8137cfb2125b.jpg",
+    title: "Another Friday Night",
+    artist: "Joel Corry",
+    row: true,
+    size: 80,
+    did: "",
+    onPress: () => {},
   },
 };
