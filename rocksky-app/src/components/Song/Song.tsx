@@ -5,7 +5,7 @@ export type SongProps = {
   size?: number;
   artist: string;
   title: string;
-  image: string;
+  image?: string;
   listenerAvatar?: string;
   listenerHandle?: string;
   listeningDate?: string;
@@ -16,6 +16,7 @@ export type SongProps = {
   onPress: (did: string) => void;
   onPressAlbum: (albumDid: string) => void;
   onOpenBlueskyProfile?: (didOrHandle: string) => void;
+  withoutAlbumCover?: boolean;
 };
 
 const Song: FC<SongProps> = (props) => {
@@ -33,27 +34,30 @@ const Song: FC<SongProps> = (props) => {
     onPress,
     onOpenBlueskyProfile,
     onPressAlbum,
+    withoutAlbumCover,
   } = props;
   const imageSize = size ? size : 80;
   return (
     <View className={`flex flex-row items-center justify-center ${className}`}>
       {rank && (
         <Text
-          className="font-rockford-regular text-[#ffffff] text-[14px] mr-[10px]"
+          className="font-rockford-medium text-[#ffffff] text-[14px] mr-[10px]"
           style={{ width: 20 }}
         >
           {rank}
         </Text>
       )}
-      <Pressable onPress={() => onPressAlbum("")}>
-        <Image
-          source={{
-            uri: image,
-          }}
-          className={` mr-[15px]`}
-          style={{ width: imageSize, height: imageSize, borderRadius }}
-        />
-      </Pressable>
+      {!withoutAlbumCover && (
+        <Pressable onPress={() => onPressAlbum("")}>
+          <Image
+            source={{
+              uri: image,
+            }}
+            className={` mr-[15px]`}
+            style={{ width: imageSize, height: imageSize, borderRadius }}
+          />
+        </Pressable>
+      )}
       <View className="flex-1 justify-center">
         <Pressable onPress={() => onPress(did)}>
           <View className="flex flex-row items-center">
