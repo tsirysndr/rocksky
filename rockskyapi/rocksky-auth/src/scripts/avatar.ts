@@ -46,3 +46,7 @@ for (const did of args) {
     .getFirst();
   ctx.nc.publish("rocksky.user", Buffer.from(JSON.stringify(u)));
 }
+
+console.log("Done");
+
+process.exit(0);
