@@ -45,6 +45,9 @@ for (const did of args) {
     .select(["*"])
     .filter("did", equals(user.did))
     .getFirst();
+
+  console.log(u);
+
   ctx.nc.publish("rocksky.user", Buffer.from(JSON.stringify(u)));
 }
 
