@@ -8,9 +8,7 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import utc from "dayjs/plugin/utc";
 import { useEffect, useState } from "react";
 import { Link as DefaultLink } from "react-router";
-import useNowPlaying, {
-  useNowPlayingsQuery,
-} from "../../../hooks/useNowPlaying";
+import { useNowPlayingsQuery } from "../../../hooks/useNowPlaying";
 import styles from "./styles";
 
 dayjs.extend(relativeTime);
@@ -91,8 +89,7 @@ const Link = styled(DefaultLink)`
 
 function NowPlayings() {
   const [isOpen, setIsOpen] = useState(false);
-  useNowPlayingsQuery();
-  const { nowPlayings } = useNowPlaying();
+  const { data: nowPlayings, isLoading } = useNowPlayingsQuery();
   const [currentlyPlaying, setCurrentlyPlaying] = useState<{
     id: string;
     title: string;
@@ -112,13 +109,13 @@ function NowPlayings() {
 
   const onNext = () => {
     const nextIndex = currentIndex + 1;
-    if (nextIndex >= nowPlayings.length) {
+    if (nextIndex >= nowPlayings!.length) {
       setIsOpen(false);
       return;
     }
 
     setCurrentIndex(nextIndex);
-    setCurrentlyPlaying(nowPlayings[nextIndex]);
+    setCurrentlyPlaying(nowPlayings![nextIndex]);
     setProgress(0);
   };
 
@@ -131,7 +128,7 @@ function NowPlayings() {
     }
 
     setCurrentIndex(prevIndex);
-    setCurrentlyPlaying(nowPlayings[prevIndex]);
+    setCurrentlyPlaying(nowPlayings![prevIndex]);
     setProgress(0);
   };
 
@@ -154,6 +151,10 @@ function NowPlayings() {
   }, [isOpen]);
 
   useEffect(() => {
+    if (!nowPlayings) {
+      return;
+    }
+
     if (progress >= 100) {
       setProgress(0);
       const nextIndex = (currentIndex + 1) % nowPlayings.length;
@@ -165,152 +166,163 @@ function NowPlayings() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [progress]);
+  }, [progress, nowPlayings]);
 
   return (
     <Container>
-      {nowPlayings.map((item, index) => (
-        <StoryContainer
-          key={item.id}
-          onClick={() => {
-            setCurrentlyPlaying(item);
-            setCurrentIndex(index);
-            setIsOpen(true);
-          }}
-        >
-          <Story src={item.avatar} />
-          <StatefulTooltip content={item.handle} returnFocus autoFocus>
-            <Handle>{item.handle}</Handle>
-          </StatefulTooltip>
-        </StoryContainer>
-      ))}
-      <Modal
-        onClose={() => setIsOpen(false)}
-        closeable
-        isOpen={isOpen}
-        animate
-        autoFocus={false}
-        size={"60vw"}
-        role={ROLE.dialog}
-        overrides={styles.modal}
-      >
-        <ModalHeader
-          style={{
-            color: "#fff",
-            fontSize: 15,
-          }}
-        >
-          <div style={{ width: 380, margin: "0 auto" }}>
-            <ProgressBar value={progress} overrides={styles.progressbar} />
-          </div>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "row",
-              alignItems: "center",
-            }}
-          >
-            <Link to={`/profile/${currentlyPlaying?.handle}`}>
-              <Avatar src={currentlyPlaying?.avatar} />
-            </Link>
-            <Link to={`/profile/${currentlyPlaying?.handle}`}>
-              <div
-                style={{
-                  color: "#fff",
-                  textDecoration: "none",
-                }}
-              >
-                @{currentlyPlaying?.handle}
-              </div>
-            </Link>
-            <span style={{ marginLeft: 10, opacity: 0.6 }}>
-              {dayjs.utc(currentlyPlaying?.created_at).local().fromNow()}
-            </span>
-          </div>
-        </ModalHeader>
-        <ModalBody
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            marginBottom: 100,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "row",
-              flex: 1,
-              width: "60vw",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                height: 500,
-                width: 50,
+      {!isLoading && (
+        <>
+          {(nowPlayings || []).map((item, index) => (
+            <StoryContainer
+              key={item.id}
+              onClick={() => {
+                setCurrentlyPlaying(item);
+                setCurrentIndex(index);
+                setIsOpen(true);
               }}
             >
-              {currentIndex > 0 && (
-                <div style={{ cursor: "pointer" }} onClick={onPrev}>
-                  <ChevronLeft size={50} color="rgba(255, 255, 255, 0.5)" />
-                </div>
-              )}
-            </div>
-            <div
+              <Story src={item.avatar} />
+              <StatefulTooltip content={item.handle} returnFocus autoFocus>
+                <Handle>{item.handle}</Handle>
+              </StatefulTooltip>
+            </StoryContainer>
+          ))}
+          <Modal
+            onClose={() => setIsOpen(false)}
+            closeable
+            isOpen={isOpen}
+            animate
+            autoFocus={false}
+            size={"60vw"}
+            role={ROLE.dialog}
+            overrides={styles.modal}
+          >
+            <ModalHeader
               style={{
-                flex: 1,
+                color: "#fff",
+                fontSize: 15,
+              }}
+            >
+              <div style={{ width: 380, margin: "0 auto" }}>
+                <ProgressBar value={progress} overrides={styles.progressbar} />
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "center",
+                }}
+              >
+                <Link to={`/profile/${currentlyPlaying?.handle}`}>
+                  <Avatar src={currentlyPlaying?.avatar} />
+                </Link>
+                <Link to={`/profile/${currentlyPlaying?.handle}`}>
+                  <div
+                    style={{
+                      color: "#fff",
+                      textDecoration: "none",
+                    }}
+                  >
+                    @{currentlyPlaying?.handle}
+                  </div>
+                </Link>
+                <span style={{ marginLeft: 10, opacity: 0.6 }}>
+                  {dayjs.utc(currentlyPlaying?.created_at).local().fromNow()}
+                </span>
+              </div>
+            </ModalHeader>
+            <ModalBody
+              style={{
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
+                justifyContent: "center",
+                marginBottom: 100,
               }}
             >
-              {currentlyPlaying?.track_uri && (
-                <Link to={`/${currentlyPlaying?.track_uri.split("at://")[1]}`}>
-                  <Cover
-                    src={currentlyPlaying?.album_art}
-                    key={currentlyPlaying?.id}
-                  />
-                </Link>
-              )}
-              {currentlyPlaying?.track_uri && (
-                <Link to={`/${currentlyPlaying?.track_uri.split("at://")[1]}`}>
-                  <TrackTitle>{currentlyPlaying?.title}</TrackTitle>
-                </Link>
-              )}
-              {!currentlyPlaying?.track_uri && (
-                <Cover
-                  src={currentlyPlaying?.album_art}
-                  key={currentlyPlaying?.id}
-                />
-              )}
-            </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                height: 500,
-                width: 50,
-              }}
-            >
-              {currentIndex < nowPlayings.length - 1 && (
-                <div style={{ cursor: "pointer" }} onClick={onNext}>
-                  <ChevronRight size={50} color="rgba(255, 255, 255, 0.5)" />
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  flex: 1,
+                  width: "60vw",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    height: 500,
+                    width: 50,
+                  }}
+                >
+                  {currentIndex > 0 && (
+                    <div style={{ cursor: "pointer" }} onClick={onPrev}>
+                      <ChevronLeft size={50} color="rgba(255, 255, 255, 0.5)" />
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
+                <div
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                  }}
+                >
+                  {currentlyPlaying?.track_uri && (
+                    <Link
+                      to={`/${currentlyPlaying?.track_uri.split("at://")[1]}`}
+                    >
+                      <Cover
+                        src={currentlyPlaying?.album_art}
+                        key={currentlyPlaying?.id}
+                      />
+                    </Link>
+                  )}
+                  {currentlyPlaying?.track_uri && (
+                    <Link
+                      to={`/${currentlyPlaying?.track_uri.split("at://")[1]}`}
+                    >
+                      <TrackTitle>{currentlyPlaying?.title}</TrackTitle>
+                    </Link>
+                  )}
+                  {!currentlyPlaying?.track_uri && (
+                    <Cover
+                      src={currentlyPlaying?.album_art}
+                      key={currentlyPlaying?.id}
+                    />
+                  )}
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    height: 500,
+                    width: 50,
+                  }}
+                >
+                  {currentIndex < (nowPlayings || []).length - 1 && (
+                    <div style={{ cursor: "pointer" }} onClick={onNext}>
+                      <ChevronRight
+                        size={50}
+                        color="rgba(255, 255, 255, 0.5)"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
 
-          {!currentlyPlaying?.track_uri && (
-            <TrackTitle>{currentlyPlaying?.title}</TrackTitle>
-          )}
-          <Link to={`/${currentlyPlaying?.artist_uri?.split("at://")[1]}`}>
-            <TrackArtist>{currentlyPlaying?.artist}</TrackArtist>
-          </Link>
-        </ModalBody>
-      </Modal>
+              {!currentlyPlaying?.track_uri && (
+                <TrackTitle>{currentlyPlaying?.title}</TrackTitle>
+              )}
+              <Link to={`/${currentlyPlaying?.artist_uri?.split("at://")[1]}`}>
+                <TrackArtist>{currentlyPlaying?.artist}</TrackArtist>
+              </Link>
+            </ModalBody>
+          </Modal>
+        </>
+      )}
     </Container>
   );
 }
