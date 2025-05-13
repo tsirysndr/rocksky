@@ -10,7 +10,7 @@
 		"prod": "tsx ./src/index.ts",
 		"build": "pkgroll",
 		"sync": "tsx ./src/scripts/sync.ts",
-		"avatar": "NATS_URL=nats://localhost:4222 tsx ./src/scripts/avatar.ts"
+		"avatar": "tsx ./src/scripts/avatar.ts"
 	},
 	"dependencies": {
 		"@atproto/api": "^0.13.31",
