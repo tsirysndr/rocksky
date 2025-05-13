@@ -35,6 +35,7 @@ for (const did of args) {
   await ctx.db
     .update(users)
     .set({
+      displayName: _.get(profile, "value.displayName"),
       avatar: `https://cdn.bsky.app/img/avatar/plain/${did}/${ref}@${type}`,
     })
     .where(eq(users.did, did))
