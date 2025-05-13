@@ -1,5 +1,13 @@
+import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
+import { joinBeta } from "../api/beta";
 import { API_URL } from "../consts";
+
+export const useJoinBetaMutation = () =>
+  useMutation({
+    mutationFn: ({ email, platform }: { email: string; platform: string }) =>
+      joinBeta(email, platform),
+  });
 
 function useBeta() {
   const headers = {

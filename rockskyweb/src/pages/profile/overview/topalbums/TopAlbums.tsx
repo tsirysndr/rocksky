@@ -8,7 +8,7 @@ import { Link as DefaultLink, useParams } from "react-router";
 import { topAlbumsAtom } from "../../../../atoms/topAlbums";
 import { userAtom } from "../../../../atoms/user";
 import SongCover from "../../../../components/SongCover";
-import useLibrary from "../../../../hooks/useLibrary";
+import { useAlbumsQuery } from "../../../../hooks/useLibrary";
 
 const itemProps: BlockProps = {
   display: "flex",
@@ -28,22 +28,21 @@ function TopAlbums() {
   const setTopAlbums = useSetAtom(topAlbumsAtom);
   const topAlbums = useAtomValue(topAlbumsAtom);
   const { did } = useParams<{ did: string }>();
-  const { getAlbums } = useLibrary();
+  const albumsResult = useAlbumsQuery(did!);
   const user = useAtomValue(userAtom);
 
   useEffect(() => {
-    if (!did) {
+    if (albumsResult.isLoading || albumsResult.isError) {
       return;
     }
 
-    const getTopAlbums = async () => {
-      const data = await getAlbums(did);
-      setTopAlbums(data);
-    };
+    if (!albumsResult.data || !did) {
+      return;
+    }
 
-    getTopAlbums();
+    setTopAlbums(albumsResult.data);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [did]);
+  }, [albumsResult.data, albumsResult.isLoading, albumsResult.isError, did]);
 
   return (
     <>

@@ -16,8 +16,12 @@ import { songAtom } from "../../atoms/song";
 import Disc from "../../components/Icons/Disc";
 import Shout from "../../components/Shout/Shout";
 import SongCover from "../../components/SongCover";
-import useFeed from "../../hooks/useFeed";
-import useLibrary from "../../hooks/useLibrary";
+import { useFeedByUriQuery } from "../../hooks/useFeed";
+import {
+  useArtistAlbumsQuery,
+  useArtistTracksQuery,
+  useSongByUriQuery,
+} from "../../hooks/useLibrary";
 import Main from "../../layouts/Main";
 import Credits from "./Credits";
 import PopularAlbums from "./PopularAlbums";
@@ -51,11 +55,32 @@ const ShowMore = styled.div`
 
 const Song = () => {
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
-  const { getFeedByUri } = useFeed();
-  const { getSongByUri, getArtistTracks, getArtistAlbums } = useLibrary();
+
+  let uri = `${did}/app.rocksky.scrobble/${rkey}`;
+
+  if (window.location.pathname.includes("app.rocksky.song")) {
+    uri = `${did}/app.rocksky.song/${rkey}`;
+  }
+  if (window.location.pathname.includes("app.rocksky.scrobble")) {
+    uri = `${did}/app.rocksky.scrobble/${rkey}`;
+  }
+
+  const scrobbleResult = useFeedByUriQuery(uri);
+  const songResult = useSongByUriQuery(uri);
+
+  const artistTracksResult = useArtistTracksQuery(
+    songResult.data?.artistUri?.split("at://")[1] ||
+      scrobbleResult.data?.artistUri?.split("at://")[1],
+    5
+  );
+  const artistAlbumResult = useArtistAlbumsQuery(
+    songResult.data?.artistUri?.split("at://")[1] ||
+      scrobbleResult.data?.artistUri?.split("at://")[1],
+    10
+  );
+
   const song = useAtomValue(songAtom);
   const setSong = useSetAtom(songAtom);
-  const [loading, setLoading] = useState(true);
   const [lyricsMaxLines, setLyricsMaxLines] = useState(8);
   const [topTracks, setTopTracks] = useState<
     {
@@ -81,12 +106,6 @@ const Song = () => {
     }[]
   >([]);
 
-  let uri = `${did}/app.rocksky.scrobble/${rkey}`;
-
-  if (window.location.pathname.includes("app.rocksky.song")) {
-    uri = `${did}/app.rocksky.song/${rkey}`;
-  }
-
   const onShowMore = () => {
     if (lyricsMaxLines === 8) {
       setLyricsMaxLines(song?.lyrics?.split("\n").length || 0);
@@ -96,74 +115,90 @@ const Song = () => {
   };
 
   useEffect(() => {
-    const getSong = async () => {
-      setLoading(true);
-      // if path contains app.rocksky.scrobble, get the song
-      if (window.location.pathname.includes("app.rocksky.scrobble")) {
-        const data = await getFeedByUri(`${did}/app.rocksky.scrobble/${rkey}`);
-        setSong(data);
-      }
-
-      // if path contains app.rocksky.track, get the song
-      if (window.location.pathname.includes("app.rocksky.song")) {
-        const data = await getSongByUri(`${did}/app.rocksky.song/${rkey}`);
-        setSong(data);
-      }
-      setLoading(false);
-    };
-    getSong();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [did, rkey]);
-
-  useEffect(() => {
-    if (!song) {
+    if (!window.location.pathname.includes("app.rocksky.song")) {
       return;
     }
 
-    const fetchArtistTracks = async () => {
-      const uri = song.artistUri?.split("at://")[1];
-      if (!uri) {
-        return;
-      }
+    if (songResult.isLoading || songResult.isError) {
+      return;
+    }
 
-      const data = await getArtistTracks(uri, 5);
-      setTopTracks(
-        data.map((x) => ({
-          id: x.id,
-          title: x.title,
-          artist: x.artist,
-          albumArtist: x.album_artist,
-          albumArt: x.album_art,
-          uri: x.uri,
-          scrobbles: x.play_count,
-          albumUri: x.album_uri,
-          artistUri: x.artist_uri,
-        }))
-      );
-    };
-    fetchArtistTracks();
+    if (!songResult.data || !did) {
+      return;
+    }
 
-    const fetchArtistAlbums = async () => {
-      const uri = song.artistUri?.split("at://")[1];
-      if (!uri) {
-        return;
-      }
-
-      const data = await getArtistAlbums(uri, 10);
-      setTopAlbums(
-        data.map((x) => ({
-          id: x.id,
-          title: x.title,
-          artist: x.artist,
-          album_art: x.album_art,
-          artist_uri: x.artist_uri,
-          uri: x.uri,
-        }))
-      );
-    };
-    fetchArtistAlbums();
+    setSong(songResult.data);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [song]);
+  }, [songResult.data, songResult.isLoading, songResult.isError, did]);
+
+  useEffect(() => {
+    if (!window.location.pathname.includes("app.rocksky.scrobble")) {
+      return;
+    }
+
+    if (scrobbleResult.isLoading || scrobbleResult.isError) {
+      return;
+    }
+
+    if (!scrobbleResult.data || !did) {
+      return;
+    }
+
+    setSong(scrobbleResult.data);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scrobbleResult.data, scrobbleResult.isLoading, scrobbleResult.isError]);
+
+  useEffect(() => {
+    if (artistTracksResult.isLoading || artistTracksResult.isError) {
+      return;
+    }
+
+    if (!artistTracksResult.data || !did) {
+      return;
+    }
+
+    setTopTracks(
+      artistTracksResult.data.map((x) => ({
+        id: x.id,
+        title: x.title,
+        artist: x.artist,
+        albumArtist: x.album_artist,
+        albumArt: x.album_art,
+        uri: x.uri,
+        scrobbles: x.play_count,
+        albumUri: x.album_uri,
+        artistUri: x.artist_uri,
+      }))
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [artistTracksResult.data, artistTracksResult.isLoading]);
+
+  useEffect(() => {
+    if (artistAlbumResult.isLoading || artistAlbumResult.isError) {
+      return;
+    }
+
+    if (!artistAlbumResult.data || !did) {
+      return;
+    }
+
+    setTopAlbums(
+      artistAlbumResult.data.map((x) => ({
+        id: x.id,
+        title: x.title,
+        artist: x.artist,
+        album_art: x.album_art,
+        artist_uri: x.artist_uri!,
+        uri: x.uri,
+      }))
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [artistAlbumResult.data, artistAlbumResult.isLoading]);
+
+  const loading =
+    songResult.isLoading ||
+    artistTracksResult.isLoading ||
+    artistAlbumResult.isLoading;
 
   return (
     <Main>

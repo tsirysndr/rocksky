@@ -10,7 +10,7 @@ import { Link as DefaultLink } from "react-router-dom";
 import Disc from "../../components/Icons/Disc";
 import SongCover from "../../components/SongCover";
 import { useTimeFormat } from "../../hooks/useFormat";
-import usePlaylists from "../../hooks/usePlaylists";
+import usePlaylists, { usePlaylistQuery } from "../../hooks/usePlaylists";
 import Main from "../../layouts/Main";
 
 const Group = styled.div`
@@ -78,6 +78,7 @@ function Playlist() {
       discNumber: number;
     }[];
   } | null>(null);
+  usePlaylistQuery(did!, rkey!);
   const { getPlaylist } = usePlaylists();
   const uri = `${did}/app.rocksky.playlist/${rkey}`;
 

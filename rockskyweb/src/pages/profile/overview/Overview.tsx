@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useParams } from "react-router";
 import { statsAtom } from "../../../atoms/stats";
 import Stats from "../../../components/Stats/Stats";
-import useProfile from "../../../hooks/useProfile";
+import { useProfileStatsByDidQuery } from "../../../hooks/useProfile";
 import RecentTracks from "./recenttracks";
 import TopAlbums from "./topalbums";
 import TopArtists from "./topartists";
@@ -11,37 +11,31 @@ import TopTracks from "./toptracks";
 
 function Overview() {
   const { did } = useParams<{ did: string }>();
-  const { getProfileStatsByDid } = useProfile();
+  const profileStats = useProfileStatsByDidQuery(did!);
   const setStats = useSetAtom(statsAtom);
   const stats = useAtomValue(statsAtom);
 
   useEffect(() => {
-    if (!did) {
+    if (profileStats.isLoading || profileStats.isError) {
       return;
     }
 
-    const getProfileStats = async () => {
-      const stats = await getProfileStatsByDid(did);
+    if (!profileStats.data || !did) {
+      return;
+    }
 
-      if (!stats) {
-        return;
-      }
-
-      setStats((prev) => ({
-        ...prev,
-        [did]: {
-          scrobbles: stats.scrobbles,
-          artists: stats.artists,
-          lovedTracks: stats.lovedTracks,
-          albums: stats.albums,
-          tracks: stats.tracks,
-        },
-      }));
-    };
-
-    getProfileStats();
+    setStats((prev) => ({
+      ...prev,
+      [did]: {
+        scrobbles: profileStats.data.scrobbles,
+        artists: profileStats.data.artists,
+        lovedTracks: profileStats.data.lovedTracks,
+        albums: profileStats.data.albums,
+        tracks: profileStats.data.tracks,
+      },
+    }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [did]);
+  }, [profileStats.data, profileStats.isLoading, profileStats.isError, did]);
 
   return (
     <>

@@ -1,5 +1,25 @@
+import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
+import { getFile, getFiles, getTemporaryLink } from "../api/dropbox";
 import { API_URL } from "../consts";
+
+export const useFilesQuery = (id?: string) =>
+  useQuery({
+    queryKey: ["dropbox", "files", id],
+    queryFn: () => getFiles(id),
+  });
+
+export const useFileQuery = (id: string) =>
+  useQuery({
+    queryKey: ["dropbox", "file", id],
+    queryFn: () => getFile(id),
+  });
+
+export const useTemporaryLinkQuery = (id: string) =>
+  useQuery({
+    queryKey: ["dropbox", "temporary-link", id],
+    queryFn: () => getTemporaryLink(id),
+  });
 
 function useDropbox() {
   const getFiles = async (id?: string) => {

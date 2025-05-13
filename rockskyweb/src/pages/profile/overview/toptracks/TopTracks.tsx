@@ -7,10 +7,10 @@ import { useAtomValue, useSetAtom } from "jotai";
 import numeral from "numeral";
 import { useEffect, useMemo, useState } from "react";
 import { Link as DefaultLink, useParams } from "react-router";
-import { statsAtom } from "../../../../atoms/stats";
 import { topTracksAtom } from "../../../../atoms/topTracks";
 import { userAtom } from "../../../../atoms/user";
-import useLibrary from "../../../../hooks/useLibrary";
+import { useTracksQuery } from "../../../../hooks/useLibrary";
+import { useProfileStatsByDidQuery } from "../../../../hooks/useProfile";
 
 type Row = {
   id: string;
@@ -60,43 +60,43 @@ function TopTracks(props: TopTracksProps) {
   };
   const setTopTracks = useSetAtom(topTracksAtom);
   const topTracks = useAtomValue(topTracksAtom);
-  const stats = useAtomValue(statsAtom);
   const { did } = useParams<{ did: string }>();
-  const { getTracks } = useLibrary();
-  const user = useAtomValue(userAtom);
+  const profileStats = useProfileStatsByDidQuery(did!);
   const [currentPage, setCurrentPage] = useState(1);
+  const tracksResult = useTracksQuery(
+    did!,
+    (currentPage - 1) * props.size!,
+    props.size!
+  );
+  const user = useAtomValue(userAtom);
   const pages = useMemo(() => {
-    if (!did || !stats[did] || !props.size) {
+    if (!did || !profileStats.data || !props.size) {
       return 1;
     }
-    return Math.ceil(stats[did].tracks / props.size) || 1;
-  }, [stats, did, props.size]);
+    return Math.ceil(profileStats.data.tracks / props.size) || 1;
+  }, [profileStats.data, did, props.size]);
 
   useEffect(() => {
-    if (!did) {
+    if (tracksResult.isLoading || tracksResult.isError) {
       return;
     }
 
-    const getTopTracks = async () => {
-      const data = await getTracks(
-        did,
-        (currentPage - 1) * props.size!,
-        props.size!
-      );
-      setTopTracks(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        data.map((track: any) => ({
-          ...track,
-          albumArt: track.album_art,
-          albumArtist: track.album_artist,
-          albumUri: track.album_uri,
-          artistUri: track.artist_uri,
-        }))
-      );
-    };
-    getTopTracks();
+    if (!tracksResult.data || !did) {
+      return;
+    }
+
+    setTopTracks(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      tracksResult.data.map((track: any) => ({
+        ...track,
+        albumArt: track.album_art,
+        albumArtist: track.album_artist,
+        albumUri: track.album_uri,
+        artistUri: track.artist_uri,
+      }))
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [did, currentPage]);
+  }, [tracksResult.data, tracksResult.isLoading, tracksResult.isError, did]);
 
   const maxScrobbles = topTracks.length > 0 ? topTracks[0].scrobbles || 1 : 0;
 
@@ -130,7 +130,7 @@ function TopTracks(props: TopTracksProps) {
           <div style={{ marginRight: 20 }}>
             <LabelSmall>TRACKS SCROBBLED</LabelSmall>
             <HeadingXSmall margin={0}>
-              {did ? numeral(stats[did]?.tracks).format("0,0") : ""}
+              {did ? numeral(profileStats.data?.tracks).format("0,0") : ""}
             </HeadingXSmall>
           </div>
         </Group>

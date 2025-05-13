@@ -7,7 +7,7 @@ import { useEffect } from "react";
 import { Link as DefaultLink, useParams } from "react-router";
 import { playlistsAtom } from "../../../atoms/playlists";
 import SongCover from "../../../components/SongCover";
-import usePlaylists from "../../../hooks/usePlaylists";
+import { usePlaylistsQuery } from "../../../hooks/usePlaylists";
 
 const itemProps: BlockProps = {
   display: "flex",
@@ -27,21 +27,20 @@ function Playlists() {
   const { did } = useParams<{ did: string }>();
   const playlists = useAtomValue(playlistsAtom);
   const setPlaylists = useSetAtom(playlistsAtom);
-  const { getPlaylists } = usePlaylists();
+  const playlistsData = usePlaylistsQuery(did!);
 
   useEffect(() => {
-    if (!did) {
+    if (playlistsData.isLoading || playlistsData.isError) {
       return;
     }
 
-    const fetchPlaylists = async () => {
-      const data = await getPlaylists(did);
-      setPlaylists(data);
-    };
-    fetchPlaylists();
+    if (!playlistsData.data || !did) {
+      return;
+    }
 
+    setPlaylists(playlistsData.data);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [did]);
+  }, [playlistsData.data, playlistsData.isLoading, playlistsData.isError, did]);
 
   return (
     <>

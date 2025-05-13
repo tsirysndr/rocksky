@@ -1,5 +1,23 @@
+import { useMutation, useQuery } from "@tanstack/react-query";
 import axios from "axios";
+import { getLikes, like, unlike } from "../api/likes";
 import { API_URL } from "../consts";
+
+export const useLikeMutation = () =>
+  useMutation({
+    mutationFn: like,
+  });
+
+export const useUnlikeMutation = () =>
+  useMutation({
+    mutationFn: unlike,
+  });
+
+export const useLikesQuery = (uri: string) =>
+  useQuery({
+    queryKey: ["likes", uri],
+    queryFn: () => getLikes(uri),
+  });
 
 const useLike = () => {
   const like = async (uri: string) => {

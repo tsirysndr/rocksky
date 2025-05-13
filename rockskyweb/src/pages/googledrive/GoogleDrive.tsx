@@ -11,7 +11,10 @@ import { Link, useLocation } from "react-router";
 import googleDriveAtom from "../../atoms/googledrive";
 import Table from "../../components/Table";
 import { AUDIO_EXTENSIONS } from "../../consts";
-import useGoogleDrive from "../../hooks/useGoogleDrive";
+import useGoogleDrive, {
+  useFileQuery,
+  useFilesQuery,
+} from "../../hooks/useGoogleDrive";
 import Main from "../../layouts/Main";
 import { File } from "../../types/file";
 import { AudioFile, Directory } from "./styles";
@@ -24,6 +27,9 @@ export type GoogleDriveProps = {
 
 const GoogleDrive = (props: GoogleDriveProps) => {
   const [googleDrive, setGoogleDrive] = useAtom(googleDriveAtom);
+  useFilesQuery();
+  useFileQuery(props.fileId!);
+
   const { getFiles, getFile } = useGoogleDrive();
   const [loading, setLoading] = useState(true);
   const { pathname } = useLocation();

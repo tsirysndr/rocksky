@@ -1,5 +1,19 @@
+import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
+import { getPlaylists } from "../api/playlists";
 import { API_URL } from "../consts";
+
+export const usePlaylistsQuery = (did: string) =>
+  useQuery({
+    queryKey: ["playlists"],
+    queryFn: () => getPlaylists(did),
+  });
+
+export const usePlaylistQuery = (did: string, rkey: string) =>
+  useQuery({
+    queryKey: ["playlist", did, rkey],
+    queryFn: () => getPlaylists(did),
+  });
 
 const usePlaylists = () => {
   const getPlaylists = async (

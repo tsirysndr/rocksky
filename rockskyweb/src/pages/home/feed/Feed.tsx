@@ -9,7 +9,7 @@ import ContentLoader from "react-content-loader";
 import { Link } from "react-router";
 import Handle from "../../../components/Handle";
 import SongCover from "../../../components/SongCover";
-import useFeed from "../../../hooks/useFeed";
+import { useFeedQuery } from "../../../hooks/useFeed";
 
 dayjs.extend(relativeTime);
 
@@ -27,15 +27,14 @@ const Container = styled.div`
 `;
 
 function Feed() {
-  const { getFeed } = useFeed();
-  const data = getFeed();
+  const { data, isLoading } = useFeedQuery();
   return (
     <Container>
       <HeadingMedium marginTop={"0px"} marginBottom={"20px"}>
         Recently played
       </HeadingMedium>
 
-      {data.length === 0 && (
+      {isLoading && (
         <ContentLoader
           width={800}
           height={575}
@@ -61,7 +60,7 @@ function Feed() {
         </ContentLoader>
       )}
 
-      {data.length > 0 && (
+      {!isLoading && (
         <div style={{ paddingBottom: 100 }}>
           <FlexGrid
             flexGridColumnCount={[1, 2, 3]}

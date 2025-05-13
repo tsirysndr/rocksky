@@ -11,7 +11,11 @@ import { Link, useLocation } from "react-router";
 import { dropboxAtom } from "../../atoms/dropbox";
 import Table from "../../components/Table";
 import { AUDIO_EXTENSIONS } from "../../consts";
-import useDropbox from "../../hooks/useDropbox";
+import useDropbox, {
+  useFileQuery,
+  useFilesQuery,
+  useTemporaryLinkQuery,
+} from "../../hooks/useDropbox";
 import Main from "../../layouts/Main";
 import Metadata from "../../lib/metadata";
 import { File } from "../../types/file";
@@ -25,6 +29,10 @@ export type DropboxProps = {
 
 const Dropbox = (props: DropboxProps) => {
   const [dropbox, setDropbox] = useAtom(dropboxAtom);
+  useFilesQuery();
+  useFileQuery(props.fileId!);
+  useTemporaryLinkQuery(props.fileId!);
+
   const { getFiles, getFile, getTemporaryLink } = useDropbox();
   const [loading, setLoading] = useState(true);
   const { pathname } = useLocation();

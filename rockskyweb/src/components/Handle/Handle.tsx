@@ -7,7 +7,10 @@ import { useEffect } from "react";
 import { Link } from "react-router";
 import { profilesAtom } from "../../atoms/profiles";
 import { statsAtom } from "../../atoms/stats";
-import useProfile from "../../hooks/useProfile";
+import {
+  useProfileByDidQuery,
+  useProfileStatsByDidQuery,
+} from "../../hooks/useProfile";
 import Stats from "../Stats";
 import NowPlaying from "./NowPlaying";
 
@@ -19,49 +22,55 @@ export type HandleProps = {
 function Handle(props: HandleProps) {
   const { link, did } = props;
   const [profiles, setProfiles] = useAtom(profilesAtom);
-  const { getProfileByDid, getProfileStatsByDid } = useProfile();
+  const profile = useProfileByDidQuery(did);
+  const profileStats = useProfileStatsByDidQuery(did);
   const [stats, setStats] = useAtom(statsAtom);
 
   useEffect(() => {
-    const getProfile = async () => {
-      const data = await getProfileByDid(did);
-      setProfiles((profiles) => ({
-        ...profiles,
-        [did]: {
-          avatar: data.avatar,
-          displayName: data.display_name,
-          handle: data.handle,
-          spotifyConnected: data.spotifyConnected,
-          createdAt: data.xata_createdat,
-          did,
-        },
-      }));
-    };
+    if (profile.isLoading || profile.isError) {
+      return;
+    }
 
-    const getProfileStats = async () => {
-      const stats = await getProfileStatsByDid(did);
+    if (!profile.data || !did) {
+      return;
+    }
 
-      if (!stats) {
-        return;
-      }
+    setProfiles((profiles) => ({
+      ...profiles,
+      [did]: {
+        avatar: profile.data.avatar,
+        displayName: profile.data.display_name,
+        handle: profile.data.handle,
+        spotifyConnected: profile.data.spotifyConnected,
+        createdAt: profile.data.xata_createdat,
+        did,
+      },
+    }));
 
-      setStats((prev) => ({
-        ...prev,
-        [did]: {
-          scrobbles: stats.scrobbles,
-          artists: stats.artists,
-          lovedTracks: stats.lovedTracks,
-          albums: stats.albums,
-          tracks: stats.tracks,
-        },
-      }));
-    };
-
-    getProfileStats();
-
-    getProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [did]);
+  }, [profile.data, profile.isLoading, profile.isError, did]);
+
+  useEffect(() => {
+    if (profileStats.isLoading || profileStats.isError) {
+      return;
+    }
+
+    if (!profileStats.data || !did) {
+      return;
+    }
+
+    setStats((prev) => ({
+      ...prev,
+      [did]: {
+        scrobbles: profileStats.data.scrobbles,
+        artists: profileStats.data.artists,
+        lovedTracks: profileStats.data.lovedTracks,
+        albums: profileStats.data.albums,
+        tracks: profileStats.data.tracks,
+      },
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileStats.data, profileStats.isLoading, profileStats.isError, did]);
 
   return (
     <>

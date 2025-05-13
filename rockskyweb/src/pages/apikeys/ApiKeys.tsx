@@ -9,13 +9,16 @@ import { Textarea } from "baseui/textarea";
 import { StatefulTooltip } from "baseui/tooltip";
 import { HeadingMedium } from "baseui/typography";
 import copy from "copy-to-clipboard";
-import { useAtom } from "jotai";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useNavigate } from "react-router";
 import z from "zod";
-import { apiKeysAtom } from "../../atoms/apikeys";
-import useApikey from "../../hooks/useApikey";
+import {
+  useApikeysQuery,
+  useCreateApikeyMutation,
+  useDeleteApikeyMutation,
+  useUpdateApikeyMutation,
+} from "../../hooks/useApikey";
 import Main from "../../layouts/Main";
 import { ApiKey } from "../../types/apikey";
 import { Code, Header } from "./styles";
@@ -28,7 +31,6 @@ const schema = z.object({
 function ApiKeys() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-  const [apikeys, setApikeys] = useAtom(apiKeysAtom);
   const jwt = localStorage.getItem("token");
   const [enabled, setEnabled] = useState<{
     [key: string]: boolean;
@@ -43,21 +45,10 @@ function ApiKeys() {
     resolver: zodResolver(schema),
     mode: "onBlur",
   });
-  const { createApiKey, getApiKeys, updateApiKey, deleteApiKey } = useApikey();
-
-  const fetchApiKeys = async () => {
-    try {
-      const response = await getApiKeys();
-      setApikeys(response.data);
-    } catch (error) {
-      console.error("Error fetching API keys:", error);
-    }
-  };
-
-  useEffect(() => {
-    fetchApiKeys();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const { mutate: createApiKey } = useCreateApikeyMutation();
+  let apiKeys = useApikeysQuery();
+  const { mutate: updateApiKey } = useUpdateApikeyMutation();
+  const { mutate: deleteApiKey } = useDeleteApikeyMutation();
 
   const onCreate = async () => {
     if (errors.name) {
@@ -66,13 +57,13 @@ function ApiKeys() {
 
     const values = getValues();
 
-    await createApiKey(values.name, values.description);
+    await createApiKey({ name: values.name, description: values.description });
 
     setIsOpen(false);
     clearErrors();
     reset();
 
-    await fetchApiKeys();
+    apiKeys = await apiKeys.refetch();
   };
 
   const onDisable = async (id: string) => {
@@ -80,8 +71,8 @@ function ApiKeys() {
       ...prev,
       [id]: false,
     }));
-    await updateApiKey(id, false);
-    await fetchApiKeys();
+    await updateApiKey({ id, enabled: false });
+    apiKeys = await apiKeys.refetch();
   };
 
   const onEnable = async (id: string) => {
@@ -89,13 +80,13 @@ function ApiKeys() {
       ...prev,
       [id]: true,
     }));
-    await updateApiKey(id, true);
-    await fetchApiKeys();
+    await updateApiKey({ id, enabled: true });
+    apiKeys = await apiKeys.refetch();
   };
 
   const onDelete = async (id: string) => {
     await deleteApiKey(id);
-    await fetchApiKeys();
+    apiKeys = await apiKeys.refetch();
   };
 
   if (!jwt) {
@@ -141,7 +132,7 @@ function ApiKeys() {
             New API Key
           </Button>
         </Header>
-        <TableBuilder data={apikeys} emptyMessage="No API keys found">
+        <TableBuilder data={apiKeys.data} emptyMessage="No API keys found">
           <TableBuilderColumn header="Name">
             {(row: ApiKey) => (
               <div className="flex flex-row items-center">{row.name}</div>

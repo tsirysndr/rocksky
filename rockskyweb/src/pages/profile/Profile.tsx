@@ -10,7 +10,7 @@ import { useParams, useSearchParams } from "react-router";
 import { profilesAtom } from "../../atoms/profiles";
 import { userAtom } from "../../atoms/user";
 import Shout from "../../components/Shout/Shout";
-import useProfile from "../../hooks/useProfile";
+import { useProfileByDidQuery } from "../../hooks/useProfile";
 import Main from "../../layouts/Main";
 import Library from "./library";
 import LovedTracks from "./lovedtracks";
@@ -25,10 +25,10 @@ const Group = styled.div`
 `;
 
 function Profile() {
-  const { getProfileByDid } = useProfile();
   const [profiles, setProfiles] = useAtom(profilesAtom);
   const [activeKey, setActiveKey] = useState<Key>("0");
   const { did } = useParams<{ did: string }>();
+  const profile = useProfileByDidQuery(did!);
   const setUser = useSetAtom(userAtom);
   const [searchParams] = useSearchParams();
 
@@ -43,38 +43,38 @@ function Profile() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (!did) {
+    if (profile.isLoading || profile.isError) {
       return;
     }
 
-    const getProfile = async () => {
-      const data = await getProfileByDid(did);
-      setUser({
-        avatar: data.avatar,
-        displayName: data.display_name,
-        handle: data.handle,
-        spotifyUser: {
-          isBeta: data.spotifyUser?.is_beta_user,
-        },
-        spotifyConnected: data.spotifyConnected,
-        did: data.did,
-      });
-      setProfiles((profiles) => ({
-        ...profiles,
-        [did]: {
-          avatar: data.avatar,
-          displayName: data.display_name,
-          handle: data.handle,
-          spotifyConnected: data.spotifyConnected,
-          createdAt: data.xata_createdat,
-          did: data.did,
-        },
-      }));
-    };
+    if (!profile.data || !did) {
+      return;
+    }
 
-    getProfile();
+    setUser({
+      avatar: profile.data.avatar,
+      displayName: profile.data.display_name,
+      handle: profile.data.handle,
+      spotifyUser: {
+        isBeta: profile.data.spotifyUser?.is_beta_user,
+      },
+      spotifyConnected: profile.data.spotifyConnected,
+      did: profile.data.did,
+    });
+
+    setProfiles((profiles) => ({
+      ...profiles,
+      [did]: {
+        avatar: profile.data.avatar,
+        displayName: profile.data.display_name,
+        handle: profile.data.handle,
+        spotifyConnected: profile.data.spotifyConnected,
+        createdAt: profile.data.xata_createdat,
+        did,
+      },
+    }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [did]);
+  }, [profile.data, profile.isLoading, profile.isError, did]);
 
   if (!did) {
     return <></>;

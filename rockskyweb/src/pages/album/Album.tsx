@@ -16,7 +16,7 @@ import Disc from "../../components/Icons/Disc";
 import Shout from "../../components/Shout/Shout";
 import SongCover from "../../components/SongCover";
 import { useTimeFormat } from "../../hooks/useFormat";
-import useLibrary from "../../hooks/useLibrary";
+import { useAlbumQuery } from "../../hooks/useLibrary";
 import Main from "../../layouts/Main";
 
 const Group = styled.div`
@@ -50,7 +50,8 @@ type Row = {
 const Album = () => {
   const { formatTime } = useTimeFormat();
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
-  const { getAlbum } = useLibrary();
+  const { data, isLoading, isError } = useAlbumQuery(did!, rkey!);
+
   const [disc, setDisc] = useState(1);
   const [album, setAlbum] = useState<{
     id: string;
@@ -83,11 +84,7 @@ const Album = () => {
   const uri = `${did}/app.rocksky.album/${rkey}`;
 
   useEffect(() => {
-    if (!did || !rkey) {
-      return;
-    }
-    const fetchAlbum = async () => {
-      const data = await getAlbum(did, rkey);
+    if (!isLoading && !isError) {
       setAlbum({
         id: data.id,
         albumArt: data.album_art,
@@ -106,10 +103,8 @@ const Album = () => {
       });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setDisc(Math.max(...data.tracks.map((track: any) => track.disc_number)));
-    };
-    fetchAlbum();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [did, rkey]);
+    }
+  }, [data, isLoading, isError]);
 
   return (
     <Main>

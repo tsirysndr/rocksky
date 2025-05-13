@@ -1,35 +1,41 @@
+import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { useSetAtom } from "jotai";
-import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { useEffect, useState } from "react";
+import {
+  getProfileByDid,
+  getProfileStatsByDid,
+  getRecentTracksByDid,
+} from "../api/profile";
 import { profileAtom } from "../atoms/profile";
 import { API_URL } from "../consts";
 import { Scrobble } from "../types/scrobble";
 
+export const useProfileByDidQuery = (did: string) =>
+  useQuery({
+    queryKey: ["profile", did],
+    queryFn: () => getProfileByDid(did),
+  });
+
+export const useProfileStatsByDidQuery = (did: string) =>
+  useQuery({
+    queryKey: ["profile", "stats", did],
+    queryFn: () => getProfileStatsByDid(did),
+    enabled: !!did,
+  });
+
+export const useRecentTracksByDidQuery = (did: string, offset = 0, size = 10) =>
+  useQuery({
+    queryKey: ["profile", "recent-tracks", did, offset, size],
+    queryFn: () => getRecentTracksByDid(did, offset, size),
+    enabled: !!did,
+  });
+
 function useProfile(token?: string | null) {
   const setProfile = useSetAtom(profileAtom);
-  const navigate = useNavigate();
   const [data, setData] = useState<string | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const isLoading = !data && !error;
-
-  const getProfileByDid = useCallback(
-    async (did: string) => {
-      try {
-        const response = await axios.get(`${API_URL}/users/${did}`);
-        return response.data;
-      } catch {
-        navigate("/");
-        return null;
-      }
-    },
-    [navigate]
-  );
-
-  const getProfileStatsByDid = async (did: string) => {
-    const response = await axios.get(`${API_URL}/users/${did}/stats`);
-    return response.data;
-  };
 
   const getRecentTracksByDid = async (
     did: string,
@@ -126,8 +132,6 @@ function useProfile(token?: string | null) {
     data: JSON.parse(data),
     error,
     isLoading,
-    getProfileByDid,
-    getProfileStatsByDid,
     getRecentTracksByDid,
   };
 }

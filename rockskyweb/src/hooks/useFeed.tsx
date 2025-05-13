@@ -1,48 +1,19 @@
-import axios from "axios";
-import useSWR from "swr";
+import { useQuery } from "@tanstack/react-query";
+import { getFeedByUri } from "../api/feed";
 import { API_URL } from "../consts";
 
-function useFeed() {
-  const fetcher = (path: string) =>
-    fetch(`${API_URL}${path}`, {
-      method: "GET",
-    }).then((res) => res.json());
+export const useFeedQuery = (size = 114) =>
+  useQuery({
+    queryKey: ["feed"],
+    queryFn: () =>
+      fetch(`${API_URL}/public/scrobbles?size=${size}`, {
+        method: "GET",
+      }).then((res) => res.json()),
+    refetchInterval: 5000,
+  });
 
-  const { data } = useSWR("/public/scrobbles?size=114", fetcher);
-  const getFeed = () => {
-    return data || [];
-  };
-
-  const getFeedByUri = async (uri: string) => {
-    const response = await axios.get(`${API_URL}/users/${uri}`);
-
-    if (response.status !== 200) {
-      return null;
-    }
-
-    return {
-      id: response.data.track_id?.xata_id,
-      title: response.data.track_id?.title,
-      artist: response.data.track_id?.artist,
-      albumArtist: response.data.track_id?.album_artist,
-      album: response.data.track_id?.album,
-      cover: response.data.track_id?.album_art,
-      tags: [],
-      artistUri: response.data.track_id?.artist_uri,
-      albumUri: response.data.track_id?.album_uri,
-      listeners: response.data.listeners || 1,
-      scrobbles: response.data.scrobbles || 1,
-      lyrics: response.data.track_id?.lyrics,
-      spotifyLink: response.data.track_id?.spotify_link,
-      composer: response.data.track_id?.composer,
-      uri: response.data.track_id?.uri,
-    };
-  };
-
-  return {
-    getFeed,
-    getFeedByUri,
-  };
-}
-
-export default useFeed;
+export const useFeedByUriQuery = (uri: string) =>
+  useQuery({
+    queryKey: ["feed", uri],
+    queryFn: () => getFeedByUri(uri),
+  });

@@ -7,10 +7,10 @@ import { useAtomValue, useSetAtom } from "jotai";
 import numeral from "numeral";
 import { useEffect, useMemo, useState } from "react";
 import { Link as DefaultLink, useParams } from "react-router";
-import { statsAtom } from "../../../../atoms/stats";
 import { topAlbumsAtom } from "../../../../atoms/topAlbums";
 import { userAtom } from "../../../../atoms/user";
-import useLibrary from "../../../../hooks/useLibrary";
+import { useAlbumsQuery } from "../../../../hooks/useLibrary";
+import { useProfileStatsByDidQuery } from "../../../../hooks/useProfile";
 
 type Row = {
   id: string;
@@ -52,43 +52,41 @@ function Albums(props: AlbumsProps) {
   const { size = 50 } = props;
   const setTopAlbums = useSetAtom(topAlbumsAtom);
   const topAlbums = useAtomValue(topAlbumsAtom);
-  const stats = useAtomValue(statsAtom);
   const { did } = useParams<{ did: string }>();
-  const { getAlbums } = useLibrary();
-  const user = useAtomValue(userAtom);
+  const profileStats = useProfileStatsByDidQuery(did!);
   const [currentPage, setCurrentPage] = useState(1);
+  const albumsResult = useAlbumsQuery(did!, (currentPage - 1) * size, size);
+  const user = useAtomValue(userAtom);
   const pages = useMemo(() => {
-    if (!did || !stats[did] || !props.size) {
+    if (!did || !profileStats.data || !props.size) {
       return 1;
     }
-    return Math.ceil(stats[did].albums / props.size) || 1;
-  }, [stats, did, props.size]);
+    return Math.ceil(profileStats.data.albums / props.size) || 1;
+  }, [profileStats.data, did, props.size]);
 
   useEffect(() => {
-    if (!did) {
+    if (albumsResult.isLoading || albumsResult.isError) {
       return;
     }
 
-    const getTopAlbums = async () => {
-      const data = await getAlbums(did, (currentPage - 1) * size, size);
+    if (!albumsResult.data || !did) {
+      return;
+    }
 
-      setTopAlbums(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        data.map((x: any) => ({
-          id: x.id,
-          title: x.title,
-          artist: x.artist,
-          albumArt: x.album_art,
-          artistUri: x.artist_uri,
-          uri: x.uri,
-          scrobbles: x.scrobbles,
-        }))
-      );
-    };
-
-    getTopAlbums();
+    setTopAlbums(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      albumsResult.data.map((x: any) => ({
+        id: x.id,
+        title: x.title,
+        artist: x.artist,
+        albumArt: x.album_art,
+        artistUri: x.artist_uri,
+        uri: x.uri,
+        scrobbles: x.scrobbles,
+      }))
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [did, currentPage]);
+  }, [albumsResult.data, albumsResult.isLoading, albumsResult.isError, did]);
 
   const maxScrobbles = topAlbums.length > 0 ? topAlbums[0].scrobbles || 1 : 0;
 
@@ -98,7 +96,7 @@ function Albums(props: AlbumsProps) {
         <div style={{ marginRight: 20 }}>
           <LabelSmall>ALBUMS SCROBBLED</LabelSmall>
           <HeadingXSmall margin={0}>
-            {did ? numeral(stats[did]?.albums).format("0,0") : ""}
+            {did ? numeral(profileStats.data?.albums).format("0,0") : ""}
           </HeadingXSmall>
         </div>
       </Group>

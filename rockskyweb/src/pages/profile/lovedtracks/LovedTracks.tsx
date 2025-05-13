@@ -9,9 +9,9 @@ import numeral from "numeral";
 import { useEffect, useMemo, useState } from "react";
 import { Link as DefaultLink, useParams } from "react-router";
 import { lovedTracksAtom } from "../../../atoms/lovedTracks";
-import { statsAtom } from "../../../atoms/stats";
 import { userAtom } from "../../../atoms/user";
-import useLibrary from "../../../hooks/useLibrary";
+import { useLovedTracksQuery } from "../../../hooks/useLibrary";
+import { useProfileStatsByDidQuery } from "../../../hooks/useProfile";
 
 type Row = {
   id: string;
@@ -40,45 +40,54 @@ function LovedTracks() {
   const { did } = useParams<{ did: string }>();
   const lovedTracks = useAtomValue(lovedTracksAtom);
   const setLovedTracks = useSetAtom(lovedTracksAtom);
-  const { getLovedTracks } = useLibrary();
-  const user = useAtomValue(userAtom);
-  const stats = useAtomValue(statsAtom);
   const [currentPage, setCurrentPage] = useState(1);
+  const lovedTracksResult = useLovedTracksQuery(
+    did!,
+    (currentPage - 1) * size,
+    size
+  );
+  const user = useAtomValue(userAtom);
+  const profileStats = useProfileStatsByDidQuery(did!);
   const pages = useMemo(() => {
-    if (!did || !stats[did]) {
+    if (!did || !profileStats.data) {
       return 1;
     }
-    return Math.ceil(stats[did].lovedTracks / size) || 1;
-  }, [stats, did]);
+    return Math.ceil(profileStats.data.lovedTracks / size) || 1;
+  }, [profileStats.data, did]);
 
   useEffect(() => {
-    const fetchLovedTracks = async () => {
-      if (!did) {
-        return;
-      }
-      const data = await getLovedTracks(did, (currentPage - 1) * size, size);
+    if (lovedTracksResult.isLoading || lovedTracksResult.isError) {
+      return;
+    }
 
-      setLovedTracks(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        data.records.map((item: any) => ({
-          ...item.track_id,
-          albumArt: item.track_id.album_art,
-          albumArtist: item.track_id.album_artist,
-          albumUri: item.track_id.album_uri,
-          artistUri: item.track_id.artist_uri,
-          date: item.xata_createdat,
-        }))
-      );
-    };
-    fetchLovedTracks();
+    if (!lovedTracksResult.data || !did) {
+      return;
+    }
+
+    setLovedTracks(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      lovedTracksResult.data.records.map((item: any) => ({
+        ...item.track_id,
+        albumArt: item.track_id.album_art,
+        albumArtist: item.track_id.album_artist,
+        albumUri: item.track_id.album_uri,
+        artistUri: item.track_id.artist_uri,
+        date: item.xata_createdat,
+      }))
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [did, currentPage]);
+  }, [
+    lovedTracksResult.data,
+    lovedTracksResult.isLoading,
+    lovedTracksResult.isError,
+    did,
+  ]);
 
   return (
     <>
       {did && (
         <HeadingSmall>
-          Loved Tracks ({numeral(stats[did]?.lovedTracks).format("0,0")})
+          Loved Tracks ({numeral(profileStats.data?.lovedTracks).format("0,0")})
         </HeadingSmall>
       )}
       <TableBuilder

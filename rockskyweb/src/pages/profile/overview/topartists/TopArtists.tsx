@@ -7,11 +7,11 @@ import { useAtomValue, useSetAtom } from "jotai";
 import numeral from "numeral";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
-import { statsAtom } from "../../../../atoms/stats";
 import { topArtistsAtom } from "../../../../atoms/topArtists";
 import { userAtom } from "../../../../atoms/user";
 import Artist from "../../../../components/Icons/Artist";
-import useLibrary from "../../../../hooks/useLibrary";
+import { useArtistsQuery } from "../../../../hooks/useLibrary";
+import { useProfileStatsByDidQuery } from "../../../../hooks/useProfile";
 
 const Group = styled.div<{ mb?: number }>`
   display: flex;
@@ -44,30 +44,30 @@ function TopArtists(props: TopArtistsProps) {
   const { showTitle = true, size = 30, showPagination } = props;
   const setTopArtists = useSetAtom(topArtistsAtom);
   const topArtists = useAtomValue(topArtistsAtom);
-  const stats = useAtomValue(statsAtom);
   const { did } = useParams<{ did: string }>();
-  const { getArtists } = useLibrary();
-  const user = useAtomValue(userAtom);
+  const profileStats = useProfileStatsByDidQuery(did!);
   const [currentPage, setCurrentPage] = useState(1);
+  const artistsResult = useArtistsQuery(did!, (currentPage - 1) * size, size);
+  const user = useAtomValue(userAtom);
   const pages = useMemo(() => {
-    if (!did || !stats[did] || !props.size) {
+    if (!did || !profileStats.data || !props.size) {
       return 1;
     }
-    return Math.ceil(stats[did].artists / props.size) || 1;
-  }, [stats, did, props.size]);
+    return Math.ceil(profileStats.data.artists / props.size) || 1;
+  }, [profileStats.data, did, props.size]);
 
   useEffect(() => {
-    if (!did) {
+    if (artistsResult.isLoading || artistsResult.isError) {
       return;
     }
 
-    const getTopArtists = async () => {
-      const data = await getArtists(did, (currentPage - 1) * size, size);
-      setTopArtists(data);
-    };
-    getTopArtists();
+    if (!artistsResult.data || !did) {
+      return;
+    }
+
+    setTopArtists(artistsResult.data);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [did, currentPage]);
+  }, [artistsResult.data, artistsResult.isLoading, artistsResult.isError, did]);
 
   const maxScrobbles = topArtists.length > 0 ? topArtists[0].scrobbles || 1 : 0;
 
@@ -101,7 +101,7 @@ function TopArtists(props: TopArtistsProps) {
           <div style={{ marginRight: 20 }}>
             <LabelSmall>ARTISTS SCROBBLED</LabelSmall>
             <HeadingXSmall margin={0}>
-              {did ? numeral(stats[did]?.artists).format("0,0") : ""}
+              {did ? numeral(profileStats.data?.artists).format("0,0") : ""}
             </HeadingXSmall>
           </div>
         </Group>

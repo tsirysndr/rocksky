@@ -1,6 +1,41 @@
+import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import useSWR from "swr";
+import { getArtistChart, getSongChart } from "../api/charts";
 import { API_URL } from "../consts";
+
+export const useScrobblesChartQuery = () =>
+  useQuery({
+    queryKey: ["scrobblesChart"],
+    queryFn: () =>
+      fetch(`${API_URL}/public/scrobbleschart`, {
+        method: "GET",
+      }).then((res) => res.json()),
+  });
+
+export const useSongChartQuery = (uri: string) =>
+  useQuery({
+    queryKey: ["songChart", uri],
+    queryFn: () => getSongChart(uri),
+  });
+
+export const useArtistChartQuery = (uri: string) =>
+  useQuery({
+    queryKey: ["artistChart", uri],
+    queryFn: () => getArtistChart(uri),
+  });
+
+export const useAlbumChartQuery = (uri: string) =>
+  useQuery({
+    queryKey: ["albumChart", uri],
+    queryFn: () => getArtistChart(uri),
+  });
+
+export const useProfileChartQuery = (did: string) =>
+  useQuery({
+    queryKey: ["profileChart", did],
+    queryFn: () => getArtistChart(did),
+  });
 
 function useChart() {
   const fetcher = (path: string) =>

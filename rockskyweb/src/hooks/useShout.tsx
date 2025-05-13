@@ -1,6 +1,49 @@
+import { useMutation, useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { useCallback } from "react";
+import {
+  cancelReport,
+  deleteShout,
+  reply,
+  reportShout,
+  shout,
+} from "../api/shouts";
 import { API_URL } from "../consts";
+
+export const useShoutMutation = () =>
+  useMutation({
+    mutationFn: ({ uri, message }: { uri: string; message: string }) =>
+      shout(uri, message),
+  });
+
+export const useReplyMutation = () =>
+  useMutation({
+    mutationFn: ({ uri, message }: { uri: string; message: string }) =>
+      reply(uri, message),
+  });
+
+export const useReportMutation = () =>
+  useMutation({
+    mutationFn: (uri: string) => reportShout(uri),
+  });
+
+export const useDeleteShoutMutation = () =>
+  useMutation({
+    mutationFn: deleteShout,
+  });
+
+export const useShoutsQuery = (uri: string) =>
+  useQuery({
+    queryKey: ["shouts", uri],
+    queryFn: () =>
+      axios.get(`${API_URL}/users/${uri.replace("at://", "")}/shouts`),
+    select: (response) => response.data,
+  });
+
+export const useCancelReportMutation = () =>
+  useMutation({
+    mutationFn: cancelReport,
+  });
 
 function useShout() {
   const shout = async (uri: string, message: string) => {

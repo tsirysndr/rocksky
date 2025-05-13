@@ -9,7 +9,11 @@ import { useParams } from "react-router";
 import { artistAtom } from "../../atoms/artist";
 import ArtistIcon from "../../components/Icons/Artist";
 import Shout from "../../components/Shout/Shout";
-import useLibrary from "../../hooks/useLibrary";
+import {
+  useArtistAlbumsQuery,
+  useArtistQuery,
+  useArtistTracksQuery,
+} from "../../hooks/useLibrary";
 import Main from "../../layouts/Main";
 import Albums from "./Albums";
 import PopularSongs from "./PopularSongs";
@@ -22,9 +26,13 @@ const Group = styled.div`
 `;
 
 const Artist = () => {
-  const [loading, setLoading] = useState(true);
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
-  const { getArtist, getArtistTracks, getArtistAlbums } = useLibrary();
+
+  const uri = `${did}/app.rocksky.artist/${rkey}`;
+  const artistResult = useArtistQuery(did!, rkey!);
+  const artistTracksResult = useArtistTracksQuery(uri);
+  const artistAlbumsResult = useArtistAlbumsQuery(uri);
+
   const artist = useAtomValue(artistAtom);
   const setArtist = useSetAtom(artistAtom);
   const [topTracks, setTopTracks] = useState<
@@ -50,69 +58,88 @@ const Artist = () => {
       uri: string;
     }[]
   >([]);
-  const uri = `${did}/app.rocksky.artist/${rkey}`;
 
   useEffect(() => {
-    if (!did || !rkey) {
+    if (artistResult.isLoading || artistResult.isError) {
       return;
     }
-    const fetchArtist = async () => {
-      setLoading(true);
-      const data = await getArtist(did, rkey);
-      setArtist({
-        id: data.id,
-        name: data.name,
-        born: data.born,
-        bornIn: data.born_in,
-        died: data.died,
-        listeners: data.listeners,
-        scrobbles: data.scrobbles,
-        picture: data.picture,
-        tags: data.tags,
-        uri: data.uri,
-        spotifyLink: data.spotify_link,
-      });
-      setLoading(false);
-    };
-    fetchArtist();
 
-    const fetchArtistTracks = async () => {
-      const uri = `${did}/app.rocksky.artist/${rkey}`;
-      const data = await getArtistTracks(uri, 10);
-      setTopTracks(
-        data.map((x) => ({
-          id: x.id,
-          title: x.title,
-          artist: x.artist,
-          albumArtist: x.album_artist,
-          albumArt: x.album_art,
-          uri: x.uri,
-          scrobbles: x.play_count,
-          albumUri: x.album_uri,
-          artistUri: x.artist_uri,
-        }))
-      );
-    };
-    fetchArtistTracks();
+    if (!artistResult.data || !did) {
+      return;
+    }
 
-    const fetchArtistAlbums = async () => {
-      const uri = `${did}/app.rocksky.artist/${rkey}`;
-      const data = await getArtistAlbums(uri, 10);
-      setTopAlbums(
-        data.map((x) => ({
-          id: x.id,
-          title: x.title,
-          artist: x.artist,
-          album_art: x.album_art,
-          artist_uri: x.artist_uri,
-          uri: x.uri,
-        }))
-      );
-    };
-    fetchArtistAlbums();
+    setArtist({
+      id: artistResult.data.id,
+      name: artistResult.data.name,
+      born: artistResult.data.born,
+      bornIn: artistResult.data.born_in,
+      died: artistResult.data.died,
+      listeners: artistResult.data.listeners,
+      scrobbles: artistResult.data.scrobbles,
+      picture: artistResult.data.picture,
+      tags: artistResult.data.tags,
+      uri: artistResult.data.uri,
+      spotifyLink: artistResult.data.spotify_link,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [did, rkey]);
+  }, [artistResult.data, artistResult.isLoading, artistResult.isError, did]);
 
+  useEffect(() => {
+    if (artistTracksResult.isLoading || artistTracksResult.isError) {
+      return;
+    }
+
+    if (!artistTracksResult.data || !did) {
+      return;
+    }
+
+    setTopTracks(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      artistTracksResult.data.map((track: any) => ({
+        ...track,
+        albumArt: track.album_art,
+        albumArtist: track.album_artist,
+        albumUri: track.album_uri,
+        artistUri: track.artist_uri,
+      }))
+    );
+  }, [
+    artistTracksResult.data,
+    artistTracksResult.isLoading,
+    artistTracksResult.isError,
+    did,
+  ]);
+
+  useEffect(() => {
+    if (artistAlbumsResult.isLoading || artistAlbumsResult.isError) {
+      return;
+    }
+
+    if (!artistAlbumsResult.data || !did) {
+      return;
+    }
+
+    setTopAlbums(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      artistAlbumsResult.data.map((album: any) => ({
+        ...album,
+        albumArt: album.album_art,
+        albumArtist: album.album_artist,
+        albumUri: album.album_uri,
+        artistUri: album.artist_uri,
+      }))
+    );
+  }, [
+    artistAlbumsResult.data,
+    artistAlbumsResult.isLoading,
+    artistAlbumsResult.isError,
+    did,
+  ]);
+
+  const loading =
+    artistResult.isLoading ||
+    artistTracksResult.isLoading ||
+    artistAlbumsResult.isLoading;
   return (
     <Main>
       <div style={{ paddingBottom: 100, paddingTop: 50 }}>

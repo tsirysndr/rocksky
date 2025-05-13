@@ -8,7 +8,9 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import utc from "dayjs/plugin/utc";
 import { useEffect, useState } from "react";
 import { Link as DefaultLink } from "react-router";
-import useNowPlaying from "../../../hooks/useNowPlaying";
+import useNowPlaying, {
+  useNowPlayingsQuery,
+} from "../../../hooks/useNowPlaying";
 import styles from "./styles";
 
 dayjs.extend(relativeTime);
@@ -89,6 +91,7 @@ const Link = styled(DefaultLink)`
 
 function NowPlayings() {
   const [isOpen, setIsOpen] = useState(false);
+  useNowPlayingsQuery();
   const { nowPlayings } = useNowPlaying();
   const [currentlyPlaying, setCurrentlyPlaying] = useState<{
     id: string;

@@ -10,9 +10,11 @@ import numeral from "numeral";
 import { useEffect, useMemo, useState } from "react";
 import { Link as DefaultLink, useParams } from "react-router";
 import { recentTracksAtom } from "../../../../atoms/recentTracks";
-import { statsAtom } from "../../../../atoms/stats";
 import { userAtom } from "../../../../atoms/user";
-import useProfile from "../../../../hooks/useProfile";
+import useProfile, {
+  useProfileStatsByDidQuery,
+  useRecentTracksByDidQuery,
+} from "../../../../hooks/useProfile";
 
 const Link = styled(DefaultLink)`
   color: inherit;
@@ -61,18 +63,58 @@ function RecentTracks(props: RecentTracksProps) {
     ...props,
   };
   const { did } = useParams<{ did: string }>();
+  const profileStats = useProfileStatsByDidQuery(did!);
+  const [currentPage, setCurrentPage] = useState(1);
+  const recentTracksResult = useRecentTracksByDidQuery(
+    did!,
+    (currentPage - 1) * props.size!,
+    props.size!
+  );
   const { getRecentTracksByDid } = useProfile();
   const setRecentTracks = useSetAtom(recentTracksAtom);
   const recentTracks = useAtomValue(recentTracksAtom);
-  const stats = useAtomValue(statsAtom);
   const user = useAtomValue(userAtom);
-  const [currentPage, setCurrentPage] = useState(1);
   const pages = useMemo(() => {
-    if (!did || !stats[did] || !props.size) {
+    if (!did || !profileStats.data || !props.size) {
       return 1;
     }
-    return Math.ceil(stats[did].scrobbles / props.size) || 1;
-  }, [stats, did, props.size]);
+    return Math.ceil(profileStats.data.scrobbles / props.size) || 1;
+  }, [profileStats.data, did, props.size]);
+
+  useEffect(() => {
+    if (recentTracksResult.isLoading || recentTracksResult.isError) {
+      return;
+    }
+
+    if (!recentTracksResult.data || !did) {
+      return;
+    }
+
+    setRecentTracks(
+      recentTracksResult.data.map((item) => ({
+        id: item.id,
+        title: item.title,
+        artist: item.artist,
+        album: item.album,
+        albumArt: item.album_art,
+        albumArtist: item.album_artist,
+        uri: item.uri,
+        date: item.created_at.endsWith("Z")
+          ? item.created_at
+          : `${item.created_at}Z`,
+        scrobbleUri: item.uri,
+        albumUri: item.album_uri,
+        artistUri: item.artist_uri,
+      }))
+    );
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    recentTracksResult.data,
+    recentTracksResult.isLoading,
+    recentTracksResult.isError,
+    did,
+  ]);
 
   useEffect(() => {
     if (!did) {
@@ -137,7 +179,7 @@ function RecentTracks(props: RecentTracksProps) {
           <div style={{ marginRight: 20 }}>
             <LabelSmall>SCROBBLES</LabelSmall>
             <HeadingXSmall margin={0}>
-              {did ? numeral(stats[did]?.scrobbles).format("0,0") : ""}
+              {did ? numeral(profileStats.data?.scrobbles).format("0,0") : ""}
             </HeadingXSmall>
           </div>
         </Group>
