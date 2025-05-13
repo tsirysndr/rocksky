@@ -28,7 +28,7 @@ for (const did of args) {
   }
 
   const profile = await fetch(
-    `${serviceEndpoint}/xrpc/com.atproto.repo.getRecord?repo=${did}&collection=app.bsky.actor.profile&rkey=self`
+    `${serviceEndpoint}/xrpc/com.atproto.repo.getRecord?repo=${user.did}&collection=app.bsky.actor.profile&rkey=self`
   ).then((res) => res.json());
   const ref = _.get(profile, "value.avatar.ref.$link");
   const type = _.get(profile, "value.avatar.mimeType").split("/")[1];
@@ -36,14 +36,14 @@ for (const did of args) {
     .update(users)
     .set({
       displayName: _.get(profile, "value.displayName"),
-      avatar: `https://cdn.bsky.app/img/avatar/plain/${did}/${ref}@${type}`,
+      avatar: `https://cdn.bsky.app/img/avatar/plain/${user.did}/${ref}@${type}`,
     })
-    .where(eq(users.did, did))
+    .where(eq(users.did, user.did))
     .execute();
 
   const u = await ctx.client.db.users
     .select(["*"])
-    .filter("did", equals(did))
+    .filter("did", equals(user.did))
     .getFirst();
   ctx.nc.publish("rocksky.user", Buffer.from(JSON.stringify(u)));
 }
