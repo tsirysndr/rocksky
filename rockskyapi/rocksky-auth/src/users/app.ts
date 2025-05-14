@@ -453,11 +453,14 @@ app.get("/:did/app.rocksky.artist/:rkey/albums", async (c) => {
       },
     });
   return c.json(
-    albums.records.map((item) => ({
-      ...R.omit(["xata_id"], item.album_id),
-      id: item.album_id.xata_id,
-      xata_version: item.xata_version,
-    }))
+    R.uniqBy(
+      (item) => item.id,
+      albums.records.map((item) => ({
+        ...R.omit(["xata_id"], item.album_id),
+        id: item.album_id.xata_id,
+        xata_version: item.xata_version,
+      }))
+    )
   );
 });
 
