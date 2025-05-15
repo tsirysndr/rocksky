@@ -176,7 +176,9 @@ export type RootStackParamList = {
   Library: undefined;
   UserLibrary: undefined;
   Profile: undefined;
-  UserProfile: undefined;
+  UserProfile: {
+    handle: string;
+  };
   Story: {
     avatar: string;
     handle: string;

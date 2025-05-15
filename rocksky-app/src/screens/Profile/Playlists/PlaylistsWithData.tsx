@@ -1,8 +1,11 @@
+import { didAtom } from "@/src/atoms/did";
 import { usePlaylistsQuery } from "@/src/hooks/usePlaylists";
+import { useAtomValue } from "jotai";
 import Playlists from "./Playlists";
 
 const PlaylistsWithData = () => {
-  const { data } = usePlaylistsQuery("did:plc:7vdlgi2bflelz7mmuxoqjfcr");
+  const did = useAtomValue(didAtom);
+  const { data } = usePlaylistsQuery(did!);
   return (
     <Playlists
       playlists={

@@ -18,7 +18,7 @@ export type StoryProps = {
   artistUri: string;
   trackUri: string;
   date: string;
-  onOpenBlueskyProfile: (didOrHandle: string) => void;
+  onOpenProfile: (didOrHandle: string) => void;
   onPressAlbum: (albumDid: string) => void;
   onPressArtist: (artistDid: string) => void;
   onPressTrack: (trackDid: string) => void;
@@ -35,7 +35,7 @@ const Story: FC<StoryProps> = (props) => {
     artistUri,
     trackUri,
     date,
-    onOpenBlueskyProfile,
+    onOpenProfile,
     onPressAlbum,
     onPressArtist,
     onPressTrack,
@@ -43,7 +43,7 @@ const Story: FC<StoryProps> = (props) => {
   const layout = useWindowDimensions();
   return (
     <View className="w-full h-full bg-black pt-[50px]">
-      <Pressable onPress={() => onOpenBlueskyProfile(handle)}>
+      <Pressable onPress={() => onOpenProfile(handle)}>
         <View className="flex flex-row items-center justify-start">
           <Image
             className="w-[40px] h-[40px] rounded-full mr-[15px]"

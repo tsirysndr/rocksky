@@ -1,20 +1,30 @@
+import { handleAtom } from "@/src/atoms/handle";
 import Chips from "@/src/components/Chips";
 import StickyPlayer from "@/src/components/StickyPlayer";
 import { RootStackParamList } from "@/src/Navigation";
-import { NavigationProp, useNavigation } from "@react-navigation/native";
-import { FC, useState } from "react";
+import {
+  NavigationProp,
+  RouteProp,
+  useNavigation,
+} from "@react-navigation/native";
+import { useSetAtom } from "jotai";
+import { FC, useEffect, useState } from "react";
 import { ScrollView, View } from "react-native";
 import LovedTracks from "./LovedTracks";
 import Overview from "./Overview";
 import Playlists from "./Playlists";
 import ProfileHeader from "./ProfileHeader";
 
+type StoryScreenRouteProp = RouteProp<RootStackParamList, "Story">;
+
 export type ProfileProps = {
   bottom?: number;
+  route?: StoryScreenRouteProp;
 };
 
 const Profile: FC<ProfileProps> = (props) => {
-  const { bottom } = props;
+  const { bottom, route } = props;
+  const setHandle = useSetAtom(handleAtom);
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [index, setIndex] = useState(0);
   const chips = [
@@ -30,6 +40,11 @@ const Profile: FC<ProfileProps> = (props) => {
     }
     setIndex(key);
   };
+
+  useEffect(() => {
+    setHandle(route?.params?.handle);
+  }, [route?.params?.handle]);
+
   return (
     <View className="h-full w-full bg-black">
       <ScrollView

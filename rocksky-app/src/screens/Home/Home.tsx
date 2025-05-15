@@ -54,7 +54,9 @@ const Home = () => {
                 borderRadius={5}
                 listeningDate={dayjs(song.date).fromNow()}
                 onPress={(did) => navigation.navigate("SongDetails")}
-                onOpenBlueskyProfile={() => navigation.navigate("UserProfile")}
+                onOpenProfile={(handle) =>
+                  navigation.navigate("UserProfile", { handle })
+                }
                 onPressAlbum={() => navigation.navigate("AlbumDetails")}
                 did=""
               />

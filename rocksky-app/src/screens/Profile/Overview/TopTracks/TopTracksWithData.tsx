@@ -1,6 +1,8 @@
+import { didAtom } from "@/src/atoms/did";
 import { useTracksQuery } from "@/src/hooks/useLibrary";
 import { RootStackParamList } from "@/src/Navigation";
 import { NavigationProp, useNavigation } from "@react-navigation/native";
+import { useAtomValue } from "jotai";
 import { FC } from "react";
 import TopTracks from "./TopTracks";
 
@@ -9,8 +11,9 @@ export type TopTracksWithDataProps = {
 };
 
 const TopTracksWithData: FC<TopTracksWithDataProps> = (props) => {
+  const did = useAtomValue(didAtom);
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const { data } = useTracksQuery("did:plc:7vdlgi2bflelz7mmuxoqjfcr");
+  const { data } = useTracksQuery(did!);
   return (
     <TopTracks
       {...props}

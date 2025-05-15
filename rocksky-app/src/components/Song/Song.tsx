@@ -16,7 +16,7 @@ export type SongProps = {
   did: string;
   onPress: (did: string) => void;
   onPressAlbum: (albumDid: string) => void;
-  onOpenBlueskyProfile?: (didOrHandle: string) => void;
+  onOpenProfile?: (didOrHandle: string) => void;
   withoutAlbumCover?: boolean;
 };
 
@@ -33,7 +33,7 @@ const Song: FC<SongProps> = (props) => {
     listeningDate,
     did,
     onPress,
-    onOpenBlueskyProfile,
+    onOpenProfile,
     onPressAlbum,
     withoutAlbumCover,
   } = props;
@@ -87,7 +87,7 @@ const Song: FC<SongProps> = (props) => {
           </Text>
         </Pressable>
         {listenerHandle && (
-          <Pressable onPress={() => onOpenBlueskyProfile!(listenerHandle)}>
+          <Pressable onPress={() => onOpenProfile!(listenerHandle)}>
             <View className="flex flex-row items-center mt-[2px]">
               <Text className="flex-1 font-rockford-regular text-[#A0A0A0] text-[12px]">
                 @{listenerHandle}

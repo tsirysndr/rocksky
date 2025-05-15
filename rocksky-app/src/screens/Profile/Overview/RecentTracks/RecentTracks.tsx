@@ -7,6 +7,7 @@ export type RecentTracksProps = {
     title: string;
     artist: string;
     image: string;
+    listeningDate: string;
   }[];
   onSeeAll: () => void;
   onPressTrack: (did: string) => void;
@@ -36,7 +37,7 @@ const RecentTracks: FC<RecentTracksProps> = (props) => {
             artist={song.artist}
             size={60}
             className="mt-[10px]"
-            listeningDate="8m"
+            listeningDate={song.listeningDate}
             onPress={onPressTrack}
             onPressAlbum={onPressAlbum}
             did=""

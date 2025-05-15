@@ -3,23 +3,46 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Constants from "expo-constants";
 import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
+import { useSetAtom } from "jotai";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { handleAtom } from "./atoms/handle";
 import { RootStack } from "./Navigation";
 
 const queryClient = new QueryClient();
 
 const App = () => {
+  const setHandle = useSetAtom(handleAtom);
   useFonts({
     RockfordSansRegular: require("../assets/fonts/RockfordSans-Regular.otf"),
     RockfordSansMedium: require("../assets/fonts/RockfordSans-Medium.otf"),
     RockfordSansBold: require("../assets/fonts/RockfordSans-Bold.otf"),
   });
 
+  const getActiveRouteName = (state: any) => {
+    if (!state || !state.routes) return null;
+
+    const route = state.routes[state.index];
+
+    // Dive into nested navigators
+    if (route.state) {
+      return getActiveRouteName(route.state);
+    }
+
+    return route.name;
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
         <StatusBar style="auto" />
-        <NavigationContainer>
+        <NavigationContainer
+          onStateChange={(state) => {
+            const currentTab = getActiveRouteName(state);
+            if (currentTab === "Profile") {
+              setHandle(undefined);
+            }
+          }}
+        >
           <RootStack />
         </NavigationContainer>
       </SafeAreaProvider>

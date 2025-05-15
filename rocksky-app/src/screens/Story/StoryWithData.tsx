@@ -29,7 +29,9 @@ const StoryWithData: FC<StoryWithDataProps> = (props) => {
       albumUri={route!.params.albumUri}
       trackUri={route!.params.trackUri}
       date={route!.params.date}
-      onOpenBlueskyProfile={() => navigation!.navigate("UserProfile")}
+      onOpenProfile={() =>
+        navigation!.navigate("UserProfile", { handle: route!.params.handle })
+      }
       onPressAlbum={() => navigation!.navigate("AlbumDetails")}
       onPressArtist={() => navigation!.navigate("ArtistDetails")}
       onPressTrack={() => navigation!.navigate("SongDetails")}

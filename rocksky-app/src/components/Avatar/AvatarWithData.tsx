@@ -1,21 +1,46 @@
+import { didAtom } from "@/src/atoms/did";
+import { handleAtom } from "@/src/atoms/handle";
+import { useProfileByDidQuery } from "@/src/hooks/useProfile";
+import dayjs from "dayjs";
+import { useAtomValue, useSetAtom } from "jotai";
+import { useEffect } from "react";
 import { Linking } from "react-native";
 import Avatar from "./Avatar";
 
 const AvatarWithData = () => {
+  const handle = useAtomValue(handleAtom);
+  const setDid = useSetAtom(didAtom);
+
+  const { data, isLoading } = useProfileByDidQuery(
+    handle || "did:plc:7vdlgi2bflelz7mmuxoqjfcr"
+  );
+
+  useEffect(() => {
+    if (data) {
+      setDid(data.did);
+    }
+  }, [data]);
+
   return (
-    <Avatar
-      avatar="https://cdn.bsky.app/img/avatar/plain/did:plc:7vdlgi2bflelz7mmuxoqjfcr/bafkreihkoydiswk2jc46z5ip7l45s66ligct5swneanhnrsnn66y3oxlpm@jpeg"
-      name="Tsiry Sandratraina 🦀"
-      handle="@tsiry-sandratraina.com"
-      scrobblingSince="03 Feb 2025"
-      did="did:plc:7vdlgi2bflelz7mmuxoqjfcr"
-      onOpenBlueskyProfile={(handle: string) => {
-        Linking.openURL(`https://bsky.app/profile/${handle.replace("@", "")}`);
-      }}
-      onViewOnPdsls={(did: string) => {
-        Linking.openURL(`https://pdsls.dev/at/${did}`);
-      }}
-    />
+    <>
+      {!isLoading && data && (
+        <Avatar
+          avatar={data.avatar}
+          name={data.display_name}
+          handle={`@${data.handle}`}
+          scrobblingSince={dayjs(data.xata_createdat).format("DD MMM YYYY")}
+          did={data.did}
+          onOpenBlueskyProfile={(handle: string) => {
+            Linking.openURL(
+              `https://bsky.app/profile/${handle.replace("@", "")}`
+            );
+          }}
+          onViewOnPdsls={(did: string) => {
+            Linking.openURL(`https://pdsls.dev/at/${did}`);
+          }}
+        />
+      )}
+    </>
   );
 };
 

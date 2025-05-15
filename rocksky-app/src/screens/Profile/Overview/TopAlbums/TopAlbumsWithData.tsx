@@ -1,6 +1,8 @@
+import { didAtom } from "@/src/atoms/did";
 import { useAlbumsQuery } from "@/src/hooks/useLibrary";
 import { RootStackParamList } from "@/src/Navigation";
 import { NavigationProp, useNavigation } from "@react-navigation/native";
+import { useAtomValue } from "jotai";
 import TopAlbums from "./TopAlbums";
 
 const albums = [
@@ -31,8 +33,9 @@ const albums = [
 ];
 
 const TopAlbumsWithData = () => {
+  const did = useAtomValue(didAtom);
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const { data } = useAlbumsQuery("did:plc:7vdlgi2bflelz7mmuxoqjfcr");
+  const { data } = useAlbumsQuery(did!);
   return (
     <TopAlbums
       albums={
