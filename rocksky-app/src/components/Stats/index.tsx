@@ -1,3 +1,3 @@
-import Stats from "./Stats";
+import Stats from "./StatsWithData";
 
 export default Stats;

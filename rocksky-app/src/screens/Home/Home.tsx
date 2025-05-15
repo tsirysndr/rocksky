@@ -1,69 +1,66 @@
 import Song from "@/src/components/Song";
 import StickyPlayer from "@/src/components/StickyPlayer";
+import { useFeedQuery } from "@/src/hooks/useFeed";
 import { RootStackParamList } from "@/src/Navigation";
 import { NavigationProp, useNavigation } from "@react-navigation/native";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import updateLocale from "dayjs/plugin/updateLocale";
 import React from "react";
 import { ScrollView, Text, View } from "react-native";
 import Stories from "./Stories";
 
-const recents = [
-  {
-    title: "Work from Home (feat. Ty Dolla $ign)",
-    artist: "Fith Harmony",
-    image:
-      "https://cdn.rocksky.app/covers/cbed73745681d6a170b694ee11bb527c.jpg",
+dayjs.extend(relativeTime);
+dayjs.extend(updateLocale);
+
+dayjs.updateLocale("en", {
+  relativeTime: {
+    future: "in %s",
+    past: "%s",
+    s: "%ds",
+    m: "1min",
+    mm: "%dm",
+    h: "1h",
+    hh: "%dh",
+    d: "1d",
+    dd: "%dd",
+    M: "%dd",
   },
-  {
-    title: "BED - THAT KIND Remix",
-    artist: "Joel Corry",
-    image:
-      "https://cdn.bsky.app/img/feed_thumbnail/plain/did:plc:7vdlgi2bflelz7mmuxoqjfcr/bafkreic44lr3hnftk7fmdqetxyoxx6sww5rvynvqefl22up52w3k6ltwta@jpeg",
-  },
-  {
-    title: "OUT OUT (feat. Charli XCX & Saweetie)",
-    artist: "Joel Corry",
-    image:
-      "https://cdn.rocksky.app/covers/ec9bbc208b04182f315f8137cfb2125b.jpg",
-  },
-  {
-    title: "Intoxicated - Edit",
-    artist: "Martin Solveig",
-    image:
-      "https://cdn.bsky.app/img/feed_thumbnail/plain/did:plc:7vdlgi2bflelz7mmuxoqjfcr/bafkreibwcac7gx2o2iwfiy3ftdq5j3o7ncva6h2kc36rjtrnwexnmdfrly@jpeg",
-  },
-  {
-    title: "Aftertaste",
-    artist: "Loud Luxury",
-    image:
-      "https://cdn.bsky.app/img/feed_thumbnail/plain/did:plc:7vdlgi2bflelz7mmuxoqjfcr/bafkreicwddxl3ntt3tiimrevbip2ustt2564pvasrrmizsnjeisqypl72a@jpeg",
-  },
-];
+});
 
 const Home = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const { data, isLoading } = useFeedQuery();
   return (
     <View className="h-full w-full bg-black">
-      <ScrollView className="h-[99%] w-full pl-[15px] pr-[15px] pt-[50px]">
+      <ScrollView
+        className="h-[99%] w-full pl-[15px] pr-[15px] pt-[50px]"
+        showsVerticalScrollIndicator={false}
+      >
         <Stories />
-        <Text className="font-rockford-medium text-white text-[21px] mb-[10px] mt-[30px]">
-          Recently Played
-        </Text>
-        {recents.map((song, index) => (
-          <Song
-            key={index}
-            image={song.image}
-            title={song.title}
-            artist={song.artist}
-            listenerHandle="@tsiry-sandratraina.com"
-            className="mb-[15px]"
-            borderRadius={5}
-            listeningDate="8m"
-            onPress={(did) => navigation.navigate("SongDetails")}
-            onOpenBlueskyProfile={() => navigation.navigate("UserProfile")}
-            onPressAlbum={() => navigation.navigate("AlbumDetails")}
-            did=""
-          />
-        ))}
+        {!isLoading && (
+          <>
+            <Text className="font-rockford-medium text-white text-[21px] mb-[10px] mt-[30px]">
+              Recently Played
+            </Text>
+            {data?.map((song: any, index: number) => (
+              <Song
+                key={index}
+                image={song.cover}
+                title={song.title}
+                artist={song.artist}
+                listenerHandle={song.user}
+                className="mb-[15px]"
+                borderRadius={5}
+                listeningDate={dayjs(song.date).fromNow()}
+                onPress={(did) => navigation.navigate("SongDetails")}
+                onOpenBlueskyProfile={() => navigation.navigate("UserProfile")}
+                onPressAlbum={() => navigation.navigate("AlbumDetails")}
+                did=""
+              />
+            ))}
+          </>
+        )}
       </ScrollView>
       <View className="w-full absolute bottom-0 bg-[#000]">
         <StickyPlayer

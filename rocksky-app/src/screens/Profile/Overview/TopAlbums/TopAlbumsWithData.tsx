@@ -1,3 +1,4 @@
+import { useAlbumsQuery } from "@/src/hooks/useLibrary";
 import { RootStackParamList } from "@/src/Navigation";
 import { NavigationProp, useNavigation } from "@react-navigation/native";
 import TopAlbums from "./TopAlbums";
@@ -31,9 +32,16 @@ const albums = [
 
 const TopAlbumsWithData = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const { data } = useAlbumsQuery("did:plc:7vdlgi2bflelz7mmuxoqjfcr");
   return (
     <TopAlbums
-      albums={albums}
+      albums={
+        data?.map((album: any, index: number) => ({
+          artist: album.artist,
+          title: album.title,
+          image: album.album_art,
+        })) ?? []
+      }
       onSeeAll={() => navigation.navigate("UserLibrary")}
       onPressAlbum={(did) => navigation.navigate("AlbumDetails")}
     />

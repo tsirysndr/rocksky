@@ -1,5 +1,6 @@
+import { Image } from "expo-image";
 import { FC } from "react";
-import { Image, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 export type ArtistProps = {
   row?: boolean;
@@ -30,10 +31,10 @@ const Artist: FC<ArtistProps> = (props) => {
           source={{
             uri: image,
           }}
-          className="rounded-full"
           style={{
             width: imageSize,
             height: imageSize,
+            borderRadius: imageSize / 2,
           }}
         />
         <Text

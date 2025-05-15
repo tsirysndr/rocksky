@@ -4,7 +4,9 @@ import { RootStackParamList } from "@/src/Navigation";
 import { NavigationProp, useNavigation } from "@react-navigation/native";
 import { FC, useState } from "react";
 import { ScrollView, View } from "react-native";
+import LovedTracks from "./LovedTracks";
 import Overview from "./Overview";
+import Playlists from "./Playlists";
 import ProfileHeader from "./ProfileHeader";
 
 export type ProfileProps = {
@@ -30,7 +32,10 @@ const Profile: FC<ProfileProps> = (props) => {
   };
   return (
     <View className="h-full w-full bg-black">
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        className="pl-[10px] pr-[10px]"
+      >
         <ProfileHeader />
         <Chips
           items={chips}
@@ -38,6 +43,8 @@ const Profile: FC<ProfileProps> = (props) => {
           active={index}
         />
         {index === 0 && <Overview />}
+        {index === 2 && <Playlists />}
+        {index === 3 && <LovedTracks />}
       </ScrollView>
 
       <View

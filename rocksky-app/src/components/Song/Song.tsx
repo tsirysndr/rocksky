@@ -1,5 +1,6 @@
+import { Image } from "expo-image";
 import { FC } from "react";
-import { Image, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 export type SongProps = {
   size?: number;
@@ -49,20 +50,21 @@ const Song: FC<SongProps> = (props) => {
       )}
       {!withoutAlbumCover && (
         <Pressable onPress={() => onPressAlbum("")}>
-          <Image
-            source={{
-              uri: image,
-            }}
-            className={` mr-[15px]`}
-            style={{ width: imageSize, height: imageSize, borderRadius }}
-          />
+          <View className="mr-[15px]">
+            <Image
+              source={{
+                uri: image,
+              }}
+              style={{ width: imageSize, height: imageSize, borderRadius }}
+            />
+          </View>
         </Pressable>
       )}
       <View className="flex-1 justify-center">
         <Pressable onPress={() => onPress(did)}>
           <View className="flex flex-row items-center">
             <Text
-              className={`font-rockford-regular text-white ${listeningDate ? "w-[87%]" : "w-full"}`}
+              className={`font-rockford-regular text-white ${listeningDate ? "w-[86%]" : "w-full"}`}
               numberOfLines={1}
               ellipsizeMode="tail"
             >
@@ -88,7 +90,7 @@ const Song: FC<SongProps> = (props) => {
           <Pressable onPress={() => onOpenBlueskyProfile!(listenerHandle)}>
             <View className="flex flex-row items-center mt-[2px]">
               <Text className="flex-1 font-rockford-regular text-[#A0A0A0] text-[12px]">
-                {listenerHandle}
+                @{listenerHandle}
               </Text>
             </View>
           </Pressable>

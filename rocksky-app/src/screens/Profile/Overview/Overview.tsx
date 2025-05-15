@@ -8,7 +8,7 @@ import TopTracks from "./TopTracks";
 const Overview = () => {
   return (
     <View className="w-full mt-[20px]">
-      <Stats scrobbles={10465} artists={716} lovedTracks={1024} />
+      <Stats />
       <RecentTracks />
       <TopArtists />
       <TopAlbums />

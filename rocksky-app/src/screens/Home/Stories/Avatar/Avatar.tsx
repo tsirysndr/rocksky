@@ -1,5 +1,6 @@
+import { Image } from "expo-image";
 import { FC } from "react";
-import { Image, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 export type AvatarProps = {
   name: string;
@@ -28,10 +29,10 @@ const Avatar: FC<AvatarProps> = (props) => {
             source={{
               uri: image,
             }}
-            className="rounded-full"
             style={{
               width: size || 72,
               height: size || 72,
+              borderRadius: (size || 72) / 2,
             }}
           />
         </View>

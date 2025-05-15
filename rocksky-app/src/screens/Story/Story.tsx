@@ -1,3 +1,4 @@
+import { Image as ExpoImage } from "expo-image";
 import { FC } from "react";
 import {
   Image,
@@ -16,6 +17,7 @@ export type StoryProps = {
   albumUri: string;
   artistUri: string;
   trackUri: string;
+  date: string;
   onOpenBlueskyProfile: (didOrHandle: string) => void;
   onPressAlbum: (albumDid: string) => void;
   onPressArtist: (artistDid: string) => void;
@@ -32,6 +34,7 @@ const Story: FC<StoryProps> = (props) => {
     albumUri,
     artistUri,
     trackUri,
+    date,
     onOpenBlueskyProfile,
     onPressAlbum,
     onPressArtist,
@@ -49,12 +52,15 @@ const Story: FC<StoryProps> = (props) => {
             }}
           />
           <Text className="font-rockford-regular text-[#fff]">{handle}</Text>
+          <Text className="font-rockford-regular text-[#A0A0A0] ml-[5px]">
+            {date}
+          </Text>
         </View>
       </Pressable>
       <View className="flex-1 justify-center items-center">
-        <View>
+        <View className="flex-1 justify-center items-center">
           <Pressable onPress={() => onPressAlbum(albumUri)}>
-            <Image
+            <ExpoImage
               source={{
                 uri: albumArt,
               }}

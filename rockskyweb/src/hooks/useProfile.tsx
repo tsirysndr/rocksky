@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
 import { useSetAtom } from "jotai";
 import { useEffect, useState } from "react";
 import {
@@ -9,7 +8,6 @@ import {
 } from "../api/profile";
 import { profileAtom } from "../atoms/profile";
 import { API_URL } from "../consts";
-import { Scrobble } from "../types/scrobble";
 
 export const useProfileByDidQuery = (did: string) =>
   useQuery({
@@ -36,17 +34,6 @@ function useProfile(token?: string | null) {
   const [data, setData] = useState<string | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const isLoading = !data && !error;
-
-  const getRecentTracksByDid = async (
-    did: string,
-    offset = 0,
-    size = 10
-  ): Promise<Scrobble[]> => {
-    const response = await axios.get<Scrobble[]>(
-      `${API_URL}/users/${did}/scrobbles?size=${size}&offset=${offset}`
-    );
-    return response.data;
-  };
 
   useEffect(() => {
     if (!token) {
@@ -132,7 +119,6 @@ function useProfile(token?: string | null) {
     data: JSON.parse(data),
     error,
     isLoading,
-    getRecentTracksByDid,
   };
 }
 

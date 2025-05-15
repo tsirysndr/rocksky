@@ -3,7 +3,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import AlbumDetails from "./screens/AlbumDetails";
-import ArtistDetails from "./screens/ArtistDetails/ArtistDetails";
+import ArtistDetails from "./screens/ArtistDetails";
 import Home from "./screens/Home";
 import Library from "./screens/Library";
 import Profile from "./screens/Profile";
@@ -186,5 +186,6 @@ export type RootStackParamList = {
     albumUri: string;
     artistUri: string;
     trackUri: string;
+    date: string;
   };
 };

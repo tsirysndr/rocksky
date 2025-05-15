@@ -1,5 +1,6 @@
+import { Image } from "expo-image";
 import { FC } from "react";
-import { Image, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 export type AlbumProps = {
   row?: boolean;
@@ -23,10 +24,10 @@ const Album: FC<AlbumProps> = (props) => {
           source={{
             uri: image,
           }}
-          className={`${row ? "mr-[15px]" : ""}`}
           style={{
             width: imageSize,
             height: imageSize,
+            marginRight: row ? 15 : 0,
           }}
         />
         <View

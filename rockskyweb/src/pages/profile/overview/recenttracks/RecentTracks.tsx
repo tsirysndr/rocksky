@@ -11,7 +11,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link as DefaultLink, useParams } from "react-router";
 import { recentTracksAtom } from "../../../../atoms/recentTracks";
 import { userAtom } from "../../../../atoms/user";
-import useProfile, {
+import {
   useProfileStatsByDidQuery,
   useRecentTracksByDidQuery,
 } from "../../../../hooks/useProfile";
@@ -70,7 +70,6 @@ function RecentTracks(props: RecentTracksProps) {
     (currentPage - 1) * props.size!,
     props.size!
   );
-  const { getRecentTracksByDid } = useProfile();
   const setRecentTracks = useSetAtom(recentTracksAtom);
   const recentTracks = useAtomValue(recentTracksAtom);
   const user = useAtomValue(userAtom);
@@ -116,39 +115,6 @@ function RecentTracks(props: RecentTracksProps) {
     did,
   ]);
 
-  useEffect(() => {
-    if (!did) {
-      return;
-    }
-
-    const getRecentTracks = async () => {
-      const data = await getRecentTracksByDid(
-        did,
-        (currentPage - 1) * props.size!,
-        props.size!
-      );
-      setRecentTracks(
-        data.map((item) => ({
-          id: item.id,
-          title: item.title,
-          artist: item.artist,
-          album: item.album,
-          albumArt: item.album_art,
-          albumArtist: item.album_artist,
-          uri: item.uri,
-          date: item.created_at.endsWith("Z")
-            ? item.created_at
-            : `${item.created_at}Z`,
-          scrobbleUri: item.uri,
-          albumUri: item.album_uri,
-          artistUri: item.artist_uri,
-        }))
-      );
-    };
-
-    getRecentTracks();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [did, currentPage]);
   return (
     <>
       {props.showTitle && (
