@@ -31,7 +31,6 @@ dayjs.updateLocale("en", {
 const Home = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { data, isLoading } = useFeedQuery();
-  console.log(JSON.stringify(data, null, 2));
   return (
     <View className="h-full w-full bg-black">
       <ScrollView
@@ -64,6 +63,7 @@ const Home = () => {
                   navigation.navigate("AlbumDetails", { uri: song.albumUri })
                 }
                 did={song.uri}
+                albumUri={song.albumUri}
               />
             ))}
           </>

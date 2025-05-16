@@ -20,6 +20,8 @@ const RecentTracksWithData = () => {
           artist: scrobble.artist,
           image: scrobble.album_art!,
           listeningDate: dayjs.utc(scrobble.created_at).local().fromNow(),
+          uri: scrobble.uri,
+          albumUri: scrobble.album_uri,
         })) ?? []
       }
       onSeeAll={() => {

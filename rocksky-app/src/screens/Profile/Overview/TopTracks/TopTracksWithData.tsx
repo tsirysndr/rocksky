@@ -24,6 +24,8 @@ const TopTracksWithData: FC<TopTracksWithDataProps> = (props) => {
           title: track.title,
           artist: track.artist,
           image: track.album_art,
+          uri: track.uri,
+          albumUri: track.album_uri,
         })) ?? []
       }
       onSeeAll={() => {

@@ -37,7 +37,10 @@ const AlbumDetails: FC<AlbumDetailsProps> = (props) => {
 
   return (
     <View className="h-full w-full bg-black pt-[50px]">
-      <ScrollView className="mb-[60px]" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        className="mb-[60px] pl-[15px] pr-[15px]"
+        showsVerticalScrollIndicator={false}
+      >
         <View className="items-center justify-start">
           <Image
             source={{
@@ -108,6 +111,7 @@ const AlbumDetails: FC<AlbumDetailsProps> = (props) => {
                 onPressAlbum={() => {}}
                 did={track.id}
                 withoutAlbumCover
+                albumUri=""
               />
             ))}
           </View>
@@ -133,6 +137,7 @@ const AlbumDetails: FC<AlbumDetailsProps> = (props) => {
                       onPressAlbum={() => {}}
                       did={track.id}
                       withoutAlbumCover
+                      albumUri=""
                     />
                   ))}
               </View>

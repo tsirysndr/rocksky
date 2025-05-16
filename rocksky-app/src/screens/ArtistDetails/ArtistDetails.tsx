@@ -12,7 +12,10 @@ export type SongDetailsProps = {
 const ArtistDetails: FC<SongDetailsProps> = (props) => {
   return (
     <View className="w-full h-full bg-black pt-[50px]">
-      <ScrollView className="h-[99%] w-full">
+      <ScrollView
+        className="h-[99%] w-full pl-[15px] pr-[15px]"
+        showsVerticalScrollIndicator={false}
+      >
         <View className="items-center justify-start">
           <Image
             source={{
@@ -75,6 +78,7 @@ const ArtistDetails: FC<SongDetailsProps> = (props) => {
               size={60}
               className="mt-[10px]"
               borderRadius={8}
+              albumUri=""
               did=""
             />
             <Song
@@ -89,6 +93,7 @@ const ArtistDetails: FC<SongDetailsProps> = (props) => {
               size={60}
               className="mt-[10px]"
               borderRadius={8}
+              albumUri=""
               did=""
             />
           </View>

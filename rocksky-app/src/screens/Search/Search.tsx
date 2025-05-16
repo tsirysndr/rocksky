@@ -62,6 +62,7 @@ const Search = () => {
             onPress={() => {}}
             onPressAlbum={() => {}}
             did=""
+            albumUri=""
           />
         ))}
       </ScrollView>

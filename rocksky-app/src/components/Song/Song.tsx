@@ -14,6 +14,7 @@ export type SongProps = {
   rank?: number;
   borderRadius?: number;
   did: string;
+  albumUri: string;
   onPress: (did: string) => void;
   onPressAlbum: (albumDid: string) => void;
   onOpenProfile?: (didOrHandle: string) => void;
@@ -32,6 +33,7 @@ const Song: FC<SongProps> = (props) => {
     borderRadius,
     listeningDate,
     did,
+    albumUri,
     onPress,
     onOpenProfile,
     onPressAlbum,
@@ -49,7 +51,7 @@ const Song: FC<SongProps> = (props) => {
         </Text>
       )}
       {!withoutAlbumCover && (
-        <Pressable onPress={() => onPressAlbum("")}>
+        <Pressable onPress={() => onPressAlbum(albumUri)}>
           <View className="mr-[15px]">
             <Image
               source={{

@@ -9,6 +9,8 @@ export type TopTracksProps = {
     title: string;
     artist: string;
     image: string;
+    uri: string;
+    albumUri: string;
   }[];
   onPressTrack: (did: string) => void;
   onPressAlbum: (albumDid: string) => void;
@@ -38,9 +40,10 @@ const TopTracks: FC<TopTracksProps> = (props) => {
             artist={song.artist}
             size={60}
             className="mt-[10px]"
-            onPress={onPressTrack}
-            onPressAlbum={onPressAlbum}
+            onPress={() => onPressTrack(song.uri)}
+            onPressAlbum={() => onPressAlbum(song.albumUri)}
             did=""
+            albumUri={song.albumUri}
           />
         ))}
       </View>
