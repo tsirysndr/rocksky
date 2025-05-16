@@ -98,7 +98,7 @@ const Album = () => {
         tracks: data.tracks,
         releaseDate: data.release_date
           ? dayjs(data.release_date).format("MMMM D, YYYY")
-          : data.year.toString(),
+          : data.year?.toString(),
         label: data.tracks[0].copyright_message || data.tracks[0].label,
       });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
