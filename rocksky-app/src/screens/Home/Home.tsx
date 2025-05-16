@@ -31,6 +31,7 @@ dayjs.updateLocale("en", {
 const Home = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { data, isLoading } = useFeedQuery();
+  console.log(JSON.stringify(data, null, 2));
   return (
     <View className="h-full w-full bg-black">
       <ScrollView
@@ -53,12 +54,16 @@ const Home = () => {
                 className="mb-[15px]"
                 borderRadius={5}
                 listeningDate={dayjs(song.date).fromNow()}
-                onPress={(did) => navigation.navigate("SongDetails")}
+                onPress={() =>
+                  navigation.navigate("SongDetails", { uri: song.uri })
+                }
                 onOpenProfile={(handle) =>
                   navigation.navigate("UserProfile", { handle })
                 }
-                onPressAlbum={() => navigation.navigate("AlbumDetails")}
-                did=""
+                onPressAlbum={() =>
+                  navigation.navigate("AlbumDetails", { uri: song.albumUri })
+                }
+                did={song.uri}
               />
             ))}
           </>

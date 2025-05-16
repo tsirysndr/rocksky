@@ -32,9 +32,15 @@ const StoryWithData: FC<StoryWithDataProps> = (props) => {
       onOpenProfile={() =>
         navigation!.navigate("UserProfile", { handle: route!.params.handle })
       }
-      onPressAlbum={() => navigation!.navigate("AlbumDetails")}
-      onPressArtist={() => navigation!.navigate("ArtistDetails")}
-      onPressTrack={() => navigation!.navigate("SongDetails")}
+      onPressAlbum={() =>
+        navigation!.navigate("AlbumDetails", { uri: route!.params.albumUri })
+      }
+      onPressArtist={() =>
+        navigation!.navigate("ArtistDetails", { uri: route!.params.artistUri })
+      }
+      onPressTrack={() =>
+        navigation!.navigate("SongDetails", { uri: route!.params.trackUri })
+      }
     />
   );
 };

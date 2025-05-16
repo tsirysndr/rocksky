@@ -1,4 +1,5 @@
 import { didAtom } from "@/src/atoms/did";
+import { handleAtom } from "@/src/atoms/handle";
 import { useArtistsQuery } from "@/src/hooks/useLibrary";
 import { RootStackParamList } from "@/src/Navigation";
 import { NavigationProp, useNavigation } from "@react-navigation/native";
@@ -6,6 +7,7 @@ import { useAtomValue } from "jotai";
 import TopArtists from "./TopArtists";
 
 const TopArtistsWithData = () => {
+  const handle = useAtomValue(handleAtom);
   const did = useAtomValue(didAtom);
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { data } = useArtistsQuery(did!);
@@ -18,8 +20,14 @@ const TopArtistsWithData = () => {
           image: artist.picture,
         })) ?? []
       }
-      onSeeAll={() => navigation.navigate("UserLibrary")}
-      onPressArtist={(did) => navigation.navigate("ArtistDetails")}
+      onSeeAll={() => {
+        if (!handle) {
+          navigation.navigate("Profile");
+          return;
+        }
+        navigation.navigate("UserLibrary", { handle });
+      }}
+      onPressArtist={(uri) => navigation.navigate("ArtistDetails", { uri })}
     />
   );
 };

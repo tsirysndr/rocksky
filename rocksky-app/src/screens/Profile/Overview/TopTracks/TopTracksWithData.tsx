@@ -1,4 +1,5 @@
 import { didAtom } from "@/src/atoms/did";
+import { handleAtom } from "@/src/atoms/handle";
 import { useTracksQuery } from "@/src/hooks/useLibrary";
 import { RootStackParamList } from "@/src/Navigation";
 import { NavigationProp, useNavigation } from "@react-navigation/native";
@@ -11,6 +12,7 @@ export type TopTracksWithDataProps = {
 };
 
 const TopTracksWithData: FC<TopTracksWithDataProps> = (props) => {
+  const handle = useAtomValue(handleAtom);
   const did = useAtomValue(didAtom);
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { data } = useTracksQuery(did!);
@@ -24,9 +26,15 @@ const TopTracksWithData: FC<TopTracksWithDataProps> = (props) => {
           image: track.album_art,
         })) ?? []
       }
-      onSeeAll={() => navigation.navigate("UserLibrary")}
-      onPressTrack={(did) => navigation.navigate("SongDetails")}
-      onPressAlbum={() => navigation.navigate("AlbumDetails")}
+      onSeeAll={() => {
+        if (!handle) {
+          navigation.navigate("Profile");
+          return;
+        }
+        navigation.navigate("UserLibrary", { handle });
+      }}
+      onPressTrack={(uri) => navigation.navigate("SongDetails", { uri })}
+      onPressAlbum={(uri) => navigation.navigate("AlbumDetails", { uri })}
     />
   );
 };

@@ -170,11 +170,19 @@ export function RootStack() {
 export type RootStackParamList = {
   Home: undefined;
   HomeTabs: undefined;
-  AlbumDetails: undefined;
-  ArtistDetails: undefined;
-  SongDetails: undefined;
+  AlbumDetails: {
+    uri: string;
+  };
+  ArtistDetails: {
+    uri: string;
+  };
+  SongDetails: {
+    uri: string;
+  };
   Library: undefined;
-  UserLibrary: undefined;
+  UserLibrary: {
+    handle: string;
+  };
   Profile: undefined;
   UserProfile: {
     handle: string;

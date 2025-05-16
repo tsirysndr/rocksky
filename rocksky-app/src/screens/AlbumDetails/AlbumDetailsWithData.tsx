@@ -220,8 +220,12 @@ const AlbumDetailsWithData = () => {
   return (
     <AlbumDetails
       {...album}
-      onPressArtist={() => navigation.navigate("ArtistDetails")}
-      onPressTrack={() => navigation.navigate("SongDetails")}
+      onPressArtist={() =>
+        navigation.navigate("ArtistDetails", { uri: album.artistUri })
+      }
+      onPressTrack={() =>
+        navigation.navigate("SongDetails", { uri: album.uri })
+      }
       onViewOnPDSls={(did: string) => Linking.openURL(`https://pdsls.dev`)}
     />
   );

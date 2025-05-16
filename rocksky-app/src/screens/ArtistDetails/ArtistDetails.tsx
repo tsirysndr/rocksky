@@ -69,7 +69,7 @@ const ArtistDetails: FC<SongDetailsProps> = (props) => {
               artist="Fifth Harmony"
               image="https://cdn.rocksky.app/covers/cbed73745681d6a170b694ee11bb527c.jpg"
               onPress={() => {}}
-              onOpenBlueskyProfile={() => {}}
+              onOpenProfile={() => {}}
               onPressAlbum={() => {}}
               withoutAlbumCover={false}
               size={60}
@@ -83,7 +83,7 @@ const ArtistDetails: FC<SongDetailsProps> = (props) => {
               artist="Fifth Harmony"
               image="https://cdn.rocksky.app/covers/cbed73745681d6a170b694ee11bb527c.jpg"
               onPress={() => {}}
-              onOpenBlueskyProfile={() => {}}
+              onOpenProfile={() => {}}
               onPressAlbum={() => {}}
               withoutAlbumCover={false}
               size={60}

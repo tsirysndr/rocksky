@@ -7,7 +7,7 @@ import {
   RouteProp,
   useNavigation,
 } from "@react-navigation/native";
-import { useSetAtom } from "jotai";
+import { useAtom } from "jotai";
 import { FC, useEffect, useState } from "react";
 import { ScrollView, View } from "react-native";
 import LovedTracks from "./LovedTracks";
@@ -24,7 +24,7 @@ export type ProfileProps = {
 
 const Profile: FC<ProfileProps> = (props) => {
   const { bottom, route } = props;
-  const setHandle = useSetAtom(handleAtom);
+  const [handle, setHandle] = useAtom(handleAtom);
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [index, setIndex] = useState(0);
   const chips = [
@@ -35,7 +35,11 @@ const Profile: FC<ProfileProps> = (props) => {
   ];
   const onChangeChip = (key: number) => {
     if (key === 1) {
-      navigation.navigate("UserLibrary");
+      if (!handle) {
+        navigation.navigate("Profile");
+        return;
+      }
+      navigation.navigate("UserLibrary", { handle });
       return;
     }
     setIndex(key);

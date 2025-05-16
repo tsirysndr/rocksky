@@ -266,6 +266,8 @@ app.get("/public/scrobbles", async (c) => {
       date: item.timestamp,
       user: item.user_id.handle,
       uri: item.uri,
+      albumUri: item.track_id.album_uri,
+      artistUri: item.track_id.artist_uri,
       tags: [],
       listeners: 1,
       sha256: item.track_id.sha256,
