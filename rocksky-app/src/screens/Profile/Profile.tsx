@@ -66,18 +66,7 @@ const Profile: FC<ProfileProps> = (props) => {
         className="w-full absolute bottom-0 bg-black"
         style={{ bottom: bottom || 0 }}
       >
-        <StickyPlayer
-          isPlaying={true}
-          onPlay={() => {}}
-          onPause={() => {}}
-          progress={50}
-          song={{
-            title: "Tyler Herro",
-            artist: "Jack Harlow",
-            cover:
-              "https://i.scdn.co/image/ab67616d0000b273aeb14ead136118a987246b63",
-          }}
-        />
+        <StickyPlayer />
       </View>
     </View>
   );

@@ -32,10 +32,18 @@ const StickyPlayer: FC<StickyPlayerProps> = (props) => {
               className="w-[50px] h-[50px] mr-[15px] mt-[6px]"
             />
             <View className="flex-1">
-              <Text className="font-rockford-regular text-white">
+              <Text
+                className="font-rockford-regular text-white"
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
                 {song.title}
               </Text>
-              <Text className="font-rockford-regular text-[#A0A0A0] mt-[2px]">
+              <Text
+                className="font-rockford-regular text-[#A0A0A0] mt-[2px]"
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
                 {song.artist}
               </Text>
             </View>

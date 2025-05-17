@@ -1,3 +1,3 @@
-import StickyPlayer from "./StickyPlayer";
+import StickyPlayer from "./StickyPlayerWithData";
 
 export default StickyPlayer;
