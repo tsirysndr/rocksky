@@ -152,7 +152,9 @@ const AlbumDetails: FC<AlbumDetailsProps> = (props) => {
         )}
         <View>
           <Text className="font-rockford-regular text-[#A0A0A0] text-[12px] mt-[20px] ">
-            {dayjs(album.releaseDate).format("MMMM D, YYYY")}
+            {album.releaseDate
+              ? dayjs(album.releaseDate).format("MMMM D, YYYY")
+              : album.year}
           </Text>
           <Text className="font-rockford-regular text-[#A0A0A0] text-[12px]">
             {album.label}
