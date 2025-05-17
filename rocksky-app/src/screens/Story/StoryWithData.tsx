@@ -17,7 +17,6 @@ export type StoryWithDataProps = Partial<{
 
 const StoryWithData: FC<StoryWithDataProps> = (props) => {
   const { route, navigation } = props;
-
   return (
     <Story
       handle={route!.params.handle}

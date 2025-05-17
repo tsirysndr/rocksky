@@ -35,7 +35,7 @@ const Stories: FC<StoriesProps> = (props) => {
                 title: story.title,
                 artist: story.artist,
                 albumArt: story.album_art,
-                albumUri: "",
+                albumUri: story.album_uri!,
                 artistUri: story.artist_uri!,
                 trackUri: story.track_uri,
                 date: dayjs.utc(story.created_at).local().fromNow(),

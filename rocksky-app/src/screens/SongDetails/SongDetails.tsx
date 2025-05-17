@@ -4,6 +4,7 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import numeral from "numeral";
 import { FC } from "react";
 import { Image, Pressable, ScrollView, Text, View } from "react-native";
+import TopAlbums from "../Profile/Overview/TopAlbums/TopAlbums";
 
 export type SongDetailsProps = {
   song: {
@@ -21,6 +22,7 @@ export type SongDetailsProps = {
     albumArtist: string;
     cover: string;
     uri: string;
+    albumUri: string;
   }[];
   albums: {
     title: string;
@@ -29,6 +31,9 @@ export type SongDetailsProps = {
     uri: string;
   }[];
   onViewOnPDSls: (did: string) => void;
+  onPressTrack: (did: string) => void;
+  onPressAlbum: (albumDid: string) => void;
+  onPressArtist: (did: string) => void;
 };
 
 const SongDetails: FC<SongDetailsProps> = (props) => {
@@ -99,16 +104,16 @@ const SongDetails: FC<SongDetailsProps> = (props) => {
           </Text>
         </View>
 
-        <View className="mt-[15px] mb-[100px]">
+        <View className="mt-[15px]">
           {props.tracks.map((track, index) => (
             <Song
               key={index}
               title={track.title}
               artist={track.artist}
               image={track.cover}
-              onPress={() => {}}
+              onPress={() => props.onPressTrack(track.uri)}
               onOpenProfile={() => {}}
-              onPressAlbum={() => {}}
+              onPressAlbum={() => props.onPressAlbum(track.albumUri)}
               withoutAlbumCover={false}
               size={60}
               className="mb-[15px]"
@@ -116,6 +121,30 @@ const SongDetails: FC<SongDetailsProps> = (props) => {
               albumUri=""
             />
           ))}
+        </View>
+
+        <View className="mt-[25px] mb-[100px]">
+          <Text className="font-rockford-regular text-white text-[14px]">
+            Popular Albums by
+          </Text>
+          <Text className="font-rockford-medium text-white text-[18px] mt-[-5px] ">
+            {props.song.albumArtist}
+          </Text>
+
+          <TopAlbums
+            albums={
+              props.albums?.map((album: any) => ({
+                artist: album.artist,
+                title: album.title,
+                image: album.cover,
+                uri: album.uri,
+              })) ?? []
+            }
+            onSeeAll={() => {}}
+            onPressAlbum={(uri) => props.onPressAlbum(uri)}
+            withoutSeeAll
+            withoutTitle
+          />
         </View>
       </ScrollView>
       <View className="w-full absolute bottom-0 bg-black">

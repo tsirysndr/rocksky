@@ -5,7 +5,8 @@ import {
   useSongByUriQuery,
 } from "@/src/hooks/useLibrary";
 import { RootStackParamList } from "@/src/Navigation";
-import { RouteProp } from "@react-navigation/native";
+import { RouteProp, useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { FC } from "react";
 import SongDetails from "./SongDetails";
 
@@ -17,6 +18,8 @@ export type SongDetailsWithDataProps = Partial<{
 
 const SongDetailsWithData: FC<SongDetailsWithDataProps> = (props) => {
   const { route } = props;
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const songResult = useSongByUriQuery(route?.params?.uri?.split("at://")[1]!);
   const scrobbleResult = useFeedByUriQuery(
     route?.params?.uri?.split("at://")[1]!
@@ -61,6 +64,14 @@ const SongDetailsWithData: FC<SongDetailsWithDataProps> = (props) => {
             })) ?? []
           }
           onViewOnPDSls={(did) => {}}
+          onPressTrack={(uri) => {
+            if (route?.params?.uri === uri) {
+              return;
+            }
+            navigation.push("SongDetails", { uri });
+          }}
+          onPressAlbum={(uri) => navigation.navigate("AlbumDetails", { uri })}
+          onPressArtist={(uri) => navigation.navigate("ArtistDetails", { uri })}
         />
       )}
     </>

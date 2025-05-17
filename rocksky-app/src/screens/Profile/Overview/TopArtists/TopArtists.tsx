@@ -8,9 +8,10 @@ export type TopArtistsProps = {
     rank: number;
     name: string;
     image: string;
+    uri: string;
   }[];
   onSeeAll: () => void;
-  onPressArtist: (did: string) => void;
+  onPressArtist: (uri: string) => void;
 };
 
 const TopArtists: FC<TopArtistsProps> = (props) => {
@@ -38,7 +39,7 @@ const TopArtists: FC<TopArtistsProps> = (props) => {
           name={artist.name}
           image={artist.image}
           className="mt-[20px]"
-          did=""
+          did={artist.uri}
           onPress={onPressArtist}
         />
       ))}

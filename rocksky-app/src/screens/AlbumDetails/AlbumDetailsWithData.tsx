@@ -1,233 +1,62 @@
+import { useAlbumQuery } from "@/src/hooks/useLibrary";
 import { RootStackParamList } from "@/src/Navigation";
-import { NavigationProp, useNavigation } from "@react-navigation/native";
+import {
+  NavigationProp,
+  RouteProp,
+  useNavigation,
+} from "@react-navigation/native";
+import { FC } from "react";
 import { Linking } from "react-native";
 import AlbumDetails from "./AlbumDetails";
 
-const album = {
-  id: "1",
-  title: "Meteora 20th Anniversary Edition",
-  artist: "Linkin Park",
-  albumArt: "https://i.scdn.co/image/ab67616d0000b273aeb14ead136118a987246b63",
-  artistUri: "",
-  uri: "",
-  year: 2023,
-  releaseDate: "2023-04-07T00:00:00.000Z",
-  label: "℗ 2023 Warner Records Inc.",
-  tracks: [
-    {
-      id: "1",
-      title: "Foreword",
-      artist: "Linkin Park",
-      artistUri: "",
-      trackNumber: 1,
-      discNumber: 1,
-      uri: "",
-    },
-    {
-      id: "2",
-      title: "Don't Stay",
-      artist: "Linkin Park",
-      artistUri: "",
-      trackNumber: 2,
-      discNumber: 1,
-      uri: "",
-    },
-    {
-      id: "3",
-      title: "Somewhere I Belong",
-      artist: "Linkin Park",
-      artistUri: "",
-      trackNumber: 3,
-      discNumber: 1,
-      uri: "",
-    },
-    {
-      id: "4",
-      title: "Lying from You",
-      artist: "Linkin Park",
-      artistUri: "",
-      trackNumber: 4,
-      discNumber: 1,
-      uri: "",
-    },
-    {
-      id: "5",
-      title: "Hit the Floor",
-      artist: "Linkin Park",
-      artistUri: "",
-      trackNumber: 5,
-      discNumber: 1,
-      uri: "",
-    },
-    {
-      id: "6",
-      title: "Easier to Run",
-      artist: "Linkin Park",
-      artistUri: "",
-      trackNumber: 6,
-      discNumber: 1,
-      uri: "",
-    },
-    {
-      id: "7",
-      title: "Faint",
-      artist: "Linkin Park",
-      artistUri: "",
-      trackNumber: 7,
-      discNumber: 1,
-      uri: "",
-    },
-    {
-      id: "8",
-      title: "Figure.09",
-      artist: "Linkin Park",
-      artistUri: "",
-      trackNumber: 8,
-      discNumber: 1,
-      uri: "",
-    },
-    {
-      id: "9",
-      title: "Breaking the Habit",
-      artist: "Linkin Park",
-      artistUri: "",
-      trackNumber: 9,
-      discNumber: 1,
-      uri: "",
-    },
-    {
-      id: "10",
-      title: "From the Inside",
-      artist: "Linkin Park",
-      artistUri: "",
-      trackNumber: 10,
-      discNumber: 1,
-      uri: "",
-    },
-    {
-      id: "11",
-      title: "Nobody's Listening",
-      artist: "Linkin Park",
-      artistUri: "",
-      trackNumber: 11,
-      discNumber: 1,
-      uri: "",
-    },
-    {
-      id: "12",
-      title: "Session",
-      artist: "Linkin Park",
-      artistUri: "",
-      trackNumber: 12,
-      discNumber: 1,
-      uri: "",
-    },
-    {
-      id: "13",
-      title: "Numb",
-      artist: "Linkin Park",
-      artistUri: "",
-      trackNumber: 13,
-      discNumber: 1,
-      uri: "",
-    },
-    {
-      id: "14",
-      title: "Don't Stay (Live in Texas)",
-      artist: "Linkin Park",
-      artistUri: "",
-      trackNumber: 1,
-      discNumber: 2,
-      uri: "",
-    },
-    {
-      id: "15",
-      title: "Somewhere I Belong (Live in Texas)",
-      artist: "Linkin Park",
-      artistUri: "",
-      trackNumber: 2,
-      discNumber: 2,
-      uri: "",
-    },
-    {
-      id: "16",
-      title: "Lying from You (Live in Texas)",
-      artist: "Linkin Park",
-      artistUri: "",
-      trackNumber: 3,
-      discNumber: 2,
-      uri: "",
-    },
-    {
-      id: "17",
-      title: "Papercut (Live in Texas)",
-      artist: "Linkin Park",
-      artistUri: "",
-      trackNumber: 4,
-      discNumber: 2,
-      uri: "",
-    },
-    {
-      id: "18",
-      title: "Points of Authority (Live in Texas)",
-      artist: "Linkin Park",
-      artistUri: "",
-      trackNumber: 5,
-      discNumber: 2,
-      uri: "",
-    },
-    {
-      id: "19",
-      title: "Runaway (Live in Texas)",
-      artist: "Linkin Park",
-      artistUri: "",
-      trackNumber: 6,
-      discNumber: 2,
-      uri: "",
-    },
-    {
-      id: "20",
-      title: "Faint (Live in Texas)",
-      artist: "Linkin Park",
-      artistUri: "",
-      trackNumber: 7,
-      discNumber: 2,
-      uri: "",
-    },
-    {
-      id: "21",
-      title: "From the Inside (Live in Texas)",
-      artist: "Linkin Park",
-      artistUri: "",
-      trackNumber: 8,
-      discNumber: 2,
-      uri: "",
-    },
-    {
-      id: "22",
-      title: "Figure.09 (Live in Texas)",
-      artist: "Linkin Park",
-      artistUri: "",
-      trackNumber: 9,
-      discNumber: 2,
-      uri: "",
-    },
-  ],
-};
+type AlbumDetailsScreenRouteProp = RouteProp<
+  RootStackParamList,
+  "AlbumDetails"
+>;
 
-const AlbumDetailsWithData = () => {
+export type AlbumDetailsWithDataProps = Partial<{
+  route: AlbumDetailsScreenRouteProp;
+}>;
+
+const AlbumDetailsWithData: FC<AlbumDetailsWithDataProps> = (props) => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const { route } = props;
+  const did = route?.params?.uri?.split("at://")[1]?.split("/")[0];
+  const rkey = route?.params?.uri?.split("at://")[1]?.split("/")[2];
+  const { data, isLoading } = useAlbumQuery(did!, rkey!);
   return (
-    <AlbumDetails
-      {...album}
-      onPressArtist={() =>
-        navigation.navigate("ArtistDetails", { uri: album.artistUri })
-      }
-      onPressTrack={() =>
-        navigation.navigate("SongDetails", { uri: album.uri })
-      }
-      onViewOnPDSls={(did: string) => Linking.openURL(`https://pdsls.dev`)}
-    />
+    <>
+      {!isLoading && data && (
+        <AlbumDetails
+          album={{
+            albumArt: data.album_art,
+            title: data.title,
+            artist: data.artist,
+            artistUri: data.artist_uri,
+            uri: data.uri,
+            year: data.year,
+            releaseDate: data.release_date,
+            label: data.label,
+            scrobbles: data.scrobbles,
+            listeners: data.listeners,
+            tracks: data.tracks.map((track: any) => ({
+              id: track.xata_id,
+              title: track.title,
+              artist: track.album_artist,
+              artistUri: track.artist_uri,
+              trackNumber: track.track_number,
+              discNumber: track.disc_number,
+              uri: track.uri,
+            })),
+          }}
+          onPressArtist={() =>
+            navigation.navigate("ArtistDetails", { uri: data.artist_uri })
+          }
+          onPressTrack={(uri) => navigation.navigate("SongDetails", { uri })}
+          onViewOnPDSls={(did: string) => Linking.openURL(`https://pdsls.dev`)}
+        />
+      )}
+    </>
   );
 };
 

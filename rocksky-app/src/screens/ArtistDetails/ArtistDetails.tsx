@@ -1,15 +1,37 @@
 import Song from "@/src/components/Song";
 import StickyPlayer from "@/src/components/StickyPlayer";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import numeral from "numeral";
 import { FC } from "react";
 import { Image, Pressable, ScrollView, Text, View } from "react-native";
+import TopAlbums from "../Profile/Overview/TopAlbums/TopAlbums";
 
 export type SongDetailsProps = {
-  uri: string;
+  artist: {
+    name: string;
+    picture: string;
+    listeners: number;
+    scrobbles: number;
+    uri: string;
+  };
+  tracks: {
+    title: string;
+    artist: string;
+    albumArtist: string;
+    cover: string;
+    uri: string;
+  }[];
+  albums: {
+    title: string;
+    artist: string;
+    cover: string;
+    uri: string;
+  }[];
   onViewOnPDSls: (did: string) => void;
 };
 
 const ArtistDetails: FC<SongDetailsProps> = (props) => {
+  const { artist, tracks, albums } = props;
   return (
     <View className="w-full h-full bg-black pt-[50px]">
       <ScrollView
@@ -19,7 +41,7 @@ const ArtistDetails: FC<SongDetailsProps> = (props) => {
         <View className="items-center justify-start">
           <Image
             source={{
-              uri: "https://i.scdn.co/image/ab6761610000e5eb5acb3cb0a8b87d3952738b97",
+              uri: artist.picture,
             }}
             style={{
               width: 200,
@@ -28,7 +50,7 @@ const ArtistDetails: FC<SongDetailsProps> = (props) => {
             }}
           />
           <Text className="font-rockford-medium text-[#fff] mt-[10px] text-center text-[20px]">
-            Fifth Harmony
+            {artist.name}
           </Text>
         </View>
 
@@ -38,7 +60,7 @@ const ArtistDetails: FC<SongDetailsProps> = (props) => {
               Listeners
             </Text>
             <Text className="font-rockford-regular text-white text-[18px]">
-              2,565
+              {numeral(artist.listeners).format("0,0")}
             </Text>
           </View>
           <View className="flex-1">
@@ -46,11 +68,11 @@ const ArtistDetails: FC<SongDetailsProps> = (props) => {
               Scrobbles
             </Text>
             <Text className="font-rockford-regular text-white text-[18px]">
-              3,256
+              {numeral(artist.scrobbles).format("0,0")}
             </Text>
           </View>
           <View>
-            <Pressable onPress={() => props.onViewOnPDSls(props.uri)}>
+            <Pressable onPress={() => props.onViewOnPDSls(props.artist.uri)}>
               <View className="h-[40px] flex-row items-center justify-center mt-[10px]">
                 <Text className="font-rockford-regular text-white text-[14px]  mr-[10px]">
                   View on PDSls
@@ -62,41 +84,55 @@ const ArtistDetails: FC<SongDetailsProps> = (props) => {
         </View>
 
         <View>
-          <Text className="font-rockford-medium text-[#fff] mt-[30px] text-[18px]">
-            Popular Songs
+          <Text className="font-rockford-regular text-white text-[14px] mt-[35px] ">
+            Popular Tracks by
           </Text>
-          <View className="mt-[15px]">
+          <Text className="font-rockford-medium text-white text-[18px] mt-[-5px] ">
+            {artist.name}
+          </Text>
+        </View>
+
+        <View className="mt-[15px]">
+          {props.tracks.map((track, index) => (
             <Song
-              rank={1}
-              title="Work from Home (feat. Ty Dolla $ign)"
-              artist="Fifth Harmony"
-              image="https://cdn.rocksky.app/covers/cbed73745681d6a170b694ee11bb527c.jpg"
+              key={index}
+              title={track.title}
+              artist={track.artist}
+              image={track.cover}
               onPress={() => {}}
               onOpenProfile={() => {}}
               onPressAlbum={() => {}}
               withoutAlbumCover={false}
               size={60}
-              className="mt-[10px]"
-              borderRadius={8}
-              albumUri=""
+              className="mb-[15px]"
               did=""
-            />
-            <Song
-              rank={2}
-              title="All In My Head (Flex) (feat. Fetty Wap)"
-              artist="Fifth Harmony"
-              image="https://cdn.rocksky.app/covers/cbed73745681d6a170b694ee11bb527c.jpg"
-              onPress={() => {}}
-              onOpenProfile={() => {}}
-              onPressAlbum={() => {}}
-              withoutAlbumCover={false}
-              size={60}
-              className="mt-[10px]"
-              borderRadius={8}
               albumUri=""
-              did=""
             />
-          </View>
+          ))}
+        </View>
+
+        <View className="mt-[25px] mb-[100px]">
+          <Text className="font-rockford-regular text-white text-[14px]">
+            Popular Albums by
+          </Text>
+          <Text className="font-rockford-medium text-white text-[18px] mt-[-5px] ">
+            {artist.name}
+          </Text>
+
+          <TopAlbums
+            albums={
+              props.albums?.map((album: any, index: number) => ({
+                artist: album.artist,
+                title: album.title,
+                image: album.cover,
+                uri: album.uri,
+              })) ?? []
+            }
+            onSeeAll={() => {}}
+            onPressAlbum={() => {}}
+            withoutSeeAll
+            withoutTitle
+          />
         </View>
       </ScrollView>
       <View className="w-full absolute bottom-0 bg-black">

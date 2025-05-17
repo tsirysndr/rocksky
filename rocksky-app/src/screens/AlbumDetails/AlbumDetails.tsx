@@ -2,38 +2,44 @@ import Song from "@/src/components/Song";
 import StickyPlayer from "@/src/components/StickyPlayer";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import dayjs from "dayjs";
+import numeral from "numeral";
 import { FC, useEffect, useState } from "react";
 import { Image, Pressable, ScrollView, Text, View } from "react-native";
 
 export type AlbumDetailsProps = {
-  albumArt: string;
-  title: string;
-  artist: string;
-  artistUri: string;
-  uri: string;
-  year: number;
-  releaseDate: string;
-  label: string;
-  tracks: {
-    id: string;
+  album: {
+    albumArt: string;
     title: string;
     artist: string;
     artistUri: string;
-    trackNumber: number;
-    discNumber: number;
     uri: string;
-  }[];
+    year: number;
+    releaseDate: string;
+    label: string;
+    scrobbles: number;
+    listeners: number;
+    tracks: {
+      id: string;
+      title: string;
+      artist: string;
+      artistUri: string;
+      trackNumber: number;
+      discNumber: number;
+      uri: string;
+    }[];
+  };
   onPressArtist: (artistDid: string) => void;
   onPressTrack: (trackDid: string) => void;
   onViewOnPDSls: (did: string) => void;
 };
 
 const AlbumDetails: FC<AlbumDetailsProps> = (props) => {
+  const { album } = props;
   const [disc, setDisc] = useState(1);
 
   useEffect(() => {
-    setDisc(Math.max(...props.tracks.map((track) => track.discNumber)));
-  }, [props.tracks]);
+    setDisc(Math.max(...album.tracks.map((track) => track.discNumber)));
+  }, [album.tracks]);
 
   return (
     <View className="h-full w-full bg-black pt-[50px]">
@@ -44,7 +50,7 @@ const AlbumDetails: FC<AlbumDetailsProps> = (props) => {
         <View className="items-center justify-start">
           <Image
             source={{
-              uri: "https://cdn.rocksky.app/covers/da9e82337eb069388e05b93f89c9c41c.jpg",
+              uri: album.albumArt,
             }}
             style={{
               width: 200,
@@ -55,15 +61,15 @@ const AlbumDetails: FC<AlbumDetailsProps> = (props) => {
             className="font-rockford-medium text-[#fff] mt-[10px] text-center"
             style={{ fontSize: 18 }}
           >
-            {props.title}
+            {album.title}
           </Text>
-          <Pressable onPress={() => props.onPressArtist(props.artistUri)}>
+          <Pressable onPress={() => props.onPressArtist(album.artistUri)}>
             <Text className="font-rockford-medium text-[#A0A0A0] text-[14px] mt-[5px] text-center">
-              {props.artist}
+              {album.artist}
             </Text>
           </Pressable>
           <Text className="font-rockford-regular text-[#A0A0A0] text-[12px] mt-[5px] text-center">
-            {props.year}
+            {album.year}
           </Text>
         </View>
         <View>
@@ -73,7 +79,7 @@ const AlbumDetails: FC<AlbumDetailsProps> = (props) => {
                 Listeners
               </Text>
               <Text className="font-rockford-regular text-white text-[18px]">
-                2,565
+                {numeral(album.listeners).format("0,0")}
               </Text>
             </View>
             <View className="flex-1">
@@ -81,11 +87,11 @@ const AlbumDetails: FC<AlbumDetailsProps> = (props) => {
                 Scrobbles
               </Text>
               <Text className="font-rockford-regular text-white text-[18px]">
-                3,256
+                {numeral(album.scrobbles).format("0,0")}
               </Text>
             </View>
             <View>
-              <Pressable onPress={() => props.onViewOnPDSls(props.uri)}>
+              <Pressable onPress={() => props.onViewOnPDSls(album.uri)}>
                 <View className="h-[40px] flex-row items-center justify-center mt-[10px]">
                   <Text className="font-rockford-regular text-white text-[14px]  mr-[10px]">
                     View on PDSls
@@ -99,7 +105,7 @@ const AlbumDetails: FC<AlbumDetailsProps> = (props) => {
 
         {disc < 2 && (
           <View className="mt-[20px]">
-            {props.tracks.map((track) => (
+            {album.tracks.map((track) => (
               <Song
                 key={track.id}
                 rank={track.trackNumber}
@@ -107,9 +113,9 @@ const AlbumDetails: FC<AlbumDetailsProps> = (props) => {
                 artist={track.artist}
                 size={60}
                 className="mt-[10px]"
-                onPress={() => props.onPressTrack(track.id)}
+                onPress={() => props.onPressTrack(track.uri)}
                 onPressAlbum={() => {}}
-                did={track.id}
+                did={track.uri}
                 withoutAlbumCover
                 albumUri=""
               />
@@ -123,7 +129,7 @@ const AlbumDetails: FC<AlbumDetailsProps> = (props) => {
                 <Text className="font-rockford-medium text-white text-[16px] mt-[5px]">
                   Volume {index + 1}
                 </Text>
-                {props.tracks
+                {album.tracks
                   .filter((track) => track.discNumber === index + 1)
                   .map((track) => (
                     <Song
@@ -142,14 +148,16 @@ const AlbumDetails: FC<AlbumDetailsProps> = (props) => {
                   ))}
               </View>
             ))}
-            <Text className="font-rockford-regular text-[#A0A0A0] text-[12px] mt-[20px] ">
-              {dayjs(props.releaseDate).format("MMMM D, YYYY")}
-            </Text>
-            <Text className="font-rockford-regular text-[#A0A0A0] text-[12px]">
-              {props.label}
-            </Text>
           </View>
         )}
+        <View>
+          <Text className="font-rockford-regular text-[#A0A0A0] text-[12px] mt-[20px] ">
+            {dayjs(album.releaseDate).format("MMMM D, YYYY")}
+          </Text>
+          <Text className="font-rockford-regular text-[#A0A0A0] text-[12px]">
+            {album.label}
+          </Text>
+        </View>
         <View className="h-[80px]" />
       </ScrollView>
 

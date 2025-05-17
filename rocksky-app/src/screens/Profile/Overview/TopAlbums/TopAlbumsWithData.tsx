@@ -14,10 +14,11 @@ const TopAlbumsWithData = () => {
   return (
     <TopAlbums
       albums={
-        data?.map((album: any, index: number) => ({
+        data?.map((album: any) => ({
           artist: album.artist,
           title: album.title,
           image: album.album_art,
+          uri: album.uri,
         })) ?? []
       }
       onSeeAll={() => {

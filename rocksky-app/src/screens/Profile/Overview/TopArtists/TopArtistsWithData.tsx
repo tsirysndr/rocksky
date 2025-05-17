@@ -18,6 +18,7 @@ const TopArtistsWithData = () => {
           rank: index + 1,
           name: artist.name,
           image: artist.picture,
+          uri: artist.uri,
         })) ?? []
       }
       onSeeAll={() => {

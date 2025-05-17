@@ -7,6 +7,7 @@ export type NowPlayings = {
   artist: string;
   album_art: string;
   artist_uri?: string;
+  album_uri?: string;
   uri: string;
   avatar: string;
   handle: string;

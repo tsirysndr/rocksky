@@ -333,6 +333,7 @@ app.get("/:did/app.rocksky.album/:rkey", async (c) => {
     id: album.album_id.xata_id,
     listeners: _.get(listeners.summaries, "0.total", 1),
     scrobbles: _.get(scrobbles.summaries, "0.total", 1),
+    label: _.get(tracks, "0.track_id.label", ""),
     tracks: dedupeTracksKeepLyrics(tracks.map((track) => track.track_id)).sort(
       (a, b) => a.track_number - b.track_number
     ),
