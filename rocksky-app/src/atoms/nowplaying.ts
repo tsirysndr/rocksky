@@ -6,6 +6,9 @@ export const nowPlayingAtom = atom<{
   cover: string;
   duration: number;
   progress: number;
+  isPlaying: boolean;
+  liked: boolean;
+  uri: string;
 } | null>(null);
 
 export const progressAtom = atom(0);

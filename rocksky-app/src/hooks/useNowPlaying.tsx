@@ -39,7 +39,7 @@ export const useNowPlaying = (did: string) => {
     queryKey: ["now-playing", did],
     queryFn: () =>
       fetch(`${API_URL}/now-playing?did=${did}`).then((res) => res.json()),
-    refetchInterval: 3000,
+    refetchInterval: 15000,
     enabled: !!did,
     staleTime: 0,
   });
@@ -49,7 +49,7 @@ export const useNowPlaying = (did: string) => {
       fetch(`${API_URL}/spotify/currently-playing?did=${did}`).then((res) =>
         res.json()
       ),
-    refetchInterval: 3000,
+    refetchInterval: 15000,
     enabled: !!did,
     staleTime: 0,
   });
@@ -67,6 +67,9 @@ export const useNowPlaying = (did: string) => {
         cover: nowPlayingResult.data.album_art,
         duration: nowPlayingResult.data.length,
         progress: nowPlayingResult.data.elapsed,
+        isPlaying: nowPlayingResult.data.is_playing,
+        liked: nowPlayingResult.data.liked,
+        uri: nowPlayingResult.data.songUri,
       });
       return;
     }
@@ -92,6 +95,9 @@ export const useNowPlaying = (did: string) => {
       cover: _.get(nowPlayingSpotifyResult.data, "item.album.images.0.url"),
       duration: nowPlayingSpotifyResult.data.item.duration_ms,
       progress: nowPlayingSpotifyResult.data.progress_ms,
+      isPlaying: nowPlayingSpotifyResult.data.is_playing,
+      liked: nowPlayingSpotifyResult.data.liked,
+      uri: nowPlayingSpotifyResult.data.songUri,
     });
   }, [
     nowPlayingResult.data,

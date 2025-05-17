@@ -1,4 +1,5 @@
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { FC } from "react";
 import { Image, Pressable, Text, View } from "react-native";
 import Progressbar from "../Progressbar";
@@ -6,18 +7,23 @@ import Progressbar from "../Progressbar";
 export type StickyPlayerProps = {
   onPlay: () => void;
   onPause: () => void;
+  onLike: (songUri: string) => void;
+  onDislike: (songUri: string) => void;
   isPlaying: boolean;
+  liked: boolean;
   progress?: number;
   song?: {
     title: string;
     artist: string;
     cover: string;
+    uri: string;
   };
   className?: string;
 };
 
 const StickyPlayer: FC<StickyPlayerProps> = (props) => {
-  const { onPlay, onPause, isPlaying, song, progress, className } = props;
+  const { onPlay, onPause, isPlaying, song, progress, className, liked } =
+    props;
   return (
     <>
       {song && (
@@ -47,6 +53,24 @@ const StickyPlayer: FC<StickyPlayerProps> = (props) => {
                 {song.artist}
               </Text>
             </View>
+            <Pressable
+              onPress={() => {
+                if (liked) {
+                  props.onDislike(song.uri);
+                  return;
+                }
+                props.onLike(song.uri);
+              }}
+            >
+              <View className="w-[36px] items-center">
+                {!liked && (
+                  <Ionicons name="heart-outline" size={23} color="white" />
+                )}
+                {liked && (
+                  <Ionicons name="heart-sharp" size={23} color="#ff2876" />
+                )}
+              </View>
+            </Pressable>
             <Pressable onPress={isPlaying ? onPause : onPlay}>
               <View className="w-[40px] items-center">
                 {isPlaying && (

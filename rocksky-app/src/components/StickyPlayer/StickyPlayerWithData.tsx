@@ -8,7 +8,8 @@ const StickyPlayerWithData = () => {
     <>
       {nowPlaying && !isLoading && (
         <StickyPlayer
-          isPlaying={true}
+          isPlaying={nowPlaying.isPlaying}
+          liked={nowPlaying.liked}
           onPlay={() => {}}
           onPause={() => {}}
           progress={Math.floor((progress / nowPlaying.duration) * 100)}
@@ -16,7 +17,10 @@ const StickyPlayerWithData = () => {
             title: nowPlaying.title,
             artist: nowPlaying.artist,
             cover: nowPlaying?.cover,
+            uri: nowPlaying.uri,
           }}
+          onLike={() => {}}
+          onDislike={() => {}}
         />
       )}
     </>

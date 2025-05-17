@@ -22,6 +22,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Basic: Story = {
   args: {
+    liked: false,
     isPlaying: true,
     onPlay: () => {},
     onPause: () => {},
@@ -30,6 +31,9 @@ export const Basic: Story = {
       title: "Tyler Herro",
       artist: "Jack Harlow",
       cover: "https://i.scdn.co/image/ab67616d0000b273aeb14ead136118a987246b63",
+      uri: "",
     },
+    onDislike: () => {},
+    onLike: () => {},
   },
 };
