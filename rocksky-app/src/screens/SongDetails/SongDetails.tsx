@@ -13,6 +13,7 @@ export type SongDetailsProps = {
     albumArtist: string;
     cover: string;
     uri: string;
+    artistUri: string;
     listeners: number;
     scrobbles: number;
   };
@@ -59,7 +60,7 @@ const SongDetails: FC<SongDetailsProps> = (props) => {
           >
             {props.song.title}
           </Text>
-          <Pressable onPress={() => {}}>
+          <Pressable onPress={() => props.onPressArtist(props.song.artistUri)}>
             <Text className="font-rockford-medium text-[#A0A0A0] text-[14px] mt-[5px] text-center">
               {props.song.artist}
             </Text>

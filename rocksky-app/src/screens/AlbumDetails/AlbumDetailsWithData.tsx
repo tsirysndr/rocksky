@@ -53,7 +53,9 @@ const AlbumDetailsWithData: FC<AlbumDetailsWithDataProps> = (props) => {
             navigation.navigate("ArtistDetails", { uri: data.artist_uri })
           }
           onPressTrack={(uri) => navigation.navigate("SongDetails", { uri })}
-          onViewOnPDSls={(did: string) => Linking.openURL(`https://pdsls.dev`)}
+          onViewOnPDSls={(uri: string) =>
+            Linking.openURL(`https://pdsls.dev/${uri.replace("at://", "at/")}`)
+          }
         />
       )}
     </>

@@ -8,6 +8,7 @@ import { RootStackParamList } from "@/src/Navigation";
 import { RouteProp, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { FC } from "react";
+import { Linking } from "react-native";
 import SongDetails from "./SongDetails";
 
 type SongDetailsScreenRouteProp = RouteProp<RootStackParamList, "SongDetails">;
@@ -39,6 +40,7 @@ const SongDetailsWithData: FC<SongDetailsWithDataProps> = (props) => {
             title: song.title,
             artist: song.artist,
             albumArtist: song.albumArtist,
+            artistUri: song.artistUri,
             cover: song.cover,
             uri: song.uri,
             listeners: song.listeners,
@@ -63,7 +65,9 @@ const SongDetailsWithData: FC<SongDetailsWithDataProps> = (props) => {
               uri: album.uri,
             })) ?? []
           }
-          onViewOnPDSls={(did) => {}}
+          onViewOnPDSls={(uri) =>
+            Linking.openURL(`https://pdsls.dev/${uri.replace("at://", "at/")}`)
+          }
           onPressTrack={(uri) => {
             if (route?.params?.uri === uri) {
               return;

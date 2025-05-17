@@ -93,7 +93,7 @@ const ArtistDetails: FC<SongDetailsProps> = (props) => {
         </View>
 
         <View className="mt-[15px]">
-          {props.tracks.map((track, index) => (
+          {tracks.map((track, index) => (
             <Song
               key={index}
               title={track.title}
@@ -121,7 +121,7 @@ const ArtistDetails: FC<SongDetailsProps> = (props) => {
 
           <TopAlbums
             albums={
-              props.albums?.map((album: any, index: number) => ({
+              albums?.map((album: any) => ({
                 artist: album.artist,
                 title: album.title,
                 image: album.cover,

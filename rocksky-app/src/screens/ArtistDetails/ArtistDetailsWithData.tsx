@@ -6,6 +6,7 @@ import {
 import { RootStackParamList } from "@/src/Navigation";
 import { RouteProp } from "@react-navigation/native";
 import { FC } from "react";
+import { Linking } from "react-native";
 import ArtistDetails from "./ArtistDetails";
 
 type ArtistDetailsScreenRouteProp = RouteProp<
@@ -56,7 +57,9 @@ const ArtistDetailsWithData: FC<ArtistDetailsWithDataProps> = (props) => {
           cover: track.album_art,
         })) ?? []
       }
-      onViewOnPDSls={(did) => {}}
+      onViewOnPDSls={(uri) =>
+        Linking.openURL(`https://pdsls.dev/${uri.replace("at://", "at/")}`)
+      }
     />
   );
 };
