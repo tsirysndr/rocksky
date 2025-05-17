@@ -4,7 +4,8 @@ import {
   useArtistTracksQuery,
 } from "@/src/hooks/useLibrary";
 import { RootStackParamList } from "@/src/Navigation";
-import { RouteProp } from "@react-navigation/native";
+import { RouteProp, useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { FC } from "react";
 import { Linking } from "react-native";
 import ArtistDetails from "./ArtistDetails";
@@ -19,6 +20,8 @@ export type ArtistDetailsWithDataProps = Partial<{
 }>;
 
 const ArtistDetailsWithData: FC<ArtistDetailsWithDataProps> = (props) => {
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { route } = props;
   const did = route?.params?.uri?.split("at://")[1]?.split("/")[0];
   const rkey = route?.params?.uri?.split("at://")[1]?.split("/")[2];
@@ -60,6 +63,8 @@ const ArtistDetailsWithData: FC<ArtistDetailsWithDataProps> = (props) => {
       onViewOnPDSls={(uri) =>
         Linking.openURL(`https://pdsls.dev/${uri.replace("at://", "at/")}`)
       }
+      onPressAlbum={(uri) => navigation.navigate("AlbumDetails", { uri })}
+      onPressTrack={(uri) => navigation.navigate("SongDetails", { uri })}
     />
   );
 };

@@ -20,6 +20,7 @@ export type SongDetailsProps = {
     albumArtist: string;
     cover: string;
     uri: string;
+    albumUri: string;
   }[];
   albums: {
     title: string;
@@ -28,10 +29,12 @@ export type SongDetailsProps = {
     uri: string;
   }[];
   onViewOnPDSls: (did: string) => void;
+  onPressAlbum: (uri: string) => void;
+  onPressTrack: (uri: string) => void;
 };
 
 const ArtistDetails: FC<SongDetailsProps> = (props) => {
-  const { artist, tracks, albums } = props;
+  const { artist, tracks, albums, onPressTrack, onPressAlbum } = props;
   return (
     <View className="w-full h-full bg-black pt-[50px]">
       <ScrollView
@@ -99,9 +102,9 @@ const ArtistDetails: FC<SongDetailsProps> = (props) => {
               title={track.title}
               artist={track.artist}
               image={track.cover}
-              onPress={() => {}}
+              onPress={() => onPressTrack(track.uri)}
               onOpenProfile={() => {}}
-              onPressAlbum={() => {}}
+              onPressAlbum={() => onPressAlbum(track.albumUri)}
               withoutAlbumCover={false}
               size={60}
               className="mb-[15px]"
@@ -129,7 +132,7 @@ const ArtistDetails: FC<SongDetailsProps> = (props) => {
               })) ?? []
             }
             onSeeAll={() => {}}
-            onPressAlbum={() => {}}
+            onPressAlbum={(uri) => onPressAlbum(uri)}
             withoutSeeAll
             withoutTitle
           />
