@@ -9,17 +9,27 @@ export type AlbumProps = {
   title: string;
   image: string;
   did: string;
+  rank?: number;
   className?: string;
   onPress: (did: string) => void;
 };
 
 const Album: FC<AlbumProps> = (props) => {
-  const { row, size, artist, title, image, className, did, onPress } = props;
+  const { row, size, artist, title, image, className, did, rank, onPress } =
+    props;
   const imageSize = size ? size : 120;
   const direction = row ? "flex-row" : "flex-col";
   return (
     <Pressable onPress={() => onPress(did)}>
       <View className={`flex ${direction} justify-center ${className}`}>
+        {rank && (
+          <Text
+            className="font-rockford-medium text-[#ffffff] text-[14px] mr-[10px]"
+            style={{ width: 20 }}
+          >
+            {rank}
+          </Text>
+        )}
         <Image
           source={{
             uri: image,

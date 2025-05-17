@@ -1,15 +1,48 @@
+import Song from "@/src/components/Song";
 import numeral from "numeral";
-import { Text } from "react-native";
+import { FC } from "react";
+import { Text, View } from "react-native";
 
-const Tracks = () => {
+export type TracksProps = {
+  tracks: {
+    title: string;
+    artist: string;
+    image: string;
+    uri: string;
+    albumUri: string;
+  }[];
+  total: number;
+  onPressTrack: (did: string) => void;
+  onPressAlbum: (albumDid: string) => void;
+};
+
+const Tracks: FC<TracksProps> = (props) => {
+  const { tracks, total, onPressTrack, onPressAlbum } = props;
   return (
     <>
       <Text className="font-rockford-regular text-[#A0A0A0] text-[14px] mt-[10px] ">
         TRACKS SCROBBLED
       </Text>
       <Text className="font-rockford-regular text-white text-[18px]">
-        {numeral(2565).format("0,0")}
+        {numeral(total).format("0,0")}
       </Text>
+      <View className="mb-[100px] mt-[10px]">
+        {tracks.map((song, index) => (
+          <Song
+            key={index}
+            rank={index + 1}
+            image={song.image}
+            title={song.title}
+            artist={song.artist}
+            size={60}
+            className="mt-[10px]"
+            onPress={() => onPressTrack(song.uri)}
+            onPressAlbum={() => onPressAlbum(song.albumUri)}
+            did=""
+            albumUri={song.albumUri}
+          />
+        ))}
+      </View>
     </>
   );
 };

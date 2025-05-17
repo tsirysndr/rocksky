@@ -25,6 +25,6 @@ export const useRecentTracksByDidQuery = (did: string, offset = 0, size = 10) =>
     queryKey: ["profile", "recent-tracks", did, offset, size],
     queryFn: () => getRecentTracksByDid(did, offset, size),
     enabled: !!did,
-    refetchInterval: 5000,
+    refetchInterval: 6000,
     refetchOnWindowFocus: true,
   });

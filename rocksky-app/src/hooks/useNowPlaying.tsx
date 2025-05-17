@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAtom } from "jotai";
 import _ from "lodash";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { nowPlayingAtom, progressAtom } from "../atoms/nowplaying";
 import { API_URL } from "../consts";
 
@@ -32,8 +32,11 @@ export const useNowPlayingsQuery = () =>
   });
 
 export const useNowPlaying = (did: string) => {
+  const progressInterval = useRef<number | null>(null);
   const [progress, setProgress] = useAtom(progressAtom);
   const [nowPlaying, setNowPlaying] = useAtom(nowPlayingAtom);
+  const nowPlayingRef = useRef(nowPlaying);
+  const progressRef = useRef(progress);
 
   const nowPlayingResult = useQuery({
     queryKey: ["now-playing", did],
@@ -71,6 +74,8 @@ export const useNowPlaying = (did: string) => {
         liked: nowPlayingResult.data.liked,
         uri: nowPlayingResult.data.songUri,
       });
+      setProgress(nowPlayingResult.data.elapsed);
+      progressRef.current = nowPlayingResult.data.elapsed;
       return;
     }
 
@@ -99,6 +104,8 @@ export const useNowPlaying = (did: string) => {
       liked: nowPlayingSpotifyResult.data.liked,
       uri: nowPlayingSpotifyResult.data.songUri,
     });
+    setProgress(nowPlayingSpotifyResult.data.progress_ms);
+    progressRef.current = nowPlayingSpotifyResult.data.progress_ms;
   }, [
     nowPlayingResult.data,
     nowPlayingSpotifyResult.data,
@@ -106,26 +113,51 @@ export const useNowPlaying = (did: string) => {
     nowPlayingSpotifyResult.isLoading,
   ]);
 
-  // Sync progress with nowPlaying.progress from API
+  useEffect(() => {
+    if (progressInterval.current) {
+      clearInterval(progressInterval.current);
+    }
+
+    // Reset progress when song changes
+    progressRef.current = nowPlaying?.progress ?? 0;
+    setProgress(nowPlaying?.progress ?? 0);
+
+    progressInterval.current = setInterval(() => {
+      if (!nowPlayingRef.current) {
+        setProgress(0);
+        progressRef.current = 0;
+        return;
+      }
+
+      if (progressRef.current >= nowPlayingRef.current.duration) {
+        setProgress(nowPlayingRef.current.duration);
+        progressRef.current = nowPlayingRef.current.duration;
+        return;
+      }
+
+      if (nowPlayingRef.current.isPlaying) {
+        setProgress((prev) => {
+          const next = prev + 100;
+          progressRef.current = next;
+          return next;
+        });
+        return;
+      }
+
+      setProgress(progressRef.current);
+    }, 100);
+
+    return () => {
+      if (progressInterval.current) {
+        clearInterval(progressInterval.current);
+      }
+    };
+  }, [nowPlaying?.uri]);
+
   useEffect(() => {
     if (nowPlaying) {
-      setProgress(nowPlaying.progress);
+      nowPlayingRef.current = nowPlaying;
     }
-  }, [nowPlaying]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (nowPlaying) {
-        setProgress((prev) => {
-          if (prev >= nowPlaying.duration) {
-            return nowPlaying.duration;
-          }
-          return prev + 500;
-        });
-      }
-    }, 500);
-
-    return () => clearInterval(interval);
   }, [nowPlaying]);
 
   return {

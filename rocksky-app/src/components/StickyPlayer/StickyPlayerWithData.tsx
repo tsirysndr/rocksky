@@ -1,9 +1,8 @@
-import { useNowPlaying } from "@/src/hooks/useNowPlaying";
+import { useNowPlayingContext } from "@/src/providers/NowPlayingProvider";
 import StickyPlayer from "./StickyPlayer";
 
 const StickyPlayerWithData = () => {
-  const did = "did:plc:7vdlgi2bflelz7mmuxoqjfcr";
-  const { nowPlaying, isLoading, progress } = useNowPlaying(did);
+  const { nowPlaying, isLoading, progress } = useNowPlayingContext();
   return (
     <>
       {nowPlaying && !isLoading && (

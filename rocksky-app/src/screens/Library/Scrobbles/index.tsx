@@ -1,3 +1,3 @@
-import Scrobbles from "./Scrobbles";
+import Scrobbles from "./ScrobblesWithData";
 
 export default Scrobbles;

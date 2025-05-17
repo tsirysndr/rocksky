@@ -22,10 +22,6 @@ const TopArtistsWithData = () => {
         })) ?? []
       }
       onSeeAll={() => {
-        if (!handle) {
-          navigation.navigate("Profile");
-          return;
-        }
         navigation.navigate("UserLibrary", { handle });
       }}
       onPressArtist={(uri) => navigation.navigate("ArtistDetails", { uri })}

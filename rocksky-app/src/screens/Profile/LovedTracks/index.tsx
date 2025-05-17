@@ -1,3 +1,3 @@
-import LovedTracks from "./LovedTracks";
+import LovedTracks from "./LovedTracksWithData";
 
 export default LovedTracks;

@@ -7,6 +7,7 @@ import { useSetAtom } from "jotai";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { handleAtom } from "./atoms/handle";
 import { RootStack } from "./Navigation";
+import { NowPlayingProvider } from "./providers/NowPlayingProvider";
 
 const queryClient = new QueryClient();
 
@@ -34,17 +35,19 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
-        <StatusBar style="auto" />
-        <NavigationContainer
-          onStateChange={(state) => {
-            const currentTab = getActiveRouteName(state);
-            if (currentTab === "Profile") {
-              setHandle(undefined);
-            }
-          }}
-        >
-          <RootStack />
-        </NavigationContainer>
+        <NowPlayingProvider>
+          <StatusBar style="auto" />
+          <NavigationContainer
+            onStateChange={(state) => {
+              const currentTab = getActiveRouteName(state);
+              if (currentTab === "Profile") {
+                setHandle(undefined);
+              }
+            }}
+          >
+            <RootStack />
+          </NavigationContainer>
+        </NowPlayingProvider>
       </SafeAreaProvider>
     </QueryClientProvider>
   );

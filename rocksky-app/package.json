@@ -54,6 +54,7 @@
     "numeral": "^2.0.6",
     "ramda": "^0.30.1",
     "react": "19.0.0",
+    "react-content-loader": "^7.0.2",
     "react-dom": "19.0.0",
     "react-i18next": "^15.5.1",
     "react-native": "0.79.2",
