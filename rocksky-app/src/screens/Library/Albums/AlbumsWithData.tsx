@@ -60,8 +60,10 @@ const AlbumsWithData = () => {
       isFetchingMore={isFetchingNextPage}
       onRefresh={async () => {
         setRefreshing(true);
+        setTimeout(() => {
+          setRefreshing(false);
+        }, 1000);
         await refetch();
-        setRefreshing(false);
       }}
       refreshing={refreshing}
       className={`${nowPlayingLoading && nowPlaying ? "mb-[200px]" : "mb-[150px]"}`}
