@@ -1,5 +1,6 @@
 import { didAtom } from "@/src/atoms/did";
 import { useLovedTracksQuery } from "@/src/hooks/useLibrary";
+import { useProfileStatsByDidQuery } from "@/src/hooks/useProfile";
 import { RootStackParamList } from "@/src/Navigation";
 import { NavigationProp, useNavigation } from "@react-navigation/native";
 import { useAtomValue } from "jotai";
@@ -8,6 +9,7 @@ import LovedTracks from "./LovedTracks";
 const LovedTracksWithData = () => {
   const did = useAtomValue(didAtom);
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const { data } = useProfileStatsByDidQuery(did!);
   const lovedTracks = useLovedTracksQuery(did!, 0, 20);
   return (
     <LovedTracks
@@ -20,6 +22,7 @@ const LovedTracksWithData = () => {
           albumUri: track.album_uri,
         })) ?? []
       }
+      total={data?.lovedTracks ?? 0}
       onSeeAll={() => {}}
       onPressTrack={(uri) => navigation.navigate("SongDetails", { uri })}
       onPressAlbum={(uri) => navigation.navigate("AlbumDetails", { uri })}

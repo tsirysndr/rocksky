@@ -22,7 +22,7 @@ const TopAlbumsWithData = () => {
         })) ?? []
       }
       onSeeAll={() => {
-        navigation.navigate("UserLibrary", { handle });
+        navigation.navigate("UserLibrary", { handle, tab: 2 });
       }}
       onPressAlbum={(uri) => navigation.navigate("AlbumDetails", { uri })}
     />

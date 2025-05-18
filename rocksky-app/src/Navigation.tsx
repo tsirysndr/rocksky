@@ -182,6 +182,7 @@ export type RootStackParamList = {
   Library: undefined;
   UserLibrary: {
     handle?: string;
+    tab: number;
   };
   Profile: undefined;
   UserProfile: {

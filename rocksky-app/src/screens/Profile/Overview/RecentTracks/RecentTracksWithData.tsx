@@ -25,7 +25,7 @@ const RecentTracksWithData = () => {
         })) ?? []
       }
       onSeeAll={() => {
-        navigation.navigate("UserLibrary", { handle });
+        navigation.navigate("UserLibrary", { handle, tab: 0 });
       }}
       onPressTrack={(uri) => navigation.navigate("SongDetails", { uri })}
       onPressAlbum={(uri) => navigation.navigate("AlbumDetails", { uri })}

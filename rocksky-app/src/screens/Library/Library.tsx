@@ -36,6 +36,12 @@ const Library: FC<LibraryProps> = (props) => {
     setHandle(route?.params?.handle);
   }, [route?.params?.handle]);
 
+  useEffect(() => {
+    if (route?.params?.tab) {
+      setActiveChip(route.params.tab);
+    }
+  }, [route?.params?.tab]);
+
   return (
     <View className="w-full h-full bg-black">
       <ScrollView
@@ -51,6 +57,7 @@ const Library: FC<LibraryProps> = (props) => {
           <Chips
             items={chips}
             onChange={(key) => setActiveChip(key as number)}
+            active={activeChip}
           />
         </View>
         {activeChip === 0 && <Scrobbles />}

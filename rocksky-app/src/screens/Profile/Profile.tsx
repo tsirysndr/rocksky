@@ -35,7 +35,7 @@ const Profile: FC<ProfileProps> = (props) => {
   ];
   const onChangeChip = (key: number) => {
     if (key === 1) {
-      navigation.navigate("UserLibrary", { handle });
+      navigation.navigate("UserLibrary", { handle, tab: 0 });
       return;
     }
     setIndex(key);

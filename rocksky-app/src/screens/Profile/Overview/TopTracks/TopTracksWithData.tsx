@@ -29,7 +29,7 @@ const TopTracksWithData: FC<TopTracksWithDataProps> = (props) => {
         })) ?? []
       }
       onSeeAll={() => {
-        navigation.navigate("UserLibrary", { handle });
+        navigation.navigate("UserLibrary", { handle, tab: 3 });
       }}
       onPressTrack={(uri) => navigation.navigate("SongDetails", { uri })}
       onPressAlbum={(uri) => navigation.navigate("AlbumDetails", { uri })}
