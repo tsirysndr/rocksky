@@ -1,5 +1,6 @@
 import { useAlbumQuery } from "@/src/hooks/useLibrary";
 import { RootStackParamList } from "@/src/Navigation";
+import { useNowPlayingContext } from "@/src/providers/NowPlayingProvider";
 import {
   NavigationProp,
   RouteProp,
@@ -24,6 +25,7 @@ const AlbumDetailsWithData: FC<AlbumDetailsWithDataProps> = (props) => {
   const did = route?.params?.uri?.split("at://")[1]?.split("/")[0];
   const rkey = route?.params?.uri?.split("at://")[1]?.split("/")[2];
   const { data, isLoading } = useAlbumQuery(did!, rkey!);
+  const { nowPlaying, isLoading: nowPlayingLoading } = useNowPlayingContext();
   return (
     <>
       {!isLoading && data && (
@@ -56,6 +58,7 @@ const AlbumDetailsWithData: FC<AlbumDetailsWithDataProps> = (props) => {
           onViewOnPDSls={(uri: string) =>
             Linking.openURL(`https://pdsls.dev/${uri.replace("at://", "at/")}`)
           }
+          className={nowPlaying && !nowPlayingLoading ? "mb-[60px]" : ""}
         />
       )}
     </>

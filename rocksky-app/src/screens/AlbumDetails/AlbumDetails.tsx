@@ -31,10 +31,11 @@ export type AlbumDetailsProps = {
   onPressArtist: (artistDid: string) => void;
   onPressTrack: (trackDid: string) => void;
   onViewOnPDSls: (did: string) => void;
+  className?: string;
 };
 
 const AlbumDetails: FC<AlbumDetailsProps> = (props) => {
-  const { album } = props;
+  const { album, className } = props;
   const [disc, setDisc] = useState(1);
 
   useEffect(() => {
@@ -44,7 +45,7 @@ const AlbumDetails: FC<AlbumDetailsProps> = (props) => {
   return (
     <View className="h-full w-full bg-black pt-[50px]">
       <ScrollView
-        className="mb-[60px] pl-[15px] pr-[15px]"
+        className={`pl-[15px] pr-[15px] ${className}`}
         showsVerticalScrollIndicator={false}
       >
         <View className="items-center justify-start">
