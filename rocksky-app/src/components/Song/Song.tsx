@@ -1,6 +1,7 @@
 import { Image } from "expo-image";
 import { FC } from "react";
 import { Pressable, Text, View } from "react-native";
+import Track from "../Icons/Track";
 
 export type SongProps = {
   size?: number;
@@ -52,12 +53,15 @@ const Song: FC<SongProps> = (props) => {
       {!withoutAlbumCover && (
         <Pressable onPress={() => onPressAlbum(albumUri)}>
           <View className="mr-[15px]">
-            <Image
-              source={{
-                uri: image,
-              }}
-              style={{ width: imageSize, height: imageSize, borderRadius }}
-            />
+            {image && (
+              <Image
+                source={{
+                  uri: image,
+                }}
+                style={{ width: imageSize, height: imageSize, borderRadius }}
+              />
+            )}
+            {!image && <Track color="#A0A0A0" />}
           </View>
         </Pressable>
       )}

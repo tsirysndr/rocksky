@@ -1,3 +1,4 @@
+import ArtistIcon from "@/src/components/Icons/Artist";
 import Song from "@/src/components/Song";
 import StickyPlayer from "@/src/components/StickyPlayer";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
@@ -45,19 +46,47 @@ const ArtistDetails: FC<SongDetailsProps> = (props) => {
         showsVerticalScrollIndicator={false}
       >
         <View className="items-center justify-start">
-          <Image
-            source={{
-              uri: artist.picture,
-            }}
-            style={{
-              width: 200,
-              height: 200,
-              borderRadius: 100,
-            }}
-          />
-          <Text className="font-rockford-medium text-[#fff] mt-[10px] text-center text-[20px]">
-            {artist.name}
-          </Text>
+          {artist.picture && (
+            <>
+              <Image
+                source={{
+                  uri: artist.picture,
+                }}
+                style={{
+                  width: 200,
+                  height: 200,
+                  borderRadius: 100,
+                }}
+              />
+              <Text className="font-rockford-medium text-[#fff] mt-[10px] text-center text-[20px]">
+                {artist.name}
+              </Text>
+            </>
+          )}
+          {!artist.picture && (
+            <>
+              <View
+                style={{
+                  width: 200,
+                  height: 200,
+                  borderRadius: 100,
+                  backgroundColor: "#a0a0a02b",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <ArtistIcon
+                  size={24}
+                  width={90}
+                  height={90}
+                  color="#a0a0a0d8"
+                />
+              </View>
+              <Text className="font-rockford-medium text-[#fff] mt-[10px] text-center text-[20px]">
+                {artist.name}
+              </Text>
+            </>
+          )}
         </View>
 
         <View className="flex-row">
