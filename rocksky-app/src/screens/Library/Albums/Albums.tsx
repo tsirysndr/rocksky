@@ -83,7 +83,7 @@ const Albums: FC<AlbumsProps> = (props) => {
         size={60}
         rank={item.rank}
         onPress={() => onPressAlbum(item.uri)}
-        className="mb-[15px]"
+        className="mt-[15px]"
       />
     ),
     [onPressAlbum]
