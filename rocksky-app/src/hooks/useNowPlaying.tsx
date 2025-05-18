@@ -21,11 +21,11 @@ export type NowPlayings = {
   track_uri: string;
 }[];
 
-export const useNowPlayingsQuery = () =>
+export const useNowPlayingsQuery = (size = 7) =>
   useQuery<NowPlayings>({
-    queryKey: ["now-playings"],
+    queryKey: ["now-playings", size],
     queryFn: () =>
-      fetch(`${API_URL}/now-playings?size=7`, {
+      fetch(`${API_URL}/now-playings?size=${size}`, {
         method: "GET",
       }).then((res) => res.json()),
     refetchInterval: 5000,

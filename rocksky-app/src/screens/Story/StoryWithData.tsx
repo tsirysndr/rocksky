@@ -24,7 +24,7 @@ export type StoryWithDataProps = Partial<{
 
 const StoryWithData: FC<StoryWithDataProps> = (props) => {
   const { route, navigation } = props;
-  const { data } = useNowPlayingsQuery();
+  const { data } = useNowPlayingsQuery(20);
   return (
     <Story
       stories={(data || []).map((story) => ({
@@ -42,6 +42,7 @@ const StoryWithData: FC<StoryWithDataProps> = (props) => {
       }
       onPressTrack={(uri) => navigation!.navigate("SongDetails", { uri })}
       index={route?.params?.index}
+      onAllStoriesEnd={() => navigation!.goBack()}
     />
   );
 };
