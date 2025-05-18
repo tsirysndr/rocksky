@@ -1,8 +1,15 @@
+import { useNowPlayingsQuery } from "@/src/hooks/useNowPlaying";
 import { RootStackParamList } from "@/src/Navigation";
 import { RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import utc from "dayjs/plugin/utc";
 import { FC } from "react";
 import Story from "./Story";
+
+dayjs.extend(relativeTime);
+dayjs.extend(utc);
 
 type StoryScreenRouteProp = RouteProp<RootStackParamList, "Story">;
 type StoryScreenNavigationProp = NativeStackNavigationProp<
@@ -17,29 +24,24 @@ export type StoryWithDataProps = Partial<{
 
 const StoryWithData: FC<StoryWithDataProps> = (props) => {
   const { route, navigation } = props;
+  const { data } = useNowPlayingsQuery();
   return (
     <Story
-      handle={route!.params.handle}
-      avatar={route!.params.avatar}
-      title={route!.params.title}
-      albumArt={route!.params.albumArt}
-      artist={route!.params.artist}
-      artistUri={route!.params.artistUri}
-      albumUri={route!.params.albumUri}
-      trackUri={route!.params.trackUri}
-      date={route!.params.date}
-      onOpenProfile={() =>
-        navigation!.navigate("UserProfile", { handle: route!.params.handle })
+      stories={(data || []).map((story) => ({
+        ...story,
+        created_at: dayjs.utc(story.created_at).local().fromNow(),
+      }))}
+      onOpenProfile={(handle: string) =>
+        navigation!.navigate("UserProfile", { handle })
       }
-      onPressAlbum={() =>
-        navigation!.navigate("AlbumDetails", { uri: route!.params.albumUri })
+      onPressAlbum={(uri: string) =>
+        navigation!.navigate("AlbumDetails", { uri })
       }
-      onPressArtist={() =>
-        navigation!.navigate("ArtistDetails", { uri: route!.params.artistUri })
+      onPressArtist={(uri: string) =>
+        navigation!.navigate("ArtistDetails", { uri })
       }
-      onPressTrack={() =>
-        navigation!.navigate("SongDetails", { uri: route!.params.trackUri })
-      }
+      onPressTrack={(uri) => navigation!.navigate("SongDetails", { uri })}
+      index={route?.params?.index}
     />
   );
 };

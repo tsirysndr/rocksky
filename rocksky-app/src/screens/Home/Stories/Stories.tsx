@@ -30,15 +30,7 @@ const Stories: FC<StoriesProps> = (props) => {
             className="mr-[10px]"
             onPress={() => {
               navigation.navigate("Story", {
-                avatar: story.avatar,
-                handle: story.handle,
-                title: story.title,
-                artist: story.artist,
-                albumArt: story.album_art,
-                albumUri: story.album_uri!,
-                artistUri: story.artist_uri!,
-                trackUri: story.track_uri,
-                date: dayjs.utc(story.created_at).local().fromNow(),
+                index,
               });
             }}
           />
