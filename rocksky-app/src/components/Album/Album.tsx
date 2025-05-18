@@ -46,14 +46,14 @@ const Album: FC<AlbumProps> = (props) => {
         >
           <Text
             className="font-rockford-regular text-white"
-            numberOfLines={2}
+            numberOfLines={row ? 1 : 2}
             ellipsizeMode="tail"
           >
             {title}
           </Text>
           <Text
             className="font-rockford-regular text-[#A0A0A0] mt-[2px]"
-            numberOfLines={2}
+            numberOfLines={row ? 1 : 2}
             ellipsizeMode="tail"
           >
             {artist}
