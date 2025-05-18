@@ -21,6 +21,7 @@ const TopTracksWithData: FC<TopTracksWithDataProps> = (props) => {
       {...props}
       tracks={
         data?.map((track: any, index: number) => ({
+          id: track.id,
           title: track.title,
           artist: track.artist,
           image: track.album_art,

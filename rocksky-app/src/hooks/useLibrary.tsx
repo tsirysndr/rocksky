@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import {
   getAlbum,
   getAlbums,
@@ -37,6 +37,27 @@ export const useArtistsQuery = (did: string, offset = 0, limit = 30) =>
     queryKey: ["artists", did, offset, limit],
     queryFn: () => getArtists(did, offset, limit),
     enabled: !!did,
+    placeholderData: (prev) => prev,
+  });
+
+export const useArtistsInfiniteQuery = (did: string, limit = 30) =>
+  useInfiniteQuery({
+    queryKey: ["infiniteArtists", did],
+    queryFn: async ({ pageParam = 0 }) => {
+      const data = await getArtists(did, pageParam * limit, limit);
+      return {
+        artists: data,
+        nextOffset: pageParam + 1,
+      };
+    },
+    getNextPageParam: (lastPage) => {
+      return lastPage.artists.length < limit ? undefined : lastPage.nextOffset;
+    },
+    enabled: !!did,
+    initialPageParam: 0,
+    placeholderData: (prev) => prev,
+    refetchOnMount: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
 export const useAlbumsQuery = (did: string, offset = 0, limit = 12) =>
@@ -44,6 +65,27 @@ export const useAlbumsQuery = (did: string, offset = 0, limit = 12) =>
     queryKey: ["albums", did, offset, limit],
     queryFn: () => getAlbums(did, offset, limit),
     enabled: !!did,
+    placeholderData: (prev) => prev,
+  });
+
+export const useAlbumsInfiniteQuery = (did: string, limit = 12) =>
+  useInfiniteQuery({
+    queryKey: ["infiniteAlbums", did],
+    queryFn: async ({ pageParam = 0 }) => {
+      const data = await getAlbums(did, pageParam * limit, limit);
+      return {
+        albums: data,
+        nextOffset: pageParam + 1,
+      };
+    },
+    getNextPageParam: (lastPage) => {
+      return lastPage.albums.length < limit ? undefined : lastPage.nextOffset;
+    },
+    enabled: !!did,
+    initialPageParam: 0,
+    placeholderData: (prev) => prev,
+    refetchOnMount: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
 export const useTracksQuery = (did: string, offset = 0, limit = 20) =>
@@ -51,6 +93,28 @@ export const useTracksQuery = (did: string, offset = 0, limit = 20) =>
     queryKey: ["tracks", did, offset, limit],
     queryFn: () => getTracks(did, offset, limit),
     enabled: !!did,
+    placeholderData: (prev) => prev,
+  });
+
+export const useInfiniteTracksQuery = (did: string, limit = 20) =>
+  useInfiniteQuery({
+    queryKey: ["infiniteTracks", did],
+    queryFn: async ({ pageParam = 0 }) => {
+      const data = await getTracks(did, pageParam * limit, limit);
+      return {
+        tracks: data,
+        nextOffset: pageParam + 1,
+      };
+    },
+    getNextPageParam: (lastPage) => {
+      // If we got fewer items than requested, we're at the end
+      return lastPage.tracks.length < limit ? undefined : lastPage.nextOffset;
+    },
+    enabled: !!did,
+    initialPageParam: 0,
+    placeholderData: (prev) => prev,
+    refetchOnMount: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
 export const useLovedTracksQuery = (did: string, offset = 0, limit = 20) =>
@@ -58,6 +122,7 @@ export const useLovedTracksQuery = (did: string, offset = 0, limit = 20) =>
     queryKey: ["lovedTracks", did, offset, limit],
     queryFn: () => getLovedTracks(did, offset, limit),
     enabled: !!did,
+    placeholderData: (prev) => prev,
   });
 
 export const useAlbumQuery = (did: string, rkey: string) =>

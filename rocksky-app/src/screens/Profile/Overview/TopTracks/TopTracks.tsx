@@ -6,6 +6,7 @@ export type TopTracksProps = {
   className?: string;
   onSeeAll: () => void;
   tracks: {
+    id: string;
     title: string;
     artist: string;
     image: string;
@@ -33,7 +34,7 @@ const TopTracks: FC<TopTracksProps> = (props) => {
       <View className="mb-[100px] mt-[10px]">
         {tracks.map((song, index) => (
           <Song
-            key={index}
+            key={song.id}
             rank={index + 1}
             image={song.image}
             title={song.title}

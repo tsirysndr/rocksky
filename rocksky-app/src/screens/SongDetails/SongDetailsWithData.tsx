@@ -48,6 +48,7 @@ const SongDetailsWithData: FC<SongDetailsWithDataProps> = (props) => {
           }}
           tracks={
             artistTracksResult.data?.map((track: any) => ({
+              id: track.id,
               title: track.title,
               artist: track.artist,
               image: track.album_art,
@@ -59,6 +60,7 @@ const SongDetailsWithData: FC<SongDetailsWithDataProps> = (props) => {
           }
           albums={
             artistAlbumsResult.data?.map((album: any) => ({
+              id: album.id,
               title: album.title,
               artist: album.artist,
               cover: album.album_art,

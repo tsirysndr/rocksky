@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import {
   getProfileByDid,
   getProfileStatsByDid,
@@ -27,4 +27,21 @@ export const useRecentTracksByDidQuery = (did: string, offset = 0, size = 10) =>
     enabled: !!did,
     refetchInterval: 6000,
     refetchOnWindowFocus: true,
+  });
+
+export const useRecentTracksByDidInfiniteQuery = (did: string, size = 20) =>
+  useInfiniteQuery({
+    queryKey: ["profile", "recent-tracks", did],
+    queryFn: async ({ pageParam = 0 }) => {
+      const data = await getRecentTracksByDid(did, pageParam * size, size);
+      return {
+        tracks: data,
+        nextOffset: pageParam + 1,
+      };
+    },
+    getNextPageParam: (lastPage) => {
+      return lastPage.tracks.length < size ? undefined : lastPage.nextOffset;
+    },
+    initialPageParam: 0,
+    refetchOnMount: false,
   });

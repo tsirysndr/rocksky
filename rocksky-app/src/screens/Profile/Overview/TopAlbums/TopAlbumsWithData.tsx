@@ -15,6 +15,7 @@ const TopAlbumsWithData = () => {
     <TopAlbums
       albums={
         data?.map((album: any) => ({
+          id: album.id,
           artist: album.artist,
           title: album.title,
           image: album.album_art,

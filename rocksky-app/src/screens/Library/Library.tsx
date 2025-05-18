@@ -5,7 +5,7 @@ import { RootStackParamList } from "@/src/Navigation";
 import { RouteProp } from "@react-navigation/native";
 import { useSetAtom } from "jotai";
 import { FC, useEffect, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import Albums from "./Albums";
 import Artists from "./Artists";
 import Scrobbles from "./Scrobbles";
@@ -44,13 +44,8 @@ const Library: FC<LibraryProps> = (props) => {
 
   return (
     <View className="w-full h-full bg-black">
-      <ScrollView
-        style={{
-          flex: 1,
-        }}
-        showsVerticalScrollIndicator={false}
-      >
-        <Text className="font-rockford-medium text-[#fff] text-[21px] mt-[50px] pl-[15px] pr-[15px]">
+      <View className="pl-[15px] pr-[15px]">
+        <Text className="font-rockford-medium text-[#fff] text-[21px] mt-[50px]">
           Library
         </Text>
         <View>
@@ -64,7 +59,7 @@ const Library: FC<LibraryProps> = (props) => {
         {activeChip === 1 && <Artists />}
         {activeChip === 2 && <Albums />}
         {activeChip === 3 && <Tracks />}
-      </ScrollView>
+      </View>
       <View
         className={`w-full absolute bottom-0 bg-[#000]`}
         style={{

@@ -23,10 +23,7 @@ const Album: FC<AlbumProps> = (props) => {
     <Pressable onPress={() => onPress(did)}>
       <View className={`flex ${direction} justify-center ${className}`}>
         {rank && (
-          <Text
-            className="font-rockford-medium text-[#ffffff] text-[14px] mr-[10px]"
-            style={{ width: 20 }}
-          >
+          <Text className="font-rockford-medium text-[#ffffff] text-[14px] mr-[10px]">
             {rank}
           </Text>
         )}

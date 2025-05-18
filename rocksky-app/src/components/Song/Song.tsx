@@ -43,12 +43,11 @@ const Song: FC<SongProps> = (props) => {
   return (
     <View className={`flex flex-row items-center justify-center ${className}`}>
       {rank && (
-        <Text
-          className="font-rockford-medium text-[#ffffff] text-[14px] mr-[10px]"
-          style={{ width: 20 }}
-        >
-          {rank}
-        </Text>
+        <View>
+          <Text className="font-rockford-medium text-[#ffffff] text-[14px] mr-[10px]">
+            {rank}
+          </Text>
+        </View>
       )}
       {!withoutAlbumCover && (
         <Pressable onPress={() => onPressAlbum(albumUri)}>

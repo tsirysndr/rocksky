@@ -5,6 +5,7 @@ import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
 import { useSetAtom } from "jotai";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { didAtom } from "./atoms/did";
 import { handleAtom } from "./atoms/handle";
 import { RootStack } from "./Navigation";
 import { NowPlayingProvider } from "./providers/NowPlayingProvider";
@@ -12,6 +13,7 @@ import { NowPlayingProvider } from "./providers/NowPlayingProvider";
 const queryClient = new QueryClient();
 
 const App = () => {
+  const setDid = useSetAtom(didAtom);
   const setHandle = useSetAtom(handleAtom);
   useFonts({
     RockfordSansRegular: require("../assets/fonts/RockfordSans-Regular.otf"),
@@ -40,7 +42,8 @@ const App = () => {
           <NavigationContainer
             onStateChange={(state) => {
               const currentTab = getActiveRouteName(state);
-              if (currentTab === "Profile") {
+              if (currentTab === "Profile" || currentTab === "Library") {
+                setDid("did:plc:7vdlgi2bflelz7mmuxoqjfcr");
                 setHandle(undefined);
               }
             }}

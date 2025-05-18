@@ -14,13 +14,17 @@ const LovedTracksWithData = () => {
   return (
     <LovedTracks
       tracks={
-        lovedTracks.data?.records.map(({ track_id: track }: any) => ({
-          title: track.title,
-          artist: track.artist,
-          image: track.album_art,
-          uri: track.uri,
-          albumUri: track.album_uri,
-        })) ?? []
+        lovedTracks.data?.records.map(
+          ({ track_id: track, xata_createdat }: any) => ({
+            id: track.xata_id,
+            title: track.title,
+            artist: track.artist,
+            image: track.album_art,
+            uri: track.uri,
+            albumUri: track.album_uri,
+            date: xata_createdat,
+          })
+        ) ?? []
       }
       total={data?.lovedTracks ?? 0}
       onSeeAll={() => {}}

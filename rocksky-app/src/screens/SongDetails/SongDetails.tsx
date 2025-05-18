@@ -18,6 +18,7 @@ export type SongDetailsProps = {
     scrobbles: number;
   };
   tracks: {
+    id: string;
     title: string;
     artist: string;
     albumArtist: string;
@@ -26,6 +27,7 @@ export type SongDetailsProps = {
     albumUri: string;
   }[];
   albums: {
+    id: string;
     title: string;
     artist: string;
     cover: string;
@@ -106,9 +108,9 @@ const SongDetails: FC<SongDetailsProps> = (props) => {
         </View>
 
         <View className="mt-[15px]">
-          {props.tracks.map((track, index) => (
+          {props.tracks.map((track) => (
             <Song
-              key={index}
+              key={track.id}
               title={track.title}
               artist={track.artist}
               image={track.cover}
@@ -135,6 +137,7 @@ const SongDetails: FC<SongDetailsProps> = (props) => {
           <TopAlbums
             albums={
               props.albums?.map((album: any) => ({
+                id: album.id,
                 artist: album.artist,
                 title: album.title,
                 image: album.cover,

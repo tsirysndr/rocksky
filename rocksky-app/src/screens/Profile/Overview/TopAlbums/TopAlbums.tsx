@@ -4,6 +4,7 @@ import { Pressable, Text, useWindowDimensions, View } from "react-native";
 
 export type TopAlbumsProps = {
   albums: {
+    id: string;
     artist: string;
     title: string;
     image: string;
@@ -39,9 +40,9 @@ const TopAlbums: FC<TopAlbumsProps> = (props) => {
       <View
         className={`flex flex-row flex-wrap gap-x-4 auto-rows-auto ${withoutTitle ? "mt-[0px]" : "mt-[10px]"}`}
       >
-        {albums.map((album, index) => (
+        {albums.map((album) => (
           <Album
-            key={index}
+            key={album.id}
             size={layout.width / 3 - 20}
             artist={album.artist}
             title={album.title}

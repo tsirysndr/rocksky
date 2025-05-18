@@ -1,4 +1,5 @@
 import Song from "@/src/components/Song";
+import dayjs from "dayjs";
 import numeral from "numeral";
 import { FC } from "react";
 import { Text, View } from "react-native";
@@ -7,11 +8,13 @@ export type LovedTracksProps = {
   className?: string;
   onSeeAll: () => void;
   tracks: {
+    id: string;
     title: string;
     artist: string;
     image: string;
     uri: string;
     albumUri: string;
+    date: string;
   }[];
   total: number;
   onPressTrack: (did: string) => void;
@@ -29,10 +32,9 @@ const LovedTracks: FC<LovedTracksProps> = (props) => {
         {numeral(total).format("0,0")}
       </Text>
       <View className="mb-[100px] mt-[10px]">
-        {tracks.map((song, index) => (
+        {tracks.map((song) => (
           <Song
-            key={index}
-            rank={index + 1}
+            key={song.id}
             image={song.image}
             title={song.title}
             artist={song.artist}
@@ -42,6 +44,7 @@ const LovedTracks: FC<LovedTracksProps> = (props) => {
             onPressAlbum={() => onPressAlbum(song.albumUri)}
             did=""
             albumUri={song.albumUri}
+            listeningDate={dayjs(song.date).fromNow()}
           />
         ))}
       </View>

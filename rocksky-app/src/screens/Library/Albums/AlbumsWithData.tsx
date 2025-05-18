@@ -1,30 +1,70 @@
 import { didAtom } from "@/src/atoms/did";
-import { useAlbumsQuery } from "@/src/hooks/useLibrary";
+import { useAlbumsInfiniteQuery } from "@/src/hooks/useLibrary";
 import { useProfileStatsByDidQuery } from "@/src/hooks/useProfile";
 import { RootStackParamList } from "@/src/Navigation";
+import { useNowPlayingContext } from "@/src/providers/NowPlayingProvider";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useAtomValue } from "jotai";
+import * as R from "ramda";
+import { useCallback, useMemo, useState } from "react";
 import Albums from "./Albums";
 
 const AlbumsWithData = () => {
+  const [refreshing, setRefreshing] = useState(false);
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { nowPlaying, isLoading: nowPlayingLoading } = useNowPlayingContext();
   const did = useAtomValue(didAtom);
-  const { data } = useProfileStatsByDidQuery(did!);
-  const albums = useAlbumsQuery(did!, 0, 20);
-  return (
-    <Albums
-      albums={
-        albums.data?.map((album: any) => ({
+  const { data: statsData } = useProfileStatsByDidQuery(did!);
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    refetch,
+  } = useAlbumsInfiniteQuery(did!, 15);
+
+  const albums = useMemo(() => {
+    if (!data) return [];
+
+    return R.uniqBy(
+      R.prop("id"),
+      data.pages
+        .flatMap((page) => page.albums)
+        .map((album, index) => ({
+          id: album.id,
           title: album.title,
           artist: album.artist,
           cover: album.album_art,
           uri: album.uri,
-        })) ?? []
-      }
-      total={data?.albums ?? 0}
+          rank: index + 1,
+        }))
+    );
+  }, [data]);
+
+  const handleEndReached = useCallback(() => {
+    if (!isFetchingNextPage && hasNextPage) {
+      fetchNextPage();
+    }
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+  return (
+    <Albums
+      albums={albums}
+      total={statsData?.albums ?? 0}
       onPressAlbum={(uri) => navigation.navigate("AlbumDetails", { uri })}
+      onEndReached={handleEndReached}
+      isLoading={isLoading}
+      isFetchingMore={isFetchingNextPage}
+      onRefresh={async () => {
+        setRefreshing(true);
+        await refetch();
+        setRefreshing(false);
+      }}
+      refreshing={refreshing}
+      className={`${nowPlayingLoading && nowPlaying ? "mb-[200px]" : "mb-[150px]"}`}
     />
   );
 };

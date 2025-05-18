@@ -2,11 +2,8 @@ import { handleAtom } from "@/src/atoms/handle";
 import Chips from "@/src/components/Chips";
 import StickyPlayer from "@/src/components/StickyPlayer";
 import { RootStackParamList } from "@/src/Navigation";
-import {
-  NavigationProp,
-  RouteProp,
-  useNavigation,
-} from "@react-navigation/native";
+import { RouteProp, useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useAtom } from "jotai";
 import { FC, useEffect, useState } from "react";
 import { ScrollView, View } from "react-native";
@@ -25,7 +22,8 @@ export type ProfileProps = {
 const Profile: FC<ProfileProps> = (props) => {
   const { bottom, route } = props;
   const [handle, setHandle] = useAtom(handleAtom);
-  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [index, setIndex] = useState(0);
   const chips = [
     { label: "Overview", key: 0 },
@@ -35,7 +33,7 @@ const Profile: FC<ProfileProps> = (props) => {
   ];
   const onChangeChip = (key: number) => {
     if (key === 1) {
-      navigation.navigate("UserLibrary", { handle, tab: 0 });
+      navigation.push("UserLibrary", { handle, tab: 0 });
       return;
     }
     setIndex(key);

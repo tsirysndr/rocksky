@@ -15,6 +15,7 @@ const TopArtistsWithData = () => {
     <TopArtists
       artists={
         data?.map((artist: any, index: number) => ({
+          id: artist.id,
           rank: index + 1,
           name: artist.name,
           image: artist.picture,

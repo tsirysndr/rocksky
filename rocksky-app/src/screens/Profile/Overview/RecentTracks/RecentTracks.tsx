@@ -4,6 +4,7 @@ import { Pressable, Text, View } from "react-native";
 
 export type RecentTracksProps = {
   tracks: {
+    id: string;
     title: string;
     artist: string;
     image: string;
@@ -31,9 +32,9 @@ const RecentTracks: FC<RecentTracksProps> = (props) => {
         </Pressable>
       </View>
       <View className="mt-[10px]">
-        {tracks.map((song, index) => (
+        {tracks.map((song) => (
           <Song
-            key={index}
+            key={song.id}
             image={song.image}
             title={song.title}
             artist={song.artist}

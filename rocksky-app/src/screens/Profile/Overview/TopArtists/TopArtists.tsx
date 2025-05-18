@@ -5,6 +5,7 @@ import { Pressable, Text, View } from "react-native";
 export type TopArtistsProps = {
   className?: string;
   artists: {
+    id: string;
     rank: number;
     name: string;
     image: string;
@@ -30,11 +31,11 @@ const TopArtists: FC<TopArtistsProps> = (props) => {
           </Text>
         </Pressable>
       </View>
-      {artists.map((artist, index) => (
+      {artists.map((artist) => (
         <Artist
           row
           size={68}
-          key={index}
+          key={artist.id}
           rank={artist.rank}
           name={artist.name}
           image={artist.image}

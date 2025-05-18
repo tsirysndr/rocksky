@@ -8,6 +8,7 @@ import TopAlbums from "../Profile/Overview/TopAlbums/TopAlbums";
 
 export type SongDetailsProps = {
   artist: {
+    id: string;
     name: string;
     picture: string;
     listeners: number;
@@ -15,6 +16,7 @@ export type SongDetailsProps = {
     uri: string;
   };
   tracks: {
+    id: string;
     title: string;
     artist: string;
     albumArtist: string;
@@ -23,6 +25,7 @@ export type SongDetailsProps = {
     albumUri: string;
   }[];
   albums: {
+    id: string;
     title: string;
     artist: string;
     cover: string;
@@ -125,6 +128,7 @@ const ArtistDetails: FC<SongDetailsProps> = (props) => {
           <TopAlbums
             albums={
               albums?.map((album: any) => ({
+                id: album.id,
                 artist: album.artist,
                 title: album.title,
                 image: album.cover,
