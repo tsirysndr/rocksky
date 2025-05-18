@@ -106,7 +106,7 @@ const Story: FC<StoryProps> = (props) => {
                 }}
               />
               <Text className="font-rockford-regular text-[#fff]">
-                {story.handle}
+                @{story.handle}
               </Text>
               <Text className="font-rockford-regular text-[#A0A0A0] ml-[5px]">
                 {story.created_at}
