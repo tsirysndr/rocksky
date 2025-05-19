@@ -1,7 +1,7 @@
 import Song from "@/src/components/Song";
 import numeral from "numeral";
 import { FC, memo, useCallback } from "react";
-import { ActivityIndicator, Text, View, VirtualizedList } from "react-native";
+import { ActivityIndicator, FlatList, Text, View } from "react-native";
 
 export type ScrobblesProps = {
   scrobbles: {
@@ -121,7 +121,7 @@ const Scrobbles: FC<ScrobblesProps> = (props) => {
 
   return (
     <>
-      <VirtualizedList
+      <FlatList
         data={scrobbles}
         className={className}
         initialNumToRender={10}
@@ -137,8 +137,6 @@ const Scrobbles: FC<ScrobblesProps> = (props) => {
           uri: string;
           albumUri: string;
         }) => item.id}
-        getItemCount={(data) => data.length}
-        getItem={(data, index) => data[index]}
         renderItem={renderItem}
         showsVerticalScrollIndicator={false}
         onEndReached={handleEndReached}

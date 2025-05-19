@@ -1,7 +1,7 @@
 import Artist from "@/src/components/Artist";
 import numeral from "numeral";
 import { FC, memo, useCallback } from "react";
-import { ActivityIndicator, Text, View, VirtualizedList } from "react-native";
+import { ActivityIndicator, FlatList, Text, View } from "react-native";
 
 export type ArtistsProps = {
   artists: {
@@ -91,7 +91,7 @@ const Artists: FC<ArtistsProps> = (props) => {
 
   return (
     <>
-      <VirtualizedList
+      <FlatList
         data={artists}
         className={className}
         initialNumToRender={10}
@@ -105,8 +105,6 @@ const Artists: FC<ArtistsProps> = (props) => {
           image: string;
           uri: string;
         }) => item.id}
-        getItemCount={(data) => data.length}
-        getItem={(data, index) => data[index]}
         renderItem={renderItem}
         showsVerticalScrollIndicator={false}
         onEndReached={onEndReached}

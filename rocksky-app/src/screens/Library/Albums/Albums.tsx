@@ -1,7 +1,7 @@
 import Album from "@/src/components/Album";
 import numeral from "numeral";
 import { FC, memo, useCallback } from "react";
-import { ActivityIndicator, Text, View, VirtualizedList } from "react-native";
+import { ActivityIndicator, FlatList, Text, View } from "react-native";
 
 export type AlbumsProps = {
   albums: {
@@ -96,7 +96,7 @@ const Albums: FC<AlbumsProps> = (props) => {
 
   return (
     <>
-      <VirtualizedList
+      <FlatList
         data={albums}
         className={className}
         initialNumToRender={5}
@@ -107,8 +107,6 @@ const Albums: FC<AlbumsProps> = (props) => {
           cover: string;
           uri: string;
         }) => item.id}
-        getItemCount={(data) => data.length}
-        getItem={(data, index) => data[index]}
         removeClippedSubviews={true}
         renderItem={renderItem}
         showsVerticalScrollIndicator={false}
