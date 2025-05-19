@@ -4,8 +4,8 @@ import { NavigationProp, useNavigation } from "@react-navigation/native";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import utc from "dayjs/plugin/utc";
-import { FC } from "react";
-import { ScrollView } from "react-native";
+import { FC, memo } from "react";
+import { FlatList } from "react-native";
 import Avatar from "./Avatar";
 
 dayjs.extend(relativeTime);
@@ -15,27 +15,55 @@ export type StoriesProps = {
   nowPlayings?: NowPlayings;
 };
 
+const StoryItem = memo(
+  ({ item, onPress }: { item: NowPlayings[number]; onPress: () => void }) => (
+    <Avatar
+      key={item.id}
+      name={item.handle}
+      image={item.avatar}
+      size={72}
+      className="mr-[10px]"
+      onPress={onPress}
+    />
+  )
+);
+
 const Stories: FC<StoriesProps> = (props) => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { nowPlayings } = props;
+
+  const renderItem = ({
+    item,
+    index,
+  }: {
+    item: NowPlayings[number];
+    index: number;
+  }) => (
+    <StoryItem
+      item={item}
+      onPress={() => {
+        navigation.navigate("Story", {
+          index,
+        });
+      }}
+    />
+  );
+
   return (
     <>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {nowPlayings?.map((story, index) => (
-          <Avatar
-            key={index}
-            name={story.handle}
-            image={story.avatar}
-            size={72}
-            className="mr-[10px]"
-            onPress={() => {
-              navigation.navigate("Story", {
-                index,
-              });
-            }}
-          />
-        ))}
-      </ScrollView>
+      <FlatList
+        data={nowPlayings}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        removeClippedSubviews
+        contentContainerStyle={{
+          paddingLeft: 16,
+          paddingRight: 16,
+          paddingTop: 16,
+        }}
+      />
     </>
   );
 };
