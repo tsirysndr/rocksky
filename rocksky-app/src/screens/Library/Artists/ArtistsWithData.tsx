@@ -7,10 +7,16 @@ import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useAtomValue } from "jotai";
 import * as R from "ramda";
-import { useCallback, useMemo, useState } from "react";
+import { FC, RefObject, useCallback, useMemo, useState } from "react";
+import { FlatList } from "react-native";
 import Artists from "./Artists";
 
-const ArtistsWithData = () => {
+export type ArtistsWithDataProps = {
+  listRef: RefObject<FlatList<any> | null>;
+  handleScroll: (event: any) => void;
+};
+
+const ArtistsWithData: FC<ArtistsWithDataProps> = (props) => {
   const [refreshing, setRefreshing] = useState(false);
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -66,6 +72,7 @@ const ArtistsWithData = () => {
       }}
       refreshing={refreshing}
       className={`${nowPlaying ? "mb-[200px]" : "mb-[150px]"}`}
+      {...props}
     />
   );
 };

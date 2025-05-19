@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Animated } from "react-native";
+import { Animated, ScrollView } from "react-native";
 import { FlatList } from "react-native-reanimated/lib/typescript/Animated";
 
 export default function useScrollToTop() {
   const listRef = useRef<FlatList<any>>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
   const lastOffsetY = useRef(0);
   const scrollingDown = useRef(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -39,10 +40,12 @@ export default function useScrollToTop() {
 
   const scrollToTop = () => {
     listRef.current?.scrollToOffset({ offset: 0, animated: true });
+    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
   };
 
   return {
     listRef,
+    scrollViewRef,
     fadeAnim,
     handleScroll,
     scrollToTop,

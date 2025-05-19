@@ -1,7 +1,10 @@
 import { handleAtom } from "@/src/atoms/handle";
 import Chips from "@/src/components/Chips";
+import ScrollToTopButton from "@/src/components/ScrollToTopButton";
 import StickyPlayer from "@/src/components/StickyPlayer";
+import useScrollToTop from "@/src/hooks/useScrollToTop";
 import { RootStackParamList } from "@/src/Navigation";
+import { useNowPlayingContext } from "@/src/providers/NowPlayingProvider";
 import { RouteProp } from "@react-navigation/native";
 import { useSetAtom } from "jotai";
 import { FC, useEffect, useState } from "react";
@@ -24,6 +27,10 @@ export type LibraryProps = Partial<{
 const Library: FC<LibraryProps> = (props) => {
   const { bottom, route } = props;
   const setHandle = useSetAtom(handleAtom);
+  const { scrollToTop, isVisible, fadeAnim, handleScroll, listRef } =
+    useScrollToTop();
+  const nowPlaying = useNowPlayingContext();
+
   const chips = [
     { label: "Scrobbles", key: 0 },
     { label: "Artists", key: 1 },
@@ -42,6 +49,8 @@ const Library: FC<LibraryProps> = (props) => {
     }
   }, [route?.params?.tab]);
 
+  const bottomButtonPosition = nowPlaying ? 80 : 20;
+
   return (
     <View className="w-full h-full bg-black">
       <View className="pl-[15px] pr-[15px]">
@@ -55,11 +64,26 @@ const Library: FC<LibraryProps> = (props) => {
             active={activeChip}
           />
         </View>
-        {activeChip === 0 && <Scrobbles />}
-        {activeChip === 1 && <Artists />}
-        {activeChip === 2 && <Albums />}
-        {activeChip === 3 && <Tracks />}
+        {activeChip === 0 && (
+          <Scrobbles handleScroll={handleScroll} listRef={listRef} />
+        )}
+        {activeChip === 1 && (
+          <Artists handleScroll={handleScroll} listRef={listRef} />
+        )}
+        {activeChip === 2 && (
+          <Albums handleScroll={handleScroll} listRef={listRef} />
+        )}
+        {activeChip === 3 && (
+          <Tracks handleScroll={handleScroll} listRef={listRef} />
+        )}
       </View>
+      {isVisible && (
+        <ScrollToTopButton
+          fadeAnim={fadeAnim}
+          bottom={bottomButtonPosition}
+          onPress={scrollToTop}
+        />
+      )}
       <View
         className={`w-full absolute bottom-0 bg-[#000]`}
         style={{

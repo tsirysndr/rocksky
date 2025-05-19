@@ -1,6 +1,6 @@
 import Song from "@/src/components/Song";
 import numeral from "numeral";
-import { FC, memo, useCallback } from "react";
+import { FC, memo, RefObject, useCallback } from "react";
 import { ActivityIndicator, FlatList, Text, View } from "react-native";
 
 export type ScrobblesProps = {
@@ -22,6 +22,8 @@ export type ScrobblesProps = {
   isLoading: boolean;
   isFetchingMore: boolean;
   className?: string;
+  listRef: RefObject<FlatList<any> | null>;
+  handleScroll: (event: any) => void;
 };
 
 const SongItem = memo(
@@ -79,6 +81,8 @@ const Scrobbles: FC<ScrobblesProps> = (props) => {
     refreshing,
     onRefresh,
     className,
+    listRef,
+    handleScroll,
   } = props;
 
   const renderItem = useCallback(
@@ -122,6 +126,8 @@ const Scrobbles: FC<ScrobblesProps> = (props) => {
   return (
     <>
       <FlatList
+        ref={listRef}
+        onScroll={handleScroll}
         data={scrobbles}
         className={className}
         initialNumToRender={10}

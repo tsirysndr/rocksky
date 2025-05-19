@@ -1,6 +1,6 @@
 import Artist from "@/src/components/Artist";
 import numeral from "numeral";
-import { FC, memo, useCallback } from "react";
+import { FC, memo, RefObject, useCallback } from "react";
 import { ActivityIndicator, FlatList, Text, View } from "react-native";
 
 export type ArtistsProps = {
@@ -19,6 +19,8 @@ export type ArtistsProps = {
   isLoading: boolean;
   isFetchingMore: boolean;
   className?: string;
+  listRef: RefObject<FlatList<any> | null>;
+  handleScroll: (event: any) => void;
 };
 
 const ArtistItem = memo(
@@ -67,6 +69,8 @@ const Artists: FC<ArtistsProps> = (props) => {
     className,
     onRefresh,
     refreshing,
+    listRef,
+    handleScroll,
   } = props;
 
   const renderItem = useCallback(
@@ -92,6 +96,8 @@ const Artists: FC<ArtistsProps> = (props) => {
   return (
     <>
       <FlatList
+        ref={listRef}
+        onScroll={handleScroll}
         data={artists}
         className={className}
         initialNumToRender={10}

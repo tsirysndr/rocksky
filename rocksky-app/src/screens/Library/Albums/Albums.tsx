@@ -1,6 +1,6 @@
 import Album from "@/src/components/Album";
 import numeral from "numeral";
-import { FC, memo, useCallback } from "react";
+import { FC, memo, RefObject, useCallback } from "react";
 import { ActivityIndicator, FlatList, Text, View } from "react-native";
 
 export type AlbumsProps = {
@@ -20,6 +20,8 @@ export type AlbumsProps = {
   isLoading: boolean;
   isFetchingMore: boolean;
   className?: string;
+  listRef: RefObject<FlatList<any> | null>;
+  handleScroll: (event: any) => void;
 };
 
 const AlbumItem = memo(
@@ -71,6 +73,8 @@ const Albums: FC<AlbumsProps> = (props) => {
     isLoading,
     isFetchingMore,
     className,
+    listRef,
+    handleScroll,
   } = props;
 
   const renderItem = useCallback(
@@ -97,6 +101,8 @@ const Albums: FC<AlbumsProps> = (props) => {
   return (
     <>
       <FlatList
+        ref={listRef}
+        onScroll={handleScroll}
         data={albums}
         className={className}
         initialNumToRender={5}

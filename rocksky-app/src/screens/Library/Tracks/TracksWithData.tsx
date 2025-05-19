@@ -6,10 +6,16 @@ import { useNowPlayingContext } from "@/src/providers/NowPlayingProvider";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useAtomValue } from "jotai";
-import { useCallback, useMemo, useState } from "react";
+import { FC, RefObject, useCallback, useMemo, useState } from "react";
+import { FlatList } from "react-native";
 import Tracks from "./Tracks";
 
-const TracksWithData = () => {
+export type TracksWithDataProps = {
+  listRef: RefObject<FlatList<any> | null>;
+  handleScroll: (event: any) => void;
+};
+
+const TracksWithData: FC<TracksWithDataProps> = (props) => {
   const [refreshing, setRefreshing] = useState(false);
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -65,6 +71,7 @@ const TracksWithData = () => {
       }}
       refreshing={refreshing}
       className={`${nowPlaying ? "mb-[200px]" : "mb-[150px]"}`}
+      {...props}
     />
   );
 };

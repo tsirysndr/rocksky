@@ -10,10 +10,16 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import dayjs from "dayjs";
 import { useAtomValue } from "jotai";
 import * as R from "ramda";
-import { useCallback, useMemo, useState } from "react";
+import { FC, RefObject, useCallback, useMemo, useState } from "react";
+import { FlatList } from "react-native";
 import Scrobbles from "./Scrobbles";
 
-const ScrobblesWithData = () => {
+export type ScrobblesWithDataProps = {
+  listRef: RefObject<FlatList<any> | null>;
+  handleScroll: (event: any) => void;
+};
+
+const ScrobblesWithData: FC<ScrobblesWithDataProps> = (props) => {
   const [refreshing, setRefreshing] = useState(false);
   const nowPlaying = useNowPlayingContext();
   const navigation =
@@ -72,6 +78,7 @@ const ScrobblesWithData = () => {
       }}
       refreshing={refreshing}
       className={`${nowPlaying ? "mb-[200px]" : "mb-[150px]"}`}
+      {...props}
     />
   );
 };
