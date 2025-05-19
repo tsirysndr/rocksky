@@ -21,5 +21,12 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Basic: Story = {
-  args: {},
+  args: {
+    onSubmit: (query: string) => {},
+    onPressAlbum: (uri: string) => {},
+    onPressArtist: (uri: string) => {},
+    onPressTrack: (uri: string) => {},
+    onPressUser: (handle: string) => {},
+    results: [],
+  },
 };

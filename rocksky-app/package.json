@@ -21,6 +21,7 @@
   "dependencies": {
     "@atproto/api": "^0.15.6",
     "@expo/vector-icons": "^14.1.0",
+    "@hookform/resolvers": "^5.0.1",
     "@ipld/dag-cbor": "^9.2.2",
     "@react-native-async-storage/async-storage": "^2.1.2",
     "@react-native-menu/menu": "^1.2.3",
@@ -56,6 +57,7 @@
     "react": "19.0.0",
     "react-content-loader": "^7.0.2",
     "react-dom": "19.0.0",
+    "react-hook-form": "^7.56.4",
     "react-i18next": "^15.5.1",
     "react-native": "0.79.2",
     "react-native-gesture-handler": "~2.24.0",

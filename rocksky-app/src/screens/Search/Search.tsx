@@ -1,75 +1,156 @@
+import Album from "@/src/components/Album";
+import Artist from "@/src/components/Artist";
+import ScrollToTopButton from "@/src/components/ScrollToTopButton";
 import Song from "@/src/components/Song";
 import StickyPlayer from "@/src/components/StickyPlayer";
-import { ScrollView, View } from "react-native";
+import useScrollToTop from "@/src/hooks/useScrollToTop";
+import { useNowPlayingContext } from "@/src/providers/NowPlayingProvider";
+import { FC } from "react";
+import {
+  ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  TouchableWithoutFeedback,
+  View,
+} from "react-native";
 import SearchInput from "./SearchInput";
 
-const tracks = [
-  {
-    title: "Work from Home (feat. Ty Dolla $ign)",
-    artist: "Fith Harmony",
-    image:
-      "https://cdn.rocksky.app/covers/cbed73745681d6a170b694ee11bb527c.jpg",
-  },
-  {
-    title: "BED",
-    artist: "Joel Corry",
-    image: "https://i.scdn.co/image/ab67616d0000b273b06c09b9f72389ee7f1cbd6b",
-  },
-  {
-    title: "Friday (feat. Mufasa & Hypeman) - Dopamine Re-Edit",
-    artist: "Riton",
-    image:
-      "https://cdn.bsky.app/img/feed_thumbnail/plain/did:plc:7vdlgi2bflelz7mmuxoqjfcr/bafkreihvqfivhiaxj4cxkwfptzdxwnrwkqsasuirxi5ub3mgyxzgi4yc7i@jpeg",
-  },
-  {
-    title: "Hear Me Say",
-    artist: "Jonas Blue",
-    image:
-      "https://cdn.bsky.app/img/feed_thumbnail/plain/did:plc:7vdlgi2bflelz7mmuxoqjfcr/bafkreigjwz3opdzwdeispeckym2gpiy4kixp4skz2gdelckujkbnkz3edm@jpeg",
-  },
-  {
-    title: "Flowers (feat. Jaykae and MALIKA)",
-    artist: "Nathan Dawe",
-    image:
-      "https://cdn.bsky.app/img/feed_thumbnail/plain/did:plc:7vdlgi2bflelz7mmuxoqjfcr/bafkreigqdrg5pmv7ji7f72ricgqjyneno5j5qzeppsqmoy3yek3wqv3fca@jpeg",
-  },
-  {
-    title: "Sorry",
-    artist: "Joel Corry",
-    image:
-      "https://cdn.rocksky.app/covers/ec9bbc208b04182f315f8137cfb2125b.jpg",
-  },
-  {
-    title: "3 Libras",
-    artist: "A Perfect Circle",
-    image: "https://i.scdn.co/image/ab67616d0000b2732d73b494efcb99356f8c7b28",
-  },
-];
+export type SearchProps = {
+  onSubmit: (query: string) => void;
+  results: {
+    record: any;
+    table: string;
+  }[];
+  isLoading?: boolean;
+  onPressAlbum: (uri: string) => void;
+  onPressArtist: (uri: string) => void;
+  onPressTrack: (uri: string) => void;
+  onPressUser: (handle: string) => void;
+};
 
-const Search = () => {
+const Search: FC<SearchProps> = (props) => {
+  const {
+    results,
+    onSubmit,
+    isLoading,
+    onPressAlbum,
+    onPressArtist,
+    onPressTrack,
+    onPressUser,
+  } = props;
+  const { scrollToTop, isVisible, fadeAnim, handleScroll, scrollViewRef } =
+    useScrollToTop();
+  const nowPlaying = useNowPlayingContext();
+  const bottomButtonPosition = nowPlaying ? 80 : 20;
+
   return (
-    <View className="w-full h-full bg-black">
-      <SearchInput className="mt-[50px] ml-[15px] mr-[15px]" />
-      <ScrollView className="h-[99%] w-full mt-[10px] pl-[15px] pr-[15px]">
-        {tracks.map((song, index) => (
-          <Song
-            key={index}
-            image={song.image}
-            title={song.title}
-            artist={song.artist}
-            size={60}
-            className="mt-[10px]"
-            onPress={() => {}}
-            onPressAlbum={() => {}}
-            did=""
-            albumUri=""
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <View className="w-full h-full bg-black">
+          <SearchInput
+            className="mt-[50px] ml-[15px] mr-[15px]"
+            onSubmit={onSubmit}
           />
-        ))}
-      </ScrollView>
-      <View className="w-full absolute bottom-0 bg-black">
-        <StickyPlayer />
-      </View>
-    </View>
+          {isLoading && (
+            <View className="w-fullitems-center">
+              <ActivityIndicator
+                size="large"
+                color="#bdbaba"
+                className="mt-[50px]"
+              />
+            </View>
+          )}
+          {!isLoading && (
+            <ScrollView
+              ref={scrollViewRef}
+              onScroll={handleScroll}
+              className="w-full mt-[10px] pl-[15px] pr-[15px]"
+              showsVerticalScrollIndicator={false}
+              removeClippedSubviews={true}
+              keyboardShouldPersistTaps="handled"
+            >
+              {results.map(({ record, table }, index) => {
+                switch (table) {
+                  case "tracks":
+                    return (
+                      <Song
+                        key={index}
+                        image={record.album_art}
+                        title={record.title}
+                        artist={record.artist}
+                        size={60}
+                        className="mt-[10px]"
+                        onPress={() => onPressTrack(record.uri)}
+                        onPressAlbum={() => onPressTrack(record.uri)}
+                        did=""
+                        albumUri={record.album_uri}
+                      />
+                    );
+                  case "albums":
+                    return (
+                      <Album
+                        key={index}
+                        image={record.album_art}
+                        title={record.title}
+                        artist={record.artist}
+                        size={60}
+                        className="mt-[10px]"
+                        onPress={() => onPressAlbum(record.uri)}
+                        did=""
+                        row
+                      />
+                    );
+                  case "artists":
+                    return (
+                      <Artist
+                        key={index}
+                        image={record.picture}
+                        name={record.name}
+                        size={60}
+                        className="mt-[10px]"
+                        onPress={() => onPressArtist(record.uri)}
+                        did=""
+                        row
+                      />
+                    );
+                  case "users":
+                    return (
+                      <Artist
+                        key={index}
+                        image={record.avatar}
+                        name={record.display_name}
+                        size={60}
+                        className="mt-[10px]"
+                        onPress={() => onPressUser(record.handle)}
+                        did={record.did}
+                        row
+                      />
+                    );
+                  default:
+                    break;
+                }
+              })}
+            </ScrollView>
+          )}
+          {isVisible && (
+            <ScrollToTopButton
+              fadeAnim={fadeAnim}
+              bottom={bottomButtonPosition}
+              onPress={scrollToTop}
+            />
+          )}
+
+          <View className="w-full absolute bottom-0 bg-black">
+            <StickyPlayer />
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
   );
 };
 
