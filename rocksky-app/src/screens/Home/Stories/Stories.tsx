@@ -59,8 +59,6 @@ const Stories: FC<StoriesProps> = (props) => {
         showsHorizontalScrollIndicator={false}
         removeClippedSubviews
         contentContainerStyle={{
-          paddingLeft: 16,
-          paddingRight: 16,
           paddingTop: 16,
         }}
       />
