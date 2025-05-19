@@ -12,7 +12,10 @@ const ProgressContext =
 export const NowPlayingProvider = ({ children }: { children: ReactNode }) => {
   const { nowPlaying, progress } = useNowPlaying(did);
 
-  const memoizedNowPlaying = useMemo(() => nowPlaying, [nowPlaying?.uri]);
+  const memoizedNowPlaying = useMemo(
+    () => nowPlaying,
+    [nowPlaying?.uri, nowPlaying?.isPlaying]
+  );
 
   return (
     <NowPlayingContext.Provider value={memoizedNowPlaying}>
