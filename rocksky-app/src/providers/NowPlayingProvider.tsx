@@ -14,7 +14,7 @@ export const NowPlayingProvider = ({ children }: { children: ReactNode }) => {
 
   const memoizedNowPlaying = useMemo(
     () => nowPlaying,
-    [nowPlaying?.uri, nowPlaying?.isPlaying]
+    [nowPlaying?.uri, nowPlaying?.isPlaying, nowPlaying?.liked]
   );
 
   return (
