@@ -25,7 +25,7 @@ const AlbumDetailsWithData: FC<AlbumDetailsWithDataProps> = (props) => {
   const did = route?.params?.uri?.split("at://")[1]?.split("/")[0];
   const rkey = route?.params?.uri?.split("at://")[1]?.split("/")[2];
   const { data, isLoading } = useAlbumQuery(did!, rkey!);
-  const { nowPlaying, isLoading: nowPlayingLoading } = useNowPlayingContext();
+  const nowPlaying = useNowPlayingContext();
   return (
     <>
       {!isLoading && data && (
@@ -58,7 +58,7 @@ const AlbumDetailsWithData: FC<AlbumDetailsWithDataProps> = (props) => {
           onViewOnPDSls={(uri: string) =>
             Linking.openURL(`https://pdsls.dev/${uri.replace("at://", "at/")}`)
           }
-          className={nowPlaying && !nowPlayingLoading ? "mb-[60px]" : ""}
+          className={nowPlaying ? "mb-[60px]" : ""}
         />
       )}
     </>

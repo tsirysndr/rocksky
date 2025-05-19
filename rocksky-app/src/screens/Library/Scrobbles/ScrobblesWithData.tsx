@@ -15,7 +15,7 @@ import Scrobbles from "./Scrobbles";
 
 const ScrobblesWithData = () => {
   const [refreshing, setRefreshing] = useState(false);
-  const { nowPlaying, isLoading: nowPlayingLoading } = useNowPlayingContext();
+  const nowPlaying = useNowPlayingContext();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const did = useAtomValue(didAtom);
@@ -71,7 +71,7 @@ const ScrobblesWithData = () => {
         await refetch();
       }}
       refreshing={refreshing}
-      className={`${nowPlayingLoading && nowPlaying ? "mb-[200px]" : "mb-[150px]"}`}
+      className={`${nowPlaying ? "mb-[200px]" : "mb-[150px]"}`}
     />
   );
 };

@@ -1,11 +1,15 @@
-import { useNowPlayingContext } from "@/src/providers/NowPlayingProvider";
+import {
+  useNowPlayingContext,
+  useProgressContext,
+} from "@/src/providers/NowPlayingProvider";
 import StickyPlayer from "./StickyPlayer";
 
 const StickyPlayerWithData = () => {
-  const { nowPlaying, isLoading, progress } = useNowPlayingContext();
+  const progress = useProgressContext();
+  const nowPlaying = useNowPlayingContext();
   return (
     <>
-      {nowPlaying && !isLoading && (
+      {nowPlaying && (
         <StickyPlayer
           isPlaying={nowPlaying.isPlaying}
           liked={nowPlaying.liked}

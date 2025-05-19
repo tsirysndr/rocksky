@@ -14,7 +14,7 @@ const ArtistsWithData = () => {
   const [refreshing, setRefreshing] = useState(false);
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { nowPlaying, isLoading: nowPlayingLoading } = useNowPlayingContext();
+  const nowPlaying = useNowPlayingContext();
   const did = useAtomValue(didAtom);
   const { data: statsData } = useProfileStatsByDidQuery(did!);
   const {
@@ -65,7 +65,7 @@ const ArtistsWithData = () => {
         await refetch();
       }}
       refreshing={refreshing}
-      className={`${nowPlayingLoading && nowPlaying ? "mb-[200px]" : "mb-[150px]"}`}
+      className={`${nowPlaying ? "mb-[200px]" : "mb-[150px]"}`}
     />
   );
 };
