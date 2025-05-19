@@ -2,6 +2,7 @@ import ScrollToTopButton from "@/src/components/ScrollToTopButton";
 import Song from "@/src/components/Song";
 import StickyPlayer from "@/src/components/StickyPlayer";
 import { useFeedInfiniteQuery } from "@/src/hooks/useFeed";
+import useScrollToTop from "@/src/hooks/useScrollToTop";
 import { RootStackParamList } from "@/src/Navigation";
 import { useNowPlayingContext } from "@/src/providers/NowPlayingProvider";
 import { NavigationProp, useNavigation } from "@react-navigation/native";
@@ -9,21 +10,8 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import updateLocale from "dayjs/plugin/updateLocale";
 import * as R from "ramda";
-import React, {
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import {
-  ActivityIndicator,
-  Animated,
-  FlatList,
-  Text,
-  View,
-} from "react-native";
+import React, { memo, useCallback, useMemo, useState } from "react";
+import { ActivityIndicator, FlatList, Text, View } from "react-native";
 import Stories from "./Stories";
 
 dayjs.extend(relativeTime);
@@ -92,44 +80,8 @@ const Home = () => {
     refetch,
   } = useFeedInfiniteQuery(20);
   const { nowPlaying, isLoading: nowPlayingIsLoading } = useNowPlayingContext();
-
-  const listRef = useRef<FlatList<any>>(null);
-  const lastOffsetY = useRef(0);
-  const scrollingDown = useRef(false);
-  const [isVisible, setIsVisible] = useState(false);
-
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-
-  const updateButtonVisibility = (shouldShow: boolean) => {
-    if (shouldShow !== isVisible) {
-      setIsVisible(shouldShow);
-    }
-  };
-
-  useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: isVisible ? 1 : 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-  }, [isVisible, fadeAnim]);
-
-  const handleScroll = (event: any) => {
-    const offsetY = event.nativeEvent.contentOffset.y;
-
-    scrollingDown.current = offsetY > lastOffsetY.current;
-    lastOffsetY.current = offsetY;
-
-    const shouldShowButton = scrollingDown.current && offsetY > 300;
-
-    requestAnimationFrame(() => {
-      updateButtonVisibility(shouldShowButton);
-    });
-  };
-
-  const scrollToTop = () => {
-    listRef.current?.scrollToOffset({ offset: 0, animated: true });
-  };
+  const { scrollToTop, isVisible, fadeAnim, handleScroll, listRef } =
+    useScrollToTop();
 
   const handleEndReached = useCallback(() => {
     if (!isFetchingNextPage && hasNextPage) {
