@@ -5673,6 +5673,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "webscrobbler"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "anyhow",
+ "chrono",
+ "dotenv",
+ "hex",
+ "jsonwebtoken",
+ "md5",
+ "owo-colors",
+ "quick-xml 0.37.4",
+ "redis",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+]
+
+[[package]]
 name = "whoami"
 version = "1.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
