@@ -1,0 +1,25 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_d0mcirqr9e9qaqkp2jp0",
+    "operations": [
+      {
+        "add_column": {
+          "table": "webscrobblers",
+          "column": {
+            "name": "enabled",
+            "type": "bool",
+            "comment": "",
+            "default": "'true'",
+            "nullable": true
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_d0mcirqr9e9qaqkp2jp0",
+  "parent": "mig_d0mcigar9e9qaqkp2jo0",
+  "schema": "public",
+  "startedAt": "2025-05-20T18:26:55.485501Z"
+}

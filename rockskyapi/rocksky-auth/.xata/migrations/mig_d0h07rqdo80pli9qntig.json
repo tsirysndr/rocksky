@@ -1,0 +1,21 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_d0h07rqdo80pli9qntig",
+    "operations": [
+      {
+        "drop_constraint": {
+          "up": "\"spotify_link\"",
+          "down": "\"spotify_link\"",
+          "name": "tracks_spotify_link_unique",
+          "table": "tracks"
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_d0h07rqdo80pli9qntig",
+  "parent": "mig_cvu23dtfchh2dtob9esg",
+  "schema": "public",
+  "startedAt": "2025-05-12T14:21:36.910039Z"
+}

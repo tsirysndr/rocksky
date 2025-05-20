@@ -1,0 +1,25 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_d0mchpiunsp1bris7p90",
+    "operations": [
+      {
+        "add_column": {
+          "up": "''",
+          "table": "webscrobblers",
+          "column": {
+            "name": "uuid",
+            "type": "text",
+            "unique": true,
+            "comment": ""
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_d0mchpiunsp1bris7p90",
+  "parent": "mig_d0mcgrir9e9qaqkp2jl0",
+  "schema": "public",
+  "startedAt": "2025-05-20T18:24:38.56302Z"
+}

@@ -244,6 +244,14 @@ const tables = [
         comment: "",
       },
       {
+        name: "lastfm_link",
+        type: "text",
+        notNull: false,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
         name: "release_date",
         type: "text",
         notNull: false,
@@ -791,6 +799,14 @@ const tables = [
       {
         name: "died",
         type: "datetime",
+        notNull: false,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "lastfm_link",
+        type: "text",
         notNull: false,
         unique: false,
         defaultValue: null,
@@ -3690,10 +3706,6 @@ const tables = [
         name: "tracks__pgroll_new_uri_key",
         columns: ["uri"],
       },
-      tracks_spotify_link_unique: {
-        name: "tracks_spotify_link_unique",
-        columns: ["spotify_link"],
-      },
       tracks_tidal_link_unique: {
         name: "tracks_tidal_link_unique",
         columns: ["tidal_link"],
@@ -3809,6 +3821,14 @@ const tables = [
         comment: "",
       },
       {
+        name: "lastfm_link",
+        type: "text",
+        notNull: false,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
         name: "lyrics",
         type: "text",
         notNull: false,
@@ -3836,7 +3856,7 @@ const tables = [
         name: "spotify_link",
         type: "text",
         notNull: false,
-        unique: true,
+        unique: false,
         defaultValue: null,
         comment: "",
       },
@@ -4406,6 +4426,111 @@ const tables = [
       },
     ],
   },
+  {
+    name: "webscrobblers",
+    checkConstraints: {
+      webscrobblers_xata_id_length_xata_id: {
+        name: "webscrobblers_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {
+      user_id_link: {
+        name: "user_id_link",
+        columns: ["user_id"],
+        referencedTable: "users",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+    },
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_webscrobblers_xata_id_key: {
+        name: "_pgroll_new_webscrobblers_xata_id_key",
+        columns: ["xata_id"],
+      },
+      webscrobblers__pgroll_new_uuid_key: {
+        name: "webscrobblers__pgroll_new_uuid_key",
+        columns: ["uuid"],
+      },
+    },
+    columns: [
+      {
+        name: "description",
+        type: "text",
+        notNull: false,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "enabled",
+        type: "bool",
+        notNull: false,
+        unique: false,
+        defaultValue: "true",
+        comment: "",
+      },
+      {
+        name: "name",
+        type: "text",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "user_id",
+        type: "link",
+        link: { table: "users" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"users"}',
+      },
+      {
+        name: "uuid",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
 ] as const;
 
 export type SchemaTables = typeof tables;
@@ -4543,6 +4668,9 @@ export type UserTracksRecord = UserTracks & XataRecord;
 export type Users = InferredTypes["users"];
 export type UsersRecord = Users & XataRecord;
 
+export type Webscrobblers = InferredTypes["webscrobblers"];
+export type WebscrobblersRecord = Webscrobblers & XataRecord;
+
 export type DatabaseSchema = {
   album_tags: AlbumTagsRecord;
   album_tracks: AlbumTracksRecord;
@@ -4588,6 +4716,7 @@ export type DatabaseSchema = {
   user_playlists: UserPlaylistsRecord;
   user_tracks: UserTracksRecord;
   users: UsersRecord;
+  webscrobblers: WebscrobblersRecord;
 };
 
 const DatabaseClient = buildClient();
