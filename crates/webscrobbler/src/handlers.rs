@@ -58,10 +58,10 @@ async fn handle_scrobble(
   // Check if connector is Spotify
   if params.data.song.connector.id == "spotify" {
     // Skip if the user has a Spotify token
-    let spotify_tokens = repo::spotify_token::get_spotify_token(&pool, &user.did).await
+    let spotify_token = repo::spotify_token::get_spotify_token(&pool, &user.did).await
       .map_err(|err| actix_web::error::ErrorInternalServerError(format!("Failed to get Spotify tokens: {}", err)))?;
 
-    if spotify_tokens.is_some() {
+    if spotify_token.is_some() {
       println!("User has a Spotify token, skipping scrobble");
       return Ok(HttpResponse::Ok().body("User has a Spotify token, skipping scrobble"));
     }
