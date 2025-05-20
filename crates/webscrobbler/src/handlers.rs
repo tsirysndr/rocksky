@@ -52,7 +52,7 @@ async fn handle_scrobble(
 
   if params.event_name != "scrobble" {
     println!("Skipping non-scrobble event: {}", params.event_name.green());
-    return Ok(HttpResponse::BadRequest().body("Skipping non-scrobble event"));
+    return Ok(HttpResponse::Ok().body("Skipping non-scrobble event"));
   }
 
   // Check if connector is Spotify
