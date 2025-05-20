@@ -70,7 +70,7 @@ async fn handle_scrobble(
 
   let cache = cache.get_ref().clone();
 
-  scrobble(&pool, &cache, params, &user.xata_id).await
+  scrobble(&pool, &cache, params, &user.did).await
     .map_err(|err| actix_web::error::ErrorInternalServerError(format!("Failed to scrobble: {}", err)))?;
 
 
