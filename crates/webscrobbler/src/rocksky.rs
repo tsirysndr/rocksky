@@ -1,4 +1,5 @@
 use anyhow::Error;
+use owo_colors::OwoColorize;
 use reqwest::Client;
 
 use crate::{auth::generate_token, cache::Cache, types::Track};
@@ -31,8 +32,13 @@ pub async fn scrobble(cache: &Cache, did: &str, track: Track, timestamp: u64) ->
     .await?;
 
   if !response.status().is_success() {
-    return Err(Error::msg(format!("Failed to scrobble track: {}", response.text().await?)));
+    println!("Failed to scrobble track: {}", response.status().to_string());
+    let text = response.text().await?;
+    println!("Response: {}", text);
+    return Err(Error::msg(format!("Failed to scrobble track: {}", text)));
   }
+
+  println!("Scrobbled track: {}", track.title.green());
 
   Ok(())
 }
