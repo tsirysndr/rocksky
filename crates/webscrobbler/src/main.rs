@@ -7,8 +7,17 @@ use dotenv::dotenv;
 use owo_colors::OwoColorize;
 use sqlx::postgres::PgPoolOptions;
 
+pub mod rocksky;
 pub mod cache;
 pub mod handlers;
+pub mod xata;
+pub mod types;
+pub mod repo;
+pub mod auth;
+pub mod spotify;
+pub mod musicbrainz;
+pub mod scrobbler;
+pub mod crypto;
 
 pub const BANNER: &str = r#"
   _       __     __   _____                 __    __    __
@@ -29,15 +38,12 @@ async fn main() -> Result<(), Error> {
 
     let cache = Cache::new()?;
 
-
-
     let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(&env::var("XATA_POSTGRES_URL")?)
         .await?;
 
     let conn = Arc::new(pool);
-
 
     let host = env::var("WEBSCROBBLER_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
     let port = env::var("WEBSCROBBLER_PORT")
@@ -46,7 +52,7 @@ async fn main() -> Result<(), Error> {
         .unwrap_or(7883);
 
     println!(
-        "Starting WebScrobbler WebHook @ {}",
+        "Starting WebScrobbler Webhook @ {}",
         format!("{}:{}", host, port).green()
     );
 
@@ -55,6 +61,7 @@ async fn main() -> Result<(), Error> {
             .app_data(Data::new(conn.clone()))
             .app_data(Data::new(cache.clone()))
             .service(handlers::index)
+            .service(handlers::handle_scrobble)
     })
     .bind((host, port))?
     .run()
