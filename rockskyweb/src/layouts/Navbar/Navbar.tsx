@@ -63,7 +63,7 @@ function Navbar() {
 
   const webscrobblerWebhook = useMemo(() => {
     if (data) {
-      return `https://webscrobbler.rocksky.app/${data.webscrobblers.uuid}`;
+      return `https://webscrobbler.rocksky.app/${data.uuid}`;
     }
     return "";
   }, [data]);

@@ -37,7 +37,7 @@ app.get("/", async (c) => {
     return c.json(record);
   }
 
-  return c.json(records[0]);
+  return c.json(records[0].webscrobblers);
 });
 
 app.put("/:id", async (c) => {
