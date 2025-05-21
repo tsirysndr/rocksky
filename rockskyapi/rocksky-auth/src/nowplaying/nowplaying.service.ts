@@ -355,7 +355,8 @@ export async function publishScrobble(ctx: Context, id: string) {
 export async function scrobbleTrack(
   ctx: Context,
   track: Track,
-  agent: Agent
+  agent: Agent,
+  userDid: string
 ): Promise<void> {
   let existingTrack = await ctx.client.db.tracks
     .filter(
@@ -450,7 +451,7 @@ export async function scrobbleTrack(
     );
   }
 
-  if (!existingAlbum?.uri) {
+  if (!existingAlbum?.uri || !existingAlbum?.uri?.includes(userDid)) {
     await putAlbumRecord(track, agent);
   }
 
@@ -465,7 +466,7 @@ export async function scrobbleTrack(
     )
     .getFirst();
 
-  if (!existingArtist?.uri) {
+  if (!existingArtist?.uri || !existingArtist?.uri?.includes(userDid)) {
     await putArtistRecord(track, agent);
   }
 
