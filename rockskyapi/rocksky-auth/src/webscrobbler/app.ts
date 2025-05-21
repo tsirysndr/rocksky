@@ -21,6 +21,16 @@ app.get("/", async (c) => {
     ignoreExpiration: true,
   });
 
+  const user = await ctx.client.db.users
+    .filter({
+      $any: [{ did }, { handle: did }],
+    })
+    .getFirst();
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
   const records = await ctx.db
     .select()
     .from(webscrobblers)
@@ -31,7 +41,7 @@ app.get("/", async (c) => {
   if (records.length === 0) {
     const record = await ctx.client.db.webscrobblers.create({
       uuid: uuid(),
-      user_id: did,
+      user_id: user.xata_id,
       name: "webscrobbler",
     });
     return c.json(record);
