@@ -451,10 +451,6 @@ export async function scrobbleTrack(
     );
   }
 
-  if (!existingAlbum?.uri || !existingAlbum?.uri?.includes(userDid)) {
-    await putAlbumRecord(track, agent);
-  }
-
   const existingArtist = await ctx.client.db.artists
     .filter(
       "sha256",
@@ -468,6 +464,10 @@ export async function scrobbleTrack(
 
   if (!existingArtist?.uri || !existingArtist?.uri?.includes(userDid)) {
     await putArtistRecord(track, agent);
+  }
+
+  if (!existingAlbum?.uri || !existingAlbum?.uri?.includes(userDid)) {
+    await putAlbumRecord(track, agent);
   }
 
   tries = 0;
@@ -541,6 +541,12 @@ export async function scrobbleTrack(
         await ctx.client.db.tracks.update(existingTrack.xata_id, {
           album_uri: album.uri,
         });
+
+        if (!album.artist_uri && existingTrack.artist_uri) {
+          await ctx.client.db.albums.update(album.xata_id, {
+            artist_uri: existingTrack.artist_uri,
+          });
+        }
       }
     }
     // end update album uri
