@@ -542,7 +542,7 @@ export async function scrobbleTrack(
           album_uri: album.uri,
         });
 
-        if (!album.artist_uri && existingTrack.artist_uri) {
+        if (!album.artist_uri && existingTrack?.artist_uri) {
           await ctx.client.db.albums.update(album.xata_id, {
             artist_uri: existingTrack.artist_uri,
           });
