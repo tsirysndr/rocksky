@@ -732,7 +732,7 @@ pub async fn update_artist_uri(tx: &mut sqlx::Transaction<'_, Postgres>, user_id
   sqlx::query(r#"
     UPDATE artists
     SET uri = $2
-    WHERE sha256 = $1
+    WHERE sha256 = $1 AND uri IS NULL
   "#)
   .bind(&hash)
   .bind(uri)
@@ -788,7 +788,7 @@ pub async fn update_album_uri(tx: &mut sqlx::Transaction<'_, Postgres>, user_id:
   sqlx::query(r#"
     UPDATE albums
     SET uri = $2
-    WHERE sha256 = $1
+    WHERE sha256 = $1 AND uri IS NULL
   "#)
   .bind(&hash)
   .bind(uri)
