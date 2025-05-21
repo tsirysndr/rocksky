@@ -10,19 +10,65 @@ use crate::read_payload;
 
 pub async fn get_stats(payload: &mut web::Payload, _req: &HttpRequest, conn: Arc<Mutex<Connection>>) -> Result<HttpResponse, Error> {
     let body = read_payload!(payload);
+
     let params = serde_json::from_slice::<GetStatsParams>(&body)?;
 
     let conn = conn.lock().unwrap();
     let mut stmt = conn.prepare("SELECT COUNT(*) FROM scrobbles s LEFT JOIN users u ON s.user_id = u.id WHERE u.did = ? OR u.handle = ?")?;
     let scrobbles: i64 = stmt.query_row([&params.user_did, &params.user_did], |row| row.get(0))?;
 
-    let mut stmt = conn.prepare("SELECT COUNT(*) FROM user_artists LEFT JOIN users u ON user_artists.user_id = u.id WHERE u.did = ? OR u.handle = ?")?;
+    let mut stmt = conn.prepare(r#"
+        SELECT COUNT(*) FROM (
+            SELECT
+                s.artist_id AS id,
+                ar.name AS artist_name,
+                ar.picture AS picture,
+                ar.sha256 AS sha256,
+                ar.uri AS uri,
+                COUNT(*) AS play_count,
+                COUNT(DISTINCT s.user_id) AS unique_listeners
+            FROM
+                scrobbles s
+            LEFT JOIN
+                artists ar ON s.artist_id = ar.id
+            LEFT JOIN
+                users u ON s.user_id = u.id
+            WHERE
+                s.artist_id IS NOT NULL AND (u.did = ? OR u.handle = ?)
+            GROUP BY
+                s.artist_id, ar.name, ar.uri, ar.picture, ar.sha256
+        )
+    "#)?;
     let artists: i64 = stmt.query_row([&params.user_did, &params.user_did], |row| row.get(0))?;
 
     let mut stmt = conn.prepare("SELECT COUNT(*) FROM loved_tracks LEFT JOIN users u ON loved_tracks.user_id = u.id WHERE u.did = ? OR u.handle = ?")?;
     let loved_tracks: i64 = stmt.query_row([&params.user_did, &params.user_did], |row| row.get(0))?;
 
-    let mut stmt = conn.prepare("SELECT COUNT(*) FROM user_albums LEFT JOIN users u ON user_albums.user_id = u.id WHERE u.did = ? OR u.handle = ?")?;
+    let mut stmt = conn.prepare(r#"SELECT COUNT(*) FROM (
+        SELECT
+          s.album_id AS id,
+          a.title AS title,
+          ar.name AS artist,
+          ar.uri AS artist_uri,
+          a.album_art AS album_art,
+          a.release_date,
+          a.year,
+          a.uri,
+          a.sha256,
+          COUNT(*) AS play_count,
+          COUNT(DISTINCT s.user_id) AS unique_listeners
+        FROM
+            scrobbles s
+        LEFT JOIN
+            albums a ON s.album_id = a.id
+        LEFT JOIN
+            artists ar ON a.artist = ar.name
+        LEFT JOIN
+            users u ON s.user_id = u.id
+        WHERE s.album_id IS NOT NULL AND (u.did = ? OR u.handle = ?)
+        GROUP BY
+            s.album_id, a.title, ar.name, a.release_date, a.year, a.uri, a.album_art, a.sha256, ar.uri
+    )"#)?;
     let albums: i64 = stmt.query_row([&params.user_did, &params.user_did], |row| row.get(0))?;
 
     let mut stmt = conn.prepare("SELECT COUNT(*) FROM user_tracks LEFT JOIN users u ON user_tracks.user_id = u.id WHERE u.did = ? OR u.handle = ?")?;
