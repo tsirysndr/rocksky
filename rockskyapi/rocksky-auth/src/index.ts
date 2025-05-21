@@ -30,6 +30,7 @@ import search from "./search/app";
 import spotify from "./spotify/app";
 import "./tracing";
 import users from "./users/app";
+import webscrobbler from "./webscrobbler/app";
 
 subscribe(ctx);
 
@@ -518,6 +519,8 @@ app.get("/albums/:sha256/tracks", async (c) => {
 app.route("/users", users);
 
 app.route("/search", search);
+
+app.route("/webscrobbler", webscrobbler);
 
 const server = serve({
   fetch: app.fetch,

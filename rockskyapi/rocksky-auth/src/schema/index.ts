@@ -10,6 +10,7 @@ import shoutReports from "./shout-reports";
 import shouts from "./shouts";
 import tracks from "./tracks";
 import users from "./users";
+import webscrobblers from "./webscrobblers";
 
 export default {
   profileShouts,
@@ -24,4 +25,5 @@ export default {
   playlists,
   playlistTracks,
   apiKeys,
+  webscrobblers,
 };
