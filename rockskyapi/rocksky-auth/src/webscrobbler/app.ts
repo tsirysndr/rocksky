@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import { env } from "lib/env";
 import users from "schema/users";
 import webscrobblers from "schema/webscrobblers";
+import { v4 as uuid } from "uuid";
 
 const app = new Hono();
 
@@ -27,7 +28,16 @@ app.get("/", async (c) => {
     .where(eq(users.did, did))
     .execute();
 
-  return c.json(records);
+  if (records.length === 0) {
+    const record = await ctx.client.db.webscrobblers.create({
+      uuid: uuid(),
+      user_id: did,
+      name: "webscrobbler",
+    });
+    return c.json(record);
+  }
+
+  return c.json(records[0]);
 });
 
 app.put("/:id", async (c) => {
