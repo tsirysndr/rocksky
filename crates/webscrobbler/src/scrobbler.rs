@@ -74,7 +74,22 @@ pub async fn scrobble(pool: &Pool<Postgres>, cache: &Cache, scrobble: ScrobbleRe
         let spotify_token = refresh_token(&spotify_token).await?;
         let spotify_client = SpotifyClient::new(&spotify_token.access_token);
 
-        let result = spotify_client.search(&format!(r#"track:"{}" artist:"{}""#, scrobble.data.song.parsed.track, scrobble.data.song.parsed.artist)).await?;
+        let query = match scrobble.data.song.parsed.artist.contains(" x ") {
+            true => {
+                let artists = scrobble
+                    .data
+                    .song
+                    .parsed
+                    .artist
+                    .split(" x ")
+                    .map(|a| format!(r#"artist:"{}""#, a))
+                    .collect::<Vec<_>>()
+                    .join(" AND ");
+                format!(r#"track:"{}" AND ({})"#, scrobble.data.song.parsed.track, artists)
+            },
+            false => format!(r#"track:"{}" artist:"{}""#, scrobble.data.song.parsed.track, scrobble.data.song.parsed.artist),
+        };
+        let result = spotify_client.search(&query).await?;
 
         if let Some(track) = result.tracks.items.first() {
             println!("{}", "Spotify (track)".yellow());
