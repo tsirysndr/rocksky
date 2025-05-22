@@ -46,7 +46,11 @@ async fn handle_scrobble(
 
   let body = read_payload!(payload);
   let params = serde_json::from_slice::<ScrobbleRequest>(&body)
-    .map_err(|err| actix_web::error::ErrorBadRequest(format!("Failed to parse JSON: {}", err)))?;
+    .map_err(|err| {
+      let body = String::from_utf8_lossy(&body);
+      println!("Failed to parse JSON: {}", body);
+      println!("Failed to parse JSON: {}", err);
+      actix_web::error::ErrorBadRequest(format!("Failed to parse JSON: {}", err))})?;
 
   println!("Parsed scrobble request: {:#?}", params);
 
