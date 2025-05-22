@@ -80,11 +80,12 @@ pub async fn scrobble(pool: &Pool<Postgres>, cache: &Cache, scrobble: ScrobbleRe
                     .split(" x ")
                     .map(|a| format!(r#"artist:"{}""#, a.trim()))
                     .collect::<Vec<_>>()
-                    .join(" AND ");
-                format!(r#"track:"{}" AND ({})"#, scrobble.data.song.parsed.track, artists)
+                    .join(" ");
+                format!(r#"track:"{}" {}"#, scrobble.data.song.parsed.track, artists)
             }
             false => format!(r#"track:"{}" artist:"{}""#, scrobble.data.song.parsed.track, scrobble.data.song.parsed.artist.trim()),
         };
+
 
         let result = spotify_client.search(&query).await?;
 
