@@ -44,7 +44,7 @@ pub struct Metadata {
     pub start_timestamp: u64,
     pub track_url: Option<String>,
     pub user_play_count: Option<u32>,
-    pub userloved: bool,
+    pub userloved: Option<bool>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
