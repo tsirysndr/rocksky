@@ -20,6 +20,7 @@ export const useProfileStatsByDidQuery = (did: string) =>
     queryKey: ["profile", "stats", did],
     queryFn: () => getProfileStatsByDid(did),
     enabled: !!did,
+    refetchInterval: 4500,
   });
 
 export const useRecentTracksByDidQuery = (did: string, offset = 0, size = 10) =>

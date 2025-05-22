@@ -7,7 +7,7 @@ import { Modal, ModalBody, ModalHeader } from "baseui/modal";
 import { PLACEMENT, StatefulPopover } from "baseui/popover";
 import { DURATION, useSnackbar } from "baseui/snackbar";
 import { StatefulTooltip } from "baseui/tooltip";
-import { HeadingSmall, LabelMedium } from "baseui/typography";
+import { LabelMedium } from "baseui/typography";
 import copy from "copy-to-clipboard";
 import { useAtomValue, useSetAtom } from "jotai";
 import numeral from "numeral";
@@ -147,21 +147,25 @@ function Navbar() {
                       target="_blank"
                       className="no-underline"
                     >
-                      <LabelMedium color="#00000080" className="text-center">
+                      <LabelMedium color="#ff2876" className="text-center">
                         @{profile.handle}
                       </LabelMedium>
                     </a>
 
-                    <div className="mt-[10px]">
-                      <LabelMedium>SCROBBLES</LabelMedium>
-                      <HeadingSmall
+                    <div className="flex flex-row mt-[5px]">
+                      <LabelMedium
                         margin={0}
                         style={{
                           textAlign: "center",
+                          marginRight: 5,
                         }}
+                        color="rgba(66, 87, 108, 0.65)"
                       >
                         {numeral(profileStats.data.scrobbles).format("0,0")}
-                      </HeadingSmall>
+                      </LabelMedium>
+                      <LabelMedium color="rgba(66, 87, 108, 0.65)">
+                        scrobbles
+                      </LabelMedium>
                     </div>
                   </div>
                 </div>
