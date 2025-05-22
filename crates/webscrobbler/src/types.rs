@@ -43,7 +43,7 @@ pub struct Metadata {
     pub label: String,
     pub start_timestamp: u64,
     pub track_url: Option<String>,
-    pub user_play_count: u32,
+    pub user_play_count: Option<u32>,
     pub userloved: bool,
 }
 
