@@ -7,13 +7,16 @@ import { Modal, ModalBody, ModalHeader } from "baseui/modal";
 import { PLACEMENT, StatefulPopover } from "baseui/popover";
 import { DURATION, useSnackbar } from "baseui/snackbar";
 import { StatefulTooltip } from "baseui/tooltip";
-import { LabelMedium } from "baseui/typography";
+import { HeadingSmall, LabelMedium } from "baseui/typography";
 import copy from "copy-to-clipboard";
 import { useAtomValue, useSetAtom } from "jotai";
+import numeral from "numeral";
+import * as R from "ramda";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { profileAtom } from "../../atoms/profile";
 import { API_URL } from "../../consts";
+import { useProfileStatsByDidQuery } from "../../hooks/useProfile";
 
 const Container = styled.div`
   position: fixed;
@@ -47,6 +50,9 @@ function Navbar() {
   const navigate = useNavigate();
   const jwt = localStorage.getItem("token");
   const { enqueue } = useSnackbar();
+  const profileStats = useProfileStatsByDidQuery(
+    R.propOr(undefined, "did", profile)
+  );
 
   const { data } = useQuery({
     queryKey: ["webscrobbler"],
@@ -99,58 +105,121 @@ function Navbar() {
             Body: {
               style: {
                 zIndex: 2,
-                boxShadow: "none",
+                backgroundColor: "#fff",
+                width: "282px",
               },
             },
           }}
           content={({ close }) => (
-            <NestedMenus>
-              <StatefulMenu
-                items={[
-                  {
-                    id: "profile",
-                    label: <LabelMedium>Profile</LabelMedium>,
-                  },
-                  {
-                    id: "api-applications",
-                    label: <LabelMedium>API Applications</LabelMedium>,
-                  },
-                  {
-                    id: "webscrobbler",
-                    label: <LabelMedium>Web Scrobbler</LabelMedium>,
-                  },
-                  {
-                    id: "signout",
-                    label: <LabelMedium>Sign out</LabelMedium>,
-                  },
-                ]}
-                onItemSelect={({ item }) => {
-                  switch (item.id) {
-                    case "profile":
-                      navigate(`/profile/${profile.handle}`);
-                      break;
-                    case "api-applications":
-                      navigate("/apikeys");
-                      break;
-                    case "signout":
-                      setProfile(null);
-                      localStorage.removeItem("token");
-                      localStorage.removeItem("did");
-                      window.location.href = "/";
-                      break;
-                    case "webscrobbler":
-                      setIsOpen(true);
-                      break;
-                    default:
-                      break;
-                  }
-                  close();
-                }}
-                overrides={{
-                  List: { style: { width: "200px" } },
-                }}
-              />
-            </NestedMenus>
+            <>
+              <div>
+                <div
+                  style={{
+                    padding: "20px 20px",
+                    backgroundColor: "#fff",
+                  }}
+                  className="flex items-center justify-center"
+                >
+                  <div className="flex flex-col items-center">
+                    <div className="mb-[5px]">
+                      <Link to={`/profile/${profile.handle}`}>
+                        <Avatar
+                          src={profile.avatar}
+                          name={profile.displayName}
+                          size="80px"
+                        />
+                      </Link>
+                    </div>
+
+                    <Link
+                      to={`/profile/${profile.handle}`}
+                      className="no-underline"
+                    >
+                      <LabelMedium
+                        className="text-center"
+                        style={{ fontSize: 20 }}
+                      >
+                        {profile.displayName}
+                      </LabelMedium>
+                    </Link>
+                    <a
+                      href={`https://bsky.app/profile/${profile.handle}`}
+                      target="_blank"
+                      className="no-underline"
+                    >
+                      <LabelMedium color="#00000080" className="text-center">
+                        @{profile.handle}
+                      </LabelMedium>
+                    </a>
+
+                    <div className="mt-[10px]">
+                      <LabelMedium>SCROBBLES</LabelMedium>
+                      <HeadingSmall
+                        margin={0}
+                        style={{
+                          textAlign: "center",
+                        }}
+                      >
+                        {numeral(profileStats.data.scrobbles).format("0,0")}
+                      </HeadingSmall>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <NestedMenus>
+                <StatefulMenu
+                  items={[
+                    {
+                      id: "api-applications",
+                      label: <LabelMedium>API Applications</LabelMedium>,
+                    },
+                    {
+                      id: "webscrobbler",
+                      label: <LabelMedium>Web Scrobbler</LabelMedium>,
+                    },
+                    {
+                      id: "signout",
+                      label: <LabelMedium>Sign out</LabelMedium>,
+                    },
+                  ]}
+                  onItemSelect={({ item }) => {
+                    switch (item.id) {
+                      case "profile":
+                        navigate(`/profile/${profile.handle}`);
+                        break;
+                      case "api-applications":
+                        navigate("/apikeys");
+                        break;
+                      case "signout":
+                        setProfile(null);
+                        localStorage.removeItem("token");
+                        localStorage.removeItem("did");
+                        window.location.href = "/";
+                        break;
+                      case "webscrobbler":
+                        setIsOpen(true);
+                        break;
+                      default:
+                        break;
+                    }
+                    close();
+                  }}
+                  overrides={{
+                    List: {
+                      style: {
+                        boxShadow: "none",
+                        width: "282px",
+                      },
+                    },
+                    Option: {
+                      style: {
+                        height: "44px",
+                      },
+                    },
+                  }}
+                />
+              </NestedMenus>
+            </>
           )}
         >
           <button
