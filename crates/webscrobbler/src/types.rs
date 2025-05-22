@@ -668,4 +668,26 @@ mod tests {
         let result = serde_json::from_str::<ScrobbleRequest>(json);
         assert!(result.is_ok(), "Failed to parse JSON: {:?}", result.err());
     }
+
+    #[test]
+    fn test_artists_parsing() {
+        let track = "Let It Talk To Me";
+        let artist = " Sean Paul x INNA";
+        let query = match artist.contains(" x ") {
+            true => {
+                let artists = artist
+                    .split(" x ")
+                    .map(|a| format!(r#"artist:"{}""#, a.trim()))
+                    .collect::<Vec<_>>()
+                    .join(" AND ");
+                format!(r#"track:"{}" AND ({})"#, track, artists)
+            }
+            false => format!(r#"track:"{}" artist:"{}""#, track, artist.trim()),
+        };
+
+        assert_eq!(
+            query,
+            r#"track:"Let It Talk To Me" AND (artist:"Sean Paul" AND artist:"INNA")"#
+        );
+    }
 }
