@@ -50,7 +50,7 @@ pub struct Metadata {
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct NoRegex {
-    pub album: String,
+    pub album: Option<String>,
     pub album_artist: Option<String>,
     pub artist: String,
     pub duration: Option<u32>,
@@ -60,7 +60,7 @@ pub struct NoRegex {
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Parsed {
-    pub album: String,
+    pub album: Option<String>,
     pub album_artist: Option<String>,
     pub artist: String,
     pub current_time: Option<u32>,
@@ -583,6 +583,87 @@ mod tests {
         "time": 1747753702338
       }
         "#;
+
+        let result = serde_json::from_str::<ScrobbleRequest>(json);
+        assert!(result.is_ok(), "Failed to parse JSON: {:?}", result.err());
+    }
+
+    #[test]
+    fn test_youtube_scrobble_request() {
+        let json = r#"
+      {
+  "eventName": "nowplaying",
+  "time": 1747899797294,
+  "data": {
+    "song": {
+      "parsed": {
+        "track": "Let It Talk To Me",
+        "artist": "Sean Paul x INNA",
+        "albumArtist": null,
+        "album": null,
+        "duration": 155,
+        "uniqueID": "nkRyAVQdqAA",
+        "currentTime": 11,
+        "isPlaying": true,
+        "isPodcast": false,
+        "originUrl": "https://youtu.be/nkRyAVQdqAA",
+        "scrobblingDisallowedReason": null,
+        "trackArt": null
+      },
+      "processed": {
+        "track": "Let It Talk To Me",
+        "artist": "Sean Paul x INNA",
+        "albumArtist": null,
+        "duration": 154.661
+      },
+      "noRegex": {
+        "track": "Let It Talk To Me",
+        "artist": "Sean Paul x INNA",
+        "albumArtist": null,
+        "duration": null
+      },
+      "flags": {
+        "isScrobbled": false,
+        "isCorrectedByUser": false,
+        "isRegexEditedByUser": {
+          "track": false,
+          "artist": false,
+          "album": false,
+          "albumArtist": false
+        },
+        "isAlbumFetched": true,
+        "isValid": true,
+        "isMarkedAsPlaying": true,
+        "isSkipped": false,
+        "isReplaying": false,
+        "hasBlockedTag": false,
+        "isLovedInService": null,
+        "finishedProcessing": true
+      },
+      "metadata": {
+        "userloved": false,
+        "startTimestamp": 1747899788,
+        "label": "YouTube",
+        "trackArtUrl": "https://coverartarchive.org/release/b74fe4b2-d633-4607-af93-b277b8b6a6b6/front-500",
+        "artistUrl": "https://www.last.fm/music/Sean+Paul+x+INNA",
+        "trackUrl": "https://www.last.fm/music/Sean+Paul+x+INNA/_/Let+It+Talk+To+Me",
+        "userPlayCount": 0
+      },
+      "connector": {
+        "label": "YouTube",
+        "matches": [
+          "*://www.youtube.com/*",
+          "*://m.youtube.com/*"
+        ],
+        "js": "youtube.js",
+        "id": "youtube",
+        "usesBlocklist": true
+      },
+      "controllerTabId": 2105807456
+    }
+  }
+}
+      "#;
 
         let result = serde_json::from_str::<ScrobbleRequest>(json);
         assert!(result.is_ok(), "Failed to parse JSON: {:?}", result.err());
