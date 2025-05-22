@@ -86,6 +86,18 @@ pub async fn scrobble(pool: &Pool<Postgres>, cache: &Cache, scrobble: ScrobbleRe
             false => format!(r#"track:"{}" artist:"{}""#, scrobble.data.song.parsed.track, scrobble.data.song.parsed.artist.trim()),
         };
 
+        let query = match scrobble.data.song.parsed.artist.contains(", ") {
+            true => {
+                let artists = scrobble.data.song.parsed.artist
+                    .split(", ")
+                    .map(|a| format!(r#"artist:"{}""#, a.trim()))
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                format!(r#"track:"{}" {}"#, scrobble.data.song.parsed.track, artists)
+            }
+            false => format!(r#"track:"{}" artist:"{}""#, scrobble.data.song.parsed.track, scrobble.data.song.parsed.artist.trim()),
+        };
+
 
         let result = spotify_client.search(&query).await?;
 
