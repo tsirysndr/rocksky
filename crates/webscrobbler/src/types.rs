@@ -689,5 +689,24 @@ mod tests {
             query,
             r#"track:"Let It Talk To Me" artist:"Sean Paul" artist:"INNA""#
         );
+
+        let artist = "Sean Paul, INNA";
+        let track = "Let It Talk To Me";
+        match artist.contains(", ") {
+            true => {
+                let artists = artist
+                    .split(", ")
+                    .map(|a| format!(r#"artist:"{}""#, a.trim()))
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                format!(r#"track:"{}" {}"#, track, artists)
+            }
+            false => format!(r#"track:"{}" artist:"{}""#, track, artist.trim()),
+        };
+
+        assert_eq!(
+            query,
+            r#"track:"Let It Talk To Me" artist:"Sean Paul" artist:"INNA""#
+        );
     }
 }
