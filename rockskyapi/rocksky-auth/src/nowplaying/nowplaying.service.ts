@@ -161,12 +161,11 @@ export async function putSongRecord(
       ? track.copyrightMessage
       : undefined,
     createdAt: new Date().toISOString(),
-    spotifyLink: track.spotifyLink,
+    spotifyLink: !!track.spotifyLink ? track.spotifyLink : undefined,
   };
 
   if (!Song.validateRecord(record).success) {
     console.log(Song.validateRecord(record));
-    console.log(JSON.stringify(record, null, 2));
     throw new Error("Invalid record");
   }
 
