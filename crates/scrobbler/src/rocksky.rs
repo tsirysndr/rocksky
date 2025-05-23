@@ -1,7 +1,7 @@
 use anyhow::Error;
 use reqwest::Client;
 
-use crate::{auth::generate_token, cache::Cache, response, types::Track};
+use crate::{auth::generate_token, cache::Cache, types::Track};
 
 const ROCKSKY_API: &str = "https://api.rocksky.app";
 
