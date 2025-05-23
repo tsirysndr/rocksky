@@ -29,7 +29,9 @@ app.get("/login", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
+    ignoreExpiration: true,
+  });
 
   const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
   if (!user) {
@@ -114,7 +116,9 @@ app.post("/join", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
+    ignoreExpiration: true,
+  });
 
   const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
   if (!user) {
@@ -233,7 +237,9 @@ app.put("/pause", async (c) => {
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   const { did } =
-    bearer && bearer !== "null" ? jwt.verify(bearer, env.JWT_SECRET) : {};
+    bearer && bearer !== "null"
+      ? jwt.verify(bearer, env.JWT_SECRET, { ignoreExpiration: true })
+      : {};
 
   if (!did) {
     c.status(401);
@@ -297,7 +303,9 @@ app.put("/play", async (c) => {
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   const { did } =
-    bearer && bearer !== "null" ? jwt.verify(bearer, env.JWT_SECRET) : {};
+    bearer && bearer !== "null"
+      ? jwt.verify(bearer, env.JWT_SECRET, { ignoreExpiration: true })
+      : {};
 
   if (!did) {
     c.status(401);
@@ -361,7 +369,9 @@ app.post("/next", async (c) => {
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   const { did } =
-    bearer && bearer !== "null" ? jwt.verify(bearer, env.JWT_SECRET) : {};
+    bearer && bearer !== "null"
+      ? jwt.verify(bearer, env.JWT_SECRET, { ignoreExpiration: true })
+      : {};
 
   if (!did) {
     c.status(401);
@@ -425,7 +435,9 @@ app.post("/previous", async (c) => {
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   const { did } =
-    bearer && bearer !== "null" ? jwt.verify(bearer, env.JWT_SECRET) : {};
+    bearer && bearer !== "null"
+      ? jwt.verify(bearer, env.JWT_SECRET, { ignoreExpiration: true })
+      : {};
 
   if (!did) {
     c.status(401);
@@ -492,7 +504,9 @@ app.put("/seek", async (c) => {
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   const { did } =
-    bearer && bearer !== "null" ? jwt.verify(bearer, env.JWT_SECRET) : {};
+    bearer && bearer !== "null"
+      ? jwt.verify(bearer, env.JWT_SECRET, { ignoreExpiration: true })
+      : {};
 
   if (!did) {
     c.status(401);

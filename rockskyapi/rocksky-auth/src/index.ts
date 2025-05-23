@@ -90,7 +90,9 @@ app.post("/now-playing", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
+    ignoreExpiration: true,
+  });
 
   const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
   if (!user) {
@@ -124,7 +126,9 @@ app.get("/now-playing", async (c) => {
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
   const payload =
-    bearer && bearer !== "null" ? jwt.verify(bearer, env.JWT_SECRET) : {};
+    bearer && bearer !== "null"
+      ? jwt.verify(bearer, env.JWT_SECRET, { ignoreExpiration: true })
+      : {};
   const did = c.req.query("did") || payload.did;
 
   if (!did) {
@@ -342,7 +346,9 @@ app.get("/scrobbles", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
+    ignoreExpiration: true,
+  });
 
   const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
   if (!user) {
@@ -384,7 +390,9 @@ app.post("/tracks", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
+    ignoreExpiration: true,
+  });
 
   const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
   if (!user) {

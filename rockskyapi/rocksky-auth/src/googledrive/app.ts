@@ -21,7 +21,9 @@ app.get("/login", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
+    ignoreExpiration: true,
+  });
 
   const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
   if (!user) {
@@ -103,7 +105,9 @@ app.post("/join", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
+    ignoreExpiration: true,
+  });
 
   const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
   if (!user) {
@@ -158,7 +162,9 @@ app.get("/files", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
+    ignoreExpiration: true,
+  });
 
   const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
   if (!user) {
@@ -239,7 +245,9 @@ app.get("/files/:id", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
+    ignoreExpiration: true,
+  });
 
   const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
   if (!user) {
@@ -268,7 +276,9 @@ app.get("/files/:id/download", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET);
+  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
+    ignoreExpiration: true,
+  });
 
   const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
   if (!user) {
