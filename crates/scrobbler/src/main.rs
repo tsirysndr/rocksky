@@ -56,6 +56,8 @@ async fn main() -> Result<(), Error> {
             .app_data(Data::new(conn.clone()))
             .app_data(Data::new(cache.clone()))
             .service(handlers::handle_scrobble)
+            .service(handlers::handle_nowplaying)
+            .service(handlers::handle_submission)
             .service(handlers::index)
             .service(handlers::handle_get)
     })

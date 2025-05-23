@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, sqlx::FromRow, Deserialize, Clone)]
+#[derive(Debug, sqlx::FromRow, Serialize, Deserialize, Clone)]
 pub struct User {
     pub xata_id: String,
     pub display_name: String,

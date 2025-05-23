@@ -41,3 +41,51 @@ pub fn validate_required_params(
         .map(|&s| form.get(s).unwrap().to_string())
         .collect())
 }
+
+pub fn validate_handshake_params(
+    form: &BTreeMap<String, String>,
+    required_params: &[&str],
+) -> Result<Vec<String>, Error> {
+    for &param in required_params {
+        if !form.contains_key(param) {
+            return Err(Error::msg(format!("Missing required parameter: {}", param)));
+        }
+    }
+
+    Ok(required_params
+        .iter()
+        .map(|&s| form.get(s).unwrap().to_string())
+        .collect())
+}
+
+pub fn validate_nowplaying_params(
+    form: &BTreeMap<String, String>,
+    required_params: &[&str],
+) -> Result<Vec<String>, Error> {
+    for &param in required_params {
+        if !form.contains_key(param) {
+            return Err(Error::msg(format!("Missing required parameter: {}", param)));
+        }
+    }
+
+    Ok(required_params
+        .iter()
+        .map(|&s| form.get(s).unwrap().to_string())
+        .collect())
+}
+
+pub fn validate_submission_params(
+    form: &BTreeMap<String, String>,
+    required_params: &[&str],
+) -> Result<Vec<String>, Error> {
+    for &param in required_params {
+        if !form.contains_key(param) {
+            return Err(Error::msg(format!("Missing required parameter: {}", param)));
+        }
+    }
+
+    Ok(required_params
+        .iter()
+        .map(|&s| form.get(s).unwrap().to_string())
+        .collect())
+}
