@@ -1,6 +1,8 @@
-use std::{env, sync::Arc};
+use std::{env, sync::Arc, time::Duration};
 
-use actix_web::{web::Data, App, HttpServer};
+use actix_session::SessionExt as _;
+use actix_limitation::{Limiter, RateLimiter};
+use actix_web::{dev::ServiceRequest, web::{self, Data}, App, HttpServer};
 use anyhow::Error;
 use cache::Cache;
 use dotenv::dotenv;
@@ -56,8 +58,23 @@ async fn main() -> Result<(), Error> {
         format!("{}:{}", host, port).green()
     );
 
+     let limiter = web::Data::new(
+        Limiter::builder("redis://127.0.0.1")
+            .key_by(|req: &ServiceRequest| {
+                req.get_session()
+                    .get(&"session-id")
+                    .unwrap_or_else(|_| req.cookie(&"rate-api-id").map(|c| c.to_string()))
+            })
+            .limit(100)
+            .period(Duration::from_secs(60)) // 60 minutes
+            .build()
+            .unwrap(),
+    );
+
     HttpServer::new(move || {
         App::new()
+            .wrap(RateLimiter::default())
+            .app_data(limiter.clone())
             .app_data(Data::new(conn.clone()))
             .app_data(Data::new(cache.clone()))
             .service(handlers::index)
