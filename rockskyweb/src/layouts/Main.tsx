@@ -178,16 +178,8 @@ function Main(props: MainProps) {
         </div>
       </Flex>
       {withRightPane && (
-        <RightPane style={{ position: "relative", width: 300 }}>
-          <div
-            style={{
-              position: "fixed",
-              top: 100,
-              width: 300,
-              padding: 20,
-              backgroundColor: "#fff",
-            }}
-          >
+        <RightPane className="relative w-[300px]">
+          <div className="fixed top-[100px] w-[300px] bg-white p-[20px]">
             <div style={{ marginBottom: 30 }}>
               <Search />
             </div>
@@ -258,35 +250,38 @@ function Main(props: MainProps) {
               </div>
             )}
 
-            <div style={{ marginTop: 40 }}>
+            <div className="mt-[40px]">
               <ScrobblesAreaChart />
             </div>
             <ExternalLinks />
-            <div style={{ marginTop: 40, display: "inline-flex" }}>
+            <div className="inline-flex mt-[40px]">
               <Link
                 href="https://docs.rocksky.app/introduction-918639m0"
                 target="_blank"
-                style={{ marginRight: 10 }}
+                className="mr-[10px]"
               >
                 About
               </Link>
               <Link
                 href="https://docs.rocksky.app/faq-918661m0"
                 target="_blank"
-                style={{ marginRight: 10 }}
+                className="mr-[10px]"
               >
                 FAQ
               </Link>
               <Link
                 href="https://doc.rocksky.app/"
                 target="_blank"
-                style={{ marginRight: 10 }}
+                className="mr-[10px]"
               >
                 API Docs
               </Link>
-              <Text style={{ marginRight: 10 }} onClick={displaySurvey}>
+              <Text className="mr-[10px]" onClick={displaySurvey}>
                 Feedback
               </Text>
+              <Link href="https://discord.gg/EVcBy2fVa3" target="_blank">
+                Discord
+              </Link>
             </div>
           </div>
         </RightPane>
