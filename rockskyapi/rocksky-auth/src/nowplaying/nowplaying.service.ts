@@ -231,7 +231,7 @@ async function putScrobbleRecord(
     createdAt: track.timestamp
       ? dayjs.unix(track.timestamp).toISOString()
       : new Date().toISOString(),
-    spotifyLink: track.spotifyLink,
+    spotifyLink: !!track.spotifyLink ? track.spotifyLink : undefined,
   };
 
   if (!Scrobble.validateRecord(record).success) {
