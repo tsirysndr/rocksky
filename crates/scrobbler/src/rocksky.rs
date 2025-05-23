@@ -1,7 +1,7 @@
 use anyhow::Error;
 use reqwest::Client;
 
-use crate::{auth::generate_token, cache::Cache, types::Track};
+use crate::{auth::generate_token, cache::Cache, response, types::Track};
 
 const ROCKSKY_API: &str = "https://api.rocksky.app";
 
@@ -30,8 +30,13 @@ pub async fn scrobble(cache: &Cache, did: &str, track: Track, timestamp: u64) ->
     .send()
     .await?;
 
-  if !response.status().is_success() {
-    return Err(Error::msg(format!("Failed to scrobble track: {}", response.text().await?)));
+  let status = response.status();
+  println!("Response status: {}", status);
+  if !status.is_success() {
+    let response_text = response.text().await?;
+    println!("did: {}", did);
+    println!("Failed to scrobble track: {}", response_text);
+    return Err(Error::msg(format!("Failed to scrobble track: {}", response_text)));
   }
 
   Ok(())
