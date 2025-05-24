@@ -112,6 +112,12 @@ pub async fn handle_submit_listens(
     };
     let token = token.trim_start_matches("Token ");
     let token = token.trim_start_matches("Bearer ");
+    let token = token.trim_start_matches("token ");
+    let token = token.trim_start_matches("bearer ");
+
+    if token.is_empty() {
+        return Ok(HttpResponse::Unauthorized().finish());
+    }
 
     let payload = read_payload!(payload);
     let body = String::from_utf8_lossy(&payload);
