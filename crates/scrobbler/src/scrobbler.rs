@@ -396,7 +396,7 @@ pub async fn scrobble_listenbrainz(pool: &Pool<Postgres>, cache: &Cache, req: Su
             if let Some(did) = user {
                 did
             } else {
-                return Err(Error::msg(format!("Failed to decode token: {}", e)));
+                return Err(Error::msg(format!("Failed to decode token: {} {}", e, token)));
             }
         }
     };
