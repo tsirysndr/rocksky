@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use anyhow::Error;
 
-pub fn validate_required_params(
+pub fn validate_scrobble_params(
     form: &BTreeMap<String, String>,
     required_params: &[&str],
 ) -> Result<Vec<String>, Error> {
@@ -28,53 +28,13 @@ pub fn validate_required_params(
         }
     }
 
-    let method = form.get("method").map(String::as_str);
-    if method != Some("track.scrobble") {
-        return Err(Error::msg(format!(
-            "Unsupported method: {}",
-            method.unwrap()
-        )));
-    }
-
     Ok(required_params
         .iter()
         .map(|&s| form.get(s).unwrap().to_string())
         .collect())
 }
 
-pub fn validate_handshake_params(
-    form: &BTreeMap<String, String>,
-    required_params: &[&str],
-) -> Result<Vec<String>, Error> {
-    for &param in required_params {
-        if !form.contains_key(param) {
-            return Err(Error::msg(format!("Missing required parameter: {}", param)));
-        }
-    }
-
-    Ok(required_params
-        .iter()
-        .map(|&s| form.get(s).unwrap().to_string())
-        .collect())
-}
-
-pub fn validate_nowplaying_params(
-    form: &BTreeMap<String, String>,
-    required_params: &[&str],
-) -> Result<Vec<String>, Error> {
-    for &param in required_params {
-        if !form.contains_key(param) {
-            return Err(Error::msg(format!("Missing required parameter: {}", param)));
-        }
-    }
-
-    Ok(required_params
-        .iter()
-        .map(|&s| form.get(s).unwrap().to_string())
-        .collect())
-}
-
-pub fn validate_submission_params(
+pub fn validate_required_params(
     form: &BTreeMap<String, String>,
     required_params: &[&str],
 ) -> Result<Vec<String>, Error> {
