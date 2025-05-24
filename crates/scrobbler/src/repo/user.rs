@@ -1,7 +1,7 @@
 use anyhow::Error;
 use sqlx::{Pool, Postgres};
 
-use crate::xata::user::User;
+use crate::xata::user::{User, UserWithoutSecret};
 
 
 pub async fn get_user_by_apikey(pool: &Pool<Postgres>, apikey: &str) -> Result<Option<User>, Error> {
@@ -22,8 +22,8 @@ pub async fn get_user_by_apikey(pool: &Pool<Postgres>, apikey: &str) -> Result<O
 }
 
 
-pub async fn get_user_by_did(pool: &Pool<Postgres>, did: &str) -> Result<Option<User>, Error> {
-  let results: Vec<User> = sqlx::query_as(r#"
+pub async fn get_user_by_did(pool: &Pool<Postgres>, did: &str) -> Result<Option<UserWithoutSecret>, Error> {
+  let results: Vec<UserWithoutSecret> = sqlx::query_as(r#"
     SELECT * FROM users
     WHERE did = $1
   "#)
