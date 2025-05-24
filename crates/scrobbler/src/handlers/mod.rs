@@ -126,18 +126,16 @@ pub async fn handle_submit_listens(
 
 #[get("/listenbrainz/1/validate-token")]
 pub async fn handle_validate_token(
-    req: HttpRequest,
+    _req: HttpRequest,
 ) -> impl Responder {
-    let token = match req.headers().get("Authorization") {
-        Some(header) => header.to_str().map_err(actix_web::error::ErrorBadRequest)?,
-        None => return Ok(HttpResponse::Unauthorized().finish()),
-    };
-    let token = token.trim_start_matches("Token ");
-    let token = token.trim_start_matches("Bearer ");
-
-    validate_token(token)
-        .await
-        .map_err(actix_web::error::ErrorInternalServerError)
+    HttpResponse::Ok().json(
+        serde_json::json!({
+            "status": "ok",
+            "payload": {
+                "valid": true,
+            },
+        })
+    )
 }
 
 pub async fn call_method(
