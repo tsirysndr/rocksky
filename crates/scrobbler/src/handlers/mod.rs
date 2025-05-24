@@ -117,7 +117,7 @@ pub async fn handle_submit_listens(
     let body = String::from_utf8_lossy(&payload);
     let req = serde_json::from_str::<SubmitListensRequest>(&body)
         .map_err(|e| {
-            println!("{}", payload);
+            println!("{}", body);
             println!("Error parsing request body: {}", e);
             e
         })
