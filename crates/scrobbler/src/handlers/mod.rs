@@ -12,7 +12,6 @@ use tokio_stream::StreamExt;
 use crate::cache::Cache;
 use crate::listenbrainz::submit::submit_listens;
 use crate::listenbrainz::types::SubmitListensRequest;
-use crate::listenbrainz::validate_token::validate_token;
 use crate::BANNER;
 
 pub mod scrobble;
