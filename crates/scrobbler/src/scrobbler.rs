@@ -387,8 +387,20 @@ pub async fn scrobble_listenbrainz(pool: &Pool<Postgres>, cache: &Cache, req: Su
         None => chrono::Utc::now().timestamp().to_string(),
     };
 
-    let claims = decode_token(token)?;
-    let did = claims.did.clone();
+    let did = match decode_token(token) {
+        Ok(claims) => claims.did,
+        Err(e) => {
+            let user = repo::user::get_user_by_apikey(pool, token)
+                .await?
+                .map(|user| user.did);
+            if let Some(did) = user {
+                did
+            } else {
+                return Err(Error::msg(format!("Failed to decode token: {}", e)));
+            }
+        }
+    };
+
     let user = repo::user::get_user_by_did(pool, &did)
         .await?;
 
