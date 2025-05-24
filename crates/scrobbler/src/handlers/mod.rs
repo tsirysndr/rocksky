@@ -1,4 +1,3 @@
-use actix_web::http::header;
 use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder};
 use anyhow::Error;
 use scrobble::handle_scrobble;
