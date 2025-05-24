@@ -116,6 +116,11 @@ pub async fn handle_submit_listens(
     let payload = read_payload!(payload);
     let body = String::from_utf8_lossy(&payload);
     let req = serde_json::from_str::<SubmitListensRequest>(&body)
+        .map_err(|e| {
+            println!("{}", payload);
+            println!("Error parsing request body: {}", e);
+            e
+        })
         .map_err(actix_web::error::ErrorBadRequest)?;
 
     submit_listens(req, cache.get_ref(), data.get_ref(), token)
