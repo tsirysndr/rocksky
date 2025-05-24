@@ -99,7 +99,7 @@ pub async fn handle_methods(
       .map_err(actix_web::error::ErrorInternalServerError)
 }
 
-#[post("/listenbrainz/1/submit-listens")]
+#[post("/1/submit-listens")]
 pub async fn handle_submit_listens(
   req: HttpRequest,
   data: web::Data<Arc<Pool<Postgres>>>,
@@ -123,7 +123,7 @@ pub async fn handle_submit_listens(
         .map_err(actix_web::error::ErrorInternalServerError)
 }
 
-#[get("/listenbrainz/1/validate-token")]
+#[get("/1/validate-token")]
 pub async fn handle_validate_token(
     _req: HttpRequest,
 ) -> impl Responder {
