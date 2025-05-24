@@ -408,7 +408,12 @@ pub async fn scrobble_listenbrainz(pool: &Pool<Postgres>, cache: &Cache, req: Su
         return Err(Error::msg("User not found"));
     }
 
-    let user = user.unwrap();
+
+    cache.setex(
+        &format!("listenbrainz:emby:{}:{}:{}", artist, track, did),
+        "1",
+        60 * 5, // 5 minutes
+    )?;
 
     let spofity_tokens = repo::spotify_token::get_spotify_tokens(pool, 100).await?;
 
@@ -432,8 +437,6 @@ pub async fn scrobble_listenbrainz(pool: &Pool<Postgres>, cache: &Cache, req: Su
         duration: None,
         ignored: None,
     };
-
-    let did = user.did.clone();
 
     /*
     0. check if scrobble is cached

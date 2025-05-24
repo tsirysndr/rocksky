@@ -2,7 +2,7 @@ use std::sync::Arc;
 use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder};
 use owo_colors::OwoColorize;
 use sqlx::{Pool, Postgres};
-use crate::{cache::Cache, repo, scrobbler::scrobble, types::ScrobbleRequest, BANNER};
+use crate::{cache::Cache, musicbrainz::artist, repo, scrobbler::scrobble, types::ScrobbleRequest, BANNER};
 use tokio_stream::StreamExt;
 
 #[macro_export]
@@ -73,6 +73,23 @@ async fn handle_scrobble(
 
 
   let cache = cache.get_ref().clone();
+
+  if params.data.song.connector.id == "emby" {
+    let artist = params.data.song.parsed.artist.clone();
+    let track = params.data.song.parsed.track.clone();
+    let cached = cache.get(&format!("listenbrainz:emby:{}:{}:{}", artist, track, user.did));
+
+    if cached.is_err() {
+      println!("Failed to check cache for Emby scrobble: {}", cached.unwrap_err());
+      return Ok(HttpResponse::Ok().body("Failed to check cache for Emby scrobble"));
+    }
+
+    if cached.unwrap().is_some() {
+      println!("Skipping duplicate scrobble for Emby: {} - {}", artist, track);
+      return Ok(HttpResponse::Ok().body("Skipping duplicate scrobble for Emby"));
+    }
+  }
+
 
   scrobble(&pool, &cache, params, &user.did).await
     .map_err(|err| actix_web::error::ErrorInternalServerError(format!("Failed to scrobble: {}", err)))?;
