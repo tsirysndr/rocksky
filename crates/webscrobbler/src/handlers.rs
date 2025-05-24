@@ -2,7 +2,7 @@ use std::sync::Arc;
 use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder};
 use owo_colors::OwoColorize;
 use sqlx::{Pool, Postgres};
-use crate::{cache::Cache, musicbrainz::artist, repo, scrobbler::scrobble, types::ScrobbleRequest, BANNER};
+use crate::{cache::Cache, repo, scrobbler::scrobble, types::ScrobbleRequest, BANNER};
 use tokio_stream::StreamExt;
 
 #[macro_export]
