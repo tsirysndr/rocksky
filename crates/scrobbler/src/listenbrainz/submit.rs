@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use anyhow::Error;
 use actix_web::HttpResponse;
+use owo_colors::OwoColorize;
 use serde_json::json;
 
 use crate::{cache::Cache, scrobbler::scrobble_listenbrainz};
@@ -13,6 +14,18 @@ pub async fn submit_listens(
   pool: &Arc<sqlx::Pool<sqlx::Postgres>>,
   token: &str
 ) -> Result<HttpResponse, Error> {
+  if payload.listen_type != "single" {
+    println!("skipping listen type: {}", payload.listen_type.cyan());
+    return Ok(HttpResponse::Ok().json(
+      json!({
+        "status": "ok",
+        "payload": {
+          "submitted_listens": 0,
+          "ignored_listens": 1
+        },
+      })
+    ));
+  }
   match scrobble_listenbrainz(pool, cache, payload, token)
     .await {
     Ok(_) => Ok(HttpResponse::Ok().json(

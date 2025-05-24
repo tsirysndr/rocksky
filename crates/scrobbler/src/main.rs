@@ -77,6 +77,7 @@ async fn main() -> Result<(), Error> {
             .service(handlers::handle_nowplaying)
             .service(handlers::handle_submission)
             .service(handlers::handle_submit_listens)
+            .service(handlers::handle_validate_token)
             .service(handlers::index)
             .service(handlers::handle_get)
     })

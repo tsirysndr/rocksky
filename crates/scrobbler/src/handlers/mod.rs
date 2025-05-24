@@ -12,6 +12,7 @@ use tokio_stream::StreamExt;
 use crate::cache::Cache;
 use crate::listenbrainz::submit::submit_listens;
 use crate::listenbrainz::types::SubmitListensRequest;
+use crate::listenbrainz::validate_token::validate_token;
 use crate::BANNER;
 
 pub mod scrobble;
@@ -119,6 +120,22 @@ pub async fn handle_submit_listens(
         .map_err(actix_web::error::ErrorBadRequest)?;
 
     submit_listens(req, cache.get_ref(), data.get_ref(), token)
+        .await
+        .map_err(actix_web::error::ErrorInternalServerError)
+}
+
+#[get("/listenbrainz/1/validate-token")]
+pub async fn handle_validate_token(
+    req: HttpRequest,
+) -> impl Responder {
+    let token = match req.headers().get("Authorization") {
+        Some(header) => header.to_str().map_err(actix_web::error::ErrorBadRequest)?,
+        None => return Ok(HttpResponse::Unauthorized().finish()),
+    };
+    let token = token.trim_start_matches("Token ");
+    let token = token.trim_start_matches("Bearer ");
+
+    validate_token(token)
         .await
         .map_err(actix_web::error::ErrorInternalServerError)
 }
