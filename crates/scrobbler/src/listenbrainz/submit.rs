@@ -14,7 +14,7 @@ pub async fn submit_listens(
   pool: &Arc<sqlx::Pool<sqlx::Postgres>>,
   token: &str
 ) -> Result<HttpResponse, Error> {
-  if payload.listen_type != "single" {
+  if payload.listen_type != "playing_now" {
     println!("skipping listen type: {}", payload.listen_type.cyan());
     return Ok(HttpResponse::Ok().json(
       json!({

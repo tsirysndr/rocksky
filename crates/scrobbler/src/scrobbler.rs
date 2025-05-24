@@ -382,7 +382,10 @@ pub async fn scrobble_listenbrainz(pool: &Pool<Postgres>, cache: &Cache, req: Su
 
     let artist = req.payload[0].track_metadata.artist_name.clone();
     let track = req.payload[0].track_metadata.track_name.clone();
-    let timestamp = req.payload[0].listened_at.to_string();
+    let timestamp = match req.payload[0].listened_at {
+        Some(timestamp) => timestamp.to_string(),
+        None => chrono::Utc::now().timestamp().to_string(),
+    };
 
     let claims = decode_token(token)?;
     let did = claims.did.clone();

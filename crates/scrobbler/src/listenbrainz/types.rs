@@ -24,7 +24,7 @@ pub struct TrackMetadata {
 #[derive(Deserialize, Debug, Clone)]
 pub struct ListenPayload {
     pub track_metadata: TrackMetadata,
-    pub listened_at: u64,
+    pub listened_at: Option<u64>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
