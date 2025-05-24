@@ -129,10 +129,9 @@ pub async fn handle_validate_token(
 ) -> impl Responder {
     HttpResponse::Ok().json(
         serde_json::json!({
-            "status": "ok",
-            "payload": {
-                "valid": true,
-            },
+            "code": 200,
+            "message": "Token valid.",
+            "valid": true,
         })
     )
 }
