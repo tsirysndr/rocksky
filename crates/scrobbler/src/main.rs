@@ -12,6 +12,7 @@ pub mod crypto;
 pub mod rocksky;
 pub mod repo;
 pub mod types;
+pub mod listenbrainz;
 
 use actix_session::SessionExt as _;
 use std::{env, sync::Arc, time::Duration};
@@ -75,6 +76,7 @@ async fn main() -> Result<(), Error> {
             .service(handlers::handle_methods)
             .service(handlers::handle_nowplaying)
             .service(handlers::handle_submission)
+            .service(handlers::handle_submit_listens)
             .service(handlers::index)
             .service(handlers::handle_get)
     })

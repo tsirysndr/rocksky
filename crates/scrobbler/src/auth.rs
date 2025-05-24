@@ -15,9 +15,9 @@ use crate::xata::user::User;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
-    exp: usize,
-    iat: usize,
-    did: String,
+    pub exp: usize,
+    pub iat: usize,
+    pub did: String,
 }
 
 pub async fn authenticate_v1(

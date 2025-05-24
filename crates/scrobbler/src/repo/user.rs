@@ -14,10 +14,26 @@ pub async fn get_user_by_apikey(pool: &Pool<Postgres>, apikey: &str) -> Result<O
   .fetch_all(pool)
   .await?;
 
-  if results.len() == 0 {
+  if results.is_empty(){
     return Ok(None);
   }
 
   Ok(Some(results[0].clone()))
 }
 
+
+pub async fn get_user_by_did(pool: &Pool<Postgres>, did: &str) -> Result<Option<User>, Error> {
+  let results: Vec<User> = sqlx::query_as(r#"
+    SELECT * FROM users
+    WHERE did = $1
+  "#)
+  .bind(did)
+  .fetch_all(pool)
+  .await?;
+
+  if results.is_empty() {
+    return Ok(None);
+  }
+
+  Ok(Some(results[0].clone()))
+}

@@ -1,4 +1,5 @@
-use actix_web::{get, post, web, HttpResponse, Responder};
+use actix_web::http::header;
+use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder};
 use anyhow::Error;
 use scrobble::handle_scrobble;
 use sqlx::{Pool, Postgres};
@@ -7,11 +8,29 @@ use v1::nowplaying::nowplaying;
 use v1::submission::submission;
 use std::collections::BTreeMap;
 use std::sync::Arc;
+use tokio_stream::StreamExt;
+
 use crate::cache::Cache;
+use crate::listenbrainz::submit::submit_listens;
+use crate::listenbrainz::types::SubmitListensRequest;
 use crate::BANNER;
 
 pub mod scrobble;
 pub mod v1;
+
+#[macro_export]
+macro_rules! read_payload {
+  ($payload:expr) => {{
+      let mut body = Vec::new();
+      while let Some(chunk) = $payload.next().await {
+          match chunk {
+              Ok(bytes) => body.extend_from_slice(&bytes),
+              Err(err) => return Err(err.into()),
+          }
+      }
+      body
+  }};
+}
 
 
 #[get("/")]
@@ -79,6 +98,30 @@ pub async fn handle_methods(
     let method = form.get("method").unwrap_or(&"".to_string()).to_string();
     call_method(&method, conn, cache, form.into_inner()).await
       .map_err(actix_web::error::ErrorInternalServerError)
+}
+
+#[post("/listenbrainz/1/submit-listens")]
+pub async fn handle_submit_listens(
+  req: HttpRequest,
+  data: web::Data<Arc<Pool<Postgres>>>,
+  cache: web::Data<Cache>,
+  mut payload: web::Payload,
+) -> impl Responder {
+     let token = match req.headers().get("Authorization") {
+        Some(header) => header.to_str().map_err(actix_web::error::ErrorBadRequest)?,
+        None => return Ok(HttpResponse::Unauthorized().finish()),
+    };
+    let token = token.trim_start_matches("Token ");
+    let token = token.trim_start_matches("Bearer ");
+
+    let payload = read_payload!(payload);
+    let body = String::from_utf8_lossy(&payload);
+    let req = serde_json::from_str::<SubmitListensRequest>(&body)
+        .map_err(actix_web::error::ErrorBadRequest)?;
+
+    submit_listens(req, cache.get_ref(), data.get_ref(), token)
+        .await
+        .map_err(actix_web::error::ErrorInternalServerError)
 }
 
 pub async fn call_method(
