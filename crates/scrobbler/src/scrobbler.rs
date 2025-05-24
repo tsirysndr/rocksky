@@ -374,6 +374,8 @@ pub async fn scrobble_v1(pool: &Pool<Postgres>, cache: &Cache, form: &BTreeMap<S
 }
 
 pub async fn scrobble_listenbrainz(pool: &Pool<Postgres>, cache: &Cache, req: SubmitListensRequest, token: &str) -> Result<(), Error> {
+    println!("Listenbrainz\n{:#?}", req);
+
     if req.payload.is_empty() {
         return Err(Error::msg("No payload found"));
     }
