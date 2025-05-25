@@ -1,12 +1,12 @@
-use std::collections::BTreeMap;
 use anyhow::Error;
-use sqlx::{Pool, Postgres};
-use std::env;
 use jsonwebtoken::DecodingKey;
 use jsonwebtoken::EncodingKey;
 use jsonwebtoken::Header;
 use jsonwebtoken::Validation;
 use serde::{Deserialize, Serialize};
+use sqlx::{Pool, Postgres};
+use std::collections::BTreeMap;
+use std::env;
 
 use crate::cache::Cache;
 use crate::repo;
@@ -28,7 +28,8 @@ pub async fn authenticate_v1(
 ) -> Result<(), Error> {
     match repo::user::get_user_by_apikey(pool, api_key).await? {
         Some(user) => {
-            let shared_secret = user.shared_secret
+            let shared_secret = user
+                .shared_secret
                 .ok_or_else(|| Error::msg("User does not have a shared secret"))?;
             let hashed_password = md5::compute(format!("{}", shared_secret));
             let hashed_password = format!("{:x}", hashed_password);
@@ -40,19 +41,17 @@ pub async fn authenticate_v1(
                 return Err(Error::msg("Invalid password"));
             }
             Ok(())
-        },
-        None => {
-            Err(Error::msg("Invalid API key"))
         }
+        None => Err(Error::msg("Invalid API key")),
     }
 }
 
 pub async fn authenticate(
-  pool: &Pool<Postgres>,
-  api_key: &str,
-  api_sig: &str,
-  session_key: &str,
-  form: &BTreeMap<String, String>,
+    pool: &Pool<Postgres>,
+    api_key: &str,
+    api_sig: &str,
+    session_key: &str,
+    form: &BTreeMap<String, String>,
 ) -> Result<(), Error> {
     let claims = decode_token(session_key)?;
 
@@ -73,10 +72,17 @@ pub async fn authenticate(
     Ok(())
 }
 
-pub async fn extract_did(pool: &Pool<Postgres>, form: &BTreeMap<String, String>) -> Result<String, Error> {
-    let apikey = form.get("api_key").ok_or_else(|| Error::msg("Missing api_key"))?;
+pub async fn extract_did(
+    pool: &Pool<Postgres>,
+    form: &BTreeMap<String, String>,
+) -> Result<String, Error> {
+    let apikey = form
+        .get("api_key")
+        .ok_or_else(|| Error::msg("Missing api_key"))?;
     let user = repo::user::get_user_by_apikey(pool, apikey).await?;
-    let did = user.ok_or_else(|| Error::msg("Corresponding user not found"))?.did;
+    let did = user
+        .ok_or_else(|| Error::msg("Corresponding user not found"))?
+        .did;
     Ok(did)
 }
 
@@ -118,28 +124,23 @@ pub async fn generate_session_id(
     cache: &Cache,
     api_key: &str,
 ) -> Result<String, Error> {
-    match repo::user::get_user_by_apikey(pool,  &api_key).await? {
+    match repo::user::get_user_by_apikey(pool, &api_key).await? {
         Some(user) => {
-           let mut bytes = [0u8; 16];
-           rand::fill(&mut bytes[..]);
+            let mut bytes = [0u8; 16];
+            rand::fill(&mut bytes[..]);
 
-           let session_id = hex::encode(bytes);
+            let session_id = hex::encode(bytes);
 
-           let user = serde_json::to_string(&user)
-                .map_err(|_| Error::msg("Failed to serialize user"))?;
-           cache.set(&format!("lastfm:{}", session_id), &user)?;
-           Ok(session_id)
-        },
-        None => {
-            Err(Error::msg("Invalid API key"))
+            let user =
+                serde_json::to_string(&user).map_err(|_| Error::msg("Failed to serialize user"))?;
+            cache.set(&format!("lastfm:{}", session_id), &user)?;
+            Ok(session_id)
         }
+        None => Err(Error::msg("Invalid API key")),
     }
 }
 
-pub fn verify_session_id(
-    cache: &Cache,
-    session_id: &str,
-) -> Result<String, Error> {
+pub fn verify_session_id(cache: &Cache, session_id: &str) -> Result<String, Error> {
     let user = cache.get(&format!("lastfm:{}", session_id))?;
     if user.is_none() {
         return Err(Error::msg("Session ID not found"));

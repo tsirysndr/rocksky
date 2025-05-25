@@ -1,30 +1,51 @@
 use anyhow::Error;
 use reqwest::Client;
 
-use crate::{cache::Cache, get_artist, get_currently_playing, token::generate_token, types::{album_tracks::Track, currently_playing::{Album, CurrentlyPlaying}}};
+use crate::{
+    cache::Cache,
+    get_artist, get_currently_playing,
+    token::generate_token,
+    types::{
+        album_tracks::Track,
+        currently_playing::{Album, CurrentlyPlaying},
+    },
+};
 
 const ROCKSKY_API: &str = "https://api.rocksky.app";
 
-pub async fn scrobble(cache: Cache, spotify_email: &str,  did: &str, refresh_token: &str) -> Result<(), Error> {
-  let cached = cache.get(spotify_email)?;
-  if cached.is_none() {
-    println!("No currently playing song is cached for {}, skipping", spotify_email);
-    return Ok(());
-  }
+pub async fn scrobble(
+    cache: Cache,
+    spotify_email: &str,
+    did: &str,
+    refresh_token: &str,
+) -> Result<(), Error> {
+    let cached = cache.get(spotify_email)?;
+    if cached.is_none() {
+        println!(
+            "No currently playing song is cached for {}, skipping",
+            spotify_email
+        );
+        return Ok(());
+    }
 
-  let track = serde_json::from_str::<CurrentlyPlaying>(&cached.unwrap())?;
-  if track.item.is_none() {
-    println!("No currently playing song found, skipping");
-    return Ok(());
-  }
+    let track = serde_json::from_str::<CurrentlyPlaying>(&cached.unwrap())?;
+    if track.item.is_none() {
+        println!("No currently playing song found, skipping");
+        return Ok(());
+    }
 
-  let track_item = track.item.unwrap();
+    let track_item = track.item.unwrap();
 
-  let artist = get_artist(cache.clone(), &track_item.artists.first().unwrap().id, &refresh_token).await?;
+    let artist = get_artist(
+        cache.clone(),
+        &track_item.artists.first().unwrap().id,
+        &refresh_token,
+    )
+    .await?;
 
-  let token = generate_token(did)?;
-  let client = Client::new();
-  let response = client
+    let token = generate_token(did)?;
+    let client = Client::new();
+    let response = client
     .post(&format!("{}/now-playing", ROCKSKY_API))
     .bearer_auth(token)
     .json(&serde_json::json!({
@@ -58,48 +79,51 @@ pub async fn scrobble(cache: Cache, spotify_email: &str,  did: &str, refresh_tok
   .send()
   .await?;
 
+    if !response.status().is_success() {
+        println!("Failed to scrobble: {}", response.text().await?);
+    }
 
-  if !response.status().is_success() {
-    println!("Failed to scrobble: {}", response.text().await?);
-  }
-
-  Ok(())
+    Ok(())
 }
 
-pub async fn update_library(cache: Cache, spotify_email: &str, did: &str, refresh_token: &str) -> Result<(), Error> {
-  let cached = cache.get(spotify_email)?;
-  if cached.is_none() {
-    println!("No currently playing song is cached for {}, refreshing", spotify_email);
-    get_currently_playing(
-      cache.clone(),
-      &spotify_email,
-      &refresh_token,
-    ).await?;
-  }
+pub async fn update_library(
+    cache: Cache,
+    spotify_email: &str,
+    did: &str,
+    refresh_token: &str,
+) -> Result<(), Error> {
+    let cached = cache.get(spotify_email)?;
+    if cached.is_none() {
+        println!(
+            "No currently playing song is cached for {}, refreshing",
+            spotify_email
+        );
+        get_currently_playing(cache.clone(), &spotify_email, &refresh_token).await?;
+    }
 
-  let cached = cache.get(spotify_email)?;
-  let track = serde_json::from_str::<CurrentlyPlaying>(&cached.unwrap())?;
-  if track.item.is_none() {
-    println!("No currently playing song found, skipping");
-    return Ok(());
-  }
-  let track_item = track.item.unwrap();
-  let cached = cache.get(&format!("{}:tracks", track_item.album.id))?;
-  if cached.is_none() {
-    println!("Album not cached {}, skipping", track_item.album.id);
-    return Ok(());
-  }
+    let cached = cache.get(spotify_email)?;
+    let track = serde_json::from_str::<CurrentlyPlaying>(&cached.unwrap())?;
+    if track.item.is_none() {
+        println!("No currently playing song found, skipping");
+        return Ok(());
+    }
+    let track_item = track.item.unwrap();
+    let cached = cache.get(&format!("{}:tracks", track_item.album.id))?;
+    if cached.is_none() {
+        println!("Album not cached {}, skipping", track_item.album.id);
+        return Ok(());
+    }
 
-  let tracks = serde_json::from_str::<Vec<Track>>(&cached.unwrap())?;
+    let tracks = serde_json::from_str::<Vec<Track>>(&cached.unwrap())?;
 
-  let cached = cache.get(&track_item.album.id)?;
-  let album = serde_json::from_str::<Album>(&cached.unwrap())?;
+    let cached = cache.get(&track_item.album.id)?;
+    let album = serde_json::from_str::<Album>(&cached.unwrap())?;
 
-  let token = generate_token(did)?;
+    let token = generate_token(did)?;
 
-  for track in tracks {
-    let client = Client::new();
-    let response = client
+    for track in tracks {
+        let client = Client::new();
+        let response = client
       .post(&format!("{}/tracks", ROCKSKY_API))
       .bearer_auth(&token)
       .json(&serde_json::json!({
@@ -130,13 +154,13 @@ pub async fn update_library(cache: Cache, spotify_email: &str, did: &str, refres
     .send()
     .await?;
 
-    // wait 50 seconds to avoid rate limiting
-    tokio::time::sleep(tokio::time::Duration::from_secs(50)).await;
+        // wait 50 seconds to avoid rate limiting
+        tokio::time::sleep(tokio::time::Duration::from_secs(50)).await;
 
-    if !response.status().is_success() {
-      println!("Failed to save track: {}", response.text().await?);
+        if !response.status().is_success() {
+            println!("Failed to save track: {}", response.text().await?);
+        }
     }
-  }
 
-  Ok(())
+    Ok(())
 }

@@ -1,25 +1,29 @@
 use std::{env, sync::Arc, time::Duration};
 
-use actix_session::SessionExt as _;
 use actix_limitation::{Limiter, RateLimiter};
-use actix_web::{dev::ServiceRequest, web::{self, Data}, App, HttpServer};
+use actix_session::SessionExt as _;
+use actix_web::{
+    dev::ServiceRequest,
+    web::{self, Data},
+    App, HttpServer,
+};
 use anyhow::Error;
 use cache::Cache;
 use dotenv::dotenv;
 use owo_colors::OwoColorize;
 use sqlx::postgres::PgPoolOptions;
 
-pub mod rocksky;
-pub mod cache;
-pub mod handlers;
-pub mod xata;
-pub mod types;
-pub mod repo;
 pub mod auth;
-pub mod spotify;
-pub mod musicbrainz;
-pub mod scrobbler;
+pub mod cache;
 pub mod crypto;
+pub mod handlers;
+pub mod musicbrainz;
+pub mod repo;
+pub mod rocksky;
+pub mod scrobbler;
+pub mod spotify;
+pub mod types;
+pub mod xata;
 
 pub const BANNER: &str = r#"
   _       __     __   _____                 __    __    __
@@ -58,7 +62,7 @@ async fn main() -> Result<(), Error> {
         format!("{}:{}", host, port).green()
     );
 
-     let limiter = web::Data::new(
+    let limiter = web::Data::new(
         Limiter::builder("redis://127.0.0.1")
             .key_by(|req: &ServiceRequest| {
                 req.get_session()

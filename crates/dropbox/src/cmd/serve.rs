@@ -63,4 +63,3 @@ pub async fn serve() -> Result<(), Error> {
 
     Ok(())
 }
-

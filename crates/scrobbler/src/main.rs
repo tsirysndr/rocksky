@@ -1,29 +1,32 @@
-pub mod handlers;
-pub mod signature;
-pub mod musicbrainz;
-pub mod spotify;
-pub mod xata;
-pub mod cache;
 pub mod auth;
-pub mod params;
-pub mod scrobbler;
-pub mod response;
+pub mod cache;
 pub mod crypto;
-pub mod rocksky;
-pub mod repo;
-pub mod types;
+pub mod handlers;
 pub mod listenbrainz;
+pub mod musicbrainz;
+pub mod params;
+pub mod repo;
+pub mod response;
+pub mod rocksky;
+pub mod scrobbler;
+pub mod signature;
+pub mod spotify;
+pub mod types;
+pub mod xata;
 
-use actix_session::SessionExt as _;
-use std::{env, sync::Arc, time::Duration};
 use actix_limitation::{Limiter, RateLimiter};
-use actix_web::{dev::ServiceRequest, web::{self, Data}, App, HttpServer};
+use actix_session::SessionExt as _;
+use actix_web::{
+    dev::ServiceRequest,
+    web::{self, Data},
+    App, HttpServer,
+};
 use anyhow::Error;
 use cache::Cache;
 use dotenv::dotenv;
 use owo_colors::OwoColorize;
 use sqlx::postgres::PgPoolOptions;
-
+use std::{env, sync::Arc, time::Duration};
 
 pub const BANNER: &str = r#"
     ___             ___          _____                 __    __    __
@@ -43,7 +46,10 @@ async fn main() -> Result<(), Error> {
 
     let cache = Cache::new()?;
 
-    let pool =  PgPoolOptions::new().max_connections(5).connect(&env::var("XATA_POSTGRES_URL")?).await?;
+    let pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&env::var("XATA_POSTGRES_URL")?)
+        .await?;
     let conn = Arc::new(pool);
 
     let host = env::var("SCROBBLE_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
@@ -52,7 +58,10 @@ async fn main() -> Result<(), Error> {
         .parse::<u16>()
         .unwrap_or(7882);
 
-    println!("Starting Scrobble server @ {}", format!("{}:{}", host, port).green());
+    println!(
+        "Starting Scrobble server @ {}",
+        format!("{}:{}", host, port).green()
+    );
 
     let limiter = web::Data::new(
         Limiter::builder("redis://127.0.0.1")

@@ -3,16 +3,18 @@ use sqlx::{Pool, Postgres};
 use crate::{types::file::File, xata::track::Track};
 
 pub async fn create_google_drive_path(
-  pool: &Pool<Postgres>,
-  file: &File,
-  track: &Track,
-  google_drive_id: &str
+    pool: &Pool<Postgres>,
+    file: &File,
+    track: &Track,
+    google_drive_id: &str,
 ) -> Result<(), sqlx::Error> {
-  let result = sqlx::query(r#"
+    let result = sqlx::query(
+        r#"
     INSERT INTO google_drive_paths (google_drive_id, file_id, track_id, name)
     VALUES ($1, $2, $3, $4)
     ON CONFLICT DO NOTHING
-  "#)
+  "#,
+    )
     .bind(google_drive_id)
     .bind(&file.id)
     .bind(&track.xata_id)
@@ -20,7 +22,7 @@ pub async fn create_google_drive_path(
     .execute(pool)
     .await?;
 
-  println!("{:?}", result);
+    println!("{:?}", result);
 
-  Ok(())
+    Ok(())
 }

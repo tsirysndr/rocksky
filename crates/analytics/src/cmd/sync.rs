@@ -1,9 +1,9 @@
 use std::sync::{Arc, Mutex};
 
+use crate::core::*;
 use anyhow::Error;
 use duckdb::Connection;
 use sqlx::{Pool, Postgres};
-use crate::core::*;
 
 pub async fn sync(conn: Arc<Mutex<Connection>>, pool: &Pool<Postgres>) -> Result<(), Error> {
     load_tracks(conn.clone(), pool).await?;

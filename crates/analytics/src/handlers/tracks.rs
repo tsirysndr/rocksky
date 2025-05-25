@@ -2,13 +2,16 @@ use std::sync::{Arc, Mutex};
 
 use actix_web::{web, HttpRequest, HttpResponse};
 use analytics::types::track::{GetLovedTracksParams, GetTopTracksParams, GetTracksParams, Track};
-use duckdb::Connection;
 use anyhow::Error;
+use duckdb::Connection;
 use tokio_stream::StreamExt;
 
 use crate::read_payload;
 
-pub async fn get_tracks(payload: &mut web::Payload, _req: &HttpRequest, conn: Arc<Mutex<Connection>>
+pub async fn get_tracks(
+    payload: &mut web::Payload,
+    _req: &HttpRequest,
+    conn: Arc<Mutex<Connection>>,
 ) -> Result<HttpResponse, Error> {
     let body = read_payload!(payload);
     let params = serde_json::from_slice::<GetTracksParams>(&body)?;
@@ -57,39 +60,42 @@ pub async fn get_tracks(payload: &mut web::Payload, _req: &HttpRequest, conn: Ar
                 OFFSET ?
                 LIMIT ?;
             "#)?;
-            let tracks = stmt.query_map([&did, &did, &limit.to_string(), &offset.to_string()], |row| {
-                Ok(Track {
-                    id: row.get(0)?,
-                    title: row.get(1)?,
-                    artist: row.get(2)?,
-                    album_artist: row.get(3)?,
-                    album_art: row.get(4)?,
-                    album: row.get(5)?,
-                    track_number: row.get(6)?,
-                    duration: row.get(7)?,
-                    mb_id: row.get(8)?,
-                    youtube_link: row.get(9)?,
-                    spotify_link: row.get(10)?,
-                    tidal_link: row.get(11)?,
-                    apple_music_link: row.get(12)?,
-                    sha256: row.get(13)?,
-                    composer: row.get(14)?,
-                    genre: row.get(15)?,
-                    disc_number: row.get(16)?,
-                    label: row.get(17)?,
-                    uri: row.get(18)?,
-                    copyright_message: row.get(19)?,
-                    artist_uri: row.get(20)?,
-                    album_uri: row.get(21)?,
-                    created_at: row.get(22)?,
-                    play_count: row.get(23)?,
-                    unique_listeners: row.get(24)?,
-                    ..Default::default()
-                })
-            })?;
+            let tracks = stmt.query_map(
+                [&did, &did, &limit.to_string(), &offset.to_string()],
+                |row| {
+                    Ok(Track {
+                        id: row.get(0)?,
+                        title: row.get(1)?,
+                        artist: row.get(2)?,
+                        album_artist: row.get(3)?,
+                        album_art: row.get(4)?,
+                        album: row.get(5)?,
+                        track_number: row.get(6)?,
+                        duration: row.get(7)?,
+                        mb_id: row.get(8)?,
+                        youtube_link: row.get(9)?,
+                        spotify_link: row.get(10)?,
+                        tidal_link: row.get(11)?,
+                        apple_music_link: row.get(12)?,
+                        sha256: row.get(13)?,
+                        composer: row.get(14)?,
+                        genre: row.get(15)?,
+                        disc_number: row.get(16)?,
+                        label: row.get(17)?,
+                        uri: row.get(18)?,
+                        copyright_message: row.get(19)?,
+                        artist_uri: row.get(20)?,
+                        album_uri: row.get(21)?,
+                        created_at: row.get(22)?,
+                        play_count: row.get(23)?,
+                        unique_listeners: row.get(24)?,
+                        ..Default::default()
+                    })
+                },
+            )?;
             let tracks: Result<Vec<_>, _> = tracks.collect();
             Ok(HttpResponse::Ok().json(tracks?))
-        },
+        }
         None => {
             let mut stmt = conn.prepare(r#"
                 SELECT
@@ -161,7 +167,11 @@ pub async fn get_tracks(payload: &mut web::Payload, _req: &HttpRequest, conn: Ar
     }
 }
 
-pub async fn get_loved_tracks(payload: &mut web::Payload, _req: &HttpRequest, conn: Arc<Mutex<Connection>>) -> Result<HttpResponse, Error> {
+pub async fn get_loved_tracks(
+    payload: &mut web::Payload,
+    _req: &HttpRequest,
+    conn: Arc<Mutex<Connection>>,
+) -> Result<HttpResponse, Error> {
     let body = read_payload!(payload);
     let params = serde_json::from_slice::<GetLovedTracksParams>(&body)?;
     let pagination = params.pagination.unwrap_or_default();
@@ -170,7 +180,8 @@ pub async fn get_loved_tracks(payload: &mut web::Payload, _req: &HttpRequest, co
     let did = params.user_did;
 
     let conn = conn.lock().unwrap();
-    let mut stmt = conn.prepare(r#"
+    let mut stmt = conn.prepare(
+        r#"
         SELECT
             t.id,
             t.title,
@@ -202,40 +213,48 @@ pub async fn get_loved_tracks(payload: &mut web::Payload, _req: &HttpRequest, co
         ORDER BY l.created_at DESC
         OFFSET ?
         LIMIT ?;
-    "#)?;
-    let loved_tracks = stmt.query_map([&did, &did, &limit.to_string(), &offset.to_string()], |row| {
-        Ok(Track {
-            id: row.get(0)?,
-            title: row.get(1)?,
-            artist: row.get(2)?,
-            album: row.get(3)?,
-            album_artist: row.get(4)?,
-            album_art: row.get(5)?,
-            album_uri: row.get(6)?,
-            artist_uri: row.get(7)?,
-            composer: row.get(8)?,
-            copyright_message: row.get(9)?,
-            disc_number: row.get(10)?,
-            duration: row.get(11)?,
-            track_number: row.get(12)?,
-            label: row.get(13)?,
-            spotify_link: row.get(14)?,
-            tidal_link: row.get(15)?,
-            youtube_link: row.get(16)?,
-            apple_music_link: row.get(17)?,
-            sha256: row.get(18)?,
-            uri: row.get(19)?,
-            handle: row.get(20)?,
-            did: row.get(21)?,
-            created_at: row.get(22)?,
-            ..Default::default()
-        })
-    })?;
+    "#,
+    )?;
+    let loved_tracks = stmt.query_map(
+        [&did, &did, &limit.to_string(), &offset.to_string()],
+        |row| {
+            Ok(Track {
+                id: row.get(0)?,
+                title: row.get(1)?,
+                artist: row.get(2)?,
+                album: row.get(3)?,
+                album_artist: row.get(4)?,
+                album_art: row.get(5)?,
+                album_uri: row.get(6)?,
+                artist_uri: row.get(7)?,
+                composer: row.get(8)?,
+                copyright_message: row.get(9)?,
+                disc_number: row.get(10)?,
+                duration: row.get(11)?,
+                track_number: row.get(12)?,
+                label: row.get(13)?,
+                spotify_link: row.get(14)?,
+                tidal_link: row.get(15)?,
+                youtube_link: row.get(16)?,
+                apple_music_link: row.get(17)?,
+                sha256: row.get(18)?,
+                uri: row.get(19)?,
+                handle: row.get(20)?,
+                did: row.get(21)?,
+                created_at: row.get(22)?,
+                ..Default::default()
+            })
+        },
+    )?;
     let loved_tracks: Result<Vec<_>, _> = loved_tracks.collect();
     Ok(HttpResponse::Ok().json(loved_tracks?))
 }
 
-pub async fn get_top_tracks(payload: &mut web::Payload, _req: &HttpRequest, conn: Arc<Mutex<Connection>>) -> Result<HttpResponse, Error> {
+pub async fn get_top_tracks(
+    payload: &mut web::Payload,
+    _req: &HttpRequest,
+    conn: Arc<Mutex<Connection>>,
+) -> Result<HttpResponse, Error> {
     let body = read_payload!(payload);
     let params = serde_json::from_slice::<GetTopTracksParams>(&body)?;
     let pagination = params.pagination.unwrap_or_default();
@@ -275,30 +294,33 @@ pub async fn get_top_tracks(payload: &mut web::Payload, _req: &HttpRequest, conn
                 OFFSET ?
                 LIMIT ?;
             "#)?;
-            let top_tracks = stmt.query_map([&did, &did, &limit.to_string(), &offset.to_string()], |row| {
-                Ok(Track {
-                    id: row.get(0)?,
-                    title: row.get(1)?,
-                    artist: row.get(2)?,
-                    album_artist: row.get(3)?,
-                    album: row.get(4)?,
-                    uri: row.get(5)?,
-                    album_art: row.get(6)?,
-                    duration: row.get(7)?,
-                    disc_number: row.get(8)?,
-                    track_number: row.get(9)?,
-                    artist_uri: row.get(10)?,
-                    album_uri: row.get(11)?,
-                    sha256: row.get(12)?,
-                    created_at: row.get(13)?,
-                    play_count: row.get(14)?,
-                    unique_listeners: row.get(15)?,
-                    ..Default::default()
-                })
-            })?;
+            let top_tracks = stmt.query_map(
+                [&did, &did, &limit.to_string(), &offset.to_string()],
+                |row| {
+                    Ok(Track {
+                        id: row.get(0)?,
+                        title: row.get(1)?,
+                        artist: row.get(2)?,
+                        album_artist: row.get(3)?,
+                        album: row.get(4)?,
+                        uri: row.get(5)?,
+                        album_art: row.get(6)?,
+                        duration: row.get(7)?,
+                        disc_number: row.get(8)?,
+                        track_number: row.get(9)?,
+                        artist_uri: row.get(10)?,
+                        album_uri: row.get(11)?,
+                        sha256: row.get(12)?,
+                        created_at: row.get(13)?,
+                        play_count: row.get(14)?,
+                        unique_listeners: row.get(15)?,
+                        ..Default::default()
+                    })
+                },
+            )?;
             let top_tracks: Result<Vec<_>, _> = top_tracks.collect();
             Ok(HttpResponse::Ok().json(top_tracks?))
-        },
+        }
         None => {
             let mut stmt = conn.prepare(r#"
                 SELECT

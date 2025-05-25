@@ -1,10 +1,12 @@
-use std::{collections::BTreeMap, sync::Arc};
-use anyhow::Error;
 use actix_web::HttpResponse;
+use anyhow::Error;
 use owo_colors::OwoColorize;
 use serde_json::json;
+use std::{collections::BTreeMap, sync::Arc};
 
-use crate::{auth::verify_session_id, cache::Cache, params::validate_required_params, scrobbler::scrobble_v1};
+use crate::{
+    auth::verify_session_id, cache::Cache, params::validate_required_params, scrobbler::scrobble_v1,
+};
 
 pub async fn submission(
     form: BTreeMap<String, String>,
@@ -29,7 +31,6 @@ pub async fn submission(
             let user_id = user_id.unwrap();
             println!("Submission: {} - {} {} {} {}", a, t, i, user_id, s.cyan());
 
-
             match scrobble_v1(pool, cache, &form).await {
                 Ok(_) => Ok(HttpResponse::Ok().body("OK\n")),
                 Err(e) => Ok(HttpResponse::BadRequest().json(json!({
@@ -38,11 +39,9 @@ pub async fn submission(
                 }))),
             }
         }
-        Err(e) => {
-            Ok(HttpResponse::BadRequest().json(json!({
-                "error": 5,
-                "message": format!("{}", e)
-            })))
-        }
+        Err(e) => Ok(HttpResponse::BadRequest().json(json!({
+            "error": 5,
+            "message": format!("{}", e)
+        }))),
     }
 }

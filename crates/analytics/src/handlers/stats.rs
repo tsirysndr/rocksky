@@ -1,14 +1,25 @@
 use std::sync::{Arc, Mutex};
 
+use crate::read_payload;
 use actix_web::{web, HttpRequest, HttpResponse};
-use analytics::types::{scrobble::{ScrobblesPerDay, ScrobblesPerMonth, ScrobblesPerYear}, stats::{GetAlbumScrobblesParams, GetArtistScrobblesParams, GetScrobblesPerDayParams, GetScrobblesPerMonthParams, GetScrobblesPerYearParams, GetStatsParams, GetTrackScrobblesParams}};
-use duckdb::Connection;
+use analytics::types::{
+    scrobble::{ScrobblesPerDay, ScrobblesPerMonth, ScrobblesPerYear},
+    stats::{
+        GetAlbumScrobblesParams, GetArtistScrobblesParams, GetScrobblesPerDayParams,
+        GetScrobblesPerMonthParams, GetScrobblesPerYearParams, GetStatsParams,
+        GetTrackScrobblesParams,
+    },
+};
 use anyhow::Error;
+use duckdb::Connection;
 use serde_json::json;
 use tokio_stream::StreamExt;
-use crate::read_payload;
 
-pub async fn get_stats(payload: &mut web::Payload, _req: &HttpRequest, conn: Arc<Mutex<Connection>>) -> Result<HttpResponse, Error> {
+pub async fn get_stats(
+    payload: &mut web::Payload,
+    _req: &HttpRequest,
+    conn: Arc<Mutex<Connection>>,
+) -> Result<HttpResponse, Error> {
     let body = read_payload!(payload);
 
     let params = serde_json::from_slice::<GetStatsParams>(&body)?;
@@ -17,7 +28,8 @@ pub async fn get_stats(payload: &mut web::Payload, _req: &HttpRequest, conn: Arc
     let mut stmt = conn.prepare("SELECT COUNT(*) FROM scrobbles s LEFT JOIN users u ON s.user_id = u.id WHERE u.did = ? OR u.handle = ?")?;
     let scrobbles: i64 = stmt.query_row([&params.user_did, &params.user_did], |row| row.get(0))?;
 
-    let mut stmt = conn.prepare(r#"
+    let mut stmt = conn.prepare(
+        r#"
         SELECT COUNT(*) FROM (
             SELECT
                 s.artist_id AS id,
@@ -38,11 +50,13 @@ pub async fn get_stats(payload: &mut web::Payload, _req: &HttpRequest, conn: Arc
             GROUP BY
                 s.artist_id, ar.name, ar.uri, ar.picture, ar.sha256
         )
-    "#)?;
+    "#,
+    )?;
     let artists: i64 = stmt.query_row([&params.user_did, &params.user_did], |row| row.get(0))?;
 
     let mut stmt = conn.prepare("SELECT COUNT(*) FROM loved_tracks LEFT JOIN users u ON loved_tracks.user_id = u.id WHERE u.did = ? OR u.handle = ?")?;
-    let loved_tracks: i64 = stmt.query_row([&params.user_did, &params.user_did], |row| row.get(0))?;
+    let loved_tracks: i64 =
+        stmt.query_row([&params.user_did, &params.user_did], |row| row.get(0))?;
 
     let mut stmt = conn.prepare(r#"SELECT COUNT(*) FROM (
         SELECT
@@ -83,17 +97,26 @@ pub async fn get_stats(payload: &mut web::Payload, _req: &HttpRequest, conn: Arc
     })))
 }
 
-pub async fn get_scrobbles_per_day(payload: &mut web::Payload, _req: &HttpRequest, conn: Arc<Mutex<Connection>>) -> Result<HttpResponse, Error> {
+pub async fn get_scrobbles_per_day(
+    payload: &mut web::Payload,
+    _req: &HttpRequest,
+    conn: Arc<Mutex<Connection>>,
+) -> Result<HttpResponse, Error> {
     let body = read_payload!(payload);
     let params = serde_json::from_slice::<GetScrobblesPerDayParams>(&body)?;
-    let start = params.start.unwrap_or(GetScrobblesPerDayParams::default().start.unwrap());
-    let end = params.end.unwrap_or(GetScrobblesPerDayParams::default().end.unwrap());
+    let start = params
+        .start
+        .unwrap_or(GetScrobblesPerDayParams::default().start.unwrap());
+    let end = params
+        .end
+        .unwrap_or(GetScrobblesPerDayParams::default().end.unwrap());
     let did = params.user_did;
 
     let conn = conn.lock().unwrap();
     match did {
         Some(did) => {
-            let mut stmt = conn.prepare(r#"
+            let mut stmt = conn.prepare(
+                r#"
             SELECT
                 date_trunc('day', created_at) AS date,
                 COUNT(track_id) AS count
@@ -107,7 +130,8 @@ pub async fn get_scrobbles_per_day(payload: &mut web::Payload, _req: &HttpReques
                 date_trunc('day', created_at)
             ORDER BY
                 date;
-            "#)?;
+            "#,
+            )?;
             let scrobbles = stmt.query_map([&did, &did, &start, &end], |row| {
                 Ok(ScrobblesPerDay {
                     date: row.get(0)?,
@@ -116,9 +140,10 @@ pub async fn get_scrobbles_per_day(payload: &mut web::Payload, _req: &HttpReques
             })?;
             let scrobbles: Result<Vec<_>, _> = scrobbles.collect();
             Ok(HttpResponse::Ok().json(scrobbles?))
-        },
+        }
         None => {
-            let mut stmt = conn.prepare(r#"
+            let mut stmt = conn.prepare(
+                r#"
             SELECT
                 date_trunc('day', created_at) AS date,
                 COUNT(track_id) AS count
@@ -130,7 +155,8 @@ pub async fn get_scrobbles_per_day(payload: &mut web::Payload, _req: &HttpReques
                 date_trunc('day', created_at)
             ORDER BY
                 date;
-            "#)?;
+            "#,
+            )?;
             let scrobbles = stmt.query_map([start, end], |row| {
                 Ok(ScrobblesPerDay {
                     date: row.get(0)?,
@@ -143,17 +169,26 @@ pub async fn get_scrobbles_per_day(payload: &mut web::Payload, _req: &HttpReques
     }
 }
 
-pub async fn get_scrobbles_per_month(payload: &mut web::Payload, _req: &HttpRequest, conn: Arc<Mutex<Connection>>) -> Result<HttpResponse, Error> {
+pub async fn get_scrobbles_per_month(
+    payload: &mut web::Payload,
+    _req: &HttpRequest,
+    conn: Arc<Mutex<Connection>>,
+) -> Result<HttpResponse, Error> {
     let body = read_payload!(payload);
     let params = serde_json::from_slice::<GetScrobblesPerMonthParams>(&body)?;
-    let start = params.start.unwrap_or(GetScrobblesPerDayParams::default().start.unwrap());
-    let end = params.end.unwrap_or(GetScrobblesPerDayParams::default().end.unwrap());
+    let start = params
+        .start
+        .unwrap_or(GetScrobblesPerDayParams::default().start.unwrap());
+    let end = params
+        .end
+        .unwrap_or(GetScrobblesPerDayParams::default().end.unwrap());
     let did = params.user_did;
 
     let conn = conn.lock().unwrap();
     match did {
         Some(did) => {
-            let mut stmt = conn.prepare(r#"
+            let mut stmt = conn.prepare(
+                r#"
             SELECT
                 EXTRACT(YEAR FROM created_at) || '-' ||
                 LPAD(EXTRACT(MONTH FROM created_at)::VARCHAR, 2, '0') AS year_month,
@@ -169,7 +204,8 @@ pub async fn get_scrobbles_per_month(payload: &mut web::Payload, _req: &HttpRequ
                 EXTRACT(MONTH FROM created_at)
             ORDER BY
                 year_month;
-            "#)?;
+            "#,
+            )?;
             let scrobbles = stmt.query_map([&did, &did, &start, &end], |row| {
                 Ok(ScrobblesPerMonth {
                     year_month: row.get(0)?,
@@ -178,9 +214,10 @@ pub async fn get_scrobbles_per_month(payload: &mut web::Payload, _req: &HttpRequ
             })?;
             let scrobbles: Result<Vec<_>, _> = scrobbles.collect();
             Ok(HttpResponse::Ok().json(scrobbles?))
-        },
+        }
         None => {
-            let mut stmt = conn.prepare(r#"
+            let mut stmt = conn.prepare(
+                r#"
             SELECT
                 EXTRACT(YEAR FROM created_at) || '-' ||
                 LPAD(EXTRACT(MONTH FROM created_at)::VARCHAR, 2, '0') AS year_month,
@@ -194,7 +231,8 @@ pub async fn get_scrobbles_per_month(payload: &mut web::Payload, _req: &HttpRequ
                 EXTRACT(MONTH FROM created_at)
             ORDER BY
                 year_month;
-            "#)?;
+            "#,
+            )?;
             let scrobbles = stmt.query_map([start, end], |row| {
                 Ok(ScrobblesPerMonth {
                     year_month: row.get(0)?,
@@ -207,17 +245,26 @@ pub async fn get_scrobbles_per_month(payload: &mut web::Payload, _req: &HttpRequ
     }
 }
 
-pub async fn get_scrobbles_per_year(payload: &mut web::Payload, _req: &HttpRequest, conn: Arc<Mutex<Connection>>) -> Result<HttpResponse, Error> {
+pub async fn get_scrobbles_per_year(
+    payload: &mut web::Payload,
+    _req: &HttpRequest,
+    conn: Arc<Mutex<Connection>>,
+) -> Result<HttpResponse, Error> {
     let body = read_payload!(payload);
     let params = serde_json::from_slice::<GetScrobblesPerYearParams>(&body)?;
-    let start = params.start.unwrap_or(GetScrobblesPerDayParams::default().start.unwrap());
-    let end = params.end.unwrap_or(GetScrobblesPerDayParams::default().end.unwrap());
+    let start = params
+        .start
+        .unwrap_or(GetScrobblesPerDayParams::default().start.unwrap());
+    let end = params
+        .end
+        .unwrap_or(GetScrobblesPerDayParams::default().end.unwrap());
     let did = params.user_did;
 
     let conn = conn.lock().unwrap();
     match did {
         Some(did) => {
-            let mut stmt = conn.prepare(r#"
+            let mut stmt = conn.prepare(
+                r#"
             SELECT
                 EXTRACT(YEAR FROM created_at) AS year,
                 COUNT(*) AS count
@@ -231,7 +278,8 @@ pub async fn get_scrobbles_per_year(payload: &mut web::Payload, _req: &HttpReque
                 EXTRACT(YEAR FROM created_at)
             ORDER BY
                 year;
-            "#)?;
+            "#,
+            )?;
             let scrobbles = stmt.query_map([&did, &did, &start, &end], |row| {
                 Ok(ScrobblesPerYear {
                     year: row.get(0)?,
@@ -240,9 +288,10 @@ pub async fn get_scrobbles_per_year(payload: &mut web::Payload, _req: &HttpReque
             })?;
             let scrobbles: Result<Vec<_>, _> = scrobbles.collect();
             Ok(HttpResponse::Ok().json(scrobbles?))
-        },
+        }
         None => {
-            let mut stmt = conn.prepare(r#"
+            let mut stmt = conn.prepare(
+                r#"
             SELECT
                 EXTRACT(YEAR FROM created_at) AS year,
                 COUNT(*) AS count
@@ -254,7 +303,8 @@ pub async fn get_scrobbles_per_year(payload: &mut web::Payload, _req: &HttpReque
                 EXTRACT(YEAR FROM created_at)
             ORDER BY
                 year;
-            "#)?;
+            "#,
+            )?;
             let scrobbles = stmt.query_map([start, end], |row| {
                 Ok(ScrobblesPerYear {
                     year: row.get(0)?,
@@ -267,13 +317,22 @@ pub async fn get_scrobbles_per_year(payload: &mut web::Payload, _req: &HttpReque
     }
 }
 
-pub async fn get_album_scrobbles(payload: &mut web::Payload, _req: &HttpRequest, conn: Arc<Mutex<Connection>>) -> Result<HttpResponse, Error> {
+pub async fn get_album_scrobbles(
+    payload: &mut web::Payload,
+    _req: &HttpRequest,
+    conn: Arc<Mutex<Connection>>,
+) -> Result<HttpResponse, Error> {
     let body = read_payload!(payload);
     let params = serde_json::from_slice::<GetAlbumScrobblesParams>(&body)?;
-    let start = params.start.unwrap_or(GetAlbumScrobblesParams::default().start.unwrap());
-    let end = params.end.unwrap_or(GetAlbumScrobblesParams::default().end.unwrap());
+    let start = params
+        .start
+        .unwrap_or(GetAlbumScrobblesParams::default().start.unwrap());
+    let end = params
+        .end
+        .unwrap_or(GetAlbumScrobblesParams::default().end.unwrap());
     let conn = conn.lock().unwrap();
-    let mut stmt = conn.prepare(r#"
+    let mut stmt = conn.prepare(
+        r#"
         SELECT
             date_trunc('day', s.created_at) AS date,
             COUNT(s.album_id) AS count
@@ -287,13 +346,9 @@ pub async fn get_album_scrobbles(payload: &mut web::Payload, _req: &HttpRequest,
             date_trunc('day', s.created_at)
         ORDER BY
             date;
-    "#)?;
-    let scrobbles = stmt.query_map([
-            &params.album_id,
-            &params.album_id,
-            &start,
-            &end
-        ], |row| {
+    "#,
+    )?;
+    let scrobbles = stmt.query_map([&params.album_id, &params.album_id, &start, &end], |row| {
         Ok(ScrobblesPerDay {
             date: row.get(0)?,
             count: row.get(1)?,
@@ -303,14 +358,23 @@ pub async fn get_album_scrobbles(payload: &mut web::Payload, _req: &HttpRequest,
     Ok(HttpResponse::Ok().json(scrobbles?))
 }
 
-pub async fn get_artist_scrobbles(payload: &mut web::Payload, _req: &HttpRequest, conn: Arc<Mutex<Connection>>) -> Result<HttpResponse, Error> {
+pub async fn get_artist_scrobbles(
+    payload: &mut web::Payload,
+    _req: &HttpRequest,
+    conn: Arc<Mutex<Connection>>,
+) -> Result<HttpResponse, Error> {
     let body = read_payload!(payload);
     let params = serde_json::from_slice::<GetArtistScrobblesParams>(&body)?;
-    let start = params.start.unwrap_or(GetArtistScrobblesParams::default().start.unwrap());
-    let end = params.end.unwrap_or(GetArtistScrobblesParams::default().end.unwrap());
+    let start = params
+        .start
+        .unwrap_or(GetArtistScrobblesParams::default().start.unwrap());
+    let end = params
+        .end
+        .unwrap_or(GetArtistScrobblesParams::default().end.unwrap());
     let conn = conn.lock().unwrap();
 
-    let mut stmt = conn.prepare(r#"
+    let mut stmt = conn.prepare(
+        r#"
         SELECT
             date_trunc('day', s.created_at) AS date,
             COUNT(s.artist_id) AS count
@@ -324,32 +388,40 @@ pub async fn get_artist_scrobbles(payload: &mut web::Payload, _req: &HttpRequest
             date_trunc('day', s.created_at)
         ORDER BY
             date;
-    "#)?;
+    "#,
+    )?;
 
-    let scrobbles = stmt.query_map([
-            &params.artist_id,
-            &params.artist_id,
-            &start,
-            &end
-        ], |row| {
-        Ok(ScrobblesPerDay {
-            date: row.get(0)?,
-            count: row.get(1)?,
-        })
-    })?;
+    let scrobbles = stmt.query_map(
+        [&params.artist_id, &params.artist_id, &start, &end],
+        |row| {
+            Ok(ScrobblesPerDay {
+                date: row.get(0)?,
+                count: row.get(1)?,
+            })
+        },
+    )?;
 
     let scrobbles: Result<Vec<_>, _> = scrobbles.collect();
     Ok(HttpResponse::Ok().json(scrobbles?))
 }
 
-pub async fn get_track_scrobbles(payload: &mut web::Payload, _req: &HttpRequest, conn: Arc<Mutex<Connection>>) -> Result<HttpResponse, Error> {
+pub async fn get_track_scrobbles(
+    payload: &mut web::Payload,
+    _req: &HttpRequest,
+    conn: Arc<Mutex<Connection>>,
+) -> Result<HttpResponse, Error> {
     let body = read_payload!(payload);
     let params = serde_json::from_slice::<GetTrackScrobblesParams>(&body)?;
-    let start = params.start.unwrap_or(GetTrackScrobblesParams::default().start.unwrap());
-    let end = params.end.unwrap_or(GetTrackScrobblesParams::default().end.unwrap());
+    let start = params
+        .start
+        .unwrap_or(GetTrackScrobblesParams::default().start.unwrap());
+    let end = params
+        .end
+        .unwrap_or(GetTrackScrobblesParams::default().end.unwrap());
     let conn = conn.lock().unwrap();
 
-    let mut stmt = conn.prepare(r#"
+    let mut stmt = conn.prepare(
+        r#"
         SELECT
             date_trunc('day', s.created_at) AS date,
             COUNT(s.track_id) AS count
@@ -363,14 +435,10 @@ pub async fn get_track_scrobbles(payload: &mut web::Payload, _req: &HttpRequest,
             date_trunc('day', s.created_at)
         ORDER BY
             date;
-    "#)?;
+    "#,
+    )?;
 
-    let scrobbles = stmt.query_map([
-            &params.track_id,
-            &params.track_id,
-            &start,
-            &end
-        ], |row| {
+    let scrobbles = stmt.query_map([&params.track_id, &params.track_id, &start, &end], |row| {
         Ok(ScrobblesPerDay {
             date: row.get(0)?,
             count: row.get(1)?,

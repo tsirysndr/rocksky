@@ -2,13 +2,17 @@ use std::sync::{Arc, Mutex};
 
 use actix_web::{web, HttpRequest, HttpResponse};
 use analytics::types::scrobble::{GetScrobblesParams, ScrobbleTrack};
-use duckdb::Connection;
 use anyhow::Error;
+use duckdb::Connection;
 use tokio_stream::StreamExt;
 
 use crate::read_payload;
 
-pub async fn get_scrobbles(payload: &mut web::Payload, _req: &HttpRequest, conn: Arc<Mutex<Connection>>) -> Result<HttpResponse, Error> {
+pub async fn get_scrobbles(
+    payload: &mut web::Payload,
+    _req: &HttpRequest,
+    conn: Arc<Mutex<Connection>>,
+) -> Result<HttpResponse, Error> {
     let body = read_payload!(payload);
     let params = serde_json::from_slice::<GetScrobblesParams>(&body)?;
     let pagination = params.pagination.unwrap_or_default();
@@ -74,28 +78,31 @@ pub async fn get_scrobbles(payload: &mut web::Payload, _req: &HttpRequest, conn:
     };
     match did {
         Some(did) => {
-            let scrobbles = stmt.query_map([&did, &did, &limit.to_string(), &offset.to_string()], |row| {
-                Ok(ScrobbleTrack {
-                    id: row.get(0)?,
-                    track_id: row.get(1)?,
-                    title: row.get(2)?,
-                    artist: row.get(3)?,
-                    album_artist: row.get(4)?,
-                    album: row.get(5)?,
-                    album_art: row.get(6)?,
-                    handle: row.get(7)?,
-                    did: row.get(8)?,
-                    avatar: None,
-                    uri: row.get(9)?,
-                    track_uri: row.get(10)?,
-                    artist_uri: row.get(11)?,
-                    album_uri: row.get(12)?,
-                    created_at: row.get(13)?,
-                })
-            })?;
+            let scrobbles = stmt.query_map(
+                [&did, &did, &limit.to_string(), &offset.to_string()],
+                |row| {
+                    Ok(ScrobbleTrack {
+                        id: row.get(0)?,
+                        track_id: row.get(1)?,
+                        title: row.get(2)?,
+                        artist: row.get(3)?,
+                        album_artist: row.get(4)?,
+                        album: row.get(5)?,
+                        album_art: row.get(6)?,
+                        handle: row.get(7)?,
+                        did: row.get(8)?,
+                        avatar: None,
+                        uri: row.get(9)?,
+                        track_uri: row.get(10)?,
+                        artist_uri: row.get(11)?,
+                        album_uri: row.get(12)?,
+                        created_at: row.get(13)?,
+                    })
+                },
+            )?;
             let scrobbles: Result<Vec<_>, _> = scrobbles.collect();
             Ok(HttpResponse::Ok().json(scrobbles?))
-        },
+        }
         None => {
             let scrobbles = stmt.query_map([limit, offset], |row| {
                 Ok(ScrobbleTrack {
@@ -122,7 +129,11 @@ pub async fn get_scrobbles(payload: &mut web::Payload, _req: &HttpRequest, conn:
     }
 }
 
-pub async fn get_distinct_scrobbles(payload: &mut web::Payload, _req: &HttpRequest, conn: Arc<Mutex<Connection>>) -> Result<HttpResponse, Error> {
+pub async fn get_distinct_scrobbles(
+    payload: &mut web::Payload,
+    _req: &HttpRequest,
+    conn: Arc<Mutex<Connection>>,
+) -> Result<HttpResponse, Error> {
     let body = read_payload!(payload);
     let params = serde_json::from_slice::<GetScrobblesParams>(&body)?;
     let pagination = params.pagination.unwrap_or_default();
@@ -130,7 +141,8 @@ pub async fn get_distinct_scrobbles(payload: &mut web::Payload, _req: &HttpReque
     let limit = pagination.take.unwrap_or(10);
 
     let conn = conn.lock().unwrap();
-    let mut stmt =  conn.prepare(r#"
+    let mut stmt = conn.prepare(
+        r#"
         WITH ranked_scrobbles AS (
             SELECT
                 s.id,
@@ -177,7 +189,8 @@ pub async fn get_distinct_scrobbles(payload: &mut web::Payload, _req: &HttpReque
         ORDER BY created_at DESC
         OFFSET ?
         LIMIT ?;
-    "#)?;
+    "#,
+    )?;
 
     let scrobbles = stmt.query_map([limit, offset], |row| {
         Ok(ScrobbleTrack {
@@ -201,4 +214,3 @@ pub async fn get_distinct_scrobbles(payload: &mut web::Payload, _req: &HttpReque
     let scrobbles: Result<Vec<_>, _> = scrobbles.collect();
     Ok(HttpResponse::Ok().json(scrobbles?))
 }
-

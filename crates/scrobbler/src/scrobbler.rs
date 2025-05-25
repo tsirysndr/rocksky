@@ -6,10 +6,15 @@ use rand::Rng;
 use sqlx::{Pool, Postgres};
 
 use crate::{
-    auth::{decode_token, extract_did}, cache::Cache, crypto::decrypt_aes_256_ctr, listenbrainz::types::SubmitListensRequest, musicbrainz::client::MusicbrainzClient, repo, rocksky, spotify::{
-        client::SpotifyClient,
-        refresh_token
-    }, types::{Scrobble, Track}, xata::user::User
+    auth::{decode_token, extract_did},
+    cache::Cache,
+    crypto::decrypt_aes_256_ctr,
+    listenbrainz::types::SubmitListensRequest,
+    musicbrainz::client::MusicbrainzClient,
+    repo, rocksky,
+    spotify::{client::SpotifyClient, refresh_token},
+    types::{Scrobble, Track},
+    xata::user::User,
 };
 
 fn parse_batch(form: &BTreeMap<String, String>) -> Result<Vec<Scrobble>, Error> {
@@ -25,13 +30,16 @@ fn parse_batch(form: &BTreeMap<String, String>) -> Result<Vec<Scrobble>, Error> 
             break;
         }
 
-        let album = form.get(&format!("album[{}]", index))
+        let album = form
+            .get(&format!("album[{}]", index))
             .cloned()
             .map(|x| x.trim().to_string());
-        let context = form.get(&format!("context[{}]", index))
+        let context = form
+            .get(&format!("context[{}]", index))
             .cloned()
             .map(|x| x.trim().to_string());
-        let stream_id = form.get(&format!("streamId[{}]", index))
+        let stream_id = form
+            .get(&format!("streamId[{}]", index))
             .and_then(|s| s.trim().parse().ok());
         let chosen_by_user = form
             .get(&format!("chosenByUser[{}]", index))
@@ -40,14 +48,18 @@ fn parse_batch(form: &BTreeMap<String, String>) -> Result<Vec<Scrobble>, Error> 
             .get(&format!("trackNumber[{}]", index))
             .and_then(|s| s.trim().parse().ok());
         let mbid = form.get(&format!("mbid[{}]", index)).cloned();
-        let album_artist = form.get(&format!("albumArtist[{}]", index)).map(|x| x.trim().to_string());
+        let album_artist = form
+            .get(&format!("albumArtist[{}]", index))
+            .map(|x| x.trim().to_string());
         let duration = form
             .get(&format!("duration[{}]", index))
             .and_then(|s| s.trim().parse().ok());
 
-        let timestamp = timestamp.unwrap().trim().parse().unwrap_or(
-            chrono::Utc::now().timestamp() as u64,
-        );
+        let timestamp = timestamp
+            .unwrap()
+            .trim()
+            .parse()
+            .unwrap_or(chrono::Utc::now().timestamp() as u64);
 
         // validate timestamp, must be in the past (between 14 days before to present)
         let now = chrono::Utc::now().timestamp() as u64;
@@ -80,7 +92,11 @@ fn parse_batch(form: &BTreeMap<String, String>) -> Result<Vec<Scrobble>, Error> 
     Ok(result)
 }
 
-pub async fn scrobble(pool: &Pool<Postgres>, cache: &Cache, form: &BTreeMap<String, String>) -> Result<Vec<Scrobble>, Error> {
+pub async fn scrobble(
+    pool: &Pool<Postgres>,
+    cache: &Cache,
+    form: &BTreeMap<String, String>,
+) -> Result<Vec<Scrobble>, Error> {
     let mut scrobbles = parse_batch(form)?;
 
     if scrobbles.is_empty() {
@@ -99,18 +115,22 @@ pub async fn scrobble(pool: &Pool<Postgres>, cache: &Cache, form: &BTreeMap<Stri
 
     for scrobble in &mut scrobbles {
         /*
-            0. check if scrobble is cached
-            1. if mbid is present, check if it exists in the database
-            2. if it exists, scrobble
-            3. if it doesn't exist, check if it exists in Musicbrainz (using mbid)
-            4. if it exists, get album art from spotify and scrobble
-            5. if it doesn't exist, check if it exists in Spotify
-            6. if it exists, scrobble
-            7. if it doesn't exist, check if it exists in Musicbrainz (using track and artist)
-            8. if it exists, scrobble
-            9. if it doesn't exist, skip unknown track
-         */
-        let key = format!("{} - {}", scrobble.artist.to_lowercase(), scrobble.track.to_lowercase());
+           0. check if scrobble is cached
+           1. if mbid is present, check if it exists in the database
+           2. if it exists, scrobble
+           3. if it doesn't exist, check if it exists in Musicbrainz (using mbid)
+           4. if it exists, get album art from spotify and scrobble
+           5. if it doesn't exist, check if it exists in Spotify
+           6. if it exists, scrobble
+           7. if it doesn't exist, check if it exists in Musicbrainz (using track and artist)
+           8. if it exists, scrobble
+           9. if it doesn't exist, skip unknown track
+        */
+        let key = format!(
+            "{} - {}",
+            scrobble.artist.to_lowercase(),
+            scrobble.track.to_lowercase()
+        );
         let cached = cache.get(&key)?;
         if cached.is_some() {
             println!("{}", format!("Cached: {}", key).yellow());
@@ -149,7 +169,9 @@ pub async fn scrobble(pool: &Pool<Postgres>, cache: &Cache, form: &BTreeMap<Stri
                     None => None,
                 },
             };
-            track.release_date = album.release_date.map(|x| x.split("T").next().unwrap().to_string());
+            track.release_date = album
+                .release_date
+                .map(|x| x.split("T").next().unwrap().to_string());
             track.artist_picture = artist.picture.clone();
 
             rocksky::scrobble(cache, &did, track, scrobble.timestamp).await?;
@@ -168,24 +190,32 @@ pub async fn scrobble(pool: &Pool<Postgres>, cache: &Cache, form: &BTreeMap<Stri
 
         let spotify_token = decrypt_aes_256_ctr(
             &spotify_token.refresh_token,
-        &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?
+            &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?,
         )?;
 
         let spotify_token = refresh_token(&spotify_token).await?;
         let spotify_client = SpotifyClient::new(&spotify_token.access_token);
 
-        let result = spotify_client.search(&format!(r#"track:"{}" artist:"{}""#, scrobble.track, scrobble.artist)).await?;
+        let result = spotify_client
+            .search(&format!(
+                r#"track:"{}" artist:"{}""#,
+                scrobble.track, scrobble.artist
+            ))
+            .await?;
 
         if let Some(track) = result.tracks.items.first() {
             println!("{}", "Spotify (track)".yellow());
             scrobble.album = Some(track.album.name.clone());
             let mut track = track.clone();
 
-            if  let Some(album) = spotify_client.get_album(&track.album.id).await? {
+            if let Some(album) = spotify_client.get_album(&track.album.id).await? {
                 track.album = album;
             }
 
-            if let Some(artist) = spotify_client.get_artist(&track.album.artists[0].id).await? {
+            if let Some(artist) = spotify_client
+                .get_artist(&track.album.artists[0].id)
+                .await?
+            {
                 track.album.artists[0] = artist;
             }
 
@@ -204,21 +234,28 @@ pub async fn scrobble(pool: &Pool<Postgres>, cache: &Cache, form: &BTreeMap<Stri
             let result = mb_client.get_recording(&recording.id).await?;
             println!("{}", "Musicbrainz (recording)".yellow());
             scrobble.album = Some(Track::from(result.clone()).album);
-            rocksky::scrobble(cache,  &did, result.into(), scrobble.timestamp).await?;
+            rocksky::scrobble(cache, &did, result.into(), scrobble.timestamp).await?;
             tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             continue;
         }
 
-        println!("{} {} - {}, skipping", "Track not found: ".yellow(), scrobble.artist, scrobble.track);
+        println!(
+            "{} {} - {}, skipping",
+            "Track not found: ".yellow(),
+            scrobble.artist,
+            scrobble.track
+        );
         scrobble.ignored = Some(true);
     }
-
 
     Ok(scrobbles.clone())
 }
 
-
-pub async fn scrobble_v1(pool: &Pool<Postgres>, cache: &Cache, form: &BTreeMap<String, String>) -> Result<(), Error> {
+pub async fn scrobble_v1(
+    pool: &Pool<Postgres>,
+    cache: &Cache,
+    form: &BTreeMap<String, String>,
+) -> Result<(), Error> {
     let session_id = form.get("s").unwrap().to_string();
     let artist = form.get("a[0]").unwrap().to_string();
     let track = form.get("t[0]").unwrap().to_string();
@@ -269,7 +306,11 @@ pub async fn scrobble_v1(pool: &Pool<Postgres>, cache: &Cache, form: &BTreeMap<S
     8. if it exists, scrobble
     9. if it doesn't exist, skip unknown track
     */
-    let key = format!("{} - {}", scrobble.artist.to_lowercase(), scrobble.track.to_lowercase());
+    let key = format!(
+        "{} - {}",
+        scrobble.artist.to_lowercase(),
+        scrobble.track.to_lowercase()
+    );
     let cached = cache.get(&key)?;
     if cached.is_some() {
         println!("{}", format!("Cached: {}", key).yellow());
@@ -308,7 +349,9 @@ pub async fn scrobble_v1(pool: &Pool<Postgres>, cache: &Cache, form: &BTreeMap<S
                 None => None,
             },
         };
-        track.release_date = album.release_date.map(|x| x.split("T").next().unwrap().to_string());
+        track.release_date = album
+            .release_date
+            .map(|x| x.split("T").next().unwrap().to_string());
         track.artist_picture = artist.picture.clone();
 
         rocksky::scrobble(cache, &did, track, scrobble.timestamp).await?;
@@ -327,24 +370,32 @@ pub async fn scrobble_v1(pool: &Pool<Postgres>, cache: &Cache, form: &BTreeMap<S
 
     let spotify_token = decrypt_aes_256_ctr(
         &spotify_token.refresh_token,
-    &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?
+        &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?,
     )?;
 
     let spotify_token = refresh_token(&spotify_token).await?;
     let spotify_client = SpotifyClient::new(&spotify_token.access_token);
 
-    let result = spotify_client.search(&format!(r#"track:"{}" artist:"{}""#, scrobble.track, scrobble.artist)).await?;
+    let result = spotify_client
+        .search(&format!(
+            r#"track:"{}" artist:"{}""#,
+            scrobble.track, scrobble.artist
+        ))
+        .await?;
 
     if let Some(track) = result.tracks.items.first() {
         println!("{}", "Spotify (track)".yellow());
         scrobble.album = Some(track.album.name.clone());
         let mut track = track.clone();
 
-        if  let Some(album) = spotify_client.get_album(&track.album.id).await? {
+        if let Some(album) = spotify_client.get_album(&track.album.id).await? {
             track.album = album;
         }
 
-        if let Some(artist) = spotify_client.get_artist(&track.album.artists[0].id).await? {
+        if let Some(artist) = spotify_client
+            .get_artist(&track.album.artists[0].id)
+            .await?
+        {
             track.album.artists[0] = artist;
         }
 
@@ -363,17 +414,27 @@ pub async fn scrobble_v1(pool: &Pool<Postgres>, cache: &Cache, form: &BTreeMap<S
         let result = mb_client.get_recording(&recording.id).await?;
         println!("{}", "Musicbrainz (recording)".yellow());
         scrobble.album = Some(Track::from(result.clone()).album);
-        rocksky::scrobble(cache,  &did, result.into(), scrobble.timestamp).await?;
+        rocksky::scrobble(cache, &did, result.into(), scrobble.timestamp).await?;
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
         return Ok(());
     }
 
-    println!("{} {} - {}, skipping", "Track not found: ".yellow(), artist, track);
+    println!(
+        "{} {} - {}, skipping",
+        "Track not found: ".yellow(),
+        artist,
+        track
+    );
 
     Ok(())
 }
 
-pub async fn scrobble_listenbrainz(pool: &Pool<Postgres>, cache: &Cache, req: SubmitListensRequest, token: &str) -> Result<(), Error> {
+pub async fn scrobble_listenbrainz(
+    pool: &Pool<Postgres>,
+    cache: &Cache,
+    req: SubmitListensRequest,
+    token: &str,
+) -> Result<(), Error> {
     println!("Listenbrainz\n{:#?}", req);
 
     if req.payload.is_empty() {
@@ -396,18 +457,19 @@ pub async fn scrobble_listenbrainz(pool: &Pool<Postgres>, cache: &Cache, req: Su
             if let Some(did) = user {
                 did
             } else {
-                return Err(Error::msg(format!("Failed to decode token: {} {}", e, token)));
+                return Err(Error::msg(format!(
+                    "Failed to decode token: {} {}",
+                    e, token
+                )));
             }
         }
     };
 
-    let user = repo::user::get_user_by_did(pool, &did)
-        .await?;
+    let user = repo::user::get_user_by_did(pool, &did).await?;
 
     if user.is_none() {
         return Err(Error::msg("User not found"));
     }
-
 
     cache.setex(
         &format!("listenbrainz:emby:{}:{}:{}", artist, track, did),
@@ -450,7 +512,11 @@ pub async fn scrobble_listenbrainz(pool: &Pool<Postgres>, cache: &Cache, req: Su
     8. if it exists, scrobble
     9. if it doesn't exist, skip unknown track
     */
-    let key = format!("{} - {}", scrobble.artist.to_lowercase(), scrobble.track.to_lowercase());
+    let key = format!(
+        "{} - {}",
+        scrobble.artist.to_lowercase(),
+        scrobble.track.to_lowercase()
+    );
     let cached = cache.get(&key)?;
     if cached.is_some() {
         println!("{}", format!("Cached: {}", key).yellow());
@@ -489,7 +555,9 @@ pub async fn scrobble_listenbrainz(pool: &Pool<Postgres>, cache: &Cache, req: Su
                 None => None,
             },
         };
-        track.release_date = album.release_date.map(|x| x.split("T").next().unwrap().to_string());
+        track.release_date = album
+            .release_date
+            .map(|x| x.split("T").next().unwrap().to_string());
         track.artist_picture = artist.picture.clone();
 
         rocksky::scrobble(cache, &did, track, scrobble.timestamp).await?;
@@ -508,24 +576,32 @@ pub async fn scrobble_listenbrainz(pool: &Pool<Postgres>, cache: &Cache, req: Su
 
     let spotify_token = decrypt_aes_256_ctr(
         &spotify_token.refresh_token,
-    &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?
+        &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?,
     )?;
 
     let spotify_token = refresh_token(&spotify_token).await?;
     let spotify_client = SpotifyClient::new(&spotify_token.access_token);
 
-    let result = spotify_client.search(&format!(r#"track:"{}" artist:"{}""#, scrobble.track, scrobble.artist)).await?;
+    let result = spotify_client
+        .search(&format!(
+            r#"track:"{}" artist:"{}""#,
+            scrobble.track, scrobble.artist
+        ))
+        .await?;
 
     if let Some(track) = result.tracks.items.first() {
         println!("{}", "Spotify (track)".yellow());
         scrobble.album = Some(track.album.name.clone());
         let mut track = track.clone();
 
-        if  let Some(album) = spotify_client.get_album(&track.album.id).await? {
+        if let Some(album) = spotify_client.get_album(&track.album.id).await? {
             track.album = album;
         }
 
-        if let Some(artist) = spotify_client.get_artist(&track.album.artists[0].id).await? {
+        if let Some(artist) = spotify_client
+            .get_artist(&track.album.artists[0].id)
+            .await?
+        {
             track.album.artists[0] = artist;
         }
 
@@ -544,12 +620,17 @@ pub async fn scrobble_listenbrainz(pool: &Pool<Postgres>, cache: &Cache, req: Su
         let result = mb_client.get_recording(&recording.id).await?;
         println!("{}", "Musicbrainz (recording)".yellow());
         scrobble.album = Some(Track::from(result.clone()).album);
-        rocksky::scrobble(cache,  &did, result.into(), scrobble.timestamp).await?;
+        rocksky::scrobble(cache, &did, result.into(), scrobble.timestamp).await?;
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
         return Ok(());
     }
 
-    println!("{} {} - {}, skipping", "Track not found: ".yellow(), artist, track);
+    println!(
+        "{} {} - {}, skipping",
+        "Track not found: ".yellow(),
+        artist,
+        track
+    );
 
     Ok(())
 }

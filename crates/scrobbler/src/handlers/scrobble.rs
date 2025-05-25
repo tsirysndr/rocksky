@@ -1,20 +1,20 @@
-use std::collections::BTreeMap;
 use actix_web::HttpResponse;
 use anyhow::Error;
 use serde_json::json;
 use sqlx::Pool;
+use std::collections::BTreeMap;
 
-use crate::{auth::authenticate, cache::Cache, params::validate_scrobble_params, response::build_response, scrobbler::scrobble};
+use crate::{
+    auth::authenticate, cache::Cache, params::validate_scrobble_params, response::build_response,
+    scrobbler::scrobble,
+};
 
 pub async fn handle_scrobble(
-  form: BTreeMap<String, String>,
-  conn: &Pool<sqlx::Postgres>,
-  cache: &Cache,
+    form: BTreeMap<String, String>,
+    conn: &Pool<sqlx::Postgres>,
+    cache: &Cache,
 ) -> Result<HttpResponse, Error> {
-  let params = match validate_scrobble_params(
-        &form,
-        &["api_key", "api_sig", "sk", "method"],
-    ) {
+    let params = match validate_scrobble_params(&form, &["api_key", "api_sig", "sk", "method"]) {
         Ok(params) => params,
         Err(e) => {
             return Ok(HttpResponse::BadRequest().json(json!({
@@ -24,13 +24,7 @@ pub async fn handle_scrobble(
         }
     };
 
-    if let Err(e) = authenticate(
-        conn,
-        &params[0],
-        &params[1],
-        &params[2],
-        &form
-    ).await {
+    if let Err(e) = authenticate(conn, &params[0], &params[1], &params[2], &form).await {
         return Ok(HttpResponse::Forbidden().json(json!({
             "error": 2,
             "message": format!("Authentication failed: {}", e)
@@ -46,11 +40,10 @@ pub async fn handle_scrobble(
                     "message": e.to_string()
                 })));
             }
-            Ok(
-              HttpResponse::BadRequest().json(json!({
-                "error": 4,
-                "message": format!("Failed to parse scrobbles: {}", e)
-          })))
+            Ok(HttpResponse::BadRequest().json(json!({
+                  "error": 4,
+                  "message": format!("Failed to parse scrobbles: {}", e)
+            })))
         }
     }
 }

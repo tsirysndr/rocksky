@@ -1,14 +1,24 @@
 use std::sync::{Arc, Mutex};
 
 use actix_web::{web, HttpRequest, HttpResponse};
-use analytics::types::{album::Album, artist::{Artist, GetArtistAlbumsParams, GetArtistTracksParams, GetArtistsParams, GetTopArtistsParams}, track::Track};
-use duckdb::Connection;
+use analytics::types::{
+    album::Album,
+    artist::{
+        Artist, GetArtistAlbumsParams, GetArtistTracksParams, GetArtistsParams, GetTopArtistsParams,
+    },
+    track::Track,
+};
 use anyhow::Error;
+use duckdb::Connection;
 use tokio_stream::StreamExt;
 
 use crate::read_payload;
 
-pub async fn get_artists(payload: &mut web::Payload, _req: &HttpRequest, conn: Arc<Mutex<Connection>>) -> Result<HttpResponse, Error> {
+pub async fn get_artists(
+    payload: &mut web::Payload,
+    _req: &HttpRequest,
+    conn: Arc<Mutex<Connection>>,
+) -> Result<HttpResponse, Error> {
     let body = read_payload!(payload);
     let params = serde_json::from_slice::<GetArtistsParams>(&body)?;
     let pagination = params.pagination.unwrap_or_default();
@@ -18,8 +28,8 @@ pub async fn get_artists(payload: &mut web::Payload, _req: &HttpRequest, conn: A
 
     let conn = conn.lock().unwrap();
     let mut stmt = match did {
-        Some(_) => {
-            conn.prepare(r#"
+        Some(_) => conn.prepare(
+            r#"
             SELECT a.*,
                 COUNT(*) AS play_count,
                 COUNT(DISTINCT s.user_id) AS unique_listeners
@@ -30,44 +40,47 @@ pub async fn get_artists(payload: &mut web::Payload, _req: &HttpRequest, conn: A
             WHERE u.did = ? OR u.handle = ?
             GROUP BY a.*
             ORDER BY play_count DESC OFFSET ? LIMIT ?;
-            "#)?
-        },
-        None => {
-            conn.prepare("SELECT a.*,
+            "#,
+        )?,
+        None => conn.prepare(
+            "SELECT a.*,
                 COUNT(*) AS play_count,
                 COUNT(DISTINCT s.user_id) AS unique_listeners
              FROM artists a
              LEFT JOIN scrobbles s ON s.artist_id = a.id
              GROUP BY a.*
-             ORDER BY play_count DESC OFFSET ? LIMIT ?")?
-        }
+             ORDER BY play_count DESC OFFSET ? LIMIT ?",
+        )?,
     };
 
     match did {
         Some(did) => {
-            let artists = stmt.query_map([&did, &did, &limit.to_string(), &offset.to_string()], |row| {
-                Ok(Artist {
-                    id: row.get(0)?,
-                    name: row.get(1)?,
-                    biography: row.get(2)?,
-                    born: row.get(3)?,
-                    born_in: row.get(4)?,
-                    died: row.get(5)?,
-                    picture: row.get(6)?,
-                    sha256: row.get(7)?,
-                    spotify_link: row.get(8)?,
-                    tidal_link: row.get(9)?,
-                    youtube_link: row.get(10)?,
-                    apple_music_link: row.get(11)?,
-                    uri: row.get(12)?,
-                    play_count: row.get(13)?,
-                    unique_listeners: row.get(14)?,
-                })
-            })?;
+            let artists = stmt.query_map(
+                [&did, &did, &limit.to_string(), &offset.to_string()],
+                |row| {
+                    Ok(Artist {
+                        id: row.get(0)?,
+                        name: row.get(1)?,
+                        biography: row.get(2)?,
+                        born: row.get(3)?,
+                        born_in: row.get(4)?,
+                        died: row.get(5)?,
+                        picture: row.get(6)?,
+                        sha256: row.get(7)?,
+                        spotify_link: row.get(8)?,
+                        tidal_link: row.get(9)?,
+                        youtube_link: row.get(10)?,
+                        apple_music_link: row.get(11)?,
+                        uri: row.get(12)?,
+                        play_count: row.get(13)?,
+                        unique_listeners: row.get(14)?,
+                    })
+                },
+            )?;
 
             let artists: Result<Vec<_>, _> = artists.collect();
             Ok(HttpResponse::Ok().json(artists?))
-        },
+        }
         None => {
             let artists = stmt.query_map([limit, offset], |row| {
                 Ok(Artist {
@@ -95,7 +108,11 @@ pub async fn get_artists(payload: &mut web::Payload, _req: &HttpRequest, conn: A
     }
 }
 
-pub async fn get_top_artists(payload: &mut web::Payload, _req: &HttpRequest, conn: Arc<Mutex<Connection>>) -> Result<HttpResponse, Error> {
+pub async fn get_top_artists(
+    payload: &mut web::Payload,
+    _req: &HttpRequest,
+    conn: Arc<Mutex<Connection>>,
+) -> Result<HttpResponse, Error> {
     let body = read_payload!(payload);
     let params = serde_json::from_slice::<GetTopArtistsParams>(&body)?;
     let pagination = params.pagination.unwrap_or_default();
@@ -105,8 +122,8 @@ pub async fn get_top_artists(payload: &mut web::Payload, _req: &HttpRequest, con
 
     let conn = conn.lock().unwrap();
     let mut stmt = match did {
-        Some(_) => {
-            conn.prepare(r#"
+        Some(_) => conn.prepare(
+            r#"
                 SELECT
                     s.artist_id AS id,
                     ar.name AS artist_name,
@@ -129,10 +146,10 @@ pub async fn get_top_artists(payload: &mut web::Payload, _req: &HttpRequest, con
                     play_count DESC
                 OFFSET ?
                 LIMIT ?;
-            "#)?
-        },
-        None => {
-            conn.prepare(r#"
+            "#,
+        )?,
+        None => conn.prepare(
+            r#"
                 SELECT
                     s.artist_id AS id,
                     ar.name AS artist_name,
@@ -153,35 +170,38 @@ pub async fn get_top_artists(payload: &mut web::Payload, _req: &HttpRequest, con
                     play_count DESC
                 OFFSET ?
                 LIMIT ?;
-            "#)?
-        }
+            "#,
+        )?,
     };
 
     match did {
         Some(did) => {
-            let artists = stmt.query_map([&did, &did, &limit.to_string(), &offset.to_string()], |row| {
-                Ok(Artist {
-                    id: row.get(0)?,
-                    name: row.get(1)?,
-                    biography: None,
-                    born: None,
-                    born_in: None,
-                    died: None,
-                    picture: row.get(2)?,
-                    sha256: row.get(3)?,
-                    spotify_link: None,
-                    tidal_link: None,
-                    youtube_link: None,
-                    apple_music_link: None,
-                    uri: row.get(4)?,
-                    play_count: Some(row.get(5)?),
-                    unique_listeners: Some(row.get(6)?),
-                })
-            })?;
+            let artists = stmt.query_map(
+                [&did, &did, &limit.to_string(), &offset.to_string()],
+                |row| {
+                    Ok(Artist {
+                        id: row.get(0)?,
+                        name: row.get(1)?,
+                        biography: None,
+                        born: None,
+                        born_in: None,
+                        died: None,
+                        picture: row.get(2)?,
+                        sha256: row.get(3)?,
+                        spotify_link: None,
+                        tidal_link: None,
+                        youtube_link: None,
+                        apple_music_link: None,
+                        uri: row.get(4)?,
+                        play_count: Some(row.get(5)?),
+                        unique_listeners: Some(row.get(6)?),
+                    })
+                },
+            )?;
 
             let artists: Result<Vec<_>, _> = artists.collect();
             Ok(HttpResponse::Ok().json(artists?))
-        },
+        }
         None => {
             let artists = stmt.query_map([limit, offset], |row| {
                 Ok(Artist {
@@ -209,7 +229,11 @@ pub async fn get_top_artists(payload: &mut web::Payload, _req: &HttpRequest, con
     }
 }
 
-pub async fn get_artist_tracks(payload: &mut web::Payload, _req: &HttpRequest, conn: Arc<Mutex<Connection>>) -> Result<HttpResponse, Error> {
+pub async fn get_artist_tracks(
+    payload: &mut web::Payload,
+    _req: &HttpRequest,
+    conn: Arc<Mutex<Connection>>,
+) -> Result<HttpResponse, Error> {
     let body = read_payload!(payload);
     let params = serde_json::from_slice::<GetArtistTracksParams>(&body)?;
     let pagination = params.pagination.unwrap_or_default();
@@ -249,35 +273,47 @@ pub async fn get_artist_tracks(payload: &mut web::Payload, _req: &HttpRequest, c
         LIMIT ?;
     "#)?;
 
-    let tracks = stmt.query_map([&params.artist_id, &params.artist_id, &limit.to_string(), &offset.to_string()], |row| {
-        Ok(Track {
-            id: row.get(0)?,
-            title: row.get(1)?,
-            artist: row.get(2)?,
-            album_artist: row.get(3)?,
-            album: row.get(4)?,
-            uri: row.get(5)?,
-            album_art: row.get(6)?,
-            duration: row.get(7)?,
-            disc_number: row.get(8)?,
-            track_number: row.get(9)?,
-            artist_uri: row.get(10)?,
-            album_uri: row.get(11)?,
-            sha256: row.get(12)?,
-            copyright_message: row.get(13)?,
-            label: row.get(14)?,
-            created_at: row.get(15)?,
-            play_count: Some(row.get(16)?),
-            unique_listeners: Some(row.get(17)?),
-            ..Default::default()
-        })
-    })?;
+    let tracks = stmt.query_map(
+        [
+            &params.artist_id,
+            &params.artist_id,
+            &limit.to_string(),
+            &offset.to_string(),
+        ],
+        |row| {
+            Ok(Track {
+                id: row.get(0)?,
+                title: row.get(1)?,
+                artist: row.get(2)?,
+                album_artist: row.get(3)?,
+                album: row.get(4)?,
+                uri: row.get(5)?,
+                album_art: row.get(6)?,
+                duration: row.get(7)?,
+                disc_number: row.get(8)?,
+                track_number: row.get(9)?,
+                artist_uri: row.get(10)?,
+                album_uri: row.get(11)?,
+                sha256: row.get(12)?,
+                copyright_message: row.get(13)?,
+                label: row.get(14)?,
+                created_at: row.get(15)?,
+                play_count: Some(row.get(16)?),
+                unique_listeners: Some(row.get(17)?),
+                ..Default::default()
+            })
+        },
+    )?;
 
     let tracks: Result<Vec<_>, _> = tracks.collect();
     Ok(HttpResponse::Ok().json(tracks?))
 }
 
-pub async fn get_artist_albums(payload: &mut web::Payload, _req: &HttpRequest, conn: Arc<Mutex<Connection>>) -> Result<HttpResponse, Error> {
+pub async fn get_artist_albums(
+    payload: &mut web::Payload,
+    _req: &HttpRequest,
+    conn: Arc<Mutex<Connection>>,
+) -> Result<HttpResponse, Error> {
     let body = read_payload!(payload);
     let params = serde_json::from_slice::<GetArtistAlbumsParams>(&body)?;
     let conn = conn.lock().unwrap();
