@@ -3,11 +3,11 @@ use std::{env, sync::Arc};
 use anyhow::Error;
 use futures_util::{SinkExt, StreamExt};
 use owo_colors::OwoColorize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use tokio::sync::Mutex;
 use tokio_tungstenite::connect_async;
 
-use crate::players::{get_current_player, Player};
+use crate::players::{Player, get_current_player};
 
 pub async fn connect_to_rocksky_websocket(token: String) -> Result<(), Error> {
     let rocksky_ws =

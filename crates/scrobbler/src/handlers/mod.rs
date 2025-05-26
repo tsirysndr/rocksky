@@ -12,7 +12,7 @@ use v1::submission::submission;
 use crate::cache::Cache;
 use crate::listenbrainz::submit::submit_listens;
 use crate::listenbrainz::types::SubmitListensRequest;
-use crate::BANNER;
+use crate::{repo, BANNER};
 
 pub mod scrobble;
 pub mod v1;
@@ -123,12 +123,56 @@ pub async fn handle_submit_listens(
 }
 
 #[get("/1/validate-token")]
-pub async fn handle_validate_token(_req: HttpRequest) -> impl Responder {
-    HttpResponse::Ok().json(serde_json::json!({
-        "code": 200,
-        "message": "Token valid.",
-        "valid": true,
-    }))
+pub async fn handle_validate_token(
+    data: web::Data<Arc<Pool<Postgres>>>,
+    req: HttpRequest,
+) -> impl Responder {
+    let pool = data.get_ref();
+    let authorization = req.headers().get("Authorization");
+
+    if authorization.is_none() {
+        return HttpResponse::Ok().json(serde_json::json!({
+            "code": 200,
+            "message": "Token valid.",
+            "valid": true,
+        }));
+    }
+
+    let authorization = authorization.unwrap();
+    let token = match authorization.to_str() {
+        Ok(token) => token
+            .trim_start_matches("Token ")
+            .trim_start_matches("Bearer ")
+            .trim_start_matches("token ")
+            .trim_start_matches("bearer "),
+        Err(_) => return HttpResponse::Unauthorized().finish(),
+    };
+
+    match repo::user::get_user_by_apikey(pool, token).await {
+        Ok(Some(user)) => {
+            return HttpResponse::Ok().json(serde_json::json!({
+                "code": 200,
+                "message": "Token valid.",
+                "valid": true,
+                "user_name": user.handle,
+                "permissions": vec![
+                    "recording-metadata-write",
+                    "recording-metadata-read"
+                ],
+            }));
+        }
+        Ok(None) => {
+            return HttpResponse::Ok().json(serde_json::json!({
+                "code": 200,
+                "message": "Token invalid.",
+                "valid": false,
+            }));
+        }
+        Err(e) => {
+            println!("Error validating token: {}", e);
+            return HttpResponse::InternalServerError().finish();
+        }
+    }
 }
 
 pub async fn call_method(

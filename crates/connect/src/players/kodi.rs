@@ -3,7 +3,7 @@ use std::{env, time::Duration};
 use super::Player;
 use anyhow::Error;
 use async_trait::async_trait;
-use base64::{engine::general_purpose::STANDARD, Engine as _};
+use base64::{Engine as _, engine::general_purpose::STANDARD};
 use jsonrpsee::{
     core::{
         client::ClientT,
@@ -13,7 +13,7 @@ use jsonrpsee::{
     rpc_params,
 };
 use reqwest::header::HeaderMap;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use tokio::sync::mpsc::Sender;
 
 #[derive(Clone)]
