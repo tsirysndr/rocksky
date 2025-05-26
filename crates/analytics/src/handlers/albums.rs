@@ -143,7 +143,7 @@ pub async fn get_top_albums(
           artists ar ON a.artist = ar.name
       LEFT JOIN
           users u ON s.user_id = u.id
-      WHERE s.album_id IS NOT NULL AND (u.did = ? OR u.handle = ?)
+      WHERE s.album_id IS NOT NULL AND (u.did = ? OR u.handle = ?) AND ar.name IS NOT NULL
       GROUP BY
           s.album_id, a.title, ar.name, a.release_date, a.year, a.uri, a.album_art, a.sha256, ar.uri
       ORDER BY
