@@ -1,3 +1,2 @@
-pub mod submit;
+pub mod core;
 pub mod types;
-pub mod validate_token;

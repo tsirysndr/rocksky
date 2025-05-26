@@ -10,7 +10,7 @@ use v1::nowplaying::nowplaying;
 use v1::submission::submission;
 
 use crate::cache::Cache;
-use crate::listenbrainz::submit::submit_listens;
+use crate::listenbrainz::core::submit::submit_listens;
 use crate::listenbrainz::types::SubmitListensRequest;
 use crate::{repo, BANNER};
 

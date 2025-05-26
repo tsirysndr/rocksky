@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use crate::{cache::Cache, scrobbler::scrobble_listenbrainz};
 
-use super::types::SubmitListensRequest;
+use crate::listenbrainz::types::SubmitListensRequest;
 
 pub async fn submit_listens(
     payload: SubmitListensRequest,
