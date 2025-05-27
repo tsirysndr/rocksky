@@ -252,6 +252,18 @@ pub async fn get_currently_playing(
         let previous = cache.get(&format!("{}:previous", user_id))?;
         let changed = match previous {
             Some(previous) => {
+                if serde_json::from_str::<CurrentlyPlaying>(&previous).is_err() {
+                    println!(
+                        "{} {} {}",
+                        format!("[{}]", user_id).bright_green(),
+                        "Previous cache is invalid",
+                        previous
+                    );
+                    cache.setex(user_id, "No content", 10)?;
+                    cache.del(&format!("{}:current", user_id))?;
+                    return Ok(None);
+                }
+
                 let previous: CurrentlyPlaying = serde_json::from_str(&previous)?;
                 if previous.item.is_none() && data.item.is_some() {
                     return Ok(Some((data, true)));
@@ -318,6 +330,18 @@ pub async fn get_currently_playing(
         return Ok(None);
     }
 
+    if serde_json::from_str::<CurrentlyPlaying>(&data).is_err() {
+        println!(
+            "{} {} {}",
+            format!("[{}]", user_id).bright_green(),
+            "Invalid data received".red(),
+            data
+        );
+        cache.setex(user_id, "No content", 10)?;
+        cache.del(&format!("{}:current", user_id))?;
+        return Ok(None);
+    }
+
     let data = serde_json::from_str::<CurrentlyPlaying>(&data)?;
 
     cache.setex(
@@ -334,6 +358,16 @@ pub async fn get_currently_playing(
     let previous = cache.get(&format!("{}:previous", user_id))?;
     let changed = match previous {
         Some(previous) => {
+            if serde_json::from_str::<CurrentlyPlaying>(&previous).is_err() {
+                println!(
+                    "{} {} {}",
+                    format!("[{}]", user_id).bright_green(),
+                    "Previous cache is invalid",
+                    previous
+                );
+                return Ok(None);
+            }
+
             let previous: CurrentlyPlaying = serde_json::from_str(&previous)?;
             if previous.item.is_none() || data.item.is_none() {
                 return Ok(Some((data, false)));
@@ -567,6 +601,18 @@ pub async fn watch_currently_playing(
                     thread::sleep(std::time::Duration::from_millis(800));
                     continue;
                 }
+
+                if  serde_json::from_str::<CurrentlyPlaying>(&cached).is_err() {
+                    println!(
+                        "{} {}",
+                        format!("[{}]", spotify_email_clone).bright_green(),
+                        "Cached data is invalid"
+                    );
+                    println!("{}", cached);
+                    thread::sleep(std::time::Duration::from_millis(800));
+                    continue;
+                }
+
                 let mut current_song = serde_json::from_str::<CurrentlyPlaying>(&cached)?;
 
                 if let Some(item) = current_song.item.clone() {
