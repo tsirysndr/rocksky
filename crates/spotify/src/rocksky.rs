@@ -66,7 +66,10 @@ pub async fn scrobble(
       },
       "discNumber": track_item.disc_number,
       "albumArt": track_item.album.images.first().map(|image| image.url.clone()),
-      "spotifyLink": track_item.external_urls.spotify,
+      "spotifyLink": match track_item.external_urls {
+        Some(urls) => Some(urls.spotify),
+        None => None,
+      },
       "label": track_item.album.label,
       "artistPicture":  match artist {
         Some(artist) => match artist.images {
@@ -144,7 +147,10 @@ pub async fn update_library(
         },
         "discNumber": track.disc_number,
         "albumArt": album.images.first().map(|image| image.url.clone()),
-        "spotifyLink": track.external_urls.spotify,
+        "spotifyLink": match track.external_urls {
+            Some(urls) => Some(urls.spotify),
+            None => None,
+        },
         "label": album.label,
         "artistPicture": track.artists.first().map(|artist| match &artist.images {
           Some(images) => Some(images.first().map(|image| image.url.clone())),
