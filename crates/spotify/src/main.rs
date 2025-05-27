@@ -602,17 +602,6 @@ pub async fn watch_currently_playing(
                     continue;
                 }
 
-                if  serde_json::from_str::<CurrentlyPlaying>(&cached).is_err() {
-                    println!(
-                        "{} {}",
-                        format!("[{}]", spotify_email_clone).bright_green(),
-                        "Cached data is invalid"
-                    );
-                    println!("{}", cached);
-                    thread::sleep(std::time::Duration::from_millis(800));
-                    continue;
-                }
-
                 let mut current_song = serde_json::from_str::<CurrentlyPlaying>(&cached)?;
 
                 if let Some(item) = current_song.item.clone() {
