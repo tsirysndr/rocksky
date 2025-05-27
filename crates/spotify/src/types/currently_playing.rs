@@ -24,7 +24,7 @@ pub struct Disallows {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Context {
-    pub external_urls: ExternalUrls,
+    pub external_urls: Option<ExternalUrls>,
     pub href: String,
     #[serde(rename = "type")]
     pub context_type: String,
@@ -45,7 +45,7 @@ pub struct Item {
     pub duration_ms: u32,
     pub explicit: bool,
     pub external_ids: ExternalIds,
-    pub external_urls: ExternalUrls,
+    pub external_urls: Option<ExternalUrls>,
     pub href: String,
     pub id: String,
     pub is_local: bool,
@@ -63,7 +63,7 @@ pub struct Album {
     pub album_type: String,
     pub artists: Vec<Artist>,
     pub available_markets: Vec<String>,
-    pub external_urls: ExternalUrls,
+    pub external_urls: Option<ExternalUrls>,
     pub href: String,
     pub id: String,
     pub images: Vec<Image>,
@@ -87,7 +87,7 @@ pub struct Copyright {
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct Artist {
-    pub external_urls: ExternalUrls,
+    pub external_urls: Option<ExternalUrls>,
     pub href: String,
     pub id: String,
     pub name: String,

@@ -20,7 +20,7 @@ pub struct Track {
     pub disc_number: u32,
     pub duration_ms: u32,
     pub explicit: bool,
-    pub external_urls: ExternalUrls,
+    pub external_urls: Option<ExternalUrls>,
     pub href: String,
     pub id: String,
     pub name: String,
