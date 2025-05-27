@@ -259,9 +259,7 @@ pub async fn get_currently_playing(
                         "Previous cache is invalid",
                         previous
                     );
-                    cache.setex(user_id, "No content", 10)?;
-                    cache.del(&format!("{}:current", user_id))?;
-                    return Ok(None);
+                    return Ok(Some((data.clone(), data.item.is_some())));
                 }
 
                 let previous: CurrentlyPlaying = serde_json::from_str(&previous)?;
