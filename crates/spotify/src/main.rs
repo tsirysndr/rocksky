@@ -259,7 +259,7 @@ pub async fn get_currently_playing(
                         "Previous cache is invalid",
                         previous
                     );
-                    return Ok(Some((data.clone(), data.item.is_some())));
+                    return Ok(None);
                 }
 
                 let previous: CurrentlyPlaying = serde_json::from_str(&previous)?;
