@@ -477,6 +477,24 @@ pub async fn scrobble_listenbrainz(
         60 * 5, // 5 minutes
     )?;
 
+    if !cache.get(
+        &format!("listenbrainz:cache:{}:{}:{}", artist, track, did),
+    )?.is_some() {
+        println!(
+            "{} {} - {}, recently scrobbled",
+            "Already scrobbled: ".yellow(),
+            artist,
+            track
+        );
+        return Ok(());
+    }
+    // set cache for 5 seconds to avoid duplicate scrobbles
+    cache.setex(
+        &format!("listenbrainz:cache:{}:{}:{}", artist, track, did),
+        "1",
+        5,
+    )?;
+
     let spofity_tokens = repo::spotify_token::get_spotify_tokens(pool, 100).await?;
 
     if spofity_tokens.is_empty() {
