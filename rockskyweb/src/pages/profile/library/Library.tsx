@@ -23,24 +23,76 @@ function Library() {
 
   return (
     <>
-      <HeadingSmall>Library</HeadingSmall>
+      <HeadingSmall className="!text-[var(--color-text)]">Library</HeadingSmall>
       <Tabs
         activeKey={activeKey}
         onChange={({ activeKey }) => {
           setActiveKey(activeKey);
         }}
+        overrides={{
+          TabHighlight: {
+            style: {
+              backgroundColor: "var(--color-purple)",
+            },
+          },
+          TabBorder: {
+            style: {
+              display: "none",
+            },
+          },
+        }}
         activateOnFocus
       >
-        <Tab title="Scrobbles">
+        <Tab
+          title="Scrobbles"
+          overrides={{
+            Tab: {
+              style: {
+                color: "var(--color-text)",
+                backgroundColor: "var(--color-background) !important",
+              },
+            },
+          }}
+        >
           <RecentTracks showTitle={false} size={50} showPagination />
         </Tab>
-        <Tab title="Artists">
+        <Tab
+          title="Artists"
+          overrides={{
+            Tab: {
+              style: {
+                color: "var(--color-text)",
+                backgroundColor: "var(--color-background) !important",
+              },
+            },
+          }}
+        >
           <TopArtists showTitle={false} size={50} showPagination />
         </Tab>
-        <Tab title="Albums">
+        <Tab
+          title="Albums"
+          overrides={{
+            Tab: {
+              style: {
+                color: "var(--color-text)",
+                backgroundColor: "var(--color-background) !important",
+              },
+            },
+          }}
+        >
           <Albums size={50} />
         </Tab>
-        <Tab title="Tracks">
+        <Tab
+          title="Tracks"
+          overrides={{
+            Tab: {
+              style: {
+                color: "var(--color-text)",
+                backgroundColor: "var(--color-background) !important",
+              },
+            },
+          }}
+        >
           <TopTracks showTitle={false} size={50} showPagination />
         </Tab>
       </Tabs>

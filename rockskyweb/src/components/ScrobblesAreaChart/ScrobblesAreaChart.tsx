@@ -101,7 +101,12 @@ function ScrobblesAreaChart() {
     <>
       {!pathname.includes("app.rocksky.playlist") && (
         <>
-          <LabelMedium marginBottom={"20px"}>Scrobble Stats</LabelMedium>
+          <LabelMedium
+            marginBottom={"20px"}
+            className="!text-[var(--color-text)]"
+          >
+            Scrobble Stats
+          </LabelMedium>
           <AreaChart
             width={300}
             height={120}
@@ -112,12 +117,7 @@ function ScrobblesAreaChart() {
                 ? getScrobblesChart()
                 : data
             }
-            margin={{
-              top: 5,
-              right: 0,
-              left: 0,
-              bottom: 5,
-            }}
+            className="top-[5px] right-[0px] left-[0px] bottom-[5px]"
           >
             <XAxis
               dataKey="date"

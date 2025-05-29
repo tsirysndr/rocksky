@@ -110,16 +110,11 @@ function SpotifyLogin() {
 
   return (
     <>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-        }}
-      >
-        <div style={{ marginRight: 15 }}>
+      <div className="flex items-center">
+        <div className="mr-[15px]">
           <Spotify size={52} />
         </div>
-        <p style={{ margin: 0 }}>
+        <p className="m-[0px] text-[var(--color-text)]">
           <ConnectSpotify onClick={onConnectSpotify}>Connect</ConnectSpotify>{" "}
           your Spotify account to share what you're listening
         </p>
@@ -137,23 +132,17 @@ function SpotifyLogin() {
       >
         <ModalHeader>Join the beta program with Spotify!</ModalHeader>
         <ModalBody>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: 50,
-              marginTop: 50,
-              flexDirection: "column",
-            }}
-          >
+          <div className="flex items-center justify-center mb-[50px] mt-[50px] flex-col">
             <Spotify size={90} color="#1dd05d" />
-            <ul style={{ marginTop: 20, fontSize: 16 }}>
-              <li style={{ marginBottom: 10 }}>
+            <ul
+              style={{ marginTop: 20, fontSize: 16 }}
+              className="mt-[20px] text-[16px]"
+            >
+              <li className="mb-[10px]">
                 Get early access to our exclusive beta program by linking your
                 Spotify account.
               </li>
-              <li style={{ marginBottom: 10 }}>
+              <li className="mb-[10px]">
                 Enter your Spotify email to request access.
               </li>{" "}
               <li>We'll notify you once you're approved!</li>

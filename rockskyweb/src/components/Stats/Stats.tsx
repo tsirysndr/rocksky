@@ -28,21 +28,27 @@ function Stats(props: StatsProps) {
   const { stats, mb } = props;
   return (
     <Group mb={mb}>
-      <div style={{ marginRight: 20 }}>
-        <LabelMedium>SCROBBLES</LabelMedium>
-        <HeadingSmall margin={0}>
+      <div className="mr-[20px]">
+        <LabelMedium className="!text-[var(--color-text-muted)]">
+          SCROBBLES
+        </LabelMedium>
+        <HeadingSmall margin={0} className="!text-[var(--color-text)]">
           {numeral(stats?.scrobbles).format("0,0")}
         </HeadingSmall>
       </div>
-      <div style={{ marginRight: 20 }}>
-        <LabelMedium>ARTISTS</LabelMedium>
-        <HeadingSmall margin={0}>
+      <div className="mr-[20px]">
+        <LabelMedium className="!text-[var(--color-text-muted)]">
+          ARTISTS
+        </LabelMedium>
+        <HeadingSmall margin={0} className="!text-[var(--color-text)]">
           {numeral(stats?.artists).format("0,0")}
         </HeadingSmall>
       </div>
-      <div style={{ marginRight: 20 }}>
-        <LabelMedium>LOVED TRACKS</LabelMedium>
-        <HeadingSmall margin={0}>
+      <div className="mr-[20px]">
+        <LabelMedium className="!text-[var(--color-text-muted)]">
+          LOVED TRACKS
+        </LabelMedium>
+        <HeadingSmall margin={0} className="!text-[var(--color-text)]">
           {numeral(stats?.lovedTracks).format("0,0")}
         </HeadingSmall>
       </div>

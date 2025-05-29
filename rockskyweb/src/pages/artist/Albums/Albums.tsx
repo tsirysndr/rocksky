@@ -33,7 +33,9 @@ interface AlbumsProps {
 function Albums(props: AlbumsProps) {
   return (
     <>
-      <HeadingSmall marginBottom={"15px"}>Albums</HeadingSmall>
+      <HeadingSmall marginBottom={"15px"} className="!text-[var(--color-text)]">
+        Albums
+      </HeadingSmall>
       <FlexGrid
         flexGridColumnCount={[1, 2, 3]}
         flexGridColumnGap="scale800"
@@ -51,19 +53,21 @@ function Albums(props: AlbumsProps) {
               {!album.uri && <SongCover cover={album.album_art} size={230} />}
               {album.uri && (
                 <Link to={`/${album.uri.split("at://")[1]}`}>
-                  <LabelMedium>{album.title}</LabelMedium>
+                  <LabelMedium className="!text-[var(--color-text)]">
+                    {album.title}
+                  </LabelMedium>
                 </Link>
               )}
               {!album.uri && <LabelMedium>{album.title}</LabelMedium>}
               {album.artist_uri && (
                 <Link to={`/${album.artist_uri.split("at://")[1]}`}>
-                  <LabelSmall color="rgba(36, 49, 61, 0.65)">
+                  <LabelSmall className="!text-[var(--color-text-muted)]">
                     {album.artist}
                   </LabelSmall>
                 </Link>
               )}
               {!album.artist_uri && (
-                <LabelSmall color="rgba(36, 49, 61, 0.65)">
+                <LabelSmall className="!text-[var(--color-text-muted)]">
                   {album.artist}
                 </LabelSmall>
               )}

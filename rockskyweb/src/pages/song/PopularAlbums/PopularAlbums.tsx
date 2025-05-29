@@ -34,7 +34,10 @@ interface PopularAlbumsProps {
 function PopularAlbums(props: PopularAlbumsProps) {
   return (
     <>
-      <HeadingXSmall marginBottom={"20px"}>
+      <HeadingXSmall
+        marginBottom={"20px"}
+        className="!text-[var(--color-text)]"
+      >
         Popular Albums by {props.artist}
       </HeadingXSmall>
       <FlexGrid
@@ -54,19 +57,21 @@ function PopularAlbums(props: PopularAlbumsProps) {
               {!album.uri && <SongCover cover={album.album_art} size={230} />}
               {album.uri && (
                 <Link to={`/${album.uri.split("at://")[1]}`}>
-                  <LabelMedium>{album.title}</LabelMedium>
+                  <LabelMedium className="!text-[var(--color-text)]">
+                    {album.title}
+                  </LabelMedium>
                 </Link>
               )}
               {!album.uri && <LabelMedium>{album.title}</LabelMedium>}
               {album.artist_uri && (
                 <Link to={`/${album.artist_uri.split("at://")[1]}`}>
-                  <LabelSmall color="rgba(36, 49, 61, 0.65)">
+                  <LabelSmall className="!text-[var(--color-text-muted)]">
                     {album.artist}
                   </LabelSmall>
                 </Link>
               )}
               {!album.artist_uri && (
-                <LabelSmall color="rgba(36, 49, 61, 0.65)">
+                <LabelSmall className="!text-[var(--color-text-muted)]">
                   {album.artist}
                 </LabelSmall>
               )}

@@ -41,7 +41,9 @@ interface PopularSongsProps {
 function PopularSongs(props: PopularSongsProps) {
   return (
     <>
-      <HeadingSmall marginBottom={"15px"}>Popular Songs</HeadingSmall>
+      <HeadingSmall marginBottom={"15px"} className="!text-[var(--color-text)]">
+        Popular Songs
+      </HeadingSmall>
       <TableBuilder
         data={props.topTracks.map((x, index) => ({
           id: x.id,
@@ -68,19 +70,23 @@ function PopularSongs(props: PopularSongsProps) {
               verticalAlign: "center",
             },
           },
+          TableBodyRow: {
+            style: {
+              backgroundColor: "var(--color-background)",
+              ":hover": {
+                backgroundColor: "var(--color-menu-hover)",
+              },
+            },
+          },
         }}
       >
         <TableBuilderColumn header="Name">
           {(row: Row) => (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "center",
-              }}
-            >
+            <div className="flex flex-row items-center">
               <div>
-                <div style={{ marginRight: 20 }}>{row.index + 1}</div>
+                <div className="mr-[20px] text-[var(--color-text)]">
+                  {row.index + 1}
+                </div>
               </div>
               {row.albumUri && (
                 <Link to={`/${row.albumUri?.split("at://")[1]}`}>
@@ -88,24 +94,11 @@ function PopularSongs(props: PopularSongsProps) {
                     <img
                       src={row.albumArt}
                       alt={row.title}
-                      style={{
-                        width: 60,
-                        height: 60,
-                        marginRight: 20,
-                        borderRadius: 5,
-                      }}
+                      className="w-[60px] h-[60px] mr-[20px] rounded-[5px]"
                     />
                   )}
                   {!row.albumArt && (
-                    <div
-                      style={{
-                        width: 60,
-                        height: 60,
-                        marginRight: 20,
-                        borderRadius: 5,
-                        backgroundColor: "rgba(243, 243, 243, 0.725)",
-                      }}
-                    />
+                    <div className="w-[60px] h-[60px] rounded-[5px] mr-[20px] bg-[rgba(243, 243, 243, 0.725)]" />
                   )}
                 </Link>
               )}
@@ -115,47 +108,31 @@ function PopularSongs(props: PopularSongsProps) {
                     <img
                       src={row.albumArt}
                       alt={row.title}
-                      style={{
-                        width: 60,
-                        height: 60,
-                        marginRight: 20,
-                        borderRadius: 5,
-                      }}
+                      className="w-[60px] h-[60px] mr-[20px] rounded-[5px]"
                     />
                   )}
                   {!row.albumArt && (
-                    <div
-                      style={{
-                        width: 60,
-                        height: 60,
-                        marginRight: 20,
-                        borderRadius: 5,
-                        backgroundColor: "rgba(243, 243, 243, 0.725)",
-                      }}
-                    />
+                    <div className="w-[60px] h-[60px] rounded-[5px] mr-[20px] bg-[rgba(243, 243, 243, 0.725)]" />
                   )}
                 </div>
               )}
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <Link to={`/${row.uri?.split("at://")[1]}`}>{row.title}</Link>
+              <div className="flex flex-col">
+                <Link
+                  to={`/${row.uri?.split("at://")[1]}`}
+                  className="!text-[var(--color-text)]"
+                >
+                  {row.title}
+                </Link>
                 {row.artistUri && (
                   <Link
                     to={`/${row.artistUri?.split("at://")[1]}`}
-                    style={{
-                      fontFamily: "RockfordSansLight",
-                      color: "rgba(36, 49, 61, 0.65)",
-                    }}
+                    className="!text-[var(--color-text-muted)]"
                   >
                     {row.albumArtist}
                   </Link>
                 )}
                 {!row.artistUri && (
-                  <div
-                    style={{
-                      fontFamily: "RockfordSansLight",
-                      color: "rgba(36, 49, 61, 0.65)",
-                    }}
-                  >
+                  <div className="!text-[var(--color-text-muted)]">
                     {row.albumArtist}
                   </div>
                 )}

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import AlbumPage from "./pages/album";
 import ApiKeys from "./pages/apikeys";
@@ -13,6 +14,11 @@ import ProfilePage from "./pages/profile";
 import SongPage from "./pages/song";
 
 function App() {
+  useEffect(() => {
+    const root = document.getElementById("root");
+    root!.classList.add("dark");
+  }, []);
+
   return (
     <BrowserRouter>
       <Routes>

@@ -202,7 +202,7 @@ const Song = () => {
 
   return (
     <Main>
-      <div style={{ paddingBottom: 100, paddingTop: 50 }}>
+      <div className="pb-[100px] pt-[100px]">
         {loading && (
           <ContentLoader viewBox="0 0 520 160" height={160} width={400}>
             <rect x="220" y="21" rx="10" ry="10" width="294" height="20" />
@@ -273,14 +273,23 @@ const Song = () => {
                 </>
               )}
               <div style={{ marginLeft: 20, flex: 1 }}>
-                <HeadingMedium margin={0}>{song?.title}</HeadingMedium>
+                <HeadingMedium margin={0} className="!text-[var(--color-text)]">
+                  {song?.title}
+                </HeadingMedium>
                 {song?.artistUri && (
                   <Link to={`/${song.artistUri.split("at://")[1]}`}>
-                    <LabelLarge margin={0}>{song?.albumArtist}</LabelLarge>
+                    <LabelLarge
+                      margin={0}
+                      className="!text-[var(--color-text)]"
+                    >
+                      {song?.albumArtist}
+                    </LabelLarge>
                   </Link>
                 )}
                 {!song?.artistUri && (
-                  <LabelLarge margin={0}>{song?.albumArtist}</LabelLarge>
+                  <LabelLarge margin={0} className="!text-[var(--color-text)]">
+                    {song?.albumArtist}
+                  </LabelLarge>
                 )}
                 <div
                   style={{
@@ -294,30 +303,34 @@ const Song = () => {
                       marginRight: 20,
                     }}
                   >
-                    <LabelMedium margin={0} color="rgba(36, 49, 61, 0.65)">
+                    <LabelMedium
+                      margin={0}
+                      className="!text-[var(--color-text-muted)]"
+                    >
                       Listeners
                     </LabelMedium>
-                    <HeadingXSmall margin={0}>
+                    <HeadingXSmall
+                      margin={0}
+                      className="!text-[var(--color-text)]"
+                    >
                       {numeral(song?.listeners).format("0,0")}
                     </HeadingXSmall>
                   </div>
                   <div>
-                    <LabelMedium margin={0} color="rgba(36, 49, 61, 0.65)">
+                    <LabelMedium
+                      margin={0}
+                      className="!text-[var(--color-text-muted)]"
+                    >
                       Scrobbles
                     </LabelMedium>
-                    <HeadingXSmall margin={0}>
+                    <HeadingXSmall
+                      margin={0}
+                      className="!text-[var(--color-text)]"
+                    >
                       {numeral(song?.scrobbles).format("0,0")}
                     </HeadingXSmall>
                   </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "end",
-                      flex: 1,
-                      marginRight: 10,
-                    }}
-                  >
+                  <div className="flex items-center justify-end flex-1 mr-[10px]">
                     <a
                       href={`https://pdsls.dev/at/${uri}`}
                       target="_blank"
@@ -332,7 +345,7 @@ const Song = () => {
                         paddingRight: 25,
                       }}
                     >
-                      <ExternalLink size={24} style={{ marginRight: 10 }} />
+                      <ExternalLink size={24} className="mr-[10px]" />
                       View on PDSls
                     </a>
                   </div>

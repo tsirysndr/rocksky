@@ -30,7 +30,11 @@ function Feed() {
   const { data, isLoading } = useFeedQuery();
   return (
     <Container>
-      <HeadingMedium marginTop={"0px"} marginBottom={"20px"}>
+      <HeadingMedium
+        marginTop={"0px"}
+        marginBottom={"20px"}
+        className="!text-[var(--color-text)]"
+      >
         Recently played
       </HeadingMedium>
 
@@ -79,7 +83,9 @@ function Feed() {
                     />
                   </Link>
                   <Handle link={`/profile/${song.user}`} did={song.user} />{" "}
-                  <LabelMedium>is listening to this song</LabelMedium>
+                  <LabelMedium className="!text-[var(--color-text-primary)]">
+                    is listening to this song
+                  </LabelMedium>
                   <StatefulTooltip
                     content={dayjs(song.date).format(
                       "MMMM D, YYYY [at] HH:mm A"
@@ -87,7 +93,7 @@ function Feed() {
                     returnFocus
                     autoFocus
                   >
-                    <LabelMedium color="#42576ca6">
+                    <LabelMedium className="!text-[var(--color-text-muted)]">
                       {dayjs(song.date).fromNow()}
                     </LabelMedium>
                   </StatefulTooltip>

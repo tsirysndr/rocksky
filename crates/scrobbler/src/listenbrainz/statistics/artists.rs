@@ -1,14 +1,14 @@
 use anyhow::Error;
 
-pub async fn get_top_artists(user_name: &str) -> Result<(), Error> {
+pub async fn get_top_artists(_user_name: &str) -> Result<(), Error> {
     Ok(())
 }
 
-pub async fn get_artist_map(user_name: &str) -> Result<(), Error> {
+pub async fn get_artist_map(_user_name: &str) -> Result<(), Error> {
     Ok(())
 }
 
-pub async fn get_artist_listeners(user_name: &str) -> Result<(), Error> {
+pub async fn get_artist_listeners(_user_name: &str) -> Result<(), Error> {
     Ok(())
 }
 

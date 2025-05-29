@@ -21,7 +21,6 @@ import { useProfileStatsByDidQuery } from "../../hooks/useProfile";
 const Container = styled.div`
   position: fixed;
   top: 0;
-  background-color: #fff;
   width: 1090px;
   z-index: 1;
   display: flex;
@@ -91,10 +90,12 @@ function Navbar() {
   };
 
   return (
-    <Container>
+    <Container className="bg-[var(--color-background)] text-[var(--color-text)]">
       <div>
         <Link to="/" style={{ textDecoration: "none" }}>
-          <h2 className="text-[#ff2876] text-[26px] font-bold">Rocksky</h2>
+          <h2 className="text-[var(--color-primary)] text-[26px] font-bold">
+            Rocksky
+          </h2>
         </Link>
       </div>
 
@@ -105,21 +106,15 @@ function Navbar() {
             Body: {
               style: {
                 zIndex: 2,
-                backgroundColor: "#fff",
+                backgroundColor: "var(--color-background)",
                 width: "282px",
               },
             },
           }}
           content={({ close }) => (
-            <>
+            <div className="border-[var(--color-border)] border-[1px] pt-[20px] pb-[20px] bg-[var(--color-background)] rounded-[6px]">
               <div>
-                <div
-                  style={{
-                    padding: "20px 20px",
-                    backgroundColor: "#fff",
-                  }}
-                  className="flex items-center justify-center"
-                >
+                <div className="flex items-center justify-center bg-[var(--color-background)] pl-[20px] pr-[20px]">
                   <div className="flex flex-col items-center">
                     <div className="mb-[5px]">
                       <Link to={`/profile/${profile.handle}`}>
@@ -135,10 +130,7 @@ function Navbar() {
                       to={`/profile/${profile.handle}`}
                       className="no-underline"
                     >
-                      <LabelMedium
-                        className="text-center"
-                        style={{ fontSize: 20 }}
-                      >
+                      <LabelMedium className="text-center text-[20px] !text-[var(--color-text)]">
                         {profile.displayName}
                       </LabelMedium>
                     </Link>
@@ -147,7 +139,10 @@ function Navbar() {
                       target="_blank"
                       className="no-underline"
                     >
-                      <LabelMedium color="#ff2876" className="text-center">
+                      <LabelMedium
+                        color="var(--color-primary)"
+                        className="text-center"
+                      >
                         @{profile.handle}
                       </LabelMedium>
                     </a>
@@ -155,15 +150,12 @@ function Navbar() {
                     <div className="flex flex-row mt-[5px]">
                       <LabelMedium
                         margin={0}
-                        style={{
-                          textAlign: "center",
-                          marginRight: 5,
-                        }}
-                        color="rgba(66, 87, 108, 0.65)"
+                        color="var(--color-text-muted)"
+                        className="text-center !mr-[5px]"
                       >
                         {numeral(profileStats.data.scrobbles).format("0,0")}
                       </LabelMedium>
-                      <LabelMedium color="rgba(66, 87, 108, 0.65)">
+                      <LabelMedium color="var(--color-text-muted)">
                         scrobbles
                       </LabelMedium>
                     </div>
@@ -175,15 +167,27 @@ function Navbar() {
                   items={[
                     {
                       id: "api-applications",
-                      label: <LabelMedium>API Applications</LabelMedium>,
+                      label: (
+                        <LabelMedium className="!text-[var(--color-text)]">
+                          API Applications
+                        </LabelMedium>
+                      ),
                     },
                     {
                       id: "webscrobbler",
-                      label: <LabelMedium>Web Scrobbler</LabelMedium>,
+                      label: (
+                        <LabelMedium className="!text-[var(--color-text)]">
+                          Web Scrobbler
+                        </LabelMedium>
+                      ),
                     },
                     {
                       id: "signout",
-                      label: <LabelMedium>Sign out</LabelMedium>,
+                      label: (
+                        <LabelMedium className="!text-[var(--color-text)]">
+                          Sign out
+                        </LabelMedium>
+                      ),
                     },
                   ]}
                   onItemSelect={({ item }) => {
@@ -212,7 +216,7 @@ function Navbar() {
                     List: {
                       style: {
                         boxShadow: "none",
-                        width: "282px",
+                        backgroundColor: "var(--color-background)",
                       },
                     },
                     Option: {
@@ -220,10 +224,18 @@ function Navbar() {
                         height: "44px",
                       },
                     },
+                    ListItem: {
+                      style: ({ $isHighlighted }) => ({
+                        backgroundColor: $isHighlighted
+                          ? "var(--color-menu-hover)"
+                          : "var(--color-background)",
+                        color: "var(--color-text)",
+                      }),
+                    },
                   }}
                 />
               </NestedMenus>
-            </>
+            </div>
           )}
         >
           <button

@@ -142,25 +142,14 @@ const Artist = () => {
     artistAlbumsResult.isLoading;
   return (
     <Main>
-      <div style={{ paddingBottom: 100, paddingTop: 50 }}>
+      <div className="pb-[100px] pt-[50px]">
         <Group>
-          <div style={{ marginRight: 20 }}>
+          <div className="mr-[20px]">
             {artist?.picture && !loading && (
               <Avatar name={artist?.name} src={artist?.picture} size="150px" />
             )}
             {!artist?.picture && !loading && (
-              <div
-                style={{
-                  width: 150,
-                  height: 150,
-                  marginRight: 12,
-                  borderRadius: 80,
-                  backgroundColor: "rgba(243, 243, 243, 0.725)",
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
+              <div className="w-[150px] h-[150px] rounded-[80px] bg-[rgba(243, 243, 243, 0.725)] flex items-center justify-center">
                 <div
                   style={{
                     height: 60,
@@ -174,57 +163,50 @@ const Artist = () => {
           </div>
           {artist && !loading && (
             <div style={{ flex: 1 }}>
-              <HeadingMedium marginTop={"20px"} marginBottom={0}>
+              <HeadingMedium
+                marginTop={"20px"}
+                marginBottom={0}
+                className="!text-[var(--color-text)]"
+              >
                 {artist?.name}
               </HeadingMedium>
-              <div
-                style={{ marginTop: 20, display: "flex", flexDirection: "row" }}
-              >
-                <div
-                  style={{
-                    marginRight: 20,
-                  }}
-                >
-                  <LabelMedium margin={0} color="rgba(36, 49, 61, 0.65)">
+              <div className="mt-[20px] flex flex-row">
+                <div className="mr-[20px]">
+                  <LabelMedium
+                    margin={0}
+                    className="!text-[var(--color-text-muted)]"
+                  >
                     Listeners
                   </LabelMedium>
-                  <HeadingXSmall margin={0}>
+                  <HeadingXSmall
+                    margin={0}
+                    className="!text-[var(--color-text)]"
+                  >
                     {numeral(artist?.listeners).format("0,0")}
                   </HeadingXSmall>
                 </div>
                 <div>
-                  <LabelMedium margin={0} color="rgba(36, 49, 61, 0.65)">
+                  <LabelMedium
+                    margin={0}
+                    className="!text-[var(--color-text-muted)]"
+                  >
                     Scrobbles
                   </LabelMedium>
-                  <HeadingXSmall margin={0}>
+                  <HeadingXSmall
+                    margin={0}
+                    className="!text-[var(--color-text)]"
+                  >
                     {numeral(artist?.scrobbles).format("0,0")}
                   </HeadingXSmall>
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "end",
-                    flex: 1,
-                    marginRight: 10,
-                  }}
-                >
+                <div className="flex items-center justify-end flex-1 mr-[10px]">
                   <div>
                     <a
                       href={`https://pdsls.dev/at/${uri}`}
                       target="_blank"
-                      style={{
-                        color: "#000",
-                        textDecoration: "none",
-                        padding: 16,
-                        backgroundColor: "rgba(0, 0, 0, 0.05)",
-                        fontWeight: 600,
-                        borderRadius: 10,
-                        paddingLeft: 25,
-                        paddingRight: 25,
-                      }}
+                      className="text-[var(--color-text)] no-underline p-[16px] rounded-[10px] pl-[25px] pr-[25px]"
                     >
-                      <ExternalLink size={24} style={{ marginRight: 10 }} />
+                      <ExternalLink size={24} className="mr-[10px]" />
                       View on PDSls
                     </a>
                   </div>

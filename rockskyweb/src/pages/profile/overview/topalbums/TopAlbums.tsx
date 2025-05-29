@@ -46,28 +46,24 @@ function TopAlbums() {
 
   return (
     <>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <HeadingSmall marginBottom={"15px"}>Top Albums</HeadingSmall>
+      <div className="flex flex-row justify-between items-center">
+        <HeadingSmall
+          marginBottom={"15px"}
+          className="!text-[var(--color-text)]"
+        >
+          Top Albums
+        </HeadingSmall>
         <a
           href={`/profile/${user?.handle}?tab=2`}
-          style={{
-            marginTop: 40,
-            textDecoration: "none",
-            color: "#ff2876",
-          }}
+          className="no-underline text-[var(--color-primary)] mt-[40px]"
         >
           See All
         </a>
       </div>
       {!topAlbums.length && (
-        <div>@{user?.handle} has not listened to any albums yet.</div>
+        <div className="text-[var(--color-text)]">
+          @{user?.handle} has not listened to any albums yet.
+        </div>
       )}
       {topAlbums.length > 0 && (
         <FlexGrid
@@ -83,21 +79,25 @@ function TopAlbums() {
                   <SongCover cover={album.album_art} size={230} />
                 </Link>
                 <Link to={`/${album.uri?.split("at://")[1]}`}>
-                  <LabelMedium>{album.title}</LabelMedium>
+                  <LabelMedium className="!text-[var(--color-text)]">
+                    {album.title}
+                  </LabelMedium>
                 </Link>
                 {album.artist_uri && (
                   <Link to={`/${album.artist_uri.split("at://")[1]}`}>
-                    <LabelSmall color="rgba(36, 49, 61, 0.65)">
+                    <LabelSmall className="!text-[var(--color-text-muted)]">
                       {album.artist}
                     </LabelSmall>
                   </Link>
                 )}
                 {!album.artist_uri && (
-                  <LabelSmall color="rgba(36, 49, 61, 0.65)">
+                  <LabelSmall className="!text-[var(--color-text-muted)]">
                     {album.artist}
                   </LabelSmall>
                 )}
-                <LabelSmall color="#000">{album.scrobbles} plays</LabelSmall>
+                <LabelSmall className="!text-[var(--color-text-muted)]">
+                  {album.scrobbles} plays
+                </LabelSmall>
               </FlexGridItem>
             ))
           }

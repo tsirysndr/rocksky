@@ -40,7 +40,6 @@ const RightPane = styled.div`
 `;
 
 const Link = styled.a`
-  color: #ff2876;
   text-decoration: none;
   cursor: pointer;
   display: block;
@@ -155,7 +154,7 @@ function Main(props: MainProps) {
   };
 
   return (
-    <Container>
+    <Container className="bg-[var(--color-background)] text-[var(--color-text)]">
       <ToasterContainer
         placement={PLACEMENT.top}
         overrides={{
@@ -186,17 +185,47 @@ function Main(props: MainProps) {
             {jwt && profile && !profile.spotifyConnected && <SpotifyLogin />}
             {jwt && profile && <CloudDrive />}
             {!jwt && (
-              <div style={{ marginTop: 40 }}>
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ marginBottom: 15 }}>
-                    <LabelMedium>Bluesky handle</LabelMedium>
+              <div className="mt-[40px]">
+                <div className="mb-[20px]">
+                  <div className="mb-[15px]">
+                    <LabelMedium className="!text-[var(--color-text)]">
+                      Bluesky handle
+                    </LabelMedium>
                   </div>
                   <Input
                     name="handle"
-                    startEnhancer={<div style={{ color: "#42576ca6" }}>@</div>}
+                    startEnhancer={
+                      <div className="text-[var(--color-text-muted)] bg-[var(--color-input-background)]">
+                        @
+                      </div>
+                    }
                     placeholder="<username>.bsky.social"
                     value={handle}
                     onChange={(e) => setHandle(e.target.value)}
+                    overrides={{
+                      Root: {
+                        style: {
+                          backgroundColor: "var(--color-input-background)",
+                          borderColor: "var(--color-input-background)",
+                        },
+                      },
+                      StartEnhancer: {
+                        style: {
+                          backgroundColor: "var(--color-input-background)",
+                        },
+                      },
+                      InputContainer: {
+                        style: {
+                          backgroundColor: "var(--color-input-background)",
+                        },
+                      },
+                      Input: {
+                        style: {
+                          color: "var(--color-text)",
+                          caretColor: "var(--color-text)",
+                        },
+                      },
+                    }}
                   />
                 </div>
                 <Button
@@ -205,12 +234,12 @@ function Main(props: MainProps) {
                     BaseButton: {
                       style: {
                         width: "100%",
-                        backgroundColor: "#ff2876",
+                        backgroundColor: "var(--color-primary)",
                         ":hover": {
-                          backgroundColor: "#ff2876",
+                          backgroundColor: "var(--color-primary)",
                         },
                         ":focus": {
-                          backgroundColor: "#ff2876",
+                          backgroundColor: "var(--color-primary)",
                         },
                       },
                     },
@@ -218,29 +247,13 @@ function Main(props: MainProps) {
                 >
                   Sign In
                 </Button>
-                <LabelMedium
-                  marginTop={"20px"}
-                  style={{
-                    textAlign: "center",
-                    color: "#42576ca6",
-                  }}
-                >
+                <LabelMedium className="text-center mt-[20px] !text-[var(--color-text-muted)]">
                   Don't have an account?
                 </LabelMedium>
-                <div
-                  style={{
-                    color: "#42576ca6",
-                    textAlign: "center",
-                  }}
-                >
+                <div className="text-center text-[var(--color-text-muted)] ">
                   <a
                     href="https://bsky.app"
-                    style={{
-                      color: "#ff2876",
-                      textDecoration: "none",
-                      cursor: "pointer",
-                      textAlign: "center",
-                    }}
+                    className="no-underline cursor-pointer !text-[var(--color-primary)]"
                     target="_blank"
                   >
                     Sign up for Bluesky
@@ -258,28 +271,35 @@ function Main(props: MainProps) {
               <Link
                 href="https://docs.rocksky.app/introduction-918639m0"
                 target="_blank"
-                className="mr-[10px]"
+                className="mr-[10px] text-[var(--color-primary)]"
               >
                 About
               </Link>
               <Link
                 href="https://docs.rocksky.app/faq-918661m0"
                 target="_blank"
-                className="mr-[10px]"
+                className="mr-[10px] text-[var(--color-primary)]"
               >
                 FAQ
               </Link>
               <Link
                 href="https://doc.rocksky.app/"
                 target="_blank"
-                className="mr-[10px]"
+                className="mr-[10px] text-[var(--color-primary)]"
               >
                 API Docs
               </Link>
-              <Text className="mr-[10px]" onClick={displaySurvey}>
+              <Text
+                className="mr-[10px] !text-[var(--color-primary)]"
+                onClick={displaySurvey}
+              >
                 Feedback
               </Text>
-              <Link href="https://discord.gg/EVcBy2fVa3" target="_blank">
+              <Link
+                href="https://discord.gg/EVcBy2fVa3"
+                target="_blank"
+                className="text-[var(--color-primary)]"
+              >
                 Discord
               </Link>
             </div>

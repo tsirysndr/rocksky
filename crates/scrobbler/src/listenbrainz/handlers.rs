@@ -6,7 +6,10 @@ use sqlx::{Pool, Postgres};
 use crate::{
     cache::Cache,
     listenbrainz::{
-        core::{listen_count::get_listen_count, listens::get_listens, playing_now::get_playing_now, search_users::search_users, submit::submit_listens},
+        core::{
+            listen_count::get_listen_count, listens::get_listens, playing_now::get_playing_now,
+            search_users::search_users, submit::submit_listens,
+        },
         statistics::{
             artists::get_top_artists, recordings::get_top_recordings,
             release_groups::get_top_release_groups, releases::get_top_releases,
@@ -137,9 +140,7 @@ pub async fn handle_search_users(
 }
 
 #[get("/1/user/{user_name}/listens")]
-pub async fn handle_get_listens(
-    user_name: web::Path<String>,
-) -> impl Responder {
+pub async fn handle_get_listens(user_name: web::Path<String>) -> impl Responder {
     let user_name = user_name.into_inner();
     match get_listens(&user_name).await {
         Ok(listens) => HttpResponse::Ok().json(listens),
@@ -151,9 +152,7 @@ pub async fn handle_get_listens(
 }
 
 #[get("/1/user/{user_name}/listen-count")]
-pub async fn handle_get_listen_count(
-    user_name: web::Path<String>,
-) -> impl Responder {
+pub async fn handle_get_listen_count(user_name: web::Path<String>) -> impl Responder {
     let user_name = user_name.into_inner();
     match get_listen_count(&user_name).await {
         Ok(count) => HttpResponse::Ok().json(count),
@@ -165,9 +164,7 @@ pub async fn handle_get_listen_count(
 }
 
 #[get("/1/user/{user_name}/playing-now")]
-pub async fn handle_get_playing_now(
-    user_name: web::Path<String>,
-) -> impl Responder {
+pub async fn handle_get_playing_now(user_name: web::Path<String>) -> impl Responder {
     let user_name = user_name.into_inner();
     match get_playing_now(&user_name).await {
         Ok(playing_now) => HttpResponse::Ok().json(playing_now),

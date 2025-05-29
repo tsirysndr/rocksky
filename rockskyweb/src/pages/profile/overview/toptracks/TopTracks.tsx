@@ -103,22 +103,16 @@ function TopTracks(props: TopTracksProps) {
   return (
     <div>
       {props.showTitle && (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <HeadingSmall marginBottom={"15px"}>Top Tracks</HeadingSmall>
+        <div className="flex flex-row justify-between items-center">
+          <HeadingSmall
+            marginBottom={"15px"}
+            className="!text-[var(--color-text)]"
+          >
+            Top Tracks
+          </HeadingSmall>
           <a
             href={`/profile/${user?.handle}?tab=3`}
-            style={{
-              marginTop: 40,
-              textDecoration: "none",
-              color: "#ff2876",
-            }}
+            className="no-underline mt-[40px] text-[var(--color-primary)]"
           >
             See All
           </a>
@@ -127,7 +121,7 @@ function TopTracks(props: TopTracksProps) {
 
       {props.showPagination && (
         <Group mb={20}>
-          <div style={{ marginRight: 20 }}>
+          <div className="mr-[20px]">
             <LabelSmall>TRACKS SCROBBLED</LabelSmall>
             <HeadingXSmall margin={0}>
               {did ? numeral(profileStats.data?.tracks).format("0,0") : ""}
@@ -162,19 +156,21 @@ function TopTracks(props: TopTracksProps) {
               verticalAlign: "center",
             },
           },
+          TableBodyRow: {
+            style: {
+              backgroundColor: "var(--color-background)",
+              ":hover": {
+                backgroundColor: "var(--color-menu-hover)",
+              },
+            },
+          },
         }}
       >
         <TableBuilderColumn header="Name">
           {(row: Row) => (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "center",
-              }}
-            >
+            <div className="flex flex-row items-center">
               <div>
-                <div style={{ marginRight: 20 }}>
+                <div className="text-[var(--color-text)] mr-[20px]">
                   {(currentPage - 1) * props.size! + row.index + 1}
                 </div>
               </div>
@@ -184,25 +180,12 @@ function TopTracks(props: TopTracksProps) {
                     <img
                       src={row.albumArt}
                       alt={row.title}
-                      style={{
-                        width: 60,
-                        height: 60,
-                        marginRight: 20,
-                        borderRadius: 5,
-                      }}
+                      className="w-[60px] h-[60px] mr-[20px] rounded-[5px]"
                       key={row.id}
                     />
                   )}
                   {!row.albumArt && (
-                    <div
-                      style={{
-                        width: 60,
-                        height: 60,
-                        marginRight: 20,
-                        borderRadius: 5,
-                        backgroundColor: "rgba(243, 243, 243, 0.725)",
-                      }}
-                    />
+                    <div className="w-[60px] h-[60px] rounded-[5px] bg-[rgba(243, 243, 243, 0.725)]" />
                   )}
                 </Link>
               )}
@@ -212,48 +195,32 @@ function TopTracks(props: TopTracksProps) {
                     <img
                       src={row.albumArt}
                       alt={row.title}
-                      style={{
-                        width: 60,
-                        height: 60,
-                        marginRight: 20,
-                        borderRadius: 5,
-                      }}
+                      className="w-[60px] h-[60px] mr-[20px] rounded-[5px]"
                       key={row.id}
                     />
                   )}
                   {!row.albumArt && (
-                    <div
-                      style={{
-                        width: 60,
-                        height: 60,
-                        marginRight: 20,
-                        borderRadius: 5,
-                        backgroundColor: "rgba(243, 243, 243, 0.725)",
-                      }}
-                    />
+                    <div className="w-[60px] h-[60px] rounded-[5px] bg-[rgba(243, 243, 243, 0.725)]" />
                   )}
                 </div>
               )}
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <Link to={`/${row.uri?.split("at://")[1]}`}>{row.title}</Link>
+              <div className="flex flex-col">
+                <Link
+                  to={`/${row.uri?.split("at://")[1]}`}
+                  className="!text-[var(--color-text)]"
+                >
+                  {row.title}
+                </Link>
                 {row.artistUri && (
                   <Link
                     to={`/${row.artistUri?.split("at://")[1]}`}
-                    style={{
-                      fontFamily: "RockfordSansLight",
-                      color: "rgba(36, 49, 61, 0.65)",
-                    }}
+                    className="!text-[var(--color-text-muted)]"
                   >
                     {row.albumArtist}
                   </Link>
                 )}
                 {!row.artistUri && (
-                  <div
-                    style={{
-                      fontFamily: "RockfordSansLight",
-                      color: "rgba(36, 49, 61, 0.65)",
-                    }}
-                  >
+                  <div className="!text-[var(--color-text-muted)]">
                     {row.albumArtist}
                   </div>
                 )}
@@ -263,25 +230,17 @@ function TopTracks(props: TopTracksProps) {
         </TableBuilderColumn>
         <TableBuilderColumn header="Scrobbles">
           {(row: Row, index?: number) => (
-            <div style={{ position: "relative", width: 250, marginTop: -20 }}>
-              <div
-                style={{
-                  position: "absolute",
-                  width: "100%",
-                  top: 10,
-                  left: 10,
-                }}
-              >
+            <div className="relative w-[250px] mt-[-20px]">
+              <div className="absolute w-full top-[10px] left-[10px] !text-[#000] z-[1]">
                 {numeral(row.scrobbles).format("0,0")}{" "}
                 {index == 0 && " scrobbles"}
               </div>
               <span
                 style={{
-                  position: "absolute",
-                  height: 40,
                   width: `${(row.scrobbles / maxScrobbles) * 100}%`,
-                  backgroundColor: "rgba(255, 40, 118, 0.1)",
+                  backgroundColor: "var(--color-bar)",
                 }}
+                className="absolute h-[40px]"
               ></span>
             </div>
           )}

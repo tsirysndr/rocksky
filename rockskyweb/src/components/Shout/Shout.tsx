@@ -111,8 +111,10 @@ function Shout(props: ShoutProps) {
   };
 
   return (
-    <div style={{ marginTop: 150 }}>
-      <LabelLarge marginBottom={"10px"}>Shoutbox</LabelLarge>
+    <div className="mt-[150px]">
+      <LabelLarge marginBottom={"10px"} className="!text-[var(--color-text)]">
+        Shoutbox
+      </LabelLarge>
       {profile && (
         <>
           <Controller
@@ -131,6 +133,21 @@ function Shout(props: ShoutProps) {
                   Input: {
                     style: {
                       width: "770px",
+                      color: "var(--color-text)",
+                      backgroundColor: "var(--color-input-background)",
+                      caretColor: "var(--color-text)",
+                    },
+                  },
+                  InputContainer: {
+                    style: {
+                      backgroundColor: "var(--color-input-background)",
+                      borderColor: "var(--color-input-background)",
+                    },
+                  },
+                  Root: {
+                    style: {
+                      backgroundColor: "var(--color-input-background)",
+                      border: "none !important",
                     },
                   },
                 }}
@@ -139,13 +156,7 @@ function Shout(props: ShoutProps) {
             )}
           />
 
-          <div
-            style={{
-              marginTop: 15,
-              display: "flex",
-              justifyContent: "flex-end",
-            }}
-          >
+          <div className="mt-[15px] flex justify-end">
             {!loading && (
               <Button
                 disabled={
@@ -153,6 +164,16 @@ function Shout(props: ShoutProps) {
                   watch("message").length > 1000
                 }
                 onClick={handleSubmit(onShout)}
+                overrides={{
+                  BaseButton: {
+                    style: ({ $disabled }) => ({
+                      backgroundColor: "var(--color-purple) !important",
+                      opacity: $disabled ? 0.4 : 1,
+                      color: "#000 !important",
+                      borderRadius: "2px",
+                    }),
+                  },
+                }}
               >
                 Post Shout
               </Button>
@@ -162,10 +183,10 @@ function Shout(props: ShoutProps) {
         </>
       )}
       {!profile && (
-        <LabelMedium marginTop={"20px"}>
+        <LabelMedium marginTop={"20px"} className="!text-[var(--color-text)]">
           Want to share your thoughts?{" "}
           <span
-            style={{ color: "rgb(255, 40, 118)", cursor: "pointer" }}
+            className="text-[var(--color-primary)] cursor-pointer"
             onClick={() => setIsOpen(true)}
           >
             Sign in

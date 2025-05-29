@@ -47,3 +47,46 @@ body {
   -moz-osx-font-smoothing: grayscale;
   overflow-y: hidden;
 }
+
+:root {
+  --color-background: #ffffff;
+  --color-text: #000000;
+  --color-primary: #ff2876;
+  --color-text-muted: #42576ca6;
+  --color-border: #ffffff;
+  --color-input-background: #f3f3f3;
+  --color-placeholder: #3b3b3bb4;
+  --color-clear-input: #000000;
+  --color-menu-hover: #f7f7f7;
+  --color-default-button: rgba(0, 0, 0, 0.05);
+  --color-purple: oklch(0.5478 0.201 296.07);
+  --color-blue: oklch(0.789 0.154 211.53);
+  --color-pink: oklch(0.6372 0.229 346.83);
+  --color-bar: rgba(255, 40, 118, 0.1);
+}
+
+.dark {
+  --color-background: #130825;
+  --color-text: oklch(95.07% .028 338.58);
+  --color-primary: #ff2876;
+  --color-text-muted: rgb(191 174 195 / 65%);
+  --color-border: #310e64;
+  --color-input-background: #221538;
+  --color-placeholder: #ffffffb4;
+  --color-clear-input: #ffffff;
+  --color-menu-hover: #1f0d3c;
+  --color-default-button: rgba(255, 255, 255, 0.05);
+  --color-purple: oklch(0.5478 0.201 296.07);
+  --color-blue: oklch(0.789 0.154 211.53);
+  --color-pink: oklch(0.6372 0.229 346.83);
+  --color-bar: rgb(255, 129, 175);
+}
+
+::placeholder {
+  color: var(--color-text-muted) !important;
+}
+
+
+* {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}

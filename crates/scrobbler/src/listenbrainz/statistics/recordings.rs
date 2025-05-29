@@ -1,6 +1,6 @@
 use anyhow::Error;
 
-pub async fn get_top_recordings(user_name: &str) -> Result<(), Error> {
+pub async fn get_top_recordings(_user_name: &str) -> Result<(), Error> {
     Ok(())
 }
 

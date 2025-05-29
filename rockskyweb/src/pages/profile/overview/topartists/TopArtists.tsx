@@ -74,22 +74,16 @@ function TopArtists(props: TopArtistsProps) {
   return (
     <>
       {showTitle && (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <HeadingSmall marginBottom={"15px"}>Top Artists</HeadingSmall>
+        <div className="flex flex-row justify-between items-center">
+          <HeadingSmall
+            marginBottom={"15px"}
+            className="!text-[var(--color-text)]"
+          >
+            Top Artists
+          </HeadingSmall>
           <a
             href={`/profile/${user?.handle}?tab=1`}
-            style={{
-              marginTop: 40,
-              textDecoration: "none",
-              color: "#ff2876",
-            }}
+            className="no-underline mt-[40px] text-[var(--color-primary)]"
           >
             See All
           </a>
@@ -98,7 +92,7 @@ function TopArtists(props: TopArtistsProps) {
 
       {props.showPagination && (
         <Group mb={20}>
-          <div style={{ marginRight: 20 }}>
+          <div className="mr-[20px]">
             <LabelSmall>ARTISTS SCROBBLED</LabelSmall>
             <HeadingXSmall margin={0}>
               {did ? numeral(profileStats.data?.artists).format("0,0") : ""}
@@ -129,19 +123,21 @@ function TopArtists(props: TopArtistsProps) {
               verticalAlign: "middle",
             },
           },
+          TableBodyRow: {
+            style: {
+              backgroundColor: "var(--color-background)",
+              ":hover": {
+                backgroundColor: "var(--color-menu-hover)",
+              },
+            },
+          },
         }}
       >
         <TableBuilderColumn header="Name">
           {(row: Row) => (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "center",
-              }}
-            >
+            <div className="flex flex-row items-center">
               <div>
-                <div style={{ marginRight: 20 }}>
+                <div className="mr-[20px] text-[var(--color-text)]">
                   {props.showPagination
                     ? (currentPage - 1) * props.size! + row.index + 1
                     : row.index + 1}
@@ -152,34 +148,13 @@ function TopArtists(props: TopArtistsProps) {
                   <img
                     src={row.picture}
                     alt={row.name}
-                    style={{
-                      width: 60,
-                      height: 60,
-                      marginRight: 20,
-                      borderRadius: 30,
-                    }}
+                    className="w-[60px] h-[60px] rounded-full mr-[20px]"
                     key={row.id}
                   />
                 )}
                 {!row.picture && (
-                  <div
-                    style={{
-                      width: 60,
-                      height: 60,
-                      marginRight: 20,
-                      borderRadius: 30,
-                      backgroundColor: "rgba(243, 243, 243, 0.725)",
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: 30,
-                        width: 30,
-                      }}
-                    >
+                  <div className="w-[60px] h-[60px] rounded-full bg-[rgba(243, 243, 243, 0.725)] flex justify-center items-center">
+                    <div className="h-[30px] w-[30px]">
                       <Artist color="rgba(66, 87, 108, 0.65)" />
                     </div>
                   </div>
@@ -188,10 +163,7 @@ function TopArtists(props: TopArtistsProps) {
               <div>
                 <Link
                   to={`/${row.uri?.split("at://")[1]}`}
-                  style={{
-                    color: "initial",
-                    textDecoration: "none",
-                  }}
+                  className="no-underline !text-[var(--color-text)]"
                 >
                   {row.name}
                 </Link>
@@ -201,15 +173,8 @@ function TopArtists(props: TopArtistsProps) {
         </TableBuilderColumn>
         <TableBuilderColumn header="Scrobbles">
           {(row: Row, index?: number) => (
-            <div style={{ position: "relative", width: 250, marginTop: -20 }}>
-              <div
-                style={{
-                  position: "absolute",
-                  width: "100%",
-                  top: 10,
-                  left: 10,
-                }}
-              >
+            <div className="relative w-[250px] mt-[-20px]">
+              <div className="absolute w-full top-[10px] left-[10px] z-[1]">
                 {numeral(row.scrobbles).format("0,0")}{" "}
                 {index == 0 && " scrobbles"}
               </div>
@@ -218,7 +183,7 @@ function TopArtists(props: TopArtistsProps) {
                   position: "absolute",
                   height: 40,
                   width: `${(row.scrobbles / maxScrobbles) * 100}%`,
-                  backgroundColor: "rgba(255, 40, 118, 0.1)",
+                  backgroundColor: "var(--color-bar)",
                 }}
               ></span>
             </div>

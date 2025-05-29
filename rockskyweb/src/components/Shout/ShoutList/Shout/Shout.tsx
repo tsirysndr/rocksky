@@ -154,6 +154,7 @@ function Shout(props: ShoutProps) {
             style: {
               display: "flex",
               alignItems: "start",
+              backgroundColor: "var(--color-background)",
             },
           },
         }}
@@ -164,11 +165,7 @@ function Shout(props: ShoutProps) {
                   <Link to={`/profile/${shout.user.handle}`}>
                     <img
                       src={shout.user.avatar}
-                      style={{
-                        width: 65,
-                        height: 65,
-                        borderRadius: 35,
-                      }}
+                      className="w-[65px] h-[65px] rounded-full"
                     />
                   </Link>
                 </div>
@@ -183,11 +180,13 @@ function Shout(props: ShoutProps) {
           </span>
         )}
         {!shout.reported && (
-          <div style={{ marginLeft: 20, width: "100%" }}>
+          <div className="ml-[20px] w-full">
             <Header>
               <div>
                 <Link to={`/profile/${shout.user.handle}`}>
-                  <LabelMedium>{shout.user.displayName}</LabelMedium>
+                  <LabelMedium className="!text-[var(--color-text)]">
+                    {shout.user.displayName}
+                  </LabelMedium>
                 </Link>
               </div>
               <div>
@@ -198,12 +197,7 @@ function Shout(props: ShoutProps) {
                   returnFocus
                   autoFocus
                 >
-                  <LabelMedium
-                    style={{
-                      color: "rgba(66, 87, 108, 0.65)",
-                      fontSize: "14px",
-                    }}
-                  >
+                  <LabelMedium className="!text-[var(--color-text-muted)] text-[14px]">
                     {dayjs(shout.date).fromNow()}
                   </LabelMedium>
                 </StatefulTooltip>
@@ -213,17 +207,24 @@ function Shout(props: ShoutProps) {
 
             <Actions>
               <ReplyButton onClick={onReply}>
-                <ArrowReplyDown size={28} style={{ color: "inherit" }} />
-                <ReplyLabel>Reply</ReplyLabel>
+                <ArrowReplyDown
+                  size={28}
+                  className="!text-[var(--color-text-muted)]"
+                />
+                <ReplyLabel className="!text-[var(--color-text-muted)]">
+                  Reply
+                </ReplyLabel>
               </ReplyButton>
               <LikeButton onClick={onLike}>
-                {!liked && <HeartOutline color="rgba(66, 87, 108, 0.65)" />}
-                {liked && <HeartOutline color="#ff2876" />}
+                {!liked && <HeartOutline color="var(--color-text-muted)" />}
+                {liked && <HeartOutline color="var(--color-primary)" />}
               </LikeButton>
               {likes > 0 && (
                 <span
                   style={{
-                    color: liked ? "#ff2876" : "rgba(66, 87, 108, 0.65)",
+                    color: liked
+                      ? "var(--color-primary)"
+                      : "var(--color-text-muted)",
                     marginLeft: 5,
                     marginTop: -5,
                   }}
@@ -231,9 +232,7 @@ function Shout(props: ShoutProps) {
                   {likes}
                 </span>
               )}
-              <div
-                style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}
-              >
+              <div className="flex flex-1 justify-end">
                 <StatefulPopover
                   placement={PLACEMENT.bottomRight}
                   overrides={{
@@ -296,17 +295,11 @@ function Shout(props: ShoutProps) {
                     </div>
                   )}
                 >
-                  <button
-                    style={{
-                      border: "none",
-                      cursor: "pointer",
-                      background: "none",
-                    }}
-                  >
+                  <button className="border-none cursor-pointer bg-[var(--color-background)]">
                     <Ellipsis
                       size={20}
                       style={{
-                        color: "rgba(66, 87, 108, 0.65)",
+                        color: "var(--color-text-muted)",
                         marginTop: -7,
                       }}
                     />

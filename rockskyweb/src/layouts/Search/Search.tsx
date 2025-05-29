@@ -69,16 +69,11 @@ function Search() {
         isOpen={keyword.length > 0 && Object.keys(errors).length === 0}
         content={
           <div>
-            <Header>Search for "{keyword}"</Header>
+            <Header className="text-[var(--color-text)]">
+              Search for "{keyword}"
+            </Header>
             {results.length > 0 && (
-              <div
-                style={{
-                  padding: "16px",
-                  overflowY: "auto",
-                  minHeight: "54px",
-                  maxHeight: "70vh",
-                }}
-              >
+              <div className="p-[16px] overflow-y-auto min-h-[54px] max-h-[70vh]">
                 {results.length > 0 && (
                   <>
                     {results.map((item: any) => (
@@ -88,46 +83,20 @@ function Search() {
                             to={`/profile/${item.record.handle}`}
                             key={item.record.xata_id}
                           >
-                            <div
-                              style={{
-                                display: "flex",
-                                flexDirection: "row",
-                              }}
-                            >
+                            <div className="flex flex-row mb-[10px]">
                               <img
                                 key={item.record.did}
                                 src={item.record.avatar}
                                 alt={item.record.display_name}
-                                style={{
-                                  width: 50,
-                                  height: 50,
-                                  marginRight: 12,
-                                  borderRadius: 25,
-                                }}
+                                className="w-[50px] h-[50px] mr-[12px] rounded-full"
                               />
                               <div>
-                                <div
-                                  style={{
-                                    overflow: "hidden",
-                                  }}
-                                >
-                                  <div
-                                    style={{
-                                      overflow: "hidden",
-                                      textOverflow: "ellipsis",
-                                      whiteSpace: "nowrap",
-                                    }}
-                                  >
+                                <div className="overflow-hidden">
+                                  <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[var(--color-text)]">
                                     {item.record.display_name}
                                   </div>
                                 </div>
-                                <div
-                                  style={{
-                                    fontFamily: "RockfordSansLight",
-                                    color: "rgba(36, 49, 61, 0.65)",
-                                    fontSize: 14,
-                                  }}
-                                >
+                                <div className="text-[var(--color-text-muted)] text-[14px]">
                                   @{item.record.handle}
                                 </div>
                               </div>
@@ -144,12 +113,7 @@ function Search() {
                             >
                               <div
                                 key={item.record.xata_id}
-                                style={{
-                                  height: 64,
-                                  display: "flex",
-                                  flexDirection: "row",
-                                  alignItems: "center",
-                                }}
+                                className="h-[64px] flex flex-row items-center"
                               >
                                 {item.table === "artists" &&
                                   item.record.picture && (
@@ -157,36 +121,16 @@ function Search() {
                                       key={item.record.xata_id}
                                       src={item.record.picture}
                                       alt={item.record.name}
-                                      style={{
-                                        width: 50,
-                                        height: 50,
-                                        marginRight: 12,
-                                        borderRadius: 25,
-                                      }}
+                                      className="w-[50px] h-[50px] mr-[12px] rounded-full"
                                     />
                                   )}
                                 {item.table === "artists" &&
                                   !item.record.picture && (
                                     <div
                                       key={item.record.xata_id}
-                                      style={{
-                                        width: 50,
-                                        height: 50,
-                                        marginRight: 12,
-                                        borderRadius: 30,
-                                        backgroundColor:
-                                          "rgba(243, 243, 243, 0.725)",
-                                        display: "flex",
-                                        justifyContent: "center",
-                                        alignItems: "center",
-                                      }}
+                                      className="w-[50px] h-[50px] mr-[12px] rounded-full flex items-center bg-[rgba(243, 243, 243, 0.725)]"
                                     >
-                                      <div
-                                        style={{
-                                          height: 28,
-                                          width: 28,
-                                        }}
-                                      >
+                                      <div className="w-[28px] h-[28px]">
                                         <Artist color="rgba(66, 87, 108, 0.65)" />
                                       </div>
                                     </div>
@@ -197,33 +141,13 @@ function Search() {
                                       key={item.record.xata_id}
                                       src={item.record.album_art}
                                       alt={item.record.title}
-                                      style={{
-                                        width: 50,
-                                        height: 50,
-                                        marginRight: 12,
-                                      }}
+                                      className="w-[50px] h-[50px] mr-[12px]"
                                     />
                                   )}
                                 {item.table === "albums" &&
                                   !item.record.album_art && (
-                                    <div
-                                      style={{
-                                        width: 50,
-                                        height: 50,
-                                        marginRight: 12,
-                                        backgroundColor:
-                                          "rgba(243, 243, 243, 0.725)",
-                                        display: "flex",
-                                        justifyContent: "center",
-                                        alignItems: "center",
-                                      }}
-                                    >
-                                      <div
-                                        style={{
-                                          height: 28,
-                                          width: 28,
-                                        }}
-                                      >
+                                    <div className="w-[50px] h-[50px] mr-[12px] rounded-full flex items-center bg-[rgba(243, 243, 243, 0.725)]">
+                                      <div className="w-[28px] h-[28px]">
                                         <Disc
                                           color="rgba(66, 87, 108, 0.65)"
                                           width={30}
@@ -238,82 +162,33 @@ function Search() {
                                       key={item.record.xata_id}
                                       src={item.record.album_art}
                                       alt={item.record.title}
-                                      style={{
-                                        width: 50,
-                                        height: 50,
-                                        marginRight: 12,
-                                      }}
+                                      className="w-[50px] h-[50px] mr-[12px]"
                                     />
                                   )}
                                 {item.table === "tracks" &&
                                   !item.record.album_art && (
-                                    <div
-                                      style={{
-                                        width: 50,
-                                        height: 50,
-                                        marginRight: 12,
-                                        backgroundColor:
-                                          "rgba(243, 243, 243, 0.725)",
-                                        display: "flex",
-                                        justifyContent: "center",
-                                        alignItems: "center",
-                                      }}
-                                    >
-                                      <div
-                                        style={{
-                                          height: 28,
-                                          width: 28,
-                                        }}
-                                      >
+                                    <div className="w-[50px] h-[50px] mr-[12px] rounded-full flex items-center bg-[rgba(243, 243, 243, 0.725)]">
+                                      <div className="w-[28px] h-[28px]">
                                         <Track color="rgba(66, 87, 108, 0.65)" />
                                       </div>
                                     </div>
                                   )}
-                                <div
-                                  style={{
-                                    overflow: "hidden",
-                                    width: "calc(100% - 70px)",
-                                  }}
-                                >
-                                  <div
-                                    style={{
-                                      overflow: "hidden",
-                                      textOverflow: "ellipsis",
-                                      whiteSpace: "nowrap",
-                                    }}
-                                  >
+                                <div className="overflow-hidden w-[calc(100%-70px)]">
+                                  <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[var(--color-text)]">
                                     {item.record.name || item.record.title}
                                   </div>
                                   {item.table === "tracks" && (
-                                    <div
-                                      style={{
-                                        fontFamily: "RockfordSansLight",
-                                        color: "rgba(36, 49, 61, 0.65)",
-                                        fontSize: 14,
-                                      }}
-                                    >
+                                    <div className="text-[14px] text-[var(--color-text-muted)]">
                                       Track
                                     </div>
                                   )}
                                   {item.table === "albums" && (
-                                    <div
-                                      style={{
-                                        fontFamily: "RockfordSansLight",
-                                        color: "rgba(36, 49, 61, 0.65)",
-                                        fontSize: 14,
-                                      }}
-                                    >
+                                    <div className="text-[14px] text-[var(--color-text-muted)]">
                                       Album
                                     </div>
                                   )}
                                   {item.table === "artists" && (
-                                    <div
-                                      style={{
-                                        fontFamily: "RockfordSansLight",
-                                        color: "rgba(36, 49, 61, 0.65)",
-                                        fontSize: 14,
-                                      }}
-                                    >
+                                    <div className="text-[var(--color-text-muted)] text-[14px]">
                                       Artist
                                     </div>
                                   )}
@@ -327,47 +202,20 @@ function Search() {
                             <div>
                               <div
                                 key={item.id}
-                                style={{
-                                  height: 64,
-                                  display: "flex",
-                                  flexDirection: "row",
-                                  alignItems: "center",
-                                }}
+                                className="h-[64px] flex flex-row items-center"
                               >
                                 {item.table === "artists" &&
                                   item.record.picture && (
                                     <img
                                       src={item.record.picture}
                                       alt={item.record.name}
-                                      style={{
-                                        width: 50,
-                                        height: 50,
-                                        marginRight: 12,
-                                        borderRadius: 25,
-                                      }}
+                                      className="w-[50px] h-[50px] mr-[12px] rounded-full"
                                     />
                                   )}
                                 {item.table === "artists" &&
                                   !item.record.picture && (
-                                    <div
-                                      style={{
-                                        width: 50,
-                                        height: 50,
-                                        marginRight: 12,
-                                        borderRadius: 30,
-                                        backgroundColor:
-                                          "rgba(243, 243, 243, 0.725)",
-                                        display: "flex",
-                                        justifyContent: "center",
-                                        alignItems: "center",
-                                      }}
-                                    >
-                                      <div
-                                        style={{
-                                          height: 28,
-                                          width: 28,
-                                        }}
-                                      >
+                                    <div className="w-[50px] h-[50px] mr-[12px] rounded-full flex items-center bg-[rgba(243, 243, 243, 0.725)]">
+                                      <div className="w-[28px] h-[28px]">
                                         <Artist color="rgba(66, 87, 108, 0.65)" />
                                       </div>
                                     </div>
@@ -377,67 +225,35 @@ function Search() {
                                     <img
                                       src={item.record.album_art}
                                       alt={item.record.title}
-                                      style={{
-                                        width: 50,
-                                        height: 50,
-                                        marginRight: 12,
-                                      }}
+                                      className="w-[50px] h-[50px] mr-[12px]"
                                     />
                                   )}
                                 {item.table === "tracks" && (
                                   <img
                                     src={item.record.album_art}
                                     alt={item.record.title}
-                                    style={{
-                                      width: 50,
-                                      height: 50,
-                                      marginRight: 12,
-                                    }}
+                                    className="w-[50px] h-[50px] mr-[12px]"
                                   />
                                 )}
                                 {["artists", "albums", "tracks"].includes(
                                   item.table
                                 ) && (
-                                  <div style={{ overflow: "hidden" }}>
-                                    <div
-                                      style={{
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis",
-                                        whiteSpace: "nowrap",
-                                      }}
-                                    >
+                                  <div className="overflow-hidden">
+                                    <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[var(--color-text)]">
                                       {item.record.name || item.record.title}
                                     </div>
                                     {item.table === "tracks" && (
-                                      <div
-                                        style={{
-                                          fontFamily: "RockfordSansLight",
-                                          color: "rgba(36, 49, 61, 0.65)",
-                                          fontSize: 14,
-                                        }}
-                                      >
+                                      <div className="text-[14px] text-[var(--color-text-muted)]">
                                         Track
                                       </div>
                                     )}
                                     {item.table === "albums" && (
-                                      <div
-                                        style={{
-                                          fontFamily: "RockfordSansLight",
-                                          color: "rgba(36, 49, 61, 0.65)",
-                                          fontSize: 14,
-                                        }}
-                                      >
+                                      <div className="text-[14px] text-[var(--color-text-muted)]">
                                         Album
                                       </div>
                                     )}
                                     {item.table === "artists" && (
-                                      <div
-                                        style={{
-                                          fontFamily: "RockfordSansLight",
-                                          color: "rgba(36, 49, 61, 0.65)",
-                                          fontSize: 14,
-                                        }}
-                                      >
+                                      <div className="text-[14px] text-[var(--color-text-muted)]">
                                         Artist
                                       </div>
                                     )}
@@ -458,13 +274,14 @@ function Search() {
         overrides={{
           Body: {
             style: {
-              backgroundColor: "#fff",
+              backgroundColor: "var(--color-background)",
               width: "300px",
+              border: "0.5px solid var(--color-border) !important",
             },
           },
           Inner: {
             style: {
-              backgroundColor: "#fff",
+              backgroundColor: "var(--color-background)",
             },
           },
         }}
@@ -475,10 +292,41 @@ function Search() {
             control={control}
             render={({ field }) => (
               <Input
-                startEnhancer={<SearchIcon size={20} color="#42576ca6" />}
+                startEnhancer={
+                  <SearchIcon size={20} color="var(--color-text-muted)" />
+                }
                 placeholder="Search"
                 clearable
                 clearOnEscape
+                overrides={{
+                  Root: {
+                    style: {
+                      backgroundColor: "var(--color-input-background)",
+                      borderColor: "var(--color-input-background)",
+                    },
+                  },
+                  StartEnhancer: {
+                    style: {
+                      backgroundColor: "var(--color-input-background)",
+                    },
+                  },
+                  InputContainer: {
+                    style: {
+                      backgroundColor: "var(--color-input-background)",
+                    },
+                  },
+                  Input: {
+                    style: {
+                      color: "var(--color-text)",
+                      caretColor: "var(--color-text)",
+                    },
+                  },
+                  ClearIcon: {
+                    style: {
+                      color: "var(--color-clear-input) !important",
+                    },
+                  },
+                }}
                 {...field}
               />
             )}

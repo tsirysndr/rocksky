@@ -19,9 +19,6 @@ const MenuItem = styled.div`
   padding-left: 15px;
   padding-right: 15px;
   cursor: pointer;
-  &:hover {
-    background-color: #f7f7f7;
-  }
 `;
 
 function CloudDrive() {
@@ -86,21 +83,27 @@ function CloudDrive() {
   };
 
   return (
-    <div style={{ marginTop: 30 }}>
-      <LabelMedium marginBottom="15px">Cloud Drive</LabelMedium>
-      <MenuItem onClick={onSelectGoogleDrive}>
-        <div style={{ marginTop: 5 }}>
+    <div className="mt-[30px]">
+      <LabelMedium marginBottom="15px" className="!text-[var(--color-text)]">
+        Cloud Drive
+      </LabelMedium>
+      <MenuItem
+        onClick={onSelectGoogleDrive}
+        className="hover:bg-[var(--color-menu-hover)]"
+      >
+        <div className="mt-[5px]">
           <GoogleDrive />
         </div>
-        <div style={{ flex: 1, marginLeft: 15, marginBottom: 5 }}>
-          Google Drive
-        </div>
+        <div className="flex ml-[15px] mb-[5px] flex-1">Google Drive</div>
       </MenuItem>
-      <MenuItem onClick={onSelectDropbox}>
-        <div style={{ marginTop: 5 }}>
+      <MenuItem
+        onClick={onSelectDropbox}
+        className="hover:bg-[var(--color-menu-hover)]"
+      >
+        <div className="mt-[5px]">
           <Dropbox />
         </div>
-        <div style={{ flex: 1, marginLeft: 15, marginBottom: 5 }}>Dropbox</div>
+        <div className="flex ml-[15px] mb-[5px] flex-1">Dropbox</div>
       </MenuItem>
       <GoogleDriveBeta
         isOpen={isGoogleDriveBetaModalOpen}

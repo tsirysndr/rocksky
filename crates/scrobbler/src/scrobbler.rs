@@ -477,9 +477,10 @@ pub async fn scrobble_listenbrainz(
         60 * 5, // 5 minutes
     )?;
 
-    if cache.get(
-        &format!("listenbrainz:cache:{}:{}:{}", artist, track, did),
-    )?.is_some() {
+    if cache
+        .get(&format!("listenbrainz:cache:{}:{}:{}", artist, track, did))?
+        .is_some()
+    {
         println!(
             "{} {} - {}, recently scrobbled",
             "Already scrobbled: ".yellow(),

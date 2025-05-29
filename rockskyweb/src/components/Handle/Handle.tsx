@@ -76,47 +76,29 @@ function Handle(props: HandleProps) {
     <>
       <StatefulPopover
         content={() => (
-          <Block
-            padding={"15px"}
-            backgroundColor={"#fff"}
-            style={{
-              borderRadius: "12px",
-              width: "380px",
-              border: "none",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "center",
-              }}
-            >
-              <Link to={link} style={{ textDecoration: "none" }}>
+          <Block className="!bg-[var(--color-background)] !text-[var(--color-text)] p-[15px] w-[380px] rounded-[6px] border-[1px] border-[var(--color-border)]">
+            <div className="flex flex-row items-center">
+              <Link to={link} className="no-underline">
                 <Avatar
                   src={profiles[did]?.avatar}
                   name={profiles[did]?.displayName}
                   size={"60px"}
                 />
               </Link>
-              <div style={{ marginLeft: "16px" }}>
-                <Link to={link} style={{ textDecoration: "none" }}>
-                  <LabelMedium marginTop={"10px"}>
+              <div className="ml-[16px]">
+                <Link to={link} className="no-underline">
+                  <LabelMedium
+                    marginTop={"10px"}
+                    className="!text-[var(--color-text)]"
+                  >
                     {profiles[did]?.displayName}
                   </LabelMedium>
                 </Link>
                 <a
                   href={`https://bsky.app/profile/${profiles[did]?.handle}`}
-                  style={{
-                    textDecoration: "none",
-                    color: "#ff2876",
-                  }}
+                  className="no-underline text-[var(--color-primary)]"
                 >
-                  <LabelSmall
-                    color={"#ff2876"}
-                    marginTop={"3px"}
-                    marginBottom={"25px"}
-                  >
+                  <LabelSmall className="!text-[var(--color-primary)] mt-[3px] mb-[25px]">
                     @{did}
                   </LabelSmall>
                 </a>
@@ -132,8 +114,10 @@ function Handle(props: HandleProps) {
         autoFocus={false}
         focusLock={false}
       >
-        <Link to={link} style={{ textDecoration: "none" }}>
-          <LabelMedium color={"#ff2876"}>@{did}</LabelMedium>
+        <Link to={link} className="no-underline">
+          <LabelMedium className="!text-[var(--color-primary)]">
+            @{did}
+          </LabelMedium>
         </Link>
       </StatefulPopover>
     </>

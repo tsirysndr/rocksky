@@ -5,7 +5,6 @@ import { useLocation, useParams } from "react-router";
 import { shoutsAtom } from "../../../atoms/shouts";
 import useShout from "../../../hooks/useShout";
 import Shout from "./Shout";
-import "./styles.css";
 
 function ShoutList() {
   const shouts = useAtomValue(shoutsAtom);
@@ -85,9 +84,12 @@ function ShoutList() {
 
   const renderShout = (shout: any) => {
     return (
-      <div key={shout.id} className="shout-container">
+      <div
+        key={shout.id}
+        className="relative pl-[20px] mb-[20px] before:content-[''] before:absolute before:left-[10px] before:top-0 before:bottom-0 before:w-[2px]"
+      >
         <Shout shout={shout} refetch={fetchShouts} />
-        <div className="replies-container">
+        <div className="ml-[20px] pl-[20px]">
           {(shout.replies || []).map((reply: any) => renderShout(reply))}
         </div>
       </div>

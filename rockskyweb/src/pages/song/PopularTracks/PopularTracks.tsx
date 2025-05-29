@@ -41,8 +41,14 @@ interface PopularTracksProps {
 function PopularTracks(props: PopularTracksProps) {
   return (
     <div style={{ marginTop: 50 }}>
-      <LabelMedium>Popular Tracks by</LabelMedium>
-      <HeadingXSmall marginTop={"0px"} marginBottom={"10px"}>
+      <LabelMedium className="!text-[var(--color-text)]" marginBottom={"10px"}>
+        Popular Tracks by
+      </LabelMedium>
+      <HeadingXSmall
+        marginTop={"0px"}
+        marginBottom={"10px"}
+        className="!text-[var(--color-text)]"
+      >
         {props.artist}
       </HeadingXSmall>
       <TableBuilder
@@ -71,6 +77,14 @@ function PopularTracks(props: PopularTracksProps) {
               verticalAlign: "center",
             },
           },
+          TableBodyRow: {
+            style: {
+              backgroundColor: "var(--color-background)",
+              ":hover": {
+                backgroundColor: "var(--color-menu-hover)",
+              },
+            },
+          },
         }}
       >
         <TableBuilderColumn header="Name">
@@ -83,7 +97,9 @@ function PopularTracks(props: PopularTracksProps) {
               }}
             >
               <div>
-                <div style={{ marginRight: 20 }}>{row.index + 1}</div>
+                <div className="!text-[var(--color-text)] mr-[20px]">
+                  {row.index + 1}
+                </div>
               </div>
               {row.albumUri && (
                 <Link to={`/${row.albumUri?.split("at://")[1]}`}>
@@ -140,25 +156,22 @@ function PopularTracks(props: PopularTracksProps) {
                 </div>
               )}
               <div style={{ display: "flex", flexDirection: "column" }}>
-                <Link to={`/${row.uri?.split("at://")[1]}`}>{row.title}</Link>
+                <Link
+                  to={`/${row.uri?.split("at://")[1]}`}
+                  className="!text-[var(--color-text)]"
+                >
+                  {row.title}
+                </Link>
                 {row.artistUri && (
                   <Link
                     to={`/${row.artistUri?.split("at://")[1]}`}
-                    style={{
-                      fontFamily: "RockfordSansLight",
-                      color: "rgba(36, 49, 61, 0.65)",
-                    }}
+                    className="!text-[var(--color-text-muted)]"
                   >
                     {row.albumArtist}
                   </Link>
                 )}
                 {!row.artistUri && (
-                  <div
-                    style={{
-                      fontFamily: "RockfordSansLight",
-                      color: "rgba(36, 49, 61, 0.65)",
-                    }}
-                  >
+                  <div className="!text-[var(--color-text-muted)]">
                     {row.albumArtist}
                   </div>
                 )}

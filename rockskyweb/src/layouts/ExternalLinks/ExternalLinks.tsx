@@ -24,10 +24,15 @@ function ExternalLinks() {
     <>
       {display && song?.spotifyLink && (
         <div style={{ marginTop: 50 }}>
-          <LabelLarge marginBottom={"10px"}>External Links</LabelLarge>
+          <LabelLarge
+            marginBottom={"10px"}
+            className="!text-[var(--color-text)]"
+          >
+            External Links
+          </LabelLarge>
           <Link href={song?.spotifyLink} target="_blank">
             <Spotify size={25} color="#1dd05d" />
-            <span style={{ marginLeft: 10 }}>Spotify</span>
+            <span className="!text-[var(--color-text)] ml-[10px]">Spotify</span>
           </Link>
         </div>
       )}

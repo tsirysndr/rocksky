@@ -126,14 +126,15 @@ function RecentTracks(props: RecentTracksProps) {
             justifyContent: "space-between",
           }}
         >
-          <HeadingSmall marginBottom={"10px"}>Recent Tracks</HeadingSmall>
+          <HeadingSmall
+            marginBottom={"10px"}
+            className="!text-[var(--color-text)]"
+          >
+            Recent Listens
+          </HeadingSmall>
           <a
             href={`/profile/${user?.handle}?tab=0`}
-            style={{
-              marginTop: 40,
-              textDecoration: "none",
-              color: "#ff2876",
-            }}
+            className="no-underline mt-[40px] text-[var(--color-primary)]"
           >
             See All
           </a>
@@ -176,27 +177,34 @@ function RecentTracks(props: RecentTracksProps) {
               verticalAlign: "center",
             },
           },
+          TableBodyRow: {
+            style: {
+              backgroundColor: "var(--color-background)",
+              ":hover": {
+                backgroundColor: "var(--color-menu-hover)",
+              },
+            },
+          },
         }}
       >
         <TableBuilderColumn header="Title">
           {(row: Row) => (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "center",
-              }}
-            >
+            <div className="flex flex-row items-center">
               <Link to={`/${row.albumUri?.split("at://")[1]}`}>
                 <img
                   src={row.albumArt}
                   alt={row.title}
-                  style={{ width: 60, marginRight: 20, borderRadius: 5 }}
+                  className="w-[60px] mr-[20px] rounded-[5px]"
                   key={row.id}
                 />
               </Link>
               <div>
-                <Link to={`/${row.uri?.split("at://")[1]}`}>{row.title}</Link>
+                <Link
+                  to={`/${row.uri?.split("at://")[1]}`}
+                  className="!text-[var(--color-text)]"
+                >
+                  {row.title}
+                </Link>
               </div>
             </div>
           )}
@@ -206,6 +214,7 @@ function RecentTracks(props: RecentTracksProps) {
             <Link
               to={`/${row.artistUri?.split("at://")[1]}`}
               style={{ fontFamily: "RockfordSansLight" }}
+              className="!text-[var(--color-text)]"
             >
               {row.albumArtist}
             </Link>
@@ -218,7 +227,7 @@ function RecentTracks(props: RecentTracksProps) {
               returnFocus
               autoFocus
             >
-              <div style={{ width: 120, color: "rgba(66, 87, 108, 0.65)" }}>
+              <div className="w-[120px] text-[var(--color-text-muted)]">
                 {dayjs(row.date).fromNow()}
               </div>
             </StatefulTooltip>

@@ -1,6 +1,6 @@
 use anyhow::Error;
 
-pub async fn get_top_releases(user_name: &str) -> Result<(), Error> {
+pub async fn get_top_releases(_user_name: &str) -> Result<(), Error> {
     Ok(())
 }
 

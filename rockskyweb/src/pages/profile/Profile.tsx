@@ -83,9 +83,9 @@ function Profile() {
   return (
     <>
       <Main>
-        <div style={{ paddingBottom: 100, paddingTop: 75 }}>
+        <div className="pb-[100px] pt-[75px]">
           <Group>
-            <div style={{ marginRight: 20 }}>
+            <div className="mr-[20px]">
               <Avatar
                 name={profiles[did]?.displayName}
                 src={profiles[did]?.avatar}
@@ -93,45 +93,31 @@ function Profile() {
               />
             </div>
             <div style={{ marginTop: profiles[did]?.displayName ? 10 : 30 }}>
-              <HeadingMedium marginTop="0px" marginBottom={0}>
+              <HeadingMedium
+                marginTop="0px"
+                marginBottom={0}
+                className="!text-[var(--color-text)]"
+              >
                 {profiles[did]?.displayName}
               </HeadingMedium>
               <LabelLarge>
                 <a
                   href={`https://bsky.app/profile/${profiles[did]?.handle}`}
-                  style={{
-                    textDecoration: "none",
-                    color: "#ff2876",
-                  }}
+                  className="no-underline text-[var(--color-primary)]"
                 >
                   @{profiles[did]?.handle}
                 </a>
-                <span style={{ color: "#42576ca6", fontSize: "15px" }}>
+                <span className="text-[var(--color-text-muted)] text-[15px]">
                   {" "}
                   • scrobbling since{" "}
                   {dayjs(profiles[did]?.createdAt).format("DD MMM YYYY")}
                 </span>
               </LabelLarge>
-              <div
-                style={{
-                  marginTop: 30,
-                  flex: 1,
-                  marginRight: 10,
-                }}
-              >
+              <div className="flex-1 mt-[30px] mr-[10px]">
                 <a
                   href={`https://pdsls.dev/at/${profiles[did]?.did}`}
                   target="_blank"
-                  style={{
-                    color: "#000",
-                    textDecoration: "none",
-                    padding: 16,
-                    backgroundColor: "rgba(0, 0, 0, 0.05)",
-                    fontWeight: 600,
-                    borderRadius: 10,
-                    paddingLeft: 25,
-                    paddingRight: 25,
-                  }}
+                  className="no-underline text-[var(--color-text)] bg-[var(--color-default-button)] p-[16px] rounded-[10px] pl-[25px] pr-[25px]"
                 >
                   <ExternalLink size={24} style={{ marginRight: 10 }} />
                   View on PDSls
@@ -145,21 +131,83 @@ function Profile() {
             onChange={({ activeKey }) => {
               setActiveKey(activeKey);
             }}
+            overrides={{
+              TabHighlight: {
+                style: {
+                  backgroundColor: "var(--color-purple)",
+                },
+              },
+              TabBorder: {
+                style: {
+                  display: "none",
+                },
+              },
+            }}
             activateOnFocus
           >
-            <Tab title="Overview">
+            <Tab
+              title="Overview"
+              overrides={{
+                Tab: {
+                  style: {
+                    color: "var(--color-text)",
+                    backgroundColor: "var(--color-background) !important",
+                  },
+                },
+              }}
+            >
               <Overview />
             </Tab>
-            <Tab title="Library">
+            <Tab
+              title="Library"
+              overrides={{
+                Tab: {
+                  style: {
+                    color: "var(--color-text)",
+                    backgroundColor: "var(--color-background) !important",
+                  },
+                },
+              }}
+            >
               <Library />
             </Tab>
-            <Tab title="Playlists">
+            <Tab
+              title="Playlists"
+              overrides={{
+                Tab: {
+                  style: {
+                    color: "var(--color-text)",
+                    backgroundColor: "var(--color-background) !important",
+                  },
+                },
+              }}
+            >
               <Playlists />
             </Tab>
-            <Tab title="Loved Tracks">
+            <Tab
+              title="Loved Tracks"
+              overrides={{
+                Tab: {
+                  style: {
+                    color: "var(--color-text)",
+                    backgroundColor: "var(--color-background) !important",
+                  },
+                },
+              }}
+            >
               <LovedTracks />
             </Tab>
-            <Tab title="Tags"></Tab>
+            <Tab
+              title="Tags"
+              overrides={{
+                Tab: {
+                  style: {
+                    color: "var(--color-text)",
+                    backgroundColor: "var(--color-background) !important",
+                  },
+                },
+              }}
+            ></Tab>
           </Tabs>
           <Shout type="profile" />
         </div>

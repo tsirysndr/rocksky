@@ -44,7 +44,9 @@ function Playlists() {
 
   return (
     <>
-      <HeadingSmall>Playlists</HeadingSmall>
+      <HeadingSmall className="!text-[var(--color-text)]">
+        Playlists
+      </HeadingSmall>
       {playlists.length === 0 && <div>No playlists found</div>}
       {playlists.length > 0 && (
         <FlexGrid
@@ -60,9 +62,14 @@ function Playlists() {
                   <SongCover cover={playlist?.picture} />
                 </Link>
                 <Link to={`/${playlist.uri?.split("at://")[1]}`}>
-                  <LabelMedium>{playlist.name}</LabelMedium>
+                  <LabelMedium className="!text-[var(--color-text)]">
+                    {playlist.name}
+                  </LabelMedium>
                 </Link>
-                <LabelSmall color="rgba(36, 49, 61, 0.65)" marginTop={"3px"}>
+                <LabelSmall
+                  className="!text-[var(--color-text-muted)]"
+                  marginTop={"3px"}
+                >
                   {playlist.trackCount} Track
                   {playlist.trackCount > 1 ? "s" : ""}
                 </LabelSmall>
