@@ -64,6 +64,8 @@ body {
   --color-pink: oklch(0.6372 0.229 346.83);
   --color-bar: rgba(255, 40, 118, 0.1);
   --color-play-button: #f4f4f4;
+  --color-toggle-track: #c7b2e9;
+  --color-button-text: #fff;
 }
 
 .dark {
@@ -82,6 +84,8 @@ body {
   --color-pink: oklch(0.6372 0.229 346.83);
   --color-bar: rgb(255, 129, 175);
   --color-play-button: var(--color-primary);
+  --color-toggle-track: #341b5c;
+  --color-button-text: #000;
 }
 
 ::placeholder {

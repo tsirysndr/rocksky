@@ -2,6 +2,7 @@ import styled from "@emotion/styled";
 import { Copy } from "@styled-icons/ionicons-outline";
 import { useQuery } from "@tanstack/react-query";
 import { Avatar } from "baseui/avatar";
+import { Checkbox, LABEL_PLACEMENT, STYLE_TYPE } from "baseui/checkbox";
 import { NestedMenus, StatefulMenu } from "baseui/menu";
 import { Modal, ModalBody, ModalHeader } from "baseui/modal";
 import { PLACEMENT, StatefulPopover } from "baseui/popover";
@@ -9,12 +10,13 @@ import { DURATION, useSnackbar } from "baseui/snackbar";
 import { StatefulTooltip } from "baseui/tooltip";
 import { LabelMedium } from "baseui/typography";
 import copy from "copy-to-clipboard";
-import { useAtomValue, useSetAtom } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import numeral from "numeral";
 import * as R from "ramda";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { profileAtom } from "../../atoms/profile";
+import { themeAtom } from "../../atoms/theme";
 import { API_URL } from "../../consts";
 import { useProfileStatsByDidQuery } from "../../hooks/useProfile";
 
@@ -44,6 +46,7 @@ export const Code = styled.div`
 
 function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [{ darkMode }, setTheme] = useAtom(themeAtom);
   const setProfile = useSetAtom(profileAtom);
   const profile = useAtomValue(profileAtom);
   const navigate = useNavigate();
@@ -182,6 +185,42 @@ function Navbar() {
                       ),
                     },
                     {
+                      id: "dark-mode",
+                      label: (
+                        <div className="flex flex-row items-center">
+                          <LabelMedium className="!text-[var(--color-text)] flex-1">
+                            Dark Mode
+                          </LabelMedium>
+                          <Checkbox
+                            checked={darkMode}
+                            checkmarkType={STYLE_TYPE.toggle_round}
+                            onChange={(e) => {
+                              setTheme({
+                                darkMode: e.target.checked,
+                              });
+                              localStorage.setItem(
+                                "darkMode",
+                                e.target.checked ? "true" : "false"
+                              );
+                            }}
+                            labelPlacement={LABEL_PLACEMENT.right}
+                            overrides={{
+                              Toggle: {
+                                style: {
+                                  backgroundColor: "#fff",
+                                },
+                              },
+                              ToggleTrack: {
+                                style: {
+                                  backgroundColor: "var(--color-toggle-track)",
+                                },
+                              },
+                            }}
+                          />
+                        </div>
+                      ),
+                    },
+                    {
                       id: "signout",
                       label: (
                         <LabelMedium className="!text-[var(--color-text)]">
@@ -207,6 +246,8 @@ function Navbar() {
                       case "webscrobbler":
                         setIsOpen(true);
                         break;
+                      case "dark-mode":
+                        return;
                       default:
                         break;
                     }

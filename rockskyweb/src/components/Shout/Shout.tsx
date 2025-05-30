@@ -169,7 +169,7 @@ function Shout(props: ShoutProps) {
                     style: ({ $disabled }) => ({
                       backgroundColor: "var(--color-purple) !important",
                       opacity: $disabled ? 0.4 : 1,
-                      color: "#000 !important",
+                      color: "var(--color-button-text) !important",
                       borderRadius: "2px",
                     }),
                   },

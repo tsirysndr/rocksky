@@ -3,5 +3,7 @@ import { atom } from "jotai";
 export const themeAtom = atom<{
   darkMode: boolean;
 }>({
-  darkMode: true,
+  darkMode: !localStorage.getItem("darkMode")
+    ? true
+    : localStorage.getItem("darkMode") === "true",
 });

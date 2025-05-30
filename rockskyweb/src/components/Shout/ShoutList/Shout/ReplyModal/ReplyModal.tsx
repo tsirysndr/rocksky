@@ -157,6 +157,11 @@ function ReplyModal(props: ReplyModalProps) {
             zIndex: 1,
           },
         },
+        Dialog: {
+          style: {
+            backgroundColor: "var(--color-background)",
+          },
+        },
         Close: {
           style: {
             display: "none",
@@ -164,14 +169,23 @@ function ReplyModal(props: ReplyModalProps) {
         },
       }}
     >
-      <ModalHeader
-        style={{
-          margin: 16,
-          display: "flex",
-          justifyContent: "space-between",
-        }}
-      >
-        <ModalButton kind="tertiary" onClick={close} shape="pill">
+      <ModalHeader className="m-[16px] flex justify-between">
+        <ModalButton
+          kind="tertiary"
+          onClick={close}
+          shape="pill"
+          overrides={{
+            BaseButton: {
+              style: {
+                backgroundColor: "var(--color-background) !important",
+                color: "var(--color-text) !important",
+                ":hover": {
+                  backgroundColor: "var(--color-background)",
+                },
+              },
+            },
+          }}
+        >
           Cancel
         </ModalButton>
         {!loading && (
@@ -181,6 +195,18 @@ function ReplyModal(props: ReplyModalProps) {
             disabled={
               watch("message").length === 0 || watch("message").length > 1000
             }
+            overrides={{
+              BaseButton: {
+                style: {
+                  backgroundColor: "var(--color-purple) !important",
+                  color: "var(--color-button-text) !important",
+                  ":hover": {
+                    backgroundColor: "var(--color-purple)",
+                    color: "var(--color-button-text) !important",
+                  },
+                },
+              },
+            }}
           >
             Reply
           </ModalButton>
@@ -205,34 +231,30 @@ function ReplyModal(props: ReplyModalProps) {
           <Link to={`/profile/${shout.user.handle}`} onClick={close}>
             <img
               src={shout.user.avatar}
-              style={{
-                width: 50,
-                height: 50,
-                borderRadius: 25,
-              }}
+              className="w-[50px] h-[50px] rounded-full"
             />
           </Link>
 
-          <div style={{ marginLeft: 20, width: "100%" }}>
+          <div className="ml-[20px] w-full">
             <Header>
               <div>
                 <Link to={`/profile/${shout.user.handle}`} onClick={close}>
-                  <LabelMedium>{shout.user.displayName}</LabelMedium>
+                  <LabelMedium className="!text-[var(--color-text)]">
+                    {shout.user.displayName}
+                  </LabelMedium>
                 </Link>
               </div>
             </Header>
-            <Message>{shout.message}</Message>
+            <Message className="!text-[var(--color-text)]">
+              {shout.message}
+            </Message>
           </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "row", marginTop: 20 }}>
+        <div className="flex flex-row mt-[20px]">
           <img
             src={profile?.avatar}
-            style={{
-              width: 50,
-              height: 50,
-              borderRadius: 25,
-            }}
+            className="w-[50px] h-[50px] rounded-full"
           />
           <Controller
             name="message"
@@ -249,14 +271,16 @@ function ReplyModal(props: ReplyModalProps) {
                   InputContainer: {
                     style: {
                       border: "none",
-                      backgroundColor: "#fff",
+                      backgroundColor: "var(--color-background)",
                     },
                   },
                   Input: {
                     style: {
                       width: "450px",
                       border: "none",
-                      backgroundColor: "#fff",
+                      backgroundColor: "var(--color-background)",
+                      color: "var(--color-text)",
+                      caretColor: "var(--color-purple)",
                     },
                   },
                 }}
