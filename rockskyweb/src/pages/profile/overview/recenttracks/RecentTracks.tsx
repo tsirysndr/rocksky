@@ -15,6 +15,7 @@ import {
   useProfileStatsByDidQuery,
   useRecentTracksByDidQuery,
 } from "../../../../hooks/useProfile";
+import styles from "./styles";
 
 const Link = styled(DefaultLink)`
   color: inherit;
@@ -118,14 +119,7 @@ function RecentTracks(props: RecentTracksProps) {
   return (
     <>
       {props.showTitle && (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
+        <div className="flex flex-row justify-between items-center">
           <HeadingSmall
             marginBottom={"10px"}
             className="!text-[var(--color-text)]"
@@ -143,9 +137,11 @@ function RecentTracks(props: RecentTracksProps) {
 
       {props.showPagination && (
         <Group mb={20}>
-          <div style={{ marginRight: 20 }}>
-            <LabelSmall>SCROBBLES</LabelSmall>
-            <HeadingXSmall margin={0}>
+          <div className="mr-[20px]">
+            <LabelSmall className="!text-[var(--color-text-muted)]">
+              SCROBBLES
+            </LabelSmall>
+            <HeadingXSmall margin={0} className="!text-[var(--color-text)]">
               {did ? numeral(profileStats.data?.scrobbles).format("0,0") : ""}
             </HeadingXSmall>
           </div>
@@ -170,6 +166,7 @@ function RecentTracks(props: RecentTracksProps) {
           TableHeadRow: {
             style: {
               display: "none",
+              backgroundColor: "var(--color-background) !important",
             },
           },
           TableBodyCell: {
@@ -183,6 +180,16 @@ function RecentTracks(props: RecentTracksProps) {
               ":hover": {
                 backgroundColor: "var(--color-menu-hover)",
               },
+            },
+          },
+          TableEmptyMessage: {
+            style: {
+              backgroundColor: "var(--color-background)",
+            },
+          },
+          Table: {
+            style: {
+              backgroundColor: "var(--color-background)",
             },
           },
         }}
@@ -241,14 +248,7 @@ function RecentTracks(props: RecentTracksProps) {
           onPageChange={({ nextPage }) => {
             setCurrentPage(Math.min(Math.max(nextPage, 1), pages));
           }}
-          overrides={{
-            Root: {
-              style: {
-                justifyContent: "center",
-                marginTop: "30px",
-              },
-            },
-          }}
+          overrides={styles.pagination}
         />
       )}
     </>

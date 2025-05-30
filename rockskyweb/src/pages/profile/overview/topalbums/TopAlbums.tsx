@@ -61,7 +61,7 @@ function TopAlbums() {
         </a>
       </div>
       {!topAlbums.length && (
-        <div className="text-[var(--color-text)]">
+        <div className="text-[var(--color-text-muted)] text-[14px]">
           @{user?.handle} has not listened to any albums yet.
         </div>
       )}

@@ -8,12 +8,12 @@ function Playlist() {
     >
       <path
         fill="none"
-        stroke="#000"
+        stroke="var(--color-text)"
         stroke-linecap="round"
         stroke-linejoin="round"
         stroke-width="1.5"
         d="M2 3h18M2 10h13M2 17h7m9.25 2c0 1.657-1.4 3-3.125 3S12 20.657 12 19s1.4-3 3.125-3s3.125 1.343 3.125 3m0 0v-9c.417.6.75 3.12 3.75 3.6"
-        color="#000"
+        color="var(--color-text)"
       />
     </svg>
   );

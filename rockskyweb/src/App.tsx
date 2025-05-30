@@ -1,5 +1,7 @@
+import { useAtomValue } from "jotai";
 import { useEffect } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { themeAtom } from "./atoms/theme";
 import AlbumPage from "./pages/album";
 import ApiKeys from "./pages/apikeys";
 import ArtistPage from "./pages/artist";
@@ -14,10 +16,15 @@ import ProfilePage from "./pages/profile";
 import SongPage from "./pages/song";
 
 function App() {
+  const { darkMode } = useAtomValue(themeAtom);
   useEffect(() => {
     const root = document.getElementById("root");
-    root!.classList.add("dark");
-  }, []);
+    if (darkMode) {
+      root!.classList.add("dark");
+      return;
+    }
+    root!.classList.remove("dark");
+  }, [darkMode]);
 
   return (
     <BrowserRouter>

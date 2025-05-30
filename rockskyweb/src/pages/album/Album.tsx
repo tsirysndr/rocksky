@@ -108,7 +108,7 @@ const Album = () => {
 
   return (
     <Main>
-      <div style={{ paddingBottom: 100, paddingTop: 50 }}>
+      <div className="pb-[100px] pt-[50px]">
         {!album && (
           <ContentLoader viewBox="100 0 850 700" height={520} width={700}>
             <rect x="400" y="21" rx="10" ry="10" width="694" height="20" />
@@ -123,85 +123,65 @@ const Album = () => {
           <Group>
             {album.albumArt && <SongCover cover={album.albumArt!} />}
             {!album.albumArt && (
-              <div
-                style={{
-                  width: 240,
-                  height: 240,
-                  marginRight: 12,
-                  borderRadius: 8,
-                  backgroundColor: "rgba(243, 243, 243, 0.725)",
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
-                <div
-                  style={{
-                    height: 130,
-                    width: 130,
-                  }}
-                >
+              <div className="w-[240px] h-[240px] mr-[12px] rounded-[8px] bg-[rgba(243, 243, 243, 0.725)] flex justify-center items-center">
+                <div className="w-[130px] h-[130px]">
                   <Disc color="rgba(66, 87, 108, 0.65)" />
                 </div>
               </div>
             )}
-            <div style={{ marginLeft: 20, flex: 1 }}>
-              <HeadingMedium margin={0}>{album.title}</HeadingMedium>
+            <div className="ml-[20px] flex-1">
+              <HeadingMedium margin={0} className="!text-[var(--color-text)]">
+                {album.title}
+              </HeadingMedium>
               {album.artistUri && (
                 <Link to={`/${album.artistUri.split("at://")[1]}`}>
-                  <LabelLarge margin={0}>{album.artist}</LabelLarge>
+                  <LabelLarge margin={0} className="!text-[var(--color-text)]">
+                    {album.artist}
+                  </LabelLarge>
                 </Link>
               )}
               {!album.artistUri && (
-                <LabelLarge margin={0}>{album.artist}</LabelLarge>
+                <LabelLarge margin={0} className="!text-[var(--color-text)]">
+                  {album.artist}
+                </LabelLarge>
               )}
-              <div
-                style={{ marginTop: 20, display: "flex", flexDirection: "row" }}
-              >
+              <div className="mt-[20px] flex flex-row">
                 <div
                   style={{
                     marginRight: 20,
                   }}
                 >
-                  <LabelMedium margin={0} color="rgba(36, 49, 61, 0.65)">
+                  <LabelMedium
+                    margin={0}
+                    className="!text-[var(--color-text-muted)]"
+                  >
                     Listeners
                   </LabelMedium>
-                  <LabelLarge margin={0}>
+                  <LabelLarge margin={0} className="!text-[var(--color-text)]">
                     {numeral(album.listeners).format("0,0")}
                   </LabelLarge>
                 </div>
                 <div>
-                  <LabelMedium margin={0} color="rgba(36, 49, 61, 0.65)">
+                  <LabelMedium
+                    margin={0}
+                    className="!text-[var(--color-text-muted)]"
+                  >
                     Scrobbles
                   </LabelMedium>
-                  <LabelLarge margin={0}>
+                  <LabelLarge margin={0} className="!text-[var(--color-text)]">
                     {numeral(album.scrobbles || 1).format("0,0")}
                   </LabelLarge>
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "end",
-                    flex: 1,
-                    marginRight: 10,
-                  }}
-                >
+                <div className="flex items-center justify-end flex-1 mr-[10px]">
                   <a
                     href={`https://pdsls.dev/at/${uri}`}
                     target="_blank"
-                    style={{
-                      color: "#000",
-                      textDecoration: "none",
-                      padding: 16,
-                      backgroundColor: "rgba(0, 0, 0, 0.05)",
-                      fontWeight: 600,
-                      borderRadius: 10,
-                      paddingLeft: 25,
-                      paddingRight: 25,
-                    }}
+                    className="text-[var(--color-text)] no-underline bg-[var(--color-default-button)] rounded-[10px] p-[16px] pl-[25px] pr-[25px]"
                   >
-                    <ExternalLink size={24} style={{ marginRight: 10 }} />
+                    <ExternalLink
+                      size={24}
+                      className="mr-[10px] text-[var(--color-text)]"
+                    />
                     View on PDSls
                   </a>
                 </div>
@@ -239,6 +219,19 @@ const Album = () => {
                     verticalAlign: "center",
                   },
                 },
+                TableBodyRow: {
+                  style: {
+                    backgroundColor: "var(--color-background)",
+                    ":hover": {
+                      backgroundColor: "var(--color-menu-hover)",
+                    },
+                  },
+                },
+                Table: {
+                  style: {
+                    backgroundColor: "var(--color-background)",
+                  },
+                },
               }}
             >
               <TableBuilderColumn
@@ -253,14 +246,7 @@ const Album = () => {
                 }}
               >
                 {(row: Row) => (
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "row",
-                      alignItems: "center",
-                      flex: 1,
-                    }}
-                  >
+                  <div className="!text-[var(--color-text)] flex flex-row items-center flex-1">
                     {row.trackNumber}
                   </div>
                 )}
@@ -276,41 +262,34 @@ const Album = () => {
                 }}
               >
                 {(row: Row) => (
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "row",
-                      alignItems: "center",
-                    }}
-                  >
+                  <div className="flex flex-row items-center">
                     <div>
                       <div>
                         {row.uri && (
-                          <Link to={`/${row.uri.split("at://")[1]}`}>
+                          <Link
+                            to={`/${row.uri.split("at://")[1]}`}
+                            className="!text-[var(--color-text)]"
+                          >
                             {row.title}
                           </Link>
                         )}
-                        {!row.uri && <div>{row.title}</div>}
+                        {!row.uri && (
+                          <div className="!text-[var(--color-text)]">
+                            {row.title}
+                          </div>
+                        )}
                       </div>
                       <div>
                         {row.artistUri && (
                           <Link
                             to={`/${row.artistUri.split("at://")[1]}`}
-                            style={{
-                              fontFamily: "RockfordSansLight",
-                              color: "rgba(36, 49, 61, 0.65)",
-                            }}
+                            className="!text-[var(--color-text-muted)]"
                           >
                             {row.albumArtist}
                           </Link>
                         )}
                         {!row.artistUri && (
-                          <div
-                            style={{
-                              fontFamily: "RockfordSansLight",
-                              color: "rgba(36, 49, 61, 0.65)",
-                            }}
-                          >
+                          <div className="!text-[var(--color-text-muted)]">
                             {row.albumArtist}
                           </div>
                         )}
@@ -328,7 +307,9 @@ const Album = () => {
             <div>
               {[...Array(disc)].map((_, i) => (
                 <div style={{ marginBottom: 20 }}>
-                  <LabelLarge>Volume {i + 1}</LabelLarge>
+                  <LabelLarge className="!text-[var(--color-text)]">
+                    Volume {i + 1}
+                  </LabelLarge>
                   <TableBuilder
                     data={album?.tracks
                       .filter((x) => x.disc_number == i + 1)
@@ -358,6 +339,14 @@ const Album = () => {
                           verticalAlign: "center",
                         },
                       },
+                      TableBodyRow: {
+                        style: {
+                          backgroundColor: "var(--color-background)",
+                          ":hover": {
+                            backgroundColor: "var(--color-menu-hover)",
+                          },
+                        },
+                      },
                     }}
                   >
                     <TableBuilderColumn
@@ -372,14 +361,7 @@ const Album = () => {
                       }}
                     >
                       {(row: Row) => (
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "row",
-                            alignItems: "center",
-                            flex: 1,
-                          }}
-                        >
+                        <div className="flex flex-row items-center flex-1 text-[var(--color-text)]">
                           {row.trackNumber}
                         </div>
                       )}
@@ -395,43 +377,34 @@ const Album = () => {
                       }}
                     >
                       {(row: Row) => (
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "row",
-                            alignItems: "center",
-                            flex: 1,
-                            width: "100%",
-                          }}
-                        >
+                        <div className="flex flex-row items-center flex-1 w-full">
                           <div>
                             <div>
                               {row.uri && (
-                                <Link to={`/${row.uri.split("at://")[1]}`}>
+                                <Link
+                                  to={`/${row.uri.split("at://")[1]}`}
+                                  className="!text-[var(--color-text)]"
+                                >
                                   {row.title}
                                 </Link>
                               )}
-                              {!row.uri && <div>{row.title}</div>}
+                              {!row.uri && (
+                                <div className="!text-[var(--color-text)]">
+                                  {row.title}
+                                </div>
+                              )}
                             </div>
                             <div>
                               {row.artistUri && (
                                 <Link
                                   to={`/${row.artistUri.split("at://")[1]}`}
-                                  style={{
-                                    fontFamily: "RockfordSansLight",
-                                    color: "rgba(36, 49, 61, 0.65)",
-                                  }}
+                                  className="!text-[var(--color-text-muted)]"
                                 >
                                   {row.albumArtist}
                                 </Link>
                               )}
                               {!row.artistUri && (
-                                <div
-                                  style={{
-                                    fontFamily: "RockfordSansLight",
-                                    color: "rgba(36, 49, 61, 0.65)",
-                                  }}
-                                >
+                                <div className="!text-[var(--color-text-muted)]">
                                   {row.albumArtist}
                                 </div>
                               )}
@@ -442,7 +415,7 @@ const Album = () => {
                     </TableBuilderColumn>
                     <TableBuilderColumn header="Duration">
                       {(row: Row) => (
-                        <div style={{ width: 80 }}>
+                        <div className="w-[80px] text-[var(--color-text)]">
                           {formatTime(row.duration)}
                         </div>
                       )}
@@ -454,10 +427,10 @@ const Album = () => {
           )}
 
           <div style={{ marginTop: 20 }}>
-            <LabelMedium margin={0} color="rgba(36, 49, 61, 0.65)">
+            <LabelMedium margin={0} className="!text-[var(--color-text-muted)]">
               {album?.releaseDate}
             </LabelMedium>
-            <LabelXSmall margin={0} color={"rgba(36, 49, 61, 0.65)"}>
+            <LabelXSmall margin={0} className="!text-[var(--color-text-muted)]">
               {album?.label}
             </LabelXSmall>
           </div>

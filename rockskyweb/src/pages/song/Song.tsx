@@ -334,18 +334,12 @@ const Song = () => {
                     <a
                       href={`https://pdsls.dev/at/${uri}`}
                       target="_blank"
-                      style={{
-                        color: "#000",
-                        textDecoration: "none",
-                        padding: 16,
-                        backgroundColor: "rgba(0, 0, 0, 0.05)",
-                        fontWeight: 600,
-                        borderRadius: 10,
-                        paddingLeft: 25,
-                        paddingRight: 25,
-                      }}
+                      className="text-[var(--color-text)] no-underline bg-[var(--color-default-button)] rounded-[10px] p-[16px] pl-[25px] pr-[25px]"
                     >
-                      <ExternalLink size={24} className="mr-[10px]" />
+                      <ExternalLink
+                        size={24}
+                        className="mr-[10px] text-[var(--color-text)]"
+                      />
                       View on PDSls
                     </a>
                   </div>

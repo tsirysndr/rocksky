@@ -63,6 +63,7 @@ body {
   --color-blue: oklch(0.789 0.154 211.53);
   --color-pink: oklch(0.6372 0.229 346.83);
   --color-bar: rgba(255, 40, 118, 0.1);
+  --color-play-button: #f4f4f4;
 }
 
 .dark {
@@ -80,13 +81,19 @@ body {
   --color-blue: oklch(0.789 0.154 211.53);
   --color-pink: oklch(0.6372 0.229 346.83);
   --color-bar: rgb(255, 129, 175);
+  --color-play-button: var(--color-primary);
 }
 
 ::placeholder {
   color: var(--color-text-muted) !important;
 }
 
+td > div {
+  color: var(--color-text-muted) !important;
+}
+
+
 
 * {
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.1s ease, color 0.1s ease;
 }

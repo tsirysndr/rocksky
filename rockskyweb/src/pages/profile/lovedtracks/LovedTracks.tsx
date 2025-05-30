@@ -125,6 +125,11 @@ function LovedTracks() {
               },
             },
           },
+          Table: {
+            style: {
+              backgroundColor: "var(--color-background)",
+            },
+          },
         }}
       >
         <TableBuilderColumn header="Name">

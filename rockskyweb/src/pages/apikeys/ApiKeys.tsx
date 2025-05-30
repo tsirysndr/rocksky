@@ -97,7 +97,11 @@ function ApiKeys() {
     <Main withRightPane={false}>
       <div className="mt-[70px] mb-[150px]">
         <Header>
-          <HeadingMedium marginTop={"0px"} marginBottom={"20px"}>
+          <HeadingMedium
+            marginTop={"0px"}
+            marginBottom={"20px"}
+            className="!text-[var(--color-text)]"
+          >
             API Applications
           </HeadingMedium>
           <Button
@@ -115,13 +119,13 @@ function ApiKeys() {
             overrides={{
               BaseButton: {
                 style: {
-                  backgroundColor: "rgb(255, 40, 118)",
+                  backgroundColor: "var(--color-primary)",
                   ":hover": {
-                    backgroundColor: "rgb(255, 40, 118)",
+                    backgroundColor: "var(--color-primary)",
                     opacity: 0.8,
                   },
                   ":focus": {
-                    backgroundColor: "rgb(255, 40, 118)",
+                    backgroundColor: "var(--color-primary)",
                     opacity: 0.8,
                   },
                   height: "50px",
@@ -132,7 +136,41 @@ function ApiKeys() {
             New API Key
           </Button>
         </Header>
-        <TableBuilder data={apiKeys.data} emptyMessage="No API keys found">
+        <TableBuilder
+          data={apiKeys.data}
+          emptyMessage="No API keys found"
+          overrides={{
+            TableBody: {
+              style: {
+                backgroundColor: "var(--color-background)",
+              },
+            },
+            TableHeadRow: {
+              style: {
+                backgroundColor: "var(--color-background)",
+              },
+            },
+            Table: {
+              style: {
+                backgroundColor: "var(--color-background)",
+              },
+            },
+            TableHeadCell: {
+              style: {
+                backgroundColor: "var(--color-background)",
+                color: "var(--color-text)",
+              },
+            },
+            TableBodyRow: {
+              style: {
+                backgroundColor: "var(--color-background)",
+                ":hover": {
+                  backgroundColor: "var(--color-menu-hover)",
+                },
+              },
+            },
+          }}
+        >
           <TableBuilderColumn header="Name">
             {(row: ApiKey) => (
               <div className="flex flex-row items-center">{row.name}</div>
@@ -156,8 +194,8 @@ function ApiKeys() {
                   <Copy
                     onClick={() => copy(row.apiKey)}
                     size={18}
-                    color="#000000a0"
-                    style={{ marginLeft: 5, cursor: "pointer" }}
+                    color="var(--color-text)"
+                    className="ml-[5px] cursor-pointer"
                   />
                 </StatefulTooltip>
                 <div style={{ marginTop: "5px" }}>Shared Secret:</div>
@@ -166,8 +204,8 @@ function ApiKeys() {
                   <Copy
                     onClick={() => copy(row.sharedSecret)}
                     size={18}
-                    color="#000000a0"
-                    style={{ marginLeft: 5, cursor: "pointer" }}
+                    color="var(--color-text)"
+                    className="ml-[5px] cursor-pointer"
                   />
                 </StatefulTooltip>
               </div>
@@ -189,24 +227,52 @@ function ApiKeys() {
             {(row: ApiKey) => (
               <div className="w-[150px]">
                 {(enabled[row.id] || row.enabled) && (
-                  <Button kind="secondary" onClick={() => onDisable(row.id)}>
+                  <Button
+                    kind="secondary"
+                    onClick={() => onDisable(row.id)}
+                    overrides={{
+                      BaseButton: {
+                        style: {
+                          backgroundColor: "var(--color-default-button)",
+                          color: "var(--color-text)",
+                          ":hover": {
+                            backgroundColor:
+                              "var(--color-default-button) !important",
+                            opacity: 0.8,
+                          },
+                        },
+                      },
+                    }}
+                  >
                     Disable
                   </Button>
                 )}
                 {!enabled[row.id] && !row.enabled && (
-                  <Button kind="secondary" onClick={() => onEnable(row.id)}>
+                  <Button
+                    kind="secondary"
+                    onClick={() => onEnable(row.id)}
+                    overrides={{
+                      BaseButton: {
+                        style: {
+                          backgroundColor: "var(--color-default-button)",
+                          color: "var(--color-text)",
+                          ":hover": {
+                            backgroundColor:
+                              "var(--color-default-button) !important",
+                            opacity: 0.8,
+                          },
+                        },
+                      },
+                    }}
+                  >
                     Enable
                   </Button>
                 )}
                 <Trash
                   onClick={() => onDelete(row.id)}
                   size={20}
-                  color="#000000a0"
-                  style={{
-                    marginLeft: 10,
-                    marginTop: -3,
-                    cursor: "pointer",
-                  }}
+                  color="var(--color-text)"
+                  className="ml-[10px] mt-[-3px] cursor-pointer"
                 />
               </div>
             )}

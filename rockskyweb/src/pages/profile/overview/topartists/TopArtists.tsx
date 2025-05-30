@@ -12,6 +12,7 @@ import { userAtom } from "../../../../atoms/user";
 import Artist from "../../../../components/Icons/Artist";
 import { useArtistsQuery } from "../../../../hooks/useLibrary";
 import { useProfileStatsByDidQuery } from "../../../../hooks/useProfile";
+import styles from "./styles";
 
 const Group = styled.div<{ mb?: number }>`
   display: flex;
@@ -93,8 +94,10 @@ function TopArtists(props: TopArtistsProps) {
       {props.showPagination && (
         <Group mb={20}>
           <div className="mr-[20px]">
-            <LabelSmall>ARTISTS SCROBBLED</LabelSmall>
-            <HeadingXSmall margin={0}>
+            <LabelSmall className="!text-[var(--color-text-muted)]">
+              ARTISTS SCROBBLED
+            </LabelSmall>
+            <HeadingXSmall margin={0} className="!text-[var(--color-text)]">
               {did ? numeral(profileStats.data?.artists).format("0,0") : ""}
             </HeadingXSmall>
           </div>
@@ -131,6 +134,16 @@ function TopArtists(props: TopArtistsProps) {
               },
             },
           },
+          TableEmptyMessage: {
+            style: {
+              backgroundColor: "var(--color-background)",
+            },
+          },
+          Table: {
+            style: {
+              backgroundColor: "var(--color-background)",
+            },
+          },
         }}
       >
         <TableBuilderColumn header="Name">
@@ -153,7 +166,7 @@ function TopArtists(props: TopArtistsProps) {
                   />
                 )}
                 {!row.picture && (
-                  <div className="w-[60px] h-[60px] rounded-full bg-[rgba(243, 243, 243, 0.725)] flex justify-center items-center">
+                  <div className="w-[60px] h-[60px] rounded-full bg-[rgba(243, 243, 243, 0.725)] flex justify-center items-center mr-[20px]">
                     <div className="h-[30px] w-[30px]">
                       <Artist color="rgba(66, 87, 108, 0.65)" />
                     </div>
@@ -174,7 +187,7 @@ function TopArtists(props: TopArtistsProps) {
         <TableBuilderColumn header="Scrobbles">
           {(row: Row, index?: number) => (
             <div className="relative w-[250px] mt-[-20px]">
-              <div className="absolute w-full top-[10px] left-[10px] z-[1]">
+              <div className="absolute w-full top-[10px] left-[10px] z-[1] !text-[#000]">
                 {numeral(row.scrobbles).format("0,0")}{" "}
                 {index == 0 && " scrobbles"}
               </div>
@@ -197,14 +210,7 @@ function TopArtists(props: TopArtistsProps) {
           onPageChange={({ nextPage }) => {
             setCurrentPage(Math.min(Math.max(nextPage, 1), pages));
           }}
-          overrides={{
-            Root: {
-              style: {
-                justifyContent: "center",
-                marginTop: "30px",
-              },
-            },
-          }}
+          overrides={styles.pagination}
         />
       )}
     </>

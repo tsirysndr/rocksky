@@ -9,7 +9,7 @@ export const PlayButton = styled.button`
   height: 45px;
   width: 45px;
   border-radius: 24px;
-  background-color: #f4f4f4;
+  background-color: var(--color-play-button);
   cursor: pointer;
   margin-left: 5px;
   margin-right: 5px;
@@ -23,7 +23,7 @@ export const PreviousButton = styled.button`
   height: 42px;
   width: 42px;
   border-radius: 24px;
-  background-color: #fff;
+  background-color: var(--color-background);
   cursor: pointer;
 `;
 
@@ -36,7 +36,7 @@ export const NextButton = styled.button`
   width: 42px;
   border-radius: 24px;
   cursor: pointer;
-  background-color: #fff;
+  background-color: var(--color-background);
 `;
 
 export const Controls = styled.div`
@@ -54,11 +54,12 @@ export const Button = styled.button<{ disabled?: boolean }>`
   width: 60px;
   cursor: pointer;
   border: none;
-  background-color: #fff;
+  background-color: transparent;
   ${(props) =>
     props.disabled &&
     css`
       opacity: 0.5;
+      background-color: transparent;
       cursor: not-allowed;
     `}
 `;

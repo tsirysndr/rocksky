@@ -133,7 +133,7 @@ function StickyPlayer(props: StickyPlayerProps) {
   return (
     <Container>
       <MiniPlayerWrapper>
-        <MiniPlayer>
+        <MiniPlayer className="!bg-[var(--color-background)]">
           {nowPlaying?.albumUri && (
             <Link to={`/${nowPlaying.albumUri.split("at://")[1]}`}>
               <Cover src={nowPlaying?.albumArt} key={nowPlaying.albumUri} />
@@ -142,22 +142,15 @@ function StickyPlayer(props: StickyPlayerProps) {
           {!nowPlaying?.albumUri && (
             <Cover src={nowPlaying?.albumArt} key={nowPlaying.albumUri} />
           )}
-          <div style={{ maxWidth: 310, overflow: "hidden" }}>
-            <div
-              style={{
-                maxWidth: 310,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
+          <div className="max-w-[310px] overflow-hidden">
+            <div className="max-w-[310px] text-ellipsis overflow-hidden">
               {!!nowPlaying?.songUri && (
                 <Link
                   to={`/${nowPlaying?.songUri?.split("at://")[1]}`}
                   style={{
                     fontWeight: 600,
-                    textOverflow: "ellipsis",
-                    textWrap: "nowrap",
                   }}
+                  className="text-ellipsis text-nowrap"
                 >
                   {nowPlaying?.title}
                 </Link>
@@ -166,31 +159,22 @@ function StickyPlayer(props: StickyPlayerProps) {
                 <div
                   style={{
                     fontWeight: 600,
-                    textOverflow: "ellipsis",
-                    textWrap: "nowrap",
                   }}
+                  className="text-ellipsis text-nowrap"
                 >
                   {nowPlaying?.title}
                 </div>
               )}
             </div>
-            <div
-              style={{
-                maxWidth: 310,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
+            <div className="max-w-[310px] overflow-hidden text-ellipsis">
               {!!nowPlaying?.artistUri && (
                 <Link
                   to={`/${nowPlaying?.artistUri?.split("at://")[1]}`}
                   style={{
                     fontFamily: "RockfordSansLight",
-                    color: "rgba(36, 49, 61, 0.65)",
                     fontWeight: 600,
-                    textOverflow: "ellipsis",
-                    textWrap: "nowrap",
                   }}
+                  className="!text-[var(--color-text-muted)] text-ellipsis text-nowrap"
                 >
                   {nowPlaying?.artist}
                 </Link>
@@ -199,18 +183,16 @@ function StickyPlayer(props: StickyPlayerProps) {
                 <div
                   style={{
                     fontFamily: "RockfordSansLight",
-                    color: "rgba(36, 49, 61, 0.65)",
                     fontWeight: 600,
-                    textOverflow: "ellipsis",
-                    textWrap: "nowrap",
                   }}
+                  className="text-[var(--color-text-muted)] text-ellipsis text-nowrap"
                 >
                   {nowPlaying?.artist}
                 </div>
               )}
             </div>
           </div>
-          <div style={{ marginTop: -14, marginLeft: 16 }}>
+          <div className="mt-[-14px] ml-[16px]">
             <LikeButton
               onClick={() => {
                 if (nowPlaying?.liked) {
@@ -220,31 +202,33 @@ function StickyPlayer(props: StickyPlayerProps) {
                 onLike(nowPlaying!.songUri);
               }}
             >
-              {nowPlaying?.liked && <Heart color="#ff2876" />}
-              {!nowPlaying?.liked && <HeartOutline />}
+              {nowPlaying?.liked && <Heart color="var(--color-primary)" />}
+              {!nowPlaying?.liked && <HeartOutline color="var(--color-text)" />}
             </LikeButton>
           </div>
-          <div style={{ marginLeft: 16 }}>
-            <div style={{ height: 45 }}></div>
-            <LabelSmall>{formatTime(nowPlaying?.progress || 0)}</LabelSmall>
+          <div className="ml-[16px]">
+            <div className="h-[45px]"></div>
+            <LabelSmall className="!text-[var(--color-text)]">
+              {formatTime(nowPlaying?.progress || 0)}
+            </LabelSmall>
           </div>
           <MainWrapper>
             <Controls>
               <PreviousButton onClick={onPrevious}>
-                <Previous />
+                <Previous color="var(--color-text)" />
               </PreviousButton>
               {!isPlaying && (
                 <PlayButton onClick={onPlay}>
-                  <Play small />
+                  <Play color="var(--color-text)" small />
                 </PlayButton>
               )}
               {isPlaying && (
                 <PlayButton onClick={onPause}>
-                  <Pause small />
+                  <Pause color="var(--color-text)" small />
                 </PlayButton>
               )}
               <NextButton onClick={onNext}>
-                <Next />
+                <Next color="var(--color-text)" />
               </NextButton>
             </Controls>
             <div>
@@ -260,12 +244,18 @@ function StickyPlayer(props: StickyPlayerProps) {
               </ProgressbarContainer>
             </div>
           </MainWrapper>
-          <div style={{ marginRight: 16 }}>
-            <div style={{ height: 45 }}></div>
-            <LabelSmall>{formatTime(nowPlaying?.duration || 0)}</LabelSmall>
+          <div className="mr-[16px]">
+            <div className="h-[45px]"></div>
+            <LabelSmall className="!text-[var(--color-text)]">
+              {formatTime(nowPlaying?.duration || 0)}
+            </LabelSmall>
           </div>
           <RightActions>
-            <Button onClick={onSpeaker} disabled>
+            <Button
+              onClick={onSpeaker}
+              disabled
+              className="!bg-[var(--color-background)] !text-[var(--color-text)]"
+            >
               <Speaker />
             </Button>
             <Button onClick={onEqualizer} disabled>

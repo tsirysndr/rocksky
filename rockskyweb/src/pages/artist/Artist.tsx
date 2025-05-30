@@ -200,16 +200,17 @@ const Artist = () => {
                   </HeadingXSmall>
                 </div>
                 <div className="flex items-center justify-end flex-1 mr-[10px]">
-                  <div>
-                    <a
-                      href={`https://pdsls.dev/at/${uri}`}
-                      target="_blank"
-                      className="text-[var(--color-text)] no-underline p-[16px] rounded-[10px] pl-[25px] pr-[25px]"
-                    >
-                      <ExternalLink size={24} className="mr-[10px]" />
-                      View on PDSls
-                    </a>
-                  </div>
+                  <a
+                    href={`https://pdsls.dev/at/${uri}`}
+                    target="_blank"
+                    className="text-[var(--color-text)] no-underline bg-[var(--color-default-button)] rounded-[10px] p-[16px] pl-[25px] pr-[25px]"
+                  >
+                    <ExternalLink
+                      size={24}
+                      className="mr-[10px] text-[var(--color-text)]"
+                    />
+                    View on PDSls
+                  </a>
                 </div>
               </div>
             </div>

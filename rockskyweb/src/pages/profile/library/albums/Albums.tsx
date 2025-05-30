@@ -11,6 +11,7 @@ import { topAlbumsAtom } from "../../../../atoms/topAlbums";
 import { userAtom } from "../../../../atoms/user";
 import { useAlbumsQuery } from "../../../../hooks/useLibrary";
 import { useProfileStatsByDidQuery } from "../../../../hooks/useProfile";
+import styles from "./styles";
 
 type Row = {
   id: string;
@@ -94,8 +95,10 @@ function Albums(props: AlbumsProps) {
     <>
       <Group mb={20}>
         <div style={{ marginRight: 20 }}>
-          <LabelSmall>ALBUMS SCROBBLED</LabelSmall>
-          <HeadingXSmall margin={0}>
+          <LabelSmall className="!text-[var(--color-text-muted)]">
+            ALBUMS SCROBBLED
+          </LabelSmall>
+          <HeadingXSmall margin={0} className="!text-[var(--color-text)]">
             {did ? numeral(profileStats.data?.albums).format("0,0") : ""}
           </HeadingXSmall>
         </div>
@@ -124,19 +127,21 @@ function Albums(props: AlbumsProps) {
               verticalAlign: "center",
             },
           },
+          TableBodyRow: {
+            style: {
+              backgroundColor: "var(--color-background)",
+              ":hover": {
+                backgroundColor: "var(--color-menu-hover)",
+              },
+            },
+          },
         }}
       >
         <TableBuilderColumn header="Name">
           {(row: Row) => (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "center",
-              }}
-            >
+            <div className="flex flex-row items-center">
               <div>
-                <div style={{ marginRight: 20 }}>
+                <div className="mr-[20px] text-[var(--color-text)]">
                   {(currentPage - 1) * size + row.index + 1}
                 </div>
               </div>
@@ -146,24 +151,11 @@ function Albums(props: AlbumsProps) {
                     <img
                       src={row.albumArt}
                       alt={row.title}
-                      style={{
-                        width: 60,
-                        height: 60,
-                        marginRight: 20,
-                        borderRadius: 5,
-                      }}
+                      className="w-[60px] h-[60px] mr-[20px] rounded-[5px]"
                     />
                   )}
                   {!row.albumArt && (
-                    <div
-                      style={{
-                        width: 60,
-                        height: 60,
-                        marginRight: 20,
-                        borderRadius: 5,
-                        backgroundColor: "rgba(243, 243, 243, 0.725)",
-                      }}
-                    />
+                    <div className="w-[60px] h-[60px] rounded-[5px] mr-[20px]" />
                   )}
                 </Link>
               )}
@@ -173,47 +165,31 @@ function Albums(props: AlbumsProps) {
                     <img
                       src={row.albumArt}
                       alt={row.title}
-                      style={{
-                        width: 60,
-                        height: 60,
-                        marginRight: 20,
-                        borderRadius: 5,
-                      }}
+                      className="w-[60px] h-[60px] mr-[20px] rounded-[5px]"
                     />
                   )}
                   {!row.albumArt && (
-                    <div
-                      style={{
-                        width: 60,
-                        height: 60,
-                        marginRight: 20,
-                        borderRadius: 5,
-                        backgroundColor: "rgba(243, 243, 243, 0.725)",
-                      }}
-                    />
+                    <div className="w-[60px] h-[60px] rounded-[5px] mr-[20px] bg-[rgba(243, 243, 243, 0.725)]" />
                   )}
                 </div>
               )}
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <Link to={`/${row.uri?.split("at://")[1]}`}>{row.title}</Link>
+              <div className="flex flex-col">
+                <Link
+                  to={`/${row.uri?.split("at://")[1]}`}
+                  className="!text-[var(--color-text)]"
+                >
+                  {row.title}
+                </Link>
                 {row.artistUri && (
                   <Link
                     to={`/${row.artistUri?.split("at://")[1]}`}
-                    style={{
-                      fontFamily: "RockfordSansLight",
-                      color: "rgba(36, 49, 61, 0.65)",
-                    }}
+                    className="!text-[var(--color-text-muted)]"
                   >
                     {row.artist}
                   </Link>
                 )}
                 {!row.artistUri && (
-                  <div
-                    style={{
-                      fontFamily: "RockfordSansLight",
-                      color: "rgba(36, 49, 61, 0.65)",
-                    }}
-                  >
+                  <div className="!text-[var(--color-text-muted)]">
                     {row.artist}
                   </div>
                 )}
@@ -223,15 +199,8 @@ function Albums(props: AlbumsProps) {
         </TableBuilderColumn>
         <TableBuilderColumn header="Scrobbles">
           {(row: Row, index?: number) => (
-            <div style={{ position: "relative", width: 250, marginTop: -20 }}>
-              <div
-                style={{
-                  position: "absolute",
-                  width: "100%",
-                  top: 10,
-                  left: 10,
-                }}
-              >
+            <div className="relative w-[250px] mt-[-20px]">
+              <div className="absolute w-full top-[10px] left-[10px] text-black z-1 !text-[#000]">
                 {numeral(row.scrobbles).format("0,0")}{" "}
                 {index == 0 && " scrobbles"}
               </div>
@@ -240,7 +209,7 @@ function Albums(props: AlbumsProps) {
                   position: "absolute",
                   height: 40,
                   width: `${(row.scrobbles / maxScrobbles) * 100}%`,
-                  backgroundColor: "rgba(255, 40, 118, 0.1)",
+                  backgroundColor: "var(--color-bar)",
                 }}
               ></span>
             </div>
@@ -253,14 +222,7 @@ function Albums(props: AlbumsProps) {
         onPageChange={({ nextPage }) => {
           setCurrentPage(Math.min(Math.max(nextPage, 1), pages));
         }}
-        overrides={{
-          Root: {
-            style: {
-              justifyContent: "center",
-              marginTop: "30px",
-            },
-          },
-        }}
+        overrides={styles.pagination}
       />
     </>
   );

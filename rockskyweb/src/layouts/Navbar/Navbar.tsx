@@ -263,12 +263,28 @@ function Navbar() {
               zIndex: 1,
             },
           },
+          Dialog: {
+            style: {
+              backgroundColor: "var(--color-background)",
+            },
+          },
+          Close: {
+            style: {
+              color: "var(--color-text)",
+              ":hover": {
+                color: "var(--color-text)",
+                opacity: 0.8,
+              },
+            },
+          },
         }}
         size={650}
       >
-        <ModalHeader>Setup Web Scrobbler</ModalHeader>
+        <ModalHeader className="!text-[var(--color-text)]">
+          Setup Web Scrobbler
+        </ModalHeader>
         <ModalBody>
-          <LabelMedium>
+          <LabelMedium className="!text-[var(--color-text)]">
             To use the Web Scrobbler, you need to install the browser extension
             and connect it to Rocksky.
           </LabelMedium>
@@ -277,15 +293,13 @@ function Navbar() {
               href="https://web-scrobbler.com/"
               target="_blank"
               rel="noopener noreferrer"
-              style={{
-                color: "rgb(255, 40, 118)",
-              }}
+              className="text-[var(--color-primary)]"
             >
               Install Web Scrobbler
             </a>
           </div>
-          <div style={{ marginTop: 20 }}>
-            <LabelMedium>
+          <div className="mt-[20px]">
+            <LabelMedium className="!text-[var(--color-text)]">
               After installing the extension, add the following URL to the
               extension settings as a custom API URL:
             </LabelMedium>
@@ -294,8 +308,8 @@ function Navbar() {
               <Copy
                 onClick={() => copy(webscrobblerWebhook)}
                 size={18}
-                color="#000000a0"
-                style={{ marginLeft: 5, cursor: "pointer" }}
+                color="var(--color-text)"
+                className="ml-[5px] cursor-pointer"
               />
             </StatefulTooltip>
           </div>

@@ -78,6 +78,11 @@ function PopularSongs(props: PopularSongsProps) {
               },
             },
           },
+          Table: {
+            style: {
+              backgroundColor: "var(--color-background)",
+            },
+          },
         }}
       >
         <TableBuilderColumn header="Name">

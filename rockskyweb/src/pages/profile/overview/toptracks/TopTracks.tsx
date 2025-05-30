@@ -11,6 +11,7 @@ import { topTracksAtom } from "../../../../atoms/topTracks";
 import { userAtom } from "../../../../atoms/user";
 import { useTracksQuery } from "../../../../hooks/useLibrary";
 import { useProfileStatsByDidQuery } from "../../../../hooks/useProfile";
+import styles from "./styles";
 
 type Row = {
   id: string;
@@ -122,8 +123,10 @@ function TopTracks(props: TopTracksProps) {
       {props.showPagination && (
         <Group mb={20}>
           <div className="mr-[20px]">
-            <LabelSmall>TRACKS SCROBBLED</LabelSmall>
-            <HeadingXSmall margin={0}>
+            <LabelSmall className="!text-[var(--color-text-muted)]">
+              TRACKS SCROBBLED
+            </LabelSmall>
+            <HeadingXSmall margin={0} className="!text-[var(--color-text)]">
               {did ? numeral(profileStats.data?.tracks).format("0,0") : ""}
             </HeadingXSmall>
           </div>
@@ -162,6 +165,16 @@ function TopTracks(props: TopTracksProps) {
               ":hover": {
                 backgroundColor: "var(--color-menu-hover)",
               },
+            },
+          },
+          TableEmptyMessage: {
+            style: {
+              backgroundColor: "var(--color-background)",
+            },
+          },
+          Table: {
+            style: {
+              backgroundColor: "var(--color-background)",
             },
           },
         }}
@@ -253,14 +266,7 @@ function TopTracks(props: TopTracksProps) {
           onPageChange={({ nextPage }) => {
             setCurrentPage(Math.min(Math.max(nextPage, 1), pages));
           }}
-          overrides={{
-            Root: {
-              style: {
-                justifyContent: "center",
-                marginTop: "30px",
-              },
-            },
-          }}
+          overrides={styles.pagination}
         />
       )}
     </div>
