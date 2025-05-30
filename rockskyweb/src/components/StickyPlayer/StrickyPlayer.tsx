@@ -219,7 +219,9 @@ function StickyPlayer(props: StickyPlayerProps) {
               </PreviousButton>
               {!isPlaying && (
                 <PlayButton onClick={onPlay}>
-                  <Play color="var(--color-text)" small />
+                  <div className="mt-[5px] mr-[3px]">
+                    <Play color="var(--color-text)" small />
+                  </div>
                 </PlayButton>
               )}
               {isPlaying && (

@@ -35,18 +35,26 @@ function SignInModal(props: SignInModalProps) {
               zIndex: 1,
             },
           },
+          Dialog: {
+            style: {
+              backgroundColor: "var(--color-background)",
+            },
+          },
+          Close: {
+            style: {
+              color: "var(--color-text)",
+              ":hover": {
+                color: "var(--color-text)",
+                opacity: 0.8,
+              },
+            },
+          },
         }}
       >
         <ModalHeader></ModalHeader>
         <ModalBody style={{ padding: 10 }}>
           <h1 style={{ color: "#ff2876", textAlign: "center" }}>Rocksky</h1>
-          <p
-            style={{
-              fontSize: 18,
-              marginTop: 40,
-              marginBottom: 20,
-            }}
-          >
+          <p className="text-[var(--color-text)] text-[18px] mt-[40px] mb-[20px]">
             Sign in or create your account to join the conversation!
           </p>
           <div style={{ marginBottom: 20 }}>
@@ -55,10 +63,38 @@ function SignInModal(props: SignInModalProps) {
             </div>
             <Input
               name="handle"
-              startEnhancer={<div style={{ color: "#42576ca6" }}>@</div>}
+              startEnhancer={
+                <div className="text-[var(--color-text-muted)] bg-[var(--color-input-background)]">
+                  @
+                </div>
+              }
               placeholder="<username>.bsky.social"
               value={handle}
               onChange={(e) => setHandle(e.target.value)}
+              overrides={{
+                Root: {
+                  style: {
+                    backgroundColor: "var(--color-input-background)",
+                    borderColor: "var(--color-input-background)",
+                  },
+                },
+                StartEnhancer: {
+                  style: {
+                    backgroundColor: "var(--color-input-background)",
+                  },
+                },
+                InputContainer: {
+                  style: {
+                    backgroundColor: "var(--color-input-background)",
+                  },
+                },
+                Input: {
+                  style: {
+                    color: "var(--color-text)",
+                    caretColor: "var(--color-text)",
+                  },
+                },
+              }}
             />
           </div>
           <Button
@@ -82,27 +118,14 @@ function SignInModal(props: SignInModalProps) {
           </Button>
           <LabelMedium
             marginTop={"20px"}
-            style={{
-              textAlign: "center",
-              color: "#42576ca6",
-            }}
+            className="!text-[var(--color-text-muted)] text-center"
           >
             Don't have an account?
           </LabelMedium>
-          <div
-            style={{
-              color: "#42576ca6",
-              textAlign: "center",
-            }}
-          >
+          <div className="text-[var(--color-text-muted)] text-center">
             <a
               href="https://bsky.app"
-              style={{
-                color: "#ff2876",
-                textDecoration: "none",
-                cursor: "pointer",
-                textAlign: "center",
-              }}
+              className="text-[var(--color-primary)] no-underline cursor-pointer text-center"
               target="_blank"
             >
               Sign up for Bluesky

@@ -33,7 +33,7 @@ const ConnectSpotify = styled.span`
 
 function SpotifyLogin() {
   const profile = useAtomValue(profileAtom);
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const { enqueue } = useSnackbar();
   const { joinBeta } = useBeta();
   const [errorMessage, setErrorMessage] = useState("");
@@ -128,24 +128,39 @@ function SpotifyLogin() {
               zIndex: 1,
             },
           },
+          Dialog: {
+            style: {
+              backgroundColor: "var(--color-background)",
+            },
+          },
+          Close: {
+            style: {
+              color: "var(--color-text)",
+              ":hover": {
+                color: "var(--color-text)",
+                opacity: 0.8,
+              },
+            },
+          },
         }}
       >
-        <ModalHeader>Join the beta program with Spotify!</ModalHeader>
+        <ModalHeader className="!text-[var(--color-text)]">
+          Join the beta program with Spotify!
+        </ModalHeader>
         <ModalBody>
           <div className="flex items-center justify-center mb-[50px] mt-[50px] flex-col">
             <Spotify size={90} color="#1dd05d" />
-            <ul
-              style={{ marginTop: 20, fontSize: 16 }}
-              className="mt-[20px] text-[16px]"
-            >
-              <li className="mb-[10px]">
+            <ul className="mt-[20px] text-[16px]">
+              <li className="mb-[10px] text-[var(--color-text)]">
                 Get early access to our exclusive beta program by linking your
                 Spotify account.
               </li>
-              <li className="mb-[10px]">
+              <li className="mb-[10px] text-[var(--color-text)]">
                 Enter your Spotify email to request access.
               </li>{" "}
-              <li>We'll notify you once you're approved!</li>
+              <li className="text-[var(--color-text)]">
+                We'll notify you once you're approved!
+              </li>
             </ul>
           </div>
 
@@ -159,6 +174,35 @@ function SpotifyLogin() {
                 clearable
                 clearOnEscape
                 error={!!errors.email}
+                overrides={{
+                  Root: {
+                    style: {
+                      backgroundColor: "var(--color-input-background)",
+                      borderColor: "var(--color-input-background)",
+                    },
+                  },
+                  StartEnhancer: {
+                    style: {
+                      backgroundColor: "var(--color-input-background)",
+                    },
+                  },
+                  InputContainer: {
+                    style: {
+                      backgroundColor: "var(--color-input-background)",
+                    },
+                  },
+                  Input: {
+                    style: {
+                      color: "var(--color-text)",
+                      caretColor: "var(--color-text)",
+                    },
+                  },
+                  ClearIcon: {
+                    style: {
+                      color: "var(--color-clear-input) !important",
+                    },
+                  },
+                }}
               />
             )}
           />
@@ -174,7 +218,23 @@ function SpotifyLogin() {
           </LabelSmall>
         </ModalBody>
         <ModalFooter>
-          <ModalButton onClick={onJoinBeta}>Join the beta</ModalButton>
+          <ModalButton
+            onClick={onJoinBeta}
+            overrides={{
+              BaseButton: {
+                style: {
+                  ":hover": {
+                    backgroundColor: "var(--color-primary)",
+                  },
+                  ":focus": {
+                    backgroundColor: "var(--color-primary)",
+                  },
+                },
+              },
+            }}
+          >
+            Join the beta
+          </ModalButton>
         </ModalFooter>
       </Modal>
     </>

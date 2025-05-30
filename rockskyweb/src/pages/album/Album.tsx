@@ -110,7 +110,13 @@ const Album = () => {
     <Main>
       <div className="pb-[100px] pt-[50px]">
         {!album && (
-          <ContentLoader viewBox="100 0 850 700" height={520} width={700}>
+          <ContentLoader
+            backgroundColor="var(--color-skeleton-background)"
+            foregroundColor="var(--color-skeleton-foreground)"
+            viewBox="100 0 850 700"
+            height={520}
+            width={700}
+          >
             <rect x="400" y="21" rx="10" ry="10" width="694" height="20" />
             <rect x="400" y="61" rx="10" ry="10" width="80" height="20" />
             <rect x="500" y="-46" rx="3" ry="3" width="350" height="6" />

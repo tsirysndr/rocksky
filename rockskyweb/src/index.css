@@ -66,6 +66,8 @@ body {
   --color-play-button: #f4f4f4;
   --color-toggle-track: #c7b2e9;
   --color-button-text: #fff;
+  --color-skeleton-background: #f3f3f3;
+  --color-skeleton-foreground: #ecebeb;
 }
 
 .dark {
@@ -86,6 +88,8 @@ body {
   --color-play-button: var(--color-primary);
   --color-toggle-track: #341b5c;
   --color-button-text: #000;
+  --color-skeleton-background: #221538;
+  --color-skeleton-foreground: #2b1a4c;
 }
 
 ::placeholder {

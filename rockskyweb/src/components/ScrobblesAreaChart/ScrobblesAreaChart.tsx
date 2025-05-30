@@ -122,7 +122,7 @@ function ScrobblesAreaChart() {
             <XAxis
               dataKey="date"
               axisLine={{ stroke: "#ccc", strokeWidth: 1 }}
-              tick={{ fontSize: 10 }}
+              tick={{ fontSize: 10, color: "var(--color-text-muted)" }}
               tickFormatter={formatXAxis}
             />
             <Tooltip

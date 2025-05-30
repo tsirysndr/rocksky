@@ -179,7 +179,7 @@ function Main(props: MainProps) {
       {withRightPane && (
         <RightPane className="relative w-[300px]">
           <div className="fixed top-[100px] w-[300px] bg-white p-[20px]">
-            <div style={{ marginBottom: 30 }}>
+            <div className="mb-[30px]">
               <Search />
             </div>
             {jwt && profile && !profile.spotifyConnected && <SpotifyLogin />}

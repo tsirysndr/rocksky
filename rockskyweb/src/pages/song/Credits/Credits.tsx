@@ -12,7 +12,12 @@ function Credits({ composers }: CreditsProps) {
     <div>
       {!!composers && composers.length > 0 && (
         <>
-          <HeadingXSmall marginBottom={"20px"}>Credits</HeadingXSmall>
+          <HeadingXSmall
+            marginBottom={"20px"}
+            className="!text-[var(--color-text)]"
+          >
+            Credits
+          </HeadingXSmall>
           <FlexGrid
             flexGridColumnCount={[1, 2, 3]}
             flexGridColumnGap="scale800"
@@ -28,7 +33,7 @@ function Credits({ composers }: CreditsProps) {
                 <StatefulTooltip content={composer} returnFocus autoFocus>
                   <div
                     style={{
-                      backgroundColor: "rgba(0, 0, 0, 0.04)",
+                      backgroundColor: "var(--color-default-button)",
                       height: "48px",
                       borderRadius: "24px",
                       display: "flex",
@@ -37,34 +42,16 @@ function Credits({ composers }: CreditsProps) {
                       padding: "0 25px", // Add padding to prevent text from touching the edges
                     }}
                   >
-                    <Composer />
-                    <div
-                      style={{
-                        marginLeft: "10px",
-                        width: "100%", // Ensure the container takes full width
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap", // Prevent wrapping
-                      }}
-                    >
+                    <Composer color="var(--color-text)" />
+                    <div className="ml-[10px] w-full overflow-hidden text-ellipsis whitespace-nowrap">
                       <LabelMedium
                         marginTop={"0px"}
                         marginBottom={"0px"}
-                        style={{
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden", // Ensure the LabelMedium also applies ellipsis
-                        }}
+                        className="!text-[var(--color-text)] text-ellipsis whitespace-nowrap overflow-hidden"
                       >
                         {composer}
                       </LabelMedium>
-                      <div
-                        style={{
-                          fontSize: "11px",
-                        }}
-                      >
-                        Composer
-                      </div>
+                      <div className="text-[11px]">Composer</div>
                     </div>
                   </div>
                 </StatefulTooltip>

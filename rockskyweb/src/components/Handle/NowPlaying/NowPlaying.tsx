@@ -199,13 +199,13 @@ function NowPlaying({ did }: NowPlayingProps) {
                 {nowPlaying[did]?.songUri && (
                   <Link
                     to={`/${nowPlaying[did]?.songUri?.split("at://")[1]}`}
-                    className="font-semibold truncate whitespace-nowrap text-[#000]"
+                    className="font-semibold truncate whitespace-nowrap text-[var(--color-text)]"
                   >
                     {nowPlaying[did]?.title}
                   </Link>
                 )}
                 {!nowPlaying[did]?.songUri && (
-                  <div className="font-semibold truncate whitespace-nowrap text-[#000]">
+                  <div className="font-semibold truncate whitespace-nowrap text-[var(--color-text)]">
                     {nowPlaying[did]?.title}
                   </div>
                 )}
@@ -214,8 +214,8 @@ function NowPlaying({ did }: NowPlayingProps) {
                 {!!nowPlaying[did]?.artistUri?.split("at://")[1] && (
                   <Link
                     to={`/${nowPlaying[did]?.artistUri?.split("at://")[1]}`}
-                    className="text-[rgba(36, 49, 61, 0.65)] font-semibold truncate whitespace-nowrap text-sm"
-                    style={{ color: "rgba(36, 49, 61, 0.65)" }}
+                    className="text-[var(--color-text-muted)] font-semibold truncate whitespace-nowrap text-sm"
+                    style={{ color: "var(--color-text-muted)" }}
                   >
                     {nowPlaying[did]?.artist}
                   </Link>
@@ -235,7 +235,7 @@ function NowPlaying({ did }: NowPlayingProps) {
           </div>
           <div className="mt-[0px] flex flex-row items-center">
             <div>
-              <LabelXSmall color={"rgba(36, 49, 61, 0.65)"}>
+              <LabelXSmall className="!text-[var(--color-text-muted)]">
                 {formatTime(nowPlaying[did]?.progress || 0)}
               </LabelXSmall>
             </div>
@@ -251,7 +251,7 @@ function NowPlaying({ did }: NowPlayingProps) {
               />
             </div>
             <div>
-              <LabelXSmall color={"rgba(36, 49, 61, 0.65)"}>
+              <LabelXSmall className="!text-[var(--color-text-muted)]">
                 {formatTime(nowPlaying[did]?.duration || 0)}
               </LabelXSmall>
             </div>

@@ -204,7 +204,13 @@ const Song = () => {
     <Main>
       <div className="pb-[100px] pt-[100px]">
         {loading && (
-          <ContentLoader viewBox="0 0 520 160" height={160} width={400}>
+          <ContentLoader
+            backgroundColor="var(--color-skeleton-background)"
+            foregroundColor="var(--color-skeleton-foreground)"
+            viewBox="0 0 520 160"
+            height={160}
+            width={400}
+          >
             <rect x="220" y="21" rx="10" ry="10" width="294" height="20" />
             <rect x="221" y="61" rx="10" ry="10" width="185" height="20" />
             <rect x="304" y="-46" rx="3" ry="3" width="350" height="6" />
@@ -382,10 +388,7 @@ const Song = () => {
                   <ShowMore onClick={onShowMore}>
                     <LabelMedium
                       marginTop={"20px"}
-                      style={{
-                        textAlign: "center",
-                        color: "#000",
-                      }}
+                      className="!text-[var(--color-text)] text-center"
                     >
                       {lyricsMaxLines < song.lyrics.split("\n").length
                         ? "Show More..."

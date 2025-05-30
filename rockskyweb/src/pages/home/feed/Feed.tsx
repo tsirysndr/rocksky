@@ -43,8 +43,8 @@ function Feed() {
           width={800}
           height={575}
           viewBox="0 0 800 575"
-          backgroundColor="#f3f3f3"
-          foregroundColor="#ecebeb"
+          backgroundColor="var(--color-skeleton-background)"
+          foregroundColor="var(--color-skeleton-foreground)"
         >
           <rect x="12" y="9" rx="2" ry="2" width="140" height="10" />
           <rect x="14" y="30" rx="2" ry="2" width="667" height="11" />
