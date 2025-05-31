@@ -226,24 +226,8 @@ const Song = () => {
                 <Link to={`/${song.albumUri.split("at://")[1]}`}>
                   {song.cover && <SongCover cover={song?.cover} size={150} />}
                   {!song.cover && (
-                    <div
-                      style={{
-                        width: 150,
-                        height: 150,
-                        marginRight: 12,
-                        borderRadius: 8,
-                        backgroundColor: "rgba(243, 243, 243, 0.725)",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                      }}
-                    >
-                      <div
-                        style={{
-                          height: 90,
-                          width: 90,
-                        }}
-                      >
+                    <div className="w-[150px] h-[150px] mr-[12px] rounded-[8px] bg-[rgba(243, 243, 243, 0.725)] flex justify-center items-center">
+                      <div className="h-[90px] w-[90px]">
                         <Disc color="rgba(66, 87, 108, 0.65)" />
                       </div>
                     </div>
@@ -254,31 +238,15 @@ const Song = () => {
                 <>
                   {song.cover && <SongCover cover={song?.cover} size={150} />}
                   {!song.cover && (
-                    <div
-                      style={{
-                        width: 150,
-                        height: 150,
-                        marginRight: 12,
-                        borderRadius: 8,
-                        backgroundColor: "rgba(243, 243, 243, 0.725)",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                      }}
-                    >
-                      <div
-                        style={{
-                          height: 90,
-                          width: 90,
-                        }}
-                      >
+                    <div className="w-[150px] h-[150px] mr-[12px] rounded-[8px] bg-[rgba(243, 243, 243, 0.725)] flex justify-center items-center">
+                      <div className="w-[90px] h-[90px]">
                         <Disc color="rgba(66, 87, 108, 0.65)" />
                       </div>
                     </div>
                   )}
                 </>
               )}
-              <div style={{ marginLeft: 20, flex: 1 }}>
+              <div className="ml-[20px] flex-1">
                 <HeadingMedium margin={0} className="!text-[var(--color-text)]">
                   {song?.title}
                 </HeadingMedium>
@@ -297,13 +265,7 @@ const Song = () => {
                     {song?.albumArtist}
                   </LabelLarge>
                 )}
-                <div
-                  style={{
-                    marginTop: 20,
-                    display: "flex",
-                    flexDirection: "row",
-                  }}
-                >
+                <div className="mt-[20px] flex flex-row">
                   <div
                     style={{
                       marginRight: 20,

@@ -40,7 +40,7 @@ interface PopularTracksProps {
 }
 function PopularTracks(props: PopularTracksProps) {
   return (
-    <div style={{ marginTop: 50 }}>
+    <div className="mt-[50px]">
       <LabelMedium className="!text-[var(--color-text)]" marginBottom={"10px"}>
         Popular Tracks by
       </LabelMedium>
@@ -155,7 +155,7 @@ function PopularTracks(props: PopularTracksProps) {
                   )}
                 </div>
               )}
-              <div style={{ display: "flex", flexDirection: "column" }}>
+              <div className="flex flex-col">
                 <Link
                   to={`/${row.uri?.split("at://")[1]}`}
                   className="!text-[var(--color-text)]"

@@ -16,19 +16,7 @@ function Loading() {
   }, [search]);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        height: "100vh",
-        backgroundColor: "#fff",
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100%",
-      }}
-    >
+    <div className="flex justify-center items-center h-screen bg-[#fff] fixed top-0 left-0 w-full">
       <Spinner $color="rgb(255, 40, 118)" />
     </div>
   );

@@ -2,7 +2,7 @@ import styled from "@emotion/styled";
 import { Link } from "react-router";
 
 export const Directory = styled(Link)`
-  color: #000;
+  color: var(--color-text) !important;
   margin-left: 10px;
   text-decoration: none;
   width: calc(100vw - 500px);
@@ -17,7 +17,7 @@ export const Directory = styled(Link)`
 `;
 
 export const AudioFile = styled.div`
-  color: #000;
+  color: var(--color-text) !important;
   margin-left: 10px;
   text-decoration: none;
   width: calc(100vw - 500px);

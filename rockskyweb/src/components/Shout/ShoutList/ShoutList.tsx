@@ -97,7 +97,7 @@ function ShoutList() {
   };
 
   return (
-    <div style={{ marginTop: 50 }}>
+    <div className="mt-[50px]">
       {(shouts[pathname] || []).map((shout) => renderShout(shout))}
     </div>
   );

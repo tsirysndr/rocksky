@@ -48,17 +48,11 @@ function DeleteShoutModal(props: DeleteShoutModalProps) {
           },
         }}
       >
-        <ModalHeader
-          style={{
-            margin: 16,
-            display: "flex",
-            justifyContent: "space-between",
-          }}
-        >
+        <ModalHeader className="m-[16px] flex justify-between">
           Delete Shout
         </ModalHeader>
         <ModalBody>
-          <p style={{ fontSize: 16 }}>
+          <p className="text-[16px]">
             Are you sure you want to delete this shout? Any replies to this
             shout will also be deleted.
           </p>

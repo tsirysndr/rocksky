@@ -64,23 +64,14 @@ function GoogleDriveBeta(props: GoogleDriveBetaProps) {
       >
         <ModalHeader>Join the beta program with Google Drive!</ModalHeader>
         <ModalBody>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: 50,
-              marginTop: 50,
-              flexDirection: "column",
-            }}
-          >
+          <div className="flex items-center justify-center mb-[50px] mt-[50px] flex-col">
             <GoogleDrive height="90" width="90" />
-            <ul style={{ marginTop: 20, fontSize: 16 }}>
-              <li style={{ marginBottom: 10 }}>
+            <ul className="mt-[20px] text-[16px]">
+              <li className="mb-[10px]">
                 Get early access to our exclusive beta program by linking your
                 Google Drive account.
               </li>
-              <li style={{ marginBottom: 10 }}>
+              <li className="mb-[10px]">
                 Enter your Google Drive email to request access.
               </li>{" "}
               <li>We'll notify you once you're approved!</li>

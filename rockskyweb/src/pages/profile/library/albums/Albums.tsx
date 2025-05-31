@@ -94,7 +94,7 @@ function Albums(props: AlbumsProps) {
   return (
     <>
       <Group mb={20}>
-        <div style={{ marginRight: 20 }}>
+        <div className="mr-[20px]">
           <LabelSmall className="!text-[var(--color-text-muted)]">
             ALBUMS SCROBBLED
           </LabelSmall>

@@ -12,6 +12,7 @@ import { lovedTracksAtom } from "../../../atoms/lovedTracks";
 import { userAtom } from "../../../atoms/user";
 import { useLovedTracksQuery } from "../../../hooks/useLibrary";
 import { useProfileStatsByDidQuery } from "../../../hooks/useProfile";
+import styles from "./styles";
 
 type Row = {
   id: string;
@@ -213,14 +214,7 @@ function LovedTracks() {
         onPageChange={({ nextPage }) => {
           setCurrentPage(Math.min(Math.max(nextPage, 1), pages));
         }}
-        overrides={{
-          Root: {
-            style: {
-              justifyContent: "center",
-              marginTop: "30px",
-            },
-          },
-        }}
+        overrides={styles.pagination}
       />
     </>
   );

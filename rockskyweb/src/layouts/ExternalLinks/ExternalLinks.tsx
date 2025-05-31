@@ -23,7 +23,7 @@ function ExternalLinks() {
   return (
     <>
       {display && song?.spotifyLink && (
-        <div style={{ marginTop: 50 }}>
+        <div className="mt-[50px]">
           <LabelLarge
             marginBottom={"10px"}
             className="!text-[var(--color-text)]"

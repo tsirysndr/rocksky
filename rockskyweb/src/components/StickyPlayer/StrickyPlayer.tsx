@@ -207,8 +207,8 @@ function StickyPlayer(props: StickyPlayerProps) {
             </LikeButton>
           </div>
           <div className="ml-[16px]">
-            <div className="h-[45px]"></div>
-            <LabelSmall className="!text-[var(--color-text)]">
+            <div className="h-[45px] min-w-[43px]"></div>
+            <LabelSmall className="!text-[var(--color-text)] min-w-[43px]">
               {formatTime(nowPlaying?.progress || 0)}
             </LabelSmall>
           </div>

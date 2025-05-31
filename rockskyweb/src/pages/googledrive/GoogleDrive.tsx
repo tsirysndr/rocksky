@@ -39,13 +39,7 @@ const GoogleDrive = (props: GoogleDriveProps) => {
       header: "",
       size: 15,
       cell: (info) => (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
+        <div className="flex items-center justify-center">
           {info.row.original.tag == "folder" && (
             <div>
               <Folder2 size={25} />
@@ -147,15 +141,7 @@ const GoogleDrive = (props: GoogleDriveProps) => {
       {((props.fileId && googleDrive?.cache[props.fileId]) ||
         !loading ||
         pathname === "/googledrive") && (
-        <div
-          style={{
-            paddingTop: 80,
-            position: "fixed",
-            backgroundColor: "#fff",
-            top: 19,
-            width: 770,
-          }}
-        >
+        <div className="pt-[80px] fixed bg-[var(--color-background)] top-[19px] w-[770px]">
           <Breadcrumbs>
             {parent_dir && current_dir !== "Music" && (
               <Link
@@ -164,26 +150,30 @@ const GoogleDrive = (props: GoogleDriveProps) => {
                     ? `/googledrive`
                     : `/googledrive/${parent_id}`
                 }
-                style={{ color: "#000" }}
+                className="!text-[var(--color-text)]"
               >
                 {parent_dir}
               </Link>
             )}
           </Breadcrumbs>
-          <HeadingMedium marginTop={"10px"} marginBottom={"25px"}>
+          <HeadingMedium
+            marginTop={"10px"}
+            marginBottom={"25px"}
+            className="!text-[var(--color-text)]"
+          >
             {current_dir === "Music" ? "Google Drive" : current_dir}
           </HeadingMedium>
         </div>
       )}
 
-      <div style={{ marginTop: 100, overflowX: "hidden", marginBottom: 140 }}>
+      <div className="mt-[100px] overflow-x-hidden mb-[140px]">
         {loading && !googleDrive?.cache[props.fileId || "/Music"]?.files && (
           <ContentLoader
             width={700}
             height={350}
             viewBox="0 0 700 350"
-            backgroundColor="#f5f5f5"
-            foregroundColor="#dbdbdb"
+            backgroundColor="var(--color-skeleton-background)"
+            foregroundColor="var(--color-skeleton-foreground)"
             {...props}
           >
             <rect x="66" y="52" rx="6" ry="6" width="483" height="15" />

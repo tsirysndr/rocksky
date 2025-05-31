@@ -65,7 +65,7 @@ function Feed() {
       )}
 
       {!isLoading && (
-        <div style={{ paddingBottom: 100 }}>
+        <div className="pb-[100px]">
           <FlexGrid
             flexGridColumnCount={[1, 2, 3]}
             flexGridColumnGap="scale800"

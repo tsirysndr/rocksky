@@ -6,7 +6,7 @@ const Home = () => {
   const jwt = localStorage.getItem("token");
   return (
     <Main>
-      <div style={{ marginTop: 50 }}>
+      <div className="mt-[50px]">
         {jwt && <NowPlayings />}
         <Feed />
       </div>

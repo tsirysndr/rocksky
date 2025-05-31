@@ -11,8 +11,9 @@ import { File } from "../../types/file";
 
 const TableRow = styled.tr`
   height: 48px;
+  color: var(--color-text) !important;
   &:hover {
-    background-color: #f7f7f7;
+    background-color: var(--color-menu-hover);
   }
 `;
 
@@ -36,15 +37,15 @@ const Table: FC<TableProps> = ({ columns, files }) => {
   });
 
   return (
-    <table style={{ width: "100%", marginTop: 0 }}>
+    <table className="mt-[0px] w-full">
       <thead>
         {table.getHeaderGroups().map((headerGroup) => (
           <tr
             key={headerGroup.id}
-            style={{ height: 36, color: "rgba(0, 0, 0, 0.54)" }}
+            className="h-[36px] text-[var(--color-text)]"
           >
             {headerGroup.headers.map((header) => (
-              <th key={header.id} style={{ textAlign: "left" }}>
+              <th key={header.id} className="text-left">
                 {header.isPlaceholder
                   ? null
                   : flexRender(
@@ -62,9 +63,7 @@ const Table: FC<TableProps> = ({ columns, files }) => {
             {row.getVisibleCells().map((cell) => (
               <td
                 key={cell.id}
-                style={{
-                  overflow: "hidden",
-                }}
+                className="overflow-hidden !text-[var(--color-text)]"
               >
                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
               </td>

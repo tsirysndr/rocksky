@@ -196,7 +196,7 @@ const Album = () => {
           </Group>
         )}
 
-        <div style={{ marginTop: 20 }}>
+        <div className="mt-[20px]">
           {disc < 2 && (
             <TableBuilder
               data={album?.tracks.map((x) => ({
@@ -312,7 +312,7 @@ const Album = () => {
           {disc > 1 && (
             <div>
               {[...Array(disc)].map((_, i) => (
-                <div style={{ marginBottom: 20 }}>
+                <div className="mt-[20px]" key={i}>
                   <LabelLarge className="!text-[var(--color-text)]">
                     Volume {i + 1}
                   </LabelLarge>
@@ -432,7 +432,7 @@ const Album = () => {
             </div>
           )}
 
-          <div style={{ marginTop: 20 }}>
+          <div className="mt-[20px]">
             <LabelMedium margin={0} className="!text-[var(--color-text-muted)]">
               {album?.releaseDate}
             </LabelMedium>

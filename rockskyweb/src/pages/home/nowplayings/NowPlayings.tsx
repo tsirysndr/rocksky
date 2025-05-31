@@ -197,79 +197,34 @@ function NowPlayings() {
             role={ROLE.dialog}
             overrides={styles.modal}
           >
-            <ModalHeader
-              style={{
-                color: "#fff",
-                fontSize: 15,
-              }}
-            >
-              <div style={{ width: 380, margin: "0 auto" }}>
+            <ModalHeader className="text-[#fff] text-[15px]">
+              <div className="w-[380px] mx-auto">
                 <ProgressBar value={progress} overrides={styles.progressbar} />
               </div>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "row",
-                  alignItems: "center",
-                }}
-              >
+              <div className="flex flex-row items-center">
                 <Link to={`/profile/${currentlyPlaying?.handle}`}>
                   <Avatar src={currentlyPlaying?.avatar} />
                 </Link>
                 <Link to={`/profile/${currentlyPlaying?.handle}`}>
-                  <div
-                    style={{
-                      color: "#fff",
-                      textDecoration: "none",
-                    }}
-                  >
+                  <div className="text-[#fff] no-underline text-[15px]">
                     @{currentlyPlaying?.handle}
                   </div>
                 </Link>
-                <span style={{ marginLeft: 10, opacity: 0.6 }}>
+                <span className="ml-[10px] opacity-60">
                   {dayjs.utc(currentlyPlaying?.created_at).local().fromNow()}
                 </span>
               </div>
             </ModalHeader>
-            <ModalBody
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                marginBottom: 100,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "row",
-                  flex: 1,
-                  width: "60vw",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    height: 500,
-                    width: 50,
-                  }}
-                >
+            <ModalBody className="flex flex-col items-center justify-center mb-[100px]">
+              <div className="flex flex-row flex-1 w-[60vw]">
+                <div className="flex items-center h-[500px] w-[50px] ">
                   {currentIndex > 0 && (
                     <div style={{ cursor: "pointer" }} onClick={onPrev}>
                       <ChevronLeft size={50} color="rgba(255, 255, 255, 0.5)" />
                     </div>
                   )}
                 </div>
-                <div
-                  style={{
-                    flex: 1,
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                  }}
-                >
+                <div className="flex flex-col items-center flex-1">
                   {currentlyPlaying?.track_uri && (
                     <Link
                       to={`/${currentlyPlaying?.track_uri.split("at://")[1]}`}
@@ -294,16 +249,9 @@ function NowPlayings() {
                     />
                   )}
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    height: 500,
-                    width: 50,
-                  }}
-                >
+                <div className="flex items-center h-[500px] w-[50px]">
                   {currentIndex < (nowPlayings || []).length - 1 && (
-                    <div style={{ cursor: "pointer" }} onClick={onNext}>
+                    <div className="cursor-pointer" onClick={onNext}>
                       <ChevronRight
                         size={50}
                         color="rgba(255, 255, 255, 0.5)"
