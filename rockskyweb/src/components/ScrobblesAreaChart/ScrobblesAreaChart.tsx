@@ -13,17 +13,14 @@ const CustomTooltip = ({
 }: TooltipProps<number, string>) => {
   if (active && payload && payload.length) {
     return (
-      <div
-        style={{
-          backgroundColor: "white",
-          padding: "5px",
-          border: "1px solid #ccc",
-        }}
-      >
-        <span style={{ color: "#808080" }}>
+      <div className="bg-[#fff] border-[1px] border-[#ccc] p-[5px]">
+        <span className="text-[#808080]">
           {dayjs(label).format("dddd DD MMMM YYYY")}:
         </span>
-        <span> {numeral(payload[0].value).format("0,0")}</span>
+        <span className="text-[#710de4]">
+          {" "}
+          {numeral(payload[0].value).format("0,0")}
+        </span>
       </div>
     );
   }

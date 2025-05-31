@@ -135,6 +135,16 @@ function Albums(props: AlbumsProps) {
               },
             },
           },
+          TableEmptyMessage: {
+            style: {
+              backgroundColor: "var(--color-background)",
+            },
+          },
+          Table: {
+            style: {
+              backgroundColor: "var(--color-background)",
+            },
+          },
         }}
       >
         <TableBuilderColumn header="Name">
