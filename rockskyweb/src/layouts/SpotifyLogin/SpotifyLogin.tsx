@@ -33,7 +33,7 @@ const ConnectSpotify = styled.span`
 
 function SpotifyLogin() {
   const profile = useAtomValue(profileAtom);
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const { enqueue } = useSnackbar();
   const { joinBeta } = useBeta();
   const [errorMessage, setErrorMessage] = useState("");
