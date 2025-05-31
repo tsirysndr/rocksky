@@ -326,10 +326,14 @@ const Song = () => {
 
             {song?.lyrics && (
               <>
-                <HeadingXSmall marginTop={"20px"} marginBottom={"0px"}>
+                <HeadingXSmall
+                  marginTop={"20px"}
+                  marginBottom={"0px"}
+                  className="!text-[var(--color-text)]"
+                >
                   Lyrics
                 </HeadingXSmall>
-                <div style={{ marginTop: 10, marginBottom: 40 }}>
+                <div className="mt-[10px] mb-[40px]">
                   {song.lyrics
                     .replace(/\[\d{2}:\d{2}\.\d{2}\]\s*/g, "")
                     .split("\n")
