@@ -210,7 +210,7 @@ function NowPlayings() {
                     @{currentlyPlaying?.handle}
                   </div>
                 </Link>
-                <span className="ml-[10px] opacity-60">
+                <span className="ml-[10px] text-[15px] text-[var(--color-text-muted)]">
                   {dayjs.utc(currentlyPlaying?.created_at).local().fromNow()}
                 </span>
               </div>
