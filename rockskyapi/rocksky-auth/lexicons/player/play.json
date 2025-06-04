@@ -1,0 +1,14 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.player.play",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Resume playback of the currently paused track",
+      "parameters": {
+        "type": "params",
+        "properties": {}
+      }
+    }
+  }
+}

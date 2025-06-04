@@ -1,0 +1,162 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.song"
+defs = new Mapping<String, Record> {
+  ["main"] {
+    type = "record"
+    key = "tid"
+    description = "A declaration of a song."
+    `record` {
+      type = "object"
+      required = List("title", "artist", "album", "albumArtist", "duration", "createdAt")
+      properties {
+        ["title"] = new StringType {
+          type = "string"
+          description = "The title of the song."
+          minLength = 1
+          maxLength = 512
+        }
+
+        ["artist"] = new StringType {
+          type = "string"
+          description = "The artist of the song."
+          minLength = 1
+          maxLength = 256
+        }
+
+        ["albumArtist"] = new StringType {
+          type = "string"
+          description = "The album artist of the song."
+          minLength = 1
+          maxLength = 256
+        }
+
+        ["album"] = new StringType {
+          type = "string"
+          description = "The album of the song."
+          minLength = 1
+          maxLength = 256
+        }
+
+        ["duration"] = new IntegerType {
+          type = "integer"
+          description = "The duration of the song in seconds."
+          minimum = 1
+        }
+
+        ["trackNumber"] = new IntegerType {
+          type = "integer"
+          description = "The track number of the song in the album."
+          minimum = 1
+        }
+
+        ["discNumber"] = new IntegerType {
+          type = "integer"
+          description = "The disc number of the song in the album."
+          minimum = 1
+        }
+
+        ["releaseDate"] = new StringType {
+          type = "string"
+          description = "The release date of the song."
+          format = "datetime"
+        }
+
+        ["year"] = new IntegerType {
+          type = "integer"
+          description = "The year the song was released."
+        }
+
+        ["genre"] = new StringType {
+          type = "string"
+          description = "The genre of the song."
+          minLength = 1
+          maxLength = 256
+        }
+
+        ["tags"] = new Array {
+          type = "array"
+          description = "The tags of the song."
+          items = new StringType {
+            type = "string"
+            minLength = 1
+            maxLength = 256
+          }
+        }
+
+        ["composer"] = new StringType {
+          type = "string"
+          description = "The composer of the song."
+          maxLength = 256
+        }
+
+        ["lyrics"] = new StringType {
+          type = "string"
+          description = "The lyrics of the song."
+          maxLength = 10000
+        }
+
+        ["copyrightMessage"] = new StringType {
+          type = "string"
+          description = "The copyright message of the song."
+          maxLength = 256
+        }
+
+        ["wiki"] = new StringType {
+          type = "string"
+          description = "Informations about the song"
+          maxLength = 10000
+        }
+
+        ["albumArt"] = new Blob {
+          type = "blob"
+          description = "The album art of the song."
+          accept = List("image/png", "image/jpeg")
+          maxSize = 2000000
+        }
+
+        ["youtubeLink"] = new StringType {
+          type = "string"
+          description = "The YouTube link of the song."
+          format = "uri"
+        }
+
+        ["spotifyLink"] = new StringType {
+          type = "string"
+          description = "The Spotify link of the song."
+          format = "uri"
+        }
+
+        ["tidalLink"] = new StringType {
+          type = "string"
+          description = "The Tidal link of the song."
+          format = "uri"
+        }
+
+        ["appleMusicLink"] = new StringType {
+          type = "string"
+          description = "The Apple Music link of the song."
+          format = "uri"
+        }
+
+        ["createdAt"] = new StringType {
+          type = "string"
+          description = "The date when the song was created."
+          format = "datetime"
+        }
+
+        ["mbid"] = new StringType {
+          type = "string"
+          description = "The MusicBrainz ID of the song."
+        }
+
+        ["label"] = new StringType {
+          type = "string"
+          description = "The label of the song."
+          maxLength = 256
+        }
+      }
+    }
+  }
+}

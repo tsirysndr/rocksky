@@ -249,7 +249,19 @@ pub async fn get_currently_playing(
 
         let data: CurrentlyPlaying = decoded_data.unwrap();
         // detect if the song has changed
-        let previous = cache.get(&format!("{}:previous", user_id))?;
+        let previous = cache.get(&format!("{}:previous", user_id));
+
+        if previous.is_err() {
+            println!(
+                "{} redis error: {}",
+                format!("[{}]", user_id).bright_green(),
+                previous.unwrap_err().to_string().bright_red()
+            );
+            return Ok(None);
+        }
+
+        let previous = previous.unwrap();
+
         let changed = match previous {
             Some(previous) => {
                 if serde_json::from_str::<CurrentlyPlaying>(&previous).is_err() {
@@ -311,20 +323,50 @@ pub async fn get_currently_playing(
         return Ok(None);
     }
 
-    let previous = cache.get(&format!("{}:previous", user_id))?;
+    let previous = cache.get(&format!("{}:previous", user_id));
+    if previous.is_err() {
+        println!(
+            "{} redis error: {}",
+            format!("[{}]", user_id).bright_green(),
+            previous.unwrap_err().to_string().bright_red()
+        );
+        return Ok(None);
+    }
+
+    let previous = previous.unwrap();
 
     // check if status code is 204
     if status == 204 {
         println!("No content");
-        cache.setex(
+        match cache.setex(
             user_id,
             "No content",
             match previous.is_none() {
                 true => 30,
                 false => 10,
             },
-        )?;
-        cache.del(&format!("{}:current", user_id))?;
+        ) {
+            Ok(_) => {}
+            Err(e) => {
+                println!(
+                    "{} redis error: {}",
+                    format!("[{}]", user_id).bright_green(),
+                    e.to_string().bright_red()
+                );
+                return Ok(None);
+            }
+        }
+        match cache.del(&format!("{}:current", user_id)) {
+            Ok(_) => {}
+            Err(e) => {
+                println!(
+                    "{} redis error: {}",
+                    format!("[{}]", user_id).bright_green(),
+                    e.to_string().bright_red()
+                );
+                return Ok(None);
+            }
+        }
         return Ok(None);
     }
 
@@ -335,25 +377,76 @@ pub async fn get_currently_playing(
             "Invalid data received".red(),
             data
         );
-        cache.setex(user_id, "No content", 10)?;
-        cache.del(&format!("{}:current", user_id))?;
+        match cache.setex(user_id, "No content", 10) {
+            Ok(_) => {}
+            Err(e) => {
+                println!(
+                    "{} redis error: {}",
+                    format!("[{}]", user_id).bright_green(),
+                    e.to_string().bright_red()
+                );
+                return Ok(None);
+            }
+        }
+        match cache.del(&format!("{}:current", user_id)) {
+            Ok(_) => {}
+            Err(e) => {
+                println!(
+                    "{} redis error: {}",
+                    format!("[{}]", user_id).bright_green(),
+                    e.to_string().bright_red()
+                );
+                return Ok(None);
+            }
+        }
         return Ok(None);
     }
 
     let data = serde_json::from_str::<CurrentlyPlaying>(&data)?;
 
-    cache.setex(
+    match cache.setex(
         user_id,
         &serde_json::to_string(&data)?,
         match previous.is_none() {
             true => 30,
             false => 15,
         },
-    )?;
-    cache.del(&format!("{}:current", user_id))?;
+    ) {
+        Ok(_) => {}
+        Err(e) => {
+            println!(
+                "{} redis error: {}",
+                format!("[{}]", user_id).bright_green(),
+                e.to_string().bright_red()
+            );
+            return Ok(None);
+        }
+    }
+    match cache.del(&format!("{}:current", user_id)) {
+        Ok(_) => {}
+        Err(e) => {
+            println!(
+                "{} redis error: {}",
+                format!("[{}]", user_id).bright_green(),
+                e.to_string().bright_red()
+            );
+            return Ok(None);
+        }
+    }
 
     // detect if the song has changed
-    let previous = cache.get(&format!("{}:previous", user_id))?;
+    let previous = cache.get(&format!("{}:previous", user_id));
+
+    if previous.is_err() {
+        println!(
+            "{} redis error: {}",
+            format!("[{}]", user_id).bright_green(),
+            previous.unwrap_err().to_string().bright_red()
+        );
+        return Ok(None);
+    }
+
+    let previous = previous.unwrap();
     let changed = match previous {
         Some(previous) => {
             if serde_json::from_str::<CurrentlyPlaying>(&previous).is_err() {
@@ -381,11 +474,21 @@ pub async fn get_currently_playing(
     };
 
     // save as previous song
-    cache.setex(
+    match cache.setex(
         &format!("{}:previous", user_id),
         &serde_json::to_string(&data)?,
         600,
-    )?;
+    ) {
+        Ok(_) => {}
+        Err(e) => {
+            println!(
+                "{} redis error: {}",
+                format!("[{}]", user_id).bright_green(),
+                e.to_string().bright_red()
+            );
+            return Ok(None);
+        }
+    }
 
     Ok(Some((data, changed)))
 }
@@ -419,7 +522,17 @@ pub async fn get_artist(
         return Ok(None);
     }
 
-    cache.setex(artist_id, &data, 20)?;
+    match cache.setex(artist_id, &data, 20) {
+        Ok(_) => {}
+        Err(e) => {
+            println!(
+                "{} redis error: {}",
+                format!("[{}]", artist_id).bright_green(),
+                e.to_string().bright_red()
+            );
+            return Ok(None);
+        }
+    }
 
     Ok(Some(serde_json::from_str(&data)?))
 }
@@ -594,7 +707,7 @@ pub async fn watch_currently_playing(
                 );
                 break;
             }
-            if let Some(cached) = cache_clone.get(&format!("{}:current", spotify_email_clone))? {
+            if let Ok(Some(cached)) = cache_clone.get(&format!("{}:current", spotify_email_clone)) {
                 if serde_json::from_str::<CurrentlyPlaying>(&cached).is_err() {
                     thread::sleep(std::time::Duration::from_millis(800));
                     continue;

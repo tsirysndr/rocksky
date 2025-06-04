@@ -1,0 +1,21 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.playlist.defs"
+defs = new Mapping<String, ObjectType> {
+  ["playlistViewDetailed"] {
+    type = "object"
+    description = "Detailed view of a playlist, including its tracks and metadata"
+    properties {
+
+    }
+  }
+
+  ["playlistViewBasic"] {
+    type = "object"
+    description = "Basic view of a playlist, including its metadata"
+    properties {
+
+    }
+  }
+}

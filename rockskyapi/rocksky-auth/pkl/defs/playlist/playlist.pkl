@@ -1,0 +1,64 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.playlist"
+defs = new Mapping<String, Record> {
+  ["main"] {
+    type = "record"
+    key = "tid"
+    description = "A declaration of a playlist."
+    `record` {
+      type = "object"
+      required = List("name", "createdAt")
+      properties {
+        ["name"] = new StringType {
+          type = "string"
+          description = "The name of the playlist."
+          minLength = 1
+          maxLength = 512
+        }
+        ["description"] = new StringType {
+          type = "string"
+          description = "The playlist description."
+          minLength = 1
+          maxLength = 256
+        }
+        ["picture"] = new Blob {
+          type = "blob"
+          description = "The picture of the playlist."
+          accept = List("image/png", "image/jpeg")
+          maxSize = 2000000
+        }
+        ["tracks"] = new Array {
+          type = "array"
+          description = "The tracks in the playlist."
+          items = new Ref {
+            type = "ref"
+            ref = "app.rocksky.song#record"
+          }
+        }
+        ["createdAt"] = new StringType {
+          type = "string"
+          description = "The date the playlist was created."
+          format = "datetime"
+        }
+        ["spotifyLink"] = new StringType {
+          type = "string"
+          description = "The Spotify link of the playlist."
+        }
+        ["tidalLink"] = new StringType {
+          type = "string"
+          description = "The Tidal link of the playlist."
+        }
+        ["youtubeLink"] = new StringType {
+          type = "string"
+          description = "The YouTube link of the playlist."
+        }
+        ["appleMusicLink"] = new StringType {
+          type = "string"
+          description = "The Apple Music link of the playlist."
+        }
+      }
+    }
+  }
+}

@@ -28,21 +28,13 @@ export class Server {
 
 export class AppNS {
   _server: Server
-  rocksky: AppRockskyNS
   bsky: AppBskyNS
+  rocksky: AppRockskyNS
 
   constructor(server: Server) {
     this._server = server
-    this.rocksky = new AppRockskyNS(server)
     this.bsky = new AppBskyNS(server)
-  }
-}
-
-export class AppRockskyNS {
-  _server: Server
-
-  constructor(server: Server) {
-    this._server = server
+    this.rocksky = new AppRockskyNS(server)
   }
 }
 
@@ -57,6 +49,14 @@ export class AppBskyNS {
 }
 
 export class AppBskyActorNS {
+  _server: Server
+
+  constructor(server: Server) {
+    this._server = server
+  }
+}
+
+export class AppRockskyNS {
   _server: Server
 
   constructor(server: Server) {

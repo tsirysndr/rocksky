@@ -1,0 +1,35 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.apikey.getApikeys"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get a list of API keys for the authenticated user"
+    parameters {
+      type = "params"
+      properties {
+        ["offset"] = new IntegerType {
+          type = "integer"
+          description = "The number of API keys to skip before starting to collect the result set."
+        }
+
+        ["limit"] = new IntegerType {
+          type = "integer"
+          description = "The number of API keys to return per page."
+        }
+
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new Array {
+        type = "array"
+        items = new Ref {
+          type = "ref"
+          ref = "app.rocksky.apikey.defs#apiKey"
+        }
+      }
+    }
+  }
+}

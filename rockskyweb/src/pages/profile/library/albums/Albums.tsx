@@ -7,6 +7,7 @@ import { useAtomValue, useSetAtom } from "jotai";
 import numeral from "numeral";
 import { useEffect, useMemo, useState } from "react";
 import { Link as DefaultLink, useParams } from "react-router";
+import { themeAtom } from "../../../../atoms/theme";
 import { topAlbumsAtom } from "../../../../atoms/topAlbums";
 import { userAtom } from "../../../../atoms/user";
 import { useAlbumsQuery } from "../../../../hooks/useLibrary";
@@ -53,6 +54,7 @@ function Albums(props: AlbumsProps) {
   const { size = 50 } = props;
   const setTopAlbums = useSetAtom(topAlbumsAtom);
   const topAlbums = useAtomValue(topAlbumsAtom);
+  const { darkMode } = useAtomValue(themeAtom);
   const { did } = useParams<{ did: string }>();
   const profileStats = useProfileStatsByDidQuery(did!);
   const [currentPage, setCurrentPage] = useState(1);
@@ -210,7 +212,13 @@ function Albums(props: AlbumsProps) {
         <TableBuilderColumn header="Scrobbles">
           {(row: Row, index?: number) => (
             <div className="relative w-[250px] mt-[-20px]">
-              <div className="absolute w-full top-[10px] left-[10px] text-black z-1 !text-[#000]">
+              <div
+                className={`absolute w-full top-[10px] left-[10px] z-[1] ${
+                  darkMode && (row.scrobbles / maxScrobbles) * 100 < 10
+                    ? "!text-[#fff]"
+                    : "!text-[#000]"
+                }`}
+              >
                 {numeral(row.scrobbles).format("0,0")}{" "}
                 {index == 0 && " scrobbles"}
               </div>

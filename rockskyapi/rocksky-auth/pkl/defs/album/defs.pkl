@@ -1,0 +1,25 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.album.defs"
+defs = new Mapping<String, ObjectType> {
+  ["albumViewDetailed"] {
+    type = "object"
+    properties {
+      ["title"] = new StringType {
+        type = "string"
+        description = "The title of the album."
+      }
+
+      ["artist"] = new StringType {
+        type = "string"
+        description = "The artist of the album."
+      }
+      ["releaseDate"] = new StringType {
+        type = "string"
+        format = "datetime"
+        description = "The release date of the album."
+      }
+    }
+  }
+}

@@ -7,6 +7,7 @@ import { useAtomValue, useSetAtom } from "jotai";
 import numeral from "numeral";
 import { useEffect, useMemo, useState } from "react";
 import { Link as DefaultLink, useParams } from "react-router";
+import { themeAtom } from "../../../../atoms/theme";
 import { topTracksAtom } from "../../../../atoms/topTracks";
 import { userAtom } from "../../../../atoms/user";
 import { useTracksQuery } from "../../../../hooks/useLibrary";
@@ -61,6 +62,7 @@ function TopTracks(props: TopTracksProps) {
   };
   const setTopTracks = useSetAtom(topTracksAtom);
   const topTracks = useAtomValue(topTracksAtom);
+  const { darkMode } = useAtomValue(themeAtom);
   const { did } = useParams<{ did: string }>();
   const profileStats = useProfileStatsByDidQuery(did!);
   const [currentPage, setCurrentPage] = useState(1);
@@ -244,7 +246,13 @@ function TopTracks(props: TopTracksProps) {
         <TableBuilderColumn header="Scrobbles">
           {(row: Row, index?: number) => (
             <div className="relative w-[250px] mt-[-20px]">
-              <div className="absolute w-full top-[10px] left-[10px] !text-[#000] z-[1]">
+              <div
+                className={`absolute w-full top-[10px] left-[10px] z-[1] ${
+                  darkMode && (row.scrobbles / maxScrobbles) * 100 < 10
+                    ? "!text-[#fff]"
+                    : "!text-[#000]"
+                }`}
+              >
                 {numeral(row.scrobbles).format("0,0")}{" "}
                 {index == 0 && " scrobbles"}
               </div>

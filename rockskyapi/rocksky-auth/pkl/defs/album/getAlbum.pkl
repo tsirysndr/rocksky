@@ -1,0 +1,28 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.album.getAlbum"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get detailed album view"
+    parameters {
+      type = "params"
+      required = List("uri")
+      properties {
+        ["uri"] = new StringType {
+          type = "string"
+          format = "at-uri"
+          description = "The URI of the album to retrieve."
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new Ref {
+        type = "ref"
+        ref = "app.rocksky.album.defs#albumViewDetailed"
+      }
+    }
+  }
+}

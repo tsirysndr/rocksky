@@ -5,12 +5,14 @@
 	"type": "module",
 	"module": "dist/index.js",
 	"scripts": {
-		"lexgen": "lex gen-server ./src/lexicon ./lexicons/*",
+		"lexgen": "lex gen-server ./src/lexicon ./lexicons/**/* ./lexicons/*",
 		"dev": "tsx --watch ./src/index.ts",
 		"prod": "tsx ./src/index.ts",
 		"build": "pkgroll",
 		"sync": "tsx ./src/scripts/sync.ts",
-		"avatar": "tsx ./src/scripts/avatar.ts"
+		"avatar": "tsx ./src/scripts/avatar.ts",
+		"pkl:eval": "pkl eval -f json",
+		"pkl:gen": "tsx ./scripts/pkl.ts"
 	},
 	"dependencies": {
 		"@atproto/api": "^0.13.31",
@@ -45,6 +47,7 @@
 		"dropbox": "^10.34.0",
 		"effect": "^3.14.22",
 		"envalid": "^8.0.0",
+		"express": "^5.1.0",
 		"googleapis": "^146.0.0",
 		"hono": "^4.4.7",
 		"iron-session": "^8.0.4",
@@ -62,11 +65,13 @@
 		"zod": "^3.24.1"
 	},
 	"devDependencies": {
+		"@pkl-community/pkl": "^0.28.2",
 		"@types/node": "^22.13.0",
 		"@types/ramda": "^0.30.2",
 		"@types/service-worker-mock": "^2.0.1",
 		"pkgroll": "^2.6.1",
-		"tsx": "^4.19.2"
+		"tsx": "^4.19.2",
+		"zx": "^8.5.4"
 	},
 	"exports": {
 		".": {

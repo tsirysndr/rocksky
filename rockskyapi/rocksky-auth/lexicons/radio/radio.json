@@ -1,0 +1,63 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.radio",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A declaration of a radio station.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": [
+          "name",
+          "url",
+          "createdAt"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the radio station.",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "url": {
+            "type": "string",
+            "description": "The URL of the radio station.",
+            "format": "uri"
+          },
+          "description": {
+            "type": "string",
+            "description": "A description of the radio station.",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "genre": {
+            "type": "string",
+            "description": "The genre of the radio station.",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "logo": {
+            "type": "blob",
+            "description": "The logo of the radio station.",
+            "accept": [
+              "image/png",
+              "image/jpeg"
+            ],
+            "maxSize": 2000000
+          },
+          "website": {
+            "type": "string",
+            "description": "The website of the radio station.",
+            "format": "uri"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "The date when the radio station was created.",
+            "format": "datetime"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.like",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A declaration of a like.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": [
+          "createdAt",
+          "subject"
+        ],
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "description": "The date when the like was created.",
+            "format": "datetime"
+          },
+          "subject": {
+            "type": "ref",
+            "ref": "com.atproto.repo.strongRef"
+          }
+        }
+      }
+    }
+  }
+}

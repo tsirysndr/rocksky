@@ -1,0 +1,24 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.album.defs",
+  "defs": {
+    "albumViewDetailed": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The title of the album."
+        },
+        "artist": {
+          "type": "string",
+          "description": "The artist of the album."
+        },
+        "releaseDate": {
+          "type": "string",
+          "description": "The release date of the album.",
+          "format": "datetime"
+        }
+      }
+    }
+  }
+}

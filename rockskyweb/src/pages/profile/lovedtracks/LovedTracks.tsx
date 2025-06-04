@@ -164,7 +164,9 @@ function LovedTracks() {
                   )}
                 </div>
               )}
-              <div style={{ display: "flex", flexDirection: "column" }}>
+              <div style={{ display: "flex", flexDirection: "column" }}
+              className="flex flex-col"
+              >
                 {row.uri && (
                   <Link
                     to={`/${row.uri?.split("at://")[1]}`}

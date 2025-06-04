@@ -85,6 +85,16 @@ function PopularTracks(props: PopularTracksProps) {
               },
             },
           },
+          TableEmptyMessage: {
+            style: {
+              backgroundColor: "var(--color-background)",
+            },
+          },
+          Table: {
+            style: {
+              backgroundColor: "var(--color-background)",
+            },
+          },
         }}
       >
         <TableBuilderColumn header="Name">
