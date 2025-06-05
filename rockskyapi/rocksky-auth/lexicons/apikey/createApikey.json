@@ -5,10 +5,6 @@
     "main": {
       "type": "procedure",
       "description": "Create a new API key for the authenticated user",
-      "parameters": {
-        "type": "params",
-        "properties": {}
-      },
       "input": {
         "encoding": "application/json",
         "schema": {

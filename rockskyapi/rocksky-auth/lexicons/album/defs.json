@@ -2,6 +2,33 @@
   "lexicon": 1,
   "id": "app.rocksky.album.defs",
   "defs": {
+    "albumViewBasic": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The title of the album."
+        },
+        "artist": {
+          "type": "string",
+          "description": "The artist of the album."
+        },
+        "year": {
+          "type": "integer",
+          "description": "The year the album was released."
+        },
+        "albumArt": {
+          "type": "string",
+          "description": "The URL of the album art image.",
+          "format": "uri"
+        },
+        "releaseDate": {
+          "type": "string",
+          "description": "The release date of the album.",
+          "format": "datetime"
+        }
+      }
+    },
     "albumViewDetailed": {
       "type": "object",
       "properties": {
@@ -13,10 +40,27 @@
           "type": "string",
           "description": "The artist of the album."
         },
+        "year": {
+          "type": "integer",
+          "description": "The year the album was released."
+        },
+        "albumArt": {
+          "type": "string",
+          "description": "The URL of the album art image.",
+          "format": "uri"
+        },
         "releaseDate": {
           "type": "string",
           "description": "The release date of the album.",
           "format": "datetime"
+        },
+        "tracks": {
+          "type": "array",
+          "description": "The album's tracks.",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.song.defs#songViewBasic"
+          }
         }
       }
     }

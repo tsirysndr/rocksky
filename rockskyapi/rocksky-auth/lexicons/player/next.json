@@ -4,11 +4,7 @@
   "defs": {
     "main": {
       "type": "procedure",
-      "description": "Play the next track in the queue",
-      "parameters": {
-        "type": "params",
-        "properties": {}
-      }
+      "description": "Play the next track in the queue"
     }
   }
 }

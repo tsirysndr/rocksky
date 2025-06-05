@@ -4,11 +4,7 @@
   "defs": {
     "main": {
       "type": "procedure",
-      "description": "Pause the currently playing track",
-      "parameters": {
-        "type": "params",
-        "properties": {}
-      }
+      "description": "Pause the currently playing track"
     }
   }
 }

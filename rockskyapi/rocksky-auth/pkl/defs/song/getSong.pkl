@@ -1,4 +1,4 @@
 amends  "../../schema/lexicon.pkl"
 
 lexicon = 1
-id = "app.rocksky.album.getAlbumScrobbles"
+id = "app.rocksky.song.getSong"

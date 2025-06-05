@@ -1,4 +1,33 @@
 {
   "lexicon": 1,
-  "id": "app.rocksky.actor.getActorLovedSongs"
+  "id": "app.rocksky.actor.getActorLovedSongs",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get loved songs for an actor",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "did"
+        ],
+        "properties": {
+          "did": {
+            "type": "string",
+            "description": "The DID or handle of the actor",
+            "format": "at-identifier"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.song.defs#songViewBasic"
+          }
+        }
+      }
+    }
+  }
 }

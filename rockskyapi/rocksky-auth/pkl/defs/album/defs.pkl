@@ -3,6 +3,37 @@ amends  "../../schema/lexicon.pkl"
 lexicon = 1
 id = "app.rocksky.album.defs"
 defs = new Mapping<String, ObjectType> {
+  ["albumViewBasic"] {
+    type = "object"
+    properties {
+      ["title"] = new StringType {
+        type = "string"
+        description = "The title of the album."
+      }
+
+      ["artist"] = new StringType {
+        type = "string"
+        description = "The artist of the album."
+      }
+
+      ["year"] = new IntegerType {
+        type = "integer"
+        description = "The year the album was released."
+      }
+
+      ["albumArt"] = new StringType {
+        type = "string"
+        format = "uri"
+        description = "The URL of the album art image."
+      }
+
+      ["releaseDate"] = new StringType {
+        type = "string"
+        format = "datetime"
+        description = "The release date of the album."
+      }
+    }
+  }
   ["albumViewDetailed"] {
     type = "object"
     properties {
@@ -15,10 +46,31 @@ defs = new Mapping<String, ObjectType> {
         type = "string"
         description = "The artist of the album."
       }
+
+      ["year"] = new IntegerType {
+        type = "integer"
+        description = "The year the album was released."
+      }
+
+      ["albumArt"] = new StringType {
+        type = "string"
+        format = "uri"
+        description = "The URL of the album art image."
+      }
+
       ["releaseDate"] = new StringType {
         type = "string"
         format = "datetime"
         description = "The release date of the album."
+      }
+
+      ["tracks"] = new Array {
+        type = "array"
+        description = "The album's tracks."
+        items = new Ref {
+          type = "ref"
+          ref = "app.rocksky.song.defs#songViewBasic"
+        }
       }
     }
   }

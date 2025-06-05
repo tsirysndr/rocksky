@@ -2,3 +2,19 @@ amends  "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.artist.defs"
+defs = new Mapping<String, ObjectType> {
+  ["artistViewBasic"] {
+    type = "object"
+    properties {
+      ["name"] = new StringType {
+        type = "string"
+        description = "The name of the artist."
+      }
+
+      ["picture"] = new StringType {
+        type = "string"
+        description = "The picture of the artist."
+      }
+    }
+  }
+}

@@ -68,7 +68,7 @@ class Query extends BaseType {
 
 class Procedure extends BaseType {
   type: "procedure"
-  parameters: Params
+  parameters: Params?
   input: Input?
   output: Output?
 }
