@@ -408,7 +408,10 @@ export async function scrobbleTrack(
   }
 
   const userTrack = await ctx.client.db.user_tracks
-    .filter("track_id.xata_id", equals(existingTrack?.xata_id))
+    .filter({
+      "track_id.xata_id": existingTrack?.xata_id,
+      "user_id.did": userDid,
+    })
     .getFirst();
 
   if (!existingTrack?.uri || !userTrack?.uri?.includes(userDid)) {
@@ -473,7 +476,10 @@ export async function scrobbleTrack(
     .getFirst();
 
   const userArtist = await ctx.client.db.user_artists
-    .filter("artist_id.xata_id", equals(existingArtist?.xata_id))
+    .filter({
+      "artist_id.xata_id": existingArtist?.xata_id,
+      "user_id.did": userDid,
+    })
     .getFirst();
 
   if (!existingArtist?.uri || !userArtist?.uri?.includes(userDid)) {
@@ -481,7 +487,10 @@ export async function scrobbleTrack(
   }
 
   const userAlbum = await ctx.client.db.user_albums
-    .filter("album_id.xata_id", equals(existingAlbum?.xata_id))
+    .filter({
+      "album_id.xata_id": existingAlbum?.xata_id,
+      "user_id.did": userDid,
+    })
     .getFirst();
 
   if (!existingAlbum?.uri || !userAlbum?.uri?.includes(userDid)) {
