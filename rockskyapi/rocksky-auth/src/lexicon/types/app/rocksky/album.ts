@@ -27,11 +27,11 @@ export interface Record {
   youtubeLink?: string
   /** The Spotify link of the album. */
   spotifyLink?: string
-  /** The Tidal link of the album. */
+  /** The tidal link of the album. */
   tidalLink?: string
   /** The Apple Music link of the album. */
   appleMusicLink?: string
-  /** The date the song was created. */
+  /** The date and time when the album was created. */
   createdAt: string
   [k: string]: unknown
 }

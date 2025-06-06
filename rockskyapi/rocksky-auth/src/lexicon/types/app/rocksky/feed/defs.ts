@@ -1,0 +1,81 @@
+/**
+ * GENERATED CODE - DO NOT MODIFY
+ */
+import { ValidationResult, BlobRef } from '@atproto/lexicon'
+import { lexicons } from '../../../../lexicons'
+import { isObj, hasProp } from '../../../../util'
+import { CID } from 'multiformats/cid'
+import * as AppRockskyArtistDefs from '../artist/defs'
+import * as AppRockskySongDefs from '../song/defs'
+import * as AppRockskyAlbumDefs from '../album/defs'
+import * as AppRockskyActorDefs from '../actor/defs'
+import * as AppRockskyPlaylistDefs from '../playlist/defs'
+
+export interface SearchResultsView {
+  artists?: AppRockskyArtistDefs.ArtistViewBasic[]
+  tracks?: AppRockskySongDefs.SongViewBasic[]
+  albums?: AppRockskyAlbumDefs.AlbumViewBasic[]
+  users?: AppRockskyActorDefs.ProfileViewBasic[]
+  playlists?: AppRockskyPlaylistDefs.PlaylistViewBasic[]
+  [k: string]: unknown
+}
+
+export function isSearchResultsView(v: unknown): v is SearchResultsView {
+  return (
+    isObj(v) &&
+    hasProp(v, '$type') &&
+    v.$type === 'app.rocksky.feed.defs#searchResultsView'
+  )
+}
+
+export function validateSearchResultsView(v: unknown): ValidationResult {
+  return lexicons.validate('app.rocksky.feed.defs#searchResultsView', v)
+}
+
+export interface NowPlayingView {
+  album?: string
+  album_art?: string
+  album_artist?: string
+  album_uri?: string
+  artist?: string
+  artist_uri?: string
+  avatar?: string
+  created_at?: string
+  did?: string
+  handle?: string
+  id?: string
+  title?: string
+  track_id?: string
+  track_uri?: string
+  uri?: string
+  [k: string]: unknown
+}
+
+export function isNowPlayingView(v: unknown): v is NowPlayingView {
+  return (
+    isObj(v) &&
+    hasProp(v, '$type') &&
+    v.$type === 'app.rocksky.feed.defs#nowPlayingView'
+  )
+}
+
+export function validateNowPlayingView(v: unknown): ValidationResult {
+  return lexicons.validate('app.rocksky.feed.defs#nowPlayingView', v)
+}
+
+export interface NowPlayingsView {
+  nowPlayings?: NowPlayingView[]
+  [k: string]: unknown
+}
+
+export function isNowPlayingsView(v: unknown): v is NowPlayingsView {
+  return (
+    isObj(v) &&
+    hasProp(v, '$type') &&
+    v.$type === 'app.rocksky.feed.defs#nowPlayingsView'
+  )
+}
+
+export function validateNowPlayingsView(v: unknown): ValidationResult {
+  return lexicons.validate('app.rocksky.feed.defs#nowPlayingsView', v)
+}

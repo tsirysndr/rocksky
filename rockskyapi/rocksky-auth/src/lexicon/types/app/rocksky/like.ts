@@ -8,7 +8,7 @@ import { CID } from 'multiformats/cid'
 import * as ComAtprotoRepoStrongRef from '../../com/atproto/repo/strongRef'
 
 export interface Record {
-  /** The date the like was created. */
+  /** The date when the like was created. */
   createdAt: string
   subject: ComAtprotoRepoStrongRef.Main
   [k: string]: unknown

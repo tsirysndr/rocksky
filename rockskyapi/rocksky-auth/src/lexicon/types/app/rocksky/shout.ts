@@ -10,7 +10,7 @@ import * as ComAtprotoRepoStrongRef from '../../com/atproto/repo/strongRef'
 export interface Record {
   /** The message of the shout. */
   message: string
-  /** The date the shout was created. */
+  /** The date when the shout was created. */
   createdAt: string
   parent?: ComAtprotoRepoStrongRef.Main
   subject: ComAtprotoRepoStrongRef.Main

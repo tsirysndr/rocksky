@@ -21,7 +21,7 @@ export interface Record {
   died?: string
   /** The birth place of the artist. */
   bornIn?: string
-  /** The date the song was created. */
+  /** The date when the artist was created. */
   createdAt: string
   [k: string]: unknown
 }

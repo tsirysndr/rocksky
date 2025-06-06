@@ -11,7 +11,7 @@ export interface Record {
   name: string
   /** The URL of the radio station. */
   url: string
-  /** The description of the radio station. */
+  /** A description of the radio station. */
   description?: string
   /** The genre of the radio station. */
   genre?: string
@@ -19,7 +19,7 @@ export interface Record {
   logo?: BlobRef
   /** The website of the radio station. */
   website?: string
-  /** The date the radio was created. */
+  /** The date when the radio station was created. */
   createdAt: string
   [k: string]: unknown
 }

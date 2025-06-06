@@ -7,20 +7,20 @@ import { isObj, hasProp } from '../../../util'
 import { CID } from 'multiformats/cid'
 
 export interface Record {
-  /** The track number of the song in the album. */
-  trackNumber?: number
-  /** The disc number of the song in the album. */
-  discNumber?: number
   /** The title of the song. */
   title: string
   /** The artist of the song. */
   artist: string
-  /** The artist of the album the song is from. */
+  /** The album artist of the song. */
   albumArtist: string
-  /** The album the song is from. */
+  /** The album of the song. */
   album: string
   /** The duration of the song in seconds. */
   duration: number
+  /** The track number of the song in the album. */
+  trackNumber?: number
+  /** The disc number of the song in the album. */
+  discNumber?: number
   /** The release date of the song. */
   releaseDate?: string
   /** The year the song was released. */
@@ -33,7 +33,7 @@ export interface Record {
   composer?: string
   /** The lyrics of the song. */
   lyrics?: string
-  /** The copyright message. */
+  /** The copyright message of the song. */
   copyrightMessage?: string
   /** Informations about the song */
   wiki?: string
@@ -47,7 +47,7 @@ export interface Record {
   tidalLink?: string
   /** The Apple Music link of the song. */
   appleMusicLink?: string
-  /** The date the song was created. */
+  /** The date when the song was created. */
   createdAt: string
   /** The MusicBrainz ID of the song. */
   mbid?: string
