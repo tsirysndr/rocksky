@@ -21,10 +21,15 @@
       "output": {
         "encoding": "application/json",
         "schema": {
-          "type": "array",
-          "items": {
-            "type": "ref",
-            "ref": "app.rocksky.playlist.defs#playlistViewBasic"
+          "type": "object",
+          "properties": {
+            "playlists": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "app.rocksky.playlist.defs#playlistViewBasic"
+              }
+            }
           }
         }
       }

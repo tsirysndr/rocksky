@@ -164,8 +164,9 @@ function LovedTracks() {
                   )}
                 </div>
               )}
-              <div style={{ display: "flex", flexDirection: "column" }}
-              className="flex flex-col"
+              <div
+                style={{ display: "flex", flexDirection: "column" }}
+                className="flex flex-col"
               >
                 {row.uri && (
                   <Link
@@ -179,10 +180,7 @@ function LovedTracks() {
                 {row.artistUri && (
                   <Link
                     to={`/${row.artistUri?.split("at://")[1]}`}
-                    style={{
-                      fontFamily: "RockfordSansLight",
-                      color: "rgba(36, 49, 61, 0.65)",
-                    }}
+                    className="text-[var(--color-text-muted)]"
                   >
                     {row.albumArtist}
                   </Link>

@@ -21,10 +21,15 @@
       "output": {
         "encoding": "application/json",
         "schema": {
-          "type": "array",
-          "items": {
-            "type": "ref",
-            "ref": "app.rocksky.scrobble.defs#scrobbleViewBasic"
+          "type": "object",
+          "properties": {
+            "scrobbles": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "app.rocksky.scrobble.defs#scrobbleViewBasic"
+              }
+            }
           }
         }
       }

@@ -2,3 +2,35 @@ amends  "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.shout.defs"
+defs = new Mapping<String, ObjectType> {
+  ["shoutView"] {
+    type = "object"
+    properties {
+      ["id"] = new StringType {
+        type = "string"
+        description = "The unique identifier of the shout."
+      }
+
+      ["message"] = new StringType {
+        type = "string"
+        description = "The content of the shout."
+      }
+
+      ["parent"] = new StringType {
+        type = "string"
+        description = "The ID of the parent shout if this is a reply, otherwise null."
+      }
+
+      ["createdAt"] = new StringType {
+        type = "string"
+        format = "datetime"
+        description = "The date and time when the shout was created."
+      }
+
+      ["authorDid"] = new StringType {
+        type = "string"
+        description = "The DID of the author of the shout."
+      }
+    }
+  }
+}

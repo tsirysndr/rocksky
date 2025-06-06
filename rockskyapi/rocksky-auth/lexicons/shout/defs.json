@@ -1,4 +1,32 @@
 {
   "lexicon": 1,
-  "id": "app.rocksky.shout.defs"
+  "id": "app.rocksky.shout.defs",
+  "defs": {
+    "shoutView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the shout."
+        },
+        "message": {
+          "type": "string",
+          "description": "The content of the shout."
+        },
+        "parent": {
+          "type": "string",
+          "description": "The ID of the parent shout if this is a reply, otherwise null."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The date and time when the shout was created.",
+          "format": "datetime"
+        },
+        "authorDid": {
+          "type": "string",
+          "description": "The DID of the author of the shout."
+        }
+      }
+    }
+  }
 }

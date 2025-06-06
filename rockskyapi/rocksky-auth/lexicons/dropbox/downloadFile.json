@@ -1,4 +1,26 @@
 {
   "lexicon": 1,
-  "id": "app.rocksky.dropbox.downloadFile"
+  "id": "app.rocksky.dropbox.downloadFile",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Download a file from Dropbox by its unique identifier",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "fileId"
+        ],
+        "properties": {
+          "fileId": {
+            "type": "string",
+            "description": "The unique identifier of the file to download",
+            "format": "at-uri"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/octet-stream"
+      }
+    }
+  }
 }

@@ -1,4 +1,30 @@
 {
   "lexicon": 1,
-  "id": "app.rocksky.googledrive.getFile"
+  "id": "app.rocksky.googledrive.getFile",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get a file from Google Drive by its unique identifier",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "fileId"
+        ],
+        "properties": {
+          "fileId": {
+            "type": "string",
+            "description": "The unique identifier of the file to retrieve",
+            "format": "at-uri"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "ref",
+          "ref": "app.rocksky.googledrive.defs#fileView"
+        }
+      }
+    }
+  }
 }

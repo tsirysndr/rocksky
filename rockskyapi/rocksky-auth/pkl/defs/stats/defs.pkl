@@ -1,0 +1,31 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.stats.defs"
+defs = new Mapping<String, ObjectType> {
+  ["statsView"] {
+    type = "object"
+    properties {
+      ["scrobbles"] = new IntegerType {
+        type = "integer"
+        description = "The total number of scrobbles."
+      }
+      ["artists"] = new IntegerType {
+        type = "integer"
+        description = "The total number of unique artists scrobbled."
+      }
+      ["lovedTracks"] = new IntegerType {
+        type = "integer"
+        description = "The total number of tracks marked as loved."
+      }
+      ["albums"] = new IntegerType {
+        type = "integer"
+        description = "The total number of unique albums scrobbled."
+      }
+      ["tracks"] = new IntegerType {
+        type = "integer"
+        description = "The total number of unique tracks scrobbled."
+      }
+    }
+  }
+}

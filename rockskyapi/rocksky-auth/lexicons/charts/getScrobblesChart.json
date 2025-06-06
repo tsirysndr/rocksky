@@ -1,4 +1,27 @@
 {
   "lexicon": 1,
-  "id": "app.rocksky.charts.getScrobblesChart"
+  "id": "app.rocksky.charts.getScrobblesChart",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get the scrobbles chart",
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "did": {
+            "type": "string",
+            "description": "The DID or handle of the actor",
+            "format": "at-identifier"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "ref",
+          "ref": "app.rocksky.charts.defs#chartsView"
+        }
+      }
+    }
+  }
 }

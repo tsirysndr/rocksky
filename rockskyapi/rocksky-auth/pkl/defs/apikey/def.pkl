@@ -3,7 +3,7 @@ amends  "../../schema/lexicon.pkl"
 lexicon = 1
 id = "app.rocksky.apikey.defs"
 defs = new Mapping<String, ObjectType> {
-  ["apiKey"] {
+  ["apiKeyView"] {
     type = "object"
     properties {
       ["id"] = new StringType {

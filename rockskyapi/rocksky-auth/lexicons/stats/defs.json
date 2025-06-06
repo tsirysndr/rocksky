@@ -1,0 +1,31 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.stats.defs",
+  "defs": {
+    "statsView": {
+      "type": "object",
+      "properties": {
+        "scrobbles": {
+          "type": "integer",
+          "description": "The total number of scrobbles."
+        },
+        "artists": {
+          "type": "integer",
+          "description": "The total number of unique artists scrobbled."
+        },
+        "lovedTracks": {
+          "type": "integer",
+          "description": "The total number of tracks marked as loved."
+        },
+        "albums": {
+          "type": "integer",
+          "description": "The total number of unique albums scrobbled."
+        },
+        "tracks": {
+          "type": "integer",
+          "description": "The total number of unique tracks scrobbled."
+        }
+      }
+    }
+  }
+}

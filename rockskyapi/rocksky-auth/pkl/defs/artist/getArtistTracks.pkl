@@ -22,11 +22,15 @@ defs = new Mapping<String, Query> {
     }
     output {
       encoding = "application/json"
-      schema = new Array {
-        type = "array"
-        items = new Ref {
-          type = "ref"
-          ref = "app.rocksky.song.defs#songViewBasic"
+      schema = new ObjectType {
+        type = "object"
+        properties = new Mapping<String, Array> {
+          ["tracks"] = new Array {
+            type = "array"
+            items = new Ref {
+              ref = "app.rocksky.song.defs#songViewBasic"
+            }
+          }
         }
       }
     }

@@ -1,4 +1,0 @@
-amends  "../../schema/lexicon.pkl"
-
-lexicon = 1
-id = "app.rocksky.like.defs"

@@ -1,0 +1,41 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.stats.getStats",
+  "defs": {
+    "main": {
+      "type": "query",
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "songUri": {
+            "type": "string",
+            "description": "The URI of the song to get stats for.",
+            "format": "at-uri"
+          },
+          "artistUri": {
+            "type": "string",
+            "description": "The URI of the artist to get stats for.",
+            "format": "at-uri"
+          },
+          "albumUri": {
+            "type": "string",
+            "description": "The URI of the album to get stats for.",
+            "format": "at-uri"
+          },
+          "did": {
+            "type": "string",
+            "description": "The DID or handle of the user to get stats for.",
+            "format": "at-identifier"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "ref",
+          "ref": "app.rocksky.stats.defs#statsView"
+        }
+      }
+    }
+  }
+}

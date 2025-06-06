@@ -1,0 +1,27 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.feed.getNowPlayings",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get all currently playing tracks by users",
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "size": {
+            "type": "integer",
+            "description": "The maximum number of now playing tracks to return.",
+            "minimum": 1
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "ref",
+          "ref": "app.rocksky.feed.defs#nowPlayingsView"
+        }
+      }
+    }
+  }
+}

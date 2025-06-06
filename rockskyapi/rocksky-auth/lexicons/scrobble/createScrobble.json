@@ -1,4 +1,38 @@
 {
   "lexicon": 1,
-  "id": "app.rocksky.scrobble.createScrobble"
+  "id": "app.rocksky.scrobble.createScrobble",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Create a new scrobble",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [
+            "trackId",
+            "timestamp"
+          ],
+          "properties": {
+            "trackId": {
+              "type": "string",
+              "description": "The ID of the track being scrobbled",
+              "format": "at-identifier"
+            },
+            "timestamp": {
+              "type": "integer",
+              "description": "The timestamp of the scrobble in milliseconds since epoch"
+            }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "ref",
+          "ref": "app.rocksky.scrobble.defs#scrobbleViewBasic"
+        }
+      }
+    }
+  }
 }

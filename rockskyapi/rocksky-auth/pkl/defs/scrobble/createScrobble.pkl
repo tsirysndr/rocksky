@@ -2,3 +2,34 @@ amends  "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.scrobble.createScrobble"
+defs = new Mapping<String, Procedure> {
+  ["main"] {
+    type = "procedure"
+    description = "Create a new scrobble"
+    input {
+      encoding = "application/json"
+      schema {
+        type = "object"
+        properties  {
+          ["trackId"] = new StringType {
+            type = "string"
+            description = "The ID of the track being scrobbled"
+            format = "at-identifier"
+          }
+          ["timestamp"] = new IntegerType {
+            type = "integer"
+            description = "The timestamp of the scrobble in milliseconds since epoch"
+          }
+        }
+        required = List("trackId", "timestamp")
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new Ref {
+        type = "ref"
+        ref = "app.rocksky.scrobble.defs#scrobbleViewBasic"
+      }
+    }
+  }
+}

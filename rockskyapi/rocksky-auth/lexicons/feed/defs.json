@@ -1,4 +1,115 @@
 {
   "lexicon": 1,
-  "id": "app.rocksky.feed.defs"
+  "id": "app.rocksky.feed.defs",
+  "defs": {
+    "searchResultsView": {
+      "type": "object",
+      "properties": {
+        "artists": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.artist.defs#artistViewBasic"
+          }
+        },
+        "tracks": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.song.defs#songViewBasic"
+          }
+        },
+        "albums": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.album.defs#albumViewBasic"
+          }
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.actor.defs#profileViewBasic"
+          }
+        },
+        "playlists": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.playlist.defs#playlistViewBasic"
+          }
+        }
+      }
+    },
+    "nowPlayingView": {
+      "type": "object",
+      "properties": {
+        "album": {
+          "type": "string"
+        },
+        "album_art": {
+          "type": "string",
+          "format": "uri"
+        },
+        "album_artist": {
+          "type": "string"
+        },
+        "album_uri": {
+          "type": "string",
+          "format": "at-uri"
+        },
+        "artist": {
+          "type": "string"
+        },
+        "artist_uri": {
+          "type": "string",
+          "format": "at-uri"
+        },
+        "avatar": {
+          "type": "string",
+          "format": "uri"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "did": {
+          "type": "string",
+          "format": "at-identifier"
+        },
+        "handle": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "track_id": {
+          "type": "string"
+        },
+        "track_uri": {
+          "type": "string",
+          "format": "at-uri"
+        },
+        "uri": {
+          "type": "string",
+          "format": "at-uri"
+        }
+      }
+    },
+    "nowPlayingsView": {
+      "type": "object",
+      "properties": {
+        "nowPlayings": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.feed.defs#nowPlayingView"
+          }
+        }
+      }
+    }
+  }
 }

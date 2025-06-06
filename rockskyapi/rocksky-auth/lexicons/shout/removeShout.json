@@ -1,4 +1,32 @@
 {
   "lexicon": 1,
-  "id": "app.rocksky.shout.removeShout"
+  "id": "app.rocksky.shout.removeShout",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Remove a shout by its ID",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [
+            "id"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "The unique identifier of the shout to be removed"
+            }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "ref",
+          "ref": "app.rocksky.shout.defs#shoutView"
+        }
+      }
+    }
+  }
 }

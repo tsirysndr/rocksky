@@ -56,8 +56,8 @@ class Input {
 }
 
 class Output {
-  encoding: "application/json"
-  schema: ObjectType | Array | Ref
+  encoding: "application/json" | "application/octet-stream"
+  schema: ObjectType | Ref | Array | Null = null
 }
 
 class Query extends BaseType {
