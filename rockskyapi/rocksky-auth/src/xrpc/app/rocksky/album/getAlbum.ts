@@ -4,7 +4,7 @@ import { Effect, pipe } from "effect";
 import { Server } from "lexicon";
 import { AlbumViewDetailed } from "lexicon/types/app/rocksky/album/defs";
 import { QueryParams } from "lexicon/types/app/rocksky/album/getAlbum";
-import { dedupeTracksKeepLyrics, deepSnakeCaseKeys } from "lib";
+import { dedupeTracksKeepLyrics } from "lib";
 import * as R from "ramda";
 import tables from "schema";
 import { SelectAlbum } from "schema/albums";
@@ -82,10 +82,8 @@ const presentation = ([album, tracks]: [
   SelectAlbum,
   SelectTrack[],
 ]): Effect.Effect<AlbumViewDetailed, never> => {
-  return Effect.sync(() =>
-    deepSnakeCaseKeys({
-      ...album,
-      tracks,
-    })
-  );
+  return Effect.sync(() => ({
+    ...album,
+    tracks,
+  }));
 };

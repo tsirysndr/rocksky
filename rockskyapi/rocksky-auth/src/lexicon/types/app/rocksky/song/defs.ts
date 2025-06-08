@@ -14,9 +14,9 @@ export interface SongViewBasic {
   /** The artist of the song. */
   artist?: string
   /** The artist of the album the song belongs to. */
-  album_artist?: string
+  albumArtist?: string
   /** The URL of the album art image. */
-  album_art?: string
+  albumArt?: string
   /** The URI of the song. */
   uri?: string
   /** The album of the song. */
@@ -24,21 +24,21 @@ export interface SongViewBasic {
   /** The duration of the song in milliseconds. */
   duration?: number
   /** The track number of the song in the album. */
-  track_number?: number
+  trackNumber?: number
   /** The disc number of the song in the album. */
-  disc_number?: number
+  discNumber?: number
   /** The number of times the song has been played. */
-  play_count?: number
+  playCount?: number
   /** The number of unique listeners who have played the song. */
-  unique_listeners?: number
+  uniqueListeners?: number
   /** The URI of the album the song belongs to. */
-  album_uri?: string
+  albumUri?: string
   /** The URI of the artist of the song. */
-  artist_uri?: string
+  artistUri?: string
   /** The SHA256 hash of the song. */
   sha256?: string
   /** The timestamp when the song was created. */
-  created_at?: string
+  createdAt?: string
   [k: string]: unknown
 }
 
@@ -62,9 +62,9 @@ export interface SongViewDetailed {
   /** The artist of the song. */
   artist?: string
   /** The artist of the album the song belongs to. */
-  album_artist?: string
+  albumArtist?: string
   /** The URL of the album art image. */
-  album_art?: string
+  albumArt?: string
   /** The URI of the song. */
   uri?: string
   /** The album of the song. */
@@ -72,21 +72,21 @@ export interface SongViewDetailed {
   /** The duration of the song in milliseconds. */
   duration?: number
   /** The track number of the song in the album. */
-  track_number?: number
+  trackNumber?: number
   /** The disc number of the song in the album. */
-  disc_number?: number
+  discNumber?: number
   /** The number of times the song has been played. */
-  play_count?: number
+  playCount?: number
   /** The number of unique listeners who have played the song. */
-  unique_listeners?: number
+  uniqueListeners?: number
   /** The URI of the album the song belongs to. */
-  album_uri?: string
+  albumUri?: string
   /** The URI of the artist of the song. */
-  artist_uri?: string
+  artistUri?: string
   /** The SHA256 hash of the song. */
   sha256?: string
   /** The timestamp when the song was created. */
-  created_at?: string
+  createdAt?: string
   [k: string]: unknown
 }
 

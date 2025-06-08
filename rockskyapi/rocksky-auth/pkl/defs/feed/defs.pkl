@@ -51,21 +51,21 @@ defs = new Mapping<String, ObjectType> {
       ["album"] = new StringType {
         type = "string"
       }
-      ["album_art"] = new StringType {
+      ["albumArt"] = new StringType {
         type = "string"
         format = "uri"
       }
-      ["album_artist"] = new StringType {
+      ["albumArtist"] = new StringType {
         type = "string"
       }
-      ["album_uri"] = new StringType {
+      ["albumUri"] = new StringType {
         type = "string"
         format = "at-uri"
       }
       ["artist"] = new StringType {
         type = "string"
       }
-      ["artist_uri"] = new StringType {
+      ["artistUri"] = new StringType {
         type = "string"
         format = "at-uri"
       }
@@ -73,7 +73,7 @@ defs = new Mapping<String, ObjectType> {
         type = "string"
         format = "uri"
       }
-      ["created_at"] = new StringType {
+      ["createdAt"] = new StringType {
         type = "string"
       }
       ["did"] = new StringType {
@@ -89,10 +89,10 @@ defs = new Mapping<String, ObjectType> {
       ["title"] = new StringType {
         type = "string"
       }
-      ["track_id"] = new StringType {
+      ["trackId"] = new StringType {
         type = "string"
       }
-      ["track_uri"] = new StringType {
+      ["trackUri"] = new StringType {
         type = "string"
         format = "at-uri"
       }

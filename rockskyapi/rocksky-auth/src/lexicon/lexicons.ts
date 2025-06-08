@@ -492,7 +492,7 @@ export const schemaDict = {
             type: 'string',
             description: 'The artist of the album.',
           },
-          artist_uri: {
+          artistUri: {
             type: 'string',
             description: "The URI of the album's artist.",
             format: 'at-uri',
@@ -501,12 +501,12 @@ export const schemaDict = {
             type: 'integer',
             description: 'The year the album was released.',
           },
-          album_art: {
+          albumArt: {
             type: 'string',
             description: 'The URL of the album art image.',
             format: 'uri',
           },
-          release_date: {
+          releaseDate: {
             type: 'string',
             description: 'The release date of the album.',
           },
@@ -514,12 +514,12 @@ export const schemaDict = {
             type: 'string',
             description: 'The SHA256 hash of the album.',
           },
-          play_count: {
+          playCount: {
             type: 'integer',
             description: 'The number of times the album has been played.',
             minimum: 0,
           },
-          unique_listeners: {
+          uniqueListeners: {
             type: 'integer',
             description:
               'The number of unique listeners who have played the album.',
@@ -547,7 +547,7 @@ export const schemaDict = {
             type: 'string',
             description: 'The artist of the album.',
           },
-          artist_uri: {
+          artistUri: {
             type: 'string',
             description: "The URI of the album's artist.",
             format: 'at-uri',
@@ -556,12 +556,12 @@ export const schemaDict = {
             type: 'integer',
             description: 'The year the album was released.',
           },
-          album_art: {
+          albumArt: {
             type: 'string',
             description: 'The URL of the album art image.',
             format: 'uri',
           },
-          release_date: {
+          releaseDate: {
             type: 'string',
             description: 'The release date of the album.',
           },
@@ -569,12 +569,12 @@ export const schemaDict = {
             type: 'string',
             description: 'The SHA256 hash of the album.',
           },
-          play_count: {
+          playCount: {
             type: 'integer',
             description: 'The number of times the album has been played.',
             minimum: 0,
           },
-          unique_listeners: {
+          uniqueListeners: {
             type: 'integer',
             description:
               'The number of unique listeners who have played the album.',
@@ -957,12 +957,12 @@ export const schemaDict = {
             type: 'string',
             description: 'The SHA256 hash of the artist.',
           },
-          play_count: {
+          playCount: {
             type: 'integer',
             description: 'The number of times the artist has been played.',
             minimum: 0,
           },
-          unique_listeners: {
+          uniqueListeners: {
             type: 'integer',
             description:
               'The number of unique listeners who have played the artist.',
@@ -994,12 +994,12 @@ export const schemaDict = {
             type: 'string',
             description: 'The SHA256 hash of the artist.',
           },
-          play_count: {
+          playCount: {
             type: 'integer',
             description: 'The number of times the artist has been played.',
             minimum: 0,
           },
-          unique_listeners: {
+          uniqueListeners: {
             type: 'integer',
             description:
               'The number of unique listeners who have played the artist.',
@@ -1427,21 +1427,21 @@ export const schemaDict = {
           album: {
             type: 'string',
           },
-          album_art: {
+          albumArt: {
             type: 'string',
             format: 'uri',
           },
-          album_artist: {
+          albumArtist: {
             type: 'string',
           },
-          album_uri: {
+          albumUri: {
             type: 'string',
             format: 'at-uri',
           },
           artist: {
             type: 'string',
           },
-          artist_uri: {
+          artistUri: {
             type: 'string',
             format: 'at-uri',
           },
@@ -1449,7 +1449,7 @@ export const schemaDict = {
             type: 'string',
             format: 'uri',
           },
-          created_at: {
+          createdAt: {
             type: 'string',
           },
           did: {
@@ -1465,10 +1465,10 @@ export const schemaDict = {
           title: {
             type: 'string',
           },
-          track_id: {
+          trackId: {
             type: 'string',
           },
-          track_uri: {
+          trackUri: {
             type: 'string',
             format: 'at-uri',
           },
@@ -3027,11 +3027,11 @@ export const schemaDict = {
             type: 'string',
             description: 'The artist of the song.',
           },
-          album_artist: {
+          albumArtist: {
             type: 'string',
             description: 'The artist of the album the song belongs to.',
           },
-          album_art: {
+          albumArt: {
             type: 'string',
             description: 'The URL of the album art image.',
             format: 'uri',
@@ -3049,31 +3049,31 @@ export const schemaDict = {
             type: 'integer',
             description: 'The duration of the song in milliseconds.',
           },
-          track_number: {
+          trackNumber: {
             type: 'integer',
             description: 'The track number of the song in the album.',
           },
-          disc_number: {
+          discNumber: {
             type: 'integer',
             description: 'The disc number of the song in the album.',
           },
-          play_count: {
+          playCount: {
             type: 'integer',
             description: 'The number of times the song has been played.',
             minimum: 0,
           },
-          unique_listeners: {
+          uniqueListeners: {
             type: 'integer',
             description:
               'The number of unique listeners who have played the song.',
             minimum: 0,
           },
-          album_uri: {
+          albumUri: {
             type: 'string',
             description: 'The URI of the album the song belongs to.',
             format: 'at-uri',
           },
-          artist_uri: {
+          artistUri: {
             type: 'string',
             description: 'The URI of the artist of the song.',
             format: 'at-uri',
@@ -3082,7 +3082,7 @@ export const schemaDict = {
             type: 'string',
             description: 'The SHA256 hash of the song.',
           },
-          created_at: {
+          createdAt: {
             type: 'string',
             description: 'The timestamp when the song was created.',
             format: 'datetime',
@@ -3104,11 +3104,11 @@ export const schemaDict = {
             type: 'string',
             description: 'The artist of the song.',
           },
-          album_artist: {
+          albumArtist: {
             type: 'string',
             description: 'The artist of the album the song belongs to.',
           },
-          album_art: {
+          albumArt: {
             type: 'string',
             description: 'The URL of the album art image.',
             format: 'uri',
@@ -3126,31 +3126,31 @@ export const schemaDict = {
             type: 'integer',
             description: 'The duration of the song in milliseconds.',
           },
-          track_number: {
+          trackNumber: {
             type: 'integer',
             description: 'The track number of the song in the album.',
           },
-          disc_number: {
+          discNumber: {
             type: 'integer',
             description: 'The disc number of the song in the album.',
           },
-          play_count: {
+          playCount: {
             type: 'integer',
             description: 'The number of times the song has been played.',
             minimum: 0,
           },
-          unique_listeners: {
+          uniqueListeners: {
             type: 'integer',
             description:
               'The number of unique listeners who have played the song.',
             minimum: 0,
           },
-          album_uri: {
+          albumUri: {
             type: 'string',
             description: 'The URI of the album the song belongs to.',
             format: 'at-uri',
           },
-          artist_uri: {
+          artistUri: {
             type: 'string',
             description: 'The URI of the artist of the song.',
             format: 'at-uri',
@@ -3159,7 +3159,7 @@ export const schemaDict = {
             type: 'string',
             description: 'The SHA256 hash of the song.',
           },
-          created_at: {
+          createdAt: {
             type: 'string',
             description: 'The timestamp when the song was created.',
             format: 'datetime',

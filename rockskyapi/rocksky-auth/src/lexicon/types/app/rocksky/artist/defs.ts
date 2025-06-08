@@ -18,9 +18,9 @@ export interface ArtistViewBasic {
   /** The SHA256 hash of the artist. */
   sha256?: string
   /** The number of times the artist has been played. */
-  play_count?: number
+  playCount?: number
   /** The number of unique listeners who have played the artist. */
-  unique_listeners?: number
+  uniqueListeners?: number
   [k: string]: unknown
 }
 
@@ -48,9 +48,9 @@ export interface ArtistViewDetailed {
   /** The SHA256 hash of the artist. */
   sha256?: string
   /** The number of times the artist has been played. */
-  play_count?: number
+  playCount?: number
   /** The number of unique listeners who have played the artist. */
-  unique_listeners?: number
+  uniqueListeners?: number
   [k: string]: unknown
 }
 

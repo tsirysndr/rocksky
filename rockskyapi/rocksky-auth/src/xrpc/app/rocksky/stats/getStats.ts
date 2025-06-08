@@ -3,6 +3,7 @@ import { Effect, pipe } from "effect";
 import { Server } from "lexicon";
 import { StatsView } from "lexicon/types/app/rocksky/stats/defs";
 import { QueryParams } from "lexicon/types/app/rocksky/stats/getStats";
+import { deepCamelCaseKeys } from "lib";
 
 export default function (server: Server, ctx: Context) {
   const getStats = (params) =>
@@ -38,16 +39,8 @@ const retrieve = ({
   });
 };
 
-const presentation = ({
-  data: { scrobbles, artists, loved_tracks, albums, tracks },
-}: Stats): Effect.Effect<StatsView, never> => {
-  return Effect.sync(() => ({
-    scrobbles,
-    artists,
-    lovedTracks: loved_tracks,
-    albums,
-    tracks,
-  }));
+const presentation = ({ data }: Stats): Effect.Effect<StatsView, never> => {
+  return Effect.sync(() => deepCamelCaseKeys(data));
 };
 
 type Stats = {

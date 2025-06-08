@@ -26,12 +26,12 @@
           "type": "string",
           "description": "The SHA256 hash of the artist."
         },
-        "play_count": {
+        "playCount": {
           "type": "integer",
           "description": "The number of times the artist has been played.",
           "minimum": 0
         },
-        "unique_listeners": {
+        "uniqueListeners": {
           "type": "integer",
           "description": "The number of unique listeners who have played the artist.",
           "minimum": 0
@@ -62,12 +62,12 @@
           "type": "string",
           "description": "The SHA256 hash of the artist."
         },
-        "play_count": {
+        "playCount": {
           "type": "integer",
           "description": "The number of times the artist has been played.",
           "minimum": 0
         },
-        "unique_listeners": {
+        "uniqueListeners": {
           "type": "integer",
           "description": "The number of unique listeners who have played the artist.",
           "minimum": 0

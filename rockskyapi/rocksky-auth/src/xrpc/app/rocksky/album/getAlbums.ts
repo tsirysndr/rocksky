@@ -3,6 +3,7 @@ import { Effect, pipe } from "effect";
 import { Server } from "lexicon";
 import { AlbumViewBasic } from "lexicon/types/app/rocksky/album/defs";
 import { QueryParams } from "lexicon/types/app/rocksky/album/getAlbums";
+import { deepCamelCaseKeys } from "lib";
 
 export default function (server: Server, ctx: Context) {
   const getAlbums = (params) =>
@@ -52,7 +53,7 @@ const presentation = ({
 }: {
   data: Album[];
 }): Effect.Effect<{ albums: AlbumViewBasic[] }, never> => {
-  return Effect.sync(() => ({ albums: data }));
+  return Effect.sync(() => ({ albums: deepCamelCaseKeys(data) }));
 };
 
 type Album = {

@@ -32,13 +32,13 @@ defs = new Mapping<String, ObjectType> {
         description = "The SHA256 hash of the artist."
       }
 
-      ["play_count"] = new IntegerType {
+      ["playCount"] = new IntegerType {
         type = "integer"
         description = "The number of times the artist has been played."
         minimum = 0
       }
 
-      ["unique_listeners"] = new IntegerType {
+      ["uniqueListeners"] = new IntegerType {
         type = "integer"
         description = "The number of unique listeners who have played the artist."
         minimum = 0
@@ -76,13 +76,13 @@ defs = new Mapping<String, ObjectType> {
         description = "The SHA256 hash of the artist."
       }
 
-      ["play_count"] = new IntegerType {
+      ["playCount"] = new IntegerType {
         type = "integer"
         description = "The number of times the artist has been played."
         minimum = 0
       }
 
-      ["unique_listeners"] = new IntegerType {
+      ["uniqueListeners"] = new IntegerType {
         type = "integer"
         description = "The number of unique listeners who have played the artist."
         minimum = 0

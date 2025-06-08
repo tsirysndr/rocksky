@@ -27,7 +27,7 @@ defs = new Mapping<String, ObjectType> {
         description = "The artist of the album."
       }
 
-      ["artist_uri"] = new StringType {
+      ["artistUri"] = new StringType {
         type = "string"
         format = "at-uri"
         description = "The URI of the album's artist."
@@ -38,13 +38,13 @@ defs = new Mapping<String, ObjectType> {
         description = "The year the album was released."
       }
 
-      ["album_art"] = new StringType {
+      ["albumArt"] = new StringType {
         type = "string"
         format = "uri"
         description = "The URL of the album art image."
       }
 
-      ["release_date"] = new StringType {
+      ["releaseDate"] = new StringType {
         type = "string"
         description = "The release date of the album."
       }
@@ -54,13 +54,13 @@ defs = new Mapping<String, ObjectType> {
         description = "The SHA256 hash of the album."
       }
 
-      ["play_count"] = new IntegerType {
+      ["playCount"] = new IntegerType {
         type = "integer"
         description = "The number of times the album has been played."
         minimum = 0
       }
 
-      ["unique_listeners"] = new IntegerType {
+      ["uniqueListeners"] = new IntegerType {
         type = "integer"
         description = "The number of unique listeners who have played the album."
         minimum = 0
@@ -91,7 +91,7 @@ defs = new Mapping<String, ObjectType> {
         description = "The artist of the album."
       }
 
-      ["artist_uri"] = new StringType {
+      ["artistUri"] = new StringType {
         type = "string"
         format = "at-uri"
         description = "The URI of the album's artist."
@@ -102,13 +102,13 @@ defs = new Mapping<String, ObjectType> {
         description = "The year the album was released."
       }
 
-      ["album_art"] = new StringType {
+      ["albumArt"] = new StringType {
         type = "string"
         format = "uri"
         description = "The URL of the album art image."
       }
 
-      ["release_date"] = new StringType {
+      ["releaseDate"] = new StringType {
         type = "string"
         description = "The release date of the album."
       }
@@ -118,13 +118,13 @@ defs = new Mapping<String, ObjectType> {
         description = "The SHA256 hash of the album."
       }
 
-      ["play_count"] = new IntegerType {
+      ["playCount"] = new IntegerType {
         type = "integer"
         description = "The number of times the album has been played."
         minimum = 0
       }
 
-      ["unique_listeners"] = new IntegerType {
+      ["uniqueListeners"] = new IntegerType {
         type = "integer"
         description = "The number of unique listeners who have played the album."
         minimum = 0

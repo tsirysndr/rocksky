@@ -34,19 +34,19 @@ export function validateSearchResultsView(v: unknown): ValidationResult {
 
 export interface NowPlayingView {
   album?: string
-  album_art?: string
-  album_artist?: string
-  album_uri?: string
+  albumArt?: string
+  albumArtist?: string
+  albumUri?: string
   artist?: string
-  artist_uri?: string
+  artistUri?: string
   avatar?: string
-  created_at?: string
+  createdAt?: string
   did?: string
   handle?: string
   id?: string
   title?: string
-  track_id?: string
-  track_uri?: string
+  trackId?: string
+  trackUri?: string
   uri?: string
   [k: string]: unknown
 }

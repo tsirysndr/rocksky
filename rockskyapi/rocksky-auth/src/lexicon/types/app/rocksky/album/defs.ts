@@ -17,19 +17,19 @@ export interface AlbumViewBasic {
   /** The artist of the album. */
   artist?: string
   /** The URI of the album's artist. */
-  artist_uri?: string
+  artistUri?: string
   /** The year the album was released. */
   year?: number
   /** The URL of the album art image. */
-  album_art?: string
+  albumArt?: string
   /** The release date of the album. */
-  release_date?: string
+  releaseDate?: string
   /** The SHA256 hash of the album. */
   sha256?: string
   /** The number of times the album has been played. */
-  play_count?: number
+  playCount?: number
   /** The number of unique listeners who have played the album. */
-  unique_listeners?: number
+  uniqueListeners?: number
   [k: string]: unknown
 }
 
@@ -55,19 +55,19 @@ export interface AlbumViewDetailed {
   /** The artist of the album. */
   artist?: string
   /** The URI of the album's artist. */
-  artist_uri?: string
+  artistUri?: string
   /** The year the album was released. */
   year?: number
   /** The URL of the album art image. */
-  album_art?: string
+  albumArt?: string
   /** The release date of the album. */
-  release_date?: string
+  releaseDate?: string
   /** The SHA256 hash of the album. */
   sha256?: string
   /** The number of times the album has been played. */
-  play_count?: number
+  playCount?: number
   /** The number of unique listeners who have played the album. */
-  unique_listeners?: number
+  uniqueListeners?: number
   tracks?: AppRockskySongDefsSongViewBasic.Main[]
   [k: string]: unknown
 }

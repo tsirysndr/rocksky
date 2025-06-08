@@ -22,7 +22,7 @@
           "type": "string",
           "description": "The artist of the album."
         },
-        "artist_uri": {
+        "artistUri": {
           "type": "string",
           "description": "The URI of the album's artist.",
           "format": "at-uri"
@@ -31,12 +31,12 @@
           "type": "integer",
           "description": "The year the album was released."
         },
-        "album_art": {
+        "albumArt": {
           "type": "string",
           "description": "The URL of the album art image.",
           "format": "uri"
         },
-        "release_date": {
+        "releaseDate": {
           "type": "string",
           "description": "The release date of the album."
         },
@@ -44,12 +44,12 @@
           "type": "string",
           "description": "The SHA256 hash of the album."
         },
-        "play_count": {
+        "playCount": {
           "type": "integer",
           "description": "The number of times the album has been played.",
           "minimum": 0
         },
-        "unique_listeners": {
+        "uniqueListeners": {
           "type": "integer",
           "description": "The number of unique listeners who have played the album.",
           "minimum": 0
@@ -76,7 +76,7 @@
           "type": "string",
           "description": "The artist of the album."
         },
-        "artist_uri": {
+        "artistUri": {
           "type": "string",
           "description": "The URI of the album's artist.",
           "format": "at-uri"
@@ -85,12 +85,12 @@
           "type": "integer",
           "description": "The year the album was released."
         },
-        "album_art": {
+        "albumArt": {
           "type": "string",
           "description": "The URL of the album art image.",
           "format": "uri"
         },
-        "release_date": {
+        "releaseDate": {
           "type": "string",
           "description": "The release date of the album."
         },
@@ -98,12 +98,12 @@
           "type": "string",
           "description": "The SHA256 hash of the album."
         },
-        "play_count": {
+        "playCount": {
           "type": "integer",
           "description": "The number of times the album has been played.",
           "minimum": 0
         },
-        "unique_listeners": {
+        "uniqueListeners": {
           "type": "integer",
           "description": "The number of unique listeners who have played the album.",
           "minimum": 0

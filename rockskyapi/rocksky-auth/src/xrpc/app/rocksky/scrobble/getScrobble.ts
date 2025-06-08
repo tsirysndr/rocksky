@@ -4,6 +4,7 @@ import { Effect, pipe } from "effect";
 import { Server } from "lexicon";
 import { ScrobbleViewDetailed } from "lexicon/types/app/rocksky/scrobble/defs";
 import { QueryParams } from "lexicon/types/app/rocksky/scrobble/getScrobble";
+import * as R from "ramda";
 import tables from "schema";
 import { SelectScrobble } from "schema/scrobbles";
 import { SelectTrack } from "schema/tracks";
@@ -92,18 +93,14 @@ const presentation = ([
   never
 > => {
   return Effect.sync(() => ({
+    ...R.omit(["albumArt", "id"], tracks),
     cover: tracks.albumArt,
-    artist: tracks.artist,
-    title: tracks.title,
     date: scrobbles.timestamp.toISOString(),
     user: users.handle,
     uri: scrobbles.uri,
-    albumUri: tracks.albumUri,
-    artistUri: tracks.artistUri,
     tags: [],
     listeners,
     scrobbles: scrobblesCount,
-    sha256: tracks.sha256,
     id: scrobbles.id,
   }));
 };

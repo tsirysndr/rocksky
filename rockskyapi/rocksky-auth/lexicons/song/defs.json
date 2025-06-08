@@ -17,11 +17,11 @@
           "type": "string",
           "description": "The artist of the song."
         },
-        "album_artist": {
+        "albumArtist": {
           "type": "string",
           "description": "The artist of the album the song belongs to."
         },
-        "album_art": {
+        "albumArt": {
           "type": "string",
           "description": "The URL of the album art image.",
           "format": "uri"
@@ -39,30 +39,30 @@
           "type": "integer",
           "description": "The duration of the song in milliseconds."
         },
-        "track_number": {
+        "trackNumber": {
           "type": "integer",
           "description": "The track number of the song in the album."
         },
-        "disc_number": {
+        "discNumber": {
           "type": "integer",
           "description": "The disc number of the song in the album."
         },
-        "play_count": {
+        "playCount": {
           "type": "integer",
           "description": "The number of times the song has been played.",
           "minimum": 0
         },
-        "unique_listeners": {
+        "uniqueListeners": {
           "type": "integer",
           "description": "The number of unique listeners who have played the song.",
           "minimum": 0
         },
-        "album_uri": {
+        "albumUri": {
           "type": "string",
           "description": "The URI of the album the song belongs to.",
           "format": "at-uri"
         },
-        "artist_uri": {
+        "artistUri": {
           "type": "string",
           "description": "The URI of the artist of the song.",
           "format": "at-uri"
@@ -71,7 +71,7 @@
           "type": "string",
           "description": "The SHA256 hash of the song."
         },
-        "created_at": {
+        "createdAt": {
           "type": "string",
           "description": "The timestamp when the song was created.",
           "format": "datetime"
@@ -93,11 +93,11 @@
           "type": "string",
           "description": "The artist of the song."
         },
-        "album_artist": {
+        "albumArtist": {
           "type": "string",
           "description": "The artist of the album the song belongs to."
         },
-        "album_art": {
+        "albumArt": {
           "type": "string",
           "description": "The URL of the album art image.",
           "format": "uri"
@@ -115,30 +115,30 @@
           "type": "integer",
           "description": "The duration of the song in milliseconds."
         },
-        "track_number": {
+        "trackNumber": {
           "type": "integer",
           "description": "The track number of the song in the album."
         },
-        "disc_number": {
+        "discNumber": {
           "type": "integer",
           "description": "The disc number of the song in the album."
         },
-        "play_count": {
+        "playCount": {
           "type": "integer",
           "description": "The number of times the song has been played.",
           "minimum": 0
         },
-        "unique_listeners": {
+        "uniqueListeners": {
           "type": "integer",
           "description": "The number of unique listeners who have played the song.",
           "minimum": 0
         },
-        "album_uri": {
+        "albumUri": {
           "type": "string",
           "description": "The URI of the album the song belongs to.",
           "format": "at-uri"
         },
-        "artist_uri": {
+        "artistUri": {
           "type": "string",
           "description": "The URI of the artist of the song.",
           "format": "at-uri"
@@ -147,7 +147,7 @@
           "type": "string",
           "description": "The SHA256 hash of the song."
         },
-        "created_at": {
+        "createdAt": {
           "type": "string",
           "description": "The timestamp when the song was created.",
           "format": "datetime"

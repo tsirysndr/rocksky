@@ -4,6 +4,7 @@ import { Effect, pipe } from "effect";
 import { Server } from "lexicon";
 import { ScrobbleViewBasic } from "lexicon/types/app/rocksky/scrobble/defs";
 import { QueryParams } from "lexicon/types/app/rocksky/scrobble/getScrobbles";
+import * as R from "ramda";
 import tables from "schema";
 import { SelectScrobble } from "schema/scrobbles";
 import { SelectTrack } from "schema/tracks";
@@ -61,16 +62,12 @@ const presentation = (
 ): Effect.Effect<{ scrobbles: ScrobbleViewBasic[] }, never> => {
   return Effect.sync(() => ({
     scrobbles: data.map(({ scrobbles, tracks, users }) => ({
+      ...R.omit(["albumArt", "id"])(tracks),
       cover: tracks.albumArt,
-      artist: tracks.artist,
-      title: tracks.title,
       date: scrobbles.timestamp.toISOString(),
       user: users.handle,
       uri: scrobbles.uri,
-      albumUri: tracks.albumUri,
-      artistUri: tracks.artistUri,
       tags: [],
-      sha256: tracks.sha256,
       id: scrobbles.id,
     })),
   }));
