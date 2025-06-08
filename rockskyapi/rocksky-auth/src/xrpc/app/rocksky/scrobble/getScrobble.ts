@@ -60,7 +60,7 @@ const retrieve = ({
             tables.scrobbles,
             eq(tables.userTracks.trackId, tables.scrobbles.trackId)
           )
-          .where(eq(tables.scrobbles.uri, params.uri))
+          .where(eq(tables.userTracks.trackId, scrobble?.tracks.id))
           .execute()
           .then((rows) => rows[0]?.count || 0),
         // count the number of scrobbles
