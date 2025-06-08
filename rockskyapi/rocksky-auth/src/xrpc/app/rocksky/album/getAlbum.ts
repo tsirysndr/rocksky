@@ -20,7 +20,7 @@ export default function (server: Server, ctx: Context) {
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
         console.error(err);
-        return Effect.succeed({ albums: [] });
+        return Effect.succeed({});
       })
     );
   server.app.rocksky.album.getAlbum({
@@ -75,13 +75,13 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
         ctx.db
           .select({ count: count() })
           .from(tables.userAlbums)
-          .where(eq(tables.userAlbums.albumId, album.id))
+          .where(eq(tables.userAlbums.albumId, album?.id))
           .execute()
           .then((rows) => rows[0]?.count || 0),
         ctx.db
           .select({ count: count() })
           .from(tables.scrobbles)
-          .where(eq(tables.scrobbles.albumId, album.id))
+          .where(eq(tables.scrobbles.albumId, album?.id))
           .execute()
           .then((rows) => rows[0]?.count || 0),
       ]);
