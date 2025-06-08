@@ -20,6 +20,7 @@ const tracks = pgTable("tracks", {
   lyrics: text("lyrics"),
   composer: text("composer"),
   genre: text("genre"),
+  label: text("label"),
   copyrightMessage: text("copyright_message"),
   uri: text("uri").unique(),
   albumUri: text("album_uri").unique(),
