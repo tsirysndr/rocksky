@@ -101,5 +101,6 @@ const presentation = ([album, tracks, uniqueListeners, playCount]: [
     tracks,
     playCount,
     uniqueListeners,
+    createdAt: album.createdAt.toISOString(),
   }));
 };
