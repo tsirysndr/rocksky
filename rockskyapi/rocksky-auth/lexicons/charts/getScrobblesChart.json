@@ -12,6 +12,21 @@
             "type": "string",
             "description": "The DID or handle of the actor",
             "format": "at-identifier"
+          },
+          "artisturi": {
+            "type": "string",
+            "description": "The URI of the artist to filter by",
+            "format": "at-uri"
+          },
+          "albumuri": {
+            "type": "string",
+            "description": "The URI of the album to filter by",
+            "format": "at-uri"
+          },
+          "songuri": {
+            "type": "string",
+            "description": "The URI of the track to filter by",
+            "format": "at-uri"
           }
         }
       },

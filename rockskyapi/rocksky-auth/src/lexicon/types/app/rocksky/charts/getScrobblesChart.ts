@@ -12,6 +12,12 @@ import * as AppRockskyChartsDefs from './defs'
 export interface QueryParams {
   /** The DID or handle of the actor */
   did?: string
+  /** The URI of the artist to filter by */
+  artisturi?: string
+  /** The URI of the album to filter by */
+  albumuri?: string
+  /** The URI of the track to filter by */
+  songuri?: string
 }
 
 export type InputSchema = undefined
