@@ -5,7 +5,7 @@ import { StatsView } from "lexicon/types/app/rocksky/stats/defs";
 import { QueryParams } from "lexicon/types/app/rocksky/stats/getStats";
 
 export default function (server: Server, ctx: Context) {
-  const getStats = (params, ctx) =>
+  const getStats = (params) =>
     pipe(
       { params, ctx },
       retrieve,
@@ -16,7 +16,7 @@ export default function (server: Server, ctx: Context) {
     );
   server.app.rocksky.stats.getStats({
     handler: async ({ params }) => {
-      const result = await Effect.runPromise(getStats(params, ctx));
+      const result = await Effect.runPromise(getStats(params));
       return {
         encoding: "application/json",
         body: result,
