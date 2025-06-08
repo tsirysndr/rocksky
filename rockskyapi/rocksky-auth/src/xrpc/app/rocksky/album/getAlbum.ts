@@ -64,7 +64,8 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
           .where(eq(tables.albumTracks.albumId, album.id))
           .execute()
           .then((rows) => rows.map((data) => data.tracks))
-          .then(dedupeTracksKeepLyrics),
+          .then(dedupeTracksKeepLyrics)
+          .then((tracks) => tracks.map((track) => R.omit(["lyrics"], track))),
       ]);
     },
     catch: (error) => new Error(`Failed to retrieve album: ${error}`),
