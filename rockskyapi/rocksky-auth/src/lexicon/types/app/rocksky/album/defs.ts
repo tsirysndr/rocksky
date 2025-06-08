@@ -5,6 +5,7 @@ import { ValidationResult, BlobRef } from '@atproto/lexicon'
 import { lexicons } from '../../../../lexicons'
 import { isObj, hasProp } from '../../../../util'
 import { CID } from 'multiformats/cid'
+import * as AppRockskySongDefsSongViewBasic from '../song/defs/songViewBasic'
 
 export interface AlbumViewBasic {
   /** The unique identifier of the album. */
@@ -67,6 +68,7 @@ export interface AlbumViewDetailed {
   play_count?: number
   /** The number of unique listeners who have played the album. */
   unique_listeners?: number
+  tracks?: AppRockskySongDefsSongViewBasic.Main[]
   [k: string]: unknown
 }
 

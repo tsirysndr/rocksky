@@ -580,6 +580,13 @@ export const schemaDict = {
               'The number of unique listeners who have played the album.',
             minimum: 0,
           },
+          tracks: {
+            type: 'array',
+            items: {
+              type: 'ref',
+              ref: 'lex:app.rocksky.song.defs.songViewBasic',
+            },
+          },
         },
       },
     },

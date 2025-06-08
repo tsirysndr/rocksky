@@ -1,3 +1,4 @@
+import albumTracks from "./album-tracks";
 import albums from "./albums";
 import apiKeys from "./api-keys";
 import artists from "./artists";
@@ -32,4 +33,5 @@ export default {
   userAlbums,
   userArtists,
   userTracks,
+  albumTracks,
 };

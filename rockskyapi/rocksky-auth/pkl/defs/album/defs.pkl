@@ -129,6 +129,14 @@ defs = new Mapping<String, ObjectType> {
         description = "The number of unique listeners who have played the album."
         minimum = 0
       }
+
+      ["tracks"] = new Array {
+        type = "array"
+        items = new Ref {
+          type = "ref"
+          ref = "app.rocksky.song.defs.songViewBasic"
+        }
+      }
     }
   }
 }
