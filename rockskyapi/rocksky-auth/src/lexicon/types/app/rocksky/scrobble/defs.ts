@@ -67,6 +67,10 @@ export interface ScrobbleViewDetailed {
   uri?: string
   /** The SHA256 hash of the scrobble data. */
   sha256?: string
+  /** The number of listeners */
+  listeners?: number
+  /** The number of scrobbles for this song */
+  scrobbles?: number
   [k: string]: unknown
 }
 

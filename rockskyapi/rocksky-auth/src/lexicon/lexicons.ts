@@ -2397,6 +2397,14 @@ export const schemaDict = {
             type: 'string',
             description: 'The SHA256 hash of the scrobble data.',
           },
+          listeners: {
+            type: 'integer',
+            description: 'The number of listeners',
+          },
+          scrobbles: {
+            type: 'integer',
+            description: 'The number of scrobbles for this song',
+          },
         },
       },
     },

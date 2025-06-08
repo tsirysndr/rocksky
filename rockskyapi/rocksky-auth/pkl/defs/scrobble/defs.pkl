@@ -127,6 +127,16 @@ defs = new Mapping<String, ObjectType> {
         type = "string"
         description = "The SHA256 hash of the scrobble data."
       }
+
+      ["listeners"] = new IntegerType {
+        type = "integer"
+        description = "The number of listeners"
+      }
+
+      ["scrobbles"] = new IntegerType {
+        type = "integer"
+        description = "The number of scrobbles for this song"
+      }
     }
   }
 }

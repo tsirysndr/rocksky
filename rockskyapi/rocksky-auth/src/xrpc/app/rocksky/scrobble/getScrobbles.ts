@@ -10,7 +10,7 @@ import { SelectTrack } from "schema/tracks";
 import { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
-  const getScrobbles = (params, ctx) =>
+  const getScrobbles = (params) =>
     pipe(
       { params, ctx },
       retrieve,
@@ -24,7 +24,7 @@ export default function (server: Server, ctx: Context) {
     );
   server.app.rocksky.scrobble.getScrobbles({
     handler: async ({ params }) => {
-      const result = await Effect.runPromise(getScrobbles(params, ctx));
+      const result = await Effect.runPromise(getScrobbles(params));
       return {
         encoding: "application/json",
         body: result,
@@ -58,7 +58,7 @@ const retrieve = ({
 
 const presentation = (
   data: Scrobbles
-): Effect.Effect<ScrobbleViewBasic, never> => {
+): Effect.Effect<{ scrobbles: ScrobbleViewBasic[] }, never> => {
   return Effect.sync(() => ({
     scrobbles: data.map(({ scrobbles, tracks, users }) => ({
       cover: tracks.albumArt,
@@ -70,7 +70,6 @@ const presentation = (
       albumUri: tracks.albumUri,
       artistUri: tracks.artistUri,
       tags: [],
-      listeners: 1,
       sha256: tracks.sha256,
       id: scrobbles.id,
     })),

@@ -9,6 +9,9 @@ import shoutLikes from "./shout-likes";
 import shoutReports from "./shout-reports";
 import shouts from "./shouts";
 import tracks from "./tracks";
+import userAlbums from "./user-albums";
+import userArtists from "./user-artists";
+import userTracks from "./user-tracks";
 import users from "./users";
 import webscrobblers from "./webscrobblers";
 
@@ -26,4 +29,7 @@ export default {
   playlistTracks,
   apiKeys,
   webscrobblers,
+  userAlbums,
+  userArtists,
+  userTracks,
 };
