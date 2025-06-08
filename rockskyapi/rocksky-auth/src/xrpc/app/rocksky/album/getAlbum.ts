@@ -4,7 +4,7 @@ import { Effect, pipe } from "effect";
 import { Server } from "lexicon";
 import { AlbumViewDetailed } from "lexicon/types/app/rocksky/album/defs";
 import { QueryParams } from "lexicon/types/app/rocksky/album/getAlbum";
-import _ from "lodash";
+import { dedupeTracksKeepLyrics, deepSnakeCaseKeys } from "lib";
 import * as R from "ramda";
 import tables from "schema";
 import { SelectAlbum } from "schema/albums";
@@ -82,44 +82,4 @@ const presentation = ([album, tracks]: [
       tracks,
     })
   );
-};
-
-const dedupeTracksKeepLyrics = (tracks) => {
-  const trackMap = new Map();
-
-  for (const track of tracks) {
-    const key = `${track.discNumber} - ${track.trackNumber}`;
-
-    if (!key) continue;
-
-    const existing = trackMap.get(key);
-
-    // If current has lyrics and either no existing or existing has no lyrics, replace it
-    if (!existing || (!existing.lyrics && track.lyrics)) {
-      trackMap.set(key, track);
-    }
-  }
-
-  return Array.from(trackMap.values());
-};
-
-type AnyObject = Record<string, any>;
-
-const isObject = (val: unknown): val is AnyObject =>
-  typeof val === "object" && val !== null && !Array.isArray(val);
-
-const deepSnakeCaseKeys = <T>(obj: T): any => {
-  if (Array.isArray(obj)) {
-    return obj.map(deepSnakeCaseKeys);
-  } else if (isObject(obj)) {
-    return R.pipe(
-      R.toPairs,
-      R.map(
-        ([key, value]) =>
-          [_.snakeCase(String(key)), deepSnakeCaseKeys(value)] as [string, any]
-      ),
-      R.fromPairs
-    )(obj as object);
-  }
-  return obj;
 };
