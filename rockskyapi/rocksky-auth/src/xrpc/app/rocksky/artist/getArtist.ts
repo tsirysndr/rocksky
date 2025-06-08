@@ -81,5 +81,6 @@ const presentation = ([artist, uniqueListeners, playCount]: [
     playCount,
     uniqueListeners,
     createdAt: artist.createdAt.toISOString(),
+    updatedAt: artist.updatedAt.toISOString(),
   }));
 };
