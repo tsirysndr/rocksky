@@ -65,7 +65,13 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
           .execute()
           .then((rows) => rows.map((data) => data.tracks))
           .then(dedupeTracksKeepLyrics)
-          .then((tracks) => tracks.map((track) => R.omit(["lyrics"], track))),
+          .then((tracks) =>
+            tracks.map((track) => ({
+              ...R.omit(["lyrics"], track),
+              created_at: track.createdAt.toISOString(),
+              updated_at: track.updatedAt.toISOString(),
+            }))
+          ),
       ]);
     },
     catch: (error) => new Error(`Failed to retrieve album: ${error}`),
