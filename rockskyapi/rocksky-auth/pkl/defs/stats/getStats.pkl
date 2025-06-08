@@ -7,22 +7,8 @@ defs = new Mapping<String, Query> {
     type = "query"
     parameters {
       type = "params"
+      required = List("did")
       properties {
-        ["songUri"] = new StringType {
-          type = "string"
-          description = "The URI of the song to get stats for."
-          format = "at-uri"
-        }
-        ["artistUri"] = new StringType {
-          type = "string"
-          description = "The URI of the artist to get stats for."
-          format = "at-uri"
-        }
-        ["albumUri"] = new StringType {
-          type = "string"
-          description = "The URI of the album to get stats for."
-          format = "at-uri"
-        }
         ["did"] = new StringType {
           type = "string"
           description = "The DID or handle of the user to get stats for."

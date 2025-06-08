@@ -13,8 +13,7 @@
         "properties": {
           "fileId": {
             "type": "string",
-            "description": "The unique identifier of the file to download",
-            "format": "at-uri"
+            "description": "The unique identifier of the file to download"
           }
         }
       },

@@ -1,7 +1,7 @@
 amends  "../../schema/lexicon.pkl"
 
 lexicon = 1
-id = "app.rocksky.actor.getActorPlayists"
+id = "app.rocksky.actor.getActorPlaylists"
 defs = new Mapping<String, Query> {
   ["main"] {
     type = "query"

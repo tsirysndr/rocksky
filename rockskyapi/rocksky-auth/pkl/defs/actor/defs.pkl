@@ -6,6 +6,11 @@ defs = new Mapping<String, ObjectType> {
   ["profileViewDetailed"] {
     type = "object"
     properties {
+      ["id"] = new StringType {
+        type = "string"
+        description = "The unique identifier of the actor."
+      }
+
       ["did"] = new StringType {
         type = "string"
         description = "The DID of the actor."
@@ -21,7 +26,7 @@ defs = new Mapping<String, ObjectType> {
         description = "The display name of the actor."
       }
 
-      ["avatarUrl"] = new StringType {
+      ["avatar"] = new StringType {
         type = "string"
         format = "uri"
         description = "The URL of the actor's avatar image."
@@ -32,11 +37,23 @@ defs = new Mapping<String, ObjectType> {
         format = "datetime"
         description = "The date and time when the actor was created."
       }
+
+      ["updatedAt"] = new StringType {
+        type = "string"
+        format = "datetime"
+        description = "The date and time when the actor was last updated."
+      }
+
     }
   }
   ["profileViewBasic"] {
     type = "object"
     properties {
+      ["id"] = new StringType {
+        type = "string"
+        description = "The unique identifier of the actor."
+      }
+
       ["did"] = new StringType {
         type = "string"
         description = "The DID of the actor."
@@ -52,10 +69,22 @@ defs = new Mapping<String, ObjectType> {
         description = "The display name of the actor."
       }
 
-      ["avatarUrl"] = new StringType {
+      ["avatar"] = new StringType {
         type = "string"
         format = "uri"
         description = "The URL of the actor's avatar image."
+      }
+
+      ["createdAt"] = new StringType {
+        type = "string"
+        format = "datetime"
+        description = "The date and time when the actor was created."
+      }
+
+      ["updatedAt"] = new StringType {
+        type = "string"
+        format = "datetime"
+        description = "The date and time when the actor was last updated."
       }
     }
   }

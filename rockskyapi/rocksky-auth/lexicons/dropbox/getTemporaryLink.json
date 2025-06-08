@@ -13,8 +13,7 @@
         "properties": {
           "path": {
             "type": "string",
-            "description": "Path to the file in Dropbox",
-            "format": "at-uri"
+            "description": "Path to the file in Dropbox"
           }
         }
       },

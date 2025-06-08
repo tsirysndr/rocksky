@@ -1,5 +1,6 @@
 import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
+import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import albums from "./albums";
 import artists from "./artists";
 import tracks from "./tracks";
@@ -15,5 +16,8 @@ const scrobbles = pgTable("scrobbles", {
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
   timestamp: timestamp("timestamp").defaultNow().notNull(),
 });
+
+export type SelectScrobble = InferSelectModel<typeof scrobbles>;
+export type InsertScrobble = InferInsertModel<typeof scrobbles>;
 
 export default scrobbles;

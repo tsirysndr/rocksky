@@ -9,20 +9,14 @@ import { CID } from 'multiformats/cid'
 import { HandlerAuth, HandlerPipeThrough } from '@atproto/xrpc-server'
 import * as AppRockskyShoutDefs from './defs'
 
-export interface QueryParams {}
-
-export interface InputSchema {
-  /** The unique identifier of the shout to be removed */
+export interface QueryParams {
+  /** The ID of the shout to be removed */
   id: string
-  [k: string]: unknown
 }
 
+export type InputSchema = undefined
 export type OutputSchema = AppRockskyShoutDefs.ShoutView
-
-export interface HandlerInput {
-  encoding: 'application/json'
-  body: InputSchema
-}
+export type HandlerInput = undefined
 
 export interface HandlerSuccess {
   encoding: 'application/json'

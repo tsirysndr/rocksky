@@ -6,22 +6,10 @@
       "type": "query",
       "parameters": {
         "type": "params",
+        "required": [
+          "did"
+        ],
         "properties": {
-          "songUri": {
-            "type": "string",
-            "description": "The URI of the song to get stats for.",
-            "format": "at-uri"
-          },
-          "artistUri": {
-            "type": "string",
-            "description": "The URI of the artist to get stats for.",
-            "format": "at-uri"
-          },
-          "albumUri": {
-            "type": "string",
-            "description": "The URI of the album to get stats for.",
-            "format": "at-uri"
-          },
           "did": {
             "type": "string",
             "description": "The DID or handle of the user to get stats for.",

@@ -1,3 +1,4 @@
+import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 const dropboxTokens = pgTable("dropbox_tokens", {
@@ -6,5 +7,8 @@ const dropboxTokens = pgTable("dropbox_tokens", {
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
   updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
 });
+
+export type SelectDropboxToken = InferSelectModel<typeof dropboxTokens>;
+export type InsertDropboxToken = InferInsertModel<typeof dropboxTokens>;
 
 export default dropboxTokens;

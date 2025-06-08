@@ -11,7 +11,7 @@ import * as AppRockskyGoogledriveDefs from './defs'
 
 export interface QueryParams {
   /** Path to the Google Drive folder or root directory */
-  at: string
+  at?: string
 }
 
 export type InputSchema = undefined

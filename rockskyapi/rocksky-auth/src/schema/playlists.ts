@@ -1,3 +1,4 @@
+import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import users from "./users";
 
@@ -16,5 +17,8 @@ const playlists = pgTable("playlists", {
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
   updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
 });
+
+export type SelectPlaylist = InferSelectModel<typeof playlists>;
+export type InsertPlaylist = InferInsertModel<typeof playlists>;
 
 export default playlists;

@@ -7,7 +7,6 @@ defs = new Mapping<String, Query> {
     type = "query"
     description = "Get a list of files from Google Drive"
     parameters = new Params {
-      required = List("at")
       properties {
         ["at"] = new StringType {
           description = "Path to the Google Drive folder or root directory"

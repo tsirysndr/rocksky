@@ -1,12 +1,28 @@
+import { Context } from "context";
+import { pipe } from "effect";
 import { Server } from "lexicon";
 
-export default function (server: Server) {
+export default function (server: Server, ctx: Context) {
+  const getArtistTracks = (params) => pipe(params, retrieve, presentation);
   server.app.rocksky.artist.getArtistTracks({
     handler: async ({ params }) => {
+      const result = getArtistTracks(params);
       return {
         encoding: "application/json",
-        body: {},
+        body: result,
       };
     },
   });
 }
+
+const retrieve = () => {
+  // Logic to retrieve tracks for the artist
+  return [];
+};
+
+const presentation = (tracks) => {
+  // Logic to format the tracks for presentation
+  return {
+    tracks: [],
+  };
+};

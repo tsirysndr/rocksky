@@ -10,7 +10,7 @@ defs = new Mapping<String, Procedure> {
       encoding = "application/json"
       schema = new ObjectType {
         type = "object"
-        required = List("shoutId", "reason")
+        required = List("shoutId")
         properties {
           ["shoutId"] = new StringType {
             type = "string"

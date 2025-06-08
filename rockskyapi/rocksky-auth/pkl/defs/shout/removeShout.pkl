@@ -6,17 +6,14 @@ defs = new Mapping<String, Procedure> {
   ["main"] {
     type = "procedure"
     description = "Remove a shout by its ID"
-    input {
-      encoding = "application/json"
-      schema = new ObjectType {
-        type = "object"
-        properties {
-          ["id"] = new StringType {
-            type = "string"
-            description = "The unique identifier of the shout to be removed"
-          }
+    parameters {
+      type = "params"
+      required = List("id")
+      properties = new Mapping<String, StringType> {
+        ["id"] {
+          type = "string"
+          description = "The ID of the shout to be removed"
         }
-        required = List("id")
       }
     }
     output {

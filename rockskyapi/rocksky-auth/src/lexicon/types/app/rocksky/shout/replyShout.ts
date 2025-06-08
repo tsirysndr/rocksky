@@ -15,7 +15,7 @@ export interface InputSchema {
   /** The unique identifier of the shout to reply to */
   shoutId: string
   /** The content of the reply */
-  content: string
+  message: string
   [k: string]: unknown
 }
 

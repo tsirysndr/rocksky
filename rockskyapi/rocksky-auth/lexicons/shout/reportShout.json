@@ -10,8 +10,7 @@
         "schema": {
           "type": "object",
           "required": [
-            "shoutId",
-            "reason"
+            "shoutId"
           ],
           "properties": {
             "shoutId": {

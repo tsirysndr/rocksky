@@ -5,6 +5,10 @@
     "profileViewDetailed": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the actor."
+        },
         "did": {
           "type": "string",
           "description": "The DID of the actor."
@@ -17,7 +21,7 @@
           "type": "string",
           "description": "The display name of the actor."
         },
-        "avatarUrl": {
+        "avatar": {
           "type": "string",
           "description": "The URL of the actor's avatar image.",
           "format": "uri"
@@ -26,12 +30,21 @@
           "type": "string",
           "description": "The date and time when the actor was created.",
           "format": "datetime"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "The date and time when the actor was last updated.",
+          "format": "datetime"
         }
       }
     },
     "profileViewBasic": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the actor."
+        },
         "did": {
           "type": "string",
           "description": "The DID of the actor."
@@ -44,10 +57,20 @@
           "type": "string",
           "description": "The display name of the actor."
         },
-        "avatarUrl": {
+        "avatar": {
           "type": "string",
           "description": "The URL of the actor's avatar image.",
           "format": "uri"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The date and time when the actor was created.",
+          "format": "datetime"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "The date and time when the actor was last updated.",
+          "format": "datetime"
         }
       }
     }

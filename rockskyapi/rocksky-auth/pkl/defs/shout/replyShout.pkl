@@ -10,13 +10,13 @@ defs = new Mapping<String, Procedure> {
       encoding = "application/json"
       schema = new ObjectType {
         type = "object"
-        required = List("shoutId", "content")
+        required = List("shoutId", "message")
         properties {
           ["shoutId"] = new StringType {
             type = "string"
             description = "The unique identifier of the shout to reply to"
           }
-          ["content"] = new StringType {
+          ["message"] = new StringType {
             type = "string"
             description = "The content of the reply"
             minLength = 1

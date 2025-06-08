@@ -1,3 +1,4 @@
+import { InferSelectModel } from "drizzle-orm";
 import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import users from "./users";
 
@@ -13,5 +14,8 @@ const webscrobblers = pgTable("webscrobblers", {
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
   updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
 });
+
+export type SelectWebscrobblers = InferSelectModel<typeof webscrobblers>;
+export type InsertWebscrobblers = InferSelectModel<typeof webscrobblers>;
 
 export default webscrobblers;

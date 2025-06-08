@@ -11,14 +11,14 @@
           "type": "object",
           "required": [
             "shoutId",
-            "content"
+            "message"
           ],
           "properties": {
             "shoutId": {
               "type": "string",
               "description": "The unique identifier of the shout to reply to"
             },
-            "content": {
+            "message": {
               "type": "string",
               "description": "The content of the reply",
               "minLength": 1

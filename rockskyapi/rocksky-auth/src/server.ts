@@ -1,3 +1,4 @@
+import { ctx } from "context";
 import express from "express";
 import { createServer } from "lexicon";
 import API from "./xrpc";
@@ -11,7 +12,7 @@ let server = createServer({
   },
 });
 
-server = API(server);
+server = API(server, ctx);
 
 const app = express();
 app.use(server.xrpc.router);

@@ -10,14 +10,8 @@ import { HandlerAuth, HandlerPipeThrough } from '@atproto/xrpc-server'
 import * as AppRockskyStatsDefs from './defs'
 
 export interface QueryParams {
-  /** The URI of the song to get stats for. */
-  songUri?: string
-  /** The URI of the artist to get stats for. */
-  artistUri?: string
-  /** The URI of the album to get stats for. */
-  albumUri?: string
   /** The DID or handle of the user to get stats for. */
-  did?: string
+  did: string
 }
 
 export type InputSchema = undefined

@@ -1,6 +1,6 @@
 {
   "lexicon": 1,
-  "id": "app.rocksky.actor.getActorScrobbes",
+  "id": "app.rocksky.actor.getActorScrobbles",
   "defs": {
     "main": {
       "type": "query",

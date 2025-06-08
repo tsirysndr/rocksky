@@ -15,7 +15,7 @@ export interface InputSchema {
   /** The unique identifier of the shout to report */
   shoutId: string
   /** The reason for reporting the shout */
-  reason: string
+  reason?: string
   [k: string]: unknown
 }
 

@@ -1,3 +1,4 @@
+import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import shouts from "./shouts";
 import users from "./users";
@@ -12,5 +13,8 @@ const shoutReports = pgTable("shout_reports", {
     .references(() => shouts.id),
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
 });
+
+export type SelectShoutReport = InferSelectModel<typeof shoutReports>;
+export type InsertShoutReport = InferInsertModel<typeof shoutReports>;
 
 export default shoutReports;

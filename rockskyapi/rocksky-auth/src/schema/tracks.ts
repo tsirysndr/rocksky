@@ -1,3 +1,4 @@
+import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import { integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 const tracks = pgTable("tracks", {
@@ -26,5 +27,8 @@ const tracks = pgTable("tracks", {
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
   updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
 });
+
+export type SelectTrack = InferSelectModel<typeof tracks>;
+export type InsertTrack = InferInsertModel<typeof tracks>;
 
 export default tracks;

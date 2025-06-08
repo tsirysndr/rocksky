@@ -12,8 +12,8 @@ import { schemas } from './lexicons'
 import * as AppRockskyActorGetActorAlbums from './types/app/rocksky/actor/getActorAlbums'
 import * as AppRockskyActorGetActorArtists from './types/app/rocksky/actor/getActorArtists'
 import * as AppRockskyActorGetActorLovedSongs from './types/app/rocksky/actor/getActorLovedSongs'
-import * as AppRockskyActorGetActorPlayists from './types/app/rocksky/actor/getActorPlayists'
-import * as AppRockskyActorGetActorScrobbes from './types/app/rocksky/actor/getActorScrobbes'
+import * as AppRockskyActorGetActorPlaylists from './types/app/rocksky/actor/getActorPlaylists'
+import * as AppRockskyActorGetActorScrobbles from './types/app/rocksky/actor/getActorScrobbles'
 import * as AppRockskyActorGetActorSongs from './types/app/rocksky/actor/getActorSongs'
 import * as AppRockskyActorGetProfile from './types/app/rocksky/actor/getProfile'
 import * as AppRockskyAlbumGetAlbum from './types/app/rocksky/album/getAlbum'
@@ -178,25 +178,25 @@ export class AppRockskyActorNS {
     return this._server.xrpc.method(nsid, cfg)
   }
 
-  getActorPlayists<AV extends AuthVerifier>(
+  getActorPlaylists<AV extends AuthVerifier>(
     cfg: ConfigOf<
       AV,
-      AppRockskyActorGetActorPlayists.Handler<ExtractAuth<AV>>,
-      AppRockskyActorGetActorPlayists.HandlerReqCtx<ExtractAuth<AV>>
+      AppRockskyActorGetActorPlaylists.Handler<ExtractAuth<AV>>,
+      AppRockskyActorGetActorPlaylists.HandlerReqCtx<ExtractAuth<AV>>
     >,
   ) {
-    const nsid = 'app.rocksky.actor.getActorPlayists' // @ts-ignore
+    const nsid = 'app.rocksky.actor.getActorPlaylists' // @ts-ignore
     return this._server.xrpc.method(nsid, cfg)
   }
 
-  getActorScrobbes<AV extends AuthVerifier>(
+  getActorScrobbles<AV extends AuthVerifier>(
     cfg: ConfigOf<
       AV,
-      AppRockskyActorGetActorScrobbes.Handler<ExtractAuth<AV>>,
-      AppRockskyActorGetActorScrobbes.HandlerReqCtx<ExtractAuth<AV>>
+      AppRockskyActorGetActorScrobbles.Handler<ExtractAuth<AV>>,
+      AppRockskyActorGetActorScrobbles.HandlerReqCtx<ExtractAuth<AV>>
     >,
   ) {
-    const nsid = 'app.rocksky.actor.getActorScrobbes' // @ts-ignore
+    const nsid = 'app.rocksky.actor.getActorScrobbles' // @ts-ignore
     return this._server.xrpc.method(nsid, cfg)
   }
 

@@ -1,3 +1,4 @@
+import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import users from "./users";
 
@@ -14,5 +15,8 @@ const apiKeys = pgTable("api_keys", {
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
   updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
 });
+
+export type SelectApiKey = InferSelectModel<typeof apiKeys>;
+export type InsertApiKey = InferInsertModel<typeof apiKeys>;
 
 export default apiKeys;

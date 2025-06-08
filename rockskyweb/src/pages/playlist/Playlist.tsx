@@ -118,81 +118,51 @@ function Playlist() {
             <Group>
               {playlist.picture && <SongCover cover={playlist.picture!} />}
               {!playlist.picture && (
-                <div
-                  style={{
-                    width: 240,
-                    height: 240,
-                    marginRight: 12,
-                    borderRadius: 8,
-                    backgroundColor: "rgba(243, 243, 243, 0.725)",
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                >
-                  <div
-                    style={{
-                      height: 130,
-                      width: 130,
-                    }}
-                  >
+                <div className="w-[240px] h-[240px] mr-[12px] rounded-[8px] bg-[rgba(243, 243, 243, 0.725)] flex justify-center items-center">
+                  <div className="h-[130px] w-[130px]">
                     <Disc color="rgba(66, 87, 108, 0.65)" />
                   </div>
                 </div>
               )}
-              <div style={{ marginLeft: 20 }}>
-                <HeadingMedium margin={0}>{playlist.name}</HeadingMedium>
-                <div style={{ marginTop: 10 }}>
-                  <LabelMedium color="rgba(36, 49, 61, 0.65)">
+              <div className="ml-[20px]">
+                <HeadingMedium margin={0} className="!text-[var(--color-text)]">
+                  {playlist.name}
+                </HeadingMedium>
+                <div className="mt-[10px]">
+                  <LabelMedium className="!text-[var(--color-text-muted)]">
                     {playlist.tracks.length} Track
                     {playlist.tracks.length > 1 ? "s" : ""}
                   </LabelMedium>
                 </div>
-                <div style={{ marginTop: 40 }}>
-                  <LabelMedium>{playlist.description}</LabelMedium>
+                <div className="mt-[40px]">
+                  <LabelMedium className="!text-[var(--color-text-muted)]">
+                    {playlist.description}
+                  </LabelMedium>
                 </div>
-                <div
-                  style={{
-                    marginTop: 30,
-                    flex: 1,
-                    marginRight: 10,
-                  }}
-                >
+                <div className="flex items-center justify-end flex-1 mr-[10px]">
                   <a
                     href={`https://pdsls.dev/at/${uri}`}
                     target="_blank"
-                    style={{
-                      color: "#000",
-                      textDecoration: "none",
-                      padding: 16,
-                      backgroundColor: "rgba(0, 0, 0, 0.05)",
-                      fontWeight: 600,
-                      borderRadius: 10,
-                      paddingLeft: 25,
-                      paddingRight: 25,
-                    }}
+                    className="text-[var(--color-text)] no-underline p-[16px] bg-[var(--color-default-button)]  rounded-[10px] pl-[25px] pr-[25px]"
                   >
-                    <ExternalLink size={24} style={{ marginRight: 10 }} />
+                    <ExternalLink size={24} className="mr-[10px]" />
                     View on PDSls
                   </a>
                 </div>
               </div>
             </Group>
 
-            <Group style={{ marginBottom: 20 }}>
+            <Group className="mb-[20px]">
               <Avatar
                 name={playlist.curatedBy.displayName}
                 src={playlist.curatedBy.avatar}
                 size="45px"
               />
-              <div style={{ marginLeft: 10 }}>
-                <LabelMedium
-                  color="rgba(36, 49, 61, 0.65)"
-                  style={{ textTransform: "uppercase", fontSize: "12px" }}
-                >
+              <div className="ml-[10px]">
+                <LabelMedium className="!text-[var(--color-text-muted)] uppercase text-[12px]">
                   Curated By
                 </LabelMedium>
-                <LabelMedium style={{ fontSize: "14px" }}>
+                <LabelMedium className="!text-[var(--color-text)] text-[14px]">
                   <Link to={`/profile/${playlist.curatedBy.handle}`}>
                     {playlist.curatedBy.displayName}
                   </Link>
@@ -221,11 +191,30 @@ function Playlist() {
                 TableHeadRow: {
                   style: {
                     display: "none",
+                    backgroundColor: "var(--color-background) !important",
                   },
                 },
                 TableBodyCell: {
                   style: {
                     verticalAlign: "center",
+                  },
+                },
+                TableBodyRow: {
+                  style: {
+                    backgroundColor: "var(--color-background)",
+                    ":hover": {
+                      backgroundColor: "var(--color-menu-hover)",
+                    },
+                  },
+                },
+                TableEmptyMessage: {
+                  style: {
+                    backgroundColor: "var(--color-background)",
+                  },
+                },
+                Table: {
+                  style: {
+                    backgroundColor: "var(--color-background)",
                   },
                 },
               }}
@@ -242,14 +231,7 @@ function Playlist() {
                 }}
               >
                 {(row: Row) => (
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "row",
-                      alignItems: "center",
-                      flex: 1,
-                    }}
-                  >
+                  <div className="flex flex-row items-center flex-1">
                     {row.index + 1}
                   </div>
                 )}
@@ -265,41 +247,34 @@ function Playlist() {
                 }}
               >
                 {(row: Row) => (
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "row",
-                      alignItems: "center",
-                    }}
-                  >
+                  <div className="flex flex-row items-center">
                     <div>
                       <div>
                         {row.uri && (
-                          <Link to={`/${row.uri.split("at://")[1]}`}>
+                          <Link
+                            to={`/${row.uri.split("at://")[1]}`}
+                            className="!text-[var(--color-text)]"
+                          >
                             {row.title}
                           </Link>
                         )}
-                        {!row.uri && <div>{row.title}</div>}
+                        {!row.uri && (
+                          <div className="!text-[var(--color-text)]">
+                            {row.title}
+                          </div>
+                        )}
                       </div>
                       <div>
                         {row.artistUri && (
                           <Link
                             to={`/${row.artistUri.split("at://")[1]}`}
-                            style={{
-                              fontFamily: "RockfordSansLight",
-                              color: "rgba(36, 49, 61, 0.65)",
-                            }}
+                            className="!text-[var(--color-text-muted)]"
                           >
                             {row.albumArtist}
                           </Link>
                         )}
                         {!row.artistUri && (
-                          <div
-                            style={{
-                              fontFamily: "RockfordSansLight",
-                              color: "rgba(36, 49, 61, 0.65)",
-                            }}
-                          >
+                          <div className="!text-[var(--color-text-muted)]">
                             {row.albumArtist}
                           </div>
                         )}

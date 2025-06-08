@@ -11,6 +11,10 @@ export const schemaDict = {
       profileViewDetailed: {
         type: 'object',
         properties: {
+          id: {
+            type: 'string',
+            description: 'The unique identifier of the actor.',
+          },
           did: {
             type: 'string',
             description: 'The DID of the actor.',
@@ -23,7 +27,7 @@ export const schemaDict = {
             type: 'string',
             description: 'The display name of the actor.',
           },
-          avatarUrl: {
+          avatar: {
             type: 'string',
             description: "The URL of the actor's avatar image.",
             format: 'uri',
@@ -33,11 +37,20 @@ export const schemaDict = {
             description: 'The date and time when the actor was created.',
             format: 'datetime',
           },
+          updatedAt: {
+            type: 'string',
+            description: 'The date and time when the actor was last updated.',
+            format: 'datetime',
+          },
         },
       },
       profileViewBasic: {
         type: 'object',
         properties: {
+          id: {
+            type: 'string',
+            description: 'The unique identifier of the actor.',
+          },
           did: {
             type: 'string',
             description: 'The DID of the actor.',
@@ -50,10 +63,20 @@ export const schemaDict = {
             type: 'string',
             description: 'The display name of the actor.',
           },
-          avatarUrl: {
+          avatar: {
             type: 'string',
             description: "The URL of the actor's avatar image.",
             format: 'uri',
+          },
+          createdAt: {
+            type: 'string',
+            description: 'The date and time when the actor was created.',
+            format: 'datetime',
+          },
+          updatedAt: {
+            type: 'string',
+            description: 'The date and time when the actor was last updated.',
+            format: 'datetime',
           },
         },
       },
@@ -167,9 +190,9 @@ export const schemaDict = {
       },
     },
   },
-  AppRockskyActorGetActorPlayists: {
+  AppRockskyActorGetActorPlaylists: {
     lexicon: 1,
-    id: 'app.rocksky.actor.getActorPlayists',
+    id: 'app.rocksky.actor.getActorPlaylists',
     defs: {
       main: {
         type: 'query',
@@ -203,9 +226,9 @@ export const schemaDict = {
       },
     },
   },
-  AppRockskyActorGetActorScrobbes: {
+  AppRockskyActorGetActorScrobbles: {
     lexicon: 1,
-    id: 'app.rocksky.actor.getActorScrobbes',
+    id: 'app.rocksky.actor.getActorScrobbles',
     defs: {
       main: {
         type: 'query',
@@ -1258,7 +1281,6 @@ export const schemaDict = {
             fileId: {
               type: 'string',
               description: 'The unique identifier of the file to download',
-              format: 'at-uri',
             },
           },
         },
@@ -1273,16 +1295,14 @@ export const schemaDict = {
     id: 'app.rocksky.dropbox.getFiles',
     defs: {
       main: {
-        type: 'procedure',
+        type: 'query',
         description: 'Retrieve a list of files from Dropbox',
         parameters: {
           type: 'params',
-          required: ['at'],
           properties: {
             at: {
               type: 'string',
               description: 'Path to the Dropbox folder or root directory',
-              format: 'at-uri',
             },
           },
         },
@@ -1310,7 +1330,6 @@ export const schemaDict = {
             path: {
               type: 'string',
               description: 'Path to the file or folder in Dropbox',
-              format: 'at-uri',
             },
           },
         },
@@ -1338,7 +1357,6 @@ export const schemaDict = {
             path: {
               type: 'string',
               description: 'Path to the file in Dropbox',
-              format: 'at-uri',
             },
           },
         },
@@ -1564,7 +1582,6 @@ export const schemaDict = {
             fileId: {
               type: 'string',
               description: 'The unique identifier of the file to download',
-              format: 'at-uri',
             },
           },
         },
@@ -1588,7 +1605,6 @@ export const schemaDict = {
             fileId: {
               type: 'string',
               description: 'The unique identifier of the file to retrieve',
-              format: 'at-uri',
             },
           },
         },
@@ -1611,7 +1627,6 @@ export const schemaDict = {
         description: 'Get a list of files from Google Drive',
         parameters: {
           type: 'params',
-          required: ['at'],
           properties: {
             at: {
               type: 'string',
@@ -2236,12 +2251,23 @@ export const schemaDict = {
           encoding: 'application/json',
           schema: {
             type: 'object',
-            required: ['trackId', 'timestamp'],
+            required: ['title', 'artist'],
             properties: {
-              trackId: {
+              title: {
                 type: 'string',
-                description: 'The ID of the track being scrobbled',
-                format: 'at-identifier',
+                description: 'The title of the track being scrobbled',
+              },
+              artist: {
+                type: 'string',
+                description: 'The artist of the track being scrobbled',
+              },
+              album: {
+                type: 'string',
+                description: 'The album of the track being scrobbled',
+              },
+              duration: {
+                type: 'integer',
+                description: 'The duration of the track in seconds',
               },
               timestamp: {
                 type: 'integer',
@@ -2841,16 +2867,13 @@ export const schemaDict = {
       main: {
         type: 'procedure',
         description: 'Remove a shout by its ID',
-        input: {
-          encoding: 'application/json',
-          schema: {
-            type: 'object',
-            required: ['id'],
-            properties: {
-              id: {
-                type: 'string',
-                description: 'The unique identifier of the shout to be removed',
-              },
+        parameters: {
+          type: 'params',
+          required: ['id'],
+          properties: {
+            id: {
+              type: 'string',
+              description: 'The ID of the shout to be removed',
             },
           },
         },
@@ -2875,13 +2898,13 @@ export const schemaDict = {
           encoding: 'application/json',
           schema: {
             type: 'object',
-            required: ['shoutId', 'content'],
+            required: ['shoutId', 'message'],
             properties: {
               shoutId: {
                 type: 'string',
                 description: 'The unique identifier of the shout to reply to',
               },
-              content: {
+              message: {
                 type: 'string',
                 description: 'The content of the reply',
                 minLength: 1,
@@ -2910,7 +2933,7 @@ export const schemaDict = {
           encoding: 'application/json',
           schema: {
             type: 'object',
-            required: ['shoutId', 'reason'],
+            required: ['shoutId'],
             properties: {
               shoutId: {
                 type: 'string',
@@ -3639,22 +3662,8 @@ export const schemaDict = {
         type: 'query',
         parameters: {
           type: 'params',
+          required: ['did'],
           properties: {
-            songUri: {
-              type: 'string',
-              description: 'The URI of the song to get stats for.',
-              format: 'at-uri',
-            },
-            artistUri: {
-              type: 'string',
-              description: 'The URI of the artist to get stats for.',
-              format: 'at-uri',
-            },
-            albumUri: {
-              type: 'string',
-              description: 'The URI of the album to get stats for.',
-              format: 'at-uri',
-            },
             did: {
               type: 'string',
               description: 'The DID or handle of the user to get stats for.',
@@ -3702,8 +3711,8 @@ export const ids = {
   AppRockskyActorGetActorAlbums: 'app.rocksky.actor.getActorAlbums',
   AppRockskyActorGetActorArtists: 'app.rocksky.actor.getActorArtists',
   AppRockskyActorGetActorLovedSongs: 'app.rocksky.actor.getActorLovedSongs',
-  AppRockskyActorGetActorPlayists: 'app.rocksky.actor.getActorPlayists',
-  AppRockskyActorGetActorScrobbes: 'app.rocksky.actor.getActorScrobbes',
+  AppRockskyActorGetActorPlaylists: 'app.rocksky.actor.getActorPlaylists',
+  AppRockskyActorGetActorScrobbles: 'app.rocksky.actor.getActorScrobbles',
   AppRockskyActorGetActorSongs: 'app.rocksky.actor.getActorSongs',
   AppRockskyActorGetProfile: 'app.rocksky.actor.getProfile',
   AppBskyActorProfile: 'app.bsky.actor.profile',

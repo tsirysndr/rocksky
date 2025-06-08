@@ -5,18 +5,15 @@
     "main": {
       "type": "procedure",
       "description": "Remove a shout by its ID",
-      "input": {
-        "encoding": "application/json",
-        "schema": {
-          "type": "object",
-          "required": [
-            "id"
-          ],
-          "properties": {
-            "id": {
-              "type": "string",
-              "description": "The unique identifier of the shout to be removed"
-            }
+      "parameters": {
+        "type": "params",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the shout to be removed"
           }
         }
       },

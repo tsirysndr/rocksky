@@ -1,3 +1,4 @@
+import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 const googleDriveTokens = pgTable("google_drive_tokens", {
@@ -6,5 +7,8 @@ const googleDriveTokens = pgTable("google_drive_tokens", {
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
   updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
 });
+
+export type SelectGoogleDriveToken = InferSelectModel<typeof googleDriveTokens>;
+export type InsertGoogleDriveToken = InferInsertModel<typeof googleDriveTokens>;
 
 export default googleDriveTokens;

@@ -12,10 +12,16 @@ import * as AppRockskyScrobbleDefs from './defs'
 export interface QueryParams {}
 
 export interface InputSchema {
-  /** The ID of the track being scrobbled */
-  trackId: string
+  /** The title of the track being scrobbled */
+  title: string
+  /** The artist of the track being scrobbled */
+  artist: string
+  /** The album of the track being scrobbled */
+  album?: string
+  /** The duration of the track in seconds */
+  duration?: number
   /** The timestamp of the scrobble in milliseconds since epoch */
-  timestamp: number
+  timestamp?: number
   [k: string]: unknown
 }
 

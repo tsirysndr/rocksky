@@ -7,6 +7,8 @@ import { isObj, hasProp } from '../../../../util'
 import { CID } from 'multiformats/cid'
 
 export interface ProfileViewDetailed {
+  /** The unique identifier of the actor. */
+  id?: string
   /** The DID of the actor. */
   did?: string
   /** The handle of the actor. */
@@ -14,9 +16,11 @@ export interface ProfileViewDetailed {
   /** The display name of the actor. */
   displayName?: string
   /** The URL of the actor's avatar image. */
-  avatarUrl?: string
+  avatar?: string
   /** The date and time when the actor was created. */
   createdAt?: string
+  /** The date and time when the actor was last updated. */
+  updatedAt?: string
   [k: string]: unknown
 }
 
@@ -33,6 +37,8 @@ export function validateProfileViewDetailed(v: unknown): ValidationResult {
 }
 
 export interface ProfileViewBasic {
+  /** The unique identifier of the actor. */
+  id?: string
   /** The DID of the actor. */
   did?: string
   /** The handle of the actor. */
@@ -40,7 +46,11 @@ export interface ProfileViewBasic {
   /** The display name of the actor. */
   displayName?: string
   /** The URL of the actor's avatar image. */
-  avatarUrl?: string
+  avatar?: string
+  /** The date and time when the actor was created. */
+  createdAt?: string
+  /** The date and time when the actor was last updated. */
+  updatedAt?: string
   [k: string]: unknown
 }
 

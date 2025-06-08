@@ -11,7 +11,7 @@ import * as AppRockskyDropboxDefs from './defs'
 
 export interface QueryParams {
   /** Path to the Dropbox folder or root directory */
-  at: string
+  at?: string
 }
 
 export type InputSchema = undefined

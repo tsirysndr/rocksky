@@ -3,18 +3,14 @@
   "id": "app.rocksky.dropbox.getFiles",
   "defs": {
     "main": {
-      "type": "procedure",
+      "type": "query",
       "description": "Retrieve a list of files from Dropbox",
       "parameters": {
         "type": "params",
-        "required": [
-          "at"
-        ],
         "properties": {
           "at": {
             "type": "string",
-            "description": "Path to the Dropbox folder or root directory",
-            "format": "at-uri"
+            "description": "Path to the Dropbox folder or root directory"
           }
         }
       },

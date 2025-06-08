@@ -2,16 +2,14 @@ amends  "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.dropbox.getFiles"
-defs = new Mapping<String, Procedure> {
+defs = new Mapping<String, Query> {
   ["main"] {
-    type = "procedure"
+    type = "query"
     description = "Retrieve a list of files from Dropbox"
     parameters {
-      required = List("at")
       properties {
         ["at"] = new StringType {
           description = "Path to the Dropbox folder or root directory"
-          format = "at-uri"
         }
       }
     }
