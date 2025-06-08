@@ -68,8 +68,8 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
           .then((tracks) =>
             tracks.map((track) => ({
               ...R.omit(["lyrics"], track),
-              created_at: track.createdAt.toISOString(),
-              updated_at: track.updatedAt.toISOString(),
+              createdAt: track.createdAt.toISOString(),
+              updatedAt: track.updatedAt.toISOString(),
             }))
           ),
       ]);
