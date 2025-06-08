@@ -1,5 +1,5 @@
 import { Context } from "context";
-import { eq, or } from "drizzle-orm";
+import { count, eq, or } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import { Server } from "lexicon";
 import { AlbumViewDetailed } from "lexicon/types/app/rocksky/album/defs";
@@ -72,18 +72,34 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
               updatedAt: track.updatedAt.toISOString(),
             }))
           ),
+        ctx.db
+          .select({ count: count() })
+          .from(tables.userAlbums)
+          .where(eq(tables.userAlbums.albumId, album.id))
+          .execute()
+          .then((rows) => rows[0]?.count || 0),
+        ctx.db
+          .select({ count: count() })
+          .from(tables.scrobbles)
+          .where(eq(tables.scrobbles.albumId, album.id))
+          .execute()
+          .then((rows) => rows[0]?.count || 0),
       ]);
     },
     catch: (error) => new Error(`Failed to retrieve album: ${error}`),
   });
 };
 
-const presentation = ([album, tracks]: [
+const presentation = ([album, tracks, uniqueListeners, playCount]: [
   SelectAlbum,
   SelectTrack[],
+  number,
+  number,
 ]): Effect.Effect<AlbumViewDetailed, never> => {
   return Effect.sync(() => ({
     ...album,
     tracks,
+    playCount,
+    uniqueListeners,
   }));
 };
