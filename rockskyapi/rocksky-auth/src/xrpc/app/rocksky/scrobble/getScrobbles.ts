@@ -62,7 +62,7 @@ const presentation = (
 ): Effect.Effect<{ scrobbles: ScrobbleViewBasic[] }, never> => {
   return Effect.sync(() => ({
     scrobbles: data.map(({ scrobbles, tracks, users }) => ({
-      ...R.omit(["albumArt", "id"])(tracks),
+      ...R.omit(["albumArt", "id", "lyrics"])(tracks),
       cover: tracks.albumArt,
       date: scrobbles.timestamp.toISOString(),
       user: users.handle,
