@@ -1,5 +1,5 @@
 import { Context } from "context";
-import { eq, or } from "drizzle-orm";
+import { desc, eq, or } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import { Server } from "lexicon";
 import { QueryParams } from "lexicon/types/app/rocksky/actor/getActorLovedSongs";
@@ -54,6 +54,9 @@ const retrieve = ({
             eq(tables.users.handle, params.did)
           )
         )
+        .limit(params.limit ?? 10)
+        .offset(params.offset ?? 0)
+        .orderBy(desc(tables.lovedTracks.createdAt))
         .execute()
         .then((rows) => rows.map((row) => row.tracks)),
     catch: (error) => new Error(`Failed to retrieve loved songs: ${error}`),
