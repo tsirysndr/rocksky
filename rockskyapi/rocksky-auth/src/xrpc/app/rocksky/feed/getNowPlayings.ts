@@ -43,9 +43,9 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
   });
 };
 
-const presentation = (
-  data
-): Effect.Effect<{ nowPlayings: NowPlayingView[] }, never> => {
+const presentation = ({
+  data,
+}): Effect.Effect<{ nowPlayings: NowPlayingView[] }, never> => {
   return Effect.sync(() => ({
     nowPlayings: deepCamelCaseKeys(data),
   }));
