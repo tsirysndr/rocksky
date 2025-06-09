@@ -8,7 +8,7 @@ const tracks = pgTable("tracks", {
   albumArtist: text("album_artist").notNull(),
   albumArt: text("album_art"),
   album: text("album").notNull(),
-  trackNumber: text("track_number"),
+  trackNumber: integer("track_number"),
   duration: integer("duration").notNull(),
   mbId: text("mb_id").unique(),
   youtubeLink: text("youtube_link").unique(),
