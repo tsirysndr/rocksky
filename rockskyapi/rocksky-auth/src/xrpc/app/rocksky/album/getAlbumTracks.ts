@@ -1,5 +1,5 @@
 import { Context } from "context";
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import { Server } from "lexicon";
 import { QueryParams } from "lexicon/types/app/rocksky/album/getAlbumTracks";
@@ -51,6 +51,7 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
           eq(tables.albums.id, tables.userAlbums.albumId)
         )
         .where(eq(tables.userAlbums.uri, params.uri))
+        .orderBy(asc(tables.tracks.discNumber), asc(tables.tracks.trackNumber))
         .execute()
         .then((rows) => rows.map((data) => data.tracks))
         .then(dedupeTracksKeepLyrics)

@@ -1,5 +1,5 @@
 import { Context } from "context";
-import { count, eq, or } from "drizzle-orm";
+import { asc, count, eq, or } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import { Server } from "lexicon";
 import { AlbumViewDetailed } from "lexicon/types/app/rocksky/album/defs";
@@ -62,6 +62,10 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
             eq(tables.albumTracks.trackId, tables.tracks.id)
           )
           .where(eq(tables.albumTracks.albumId, album.id))
+          .orderBy(
+            asc(tables.tracks.discNumber),
+            asc(tables.tracks.trackNumber)
+          )
           .execute()
           .then((rows) => rows.map((data) => data.tracks))
           .then(dedupeTracksKeepLyrics)
