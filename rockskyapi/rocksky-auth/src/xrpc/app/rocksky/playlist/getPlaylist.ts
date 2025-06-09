@@ -1,12 +1,31 @@
 import { Context } from "context";
-import { pipe } from "effect";
+import { asc, eq } from "drizzle-orm";
+import { Effect, pipe } from "effect";
 import { Server } from "lexicon";
+import { PlaylistViewDetailed } from "lexicon/types/app/rocksky/playlist/defs";
+import { QueryParams } from "lexicon/types/app/rocksky/playlist/getPlaylist";
+import * as R from "ramda";
+import tables from "schema";
+import { SelectPlaylist } from "schema/playlists";
+import { SelectTrack } from "schema/tracks";
+import { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
-  const getPlaylist = (params) => pipe(params, retrieve, presentation);
+  const getPlaylist = (params) =>
+    pipe(
+      { params, ctx },
+      retrieve,
+      Effect.flatMap(presentation),
+      Effect.retry({ times: 3 }),
+      Effect.timeout("10 seconds"),
+      Effect.catchAll((err) => {
+        console.error(err);
+        return Effect.succeed({});
+      })
+    );
   server.app.rocksky.playlist.getPlaylist({
     handler: async ({ params }) => {
-      const result = getPlaylist(params);
+      const result = await Effect.runPromise(getPlaylist(params));
       return {
         encoding: "application/json",
         body: result,
@@ -15,12 +34,74 @@ export default function (server: Server, ctx: Context) {
   });
 }
 
-const retrieve = () => {
-  // Logic to retrieve the playlist
-  return {};
+const retrieve = ({
+  params,
+  ctx,
+}: {
+  params: QueryParams;
+  ctx: Context;
+}): Effect.Effect<[Playlist, SelectTrack[]], Error> => {
+  return Effect.tryPromise({
+    try: async () =>
+      Promise.all([
+        ctx.db
+          .select()
+          .from(tables.userPlaylists)
+          .leftJoin(
+            tables.playlists,
+            eq(tables.userPlaylists.playlistId, tables.playlists.id)
+          )
+          .leftJoin(
+            tables.users,
+            eq(tables.userPlaylists.userId, tables.users.id)
+          )
+          .where(eq(tables.playlists.uri, params.uri))
+          .execute()
+          .then(([row]) => row),
+        ctx.db
+          .select()
+          .from(tables.playlistTracks)
+          .leftJoin(
+            tables.tracks,
+            eq(tables.playlistTracks.trackId, tables.tracks.id)
+          )
+          .leftJoin(
+            tables.playlists,
+            eq(tables.playlistTracks.playlistId, tables.playlists.id)
+          )
+          .where(eq(tables.playlists.uri, params.uri))
+          .orderBy(asc(tables.playlistTracks.createdAt))
+          .execute()
+          .then((rows) => rows.map((row) => row.tracks)),
+      ]),
+    catch: (error) => new Error(`Failed to retrieve playlist: ${error}`),
+  });
 };
 
-const presentation = (playlist) => {
-  // Logic to format the playlist for presentation
-  return {};
+const presentation = ([playlist, tracks]: [
+  Playlist,
+  SelectTrack[],
+]): Effect.Effect<PlaylistViewDetailed, never> => {
+  return Effect.sync(() => ({
+    ...R.omit(["name", "picture"], playlist.playlists),
+    tracks: tracks.map((track) => ({
+      ...track,
+      createdAt: track.createdAt.toISOString(),
+      updatedAt: track.updatedAt.toISOString(),
+    })),
+    title: playlist.playlists.name,
+    coverImageUrl: playlist.playlists.picture,
+    curatorDId: playlist.users.did,
+    curatorName: playlist.users.displayName,
+    curatorAvatarUrl: playlist.users.avatar,
+    curatorHandle: playlist.users.handle,
+
+    createdAt: playlist.playlists.createdAt.toISOString(),
+    updatedAt: playlist.playlists.updatedAt.toISOString(),
+  }));
+};
+
+type Playlist = {
+  playlists: SelectPlaylist;
+  users: SelectUser;
 };
