@@ -98,6 +98,16 @@ export const schemaDict = {
               description: 'The DID or handle of the actor',
               format: 'at-identifier',
             },
+            limit: {
+              type: 'integer',
+              description: 'The maximum number of albums to return',
+              minimum: 1,
+            },
+            offset: {
+              type: 'integer',
+              description: 'The offset for pagination',
+              minimum: 0,
+            },
           },
         },
         output: {
@@ -133,6 +143,16 @@ export const schemaDict = {
               type: 'string',
               description: 'The DID or handle of the actor',
               format: 'at-identifier',
+            },
+            limit: {
+              type: 'integer',
+              description: 'The maximum number of albums to return',
+              minimum: 1,
+            },
+            offset: {
+              type: 'integer',
+              description: 'The offset for pagination',
+              minimum: 0,
             },
           },
         },
@@ -170,6 +190,16 @@ export const schemaDict = {
               description: 'The DID or handle of the actor',
               format: 'at-identifier',
             },
+            limit: {
+              type: 'integer',
+              description: 'The maximum number of albums to return',
+              minimum: 1,
+            },
+            offset: {
+              type: 'integer',
+              description: 'The offset for pagination',
+              minimum: 0,
+            },
           },
         },
         output: {
@@ -205,6 +235,16 @@ export const schemaDict = {
               type: 'string',
               description: 'The DID or handle of the actor',
               format: 'at-identifier',
+            },
+            limit: {
+              type: 'integer',
+              description: 'The maximum number of albums to return',
+              minimum: 1,
+            },
+            offset: {
+              type: 'integer',
+              description: 'The offset for pagination',
+              minimum: 0,
             },
           },
         },
@@ -242,6 +282,16 @@ export const schemaDict = {
               description: 'The DID or handle of the actor',
               format: 'at-identifier',
             },
+            limit: {
+              type: 'integer',
+              description: 'The maximum number of albums to return',
+              minimum: 1,
+            },
+            offset: {
+              type: 'integer',
+              description: 'The offset for pagination',
+              minimum: 0,
+            },
           },
         },
         output: {
@@ -277,6 +327,16 @@ export const schemaDict = {
               type: 'string',
               description: 'The DID or handle of the actor',
               format: 'at-identifier',
+            },
+            limit: {
+              type: 'integer',
+              description: 'The maximum number of albums to return',
+              minimum: 1,
+            },
+            offset: {
+              type: 'integer',
+              description: 'The offset for pagination',
+              minimum: 0,
             },
           },
         },

@@ -13,6 +13,16 @@ defs = new Mapping<String, Query> {
           description = "The DID or handle of the actor"
           format = "at-identifier"
         }
+        ["limit"] = new IntegerType {
+          type = "integer"
+          description = "The maximum number of albums to return"
+          minimum = 1
+        }
+        ["offset"] = new IntegerType {
+          type = "integer"
+          description = "The offset for pagination"
+          minimum = 0
+        }
       }
     }
    output {

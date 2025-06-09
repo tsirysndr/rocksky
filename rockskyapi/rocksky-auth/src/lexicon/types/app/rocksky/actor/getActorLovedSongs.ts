@@ -12,6 +12,10 @@ import * as AppRockskySongDefs from '../song/defs'
 export interface QueryParams {
   /** The DID or handle of the actor */
   did: string
+  /** The maximum number of albums to return */
+  limit?: number
+  /** The offset for pagination */
+  offset?: number
 }
 
 export type InputSchema = undefined
