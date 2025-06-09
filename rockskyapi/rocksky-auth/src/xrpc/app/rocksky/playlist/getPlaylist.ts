@@ -85,7 +85,7 @@ const presentation = ([playlist, tracks]: [
   return Effect.sync(() => ({
     ...R.omit(["name", "picture"], playlist.playlists),
     tracks: tracks.map((track) => ({
-      ...track,
+      ...R.omit(["lyrics"], track),
       createdAt: track.createdAt.toISOString(),
       updatedAt: track.updatedAt.toISOString(),
     })),
@@ -95,7 +95,6 @@ const presentation = ([playlist, tracks]: [
     curatorName: playlist.users.displayName,
     curatorAvatarUrl: playlist.users.avatar,
     curatorHandle: playlist.users.handle,
-
     createdAt: playlist.playlists.createdAt.toISOString(),
     updatedAt: playlist.playlists.updatedAt.toISOString(),
   }));
