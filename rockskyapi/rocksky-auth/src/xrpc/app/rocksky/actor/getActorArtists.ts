@@ -42,7 +42,7 @@ const retrieve = ({
         user_did: params.did,
         pagination: {
           skip: params.offset || 0,
-          take: params.limit || 100,
+          take: params.limit || 10,
         },
       }),
     catch: (error) => new Error(`Failed to retrieve artists: ${error}`),
