@@ -222,10 +222,8 @@ function NowPlaying({ did }: NowPlayingProps) {
                 )}
                 {!nowPlaying[did]?.artistUri?.split("at://")[1] && (
                   <div
-                    className="text-[rgba(36, 49, 61, 0.65)] font-semibold truncate whitespace-nowrap text-sm"
-                    style={{
-                      color: "rgba(36, 49, 61, 0.65)",
-                    }}
+                    className="text-[var(--color-text-muted)] font-semibold truncate whitespace-nowrap text-sm"
+                    style={{ color: "var(--color-text-muted)" }}
                   >
                     {nowPlaying[did]?.artist}
                   </div>
