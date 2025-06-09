@@ -39,9 +39,7 @@ const retrieve = ({
   return Effect.tryPromise({
     try: () =>
       ctx.analytics.post("library.getArtistAlbums", {
-        pagination: {
-          artist_id: params.uri,
-        },
+        artist_id: params.uri,
       }),
     catch: (error) => new Error(`Failed to retrieve artist's albums: ${error}`),
   });
