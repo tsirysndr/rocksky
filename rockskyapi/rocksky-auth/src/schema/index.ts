@@ -12,6 +12,7 @@ import shouts from "./shouts";
 import tracks from "./tracks";
 import userAlbums from "./user-albums";
 import userArtists from "./user-artists";
+import userPlaylists from "./user-playlists";
 import userTracks from "./user-tracks";
 import users from "./users";
 import webscrobblers from "./webscrobblers";
@@ -34,4 +35,5 @@ export default {
   userArtists,
   userTracks,
   albumTracks,
+  userPlaylists,
 };
