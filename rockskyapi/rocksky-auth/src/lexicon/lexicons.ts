@@ -1948,6 +1948,20 @@ export const schemaDict = {
             description: 'The DID of the curator of the playlist.',
             format: 'at-identifier',
           },
+          curatorHandle: {
+            type: 'string',
+            description: 'The handle of the curator of the playlist.',
+            format: 'at-identifier',
+          },
+          curatorName: {
+            type: 'string',
+            description: 'The name of the curator of the playlist.',
+          },
+          curatorAvatarUrl: {
+            type: 'string',
+            description: 'The URL of the avatar image of the curator.',
+            format: 'uri',
+          },
           description: {
             type: 'string',
             description: 'A description of the playlist.',
@@ -1993,6 +2007,20 @@ export const schemaDict = {
             type: 'string',
             description: 'The DID of the curator of the playlist.',
             format: 'at-identifier',
+          },
+          curatorHandle: {
+            type: 'string',
+            description: 'The handle of the curator of the playlist.',
+            format: 'at-identifier',
+          },
+          curatorName: {
+            type: 'string',
+            description: 'The name of the curator of the playlist.',
+          },
+          curatorAvatarUrl: {
+            type: 'string',
+            description: 'The URL of the avatar image of the curator.',
+            format: 'uri',
           },
           description: {
             type: 'string',

@@ -17,6 +17,12 @@ export interface PlaylistViewDetailed {
   uri?: string
   /** The DID of the curator of the playlist. */
   curatorDid?: string
+  /** The handle of the curator of the playlist. */
+  curatorHandle?: string
+  /** The name of the curator of the playlist. */
+  curatorName?: string
+  /** The URL of the avatar image of the curator. */
+  curatorAvatarUrl?: string
   /** A description of the playlist. */
   description?: string
   /** The URL of the cover image for the playlist. */
@@ -50,6 +56,12 @@ export interface PlaylistViewBasic {
   uri?: string
   /** The DID of the curator of the playlist. */
   curatorDid?: string
+  /** The handle of the curator of the playlist. */
+  curatorHandle?: string
+  /** The name of the curator of the playlist. */
+  curatorName?: string
+  /** The URL of the avatar image of the curator. */
+  curatorAvatarUrl?: string
   /** A description of the playlist. */
   description?: string
   /** The URL of the cover image for the playlist. */
