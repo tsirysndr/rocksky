@@ -2,6 +2,7 @@ import albumTracks from "./album-tracks";
 import albums from "./albums";
 import apiKeys from "./api-keys";
 import artists from "./artists";
+import lovedTracks from "./loved-tracks";
 import playlistTracks from "./playlist-tracks";
 import playlists from "./playlists";
 import profileShouts from "./profile-shouts";
@@ -36,4 +37,5 @@ export default {
   userTracks,
   albumTracks,
   userPlaylists,
+  lovedTracks,
 };

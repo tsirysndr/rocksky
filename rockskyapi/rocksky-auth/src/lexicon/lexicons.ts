@@ -207,7 +207,7 @@ export const schemaDict = {
           schema: {
             type: 'object',
             properties: {
-              albums: {
+              tracks: {
                 type: 'array',
                 items: {
                   type: 'ref',

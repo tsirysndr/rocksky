@@ -21,7 +21,7 @@ export interface QueryParams {
 export type InputSchema = undefined
 
 export interface OutputSchema {
-  albums?: AppRockskySongDefs.SongViewBasic[]
+  tracks?: AppRockskySongDefs.SongViewBasic[]
   [k: string]: unknown
 }
 
