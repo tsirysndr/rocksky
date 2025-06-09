@@ -49,7 +49,10 @@ const retrieve = ({
           tables.playlists,
           eq(tables.userPlaylists.playlistId, tables.playlists.id)
         )
-        .leftJoin(tables.users, eq(tables.userPlaylists, tables.users.id))
+        .leftJoin(
+          tables.users,
+          eq(tables.userPlaylists.userId, tables.users.id)
+        )
         .orderBy(desc(tables.playlists.createdAt))
         .limit(params.limit || 20)
         .offset(params.offset || 0)
