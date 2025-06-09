@@ -1,5 +1,5 @@
 import { Context } from "context";
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import { Server } from "lexicon";
 import { PlaylistViewDetailed } from "lexicon/types/app/rocksky/playlist/defs";
@@ -45,7 +45,15 @@ const retrieve = ({
     try: async () =>
       Promise.all([
         ctx.db
-          .select()
+          .select({
+            playlists: tables.playlists,
+            users: tables.users,
+            trackCount: sql<number>`
+              (SELECT COUNT(*)
+                FROM ${tables.playlistTracks}
+                WHERE ${tables.playlistTracks.playlistId} = ${tables.playlists.id}
+              )`.as("trackCount"),
+          })
           .from(tables.userPlaylists)
           .leftJoin(
             tables.playlists,
@@ -97,10 +105,12 @@ const presentation = ([playlist, tracks]: [
     curatorHandle: playlist.users.handle,
     createdAt: playlist.playlists.createdAt.toISOString(),
     updatedAt: playlist.playlists.updatedAt.toISOString(),
+    trackCount: playlist.trackCount,
   }));
 };
 
 type Playlist = {
   playlists: SelectPlaylist;
   users: SelectUser;
+  trackCount: number;
 };

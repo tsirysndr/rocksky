@@ -2096,6 +2096,11 @@ export const schemaDict = {
             description: 'The date and time when the playlist was created.',
             format: 'datetime',
           },
+          trackCount: {
+            type: 'integer',
+            description: 'The number of tracks in the playlist.',
+            minimum: 0,
+          },
         },
       },
     },

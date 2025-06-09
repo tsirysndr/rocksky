@@ -68,6 +68,8 @@ export interface PlaylistViewBasic {
   coverImageUrl?: string
   /** The date and time when the playlist was created. */
   createdAt?: string
+  /** The number of tracks in the playlist. */
+  trackCount?: number
   [k: string]: unknown
 }
 
