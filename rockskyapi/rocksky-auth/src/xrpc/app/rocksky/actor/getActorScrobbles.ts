@@ -59,4 +59,18 @@ const presentation = ({
 
 type Scrobble = {
   id: string;
+  track_id: string;
+  title: string;
+  artist: string;
+  album_artist: string;
+  album_art: string;
+  album: string;
+  handle: string;
+  did: string;
+  avatar: string | null;
+  uri: string;
+  track_uri: string;
+  artist_uri: string;
+  album_uri: string;
+  created_at: string;
 };
