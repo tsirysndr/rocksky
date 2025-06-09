@@ -1123,6 +1123,11 @@ export const schemaDict = {
         parameters: {
           type: 'params',
           properties: {
+            uri: {
+              type: 'string',
+              description: 'The URI of the artist to retrieve albums from',
+              format: 'at-uri',
+            },
             limit: {
               type: 'integer',
               description: 'The maximum number of tracks to return',

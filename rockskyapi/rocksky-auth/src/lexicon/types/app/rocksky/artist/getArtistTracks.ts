@@ -10,6 +10,8 @@ import { HandlerAuth, HandlerPipeThrough } from '@atproto/xrpc-server'
 import * as AppRockskySongDefs from '../song/defs'
 
 export interface QueryParams {
+  /** The URI of the artist to retrieve albums from */
+  uri?: string
   /** The maximum number of tracks to return */
   limit?: number
   /** The offset for pagination */
