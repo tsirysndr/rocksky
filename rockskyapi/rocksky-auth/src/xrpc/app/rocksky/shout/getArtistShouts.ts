@@ -1,6 +1,10 @@
 import { Context } from "context";
+import { count, desc, eq, sql } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import { Server } from "lexicon";
+import { ShoutView } from "lexicon/types/app/rocksky/shout/defs";
+import { QueryParams } from "lexicon/types/app/rocksky/shout/getArtistShouts";
+import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
   const getArtistShouts = (params) =>
@@ -17,23 +21,119 @@ export default function (server: Server, ctx: Context) {
     );
   server.app.rocksky.shout.getArtistShouts({
     handler: async ({ params }) => {
+      const result = await Effect.runPromise(getArtistShouts(params));
       return {
         encoding: "application/json",
-        body: {},
+        body: result,
       };
     },
   });
 }
 
-const retrieve = () => {
+const retrieve = ({
+  params,
+  ctx,
+}: {
+  params: QueryParams;
+  ctx: Context;
+}): Effect.Effect<{ shouts: Shouts; users: Users }[], Error> => {
   return Effect.tryPromise({
-    try: async () => {},
+    try: async () => {
+      const [user] = await ctx.db
+        .select()
+        .from(tables.users)
+        .where(eq(tables.users.did, "did"))
+        .execute();
+      return ctx.db
+        .select({
+          shouts: user
+            ? {
+                id: tables.shouts.id,
+                content: tables.shouts.content,
+                createdAt: tables.shouts.createdAt,
+                uri: tables.shouts.uri,
+                parent: tables.shouts.parentId,
+                likes: count(tables.shoutLikes.id).as("likes"),
+                liked: sql<boolean>`
+            EXISTS (
+              SELECT 1
+              FROM ${tables.shoutLikes}
+              WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.xata_id
+                AND ${tables.shoutLikes}.user_id = ${user.id}
+            )`.as("liked"),
+              }
+            : {
+                id: tables.shouts.id,
+                content: tables.shouts.content,
+                createdAt: tables.shouts.createdAt,
+                parent: tables.shouts.parentId,
+                uri: tables.shouts.uri,
+                likes: count(tables.shoutLikes.id).as("likes"),
+              },
+          users: {
+            id: tables.users.id,
+            did: tables.users.did,
+            handle: tables.users.handle,
+            displayName: tables.users.displayName,
+            avatar: tables.users.avatar,
+          },
+        })
+        .from(tables.shouts)
+        .leftJoin(tables.users, eq(tables.shouts.authorId, tables.users.id))
+        .leftJoin(tables.artists, eq(tables.shouts.artistId, tables.artists.id))
+        .leftJoin(
+          tables.shoutLikes,
+          eq(tables.shouts.id, tables.shoutLikes.shoutId)
+        )
+        .where(eq(tables.artists.uri, params.uri))
+        .groupBy(
+          tables.shouts.id,
+          tables.shouts.content,
+          tables.shouts.createdAt,
+          tables.shouts.uri,
+          tables.shouts.parentId,
+          tables.users.id,
+          tables.users.did,
+          tables.users.handle,
+          tables.users.displayName,
+          tables.users.avatar
+        )
+        .orderBy(desc(tables.shouts.createdAt))
+        .execute();
+    },
     catch: (error) => new Error(`Failed to retrieve artist shouts: ${error}`),
   });
 };
 
-const presentation = () => {
+const presentation = (
+  data: {
+    shouts: Shouts;
+    users: Users;
+  }[]
+): Effect.Effect<ShoutView, never> => {
   return Effect.sync(() => ({
-    shouts: [],
+    shouts: data.map((item) => ({
+      ...item.shouts,
+      createdAt: item.shouts.createdAt.toISOString(),
+      author: item.users,
+    })),
   }));
+};
+
+type Shouts = {
+  id: string;
+  content: string;
+  createdAt: Date;
+  parent?: string;
+  uri: string;
+  likes: number;
+  liked?: boolean;
+};
+
+type Users = {
+  id: string;
+  did: string;
+  handle: string;
+  displayName: string;
+  avatar: string;
 };
