@@ -1,9 +1,20 @@
 import { Context } from "context";
-import { pipe } from "effect";
+import { Effect, pipe } from "effect";
 import { Server } from "lexicon";
 
 export default function (server: Server, ctx: Context) {
-  const getArtistShouts = (params) => pipe(params, retrieve, presentation);
+  const getArtistShouts = (params) =>
+    pipe(
+      { params, ctx },
+      retrieve,
+      Effect.flatMap(presentation),
+      Effect.retry({ times: 3 }),
+      Effect.timeout("10 seconds"),
+      Effect.catchAll((err) => {
+        console.error(err);
+        return Effect.succeed({ shouts: [] });
+      })
+    );
   server.app.rocksky.shout.getArtistShouts({
     handler: async ({ params }) => {
       return {
@@ -15,13 +26,14 @@ export default function (server: Server, ctx: Context) {
 }
 
 const retrieve = () => {
-  // Logic to retrieve artist shouts
-  return [];
+  return Effect.tryPromise({
+    try: async () => {},
+    catch: (error) => new Error(`Failed to retrieve artist shouts: ${error}`),
+  });
 };
 
-const presentation = (shouts) => {
-  // Logic to format the shouts for presentation
-  return {
+const presentation = () => {
+  return Effect.sync(() => ({
     shouts: [],
-  };
+  }));
 };

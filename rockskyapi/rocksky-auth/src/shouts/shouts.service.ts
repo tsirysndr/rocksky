@@ -1,4 +1,4 @@
-import AtpAgent, { Agent } from "@atproto/api";
+import { Agent, AtpAgent } from "@atproto/api";
 import { TID } from "@atproto/common";
 import { Context } from "context";
 import * as LikeLexicon from "lexicon/types/app/rocksky/like";

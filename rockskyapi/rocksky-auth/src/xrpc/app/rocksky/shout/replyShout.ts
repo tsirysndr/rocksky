@@ -1,12 +1,23 @@
 import { Context } from "context";
-import { pipe } from "effect";
+import { Effect, pipe } from "effect";
 import { Server } from "lexicon";
 
 export default function (server: Server, ctx: Context) {
-  const replyShout = (params) => pipe(params, reply, presentation);
+  const replyShout = (params) =>
+    pipe(
+      { params, ctx },
+      reply,
+      Effect.flatMap(presentation),
+      Effect.retry({ times: 3 }),
+      Effect.timeout("10 seconds"),
+      Effect.catchAll((err) => {
+        console.error(err);
+        return Effect.succeed({ albums: [] });
+      })
+    );
   server.app.rocksky.shout.replyShout({
     handler: async ({ params }) => {
-      const result = replyShout(params);
+      const result = await Effect.runPromise(replyShout(params));
       return {
         encoding: "application/json",
         body: result,
@@ -16,11 +27,14 @@ export default function (server: Server, ctx: Context) {
 }
 
 const reply = () => {
-  // Logic to reply to a shout
-  return {};
+  return Effect.tryPromise({
+    try: async () => {},
+    catch: (error) => new Error(`Failed to reply to shout: ${error}`),
+  });
 };
 
 const presentation = () => {
-  // Logic to format the reply for presentation
-  return {};
+  return Effect.sync(() => ({
+    shouts: [],
+  }));
 };

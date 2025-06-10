@@ -1,12 +1,23 @@
 import { Context } from "context";
-import { pipe } from "effect";
+import { Effect, pipe } from "effect";
 import { Server } from "lexicon";
 
 export default function (server: Server, ctx: Context) {
-  const getTrackShouts = (params) => pipe(params, retrieve, presentation);
+  const getTrackShouts = (params) =>
+    pipe(
+      { params, ctx },
+      retrieve,
+      Effect.flatMap(presentation),
+      Effect.retry({ times: 3 }),
+      Effect.timeout("10 seconds"),
+      Effect.catchAll((err) => {
+        console.error(err);
+        return Effect.succeed({ albums: [] });
+      })
+    );
   server.app.rocksky.shout.getTrackShouts({
     handler: async ({ params }) => {
-      const result = getTrackShouts(params);
+      const result = await Effect.runPromise(getTrackShouts(params));
       return {
         encoding: "application/json",
         body: result,
@@ -16,13 +27,14 @@ export default function (server: Server, ctx: Context) {
 }
 
 const retrieve = () => {
-  // Logic to retrieve shouts for the track
-  return [];
+  return Effect.tryPromise({
+    try: async () => {},
+    catch: (error) => new Error(`Failed to retrieve track shouts: ${error}`),
+  });
 };
 
-const presentation = (shouts) => {
-  // Logic to format the shouts for presentation
-  return {
+const presentation = () => {
+  return Effect.sync(() => ({
     shouts: [],
-  };
+  }));
 };
