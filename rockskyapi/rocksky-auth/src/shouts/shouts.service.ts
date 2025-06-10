@@ -1,9 +1,10 @@
-import { Agent } from "@atproto/api";
+import AtpAgent, { Agent } from "@atproto/api";
 import { TID } from "@atproto/common";
 import { Context } from "context";
 import * as LikeLexicon from "lexicon/types/app/rocksky/like";
 import * as ShoutLexicon from "lexicon/types/app/rocksky/shout";
 import { validateMain } from "lexicon/types/com/atproto/repo/strongRef";
+import _ from "lodash";
 import { Shout } from "types/shout";
 
 export async function createShout(
@@ -145,7 +146,17 @@ export async function replyShout(
     shout.scrobble_id?.uri ||
     profileRecord.uri;
 
-  const subjectRecord = await agent.com.atproto.repo.getRecord({
+  let service = await fetch(
+    `https://plc.directory/${subjectUri.split("/").slice(0, 3).join("/").split("at://")[1]}`
+  )
+    .then((res) => res.json())
+    .then((data) => data.service);
+
+  let atpAgent = new AtpAgent({
+    service: _.get(service, "0.serviceEndpoint"),
+  });
+
+  const subjectRecord = await atpAgent.com.atproto.repo.getRecord({
     repo: subjectUri.split("/").slice(0, 3).join("/").split("at://")[1],
     collection,
     rkey: subjectUri.split("/").pop(),
@@ -159,7 +170,17 @@ export async function replyShout(
     throw new Error("[reply] invalid ref");
   }
 
-  const parentRecord = await agent.com.atproto.repo.getRecord({
+  service = await fetch(
+    `https://plc.directory/${shoutUri.split("/").slice(0, 3).join("/").split("at://")[1]}`
+  )
+    .then((res) => res.json())
+    .then((data) => data.service);
+
+  atpAgent = new AtpAgent({
+    service: _.get(service, "0.serviceEndpoint"),
+  });
+
+  const parentRecord = await atpAgent.com.atproto.repo.getRecord({
     repo: shoutUri.split("/").slice(0, 3).join("/").split("at://")[1],
     collection: "app.rocksky.shout",
     rkey: shoutUri.split("/").pop(),
@@ -247,7 +268,15 @@ export async function likeShout(
     return;
   }
 
-  const subjectRecord = await agent.com.atproto.repo.getRecord({
+  const { service } = await fetch(
+    `https://plc.directory/${shoutUri.split("/").slice(0, 3).join("/").split("at://")[1]}`
+  ).then((res) => res.json());
+
+  const atpAgent = new AtpAgent({
+    service: _.get(service, "0.serviceEndpoint"),
+  });
+
+  const subjectRecord = await atpAgent.com.atproto.repo.getRecord({
     repo: shoutUri.split("/").slice(0, 3).join("/").split("at://")[1],
     collection: "app.rocksky.shout",
     rkey: shoutUri.split("/").pop(),
