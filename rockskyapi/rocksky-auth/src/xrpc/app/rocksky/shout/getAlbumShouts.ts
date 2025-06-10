@@ -109,7 +109,7 @@ const presentation = (
     shouts: data.map((item) => ({
       ...item.shouts,
       createdAt: item.shouts.createdAt.toISOString(),
-      user: item.users,
+      author: item.users,
     })),
   }));
 };

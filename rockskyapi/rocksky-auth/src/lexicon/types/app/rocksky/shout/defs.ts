@@ -6,6 +6,32 @@ import { lexicons } from '../../../../lexicons'
 import { isObj, hasProp } from '../../../../util'
 import { CID } from 'multiformats/cid'
 
+export interface Author {
+  /** The unique identifier of the author. */
+  id?: string
+  /** The decentralized identifier (DID) of the author. */
+  did?: string
+  /** The handle of the author. */
+  handle?: string
+  /** The display name of the author. */
+  displayName?: string
+  /** The URL of the author's avatar image. */
+  avatar?: string
+  [k: string]: unknown
+}
+
+export function isAuthor(v: unknown): v is Author {
+  return (
+    isObj(v) &&
+    hasProp(v, '$type') &&
+    v.$type === 'app.rocksky.shout.defs#author'
+  )
+}
+
+export function validateAuthor(v: unknown): ValidationResult {
+  return lexicons.validate('app.rocksky.shout.defs#author', v)
+}
+
 export interface ShoutView {
   /** The unique identifier of the shout. */
   id?: string
@@ -15,8 +41,7 @@ export interface ShoutView {
   parent?: string
   /** The date and time when the shout was created. */
   createdAt?: string
-  /** The DID of the author of the shout. */
-  authorDid?: string
+  author?: Author
   [k: string]: unknown
 }
 

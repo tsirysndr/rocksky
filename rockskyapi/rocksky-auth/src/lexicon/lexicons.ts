@@ -2782,6 +2782,34 @@ export const schemaDict = {
     lexicon: 1,
     id: 'app.rocksky.shout.defs',
     defs: {
+      author: {
+        type: 'object',
+        properties: {
+          id: {
+            type: 'string',
+            description: 'The unique identifier of the author.',
+          },
+          did: {
+            type: 'string',
+            description: 'The decentralized identifier (DID) of the author.',
+            format: 'at-identifier',
+          },
+          handle: {
+            type: 'string',
+            description: 'The handle of the author.',
+            format: 'at-identifier',
+          },
+          displayName: {
+            type: 'string',
+            description: 'The display name of the author.',
+          },
+          avatar: {
+            type: 'string',
+            description: "The URL of the author's avatar image.",
+            format: 'uri',
+          },
+        },
+      },
       shoutView: {
         type: 'object',
         properties: {
@@ -2803,9 +2831,10 @@ export const schemaDict = {
             description: 'The date and time when the shout was created.',
             format: 'datetime',
           },
-          authorDid: {
-            type: 'string',
-            description: 'The DID of the author of the shout.',
+          author: {
+            type: 'ref',
+            description: 'The author of the shout.',
+            ref: 'lex:app.rocksky.shout.defs#author',
           },
         },
       },

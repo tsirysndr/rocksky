@@ -37,7 +37,7 @@ class Params {
 class ObjectType extends BaseType {
   type: "object"
   required: List<String>?
-  properties: Mapping<String, StringType | IntegerType | Blob | Ref | Union |  Array>
+  properties: Mapping<String, StringType | IntegerType | Blob | Ref | Union | Array>
 }
 
 class Union extends BaseType {
