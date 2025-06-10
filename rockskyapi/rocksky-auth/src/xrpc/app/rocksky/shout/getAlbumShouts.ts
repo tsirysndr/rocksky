@@ -3,6 +3,7 @@ import { count, desc, eq } from "drizzle-orm";
 import { sql } from "drizzle-orm/sql";
 import { Effect, pipe } from "effect";
 import { Server } from "lexicon";
+import { ShoutView } from "lexicon/types/app/rocksky/shout/defs";
 import { QueryParams } from "lexicon/types/app/rocksky/shout/getAlbumShouts";
 import tables from "schema";
 
@@ -30,7 +31,13 @@ export default function (server: Server, ctx: Context) {
   });
 }
 
-const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
+const retrieve = ({
+  params,
+  ctx,
+}: {
+  params: QueryParams;
+  ctx: Context;
+}): Effect.Effect<{ shouts: Shouts; users: Users }[], Error> => {
   return Effect.tryPromise({
     try: async () => {
       const [user] = await ctx.db
@@ -104,7 +111,7 @@ const presentation = (
     shouts: Shouts;
     users: Users;
   }[]
-) => {
+): Effect.Effect<ShoutView, never> => {
   return Effect.sync(() => ({
     shouts: data.map((item) => ({
       ...item.shouts,
