@@ -11,7 +11,7 @@ import * as AppRockskyActorDefs from './defs'
 
 export interface QueryParams {
   /** The DID or handle of the actor */
-  did: string
+  did?: string
 }
 
 export type InputSchema = undefined

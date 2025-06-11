@@ -8,6 +8,7 @@ const users = pgTable("users", {
   handle: text("handle").unique().notNull(),
   avatar: text("avatar").notNull(),
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
+  updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
 });
 
 export type SelectUser = InferSelectModel<typeof users>;

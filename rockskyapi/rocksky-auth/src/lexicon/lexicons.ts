@@ -367,7 +367,6 @@ export const schemaDict = {
         description: 'Get the profile of an actor',
         parameters: {
           type: 'params',
-          required: ['did'],
           properties: {
             did: {
               type: 'string',
