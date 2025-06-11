@@ -89,10 +89,12 @@ const withUser = ({
   params,
   ctx,
   did,
+  agent,
 }: {
   params: QueryParams;
   ctx: Context;
   did?: string;
+  agent: Agent | AtpAgent;
 }): Effect.Effect<
   {
     user?: SelectUser;
@@ -114,6 +116,7 @@ const withUser = ({
           ctx,
           params,
           did,
+          agent,
         })),
     catch: (error) => new Error(`Failed to retrieve current user: ${error}`),
   });
