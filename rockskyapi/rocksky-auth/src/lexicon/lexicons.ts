@@ -2981,6 +2981,53 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyShoutGetShoutReplies: {
+    lexicon: 1,
+    id: 'app.rocksky.shout.getShoutReplies',
+    defs: {
+      main: {
+        type: 'query',
+        description: 'Get replies to a shout',
+        parameters: {
+          type: 'params',
+          required: ['uri'],
+          properties: {
+            uri: {
+              type: 'string',
+              description: 'The URI of the shout to retrieve replies for',
+              format: 'at-uri',
+            },
+            limit: {
+              type: 'integer',
+              description: 'The maximum number of shouts to return',
+              minimum: 1,
+            },
+            offset: {
+              type: 'integer',
+              description:
+                'The number of shouts to skip before starting to collect the result set',
+              minimum: 0,
+            },
+          },
+        },
+        output: {
+          encoding: 'application/json',
+          schema: {
+            type: 'object',
+            properties: {
+              shouts: {
+                type: 'array',
+                items: {
+                  type: 'ref',
+                  ref: 'lex:app.rocksky.shout.defs#shoutViewBasic',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
   AppRockskyShoutGetTrackShouts: {
     lexicon: 1,
     id: 'app.rocksky.shout.getTrackShouts',
@@ -3932,6 +3979,7 @@ export const ids = {
   AppRockskyShoutGetAlbumShouts: 'app.rocksky.shout.getAlbumShouts',
   AppRockskyShoutGetArtistShouts: 'app.rocksky.shout.getArtistShouts',
   AppRockskyShoutGetProfileShouts: 'app.rocksky.shout.getProfileShouts',
+  AppRockskyShoutGetShoutReplies: 'app.rocksky.shout.getShoutReplies',
   AppRockskyShoutGetTrackShouts: 'app.rocksky.shout.getTrackShouts',
   AppRockskyShoutRemoveShout: 'app.rocksky.shout.removeShout',
   AppRockskyShoutReplyShout: 'app.rocksky.shout.replyShout',

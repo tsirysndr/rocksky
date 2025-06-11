@@ -56,6 +56,7 @@ import * as AppRockskyShoutCreateShout from './types/app/rocksky/shout/createSho
 import * as AppRockskyShoutGetAlbumShouts from './types/app/rocksky/shout/getAlbumShouts'
 import * as AppRockskyShoutGetArtistShouts from './types/app/rocksky/shout/getArtistShouts'
 import * as AppRockskyShoutGetProfileShouts from './types/app/rocksky/shout/getProfileShouts'
+import * as AppRockskyShoutGetShoutReplies from './types/app/rocksky/shout/getShoutReplies'
 import * as AppRockskyShoutGetTrackShouts from './types/app/rocksky/shout/getTrackShouts'
 import * as AppRockskyShoutRemoveShout from './types/app/rocksky/shout/removeShout'
 import * as AppRockskyShoutReplyShout from './types/app/rocksky/shout/replyShout'
@@ -755,6 +756,17 @@ export class AppRockskyShoutNS {
     >,
   ) {
     const nsid = 'app.rocksky.shout.getProfileShouts' // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg)
+  }
+
+  getShoutReplies<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyShoutGetShoutReplies.Handler<ExtractAuth<AV>>,
+      AppRockskyShoutGetShoutReplies.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = 'app.rocksky.shout.getShoutReplies' // @ts-ignore
     return this._server.xrpc.method(nsid, cfg)
   }
 
