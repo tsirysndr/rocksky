@@ -21,7 +21,6 @@ export default function (server: Server, ctx: Context) {
       Effect.flatMap(withAgent),
       Effect.flatMap(withUser),
       Effect.flatMap(retrieveProfile),
-      Effect.withConcurrency(5),
       Effect.flatMap(refreshProfile),
       Effect.flatMap(presentation),
       Effect.retry({ times: 3 }),
