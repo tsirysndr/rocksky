@@ -83,7 +83,7 @@ const resolveHandleToDid = ({
 > => {
   return Effect.tryPromise({
     try: async () => {
-      if (!params.did?.startsWith("did:plc:")) {
+      if (!params.did?.startsWith("did:plc:") && !!params.did) {
         return fetch(
           `https://dns.google/resolve?name=_atproto.${params.did}&type=TXT`
         )
