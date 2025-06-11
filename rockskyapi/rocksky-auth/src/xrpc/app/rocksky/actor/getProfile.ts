@@ -51,15 +51,31 @@ const withServiceEndpoint = ({
   did?: string;
 }) => {
   return Effect.tryPromise({
-    try: async () =>
-      fetch(`https://plc.directory/${did}`)
+    try: async () => {
+      if (did?.startsWith("did:plc:")) {
+        return fetch(`https://plc.directory/${did}`)
+          .then((res) => res.json())
+          .then((data) => ({
+            did,
+            serviceEndpoint: _.get(data, "service.0.serviceEndpoint"),
+            ctx,
+            params,
+          }));
+      }
+      return fetch(`https://dns.google/resolve?name=_atproto.${did}&type=TXT`)
         .then((res) => res.json())
-        .then((data) => ({
-          did,
-          serviceEndpoint: _.get(data, "service.0.serviceEndpoint"),
-          ctx,
-          params,
-        })),
+        .then((data) => _.get(data, "Answer.0.data", "").replace(/"/g, ""))
+        .then((did) =>
+          fetch(`https://plc.directory/${did}`)
+            .then((res) => res.json())
+            .then((data) => ({
+              did,
+              serviceEndpoint: _.get(data, "service.0.serviceEndpoint"),
+              ctx,
+              params,
+            }))
+        );
+    },
     catch: (error) => new Error(`Failed to get service endpoint: ${error}`),
   });
 };
