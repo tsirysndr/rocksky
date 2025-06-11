@@ -52,8 +52,8 @@ const withServiceEndpoint = ({
 }) => {
   return Effect.tryPromise({
     try: async () => {
-      if (did?.startsWith("did:plc:")) {
-        return fetch(`https://plc.directory/${did}`)
+      if ((params.did || did)?.startsWith("did:plc:")) {
+        return fetch(`https://plc.directory/${params.did}`)
           .then((res) => res.json())
           .then((data) => ({
             did,
@@ -62,7 +62,9 @@ const withServiceEndpoint = ({
             params,
           }));
       }
-      return fetch(`https://dns.google/resolve?name=_atproto.${did}&type=TXT`)
+      return fetch(
+        `https://dns.google/resolve?name=_atproto.${params.did || did}&type=TXT`
+      )
         .then((res) => res.json())
         .then((data) => _.get(data, "Answer.0.data", "").replace(/"/g, ""))
         .then((did) =>
