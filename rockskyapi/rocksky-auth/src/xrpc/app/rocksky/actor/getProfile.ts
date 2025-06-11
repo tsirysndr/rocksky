@@ -50,7 +50,7 @@ const withServiceEndpoint = ({
   params: QueryParams;
   ctx: Context;
   did?: string;
-}) => {
+}): Effect.Effect<WithServiceEndpoint, Error> => {
   return Effect.tryPromise({
     try: async () => {
       if (params.did) {
@@ -218,6 +218,13 @@ type Profile = {
   ctx: Context;
   did: string;
   user?: SelectUser;
+};
+
+type WithServiceEndpoint = {
+  params: QueryParams;
+  ctx: Context;
+  did?: string;
+  serviceEndpoint?: string;
 };
 
 type WithAgent = {
