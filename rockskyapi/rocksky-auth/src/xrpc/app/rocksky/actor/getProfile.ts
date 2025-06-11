@@ -16,7 +16,8 @@ export default function (server: Server, ctx: Context) {
   const getActorProfile = (params, auth: HandlerAuth) =>
     pipe(
       { params, ctx, did: auth.credentials?.did },
-      withServiceEndpoint,
+      resolveHandleToDid,
+      Effect.flatMap(withServiceEndpoint),
       Effect.flatMap(withAgent),
       Effect.flatMap(withUser),
       Effect.flatMap(retrieveProfile),
@@ -52,8 +53,8 @@ const withServiceEndpoint = ({
 }) => {
   return Effect.tryPromise({
     try: async () => {
-      if ((params.did || did)?.startsWith("did:plc:")) {
-        return fetch(`https://plc.directory/${params.did}`)
+      if (params.did) {
+        return fetch(`https://plc.directory/${did}`)
           .then((res) => res.json())
           .then((data) => ({
             did,
@@ -62,26 +63,52 @@ const withServiceEndpoint = ({
             params,
           }));
       }
-      return fetch(
-        `https://dns.google/resolve?name=_atproto.${params.did || did}&type=TXT`
-      )
-        .then((res) => res.json())
-        .then(
-          (data) =>
-            _.get(data, "Answer.0.data", "").replace(/"/g, "").split("=")[1]
-        )
-        .then((did) =>
-          fetch(`https://plc.directory/${did}`)
-            .then((res) => res.json())
-            .then((data) => ({
-              did,
-              serviceEndpoint: _.get(data, "service.0.serviceEndpoint"),
-              ctx,
-              params,
-            }))
-        );
     },
     catch: (error) => new Error(`Failed to get service endpoint: ${error}`),
+  });
+};
+
+const resolveHandleToDid = ({
+  params,
+  ctx,
+  did,
+}: {
+  params: QueryParams;
+  ctx: Context;
+  did?: string;
+}): Effect.Effect<
+  { did?: string; ctx: Context; params: QueryParams },
+  Error
+> => {
+  return Effect.tryPromise({
+    try: async () => {
+      if (params.did?.startsWith("did:plc:")) {
+        return fetch(
+          `https://dns.google/resolve?name=_atproto.${params.did}&type=TXT`
+        )
+          .then((res) => res.json())
+          .then(
+            (data) =>
+              _.get(data, "Answer.0.data", "").replace(/"/g, "").split("=")[1]
+          )
+          .then((did) =>
+            fetch(`https://plc.directory/${did}`)
+              .then((res) => res.json())
+              .then((data) => ({
+                did,
+                serviceEndpoint: _.get(data, "service.0.serviceEndpoint"),
+                ctx,
+                params,
+              }))
+          );
+      }
+      return {
+        did: params.did || did,
+        ctx,
+        params,
+      };
+    },
+    catch: (error) => new Error(`Failed to resolve handle to DID: ${error}`),
   });
 };
 
@@ -109,7 +136,7 @@ const withUser = ({
       ctx.db
         .select()
         .from(tables.users)
-        .where(eq(tables.users.did, params.did || did))
+        .where(eq(tables.users.did, did))
         .execute()
         .then((users) => ({
           user: users[0],
@@ -171,7 +198,7 @@ const retrieveProfile = ({
       return Promise.all([
         agent.com.atproto.repo
           .getRecord({
-            repo: params.did || did,
+            repo: did,
             collection: "app.bsky.actor.profile",
             rkey: "self",
           })
@@ -181,7 +208,7 @@ const retrieveProfile = ({
             did,
             user,
           })),
-        ctx.resolver.resolveDidToHandle(params.did),
+        ctx.resolver.resolveDidToHandle(did),
       ]);
     },
     catch: (error) => new Error(`Failed to retrieve profile: ${error}`),
