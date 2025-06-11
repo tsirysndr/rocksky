@@ -158,6 +158,7 @@ const retrieveProfile = ({
   did,
   agent,
   user,
+  params,
 }: {
   ctx: Context;
   did?: string;
@@ -170,7 +171,7 @@ const retrieveProfile = ({
       return Promise.all([
         agent.com.atproto.repo
           .getRecord({
-            repo: did,
+            repo: params.did || did,
             collection: "app.bsky.actor.profile",
             rkey: "self",
           })
@@ -180,7 +181,7 @@ const retrieveProfile = ({
             did,
             user,
           })),
-        ctx.resolver.resolveDidToHandle(did),
+        ctx.resolver.resolveDidToHandle(params.did),
       ]);
     },
     catch: (error) => new Error(`Failed to retrieve profile: ${error}`),
