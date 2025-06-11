@@ -9,7 +9,7 @@ import { SelectShout } from "schema/shouts";
 import { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
-  const getTrackShouts = (params) =>
+  const getShoutReplies = (params) =>
     pipe(
       { params, ctx },
       retrieve,
@@ -21,9 +21,9 @@ export default function (server: Server, ctx: Context) {
         return Effect.succeed({ shouts: [] });
       })
     );
-  server.app.rocksky.shout.getTrackShouts({
+  server.app.rocksky.shout.getShoutReplies({
     handler: async ({ params }) => {
-      const result = await Effect.runPromise(getTrackShouts(params));
+      const result = await Effect.runPromise(getShoutReplies(params));
       return {
         encoding: "application/json",
         body: result,
