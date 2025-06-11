@@ -42,37 +42,6 @@ export default function (server: Server, ctx: Context) {
   });
 }
 
-const withServiceEndpoint = ({
-  params,
-  ctx,
-  did,
-}: {
-  params: QueryParams;
-  ctx: Context;
-  did?: string;
-}): Effect.Effect<WithServiceEndpoint, Error> => {
-  return Effect.tryPromise({
-    try: async () => {
-      if (params.did) {
-        return fetch(`https://plc.directory/${did}`)
-          .then((res) => res.json())
-          .then((data) => ({
-            did,
-            serviceEndpoint: _.get(data, "service.0.serviceEndpoint"),
-            ctx,
-            params,
-          }));
-      }
-      return {
-        did,
-        ctx,
-        params,
-      };
-    },
-    catch: (error) => new Error(`Failed to get service endpoint: ${error}`),
-  });
-};
-
 const resolveHandleToDid = ({
   params,
   ctx,
@@ -112,17 +81,43 @@ const resolveHandleToDid = ({
   });
 };
 
+const withServiceEndpoint = ({
+  params,
+  ctx,
+  did,
+}: {
+  params: QueryParams;
+  ctx: Context;
+  did?: string;
+}): Effect.Effect<WithServiceEndpoint, Error> => {
+  return Effect.tryPromise({
+    try: async () => {
+      if (params.did) {
+        return fetch(`https://plc.directory/${did}`)
+          .then((res) => res.json())
+          .then((data) => ({
+            did,
+            serviceEndpoint: _.get(data, "service.0.serviceEndpoint"),
+            ctx,
+            params,
+          }));
+      }
+      return {
+        did,
+        ctx,
+        params,
+      };
+    },
+    catch: (error) => new Error(`Failed to get service endpoint: ${error}`),
+  });
+};
+
 const withAgent = ({
   params,
   ctx,
   did,
   serviceEndpoint,
-}: {
-  params: QueryParams;
-  ctx: Context;
-  did?: string;
-  serviceEndpoint?: string;
-}): Effect.Effect<WithAgent, Error> =>
+}: WithServiceEndpoint): Effect.Effect<WithAgent, Error> =>
   Effect.tryPromise({
     try: async () => {
       return {
