@@ -112,25 +112,37 @@ const resolveHandleToDid = ({
   });
 };
 
+const withAgent = ({
+  params,
+  ctx,
+  did,
+  serviceEndpoint,
+}: {
+  params: QueryParams;
+  ctx: Context;
+  did?: string;
+  serviceEndpoint?: string;
+}): Effect.Effect<WithAgent, Error> =>
+  Effect.tryPromise({
+    try: async () => {
+      return {
+        ctx,
+        did,
+        params,
+        agent: serviceEndpoint
+          ? new AtpAgent({ service: serviceEndpoint })
+          : await createAgent(ctx.oauthClient, did),
+      };
+    },
+    catch: (error) => new Error(`Failed to create agent: ${error}`),
+  });
+
 const withUser = ({
   params,
   ctx,
   did,
   agent,
-}: {
-  params: QueryParams;
-  ctx: Context;
-  did?: string;
-  agent: Agent | AtpAgent;
-}): Effect.Effect<
-  {
-    user?: SelectUser;
-    ctx: Context;
-    params: QueryParams;
-    did?: string;
-  },
-  Error
-> => {
+}: WithAgent): Effect.Effect<WithUser, Error> => {
   return Effect.tryPromise({
     try: async () =>
       ctx.db
@@ -149,51 +161,12 @@ const withUser = ({
   });
 };
 
-const withAgent = ({
-  params,
-  ctx,
-  did,
-  serviceEndpoint,
-}: {
-  params: QueryParams;
-  ctx: Context;
-  did?: string;
-  serviceEndpoint?: string;
-}): Effect.Effect<
-  {
-    ctx: Context;
-    did?: string;
-    params: QueryParams;
-    agent: Agent | AtpAgent;
-  },
-  Error
-> =>
-  Effect.tryPromise({
-    try: async () => {
-      return {
-        ctx,
-        did,
-        params,
-        agent: serviceEndpoint
-          ? new AtpAgent({ service: serviceEndpoint })
-          : await createAgent(ctx.oauthClient, did),
-      };
-    },
-    catch: (error) => new Error(`Failed to create agent: ${error}`),
-  });
-
 const retrieveProfile = ({
   ctx,
   did,
   agent,
   user,
-}: {
-  ctx: Context;
-  did?: string;
-  agent: Agent | AtpAgent;
-  user?: SelectUser;
-  params: QueryParams;
-}): Effect.Effect<[Profile, string], Error> => {
+}: WithUser): Effect.Effect<[Profile, string], Error> => {
   return Effect.tryPromise({
     try: async () => {
       return Promise.all([
@@ -245,4 +218,19 @@ type Profile = {
   ctx: Context;
   did: string;
   user?: SelectUser;
+};
+
+type WithAgent = {
+  ctx: Context;
+  did?: string;
+  params: QueryParams;
+  agent: Agent | AtpAgent;
+};
+
+type WithUser = {
+  user?: SelectUser;
+  ctx: Context;
+  params: QueryParams;
+  did?: string;
+  agent: Agent | AtpAgent;
 };
