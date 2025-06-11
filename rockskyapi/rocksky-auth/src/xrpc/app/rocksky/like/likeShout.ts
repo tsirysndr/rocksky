@@ -5,6 +5,7 @@ import { Server } from "lexicon";
 export default function (server: Server, ctx: Context) {
   const likeShout = (params) => pipe(params, like, presentation);
   server.app.rocksky.like.likeShout({
+    auth: ctx.authVerifier,
     handler: async ({ params }) => {
       const result = likeShout(params);
       return {

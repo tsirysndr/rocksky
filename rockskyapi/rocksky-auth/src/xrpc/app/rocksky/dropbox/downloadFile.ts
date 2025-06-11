@@ -3,6 +3,7 @@ import { Server } from "lexicon";
 
 export default function (server: Server, ctx: Context) {
   server.app.rocksky.dropbox.downloadFile({
+    auth: ctx.authVerifier,
     handler: async ({ params }) => {
       download();
       throw new Error("Not implemented yet");

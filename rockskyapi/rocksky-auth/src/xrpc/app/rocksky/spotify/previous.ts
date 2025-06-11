@@ -5,6 +5,7 @@ import { Server } from "lexicon";
 export default function (server: Server, ctx: Context) {
   const previous = (params) => pipe(params, handlePrevious, presentation);
   server.app.rocksky.spotify.previous({
+    auth: ctx.authVerifier,
     handler: async ({ params }) => {
       const result = previous(params);
     },

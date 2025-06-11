@@ -5,6 +5,7 @@ import { Server } from "lexicon";
 export default function (server: Server, ctx: Context) {
   const pause = (params) => pipe(params, handlePause, presentation);
   server.app.rocksky.spotify.pause({
+    auth: ctx.authVerifier,
     handler: async ({ params }) => {
       const result = pause(params);
     },

@@ -5,6 +5,7 @@ import { Server } from "lexicon";
 export default function (server: Server, ctx: Context) {
   const getTemporaryLink = (params) => pipe(params, retrieve, presentation);
   server.app.rocksky.dropbox.getTemporaryLink({
+    auth: ctx.authVerifier,
     handler: async ({ params }) => {
       const result = getTemporaryLink(params);
       return {

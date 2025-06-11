@@ -16,6 +16,7 @@ export default function (server: Server, ctx: Context) {
       })
     );
   server.app.rocksky.shout.removeShout({
+    auth: ctx.authVerifier,
     handler: async ({ params }) => {
       const result = await Effect.runPromise(removeShout(params));
       return {

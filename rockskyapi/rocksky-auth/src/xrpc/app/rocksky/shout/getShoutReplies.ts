@@ -22,6 +22,7 @@ export default function (server: Server, ctx: Context) {
       })
     );
   server.app.rocksky.shout.getShoutReplies({
+    auth: ctx.authVerifier,
     handler: async ({ params }) => {
       const result = await Effect.runPromise(getShoutReplies(params));
       return {

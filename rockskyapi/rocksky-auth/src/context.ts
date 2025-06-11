@@ -2,6 +2,7 @@ import { createClient } from "auth/client";
 import axios from "axios";
 import { createDb, migrateToLatest } from "db";
 import drizzle from "drizzle";
+import authVerifier from "lib/authVerifier";
 import { env } from "lib/env";
 import { createBidirectionalResolver, createIdResolver } from "lib/idResolver";
 import { connect } from "nats";
@@ -33,6 +34,7 @@ export const ctx = {
   dropbox: axios.create({ baseURL: env.DROPBOX }),
   googledrive: axios.create({ baseURL: env.GOOGLE_DRIVE }),
   redis: await redis.createClient({ url: env.REDIS_URL }).connect(),
+  authVerifier,
 };
 
 export type Context = typeof ctx;

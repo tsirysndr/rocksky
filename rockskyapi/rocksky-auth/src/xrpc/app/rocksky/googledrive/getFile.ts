@@ -5,6 +5,7 @@ import { Server } from "lexicon";
 export default function (server: Server, ctx: Context) {
   const getFile = (params) => pipe(params, retrieve, presentation);
   server.app.rocksky.googledrive.getFile({
+    auth: ctx.authVerifier,
     handler: async ({ params }) => {
       const result = getFile(params);
       return {

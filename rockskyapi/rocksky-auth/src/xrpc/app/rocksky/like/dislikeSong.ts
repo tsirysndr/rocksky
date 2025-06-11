@@ -5,6 +5,7 @@ import { Server } from "lexicon";
 export default function (server: Server, ctx: Context) {
   const dislikeSong = (params) => pipe(params, dislike, presentation);
   server.app.rocksky.like.dislikeSong({
+    auth: ctx.authVerifier,
     handler: async ({ params }) => {
       const result = dislikeSong(params);
       return {

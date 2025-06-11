@@ -1,3 +1,4 @@
+import { HandlerAuth } from "@atproto/xrpc-server";
 import { Context } from "context";
 import { count, desc, eq } from "drizzle-orm";
 import { sql } from "drizzle-orm/sql";
@@ -6,12 +7,14 @@ import { Server } from "lexicon";
 import { ShoutView } from "lexicon/types/app/rocksky/shout/defs";
 import { QueryParams } from "lexicon/types/app/rocksky/shout/getAlbumShouts";
 import tables from "schema";
+import { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
-  const getAlbumShouts = (params) =>
+  const getAlbumShouts = (params, auth: HandlerAuth) =>
     pipe(
-      { params, ctx },
-      retrieve,
+      { params, ctx, did: auth.credentials?.did },
+      getCurrentUser,
+      Effect.flatMap(retrieve),
       Effect.flatMap(presentation),
       Effect.retry({ times: 3 }),
       Effect.timeout("10 seconds"),
@@ -21,8 +24,9 @@ export default function (server: Server, ctx: Context) {
       })
     );
   server.app.rocksky.shout.getAlbumShouts({
-    handler: async ({ params }) => {
-      const result = await Effect.runPromise(getAlbumShouts(params));
+    auth: ctx.authVerifier,
+    handler: async ({ params, auth }) => {
+      const result = await Effect.runPromise(getAlbumShouts(params, auth));
       return {
         encoding: "application/json",
         body: result,
@@ -31,21 +35,39 @@ export default function (server: Server, ctx: Context) {
   });
 }
 
+const getCurrentUser = ({
+  params,
+  ctx,
+  did,
+}: {
+  params: QueryParams;
+  ctx: Context;
+  did?: string;
+}) => {
+  return Effect.tryPromise({
+    try: async () =>
+      ctx.db
+        .select()
+        .from(tables.users)
+        .where(eq(tables.users.did, did))
+        .execute()
+        .then((users) => ({ user: users[0], ctx, params })),
+    catch: (error) => new Error(`Failed to retrieve current user: ${error}`),
+  });
+};
+
 const retrieve = ({
+  user,
   params,
   ctx,
 }: {
+  user?: SelectUser;
   params: QueryParams;
   ctx: Context;
 }): Effect.Effect<{ shouts: Shouts; users: Users }[], Error> => {
   return Effect.tryPromise({
-    try: async () => {
-      const [user] = await ctx.db
-        .select()
-        .from(tables.users)
-        .where(eq(tables.users.did, "did"))
-        .execute();
-      return ctx.db
+    try: async () =>
+      ctx.db
         .select({
           shouts: user
             ? {
@@ -100,8 +122,7 @@ const retrieve = ({
           tables.users.avatar
         )
         .orderBy(desc(tables.shouts.createdAt))
-        .execute();
-    },
+        .execute(),
     catch: (error) => new Error(`Failed to retrieve album shouts: ${error}`),
   });
 };

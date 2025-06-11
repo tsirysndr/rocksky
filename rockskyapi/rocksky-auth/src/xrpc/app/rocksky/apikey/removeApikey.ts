@@ -5,6 +5,7 @@ import { Server } from "lexicon";
 export default function (server: Server, ctx: Context) {
   const removeApikey = (params) => pipe(params, remove, presentation);
   server.app.rocksky.apikey.removeApikey({
+    auth: ctx.authVerifier,
     handler: async ({ params }) => {
       const result = removeApikey(params);
       return {

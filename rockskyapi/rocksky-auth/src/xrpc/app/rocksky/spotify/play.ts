@@ -5,6 +5,7 @@ import { Server } from "lexicon";
 export default function (server: Server, ctx: Context) {
   const play = (params) => pipe(params, handlePlay, presentation);
   server.app.rocksky.spotify.play({
+    auth: ctx.authVerifier,
     handler: async ({ params }) => {
       const result = play(params);
     },

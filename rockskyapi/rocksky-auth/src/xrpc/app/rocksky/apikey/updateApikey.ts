@@ -5,6 +5,7 @@ import { Server } from "lexicon";
 export default function (server: Server, ctx: Context) {
   const updateApikey = (input) => pipe(input, update, presentation);
   server.app.rocksky.apikey.updateApikey({
+    auth: ctx.authVerifier,
     handler: async ({ input }) => {
       const result = updateApikey(input);
       return {
