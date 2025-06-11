@@ -64,6 +64,11 @@ const withServiceEndpoint = ({
             params,
           }));
       }
+      return {
+        did,
+        ctx,
+        params,
+      };
     },
     catch: (error) => new Error(`Failed to get service endpoint: ${error}`),
   });
@@ -166,11 +171,6 @@ const withAgent = ({
 > =>
   Effect.tryPromise({
     try: async () => {
-      if (!serviceEndpoint) {
-        console.log("Creating agent for DID:", did);
-        await createAgent(ctx.oauthClient, did);
-        console.log("Agent created successfully");
-      }
       return {
         ctx,
         did,
