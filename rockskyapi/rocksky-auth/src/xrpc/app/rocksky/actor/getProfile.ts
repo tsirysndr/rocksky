@@ -82,7 +82,7 @@ const resolveHandleToDid = ({
 > => {
   return Effect.tryPromise({
     try: async () => {
-      if (params.did?.startsWith("did:plc:")) {
+      if (!params.did?.startsWith("did:plc:")) {
         return fetch(
           `https://dns.google/resolve?name=_atproto.${params.did}&type=TXT`
         )
@@ -91,16 +91,11 @@ const resolveHandleToDid = ({
             (data) =>
               _.get(data, "Answer.0.data", "").replace(/"/g, "").split("=")[1]
           )
-          .then((did) =>
-            fetch(`https://plc.directory/${did}`)
-              .then((res) => res.json())
-              .then((data) => ({
-                did,
-                serviceEndpoint: _.get(data, "service.0.serviceEndpoint"),
-                ctx,
-                params,
-              }))
-          );
+          .then((did) => ({
+            did,
+            ctx,
+            params,
+          }));
       }
       return {
         did: params.did || did,
@@ -185,7 +180,6 @@ const retrieveProfile = ({
   did,
   agent,
   user,
-  params,
 }: {
   ctx: Context;
   did?: string;
