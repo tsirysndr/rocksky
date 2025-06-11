@@ -1,12 +1,15 @@
+import { HandlerAuth } from "@atproto/xrpc-server";
 import { Context } from "context";
 import { pipe } from "effect";
 import { Server } from "lexicon";
 
 export default function (server: Server, ctx: Context) {
-  const seek = (params) => pipe(params, handleSeek, presentation);
+  const seek = (params, auth: HandlerAuth) =>
+    pipe(params, handleSeek, presentation);
   server.app.rocksky.player.seek({
-    handler: async ({ params }) => {
-      const result = seek(params);
+    auth: ctx.authVerifier,
+    handler: async ({ params, auth }) => {
+      const result = seek(params, auth);
     },
   });
 }
