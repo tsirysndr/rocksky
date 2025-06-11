@@ -49,6 +49,7 @@ import createShout from "./app/rocksky/shout/createShout";
 import getAlbumShouts from "./app/rocksky/shout/getAlbumShouts";
 import getArtistShouts from "./app/rocksky/shout/getArtistShouts";
 import getProfileShouts from "./app/rocksky/shout/getProfileShouts";
+import getShoutReplies from "./app/rocksky/shout/getShoutReplies";
 import getTrackShouts from "./app/rocksky/shout/getTrackShouts";
 import removeShout from "./app/rocksky/shout/removeShout";
 import replyShout from "./app/rocksky/shout/replyShout";
@@ -109,6 +110,7 @@ export default function (server: Server, ctx: Context) {
   getArtistShouts(server, ctx);
   getProfileShouts(server, ctx);
   getTrackShouts(server, ctx);
+  getShoutReplies(server, ctx);
   removeShout(server, ctx);
   replyShout(server, ctx);
   reportShout(server, ctx);
