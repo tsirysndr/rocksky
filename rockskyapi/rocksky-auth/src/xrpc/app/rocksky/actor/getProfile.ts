@@ -109,7 +109,7 @@ const withUser = ({
       ctx.db
         .select()
         .from(tables.users)
-        .where(eq(tables.users.did, did))
+        .where(eq(tables.users.did, params.did || did))
         .execute()
         .then((users) => ({
           user: users[0],
