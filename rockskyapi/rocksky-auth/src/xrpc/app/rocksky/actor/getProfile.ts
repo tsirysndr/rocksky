@@ -165,14 +165,21 @@ const withAgent = ({
   Error
 > =>
   Effect.tryPromise({
-    try: async () => ({
-      ctx,
-      did,
-      params,
-      agent: serviceEndpoint
-        ? new AtpAgent({ service: serviceEndpoint })
-        : await createAgent(ctx.oauthClient, did),
-    }),
+    try: async () => {
+      if (!serviceEndpoint) {
+        console.log("Creating agent for DID:", did);
+        await createAgent(ctx.oauthClient, did);
+        console.log("Agent created successfully");
+      }
+      return {
+        ctx,
+        did,
+        params,
+        agent: serviceEndpoint
+          ? new AtpAgent({ service: serviceEndpoint })
+          : await createAgent(ctx.oauthClient, did),
+      };
+    },
     catch: (error) => new Error(`Failed to create agent: ${error}`),
   });
 
