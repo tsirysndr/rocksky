@@ -8,7 +8,7 @@ import {
 } from "drizzle-orm/pg-core";
 import users from "./users";
 
-const spotifyAccounts = pgTable("user_albums", {
+const spotifyAccounts = pgTable("spotify_accounts", {
   id: text("xata_id").primaryKey(),
   xataVersion: integer("xata_version").notNull(),
   email: text("email").notNull(),
