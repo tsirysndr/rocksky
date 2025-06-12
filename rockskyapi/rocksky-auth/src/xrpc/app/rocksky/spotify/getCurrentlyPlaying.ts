@@ -166,7 +166,7 @@ const withUriAndLikes = ([track, ctx, user]: [any, Context, SelectUser]) => {
         .then((results) =>
           Match.value(track).pipe(
             Match.when(
-              (t) => Object.keys(t).length > 0,
+              (t) => !Object.keys(t).length,
               () => ({})
             ),
             Match.orElse(() => ({
