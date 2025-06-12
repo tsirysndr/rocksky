@@ -84,9 +84,7 @@ const withSpotifyAccount = ({
   return Effect.tryPromise({
     try: async () =>
       ctx.db
-        .select({
-          accounts: tables.spotifyAccounts,
-        })
+        .select()
         .from(tables.spotifyAccounts)
         .leftJoin(
           tables.users,
@@ -99,8 +97,8 @@ const withSpotifyAccount = ({
           )
         )
         .execute()
-        .then(([{ accounts }]) => ({
-          spotifyAccount: accounts,
+        .then(([results]) => ({
+          spotifyAccount: results.spotify_accounts,
           user,
           ctx,
           params,
