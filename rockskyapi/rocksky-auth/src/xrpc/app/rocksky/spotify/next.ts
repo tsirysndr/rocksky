@@ -114,17 +114,18 @@ const withSpotifyToken = ({
 const handleNext = (accessToken: string) => {
   return Effect.tryPromise({
     try: () =>
-      fetch("https://api.spotify.com/v1/me/player/play", {
+      fetch("https://api.spotify.com/v1/me/player/next", {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
-      }),
+      }).then((res) => res.status),
     catch: (error) => new Error(`Failed to handle next action: ${error}`),
   });
 };
 
 const presentation = (result): Effect.Effect<{}, never> => {
   // Logic to format the result for presentation
+  console.log("Next action result:", result);
   return Effect.sync(() => ({}));
 };
