@@ -1,16 +1,20 @@
 import { HandlerAuth } from "@atproto/xrpc-server";
 import { Context } from "context";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import { Server } from "lexicon";
 import { QueryParams } from "lexicon/types/app/rocksky/spotify/getCurrentlyPlaying";
 import tables from "schema";
+import { SelectSpotifyAccount } from "schema/spotify-accounts";
+import { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
   const getCurrentlyPlaying = (params, auth: HandlerAuth) =>
     pipe(
       { params, ctx, did: auth.credentials?.did },
-      retrieve,
+      withUser,
+      Effect.flatMap(withSpotifyAccount),
+      Effect.flatMap(retrieve),
       Effect.flatMap(presentation),
       Effect.retry({ times: 3 }),
       Effect.timeout("10 seconds"),
@@ -45,23 +49,90 @@ const withUser = ({
       ctx.db
         .select()
         .from(tables.users)
-        .where(eq(tables.users.did, did))
+        .where(
+          or(
+            eq(tables.users.did, params.actor || did),
+            eq(tables.users.handle, params.actor || did)
+          )
+        )
         .execute()
-        .then((users) => ({ user: users[0], ctx, params })),
+        .then((users) => ({ user: users[0], ctx, params, did })),
     catch: (error) => new Error(`Failed to retrieve current user: ${error}`),
   });
 };
 
-const retrieve = (): Effect.Effect<{}, Error> => {
+const withSpotifyAccount = ({
+  params,
+  ctx,
+  did,
+  user,
+}: {
+  params: QueryParams;
+  ctx: Context;
+  did?: string;
+  user: SelectUser;
+}): Effect.Effect<
+  {
+    spotifyAccount: SelectSpotifyAccount;
+    user: SelectUser;
+    ctx: Context;
+    params: QueryParams;
+    did?: string;
+  },
+  Error
+> => {
   return Effect.tryPromise({
-    try: async () => {
-      return {};
-    },
+    try: async () =>
+      ctx.db
+        .select({
+          accounts: tables.spotifyAccounts,
+        })
+        .from(tables.spotifyAccounts)
+        .leftJoin(
+          tables.users,
+          eq(tables.users.id, tables.spotifyAccounts.userId)
+        )
+        .where(
+          or(
+            eq(tables.users.did, params.actor || did),
+            eq(tables.users.handle, params.actor || did)
+          )
+        )
+        .execute()
+        .then(([{ accounts }]) => ({
+          spotifyAccount: accounts,
+          user,
+          ctx,
+          params,
+          did,
+        })),
+    catch: (error) => new Error(`Failed to retrieve Spotify account: ${error}`),
+  });
+};
+
+const retrieve = ({
+  spotifyAccount,
+  ctx,
+}: {
+  spotifyAccount: SelectSpotifyAccount;
+  user: SelectUser;
+  ctx: Context;
+  params: QueryParams;
+  did?: string;
+}): Effect.Effect<{}, Error> => {
+  return Effect.tryPromise({
+    try: async () =>
+      ctx.redis.get(`${spotifyAccount.email}:current`).then((cached) => {
+        if (cached) {
+          return JSON.parse(cached);
+        }
+        return {};
+      }),
     catch: (error) =>
       new Error(`Failed to retrieve currently playing: ${error}`),
   });
 };
 
-const presentation = (currentlyPlaying): Effect.Effect<{}, never> => {
-  return Effect.sync(() => ({}));
+const presentation = (currentlyPlaying): Effect.Effect<any, never> => {
+  return Effect.sync(() => currentlyPlaying);
 };

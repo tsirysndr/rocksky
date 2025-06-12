@@ -10,6 +10,7 @@ import scrobbles from "./scrobbles";
 import shoutLikes from "./shout-likes";
 import shoutReports from "./shout-reports";
 import shouts from "./shouts";
+import spotifyAccounts from "./spotify-accounts";
 import tracks from "./tracks";
 import userAlbums from "./user-albums";
 import userArtists from "./user-artists";
@@ -38,4 +39,5 @@ export default {
   albumTracks,
   userPlaylists,
   lovedTracks,
+  spotifyAccounts,
 };
