@@ -38,6 +38,7 @@ import likeSong from "./app/rocksky/like/likeSong";
 import getCurrentlyPlaying from "./app/rocksky/player/getCurrentlyPlaying";
 import next from "./app/rocksky/player/next";
 import pause from "./app/rocksky/player/pause";
+import play from "./app/rocksky/player/play";
 import previous from "./app/rocksky/player/previous";
 import seek from "./app/rocksky/player/seek";
 import getPlaylist from "./app/rocksky/playlist/getPlaylist";
@@ -97,6 +98,7 @@ export default function (server: Server, ctx: Context) {
   likeSong(server, ctx);
   getCurrentlyPlaying(server, ctx);
   next(server, ctx);
+  play(server, ctx);
   pause(server, ctx);
   previous(server, ctx);
   seek(server, ctx);

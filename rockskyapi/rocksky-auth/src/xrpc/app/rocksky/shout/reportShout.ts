@@ -1,9 +1,10 @@
+import { HandlerAuth } from "@atproto/xrpc-server";
 import { Context } from "context";
 import { Effect, pipe } from "effect";
 import { Server } from "lexicon";
 
 export default function (server: Server, ctx: Context) {
-  const reportShout = (params) =>
+  const reportShout = (params, auth: HandlerAuth) =>
     pipe(
       { params, ctx },
       report,
@@ -12,13 +13,13 @@ export default function (server: Server, ctx: Context) {
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
         console.error(err);
-        return Effect.succeed({ albums: [] });
+        return Effect.succeed({});
       })
     );
   server.app.rocksky.shout.reportShout({
     auth: ctx.authVerifier,
-    handler: async ({ params }) => {
-      const result = await Effect.runPromise(reportShout(params));
+    handler: async ({ params, auth }) => {
+      const result = await Effect.runPromise(reportShout(params, auth));
       return {
         encoding: "application/json",
         body: result,

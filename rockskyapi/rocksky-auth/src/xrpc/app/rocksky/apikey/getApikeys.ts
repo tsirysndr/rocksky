@@ -1,13 +1,25 @@
+import { HandlerAuth } from "@atproto/xrpc-server";
 import { Context } from "context";
-import { pipe } from "effect";
+import { Effect, pipe } from "effect";
 import { Server } from "lexicon";
 
 export default function (server: Server, ctx: Context) {
-  const getApikeys = (params) => pipe(params, retrieve, presentation);
+  const getApikeys = (params, auth: HandlerAuth) =>
+    pipe(
+      params,
+      retrieve,
+      presentation,
+      Effect.retry({ times: 3 }),
+      Effect.timeout("10 seconds"),
+      Effect.catchAll((err) => {
+        console.error(err);
+        return Effect.succeed({});
+      })
+    );
   server.app.rocksky.apikey.getApikeys({
     auth: ctx.authVerifier,
-    handler: async ({ params }) => {
-      const result = getApikeys(params);
+    handler: async ({ params, auth }) => {
+      const result = await Effect.runPromise(getApikeys(params, auth));
       return {
         encoding: "application/json",
         body: result,
@@ -23,7 +35,7 @@ const retrieve = () => {
 
 const presentation = (apikeys) => {
   // Logic to format the API keys for presentation
-  return {
+  return Effect.sync(() => ({
     apikeys: [],
-  };
+  }));
 };

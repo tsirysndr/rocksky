@@ -1,3 +1,4 @@
+import { HandlerAuth } from "@atproto/xrpc-server";
 import { Context } from "context";
 import { eq } from "drizzle-orm";
 import { Effect, pipe } from "effect";
@@ -6,16 +7,27 @@ import { QueryParams } from "lexicon/types/app/rocksky/spotify/previous";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
-  const previous = (params) => pipe(params, handlePrevious, presentation);
+  const previous = (params, auth: HandlerAuth) =>
+    pipe(
+      params,
+      handlePrevious,
+      presentation,
+      Effect.retry({ times: 3 }),
+      Effect.timeout("10 seconds"),
+      Effect.catchAll((err) => {
+        console.error(err);
+        return Effect.succeed({});
+      })
+    );
   server.app.rocksky.spotify.previous({
     auth: ctx.authVerifier,
-    handler: async ({ params }) => {
-      const result = previous(params);
+    handler: async ({ params, auth }) => {
+      const result = await Effect.runPromise(previous(params, auth));
     },
   });
 }
 
-const getCurrentUser = ({
+const withUser = ({
   params,
   ctx,
   did,
@@ -38,12 +50,13 @@ const getCurrentUser = ({
 
 const handlePrevious = (params) => {
   // Logic to handle the previous action in Spotify
-  return {};
+  return Effect.tryPromise({
+    try: async () => ({}),
+    catch: (error) => new Error(`Failed to handle previous action: ${error}`),
+  });
 };
 
 const presentation = (result) => {
   // Logic to format the result for presentation
-  return {
-    previous: result,
-  };
+  return Effect.sync(() => ({}));
 };

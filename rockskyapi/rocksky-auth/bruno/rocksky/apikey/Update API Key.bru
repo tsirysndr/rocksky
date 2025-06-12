@@ -1,0 +1,18 @@
+meta {
+  name: Update API Key
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{url}}/xrpc/app.rocksky.apikey.updateApikey
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "id": "123",
+    "name": "demo"
+  }
+}

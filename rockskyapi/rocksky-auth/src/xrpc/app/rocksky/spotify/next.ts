@@ -1,3 +1,4 @@
+import { HandlerAuth } from "@atproto/xrpc-server";
 import { Context } from "context";
 import { eq } from "drizzle-orm";
 import { Effect, pipe } from "effect";
@@ -6,16 +7,27 @@ import { QueryParams } from "lexicon/types/app/rocksky/spotify/next";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
-  const next = (params) => pipe(params, handleNext, presentation);
+  const next = (params, auth: HandlerAuth) =>
+    pipe(
+      { params, ctx, did: auth.credentials.did },
+      handleNext,
+      Effect.flatMap(presentation),
+      Effect.retry({ times: 3 }),
+      Effect.timeout("10 seconds"),
+      Effect.catchAll((err) => {
+        console.error(err);
+        return Effect.succeed({});
+      })
+    );
   server.app.rocksky.spotify.next({
     auth: ctx.authVerifier,
-    handler: async ({ params }) => {
-      const result = next(params);
+    handler: async ({ params, auth }) => {
+      const result = await Effect.runPromise(next(params, auth));
     },
   });
 }
 
-const getCurrentUser = ({
+const withUser = ({
   params,
   ctx,
   did,
@@ -37,13 +49,13 @@ const getCurrentUser = ({
 };
 
 const handleNext = (params) => {
-  // Logic to handle the next action in Spotify
-  return {};
+  return Effect.tryPromise({
+    try: async () => {},
+    catch: (error) => new Error(`Failed to handle next action: ${error}`),
+  });
 };
 
-const presentation = (result) => {
+const presentation = (result): Effect.Effect<{}, never> => {
   // Logic to format the result for presentation
-  return {
-    next: result,
-  };
+  return Effect.sync(() => ({}));
 };

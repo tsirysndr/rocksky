@@ -8,11 +8,21 @@ import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
   const createApikey = (input: InputSchema, auth: HandlerAuth) =>
-    pipe(input, create, presentation);
+    pipe(
+      input,
+      create,
+      presentation,
+      Effect.retry({ times: 3 }),
+      Effect.timeout("10 seconds"),
+      Effect.catchAll((err) => {
+        console.error(err);
+        return Effect.succeed({});
+      })
+    );
   server.app.rocksky.apikey.createApikey({
     auth: ctx.authVerifier,
     handler: async ({ input, auth }) => {
-      const result = createApikey(input.body, auth);
+      const result = await Effect.runPromise(createApikey(input.body, auth));
       return {
         encoding: "application/json",
         body: result,
@@ -49,5 +59,5 @@ const create = () => {
 
 const presentation = () => {
   // Logic to format the API key for presentation
-  return {};
+  return Effect.sync(() => ({}));
 };

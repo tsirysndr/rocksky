@@ -7,11 +7,21 @@ import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
   const updateApikey = (input: InputSchema, auth) =>
-    pipe(input, update, presentation);
+    pipe(
+      input,
+      update,
+      presentation,
+      Effect.retry({ times: 3 }),
+      Effect.timeout("10 seconds"),
+      Effect.catchAll((err) => {
+        console.error(err);
+        return Effect.succeed({});
+      })
+    );
   server.app.rocksky.apikey.updateApikey({
     auth: ctx.authVerifier,
     handler: async ({ input, auth }) => {
-      const result = updateApikey(input.body, auth);
+      const result = await Effect.runPromise(updateApikey(input.body, auth));
       return {
         encoding: "application/json",
         body: result,
@@ -20,7 +30,7 @@ export default function (server: Server, ctx: Context) {
   });
 }
 
-const getCurrentUser = ({
+const withUser = ({
   params,
   ctx,
   did,
@@ -48,5 +58,5 @@ const update = () => {
 
 const presentation = () => {
   // Logic to format the updated API key for presentation
-  return {};
+  return Effect.sync(() => ({}));
 };

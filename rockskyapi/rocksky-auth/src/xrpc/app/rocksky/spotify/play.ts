@@ -1,3 +1,4 @@
+import { HandlerAuth } from "@atproto/xrpc-server";
 import { Context } from "context";
 import { eq } from "drizzle-orm";
 import { Effect, pipe } from "effect";
@@ -6,16 +7,27 @@ import { QueryParams } from "lexicon/types/app/rocksky/spotify/play";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
-  const play = (params) => pipe(params, handlePlay, presentation);
+  const play = (params, auth: HandlerAuth) =>
+    pipe(
+      { params, ctx, did: auth.credentials.did },
+      handlePlay,
+      Effect.flatMap(presentation),
+      Effect.retry({ times: 3 }),
+      Effect.timeout("10 seconds"),
+      Effect.catchAll((err) => {
+        console.error(err);
+        return Effect.succeed({});
+      })
+    );
   server.app.rocksky.spotify.play({
     auth: ctx.authVerifier,
-    handler: async ({ params }) => {
-      const result = play(params);
+    handler: async ({ params, auth }) => {
+      const result = await Effect.runPromise(play(params, auth));
     },
   });
 }
 
-const getCurrentUser = ({
+const withUser = ({
   params,
   ctx,
   did,
@@ -38,12 +50,12 @@ const getCurrentUser = ({
 
 const handlePlay = (params) => {
   // Logic to handle the play action in Spotify
-  return {};
+  return Effect.tryPromise({
+    try: async () => {},
+    catch: (error) => new Error(`Failed to handle play action: ${error}`),
+  });
 };
 
 const presentation = (result) => {
-  // Logic to format the result for presentation
-  return {
-    play: result,
-  };
+  return Effect.sync(() => ({}));
 };

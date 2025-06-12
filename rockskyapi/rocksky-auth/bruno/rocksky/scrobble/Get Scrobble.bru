@@ -1,0 +1,15 @@
+meta {
+  name: Get Scrobble
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{url}}/xrpc/app.rocksky.scrobble.getScrobble?uri=at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.scrobble/3lr3lo2zgck2o
+  body: none
+  auth: inherit
+}
+
+params:query {
+  uri: at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.scrobble/3lr3lo2zgck2o
+}

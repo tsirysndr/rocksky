@@ -8,11 +8,21 @@ import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
   const getCurrentlyPlaying = (params, auth: HandlerAuth) =>
-    pipe(params, retrieve, presentation);
+    pipe(
+      params,
+      retrieve,
+      presentation,
+      Effect.retry({ times: 3 }),
+      Effect.timeout("10 seconds"),
+      Effect.catchAll((err) => {
+        console.error(err);
+        return Effect.succeed({});
+      })
+    );
   server.app.rocksky.player.getCurrentlyPlaying({
     auth: ctx.authVerifier,
     handler: async ({ params, auth }) => {
-      const result = getCurrentlyPlaying(params, auth);
+      const result = await Effect.runPromise(getCurrentlyPlaying(params, auth));
       return {
         encoding: "application/json",
         body: result,
@@ -21,7 +31,7 @@ export default function (server: Server, ctx: Context) {
   });
 }
 
-const getCurrentUser = ({
+const withUser = ({
   params,
   ctx,
   did,
@@ -49,5 +59,5 @@ const retrieve = () => {
 
 const presentation = (currentlyPlaying) => {
   // Logic to format the currently playing track for presentation
-  return {};
+  return Effect.sync(() => ({}));
 };

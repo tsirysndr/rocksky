@@ -1,0 +1,11 @@
+meta {
+  name: Get Playlists
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{url}}/xrpc/app.rocksky.playlist.getPlaylists
+  body: none
+  auth: inherit
+}

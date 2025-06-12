@@ -1,0 +1,15 @@
+meta {
+  name: Get Album's Shouts
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{url}}/xrpc/app.rocksky.shout.getAlbumShouts?uri=at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3liyeolehos2l
+  body: none
+  auth: inherit
+}
+
+params:query {
+  uri: at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3liyeolehos2l
+}

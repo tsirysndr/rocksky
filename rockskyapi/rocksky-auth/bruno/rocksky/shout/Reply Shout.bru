@@ -1,0 +1,18 @@
+meta {
+  name: Reply Shout
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{url}}/xrpc/app.rocksky.shout.replyShout
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "shoutId": "123",
+    "message": "test 123"
+  }
+}

@@ -8,16 +8,26 @@ import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
   const next = (params, auth: HandlerAuth) =>
-    pipe(params, handleNext, presentation);
+    pipe(
+      params,
+      handleNext,
+      presentation,
+      Effect.retry({ times: 3 }),
+      Effect.timeout("10 seconds"),
+      Effect.catchAll((err) => {
+        console.error(err);
+        return Effect.succeed({});
+      })
+    );
   server.app.rocksky.player.next({
     auth: ctx.authVerifier,
     handler: async ({ params, auth }) => {
-      const result = next(params, auth);
+      const result = await Effect.runPromise(next(params, auth));
     },
   });
 }
 
-const getCurrentUser = ({
+const withUser = ({
   params,
   ctx,
   did,
@@ -40,4 +50,6 @@ const getCurrentUser = ({
 
 const handleNext = (params) => {};
 
-const presentation = () => {};
+const presentation = () => {
+  return Effect.sync(() => ({}));
+};

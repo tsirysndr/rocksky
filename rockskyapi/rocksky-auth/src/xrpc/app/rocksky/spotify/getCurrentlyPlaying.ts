@@ -8,11 +8,21 @@ import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
   const getCurrentlyPlaying = (params, auth: HandlerAuth) =>
-    pipe(params, retrieve, presentation);
+    pipe(
+      { params, ctx, did: auth.credentials.did },
+      retrieve,
+      Effect.flatMap(presentation),
+      Effect.retry({ times: 3 }),
+      Effect.timeout("10 seconds"),
+      Effect.catchAll((err) => {
+        console.error(err);
+        return Effect.succeed({});
+      })
+    );
   server.app.rocksky.spotify.getCurrentlyPlaying({
     auth: ctx.authVerifier,
     handler: async ({ params, auth }) => {
-      const result = getCurrentlyPlaying(params, auth);
+      const result = await Effect.runPromise(getCurrentlyPlaying(params, auth));
       return {
         encoding: "application/json",
         body: result,
@@ -21,7 +31,7 @@ export default function (server: Server, ctx: Context) {
   });
 }
 
-const getCurrentUser = ({
+const withUser = ({
   params,
   ctx,
   did,
@@ -42,12 +52,16 @@ const getCurrentUser = ({
   });
 };
 
-const retrieve = () => {
-  // Logic to retrieve currently playing track
-  return {};
+const retrieve = (): Effect.Effect<{}, Error> => {
+  return Effect.tryPromise({
+    try: async () => {
+      return {};
+    },
+    catch: (error) =>
+      new Error(`Failed to retrieve currently playing: ${error}`),
+  });
 };
 
-const presentation = (currentlyPlaying) => {
-  // Logic to format the currently playing track for presentation
-  return {};
+const presentation = (currentlyPlaying): Effect.Effect<{}, never> => {
+  return Effect.sync(() => ({}));
 };

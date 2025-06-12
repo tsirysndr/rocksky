@@ -1,0 +1,17 @@
+meta {
+  name: Create Shout
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{url}}/xrpc/app.rocksky.shout.createShout
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "message": "123"
+  }
+}

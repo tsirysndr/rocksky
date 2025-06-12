@@ -5,7 +5,11 @@ meta {
 }
 
 get {
-  url: {{url}}/xrpc/app.rocksky.actor.getActorArtists
+  url: {{url}}/xrpc/app.rocksky.actor.getActorArtists?did={{did}}
   body: none
   auth: inherit
+}
+
+params:query {
+  did: {{did}}
 }
