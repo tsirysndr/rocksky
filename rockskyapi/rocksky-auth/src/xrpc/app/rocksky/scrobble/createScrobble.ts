@@ -13,7 +13,7 @@ import { SelectUser } from "schema/users";
 export default function (server: Server, ctx: Context) {
   const createScrobble = (input, auth: HandlerAuth) =>
     pipe(
-      { input, ctx, did: auth.credentials.did },
+      { input, ctx, did: auth.credentials?.did },
       withAgent,
       Effect.flatMap(withUser),
       Effect.flatMap(putScrobbleRecord),

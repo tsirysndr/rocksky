@@ -9,7 +9,7 @@ import tables from "schema";
 export default function (server: Server, ctx: Context) {
   const play = (params, auth: HandlerAuth) =>
     pipe(
-      { params, ctx, did: auth.credentials.did },
+      { params, ctx, did: auth.credentials?.did },
       handlePlay,
       Effect.flatMap(presentation),
       Effect.retry({ times: 3 }),

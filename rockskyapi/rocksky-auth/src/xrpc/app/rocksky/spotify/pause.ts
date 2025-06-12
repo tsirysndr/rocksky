@@ -9,7 +9,7 @@ import tables from "schema";
 export default function (server: Server, ctx: Context) {
   const pause = (params, auth: HandlerAuth) =>
     pipe(
-      { params, ctx, did: auth.credentials.did },
+      { params, ctx, did: auth.credentials?.did },
       handlePause,
       Effect.flatMap(presentation),
       Effect.retry({ times: 3 }),
