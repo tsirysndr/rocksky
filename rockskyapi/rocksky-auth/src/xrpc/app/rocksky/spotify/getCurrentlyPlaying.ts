@@ -139,6 +139,8 @@ const retrieve = ({
 };
 
 const withUriAndLikes = ([track, ctx, user]: [any, Context, SelectUser]) => {
+  console.log(">> track");
+  console.log(track);
   return Effect.tryPromise({
     try: async () => {
       const sha256 = createHash("sha256")
