@@ -11,6 +11,7 @@ import shoutLikes from "./shout-likes";
 import shoutReports from "./shout-reports";
 import shouts from "./shouts";
 import spotifyAccounts from "./spotify-accounts";
+import spotifyTokens from "./spotify-tokens";
 import tracks from "./tracks";
 import userAlbums from "./user-albums";
 import userArtists from "./user-artists";
@@ -40,4 +41,5 @@ export default {
   userPlaylists,
   lovedTracks,
   spotifyAccounts,
+  spotifyTokens,
 };

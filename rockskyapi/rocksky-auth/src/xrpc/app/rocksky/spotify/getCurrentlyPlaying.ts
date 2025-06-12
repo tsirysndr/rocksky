@@ -84,7 +84,7 @@ const withSpotifyAccount = ({
   Error
 > => {
   return Effect.tryPromise({
-    try: async () =>
+    try: () =>
       ctx.db
         .select()
         .from(tables.spotifyAccounts)
@@ -122,7 +122,7 @@ const retrieve = ({
   did?: string;
 }): Effect.Effect<any, Error> => {
   return Effect.tryPromise({
-    try: async () =>
+    try: () =>
       ctx.redis
         .get(`${spotifyAccount.email}:current`)
         .then((cached) =>
