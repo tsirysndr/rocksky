@@ -115,7 +115,7 @@ const handleNext = (accessToken: string) => {
   return Effect.tryPromise({
     try: () =>
       fetch("https://api.spotify.com/v1/me/player/next", {
-        method: "PUT",
+        method: "POST",
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
