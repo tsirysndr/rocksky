@@ -139,8 +139,6 @@ const retrieve = ({
 };
 
 const withUriAndLikes = ([track, ctx, user]: [any, Context, SelectUser]) => {
-  console.log(">> track");
-  console.log(track);
   return Effect.tryPromise({
     try: async () => {
       const sha256 = createHash("sha256")
@@ -167,7 +165,10 @@ const withUriAndLikes = ([track, ctx, user]: [any, Context, SelectUser]) => {
         .execute()
         .then((results) =>
           Match.value(track).pipe(
-            Match.when({}, () => ({})),
+            Match.when(
+              (t) => Object.keys(t).length > 0,
+              () => ({})
+            ),
             Match.orElse(() => ({
               ...track,
               songUri: record?.uri,
