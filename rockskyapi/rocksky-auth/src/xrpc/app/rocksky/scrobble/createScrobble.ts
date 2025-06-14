@@ -1111,7 +1111,7 @@ const retryFetchScrobble = (ctx: Context, scrobbleUri: string) =>
                   scrobble.tracks.artistUri &&
                   scrobble.tracks.albumUri &&
                   scrobble.scrobbles
-                  ? `Scrobble found after ${chalk.magenta(tries + 1)} tries: ${scrobble.scrobbles.id} ${scrobble.scrobbles.uri}`
+                  ? `Scrobble found after ${chalk.magenta(tries + 1)} tries`
                   : `Scrobble not found, trying again: ${chalk.magenta(tries + 1)}`
               )
             ),
