@@ -559,23 +559,29 @@ const publishScrobble = (ctx: Context, id: string) =>
                           scrobble: {
                             album_id: {
                               ...scrobble.albums,
-                              xata_createdat: scrobble.albums.createdAt,
+                              xata_createdat:
+                                scrobble.albums.createdAt.toISOString(),
                               xata_id: scrobble.albums.id,
-                              xata_updatedat: scrobble.albums.updatedAt,
+                              xata_updatedat:
+                                scrobble.albums.updatedAt.toISOString(),
                               xata_version: scrobble.albums.xataVersion,
                             },
                             artist_id: {
                               ...scrobble.artists,
-                              xata_createdat: scrobble.artists.createdAt,
+                              xata_createdat:
+                                scrobble.artists.createdAt.toISOString(),
                               xata_id: scrobble.artists.id,
-                              xata_updatedat: scrobble.artists.updatedAt,
+                              xata_updatedat:
+                                scrobble.artists.updatedAt.toISOString(),
                               xata_version: scrobble.artists.xataVersion,
                             },
                             track_id: {
                               ...scrobble.tracks,
-                              xata_createdat: scrobble.tracks.createdAt,
+                              xata_createdat:
+                                scrobble.tracks.createdAt.toISOString(),
                               xata_id: scrobble.tracks.id,
-                              xata_updatedat: scrobble.tracks.updatedAt,
+                              xata_updatedat:
+                                scrobble.tracks.updatedAt.toISOString(),
                               xata_version: scrobble.tracks.xataVersion,
                             },
                             uri: scrobble.scrobbles.uri,
@@ -584,14 +590,18 @@ const publishScrobble = (ctx: Context, id: string) =>
                               did: scrobble.users.did,
                               display_name: scrobble.users.displayName,
                               handle: scrobble.users.handle,
-                              xata_createdat: scrobble.users.createdAt,
+                              xata_createdat:
+                                scrobble.users.createdAt.toISOString(),
                               xata_id: scrobble.users.id,
-                              xata_updatedat: scrobble.users.updatedAt,
+                              xata_updatedat:
+                                scrobble.users.updatedAt.toISOString(),
                               xata_version: scrobble.users.xataVersion,
                             },
-                            xata_createdat: scrobble.scrobbles.createdAt,
+                            xata_createdat:
+                              scrobble.scrobbles.createdAt.toISOString(),
                             xata_id: scrobble.scrobbles.id,
-                            xata_updatedat: scrobble.scrobbles.updatedAt,
+                            xata_updatedat:
+                              scrobble.scrobbles.updatedAt.toISOString(),
                             xata_version: scrobble.scrobbles.xataVersion,
                           },
                           user_album: {
@@ -601,9 +611,11 @@ const publishScrobble = (ctx: Context, id: string) =>
                             user_id: {
                               xata_id: finalUserAlbum.userId,
                             },
-                            xata_createdat: finalUserAlbum.createdAt,
+                            xata_createdat:
+                              finalUserAlbum.createdAt.toISOString(),
                             xata_id: finalUserAlbum.id,
-                            xata_updatedat: finalUserAlbum.updatedAt,
+                            xata_updatedat:
+                              finalUserAlbum.updatedAt.toISOString(),
                             xata_version: finalUserAlbum.xataVersion,
                           },
                           user_artist: {
@@ -615,9 +627,11 @@ const publishScrobble = (ctx: Context, id: string) =>
                             user_id: {
                               xata_id: finalUserArtist.userId,
                             },
-                            xata_createdat: finalUserArtist.createdAt,
+                            xata_createdat:
+                              finalUserArtist.createdAt.toISOString(),
                             xata_id: finalUserArtist.id,
-                            xata_updatedat: finalUserArtist.updatedAt,
+                            xata_updatedat:
+                              finalUserArtist.updatedAt.toISOString(),
                             xata_version: finalUserArtist.xataVersion,
                           },
                           user_track: {
@@ -629,9 +643,11 @@ const publishScrobble = (ctx: Context, id: string) =>
                             user_id: {
                               xata_id: finalUserTrack.userId,
                             },
-                            xata_createdat: finalUserTrack.createdAt,
+                            xata_createdat:
+                              finalUserTrack.createdAt.toISOString(),
                             xata_id: finalUserTrack.id,
-                            xata_updatedat: finalUserTrack.updatedAt,
+                            xata_updatedat:
+                              finalUserTrack.updatedAt.toISOString(),
                             xata_version: finalUserTrack.xataVersion,
                           },
                           album_track: albumTrack,
