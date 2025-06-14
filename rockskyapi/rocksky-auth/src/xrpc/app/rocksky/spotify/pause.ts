@@ -111,15 +111,21 @@ const withSpotifyToken = ({
   });
 };
 
-const handlePause = (params) => {
-  // Logic to handle the pause action in Spotify
+const handlePause = (accessToken: string) => {
   return Effect.tryPromise({
-    try: async () => {},
-    catch: (error) => new Error(`Failed to handle pause action: ${error}`),
+    try: () =>
+      fetch("https://api.spotify.com/v1/me/player/pause", {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }).then((res) => res.status),
+    catch: (error) => new Error(`Failed to handle next action: ${error}`),
   });
 };
 
 const presentation = (result): Effect.Effect<{}, never> => {
   // Logic to format the result for presentation
+  console.log("Pause action result:", result);
   return Effect.sync(() => ({}));
 };

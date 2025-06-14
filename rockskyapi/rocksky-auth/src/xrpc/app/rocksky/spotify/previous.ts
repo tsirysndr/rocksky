@@ -118,5 +118,6 @@ const handlePrevious = (accessToken: string) => {
 
 const presentation = (result) => {
   // Logic to format the result for presentation
+  console.log("Previous action result:", result);
   return Effect.sync(() => ({}));
 };

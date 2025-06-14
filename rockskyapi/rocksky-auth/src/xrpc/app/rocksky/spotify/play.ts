@@ -111,14 +111,20 @@ const withSpotifyToken = ({
   });
 };
 
-const handlePlay = (params) => {
-  // Logic to handle the play action in Spotify
+const handlePlay = (accessToken: string) => {
   return Effect.tryPromise({
-    try: async () => {},
-    catch: (error) => new Error(`Failed to handle play action: ${error}`),
+    try: () =>
+      fetch("https://api.spotify.com/v1/me/player/play", {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }).then((res) => res.status),
+    catch: (error) => new Error(`Failed to handle next action: ${error}`),
   });
 };
 
 const presentation = (result) => {
+  console.log("Play action result:", result);
   return Effect.sync(() => ({}));
 };
