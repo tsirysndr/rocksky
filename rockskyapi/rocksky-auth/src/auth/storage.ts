@@ -26,7 +26,7 @@ export class StateStore implements NodeSavedStateStore {
       .execute();
   }
   async del(key: string) {
-    await this.db.deleteFrom("auth_state").where("key", "=", key).execute();
+    // await this.db.deleteFrom("auth_state").where("key", "=", key).execute();
   }
 }
 
