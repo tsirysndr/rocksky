@@ -663,7 +663,9 @@ const publishScrobble = (ctx: Context, id: string) =>
                 Effect.try(() =>
                   ctx.nc.publish(
                     "rocksky.scrobble",
-                    Buffer.from(JSON.stringify(data))
+                    Buffer.from(
+                      JSON.stringify(data).replaceAll("sha_256", "sha256")
+                    )
                   )
                 )
               )
