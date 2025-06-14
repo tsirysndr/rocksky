@@ -71,12 +71,21 @@ const withAgent = ({
 > => {
   return Effect.tryPromise({
     try: async () =>
-      createAgent(ctx.oauthClient, did).then((agent) => ({
-        agent,
-        ctx,
-        did,
-        input,
-      })),
+      Match.value(did).pipe(
+        Match.when(
+          (value) => !!value,
+          () =>
+            createAgent(ctx.oauthClient, did).then((agent) => ({
+              agent,
+              ctx,
+              did,
+              input,
+            }))
+        ),
+        Match.orElse(() => {
+          throw new Error("Authentication required to create a scrobble");
+        })
+      ),
     catch: (error) => new Error(`Failed to create agent: ${error}`),
   });
 };
