@@ -984,18 +984,27 @@ const retryFetchTrack = (
 const retryFetchScrobble = (ctx: Context, scrobbleUri: string) =>
   pipe(
     Effect.iterate(
-      { tries: 0, scrobble: null as any },
+      {
+        tries: 0,
+        scrobble: null as {
+          tracks?: SelectTrack;
+          albums?: SelectAlbum;
+          artists?: SelectArtist;
+          users?: SelectUser;
+          id?: string;
+        } | null,
+      },
       {
         while: ({ tries, scrobble }) =>
           tries < 30 &&
           !(
             scrobble &&
-            scrobble.track_id &&
-            scrobble.album_id &&
-            scrobble.artist_id &&
-            scrobble.album_id.artist_uri &&
-            scrobble.track_id.artist_uri &&
-            scrobble.track_id.album_uri
+            scrobble.tracks &&
+            scrobble.albums &&
+            scrobble.artists &&
+            scrobble.albums.artistUri &&
+            scrobble.tracks.artistUri &&
+            scrobble.tracks.albumUri
           ),
         body: ({ tries }) =>
           pipe(
