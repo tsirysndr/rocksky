@@ -34,7 +34,7 @@ export default function (server: Server, ctx: Context) {
       ),
       Effect.flatMap(presentation),
       Effect.retry({ times: 3 }),
-      Effect.timeout("690 seconds"),
+      Effect.timeout("600 seconds"),
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({});
