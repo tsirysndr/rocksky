@@ -50,6 +50,6 @@ export class SessionStore implements NodeSavedSessionStore {
       .execute();
   }
   async del(key: string) {
-    await this.db.deleteFrom("auth_session").where("key", "=", key).execute();
+    // await this.db.deleteFrom("auth_session").where("key", "=", key).execute();
   }
 }
