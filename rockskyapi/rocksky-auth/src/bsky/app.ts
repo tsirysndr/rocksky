@@ -1,7 +1,6 @@
 import { BlobRef } from "@atproto/lexicon";
 import { isValidHandle } from "@atproto/syntax";
 import { equals } from "@xata.io/client";
-import chalk from "chalk";
 import { ctx } from "context";
 import { desc, eq } from "drizzle-orm";
 import { Hono } from "hono";
@@ -71,14 +70,6 @@ app.get("/oauth/callback", async (c) => {
     cli = ctx.kv.get(`cli:${handle}`);
     ctx.kv.delete(`cli:${handle}`);
 
-    await fetch(`http://localhost:8000/refresh/${did}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({}),
-    });
-
     const token = jwt.sign(
       {
         did,
@@ -110,25 +101,6 @@ app.get("/oauth/callback", async (c) => {
   return c.redirect(`${env.FRONTEND_URL}?did=${did}&cli=${cli}`);
 });
 
-app.post("/refresh/:did", async (c) => {
-  const cache = await ctx.redis.get(`refresh:${c.req.param("did")}`);
-  if (cache) {
-    return c.text(cache);
-  }
-
-  const did = c.req.param("did");
-  setInterval(
-    () => {
-      createAgent(ctx.oauthClient, did).catch(() => {});
-      console.log(`Refreshing agent for ${chalk.greenBright(did)}`);
-    },
-    // every 5 minutes
-    5 * 60 * 1000
-  );
-  await ctx.redis.set(`refresh:${did}`, did);
-  return c.text("ok");
-});
-
 app.get("/profile", async (c) => {
   requestCounter.add(1, { method: "GET", route: "/profile" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
@@ -148,14 +120,6 @@ app.get("/profile", async (c) => {
     c.status(401);
     return c.text("Unauthorized");
   }
-
-  await fetch(`http://localhost:8000/refresh/${did}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({}),
-  });
 
   const { data: profileRecord } = await agent.com.atproto.repo.getRecord({
     repo: agent.assertDid,
