@@ -552,26 +552,20 @@ const ensureTrack = (
     ),
     Effect.flatMap((trackOpt) =>
       pipe(
-        Option.match(trackOpt, {
-          onNone: () => Effect.succeed(null),
-          onSome: (trackRecord: any) =>
-            pipe(
-              Effect.tryPromise(() =>
-                ctx.client.db.user_tracks
-                  .filter({
-                    "track_id.xata_id": trackRecord.xata_id,
-                    "user_id.did": userDid,
-                  })
-                  .getFirst()
-              ),
-              Effect.flatMap((userTrack) =>
-                Option.isNone(Option.fromNullable(userTrack)) ||
-                !userTrack?.uri?.includes(userDid)
-                  ? putSongRecord(track, agent)
-                  : Effect.succeed(null)
-              )
-            ),
-        })
+        Effect.tryPromise(() =>
+          ctx.client.db.user_tracks
+            .filter({
+              "track_id.xata_id": trackOpt?.xata_id,
+              "user_id.did": userDid,
+            })
+            .getFirst()
+        ),
+        Effect.flatMap((userTrack) =>
+          Option.isNone(Option.fromNullable(userTrack)) ||
+          !userTrack?.uri?.includes(userDid)
+            ? putSongRecord(track, agent)
+            : Effect.succeed(null)
+        )
       )
     )
   );
