@@ -58,8 +58,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let email = user.0.clone();
         let token = user.1.clone();
         let did = user.2.clone();
+        let user_id = user.3.clone();
         let stop_flag = Arc::new(AtomicBool::new(false));
         let cache = cache.clone();
+        let nc = nc.clone();
         let thread_map = Arc::clone(&thread_map);
 
         thread_map
@@ -82,6 +84,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         email.bright_green(),
                         e.to_string().bright_red()
                     );
+
+                    // If there's an error, publish a message to restart the thread
+                    match rt.block_on(nc.publish("rocksky.spotify.user", user_id.into())) {
+                        Ok(_) => {
+                            println!(
+                                "{} Published message to restart thread for user: {}",
+                                format!("[{}]", email).bright_green(),
+                                email.bright_green()
+                            );
+                        }
+                        Err(e) => {
+                            println!(
+                                "{} Error publishing message to restart thread: {}",
+                                format!("[{}]", email).bright_green(),
+                                e.to_string().bright_red()
+                            );
+                        }
+                    }
                 }
             }
         });
@@ -161,6 +181,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let did = user.2.clone();
                 let stop_flag = Arc::new(AtomicBool::new(false));
                 let cache = cache.clone();
+                let nc = nc.clone();
 
                 thread_map.insert(email.clone(), Arc::clone(&stop_flag));
 
@@ -185,6 +206,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 email.bright_green(),
                                 e.to_string().bright_red()
                             );
+                            match rt.block_on(nc.publish("rocksky.spotify.user", user_id.into())) {
+                                Ok(_) => {},
+                                Err(e) => {
+                                    println!(
+                                        "{} Error publishing message to restart thread: {}",
+                                        format!("[{}]", email).bright_green(),
+                                        e.to_string().bright_red()
+                                    );
+                                }
+                            }
                         }
                     }
                 });
@@ -562,7 +593,17 @@ pub async fn get_album(cache: Cache, album_id: &str, token: &str) -> Result<Opti
         return Ok(None);
     }
 
-    cache.setex(album_id, &data, 20)?;
+    match cache.setex(album_id, &data, 20) {
+        Ok(_) => {}
+        Err(e) => {
+            println!(
+                "{} redis error: {}",
+                format!("[{}]", album_id).bright_green(),
+                e.to_string().bright_red()
+            );
+            return Ok(None);
+        }
+    }
 
     Ok(Some(serde_json::from_str(&data)?))
 }
@@ -615,7 +656,16 @@ pub async fn get_album_tracks(
     }
 
     let all_tracks_json = serde_json::to_string(&all_tracks)?;
-    cache.setex(&format!("{}:tracks", album_id), &all_tracks_json, 20)?;
+    match cache.setex(&format!("{}:tracks", album_id), &all_tracks_json, 20) {
+        Ok(_) => {}
+        Err(e) => {
+            println!(
+                "{} redis error: {}",
+                format!("[{}]", album_id).bright_green(),
+                e.to_string().bright_red()
+            );
+        }
+    }
 
     Ok(AlbumTracks {
         items: all_tracks,
@@ -627,7 +677,7 @@ pub async fn find_spotify_users(
     pool: &Pool<Postgres>,
     offset: usize,
     limit: usize,
-) -> Result<Vec<(String, String, String)>, Error> {
+) -> Result<Vec<(String, String, String, String)>, Error> {
     let results: Vec<SpotifyTokenWithEmail> = sqlx::query_as(
         r#"
     SELECT * FROM spotify_tokens
@@ -648,7 +698,7 @@ pub async fn find_spotify_users(
             &result.refresh_token,
             &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?,
         )?;
-        user_tokens.push((result.email.clone(), token, result.did.clone()));
+        user_tokens.push((result.email.clone(), token, result.did.clone(), result.user_id.clone()));
     }
 
     Ok(user_tokens)
