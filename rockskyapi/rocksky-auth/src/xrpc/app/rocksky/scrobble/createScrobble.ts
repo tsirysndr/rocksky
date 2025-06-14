@@ -20,6 +20,7 @@ import { createHash } from "node:crypto";
 import tables from "schema";
 import { SelectAlbum } from "schema/albums";
 import { SelectArtist } from "schema/artists";
+import { SelectScrobble } from "schema/scrobbles";
 import { SelectTrack } from "schema/tracks";
 import { InsertUserAlbum } from "schema/user-albums";
 import { InsertUserArtist } from "schema/user-artists";
@@ -292,7 +293,7 @@ const putScrobbleRecord = (track: Track, agent: Agent) =>
     )
   );
 
-const getScrobbles = ({ ctx, id }: { ctx: Context; id: string }) =>
+const getScrobble = ({ ctx, id }: { ctx: Context; id: string }) =>
   Effect.tryPromise(() =>
     ctx.db
       .select()
@@ -522,7 +523,7 @@ const createUserTrack = (
 const publishScrobble = (ctx: Context, id: string) =>
   pipe(
     { ctx, id },
-    getScrobbles,
+    getScrobble,
     Effect.flatMap((scrobble) =>
       pipe(
         Effect.all([
@@ -991,7 +992,7 @@ const retryFetchScrobble = (ctx: Context, scrobbleUri: string) =>
           albums?: SelectAlbum;
           artists?: SelectArtist;
           users?: SelectUser;
-          id?: string;
+          srcobbles?: SelectScrobble;
         } | null,
       },
       {
@@ -1153,7 +1154,7 @@ export const scrobbleTrack = (
                       scrobble.tracks.artistUri &&
                       scrobble.tracks.albumUri
                         ? pipe(
-                            publishScrobble(ctx, scrobble.id),
+                            publishScrobble(ctx, scrobble.srcobbles?.id),
                             Effect.tap(() =>
                               Effect.logInfo("Scrobble published")
                             )
