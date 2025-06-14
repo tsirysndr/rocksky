@@ -1005,7 +1005,8 @@ const retryFetchScrobble = (ctx: Context, scrobbleUri: string) =>
             scrobble.artists &&
             scrobble.albums.artistUri &&
             scrobble.tracks.artistUri &&
-            scrobble.tracks.albumUri
+            scrobble.tracks.albumUri &&
+            scrobble.srcobbles
           ),
         body: ({ tries }) =>
           pipe(
@@ -1092,8 +1093,9 @@ const retryFetchScrobble = (ctx: Context, scrobbleUri: string) =>
                   scrobble.artists &&
                   scrobble.albums.artistUri &&
                   scrobble.tracks.artistUri &&
-                  scrobble.tracks.albumUri
-                  ? `Scrobble found after ${chalk.magenta(tries + 1)} tries`
+                  scrobble.tracks.albumUri &&
+                  scrobble.scrobbles
+                  ? `Scrobble found after ${chalk.magenta(tries + 1)} tries: ${scrobble.scrobbles.id} ${scrobble.scrobbles.uri}`
                   : `Scrobble not found, trying again: ${chalk.magenta(tries + 1)}`
               )
             ),
@@ -1152,9 +1154,10 @@ export const scrobbleTrack = (
                       scrobble.artists &&
                       scrobble.albums.artistUri &&
                       scrobble.tracks.artistUri &&
-                      scrobble.tracks.albumUri
+                      scrobble.tracks.albumUri &&
+                      scrobble.srcobbles
                         ? pipe(
-                            publishScrobble(ctx, scrobble.srcobbles?.id),
+                            publishScrobble(ctx, scrobble.srcobbles.id),
                             Effect.tap(() =>
                               Effect.logInfo("Scrobble published")
                             )
