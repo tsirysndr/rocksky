@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import albums from "./albums";
@@ -14,6 +14,8 @@ const scrobbles = pgTable("scrobbles", {
   artistId: text("artist_id").references(() => artists.id),
   uri: text("uri").unique(),
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
+  updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
+  xataVersion: integer("xata_version"),
   timestamp: timestamp("timestamp").defaultNow().notNull(),
 });
 

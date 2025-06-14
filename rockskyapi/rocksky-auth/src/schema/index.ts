@@ -1,6 +1,8 @@
 import albumTracks from "./album-tracks";
 import albums from "./albums";
 import apiKeys from "./api-keys";
+import artistAlbums from "./artist-albums";
+import artistTracks from "./artist-tracks";
 import artists from "./artists";
 import lovedTracks from "./loved-tracks";
 import playlistTracks from "./playlist-tracks";
@@ -42,4 +44,6 @@ export default {
   lovedTracks,
   spotifyAccounts,
   spotifyTokens,
+  artistTracks,
+  artistAlbums,
 };

@@ -16,6 +16,8 @@ const albums = pgTable("albums", {
   youtubeLink: text("youtube_link").unique(),
   sha256: text("sha256").unique().notNull(),
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
+  updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
+  xataVersion: integer("xata_version"),
 });
 
 export type SelectAlbum = InferSelectModel<typeof albums>;

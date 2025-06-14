@@ -40,3 +40,19 @@ export const deepCamelCaseKeys = <T>(obj: T): any => {
   }
   return obj;
 };
+
+export const deepSnakeCaseKeys = <T>(obj: T): any => {
+  if (Array.isArray(obj)) {
+    return obj.map(deepSnakeCaseKeys);
+  } else if (isObject(obj)) {
+    return R.pipe(
+      R.toPairs,
+      R.map(
+        ([key, value]) =>
+          [_.snakeCase(String(key)), deepSnakeCaseKeys(value)] as [string, any]
+      ),
+      R.fromPairs
+    )(obj as object);
+  }
+  return obj;
+};

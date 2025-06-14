@@ -27,6 +27,7 @@ const tracks = pgTable("tracks", {
   artistUri: text("artist_uri").unique(),
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
   updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
+  xataVersion: integer("xata_version"),
 });
 
 export type SelectTrack = InferSelectModel<typeof tracks>;

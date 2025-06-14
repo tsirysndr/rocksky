@@ -1,10 +1,10 @@
 import { Agent, BlobRef } from "@atproto/api";
 import { TID } from "@atproto/common";
 import { HandlerAuth } from "@atproto/xrpc-server";
-import { equals } from "@xata.io/client";
 import chalk from "chalk";
 import { Context } from "context";
 import dayjs from "dayjs";
+import { and, eq } from "drizzle-orm";
 import { Effect, Match, Option, pipe } from "effect";
 import { Server } from "lexicon";
 import * as Album from "lexicon/types/app/rocksky/album";
@@ -13,9 +13,18 @@ import * as Scrobble from "lexicon/types/app/rocksky/scrobble";
 import { InputSchema } from "lexicon/types/app/rocksky/scrobble/createScrobble";
 import { ScrobbleViewBasic } from "lexicon/types/app/rocksky/scrobble/defs";
 import * as Song from "lexicon/types/app/rocksky/song";
+import { deepSnakeCaseKeys } from "lib";
 import { createAgent } from "lib/agent";
 import downloadImage from "lib/downloadImage";
 import { createHash } from "node:crypto";
+import tables from "schema";
+import { SelectAlbum } from "schema/albums";
+import { SelectArtist } from "schema/artists";
+import { SelectTrack } from "schema/tracks";
+import { InsertUserAlbum } from "schema/user-albums";
+import { InsertUserArtist } from "schema/user-artists";
+import { InsertUserTrack } from "schema/user-tracks";
+import { SelectUser } from "schema/users";
 import { Track, trackSchema } from "types/track";
 
 export default function (server: Server, ctx: Context) {
@@ -283,54 +292,246 @@ const putScrobbleRecord = (track: Track, agent: Agent) =>
     )
   );
 
-const publishScrobble = (ctx: Context, id: string) =>
+const getScrobbles = ({ ctx, id }: { ctx: Context; id: string }) =>
+  Effect.tryPromise(() =>
+    ctx.db
+      .select()
+      .from(tables.scrobbles)
+      .leftJoin(tables.tracks, eq(tables.tracks.id, tables.scrobbles.trackId))
+      .leftJoin(tables.albums, eq(tables.albums.id, tables.scrobbles.albumId))
+      .leftJoin(
+        tables.artists,
+        eq(tables.artists.id, tables.scrobbles.artistId)
+      )
+      .leftJoin(tables.users, eq(tables.users.id, tables.scrobbles.userId))
+      .where(eq(tables.scrobbles.id, id))
+      .execute()
+      .then(([row]) => row)
+  );
+
+const getUserAlbum = (
+  ctx: Context,
+  scrobble: {
+    albums: SelectAlbum;
+    artists: SelectArtist;
+    users: SelectUser;
+    tracks: SelectTrack;
+  }
+) =>
+  Effect.tryPromise(() =>
+    ctx.db
+      .select()
+      .from(tables.userAlbums)
+      .where(eq(tables.userAlbums.albumId, scrobble.albums.id))
+      .execute()
+      .then(([row]) => row)
+  );
+
+const getUserArtist = (
+  ctx: Context,
+  scrobble: {
+    albums: SelectAlbum;
+    artists: SelectArtist;
+    users: SelectUser;
+    tracks: SelectTrack;
+  }
+) =>
+  Effect.tryPromise(() =>
+    ctx.db
+      .select()
+      .from(tables.userArtists)
+      .where(eq(tables.userArtists.id, scrobble.artists.id))
+      .execute()
+      .then(([row]) => row)
+  );
+
+const getUserTrack = (
+  ctx: Context,
+  scrobble: {
+    albums: SelectAlbum;
+    artists: SelectArtist;
+    users: SelectUser;
+    tracks: SelectTrack;
+  }
+) =>
+  Effect.tryPromise(() =>
+    ctx.db
+      .select()
+      .from(tables.userTracks)
+      .where(eq(tables.userTracks.id, scrobble.tracks.id))
+      .execute()
+      .then(([row]) => row)
+  );
+
+const getAlbumTrack = (
+  ctx: Context,
+  scrobble: {
+    albums: SelectAlbum;
+    artists: SelectArtist;
+    users: SelectUser;
+    tracks: SelectTrack;
+  }
+) =>
+  Effect.tryPromise(() =>
+    ctx.db
+      .select()
+      .from(tables.albumTracks)
+      .where(eq(tables.albumTracks.trackId, scrobble.tracks.id))
+      .execute()
+      .then(([row]) => row)
+  );
+
+const getArtistTrack = (
+  ctx: Context,
+  scrobble: {
+    albums: SelectAlbum;
+    artists: SelectArtist;
+    users: SelectUser;
+    tracks: SelectTrack;
+  }
+) =>
+  Effect.tryPromise(() =>
+    ctx.db
+      .select()
+      .from(tables.artistTracks)
+      .where(eq(tables.artistTracks.trackId, scrobble.tracks.id))
+      .execute()
+      .then(([row]) => row)
+  );
+
+const getArtistAlbum = (
+  ctx: Context,
+  scrobble: {
+    albums: SelectAlbum;
+    artists: SelectArtist;
+    users: SelectUser;
+    tracks: SelectTrack;
+  }
+) =>
+  Effect.tryPromise(() =>
+    ctx.db
+      .select()
+      .from(tables.artistAlbums)
+      .where(
+        and(
+          eq(tables.artistAlbums.albumId, scrobble.albums.id),
+          eq(tables.artistAlbums.artistId, scrobble.artists.id)
+        )
+      )
+      .then(([row]) => row)
+  );
+
+const createUserArtist = (
+  ctx: Context,
+  scrobble: {
+    albums: SelectAlbum;
+    artists: SelectArtist;
+    users: SelectUser;
+    tracks: SelectTrack;
+  }
+) =>
   pipe(
     Effect.tryPromise(() =>
-      ctx.client.db.scrobbles
-        .select(["*", "track_id.*", "album_id.*", "artist_id.*", "user_id.*"])
-        .filter("xata_id", equals(id))
-        .getFirst()
+      ctx.db
+        .insert(tables.userArtists)
+        .values({
+          userId: scrobble.users.id,
+          artistId: scrobble.artists.id,
+          uri: scrobble.artists.uri,
+          scrobbles: 1,
+        } as InsertUserArtist)
+        .execute()
     ),
+    Effect.flatMap(() =>
+      Effect.tryPromise(() =>
+        ctx.db
+          .select()
+          .from(tables.userArtists)
+          .where(eq(tables.userArtists.artistId, scrobble.artists.id))
+          .execute()
+          .then(([row]) => row)
+      )
+    )
+  );
+
+const createUserAlbum = (
+  ctx: Context,
+  scrobble: {
+    albums: SelectAlbum;
+    artists: SelectArtist;
+    users: SelectUser;
+    tracks: SelectTrack;
+  }
+) =>
+  pipe(
+    Effect.tryPromise(() =>
+      ctx.db
+        .insert(tables.userAlbums)
+        .values({
+          userId: scrobble.users.id,
+          albumId: scrobble.albums.id,
+          uri: scrobble.albums.uri,
+          scrobbles: 1,
+        } as InsertUserAlbum)
+        .execute()
+    ),
+    Effect.flatMap(() =>
+      Effect.tryPromise(() =>
+        ctx.db
+          .select()
+          .from(tables.userAlbums)
+          .where(eq(tables.userAlbums.albumId, scrobble.albums.id))
+          .execute()
+          .then(([row]) => row)
+      )
+    )
+  );
+
+const createUserTrack = (
+  ctx: Context,
+  scrobble: {
+    albums: SelectAlbum;
+    artists: SelectArtist;
+    users: SelectUser;
+    tracks: SelectTrack;
+  }
+) =>
+  pipe(
+    Effect.tryPromise(() =>
+      ctx.db
+        .insert(tables.userTracks)
+        .values({
+          userId: scrobble.users.id,
+          trackId: scrobble.tracks.id,
+          uri: scrobble.tracks.uri,
+          scrobbles: 1,
+        } as InsertUserTrack)
+        .execute()
+    ),
+    Effect.flatMap(() =>
+      Effect.tryPromise(() =>
+        ctx.db
+          .select()
+          .from(tables.userTracks)
+          .where(eq(tables.userTracks.trackId, scrobble.tracks.id))
+          .then(([row]) => row)
+      )
+    )
+  );
+
+const publishScrobble = (ctx: Context, id: string) =>
+  pipe(
+    { ctx, id },
+    getScrobbles,
     Effect.flatMap((scrobble) =>
       pipe(
         Effect.all([
-          Effect.tryPromise(() =>
-            ctx.client.db.user_albums
-              .select(["*"])
-              .filter("album_id.xata_id", equals(scrobble.album_id.xata_id))
-              .getFirst()
-          ),
-          Effect.tryPromise(() =>
-            ctx.client.db.user_artists
-              .select(["*"])
-              .filter("artist_id.xata_id", equals(scrobble.artist_id.xata_id))
-              .getFirst()
-          ),
-          Effect.tryPromise(() =>
-            ctx.client.db.user_tracks
-              .select(["*"])
-              .filter("track_id.xata_id", equals(scrobble.track_id.xata_id))
-              .getFirst()
-          ),
-          Effect.tryPromise(() =>
-            ctx.client.db.album_tracks
-              .select(["*"])
-              .filter("track_id.xata_id", equals(scrobble.track_id.xata_id))
-              .getFirst()
-          ),
-          Effect.tryPromise(() =>
-            ctx.client.db.artist_tracks
-              .select(["*"])
-              .filter("track_id.xata_id", equals(scrobble.track_id.xata_id))
-              .getFirst()
-          ),
-          Effect.tryPromise(() =>
-            ctx.client.db.artist_albums
-              .select(["*"])
-              .filter("album_id.xata_id", equals(scrobble.album_id.xata_id))
-              .filter("artist_id.xata_id", equals(scrobble.artist_id.xata_id))
-              .getFirst()
-          ),
+          getUserAlbum(ctx, scrobble),
+          getUserArtist(ctx, scrobble),
+          getUserTrack(ctx, scrobble),
+          getAlbumTrack(ctx, scrobble),
+          getArtistTrack(ctx, scrobble),
+          getArtistAlbum(ctx, scrobble),
         ]),
         Effect.flatMap(
           ([
@@ -343,90 +544,100 @@ const publishScrobble = (ctx: Context, id: string) =>
           ]) =>
             pipe(
               Option.fromNullable(userArtist),
-              Effect.orElse(() =>
-                pipe(
-                  Effect.tryPromise(() =>
-                    ctx.client.db.user_artists.create({
-                      user_id: scrobble.user_id.xata_id,
-                      artist_id: scrobble.artist_id.xata_id,
-                      uri: scrobble.artist_id.uri,
-                      scrobbles: 1,
-                    })
-                  ),
-                  Effect.flatMap(() =>
-                    Effect.tryPromise(() =>
-                      ctx.client.db.user_artists
-                        .select(["*"])
-                        .filter(
-                          "artist_id.xata_id",
-                          equals(scrobble.artist_id.xata_id)
-                        )
-                        .getFirst()
-                    )
-                  )
-                )
-              ),
+              Effect.orElse(() => createUserArtist(ctx, scrobble)),
               Effect.flatMap((finalUserArtist) =>
                 pipe(
                   Option.fromNullable(userAlbum),
-                  Effect.orElse(() =>
-                    pipe(
-                      Effect.tryPromise(() =>
-                        ctx.client.db.user_albums.create({
-                          user_id: scrobble.user_id.xata_id,
-                          album_id: scrobble.album_id.xata_id,
-                          uri: scrobble.album_id.uri,
-                          scrobbles: 1,
-                        })
-                      ),
-                      Effect.flatMap(() =>
-                        Effect.tryPromise(() =>
-                          ctx.client.db.user_albums
-                            .select(["*"])
-                            .filter(
-                              "album_id.xata_id",
-                              equals(scrobble.album_id.xata_id)
-                            )
-                            .getFirst()
-                        )
-                      )
-                    )
-                  ),
+                  Effect.orElse(() => createUserAlbum(ctx, scrobble)),
                   Effect.flatMap((finalUserAlbum) =>
                     pipe(
                       Option.fromNullable(userTrack),
-                      Effect.orElse(() =>
-                        pipe(
-                          Effect.tryPromise(() =>
-                            ctx.client.db.user_tracks.create({
-                              user_id: scrobble.user_id.xata_id,
-                              track_id: scrobble.track_id.xata_id,
-                              uri: scrobble.track_id.uri,
-                              scrobbles: 1,
-                            })
-                          ),
-                          Effect.flatMap(() =>
-                            Effect.tryPromise(() =>
-                              ctx.client.db.user_tracks
-                                .select(["*"])
-                                .filter(
-                                  "track_id.xata_id",
-                                  equals(scrobble.track_id.xata_id)
-                                )
-                                .getFirst()
-                            )
-                          )
-                        )
-                      ),
-                      Effect.map((finalUserTrack) => ({
-                        scrobble,
-                        user_album: finalUserAlbum,
-                        user_artist: finalUserArtist,
-                        user_track: finalUserTrack,
-                        album_track: albumTrack,
-                        artist_track: artistTrack,
-                        artist_album: artistAlbum,
-                      }))
+                      Effect.orElse(() => createUserTrack(ctx, scrobble)),
+                      Effect.map((finalUserTrack) =>
+                        deepSnakeCaseKeys({
+                          scrobble: {
+                            album_id: {
+                              ...scrobble.albums,
+                              xata_createdat: scrobble.albums.createdAt,
+                              xata_id: scrobble.albums.id,
+                              xata_updatedat: scrobble.albums.updatedAt,
+                              xata_version: scrobble.albums.xataVersion,
+                            },
+                            artist_id: {
+                              ...scrobble.artists,
+                              xata_createdat: scrobble.artists.createdAt,
+                              xata_id: scrobble.artists.id,
+                              xata_updatedat: scrobble.artists.updatedAt,
+                              xata_version: scrobble.artists.xataVersion,
+                            },
+                            track_id: {
+                              ...scrobble.tracks,
+                              xata_createdat: scrobble.tracks.createdAt,
+                              xata_id: scrobble.tracks.id,
+                              xata_updatedat: scrobble.tracks.updatedAt,
+                              xata_version: scrobble.tracks.xataVersion,
+                            },
+                            uri: scrobble.scrobbles.uri,
+                            user_id: {
+                              avatar: scrobble.users.avatar,
+                              did: scrobble.users.did,
+                              display_name: scrobble.users.displayName,
+                              handle: scrobble.users.handle,
+                              xata_createdat: scrobble.users.createdAt,
+                              xata_id: scrobble.users.id,
+                              xata_updatedat: scrobble.users.updatedAt,
+                              xata_version: scrobble.users.xataVersion,
+                            },
+                            xata_createdat: scrobble.scrobbles.createdAt,
+                            xata_id: scrobble.scrobbles.id,
+                            xata_updatedat: scrobble.scrobbles.updatedAt,
+                            xata_version: scrobble.scrobbles.xataVersion,
+                          },
+                          user_album: {
+                            album_id: { xata_id: finalUserAlbum.albumId },
+                            scrobbles: finalUserAlbum.scrobbles,
+                            uri: finalUserAlbum.uri,
+                            user_id: {
+                              xata_id: finalUserAlbum.userId,
+                            },
+                            xata_createdat: finalUserAlbum.createdAt,
+                            xata_id: finalUserAlbum.id,
+                            xata_updatedat: finalUserAlbum.updatedAt,
+                            xata_version: finalUserAlbum.xataVersion,
+                          },
+                          user_artist: {
+                            artist_id: {
+                              xata_id: finalUserArtist.artistId,
+                            },
+                            scrobbles: finalUserArtist.scrobbles,
+                            uri: finalUserArtist.uri,
+                            user_id: {
+                              xata_id: finalUserArtist.userId,
+                            },
+                            xata_createdat: finalUserArtist.createdAt,
+                            xata_id: finalUserArtist.id,
+                            xata_updatedat: finalUserArtist.updatedAt,
+                            xata_version: finalUserArtist.xataVersion,
+                          },
+                          user_track: {
+                            scrobbles: finalUserTrack.scrobbles,
+                            track_id: {
+                              xata_id: finalUserTrack.trackId,
+                            },
+                            uri: finalUserTrack.uri,
+                            user_id: {
+                              xata_id: finalUserTrack.userId,
+                            },
+                            xata_createdat: finalUserTrack.createdAt,
+                            xata_id: finalUserTrack.id,
+                            xata_updatedat: finalUserTrack.updatedAt,
+                            xata_version: finalUserTrack.xataVersion,
+                          },
+                          album_track: albumTrack,
+                          artist_track: artistTrack,
+                          artist_album: artistAlbum,
+                        })
+                      )
                     )
                   )
                 )
@@ -464,32 +675,51 @@ const computeArtistHash = (track: Track): Effect.Effect<string, never> =>
     createHash("sha256").update(track.albumArtist.toLowerCase()).digest("hex")
   );
 
-const fetchExistingTrack = (ctx: Context, trackHash: string) =>
+const fetchExistingTrack = (
+  ctx: Context,
+  trackHash: string
+): Effect.Effect<SelectTrack | undefined, Error> =>
   Effect.tryPromise(() =>
-    ctx.client.db.tracks.filter("sha256", equals(trackHash)).getFirst()
+    ctx.db
+      .select()
+      .from(tables.tracks)
+      .where(eq(tables.tracks.sha256, trackHash))
+      .execute()
+      .then(([row]) => row)
   );
 
 // Update track metadata (album_uri and artist_uri)
-const updateTrackMetadata = (ctx: Context, track: Track, trackRecord: any) =>
+const updateTrackMetadata = (
+  ctx: Context,
+  track: Track,
+  trackRecord: SelectTrack
+) =>
   pipe(
     Effect.succeed(trackRecord),
     Effect.tap((trackRecord) =>
-      !trackRecord.album_uri
+      !trackRecord.albumUri
         ? pipe(
             computeAlbumHash(track),
             Effect.flatMap((albumHash) =>
               Effect.tryPromise(() =>
-                ctx.client.db.albums
-                  .filter("sha256", equals(albumHash))
-                  .getFirst()
+                ctx.db
+                  .select()
+                  .from(tables.albums)
+                  .where(eq(tables.albums.sha256, albumHash))
+                  .execute()
+                  .then(([row]) => row)
               )
             ),
             Effect.flatMap((album) =>
               album
                 ? Effect.tryPromise(() =>
-                    ctx.client.db.tracks.update(trackRecord.xata_id, {
-                      album_uri: album.uri,
-                    })
+                    ctx.db
+                      .update(tables.tracks)
+                      .set({
+                        albumUri: album.uri,
+                      })
+                      .where(eq(tables.tracks.id, trackRecord.id))
+                      .execute()
                   )
                 : Effect.succeed(undefined)
             )
@@ -497,22 +727,29 @@ const updateTrackMetadata = (ctx: Context, track: Track, trackRecord: any) =>
         : Effect.succeed(undefined)
     ),
     Effect.tap((trackRecord) =>
-      !trackRecord.artist_uri
+      !trackRecord.artistUri
         ? pipe(
             computeArtistHash(track),
             Effect.flatMap((artistHash) =>
               Effect.tryPromise(() =>
-                ctx.client.db.artists
-                  .filter("sha256", equals(artistHash))
-                  .getFirst()
+                ctx.db
+                  .select()
+                  .from(tables.artists)
+                  .where(eq(tables.artists.sha256, artistHash))
+                  .execute()
+                  .then(([row]) => row)
               )
             ),
             Effect.flatMap((artist) =>
               artist
                 ? Effect.tryPromise(() =>
-                    ctx.client.db.tracks.update(trackRecord.xata_id, {
-                      artist_uri: artist.uri,
-                    })
+                    ctx.db
+                      .update(tables.tracks)
+                      .set({
+                        artistUri: artist.uri,
+                      })
+                      .where(eq(tables.tracks.id, trackRecord.id))
+                      .execute()
                   )
                 : Effect.succeed(undefined)
             )
@@ -527,15 +764,15 @@ const ensureTrack = (
   track: Track,
   agent: Agent,
   userDid: string,
-  existingTrack: any
+  existingTrack: SelectTrack | undefined
 ) =>
   pipe(
-    Option.fromNullable(existingTrack),
+    Effect.succeed(existingTrack),
     Effect.tap((trackOpt) =>
       Match.value(trackOpt).pipe(
         Match.when(
-          (value) => Option.isSome(value),
-          () => updateTrackMetadata(ctx, track, trackOpt.value)
+          (value) => !!value,
+          () => updateTrackMetadata(ctx, track, trackOpt)
         ),
         Match.orElse(() => Effect.succeed(undefined))
       )
@@ -543,12 +780,25 @@ const ensureTrack = (
     Effect.flatMap((trackOpt) =>
       pipe(
         Effect.tryPromise(() =>
-          ctx.client.db.user_tracks
-            .filter({
-              "track_id.xata_id": trackOpt?.xata_id,
-              "user_id.did": userDid,
-            })
-            .getFirst()
+          ctx.db
+            .select()
+            .from(tables.userTracks)
+            .leftJoin(
+              tables.tracks,
+              eq(tables.userTracks.trackId, tables.tracks.id)
+            )
+            .leftJoin(
+              tables.users,
+              eq(tables.userTracks.userId, tables.users.id)
+            )
+            .where(
+              and(
+                eq(tables.tracks.id, trackOpt?.id),
+                eq(tables.users.did, userDid)
+              )
+            )
+            .execute()
+            .then(([row]) => row.user_tracks)
         ),
         Effect.flatMap((userTrack) =>
           Option.isNone(Option.fromNullable(userTrack)) ||
@@ -571,7 +821,12 @@ const ensureAlbum = (
     computeAlbumHash(track),
     Effect.flatMap((albumHash) =>
       Effect.tryPromise(() =>
-        ctx.client.db.albums.filter("sha256", equals(albumHash)).getFirst()
+        ctx.db
+          .select()
+          .from(tables.albums)
+          .where(eq(tables.albums.sha256, albumHash))
+          .execute()
+          .then(([row]) => row)
       )
     ),
     Effect.flatMap((existingAlbum) =>
@@ -579,12 +834,25 @@ const ensureAlbum = (
         Option.fromNullable(existingAlbum),
         Effect.flatMap((album) =>
           Effect.tryPromise(() =>
-            ctx.client.db.user_albums
-              .filter({
-                "album_id.xata_id": album.xata_id,
-                "user_id.did": userDid,
-              })
-              .getFirst()
+            ctx.db
+              .select()
+              .from(tables.userAlbums)
+              .leftJoin(
+                tables.albums,
+                eq(tables.userAlbums.albumId, tables.albums.id)
+              )
+              .leftJoin(
+                tables.users,
+                eq(tables.userAlbums.userId, tables.users.id)
+              )
+              .where(
+                and(
+                  eq(tables.albums.id, album.id),
+                  eq(tables.users.did, userDid)
+                )
+              )
+              .execute()
+              .then(([row]) => row.user_albums)
           )
         ),
         Effect.flatMap((userAlbum) =>
@@ -609,7 +877,12 @@ const ensureArtist = (
     computeArtistHash(track),
     Effect.flatMap((artistHash) =>
       Effect.tryPromise(() =>
-        ctx.client.db.artists.filter("sha256", equals(artistHash)).getFirst()
+        ctx.db
+          .select()
+          .from(tables.artists)
+          .where(eq(tables.artists.sha256, artistHash))
+          .execute()
+          .then(([row]) => row)
       )
     ),
     Effect.flatMap((existingArtist) =>
@@ -617,12 +890,25 @@ const ensureArtist = (
         Option.fromNullable(existingArtist),
         Effect.flatMap((artist) =>
           Effect.tryPromise(() =>
-            ctx.client.db.user_artists
-              .filter({
-                "artist_id.xata_id": artist.xata_id,
-                "user_id.did": userDid,
-              })
-              .getFirst()
+            ctx.db
+              .select()
+              .from(tables.userArtists)
+              .leftJoin(
+                tables.artists,
+                eq(tables.userArtists.artistId, tables.artists.id)
+              )
+              .leftJoin(
+                tables.users,
+                eq(tables.userArtists.userId, tables.users.id)
+              )
+              .where(
+                and(
+                  eq(tables.artists.id, artist.id),
+                  eq(tables.users.did, userDid)
+                )
+              )
+              .execute()
+              .then(([row]) => row.user_artists)
           )
         ),
         Effect.flatMap((userArtist) =>
@@ -643,22 +929,24 @@ const ensureArtist = (
 // Retry fetching track until metadata is ready
 const retryFetchTrack = (
   ctx: Context,
-  track: Track,
   trackHash: string,
-  initialTrack: any
+  initialTrack: SelectTrack | undefined
 ) =>
   pipe(
     Effect.iterate(
       { tries: 0, track: initialTrack },
       {
         while: ({ tries, track }) =>
-          tries < 30 && !(track?.artist_uri && track?.album_uri),
+          tries < 30 && !(track?.artistUri && track?.albumUri),
         body: ({ tries, track }) =>
           pipe(
             Effect.tryPromise(() =>
-              ctx.client.db.tracks
-                .filter("sha256", equals(trackHash))
-                .getFirst()
+              ctx.db
+                .select()
+                .from(tables.tracks)
+                .where(eq(tables.tracks.sha256, trackHash))
+                .execute()
+                .then(([row]) => row)
             ),
             Effect.flatMap((trackRecord) =>
               Option.fromNullable(trackRecord).pipe(
@@ -670,7 +958,7 @@ const retryFetchTrack = (
             Effect.tap((trackRecord) =>
               Effect.logInfo(
                 trackRecord
-                  ? `Track metadata ready: ${chalk.cyan(trackRecord.xata_id)} - ${track.title}, after ${chalk.magenta(tries + 1)} tries`
+                  ? `Track metadata ready: ${chalk.cyan(trackRecord.id)} - ${track.title}, after ${chalk.magenta(tries + 1)} tries`
                   : `Retrying track fetch: ${chalk.magenta(tries + 1)}`
               )
             ),
@@ -683,7 +971,7 @@ const retryFetchTrack = (
       }
     ),
     Effect.tap(({ tries, track }) =>
-      tries >= 30 && !(track?.artist_uri && track?.album_uri)
+      tries >= 30 && !(track?.artistUri && track?.albumUri)
         ? Effect.logError(
             `Track metadata not ready after ${chalk.magenta("30 tries")}`
           )
@@ -712,29 +1000,45 @@ const retryFetchScrobble = (ctx: Context, scrobbleUri: string) =>
         body: ({ tries }) =>
           pipe(
             Effect.tryPromise(() =>
-              ctx.client.db.scrobbles
-                .select([
-                  "*",
-                  "track_id.*",
-                  "album_id.*",
-                  "artist_id.*",
-                  "user_id.*",
-                ])
-                .filter("uri", equals(scrobbleUri))
-                .getFirst()
+              ctx.db
+                .select()
+                .from(tables.scrobbles)
+                .leftJoin(
+                  tables.tracks,
+                  eq(tables.scrobbles.trackId, tables.tracks.id)
+                )
+                .leftJoin(
+                  tables.albums,
+                  eq(tables.scrobbles.albumId, tables.albums.id)
+                )
+                .leftJoin(
+                  tables.artists,
+                  eq(tables.scrobbles.artistId, tables.artists.id)
+                )
+                .leftJoin(
+                  tables.users,
+                  eq(tables.scrobbles.userId, tables.users.id)
+                )
+                .where(eq(tables.scrobbles.uri, scrobbleUri))
+                .execute()
+                .then(([row]) => row)
             ),
             Effect.tap((scrobble) =>
               Effect.if(
                 !!scrobble &&
-                  !!scrobble.album_id &&
-                  !scrobble.album_id.artist_uri &&
-                  !!scrobble.artist_id.uri,
+                  !!scrobble.albums &&
+                  !scrobble.albums.artistUri &&
+                  !!scrobble.artists.uri,
                 {
                   onTrue: () =>
                     Effect.tryPromise(() =>
-                      ctx.client.db.albums.update(scrobble.album_id.xata_id, {
-                        artist_uri: scrobble.artist_id.uri,
-                      })
+                      ctx.db
+                        .update(tables.albums)
+                        .set({
+                          artistUri: scrobble.artists.uri,
+                        })
+                        .where(eq(tables.albums.id, scrobble.albums.id))
+                        .execute()
                     ),
                   onFalse: () => Effect.succeed(undefined),
                 }
@@ -742,16 +1046,28 @@ const retryFetchScrobble = (ctx: Context, scrobbleUri: string) =>
             ),
             Effect.flatMap(() =>
               Effect.tryPromise(() =>
-                ctx.client.db.scrobbles
-                  .select([
-                    "*",
-                    "track_id.*",
-                    "album_id.*",
-                    "artist_id.*",
-                    "user_id.*",
-                  ])
-                  .filter("uri", equals(scrobbleUri))
-                  .getFirst()
+                ctx.db
+                  .select()
+                  .from(tables.scrobbles)
+                  .leftJoin(
+                    tables.tracks,
+                    eq(tables.scrobbles.trackId, tables.tracks.id)
+                  )
+                  .leftJoin(
+                    tables.albums,
+                    eq(tables.scrobbles.albumId, tables.albums.id)
+                  )
+                  .leftJoin(
+                    tables.artists,
+                    eq(tables.scrobbles.artistId, tables.artists.id)
+                  )
+                  .leftJoin(
+                    tables.users,
+                    eq(tables.scrobbles.userId, tables.users.id)
+                  )
+                  .where(eq(tables.scrobbles.uri, scrobbleUri))
+                  .execute()
+                  .then(([row]) => row)
               )
             ),
             Effect.map((scrobble) => ({
@@ -761,12 +1077,12 @@ const retryFetchScrobble = (ctx: Context, scrobbleUri: string) =>
             Effect.tap(({ scrobble, tries }) =>
               Effect.logInfo(
                 scrobble &&
-                  scrobble.track_id &&
-                  scrobble.album_id &&
-                  scrobble.artist_id &&
-                  scrobble.album_id.artist_uri &&
-                  scrobble.track_id.artist_uri &&
-                  scrobble.track_id.album_uri
+                  scrobble.tracks &&
+                  scrobble.albums &&
+                  scrobble.artists &&
+                  scrobble.albums.artistUri &&
+                  scrobble.tracks.artistUri &&
+                  scrobble.tracks.albumUri
                   ? `Scrobble found after ${chalk.magenta(tries + 1)} tries`
                   : `Scrobble not found, trying again: ${chalk.magenta(tries + 1)}`
               )
@@ -779,12 +1095,12 @@ const retryFetchScrobble = (ctx: Context, scrobbleUri: string) =>
       tries >= 30 &&
       !(
         scrobble &&
-        scrobble.track_id &&
-        scrobble.album_id &&
-        scrobble.artist_id &&
-        scrobble.album_id.artist_uri &&
-        scrobble.track_id.artist_uri &&
-        scrobble.track_id.album_uri
+        scrobble.tracks &&
+        scrobble.albums &&
+        scrobble.artists &&
+        scrobble.albums.artistUri &&
+        scrobble.tracks.artistUri &&
+        scrobble.tracks.albumUri
       )
         ? Effect.logError(
             `Scrobble not found after ${chalk.magenta("30 tries")}`
@@ -811,7 +1127,7 @@ export const scrobbleTrack = (
             Effect.flatMap(() => ensureAlbum(ctx, track, agent, userDid)),
             Effect.flatMap(() => ensureArtist(ctx, track, agent, userDid)),
             Effect.flatMap(() =>
-              retryFetchTrack(ctx, track, trackHash, existingTrack)
+              retryFetchTrack(ctx, trackHash, existingTrack)
             ),
             Effect.flatMap(() =>
               pipe(
@@ -821,14 +1137,14 @@ export const scrobbleTrack = (
                     retryFetchScrobble(ctx, scrobbleUri),
                     Effect.flatMap((scrobble) =>
                       scrobble &&
-                      scrobble.track_id &&
-                      scrobble.album_id &&
-                      scrobble.artist_id &&
-                      scrobble.album_id.artist_uri &&
-                      scrobble.track_id.artist_uri &&
-                      scrobble.track_id.album_uri
+                      scrobble.tracks &&
+                      scrobble.albums &&
+                      scrobble.artists &&
+                      scrobble.albums.artistUri &&
+                      scrobble.tracks.artistUri &&
+                      scrobble.tracks.albumUri
                         ? pipe(
-                            publishScrobble(ctx, scrobble.xata_id),
+                            publishScrobble(ctx, scrobble.id),
                             Effect.tap(() =>
                               Effect.logInfo("Scrobble published")
                             )

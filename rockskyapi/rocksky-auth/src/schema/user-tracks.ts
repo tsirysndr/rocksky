@@ -1,5 +1,5 @@
 import { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import tracks from "./tracks";
 import users from "./users";
 
@@ -12,7 +12,10 @@ const userTracks = pgTable("user_tracks", {
     .notNull()
     .references(() => tracks.id),
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
+  updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
+  xataVersion: integer("xata_version").notNull(),
   uri: text("uri").unique().notNull(),
+  scrobbles: integer("scrobbles"),
 });
 
 export type SelectUserTrack = InferSelectModel<typeof userTracks>;

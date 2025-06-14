@@ -1,5 +1,5 @@
 import { InferSelectModel } from "drizzle-orm";
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 const users = pgTable("users", {
   id: text("xata_id").primaryKey(),
@@ -9,6 +9,7 @@ const users = pgTable("users", {
   avatar: text("avatar").notNull(),
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
   updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
+  xataVersion: integer("xata_version"),
 });
 
 export type SelectUser = InferSelectModel<typeof users>;

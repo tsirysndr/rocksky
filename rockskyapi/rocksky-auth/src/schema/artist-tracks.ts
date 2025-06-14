@@ -1,13 +1,13 @@
 import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import { integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
-import albums from "./albums";
+import artists from "./artists";
 import tracks from "./tracks";
 
-const albumTracks = pgTable("album_tracks", {
+const artistTracks = pgTable("artist_tracks", {
   id: text("xata_id").primaryKey(),
-  albumId: text("album_id")
+  artistId: text("artist_id")
     .notNull()
-    .references(() => albums.id),
+    .references(() => artists.id),
   trackId: text("track_id")
     .notNull()
     .references(() => tracks.id),
@@ -16,7 +16,7 @@ const albumTracks = pgTable("album_tracks", {
   xataVersion: integer("xata_version").notNull(),
 });
 
-export type SelectAlbumTrack = InferSelectModel<typeof albumTracks>;
-export type InsertAlbumTrack = InferInsertModel<typeof albumTracks>;
+export type SelectArtistTrack = InferSelectModel<typeof artistTracks>;
+export type InsertArtistTrack = InferInsertModel<typeof artistTracks>;
 
-export default albumTracks;
+export default artistTracks;

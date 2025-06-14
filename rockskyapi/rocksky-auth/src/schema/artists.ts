@@ -1,5 +1,5 @@
 import { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 const artists = pgTable("artists", {
   id: text("xata_id").primaryKey(),
@@ -17,6 +17,7 @@ const artists = pgTable("artists", {
   youtubeLink: text("youtube_link"),
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
   updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
+  xataVersion: integer("xata_version"),
 });
 
 export type SelectArtist = InferSelectModel<typeof artists>;
