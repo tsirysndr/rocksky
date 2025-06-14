@@ -541,7 +541,7 @@ const ensureTrack = (
 ) =>
   pipe(
     Option.fromNullable(existingTrack),
-    Effect.tap((trackOpt) =>
+    Effect.flatMap((trackOpt) =>
       Match.value(trackOpt).pipe(
         Match.when(
           (value) => Option.isSome(value),
@@ -552,24 +552,26 @@ const ensureTrack = (
     ),
     Effect.flatMap((trackOpt) =>
       pipe(
-        Option.fromNullable(trackOpt.value),
-        Effect.flatMap((trackRecord) =>
-          Effect.tryPromise(() =>
-            ctx.client.db.user_tracks
-              .filter({
-                "track_id.xata_id": trackRecord.xata_id,
-                "user_id.did": userDid,
-              })
-              .getFirst()
-          )
-        ),
-        Effect.flatMap((userTrack) =>
-          Option.isNone(Option.fromNullable(trackOpt.value)) ||
-          Option.isNone(Option.fromNullable(userTrack)) ||
-          !userTrack?.uri?.includes(userDid)
-            ? putSongRecord(track, agent)
-            : Effect.succeed(null)
-        )
+        Option.match(trackOpt, {
+          onNone: () => Effect.succeed(null),
+          onSome: (trackRecord: any) =>
+            pipe(
+              Effect.tryPromise(() =>
+                ctx.client.db.user_tracks
+                  .filter({
+                    "track_id.xata_id": trackRecord.xata_id,
+                    "user_id.did": userDid,
+                  })
+                  .getFirst()
+              ),
+              Effect.flatMap((userTrack) =>
+                Option.isNone(Option.fromNullable(userTrack)) ||
+                !userTrack?.uri?.includes(userDid)
+                  ? putSongRecord(track, agent)
+                  : Effect.succeed(null)
+              )
+            ),
+        })
       )
     )
   );
@@ -674,7 +676,7 @@ const retryFetchTrack = (
                 .filter("sha256", equals(trackHash))
                 .getFirst()
             ),
-            Effect.tap((trackRecord) =>
+            Effect.flatMap((trackRecord) =>
               Option.fromNullable(trackRecord).pipe(
                 Effect.flatMap((track) =>
                   updateTrackMetadata(ctx, track, trackRecord)
