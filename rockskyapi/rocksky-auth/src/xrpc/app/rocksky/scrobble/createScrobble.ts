@@ -992,7 +992,7 @@ const retryFetchScrobble = (ctx: Context, scrobbleUri: string) =>
           albums?: SelectAlbum;
           artists?: SelectArtist;
           users?: SelectUser;
-          srcobbles?: SelectScrobble;
+          scrobbles?: SelectScrobble;
         } | null,
       },
       {
@@ -1006,7 +1006,7 @@ const retryFetchScrobble = (ctx: Context, scrobbleUri: string) =>
             scrobble.albums.artistUri &&
             scrobble.tracks.artistUri &&
             scrobble.tracks.albumUri &&
-            scrobble.srcobbles
+            scrobble.scrobbles
           ),
         body: ({ tries }) =>
           pipe(
@@ -1155,9 +1155,9 @@ export const scrobbleTrack = (
                       scrobble.albums.artistUri &&
                       scrobble.tracks.artistUri &&
                       scrobble.tracks.albumUri &&
-                      scrobble.srcobbles
+                      scrobble.scrobbles
                         ? pipe(
-                            publishScrobble(ctx, scrobble.srcobbles.id),
+                            publishScrobble(ctx, scrobble.scrobbles.id),
                             Effect.tap(() =>
                               Effect.logInfo("Scrobble published")
                             )
