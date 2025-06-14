@@ -60,15 +60,7 @@ const withAgent = ({
   input: InputSchema;
   ctx: Context;
   did: string;
-}): Effect.Effect<
-  {
-    agent: Agent;
-    ctx: Context;
-    did: string;
-    input: InputSchema;
-  },
-  Error
-> => {
+}): Effect.Effect<InputWithAgent, Error> => {
   return Effect.tryPromise({
     try: async () =>
       Match.value(did).pipe(
@@ -92,24 +84,22 @@ const withAgent = ({
 
 const validateInput = ({
   input,
-  ctx,
-  did,
-  agent,
-}: {
-  input: InputSchema;
-  ctx: Context;
-  did: string;
-  agent: Agent;
-}): Effect.Effect<ValidatedInput, Error> =>
+  ...params
+}: InputWithAgent): Effect.Effect<ValidatedInput, Error> =>
   Effect.try(() => ({
+    ...params,
     track: trackSchema.safeParse(input).data,
-    ctx,
-    did,
-    agent,
   }));
 
 const presentation = (): Effect.Effect<ScrobbleViewBasic, never> => {
   return Effect.sync(() => ({}));
+};
+
+type InputWithAgent = {
+  input: InputSchema;
+  ctx: Context;
+  did: string;
+  agent: Agent;
 };
 
 type ValidatedInput = {
