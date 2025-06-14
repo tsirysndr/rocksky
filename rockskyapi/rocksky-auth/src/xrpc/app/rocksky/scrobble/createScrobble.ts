@@ -652,9 +652,42 @@ const publishScrobble = (ctx: Context, id: string) =>
                               finalUserTrack.updatedAt.toISOString(),
                             xata_version: finalUserTrack.xataVersion,
                           },
-                          album_track: albumTrack,
-                          artist_track: artistTrack,
-                          artist_album: artistAlbum,
+                          album_track: {
+                            xata_id: albumTrack.id,
+                            album_id: {
+                              xata_id: albumTrack.albumId,
+                            },
+                            track_id: {
+                              xata_id: albumTrack.trackId,
+                            },
+                            xata_createdat: albumTrack.createdAt.toISOString(),
+                            xata_updatedat: albumTrack.updatedAt.toISOString(),
+                            xata_version: albumTrack.xataVersion,
+                          },
+                          artist_track: {
+                            xata_id: artistTrack.id,
+                            artist_id: {
+                              xata_id: artistTrack.artistId,
+                            },
+                            track_id: {
+                              xata_id: artistTrack.trackId,
+                            },
+                            xata_createdat: artistTrack.createdAt.toISOString(),
+                            xata_updatedat: artistTrack.updatedAt.toISOString(),
+                            xata_version: artistTrack.xataVersion,
+                          },
+                          artist_album: {
+                            xata_id: artistAlbum.id,
+                            artist_id: {
+                              xata_id: artistAlbum.artistId,
+                            },
+                            album_id: {
+                              xata_id: artistAlbum.albumId,
+                            },
+                            xata_createdat: artistAlbum.createdAt.toISOString(),
+                            xata_updatedat: artistAlbum.updatedAt.toISOString(),
+                            xata_version: artistAlbum.xataVersion,
+                          },
                         })
                       )
                     )
