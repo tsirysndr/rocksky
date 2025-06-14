@@ -20,6 +20,40 @@ export interface InputSchema {
   album?: string
   /** The duration of the track in seconds */
   duration?: number
+  /** The MusicBrainz ID of the track, if available */
+  mbId?: string
+  /** The URL of the album art for the track */
+  albumArt?: string
+  /** The track number of the track in the album */
+  trackNumber?: number
+  /** The release date of the track, formatted as YYYY-MM-DD */
+  releaseDate?: string
+  /** The year the track was released */
+  year?: number
+  /** The disc number of the track in the album, if applicable */
+  discNumber?: number
+  /** The lyrics of the track, if available */
+  lyrics?: string
+  /** The composer of the track, if available */
+  composer?: string
+  /** The copyright message for the track, if available */
+  copyrightMessage?: string
+  /** The record label of the track, if available */
+  label?: string
+  /** The URL of the artist's picture, if available */
+  artistPicture?: string
+  /** The Spotify link for the track, if available */
+  spotifyLink?: string
+  /** The Last.fm link for the track, if available */
+  lastfmLink?: string
+  /** The Tidal link for the track, if available */
+  tidalLink?: string
+  /** The Apple Music link for the track, if available */
+  appleMusicLink?: string
+  /** The Youtube link for the track, if available */
+  youtubeLink?: string
+  /** The Deezer link for the track, if available */
+  deezerLink?: string
   /** The timestamp of the scrobble in milliseconds since epoch */
   timestamp?: number
   [k: string]: unknown

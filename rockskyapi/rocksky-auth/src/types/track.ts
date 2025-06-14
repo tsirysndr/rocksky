@@ -1,10 +1,10 @@
 import z from "zod";
 
 export const trackSchema = z.object({
-  title: z.string().nonempty(),
-  artist: z.string().nonempty(),
-  album: z.string().nonempty(),
-  albumArtist: z.string().nonempty(),
+  title: z.string().nonempty().trim(),
+  artist: z.string().nonempty().trim(),
+  album: z.string().nonempty().trim(),
+  albumArtist: z.string().nonempty().trim(),
   duration: z.number(),
   mbId: z.string().optional().nullable(),
   albumArt: z.string().optional().nullable(),
@@ -24,6 +24,11 @@ export const trackSchema = z.object({
   label: z.string().optional().nullable(),
   artistPicture: z.string().optional().nullable(),
   spotifyLink: z.string().optional().nullable(),
+  lastfmLink: z.string().optional().nullable(),
+  youtubeLink: z.string().optional().nullable(),
+  tidalLink: z.string().optional().nullable(),
+  appleMusicLink: z.string().optional().nullable(),
+  deezerLink: z.string().optional().nullable(),
   timestamp: z.number().optional().nullable(),
 });
 

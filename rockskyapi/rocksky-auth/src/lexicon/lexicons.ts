@@ -2388,6 +2388,85 @@ export const schemaDict = {
                 type: 'integer',
                 description: 'The duration of the track in seconds',
               },
+              mbId: {
+                type: 'string',
+                description: 'The MusicBrainz ID of the track, if available',
+              },
+              albumArt: {
+                type: 'string',
+                description: 'The URL of the album art for the track',
+                format: 'uri',
+              },
+              trackNumber: {
+                type: 'integer',
+                description: 'The track number of the track in the album',
+              },
+              releaseDate: {
+                type: 'string',
+                description:
+                  'The release date of the track, formatted as YYYY-MM-DD',
+              },
+              year: {
+                type: 'integer',
+                description: 'The year the track was released',
+              },
+              discNumber: {
+                type: 'integer',
+                description:
+                  'The disc number of the track in the album, if applicable',
+              },
+              lyrics: {
+                type: 'string',
+                description: 'The lyrics of the track, if available',
+              },
+              composer: {
+                type: 'string',
+                description: 'The composer of the track, if available',
+              },
+              copyrightMessage: {
+                type: 'string',
+                description:
+                  'The copyright message for the track, if available',
+              },
+              label: {
+                type: 'string',
+                description: 'The record label of the track, if available',
+              },
+              artistPicture: {
+                type: 'string',
+                description: "The URL of the artist's picture, if available",
+                format: 'uri',
+              },
+              spotifyLink: {
+                type: 'string',
+                description: 'The Spotify link for the track, if available',
+                format: 'uri',
+              },
+              lastfmLink: {
+                type: 'string',
+                description: 'The Last.fm link for the track, if available',
+                format: 'uri',
+              },
+              tidalLink: {
+                type: 'string',
+                description: 'The Tidal link for the track, if available',
+                format: 'uri',
+              },
+              appleMusicLink: {
+                type: 'string',
+                description: 'The Apple Music link for the track, if available',
+                format: 'uri',
+              },
+              youtubeLink: {
+                type: 'string',
+                description: 'The Youtube link for the track, if available',
+                format: 'uri',
+              },
+              deezerLink: {
+                type: 'string',
+                description: 'The Deezer link for the track, if available',
+                format: 'uri',
+              },
               timestamp: {
                 type: 'integer',
                 description:
