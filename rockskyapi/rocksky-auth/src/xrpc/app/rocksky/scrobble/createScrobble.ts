@@ -603,6 +603,8 @@ const publishScrobble = (ctx: Context, id: string) =>
                             xata_updatedat:
                               scrobble.scrobbles.updatedAt.toISOString(),
                             xata_version: scrobble.scrobbles.xataVersion,
+                            timestamp:
+                              scrobble.scrobbles.timestamp.toISOString(),
                           },
                           user_album: {
                             album_id: { xata_id: finalUserAlbum.albumId },
