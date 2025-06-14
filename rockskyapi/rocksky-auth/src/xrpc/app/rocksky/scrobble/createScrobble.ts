@@ -541,7 +541,7 @@ const ensureTrack = (
 ) =>
   pipe(
     Option.fromNullable(existingTrack),
-    Effect.flatMap((trackOpt) =>
+    Effect.tap((trackOpt) =>
       Match.value(trackOpt).pipe(
         Match.when(
           (value) => Option.isSome(value),
