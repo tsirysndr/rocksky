@@ -64,7 +64,7 @@ pub struct Parsed {
     pub album_artist: Option<String>,
     pub artist: String,
     pub current_time: Option<u32>,
-    pub duration: u32,
+    pub duration: Option<u32>,
     pub is_playing: bool,
     pub is_podcast: bool,
     pub origin_url: Option<String>,
@@ -708,5 +708,87 @@ mod tests {
             query,
             r#"track:"Let It Talk To Me" artist:"Sean Paul" artist:"INNA""#
         );
+    }
+
+    #[test]
+    fn test_kexp_scrobble_request() {
+        let json = r#"
+        {
+  "eventName": "nowplaying",
+  "time": 1749848844651,
+  "data": {
+    "song": {
+      "parsed": {
+        "track": "ENERGY",
+        "artist": "Disclosure",
+        "albumArtist": null,
+        "album": "ENERGY",
+        "duration": null,
+        "uniqueID": null,
+        "currentTime": null,
+        "isPlaying": true,
+        "trackArt": "https://ia803209.us.archive.org/7/items/mbid-6f1db1e3-71b3-4524-b0fe-c1e29f361dfe/mbid-6f1db1e3-71b3-4524-b0fe-c1e29f361dfe-26365923265_thumb250.jpg",
+        "isPodcast": false,
+        "originUrl": "https://www.kexp.org/",
+        "scrobblingDisallowedReason": null
+      },
+      "processed": {
+        "track": "ENERGY",
+        "artist": "Disclosure",
+        "albumArtist": null,
+        "album": "ENERGY",
+        "duration": null
+      },
+      "noRegex": {
+        "track": "ENERGY",
+        "artist": "Disclosure",
+        "albumArtist": null,
+        "album": "ENERGY",
+        "duration": null
+      },
+      "flags": {
+        "isScrobbled": false,
+        "isCorrectedByUser": false,
+        "isRegexEditedByUser": {
+          "track": false,
+          "artist": false,
+          "album": false,
+          "albumArtist": false
+        },
+        "isAlbumFetched": false,
+        "isValid": true,
+        "isMarkedAsPlaying": true,
+        "isSkipped": false,
+        "isReplaying": true,
+        "hasBlockedTag": false,
+        "isLovedInService": null,
+        "finishedProcessing": true
+      },
+      "metadata": {
+        "userloved": false,
+        "startTimestamp": 1749848842,
+        "label": "KEXP",
+        "trackArtUrl": "https://lastfm.freetls.fastly.net/i/u/300x300/a18f5dadcc38ad3d264e74ce51d9cf08.png",
+        "artistUrl": "https://www.last.fm/music/Disclosure",
+        "trackUrl": "https://www.last.fm/music/Disclosure/_/ENERGY",
+        "albumUrl": "https://www.last.fm/music/Various+Artists/Festival+Dance",
+        "userPlayCount": 0
+      },
+      "connector": {
+        "label": "KEXP",
+        "matches": [
+          "*://*.kexp.org/*"
+        ],
+        "js": "kexp.js",
+        "id": "kexp"
+      },
+      "controllerTabId": 943739308
+    }
+  }
+}
+      "#;
+
+        let result = serde_json::from_str::<ScrobbleRequest>(json);
+        assert!(result.is_ok(), "Failed to parse JSON: {:?}", result.err());
     }
 }
