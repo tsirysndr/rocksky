@@ -712,7 +712,10 @@ const publishTrack = (
     ),
     Effect.flatMap((message) =>
       Effect.try(() =>
-        ctx.nc.publish("rocksky.track", Buffer.from(JSON.stringify(message)))
+        ctx.nc.publish(
+          "rocksky.track",
+          Buffer.from(JSON.stringify(message).replaceAll("sha_256", "sha256"))
+        )
       )
     )
   );
