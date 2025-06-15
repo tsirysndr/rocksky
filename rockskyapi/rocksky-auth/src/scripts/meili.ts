@@ -19,13 +19,7 @@ async function main() {
   }
 }
 
-main()
-  .then(() => {
-    console.log(chalk.green("Meilisearch sync script finished."));
-  })
-  .catch((error) => {
-    console.error(chalk.red("Error in Meilisearch sync script:"), error);
-  });
+await main();
 
 async function createAlbums() {
   const { meilisearch } = ctx;
