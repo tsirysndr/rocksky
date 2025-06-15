@@ -55,6 +55,7 @@ import getTrackShouts from "./app/rocksky/shout/getTrackShouts";
 import removeShout from "./app/rocksky/shout/removeShout";
 import replyShout from "./app/rocksky/shout/replyShout";
 import reportShout from "./app/rocksky/shout/reportShout";
+import createSong from "./app/rocksky/song/createSong";
 import getSong from "./app/rocksky/song/getSong";
 import getSongs from "./app/rocksky/song/getSongs";
 import spotifyGetCurrentlyPlaying from "./app/rocksky/spotify/getCurrentlyPlaying";
@@ -125,6 +126,7 @@ export default function (server: Server, ctx: Context) {
   spotifySeek(server, ctx);
   spotifyPlay(server, ctx);
   getStats(server, ctx);
+  createSong(server, ctx);
 
   return server;
 }
