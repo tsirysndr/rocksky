@@ -125,6 +125,7 @@ const presentation = ({
   return Effect.sync(() => ({
     ...track,
     createdAt: track.createdAt.toISOString(),
+    updatedAt: track.updatedAt.toISOString(),
   }));
 };
 
