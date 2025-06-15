@@ -10,6 +10,7 @@
 		"prod": "tsx ./src/index.ts",
 		"build": "pkgroll",
 		"sync": "tsx ./src/scripts/sync.ts",
+		"meili:sync": "tsx ./src/scripts/meili.ts",
 		"avatar": "tsx ./src/scripts/avatar.ts",
 		"pkl:eval": "pkl eval -f json",
 		"pkl:gen": "tsx ./scripts/pkl.ts",

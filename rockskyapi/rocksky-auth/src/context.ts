@@ -34,6 +34,10 @@ export const ctx = {
   dropbox: axios.create({ baseURL: env.DROPBOX }),
   googledrive: axios.create({ baseURL: env.GOOGLE_DRIVE }),
   redis: await redis.createClient({ url: env.REDIS_URL }).connect(),
+  meilisearch: axios.create({
+    baseURL: env.MEILISEARCH_URL,
+    headers: { Authorization: `Bearer ${env.MEILISEARCH_API_KEY}` },
+  }),
   authVerifier,
 };
 
