@@ -62,7 +62,7 @@ const withAgent = ({
   did: string;
 }): Effect.Effect<InputWithAgent, Error> => {
   return Effect.tryPromise({
-    try: async () =>
+    try: () =>
       Match.value(did).pipe(
         Match.when(
           (value) => !!value,
