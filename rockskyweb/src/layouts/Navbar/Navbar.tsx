@@ -331,7 +331,7 @@ function Navbar() {
           </LabelMedium>
           <div className="mt-[20px]">
             <a
-              href="https://web-scrobbler.com/"
+              href="https://github.com/web-scrobbler/web-scrobbler"
               target="_blank"
               rel="noopener noreferrer"
               className="text-[var(--color-primary)]"

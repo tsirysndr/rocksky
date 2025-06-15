@@ -61,6 +61,7 @@ import * as AppRockskyShoutGetTrackShouts from './types/app/rocksky/shout/getTra
 import * as AppRockskyShoutRemoveShout from './types/app/rocksky/shout/removeShout'
 import * as AppRockskyShoutReplyShout from './types/app/rocksky/shout/replyShout'
 import * as AppRockskyShoutReportShout from './types/app/rocksky/shout/reportShout'
+import * as AppRockskySongCreateSong from './types/app/rocksky/song/createSong'
 import * as AppRockskySongGetSong from './types/app/rocksky/song/getSong'
 import * as AppRockskySongGetSongs from './types/app/rocksky/song/getSongs'
 import * as AppRockskySpotifyGetCurrentlyPlaying from './types/app/rocksky/spotify/getCurrentlyPlaying'
@@ -820,6 +821,17 @@ export class AppRockskySongNS {
 
   constructor(server: Server) {
     this._server = server
+  }
+
+  createSong<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskySongCreateSong.Handler<ExtractAuth<AV>>,
+      AppRockskySongCreateSong.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = 'app.rocksky.song.createSong' // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg)
   }
 
   getSong<AV extends AuthVerifier>(
