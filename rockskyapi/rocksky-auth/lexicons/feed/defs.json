@@ -5,40 +5,30 @@
     "searchResultsView": {
       "type": "object",
       "properties": {
-        "artists": {
+        "hits": {
           "type": "array",
           "items": {
-            "type": "ref",
-            "ref": "app.rocksky.artist.defs#artistViewBasic"
+            "type": "union",
+            "refs": [
+              "app.rocksky.song.defs#songViewBasic",
+              "app.rocksky.album.defs#albumViewBasic",
+              "app.rocksky.artist.defs#artistViewBasic",
+              "app.rocksky.playlist.defs#playlistViewBasic",
+              "app.rocksky.actor.defs#profileViewBasic"
+            ]
           }
         },
-        "tracks": {
-          "type": "array",
-          "items": {
-            "type": "ref",
-            "ref": "app.rocksky.song.defs#songViewBasic"
-          }
+        "processingTimeMs": {
+          "type": "integer"
         },
-        "albums": {
-          "type": "array",
-          "items": {
-            "type": "ref",
-            "ref": "app.rocksky.album.defs#albumViewBasic"
-          }
+        "limit": {
+          "type": "integer"
         },
-        "users": {
-          "type": "array",
-          "items": {
-            "type": "ref",
-            "ref": "app.rocksky.actor.defs#profileViewBasic"
-          }
+        "offset": {
+          "type": "integer"
         },
-        "playlists": {
-          "type": "array",
-          "items": {
-            "type": "ref",
-            "ref": "app.rocksky.playlist.defs#playlistViewBasic"
-          }
+        "estimatedTotalHits": {
+          "type": "integer"
         }
       }
     },

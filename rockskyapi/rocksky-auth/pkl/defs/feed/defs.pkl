@@ -3,49 +3,38 @@ amends  "../../schema/lexicon.pkl"
 lexicon = 1
 id = "app.rocksky.feed.defs"
 defs = new Mapping<String, ObjectType> {
-  ["searchResultsView"] {
+   ["searchResultsView"] = new ObjectType {
     type = "object"
-    properties {
-      ["artists"] = new Array {
+    properties  {
+      ["hits"] = new Array {
         type = "array"
-        items = new Ref {
-          type = "ref"
-          ref = "app.rocksky.artist.defs#artistViewBasic"
+        items = new Union {
+          type = "union"
+          refs = List(
+            "app.rocksky.song.defs#songViewBasic",
+            "app.rocksky.album.defs#albumViewBasic",
+            "app.rocksky.artist.defs#artistViewBasic",
+            "app.rocksky.playlist.defs#playlistViewBasic",
+            "app.rocksky.actor.defs#profileViewBasic"
+            )
         }
       }
-      ["tracks"] = new Array {
-        type = "array"
-        items = new Ref {
-          type = "ref"
-          ref = "app.rocksky.song.defs#songViewBasic"
-        }
+      ["processingTimeMs"] = new IntegerType {
+        type = "integer"
       }
-      ["albums"] = new Array {
-        type = "array"
-        items = new Ref {
-          type = "ref"
-          ref = "app.rocksky.album.defs#albumViewBasic"
-        }
+      ["limit"] = new IntegerType {
+        type = "integer"
       }
-
-      ["users"] = new Array {
-        type = "array"
-        items = new Ref {
-          type = "ref"
-          ref = "app.rocksky.actor.defs#profileViewBasic"
-        }
+      ["offset"] = new IntegerType {
+        type = "integer"
       }
-      ["playlists"] = new Array {
-        type = "array"
-        items = new Ref {
-          type = "ref"
-          ref = "app.rocksky.playlist.defs#playlistViewBasic"
-        }
+      ["estimatedTotalHits"] = new IntegerType {
+        type = "integer"
       }
     }
-  }
 
-  ["nowPlayingView"] {
+  }
+  ["nowPlayingView"] = new ObjectType {
     type = "object"
     properties {
       ["album"] = new StringType {
@@ -102,7 +91,7 @@ defs = new Mapping<String, ObjectType> {
       }
     }
   }
-  ["nowPlayingsView"] {
+   ["nowPlayingsView"] = new ObjectType {
     type = "object"
     properties  {
       ["nowPlayings"] = new Array {

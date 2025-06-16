@@ -1463,40 +1463,30 @@ export const schemaDict = {
       searchResultsView: {
         type: 'object',
         properties: {
-          artists: {
+          hits: {
             type: 'array',
             items: {
-              type: 'ref',
-              ref: 'lex:app.rocksky.artist.defs#artistViewBasic',
+              type: 'union',
+              refs: [
+                'lex:app.rocksky.song.defs#songViewBasic',
+                'lex:app.rocksky.album.defs#albumViewBasic',
+                'lex:app.rocksky.artist.defs#artistViewBasic',
+                'lex:app.rocksky.playlist.defs#playlistViewBasic',
+                'lex:app.rocksky.actor.defs#profileViewBasic',
+              ],
             },
           },
-          tracks: {
-            type: 'array',
-            items: {
-              type: 'ref',
-              ref: 'lex:app.rocksky.song.defs#songViewBasic',
-            },
+          processingTimeMs: {
+            type: 'integer',
           },
-          albums: {
-            type: 'array',
-            items: {
-              type: 'ref',
-              ref: 'lex:app.rocksky.album.defs#albumViewBasic',
-            },
+          limit: {
+            type: 'integer',
           },
-          users: {
-            type: 'array',
-            items: {
-              type: 'ref',
-              ref: 'lex:app.rocksky.actor.defs#profileViewBasic',
-            },
+          offset: {
+            type: 'integer',
           },
-          playlists: {
-            type: 'array',
-            items: {
-              type: 'ref',
-              ref: 'lex:app.rocksky.playlist.defs#playlistViewBasic',
-            },
+          estimatedTotalHits: {
+            type: 'integer',
           },
         },
       },

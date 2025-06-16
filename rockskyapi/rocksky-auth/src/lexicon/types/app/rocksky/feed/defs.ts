@@ -5,18 +5,25 @@ import { ValidationResult, BlobRef } from '@atproto/lexicon'
 import { lexicons } from '../../../../lexicons'
 import { isObj, hasProp } from '../../../../util'
 import { CID } from 'multiformats/cid'
-import * as AppRockskyArtistDefs from '../artist/defs'
 import * as AppRockskySongDefs from '../song/defs'
 import * as AppRockskyAlbumDefs from '../album/defs'
-import * as AppRockskyActorDefs from '../actor/defs'
+import * as AppRockskyArtistDefs from '../artist/defs'
 import * as AppRockskyPlaylistDefs from '../playlist/defs'
+import * as AppRockskyActorDefs from '../actor/defs'
 
 export interface SearchResultsView {
-  artists?: AppRockskyArtistDefs.ArtistViewBasic[]
-  tracks?: AppRockskySongDefs.SongViewBasic[]
-  albums?: AppRockskyAlbumDefs.AlbumViewBasic[]
-  users?: AppRockskyActorDefs.ProfileViewBasic[]
-  playlists?: AppRockskyPlaylistDefs.PlaylistViewBasic[]
+  hits?: (
+    | AppRockskySongDefs.SongViewBasic
+    | AppRockskyAlbumDefs.AlbumViewBasic
+    | AppRockskyArtistDefs.ArtistViewBasic
+    | AppRockskyPlaylistDefs.PlaylistViewBasic
+    | AppRockskyActorDefs.ProfileViewBasic
+    | { $type: string; [k: string]: unknown }
+  )[]
+  processingTimeMs?: number
+  limit?: number
+  offset?: number
+  estimatedTotalHits?: number
   [k: string]: unknown
 }
 

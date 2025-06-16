@@ -25,7 +25,7 @@ class Blob extends BaseType {
 
 class Array extends BaseType {
   type: "array"
-  items: StringType | IntegerType | Blob | Ref
+  items: StringType | IntegerType | Blob | Ref | Union
 }
 
 class Params {
@@ -82,6 +82,6 @@ class Record extends BaseType {
 lexicon: Int = 1
 id: String
 description: String?
-defs: Mapping<String, Procedure> | Mapping<String, Record> | Mapping<String, ObjectType> | Mapping<String, Query> | Null = null
+defs: Mapping<String, Procedure> | Mapping<String, Record> | Mapping<String, ObjectType> | Mapping<String, Query> | Mapping<String, Array> |  Mapping<String, ObjectType | Array> | Null = null
 
 
