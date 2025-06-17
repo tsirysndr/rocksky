@@ -1,9 +1,0 @@
-{
-  "version": "1",
-  "name": "rocksky",
-  "type": "collection",
-  "ignore": [
-    "node_modules",
-    ".git"
-  ]
-}
