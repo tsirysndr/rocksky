@@ -1,0 +1,57 @@
+{
+	email tsiry.sndr@rocksky.app
+	on_demand_tls {
+		ask http://localhost:3000/tls-check
+	}
+}
+
+*.pds.rocksky.app, pds.rocksky.app {
+	tls {
+		on_demand
+	}
+
+	header {
+		Access-Control-Allow-Origin *
+
+		# Set HSTS
+		Strict-Transport-Security "max-age=63072000"
+
+		# Remove unwanted headers from Caddy
+		-Server
+		-X-Content-Type-Options
+		-X-Frame-Options
+		-X-XSS-Protection
+		-Referrer-Policy
+		-Content-Security-Policy
+
+		Vary Origin
+	}
+
+	reverse_proxy http://localhost:3000
+}
+
+api.rocksky.app {
+	handle /xrpc/* {
+		reverse_proxy http://localhost:3004
+	}
+
+	handle {
+		reverse_proxy http://localhost:8000
+	}
+}
+
+audioscrobbler.rocksky.app {
+	reverse_proxy http://localhost:7882
+}
+
+webscrobbler.rocksky.app {
+	reverse_proxy http://localhost:7883
+}
+
+grafana.rocksky.app {
+	reverse_proxy http://localhost:3001
+}
+
+meilisearch.rocksky.app {
+	reverse_proxy http://localhost:7700
+}
