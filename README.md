@@ -27,5 +27,5 @@ A decentralized music tracking and discovery platform built on the AT Protocol ð
    ```
 4. Start the development server:
    ```bash
-   turbo dev
+   turbo dev --filter=@rocksky/api --filter=@rocksky/web
    ```
