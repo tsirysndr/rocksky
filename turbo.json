@@ -22,16 +22,44 @@
       "cache": false
     },
     "pkl:eval": {
-      "dependsOn": [
-        "^install"
-      ],
       "cache": false
     },
     "pkl:gen": {
-      "dependsOn": [
-        "^install"
-      ],
       "cache": false
+    },
+    "start": {
+      "persistent": true,
+      "cache": false
+    },
+    "android": {
+      "persistent": true,
+      "cache": false
+    },
+    "ios": {
+      "persistent": true,
+      "cache": false
+    },
+    "storybook": {
+      "persistent": true,
+      "cache": false
+    },
+    "lint": {
+      "dependsOn": [
+        "^lint"
+      ],
+      "outputs": []
+    },
+    "adb:reverse": {
+      "persistent": true,
+      "cache": false
+    },
+    "test": {
+      "dependsOn": [
+        "^test"
+      ],
+      "outputs": [
+        "./coverage/**"
+      ]
     }
   }
 }
