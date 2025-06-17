@@ -9,7 +9,10 @@
   ],
   "scripts": {
     "dev": "turbo dev",
-    "db:migrate": "cd apps/api && bun run db:migrate"
+    "db:migrate": "cd apps/api && bun run db:migrate",
+    "pkl:eval": "cd apps/api && bun run pkl:eval",
+    "pkl:gen": "cd apps/api && bun run pkl:gen",
+    "lexgen": "cd apps/api && bun run lexgen"
   },
   "devDependencies": {
     "biome": "^0.3.3",
