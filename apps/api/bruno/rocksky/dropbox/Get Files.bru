@@ -1,0 +1,11 @@
+meta {
+  name: Get Files
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{url}}/xrpc/app.rocksky.dropbox.getFiles
+  body: none
+  auth: inherit
+}

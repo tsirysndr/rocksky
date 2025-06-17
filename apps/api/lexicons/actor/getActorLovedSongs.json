@@ -1,0 +1,48 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.actor.getActorLovedSongs",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get loved songs for an actor",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "did"
+        ],
+        "properties": {
+          "did": {
+            "type": "string",
+            "description": "The DID or handle of the actor",
+            "format": "at-identifier"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of albums to return",
+            "minimum": 1
+          },
+          "offset": {
+            "type": "integer",
+            "description": "The offset for pagination",
+            "minimum": 0
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "tracks": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "app.rocksky.song.defs#songViewBasic"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

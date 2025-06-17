@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cvmoh77o1tkgc98jgemg",
+    "operations": [
+      {
+        "alter_column": {
+          "up": "\"uri\"",
+          "down": "\"uri\"",
+          "table": "scrobbles",
+          "column": "uri",
+          "unique": {
+            "name": "scrobbles_uri_unique"
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cvmoh77o1tkgc98jgemg",
+  "parent": "mig_cvmognlfchh2dtob7fp0",
+  "schema": "public",
+  "startedAt": "2025-04-02T18:57:33.44412Z"
+}

@@ -1,0 +1,27 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.googledrive.defs"
+defs = new Mapping<String, ObjectType> {
+  ["fileView"] {
+    type = "object"
+    properties {
+      ["id"] = new StringType {
+        type = "string"
+        description = "The unique identifier of the file."
+      }
+    }
+  }
+  ["fileListView"] {
+    type = "object"
+    properties {
+      ["files"] = new Array {
+        type = "array"
+        items = new Ref {
+          type = "ref"
+          ref = "app.rocksky.googledrive.defs#fileView"
+        }
+      }
+    }
+  }
+}

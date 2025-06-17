@@ -1,0 +1,25 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.dropbox.getTemporaryLink"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Retrieve a temporary link to access a file in Dropbox"
+    parameters {
+      required = List("path")
+      properties {
+        ["path"] = new StringType {
+          description = "Path to the file in Dropbox"
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new Ref {
+        type = "ref"
+        ref = "app.rocksky.dropbox.defs#temporaryLinkView"
+      }
+    }
+  }
+}

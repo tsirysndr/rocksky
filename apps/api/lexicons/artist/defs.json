@@ -1,0 +1,78 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.artist.defs",
+  "defs": {
+    "artistViewBasic": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the artist."
+        },
+        "uri": {
+          "type": "string",
+          "description": "The URI of the artist.",
+          "format": "at-uri"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the artist."
+        },
+        "picture": {
+          "type": "string",
+          "description": "The picture of the artist."
+        },
+        "sha256": {
+          "type": "string",
+          "description": "The SHA256 hash of the artist."
+        },
+        "playCount": {
+          "type": "integer",
+          "description": "The number of times the artist has been played.",
+          "minimum": 0
+        },
+        "uniqueListeners": {
+          "type": "integer",
+          "description": "The number of unique listeners who have played the artist.",
+          "minimum": 0
+        }
+      }
+    },
+    "artistViewDetailed": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the artist."
+        },
+        "uri": {
+          "type": "string",
+          "description": "The URI of the artist.",
+          "format": "at-uri"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the artist."
+        },
+        "picture": {
+          "type": "string",
+          "description": "The picture of the artist."
+        },
+        "sha256": {
+          "type": "string",
+          "description": "The SHA256 hash of the artist."
+        },
+        "playCount": {
+          "type": "integer",
+          "description": "The number of times the artist has been played.",
+          "minimum": 0
+        },
+        "uniqueListeners": {
+          "type": "integer",
+          "description": "The number of unique listeners who have played the artist.",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

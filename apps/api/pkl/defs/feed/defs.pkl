@@ -1,0 +1,106 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.feed.defs"
+defs = new Mapping<String, ObjectType> {
+   ["searchResultsView"] = new ObjectType {
+    type = "object"
+    properties  {
+      ["hits"] = new Array {
+        type = "array"
+        items = new Union {
+          type = "union"
+          refs = List(
+            "app.rocksky.song.defs#songViewBasic",
+            "app.rocksky.album.defs#albumViewBasic",
+            "app.rocksky.artist.defs#artistViewBasic",
+            "app.rocksky.playlist.defs#playlistViewBasic",
+            "app.rocksky.actor.defs#profileViewBasic"
+            )
+        }
+      }
+      ["processingTimeMs"] = new IntegerType {
+        type = "integer"
+      }
+      ["limit"] = new IntegerType {
+        type = "integer"
+      }
+      ["offset"] = new IntegerType {
+        type = "integer"
+      }
+      ["estimatedTotalHits"] = new IntegerType {
+        type = "integer"
+      }
+    }
+
+  }
+  ["nowPlayingView"] = new ObjectType {
+    type = "object"
+    properties {
+      ["album"] = new StringType {
+        type = "string"
+      }
+      ["albumArt"] = new StringType {
+        type = "string"
+        format = "uri"
+      }
+      ["albumArtist"] = new StringType {
+        type = "string"
+      }
+      ["albumUri"] = new StringType {
+        type = "string"
+        format = "at-uri"
+      }
+      ["artist"] = new StringType {
+        type = "string"
+      }
+      ["artistUri"] = new StringType {
+        type = "string"
+        format = "at-uri"
+      }
+      ["avatar"] = new StringType {
+        type = "string"
+        format = "uri"
+      }
+      ["createdAt"] = new StringType {
+        type = "string"
+      }
+      ["did"] = new StringType {
+        type = "string"
+        format = "at-identifier"
+      }
+      ["handle"] = new StringType {
+        type = "string"
+      }
+      ["id"] = new StringType {
+        type = "string"
+      }
+      ["title"] = new StringType {
+        type = "string"
+      }
+      ["trackId"] = new StringType {
+        type = "string"
+      }
+      ["trackUri"] = new StringType {
+        type = "string"
+        format = "at-uri"
+      }
+      ["uri"] = new StringType {
+        type = "string"
+        format = "at-uri"
+      }
+    }
+  }
+   ["nowPlayingsView"] = new ObjectType {
+    type = "object"
+    properties  {
+      ["nowPlayings"] = new Array {
+        type = "array"
+        items = new Ref {
+          type = "ref"
+          ref = "app.rocksky.feed.defs#nowPlayingView"
+        }
+      }
+    }
+  }
+}

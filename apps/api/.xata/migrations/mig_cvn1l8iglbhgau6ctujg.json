@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cvn1l8iglbhgau6ctujg",
+    "operations": [
+      {
+        "add_column": {
+          "up": "0",
+          "table": "queue_tracks",
+          "column": {
+            "name": "position",
+            "type": "int",
+            "comment": ""
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cvn1l8iglbhgau6ctujg",
+  "parent": "mig_cvn1kqfo1tkgc98jggd0",
+  "schema": "public",
+  "startedAt": "2025-04-03T05:20:35.051751Z"
+}

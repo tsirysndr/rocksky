@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cuggu2jiojibbahciro0",
+    "operations": [
+      {
+        "add_column": {
+          "table": "tracks",
+          "column": {
+            "name": "lyrics",
+            "type": "text",
+            "comment": "",
+            "nullable": true
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cuggu2jiojibbahciro0",
+  "parent": "mig_cug5hue34skj7mihoh2g",
+  "schema": "public",
+  "startedAt": "2025-02-03T18:46:35.152454Z"
+}

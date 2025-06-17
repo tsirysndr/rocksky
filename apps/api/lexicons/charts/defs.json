@@ -1,0 +1,32 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.charts.defs",
+  "defs": {
+    "chartsView": {
+      "type": "object",
+      "properties": {
+        "scrobbles": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.charts.defs#scrobbleViewBasic"
+          }
+        }
+      }
+    },
+    "scrobbleViewBasic": {
+      "type": "object",
+      "properties": {
+        "date": {
+          "type": "string",
+          "description": "The date of the scrobble.",
+          "format": "datetime"
+        },
+        "count": {
+          "type": "integer",
+          "description": "The number of scrobbles on this date."
+        }
+      }
+    }
+  }
+}

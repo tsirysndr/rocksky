@@ -1,0 +1,30 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cv8un7g1g95li4qghhl0",
+    "operations": [
+      {
+        "add_column": {
+          "up": "''",
+          "table": "google_drive_paths",
+          "column": {
+            "name": "google_drive_id",
+            "type": "text",
+            "comment": "{\"xata.link\":\"google_drive\"}",
+            "references": {
+              "name": "google_drive_id_link",
+              "table": "google_drive",
+              "column": "xata_id",
+              "on_delete": "CASCADE"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cv8un7g1g95li4qghhl0",
+  "parent": "mig_cv8umjo1g95li4qghhk0",
+  "schema": "public",
+  "startedAt": "2025-03-12T20:16:31.074898Z"
+}

@@ -1,0 +1,29 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.dropbox.getMetadata",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Retrieve metadata of a file or folder in Dropbox",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "path"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Path to the file or folder in Dropbox"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "ref",
+          "ref": "app.rocksky.dropbox.defs#fileView"
+        }
+      }
+    }
+  }
+}

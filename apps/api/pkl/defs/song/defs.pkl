@@ -1,0 +1,158 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.song.defs"
+defs = new Mapping<String, ObjectType> {
+  ["songViewBasic"] {
+    type = "object"
+    properties {
+      ["id"] = new StringType {
+        type = "string"
+        description = "The unique identifier of the song."
+      }
+      ["title"] = new StringType {
+        type = "string"
+        description = "The title of the song."
+      }
+      ["artist"] = new StringType {
+        type = "string"
+        description = "The artist of the song."
+      }
+      ["albumArtist"] = new StringType {
+        type = "string"
+        description = "The artist of the album the song belongs to."
+      }
+      ["albumArt"] = new StringType {
+        type = "string"
+        format = "uri"
+        description = "The URL of the album art image."
+      }
+      ["uri"] = new StringType {
+        type = "string"
+        format = "at-uri"
+        description = "The URI of the song."
+      }
+      ["album"] = new StringType {
+        type = "string"
+        description = "The album of the song."
+      }
+      ["duration"] = new IntegerType {
+        type = "integer"
+        description = "The duration of the song in milliseconds."
+      }
+      ["trackNumber"] = new IntegerType {
+        type = "integer"
+        description = "The track number of the song in the album."
+      }
+      ["discNumber"] = new IntegerType {
+        type = "integer"
+        description = "The disc number of the song in the album."
+      }
+      ["playCount"] = new IntegerType {
+        type = "integer"
+        description = "The number of times the song has been played."
+        minimum = 0
+      }
+      ["uniqueListeners"] = new IntegerType {
+        type = "integer"
+        description = "The number of unique listeners who have played the song."
+        minimum = 0
+      }
+      ["albumUri"] = new StringType {
+        type = "string"
+        format = "at-uri"
+        description = "The URI of the album the song belongs to."
+      }
+      ["artistUri"] = new StringType {
+        type = "string"
+        format = "at-uri"
+        description = "The URI of the artist of the song."
+      }
+      ["sha256"] = new StringType {
+        type = "string"
+        description = "The SHA256 hash of the song."
+      }
+      ["createdAt"] = new StringType {
+        type = "string"
+        format = "datetime"
+        description = "The timestamp when the song was created."
+      }
+    }
+  }
+  ["songViewDetailed"] {
+    type = "object"
+    properties {
+      ["id"] = new StringType {
+        type = "string"
+        description = "The unique identifier of the song."
+      }
+      ["title"] = new StringType {
+        type = "string"
+        description = "The title of the song."
+      }
+      ["artist"] = new StringType {
+        type = "string"
+        description = "The artist of the song."
+      }
+      ["albumArtist"] = new StringType {
+        type = "string"
+        description = "The artist of the album the song belongs to."
+      }
+      ["albumArt"] = new StringType {
+        type = "string"
+        format = "uri"
+        description = "The URL of the album art image."
+      }
+      ["uri"] = new StringType {
+        type = "string"
+        format = "at-uri"
+        description = "The URI of the song."
+      }
+      ["album"] = new StringType {
+        type = "string"
+        description = "The album of the song."
+      }
+      ["duration"] = new IntegerType {
+        type = "integer"
+        description = "The duration of the song in milliseconds."
+      }
+      ["trackNumber"] = new IntegerType {
+        type = "integer"
+        description = "The track number of the song in the album."
+      }
+      ["discNumber"] = new IntegerType {
+        type = "integer"
+        description = "The disc number of the song in the album."
+      }
+      ["playCount"] = new IntegerType {
+        type = "integer"
+        description = "The number of times the song has been played."
+        minimum = 0
+      }
+      ["uniqueListeners"] = new IntegerType {
+        type = "integer"
+        description = "The number of unique listeners who have played the song."
+        minimum = 0
+      }
+      ["albumUri"] = new StringType {
+        type = "string"
+        format = "at-uri"
+        description = "The URI of the album the song belongs to."
+      }
+      ["artistUri"] = new StringType {
+        type = "string"
+        format = "at-uri"
+        description = "The URI of the artist of the song."
+      }
+      ["sha256"] = new StringType {
+        type = "string"
+        description = "The SHA256 hash of the song."
+      }
+      ["createdAt"] = new StringType {
+        type = "string"
+        format = "datetime"
+        description = "The timestamp when the song was created."
+      }
+    }
+  }
+}

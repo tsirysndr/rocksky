@@ -1,0 +1,32 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.charts.defs"
+defs = new Mapping<String, ObjectType> {
+  ["chartsView"] {
+    type = "object"
+    properties {
+      ["scrobbles"] = new Array {
+        type = "array"
+        items = new Ref {
+          type = "ref"
+          ref = "app.rocksky.charts.defs#scrobbleViewBasic"
+        }
+      }
+    }
+  }
+  ["scrobbleViewBasic"] {
+    type = "object"
+    properties {
+      ["date"] = new StringType {
+        type = "string"
+        description = "The date of the scrobble."
+        format = "datetime"
+      }
+      ["count"] = new IntegerType {
+        type = "integer"
+        description = "The number of scrobbles on this date."
+      }
+    }
+  }
+}

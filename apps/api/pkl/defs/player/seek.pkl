@@ -1,0 +1,20 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.player.seek"
+defs = new Mapping<String, Procedure> {
+  ["main"] {
+    type = "procedure"
+    description = "Seek to a specific position in the currently playing track"
+    parameters {
+      type = "params"
+      required = List("position")
+      properties = new Mapping<String, IntegerType> {
+        ["position"] {
+          type = "integer"
+          description = "The position in seconds to seek to"
+        }
+      }
+    }
+  }
+}

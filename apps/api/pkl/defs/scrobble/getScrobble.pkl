@@ -1,0 +1,25 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.scrobble.getScrobble"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get a scrobble by its unique identifier"
+    parameters = new Params {
+      required = List("uri")
+      properties {
+        ["uri"] = new StringType {
+          description = "The unique identifier of the scrobble"
+          format = "at-uri"
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new Ref {
+        ref = "app.rocksky.scrobble.defs#scrobbleViewDetailed"
+      }
+    }
+  }
+}

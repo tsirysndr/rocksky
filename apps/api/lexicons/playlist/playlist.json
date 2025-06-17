@@ -1,0 +1,70 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.playlist",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A declaration of a playlist.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": [
+          "name",
+          "createdAt"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the playlist.",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "description": {
+            "type": "string",
+            "description": "The playlist description.",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "picture": {
+            "type": "blob",
+            "description": "The picture of the playlist.",
+            "accept": [
+              "image/png",
+              "image/jpeg"
+            ],
+            "maxSize": 2000000
+          },
+          "tracks": {
+            "type": "array",
+            "description": "The tracks in the playlist.",
+            "items": {
+              "type": "ref",
+              "ref": "app.rocksky.song#record"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "The date the playlist was created.",
+            "format": "datetime"
+          },
+          "spotifyLink": {
+            "type": "string",
+            "description": "The Spotify link of the playlist."
+          },
+          "tidalLink": {
+            "type": "string",
+            "description": "The Tidal link of the playlist."
+          },
+          "youtubeLink": {
+            "type": "string",
+            "description": "The YouTube link of the playlist."
+          },
+          "appleMusicLink": {
+            "type": "string",
+            "description": "The Apple Music link of the playlist."
+          }
+        }
+      }
+    }
+  }
+}

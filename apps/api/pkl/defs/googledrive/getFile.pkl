@@ -1,0 +1,24 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.googledrive.getFile"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get a file from Google Drive by its unique identifier"
+    parameters = new Params {
+      required = List("fileId")
+      properties {
+        ["fileId"] = new StringType {
+          description = "The unique identifier of the file to retrieve"
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new Ref {
+        ref = "app.rocksky.googledrive.defs#fileView"
+      }
+    }
+  }
+}

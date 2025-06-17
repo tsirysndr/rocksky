@@ -1,0 +1,15 @@
+meta {
+  name: Get Temporary Link
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{url}}/xrpc/app.rocksky.dropbox.getTemporaryLink?path=/
+  body: none
+  auth: inherit
+}
+
+params:query {
+  path: /
+}

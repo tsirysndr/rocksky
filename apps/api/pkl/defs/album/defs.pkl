@@ -1,0 +1,142 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.album.defs"
+defs = new Mapping<String, ObjectType> {
+  ["albumViewBasic"] {
+    type = "object"
+    properties {
+      ["id"] = new StringType {
+        type = "string"
+        description = "The unique identifier of the album."
+      }
+
+      ["uri"] = new StringType {
+        type = "string"
+        format = "at-uri"
+        description = "The URI of the album."
+      }
+
+      ["title"] = new StringType {
+        type = "string"
+        description = "The title of the album."
+      }
+
+      ["artist"] = new StringType {
+        type = "string"
+        description = "The artist of the album."
+      }
+
+      ["artistUri"] = new StringType {
+        type = "string"
+        format = "at-uri"
+        description = "The URI of the album's artist."
+      }
+
+      ["year"] = new IntegerType {
+        type = "integer"
+        description = "The year the album was released."
+      }
+
+      ["albumArt"] = new StringType {
+        type = "string"
+        format = "uri"
+        description = "The URL of the album art image."
+      }
+
+      ["releaseDate"] = new StringType {
+        type = "string"
+        description = "The release date of the album."
+      }
+
+      ["sha256"] = new StringType {
+        type = "string"
+        description = "The SHA256 hash of the album."
+      }
+
+      ["playCount"] = new IntegerType {
+        type = "integer"
+        description = "The number of times the album has been played."
+        minimum = 0
+      }
+
+      ["uniqueListeners"] = new IntegerType {
+        type = "integer"
+        description = "The number of unique listeners who have played the album."
+        minimum = 0
+      }
+    }
+  }
+  ["albumViewDetailed"] {
+    type = "object"
+    properties {
+      ["id"] = new StringType {
+        type = "string"
+        description = "The unique identifier of the album."
+      }
+
+      ["uri"] = new StringType {
+        type = "string"
+        format = "at-uri"
+        description = "The URI of the album."
+      }
+
+      ["title"] = new StringType {
+        type = "string"
+        description = "The title of the album."
+      }
+
+      ["artist"] = new StringType {
+        type = "string"
+        description = "The artist of the album."
+      }
+
+      ["artistUri"] = new StringType {
+        type = "string"
+        format = "at-uri"
+        description = "The URI of the album's artist."
+      }
+
+      ["year"] = new IntegerType {
+        type = "integer"
+        description = "The year the album was released."
+      }
+
+      ["albumArt"] = new StringType {
+        type = "string"
+        format = "uri"
+        description = "The URL of the album art image."
+      }
+
+      ["releaseDate"] = new StringType {
+        type = "string"
+        description = "The release date of the album."
+      }
+
+      ["sha256"] = new StringType {
+        type = "string"
+        description = "The SHA256 hash of the album."
+      }
+
+      ["playCount"] = new IntegerType {
+        type = "integer"
+        description = "The number of times the album has been played."
+        minimum = 0
+      }
+
+      ["uniqueListeners"] = new IntegerType {
+        type = "integer"
+        description = "The number of unique listeners who have played the album."
+        minimum = 0
+      }
+
+      ["tracks"] = new Array {
+        type = "array"
+        items = new Ref {
+          type = "ref"
+          ref = "app.rocksky.song.defs.songViewBasic"
+        }
+      }
+    }
+  }
+}

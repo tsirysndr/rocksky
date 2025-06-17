@@ -1,0 +1,30 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.like.dislikeSong"
+defs = new Mapping<String, Procedure> {
+  ["main"] {
+    type = "procedure"
+    description = "Dislike a song"
+    input {
+      encoding = "application/json"
+      schema {
+        type = "object"
+        properties {
+          ["uri"] = new StringType {
+            type = "string"
+            description = "The unique identifier of the song to dislike"
+            format = "at-uri"
+          }
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new Ref {
+        type = "ref"
+        ref = "app.rocksky.song.defs#songViewDetailed"
+      }
+    }
+  }
+}

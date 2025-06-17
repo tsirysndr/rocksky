@@ -1,0 +1,158 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.song.defs",
+  "defs": {
+    "songViewBasic": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the song."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the song."
+        },
+        "artist": {
+          "type": "string",
+          "description": "The artist of the song."
+        },
+        "albumArtist": {
+          "type": "string",
+          "description": "The artist of the album the song belongs to."
+        },
+        "albumArt": {
+          "type": "string",
+          "description": "The URL of the album art image.",
+          "format": "uri"
+        },
+        "uri": {
+          "type": "string",
+          "description": "The URI of the song.",
+          "format": "at-uri"
+        },
+        "album": {
+          "type": "string",
+          "description": "The album of the song."
+        },
+        "duration": {
+          "type": "integer",
+          "description": "The duration of the song in milliseconds."
+        },
+        "trackNumber": {
+          "type": "integer",
+          "description": "The track number of the song in the album."
+        },
+        "discNumber": {
+          "type": "integer",
+          "description": "The disc number of the song in the album."
+        },
+        "playCount": {
+          "type": "integer",
+          "description": "The number of times the song has been played.",
+          "minimum": 0
+        },
+        "uniqueListeners": {
+          "type": "integer",
+          "description": "The number of unique listeners who have played the song.",
+          "minimum": 0
+        },
+        "albumUri": {
+          "type": "string",
+          "description": "The URI of the album the song belongs to.",
+          "format": "at-uri"
+        },
+        "artistUri": {
+          "type": "string",
+          "description": "The URI of the artist of the song.",
+          "format": "at-uri"
+        },
+        "sha256": {
+          "type": "string",
+          "description": "The SHA256 hash of the song."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The timestamp when the song was created.",
+          "format": "datetime"
+        }
+      }
+    },
+    "songViewDetailed": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the song."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the song."
+        },
+        "artist": {
+          "type": "string",
+          "description": "The artist of the song."
+        },
+        "albumArtist": {
+          "type": "string",
+          "description": "The artist of the album the song belongs to."
+        },
+        "albumArt": {
+          "type": "string",
+          "description": "The URL of the album art image.",
+          "format": "uri"
+        },
+        "uri": {
+          "type": "string",
+          "description": "The URI of the song.",
+          "format": "at-uri"
+        },
+        "album": {
+          "type": "string",
+          "description": "The album of the song."
+        },
+        "duration": {
+          "type": "integer",
+          "description": "The duration of the song in milliseconds."
+        },
+        "trackNumber": {
+          "type": "integer",
+          "description": "The track number of the song in the album."
+        },
+        "discNumber": {
+          "type": "integer",
+          "description": "The disc number of the song in the album."
+        },
+        "playCount": {
+          "type": "integer",
+          "description": "The number of times the song has been played.",
+          "minimum": 0
+        },
+        "uniqueListeners": {
+          "type": "integer",
+          "description": "The number of unique listeners who have played the song.",
+          "minimum": 0
+        },
+        "albumUri": {
+          "type": "string",
+          "description": "The URI of the album the song belongs to.",
+          "format": "at-uri"
+        },
+        "artistUri": {
+          "type": "string",
+          "description": "The URI of the artist of the song.",
+          "format": "at-uri"
+        },
+        "sha256": {
+          "type": "string",
+          "description": "The SHA256 hash of the song."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The timestamp when the song was created.",
+          "format": "datetime"
+        }
+      }
+    }
+  }
+}

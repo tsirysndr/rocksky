@@ -1,0 +1,26 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.feed.search"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Search for content in the feed"
+    parameters {
+      type = "params"
+      required = List("query")
+      properties {
+        ["query"] = new StringType {
+          description = "The search query string"
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new Ref {
+        type = "ref"
+        ref = "app.rocksky.feed.defs#searchResultsView"
+      }
+    }
+  }
+}

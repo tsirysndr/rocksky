@@ -1,0 +1,26 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.artist.getArtist"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get artist details"
+    parameters = new Params {
+      required = List("uri")
+      properties {
+        ["uri"] = new StringType {
+          description = "The URI of the artist to retrieve details from"
+          format = "at-uri"
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new Ref {
+        type = "ref"
+        ref = "app.rocksky.artist.defs#artistViewDetailed"
+      }
+    }
+  }
+}

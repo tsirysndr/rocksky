@@ -1,0 +1,21 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.googledrive.downloadFile"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Download a file from Google Drive by its unique identifier"
+    parameters = new Params {
+      required = List("fileId")
+      properties {
+        ["fileId"] = new StringType {
+          description = "The unique identifier of the file to download"
+        }
+      }
+    }
+    output {
+      encoding = "application/octet-stream"
+    }
+  }
+}

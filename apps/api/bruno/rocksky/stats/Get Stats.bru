@@ -1,0 +1,15 @@
+meta {
+  name: Get Stats
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{url}}/xrpc/app.rocksky.stats.getStats?did=tsiry-sandratraina.com
+  body: none
+  auth: inherit
+}
+
+params:query {
+  did: tsiry-sandratraina.com
+}

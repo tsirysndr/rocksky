@@ -1,0 +1,30 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.playlist.getPlaylist",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Retrieve a playlist by its ID",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "uri"
+        ],
+        "properties": {
+          "uri": {
+            "type": "string",
+            "description": "The URI of the playlist to retrieve.",
+            "format": "at-uri"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "ref",
+          "ref": "app.rocksky.playlist.defs#playlistViewDetailed"
+        }
+      }
+    }
+  }
+}

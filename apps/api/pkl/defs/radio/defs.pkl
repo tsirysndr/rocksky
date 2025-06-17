@@ -1,0 +1,78 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.radio.defs"
+defs = new Mapping<String, ObjectType> {
+  ["radioViewBasic"] {
+    type = "object"
+    properties {
+      ["id"] = new StringType {
+        type = "string"
+        description = "The unique identifier of the radio."
+      }
+
+      ["name"] = new StringType {
+        type = "string"
+        description = "The name of the radio."
+      }
+
+      ["description"] = new StringType {
+        type = "string"
+        description = "A brief description of the radio."
+      }
+
+      ["createdAt"] = new StringType {
+        type = "string"
+        format = "datetime"
+        description = "The date and time when the radio was created."
+      }
+    }
+  }
+  ["radioViewDetailed"] {
+    type = "object"
+    properties {
+      ["id"] = new StringType {
+        type = "string"
+        description = "The unique identifier of the radio."
+      }
+
+      ["name"] = new StringType {
+        type = "string"
+        description = "The name of the radio."
+      }
+
+      ["description"] = new StringType {
+        type = "string"
+        description = "A brief description of the radio."
+      }
+
+      ["website"] = new StringType {
+        type = "string"
+        format = "uri"
+        description = "The website of the radio."
+      }
+
+      ["url"] = new StringType {
+        type = "string"
+        format = "uri"
+        description = "The streaming URL of the radio."
+      }
+
+      ["genre"] = new StringType {
+        type = "string"
+        description = "The genre of the radio."
+      }
+
+      ["logo"] = new StringType {
+        type = "string"
+        description = "The logo of the radio station."
+      }
+
+      ["createdAt"] = new StringType {
+        type = "string"
+        format = "datetime"
+        description = "The date and time when the radio was created."
+      }
+    }
+  }
+}

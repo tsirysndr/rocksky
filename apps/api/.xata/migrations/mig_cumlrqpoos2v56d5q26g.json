@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cumlrqpoos2v56d5q26g",
+    "operations": [
+      {
+        "add_column": {
+          "table": "spotify_tokens",
+          "column": {
+            "name": "access_token",
+            "type": "text",
+            "comment": "",
+            "nullable": true
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cumlrqpoos2v56d5q26g",
+  "parent": "mig_cumlpo427onfu5mm3sug",
+  "schema": "public",
+  "startedAt": "2025-02-13T02:50:20.116678Z"
+}

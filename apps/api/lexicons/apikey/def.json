@@ -1,0 +1,28 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.apikey.defs",
+  "defs": {
+    "apiKeyView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the API key."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the API key."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description for the API key."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The date and time when the API key was created.",
+          "format": "datetime"
+        }
+      }
+    }
+  }
+}

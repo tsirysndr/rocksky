@@ -1,0 +1,42 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.artist.getArtistTracks"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get artist's tracks"
+    parameters = new Params {
+      properties {
+         ["uri"] = new StringType {
+          description = "The URI of the artist to retrieve albums from"
+          format = "at-uri"
+        }
+        ["limit"] = new IntegerType {
+          type = "integer"
+          description = "The maximum number of tracks to return"
+          minimum = 1
+        }
+        ["offset"] = new IntegerType {
+          type = "integer"
+          description = "The offset for pagination"
+          minimum = 0
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        properties = new Mapping<String, Array> {
+          ["tracks"] = new Array {
+            type = "array"
+            items = new Ref {
+              ref = "app.rocksky.song.defs#songViewBasic"
+            }
+          }
+        }
+      }
+    }
+  }
+}

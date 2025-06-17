@@ -1,0 +1,21 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cvrt0e5fchh2dtob8q4g",
+    "operations": [
+      {
+        "drop_constraint": {
+          "up": "\"uri\"",
+          "down": "\"uri\"",
+          "name": "user_tracks__pgroll_new_uri_key",
+          "table": "user_tracks"
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cvrt0e5fchh2dtob8q4g",
+  "parent": "mig_cvn1l8iglbhgau6ctujg",
+  "schema": "public",
+  "startedAt": "2025-04-10T14:05:45.203505Z"
+}

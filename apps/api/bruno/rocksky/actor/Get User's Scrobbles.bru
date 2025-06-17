@@ -1,0 +1,15 @@
+meta {
+  name: Get User's Scrobbles
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{url}}/xrpc/app.rocksky.actor.getActorScrobbles?did={{did}}
+  body: none
+  auth: inherit
+}
+
+params:query {
+  did: {{did}}
+}

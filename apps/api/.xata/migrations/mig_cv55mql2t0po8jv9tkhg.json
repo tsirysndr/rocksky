@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cv55mql2t0po8jv9tkhg",
+    "operations": [
+      {
+        "alter_column": {
+          "up": "\"apple_music_link\"",
+          "down": "\"apple_music_link\"",
+          "table": "albums",
+          "column": "apple_music_link",
+          "unique": {
+            "name": "albums_apple_music_link_unique"
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cv55mql2t0po8jv9tkhg",
+  "parent": "mig_cv55mi066mqp0v06gpcg",
+  "schema": "public",
+  "startedAt": "2025-03-07T02:35:23.576723Z"
+}

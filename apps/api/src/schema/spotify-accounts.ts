@@ -1,0 +1,26 @@
+import { InferInsertModel, InferSelectModel } from "drizzle-orm";
+import {
+  boolean,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
+import users from "./users";
+
+const spotifyAccounts = pgTable("spotify_accounts", {
+  id: text("xata_id").primaryKey(),
+  xataVersion: integer("xata_version").notNull(),
+  email: text("email").notNull(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  isBetaUser: boolean("is_beta_user").default(false).notNull(),
+  createdAt: timestamp("xata_createdat").defaultNow().notNull(),
+  updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
+});
+
+export type SelectSpotifyAccount = InferSelectModel<typeof spotifyAccounts>;
+export type InsertSpotifyAccount = InferInsertModel<typeof spotifyAccounts>;
+
+export default spotifyAccounts;

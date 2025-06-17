@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cv55loqtb4rhvnj37rng",
+    "operations": [
+      {
+        "alter_column": {
+          "up": "\"spotify_link\"",
+          "down": "\"spotify_link\"",
+          "table": "playlists",
+          "column": "spotify_link",
+          "unique": {
+            "name": "playlists_spotify_link_unique"
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cv55loqtb4rhvnj37rng",
+  "parent": "mig_cv3tj3itb4rhvnj37ip0",
+  "schema": "public",
+  "startedAt": "2025-03-07T02:33:08.663091Z"
+}

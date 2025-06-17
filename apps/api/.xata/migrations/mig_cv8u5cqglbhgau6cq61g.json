@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cv8u5cqglbhgau6cq61g",
+    "operations": [
+      {
+        "add_column": {
+          "up": "''",
+          "table": "dropbox_tokens",
+          "column": {
+            "name": "refresh_token",
+            "type": "text",
+            "comment": ""
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cv8u5cqglbhgau6cq61g",
+  "parent": "mig_cv8u0daglbhgau6cq5r0",
+  "schema": "public",
+  "startedAt": "2025-03-12T19:38:28.311152Z"
+}

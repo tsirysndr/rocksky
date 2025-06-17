@@ -1,0 +1,65 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.dropbox.defs"
+defs = new Mapping<String, ObjectType> {
+  ["fileView"] {
+    type = "object"
+    properties {
+      ["id"] = new StringType {
+        type = "string"
+        description = "The unique identifier of the file."
+      }
+
+      ["name"] = new StringType {
+        type = "string"
+        description = "The name of the file."
+      }
+
+      ["pathLower"] = new StringType {
+        type = "string"
+        description = "The lowercased path of the file."
+      }
+
+      ["pathDisplay"] = new StringType {
+        type = "string"
+        description = "The display path of the file."
+      }
+
+      ["clientModified"] = new StringType {
+        type = "string"
+        format = "datetime"
+        description = "The last modified date and time of the file on the client."
+      }
+
+      ["serverModified"] = new StringType {
+        type = "string"
+        format = "datetime"
+        description = "The last modified date and time of the file on the server."
+      }
+    }
+  }
+  ["fileListView"] {
+    type = "object"
+    properties {
+      ["files"] = new Array {
+        type = "array"
+        items = new Ref {
+          type = "ref"
+          ref = "app.rocksky.dropbox.defs#fileView"
+        }
+        description = "A list of files in the Dropbox."
+      }
+    }
+  }
+  ["temporaryLinkView"] {
+    type = "object"
+    properties {
+      ["link"] = new StringType {
+        type = "string"
+        format = "uri"
+        description = "The temporary link to access the file."
+      }
+    }
+  }
+}

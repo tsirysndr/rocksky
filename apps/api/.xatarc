@@ -1,0 +1,6 @@
+{
+  "databaseURL": "https://Tsiry-Sandratraina-s-workspace-b1ficn.us-east-1.xata.sh/db/rocksky",
+  "codegen": {
+    "output": "src/xata.ts"
+  }
+}

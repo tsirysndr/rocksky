@@ -1,0 +1,38 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.playlist.getPlaylists",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Retrieve a list of playlists",
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of playlists to return."
+          },
+          "offset": {
+            "type": "integer",
+            "description": "The offset for pagination, used to skip a number of playlists."
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "playlists": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "app.rocksky.playlist.defs#playlistViewBasic"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

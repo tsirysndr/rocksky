@@ -1,0 +1,10 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.player.pause",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Pause the currently playing track"
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cug37jmtrfea4ndapecg",
+    "operations": [
+      {
+        "add_column": {
+          "up": "''",
+          "table": "users",
+          "column": {
+            "name": "did",
+            "type": "text",
+            "unique": true,
+            "comment": ""
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cug37jmtrfea4ndapecg",
+  "parent": "mig_cug3786trfea4ndapebg",
+  "schema": "public",
+  "startedAt": "2025-02-03T03:11:11.95892Z"
+}

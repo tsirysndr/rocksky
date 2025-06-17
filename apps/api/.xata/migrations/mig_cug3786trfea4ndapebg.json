@@ -1,0 +1,30 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cug3786trfea4ndapebg",
+    "operations": [
+      {
+        "add_column": {
+          "up": "''",
+          "table": "artist_albums",
+          "column": {
+            "name": "album_id",
+            "type": "text",
+            "comment": "{\"xata.link\":\"albums\"}",
+            "references": {
+              "name": "album_id_link",
+              "table": "albums",
+              "column": "xata_id",
+              "on_delete": "SET NULL"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cug3786trfea4ndapebg",
+  "parent": "mig_cug36s6trfea4ndapeag",
+  "schema": "public",
+  "startedAt": "2025-02-03T03:10:25.594718Z"
+}

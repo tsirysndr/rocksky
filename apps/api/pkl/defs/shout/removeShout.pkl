@@ -1,0 +1,27 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.shout.removeShout"
+defs = new Mapping<String, Procedure> {
+  ["main"] {
+    type = "procedure"
+    description = "Remove a shout by its ID"
+    parameters {
+      type = "params"
+      required = List("id")
+      properties = new Mapping<String, StringType> {
+        ["id"] {
+          type = "string"
+          description = "The ID of the shout to be removed"
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new Ref {
+        type = "ref"
+        ref = "app.rocksky.shout.defs#shoutView"
+      }
+    }
+  }
+}

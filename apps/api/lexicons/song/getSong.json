@@ -1,0 +1,30 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.song.getSong",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get a song by its uri",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "uri"
+        ],
+        "properties": {
+          "uri": {
+            "type": "string",
+            "description": "The unique identifier of the song to retrieve",
+            "format": "at-uri"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "ref",
+          "ref": "app.rocksky.song.defs#songViewDetailed"
+        }
+      }
+    }
+  }
+}

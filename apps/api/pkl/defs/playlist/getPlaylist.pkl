@@ -1,0 +1,28 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.playlist.getPlaylist"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Retrieve a playlist by its ID"
+    parameters {
+      type = "params"
+      required = List("uri")
+      properties {
+        ["uri"] = new StringType {
+          type = "string"
+          format = "at-uri"
+          description = "The URI of the playlist to retrieve."
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new Ref {
+        type = "ref"
+        ref = "app.rocksky.playlist.defs#playlistViewDetailed"
+      }
+    }
+  }
+}

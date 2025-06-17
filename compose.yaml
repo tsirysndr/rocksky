@@ -1,0 +1,46 @@
+services:
+  nats:
+    image: nats:2.11
+    ports:
+      - "4223:4222"
+      - "6223:6222"
+      - "8223:8222"
+
+  dragonfly:
+    image: docker.dragonflydb.io/dragonflydb/dragonfly:latest
+    command: --maxmemory=4g
+    ports:
+      - "6380:6379"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.14
+    ports:
+      - "7700:7700"
+    environment:
+      MEILI_MASTER_KEY: 'masterKey'
+    volumes:
+      - meilisearch_data:/data.ms
+
+  db:
+    image: postgres:15
+    ports:
+      - '5433:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mysecretpassword
+      POSTGRES_DB: rocksky
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD', 'pg_isready']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+  meilisearch_data:

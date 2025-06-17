@@ -1,0 +1,45 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.scrobble.getScrobbles",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get scrobbles all scrobbles",
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "did": {
+            "type": "string",
+            "description": "The DID or handle of the actor",
+            "format": "at-identifier"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of scrobbles to return",
+            "minimum": 1
+          },
+          "offset": {
+            "type": "integer",
+            "description": "The offset for pagination",
+            "minimum": 0
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "scrobbles": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "app.rocksky.scrobble.defs#scrobbleViewBasic"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

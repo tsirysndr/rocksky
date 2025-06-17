@@ -1,0 +1,122 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.scrobble.createScrobble"
+defs = new Mapping<String, Procedure> {
+  ["main"] {
+    type = "procedure"
+    description = "Create a new scrobble"
+    input {
+      encoding = "application/json"
+      schema {
+        type = "object"
+        required = List("title", "artist")
+        properties  {
+          ["title"] = new StringType {
+            type = "string"
+            description = "The title of the track being scrobbled"
+          }
+          ["artist"] = new StringType {
+            type = "string"
+            description = "The artist of the track being scrobbled"
+          }
+          ["album"] = new StringType {
+            type = "string"
+            description = "The album of the track being scrobbled"
+          }
+          ["duration"] = new IntegerType {
+            type = "integer"
+            description = "The duration of the track in seconds"
+          }
+          ["mbId"] = new StringType {
+            type = "string"
+            description = "The MusicBrainz ID of the track, if available"
+          }
+          ["albumArt"] = new StringType {
+            type = "string"
+            description = "The URL of the album art for the track"
+            format = "uri"
+          }
+          ["trackNumber"] = new IntegerType {
+            type = "integer"
+            description = "The track number of the track in the album"
+          }
+          ["releaseDate"] = new StringType {
+            type = "string"
+            description = "The release date of the track, formatted as YYYY-MM-DD"
+          }
+          ["year"] = new IntegerType {
+            type = "integer"
+            description = "The year the track was released"
+          }
+          ["discNumber"] = new IntegerType {
+            type = "integer"
+            description = "The disc number of the track in the album, if applicable"
+          }
+          ["lyrics"] = new StringType {
+            type = "string"
+            description = "The lyrics of the track, if available"
+          }
+          ["composer"] = new StringType {
+            type = "string"
+            description = "The composer of the track, if available"
+          }
+          ["copyrightMessage"] = new StringType {
+            type = "string"
+            description = "The copyright message for the track, if available"
+          }
+          ["label"] = new StringType {
+            type = "string"
+            description = "The record label of the track, if available"
+          }
+          ["artistPicture"] = new StringType {
+            type = "string"
+            description = "The URL of the artist's picture, if available"
+            format = "uri"
+          }
+          ["spotifyLink"] = new StringType {
+            type = "string"
+            description = "The Spotify link for the track, if available"
+            format = "uri"
+          }
+          ["lastfmLink"] = new StringType {
+            type = "string"
+            description = "The Last.fm link for the track, if available"
+            format = "uri"
+          }
+          ["tidalLink"] = new StringType {
+            type = "string"
+            description = "The Tidal link for the track, if available"
+            format = "uri"
+          }
+          ["appleMusicLink"] = new StringType {
+            type = "string"
+            description = "The Apple Music link for the track, if available"
+            format = "uri"
+          }
+          ["youtubeLink"] = new StringType {
+            type = "string"
+            description = "The Youtube link for the track, if available"
+            format = "uri"
+          }
+          ["deezerLink"] = new StringType {
+            type = "string"
+            description = "The Deezer link for the track, if available"
+            format = "uri"
+          }
+          ["timestamp"] = new IntegerType {
+            type = "integer"
+            description = "The timestamp of the scrobble in milliseconds since epoch"
+          }
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new Ref {
+        type = "ref"
+        ref = "app.rocksky.scrobble.defs#scrobbleViewBasic"
+      }
+    }
+  }
+}

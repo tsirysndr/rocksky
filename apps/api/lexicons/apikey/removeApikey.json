@@ -1,0 +1,29 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.apikey.removeApikey",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Remove an API key for the authenticated user",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the API key to remove."
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "ref",
+          "ref": "app.rocksky.apikey.defs#apiKey"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.like.likeShout"
+defs = new Mapping<String, Procedure> {
+  ["main"] {
+    type = "procedure"
+    description = "Like a shout"
+    input {
+      encoding = "application/json"
+      schema {
+        type = "object"
+        properties {
+          ["uri"] = new StringType {
+            type = "string"
+            description = "The unique identifier of the shout to like"
+            format = "at-uri"
+          }
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new Ref {
+        type = "ref"
+        ref = "app.rocksky.shout.defs#shoutView"
+      }
+    }
+  }
+}

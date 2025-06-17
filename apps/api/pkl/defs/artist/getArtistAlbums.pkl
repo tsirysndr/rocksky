@@ -1,0 +1,33 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.artist.getArtistAlbums"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get artist's albums"
+    parameters = new Params {
+      required = List("uri")
+      properties {
+        ["uri"] = new StringType {
+          description = "The URI of the artist to retrieve albums from"
+          format = "at-uri"
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        properties = new Mapping<String, Array> {
+          ["albums"] = new Array {
+            type = "array"
+            items = new Ref {
+              ref = "app.rocksky.album.defs#albumViewBasic"
+            }
+          }
+        }
+      }
+    }
+  }
+}

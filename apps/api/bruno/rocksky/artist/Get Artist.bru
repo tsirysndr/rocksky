@@ -1,0 +1,15 @@
+meta {
+  name: Get Artist
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{url}}/xrpc/app.rocksky.artist.getArtist?uri=at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.artist/3lpjjwleebs2i
+  body: none
+  auth: inherit
+}
+
+params:query {
+  uri: at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.artist/3lpjjwleebs2i
+}

@@ -1,0 +1,66 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.artist"
+defs = new Mapping<String, Record> {
+  ["main"] {
+    type = "record"
+    key = "tid"
+    description = "A declaration of an artist."
+    `record` {
+      type = "object"
+      required = List("name", "createdAt")
+      properties {
+        ["name"] = new StringType {
+          type = "string"
+          description = "The name of the artist."
+          minLength = 1
+          maxLength = 512
+        }
+
+        ["bio"] = new StringType {
+          type = "string"
+          description = "The biography of the artist."
+          maxLength = 1000
+        }
+
+        ["picture"] = new Blob {
+          type = "blob"
+          description = "The picture of the artist."
+          accept = List("image/png", "image/jpeg")
+          maxSize = 2000000
+        }
+
+        ["tags"] = new Array {
+          type = "array"
+          description = "The tags of the artist."
+          items = new StringType {
+            type = "string"
+            minLength = 1
+            maxLength = 256
+          }
+        }
+        ["born"] = new StringType {
+          type = "string"
+          description = "The birth date of the artist."
+          format = "datetime"
+        }
+        ["died"] = new StringType {
+          type = "string"
+          description = "The death date of the artist."
+          format = "datetime"
+        }
+        ["bornIn"] = new StringType {
+          type = "string"
+          description = "The birth place of the artist."
+          maxLength = 256
+        }
+        ["createdAt"] = new StringType {
+          type = "string"
+          description = "The date when the artist was created."
+          format = "datetime"
+        }
+      }
+    }
+  }
+}

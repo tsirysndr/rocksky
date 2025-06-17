@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cuvvadtv5omnnkb7cs40",
+    "operations": [
+      {
+        "add_column": {
+          "table": "playlists",
+          "column": {
+            "name": "picture",
+            "type": "text",
+            "comment": "",
+            "nullable": true
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cuvvadtv5omnnkb7cs40",
+  "parent": "mig_cuvv6k1dsuem1m1rk3l0",
+  "schema": "public",
+  "startedAt": "2025-02-27T05:16:39.402596Z"
+}

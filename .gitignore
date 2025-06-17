@@ -1,2 +1,4 @@
 target/
 Meilisearch v1.14/
+node_modules/
+.turbo/

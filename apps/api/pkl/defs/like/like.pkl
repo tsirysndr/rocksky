@@ -1,0 +1,27 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.like"
+defs = new Mapping<String, Record> {
+  ["main"] {
+    type = "record"
+    key = "tid"
+    description = "A declaration of a like."
+    `record` {
+      type = "object"
+      required = List("createdAt", "subject")
+      properties {
+        ["createdAt"] = new StringType {
+          type = "string"
+          description = "The date when the like was created."
+          format = "datetime"
+        }
+
+        ["subject"] = new Ref {
+          type = "ref"
+          ref = "com.atproto.repo.strongRef"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cuk9jjtbcvmcu6qfbjdg",
+    "operations": [
+      {
+        "add_column": {
+          "table": "user_artists",
+          "column": {
+            "name": "score",
+            "type": "int",
+            "comment": "",
+            "nullable": true
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cuk9jjtbcvmcu6qfbjdg",
+  "parent": "mig_cuk9in5bcvmcu6qfbjcg",
+  "schema": "public",
+  "startedAt": "2025-02-09T12:04:31.735909Z"
+}

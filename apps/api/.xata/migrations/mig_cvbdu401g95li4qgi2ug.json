@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cvbdu401g95li4qgi2ug",
+    "operations": [
+      {
+        "add_column": {
+          "up": "false",
+          "table": "google_drive_accounts",
+          "column": {
+            "name": "is_beta_user",
+            "type": "bool",
+            "comment": ""
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cvbdu401g95li4qgi2ug",
+  "parent": "mig_cvbdtq81g95li4qgi2tg",
+  "schema": "public",
+  "startedAt": "2025-03-16T14:24:16.999127Z"
+}

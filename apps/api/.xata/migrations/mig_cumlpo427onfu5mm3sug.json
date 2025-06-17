@@ -1,0 +1,19 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cumlpo427onfu5mm3sug",
+    "operations": [
+      {
+        "rename_table": {
+          "to": "spotify_tokens",
+          "from": "spotify_token"
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cumlpo427onfu5mm3sug",
+  "parent": "mig_cumlpkk27onfu5mm3stg",
+  "schema": "public",
+  "startedAt": "2025-02-13T02:45:52.924985Z"
+}

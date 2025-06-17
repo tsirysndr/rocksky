@@ -1,0 +1,41 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.shout.getProfileShouts"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get the shouts of an actor's profile"
+    parameters = new Params {
+      required = List("did")
+      properties {
+        ["did"] = new StringType {
+          description = "The DID or handle of the actor"
+          format = "at-identifier"
+        }
+        ["offset"] = new IntegerType {
+          description = "The offset for pagination"
+          minimum = 0
+        }
+        ["limit"] = new IntegerType {
+          description = "The maximum number of shouts to return"
+          minimum = 1
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        properties = new Mapping<String, Array> {
+          ["shouts"] = new Array {
+            type = "array"
+            items = new Ref {
+              ref = "app.rocksky.shout.defs#shoutViewBasic"
+            }
+          }
+        }
+      }
+    }
+  }
+}

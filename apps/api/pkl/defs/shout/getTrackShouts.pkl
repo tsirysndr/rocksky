@@ -1,0 +1,33 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.shout.getTrackShouts"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get all shouts for a specific track"
+    parameters = new Params {
+      required = List("uri")
+      properties {
+        ["uri"] = new StringType {
+          description = "The URI of the track to retrieve shouts for"
+          format = "at-uri"
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        properties = new Mapping<String, Array> {
+          ["shouts"] = new Array {
+            type = "array"
+            items = new Ref {
+              ref = "app.rocksky.shout.defs#shoutViewBasic"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cvn1h5qglbhgau6ctuhg",
+    "operations": [
+      {
+        "add_column": {
+          "up": "0",
+          "table": "playback_state",
+          "column": {
+            "name": "progress_ms",
+            "type": "int",
+            "comment": ""
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cvn1h5qglbhgau6ctuhg",
+  "parent": "mig_cvn12paglbhgau6ctubg",
+  "schema": "public",
+  "startedAt": "2025-04-03T05:11:52.275843Z"
+}

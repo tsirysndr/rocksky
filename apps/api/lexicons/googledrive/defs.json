@@ -1,0 +1,27 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.googledrive.defs",
+  "defs": {
+    "fileView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the file."
+        }
+      }
+    },
+    "fileListView": {
+      "type": "object",
+      "properties": {
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.googledrive.defs#fileView"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+meta {
+  name: Like Shout
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{url}}/xrpc/app.rocksky.like.likeShout
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "uri": "at://123"
+  }
+}

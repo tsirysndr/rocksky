@@ -1,0 +1,15 @@
+meta {
+  name: Get Album's Tracks
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{url}}/xrpc/app.rocksky.album.getAlbumTracks?uri=at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lhtdpslp4c2e
+  body: none
+  auth: inherit
+}
+
+params:query {
+  uri: at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.album/3lhtdpslp4c2e
+}

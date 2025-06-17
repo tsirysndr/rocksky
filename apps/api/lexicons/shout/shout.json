@@ -1,0 +1,40 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.shout",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A declaration of a shout.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": [
+          "message",
+          "createdAt",
+          "subject"
+        ],
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "The message of the shout.",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "The date when the shout was created.",
+            "format": "datetime"
+          },
+          "parent": {
+            "type": "ref",
+            "ref": "com.atproto.repo.strongRef"
+          },
+          "subject": {
+            "type": "ref",
+            "ref": "com.atproto.repo.strongRef"
+          }
+        }
+      }
+    }
+  }
+}

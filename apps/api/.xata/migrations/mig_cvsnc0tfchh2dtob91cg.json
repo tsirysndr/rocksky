@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cvsnc0tfchh2dtob91cg",
+    "operations": [
+      {
+        "add_column": {
+          "table": "api_keys",
+          "column": {
+            "name": "description",
+            "type": "text",
+            "comment": "",
+            "nullable": true
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cvsnc0tfchh2dtob91cg",
+  "parent": "mig_cvsn9ad1cltn5mtppc90",
+  "schema": "public",
+  "startedAt": "2025-04-11T20:05:24.469571Z"
+}

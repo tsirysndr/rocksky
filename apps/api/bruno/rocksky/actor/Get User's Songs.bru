@@ -1,0 +1,15 @@
+meta {
+  name: Get User's Songs
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{url}}/xrpc/app.rocksky.actor.getActorSongs?did={{did}}
+  body: none
+  auth: inherit
+}
+
+params:query {
+  did: {{did}}
+}

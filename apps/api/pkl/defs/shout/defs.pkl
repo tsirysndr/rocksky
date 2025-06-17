@@ -1,0 +1,69 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.shout.defs"
+defs = new Mapping<String, ObjectType> {
+  ["author"] {
+    type = "object"
+    properties {
+      ["id"] = new StringType {
+        type = "string"
+        description = "The unique identifier of the author."
+      }
+
+      ["did"] = new StringType {
+        type = "string"
+        format = "at-identifier"
+        description = "The decentralized identifier (DID) of the author."
+      }
+
+      ["handle"] = new StringType {
+        type = "string"
+        format = "at-identifier"
+        description = "The handle of the author."
+      }
+
+      ["displayName"] = new StringType {
+        type = "string"
+        description = "The display name of the author."
+      }
+
+      ["avatar"] = new StringType {
+        type = "string"
+        format = "uri"
+        description = "The URL of the author's avatar image."
+      }
+    }
+  }
+  ["shoutView"] {
+    type = "object"
+    properties {
+      ["id"] = new StringType {
+        type = "string"
+        description = "The unique identifier of the shout."
+      }
+
+      ["message"] = new StringType {
+        type = "string"
+        description = "The content of the shout."
+      }
+
+      ["parent"] = new StringType {
+        type = "string"
+        description = "The ID of the parent shout if this is a reply, otherwise null."
+      }
+
+      ["createdAt"] = new StringType {
+        type = "string"
+        format = "datetime"
+        description = "The date and time when the shout was created."
+      }
+
+      ["author"] = new Ref {
+        type = "ref"
+        description = "The author of the shout."
+        ref = "app.rocksky.shout.defs#author"
+      }
+    }
+  }
+}

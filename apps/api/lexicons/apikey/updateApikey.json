@@ -1,0 +1,41 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.apikey.updateApikey",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Update an existing API key for the authenticated user",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [
+            "id",
+            "name"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "The ID of the API key to update."
+            },
+            "name": {
+              "type": "string",
+              "description": "The new name of the API key."
+            },
+            "description": {
+              "type": "string",
+              "description": "A new description for the API key."
+            }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "ref",
+          "ref": "app.rocksky.apikey.defs#apiKey"
+        }
+      }
+    }
+  }
+}

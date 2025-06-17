@@ -1,0 +1,45 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.artist.getArtistTracks",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get artist's tracks",
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "description": "The URI of the artist to retrieve albums from",
+            "format": "at-uri"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of tracks to return",
+            "minimum": 1
+          },
+          "offset": {
+            "type": "integer",
+            "description": "The offset for pagination",
+            "minimum": 0
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "tracks": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "app.rocksky.song.defs#songViewBasic"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

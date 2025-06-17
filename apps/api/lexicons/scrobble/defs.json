@@ -1,0 +1,122 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.scrobble.defs",
+  "defs": {
+    "scrobbleViewBasic": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the scrobble."
+        },
+        "user": {
+          "type": "string",
+          "description": "The handle of the user who created the scrobble."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the scrobble."
+        },
+        "artist": {
+          "type": "string",
+          "description": "The artist of the song."
+        },
+        "artistUri": {
+          "type": "string",
+          "description": "The URI of the artist.",
+          "format": "at-uri"
+        },
+        "album": {
+          "type": "string",
+          "description": "The album of the song."
+        },
+        "albumUri": {
+          "type": "string",
+          "description": "The URI of the album.",
+          "format": "at-uri"
+        },
+        "cover": {
+          "type": "string",
+          "description": "The album art URL of the song.",
+          "format": "uri"
+        },
+        "date": {
+          "type": "string",
+          "description": "The timestamp when the scrobble was created.",
+          "format": "datetime"
+        },
+        "uri": {
+          "type": "string",
+          "description": "The URI of the scrobble.",
+          "format": "uri"
+        },
+        "sha256": {
+          "type": "string",
+          "description": "The SHA256 hash of the scrobble data."
+        }
+      }
+    },
+    "scrobbleViewDetailed": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the scrobble."
+        },
+        "user": {
+          "type": "string",
+          "description": "The handle of the user who created the scrobble."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the scrobble."
+        },
+        "artist": {
+          "type": "string",
+          "description": "The artist of the song."
+        },
+        "artistUri": {
+          "type": "string",
+          "description": "The URI of the artist.",
+          "format": "at-uri"
+        },
+        "album": {
+          "type": "string",
+          "description": "The album of the song."
+        },
+        "albumUri": {
+          "type": "string",
+          "description": "The URI of the album.",
+          "format": "at-uri"
+        },
+        "cover": {
+          "type": "string",
+          "description": "The album art URL of the song.",
+          "format": "uri"
+        },
+        "date": {
+          "type": "string",
+          "description": "The timestamp when the scrobble was created.",
+          "format": "datetime"
+        },
+        "uri": {
+          "type": "string",
+          "description": "The URI of the scrobble.",
+          "format": "uri"
+        },
+        "sha256": {
+          "type": "string",
+          "description": "The SHA256 hash of the scrobble data."
+        },
+        "listeners": {
+          "type": "integer",
+          "description": "The number of listeners"
+        },
+        "scrobbles": {
+          "type": "integer",
+          "description": "The number of scrobbles for this song"
+        }
+      }
+    }
+  }
+}

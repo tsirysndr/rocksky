@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cv3tj3itb4rhvnj37ip0",
+    "operations": [
+      {
+        "add_column": {
+          "table": "playlists",
+          "column": {
+            "name": "apple_music_link",
+            "type": "text",
+            "comment": "",
+            "nullable": true
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cv3tj3itb4rhvnj37ip0",
+  "parent": "mig_cv3tipd2t0po8jv9t7u0",
+  "schema": "public",
+  "startedAt": "2025-03-05T04:56:47.661823Z"
+}

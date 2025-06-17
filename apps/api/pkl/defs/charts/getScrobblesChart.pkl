@@ -1,0 +1,39 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.charts.getScrobblesChart"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get the scrobbles chart"
+    parameters = new Params {
+      properties {
+        ["did"] = new StringType {
+          description = "The DID or handle of the actor"
+          format = "at-identifier"
+        }
+
+        ["artisturi"] = new StringType {
+          description = "The URI of the artist to filter by"
+          format = "at-uri"
+        }
+
+        ["albumuri"] = new StringType {
+          description = "The URI of the album to filter by"
+          format = "at-uri"
+        }
+
+        ["songuri"] = new StringType {
+          description = "The URI of the track to filter by"
+          format = "at-uri"
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new Ref {
+        ref = "app.rocksky.charts.defs#chartsView"
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cuo3l0mfvuvgoi6as0pg",
+    "operations": [
+      {
+        "alter_column": {
+          "up": "(SELECT CASE WHEN \"shout_id\" IS NULL THEN '' ELSE \"shout_id\" END)",
+          "down": "(SELECT CASE WHEN \"shout_id\" IS NULL THEN '' ELSE \"shout_id\" END)",
+          "table": "profile_shouts",
+          "column": "shout_id",
+          "nullable": false
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cuo3l0mfvuvgoi6as0pg",
+  "parent": "mig_cuo3kpmfvuvgoi6as0og",
+  "schema": "public",
+  "startedAt": "2025-02-15T06:56:02.842286Z"
+}

@@ -1,0 +1,22 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.spotify.seek",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Seek to a specific position in the currently playing track",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "position"
+        ],
+        "properties": {
+          "position": {
+            "type": "integer",
+            "description": "The position in seconds to seek to"
+          }
+        }
+      }
+    }
+  }
+}

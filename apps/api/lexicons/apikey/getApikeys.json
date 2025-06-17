@@ -1,0 +1,38 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.apikey.getApikeys",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get a list of API keys for the authenticated user",
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "offset": {
+            "type": "integer",
+            "description": "The number of API keys to skip before starting to collect the result set."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "The number of API keys to return per page."
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "apiKeys": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "app.rocksky.apikey.defs#apikeyView"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

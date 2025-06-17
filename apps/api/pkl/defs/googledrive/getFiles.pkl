@@ -1,0 +1,25 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.googledrive.getFiles"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get a list of files from Google Drive"
+    parameters = new Params {
+      properties {
+        ["at"] = new StringType {
+          description = "Path to the Google Drive folder or root directory"
+        }
+      }
+    }
+
+    output {
+      encoding = "application/json"
+      schema = new Ref {
+        type = "ref"
+        ref = "app.rocksky.googledrive.defs#fileListView"
+      }
+    }
+  }
+}

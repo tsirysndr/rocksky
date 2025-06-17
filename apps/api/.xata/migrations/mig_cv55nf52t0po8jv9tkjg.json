@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cv55nf52t0po8jv9tkjg",
+    "operations": [
+      {
+        "alter_column": {
+          "up": "\"youtube_link\"",
+          "down": "\"youtube_link\"",
+          "table": "artists",
+          "column": "youtube_link",
+          "unique": {
+            "name": "artists_youtube_link_unique"
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cv55nf52t0po8jv9tkjg",
+  "parent": "mig_cv55n7d2t0po8jv9tkig",
+  "schema": "public",
+  "startedAt": "2025-03-07T02:36:44.990769Z"
+}

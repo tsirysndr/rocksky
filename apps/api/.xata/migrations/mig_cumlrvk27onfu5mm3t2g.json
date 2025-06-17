@@ -1,0 +1,22 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cumlrvk27onfu5mm3t2g",
+    "operations": [
+      {
+        "alter_column": {
+          "up": "(SELECT CASE WHEN \"access_token\" IS NULL THEN '' ELSE \"access_token\" END)",
+          "down": "(SELECT CASE WHEN \"access_token\" IS NULL THEN '' ELSE \"access_token\" END)",
+          "table": "spotify_tokens",
+          "column": "access_token",
+          "nullable": false
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cumlrvk27onfu5mm3t2g",
+  "parent": "mig_cumlrqpoos2v56d5q26g",
+  "schema": "public",
+  "startedAt": "2025-02-13T02:50:39.355194Z"
+}

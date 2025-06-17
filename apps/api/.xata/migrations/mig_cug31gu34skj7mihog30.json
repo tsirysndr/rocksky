@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cug31gu34skj7mihog30",
+    "operations": [
+      {
+        "add_column": {
+          "up": "''",
+          "table": "shouts",
+          "column": {
+            "name": "content",
+            "type": "text",
+            "comment": ""
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cug31gu34skj7mihog30",
+  "parent": "mig_cug30h7lmd4pfs40psog",
+  "schema": "public",
+  "startedAt": "2025-02-03T02:58:12.716929Z"
+}

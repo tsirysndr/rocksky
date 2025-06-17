@@ -1,0 +1,10 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.spotify.play",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Resume playback of the currently paused track"
+    }
+  }
+}

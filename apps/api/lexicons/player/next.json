@@ -1,0 +1,10 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.player.next",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Play the next track in the queue"
+    }
+  }
+}

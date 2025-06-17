@@ -1,0 +1,21 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cvmognlfchh2dtob7fp0",
+    "operations": [
+      {
+        "drop_constraint": {
+          "up": "\"uri\"",
+          "down": "\"uri\"",
+          "name": "user_albums__pgroll_new_uri_key",
+          "table": "user_albums"
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cvmognlfchh2dtob7fp0",
+  "parent": "mig_cvmofkdfchh2dtob7fo0",
+  "schema": "public",
+  "startedAt": "2025-04-02T18:56:31.602306Z"
+}

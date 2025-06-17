@@ -1,0 +1,142 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.scrobble.defs"
+defs = new Mapping<String, ObjectType> {
+  ["scrobbleViewBasic"] {
+    type = "object"
+    properties {
+      ["id"] = new StringType {
+        type = "string"
+        description = "The unique identifier of the scrobble."
+      }
+      ["user"] = new StringType {
+        type = "string"
+        description = "The handle of the user who created the scrobble."
+      }
+      ["title"] = new StringType {
+        type = "string"
+        description = "The title of the scrobble."
+      }
+
+      ["artist"] = new StringType {
+        type = "string"
+        description = "The artist of the song."
+      }
+
+      ["artistUri"] = new StringType {
+        type = "string"
+        description = "The URI of the artist."
+        format = "at-uri"
+      }
+
+      ["album"] = new StringType {
+        type = "string"
+        description = "The album of the song."
+      }
+
+      ["albumUri"] = new StringType {
+        type = "string"
+        description = "The URI of the album."
+        format = "at-uri"
+      }
+
+      ["cover"] = new StringType {
+        type = "string"
+        description = "The album art URL of the song."
+        format = "uri"
+      }
+
+      ["date"] = new StringType {
+        type = "string"
+        format = "datetime"
+        description = "The timestamp when the scrobble was created."
+      }
+
+      ["uri"] = new StringType {
+        type = "string"
+        format = "uri"
+        description = "The URI of the scrobble."
+      }
+
+      ["sha256"] = new StringType {
+        type = "string"
+        description = "The SHA256 hash of the scrobble data."
+      }
+
+    }
+  }
+
+  ["scrobbleViewDetailed"] {
+    type = "object"
+    properties {
+      ["id"] = new StringType {
+        type = "string"
+        description = "The unique identifier of the scrobble."
+      }
+      ["user"] = new StringType {
+        type = "string"
+        description = "The handle of the user who created the scrobble."
+      }
+      ["title"] = new StringType {
+        type = "string"
+        description = "The title of the scrobble."
+      }
+
+      ["artist"] = new StringType {
+        type = "string"
+        description = "The artist of the song."
+      }
+
+      ["artistUri"] = new StringType {
+        type = "string"
+        description = "The URI of the artist."
+        format = "at-uri"
+      }
+
+      ["album"] = new StringType {
+        type = "string"
+        description = "The album of the song."
+      }
+
+      ["albumUri"] = new StringType {
+        type = "string"
+        description = "The URI of the album."
+        format = "at-uri"
+      }
+
+      ["cover"] = new StringType {
+        type = "string"
+        description = "The album art URL of the song."
+        format = "uri"
+      }
+
+      ["date"] = new StringType {
+        type = "string"
+        format = "datetime"
+        description = "The timestamp when the scrobble was created."
+      }
+
+      ["uri"] = new StringType {
+        type = "string"
+        format = "uri"
+        description = "The URI of the scrobble."
+      }
+
+      ["sha256"] = new StringType {
+        type = "string"
+        description = "The SHA256 hash of the scrobble data."
+      }
+
+      ["listeners"] = new IntegerType {
+        type = "integer"
+        description = "The number of listeners"
+      }
+
+      ["scrobbles"] = new IntegerType {
+        type = "integer"
+        description = "The number of scrobbles for this song"
+      }
+    }
+  }
+}

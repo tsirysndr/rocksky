@@ -1,0 +1,15 @@
+meta {
+  name: Get Profile's Shouts
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{url}}/xrpc/app.rocksky.shout.getProfileShouts?did=tsiry-sandratraina.com
+  body: none
+  auth: inherit
+}
+
+params:query {
+  did: tsiry-sandratraina.com
+}

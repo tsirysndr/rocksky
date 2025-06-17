@@ -1,0 +1,25 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.dropbox.getMetadata"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Retrieve metadata of a file or folder in Dropbox"
+    parameters {
+      required = List("path")
+      properties {
+        ["path"] = new StringType {
+          description = "Path to the file or folder in Dropbox"
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new Ref {
+        type = "ref"
+        ref = "app.rocksky.dropbox.defs#fileView"
+      }
+    }
+  }
+}

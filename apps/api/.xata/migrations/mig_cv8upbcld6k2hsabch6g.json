@@ -1,0 +1,20 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cv8upbcld6k2hsabch6g",
+    "operations": [
+      {
+        "alter_column": {
+          "name": "file_id",
+          "table": "google_drive_paths",
+          "column": "google_drive_file_id"
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cv8upbcld6k2hsabch6g",
+  "parent": "mig_cv8up2aglbhgau6cq6bg",
+  "schema": "public",
+  "startedAt": "2025-03-12T20:21:01.574135Z"
+}

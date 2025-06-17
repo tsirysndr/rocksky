@@ -1,0 +1,63 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.radio"
+defs = new Mapping<String, Record> {
+  ["main"] {
+    type = "record"
+    key = "tid"
+    description = "A declaration of a radio station."
+    `record` {
+      type = "object"
+      required = List("name", "url", "createdAt")
+      properties {
+        ["name"] = new StringType {
+          type = "string"
+          description = "The name of the radio station."
+          minLength = 1
+          maxLength = 512
+        }
+
+        ["url"] = new StringType {
+          type = "string"
+          description = "The URL of the radio station."
+          format = "uri"
+        }
+
+        ["description"] = new StringType {
+          type = "string"
+          description = "A description of the radio station."
+          minLength = 1
+          maxLength = 1000
+        }
+
+        ["genre"] = new StringType {
+          type = "string"
+          description = "The genre of the radio station."
+          minLength = 1
+          maxLength = 256
+        }
+
+        ["logo"] = new Blob {
+          type = "blob"
+          description = "The logo of the radio station."
+          accept = List("image/png", "image/jpeg")
+          maxSize = 2000000
+        }
+
+        ["website"] = new StringType {
+          type = "string"
+          description = "The website of the radio station."
+          format = "uri"
+        }
+
+        ["createdAt"] = new StringType {
+          type = "string"
+          description = "The date when the radio station was created."
+          format = "datetime"
+        }
+
+      }
+    }
+  }
+}

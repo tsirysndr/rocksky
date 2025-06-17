@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cug2oqetrfea4ndapdm0",
+    "operations": [
+      {
+        "add_column": {
+          "table": "tracks",
+          "column": {
+            "name": "youtube_link",
+            "type": "text",
+            "comment": "",
+            "nullable": true
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cug2oqetrfea4ndapdm0",
+  "parent": "mig_cug2oj634skj7mihofk0",
+  "schema": "public",
+  "startedAt": "2025-02-03T02:39:38.071681Z"
+}

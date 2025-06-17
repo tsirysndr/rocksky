@@ -1,0 +1,60 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.dropbox.defs",
+  "defs": {
+    "fileView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the file."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the file."
+        },
+        "pathLower": {
+          "type": "string",
+          "description": "The lowercased path of the file."
+        },
+        "pathDisplay": {
+          "type": "string",
+          "description": "The display path of the file."
+        },
+        "clientModified": {
+          "type": "string",
+          "description": "The last modified date and time of the file on the client.",
+          "format": "datetime"
+        },
+        "serverModified": {
+          "type": "string",
+          "description": "The last modified date and time of the file on the server.",
+          "format": "datetime"
+        }
+      }
+    },
+    "fileListView": {
+      "type": "object",
+      "properties": {
+        "files": {
+          "type": "array",
+          "description": "A list of files in the Dropbox.",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.dropbox.defs#fileView"
+          }
+        }
+      }
+    },
+    "temporaryLinkView": {
+      "type": "object",
+      "properties": {
+        "link": {
+          "type": "string",
+          "description": "The temporary link to access the file.",
+          "format": "uri"
+        }
+      }
+    }
+  }
+}

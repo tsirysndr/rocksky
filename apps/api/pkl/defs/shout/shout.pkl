@@ -1,0 +1,39 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.shout"
+defs = new Mapping<String, Record> {
+  ["main"] {
+    type = "record"
+    key = "tid"
+    description = "A declaration of a shout."
+    `record` {
+      type = "object"
+      required = List("message", "createdAt", "subject")
+      properties {
+        ["message"] = new StringType {
+          type = "string"
+          description = "The message of the shout."
+          minLength = 1
+          maxLength = 1000
+        }
+
+        ["createdAt"] = new StringType {
+          type = "string"
+          description = "The date when the shout was created."
+          format = "datetime"
+        }
+
+        ["parent"] = new Ref {
+          type = "ref"
+          ref = "com.atproto.repo.strongRef"
+        }
+
+        ["subject"] = new Ref {
+          type = "ref"
+          ref = "com.atproto.repo.strongRef"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cuo2t3tv5omnnkb7apqg",
+    "operations": [
+      {
+        "add_column": {
+          "table": "artists",
+          "column": {
+            "name": "youtube_link",
+            "type": "text",
+            "comment": "",
+            "nullable": true
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cuo2t3tv5omnnkb7apqg",
+  "parent": "mig_cuo2sr1dsuem1m1rhsp0",
+  "schema": "public",
+  "startedAt": "2025-02-15T06:05:04.272435Z"
+}

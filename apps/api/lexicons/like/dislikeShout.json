@@ -1,0 +1,30 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.like.dislikeShout",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Dislike a shout",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "uri": {
+              "type": "string",
+              "description": "The unique identifier of the shout to dislike",
+              "format": "at-uri"
+            }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "ref",
+          "ref": "app.rocksky.shout.defs#shoutView"
+        }
+      }
+    }
+  }
+}

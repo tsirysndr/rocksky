@@ -1,0 +1,40 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.song.getSongs",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get songs",
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of songs to return",
+            "minimum": 1
+          },
+          "offset": {
+            "type": "integer",
+            "description": "The offset for pagination",
+            "minimum": 0
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "songs": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "app.rocksky.song.defs#songViewBasic"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

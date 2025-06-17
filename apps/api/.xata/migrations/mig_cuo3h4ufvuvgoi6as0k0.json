@@ -1,0 +1,20 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_cuo3h4ufvuvgoi6as0k0",
+    "operations": [
+      {
+        "alter_column": {
+          "name": "author_id",
+          "table": "shouts",
+          "column": "user_id"
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_cuo3h4ufvuvgoi6as0k0",
+  "parent": "mig_cuo2t3tv5omnnkb7apqg",
+  "schema": "public",
+  "startedAt": "2025-02-15T06:47:48.142052Z"
+}

@@ -1,0 +1,15 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.player.defs"
+defs = new Mapping<String, ObjectType> {
+  ["currentlyPlayingViewDetailed"] {
+    type = "object"
+    properties {
+      ["title"] = new StringType {
+        type = "string"
+        description = "The title of the currently playing track"
+      }
+    }
+  }
+}

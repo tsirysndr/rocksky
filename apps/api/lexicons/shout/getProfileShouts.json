@@ -1,0 +1,48 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.shout.getProfileShouts",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get the shouts of an actor's profile",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "did"
+        ],
+        "properties": {
+          "did": {
+            "type": "string",
+            "description": "The DID or handle of the actor",
+            "format": "at-identifier"
+          },
+          "offset": {
+            "type": "integer",
+            "description": "The offset for pagination",
+            "minimum": 0
+          },
+          "limit": {
+            "type": "integer",
+            "description": "The maximum number of shouts to return",
+            "minimum": 1
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "shouts": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "app.rocksky.shout.defs#shoutViewBasic"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

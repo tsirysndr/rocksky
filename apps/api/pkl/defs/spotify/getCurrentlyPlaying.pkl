@@ -1,0 +1,27 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.spotify.getCurrentlyPlaying"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get the currently playing track"
+    parameters {
+      type = "params"
+      properties {
+        ["actor"] = new StringType {
+          type = "string"
+          format = "at-identifier"
+          description = "Handle or DID of the actor to retrieve the currently playing track for. If not provided, defaults to the current user."
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new Ref {
+        type = "ref"
+        ref = "app.rocksky.player.defs#currentlyPlayingViewDetailed"
+      }
+    }
+  }
+}

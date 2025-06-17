@@ -1,0 +1,38 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.apikey.updateApikey"
+defs = new Mapping<String, Procedure> {
+  ["main"] {
+    type = "procedure"
+    description = "Update an existing API key for the authenticated user"
+    input {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        required = List("id", "name")
+        properties {
+          ["id"] = new StringType {
+            type = "string"
+            description = "The ID of the API key to update."
+          }
+          ["name"] = new StringType {
+            type = "string"
+            description = "The new name of the API key."
+          }
+          ["description"] = new StringType {
+            type = "string"
+            description = "A new description for the API key."
+          }
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new Ref {
+        type = "ref"
+        ref = "app.rocksky.apikey.defs#apiKey"
+      }
+    }
+  }
+}

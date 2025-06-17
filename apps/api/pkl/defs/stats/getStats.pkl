@@ -1,0 +1,27 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.stats.getStats"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    parameters {
+      type = "params"
+      required = List("did")
+      properties {
+        ["did"] = new StringType {
+          type = "string"
+          description = "The DID or handle of the user to get stats for."
+          format = "at-identifier"
+        }
+      }
+    }
+    output = new Output {
+      encoding = "application/json"
+      schema = new Ref {
+        type = "ref"
+        ref = "app.rocksky.stats.defs#statsView"
+      }
+    }
+  }
+}
