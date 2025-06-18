@@ -527,6 +527,7 @@ app.get("/:did/app.rocksky.playlist/:rkey", async (c) => {
       tables.tracks.artistUri,
       tables.tracks.createdAt,
       tables.tracks.updatedAt,
+      tables.tracks.label,
       tables.playlists.updatedAt,
       tables.playlists.id,
       tables.playlists.createdAt,
