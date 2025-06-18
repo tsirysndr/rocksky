@@ -12,7 +12,17 @@
     "db:migrate": "cd apps/api && bun run db:migrate",
     "pkl:eval": "cd apps/api && bun run pkl:eval",
     "pkl:gen": "cd apps/api && bun run pkl:gen",
-    "lexgen": "cd apps/api && bun run lexgen"
+    "lexgen": "cd apps/api && bun run lexgen",
+    "dev:analytics": "cargo run -p analytics --release -- serve",
+    "dev:connect": "cargo run -p connect --release",
+    "dev:dropbox": "cargo run -p dropbox --release -- serve",
+    "dev:googledrive": "cargo run -p googledrive --release -- serve",
+    "dev:jetstream": "cargo run -p jetstream --release",
+    "dev:playlists": "cargo run -p playlists --release",
+    "dev:scrobbler": "cargo run -p scrobbler --release -- serve",
+    "dev:spotify": "cargo run -p spotify --release -- serve",
+    "dev:storage": "cargo run -p storage --release -- serve",
+    "dev:webscrobbler": "cargo run -p webscrobbler --release -- serve"
   },
   "devDependencies": {
     "biome": "^0.3.3",
