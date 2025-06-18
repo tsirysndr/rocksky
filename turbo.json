@@ -18,6 +18,10 @@
       "persistent": true,
       "cache": false
     },
+    "sync": {
+      "persistent": true,
+      "cache": false
+    },
     "db:migrate": {
       "cache": false
     },
