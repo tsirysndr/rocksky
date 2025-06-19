@@ -8,6 +8,7 @@ A decentralized music tracking and discovery platform built on the AT Protocol ð
 - Rust
 - Turbo
 - Docker
+- Wasm Pack https://rustwasm.github.io/wasm-pack/installer/
 
 ## Getting Started
 
@@ -20,6 +21,7 @@ A decentralized music tracking and discovery platform built on the AT Protocol ð
    ```bash
    npm install -g turbo
    bun install
+   bun run build:raichu
    ```
 3. Set up the environment variables:
   ```bash

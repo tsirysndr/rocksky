@@ -23,7 +23,8 @@
     "dev:scrobbler": "cargo run -p scrobbler --release -- serve",
     "dev:spotify": "cargo run -p spotify --release -- serve",
     "dev:storage": "cargo run -p storage --release -- serve",
-    "dev:webscrobbler": "cargo run -p webscrobbler --release -- serve"
+    "dev:webscrobbler": "cargo run -p webscrobbler --release -- serve",
+    "build:raichu": "cd crates/raichu && wasm-pack build --release --target web && cp -r pkg ../../apps/web/src"
   },
   "devDependencies": {
     "biome": "^0.3.3",
