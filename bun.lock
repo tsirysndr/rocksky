@@ -420,6 +420,9 @@
         "wrangler": "^3.107.3",
       },
     },
+    "crates": {
+      "name": "@rocksky/crates",
+    },
   },
   "packages": {
     "@0no-co/graphql.web": ["@0no-co/graphql.web@1.1.2", "", { "peerDependencies": { "graphql": "^14.0.0 || ^15.0.0 || ^16.0.0" }, "optionalPeers": ["graphql"] }, "sha512-N2NGsU5FLBhT8NZ+3l2YrzZSHITjNXNuDhC4iDiikv0IujaJ0Xc6xIxQZ/Ek3Cb+rgPjnLHYyJm11tInuJn+cw=="],
@@ -1299,6 +1302,8 @@
     "@rocksky/beta": ["@rocksky/beta@workspace:apps/beta"],
 
     "@rocksky/cli": ["@rocksky/cli@workspace:apps/cli"],
+
+    "@rocksky/crates": ["@rocksky/crates@workspace:crates"],
 
     "@rocksky/doc": ["@rocksky/doc@workspace:apps/doc"],
 
