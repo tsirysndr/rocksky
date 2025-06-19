@@ -18,6 +18,10 @@
       "persistent": true,
       "cache": false
     },
+    "prod": {
+      "persistent": true,
+      "cache": false
+    },
     "sync": {
       "persistent": true,
       "cache": false
