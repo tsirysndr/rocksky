@@ -33,7 +33,13 @@ export const ctx = {
   analytics: axios.create({ baseURL: env.ANALYTICS }),
   dropbox: axios.create({ baseURL: env.DROPBOX }),
   googledrive: axios.create({ baseURL: env.GOOGLE_DRIVE }),
-  redis: await redis.createClient({ url: env.REDIS_URL }).connect(),
+  redis: await redis
+    .createClient({ url: env.REDIS_URL })
+    .on("error", (err) => {
+      console.error("Uncaught Redis Client Error", err);
+      process.exit(1);
+    })
+    .connect(),
   meilisearch: axios.create({
     baseURL: env.MEILISEARCH_URL,
     headers: { Authorization: `Bearer ${env.MEILISEARCH_API_KEY}` },
