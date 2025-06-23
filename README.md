@@ -38,7 +38,7 @@ A decentralized music tracking and discovery platform built on the AT Protocol ð
    ```
 6. Start Analytics API:
    ```bash
-   cargo run -p analytics --release -- serve
+   turbo dev:analytics
    ```
 7. Start the development server:
    ```bash
