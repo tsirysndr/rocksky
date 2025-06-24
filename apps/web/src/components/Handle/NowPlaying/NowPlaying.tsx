@@ -125,7 +125,7 @@ function NowPlaying({ did }: NowPlayingProps) {
       clearInterval(progressInterval.current);
     }
 
-    progressInterval.current = setInterval(() => {
+    progressInterval.current = window.setInterval(() => {
       setNowPlaying((prev) => {
         if (!prev[did] || !prev[did].duration) {
           return prev;
@@ -167,7 +167,7 @@ function NowPlaying({ did }: NowPlayingProps) {
     if (nowPlayingInterval.current) {
       clearInterval(nowPlayingInterval.current);
     }
-    nowPlayingInterval.current = setInterval(() => {
+    nowPlayingInterval.current = window.setInterval(() => {
       fetchCurrentlyPlaying();
     }, 15000);
 

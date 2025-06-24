@@ -138,7 +138,7 @@ function NowPlayings() {
       setCurrentIndex(0);
       return;
     }
-    const progressInterval = setInterval(() => {
+    const progressInterval = window.setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) return 0;
         return prev + 1;

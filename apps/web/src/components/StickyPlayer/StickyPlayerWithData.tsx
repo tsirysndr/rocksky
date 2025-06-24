@@ -173,7 +173,7 @@ function StickyPlayerWithData() {
       clearInterval(progressInterval.current);
     }
 
-    progressInterval.current = setInterval(() => {
+    progressInterval.current = window.setInterval(() => {
       setNowPlaying((prev) => {
         if (!prev || !prev.duration) {
           return prev;
@@ -224,7 +224,7 @@ function StickyPlayerWithData() {
     if (nowPlayingInterval.current) {
       clearInterval(nowPlayingInterval.current);
     }
-    nowPlayingInterval.current = setInterval(() => {
+    nowPlayingInterval.current = window.setInterval(() => {
       fetchCurrentlyPlaying();
     }, 15000);
 
@@ -258,7 +258,7 @@ function StickyPlayerWithData() {
         clearInterval(heartbeatInterval.current);
       }
 
-      heartbeatInterval.current = setInterval(() => {
+      heartbeatInterval.current = window.setInterval(() => {
         ws.send(
           JSON.stringify({
             type: "heartbeat",

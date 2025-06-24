@@ -4,7 +4,14 @@
   "version": "0.0.0",
   "packageManager": "bun@1.2.15",
   "workspaces": [
-    "apps/*",
+    "apps/api",
+    "apps/web",
+    "apps/app-proxy",
+    "apps/cli",
+    "apps/doc",
+    "apps/spotify-proxy",
+    "apps/uploads",
+    "apps/xata-proxy",
     "packages/*",
     "crates"
   ],
