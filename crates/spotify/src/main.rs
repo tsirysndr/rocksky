@@ -86,7 +86,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     );
 
                     // If there's an error, publish a message to restart the thread
-                    match rt.block_on(nc.publish("rocksky.spotify.user", user_id.into())) {
+                    match rt.block_on(nc.publish("rocksky.spotify.user", email.clone().into())) {
                         Ok(_) => {
                             println!(
                                 "{} Published message to restart thread for user: {}",
@@ -206,7 +206,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 email.bright_green(),
                                 e.to_string().bright_red()
                             );
-                            match rt.block_on(nc.publish("rocksky.spotify.user", user_id.into())) {
+                            match rt.block_on(nc.publish("rocksky.spotify.user", email.into())) {
                                 Ok(_) => {},
                                 Err(e) => {
                                     println!(

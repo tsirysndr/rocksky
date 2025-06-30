@@ -25,10 +25,10 @@ pub struct Disallows {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Context {
     pub external_urls: Option<ExternalUrls>,
-    pub href: String,
+    pub href: Option<String>,
     #[serde(rename = "type")]
-    pub context_type: String,
-    pub uri: String,
+    pub context_type: Option<String>,
+    pub uri: Option<String>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
