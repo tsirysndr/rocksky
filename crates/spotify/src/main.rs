@@ -206,7 +206,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 email.bright_green(),
                                 e.to_string().bright_red()
                             );
-                            match rt.block_on(nc.publish("rocksky.spotify.user", email.into())) {
+                            match rt.block_on(nc.publish("rocksky.spotify.user", email.clone().into())) {
                                 Ok(_) => {},
                                 Err(e) => {
                                     println!(
