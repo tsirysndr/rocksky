@@ -58,7 +58,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let email = user.0.clone();
         let token = user.1.clone();
         let did = user.2.clone();
-        let user_id = user.3.clone();
         let stop_flag = Arc::new(AtomicBool::new(false));
         let cache = cache.clone();
         let nc = nc.clone();
