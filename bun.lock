@@ -39,6 +39,7 @@
         "better-sqlite3": "^11.8.1",
         "chalk": "^5.4.1",
         "chanfana": "^2.0.2",
+        "cors": "^2.8.5",
         "dayjs": "^1.11.13",
         "dotenv": "^16.4.7",
         "drizzle-orm": "^0.44.2",

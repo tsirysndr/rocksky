@@ -12,7 +12,7 @@ import z from "zod";
 import Artist from "../../components/Icons/Artist";
 import Disc from "../../components/Icons/Disc";
 import Track from "../../components/Icons/Track";
-import useSearch from "../../hooks/useSearch";
+import useSearch, { useSearchMutation } from "../../hooks/useSearch";
 
 const Link = styled(DefaultLink)`
   color: initial;
@@ -29,6 +29,8 @@ const schema = z.object({
 
 function Search() {
   const [results, setResults] = useState([]);
+
+  const { mutate, data } = useSearchMutation();
 
   const { search } = useSearch();
   const {
@@ -48,6 +50,7 @@ function Search() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const debouncedSearch = useCallback(
     _.debounce(async (keyword) => {
+      mutate(keyword);
       const data = await search(keyword);
       setResults(data.records);
     }, 300),
@@ -62,6 +65,8 @@ function Search() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyword]);
+
+  console.log(">> data", data);
 
   return (
     <>
