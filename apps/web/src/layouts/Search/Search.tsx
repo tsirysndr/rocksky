@@ -5,14 +5,14 @@ import { Search as SearchIcon } from "@styled-icons/evaicons-solid";
 import { Input } from "baseui/input";
 import { PLACEMENT, Popover } from "baseui/popover";
 import _ from "lodash";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Link as DefaultLink } from "react-router";
 import z from "zod";
 import Artist from "../../components/Icons/Artist";
 import Disc from "../../components/Icons/Disc";
 import Track from "../../components/Icons/Track";
-import useSearch, { useSearchMutation } from "../../hooks/useSearch";
+import { useSearchMutation } from "../../hooks/useSearch";
 
 const Link = styled(DefaultLink)`
   color: initial;
@@ -28,11 +28,9 @@ const schema = z.object({
 });
 
 function Search() {
-  const [results, setResults] = useState([]);
-
+  const [results, setResults] = useState<any[]>([]);
   const { mutate, data } = useSearchMutation();
 
-  const { search } = useSearch();
   const {
     control,
     formState: { errors },
@@ -47,15 +45,9 @@ function Search() {
 
   const keyword = watch("keyword");
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const debouncedSearch = useCallback(
-    _.debounce(async (keyword) => {
-      mutate(keyword);
-      const data = await search(keyword);
-      setResults(data.records);
-    }, 300),
-    [search]
-  );
+  const debouncedSearch = _.debounce(async (keyword) => {
+    mutate(keyword);
+  }, 200);
 
   useEffect(() => {
     if (keyword.length === 0) {
@@ -66,7 +58,13 @@ function Search() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyword]);
 
-  console.log(">> data", data);
+  useEffect(() => {
+    if (data && data.hits) {
+      setResults(data.hits);
+    } else {
+      setResults([]);
+    }
+  }, [data]);
 
   return (
     <>
@@ -83,56 +81,53 @@ function Search() {
                   <>
                     {results.map((item: any) => (
                       <>
-                        {item.table === "users" && (
-                          <Link
-                            to={`/profile/${item.record.handle}`}
-                            key={item.record.xata_id}
-                          >
+                        {item._federation.indexUid === "users" && (
+                          <Link to={`/profile/${item.handle}`} key={item.id}>
                             <div className="flex flex-row mb-[10px]">
                               <img
-                                key={item.record.did}
-                                src={item.record.avatar}
-                                alt={item.record.display_name}
+                                key={item.did}
+                                src={item.avatar}
+                                alt={item.displayName}
                                 className="w-[50px] h-[50px] mr-[12px] rounded-full"
                               />
                               <div>
                                 <div className="overflow-hidden">
                                   <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[var(--color-text)]">
-                                    {item.record.display_name}
+                                    {item.displayName}
                                   </div>
                                 </div>
                                 <div className="text-[var(--color-text-muted)] text-[14px]">
-                                  @{item.record.handle}
+                                  @{item.handle}
                                 </div>
                               </div>
                             </div>
                           </Link>
                         )}
 
-                        {item.record.uri &&
-                          (item.record.name || item.record.title) &&
-                          item.record.type !== "users" && (
+                        {item.uri &&
+                          (item.name || item.title) &&
+                          item._federation.indexUid !== "users" && (
                             <Link
-                              to={`/${item.record.uri?.split("at://")[1]}`}
-                              key={item.record.xata_id}
+                              to={`/${item.uri?.split("at://")[1]}`}
+                              key={item.id}
                             >
                               <div
-                                key={item.record.xata_id}
+                                key={item.id}
                                 className="h-[64px] flex flex-row items-center"
                               >
-                                {item.table === "artists" &&
-                                  item.record.picture && (
+                                {item._federation.indexUid === "artists" &&
+                                  item.picture && (
                                     <img
-                                      key={item.record.xata_id}
-                                      src={item.record.picture}
-                                      alt={item.record.name}
+                                      key={item.id}
+                                      src={item.picture}
+                                      alt={item.name}
                                       className="w-[50px] h-[50px] mr-[12px] rounded-full"
                                     />
                                   )}
-                                {item.table === "artists" &&
-                                  !item.record.picture && (
+                                {item._federation.indexUid === "artists" &&
+                                  !item.picture && (
                                     <div
-                                      key={item.record.xata_id}
+                                      key={item.id}
                                       className="w-[50px] h-[50px] mr-[12px] rounded-full flex items-center bg-[rgba(243, 243, 243, 0.725)]"
                                     >
                                       <div className="w-[28px] h-[28px]">
@@ -140,17 +135,17 @@ function Search() {
                                       </div>
                                     </div>
                                   )}
-                                {item.table === "albums" &&
-                                  item.record.album_art && (
+                                {item._federation.indexUid === "albums" &&
+                                  item.albumArt && (
                                     <img
-                                      key={item.record.xata_id}
-                                      src={item.record.album_art}
-                                      alt={item.record.title}
+                                      key={item.id}
+                                      src={item.albumArt}
+                                      alt={item.title}
                                       className="w-[50px] h-[50px] mr-[12px]"
                                     />
                                   )}
-                                {item.table === "albums" &&
-                                  !item.record.album_art && (
+                                {item._federation.indexUid === "albums" &&
+                                  !item.albumArt && (
                                     <div className="w-[50px] h-[50px] mr-[12px] rounded-full flex items-center bg-[rgba(243, 243, 243, 0.725)]">
                                       <div className="w-[28px] h-[28px]">
                                         <Disc
@@ -161,17 +156,17 @@ function Search() {
                                       </div>
                                     </div>
                                   )}
-                                {item.table === "tracks" &&
-                                  item.record.album_art && (
+                                {item._federation.indexUid === "tracks" &&
+                                  item.albumArt && (
                                     <img
-                                      key={item.record.xata_id}
-                                      src={item.record.album_art}
-                                      alt={item.record.title}
+                                      key={item.id}
+                                      src={item.albumArt}
+                                      alt={item.title}
                                       className="w-[50px] h-[50px] mr-[12px]"
                                     />
                                   )}
-                                {item.table === "tracks" &&
-                                  !item.record.album_art && (
+                                {item._federation.indexUid === "tracks" &&
+                                  !item.albumArt && (
                                     <div className="w-[50px] h-[50px] mr-[12px] rounded-full flex items-center bg-[rgba(243, 243, 243, 0.725)]">
                                       <div className="w-[28px] h-[28px]">
                                         <Track color="rgba(66, 87, 108, 0.65)" />
@@ -180,19 +175,19 @@ function Search() {
                                   )}
                                 <div className="overflow-hidden w-[calc(100%-70px)]">
                                   <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[var(--color-text)]">
-                                    {item.record.name || item.record.title}
+                                    {item.name || item.title}
                                   </div>
-                                  {item.table === "tracks" && (
+                                  {item._federation.indexUid === "tracks" && (
                                     <div className="text-[14px] text-[var(--color-text-muted)]">
                                       Track
                                     </div>
                                   )}
-                                  {item.table === "albums" && (
+                                  {item._federation.indexUid === "albums" && (
                                     <div className="text-[14px] text-[var(--color-text-muted)]">
                                       Album
                                     </div>
                                   )}
-                                  {item.table === "artists" && (
+                                  {item._federation.indexUid === "artists" && (
                                     <div className="text-[var(--color-text-muted)] text-[14px]">
                                       Artist
                                     </div>
@@ -201,63 +196,64 @@ function Search() {
                               </div>
                             </Link>
                           )}
-                        {!item.record.uri &&
-                          (item.record.name || item.record.title) &&
-                          item.tables !== "users" && (
+                        {!item.uri &&
+                          (item.name || item.title) &&
+                          item._federation.indexUid !== "users" && (
                             <div>
                               <div
                                 key={item.id}
                                 className="h-[64px] flex flex-row items-center"
                               >
-                                {item.table === "artists" &&
-                                  item.record.picture && (
+                                {item._federation.indexUid === "artists" &&
+                                  item.picture && (
                                     <img
-                                      src={item.record.picture}
-                                      alt={item.record.name}
+                                      src={item.picture}
+                                      alt={item.name}
                                       className="w-[50px] h-[50px] mr-[12px] rounded-full"
                                     />
                                   )}
-                                {item.table === "artists" &&
-                                  !item.record.picture && (
+                                {item._federation.indexUid === "artists" &&
+                                  !item.picture && (
                                     <div className="w-[50px] h-[50px] mr-[12px] rounded-full flex items-center bg-[rgba(243, 243, 243, 0.725)]">
                                       <div className="w-[28px] h-[28px]">
                                         <Artist color="rgba(66, 87, 108, 0.65)" />
                                       </div>
                                     </div>
                                   )}
-                                {item.table === "albums" &&
-                                  item.record.album_art && (
+                                {item._federation.indexUid === "albums" &&
+                                  item.albumArt && (
                                     <img
-                                      src={item.record.album_art}
-                                      alt={item.record.title}
+                                      src={item.albumArt}
+                                      alt={item.title}
                                       className="w-[50px] h-[50px] mr-[12px]"
                                     />
                                   )}
-                                {item.table === "tracks" && (
+                                {item._federation.indexUid === "tracks" && (
                                   <img
-                                    src={item.record.album_art}
-                                    alt={item.record.title}
+                                    src={item.albumArt}
+                                    alt={item.title}
                                     className="w-[50px] h-[50px] mr-[12px]"
                                   />
                                 )}
                                 {["artists", "albums", "tracks"].includes(
-                                  item.table
+                                  item._federation.indexUid
                                 ) && (
                                   <div className="overflow-hidden">
                                     <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[var(--color-text)]">
-                                      {item.record.name || item.record.title}
+                                      {item.name || item.title}
                                     </div>
-                                    {item.table === "tracks" && (
+                                    {item._federation.indexUid === "tracks" && (
                                       <div className="text-[14px] text-[var(--color-text-muted)]">
                                         Track
                                       </div>
                                     )}
-                                    {item.table === "albums" && (
+                                    {item._federation.indexUid === "albums" && (
                                       <div className="text-[14px] text-[var(--color-text-muted)]">
                                         Album
                                       </div>
                                     )}
-                                    {item.table === "artists" && (
+                                    {item._federation.indexUid ===
+                                      "artists" && (
                                       <div className="text-[14px] text-[var(--color-text-muted)]">
                                         Artist
                                       </div>
