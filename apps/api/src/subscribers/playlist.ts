@@ -101,4 +101,15 @@ async function putPlaylistRecord(
   } catch (e) {
     console.error(`Failed to put record: ${chalk.redBright(e.message)}`);
   }
+
+  const [updatedPlaylist] = await ctx.db
+    .select()
+    .from(tables.playlists)
+    .where(eq(tables.playlists.id, payload.id))
+    .execute();
+
+  await ctx.meilisearch.post(
+    `indexes/playlists/documents?primaryKey=id`,
+    updatedPlaylist
+  );
 }
