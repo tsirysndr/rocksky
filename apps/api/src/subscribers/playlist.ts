@@ -2,10 +2,12 @@ import { TID } from "@atproto/common";
 import { BlobRef } from "@atproto/lexicon";
 import chalk from "chalk";
 import { Context } from "context";
+import { eq } from "drizzle-orm";
 import * as Playlist from "lexicon/types/app/rocksky/playlist";
 import { createAgent } from "lib/agent";
 import downloadImage, { getContentType } from "lib/downloadImage";
 import { StringCodec } from "nats";
+import tables from "schema";
 
 export function onNewPlaylist(ctx: Context) {
   const sc = StringCodec();
@@ -37,9 +39,11 @@ async function putPlaylistRecord(
     return;
   }
 
-  const playlist = await ctx.client.db.playlists
-    .filter("xata_id", payload.id)
-    .getFirst();
+  const [playlist] = await ctx.db
+    .select()
+    .from(tables.playlists)
+    .where(eq(tables.playlists.id, payload.id))
+    .execute();
 
   let rkey = TID.nextStr();
 
@@ -62,7 +66,7 @@ async function putPlaylistRecord(
     name: playlist.name,
     description: playlist.description,
     createdAt: new Date().toISOString(),
-    spotifyLink: playlist.spotify_link,
+    spotifyLink: playlist.spotifyLink,
   };
 
   if (playlist.picture) {
@@ -89,7 +93,11 @@ async function putPlaylistRecord(
     });
     const uri = res.data.uri;
     console.log(`Playlist record created: ${chalk.greenBright(uri)}`);
-    await ctx.client.db.playlists.update(payload.id, { uri });
+    await ctx.db
+      .update(tables.playlists)
+      .set({ uri })
+      .where(eq(tables.playlists.id, payload.id))
+      .execute();
   } catch (e) {
     console.error(`Failed to put record: ${chalk.redBright(e.message)}`);
   }
