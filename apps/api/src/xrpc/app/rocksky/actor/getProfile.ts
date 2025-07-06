@@ -65,7 +65,9 @@ const resolveHandleToDid = ({
         return {
           did: await ctx.baseIdResolver.handle.resolve(params.did),
           ctx,
-          params,
+          params: {
+            did: await ctx.baseIdResolver.handle.resolve(params.did),
+          },
         };
       }
       return {
