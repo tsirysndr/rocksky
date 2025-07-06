@@ -1,15 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
+import { client } from "../api";
 import { getFeedByUri } from "../api/feed";
-import { API_URL } from "../consts";
 
-export const useFeedQuery = (size = 114) =>
+export const useFeedQuery = (limit = 114) =>
   useQuery({
     queryKey: ["feed"],
     queryFn: () =>
-      fetch(`${API_URL}/public/scrobbles?size=${size}`, {
-        method: "GET",
-      }).then((res) => res.json()),
+      client.get("/xrpc/app.rocksky.scrobble.getScrobbles", {
+        params: { limit },
+      }),
     refetchInterval: 5000,
+    select: (res) => res.data.scrobbles || [],
   });
 
 export const useFeedByUriQuery = (uri: string) =>

@@ -8,7 +8,10 @@ export const getProfileByDid = async (did: string) => {
 };
 
 export const getProfileStatsByDid = async (did: string) => {
-  const response = await axios.get(`${API_URL}/users/${did}/stats`);
+  const response = await axios.get(
+    `${API_URL}/xrpc/app.rocksky.stats.getStats`,
+    { params: { did } }
+  );
   return response.data;
 };
 
@@ -18,7 +21,8 @@ export const getRecentTracksByDid = async (
   size = 10
 ): Promise<Scrobble[]> => {
   const response = await axios.get<Scrobble[]>(
-    `${API_URL}/users/${did}/scrobbles?size=${size}&offset=${offset}`
+    `${API_URL}/users/${did}/scrobbles`,
+    { params: { size, offset } }
   );
   return response.data;
 };

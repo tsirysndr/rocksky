@@ -94,15 +94,15 @@ function NowPlayings() {
     id: string;
     title: string;
     artist: string;
-    album_art: string;
-    artist_uri?: string;
+    albumArt: string;
+    artistUri?: string;
     uri: string;
     avatar: string;
     handle: string;
     did: string;
-    created_at: string;
-    track_id: string;
-    track_uri: string;
+    createdAt: string;
+    trackId: string;
+    trackUri: string;
   } | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -211,7 +211,7 @@ function NowPlayings() {
                   </div>
                 </Link>
                 <span className="ml-[10px] text-[15px] text-[var(--color-text-muted)]">
-                  {dayjs.utc(currentlyPlaying?.created_at).local().fromNow()}
+                  {dayjs.utc(currentlyPlaying?.createdAt).local().fromNow()}
                 </span>
               </div>
             </ModalHeader>
@@ -225,26 +225,26 @@ function NowPlayings() {
                   )}
                 </div>
                 <div className="flex flex-col items-center flex-1">
-                  {currentlyPlaying?.track_uri && (
+                  {currentlyPlaying?.trackUri && (
                     <Link
-                      to={`/${currentlyPlaying?.track_uri.split("at://")[1]}`}
+                      to={`/${currentlyPlaying?.trackUri.split("at://")[1]}`}
                     >
                       <Cover
-                        src={currentlyPlaying?.album_art}
+                        src={currentlyPlaying?.albumArt}
                         key={currentlyPlaying?.id}
                       />
                     </Link>
                   )}
-                  {currentlyPlaying?.track_uri && (
+                  {currentlyPlaying?.trackUri && (
                     <Link
-                      to={`/${currentlyPlaying?.track_uri.split("at://")[1]}`}
+                      to={`/${currentlyPlaying?.trackUri.split("at://")[1]}`}
                     >
                       <TrackTitle>{currentlyPlaying?.title}</TrackTitle>
                     </Link>
                   )}
-                  {!currentlyPlaying?.track_uri && (
+                  {!currentlyPlaying?.trackUri && (
                     <Cover
-                      src={currentlyPlaying?.album_art}
+                      src={currentlyPlaying?.albumArt}
                       key={currentlyPlaying?.id}
                     />
                   )}
@@ -261,10 +261,10 @@ function NowPlayings() {
                 </div>
               </div>
 
-              {!currentlyPlaying?.track_uri && (
+              {!currentlyPlaying?.trackUri && (
                 <TrackTitle>{currentlyPlaying?.title}</TrackTitle>
               )}
-              <Link to={`/${currentlyPlaying?.artist_uri?.split("at://")[1]}`}>
+              <Link to={`/${currentlyPlaying?.artistUri?.split("at://")[1]}`}>
                 <TrackArtist>{currentlyPlaying?.artist}</TrackArtist>
               </Link>
             </ModalBody>

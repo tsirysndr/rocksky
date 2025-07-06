@@ -7,7 +7,7 @@ export const getScrobblesChart = () => {
 
 export const getSongChart = async (uri: string) => {
   const response = await axios.get(
-    `${API_URL}/public/scrobbleschart?songuri=${uri}`
+    `${API_URL}/xrpc/app.rocksky.charts.getScrobblesChart?songuri=${uri}`
   );
   if (response.status !== 200) {
     return [];
@@ -17,7 +17,7 @@ export const getSongChart = async (uri: string) => {
 
 export const getArtistChart = async (uri: string) => {
   const response = await axios.get(
-    `${API_URL}/public/scrobbleschart?artisturi=${uri}`
+    `${API_URL}/xrpc/app.rocksky.charts.getScrobblesChart?artisturi=${uri}`
   );
   if (response.status !== 200) {
     return [];
@@ -27,7 +27,7 @@ export const getArtistChart = async (uri: string) => {
 
 export const getAlbumChart = async (uri: string) => {
   const response = await axios.get(
-    `${API_URL}/public/scrobbleschart?albumuri=${uri}`
+    `${API_URL}/xrpc/app.rocksky.charts.getScrobblesChart?albumuri=${uri}`
   );
   if (response.status !== 200) {
     return [];
@@ -37,7 +37,7 @@ export const getAlbumChart = async (uri: string) => {
 
 export const getProfileChart = async (did: string) => {
   const response = await axios.get(
-    `${API_URL}/public/scrobbleschart?did=${did}`
+    `${API_URL}/xrpc/app.rocksky.charts.getScrobblesChart?did=${did}`
   );
   if (response.status !== 200) {
     return [];

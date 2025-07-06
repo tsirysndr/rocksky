@@ -1,27 +1,29 @@
 import { useQuery } from "@tanstack/react-query";
-import { API_URL } from "../consts";
+import { client } from "../api";
 
 export type NowPlayings = {
   id: string;
   title: string;
   artist: string;
-  album_art: string;
-  artist_uri?: string;
+  albumArt: string;
+  artistUri?: string;
   uri: string;
   avatar: string;
   handle: string;
   did: string;
-  created_at: string;
-  track_id: string;
-  track_uri: string;
+  createdAt: string;
+  trackId: string;
+  trackUri: string;
 }[];
 
 export const useNowPlayingsQuery = () =>
-  useQuery<NowPlayings>({
+  useQuery({
     queryKey: ["now-playings"],
     queryFn: () =>
-      fetch(`${API_URL}/now-playings?size=7`, {
-        method: "GET",
-      }).then((res) => res.json()),
+      client.get<{ nowPlayings: NowPlayings }>(
+        "/xrpc/app.rocksky.feed.getNowPlayings",
+        { params: { size: 7 } }
+      ),
     refetchInterval: 5000,
+    select: (res) => res.data.nowPlayings || [],
   });
