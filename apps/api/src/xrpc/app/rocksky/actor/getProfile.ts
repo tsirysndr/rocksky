@@ -292,7 +292,11 @@ const presentation = ([
     avatar: `https://cdn.bsky.app/img/avatar/plain/${profile.did}/${_.get(profile, "profileRecord.value.avatar.ref", "").toString()}@jpeg`,
     createdAt: profile.user?.createdAt.toISOString(),
     updatedAt: profile.user?.updatedAt.toISOString(),
-    spotifyUser,
+    spotifyUser: {
+      ...spotifyUser,
+      createdAt: spotifyUser?.createdAt.toISOString(),
+      updatedAt: spotifyUser?.updatedAt.toISOString(),
+    },
     spotifyToken: {
       ...R.omit(["accessToken", "refreshToken"], spotifyToken),
       createdAt: spotifyToken?.createdAt.toISOString(),
