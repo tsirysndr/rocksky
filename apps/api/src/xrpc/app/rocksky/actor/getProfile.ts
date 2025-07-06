@@ -196,7 +196,7 @@ const retrieveProfile = ({
           )
           .where(eq(tables.users.did, did))
           .execute()
-          .then(([result]) => result.spotify_accounts),
+          .then(([result]) => result?.spotify_accounts),
         ctx.db
           .select()
           .from(tables.spotifyTokens)
