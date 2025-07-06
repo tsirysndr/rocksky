@@ -4,6 +4,8 @@ import apiKeys from "./api-keys";
 import artistAlbums from "./artist-albums";
 import artistTracks from "./artist-tracks";
 import artists from "./artists";
+import dropboxAccounts from "./dropbox-accounts";
+import googleDriveAccounts from "./google-drive-accounts";
 import lovedTracks from "./loved-tracks";
 import playlistTracks from "./playlist-tracks";
 import playlists from "./playlists";
@@ -46,4 +48,6 @@ export default {
   spotifyTokens,
   artistTracks,
   artistAlbums,
+  dropboxAccounts,
+  googleDriveAccounts,
 };

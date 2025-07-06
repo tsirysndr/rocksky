@@ -10,6 +10,10 @@ import { QueryParams } from "lexicon/types/app/rocksky/actor/getProfile";
 import { createAgent } from "lib/agent";
 import _ from "lodash";
 import tables from "schema";
+import { SelectDropboxAccounts } from "schema/dropbox-accounts";
+import { SelectGoogleDriveAccounts } from "schema/google-drive-accounts";
+import { SelectSpotifyAccount } from "schema/spotify-accounts";
+import { SelectSpotifyToken } from "schema/spotify-tokens";
 import { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
@@ -161,7 +165,17 @@ const retrieveProfile = ({
   did,
   agent,
   user,
-}: WithUser): Effect.Effect<[Profile, string], Error> => {
+}: WithUser): Effect.Effect<
+  [
+    Profile,
+    string,
+    SelectSpotifyAccount,
+    SelectSpotifyToken,
+    SelectGoogleDriveAccounts,
+    SelectDropboxAccounts,
+  ],
+  Error
+> => {
   return Effect.tryPromise({
     try: async () => {
       return Promise.all([
@@ -178,25 +192,97 @@ const retrieveProfile = ({
             user,
           })),
         ctx.resolver.resolveDidToHandle(did),
+        ctx.db
+          .select()
+          .from(tables.spotifyAccounts)
+          .leftJoin(
+            tables.users,
+            eq(tables.spotifyAccounts.userId, tables.users.id)
+          )
+          .where(eq(tables.users.did, did))
+          .execute()
+          .then(([result]) => result.spotify_accounts),
+        ctx.db
+          .select()
+          .from(tables.spotifyTokens)
+          .leftJoin(
+            tables.users,
+            eq(tables.spotifyTokens.userId, tables.users.id)
+          )
+          .where(eq(tables.users.did, did))
+          .execute()
+          .then(([result]) => result?.spotify_tokens),
+        ctx.db
+          .select()
+          .from(tables.googleDriveAccounts)
+          .leftJoin(
+            tables.users,
+            eq(tables.googleDriveAccounts.userId, tables.users.id)
+          )
+          .where(eq(tables.users.did, did))
+          .execute()
+          .then(([result]) => result?.google_drive_accounts),
+        ctx.db
+          .select()
+          .from(tables.dropboxAccounts)
+          .leftJoin(
+            tables.users,
+            eq(tables.dropboxAccounts.userId, tables.users.id)
+          )
+          .where(eq(tables.users.did, did))
+          .execute()
+          .then(([result]) => result?.dropbox_accounts),
       ]);
     },
     catch: (error) => new Error(`Failed to retrieve profile: ${error}`),
   });
 };
 
-const refreshProfile = ([profile, handle]: [Profile, string]) => {
+const refreshProfile = ([
+  profile,
+  handle,
+  selectSpotifyAccount,
+  selectSpotifyToken,
+  selectGoogleDriveAccounts,
+  selectDropboxAccounts,
+]: [
+  Profile,
+  string,
+  SelectSpotifyAccount,
+  SelectSpotifyToken,
+  SelectGoogleDriveAccounts,
+  SelectDropboxAccounts,
+]) => {
   return Effect.tryPromise({
     try: async () => {
-      return [profile, handle];
+      return [
+        profile,
+        handle,
+        selectSpotifyAccount,
+        selectSpotifyToken,
+        selectGoogleDriveAccounts,
+        selectDropboxAccounts,
+      ];
     },
     catch: (error) => new Error(`Failed to refresh profile: ${error}`),
   });
 };
 
-const presentation = ([profile, handle]: [Profile, string]): Effect.Effect<
-  ProfileViewDetailed,
-  never
-> => {
+const presentation = ([
+  profile,
+  handle,
+  spotifyUser,
+  spotifyToken,
+  googledrive,
+  dropbox,
+]: [
+  Profile,
+  string,
+  SelectSpotifyAccount,
+  SelectSpotifyToken,
+  SelectGoogleDriveAccounts,
+  SelectDropboxAccounts,
+]): Effect.Effect<ProfileViewDetailed, never> => {
   return Effect.sync(() => ({
     id: profile.user?.id,
     did: profile.did,
@@ -205,6 +291,11 @@ const presentation = ([profile, handle]: [Profile, string]): Effect.Effect<
     avatar: `https://cdn.bsky.app/img/avatar/plain/${profile.did}/${_.get(profile, "profileRecord.value.avatar.ref", "").toString()}@jpeg`,
     createdAt: profile.user?.createdAt.toISOString(),
     updatedAt: profile.user?.updatedAt.toISOString(),
+    spotifyUser,
+    spotifyToken,
+    spotifyConnected: !!spotifyToken,
+    googledrive,
+    dropbox,
   }));
 };
 
