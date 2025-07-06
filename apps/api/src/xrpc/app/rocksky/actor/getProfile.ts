@@ -9,7 +9,7 @@ import { ProfileViewDetailed } from "lexicon/types/app/rocksky/actor/defs";
 import { QueryParams } from "lexicon/types/app/rocksky/actor/getProfile";
 import { createAgent } from "lib/agent";
 import _ from "lodash";
-import R from "ramda";
+import * as R from "ramda";
 import tables from "schema";
 import { SelectDropboxAccounts } from "schema/dropbox-accounts";
 import { SelectGoogleDriveAccounts } from "schema/google-drive-accounts";
