@@ -56,26 +56,24 @@ const ShowMore = styled.div`
 const Song = () => {
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
 
-  let uri = `${did}/app.rocksky.scrobble/${rkey}`;
+  let uri = `at://${did}/app.rocksky.scrobble/${rkey}`;
 
   if (window.location.pathname.includes("app.rocksky.song")) {
-    uri = `${did}/app.rocksky.song/${rkey}`;
+    uri = `at://${did}/app.rocksky.song/${rkey}`;
   }
   if (window.location.pathname.includes("app.rocksky.scrobble")) {
-    uri = `${did}/app.rocksky.scrobble/${rkey}`;
+    uri = `at://${did}/app.rocksky.scrobble/${rkey}`;
   }
 
   const scrobbleResult = useFeedByUriQuery(uri);
   const songResult = useSongByUriQuery(uri);
 
   const artistTracksResult = useArtistTracksQuery(
-    songResult.data?.artistUri?.split("at://")[1] ||
-      scrobbleResult.data?.artistUri?.split("at://")[1],
+    songResult.data?.artistUri || scrobbleResult.data?.artistUri,
     5
   );
   const artistAlbumResult = useArtistAlbumsQuery(
-    songResult.data?.artistUri?.split("at://")[1] ||
-      scrobbleResult.data?.artistUri?.split("at://")[1],
+    songResult.data?.artistUri || scrobbleResult.data?.artistUri,
     10
   );
 
@@ -100,8 +98,8 @@ const Song = () => {
       id: string;
       title: string;
       artist: string;
-      album_art: string;
-      artist_uri: string;
+      albumArt: string;
+      artistUri: string;
       uri: string;
     }[]
   >([]);
@@ -162,12 +160,11 @@ const Song = () => {
         id: x.id,
         title: x.title,
         artist: x.artist,
-        albumArtist: x.album_artist,
-        albumArt: x.album_art,
+        albumArtist: x.albumArtist,
+        albumArt: x.albumArt,
         uri: x.uri,
-        scrobbles: x.play_count,
-        albumUri: x.album_uri,
-        artistUri: x.artist_uri,
+        artistUri: x.artistUri,
+        scrobbles: x.playCount,
       }))
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -182,16 +179,7 @@ const Song = () => {
       return;
     }
 
-    setTopAlbums(
-      artistAlbumResult.data.map((x) => ({
-        id: x.id,
-        title: x.title,
-        artist: x.artist,
-        album_art: x.album_art,
-        artist_uri: x.artist_uri!,
-        uri: x.uri,
-      }))
-    );
+    setTopAlbums(artistAlbumResult.data);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [artistAlbumResult.data, artistAlbumResult.isLoading]);
 
@@ -315,14 +303,12 @@ const Song = () => {
               </div>
             </Group>
 
-            {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              song?.tags.map((tag: any) => (
-                <Tag closeable={false} kind={KIND.purple}>
-                  {tag}
-                </Tag>
-              ))
-            }
+            {// eslint-disable-next-line @typescript-eslint/no-explicit-any
+            song?.tags.map((tag: any) => (
+              <Tag closeable={false} kind={KIND.purple}>
+                {tag}
+              </Tag>
+            ))}
 
             {song?.lyrics && (
               <>

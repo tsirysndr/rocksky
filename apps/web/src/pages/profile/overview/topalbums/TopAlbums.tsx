@@ -76,21 +76,21 @@ function TopAlbums() {
             topAlbums.map((album: any) => (
               <FlexGridItem {...itemProps} key={album.id}>
                 <Link to={`/${album.uri?.split("at://")[1]}`}>
-                  <SongCover cover={album.album_art} size={230} />
+                  <SongCover cover={album.albumArt} size={230} />
                 </Link>
                 <Link to={`/${album.uri?.split("at://")[1]}`}>
                   <LabelMedium className="!text-[var(--color-text)]">
                     {album.title}
                   </LabelMedium>
                 </Link>
-                {album.artist_uri && (
-                  <Link to={`/${album.artist_uri.split("at://")[1]}`}>
+                {album.artistUri && (
+                  <Link to={`/${album.artistUri.split("at://")[1]}`}>
                     <LabelSmall className="!text-[var(--color-text-muted)]">
                       {album.artist}
                     </LabelSmall>
                   </Link>
                 )}
-                {!album.artist_uri && (
+                {!album.artistUri && (
                   <LabelSmall className="!text-[var(--color-text-muted)]">
                     {album.artist}
                   </LabelSmall>

@@ -37,6 +37,12 @@ export const useArtistsQuery = (did: string, offset = 0, limit = 30) =>
     queryKey: ["artists", did, offset, limit],
     queryFn: () => getArtists(did, offset, limit),
     enabled: !!did,
+    select: (data) =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data?.artists.map((x: any) => ({
+        ...x,
+        scrobbles: x.playCount,
+      })),
   });
 
 export const useAlbumsQuery = (did: string, offset = 0, limit = 12) =>
@@ -44,6 +50,12 @@ export const useAlbumsQuery = (did: string, offset = 0, limit = 12) =>
     queryKey: ["albums", did, offset, limit],
     queryFn: () => getAlbums(did, offset, limit),
     enabled: !!did,
+    select: (data) =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data?.albums.map((x: any) => ({
+        ...x,
+        scrobbles: x.playCount,
+      })),
   });
 
 export const useTracksQuery = (did: string, offset = 0, limit = 20) =>
@@ -51,6 +63,12 @@ export const useTracksQuery = (did: string, offset = 0, limit = 20) =>
     queryKey: ["tracks", did, offset, limit],
     queryFn: () => getTracks(did, offset, limit),
     enabled: !!did,
+    select: (data) =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data?.tracks.map((x: any) => ({
+        ...x,
+        scrobbles: x.playCount,
+      })),
   });
 
 export const useLovedTracksQuery = (did: string, offset = 0, limit = 20) =>

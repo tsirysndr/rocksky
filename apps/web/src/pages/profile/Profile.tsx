@@ -53,10 +53,10 @@ function Profile() {
 
     setUser({
       avatar: profile.data.avatar,
-      displayName: profile.data.display_name,
+      displayName: profile.data.displayName,
       handle: profile.data.handle,
       spotifyUser: {
-        isBeta: profile.data.spotifyUser?.is_beta_user,
+        isBeta: profile.data.spotifyUser?.isBetaUser,
       },
       spotifyConnected: profile.data.spotifyConnected,
       did: profile.data.did,
@@ -66,10 +66,10 @@ function Profile() {
       ...profiles,
       [did]: {
         avatar: profile.data.avatar,
-        displayName: profile.data.display_name,
+        displayName: profile.data.displayName,
         handle: profile.data.handle,
         spotifyConnected: profile.data.spotifyConnected,
-        createdAt: profile.data.xata_createdat,
+        createdAt: profile.data.createdat,
         did,
       },
     }));

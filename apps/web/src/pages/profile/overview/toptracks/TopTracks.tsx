@@ -88,16 +88,7 @@ function TopTracks(props: TopTracksProps) {
       return;
     }
 
-    setTopTracks(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tracksResult.data.map((track: any) => ({
-        ...track,
-        albumArt: track.album_art,
-        albumArtist: track.album_artist,
-        albumUri: track.album_uri,
-        artistUri: track.artist_uri,
-      }))
-    );
+    setTopTracks(tracksResult.data);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tracksResult.data, tracksResult.isLoading, tracksResult.isError, did]);
 

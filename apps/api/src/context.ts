@@ -26,6 +26,7 @@ const client = getXataClient();
 export const ctx = {
   oauthClient: await createClient(db),
   resolver: createBidirectionalResolver(baseIdResolver),
+  baseIdResolver,
   kv: new Map<string, string>(),
   client,
   db: drizzle.db,

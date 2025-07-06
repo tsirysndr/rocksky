@@ -1,22 +1,23 @@
-import axios from "axios";
-import { API_URL } from "../consts";
+import { client } from ".";
 
 export const getSongByUri = async (uri: string) => {
-  const response = await axios.get(`${API_URL}/users/${uri}`);
+  const response = await client.get("/xrpc/app.rocksky.song.getSong", {
+    params: { uri },
+  });
   return {
     id: response.data?.id,
     title: response.data?.title,
     artist: response.data?.artist,
-    albumArtist: response.data?.album_artist,
+    albumArtist: response.data?.albumArtist,
     album: response.data?.album,
-    cover: response.data?.album_art,
+    cover: response.data?.albumArt,
     tags: [],
-    artistUri: response.data?.artist_uri,
-    albumUri: response.data?.album_uri,
-    listeners: response.data?.listeners || 1,
-    scrobbles: response.data?.scrobbles || 1,
+    artistUri: response.data?.artistUri,
+    albumUri: response.data?.albumUri,
+    listeners: response.data?.uniqueListeners || 1,
+    scrobbles: response.data?.playCount || 1,
     lyrics: response.data?.lyrics,
-    spotifyLink: response.data?.spotify_link,
+    spotifyLink: response.data?.spotifyLink,
     composer: response.data?.composer,
     uri: response.data?.uri,
   };
@@ -30,18 +31,19 @@ export const getArtistTracks = async (
     id: string;
     title: string;
     artist: string;
-    album_artist: string;
-    album_art: string;
+    albumArtist: string;
+    albumArt: string;
     uri: string;
-    play_count: number;
-    album_uri?: string;
-    artist_uri?: string;
+    playCount: number;
+    albumUri?: string;
+    artistUri?: string;
   }[]
 > => {
-  const response = await axios.get(
-    `${API_URL}/users/${uri}/tracks?size=${limit}`
+  const response = await client.get(
+    "/xrpc/app.rocksky.artist.getArtistTracks",
+    { params: { uri, limit } }
   );
-  return response.data;
+  return response.data.tracks;
 };
 
 export const getArtistAlbums = async (
@@ -52,61 +54,59 @@ export const getArtistAlbums = async (
     id: string;
     title: string;
     artist: string;
-    album_art: string;
-    artist_uri: string;
+    albumArt: string;
+    artistUri: string;
     uri: string;
   }[]
 > => {
-  const response = await axios.get(
-    `${API_URL}/users/${uri}/albums?size=${limit}`
+  const response = await client.get(
+    "/xrpc/app.rocksky.artist.getArtistAlbums",
+    { params: { uri, limit } }
   );
-  return response.data;
+  return response.data.albums;
 };
 
 export const getArtists = async (did: string, offset = 0, limit = 30) => {
-  const response = await axios.get(
-    `${API_URL}/users/${did}/artists?size=${limit}&offset=${offset}`
-  );
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return response.data.map((x: any) => ({ ...x, scrobbles: x.play_count }));
-};
-
-export const getAlbums = async (did: string, offset = 0, limit = 12) => {
-  const response = await axios.get(
-    `${API_URL}/users/${did}/albums?size=${limit}&offset=${offset}`
-  );
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return response.data.map((x: any) => ({
-    ...x,
-    scrobbles: x.play_count,
-  }));
-};
-
-export const getTracks = async (did: string, offset = 0, limit = 20) => {
-  const response = await axios.get(
-    `${API_URL}/users/${did}/tracks?size=${limit}&offset=${offset}`
-  );
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return response.data.map((x: any) => ({ ...x, scrobbles: x.play_count }));
-};
-
-export const getLovedTracks = async (did: string, offset = 0, limit = 20) => {
-  const response = await axios.get(
-    `${API_URL}/users/${did}/likes?size=${limit}&offset=${offset}`
-  );
+  const response = await client.get("/xrpc/app.rocksky.actor.getActorArtists", {
+    params: { did, limit, offset },
+  });
   return response.data;
 };
 
-export const getAlbum = async (did: string, rkey: string) => {
-  const response = await axios.get(
-    `${API_URL}/users/${did}/app.rocksky.album/${rkey}`
+export const getAlbums = async (did: string, offset = 0, limit = 12) => {
+  const response = await client.get("/xrpc/app.rocksky.actor.getActorAlbums", {
+    params: { did, limit, offset },
+  });
+  return response.data;
+};
+
+export const getTracks = async (did: string, offset = 0, limit = 20) => {
+  const response = await client.get("/xrpc/app.rocksky.actor.getActorSongs", {
+    params: { did, limit, offset },
+  });
+  return response.data;
+};
+
+export const getLovedTracks = async (did: string, offset = 0, limit = 20) => {
+  const response = await client.get(
+    "/xrpc/app.rocksky.actor.getActorLovedSongs",
+    {
+      params: { did, limit, offset },
+    }
   );
+  return response.data.tracks;
+};
+
+export const getAlbum = async (did: string, rkey: string) => {
+  const response = await client.get("/xrpc/app.rocksky.album.getAlbum", {
+    params: { uri: `at://${did}/app.rocksky.album/${rkey}` },
+  });
   return response.data;
 };
 
 export const getArtist = async (did: string, rkey: string) => {
-  const response = await axios.get(
-    `${API_URL}/users/${did}/app.rocksky.artist/${rkey}`
-  );
+  const response = await client.get("/xrpc/app.rocksky.artist.getArtist", {
+    params: { uri: `at://${did}/app.rocksky.artist/${rkey}` },
+  });
   return response.data;
 };

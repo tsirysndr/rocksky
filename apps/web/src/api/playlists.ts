@@ -1,5 +1,4 @@
-import axios from "axios";
-import { API_URL } from "../consts";
+import { client } from ".";
 
 export const getPlaylists = async (
   did: string
@@ -16,8 +15,13 @@ export const getPlaylists = async (
     trackCount: number;
   }[]
 > => {
-  const response = await axios.get(`${API_URL}/users/${did}/playlists`);
-  return response.data;
+  const response = await client.get(
+    "/xrpc/app.rocksky.actor.getActorPlaylists",
+    {
+      params: { did },
+    }
+  );
+  return response.data.playlists;
 };
 
 export const getPlaylist = async (
@@ -56,8 +60,10 @@ export const getPlaylist = async (
     discNumber: number;
   }[];
 }> => {
-  const response = await axios.get(
-    `${API_URL}/users/${did}/app.rocksky.playlist/${rkey}`
-  );
+  const response = await client.get("/xrpc/app.rocksky.playlist.getPlaylist", {
+    params: {
+      uri: `at://${did}/app.rocksky.playlist/${rkey}`,
+    },
+  });
   return response.data;
 };

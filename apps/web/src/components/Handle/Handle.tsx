@@ -39,10 +39,10 @@ function Handle(props: HandleProps) {
       ...profiles,
       [did]: {
         avatar: profile.data.avatar,
-        displayName: profile.data.display_name,
+        displayName: profile.data.displayName,
         handle: profile.data.handle,
         spotifyConnected: profile.data.spotifyConnected,
-        createdAt: profile.data.xata_createdat,
+        createdAt: profile.data.createdAt,
         did,
       },
     }));

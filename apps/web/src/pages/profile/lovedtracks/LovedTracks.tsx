@@ -67,13 +67,9 @@ function LovedTracks() {
 
     setLovedTracks(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      lovedTracksResult.data.records.map((item: any) => ({
-        ...item.track_id,
-        albumArt: item.track_id.album_art,
-        albumArtist: item.track_id.album_artist,
-        albumUri: item.track_id.album_uri,
-        artistUri: item.track_id.artist_uri,
-        date: item.xata_createdat,
+      lovedTracksResult.data.map((item: any) => ({
+        ...item,
+        date: item.createdAt,
       }))
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -66,19 +66,19 @@ const Album = () => {
     artistUri?: string;
     label?: string;
     tracks: {
-      xata_id: string;
-      track_number: number;
+      id: string;
+      trackNumber: number;
       album: string;
-      album_art: string;
-      album_artist: string;
+      albumArt: string;
+      albumArtist: string;
       title: string;
       artist: string;
-      xata_created: string;
+      createdAt: string;
       uri: string;
-      album_uri: string;
-      artist_uri: string;
+      albumUri: string;
+      artistUri: string;
       duration: number;
-      disc_number: number;
+      discNumber: number;
     }[];
   } | null>(null);
   const uri = `${did}/app.rocksky.album/${rkey}`;
@@ -87,22 +87,22 @@ const Album = () => {
     if (!isLoading && !isError) {
       setAlbum({
         id: data.id,
-        albumArt: data.album_art,
-        artistUri: data.artist_uri,
+        albumArt: data.albumArt,
+        artistUri: data.artistUri,
         artist: data.artist,
         title: data.title,
         year: data.year,
         uri: data.uri,
-        listeners: data.listeners,
-        scrobbles: data.scrobbles,
+        listeners: data.uniqueListeners,
+        scrobbles: data.playCount,
         tracks: data.tracks,
-        releaseDate: data.release_date
-          ? dayjs(data.release_date).format("MMMM D, YYYY")
+        releaseDate: data.releaseDate
+          ? dayjs(data.releaseDate).format("MMMM D, YYYY")
           : data.year?.toString(),
-        label: data.tracks[0].copyright_message || data.tracks[0].label,
+        label: data.tracks[0].copyrightMessage || data.tracks[0].label,
       });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setDisc(Math.max(...data.tracks.map((track: any) => track.disc_number)));
+      setDisc(Math.max(...data.tracks.map((track: any) => track.discNumber)));
     }
   }, [data, isLoading, isError]);
 
@@ -199,19 +199,7 @@ const Album = () => {
         <div className="mt-[20px]">
           {disc < 2 && (
             <TableBuilder
-              data={album?.tracks.map((x) => ({
-                id: x.xata_id,
-                trackNumber: x.track_number,
-                albumArt: x.album_art,
-                title: x.title,
-                artist: x.artist,
-                uri: x.uri,
-                albumUri: album?.uri,
-                artistUri: x.artist_uri,
-                albumArtist: x.album_artist,
-                duration: x.duration,
-                discNumber: x.disc_number,
-              }))}
+              data={album?.tracks}
               emptyMessage="You haven't listened to any music yet."
               divider="clean"
               overrides={{
@@ -317,21 +305,7 @@ const Album = () => {
                     Volume {i + 1}
                   </LabelLarge>
                   <TableBuilder
-                    data={album?.tracks
-                      .filter((x) => x.disc_number == i + 1)
-                      .map((x) => ({
-                        id: x.xata_id,
-                        trackNumber: x.track_number,
-                        albumArt: x.album_art,
-                        title: x.title,
-                        artist: x.artist,
-                        uri: x.uri,
-                        albumUri: album?.uri,
-                        artistUri: x.artist_uri,
-                        albumArtist: x.album_artist,
-                        duration: x.duration,
-                        discNumber: x.disc_number,
-                      }))}
+                    data={album?.tracks.filter((x) => x.discNumber == i + 1)}
                     emptyMessage="You haven't listened to any music yet."
                     divider="clean"
                     overrides={{

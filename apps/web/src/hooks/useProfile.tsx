@@ -43,11 +43,14 @@ function useProfile(token?: string | null) {
 
     const fetchProfile = async () => {
       try {
-        const response = await fetch(`${API_URL}/profile`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }).then((res) => res.text());
+        const response = await fetch(
+          `${API_URL}/xrpc/app.rocksky.actor.getProfile`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        ).then((res) => res.text());
         setData(response);
         setError(null);
       } catch (e) {
@@ -62,27 +65,26 @@ function useProfile(token?: string | null) {
     if (data !== "Unauthorized" && data !== "Internal Server Error" && data) {
       const profile = JSON.parse(data);
       setProfile({
-        avatar: `https://cdn.bsky.app/img/avatar/plain/${localStorage.getItem(
-          "did"
-        )}/${profile.avatar.ref["$link"]}@jpeg`,
+        avatar: profile.avatar,
         displayName: profile.displayName,
         handle: profile.handle,
         spotifyUser: {
-          isBeta: profile.spotifyUser?.is_beta_user,
+          isBeta: profile.spotifyUser?.isBetaUser,
         },
         spotifyConnected: profile.spotifyConnected,
         did: profile.did,
         googledriveUser: {
-          isBeta: profile.googledrive?.is_beta_user,
+          isBeta: profile.googledrive?.isBetaUser,
         },
         dropboxUser: {
-          isBeta: profile.dropbox?.is_beta_user,
+          isBeta: profile.dropbox?.isBetaUser,
         },
       });
     }
 
     if (
       !data ||
+      Object.keys(data).length === 0 ||
       data === "Unauthorized" ||
       data === "Internal Server Error" ||
       (error && localStorage.getItem("token"))

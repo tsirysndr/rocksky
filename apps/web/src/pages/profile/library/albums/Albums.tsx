@@ -82,8 +82,8 @@ function Albums(props: AlbumsProps) {
         id: x.id,
         title: x.title,
         artist: x.artist,
-        albumArt: x.album_art,
-        artistUri: x.artist_uri,
+        albumArt: x.albumArt,
+        artistUri: x.artistUri,
         uri: x.uri,
         scrobbles: x.scrobbles,
       }))

@@ -28,7 +28,7 @@ const Group = styled.div`
 const Artist = () => {
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
 
-  const uri = `${did}/app.rocksky.artist/${rkey}`;
+  const uri = `at://${did}/app.rocksky.artist/${rkey}`;
   const artistResult = useArtistQuery(did!, rkey!);
   const artistTracksResult = useArtistTracksQuery(uri);
   const artistAlbumsResult = useArtistAlbumsQuery(uri);
@@ -53,8 +53,8 @@ const Artist = () => {
       id: string;
       title: string;
       artist: string;
-      album_art: string;
-      artist_uri: string;
+      albumArt: string;
+      artistUri: string;
       uri: string;
     }[]
   >([]);
@@ -72,14 +72,14 @@ const Artist = () => {
       id: artistResult.data.id,
       name: artistResult.data.name,
       born: artistResult.data.born,
-      bornIn: artistResult.data.born_in,
+      bornIn: artistResult.data.bornIn,
       died: artistResult.data.died,
-      listeners: artistResult.data.listeners,
-      scrobbles: artistResult.data.scrobbles,
+      listeners: artistResult.data.uniqueListeners,
+      scrobbles: artistResult.data.playCount,
       picture: artistResult.data.picture,
       tags: artistResult.data.tags,
       uri: artistResult.data.uri,
-      spotifyLink: artistResult.data.spotify_link,
+      spotifyLink: artistResult.data.spotifyLink,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [artistResult.data, artistResult.isLoading, artistResult.isError, did]);
@@ -94,13 +94,9 @@ const Artist = () => {
     }
 
     setTopTracks(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      artistTracksResult.data.map((track: any) => ({
+      artistTracksResult.data.map((track) => ({
         ...track,
-        albumArt: track.album_art,
-        albumArtist: track.album_artist,
-        albumUri: track.album_uri,
-        artistUri: track.artist_uri,
+        scrobbles: track.playCount || 1,
       }))
     );
   }, [
@@ -119,16 +115,7 @@ const Artist = () => {
       return;
     }
 
-    setTopAlbums(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      artistAlbumsResult.data.map((album: any) => ({
-        ...album,
-        albumArt: album.album_art,
-        albumArtist: album.album_artist,
-        albumUri: album.album_uri,
-        artistUri: album.artist_uri,
-      }))
-    );
+    setTopAlbums(artistAlbumsResult.data);
   }, [
     artistAlbumsResult.data,
     artistAlbumsResult.isLoading,

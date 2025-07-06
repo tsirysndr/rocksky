@@ -62,13 +62,16 @@ const resolveHandleToDid = ({
   return Effect.tryPromise({
     try: async () => {
       if (!params.did?.startsWith("did:plc:") && !!params.did) {
+        const handle = await ctx.baseIdResolver.handle.resolve(params.did);
         return fetch(
           `https://dns.google/resolve?name=_atproto.${params.did}&type=TXT`
         )
           .then((res) => res.json())
           .then(
             (data) =>
-              _.get(data, "Answer.0.data", "").replace(/"/g, "").split("=")[1]
+              _.get(data, "Answer.0.data", handle)
+                .replace(/"/g, "")
+                .split("=")[1]
           )
           .then((did) => ({
             did,
@@ -98,7 +101,7 @@ const withServiceEndpoint = ({
   return Effect.tryPromise({
     try: async () => {
       if (params.did) {
-        return fetch(`https://plc.directory/${did}`)
+        return fetch(`https://plc.directory/${params.did}`)
           .then((res) => res.json())
           .then((data) => ({
             did,

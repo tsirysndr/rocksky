@@ -24,8 +24,8 @@ interface AlbumsProps {
     id: string;
     title: string;
     artist: string;
-    album_art: string;
-    artist_uri: string;
+    albumArt: string;
+    artistUri: string;
     uri: string;
   }[];
 }
@@ -47,10 +47,10 @@ function Albums(props: AlbumsProps) {
             <FlexGridItem {...itemProps} key={album.id}>
               {album.uri && (
                 <Link to={`/${album.uri.split("at://")[1]}`}>
-                  <SongCover cover={album.album_art} size={230} />
+                  <SongCover cover={album.albumArt} size={230} />
                 </Link>
               )}
-              {!album.uri && <SongCover cover={album.album_art} size={230} />}
+              {!album.uri && <SongCover cover={album.albumArt} size={230} />}
               {album.uri && (
                 <Link to={`/${album.uri.split("at://")[1]}`}>
                   <LabelMedium className="!text-[var(--color-text)]">
@@ -59,14 +59,14 @@ function Albums(props: AlbumsProps) {
                 </Link>
               )}
               {!album.uri && <LabelMedium>{album.title}</LabelMedium>}
-              {album.artist_uri && (
-                <Link to={`/${album.artist_uri.split("at://")[1]}`}>
+              {album.artistUri && (
+                <Link to={`/${album.artistUri.split("at://")[1]}`}>
                   <LabelSmall className="!text-[var(--color-text-muted)]">
                     {album.artist}
                   </LabelSmall>
                 </Link>
               )}
-              {!album.artist_uri && (
+              {!album.artistUri && (
                 <LabelSmall className="!text-[var(--color-text-muted)]">
                   {album.artist}
                 </LabelSmall>
