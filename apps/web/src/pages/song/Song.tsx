@@ -185,6 +185,7 @@ const Song = () => {
 
   const loading =
     songResult.isLoading ||
+    scrobbleResult.isLoading ||
     artistTracksResult.isLoading ||
     artistAlbumResult.isLoading;
 

@@ -1,6 +1,10 @@
 import { client } from ".";
 
 export const getSongByUri = async (uri: string) => {
+  if (uri.includes("app.rocksky.scrobble")) {
+    return null;
+  }
+
   const response = await client.get("/xrpc/app.rocksky.song.getSong", {
     params: { uri },
   });
