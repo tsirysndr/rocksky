@@ -1,11 +1,11 @@
 import styled from "@emotion/styled";
+import { Link as DefaultLink } from "@tanstack/react-router";
 import axios from "axios";
 import { ProgressBar } from "baseui/progress-bar";
 import { LabelXSmall } from "baseui/typography";
 import { useAtom, useAtomValue } from "jotai";
 import _ from "lodash";
 import { useCallback, useEffect, useRef } from "react";
-import { Link as DefaultLink } from "react-router";
 import { playerAtom } from "../../../atoms/player";
 import { userNowPlayingAtom } from "../../../atoms/userNowplaying";
 import { API_URL } from "../../../consts";
@@ -187,7 +187,9 @@ function NowPlaying({ did }: NowPlayingProps) {
         <>
           <div className="flex flex-row items-center mt-[25px]">
             {!!nowPlaying[did]?.albumUri && (
-              <Link to={`/${nowPlaying[did]?.albumUri?.split("at://")[1]}`}>
+              <Link
+                to={`/${nowPlaying[did]?.albumUri?.split("at://")[1].replace("app.rocksky.", "")}`}
+              >
                 <Cover src={nowPlaying[did]?.albumArt} />
               </Link>
             )}
@@ -198,7 +200,7 @@ function NowPlaying({ did }: NowPlayingProps) {
               <div className="max-w-[316px] overflow-hidden truncate">
                 {nowPlaying[did]?.songUri && (
                   <Link
-                    to={`/${nowPlaying[did]?.songUri?.split("at://")[1]}`}
+                    to={`/${nowPlaying[did]?.songUri?.split("at://")[1].replace("app.rocksky.", "")}`}
                     className="font-semibold truncate whitespace-nowrap text-[var(--color-text)]"
                   >
                     {nowPlaying[did]?.title}
@@ -213,7 +215,7 @@ function NowPlaying({ did }: NowPlayingProps) {
               <div className="max-w-[316px] overflow-hidden truncate">
                 {!!nowPlaying[did]?.artistUri?.split("at://")[1] && (
                   <Link
-                    to={`/${nowPlaying[did]?.artistUri?.split("at://")[1]}`}
+                    to={`/${nowPlaying[did]?.artistUri?.split("at://")[1].replace("app.rocksky.", "")}`}
                     className="text-[var(--color-text-muted)] font-semibold truncate whitespace-nowrap text-sm"
                     style={{ color: "var(--color-text-muted)" }}
                   >

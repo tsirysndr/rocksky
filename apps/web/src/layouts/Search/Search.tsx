@@ -2,12 +2,12 @@
 import styled from "@emotion/styled";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Search as SearchIcon } from "@styled-icons/evaicons-solid";
+import { Link as DefaultLink } from "@tanstack/react-router";
 import { Input } from "baseui/input";
 import { PLACEMENT, Popover } from "baseui/popover";
 import _ from "lodash";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Link as DefaultLink } from "react-router";
 import z from "zod";
 import Artist from "../../components/Icons/Artist";
 import Disc from "../../components/Icons/Disc";
@@ -108,7 +108,9 @@ function Search() {
                           (item.name || item.title) &&
                           item._federation.indexUid !== "users" && (
                             <Link
-                              to={`/${item.uri?.split("at://")[1]}`}
+                              to={`/${item.uri
+                                ?.split("at://")[1]
+                                .replace("app.rocksky.", "")}`}
                               key={item.id}
                             >
                               <div

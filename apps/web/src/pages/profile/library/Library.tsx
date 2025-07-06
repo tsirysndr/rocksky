@@ -1,7 +1,7 @@
+import { useSearch } from "@tanstack/react-router";
 import { Tab, Tabs } from "baseui/tabs-motion";
 import { HeadingSmall } from "baseui/typography";
 import { Key, useEffect, useState } from "react";
-import { useSearchParams } from "react-router";
 import RecentTracks from "../overview/recenttracks";
 import TopArtists from "../overview/topartists";
 import TopTracks from "../overview/toptracks";
@@ -9,17 +9,16 @@ import Albums from "./albums";
 
 function Library() {
   const [activeKey, setActiveKey] = useState<Key>("0");
-  const [searchParams] = useSearchParams();
+  const { tab } = useSearch({ strict: false });
+  console.log("tab", tab);
 
   useEffect(() => {
-    const tab = searchParams.get("tab");
-
     if (!tab) {
       return;
     }
 
     setActiveKey(tab);
-  }, [searchParams]);
+  }, [tab]);
 
   return (
     <>

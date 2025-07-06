@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { Link } from "@tanstack/react-router";
 import { BlockProps } from "baseui/block";
 import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
 import { StatefulTooltip } from "baseui/tooltip";
@@ -6,7 +7,6 @@ import { HeadingMedium, LabelMedium } from "baseui/typography";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import ContentLoader from "react-content-loader";
-import { Link } from "react-router";
 import Handle from "../../../components/Handle";
 import SongCover from "../../../components/SongCover";
 import { useFeedQuery } from "../../../hooks/useFeed";
@@ -75,7 +75,13 @@ function Feed() {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               data.map((song: any) => (
                 <FlexGridItem {...itemProps} key={song.id}>
-                  <Link to={`/${song.uri?.split("at://")[1]}`}>
+                  <Link
+                    to="/$did/scrobble/$rkey"
+                    params={{
+                      did: song.uri?.split("at://")[1]?.split("/")[0] || "",
+                      rkey: song.uri?.split("/").pop() || "",
+                    }}
+                  >
                     <SongCover
                       cover={song.cover}
                       artist={song.artist}

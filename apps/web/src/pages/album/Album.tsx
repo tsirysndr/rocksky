@@ -1,5 +1,6 @@
 import styled from "@emotion/styled";
 import { ExternalLink } from "@styled-icons/evaicons-solid";
+import { Link as DefaultLink, useParams } from "@tanstack/react-router";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import {
   HeadingMedium,
@@ -11,7 +12,6 @@ import dayjs from "dayjs";
 import numeral from "numeral";
 import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
-import { Link as DefaultLink, useParams } from "react-router";
 import Disc from "../../components/Icons/Disc";
 import Shout from "../../components/Shout/Shout";
 import SongCover from "../../components/SongCover";
@@ -49,7 +49,7 @@ type Row = {
 
 const Album = () => {
   const { formatTime } = useTimeFormat();
-  const { did, rkey } = useParams<{ did: string; rkey: string }>();
+  const { did, rkey } = useParams({ strict: false });
   const { data, isLoading, isError } = useAlbumQuery(did!, rkey!);
 
   const [disc, setDisc] = useState(1);
@@ -140,7 +140,9 @@ const Album = () => {
                 {album.title}
               </HeadingMedium>
               {album.artistUri && (
-                <Link to={`/${album.artistUri.split("at://")[1]}`}>
+                <Link
+                  to={`/${album.artistUri.split("at://")[1].replace("app.rocksky.", "")}`}
+                >
                   <LabelLarge margin={0} className="!text-[var(--color-text)]">
                     {album.artist}
                   </LabelLarge>
@@ -261,7 +263,7 @@ const Album = () => {
                       <div>
                         {row.uri && (
                           <Link
-                            to={`/${row.uri.split("at://")[1]}`}
+                            to={`/${row.uri.split("at://")[1].replace("app.rocksky.", "")}`}
                             className="!text-[var(--color-text)]"
                           >
                             {row.title}
@@ -276,7 +278,7 @@ const Album = () => {
                       <div>
                         {row.artistUri && (
                           <Link
-                            to={`/${row.artistUri.split("at://")[1]}`}
+                            to={`/${row.artistUri.split("at://")[1].replace("app.rocksky.", "")}`}
                             className="!text-[var(--color-text-muted)]"
                           >
                             {row.albumArtist}
@@ -362,7 +364,7 @@ const Album = () => {
                             <div>
                               {row.uri && (
                                 <Link
-                                  to={`/${row.uri.split("at://")[1]}`}
+                                  to={`/${row.uri.split("at://")[1].replace("app.rocksky.", "")}`}
                                   className="!text-[var(--color-text)]"
                                 >
                                   {row.title}
@@ -377,7 +379,7 @@ const Album = () => {
                             <div>
                               {row.artistUri && (
                                 <Link
-                                  to={`/${row.artistUri.split("at://")[1]}`}
+                                  to={`/${row.artistUri.split("at://")[1].replace("app.rocksky.", "")}`}
                                   className="!text-[var(--color-text-muted)]"
                                 >
                                   {row.albumArtist}

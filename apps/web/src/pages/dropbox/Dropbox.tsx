@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Folder2, MusicNoteBeamed } from "@styled-icons/bootstrap";
+import { Link, useRouter } from "@tanstack/react-router";
 import { createColumnHelper } from "@tanstack/react-table";
 import { Breadcrumbs } from "baseui/breadcrumbs";
 import { HeadingMedium } from "baseui/typography";
@@ -7,7 +8,6 @@ import { useAtom } from "jotai";
 import _ from "lodash";
 import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
-import { Link, useLocation } from "react-router";
 import { dropboxAtom } from "../../atoms/dropbox";
 import Table from "../../components/Table";
 import { AUDIO_EXTENSIONS } from "../../consts";
@@ -35,7 +35,11 @@ const Dropbox = (props: DropboxProps) => {
 
   const { getFiles, getFile, getTemporaryLink } = useDropbox();
   const [loading, setLoading] = useState(true);
-  const { pathname } = useLocation();
+  const {
+    state: {
+      location: { pathname },
+    },
+  } = useRouter();
 
   const playFile = async (id: string) => {
     const { link } = await getTemporaryLink(id);
@@ -149,9 +153,8 @@ const Dropbox = (props: DropboxProps) => {
           <Breadcrumbs>
             {parent_dir && current_dir !== "Music" && (
               <Link
-                to={
-                  current_dir === "Music" ? `/dropbox` : `/dropbox/${parent_id}`
-                }
+                to={current_dir === "Music" ? `/dropbox` : `/dropbox/$id`}
+                params={{ id: parent_id }}
                 className="!text-[var(--color-text)]"
               >
                 {parent_dir}

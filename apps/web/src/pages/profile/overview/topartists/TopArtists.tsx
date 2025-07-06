@@ -1,12 +1,12 @@
 import { css } from "@emotion/react";
 import styled from "@emotion/styled";
+import { Link, useParams } from "@tanstack/react-router";
 import { Pagination } from "baseui/pagination";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import { HeadingSmall, HeadingXSmall, LabelSmall } from "baseui/typography";
 import { useAtomValue, useSetAtom } from "jotai";
 import numeral from "numeral";
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router";
 import { themeAtom } from "../../../../atoms/theme";
 import { topArtistsAtom } from "../../../../atoms/topArtists";
 import { userAtom } from "../../../../atoms/user";
@@ -47,7 +47,7 @@ function TopArtists(props: TopArtistsProps) {
   const setTopArtists = useSetAtom(topArtistsAtom);
   const topArtists = useAtomValue(topArtistsAtom);
   const { darkMode } = useAtomValue(themeAtom);
-  const { did } = useParams<{ did: string }>();
+  const { did } = useParams({ strict: false });
   const profileStats = useProfileStatsByDidQuery(did!);
   const [currentPage, setCurrentPage] = useState(1);
   const artistsResult = useArtistsQuery(did!, (currentPage - 1) * size, size);
@@ -158,7 +158,13 @@ function TopArtists(props: TopArtistsProps) {
                     : row.index + 1}
                 </div>
               </div>
-              <Link to={`/${row.uri?.split("at://")[1]}`}>
+              <Link
+                to="/$did/artist/$rkey"
+                params={{
+                  did: row.uri?.split("at://")[1]?.split("/")[0] || "",
+                  rkey: row.uri?.split("/").pop() || "",
+                }}
+              >
                 {!!row.picture && (
                   <img
                     src={row.picture}
@@ -177,7 +183,11 @@ function TopArtists(props: TopArtistsProps) {
               </Link>
               <div>
                 <Link
-                  to={`/${row.uri?.split("at://")[1]}`}
+                  to="/$did/artist/$rkey"
+                  params={{
+                    did: row.uri?.split("at://")[1]?.split("/")[0] || "",
+                    rkey: row.uri?.split("/").pop() || "",
+                  }}
                   className="no-underline !text-[var(--color-text)]"
                 >
                   {row.name}

@@ -1,6 +1,7 @@
 import styled from "@emotion/styled";
 import { Ellipsis } from "@styled-icons/fa-solid";
 import { ArrowReplyDown } from "@styled-icons/fluentui-system-filled";
+import { Link as DefaultLink } from "@tanstack/react-router";
 import { ListItem } from "baseui/list";
 import { NestedMenus, StatefulMenu } from "baseui/menu";
 import { PLACEMENT, StatefulPopover } from "baseui/popover";
@@ -9,7 +10,6 @@ import { LabelMedium } from "baseui/typography";
 import dayjs from "dayjs";
 import { useAtomValue } from "jotai";
 import { useState } from "react";
-import { Link as DefaultLink } from "react-router";
 import { profileAtom } from "../../../../atoms/profile";
 import useLike from "../../../../hooks/useLike";
 import useShout from "../../../../hooks/useShout";

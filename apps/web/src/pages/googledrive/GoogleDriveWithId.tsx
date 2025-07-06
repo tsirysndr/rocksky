@@ -1,8 +1,8 @@
-import { useParams } from "react-router";
+import { useParams } from "@tanstack/react-router";
 import GoogleDrive from "./GoogleDrive";
 
 function GoogleDriveWithId() {
-  const { id } = useParams<{ id: string }>();
+  const { id } = useParams({ strict: false });
   return <GoogleDrive fileId={id} />;
 }
 

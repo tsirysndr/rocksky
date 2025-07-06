@@ -1,11 +1,11 @@
 import styled from "@emotion/styled";
+import { useSearch } from "@tanstack/react-router";
 import { Button } from "baseui/button";
 import { Input } from "baseui/input";
 import { PLACEMENT, ToasterContainer } from "baseui/toast";
 import { LabelMedium } from "baseui/typography";
 import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
-import { useLocation } from "react-router";
 import { profileAtom } from "../atoms/profile";
 import ScrobblesAreaChart from "../components/ScrobblesAreaChart";
 import StickyPlayer from "../components/StickyPlayer";
@@ -69,15 +69,12 @@ function Main(props: MainProps) {
   const { children } = props;
   const withRightPane = props.withRightPane ?? true;
   const [handle, setHandle] = useState("");
-  const { search } = useLocation();
   const jwt = localStorage.getItem("token");
   const profile = useAtomValue(profileAtom);
   const [token, setToken] = useState<string | null>(null);
+  const { did, cli } = useSearch({ strict: false });
 
   useEffect(() => {
-    const query = new URLSearchParams(search);
-    const did = query.get("did");
-
     if (did && did !== "null") {
       localStorage.setItem("did", did);
 
@@ -93,7 +90,7 @@ function Main(props: MainProps) {
           localStorage.setItem("token", data.token);
           setToken(data.token);
 
-          if (query.get("cli")) {
+          if (cli) {
             await fetch("http://localhost:6996/token", {
               method: "POST",
               headers: {
@@ -113,7 +110,7 @@ function Main(props: MainProps) {
       fetchToken();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search]);
+  }, []);
 
   useProfile(token || localStorage.getItem("token"));
 

@@ -1,8 +1,8 @@
 import styled from "@emotion/styled";
+import { Link as DefaultLink } from "@tanstack/react-router";
 import { BlockProps } from "baseui/block";
 import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
 import { HeadingXSmall, LabelMedium, LabelSmall } from "baseui/typography";
-import { Link as DefaultLink } from "react-router";
 import SongCover from "../../../components/SongCover";
 
 const Link = styled(DefaultLink)`
@@ -50,13 +50,17 @@ function PopularAlbums(props: PopularAlbumsProps) {
           props.topAlbums.map((album: any) => (
             <FlexGridItem {...itemProps} key={album.id}>
               {album.uri && (
-                <Link to={`/${album.uri.split("at://")[1]}`}>
+                <Link
+                  to={`/${album.uri.split("at://")[1].replace("app.rocksky.", "")}`}
+                >
                   <SongCover cover={album.albumArt} size={230} />
                 </Link>
               )}
               {!album.uri && <SongCover cover={album.albumArt} size={230} />}
               {album.uri && (
-                <Link to={`/${album.uri.split("at://")[1]}`}>
+                <Link
+                  to={`/${album.uri.split("at://")[1].replace("app.rocksky.", "")}`}
+                >
                   <LabelMedium className="!text-[var(--color-text)]">
                     {album.title}
                   </LabelMedium>
@@ -64,7 +68,9 @@ function PopularAlbums(props: PopularAlbumsProps) {
               )}
               {!album.uri && <LabelMedium>{album.title}</LabelMedium>}
               {album.artistUri && (
-                <Link to={`/${album.artistUri.split("at://")[1]}`}>
+                <Link
+                  to={`/${album.artistUri.split("at://")[1].replace("app.rocksky.", "")}`}
+                >
                   <LabelSmall className="!text-[var(--color-text-muted)]">
                     {album.artist}
                   </LabelSmall>

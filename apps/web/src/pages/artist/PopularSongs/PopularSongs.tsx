@@ -1,7 +1,7 @@
 import styled from "@emotion/styled";
+import { Link as DefaultLink } from "@tanstack/react-router";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import { HeadingSmall } from "baseui/typography";
-import { Link as DefaultLink } from "react-router";
 
 const Link = styled(DefaultLink)`
   color: inherit;
@@ -94,7 +94,9 @@ function PopularSongs(props: PopularSongsProps) {
                 </div>
               </div>
               {row.albumUri && (
-                <Link to={`/${row.albumUri?.split("at://")[1]}`}>
+                <Link
+                  to={`/${row.albumUri?.split("at://")[1].replace("app.rocksky.", "")}`}
+                >
                   {!!row.albumArt && (
                     <img
                       src={row.albumArt}
@@ -123,14 +125,14 @@ function PopularSongs(props: PopularSongsProps) {
               )}
               <div className="flex flex-col">
                 <Link
-                  to={`/${row.uri?.split("at://")[1]}`}
+                  to={`/${row.uri?.split("at://")[1].replace("app.rocksky.", "")}`}
                   className="!text-[var(--color-text)]"
                 >
                   {row.title}
                 </Link>
                 {row.artistUri && (
                   <Link
-                    to={`/${row.artistUri?.split("at://")[1]}`}
+                    to={`/${row.artistUri?.split("at://")[1].replace("app.rocksky.", "")}`}
                     className="!text-[var(--color-text-muted)]"
                   >
                     {row.albumArtist}

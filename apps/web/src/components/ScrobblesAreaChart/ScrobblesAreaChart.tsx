@@ -1,8 +1,8 @@
+import { useParams, useRouter } from "@tanstack/react-router";
 import { LabelMedium } from "baseui/typography";
 import dayjs from "dayjs";
 import numeral from "numeral";
 import { useEffect, useState } from "react";
-import { useLocation, useParams } from "react-router";
 import { Area, AreaChart, Tooltip, TooltipProps, XAxis } from "recharts";
 import useChart from "../../hooks/useChart";
 
@@ -37,8 +37,12 @@ function ScrobblesAreaChart() {
     getSongChart,
     getProfileChart,
   } = useChart();
-  const { pathname } = useLocation();
-  const { did, rkey } = useParams<{ did: string; rkey: string }>();
+  const {
+    state: {
+      location: { pathname },
+    },
+  } = useRouter();
+  const { did, rkey } = useParams({ strict: false });
   const [data, setData] = useState<
     {
       date: string;

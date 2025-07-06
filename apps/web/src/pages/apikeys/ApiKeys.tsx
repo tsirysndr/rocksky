@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "@styled-icons/evaicons-solid";
 import { Copy, Trash } from "@styled-icons/ionicons-outline";
+import { useNavigate } from "@tanstack/react-router";
 import { Button } from "baseui/button";
 import { Input } from "baseui/input";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "baseui/modal";
@@ -11,7 +12,6 @@ import { HeadingMedium } from "baseui/typography";
 import copy from "copy-to-clipboard";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { useNavigate } from "react-router";
 import z from "zod";
 import {
   useApikeysQuery,
@@ -90,7 +90,7 @@ function ApiKeys() {
   };
 
   if (!jwt) {
-    navigate("/");
+    navigate({ to: "/" });
   }
 
   return (

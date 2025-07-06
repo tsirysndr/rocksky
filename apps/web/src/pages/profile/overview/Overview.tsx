@@ -1,6 +1,6 @@
+import { useParams } from "@tanstack/react-router";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect } from "react";
-import { useParams } from "react-router";
 import { statsAtom } from "../../../atoms/stats";
 import Stats from "../../../components/Stats/Stats";
 import { useProfileStatsByDidQuery } from "../../../hooks/useProfile";
@@ -10,7 +10,7 @@ import TopArtists from "./topartists";
 import TopTracks from "./toptracks";
 
 function Overview() {
-  const { did } = useParams<{ did: string }>();
+  const { did } = useParams({ strict: false });
   const profileStats = useProfileStatsByDidQuery(did!);
   const setStats = useSetAtom(statsAtom);
   const stats = useAtomValue(statsAtom);

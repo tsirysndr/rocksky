@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Folder2, MusicNoteBeamed } from "@styled-icons/bootstrap";
+import { Link, useRouter } from "@tanstack/react-router";
 import { createColumnHelper } from "@tanstack/react-table";
 import { Breadcrumbs } from "baseui/breadcrumbs";
 import { HeadingMedium } from "baseui/typography";
@@ -7,7 +8,6 @@ import { useAtom } from "jotai";
 import _ from "lodash";
 import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
-import { Link, useLocation } from "react-router";
 import googleDriveAtom from "../../atoms/googledrive";
 import Table from "../../components/Table";
 import { AUDIO_EXTENSIONS } from "../../consts";
@@ -32,7 +32,11 @@ const GoogleDrive = (props: GoogleDriveProps) => {
 
   const { getFiles, getFile } = useGoogleDrive();
   const [loading, setLoading] = useState(true);
-  const { pathname } = useLocation();
+  const {
+    state: {
+      location: { pathname },
+    },
+  } = useRouter();
 
   const columns = [
     columnHelper.accessor("name", {
@@ -146,10 +150,9 @@ const GoogleDrive = (props: GoogleDriveProps) => {
             {parent_dir && current_dir !== "Music" && (
               <Link
                 to={
-                  current_dir === "Music"
-                    ? `/googledrive`
-                    : `/googledrive/${parent_id}`
+                  current_dir === "Music" ? "/googledrive" : "/googledrive/$id"
                 }
+                params={{ id: parent_id || "/Music" }}
                 className="!text-[var(--color-text)]"
               >
                 {parent_dir}

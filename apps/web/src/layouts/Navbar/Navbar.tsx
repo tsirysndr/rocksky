@@ -1,6 +1,7 @@
 import styled from "@emotion/styled";
 import { Copy } from "@styled-icons/ionicons-outline";
 import { useQuery } from "@tanstack/react-query";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Avatar } from "baseui/avatar";
 import { Checkbox, LABEL_PLACEMENT, STYLE_TYPE } from "baseui/checkbox";
 import { NestedMenus, StatefulMenu } from "baseui/menu";
@@ -14,7 +15,6 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import numeral from "numeral";
 import * as R from "ramda";
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router";
 import { profileAtom } from "../../atoms/profile";
 import { themeAtom } from "../../atoms/theme";
 import { API_URL } from "../../consts";
@@ -120,7 +120,7 @@ function Navbar() {
                 <div className="flex items-center justify-center bg-[var(--color-background)] pl-[20px] pr-[20px]">
                   <div className="flex flex-col items-center">
                     <div className="mb-[5px]">
-                      <Link to={`/profile/${profile.handle}`}>
+                      <Link to="/profile/$did" params={{ did: profile.handle }}>
                         <Avatar
                           src={profile.avatar}
                           name={profile.displayName}
@@ -130,7 +130,8 @@ function Navbar() {
                     </div>
 
                     <Link
-                      to={`/profile/${profile.handle}`}
+                      to="/profile/$did"
+                      params={{ did: profile.handle }}
                       className="no-underline"
                     >
                       <LabelMedium className="text-center text-[20px] !text-[var(--color-text)]">
@@ -232,10 +233,15 @@ function Navbar() {
                   onItemSelect={({ item }) => {
                     switch (item.id) {
                       case "profile":
-                        navigate(`/profile/${profile.handle}`);
+                        navigate({
+                          to: "/profile/$did",
+                          params: { did: profile.handle },
+                        });
                         break;
                       case "api-applications":
-                        navigate("/apikeys");
+                        navigate({
+                          to: "/apikeys",
+                        });
                         break;
                       case "signout":
                         setProfile(null);

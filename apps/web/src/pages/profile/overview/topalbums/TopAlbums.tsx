@@ -1,10 +1,10 @@
 import styled from "@emotion/styled";
+import { Link as DefaultLink, useParams } from "@tanstack/react-router";
 import { BlockProps } from "baseui/block";
 import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
 import { HeadingSmall, LabelMedium, LabelSmall } from "baseui/typography";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect } from "react";
-import { Link as DefaultLink, useParams } from "react-router";
 import { topAlbumsAtom } from "../../../../atoms/topAlbums";
 import { userAtom } from "../../../../atoms/user";
 import SongCover from "../../../../components/SongCover";
@@ -27,7 +27,7 @@ const Link = styled(DefaultLink)`
 function TopAlbums() {
   const setTopAlbums = useSetAtom(topAlbumsAtom);
   const topAlbums = useAtomValue(topAlbumsAtom);
-  const { did } = useParams<{ did: string }>();
+  const { did } = useParams({ strict: false });
   const albumsResult = useAlbumsQuery(did!);
   const user = useAtomValue(userAtom);
 
@@ -75,16 +75,22 @@ function TopAlbums() {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             topAlbums.map((album: any) => (
               <FlexGridItem {...itemProps} key={album.id}>
-                <Link to={`/${album.uri?.split("at://")[1]}`}>
+                <Link
+                  to={`/${album.uri?.split("at://")[1].replace("app.rocksky.", "")}`}
+                >
                   <SongCover cover={album.albumArt} size={230} />
                 </Link>
-                <Link to={`/${album.uri?.split("at://")[1]}`}>
+                <Link
+                  to={`/${album.uri?.split("at://")[1].replace("app.rocksky.", "")}`}
+                >
                   <LabelMedium className="!text-[var(--color-text)]">
                     {album.title}
                   </LabelMedium>
                 </Link>
                 {album.artistUri && (
-                  <Link to={`/${album.artistUri.split("at://")[1]}`}>
+                  <Link
+                    to={`/${album.artistUri.split("at://")[1].replace("app.rocksky.", "")}`}
+                  >
                     <LabelSmall className="!text-[var(--color-text-muted)]">
                       {album.artist}
                     </LabelSmall>

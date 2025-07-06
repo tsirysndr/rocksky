@@ -1,5 +1,10 @@
 import styled from "@emotion/styled";
 import { ExternalLink } from "@styled-icons/evaicons-solid";
+import {
+  Link as DefaultLink,
+  useParams,
+  useRouter,
+} from "@tanstack/react-router";
 import { KIND, Tag } from "baseui/tag";
 import {
   HeadingMedium,
@@ -11,7 +16,6 @@ import { useAtomValue, useSetAtom } from "jotai";
 import numeral from "numeral";
 import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
-import { Link as DefaultLink, useParams } from "react-router";
 import { songAtom } from "../../atoms/song";
 import Disc from "../../components/Icons/Disc";
 import Shout from "../../components/Shout/Shout";
@@ -54,14 +58,19 @@ const ShowMore = styled.div`
 `;
 
 const Song = () => {
-  const { did, rkey } = useParams<{ did: string; rkey: string }>();
+  const { did, rkey } = useParams({ strict: false });
+  const {
+    state: {
+      location: { pathname },
+    },
+  } = useRouter();
 
   let uri = `at://${did}/app.rocksky.scrobble/${rkey}`;
 
-  if (window.location.pathname.includes("app.rocksky.song")) {
+  if (pathname.includes("/song/")) {
     uri = `at://${did}/app.rocksky.song/${rkey}`;
   }
-  if (window.location.pathname.includes("app.rocksky.scrobble")) {
+  if (pathname.includes("/scrobble/")) {
     uri = `at://${did}/app.rocksky.scrobble/${rkey}`;
   }
 
@@ -113,7 +122,7 @@ const Song = () => {
   };
 
   useEffect(() => {
-    if (!window.location.pathname.includes("app.rocksky.song")) {
+    if (!pathname.includes("/song/")) {
       return;
     }
 
@@ -130,7 +139,7 @@ const Song = () => {
   }, [songResult.data, songResult.isLoading, songResult.isError, did]);
 
   useEffect(() => {
-    if (!window.location.pathname.includes("app.rocksky.scrobble")) {
+    if (!pathname.includes("/scrobble/")) {
       return;
     }
 
@@ -164,6 +173,7 @@ const Song = () => {
         albumArt: x.albumArt,
         uri: x.uri,
         artistUri: x.artistUri,
+        albumUri: x.albumUri,
         scrobbles: x.playCount,
       }))
     );
@@ -212,7 +222,9 @@ const Song = () => {
           <>
             <Group>
               {song?.albumUri && (
-                <Link to={`/${song.albumUri.split("at://")[1]}`}>
+                <Link
+                  to={`/${song.albumUri.split("at://")[1].replace("app.rocksky.", "")}`}
+                >
                   {song.cover && <SongCover cover={song?.cover} size={150} />}
                   {!song.cover && (
                     <div className="w-[150px] h-[150px] mr-[12px] rounded-[8px] bg-[rgba(243, 243, 243, 0.725)] flex justify-center items-center">
@@ -240,7 +252,9 @@ const Song = () => {
                   {song?.title}
                 </HeadingMedium>
                 {song?.artistUri && (
-                  <Link to={`/${song.artistUri.split("at://")[1]}`}>
+                  <Link
+                    to={`/${song.artistUri.split("at://")[1].replace("app.rocksky.", "")}`}
+                  >
                     <LabelLarge
                       margin={0}
                       className="!text-[var(--color-text)]"

@@ -1,12 +1,12 @@
 import { css } from "@emotion/react";
 import styled from "@emotion/styled";
+import { Link as DefaultLink, useParams } from "@tanstack/react-router";
 import { Pagination } from "baseui/pagination";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import { HeadingSmall, HeadingXSmall, LabelSmall } from "baseui/typography";
 import { useAtomValue, useSetAtom } from "jotai";
 import numeral from "numeral";
 import { useEffect, useMemo, useState } from "react";
-import { Link as DefaultLink, useParams } from "react-router";
 import { themeAtom } from "../../../../atoms/theme";
 import { topTracksAtom } from "../../../../atoms/topTracks";
 import { userAtom } from "../../../../atoms/user";
@@ -63,7 +63,7 @@ function TopTracks(props: TopTracksProps) {
   const setTopTracks = useSetAtom(topTracksAtom);
   const topTracks = useAtomValue(topTracksAtom);
   const { darkMode } = useAtomValue(themeAtom);
-  const { did } = useParams<{ did: string }>();
+  const { did } = useParams({ strict: false });
   const profileStats = useProfileStatsByDidQuery(did!);
   const [currentPage, setCurrentPage] = useState(1);
   const tracksResult = useTracksQuery(
@@ -181,7 +181,9 @@ function TopTracks(props: TopTracksProps) {
                 </div>
               </div>
               {row.albumUri && (
-                <Link to={`/${row.albumUri?.split("at://")[1]}`}>
+                <Link
+                  to={`/${row.albumUri?.split("at://")[1].replace("app.rocksky.", "")}`}
+                >
                   {!!row.albumArt && (
                     <img
                       src={row.albumArt}
@@ -212,14 +214,14 @@ function TopTracks(props: TopTracksProps) {
               )}
               <div className="flex flex-col">
                 <Link
-                  to={`/${row.uri?.split("at://")[1]}`}
+                  to={`/${row.uri?.split("at://")[1]?.replace("app.rocksky.", "")}`}
                   className="!text-[var(--color-text)]"
                 >
                   {row.title}
                 </Link>
                 {row.artistUri && (
                   <Link
-                    to={`/${row.artistUri?.split("at://")[1]}`}
+                    to={`/${row.artistUri?.split("at://")[1]?.replace("app.rocksky.", "")}`}
                     className="!text-[var(--color-text-muted)]"
                   >
                     {row.albumArtist}

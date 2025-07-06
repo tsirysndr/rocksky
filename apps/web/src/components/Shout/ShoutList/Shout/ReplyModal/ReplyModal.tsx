@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import styled from "@emotion/styled";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Link as DefaultLink, useParams } from "@tanstack/react-router";
 import {
   Modal,
   ModalBody,
@@ -14,7 +15,6 @@ import { LabelMedium } from "baseui/typography";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Link as DefaultLink, useParams } from "react-router";
 import z from "zod";
 import { profileAtom } from "../../../../../atoms/profile";
 import { shoutsAtom } from "../../../../../atoms/shouts";
@@ -67,7 +67,7 @@ function ReplyModal(props: ReplyModalProps) {
   const profile = useAtomValue(profileAtom);
   const shouts = useAtomValue(shoutsAtom);
   const setShouts = useSetAtom(shoutsAtom);
-  const { did, rkey } = useParams<{ did: string; rkey: string }>();
+  const { did, rkey } = useParams({ strict: false });
   const [loading, setLoading] = useState(false);
 
   const { control, handleSubmit, reset, watch } = useForm<
@@ -98,19 +98,19 @@ function ReplyModal(props: ReplyModalProps) {
       uri = `at://${did}`;
     }
 
-    if (location.pathname.includes("app.rocksky.scrobble")) {
+    if (location.pathname.includes("/scrobble/")) {
       uri = `at://${did}/app.rocksky.scrobble/${rkey}`;
     }
 
-    if (location.pathname.includes("app.rocksky.song")) {
+    if (location.pathname.includes("/song/")) {
       uri = `at://${did}/app.rocksky.song/${rkey}`;
     }
 
-    if (location.pathname.includes("app.rocksky.album")) {
+    if (location.pathname.includes("/album/")) {
       uri = `at://${did}/app.rocksky.album/${rkey}`;
     }
 
-    if (location.pathname.includes("app.rocksky.artist")) {
+    if (location.pathname.includes("/artist/")) {
       uri = `at://${did}/app.rocksky.artist/${rkey}`;
     }
 

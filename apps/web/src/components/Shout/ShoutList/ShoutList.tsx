@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { useParams, useRouter } from "@tanstack/react-router";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect } from "react";
-import { useLocation, useParams } from "react-router";
 import { shoutsAtom } from "../../../atoms/shouts";
 import useShout from "../../../hooks/useShout";
 import Shout from "./Shout";
@@ -9,9 +9,13 @@ import Shout from "./Shout";
 function ShoutList() {
   const shouts = useAtomValue(shoutsAtom);
   const setShouts = useSetAtom(shoutsAtom);
-  const { pathname } = useLocation();
+  const {
+    state: {
+      location: { pathname },
+    },
+  } = useRouter();
   const { getShouts } = useShout();
-  const { did, rkey } = useParams<{ did: string; rkey: string }>();
+  const { did, rkey } = useParams({ strict: false });
 
   useEffect(() => {
     fetchShouts();
@@ -34,19 +38,19 @@ function ShoutList() {
       return;
     }
 
-    if (pathname.includes("app.rocksky.scrobble")) {
+    if (pathname.includes("/scrobble/")) {
       uri = `at://${did}/app.rocksky.scrobble/${rkey}`;
     }
 
-    if (pathname.includes("app.rocksky.song")) {
+    if (pathname.includes("/song/")) {
       uri = `at://${did}/app.rocksky.song/${rkey}`;
     }
 
-    if (pathname.includes("app.rocksky.album")) {
+    if (pathname.includes("/album/")) {
       uri = `at://${did}/app.rocksky.album/${rkey}`;
     }
 
-    if (pathname.includes("app.rocksky.artist")) {
+    if (pathname.includes("/artist/")) {
       uri = `at://${did}/app.rocksky.artist/${rkey}`;
     }
 

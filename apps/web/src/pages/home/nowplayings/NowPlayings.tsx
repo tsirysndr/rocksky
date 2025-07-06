@@ -1,5 +1,6 @@
 import styled from "@emotion/styled";
 import { ChevronLeft, ChevronRight } from "@styled-icons/evaicons-solid";
+import { Link as DefaultLink } from "@tanstack/react-router";
 import { Modal, ModalBody, ModalHeader, ROLE } from "baseui/modal";
 import { ProgressBar } from "baseui/progress-bar";
 import { StatefulTooltip } from "baseui/tooltip";
@@ -7,7 +8,6 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import utc from "dayjs/plugin/utc";
 import { useEffect, useState } from "react";
-import { Link as DefaultLink } from "react-router";
 import { useNowPlayingsQuery } from "../../../hooks/useNowPlaying";
 import styles from "./styles";
 

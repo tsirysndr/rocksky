@@ -1,8 +1,8 @@
 import styled from "@emotion/styled";
+import { Link as DefaultLink } from "@tanstack/react-router";
 import { ProgressBar } from "baseui/progress-bar";
 import { LabelSmall } from "baseui/typography";
 import { useRef } from "react";
-import { Link as DefaultLink } from "react-router-dom";
 import { useTimeFormat } from "../../hooks/useFormat";
 import Equalizer from "../Icons/Equalizer";
 import Heart from "../Icons/Heart";
@@ -135,7 +135,9 @@ function StickyPlayer(props: StickyPlayerProps) {
       <MiniPlayerWrapper>
         <MiniPlayer className="!bg-[var(--color-background)]">
           {nowPlaying?.albumUri && (
-            <Link to={`/${nowPlaying.albumUri.split("at://")[1]}`}>
+            <Link
+              to={`/${nowPlaying.albumUri.split("at://")[1].replace("app.rocksky.", "")}`}
+            >
               <Cover src={nowPlaying?.albumArt} key={nowPlaying.albumUri} />
             </Link>
           )}
@@ -146,7 +148,7 @@ function StickyPlayer(props: StickyPlayerProps) {
             <div className="max-w-[310px] text-ellipsis overflow-hidden">
               {!!nowPlaying?.songUri && (
                 <Link
-                  to={`/${nowPlaying?.songUri?.split("at://")[1]}`}
+                  to={`/${nowPlaying?.songUri?.split("at://")[1].replace("app.rocksky.", "")}`}
                   style={{
                     fontWeight: 600,
                   }}
@@ -169,7 +171,7 @@ function StickyPlayer(props: StickyPlayerProps) {
             <div className="max-w-[310px] overflow-hidden text-ellipsis">
               {!!nowPlaying?.artistUri && (
                 <Link
-                  to={`/${nowPlaying?.artistUri?.split("at://")[1]}`}
+                  to={`/${nowPlaying?.artistUri?.split("at://")[1].replace("app.rocksky.", "")}`}
                   style={{
                     fontFamily: "RockfordSansLight",
                     fontWeight: 600,

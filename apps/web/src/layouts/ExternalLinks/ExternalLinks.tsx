@@ -1,8 +1,8 @@
 import styled from "@emotion/styled";
 import { Spotify } from "@styled-icons/boxicons-logos";
+import { useRouter } from "@tanstack/react-router";
 import { LabelLarge } from "baseui/typography";
 import { useAtomValue } from "jotai";
-import { useLocation } from "react-router";
 import { songAtom } from "../../atoms/song";
 
 const Link = styled.a`
@@ -15,8 +15,11 @@ const Link = styled.a`
 
 function ExternalLinks() {
   const song = useAtomValue(songAtom);
-  const location = useLocation();
-  const { pathname } = location;
+  const {
+    state: {
+      location: { pathname },
+    },
+  } = useRouter();
   const display =
     pathname.includes("app.rocksky.scrobble") ||
     pathname.includes("app.rocksky.song");

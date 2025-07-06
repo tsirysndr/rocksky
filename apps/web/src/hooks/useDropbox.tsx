@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
+import { client } from "../api";
 import { getFile, getFiles, getTemporaryLink } from "../api/dropbox";
-import { API_URL } from "../consts";
 
 export const useFilesQuery = (id?: string) =>
   useQuery({
@@ -23,7 +22,7 @@ export const useTemporaryLinkQuery = (id: string) =>
 
 function useDropbox() {
   const getFiles = async (id?: string) => {
-    const response = await axios.get<{
+    const response = await client.get<{
       cursor: string;
       entries: {
         ".tag": string;
@@ -32,7 +31,7 @@ function useDropbox() {
         path_display: string;
       }[];
       has_more: boolean;
-    }>(`${API_URL}/dropbox/files`, {
+    }>(`/dropbox/files`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
@@ -44,12 +43,12 @@ function useDropbox() {
   };
 
   const getFile = async (id: string) => {
-    const response = await axios.get<{
+    const response = await client.get<{
       ".tag": string;
       id: string;
       name: string;
       path_display: string;
-    }>(`${API_URL}/dropbox/file`, {
+    }>(`/dropbox/file`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
@@ -61,9 +60,9 @@ function useDropbox() {
   };
 
   const getTemporaryLink = async (id: string) => {
-    const response = await axios.get<{
+    const response = await client.get<{
       link: string;
-    }>(`${API_URL}/dropbox/temporary-link`, {
+    }>(`/dropbox/temporary-link`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },

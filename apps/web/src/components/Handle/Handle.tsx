@@ -1,10 +1,10 @@
+import { Link } from "@tanstack/react-router";
 import { Avatar } from "baseui/avatar";
 import { Block } from "baseui/block";
 import { StatefulPopover, TRIGGER_TYPE } from "baseui/popover";
 import { LabelMedium, LabelSmall } from "baseui/typography";
 import { useAtom } from "jotai";
 import { useEffect } from "react";
-import { Link } from "react-router";
 import { profilesAtom } from "../../atoms/profiles";
 import { statsAtom } from "../../atoms/stats";
 import {

@@ -1,12 +1,12 @@
 import styled from "@emotion/styled";
 import { ExternalLink } from "@styled-icons/evaicons-solid";
+import { useParams, useSearch } from "@tanstack/react-router";
 import { Avatar } from "baseui/avatar";
 import { Tab, Tabs } from "baseui/tabs-motion";
 import { HeadingMedium, LabelLarge } from "baseui/typography";
 import dayjs from "dayjs";
 import { useAtom, useSetAtom } from "jotai";
 import { Key, useEffect, useState } from "react";
-import { useParams, useSearchParams } from "react-router";
 import { profilesAtom } from "../../atoms/profiles";
 import { userAtom } from "../../atoms/user";
 import Shout from "../../components/Shout/Shout";
@@ -27,20 +27,18 @@ const Group = styled.div`
 function Profile() {
   const [profiles, setProfiles] = useAtom(profilesAtom);
   const [activeKey, setActiveKey] = useState<Key>("0");
-  const { did } = useParams<{ did: string }>();
+  const { did } = useParams({ strict: false });
   const profile = useProfileByDidQuery(did!);
   const setUser = useSetAtom(userAtom);
-  const [searchParams] = useSearchParams();
+  const { tab } = useSearch({ strict: false });
 
   useEffect(() => {
-    const tab = searchParams.get("tab");
-
     if (!tab) {
       return;
     }
 
     setActiveKey(1);
-  }, [searchParams]);
+  }, [tab]);
 
   useEffect(() => {
     if (profile.isLoading || profile.isError) {

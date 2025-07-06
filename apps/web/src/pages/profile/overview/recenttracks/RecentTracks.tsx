@@ -1,5 +1,6 @@
 import { css } from "@emotion/react";
 import styled from "@emotion/styled";
+import { Link as DefaultLink, useParams } from "@tanstack/react-router";
 import { Pagination } from "baseui/pagination";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import { StatefulTooltip } from "baseui/tooltip";
@@ -8,7 +9,6 @@ import dayjs from "dayjs";
 import { useAtomValue, useSetAtom } from "jotai";
 import numeral from "numeral";
 import { useEffect, useMemo, useState } from "react";
-import { Link as DefaultLink, useParams } from "react-router";
 import { recentTracksAtom } from "../../../../atoms/recentTracks";
 import { userAtom } from "../../../../atoms/user";
 import {
@@ -63,7 +63,7 @@ function RecentTracks(props: RecentTracksProps) {
     size: 10,
     ...props,
   };
-  const { did } = useParams<{ did: string }>();
+  const { did } = useParams({ strict: false });
   const profileStats = useProfileStatsByDidQuery(did!);
   const [currentPage, setCurrentPage] = useState(1);
   const recentTracksResult = useRecentTracksByDidQuery(
@@ -197,7 +197,9 @@ function RecentTracks(props: RecentTracksProps) {
         <TableBuilderColumn header="Title">
           {(row: Row) => (
             <div className="flex flex-row items-center">
-              <Link to={`/${row.albumUri?.split("at://")[1]}`}>
+              <Link
+                to={`/${row.albumUri?.split("at://")[1].replace("app.rocksky.", "")}`}
+              >
                 <img
                   src={row.albumArt}
                   alt={row.title}
@@ -207,7 +209,7 @@ function RecentTracks(props: RecentTracksProps) {
               </Link>
               <div>
                 <Link
-                  to={`/${row.uri?.split("at://")[1]}`}
+                  to={`/${row.uri?.split("at://")[1].replace("app.rocksky.", "")}`}
                   className="!text-[var(--color-text)]"
                 >
                   {row.title}
@@ -219,7 +221,7 @@ function RecentTracks(props: RecentTracksProps) {
         <TableBuilderColumn header="Artist">
           {(row: Row) => (
             <Link
-              to={`/${row.artistUri?.split("at://")[1]}`}
+              to={`/${row.artistUri?.split("at://")[1].replace("app.rocksky.", "")}`}
               style={{ fontFamily: "RockfordSansLight" }}
               className="!text-[var(--color-text)]"
             >

@@ -1,8 +1,8 @@
 import styled from "@emotion/styled";
+import { useNavigate } from "@tanstack/react-router";
 import { LabelMedium } from "baseui/typography";
 import { useAtomValue } from "jotai";
 import { useState } from "react";
-import { useNavigate } from "react-router";
 import { profileAtom } from "../../atoms/profile";
 import Dropbox from "../../components/Icons/Dropbox";
 import GoogleDrive from "../../components/Icons/GoogleDrive";
@@ -35,7 +35,7 @@ function CloudDrive() {
     }
 
     if (profile?.googledriveUser?.isBeta) {
-      navigate("/googledrive");
+      navigate({ to: "/googledrive" });
       return;
     }
 
@@ -62,7 +62,7 @@ function CloudDrive() {
     }
 
     if (profile?.dropboxUser?.isBeta) {
-      navigate("/dropbox");
+      navigate({ to: "/dropbox" });
       return;
     }
 

@@ -1,12 +1,11 @@
 import styled from "@emotion/styled";
 import { ExternalLink } from "@styled-icons/evaicons-solid";
+import { Link as DefaultLink, useParams } from "@tanstack/react-router";
 import { Avatar } from "baseui/avatar";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import { HeadingMedium, LabelMedium } from "baseui/typography";
 import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
-import { useParams } from "react-router";
-import { Link as DefaultLink } from "react-router-dom";
 import Disc from "../../components/Icons/Disc";
 import SongCover from "../../components/SongCover";
 import { useTimeFormat } from "../../hooks/useFormat";
@@ -43,7 +42,7 @@ type Row = {
 };
 
 function Playlist() {
-  const { did, rkey } = useParams<{ did: string; rkey: string }>();
+  const { did, rkey } = useParams({ strict: false });
   const { formatTime } = useTimeFormat();
   const [playlist, setPlaylist] = useState<{
     id: string;
@@ -252,7 +251,7 @@ function Playlist() {
                       <div>
                         {row.uri && (
                           <Link
-                            to={`/${row.uri.split("at://")[1]}`}
+                            to={`/${row.uri.split("at://")[1].replace("app.rocksky.", "")}`}
                             className="!text-[var(--color-text)]"
                           >
                             {row.title}
@@ -267,7 +266,7 @@ function Playlist() {
                       <div>
                         {row.artistUri && (
                           <Link
-                            to={`/${row.artistUri.split("at://")[1]}`}
+                            to={`/${row.artistUri.split("at://")[1].replace("app.rocksky.", "")}`}
                             className="!text-[var(--color-text-muted)]"
                           >
                             {row.albumArtist}

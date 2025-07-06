@@ -1,12 +1,12 @@
 import { css } from "@emotion/react";
 import styled from "@emotion/styled";
+import { Link as DefaultLink, useParams } from "@tanstack/react-router";
 import { Pagination } from "baseui/pagination";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import { HeadingXSmall, LabelSmall } from "baseui/typography";
 import { useAtomValue, useSetAtom } from "jotai";
 import numeral from "numeral";
 import { useEffect, useMemo, useState } from "react";
-import { Link as DefaultLink, useParams } from "react-router";
 import { themeAtom } from "../../../../atoms/theme";
 import { topAlbumsAtom } from "../../../../atoms/topAlbums";
 import { userAtom } from "../../../../atoms/user";
@@ -55,7 +55,7 @@ function Albums(props: AlbumsProps) {
   const setTopAlbums = useSetAtom(topAlbumsAtom);
   const topAlbums = useAtomValue(topAlbumsAtom);
   const { darkMode } = useAtomValue(themeAtom);
-  const { did } = useParams<{ did: string }>();
+  const { did } = useParams({ strict: false });
   const profileStats = useProfileStatsByDidQuery(did!);
   const [currentPage, setCurrentPage] = useState(1);
   const albumsResult = useAlbumsQuery(did!, (currentPage - 1) * size, size);
@@ -158,7 +158,9 @@ function Albums(props: AlbumsProps) {
                 </div>
               </div>
               {row.uri && (
-                <Link to={`/${row.uri?.split("at://")[1]}`}>
+                <Link
+                  to={`/${row.uri?.split("at://")[1].replace("app.rocksky.", "")}`}
+                >
                   {!!row.albumArt && (
                     <img
                       src={row.albumArt}
@@ -187,14 +189,14 @@ function Albums(props: AlbumsProps) {
               )}
               <div className="flex flex-col">
                 <Link
-                  to={`/${row.uri?.split("at://")[1]}`}
+                  to={`/${row.uri?.split("at://")[1].replace("app.rocksky.", "")}`}
                   className="!text-[var(--color-text)]"
                 >
                   {row.title}
                 </Link>
                 {row.artistUri && (
                   <Link
-                    to={`/${row.artistUri?.split("at://")[1]}`}
+                    to={`/${row.artistUri?.split("at://")[1].replace("app.rocksky.", "")}`}
                     className="!text-[var(--color-text-muted)]"
                   >
                     {row.artist}

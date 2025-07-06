@@ -1,7 +1,7 @@
 import styled from "@emotion/styled";
+import { Link as DefaultLink } from "@tanstack/react-router";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import { HeadingXSmall, LabelMedium } from "baseui/typography";
-import { Link as DefaultLink } from "react-router";
 
 const Link = styled(DefaultLink)`
   color: inherit;
@@ -99,42 +99,25 @@ function PopularTracks(props: PopularTracksProps) {
       >
         <TableBuilderColumn header="Name">
           {(row: Row) => (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "center",
-              }}
-            >
+            <div className="flex flex-row items-center">
               <div>
                 <div className="!text-[var(--color-text)] mr-[20px]">
                   {row.index + 1}
                 </div>
               </div>
               {row.albumUri && (
-                <Link to={`/${row.albumUri?.split("at://")[1]}`}>
+                <Link
+                  to={`/${row.albumUri?.split("at://")[1].replace("app.rocksky.", "")}`}
+                >
                   {!!row.albumArt && (
                     <img
                       src={row.albumArt}
                       alt={row.title}
-                      style={{
-                        width: 60,
-                        height: 60,
-                        marginRight: 20,
-                        borderRadius: 5,
-                      }}
+                      className="w-[60px] h-[60px] mr-[20px] rounded-[5px]"
                     />
                   )}
                   {!row.albumArt && (
-                    <div
-                      style={{
-                        width: 60,
-                        height: 60,
-                        marginRight: 20,
-                        borderRadius: 5,
-                        backgroundColor: "rgba(243, 243, 243, 0.725)",
-                      }}
-                    />
+                    <div className="w-[60px] h-[60px] rounded-[5px] mr-[20px] bg-[rgba(243, 243, 243, 0.725)]" />
                   )}
                 </Link>
               )}
@@ -144,37 +127,24 @@ function PopularTracks(props: PopularTracksProps) {
                     <img
                       src={row.albumArt}
                       alt={row.title}
-                      style={{
-                        width: 60,
-                        height: 60,
-                        marginRight: 20,
-                        borderRadius: 5,
-                      }}
+                      className="w-[60px] h-[60px] mr-[20px] rounded-[5px]"
                     />
                   )}
                   {!row.albumArt && (
-                    <div
-                      style={{
-                        width: 60,
-                        height: 60,
-                        marginRight: 20,
-                        borderRadius: 5,
-                        backgroundColor: "rgba(243, 243, 243, 0.725)",
-                      }}
-                    />
+                    <div className="w-[60px] h-[60px] rounded-[5px] bg-[rgba(243, 243, 243, 0.725)]" />
                   )}
                 </div>
               )}
               <div className="flex flex-col">
                 <Link
-                  to={`/${row.uri?.split("at://")[1]}`}
+                  to={`/${row.uri?.split("at://")[1].replace("app.rocksky.", "")}`}
                   className="!text-[var(--color-text)]"
                 >
                   {row.title}
                 </Link>
                 {row.artistUri && (
                   <Link
-                    to={`/${row.artistUri?.split("at://")[1]}`}
+                    to={`/${row.artistUri?.split("at://")[1].replace("app.rocksky.", "")}`}
                     className="!text-[var(--color-text-muted)]"
                   >
                     {row.albumArtist}

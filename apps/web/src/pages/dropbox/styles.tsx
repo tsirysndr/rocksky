@@ -1,5 +1,5 @@
 import styled from "@emotion/styled";
-import { Link } from "react-router";
+import { Link } from "@tanstack/react-router";
 
 export const Directory = styled(Link)`
   color: var(--color-text) !important;

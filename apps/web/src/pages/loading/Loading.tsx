@@ -1,19 +1,16 @@
+import { useSearch } from "@tanstack/react-router";
 import { Spinner } from "baseui/spinner";
 import { useEffect } from "react";
-import { useLocation } from "react-router";
 import { API_URL } from "../../consts";
 
 function Loading() {
-  const { search } = useLocation();
+  const { handle } = useSearch({ strict: false });
 
   useEffect(() => {
-    const query = new URLSearchParams(search);
-    const handle = query.get("handle");
-
     if (handle) {
       window.location.href = `${API_URL}/login?handle=${handle}`;
     }
-  }, [search]);
+  }, [handle]);
 
   return (
     <div className="flex justify-center items-center h-screen bg-[#fff] fixed top-0 left-0 w-full">

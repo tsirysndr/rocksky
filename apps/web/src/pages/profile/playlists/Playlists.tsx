@@ -1,10 +1,10 @@
 import styled from "@emotion/styled";
+import { Link as DefaultLink, useParams } from "@tanstack/react-router";
 import { BlockProps } from "baseui/block";
 import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
 import { HeadingSmall, LabelMedium, LabelSmall } from "baseui/typography";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect } from "react";
-import { Link as DefaultLink, useParams } from "react-router";
 import { playlistsAtom } from "../../../atoms/playlists";
 import SongCover from "../../../components/SongCover";
 import { usePlaylistsQuery } from "../../../hooks/usePlaylists";
@@ -24,7 +24,7 @@ const Link = styled(DefaultLink)`
 `;
 
 function Playlists() {
-  const { did } = useParams<{ did: string }>();
+  const { did } = useParams({ strict: false });
   const playlists = useAtomValue(playlistsAtom);
   const setPlaylists = useSetAtom(playlistsAtom);
   const playlistsData = usePlaylistsQuery(did!);
@@ -58,10 +58,14 @@ function Playlists() {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             playlists.map((playlist: any) => (
               <FlexGridItem {...itemProps} key={playlist.id}>
-                <Link to={`/${playlist.uri?.split("at://")[1]}`}>
+                <Link
+                  to={`/${playlist.uri?.split("at://")[1].replace("app.rocksky.", "")}`}
+                >
                   <SongCover cover={playlist?.picture} />
                 </Link>
-                <Link to={`/${playlist.uri?.split("at://")[1]}`}>
+                <Link
+                  to={`/${playlist.uri?.split("at://")[1].replace("app.rocksky.", "")}`}
+                >
                   <LabelMedium className="!text-[var(--color-text)]">
                     {playlist.name}
                   </LabelMedium>

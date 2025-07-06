@@ -1,11 +1,11 @@
 import styled from "@emotion/styled";
 import { ExternalLink } from "@styled-icons/evaicons-solid";
+import { useParams } from "@tanstack/react-router";
 import { Avatar } from "baseui/avatar";
 import { HeadingMedium, HeadingXSmall, LabelMedium } from "baseui/typography";
 import { useAtomValue, useSetAtom } from "jotai";
 import numeral from "numeral";
 import { useEffect, useState } from "react";
-import { useParams } from "react-router";
 import { artistAtom } from "../../atoms/artist";
 import ArtistIcon from "../../components/Icons/Artist";
 import Shout from "../../components/Shout/Shout";
@@ -26,7 +26,7 @@ const Group = styled.div`
 `;
 
 const Artist = () => {
-  const { did, rkey } = useParams<{ did: string; rkey: string }>();
+  const { did, rkey } = useParams({ strict: false });
 
   const uri = `at://${did}/app.rocksky.artist/${rkey}`;
   const artistResult = useArtistQuery(did!, rkey!);
