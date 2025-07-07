@@ -2,8 +2,7 @@ import { useParams } from "@tanstack/react-router";
 import Dropbox from "./Dropbox";
 
 function DropboxWithId() {
-  const { id } = useParams({ strict: false });
-  console.log(">> id", id);
+  const { id } = useParams({ from: "/dropbox/$id" });
   return <Dropbox fileId={id} />;
 }
 

@@ -154,7 +154,7 @@ const Dropbox = (props: DropboxProps) => {
             {parent_dir && current_dir !== "Music" && (
               <Link
                 to={current_dir === "Music" ? `/dropbox` : `/dropbox/$id`}
-                params={{ id: parent_id }}
+                params={{ id: parent_id! }}
                 className="!text-[var(--color-text)]"
               >
                 {parent_dir}

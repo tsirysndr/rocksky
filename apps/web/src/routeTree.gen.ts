@@ -11,13 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ScrobbleRouteImport } from './routes/scrobble'
 import { Route as LoadingRouteImport } from './routes/loading'
-import { Route as GoogledriveRouteImport } from './routes/googledrive'
-import { Route as DropboxRouteImport } from './routes/dropbox'
 import { Route as ApikeysRouteImport } from './routes/apikeys'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as GoogledriveIndexRouteImport } from './routes/googledrive/index'
+import { Route as DropboxIndexRouteImport } from './routes/dropbox/index'
 import { Route as ProfileDidRouteImport } from './routes/profile.$did'
-import { Route as GoogledriveIdRouteImport } from './routes/googledrive.$id'
-import { Route as DropboxIdRouteImport } from './routes/dropbox.$id'
+import { Route as GoogledriveIdRouteImport } from './routes/googledrive/$id'
+import { Route as DropboxIdRouteImport } from './routes/dropbox/$id'
 import { Route as DidSongRkeyRouteImport } from './routes/$did.song.$rkey'
 import { Route as DidScrobbleRkeyRouteImport } from './routes/$did.scrobble.$rkey'
 import { Route as DidPlaylistRkeyRouteImport } from './routes/$did.playlist.$rkey'
@@ -34,16 +34,6 @@ const LoadingRoute = LoadingRouteImport.update({
   path: '/loading',
   getParentRoute: () => rootRouteImport,
 } as any)
-const GoogledriveRoute = GoogledriveRouteImport.update({
-  id: '/googledrive',
-  path: '/googledrive',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DropboxRoute = DropboxRouteImport.update({
-  id: '/dropbox',
-  path: '/dropbox',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApikeysRoute = ApikeysRouteImport.update({
   id: '/apikeys',
   path: '/apikeys',
@@ -54,20 +44,30 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GoogledriveIndexRoute = GoogledriveIndexRouteImport.update({
+  id: '/googledrive/',
+  path: '/googledrive/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DropboxIndexRoute = DropboxIndexRouteImport.update({
+  id: '/dropbox/',
+  path: '/dropbox/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProfileDidRoute = ProfileDidRouteImport.update({
   id: '/profile/$did',
   path: '/profile/$did',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GoogledriveIdRoute = GoogledriveIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => GoogledriveRoute,
+  id: '/googledrive/$id',
+  path: '/googledrive/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const DropboxIdRoute = DropboxIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => DropboxRoute,
+  id: '/dropbox/$id',
+  path: '/dropbox/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const DidSongRkeyRoute = DidSongRkeyRouteImport.update({
   id: '/$did/song/$rkey',
@@ -98,13 +98,13 @@ const DidAlbumRkeyRoute = DidAlbumRkeyRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/apikeys': typeof ApikeysRoute
-  '/dropbox': typeof DropboxRouteWithChildren
-  '/googledrive': typeof GoogledriveRouteWithChildren
   '/loading': typeof LoadingRoute
   '/scrobble': typeof ScrobbleRoute
   '/dropbox/$id': typeof DropboxIdRoute
   '/googledrive/$id': typeof GoogledriveIdRoute
   '/profile/$did': typeof ProfileDidRoute
+  '/dropbox': typeof DropboxIndexRoute
+  '/googledrive': typeof GoogledriveIndexRoute
   '/$did/album/$rkey': typeof DidAlbumRkeyRoute
   '/$did/artist/$rkey': typeof DidArtistRkeyRoute
   '/$did/playlist/$rkey': typeof DidPlaylistRkeyRoute
@@ -114,13 +114,13 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/apikeys': typeof ApikeysRoute
-  '/dropbox': typeof DropboxRouteWithChildren
-  '/googledrive': typeof GoogledriveRouteWithChildren
   '/loading': typeof LoadingRoute
   '/scrobble': typeof ScrobbleRoute
   '/dropbox/$id': typeof DropboxIdRoute
   '/googledrive/$id': typeof GoogledriveIdRoute
   '/profile/$did': typeof ProfileDidRoute
+  '/dropbox': typeof DropboxIndexRoute
+  '/googledrive': typeof GoogledriveIndexRoute
   '/$did/album/$rkey': typeof DidAlbumRkeyRoute
   '/$did/artist/$rkey': typeof DidArtistRkeyRoute
   '/$did/playlist/$rkey': typeof DidPlaylistRkeyRoute
@@ -131,13 +131,13 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/apikeys': typeof ApikeysRoute
-  '/dropbox': typeof DropboxRouteWithChildren
-  '/googledrive': typeof GoogledriveRouteWithChildren
   '/loading': typeof LoadingRoute
   '/scrobble': typeof ScrobbleRoute
   '/dropbox/$id': typeof DropboxIdRoute
   '/googledrive/$id': typeof GoogledriveIdRoute
   '/profile/$did': typeof ProfileDidRoute
+  '/dropbox/': typeof DropboxIndexRoute
+  '/googledrive/': typeof GoogledriveIndexRoute
   '/$did/album/$rkey': typeof DidAlbumRkeyRoute
   '/$did/artist/$rkey': typeof DidArtistRkeyRoute
   '/$did/playlist/$rkey': typeof DidPlaylistRkeyRoute
@@ -149,13 +149,13 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/apikeys'
-    | '/dropbox'
-    | '/googledrive'
     | '/loading'
     | '/scrobble'
     | '/dropbox/$id'
     | '/googledrive/$id'
     | '/profile/$did'
+    | '/dropbox'
+    | '/googledrive'
     | '/$did/album/$rkey'
     | '/$did/artist/$rkey'
     | '/$did/playlist/$rkey'
@@ -165,13 +165,13 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/apikeys'
-    | '/dropbox'
-    | '/googledrive'
     | '/loading'
     | '/scrobble'
     | '/dropbox/$id'
     | '/googledrive/$id'
     | '/profile/$did'
+    | '/dropbox'
+    | '/googledrive'
     | '/$did/album/$rkey'
     | '/$did/artist/$rkey'
     | '/$did/playlist/$rkey'
@@ -181,13 +181,13 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/apikeys'
-    | '/dropbox'
-    | '/googledrive'
     | '/loading'
     | '/scrobble'
     | '/dropbox/$id'
     | '/googledrive/$id'
     | '/profile/$did'
+    | '/dropbox/'
+    | '/googledrive/'
     | '/$did/album/$rkey'
     | '/$did/artist/$rkey'
     | '/$did/playlist/$rkey'
@@ -198,11 +198,13 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApikeysRoute: typeof ApikeysRoute
-  DropboxRoute: typeof DropboxRouteWithChildren
-  GoogledriveRoute: typeof GoogledriveRouteWithChildren
   LoadingRoute: typeof LoadingRoute
   ScrobbleRoute: typeof ScrobbleRoute
+  DropboxIdRoute: typeof DropboxIdRoute
+  GoogledriveIdRoute: typeof GoogledriveIdRoute
   ProfileDidRoute: typeof ProfileDidRoute
+  DropboxIndexRoute: typeof DropboxIndexRoute
+  GoogledriveIndexRoute: typeof GoogledriveIndexRoute
   DidAlbumRkeyRoute: typeof DidAlbumRkeyRoute
   DidArtistRkeyRoute: typeof DidArtistRkeyRoute
   DidPlaylistRkeyRoute: typeof DidPlaylistRkeyRoute
@@ -226,20 +228,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoadingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/googledrive': {
-      id: '/googledrive'
-      path: '/googledrive'
-      fullPath: '/googledrive'
-      preLoaderRoute: typeof GoogledriveRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dropbox': {
-      id: '/dropbox'
-      path: '/dropbox'
-      fullPath: '/dropbox'
-      preLoaderRoute: typeof DropboxRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/apikeys': {
       id: '/apikeys'
       path: '/apikeys'
@@ -254,6 +242,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/googledrive/': {
+      id: '/googledrive/'
+      path: '/googledrive'
+      fullPath: '/googledrive'
+      preLoaderRoute: typeof GoogledriveIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dropbox/': {
+      id: '/dropbox/'
+      path: '/dropbox'
+      fullPath: '/dropbox'
+      preLoaderRoute: typeof DropboxIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/profile/$did': {
       id: '/profile/$did'
       path: '/profile/$did'
@@ -263,17 +265,17 @@ declare module '@tanstack/react-router' {
     }
     '/googledrive/$id': {
       id: '/googledrive/$id'
-      path: '/$id'
+      path: '/googledrive/$id'
       fullPath: '/googledrive/$id'
       preLoaderRoute: typeof GoogledriveIdRouteImport
-      parentRoute: typeof GoogledriveRoute
+      parentRoute: typeof rootRouteImport
     }
     '/dropbox/$id': {
       id: '/dropbox/$id'
-      path: '/$id'
+      path: '/dropbox/$id'
       fullPath: '/dropbox/$id'
       preLoaderRoute: typeof DropboxIdRouteImport
-      parentRoute: typeof DropboxRoute
+      parentRoute: typeof rootRouteImport
     }
     '/$did/song/$rkey': {
       id: '/$did/song/$rkey'
@@ -313,37 +315,16 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface DropboxRouteChildren {
-  DropboxIdRoute: typeof DropboxIdRoute
-}
-
-const DropboxRouteChildren: DropboxRouteChildren = {
-  DropboxIdRoute: DropboxIdRoute,
-}
-
-const DropboxRouteWithChildren =
-  DropboxRoute._addFileChildren(DropboxRouteChildren)
-
-interface GoogledriveRouteChildren {
-  GoogledriveIdRoute: typeof GoogledriveIdRoute
-}
-
-const GoogledriveRouteChildren: GoogledriveRouteChildren = {
-  GoogledriveIdRoute: GoogledriveIdRoute,
-}
-
-const GoogledriveRouteWithChildren = GoogledriveRoute._addFileChildren(
-  GoogledriveRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApikeysRoute: ApikeysRoute,
-  DropboxRoute: DropboxRouteWithChildren,
-  GoogledriveRoute: GoogledriveRouteWithChildren,
   LoadingRoute: LoadingRoute,
   ScrobbleRoute: ScrobbleRoute,
+  DropboxIdRoute: DropboxIdRoute,
+  GoogledriveIdRoute: GoogledriveIdRoute,
   ProfileDidRoute: ProfileDidRoute,
+  DropboxIndexRoute: DropboxIndexRoute,
+  GoogledriveIndexRoute: GoogledriveIndexRoute,
   DidAlbumRkeyRoute: DidAlbumRkeyRoute,
   DidArtistRkeyRoute: DidArtistRkeyRoute,
   DidPlaylistRkeyRoute: DidPlaylistRkeyRoute,
