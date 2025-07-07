@@ -227,7 +227,7 @@ function NowPlayings() {
                 <div className="flex flex-col items-center flex-1">
                   {currentlyPlaying?.trackUri && (
                     <Link
-                      to={`/${currentlyPlaying?.trackUri.split("at://")[1].replace("app.rocksky", "")}`}
+                      to={`/${currentlyPlaying?.trackUri.split("at://")[1].replace("app.rocksky.", "")}`}
                     >
                       <Cover
                         src={currentlyPlaying?.albumArt}
@@ -237,7 +237,7 @@ function NowPlayings() {
                   )}
                   {currentlyPlaying?.trackUri && (
                     <Link
-                      to={`/${currentlyPlaying?.trackUri.split("at://")[1].replace("app.rocksky", "")}`}
+                      to={`/${currentlyPlaying?.trackUri.split("at://")[1].replace("app.rocksky.", "")}`}
                     >
                       <TrackTitle>{currentlyPlaying?.title}</TrackTitle>
                     </Link>
@@ -265,7 +265,7 @@ function NowPlayings() {
                 <TrackTitle>{currentlyPlaying?.title}</TrackTitle>
               )}
               <Link
-                to={`/${currentlyPlaying?.artistUri?.split("at://")[1].replace("app.rocksky", "")}`}
+                to={`/${currentlyPlaying?.artistUri?.split("at://")[1].replace("app.rocksky.", "")}`}
               >
                 <TrackArtist>{currentlyPlaying?.artist}</TrackArtist>
               </Link>

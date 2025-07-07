@@ -21,8 +21,7 @@ function ExternalLinks() {
     },
   } = useRouter();
   const display =
-    pathname.includes("app.rocksky.scrobble") ||
-    pathname.includes("app.rocksky.song");
+    pathname.includes("/scrobble/") || pathname.includes("/song/");
   return (
     <>
       {display && song?.spotifyLink && (
