@@ -62,7 +62,7 @@ function ScrobblesAreaChart() {
         return;
       }
 
-      if (pathname.includes("app.rocksky.artist")) {
+      if (pathname.includes("/artist/")) {
         const charts = await getArtistChart(
           `at://${did}/app.rocksky.artist/${rkey}`
         );
@@ -70,7 +70,7 @@ function ScrobblesAreaChart() {
         return;
       }
 
-      if (pathname.includes("app.rocksky.album")) {
+      if (pathname.includes("/album/")) {
         const charts = await getAlbumChart(
           `at://${did}/app.rocksky.album/${rkey}`
         );
@@ -78,7 +78,7 @@ function ScrobblesAreaChart() {
         return;
       }
 
-      if (pathname.includes("app.rocksky.song")) {
+      if (pathname.includes("/song/")) {
         const charts = await getSongChart(
           `at://${did}/app.rocksky.song/${rkey}`
         );
@@ -86,7 +86,7 @@ function ScrobblesAreaChart() {
         return;
       }
 
-      if (pathname.includes("app.rocksky.scrobble")) {
+      if (pathname.includes("/scrobble/")) {
         const charts = await getSongChart(
           `at://${did}/app.rocksky.scrobble/${rkey}`
         );
@@ -100,7 +100,7 @@ function ScrobblesAreaChart() {
 
   return (
     <>
-      {!pathname.includes("app.rocksky.playlist") && (
+      {!pathname.includes("/playlist/") && (
         <>
           <LabelMedium
             marginBottom={"20px"}
