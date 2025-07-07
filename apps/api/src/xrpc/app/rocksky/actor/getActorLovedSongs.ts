@@ -18,7 +18,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({ tracks: [] });
-      }),
+      })
     );
   server.app.rocksky.actor.getActorLovedSongs({
     handler: async ({ params }) => {
@@ -45,14 +45,14 @@ const retrieve = ({
         .from(tables.lovedTracks)
         .leftJoin(
           tables.tracks,
-          eq(tables.lovedTracks.trackId, tables.tracks.id),
+          eq(tables.lovedTracks.trackId, tables.tracks.id)
         )
         .leftJoin(tables.users, eq(tables.lovedTracks.userId, tables.users.id))
         .where(
           or(
             eq(tables.users.did, params.did),
-            eq(tables.users.handle, params.did),
-          ),
+            eq(tables.users.handle, params.did)
+          )
         )
         .limit(params.limit ?? 10)
         .offset(params.offset ?? 0)
@@ -61,7 +61,7 @@ const retrieve = ({
         .then((rows) =>
           rows.map((row) => ({
             ...row.tracks,
-            createdAt: row.lovedTracks.createdAt,
+            createdAt: row.loved_tracks.createdAt,
           }))
         ),
     catch: (error) => new Error(`Failed to retrieve loved songs: ${error}`),
@@ -69,7 +69,7 @@ const retrieve = ({
 };
 
 const presentation = (
-  data: SelectTrack[],
+  data: SelectTrack[]
 ): Effect.Effect<{ tracks: SongViewBasic[] }, never> => {
   return Effect.sync(() => ({
     tracks: data.map((track) => ({
