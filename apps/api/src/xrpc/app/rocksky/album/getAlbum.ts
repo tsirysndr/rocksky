@@ -61,7 +61,7 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
             tables.tracks,
             eq(tables.albumTracks.trackId, tables.tracks.id)
           )
-          .where(eq(tables.albumTracks.albumId, album.id))
+          .where(eq(tables.albumTracks.albumId, album?.id))
           .orderBy(
             asc(tables.tracks.discNumber),
             asc(tables.tracks.trackNumber)
