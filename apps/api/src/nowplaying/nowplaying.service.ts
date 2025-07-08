@@ -350,6 +350,15 @@ export async function publishScrobble(ctx: Context, id: string) {
   });
 
   ctx.nc.publish("rocksky.scrobble", Buffer.from(message));
+
+  const trackMessage = JSON.stringify({
+    track: scrobble.track_id,
+    album_track,
+    artist_track,
+    artist_album,
+  });
+
+  ctx.nc.publish("rocksky.track", Buffer.from(trackMessage));
 }
 
 export async function scrobbleTrack(

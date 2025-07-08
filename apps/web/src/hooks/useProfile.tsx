@@ -64,6 +64,11 @@ function useProfile(token?: string | null) {
   useEffect(() => {
     if (data !== "Unauthorized" && data !== "Internal Server Error" && data) {
       const profile = JSON.parse(data);
+      if (Object.keys(profile).length === 0) {
+        localStorage.removeItem("token");
+        window.location.href = "/";
+        return;
+      }
       setProfile({
         avatar: profile.avatar,
         displayName: profile.displayName,
@@ -84,7 +89,6 @@ function useProfile(token?: string | null) {
 
     if (
       !data ||
-      Object.keys(data).length === 0 ||
       data === "Unauthorized" ||
       data === "Internal Server Error" ||
       (error && localStorage.getItem("token"))
