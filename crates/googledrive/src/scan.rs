@@ -44,6 +44,7 @@ pub async fn scan_googledrive(pool: Arc<Pool<Postgres>>) -> Result<(), Error> {
             refresh_token.clone(),
             token.did.clone(),
             token.xata_id.clone(),
+            None,
         )
         .await?;
     }
@@ -68,6 +69,7 @@ pub async fn scan_folder(
             refresh_token,
             did.to_string(),
             google_drive_id.clone(),
+            None,
         )
         .await?;
     }
@@ -81,6 +83,7 @@ pub fn scan_audio_files(
     refresh_token: String,
     did: String,
     google_drive_id: String,
+    parent_drive_file_id: Option<String>,
 ) -> BoxFuture<'static, Result<(), Error>> {
     Box::pin(async move {
         let client = GoogleDriveClient::new(&refresh_token).await?;
@@ -100,7 +103,7 @@ pub fn scan_audio_files(
         if file.mime_type == "application/vnd.google-apps.folder" {
             println!("Scanning folder: {}", file.name.bright_green());
 
-            create_google_drive_directory(&pool, &file, &google_drive_id, Some(&file_id)).await?;
+            create_google_drive_directory(&pool, &file, &google_drive_id, parent_drive_file_id.as_deref()).await?;
 
             // TODO: publish folder metadata to nats
 
@@ -137,13 +140,14 @@ pub fn scan_audio_files(
                 }
             }
 
-            for file in files {
+            for child_file in files {
                 scan_audio_files(
                     pool.clone(),
-                    file.id,
+                    child_file.id.clone(),
                     refresh_token.clone(),
                     did.clone(),
                     google_drive_id.clone(),
+                    Some(file_id.clone()),
                 )
                 .await?;
                 tokio::time::sleep(std::time::Duration::from_secs(3)).await;
