@@ -97,7 +97,12 @@ pub fn scan_audio_files(
         if entry.tag.clone().unwrap().as_str() == "folder" {
             println!("Scanning folder: {}", path.bright_green());
 
-            create_dropbox_directory(&pool, &entry, &dropbox_id, &path).await?;
+            let parent_path = Path::new(&path)
+                .parent()
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_else(|| "".to_string());
+
+            create_dropbox_directory(&pool, &entry, &dropbox_id, &parent_path).await?;
 
             // TODO: publish folder metadata to nats
 
@@ -283,7 +288,10 @@ pub fn scan_audio_files(
         match track {
             Some(track) => {
                 println!("Track exists: {}", title.bright_green());
-                let status = create_dropbox_path(&pool, &entry, &track, &dropbox_id, Some(&path)).await;
+                let parent_path = Path::new(&path)
+                    .parent()
+                    .map(|p| p.to_string_lossy().to_string());
+                let status = create_dropbox_path(&pool, &entry, &track, &dropbox_id, parent_path).await;
                 println!("status: {:?}", status);
 
                 // TODO: publish file metadata to nats
@@ -331,7 +339,10 @@ pub fn scan_audio_files(
 
                 let track = get_track_by_hash(&pool, &hash).await?;
                 if let Some(track) = track {
-                    create_dropbox_path(&pool, &entry, &track, &dropbox_id, Some(&path)).await?;
+                    let parent_path = Path::new(&path)
+                        .parent()
+                        .map(|p| p.to_string_lossy().to_string());
+                    create_dropbox_path(&pool, &entry, &track, &dropbox_id, parent_path).await?;
 
                     // TODO: publish file metadata to nats
 

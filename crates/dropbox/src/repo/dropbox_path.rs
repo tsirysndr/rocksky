@@ -9,7 +9,7 @@ pub async fn create_dropbox_path(
     file: &Entry,
     track: &Track,
     dropbox_id: &str,
-    parent_dir: Option<&str>,
+    parent_path: Option<String>,
 ) -> Result<(), sqlx::Error> {
     let results: Vec<DropboxDirectory> = sqlx::query_as(
         r#"
@@ -21,11 +21,11 @@ pub async fn create_dropbox_path(
         "#,
     )
     .bind(dropbox_id)
-    .bind(parent_dir)
+    .bind(&parent_path)
     .fetch_all(pool)
     .await?;
 
-    let parent_dir = match parent_dir {
+    let parent_dir = match parent_path {
         Some(_) => results.first().map(|d| d.clone().xata_id),
         None => None,
     };
