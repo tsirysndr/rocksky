@@ -22,9 +22,7 @@ use crate::{
     consts::AUDIO_EXTENSIONS,
     crypto::decrypt_aes_256_ctr,
     repo::{
-        dropbox_path::create_dropbox_path,
-        dropbox_token::{find_dropbox_refresh_token, find_dropbox_refresh_tokens},
-        track::get_track_by_hash,
+        dropbox_directory::create_dropbox_directory, dropbox_path::create_dropbox_path, dropbox_token::{find_dropbox_refresh_token, find_dropbox_refresh_tokens}, track::get_track_by_hash
     },
     token::generate_token,
     types::file::{Entry, EntryList},
@@ -98,6 +96,10 @@ pub fn scan_audio_files(
 
         if entry.tag.clone().unwrap().as_str() == "folder" {
             println!("Scanning folder: {}", path.bright_green());
+
+            create_dropbox_directory(&pool, &entry, &dropbox_id, &path).await?;
+
+            // TODO: publish folder metadata to nats
 
             let mut entries: Vec<Entry> = Vec::new();
 
@@ -281,8 +283,10 @@ pub fn scan_audio_files(
         match track {
             Some(track) => {
                 println!("Track exists: {}", title.bright_green());
-                let status = create_dropbox_path(&pool, &entry, &track, &dropbox_id).await;
+                let status = create_dropbox_path(&pool, &entry, &track, &dropbox_id, Some(&path)).await;
                 println!("status: {:?}", status);
+
+                // TODO: publish file metadata to nats
             }
             None => {
                 println!("Creating track: {}", title.bright_green());
@@ -291,43 +295,46 @@ pub fn scan_audio_files(
                 let client = Client::new();
                 const URL: &str = "https://api.rocksky.app/tracks";
                 let response = client
-          .post(URL)
-          .header("Authorization", format!("Bearer {}", access_token))
-          .json(&serde_json::json!({
-              "title": tag.get_string(&lofty::tag::ItemKey::TrackTitle),
-              "album": tag.get_string(&lofty::tag::ItemKey::AlbumTitle),
-              "artist": tag.get_string(&lofty::tag::ItemKey::TrackArtist),
-              "albumArtist": match tag.get_string(&lofty::tag::ItemKey::AlbumArtist) {
-                  Some(album_artist) => Some(album_artist),
-                  None => Some(tag.get_string(&lofty::tag::ItemKey::TrackArtist).unwrap_or_default()),
-              },
-              "duration": duration,
-              "trackNumber": tag.track(),
-              "releaseDate": tag.get_string(&lofty::tag::ItemKey::OriginalReleaseDate).map(|date| match date.contains("-") {
-                  true => Some(date),
-                  false => None,
-              }),
-              "year": tag.year(),
-              "discNumber": tag.disk().map(|disc| match disc {
-                  0 => Some(1),
-                  _ => Some(disc),
-              }).unwrap_or(Some(1)),
-              "composer": tag.get_string(&lofty::tag::ItemKey::Composer),
-              "albumArt": match album_art{
-                  Some(album_art) => Some(format!("https://cdn.rocksky.app/covers/{}", album_art)),
-                  None => None
-              },
-              "lyrics": tag.get_string(&lofty::tag::ItemKey::Lyrics),
-              "copyrightMessage": tag.get_string(&lofty::tag::ItemKey::CopyrightMessage),
-          }))
-          .send()
-          .await?;
+                    .post(URL)
+                    .header("Authorization", format!("Bearer {}", access_token))
+                    .json(&serde_json::json!({
+                        "title": tag.get_string(&lofty::tag::ItemKey::TrackTitle),
+                        "album": tag.get_string(&lofty::tag::ItemKey::AlbumTitle),
+                        "artist": tag.get_string(&lofty::tag::ItemKey::TrackArtist),
+                        "albumArtist": match tag.get_string(&lofty::tag::ItemKey::AlbumArtist) {
+                            Some(album_artist) => Some(album_artist),
+                            None => Some(tag.get_string(&lofty::tag::ItemKey::TrackArtist).unwrap_or_default()),
+                        },
+                        "duration": duration,
+                        "trackNumber": tag.track(),
+                        "releaseDate": tag.get_string(&lofty::tag::ItemKey::OriginalReleaseDate).map(|date| match date.contains("-") {
+                            true => Some(date),
+                            false => None,
+                        }),
+                        "year": tag.year(),
+                        "discNumber": tag.disk().map(|disc| match disc {
+                            0 => Some(1),
+                            _ => Some(disc),
+                        }).unwrap_or(Some(1)),
+                        "composer": tag.get_string(&lofty::tag::ItemKey::Composer),
+                        "albumArt": match album_art{
+                            Some(album_art) => Some(format!("https://cdn.rocksky.app/covers/{}", album_art)),
+                            None => None
+                        },
+                        "lyrics": tag.get_string(&lofty::tag::ItemKey::Lyrics),
+                        "copyrightMessage": tag.get_string(&lofty::tag::ItemKey::CopyrightMessage),
+                    }))
+                    .send()
+                    .await?;
                 println!("Track Saved: {} {}", title, response.status());
                 tokio::time::sleep(std::time::Duration::from_secs(3)).await;
 
                 let track = get_track_by_hash(&pool, &hash).await?;
                 if let Some(track) = track {
-                    create_dropbox_path(&pool, &entry, &track, &dropbox_id).await?;
+                    create_dropbox_path(&pool, &entry, &track, &dropbox_id, Some(&path)).await?;
+
+                    // TODO: publish file metadata to nats
+
                     return Ok(());
                 }
 
