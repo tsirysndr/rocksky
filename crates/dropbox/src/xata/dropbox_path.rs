@@ -7,6 +7,7 @@ pub struct DropboxPath {
     pub dropbox_id: String,
     pub path: String,
     pub name: String,
+    pub file_id: String,
     pub directory_id: Option<String>,
     pub track_id: String,
     pub xata_version: i32,

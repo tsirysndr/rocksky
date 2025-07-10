@@ -6,6 +6,7 @@ pub struct DropboxDirectory {
     pub xata_id: String,
     pub name: String,
     pub path: String,
+    pub file_id: String,
     pub parent_id: Option<String>,
     pub xata_version: i32,
     #[serde(with = "chrono::serde::ts_seconds")]
