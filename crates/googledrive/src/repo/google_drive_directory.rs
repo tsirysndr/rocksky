@@ -1,5 +1,5 @@
-use sqlx::{Pool, Postgres};
 use crate::{types::file::File, xata::google_drive_directory::GoogleDriveDirectory};
+use sqlx::{Pool, Postgres};
 
 pub async fn create_google_drive_directory(
     pool: &Pool<Postgres>,
@@ -15,17 +15,17 @@ pub async fn create_google_drive_directory(
             WHERE google_drive_id = $1
               AND file_id = $2
             LIMIT 1
-            "#
+            "#,
         )
         .bind(google_drive_id)
         .bind(parent_id)
         .fetch_all(pool)
         .await?;
-      if results.is_empty() {
-        None
-      } else {
-        Some(results[0].clone())
-      }
+        if results.is_empty() {
+            None
+        } else {
+            Some(results[0].clone())
+        }
     } else {
         None
     };
@@ -35,10 +35,7 @@ pub async fn create_google_drive_directory(
             format!("{}/{}", p.path.trim_end_matches('/'), file.name),
             Some(p.xata_id),
         ),
-        None => (
-            format!("/{}", file.name),
-            None,
-        ),
+        None => (format!("/{}", file.name), None),
     };
 
     sqlx::query(
@@ -52,7 +49,7 @@ pub async fn create_google_drive_directory(
         )
         VALUES ($1, $2, $3, $4, $5)
         ON CONFLICT DO NOTHING
-        "#
+        "#,
     )
     .bind(google_drive_id)
     .bind(&file.name)

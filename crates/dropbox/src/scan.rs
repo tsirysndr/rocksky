@@ -22,7 +22,10 @@ use crate::{
     consts::AUDIO_EXTENSIONS,
     crypto::decrypt_aes_256_ctr,
     repo::{
-        dropbox_directory::create_dropbox_directory, dropbox_path::create_dropbox_path, dropbox_token::{find_dropbox_refresh_token, find_dropbox_refresh_tokens}, track::get_track_by_hash
+        dropbox_directory::create_dropbox_directory,
+        dropbox_path::create_dropbox_path,
+        dropbox_token::{find_dropbox_refresh_token, find_dropbox_refresh_tokens},
+        track::get_track_by_hash,
     },
     token::generate_token,
     types::file::{Entry, EntryList},
@@ -291,7 +294,8 @@ pub fn scan_audio_files(
                 let parent_path = Path::new(&path)
                     .parent()
                     .map(|p| p.to_string_lossy().to_string());
-                let status = create_dropbox_path(&pool, &entry, &track, &dropbox_id, parent_path).await;
+                let status =
+                    create_dropbox_path(&pool, &entry, &track, &dropbox_id, parent_path).await;
                 println!("status: {:?}", status);
 
                 // TODO: publish file metadata to nats

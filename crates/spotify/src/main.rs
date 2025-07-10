@@ -205,8 +205,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 email.bright_green(),
                                 e.to_string().bright_red()
                             );
-                            match rt.block_on(nc.publish("rocksky.spotify.user", email.clone().into())) {
-                                Ok(_) => {},
+                            match rt
+                                .block_on(nc.publish("rocksky.spotify.user", email.clone().into()))
+                            {
+                                Ok(_) => {}
                                 Err(e) => {
                                     println!(
                                         "{} Error publishing message to restart thread: {}",
@@ -697,7 +699,12 @@ pub async fn find_spotify_users(
             &result.refresh_token,
             &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?,
         )?;
-        user_tokens.push((result.email.clone(), token, result.did.clone(), result.user_id.clone()));
+        user_tokens.push((
+            result.email.clone(),
+            token,
+            result.did.clone(),
+            result.user_id.clone(),
+        ));
     }
 
     Ok(user_tokens)

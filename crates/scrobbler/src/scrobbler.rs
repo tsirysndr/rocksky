@@ -492,7 +492,10 @@ pub async fn scrobble_listenbrainz(
 
     let spotify_user = repo::spotify_account::get_spotify_account(pool, &did).await?;
     if let Some(spotify_user) = spotify_user {
-        if cache.get(&format!("{}:current", spotify_user.email))?.is_some() {
+        if cache
+            .get(&format!("{}:current", spotify_user.email))?
+            .is_some()
+        {
             println!(
                 "{} {} - {}, currently scrobbling, skipping",
                 "Currently scrobbling: ".yellow(),
@@ -512,7 +515,6 @@ pub async fn scrobble_listenbrainz(
         );
         return Ok(());
     }
-
 
     // set cache for 5 seconds to avoid duplicate scrobbles
     cache.setex(

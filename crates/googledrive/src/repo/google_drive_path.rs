@@ -1,6 +1,9 @@
 use sqlx::{Pool, Postgres};
 
-use crate::{types::file::File, xata::{google_drive_directory::GoogleDriveDirectory, track::Track}};
+use crate::{
+    types::file::File,
+    xata::{google_drive_directory::GoogleDriveDirectory, track::Track},
+};
 
 pub async fn create_google_drive_path(
     pool: &Pool<Postgres>,
@@ -9,21 +12,25 @@ pub async fn create_google_drive_path(
     google_drive_id: &str,
     parent_dir: &str,
 ) -> Result<(), sqlx::Error> {
-    let parent_dir: Vec<GoogleDriveDirectory> = sqlx::query_as(
-        r#"
+    let parent_dir = if parent_dir.is_empty() {
+        None
+    } else {
+        let parent_dirs: Vec<GoogleDriveDirectory> = sqlx::query_as(
+            r#"
         SELECT *
         FROM google_drive_directories
         WHERE google_drive_id = $1
           AND file_id = $2
         LIMIT 1
         "#,
-    )
-    .bind(google_drive_id)
-    .bind(parent_dir)
-    .fetch_all(pool)
-    .await?;
+        )
+        .bind(google_drive_id)
+        .bind(parent_dir)
+        .fetch_all(pool)
+        .await?;
 
-    let parent_dir = parent_dir.first().map(|d| d.clone().xata_id);
+        parent_dirs.first().map(|d| d.xata_id.clone())
+    };
 
     let result = sqlx::query(
         r#"

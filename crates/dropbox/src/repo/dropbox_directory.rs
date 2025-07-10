@@ -1,5 +1,5 @@
-use sqlx::{Pool, Postgres};
 use crate::{types::file::Entry, xata::dropbox_diretory::DropboxDirectory};
+use sqlx::{Pool, Postgres};
 
 pub async fn create_dropbox_directory(
     pool: &Pool<Postgres>,
@@ -7,8 +7,8 @@ pub async fn create_dropbox_directory(
     dropbox_id: &str,
     parent_dir: &str,
 ) -> Result<(), sqlx::Error> {
-   let results: Vec<DropboxDirectory> = sqlx::query_as(
-      r#"
+    let results: Vec<DropboxDirectory> = sqlx::query_as(
+        r#"
       SELECT *
       FROM dropbox_directories
       WHERE dropbox_id = $1
@@ -21,10 +21,10 @@ pub async fn create_dropbox_directory(
     .fetch_all(pool)
     .await?;
 
-  let parent_id = results.first().map(|d| d.xata_id.clone());
+    let parent_id = results.first().map(|d| d.xata_id.clone());
 
-  sqlx::query(
-      r#"
+    sqlx::query(
+        r#"
       INSERT INTO dropbox_directories (
           dropbox_id,
           name,
@@ -44,5 +44,5 @@ pub async fn create_dropbox_directory(
     .execute(pool)
     .await?;
 
-  Ok(())
+    Ok(())
 }

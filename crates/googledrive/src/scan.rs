@@ -21,7 +21,10 @@ use crate::{
     consts::AUDIO_EXTENSIONS,
     crypto::decrypt_aes_256_ctr,
     repo::{
-        google_drive_directory::create_google_drive_directory, google_drive_path::create_google_drive_path, google_drive_token::{find_google_drive_refresh_token, find_google_drive_refresh_tokens}, track::get_track_by_hash
+        google_drive_directory::create_google_drive_directory,
+        google_drive_path::create_google_drive_path,
+        google_drive_token::{find_google_drive_refresh_token, find_google_drive_refresh_tokens},
+        track::get_track_by_hash,
     },
     token::generate_token,
     types::file::{File, FileList},
@@ -103,7 +106,13 @@ pub fn scan_audio_files(
         if file.mime_type == "application/vnd.google-apps.folder" {
             println!("Scanning folder: {}", file.name.bright_green());
 
-            create_google_drive_directory(&pool, &file, &google_drive_id, parent_drive_file_id.as_deref()).await?;
+            create_google_drive_directory(
+                &pool,
+                &file,
+                &google_drive_id,
+                parent_drive_file_id.as_deref(),
+            )
+            .await?;
 
             // TODO: publish folder metadata to nats
 
@@ -296,8 +305,15 @@ pub fn scan_audio_files(
         match track {
             Some(track) => {
                 println!("Track exists: {}", title.bright_green());
-                let status =
-                    create_google_drive_path(&pool, &file, &track, &google_drive_id, &file_id).await?;
+                let parent_drive_id = parent_drive_file_id.as_deref();
+                let status = create_google_drive_path(
+                    &pool,
+                    &file,
+                    &track,
+                    &google_drive_id,
+                    parent_drive_id.unwrap_or(""),
+                )
+                .await?;
 
                 println!("status: {:?}", status);
                 // TODO: publish file metadata to nats
@@ -347,8 +363,15 @@ pub fn scan_audio_files(
 
                 let track = get_track_by_hash(&pool, &hash).await?;
                 if let Some(track) = track {
-                    let status =
-                        create_google_drive_path(&pool, &file, &track, &google_drive_id, &file_id).await;
+                    let parent_drive_id = parent_drive_file_id.as_deref();
+                    let status = create_google_drive_path(
+                        &pool,
+                        &file,
+                        &track,
+                        &google_drive_id,
+                        parent_drive_id.unwrap_or(""),
+                    )
+                    .await;
 
                     println!("status: {:?}", status);
 
