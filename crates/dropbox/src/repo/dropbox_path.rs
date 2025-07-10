@@ -14,7 +14,7 @@ pub async fn create_dropbox_path(
     let results: Vec<DropboxDirectory> = sqlx::query_as(
         r#"
         SELECT *
-        FROM dropbox_directory
+        FROM dropbox_directories
         WHERE dropbox_id = $1
           AND path = $2
         LIMIT 1

@@ -12,7 +12,7 @@ pub async fn create_google_drive_path(
     let parent_dir: Vec<GoogleDriveDirectory> = sqlx::query_as(
         r#"
         SELECT *
-        FROM google_drive_directory
+        FROM google_drive_directories
         WHERE google_drive_id = $1
           AND file_id = $2
         LIMIT 1

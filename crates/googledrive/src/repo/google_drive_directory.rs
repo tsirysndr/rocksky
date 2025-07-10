@@ -11,7 +11,7 @@ pub async fn create_google_drive_directory(
         let results: Vec<GoogleDriveDirectory> = sqlx::query_as(
             r#"
             SELECT *
-            FROM google_drive_directory
+            FROM google_drive_directories
             WHERE google_drive_id = $1
               AND file_id = $2
             LIMIT 1
@@ -43,7 +43,7 @@ pub async fn create_google_drive_directory(
 
     sqlx::query(
         r#"
-        INSERT INTO google_drive_directory (
+        INSERT INTO google_drive_directories (
             google_drive_id,
             name,
             path,
