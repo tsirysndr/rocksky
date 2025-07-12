@@ -152,6 +152,13 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
       });
     }
 
+    if (!artist_album) {
+      await ctx.client.db.artist_albums.create({
+        artist_id: artist_id.xata_id,
+        album_id: album_id.xata_id,
+      });
+    }
+
     if (track_id && !track_id.album_uri) {
       await ctx.client.db.tracks.update(track_id.xata_id, {
         album_uri: album_id.uri,
