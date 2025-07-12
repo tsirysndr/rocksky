@@ -90,7 +90,10 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
           .then((rows) => rows[0]?.count || 0),
       ]);
     },
-    catch: (error) => new Error(`Failed to retrieve album: ${error}`),
+    catch: (error) => {
+      console.log("Error retrieving album:", error);
+      return new Error(`Failed to retrieve album: ${error}`);
+    },
   });
 };
 
