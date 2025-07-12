@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import { ctx } from "context";
-import { and, count, eq, not } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 import tables from "schema";
 import { InsertArtistAlbum } from "schema/artist-albums";
 
@@ -8,12 +8,6 @@ let size = 100;
 const total = await ctx.db
   .select({ value: count() })
   .from(tables.tracks)
-  .where(
-    and(
-      not(eq(tables.tracks.albumUri, null)),
-      not(eq(tables.tracks.artistUri, null))
-    )
-  )
   .execute()
   .then(([row]) => row.value);
 
@@ -27,17 +21,20 @@ for (let i = 0; i < total; i += size) {
   const results = await ctx.db
     .select()
     .from(tables.tracks)
-    .where(
-      and(
-        not(eq(tables.tracks.albumUri, null)),
-        not(eq(tables.tracks.artistUri, null))
-      )
-    )
     .limit(size)
     .offset(skip)
     .execute();
 
   for (const track of results) {
+    if (!track.artistUri || !track.albumUri) {
+      console.log(
+        `Skipping track ${chalk.cyan(track.title)} due to missing artist or album URI`
+      );
+      console.log("artistUri", track.artistUri);
+      console.log("albumUri", track.albumUri);
+      continue;
+    }
+
     const found = await ctx.db
       .select()
       .from(tables.artistAlbums)
