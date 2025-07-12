@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import { ctx } from "context";
-import { and, count, eq } from "drizzle-orm";
+import { and, count, eq, not } from "drizzle-orm";
 import tables from "schema";
 import { InsertArtistAlbum } from "schema/artist-albums";
 
@@ -8,8 +8,16 @@ let size = 100;
 const total = await ctx.db
   .select({ value: count() })
   .from(tables.tracks)
+  .where(
+    and(
+      not(eq(tables.tracks.albumUri, null)),
+      not(eq(tables.tracks.artistUri, null))
+    )
+  )
   .execute()
   .then(([row]) => row.value);
+
+console.log(`Total tracks to process: ${chalk.magentaBright(total)}`);
 
 for (let i = 0; i < total; i += size) {
   const skip = i;
@@ -19,6 +27,12 @@ for (let i = 0; i < total; i += size) {
   const results = await ctx.db
     .select()
     .from(tables.tracks)
+    .where(
+      and(
+        not(eq(tables.tracks.albumUri, null)),
+        not(eq(tables.tracks.artistUri, null))
+      )
+    )
     .limit(size)
     .offset(skip)
     .execute();
@@ -63,6 +77,15 @@ for (let i = 0; i < total; i += size) {
           .execute()
           .then((rows) => rows[0]),
       ]);
+
+      if (!artist || !album) {
+        console.error(
+          `Artist or album not found for track: ${track.uri}. Skipping...`
+        );
+        console.log("artist", artist);
+        console.log("album", album);
+        continue;
+      }
 
       await ctx.db
         .insert(tables.artistAlbums)
