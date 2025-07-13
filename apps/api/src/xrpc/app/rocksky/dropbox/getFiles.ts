@@ -65,6 +65,7 @@ const retrieve = ({
 };
 
 const presentation = (data) => {
+  console.log(data);
   return Effect.sync(() => ({
     files: data.map((item) => ({
       id: item.dropbox_directories.id,
