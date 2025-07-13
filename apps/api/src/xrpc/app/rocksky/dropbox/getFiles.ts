@@ -1,6 +1,6 @@
 import { HandlerAuth } from "@atproto/xrpc-server";
 import { Context } from "context";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { Effect, pipe } from "effect";
 import { Server } from "lexicon";
@@ -64,6 +64,7 @@ const retrieve = ({
               eq(parentAlias.path, _.get(params, "at", "/Music"))
             )
           )
+          .orderBy(asc(tables.dropboxDirectories.name))
           .execute(),
         ctx.db
           .select()
@@ -83,6 +84,7 @@ const retrieve = ({
               eq(tables.dropboxDirectories.path, _.get(params, "at", "/Music"))
             )
           )
+          .orderBy(asc(tables.dropboxPaths.name))
           .execute(),
       ]);
     },
