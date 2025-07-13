@@ -113,8 +113,6 @@ const retrieve = ({
 };
 
 const presentation = (data) => {
-  console.log(data[0]);
-  console.log(data[1]);
   return Effect.sync(() => ({
     directories: data[0].map((item) => ({
       id: item.google_drive_directories.id,
