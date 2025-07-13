@@ -41,8 +41,9 @@ const retrieve = ({
   did: string;
 }) => {
   return Effect.tryPromise({
-    try: async () =>
-      ctx.db
+    try: async () => {
+      const parentAlias = alias(tables.googleDriveDirectories, "parent");
+      return ctx.db
         .select()
         .from(tables.googleDriveDirectories)
         .leftJoin(
@@ -51,19 +52,15 @@ const retrieve = ({
         )
         .leftJoin(tables.users, eq(tables.googleDrive.userId, tables.users.id))
         .leftJoin(
-          alias(tables.googleDriveDirectories, "parent"),
+          parentAlias,
           eq(
             tables.googleDriveDirectories.id,
             tables.googleDriveDirectories.parentId
           )
         )
-        .where(
-          and(
-            eq(tables.users.did, did),
-            eq(alias(tables.googleDriveDirectories, "parent").path, params.at)
-          )
-        )
-        .execute(),
+        .where(and(eq(tables.users.did, did), eq(parentAlias.path, params.at)))
+        .execute();
+    },
     catch: (error) => {
       console.error("Failed to retrieve files:", error);
       return new Error(`Failed to retrieve albums: ${error}`);

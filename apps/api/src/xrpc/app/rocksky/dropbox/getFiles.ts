@@ -42,8 +42,9 @@ const retrieve = ({
   did: string;
 }) => {
   return Effect.tryPromise({
-    try: async () =>
-      ctx.db
+    try: async () => {
+      const parentAlias = alias(tables.dropboxDirectories, "parent");
+      return ctx.db
         .select()
         .from(tables.dropboxDirectories)
         .leftJoin(
@@ -52,16 +53,12 @@ const retrieve = ({
         )
         .leftJoin(tables.users, eq(tables.dropbox.userId, tables.users.id))
         .leftJoin(
-          alias(tables.dropboxDirectories, "parent"),
+          parentAlias,
           eq(tables.dropboxDirectories.id, tables.dropboxDirectories.parentId)
         )
-        .where(
-          and(
-            eq(tables.users.did, did),
-            eq(alias(tables.dropboxDirectories, "parent").path, params.at)
-          )
-        )
-        .execute(),
+        .where(and(eq(tables.users.did, did), eq(parentAlias.path, params.at)))
+        .execute();
+    },
     catch: (error) => {
       console.error("Failed to retrieve files:", error);
       return new Error(`Failed to retrieve files: ${error}`);
