@@ -53,10 +53,7 @@ const retrieve = ({
         .leftJoin(tables.users, eq(tables.googleDrive.userId, tables.users.id))
         .leftJoin(
           parentAlias,
-          eq(
-            tables.googleDriveDirectories.id,
-            tables.googleDriveDirectories.parentId
-          )
+          eq(parentAlias.id, tables.googleDriveDirectories.parentId)
         )
         .where(and(eq(tables.users.did, did), eq(parentAlias.path, params.at)))
         .execute();

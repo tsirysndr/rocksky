@@ -54,7 +54,7 @@ const retrieve = ({
         .leftJoin(tables.users, eq(tables.dropbox.userId, tables.users.id))
         .leftJoin(
           parentAlias,
-          eq(tables.dropboxDirectories.id, tables.dropboxDirectories.parentId)
+          eq(parentAlias.id, tables.dropboxDirectories.parentId)
         )
         .where(and(eq(tables.users.did, did), eq(parentAlias.path, params.at)))
         .execute();
@@ -67,7 +67,6 @@ const retrieve = ({
 };
 
 const presentation = (data) => {
-  console.log(data);
   return Effect.sync(() => ({
     files: data.map((item) => ({
       id: item.dropbox_directories.id,
