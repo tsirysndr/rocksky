@@ -4,8 +4,14 @@ import apiKeys from "./api-keys";
 import artistAlbums from "./artist-albums";
 import artistTracks from "./artist-tracks";
 import artists from "./artists";
+import dropbox from "./dropbox";
 import dropboxAccounts from "./dropbox-accounts";
+import dropboxDirectories from "./dropbox-directories";
+import dropboxPaths from "./dropbox-paths";
 import googleDriveAccounts from "./google-drive-accounts";
+import googleDriveDirectories from "./google-drive-directories";
+import googleDrivePaths from "./google-drive-paths";
+import googleDrive from "./googledrive";
 import lovedTracks from "./loved-tracks";
 import playlistTracks from "./playlist-tracks";
 import playlists from "./playlists";
@@ -50,4 +56,10 @@ export default {
   artistAlbums,
   dropboxAccounts,
   googleDriveAccounts,
+  dropboxDirectories,
+  dropboxPaths,
+  googleDriveDirectories,
+  googleDrivePaths,
+  dropbox,
+  googleDrive,
 };
