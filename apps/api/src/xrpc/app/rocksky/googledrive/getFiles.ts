@@ -17,7 +17,7 @@ export default function (server: Server, ctx: Context) {
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
         console.error(err);
-        return Effect.succeed({ artists: [] });
+        return Effect.succeed({ files: [], directories: [] });
       })
     );
   server.app.rocksky.googledrive.getFiles({
