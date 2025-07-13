@@ -1,6 +1,7 @@
 import { HandlerAuth } from "@atproto/xrpc-server";
 import { Context } from "context";
 import { and, eq } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { Effect, pipe } from "effect";
 import { Server } from "lexicon";
 import { QueryParams } from "lexicon/types/app/rocksky/dropbox/getFiles";
@@ -50,10 +51,14 @@ const retrieve = ({
           eq(tables.dropbox.id, tables.dropboxDirectories.dropboxId)
         )
         .leftJoin(tables.users, eq(tables.dropbox.userId, tables.users.id))
+        .leftJoin(
+          alias(tables.dropboxDirectories, "parent"),
+          eq(tables.dropboxDirectories.id, tables.dropboxDirectories.parentId)
+        )
         .where(
           and(
             eq(tables.users.did, did),
-            eq(tables.dropboxDirectories.path, params.at)
+            eq(alias(tables.dropboxDirectories, "parent").path, params.at)
           )
         )
         .execute(),

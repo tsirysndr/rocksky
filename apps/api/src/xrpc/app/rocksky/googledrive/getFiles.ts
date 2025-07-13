@@ -1,5 +1,6 @@
 import { Context } from "context";
 import { and, eq } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { Effect, pipe } from "effect";
 import { Server } from "lexicon";
 import { QueryParams } from "lexicon/types/app/rocksky/googledrive/getFiles";
@@ -49,10 +50,17 @@ const retrieve = ({
           eq(tables.googleDrive.id, tables.googleDriveDirectories.googleDriveId)
         )
         .leftJoin(tables.users, eq(tables.googleDrive.userId, tables.users.id))
+        .leftJoin(
+          alias(tables.googleDriveDirectories, "parent"),
+          eq(
+            tables.googleDriveDirectories.id,
+            tables.googleDriveDirectories.parentId
+          )
+        )
         .where(
           and(
             eq(tables.users.did, did),
-            eq(tables.googleDriveDirectories.path, params.at)
+            eq(alias(tables.googleDriveDirectories, "parent").path, params.at)
           )
         )
         .execute(),
