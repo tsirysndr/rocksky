@@ -66,7 +66,10 @@ const retrieve = ({
           .where(
             and(
               eq(tables.users.did, did),
-              eq(parentAlias.path, _.get(params, "at", "/Music"))
+              eq(
+                parentAlias.path,
+                _.get(params, "at", "/Music").replace(/\/$/, "").trim()
+              )
             )
           )
           .orderBy(asc(tables.googleDriveDirectories.name))
@@ -94,7 +97,7 @@ const retrieve = ({
               eq(tables.users.did, did),
               eq(
                 tables.googleDriveDirectories.path,
-                _.get(params, "at", "/Music")
+                _.get(params, "at", "/Music").replace(/\/$/, "").trim()
               )
             )
           )
