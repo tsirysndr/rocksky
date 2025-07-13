@@ -5,6 +5,7 @@ import { alias } from "drizzle-orm/pg-core";
 import { Effect, pipe } from "effect";
 import { Server } from "lexicon";
 import { QueryParams } from "lexicon/types/app/rocksky/dropbox/getFiles";
+import _ from "lodash";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
@@ -44,20 +45,46 @@ const retrieve = ({
   return Effect.tryPromise({
     try: async () => {
       const parentAlias = alias(tables.dropboxDirectories, "parent");
-      return ctx.db
-        .select()
-        .from(tables.dropboxDirectories)
-        .leftJoin(
-          tables.dropbox,
-          eq(tables.dropbox.id, tables.dropboxDirectories.dropboxId)
-        )
-        .leftJoin(tables.users, eq(tables.dropbox.userId, tables.users.id))
-        .leftJoin(
-          parentAlias,
-          eq(parentAlias.id, tables.dropboxDirectories.parentId)
-        )
-        .where(and(eq(tables.users.did, did), eq(parentAlias.path, params.at)))
-        .execute();
+      return Promise.all([
+        ctx.db
+          .select()
+          .from(tables.dropboxDirectories)
+          .leftJoin(
+            tables.dropbox,
+            eq(tables.dropbox.id, tables.dropboxDirectories.dropboxId)
+          )
+          .leftJoin(tables.users, eq(tables.dropbox.userId, tables.users.id))
+          .leftJoin(
+            parentAlias,
+            eq(parentAlias.id, tables.dropboxDirectories.parentId)
+          )
+          .where(
+            and(
+              eq(tables.users.did, did),
+              eq(parentAlias.path, _.get(params, "at", "/Music"))
+            )
+          )
+          .execute(),
+        ctx.db
+          .select()
+          .from(tables.dropboxPaths)
+          .leftJoin(
+            tables.dropboxDirectories,
+            eq(tables.dropboxDirectories.id, tables.dropboxPaths.directoryId)
+          )
+          .leftJoin(
+            tables.dropbox,
+            eq(tables.dropbox.id, tables.dropboxPaths.dropboxId)
+          )
+          .leftJoin(tables.users, eq(tables.dropbox.userId, tables.users.id))
+          .where(
+            and(
+              eq(tables.users.did, did),
+              eq(tables.dropboxDirectories.path, _.get(params, "at", "/Music"))
+            )
+          )
+          .execute(),
+      ]);
     },
     catch: (error) => {
       console.error("Failed to retrieve files:", error);
@@ -68,14 +95,23 @@ const retrieve = ({
 
 const presentation = (data) => {
   return Effect.sync(() => ({
-    files: data.map((item) => ({
+    directories: data[0].map((item) => ({
       id: item.dropbox_directories.id,
       name: item.dropbox_directories.name,
       fileId: item.dropbox_directories.fileId,
       path: item.dropbox_directories.path,
       parentId: item.dropbox_directories.parentId,
-      createdAt: item.dropbox_directories.xata_createdat,
-      updatedAt: item.dropbox_directories.xata_updatedat,
+      createdAt: item.dropbox_directories.createdAt.toISOString(),
+      updatedAt: item.dropbox_directories.updatedAt.toISOString(),
+    })),
+    files: data[1].map((item) => ({
+      id: item.dropbox_paths.id,
+      name: item.dropbox_paths.name,
+      fileId: item.dropbox_paths.fileId,
+      directoryId: item.dropbox_paths.directoryId,
+      trackId: item.dropbox_paths.trackId,
+      createdAt: item.dropbox_paths.createdAt.toISOString(),
+      updatedAt: item.dropbox_paths.updatedAt.toISOString(),
     })),
   }));
 };
