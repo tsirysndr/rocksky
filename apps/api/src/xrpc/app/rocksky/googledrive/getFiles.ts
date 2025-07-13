@@ -10,7 +10,7 @@ export default function (server: Server, ctx: Context) {
     pipe(
       { params, ctx, did: auth.credentials?.did },
       retrieve,
-      presentation,
+      Effect.flatMap(presentation),
       Effect.retry({ times: 3 }),
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
