@@ -67,7 +67,7 @@ function Profile() {
         displayName: profile.data.displayName,
         handle: profile.data.handle,
         spotifyConnected: profile.data.spotifyConnected,
-        createdAt: profile.data.createdat,
+        createdAt: profile.data.createdAt,
         did,
       },
     }));
