@@ -5,6 +5,7 @@ import { createColumnHelper } from "@tanstack/react-table";
 import { Breadcrumbs } from "baseui/breadcrumbs";
 import { HeadingMedium } from "baseui/typography";
 import ContentLoader from "react-content-loader";
+import ContextMenu from "../../components/ContextMenu";
 import Table from "../../components/Table";
 import { useFilesQuery } from "../../hooks/useDropbox";
 import Main from "../../layouts/Main";
@@ -66,6 +67,10 @@ const Dropbox = (props: DropboxProps) => {
           )}
         </>
       ),
+    }),
+    columnHelper.accessor("name", {
+      header: "",
+      cell: () => <ContextMenu />,
     }),
   ];
 

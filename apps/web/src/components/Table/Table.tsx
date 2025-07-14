@@ -37,7 +37,7 @@ const Table: FC<TableProps> = ({ columns, files }) => {
   });
 
   return (
-    <table className="mt-[0px] w-full">
+    <table className="mt-[0px] w-[770px]">
       <thead>
         {table.getHeaderGroups().map((headerGroup) => (
           <tr

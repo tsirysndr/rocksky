@@ -5,8 +5,6 @@ export const Directory = styled(Link)`
   color: var(--color-text) !important;
   margin-left: 10px;
   text-decoration: none;
-  width: calc(100vw - 500px);
-  max-width: calc(100vw - 500px);
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
@@ -20,8 +18,6 @@ export const AudioFile = styled.div`
   color: var(--color-text) !important;
   margin-left: 10px;
   text-decoration: none;
-  width: calc(100vw - 500px);
-  max-width: calc(100vw - 500px);
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;

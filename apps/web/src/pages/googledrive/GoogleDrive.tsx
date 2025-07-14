@@ -5,6 +5,7 @@ import { createColumnHelper } from "@tanstack/react-table";
 import { Breadcrumbs } from "baseui/breadcrumbs";
 import { HeadingMedium } from "baseui/typography";
 import ContentLoader from "react-content-loader";
+import ContextMenu from "../../components/ContextMenu";
 import Table from "../../components/Table";
 import { useFilesQuery } from "../../hooks/useGoogleDrive";
 import Main from "../../layouts/Main";
@@ -42,7 +43,7 @@ const GoogleDrive = (props: GoogleDriveProps) => {
     columnHelper.accessor("name", {
       header: "",
       cell: (info) => (
-        <>
+        <div>
           {info.row.original.tag === "folder" && (
             <Directory to={`/googledrive/${info.row.original.id}`}>
               {info.row.original.name}
@@ -51,8 +52,12 @@ const GoogleDrive = (props: GoogleDriveProps) => {
           {info.row.original.tag === "file" && (
             <AudioFile>{info.row.original.name}</AudioFile>
           )}
-        </>
+        </div>
       ),
+    }),
+    columnHelper.accessor("name", {
+      header: "",
+      cell: () => <ContextMenu />,
     }),
   ];
 
