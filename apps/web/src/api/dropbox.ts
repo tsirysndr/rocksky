@@ -4,6 +4,12 @@ import { API_URL } from "../consts";
 
 export const getFiles = async (id?: string) => {
   const response = await client.get<{
+    parentDirectory: {
+      id: string;
+      name: string;
+      path: string;
+      fileId: string;
+    };
     directories: {
       id: string;
       name: string;

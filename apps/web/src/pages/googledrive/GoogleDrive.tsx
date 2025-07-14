@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Folder2, MusicNoteBeamed } from "@styled-icons/bootstrap";
+import { Link } from "@tanstack/react-router";
 import { createColumnHelper } from "@tanstack/react-table";
+import { Breadcrumbs } from "baseui/breadcrumbs";
 import { HeadingMedium } from "baseui/typography";
 import ContentLoader from "react-content-loader";
 import Table from "../../components/Table";
@@ -17,6 +19,7 @@ export type GoogleDriveProps = {
 
 const GoogleDrive = (props: GoogleDriveProps) => {
   const { data, isLoading } = useFilesQuery(props.fileId);
+  const { data: parent } = useFilesQuery(data?.parentDirectory?.fileId);
 
   const columns = [
     columnHelper.accessor("name", {
@@ -112,7 +115,6 @@ const GoogleDrive = (props: GoogleDriveProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.fileId]);
   */
-  const current_dir = "Google Drive";
 
   return (
     <Main>
@@ -144,15 +146,31 @@ const GoogleDrive = (props: GoogleDriveProps) => {
         </div>
       )*/}
       <div className="pt-[80px] fixed bg-[var(--color-background)] top-[19px] w-[770px]">
+        <Breadcrumbs>
+          {
+            <Link
+              to={
+                parent?.parentDirectory?.path === "/Music"
+                  ? `/googledrive`
+                  : `/googledrive/$id`
+              }
+              params={{ id: parent?.parentDirectory?.fileId || "" }}
+              className="!text-[var(--color-text)]"
+            >
+              {parent?.parentDirectory?.path === "/Music"
+                ? ""
+                : parent?.parentDirectory?.name}
+            </Link>
+          }
+        </Breadcrumbs>
         <HeadingMedium
           marginTop={"10px"}
           marginBottom={"25px"}
           className="!text-[var(--color-text)]"
         >
-          {
-            //current_dir === "Music" ? "Google Drive" : current_dir
-            current_dir
-          }
+          {data?.parentDirectory?.path === "/Music"
+            ? "Google Drive"
+            : data?.parentDirectory?.name}
         </HeadingMedium>
       </div>
 

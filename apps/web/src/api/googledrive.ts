@@ -2,6 +2,12 @@ import { client } from ".";
 
 export const getFiles = async (parent_id?: string) => {
   const response = await client.get<{
+    parentDirectory: {
+      id: string;
+      name: string;
+      path: string;
+      fileId: string;
+    };
     directories: {
       id: string;
       name: string;

@@ -45,6 +45,7 @@ const retrieve = ({
 }) => {
   return Effect.tryPromise({
     try: async () => {
+      const parentDirAlias = alias(tables.dropboxDirectories, "parent_dir");
       const parentAlias = alias(tables.dropboxDirectories, "parent");
       return Promise.all([
         ctx.db
@@ -59,6 +60,7 @@ const retrieve = ({
             parentAlias,
             eq(parentAlias.id, tables.dropboxDirectories.parentId)
           )
+          .leftJoin(parentDirAlias, eq(parentDirAlias.id, parentAlias.parentId))
           .where(
             and(
               eq(tables.users.did, did),
@@ -80,6 +82,7 @@ const retrieve = ({
             parentAlias,
             eq(parentAlias.id, tables.dropboxPaths.directoryId)
           )
+          .leftJoin(parentDirAlias, eq(parentDirAlias.id, parentAlias.parentId))
           .leftJoin(
             tables.dropbox,
             eq(tables.dropbox.id, tables.dropboxPaths.dropboxId)
@@ -110,9 +113,13 @@ const retrieve = ({
 
 const presentation = (data) => {
   return Effect.sync(() => ({
-    parentDirectory: R.omit(
+    directory: R.omit(
       ["createdAt", "updatedAt", "xataVersion"],
       _.get(data, "0.0.parent", null) || _.get(data, "1.0.parent", null)
+    ),
+    parentDirectory: R.omit(
+      ["createdAt", "updatedAt"],
+      _.get(data, "0.0.parent_dir", null) || _.get(data, "1.0.parent_dir", null)
     ),
     directories: data[0].map((item) => ({
       id: item.dropbox_directories.id,

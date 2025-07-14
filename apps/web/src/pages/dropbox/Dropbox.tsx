@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Folder2, MusicNoteBeamed } from "@styled-icons/bootstrap";
+import { Link } from "@tanstack/react-router";
 import { createColumnHelper } from "@tanstack/react-table";
+import { Breadcrumbs } from "baseui/breadcrumbs";
 import { HeadingMedium } from "baseui/typography";
 import ContentLoader from "react-content-loader";
 import Table from "../../components/Table";
@@ -17,6 +19,7 @@ export type DropboxProps = {
 
 const Dropbox = (props: DropboxProps) => {
   const { data, isLoading } = useFilesQuery(props.fileId);
+  const { data: parent } = useFilesQuery(data?.parentDirectory?.fileId);
 
   const playFile = async (id: string) => {
     console.log(">> Playing file:", id);
@@ -66,8 +69,6 @@ const Dropbox = (props: DropboxProps) => {
       ),
     }),
   ];
-
-  const current_dir = "Dropbox";
 
   /*
   useEffect(() => {
@@ -150,15 +151,31 @@ const Dropbox = (props: DropboxProps) => {
       )
         */}
       <div className="pt-[80px] fixed bg-[var(--color-background)] top-[19px] w-[770px]">
+        <Breadcrumbs>
+          {
+            <Link
+              to={
+                parent?.parentDirectory?.path === "/Music"
+                  ? `/dropbox`
+                  : `/dropbox/$id`
+              }
+              params={{ id: parent?.parentDirectory?.fileId || "" }}
+              className="!text-[var(--color-text)]"
+            >
+              {parent?.parentDirectory?.path === "/Music"
+                ? ""
+                : parent?.parentDirectory?.name}
+            </Link>
+          }
+        </Breadcrumbs>
         <HeadingMedium
           marginTop={"10px"}
           marginBottom={"25px"}
           className="!text-[var(--color-text)]"
         >
-          {
-            //current_dir === "Music" ? "Dropbox" : current_dir
-            current_dir
-          }
+          {data?.parentDirectory?.path === "/Music"
+            ? "Dropbox"
+            : data?.parentDirectory?.name}
         </HeadingMedium>
       </div>
 

@@ -44,6 +44,7 @@ const retrieve = ({
 }) => {
   return Effect.tryPromise({
     try: async () => {
+      const parentDirAlias = alias(tables.googleDriveDirectories, "parent_dir");
       const parentAlias = alias(tables.googleDriveDirectories, "parent");
       return Promise.all([
         ctx.db
@@ -64,6 +65,7 @@ const retrieve = ({
             parentAlias,
             eq(parentAlias.id, tables.googleDriveDirectories.parentId)
           )
+          .leftJoin(parentDirAlias, eq(parentDirAlias.id, parentAlias.parentId))
           .where(
             and(
               eq(tables.users.did, did),
@@ -85,6 +87,7 @@ const retrieve = ({
             parentAlias,
             eq(tables.googleDrivePaths.directoryId, parentAlias.id)
           )
+          .leftJoin(parentDirAlias, eq(parentDirAlias.id, parentAlias.parentId))
           .leftJoin(
             tables.googleDrive,
             eq(tables.googleDrive.id, tables.googleDrivePaths.googleDriveId)
@@ -118,9 +121,13 @@ const retrieve = ({
 
 const presentation = (data) => {
   return Effect.sync(() => ({
-    parentDirectory: R.omit(
+    directory: R.omit(
       ["createdAt", "updatedAt", "xataVersion"],
       _.get(data, "0.0.parent", null) || _.get(data, "1.0.parent", null)
+    ),
+    parentDirectory: R.omit(
+      ["createdAt", "updatedAt"],
+      _.get(data, "0.0.parent_dir", null) || _.get(data, "1.0.parent_dir", null)
     ),
     directories: data[0].map((item) => ({
       id: item.google_drive_directories.id,
