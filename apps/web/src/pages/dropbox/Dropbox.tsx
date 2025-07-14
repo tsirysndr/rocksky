@@ -19,7 +19,6 @@ export type DropboxProps = {
 
 const Dropbox = (props: DropboxProps) => {
   const { data, isLoading } = useFilesQuery(props.fileId);
-  const { data: parent } = useFilesQuery(data?.parentDirectory?.fileId);
 
   const playFile = async (id: string) => {
     console.log(">> Playing file:", id);
@@ -155,16 +154,16 @@ const Dropbox = (props: DropboxProps) => {
           {
             <Link
               to={
-                parent?.parentDirectory?.path === "/Music"
+                data?.parentDirectory?.path === "/Music"
                   ? `/dropbox`
                   : `/dropbox/$id`
               }
-              params={{ id: parent?.parentDirectory?.fileId || "" }}
+              params={{ id: data?.parentDirectory?.fileId || "" }}
               className="!text-[var(--color-text)]"
             >
-              {parent?.parentDirectory?.path === "/Music"
-                ? ""
-                : parent?.parentDirectory?.name}
+              {data?.parentDirectory?.path === "/Music"
+                ? "Dropbox"
+                : data?.parentDirectory?.name}
             </Link>
           }
         </Breadcrumbs>
@@ -173,9 +172,9 @@ const Dropbox = (props: DropboxProps) => {
           marginBottom={"25px"}
           className="!text-[var(--color-text)]"
         >
-          {data?.parentDirectory?.path === "/Music"
+          {data?.directory?.path === "/Music"
             ? "Dropbox"
-            : data?.parentDirectory?.name}
+            : data?.directory?.name}
         </HeadingMedium>
       </div>
 

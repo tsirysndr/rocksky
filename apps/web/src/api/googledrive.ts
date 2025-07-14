@@ -8,6 +8,12 @@ export const getFiles = async (parent_id?: string) => {
       path: string;
       fileId: string;
     };
+    directory: {
+      id: string;
+      name: string;
+      path: string;
+      fileId: string;
+    };
     directories: {
       id: string;
       name: string;

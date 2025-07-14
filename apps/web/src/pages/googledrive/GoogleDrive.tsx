@@ -19,7 +19,6 @@ export type GoogleDriveProps = {
 
 const GoogleDrive = (props: GoogleDriveProps) => {
   const { data, isLoading } = useFilesQuery(props.fileId);
-  const { data: parent } = useFilesQuery(data?.parentDirectory?.fileId);
 
   const columns = [
     columnHelper.accessor("name", {
@@ -150,16 +149,16 @@ const GoogleDrive = (props: GoogleDriveProps) => {
           {
             <Link
               to={
-                parent?.parentDirectory?.path === "/Music"
+                data?.parentDirectory?.path === "/Music"
                   ? `/googledrive`
                   : `/googledrive/$id`
               }
-              params={{ id: parent?.parentDirectory?.fileId || "" }}
+              params={{ id: data?.parentDirectory?.fileId || "" }}
               className="!text-[var(--color-text)]"
             >
-              {parent?.parentDirectory?.path === "/Music"
-                ? ""
-                : parent?.parentDirectory?.name}
+              {data?.parentDirectory?.path === "/Music"
+                ? "Google Drive"
+                : data?.parentDirectory?.name}
             </Link>
           }
         </Breadcrumbs>
@@ -168,9 +167,9 @@ const GoogleDrive = (props: GoogleDriveProps) => {
           marginBottom={"25px"}
           className="!text-[var(--color-text)]"
         >
-          {data?.parentDirectory?.path === "/Music"
+          {data?.directory?.path === "/Music"
             ? "Google Drive"
-            : data?.parentDirectory?.name}
+            : data?.directory?.name}
         </HeadingMedium>
       </div>
 
