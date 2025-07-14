@@ -1,6 +1,6 @@
 import { HandlerAuth } from "@atproto/xrpc-server";
 import { Context } from "context";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { Effect, pipe } from "effect";
 import { Server } from "lexicon";
@@ -61,9 +61,12 @@ const retrieve = ({
           .where(
             and(
               eq(tables.users.did, did),
-              eq(
-                parentAlias.path,
-                _.get(params, "at", "/Music").replace(/\/$/, "").trim()
+              or(
+                eq(
+                  parentAlias.path,
+                  _.get(params, "at", "/Music").replace(/\/$/, "").trim()
+                ),
+                eq(parentAlias.fileId, _.get(params, "at", "").trim())
               )
             )
           )
@@ -84,9 +87,15 @@ const retrieve = ({
           .where(
             and(
               eq(tables.users.did, did),
-              eq(
-                tables.dropboxDirectories.path,
-                _.get(params, "at", "/Music").replace(/\/$/, "").trim()
+              or(
+                eq(
+                  tables.dropboxDirectories.path,
+                  _.get(params, "at", "/Music").replace(/\/$/, "").trim()
+                ),
+                eq(
+                  tables.dropboxDirectories.fileId,
+                  _.get(params, "at", "").trim()
+                )
               )
             )
           )
