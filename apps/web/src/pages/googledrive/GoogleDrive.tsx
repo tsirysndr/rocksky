@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Folder2, MusicNoteBeamed } from "@styled-icons/bootstrap";
 import { createColumnHelper } from "@tanstack/react-table";
+import { HeadingMedium } from "baseui/typography";
 import ContentLoader from "react-content-loader";
 import Table from "../../components/Table";
 import { useFilesQuery } from "../../hooks/useGoogleDrive";
@@ -111,6 +112,7 @@ const GoogleDrive = (props: GoogleDriveProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.fileId]);
   */
+  const current_dir = "Google Drive";
 
   return (
     <Main>
@@ -141,6 +143,18 @@ const GoogleDrive = (props: GoogleDriveProps) => {
           </HeadingMedium>
         </div>
       )*/}
+      <div className="pt-[80px] fixed bg-[var(--color-background)] top-[19px] w-[770px]">
+        <HeadingMedium
+          marginTop={"10px"}
+          marginBottom={"25px"}
+          className="!text-[var(--color-text)]"
+        >
+          {
+            //current_dir === "Music" ? "Google Drive" : current_dir
+            current_dir
+          }
+        </HeadingMedium>
+      </div>
 
       <div className="mt-[100px] overflow-x-hidden mb-[140px]">
         {isLoading && (

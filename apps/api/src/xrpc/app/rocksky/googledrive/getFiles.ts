@@ -123,6 +123,7 @@ const retrieve = ({
 
 const presentation = (data) => {
   return Effect.sync(() => ({
+    parentDirectory: _.get(data, "0.0.parent", null),
     directories: data[0].map((item) => ({
       id: item.google_drive_directories.id,
       name: item.google_drive_directories.name,
