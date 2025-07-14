@@ -69,86 +69,8 @@ const Dropbox = (props: DropboxProps) => {
     }),
   ];
 
-  /*
-  useEffect(() => {
-    const fetchFiles = async () => {
-      setLoading(true);
-      const files = await getFiles(props.fileId);
-      const cache = { ...dropbox?.cache };
-      cache[props.fileId || "/Music"] = {
-        files: files.entries.filter(
-          (entry) =>
-            entry[".tag"] === "folder" ||
-            (entry[".tag"] === "file" &&
-              AUDIO_EXTENSIONS.includes(entry.name.split(".").pop() || ""))
-        ),
-      };
-      _.orderBy(files.entries, "name", "asc");
-      let current_dir = "Music";
-      let parent_dir;
-      let parent_id;
-
-      if (props.fileId) {
-        const file = await getFile(props.fileId);
-        current_dir = file.name;
-        // extract the parent directory from the path
-        const parent_path = file.path_display.split("/").slice(0, -1).join("/");
-        parent_dir = file.path_display.split("/").slice(0, -1).pop();
-        if (parent_path) {
-          const parent = await getFile(parent_path);
-          parent_id = parent.id;
-        }
-      }
-
-      setDropbox({
-        current_dir,
-        parent_dir,
-        parent_id,
-        cache: {
-          ...cache,
-          [props.fileId || "/Music"]: {
-            ...cache[props.fileId || "/Music"],
-            current_dir,
-            parent_dir,
-            parent_id,
-          },
-        },
-      });
-      setLoading(false);
-    };
-    fetchFiles();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.fileId]);
-  */
-
   return (
     <Main>
-      {/*
-      ((props.fileId && dropbox?.cache[props.fileId]) ||
-        !isLoading ||
-        pathname === "/dropbox") && (
-        <div className="pt-[80px] fixed bg-[var(--color-background)] top-[19px] w-[770px]">
-          <Breadcrumbs>
-            {parent_dir && current_dir !== "Music" && (
-              <Link
-                to={current_dir === "Music" ? `/dropbox` : `/dropbox/$id`}
-                params={{ id: parent_id! }}
-                className="!text-[var(--color-text)]"
-              >
-                {parent_dir}
-              </Link>
-            )}
-          </Breadcrumbs>
-          <HeadingMedium
-            marginTop={"10px"}
-            marginBottom={"25px"}
-            className="!text-[var(--color-text)]"
-          >
-            {current_dir === "Music" ? "Dropbox" : current_dir}
-          </HeadingMedium>
-        </div>
-      )
-        */}
       <div className="pt-[80px] fixed bg-[var(--color-background)] top-[19px] w-[770px]">
         <Breadcrumbs>
           {
