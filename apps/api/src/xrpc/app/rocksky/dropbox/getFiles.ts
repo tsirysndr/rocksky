@@ -111,7 +111,7 @@ const retrieve = ({
 const presentation = (data) => {
   return Effect.sync(() => ({
     parentDirectory: R.omit(
-      ["createdAt", "updatedAt"],
+      ["createdAt", "updatedAt", "xataVersion"],
       _.get(data, "0.0.parent", null) || _.get(data, "1.0.parent", null)
     ),
     directories: data[0].map((item) => ({
