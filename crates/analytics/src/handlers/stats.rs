@@ -85,7 +85,12 @@ pub async fn get_stats(
     )"#)?;
     let albums: i64 = stmt.query_row([&params.user_did, &params.user_did], |row| row.get(0))?;
 
-    let mut stmt = conn.prepare("SELECT COUNT(*) FROM user_tracks LEFT JOIN users u ON user_tracks.user_id = u.id WHERE u.did = ? OR u.handle = ?")?;
+    let mut stmt = conn.prepare(r#"
+        SELECT COUNT(*) FROM tracks t
+        LEFT JOIN user_tracks ut ON ut.track_id = t.id
+        LEFT JOIN users u ON ut.user_id = u.id
+        WHERE u.did = ? OR u.handle = ?
+    "#)?;
     let tracks: i64 = stmt.query_row([&params.user_did, &params.user_did], |row| row.get(0))?;
 
     Ok(HttpResponse::Ok().json(json!({
