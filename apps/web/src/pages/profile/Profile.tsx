@@ -6,6 +6,7 @@ import { Tab, Tabs } from "baseui/tabs-motion";
 import { HeadingMedium, LabelLarge } from "baseui/typography";
 import dayjs from "dayjs";
 import { useAtom, useSetAtom } from "jotai";
+import _ from "lodash";
 import { Key, useEffect, useState } from "react";
 import { profilesAtom } from "../../atoms/profiles";
 import { userAtom } from "../../atoms/user";
@@ -24,9 +25,15 @@ const Group = styled.div`
   margin-bottom: 50px;
 `;
 
-function Profile() {
+export type ProfileProps = {
+  activeKey?: string;
+};
+
+function Profile(props: ProfileProps) {
   const [profiles, setProfiles] = useAtom(profilesAtom);
-  const [activeKey, setActiveKey] = useState<Key>("0");
+  const [activeKey, setActiveKey] = useState<Key>(
+    _.get(props, "activeKey", "0").split("/")[0]
+  );
   const { did } = useParams({ strict: false });
   const profile = useProfileByDidQuery(did!);
   const setUser = useSetAtom(userAtom);
@@ -167,7 +174,9 @@ function Profile() {
                 },
               }}
             >
-              <Library />
+              <Library
+                activeKey={_.get(props, "activeKey", "0").split("/")[1] || "0"}
+              />
             </Tab>
             <Tab
               title="Playlists"

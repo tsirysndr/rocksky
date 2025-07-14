@@ -1,14 +1,21 @@
 import { useSearch } from "@tanstack/react-router";
 import { Tab, Tabs } from "baseui/tabs-motion";
 import { HeadingSmall } from "baseui/typography";
+import _ from "lodash";
 import { Key, useEffect, useState } from "react";
 import RecentTracks from "../overview/recenttracks";
 import TopArtists from "../overview/topartists";
 import TopTracks from "../overview/toptracks";
 import Albums from "./albums";
 
-function Library() {
-  const [activeKey, setActiveKey] = useState<Key>("0");
+export type LibraryProps = {
+  activeKey?: string;
+};
+
+function Library(props: LibraryProps) {
+  const [activeKey, setActiveKey] = useState<Key>(
+    _.get(props, "activeKey", "0")
+  );
   const { tab } = useSearch({ strict: false });
   console.log("tab", tab);
 

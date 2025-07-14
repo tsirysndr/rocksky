@@ -15,9 +15,17 @@ import { Route as ApikeysRouteImport } from './routes/apikeys'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GoogledriveIndexRouteImport } from './routes/googledrive/index'
 import { Route as DropboxIndexRouteImport } from './routes/dropbox/index'
-import { Route as ProfileDidRouteImport } from './routes/profile.$did'
 import { Route as GoogledriveIdRouteImport } from './routes/googledrive/$id'
 import { Route as DropboxIdRouteImport } from './routes/dropbox/$id'
+import { Route as ProfileDidIndexRouteImport } from './routes/profile/$did/index'
+import { Route as ProfileDidTracksRouteImport } from './routes/profile/$did/tracks'
+import { Route as ProfileDidTagsRouteImport } from './routes/profile/$did/tags'
+import { Route as ProfileDidScrobblesRouteImport } from './routes/profile/$did/scrobbles'
+import { Route as ProfileDidPlaylistsRouteImport } from './routes/profile/$did/playlists'
+import { Route as ProfileDidLikesRouteImport } from './routes/profile/$did/likes'
+import { Route as ProfileDidLibraryRouteImport } from './routes/profile/$did/library'
+import { Route as ProfileDidArtistsRouteImport } from './routes/profile/$did/artists'
+import { Route as ProfileDidAlbumsRouteImport } from './routes/profile/$did/albums'
 import { Route as DidSongRkeyRouteImport } from './routes/$did.song.$rkey'
 import { Route as DidScrobbleRkeyRouteImport } from './routes/$did.scrobble.$rkey'
 import { Route as DidPlaylistRkeyRouteImport } from './routes/$did.playlist.$rkey'
@@ -54,11 +62,6 @@ const DropboxIndexRoute = DropboxIndexRouteImport.update({
   path: '/dropbox/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProfileDidRoute = ProfileDidRouteImport.update({
-  id: '/profile/$did',
-  path: '/profile/$did',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const GoogledriveIdRoute = GoogledriveIdRouteImport.update({
   id: '/googledrive/$id',
   path: '/googledrive/$id',
@@ -67,6 +70,51 @@ const GoogledriveIdRoute = GoogledriveIdRouteImport.update({
 const DropboxIdRoute = DropboxIdRouteImport.update({
   id: '/dropbox/$id',
   path: '/dropbox/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileDidIndexRoute = ProfileDidIndexRouteImport.update({
+  id: '/profile/$did/',
+  path: '/profile/$did/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileDidTracksRoute = ProfileDidTracksRouteImport.update({
+  id: '/profile/$did/tracks',
+  path: '/profile/$did/tracks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileDidTagsRoute = ProfileDidTagsRouteImport.update({
+  id: '/profile/$did/tags',
+  path: '/profile/$did/tags',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileDidScrobblesRoute = ProfileDidScrobblesRouteImport.update({
+  id: '/profile/$did/scrobbles',
+  path: '/profile/$did/scrobbles',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileDidPlaylistsRoute = ProfileDidPlaylistsRouteImport.update({
+  id: '/profile/$did/playlists',
+  path: '/profile/$did/playlists',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileDidLikesRoute = ProfileDidLikesRouteImport.update({
+  id: '/profile/$did/likes',
+  path: '/profile/$did/likes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileDidLibraryRoute = ProfileDidLibraryRouteImport.update({
+  id: '/profile/$did/library',
+  path: '/profile/$did/library',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileDidArtistsRoute = ProfileDidArtistsRouteImport.update({
+  id: '/profile/$did/artists',
+  path: '/profile/$did/artists',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileDidAlbumsRoute = ProfileDidAlbumsRouteImport.update({
+  id: '/profile/$did/albums',
+  path: '/profile/$did/albums',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DidSongRkeyRoute = DidSongRkeyRouteImport.update({
@@ -102,7 +150,6 @@ export interface FileRoutesByFullPath {
   '/scrobble': typeof ScrobbleRoute
   '/dropbox/$id': typeof DropboxIdRoute
   '/googledrive/$id': typeof GoogledriveIdRoute
-  '/profile/$did': typeof ProfileDidRoute
   '/dropbox': typeof DropboxIndexRoute
   '/googledrive': typeof GoogledriveIndexRoute
   '/$did/album/$rkey': typeof DidAlbumRkeyRoute
@@ -110,6 +157,15 @@ export interface FileRoutesByFullPath {
   '/$did/playlist/$rkey': typeof DidPlaylistRkeyRoute
   '/$did/scrobble/$rkey': typeof DidScrobbleRkeyRoute
   '/$did/song/$rkey': typeof DidSongRkeyRoute
+  '/profile/$did/albums': typeof ProfileDidAlbumsRoute
+  '/profile/$did/artists': typeof ProfileDidArtistsRoute
+  '/profile/$did/library': typeof ProfileDidLibraryRoute
+  '/profile/$did/likes': typeof ProfileDidLikesRoute
+  '/profile/$did/playlists': typeof ProfileDidPlaylistsRoute
+  '/profile/$did/scrobbles': typeof ProfileDidScrobblesRoute
+  '/profile/$did/tags': typeof ProfileDidTagsRoute
+  '/profile/$did/tracks': typeof ProfileDidTracksRoute
+  '/profile/$did': typeof ProfileDidIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -118,7 +174,6 @@ export interface FileRoutesByTo {
   '/scrobble': typeof ScrobbleRoute
   '/dropbox/$id': typeof DropboxIdRoute
   '/googledrive/$id': typeof GoogledriveIdRoute
-  '/profile/$did': typeof ProfileDidRoute
   '/dropbox': typeof DropboxIndexRoute
   '/googledrive': typeof GoogledriveIndexRoute
   '/$did/album/$rkey': typeof DidAlbumRkeyRoute
@@ -126,6 +181,15 @@ export interface FileRoutesByTo {
   '/$did/playlist/$rkey': typeof DidPlaylistRkeyRoute
   '/$did/scrobble/$rkey': typeof DidScrobbleRkeyRoute
   '/$did/song/$rkey': typeof DidSongRkeyRoute
+  '/profile/$did/albums': typeof ProfileDidAlbumsRoute
+  '/profile/$did/artists': typeof ProfileDidArtistsRoute
+  '/profile/$did/library': typeof ProfileDidLibraryRoute
+  '/profile/$did/likes': typeof ProfileDidLikesRoute
+  '/profile/$did/playlists': typeof ProfileDidPlaylistsRoute
+  '/profile/$did/scrobbles': typeof ProfileDidScrobblesRoute
+  '/profile/$did/tags': typeof ProfileDidTagsRoute
+  '/profile/$did/tracks': typeof ProfileDidTracksRoute
+  '/profile/$did': typeof ProfileDidIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -135,7 +199,6 @@ export interface FileRoutesById {
   '/scrobble': typeof ScrobbleRoute
   '/dropbox/$id': typeof DropboxIdRoute
   '/googledrive/$id': typeof GoogledriveIdRoute
-  '/profile/$did': typeof ProfileDidRoute
   '/dropbox/': typeof DropboxIndexRoute
   '/googledrive/': typeof GoogledriveIndexRoute
   '/$did/album/$rkey': typeof DidAlbumRkeyRoute
@@ -143,6 +206,15 @@ export interface FileRoutesById {
   '/$did/playlist/$rkey': typeof DidPlaylistRkeyRoute
   '/$did/scrobble/$rkey': typeof DidScrobbleRkeyRoute
   '/$did/song/$rkey': typeof DidSongRkeyRoute
+  '/profile/$did/albums': typeof ProfileDidAlbumsRoute
+  '/profile/$did/artists': typeof ProfileDidArtistsRoute
+  '/profile/$did/library': typeof ProfileDidLibraryRoute
+  '/profile/$did/likes': typeof ProfileDidLikesRoute
+  '/profile/$did/playlists': typeof ProfileDidPlaylistsRoute
+  '/profile/$did/scrobbles': typeof ProfileDidScrobblesRoute
+  '/profile/$did/tags': typeof ProfileDidTagsRoute
+  '/profile/$did/tracks': typeof ProfileDidTracksRoute
+  '/profile/$did/': typeof ProfileDidIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -153,7 +225,6 @@ export interface FileRouteTypes {
     | '/scrobble'
     | '/dropbox/$id'
     | '/googledrive/$id'
-    | '/profile/$did'
     | '/dropbox'
     | '/googledrive'
     | '/$did/album/$rkey'
@@ -161,6 +232,15 @@ export interface FileRouteTypes {
     | '/$did/playlist/$rkey'
     | '/$did/scrobble/$rkey'
     | '/$did/song/$rkey'
+    | '/profile/$did/albums'
+    | '/profile/$did/artists'
+    | '/profile/$did/library'
+    | '/profile/$did/likes'
+    | '/profile/$did/playlists'
+    | '/profile/$did/scrobbles'
+    | '/profile/$did/tags'
+    | '/profile/$did/tracks'
+    | '/profile/$did'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -169,7 +249,6 @@ export interface FileRouteTypes {
     | '/scrobble'
     | '/dropbox/$id'
     | '/googledrive/$id'
-    | '/profile/$did'
     | '/dropbox'
     | '/googledrive'
     | '/$did/album/$rkey'
@@ -177,6 +256,15 @@ export interface FileRouteTypes {
     | '/$did/playlist/$rkey'
     | '/$did/scrobble/$rkey'
     | '/$did/song/$rkey'
+    | '/profile/$did/albums'
+    | '/profile/$did/artists'
+    | '/profile/$did/library'
+    | '/profile/$did/likes'
+    | '/profile/$did/playlists'
+    | '/profile/$did/scrobbles'
+    | '/profile/$did/tags'
+    | '/profile/$did/tracks'
+    | '/profile/$did'
   id:
     | '__root__'
     | '/'
@@ -185,7 +273,6 @@ export interface FileRouteTypes {
     | '/scrobble'
     | '/dropbox/$id'
     | '/googledrive/$id'
-    | '/profile/$did'
     | '/dropbox/'
     | '/googledrive/'
     | '/$did/album/$rkey'
@@ -193,6 +280,15 @@ export interface FileRouteTypes {
     | '/$did/playlist/$rkey'
     | '/$did/scrobble/$rkey'
     | '/$did/song/$rkey'
+    | '/profile/$did/albums'
+    | '/profile/$did/artists'
+    | '/profile/$did/library'
+    | '/profile/$did/likes'
+    | '/profile/$did/playlists'
+    | '/profile/$did/scrobbles'
+    | '/profile/$did/tags'
+    | '/profile/$did/tracks'
+    | '/profile/$did/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -202,7 +298,6 @@ export interface RootRouteChildren {
   ScrobbleRoute: typeof ScrobbleRoute
   DropboxIdRoute: typeof DropboxIdRoute
   GoogledriveIdRoute: typeof GoogledriveIdRoute
-  ProfileDidRoute: typeof ProfileDidRoute
   DropboxIndexRoute: typeof DropboxIndexRoute
   GoogledriveIndexRoute: typeof GoogledriveIndexRoute
   DidAlbumRkeyRoute: typeof DidAlbumRkeyRoute
@@ -210,6 +305,15 @@ export interface RootRouteChildren {
   DidPlaylistRkeyRoute: typeof DidPlaylistRkeyRoute
   DidScrobbleRkeyRoute: typeof DidScrobbleRkeyRoute
   DidSongRkeyRoute: typeof DidSongRkeyRoute
+  ProfileDidAlbumsRoute: typeof ProfileDidAlbumsRoute
+  ProfileDidArtistsRoute: typeof ProfileDidArtistsRoute
+  ProfileDidLibraryRoute: typeof ProfileDidLibraryRoute
+  ProfileDidLikesRoute: typeof ProfileDidLikesRoute
+  ProfileDidPlaylistsRoute: typeof ProfileDidPlaylistsRoute
+  ProfileDidScrobblesRoute: typeof ProfileDidScrobblesRoute
+  ProfileDidTagsRoute: typeof ProfileDidTagsRoute
+  ProfileDidTracksRoute: typeof ProfileDidTracksRoute
+  ProfileDidIndexRoute: typeof ProfileDidIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -256,13 +360,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DropboxIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/profile/$did': {
-      id: '/profile/$did'
-      path: '/profile/$did'
-      fullPath: '/profile/$did'
-      preLoaderRoute: typeof ProfileDidRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/googledrive/$id': {
       id: '/googledrive/$id'
       path: '/googledrive/$id'
@@ -275,6 +372,69 @@ declare module '@tanstack/react-router' {
       path: '/dropbox/$id'
       fullPath: '/dropbox/$id'
       preLoaderRoute: typeof DropboxIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile/$did/': {
+      id: '/profile/$did/'
+      path: '/profile/$did'
+      fullPath: '/profile/$did'
+      preLoaderRoute: typeof ProfileDidIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile/$did/tracks': {
+      id: '/profile/$did/tracks'
+      path: '/profile/$did/tracks'
+      fullPath: '/profile/$did/tracks'
+      preLoaderRoute: typeof ProfileDidTracksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile/$did/tags': {
+      id: '/profile/$did/tags'
+      path: '/profile/$did/tags'
+      fullPath: '/profile/$did/tags'
+      preLoaderRoute: typeof ProfileDidTagsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile/$did/scrobbles': {
+      id: '/profile/$did/scrobbles'
+      path: '/profile/$did/scrobbles'
+      fullPath: '/profile/$did/scrobbles'
+      preLoaderRoute: typeof ProfileDidScrobblesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile/$did/playlists': {
+      id: '/profile/$did/playlists'
+      path: '/profile/$did/playlists'
+      fullPath: '/profile/$did/playlists'
+      preLoaderRoute: typeof ProfileDidPlaylistsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile/$did/likes': {
+      id: '/profile/$did/likes'
+      path: '/profile/$did/likes'
+      fullPath: '/profile/$did/likes'
+      preLoaderRoute: typeof ProfileDidLikesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile/$did/library': {
+      id: '/profile/$did/library'
+      path: '/profile/$did/library'
+      fullPath: '/profile/$did/library'
+      preLoaderRoute: typeof ProfileDidLibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile/$did/artists': {
+      id: '/profile/$did/artists'
+      path: '/profile/$did/artists'
+      fullPath: '/profile/$did/artists'
+      preLoaderRoute: typeof ProfileDidArtistsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile/$did/albums': {
+      id: '/profile/$did/albums'
+      path: '/profile/$did/albums'
+      fullPath: '/profile/$did/albums'
+      preLoaderRoute: typeof ProfileDidAlbumsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$did/song/$rkey': {
@@ -322,7 +482,6 @@ const rootRouteChildren: RootRouteChildren = {
   ScrobbleRoute: ScrobbleRoute,
   DropboxIdRoute: DropboxIdRoute,
   GoogledriveIdRoute: GoogledriveIdRoute,
-  ProfileDidRoute: ProfileDidRoute,
   DropboxIndexRoute: DropboxIndexRoute,
   GoogledriveIndexRoute: GoogledriveIndexRoute,
   DidAlbumRkeyRoute: DidAlbumRkeyRoute,
@@ -330,6 +489,15 @@ const rootRouteChildren: RootRouteChildren = {
   DidPlaylistRkeyRoute: DidPlaylistRkeyRoute,
   DidScrobbleRkeyRoute: DidScrobbleRkeyRoute,
   DidSongRkeyRoute: DidSongRkeyRoute,
+  ProfileDidAlbumsRoute: ProfileDidAlbumsRoute,
+  ProfileDidArtistsRoute: ProfileDidArtistsRoute,
+  ProfileDidLibraryRoute: ProfileDidLibraryRoute,
+  ProfileDidLikesRoute: ProfileDidLikesRoute,
+  ProfileDidPlaylistsRoute: ProfileDidPlaylistsRoute,
+  ProfileDidScrobblesRoute: ProfileDidScrobblesRoute,
+  ProfileDidTagsRoute: ProfileDidTagsRoute,
+  ProfileDidTracksRoute: ProfileDidTracksRoute,
+  ProfileDidIndexRoute: ProfileDidIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
