@@ -42,7 +42,7 @@ const retrieve = ({
   params: QueryParams;
   ctx: Context;
   did: string;
-}) => {
+}): Effect.Effect<[Directories, Files], Error> => {
   return Effect.tryPromise({
     try: async () => {
       const parentDirAlias = alias(tables.dropboxDirectories, "parent_dir");
@@ -111,14 +111,16 @@ const retrieve = ({
   });
 };
 
-const presentation = (data) => {
+const presentation = (
+  data: [Directories, Files]
+): Effect.Effect<any, never> => {
   return Effect.sync(() => ({
     directory: R.omit(
       ["createdAt", "updatedAt", "xataVersion"],
       _.get(data, "0.0.parent", null) || _.get(data, "1.0.parent", null)
     ),
     parentDirectory: R.omit(
-      ["createdAt", "updatedAt"],
+      ["createdAt", "updatedAt", "xataVersion"],
       _.get(data, "0.0.parent_dir", null) || _.get(data, "1.0.parent_dir", null)
     ),
     directories: data[0].map((item) => ({
@@ -141,3 +143,55 @@ const presentation = (data) => {
     })),
   }));
 };
+
+type Directories = {
+  dropbox_directories: {
+    id: string;
+    name: string;
+    fileId: string;
+    path: string;
+    parentId: string;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+  parent?: {
+    id: string;
+    name: string;
+    fileId: string;
+    dropboxId: string;
+    path: string;
+  };
+  parent_dir?: {
+    id: string;
+    name: string;
+    fileId: string;
+    dropboxId: string;
+    path: string;
+  };
+}[];
+
+type Files = {
+  dropbox_paths: {
+    id: string;
+    name: string;
+    fileId: string;
+    directoryId: string;
+    trackId?: string;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+  parent?: {
+    id: string;
+    name: string;
+    fileId: string;
+    dropboxId: string;
+    path: string;
+  };
+  parent_dir?: {
+    id: string;
+    name: string;
+    fileId: string;
+    dropboxId: string;
+    path: string;
+  };
+}[];

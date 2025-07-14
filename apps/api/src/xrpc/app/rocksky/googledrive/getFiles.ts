@@ -41,7 +41,7 @@ const retrieve = ({
   params: QueryParams;
   ctx: Context;
   did: string;
-}) => {
+}): Effect.Effect<[Directories, Files], Error> => {
   return Effect.tryPromise({
     try: async () => {
       const parentDirAlias = alias(tables.googleDriveDirectories, "parent_dir");
@@ -119,7 +119,9 @@ const retrieve = ({
   });
 };
 
-const presentation = (data) => {
+const presentation = (
+  data: [Directories, Files]
+): Effect.Effect<any, never> => {
   return Effect.sync(() => ({
     directory: R.omit(
       ["createdAt", "updatedAt", "xataVersion"],
@@ -149,3 +151,27 @@ const presentation = (data) => {
     })),
   }));
 };
+
+type Directories = {
+  google_drive_directories: {
+    id: string;
+    name: string;
+    fileId: string;
+    path: string;
+    parentId: string;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+}[];
+
+type Files = {
+  google_drive_paths: {
+    id: string;
+    name: string;
+    fileId: string;
+    directoryId: string;
+    trackId?: string;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+}[];
