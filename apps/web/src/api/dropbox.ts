@@ -1,34 +1,41 @@
 import axios from "axios";
+import { client } from ".";
 import { API_URL } from "../consts";
 
 export const getFiles = async (id?: string) => {
-  const response = await axios.get<{
-    cursor: string;
-    entries: {
-      ".tag": string;
+  const response = await client.get<{
+    directories: {
       id: string;
       name: string;
-      path_display: string;
+      fileId: string;
+      path: string;
+      parentId?: string;
     }[];
-    has_more: boolean;
-  }>(`${API_URL}/dropbox/files`, {
+    files: {
+      id: string;
+      name: string;
+      fileId: string;
+      directoryId: string;
+      trackId: string;
+    }[];
+  }>("/xrpc/app.rocksky.dropbox.getFiles", {
     headers: {
       Authorization: `Bearer ${localStorage.getItem("token")}`,
     },
     params: {
-      path: id,
+      at: id,
     },
   });
   return response.data;
 };
 
 export const getFile = async (id: string) => {
-  const response = await axios.get<{
+  const response = await client.get<{
     ".tag": string;
     id: string;
     name: string;
     path_display: string;
-  }>(`${API_URL}/dropbox/file`, {
+  }>("/xrpc/app.rocksky.dropbox.getFiles", {
     headers: {
       Authorization: `Bearer ${localStorage.getItem("token")}`,
     },

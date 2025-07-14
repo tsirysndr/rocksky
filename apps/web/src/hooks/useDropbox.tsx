@@ -21,44 +21,6 @@ export const useTemporaryLinkQuery = (id: string) =>
   });
 
 function useDropbox() {
-  const getFiles = async (id?: string) => {
-    const response = await client.get<{
-      cursor: string;
-      entries: {
-        ".tag": string;
-        id: string;
-        name: string;
-        path_display: string;
-      }[];
-      has_more: boolean;
-    }>(`/dropbox/files`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      params: {
-        path: id,
-      },
-    });
-    return response.data;
-  };
-
-  const getFile = async (id: string) => {
-    const response = await client.get<{
-      ".tag": string;
-      id: string;
-      name: string;
-      path_display: string;
-    }>(`/dropbox/file`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      params: {
-        path: id,
-      },
-    });
-    return response.data;
-  };
-
   const getTemporaryLink = async (id: string) => {
     const response = await client.get<{
       link: string;
@@ -74,8 +36,6 @@ function useDropbox() {
   };
 
   return {
-    getFiles,
-    getFile,
     getTemporaryLink,
   };
 }

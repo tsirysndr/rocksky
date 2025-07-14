@@ -1,23 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Folder2, MusicNoteBeamed } from "@styled-icons/bootstrap";
-import { Link, useRouter } from "@tanstack/react-router";
 import { createColumnHelper } from "@tanstack/react-table";
-import { Breadcrumbs } from "baseui/breadcrumbs";
-import { HeadingMedium } from "baseui/typography";
-import { useAtom } from "jotai";
-import _ from "lodash";
-import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
-import { dropboxAtom } from "../../atoms/dropbox";
 import Table from "../../components/Table";
-import { AUDIO_EXTENSIONS } from "../../consts";
-import useDropbox, {
-  useFileQuery,
-  useFilesQuery,
-  useTemporaryLinkQuery,
-} from "../../hooks/useDropbox";
+import { useFilesQuery } from "../../hooks/useDropbox";
 import Main from "../../layouts/Main";
-import Metadata from "../../lib/metadata";
 import { File } from "../../types/file";
 import { AudioFile, Directory } from "./styles";
 
@@ -28,25 +15,17 @@ export type DropboxProps = {
 };
 
 const Dropbox = (props: DropboxProps) => {
-  const [dropbox, setDropbox] = useAtom(dropboxAtom);
-  useFilesQuery();
-  useFileQuery(props.fileId!);
-  useTemporaryLinkQuery(props.fileId!);
-
-  const { getFiles, getFile, getTemporaryLink } = useDropbox();
-  const [loading, setLoading] = useState(true);
-  const {
-    state: {
-      location: { pathname },
-    },
-  } = useRouter();
+  const { data, isLoading } = useFilesQuery(props.fileId);
 
   const playFile = async (id: string) => {
+    console.log(">> Playing file:", id);
+    /*
     const { link } = await getTemporaryLink(id);
     console.log(">> Playing file:", link);
     const m = new Metadata();
     await m.load(link);
     console.log(">> Metadata:", m.get_metadata());
+    */
   };
 
   const columns = [
@@ -87,6 +66,7 @@ const Dropbox = (props: DropboxProps) => {
     }),
   ];
 
+  /*
   useEffect(() => {
     const fetchFiles = async () => {
       setLoading(true);
@@ -136,18 +116,13 @@ const Dropbox = (props: DropboxProps) => {
     fetchFiles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.fileId]);
+  */
 
-  const parent_dir =
-    dropbox?.cache[props.fileId || "/Music"]?.parent_dir || dropbox?.parent_dir;
-  const current_dir =
-    dropbox?.cache[props.fileId || "/Music"]?.current_dir ||
-    dropbox?.current_dir;
-  const parent_id =
-    dropbox?.cache[props.fileId || "/Music"]?.parent_id || dropbox?.parent_id;
   return (
     <Main>
-      {((props.fileId && dropbox?.cache[props.fileId]) ||
-        !loading ||
+      {/*
+      ((props.fileId && dropbox?.cache[props.fileId]) ||
+        !isLoading ||
         pathname === "/dropbox") && (
         <div className="pt-[80px] fixed bg-[var(--color-background)] top-[19px] w-[770px]">
           <Breadcrumbs>
@@ -169,10 +144,11 @@ const Dropbox = (props: DropboxProps) => {
             {current_dir === "Music" ? "Dropbox" : current_dir}
           </HeadingMedium>
         </div>
-      )}
+      )
+        */}
 
       <div className="mt-[100px] overflow-x-hidden mb-[140px] ">
-        {loading && !dropbox?.cache[props.fileId || "/Music"] && (
+        {isLoading && (
           <ContentLoader
             width={700}
             height={350}
@@ -193,16 +169,21 @@ const Dropbox = (props: DropboxProps) => {
             <circle cx="20" cy="271" r="15" />
           </ContentLoader>
         )}
-        {(!loading || dropbox?.cache[props.fileId || "/Music"]) && (
+        {!isLoading && (
           <Table
             columns={columns as any}
-            files={
-              dropbox?.cache[props.fileId || "/Music"]?.files.map((entry) => ({
-                id: entry.id,
-                name: entry.name,
-                tag: entry[".tag"],
-              })) || []
-            }
+            files={[
+              ...data!.directories.map((dir) => ({
+                id: dir.fileId,
+                name: dir.name,
+                tag: "folder",
+              })),
+              ...data!.files.map((file) => ({
+                id: file.fileId,
+                name: file.name,
+                tag: "file",
+              })),
+            ]}
           />
         )}
       </div>

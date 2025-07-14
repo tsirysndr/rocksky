@@ -182,7 +182,7 @@ const Album = () => {
                 </div>
                 <div className="flex items-center justify-end flex-1 mr-[10px]">
                   <a
-                    href={`https://pdsls.dev/at/${uri}`}
+                    href={`https://pdsls.dev/at/${uri.replace("at://", "")}`}
                     target="_blank"
                     className="text-[var(--color-text)] no-underline bg-[var(--color-default-button)] rounded-[10px] p-[16px] pl-[25px] pr-[25px]"
                   >

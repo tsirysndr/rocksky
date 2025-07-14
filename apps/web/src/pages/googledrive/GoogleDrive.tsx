@@ -1,20 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Folder2, MusicNoteBeamed } from "@styled-icons/bootstrap";
-import { Link, useRouter } from "@tanstack/react-router";
 import { createColumnHelper } from "@tanstack/react-table";
-import { Breadcrumbs } from "baseui/breadcrumbs";
-import { HeadingMedium } from "baseui/typography";
-import { useAtom } from "jotai";
-import _ from "lodash";
-import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
-import googleDriveAtom from "../../atoms/googledrive";
 import Table from "../../components/Table";
-import { AUDIO_EXTENSIONS } from "../../consts";
-import useGoogleDrive, {
-  useFileQuery,
-  useFilesQuery,
-} from "../../hooks/useGoogleDrive";
+import { useFilesQuery } from "../../hooks/useGoogleDrive";
 import Main from "../../layouts/Main";
 import { File } from "../../types/file";
 import { AudioFile, Directory } from "./styles";
@@ -26,17 +15,7 @@ export type GoogleDriveProps = {
 };
 
 const GoogleDrive = (props: GoogleDriveProps) => {
-  const [googleDrive, setGoogleDrive] = useAtom(googleDriveAtom);
-  useFilesQuery();
-  useFileQuery(props.fileId!);
-
-  const { getFiles, getFile } = useGoogleDrive();
-  const [loading, setLoading] = useState(true);
-  const {
-    state: {
-      location: { pathname },
-    },
-  } = useRouter();
+  const { data, isLoading } = useFilesQuery(props.fileId);
 
   const columns = [
     columnHelper.accessor("name", {
@@ -74,6 +53,7 @@ const GoogleDrive = (props: GoogleDriveProps) => {
     }),
   ];
 
+  /*
   useEffect(() => {
     const fetchGoogleDrive = async () => {
       setLoading(true);
@@ -130,20 +110,13 @@ const GoogleDrive = (props: GoogleDriveProps) => {
     fetchGoogleDrive();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.fileId]);
+  */
 
-  const parent_dir =
-    googleDrive?.cache[props.fileId || "/Music"]?.parent_dir ||
-    googleDrive?.parent_dir;
-  const current_dir =
-    googleDrive?.cache[props.fileId || "/Music"]?.current_dir ||
-    googleDrive?.current_dir;
-  const parent_id =
-    googleDrive?.cache[props.fileId || "/Music"]?.parent_id ||
-    googleDrive?.parent_id;
   return (
     <Main>
-      {((props.fileId && googleDrive?.cache[props.fileId]) ||
-        !loading ||
+      {/*
+      ((props.fileId && googleDrive?.cache[props.fileId]) ||
+        !isLoading ||
         pathname === "/googledrive") && (
         <div className="pt-[80px] fixed bg-[var(--color-background)] top-[19px] w-[770px]">
           <Breadcrumbs>
@@ -167,10 +140,10 @@ const GoogleDrive = (props: GoogleDriveProps) => {
             {current_dir === "Music" ? "Google Drive" : current_dir}
           </HeadingMedium>
         </div>
-      )}
+      )*/}
 
       <div className="mt-[100px] overflow-x-hidden mb-[140px]">
-        {loading && !googleDrive?.cache[props.fileId || "/Music"]?.files && (
+        {isLoading && (
           <ContentLoader
             width={700}
             height={350}
@@ -191,18 +164,21 @@ const GoogleDrive = (props: GoogleDriveProps) => {
             <circle cx="20" cy="271" r="15" />
           </ContentLoader>
         )}
-        {(!loading || googleDrive?.cache[props.fileId || "/Music"]?.files) && (
+        {!isLoading && (
           <Table
             columns={columns as any}
-            files={
-              googleDrive?.cache[props.fileId || "/Music"]?.files.map(
-                (entry) => ({
-                  id: entry.id,
-                  name: entry.name,
-                  tag: entry.mime_type.includes("folder") ? "folder" : "file",
-                })
-              ) || []
-            }
+            files={[
+              ...data!.directories.map((dir) => ({
+                id: dir.fileId,
+                name: dir.name,
+                tag: "folder",
+              })),
+              ...data!.files.map((file) => ({
+                id: file.fileId,
+                name: file.name,
+                tag: "file",
+              })),
+            ]}
           />
         )}
       </div>

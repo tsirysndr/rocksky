@@ -10,12 +10,6 @@ const googleDriveAtom = atom<{
       parent_id?: string;
       parent_dir?: string;
       current_dir?: string;
-      files: {
-        id: string;
-        name: string;
-        mime_type: string;
-        parents: string[];
-      }[];
     }
   >;
 } | null>(null);

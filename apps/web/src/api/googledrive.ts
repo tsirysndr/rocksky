@@ -1,36 +1,44 @@
-import axios from "axios";
-import { API_URL } from "../consts";
+import { client } from ".";
 
 export const getFiles = async (parent_id?: string) => {
-  const response = await axios.get<{
+  const response = await client.get<{
+    directories: {
+      id: string;
+      name: string;
+      fileId: string;
+      path: string;
+      parentId?: string;
+    }[];
     files: {
       id: string;
-      mimeType: string;
       name: string;
-      parents: string[];
+      fileId: string;
+      directoryId: string;
+      trackId: string;
     }[];
-    authUrl?: string;
-    error?: string;
-  }>(`${API_URL}/googledrive/files`, {
+  }>("/xrpc/app.rocksky.googledrive.getFiles", {
     headers: {
       Authorization: `Bearer ${localStorage.getItem("token")}`,
     },
     params: {
-      parent_id,
+      at: parent_id,
     },
   });
   return response.data;
 };
 
 export const getFile = async (id: string) => {
-  const response = await axios.get<{
+  const response = await client.get<{
     id: string;
     mimeType: string;
     name: string;
     parents: string[];
-  }>(`${API_URL}/googledrive/files/${id}`, {
+  }>("/xrpc/app.rocksky.googledrive.getFile", {
     headers: {
       Authorization: `Bearer ${localStorage.getItem("token")}`,
+    },
+    params: {
+      id,
     },
   });
   return response.data;
