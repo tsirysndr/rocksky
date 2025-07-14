@@ -82,11 +82,8 @@ const retrieve = ({
           .select()
           .from(tables.googleDrivePaths)
           .leftJoin(
-            tables.googleDriveDirectories,
-            eq(
-              tables.googleDrivePaths.directoryId,
-              tables.googleDriveDirectories.id
-            )
+            parentAlias,
+            eq(tables.googleDrivePaths.directoryId, parentAlias.id)
           )
           .leftJoin(
             tables.googleDrive,
@@ -101,13 +98,10 @@ const retrieve = ({
               eq(tables.users.did, did),
               or(
                 eq(
-                  tables.googleDriveDirectories.path,
+                  parentAlias.path,
                   _.get(params, "at", "/Music").replace(/\/$/, "").trim()
                 ),
-                eq(
-                  tables.googleDriveDirectories.fileId,
-                  _.get(params, "at", "").trim()
-                )
+                eq(parentAlias.fileId, _.get(params, "at", "").trim())
               )
             )
           )
@@ -126,7 +120,7 @@ const presentation = (data) => {
   return Effect.sync(() => ({
     parentDirectory: R.omit(
       ["createdAt", "updatedAt"],
-      _.get(data, "0.0.parent", null)
+      _.get(data, "0.0.parent", null) || _.get(data, "1.0.parent", null)
     ),
     directories: data[0].map((item) => ({
       id: item.google_drive_directories.id,
