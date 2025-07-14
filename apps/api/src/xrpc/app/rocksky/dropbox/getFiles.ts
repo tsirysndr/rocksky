@@ -6,6 +6,7 @@ import { Effect, pipe } from "effect";
 import { Server } from "lexicon";
 import { QueryParams } from "lexicon/types/app/rocksky/dropbox/getFiles";
 import _ from "lodash";
+import * as R from "ramda";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
@@ -112,7 +113,10 @@ const retrieve = ({
 
 const presentation = (data) => {
   return Effect.sync(() => ({
-    parentDirectory: _.get(data, "0.0.parent", null),
+    parentDirectory: R.omit(
+      ["createdAt", "updatedAt"],
+      _.get(data, "0.0.parent", null)
+    ),
     directories: data[0].map((item) => ({
       id: item.dropbox_directories.id,
       name: item.dropbox_directories.name,
