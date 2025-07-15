@@ -49,16 +49,6 @@ const Link = styled.a`
     text-decoration: underline;
   }
 `;
-/*
-const Text = styled.span`
-  color: #ff2876;
-  font-size: 13px;
-  cursor: pointer;
-
-  &:hover {
-    text-decoration: underline;
-  }
-*/
 
 export type MainProps = {
   children: React.ReactNode;
@@ -119,22 +109,6 @@ function Main(props: MainProps) {
       return;
     }
 
-    /* const response = await fetch(`${API_URL}/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ handle }),
-    });
-
-    const redirectUrl = await response.text();
-    if (redirectUrl?.startsWith("Invalid")) {
-      toaster.negative("Invalid Bluesky handle", {});
-      return;
-    }*/
-
-    // window.location.href = `${API_URL}/login?handle=${handle}`;
-
     if (API_URL.includes("localhost")) {
       window.location.href = `${API_URL}/login?handle=${handle}`;
       return;
@@ -142,15 +116,6 @@ function Main(props: MainProps) {
 
     window.location.href = `https://rocksky.pages.dev/loading?handle=${handle}`;
   };
-
-  /*
-  const displaySurvey = () => {
-    Object.keys(localStorage)
-      .filter((key) => key.startsWith("seenSurvey"))
-      .reverse()
-      .forEach((key) => localStorage.removeItem(key));
-  };
-*/
 
   return (
     <Container className="bg-[var(--color-background)] text-[var(--color-text)]">
@@ -288,14 +253,6 @@ function Main(props: MainProps) {
               >
                 API Docs
               </Link>
-              {/*
-                <Text
-                className="mr-[10px] !text-[var(--color-primary)]"
-                onClick={displaySurvey}
-              >
-                Feedback
-              </Text>
-              */}
 
               <Link
                 href="https://discord.gg/EVcBy2fVa3"
