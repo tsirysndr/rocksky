@@ -49,7 +49,7 @@ const Link = styled.a`
     text-decoration: underline;
   }
 `;
-
+/*
 const Text = styled.span`
   color: #ff2876;
   font-size: 13px;
@@ -58,7 +58,7 @@ const Text = styled.span`
   &:hover {
     text-decoration: underline;
   }
-`;
+*/
 
 export type MainProps = {
   children: React.ReactNode;
@@ -143,12 +143,14 @@ function Main(props: MainProps) {
     window.location.href = `https://rocksky.pages.dev/loading?handle=${handle}`;
   };
 
+  /*
   const displaySurvey = () => {
     Object.keys(localStorage)
       .filter((key) => key.startsWith("seenSurvey"))
       .reverse()
       .forEach((key) => localStorage.removeItem(key));
   };
+*/
 
   return (
     <Container className="bg-[var(--color-background)] text-[var(--color-text)]">
@@ -286,12 +288,15 @@ function Main(props: MainProps) {
               >
                 API Docs
               </Link>
-              <Text
+              {/*
+                <Text
                 className="mr-[10px] !text-[var(--color-primary)]"
                 onClick={displaySurvey}
               >
                 Feedback
               </Text>
+              */}
+
               <Link
                 href="https://discord.gg/EVcBy2fVa3"
                 target="_blank"
