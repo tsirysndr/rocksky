@@ -17,6 +17,8 @@ jobs:
           wasm: true
           plugin: rust
           args: setup
+        env:
+          GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Run fmt
         run: |
           type cargo
