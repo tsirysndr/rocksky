@@ -1,5 +1,7 @@
 # Rocksky
 
+[![ci](https://github.com/tsirysndr/rocksky/actions/workflows/ci.yml/badge.svg)](https://github.com/tsirysndr/rocksky/actions/workflows/ci.yml)
+
 A decentralized music tracking and discovery platform built on the AT Protocol 🎵
 
 ## Prerequisites
