@@ -1,4 +1,4 @@
-name: fmt and tests
+name: ci
 on:
   push:
     branches:
@@ -7,7 +7,7 @@ on:
     branches:
       - main
 jobs:
-  tests:
+  fmt:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -19,4 +19,5 @@ jobs:
           args: setup
       - name: Run fmt
         run: |
+          type cargo
           cargo fmt --all --check
