@@ -1,20 +1,13 @@
 {
   "name": "rocksky",
-  "private": true,
   "version": "0.0.0",
+  "devDependencies": {
+    "@biomejs/biome": "^2.1.1",
+    "prettier": "^3.5.3",
+    "turbo": "^2.5.4"
+  },
   "packageManager": "bun@1.2.15",
-  "workspaces": [
-    "apps/api",
-    "apps/web",
-    "apps/app-proxy",
-    "apps/cli",
-    "apps/doc",
-    "apps/spotify-proxy",
-    "apps/uploads",
-    "apps/xata-proxy",
-    "packages/*",
-    "crates"
-  ],
+  "private": true,
   "scripts": {
     "dev": "turbo dev",
     "db:migrate": "cd apps/api && bun run db:migrate",
@@ -33,9 +26,16 @@
     "dev:webscrobbler": "cargo run -p webscrobbler --release -- serve",
     "build:raichu": "cd crates/raichu && wasm-pack build --release --target web && cp -r pkg ../../apps/web/src"
   },
-  "devDependencies": {
-    "biome": "^0.3.3",
-    "prettier": "^3.5.3",
-    "turbo": "^2.5.4"
-  }
+  "workspaces": [
+    "apps/api",
+    "apps/web",
+    "apps/app-proxy",
+    "apps/cli",
+    "apps/doc",
+    "apps/spotify-proxy",
+    "apps/uploads",
+    "apps/xata-proxy",
+    "packages/*",
+    "crates"
+  ]
 }
