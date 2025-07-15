@@ -1,0 +1,22 @@
+name: fmt
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Fluent CI
+        uses: fluentci-io/setup-fluentci@v5
+        with:
+          wasm: true
+          plugin: rust
+          args: setup
+      - name: Run fmt
+        run: |
+          cargo fmt --all --check
