@@ -58,7 +58,9 @@ function handleWebsocket(c: Context) {
 
         if (deviceMessage.success) {
           const { data, device_id, token } = deviceMessage.data;
-          const { did } = jwt.verify(token, env.JWT_SECRET);
+          const { did } = jwt.verify(token, env.JWT_SECRET, {
+            ignoreExpiration: true,
+          });
           // broadcast to all devices
           userDevices[did].forEach(async (id) => {
             const targetDevice = devices[id];
@@ -169,7 +171,9 @@ function handleWebsocket(c: Context) {
 
         if (controlMessage.success) {
           const { type, target, action, args, token } = controlMessage.data;
-          const { did } = jwt.verify(token, env.JWT_SECRET);
+          const { did } = jwt.verify(token, env.JWT_SECRET, {
+            ignoreExpiration: true,
+          });
           console.log(
             `Control message: ${chalk.greenBright(type)}, ${chalk.greenBright(target)}, ${chalk.greenBright(action)}, ${chalk.greenBright(args)}, ${chalk.greenBright("***")}`
           );
@@ -207,7 +211,9 @@ function handleWebsocket(c: Context) {
             `Register message: ${chalk.greenBright(type)}, ${chalk.greenBright(clientName)}, ${chalk.greenBright("****")}`
           );
           // Handle register Message
-          const { did } = jwt.verify(token, env.JWT_SECRET);
+          const { did } = jwt.verify(token, env.JWT_SECRET, {
+            ignoreExpiration: true,
+          });
           const deviceId = uuidv4();
           ws.deviceId = deviceId;
           ws.did = did;
