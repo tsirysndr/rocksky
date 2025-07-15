@@ -1,4 +1,4 @@
-name: fmt
+name: fmt and tests
 on:
   push:
     branches:
