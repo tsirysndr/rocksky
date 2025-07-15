@@ -70,7 +70,15 @@ const Dropbox = (props: DropboxProps) => {
     }),
     columnHelper.accessor("name", {
       header: "",
-      cell: () => <ContextMenu />,
+      cell: (info) => (
+        <ContextMenu
+          file={{
+            id: info.row.original.id,
+            name: info.row.original.name,
+            type: info.row.original.tag,
+          }}
+        />
+      ),
     }),
   ];
 
