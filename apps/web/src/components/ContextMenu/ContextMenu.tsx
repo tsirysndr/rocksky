@@ -73,6 +73,7 @@ function ContextMenu(props: ContextMenuProps) {
                   List: {
                     style: {
                       boxShadow: "none",
+                      outline: "none !important",
                       backgroundColor: "var(--color-background)",
                     },
                   },
@@ -103,6 +104,7 @@ function ContextMenu(props: ContextMenuProps) {
                                   List: {
                                     style: {
                                       boxShadow: "none",
+                                      outline: "none !important",
                                       backgroundColor:
                                         "var(--color-background)",
                                     },
