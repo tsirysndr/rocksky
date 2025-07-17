@@ -9,6 +9,7 @@ import { CID } from 'multiformats/cid'
 import { HandlerAuth, HandlerPipeThrough } from '@atproto/xrpc-server'
 
 export interface QueryParams {
+  playerId?: string
   /** The position in seconds to seek to */
   position: number
 }

@@ -8,7 +8,9 @@ import { isObj, hasProp } from '../../../../util'
 import { CID } from 'multiformats/cid'
 import { HandlerAuth, HandlerPipeThrough } from '@atproto/xrpc-server'
 
-export interface QueryParams {}
+export interface QueryParams {
+  playerId?: string
+}
 
 export type InputSchema = undefined
 export type HandlerInput = undefined

@@ -10,6 +10,18 @@
           "description": "The title of the currently playing track"
         }
       }
+    },
+    "playbackQueueViewDetailed": {
+      "type": "object",
+      "properties": {
+        "tracks": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.song.defs.songViewBasic"
+          }
+        }
+      }
     }
   }
 }

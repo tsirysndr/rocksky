@@ -9,7 +9,10 @@ import { CID } from 'multiformats/cid'
 import { HandlerAuth, HandlerPipeThrough } from '@atproto/xrpc-server'
 
 export interface QueryParams {
-  playerId?: string
+  /** The name of the playlist */
+  name: string
+  /** A brief description of the playlist */
+  description?: string
 }
 
 export type InputSchema = undefined

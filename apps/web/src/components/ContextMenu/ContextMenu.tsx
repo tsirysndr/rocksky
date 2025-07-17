@@ -142,9 +142,9 @@ function ContextMenu(props: ContextMenuProps) {
           },
         }}
       >
-        <div className="text-[var(--color-text)] cursor-pointer">
+        <button className="text-[var(--color-text-muted)] cursor-pointer bg-transparent border-none hover:bg-transparent">
           <EllipsisHorizontal size={24} />
-        </div>
+        </button>
       </StatefulPopover>
     </>
   );

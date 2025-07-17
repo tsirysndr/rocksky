@@ -1,0 +1,26 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.playlist.createPlaylist",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Create a new playlist",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the playlist"
+          },
+          "description": {
+            "type": "string",
+            "description": "A brief description of the playlist"
+          }
+        }
+      }
+    }
+  }
+}

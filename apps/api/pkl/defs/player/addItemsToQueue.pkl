@@ -1,0 +1,30 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.player.addItemsToQueue"
+defs = new Mapping<String, Procedure> {
+  ["main"] {
+    type = "procedure"
+    description = "Add items to the player's queue"
+    parameters {
+      type = "params"
+      required = List("items")
+      properties {
+        ["playerId"] = new StringType {
+          type = "string"
+        }
+        ["items"] = new Array {
+          type = "array"
+          items = new StringType {
+            type = "string"
+            description = "List of file identifiers to add to the queue"
+          }
+        }
+        ["position"] = new IntegerType {
+          type = "integer"
+          description = "Position in the queue to insert the items at, defaults to the end if not specified"
+        }
+      }
+    }
+  }
+}

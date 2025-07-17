@@ -1,14 +1,20 @@
 {
   "lexicon": 1,
-  "id": "app.rocksky.player.play",
+  "id": "app.rocksky.player.playDirectory",
   "defs": {
     "main": {
       "type": "procedure",
-      "description": "Resume playback of the currently paused track",
+      "description": "Play all tracks in a directory",
       "parameters": {
         "type": "params",
+        "required": [
+          "directoryId"
+        ],
         "properties": {
           "playerId": {
+            "type": "string"
+          },
+          "directoryId": {
             "type": "string"
           }
         }

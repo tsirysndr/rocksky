@@ -1866,6 +1866,37 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyPlayerAddItemsToQueue: {
+    lexicon: 1,
+    id: 'app.rocksky.player.addItemsToQueue',
+    defs: {
+      main: {
+        type: 'procedure',
+        description: "Add items to the player's queue",
+        parameters: {
+          type: 'params',
+          required: ['items'],
+          properties: {
+            playerId: {
+              type: 'string',
+            },
+            items: {
+              type: 'array',
+              items: {
+                type: 'string',
+                description: 'List of file identifiers to add to the queue',
+              },
+            },
+            position: {
+              type: 'integer',
+              description:
+                'Position in the queue to insert the items at, defaults to the end if not specified',
+            },
+          },
+        },
+      },
+    },
+  },
   AppRockskyPlayerDefs: {
     lexicon: 1,
     id: 'app.rocksky.player.defs',
@@ -1876,6 +1907,18 @@ export const schemaDict = {
           title: {
             type: 'string',
             description: 'The title of the currently playing track',
+          },
+        },
+      },
+      playbackQueueViewDetailed: {
+        type: 'object',
+        properties: {
+          tracks: {
+            type: 'array',
+            items: {
+              type: 'ref',
+              ref: 'lex:app.rocksky.song.defs.songViewBasic',
+            },
           },
         },
       },
@@ -1891,6 +1934,9 @@ export const schemaDict = {
         parameters: {
           type: 'params',
           properties: {
+            playerId: {
+              type: 'string',
+            },
             actor: {
               type: 'string',
               description:
@@ -1909,6 +1955,31 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyPlayerGetPlaybackQueue: {
+    lexicon: 1,
+    id: 'app.rocksky.player.getPlaybackQueue',
+    defs: {
+      main: {
+        type: 'query',
+        description: 'Retrieve the current playback queue',
+        parameters: {
+          type: 'params',
+          properties: {
+            playerId: {
+              type: 'string',
+            },
+          },
+        },
+        output: {
+          encoding: 'application/json',
+          schema: {
+            type: 'ref',
+            ref: 'lex:app.rocksky.player.defs#playbackQueueViewDetailed',
+          },
+        },
+      },
+    },
+  },
   AppRockskyPlayerNext: {
     lexicon: 1,
     id: 'app.rocksky.player.next',
@@ -1916,6 +1987,14 @@ export const schemaDict = {
       main: {
         type: 'procedure',
         description: 'Play the next track in the queue',
+        parameters: {
+          type: 'params',
+          properties: {
+            playerId: {
+              type: 'string',
+            },
+          },
+        },
       },
     },
   },
@@ -1926,6 +2005,58 @@ export const schemaDict = {
       main: {
         type: 'procedure',
         description: 'Pause the currently playing track',
+        parameters: {
+          type: 'params',
+          properties: {
+            playerId: {
+              type: 'string',
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyPlayerPlayDirectory: {
+    lexicon: 1,
+    id: 'app.rocksky.player.playDirectory',
+    defs: {
+      main: {
+        type: 'procedure',
+        description: 'Play all tracks in a directory',
+        parameters: {
+          type: 'params',
+          required: ['directoryId'],
+          properties: {
+            playerId: {
+              type: 'string',
+            },
+            directoryId: {
+              type: 'string',
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyPlayerPlayFile: {
+    lexicon: 1,
+    id: 'app.rocksky.player.playFile',
+    defs: {
+      main: {
+        type: 'procedure',
+        description: 'Play a specific audio file',
+        parameters: {
+          type: 'params',
+          required: ['fileId'],
+          properties: {
+            playerId: {
+              type: 'string',
+            },
+            fileId: {
+              type: 'string',
+            },
+          },
+        },
       },
     },
   },
@@ -1936,6 +2067,14 @@ export const schemaDict = {
       main: {
         type: 'procedure',
         description: 'Resume playback of the currently paused track',
+        parameters: {
+          type: 'params',
+          properties: {
+            playerId: {
+              type: 'string',
+            },
+          },
+        },
       },
     },
   },
@@ -1946,6 +2085,14 @@ export const schemaDict = {
       main: {
         type: 'procedure',
         description: 'Play the previous track in the queue',
+        parameters: {
+          type: 'params',
+          properties: {
+            playerId: {
+              type: 'string',
+            },
+          },
+        },
       },
     },
   },
@@ -1961,9 +2108,36 @@ export const schemaDict = {
           type: 'params',
           required: ['position'],
           properties: {
+            playerId: {
+              type: 'string',
+            },
             position: {
               type: 'integer',
               description: 'The position in seconds to seek to',
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyPlaylistCreatePlaylist: {
+    lexicon: 1,
+    id: 'app.rocksky.playlist.createPlaylist',
+    defs: {
+      main: {
+        type: 'procedure',
+        description: 'Create a new playlist',
+        parameters: {
+          type: 'params',
+          required: ['name'],
+          properties: {
+            name: {
+              type: 'string',
+              description: 'The name of the playlist',
+            },
+            description: {
+              type: 'string',
+              description: 'A brief description of the playlist',
             },
           },
         },
@@ -2161,6 +2335,59 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyPlaylistInsertDirectory: {
+    lexicon: 1,
+    id: 'app.rocksky.playlist.insertDirectory',
+    defs: {
+      main: {
+        type: 'procedure',
+        description: 'Insert a directory into a playlist',
+        parameters: {
+          type: 'params',
+          required: ['uri'],
+          properties: {
+            uri: {
+              type: 'string',
+              description: 'The URI of the playlist to start',
+              format: 'at-uri',
+            },
+            directory: {
+              type: 'string',
+              description: 'The directory (id) to insert into the playlist',
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyPlaylistInsertFiles: {
+    lexicon: 1,
+    id: 'app.rocksky.playlist.insertFiles',
+    defs: {
+      main: {
+        type: 'procedure',
+        description: 'Insert files into a playlist',
+        parameters: {
+          type: 'params',
+          required: ['uri'],
+          properties: {
+            uri: {
+              type: 'string',
+              description: 'The URI of the playlist to start',
+              format: 'at-uri',
+            },
+            files: {
+              type: 'array',
+              items: {
+                type: 'string',
+                description: 'List of file (id) to insert into the playlist',
+              },
+            },
+          },
+        },
+      },
+    },
+  },
   AppRockskyPlaylist: {
     lexicon: 1,
     id: 'app.rocksky.playlist',
@@ -2219,6 +2446,74 @@ export const schemaDict = {
             appleMusicLink: {
               type: 'string',
               description: 'The Apple Music link of the playlist.',
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyPlaylistRemovePlaylist: {
+    lexicon: 1,
+    id: 'app.rocksky.playlist.removePlaylist',
+    defs: {
+      main: {
+        type: 'procedure',
+        description: 'Remove a playlist',
+        parameters: {
+          type: 'params',
+          required: ['uri'],
+          properties: {
+            uri: {
+              type: 'string',
+              description: 'The URI of the playlist to remove',
+              format: 'at-uri',
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyPlaylistRemoveTrack: {
+    lexicon: 1,
+    id: 'app.rocksky.playlist.removeTrack',
+    defs: {
+      main: {
+        type: 'procedure',
+        description: 'Remove a track from a playlist',
+        parameters: {
+          type: 'params',
+          required: ['uri', 'position'],
+          properties: {
+            uri: {
+              type: 'string',
+              description: 'The URI of the playlist to remove the track from',
+              format: 'at-uri',
+            },
+            position: {
+              type: 'integer',
+              description:
+                'The position of the track to remove in the playlist',
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyPlaylistStartPlaylist: {
+    lexicon: 1,
+    id: 'app.rocksky.playlist.startPlaylist',
+    defs: {
+      main: {
+        type: 'procedure',
+        description: 'Start a playlist',
+        parameters: {
+          type: 'params',
+          required: ['uri'],
+          properties: {
+            uri: {
+              type: 'string',
+              description: 'The URI of the playlist to start',
+              format: 'at-uri',
             },
           },
         },
@@ -3572,137 +3867,6 @@ export const schemaDict = {
       },
     },
   },
-  AppRockskyLovedSong: {
-    lexicon: 1,
-    id: 'app.rocksky.lovedSong',
-    defs: {
-      main: {
-        type: 'record',
-        description: 'A declaration of a song.',
-        key: 'tid',
-        record: {
-          type: 'object',
-          required: ['title', 'artist', 'album', 'duration', 'createdAt'],
-          properties: {
-            title: {
-              type: 'string',
-              description: 'The title of the song.',
-              minLength: 1,
-              maxLength: 512,
-            },
-            artist: {
-              type: 'string',
-              description: 'The artist of the song.',
-              minLength: 1,
-              maxLength: 256,
-            },
-            albumArtist: {
-              type: 'string',
-              description: 'The album artist of the song.',
-              minLength: 1,
-              maxLength: 256,
-            },
-            album: {
-              type: 'string',
-              description: 'The album of the song.',
-              minLength: 1,
-              maxLength: 256,
-            },
-            duration: {
-              type: 'integer',
-              description: 'The duration of the song in seconds.',
-              minimum: 1,
-            },
-            trackNumber: {
-              type: 'integer',
-              description: 'The track number of the song in the album.',
-              minimum: 1,
-            },
-            discNumber: {
-              type: 'integer',
-              description: 'The disc number of the song in the album.',
-              minimum: 1,
-            },
-            releaseDate: {
-              type: 'string',
-              description: 'The release date of the song.',
-              format: 'datetime',
-            },
-            year: {
-              type: 'integer',
-              description: 'The year the song was released.',
-            },
-            genre: {
-              type: 'string',
-              description: 'The genre of the song.',
-              maxLength: 256,
-            },
-            tags: {
-              type: 'array',
-              description: 'The tags of the song.',
-              items: {
-                type: 'string',
-                minLength: 1,
-                maxLength: 256,
-              },
-            },
-            composer: {
-              type: 'string',
-              description: 'The composer of the song.',
-              maxLength: 256,
-            },
-            lyrics: {
-              type: 'string',
-              description: 'The lyrics of the song.',
-              maxLength: 10000,
-            },
-            copyrightMessage: {
-              type: 'string',
-              description: 'The copyright message of the song.',
-              minLength: 1,
-              maxLength: 256,
-            },
-            wiki: {
-              type: 'string',
-              description: 'Informations about the song',
-              maxLength: 10000,
-            },
-            albumArt: {
-              type: 'blob',
-              description: 'The album art of the song.',
-              accept: ['image/png', 'image/jpeg'],
-              maxSize: 2000000,
-            },
-            youtubeLink: {
-              type: 'string',
-              description: 'The YouTube link of the song.',
-              format: 'uri',
-            },
-            spotifyLink: {
-              type: 'string',
-              description: 'The Spotify link of the song.',
-              format: 'uri',
-            },
-            tidalLink: {
-              type: 'string',
-              description: 'The Tidal link of the song.',
-              format: 'uri',
-            },
-            appleMusicLink: {
-              type: 'string',
-              description: 'The Apple Music link of the song.',
-              format: 'uri',
-            },
-            createdAt: {
-              type: 'string',
-              description: 'The date when the song was created.',
-              format: 'datetime',
-            },
-          },
-        },
-      },
-    },
-  },
   AppRockskySong: {
     lexicon: 1,
     id: 'app.rocksky.song',
@@ -4103,17 +4267,27 @@ export const ids = {
   AppRockskyLike: 'app.rocksky.like',
   AppRockskyLikeLikeShout: 'app.rocksky.like.likeShout',
   AppRockskyLikeLikeSong: 'app.rocksky.like.likeSong',
+  AppRockskyPlayerAddItemsToQueue: 'app.rocksky.player.addItemsToQueue',
   AppRockskyPlayerDefs: 'app.rocksky.player.defs',
   AppRockskyPlayerGetCurrentlyPlaying: 'app.rocksky.player.getCurrentlyPlaying',
+  AppRockskyPlayerGetPlaybackQueue: 'app.rocksky.player.getPlaybackQueue',
   AppRockskyPlayerNext: 'app.rocksky.player.next',
   AppRockskyPlayerPause: 'app.rocksky.player.pause',
+  AppRockskyPlayerPlayDirectory: 'app.rocksky.player.playDirectory',
+  AppRockskyPlayerPlayFile: 'app.rocksky.player.playFile',
   AppRockskyPlayerPlay: 'app.rocksky.player.play',
   AppRockskyPlayerPrevious: 'app.rocksky.player.previous',
   AppRockskyPlayerSeek: 'app.rocksky.player.seek',
+  AppRockskyPlaylistCreatePlaylist: 'app.rocksky.playlist.createPlaylist',
   AppRockskyPlaylistDefs: 'app.rocksky.playlist.defs',
   AppRockskyPlaylistGetPlaylist: 'app.rocksky.playlist.getPlaylist',
   AppRockskyPlaylistGetPlaylists: 'app.rocksky.playlist.getPlaylists',
+  AppRockskyPlaylistInsertDirectory: 'app.rocksky.playlist.insertDirectory',
+  AppRockskyPlaylistInsertFiles: 'app.rocksky.playlist.insertFiles',
   AppRockskyPlaylist: 'app.rocksky.playlist',
+  AppRockskyPlaylistRemovePlaylist: 'app.rocksky.playlist.removePlaylist',
+  AppRockskyPlaylistRemoveTrack: 'app.rocksky.playlist.removeTrack',
+  AppRockskyPlaylistStartPlaylist: 'app.rocksky.playlist.startPlaylist',
   AppRockskyRadioDefs: 'app.rocksky.radio.defs',
   AppRockskyRadio: 'app.rocksky.radio',
   AppRockskyScrobbleCreateScrobble: 'app.rocksky.scrobble.createScrobble',
@@ -4136,7 +4310,6 @@ export const ids = {
   AppRockskySongDefs: 'app.rocksky.song.defs',
   AppRockskySongGetSong: 'app.rocksky.song.getSong',
   AppRockskySongGetSongs: 'app.rocksky.song.getSongs',
-  AppRockskyLovedSong: 'app.rocksky.lovedSong',
   AppRockskySong: 'app.rocksky.song',
   AppRockskySpotifyDefs: 'app.rocksky.spotify.defs',
   AppRockskySpotifyGetCurrentlyPlaying:

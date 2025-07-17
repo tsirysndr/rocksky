@@ -1,0 +1,32 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.player.addItemsToQueue",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Add items to the player's queue",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "playerId": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "List of file identifiers to add to the queue"
+            }
+          },
+          "position": {
+            "type": "integer",
+            "description": "Position in the queue to insert the items at, defaults to the end if not specified"
+          }
+        }
+      }
+    }
+  }
+}

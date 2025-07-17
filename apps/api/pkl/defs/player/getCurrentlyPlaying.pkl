@@ -9,6 +9,9 @@ defs = new Mapping<String, Query> {
     parameters {
       type = "params"
       properties {
+        ["playerId"] = new StringType {
+          type = "string"
+        }
         ["actor"] = new StringType {
           type = "string"
           format = "at-identifier"

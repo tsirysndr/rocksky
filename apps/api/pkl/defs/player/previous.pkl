@@ -6,5 +6,13 @@ defs = new Mapping<String, Procedure> {
   ["main"] {
     type = "procedure"
     description = "Play the previous track in the queue"
+    parameters {
+      type = "params"
+      properties {
+        ["playerId"] = new StringType {
+          type = "string"
+        }
+      }
+    }
   }
 }

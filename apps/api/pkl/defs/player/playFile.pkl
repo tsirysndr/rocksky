@@ -1,15 +1,19 @@
 amends  "../../schema/lexicon.pkl"
 
 lexicon = 1
-id = "app.rocksky.player.pause"
+id = "app.rocksky.player.playFile"
 defs = new Mapping<String, Procedure> {
   ["main"] {
     type = "procedure"
-    description = "Pause the currently playing track"
+    description = "Play a specific audio file"
     parameters {
       type = "params"
+      required = List("fileId")
       properties {
         ["playerId"] = new StringType {
+          type = "string"
+        }
+        ["fileId"] = new StringType {
           type = "string"
         }
       }

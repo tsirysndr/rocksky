@@ -1,0 +1,24 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.playlist.createPlaylist"
+defs = new Mapping<String, Procedure> {
+  ["main"] {
+    type = "procedure"
+    description = "Create a new playlist"
+    parameters {
+      type = "params"
+      required = List("name")
+      properties {
+        ["name"] = new StringType {
+          type = "string"
+          description = "The name of the playlist"
+        }
+        ["description"] = new StringType {
+          type = "string"
+          description = "A brief description of the playlist"
+        }
+      }
+    }
+  }
+}

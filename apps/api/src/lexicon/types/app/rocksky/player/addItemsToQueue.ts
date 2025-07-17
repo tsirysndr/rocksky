@@ -10,6 +10,9 @@ import { HandlerAuth, HandlerPipeThrough } from '@atproto/xrpc-server'
 
 export interface QueryParams {
   playerId?: string
+  items: string[]
+  /** Position in the queue to insert the items at, defaults to the end if not specified */
+  position?: number
 }
 
 export type InputSchema = undefined

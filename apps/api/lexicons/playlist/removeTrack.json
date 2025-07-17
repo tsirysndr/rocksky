@@ -1,0 +1,28 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.playlist.removeTrack",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Remove a track from a playlist",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "uri",
+          "position"
+        ],
+        "properties": {
+          "uri": {
+            "type": "string",
+            "description": "The URI of the playlist to remove the track from",
+            "format": "at-uri"
+          },
+          "position": {
+            "type": "integer",
+            "description": "The position of the track to remove in the playlist"
+          }
+        }
+      }
+    }
+  }
+}

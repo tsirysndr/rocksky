@@ -4,7 +4,15 @@
   "defs": {
     "main": {
       "type": "procedure",
-      "description": "Play the previous track in the queue"
+      "description": "Play the previous track in the queue",
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "playerId": {
+            "type": "string"
+          }
+        }
+      }
     }
   }
 }

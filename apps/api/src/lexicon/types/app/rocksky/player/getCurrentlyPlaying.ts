@@ -10,6 +10,7 @@ import { HandlerAuth, HandlerPipeThrough } from '@atproto/xrpc-server'
 import * as AppRockskyPlayerDefs from './defs'
 
 export interface QueryParams {
+  playerId?: string
   /** Handle or DID of the actor to retrieve the currently playing track for. If not provided, defaults to the current user. */
   actor?: string
 }

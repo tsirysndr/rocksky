@@ -41,14 +41,24 @@ import * as AppRockskyLikeDislikeShout from './types/app/rocksky/like/dislikeSho
 import * as AppRockskyLikeDislikeSong from './types/app/rocksky/like/dislikeSong'
 import * as AppRockskyLikeLikeShout from './types/app/rocksky/like/likeShout'
 import * as AppRockskyLikeLikeSong from './types/app/rocksky/like/likeSong'
+import * as AppRockskyPlayerAddItemsToQueue from './types/app/rocksky/player/addItemsToQueue'
 import * as AppRockskyPlayerGetCurrentlyPlaying from './types/app/rocksky/player/getCurrentlyPlaying'
+import * as AppRockskyPlayerGetPlaybackQueue from './types/app/rocksky/player/getPlaybackQueue'
 import * as AppRockskyPlayerNext from './types/app/rocksky/player/next'
 import * as AppRockskyPlayerPause from './types/app/rocksky/player/pause'
+import * as AppRockskyPlayerPlayDirectory from './types/app/rocksky/player/playDirectory'
+import * as AppRockskyPlayerPlayFile from './types/app/rocksky/player/playFile'
 import * as AppRockskyPlayerPlay from './types/app/rocksky/player/play'
 import * as AppRockskyPlayerPrevious from './types/app/rocksky/player/previous'
 import * as AppRockskyPlayerSeek from './types/app/rocksky/player/seek'
+import * as AppRockskyPlaylistCreatePlaylist from './types/app/rocksky/playlist/createPlaylist'
 import * as AppRockskyPlaylistGetPlaylist from './types/app/rocksky/playlist/getPlaylist'
 import * as AppRockskyPlaylistGetPlaylists from './types/app/rocksky/playlist/getPlaylists'
+import * as AppRockskyPlaylistInsertDirectory from './types/app/rocksky/playlist/insertDirectory'
+import * as AppRockskyPlaylistInsertFiles from './types/app/rocksky/playlist/insertFiles'
+import * as AppRockskyPlaylistRemovePlaylist from './types/app/rocksky/playlist/removePlaylist'
+import * as AppRockskyPlaylistRemoveTrack from './types/app/rocksky/playlist/removeTrack'
+import * as AppRockskyPlaylistStartPlaylist from './types/app/rocksky/playlist/startPlaylist'
 import * as AppRockskyScrobbleCreateScrobble from './types/app/rocksky/scrobble/createScrobble'
 import * as AppRockskyScrobbleGetScrobble from './types/app/rocksky/scrobble/getScrobble'
 import * as AppRockskyScrobbleGetScrobbles from './types/app/rocksky/scrobble/getScrobbles'
@@ -571,6 +581,17 @@ export class AppRockskyPlayerNS {
     this._server = server
   }
 
+  addItemsToQueue<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyPlayerAddItemsToQueue.Handler<ExtractAuth<AV>>,
+      AppRockskyPlayerAddItemsToQueue.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = 'app.rocksky.player.addItemsToQueue' // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg)
+  }
+
   getCurrentlyPlaying<AV extends AuthVerifier>(
     cfg: ConfigOf<
       AV,
@@ -579,6 +600,17 @@ export class AppRockskyPlayerNS {
     >,
   ) {
     const nsid = 'app.rocksky.player.getCurrentlyPlaying' // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg)
+  }
+
+  getPlaybackQueue<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyPlayerGetPlaybackQueue.Handler<ExtractAuth<AV>>,
+      AppRockskyPlayerGetPlaybackQueue.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = 'app.rocksky.player.getPlaybackQueue' // @ts-ignore
     return this._server.xrpc.method(nsid, cfg)
   }
 
@@ -601,6 +633,28 @@ export class AppRockskyPlayerNS {
     >,
   ) {
     const nsid = 'app.rocksky.player.pause' // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg)
+  }
+
+  playDirectory<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyPlayerPlayDirectory.Handler<ExtractAuth<AV>>,
+      AppRockskyPlayerPlayDirectory.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = 'app.rocksky.player.playDirectory' // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg)
+  }
+
+  playFile<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyPlayerPlayFile.Handler<ExtractAuth<AV>>,
+      AppRockskyPlayerPlayFile.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = 'app.rocksky.player.playFile' // @ts-ignore
     return this._server.xrpc.method(nsid, cfg)
   }
 
@@ -645,6 +699,17 @@ export class AppRockskyPlaylistNS {
     this._server = server
   }
 
+  createPlaylist<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyPlaylistCreatePlaylist.Handler<ExtractAuth<AV>>,
+      AppRockskyPlaylistCreatePlaylist.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = 'app.rocksky.playlist.createPlaylist' // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg)
+  }
+
   getPlaylist<AV extends AuthVerifier>(
     cfg: ConfigOf<
       AV,
@@ -664,6 +729,61 @@ export class AppRockskyPlaylistNS {
     >,
   ) {
     const nsid = 'app.rocksky.playlist.getPlaylists' // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg)
+  }
+
+  insertDirectory<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyPlaylistInsertDirectory.Handler<ExtractAuth<AV>>,
+      AppRockskyPlaylistInsertDirectory.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = 'app.rocksky.playlist.insertDirectory' // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg)
+  }
+
+  insertFiles<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyPlaylistInsertFiles.Handler<ExtractAuth<AV>>,
+      AppRockskyPlaylistInsertFiles.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = 'app.rocksky.playlist.insertFiles' // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg)
+  }
+
+  removePlaylist<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyPlaylistRemovePlaylist.Handler<ExtractAuth<AV>>,
+      AppRockskyPlaylistRemovePlaylist.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = 'app.rocksky.playlist.removePlaylist' // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg)
+  }
+
+  removeTrack<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyPlaylistRemoveTrack.Handler<ExtractAuth<AV>>,
+      AppRockskyPlaylistRemoveTrack.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = 'app.rocksky.playlist.removeTrack' // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg)
+  }
+
+  startPlaylist<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyPlaylistStartPlaylist.Handler<ExtractAuth<AV>>,
+      AppRockskyPlaylistStartPlaylist.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = 'app.rocksky.playlist.startPlaylist' // @ts-ignore
     return this._server.xrpc.method(nsid, cfg)
   }
 }

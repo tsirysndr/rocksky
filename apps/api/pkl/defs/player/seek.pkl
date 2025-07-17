@@ -9,8 +9,11 @@ defs = new Mapping<String, Procedure> {
     parameters {
       type = "params"
       required = List("position")
-      properties = new Mapping<String, IntegerType> {
-        ["position"] {
+      properties = new Mapping<String, StringType | IntegerType> {
+        ["playerId"] = new StringType {
+          type = "string"
+        }
+        ["position"] = new IntegerType {
           type = "integer"
           description = "The position in seconds to seek to"
         }

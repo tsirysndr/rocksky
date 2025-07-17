@@ -1,0 +1,25 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.player.getPlaybackQueue"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Retrieve the current playback queue"
+    parameters {
+      type = "params"
+      properties {
+        ["playerId"] = new StringType {
+          type = "string"
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new Ref {
+        type = "ref"
+        ref = "app.rocksky.player.defs#playbackQueueViewDetailed"
+      }
+    }
+  }
+}
