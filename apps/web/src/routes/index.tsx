@@ -5,7 +5,7 @@ import HomePage from "../pages/home";
 
 export const HomePageSchema = z.object({
   did: z.string().optional(),
-  cli: z.string().optional(),
+  cli: z.number().optional(),
 });
 
 export const Route = createFileRoute("/")({
