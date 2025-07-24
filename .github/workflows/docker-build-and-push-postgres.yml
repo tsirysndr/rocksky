@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - "crates/xataid-extension/**"
-      - ".github/workflows/docker-build-push.yml"
+      - ".github/workflows/docker-build-push-postgres.yml"
 
 jobs:
   build-and-push:
