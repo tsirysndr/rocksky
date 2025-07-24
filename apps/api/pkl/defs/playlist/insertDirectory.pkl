@@ -8,7 +8,7 @@ defs = new Mapping<String, Procedure> {
     description = "Insert a directory into a playlist"
     parameters {
       type = "params"
-      required = List("uri")
+      required = List("uri", "directory")
       properties {
         ["uri"] = new StringType {
           type = "string"
@@ -18,6 +18,10 @@ defs = new Mapping<String, Procedure> {
         ["directory"] = new StringType {
           type = "string"
           description = "The directory (id) to insert into the playlist"
+        }
+        ["position"] = new IntegerType {
+          type = "integer"
+          description = "The position in the playlist to insert the directory at, if not specified, the directory will be appended"
         }
       }
     }

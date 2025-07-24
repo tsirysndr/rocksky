@@ -2344,7 +2344,7 @@ export const schemaDict = {
         description: 'Insert a directory into a playlist',
         parameters: {
           type: 'params',
-          required: ['uri'],
+          required: ['uri', 'directory'],
           properties: {
             uri: {
               type: 'string',
@@ -2354,6 +2354,11 @@ export const schemaDict = {
             directory: {
               type: 'string',
               description: 'The directory (id) to insert into the playlist',
+            },
+            position: {
+              type: 'integer',
+              description:
+                'The position in the playlist to insert the directory at, if not specified, the directory will be appended',
             },
           },
         },
@@ -2369,7 +2374,7 @@ export const schemaDict = {
         description: 'Insert files into a playlist',
         parameters: {
           type: 'params',
-          required: ['uri'],
+          required: ['uri', 'files'],
           properties: {
             uri: {
               type: 'string',
@@ -2382,6 +2387,11 @@ export const schemaDict = {
                 type: 'string',
                 description: 'List of file (id) to insert into the playlist',
               },
+            },
+            position: {
+              type: 'integer',
+              description:
+                'The position in the playlist to insert the files at, if not specified, files will be appended',
             },
           },
         },
@@ -2514,6 +2524,15 @@ export const schemaDict = {
               type: 'string',
               description: 'The URI of the playlist to start',
               format: 'at-uri',
+            },
+            shuffle: {
+              type: 'boolean',
+              description: 'Whether to shuffle the playlist when starting it',
+            },
+            position: {
+              type: 'integer',
+              description:
+                'The position in the playlist to start from, if not specified, starts from the beginning',
             },
           },
         },

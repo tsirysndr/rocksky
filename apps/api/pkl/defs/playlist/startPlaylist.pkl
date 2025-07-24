@@ -15,6 +15,14 @@ defs = new Mapping<String, Procedure> {
           description = "The URI of the playlist to start"
           format = "at-uri"
         }
+        ["shuffle"] = new BooleanType {
+          type = "boolean"
+          description = "Whether to shuffle the playlist when starting it"
+        }
+        ["position"] = new IntegerType {
+          type = "integer"
+          description = "The position in the playlist to start from, if not specified, starts from the beginning"
+        }
       }
     }
   }

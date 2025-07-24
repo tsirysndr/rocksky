@@ -8,7 +8,8 @@
       "parameters": {
         "type": "params",
         "required": [
-          "uri"
+          "uri",
+          "files"
         ],
         "properties": {
           "uri": {
@@ -22,6 +23,10 @@
               "type": "string",
               "description": "List of file (id) to insert into the playlist"
             }
+          },
+          "position": {
+            "type": "integer",
+            "description": "The position in the playlist to insert the files at, if not specified, files will be appended"
           }
         }
       }

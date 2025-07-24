@@ -16,6 +16,7 @@ import lovedTracks from "./loved-tracks";
 import playlistTracks from "./playlist-tracks";
 import playlists from "./playlists";
 import profileShouts from "./profile-shouts";
+import queueTracks from "./queue-tracks";
 import scrobbles from "./scrobbles";
 import shoutLikes from "./shout-likes";
 import shoutReports from "./shout-reports";
@@ -62,4 +63,5 @@ export default {
   googleDrivePaths,
   dropbox,
   googleDrive,
+  queueTracks,
 };

@@ -8,7 +8,8 @@
       "parameters": {
         "type": "params",
         "required": [
-          "uri"
+          "uri",
+          "directory"
         ],
         "properties": {
           "uri": {
@@ -19,6 +20,10 @@
           "directory": {
             "type": "string",
             "description": "The directory (id) to insert into the playlist"
+          },
+          "position": {
+            "type": "integer",
+            "description": "The position in the playlist to insert the directory at, if not specified, the directory will be appended"
           }
         }
       }

@@ -1,8 +1,5 @@
 import { Context } from "context";
 import { Server } from "lexicon";
-import spotifyPause from "./app/rocksky//spotify/pause";
-import spotifyPlay from "./app/rocksky//spotify/play";
-import spotifySeek from "./app/rocksky//spotify/seek";
 import getActorAlbums from "./app/rocksky/actor/getActorAlbums";
 import getActorArtists from "./app/rocksky/actor/getActorArtists";
 import getActorLovedSongs from "./app/rocksky/actor/getActorLovedSongs";
@@ -35,14 +32,23 @@ import dislikeShout from "./app/rocksky/like/dislikeShout";
 import dislikeSong from "./app/rocksky/like/dislikeSong";
 import likeShout from "./app/rocksky/like/likeShout";
 import likeSong from "./app/rocksky/like/likeSong";
+import addItemsToQueue from "./app/rocksky/player/addItemsToQueue";
 import getCurrentlyPlaying from "./app/rocksky/player/getCurrentlyPlaying";
+import getPlaybackQueue from "./app/rocksky/player/getPlaybackQueue";
 import next from "./app/rocksky/player/next";
 import pause from "./app/rocksky/player/pause";
 import play from "./app/rocksky/player/play";
+import playDirectory from "./app/rocksky/player/playDirectory";
+import playFile from "./app/rocksky/player/playFile";
 import previous from "./app/rocksky/player/previous";
 import seek from "./app/rocksky/player/seek";
+import createPlaylist from "./app/rocksky/playlist/createPlaylist";
 import getPlaylist from "./app/rocksky/playlist/getPlaylist";
 import getPlaylists from "./app/rocksky/playlist/getPlaylists";
+import insertDirectory from "./app/rocksky/playlist/insertDirectory";
+import insertFiles from "./app/rocksky/playlist/insertFiles";
+import removePlaylist from "./app/rocksky/playlist/removePlaylist";
+import startPlaylist from "./app/rocksky/playlist/startPlaylist";
 import createScrobble from "./app/rocksky/scrobble/createScrobble";
 import getScrobble from "./app/rocksky/scrobble/getScrobble";
 import getScrobbles from "./app/rocksky/scrobble/getScrobbles";
@@ -60,7 +66,10 @@ import getSong from "./app/rocksky/song/getSong";
 import getSongs from "./app/rocksky/song/getSongs";
 import spotifyGetCurrentlyPlaying from "./app/rocksky/spotify/getCurrentlyPlaying";
 import spotifyNext from "./app/rocksky/spotify/next";
+import spotifyPause from "./app/rocksky/spotify/pause";
+import spotifyPlay from "./app/rocksky/spotify/play";
 import spotifyPrevious from "./app/rocksky/spotify/previous";
+import spotifySeek from "./app/rocksky/spotify/seek";
 import getStats from "./app/rocksky/stats/getStats";
 
 export default function (server: Server, ctx: Context) {
@@ -127,6 +136,15 @@ export default function (server: Server, ctx: Context) {
   spotifyPlay(server, ctx);
   getStats(server, ctx);
   createSong(server, ctx);
+  addItemsToQueue(server, ctx);
+  getPlaybackQueue(server, ctx);
+  playDirectory(server, ctx);
+  playFile(server, ctx);
+  createPlaylist(server, ctx);
+  insertDirectory(server, ctx);
+  insertFiles(server, ctx);
+  removePlaylist(server, ctx);
+  startPlaylist(server, ctx);
 
   return server;
 }

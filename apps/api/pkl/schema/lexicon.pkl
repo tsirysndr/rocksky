@@ -17,6 +17,10 @@ class IntegerType extends BaseType {
   minimum: Int?
 }
 
+class BooleanType extends BaseType {
+  type: "boolean"
+}
+
 class Blob extends BaseType {
   type: "blob"
   accept: List<String>
@@ -31,7 +35,7 @@ class Array extends BaseType {
 class Params {
   type: "params"
   required: List<String>?
-  properties: Mapping<String, StringType | IntegerType | Blob | Ref | Array>
+  properties: Mapping<String, StringType | IntegerType | BooleanType | Blob | Ref | Array>
 }
 
 class ObjectType extends BaseType {
