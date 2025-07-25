@@ -1,0 +1,1 @@
+FROM rust:1.88-bookworm AS builder

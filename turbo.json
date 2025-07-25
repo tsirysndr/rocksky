@@ -43,6 +43,9 @@
     "pkl:gen": {
       "cache": false
     },
+    "prod:all": {
+      "cache": false
+    },
     "start": {
       "persistent": true,
       "cache": false
