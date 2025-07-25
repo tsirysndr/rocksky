@@ -27,3 +27,4 @@ COPY --from=builder /app/target/release/xataid_extension-pg15/usr/share/postgres
 
 COPY --from=builder /app/target/release/xataid_extension-pg15/usr/share/postgresql/15/extension/xataid_extension.control /usr/share/postgresql/15/extension/xataid_extension.control
 
+COPY sql/setup.sql /docker-entrypoint-initdb.d/
