@@ -1,5 +1,5 @@
 {
-  "id": "4c369380-a733-4097-b87a-036a11bbc173",
+  "id": "49adc24b-83c8-4065-8e13-80045e7f0f27",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -602,6 +602,274 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.dropbox_accounts": {
+      "name": "dropbox_accounts",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_beta_user": {
+          "name": "is_beta_user",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "dropbox_accounts_user_id_users_xata_id_fk": {
+          "name": "dropbox_accounts_user_id_users_xata_id_fk",
+          "tableFrom": "dropbox_accounts",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "dropbox_accounts_email_unique": {
+          "name": "dropbox_accounts_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.dropbox_directories": {
+      "name": "dropbox_directories",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "path": {
+          "name": "path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dropbox_id": {
+          "name": "dropbox_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_id": {
+          "name": "file_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "dropbox_directories_parent_id_dropbox_directories_xata_id_fk": {
+          "name": "dropbox_directories_parent_id_dropbox_directories_xata_id_fk",
+          "tableFrom": "dropbox_directories",
+          "tableTo": "dropbox_directories",
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "dropbox_directories_file_id_unique": {
+          "name": "dropbox_directories_file_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "file_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.dropbox_paths": {
+      "name": "dropbox_paths",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "path": {
+          "name": "path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dropbox_id": {
+          "name": "dropbox_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "track_id": {
+          "name": "track_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "directory_id": {
+          "name": "directory_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "file_id": {
+          "name": "file_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "dropbox_paths_directory_id_dropbox_directories_xata_id_fk": {
+          "name": "dropbox_paths_directory_id_dropbox_directories_xata_id_fk",
+          "tableFrom": "dropbox_paths",
+          "tableTo": "dropbox_directories",
+          "columnsFrom": [
+            "directory_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "dropbox_paths_file_id_unique": {
+          "name": "dropbox_paths_file_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "file_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.dropbox_tokens": {
       "name": "dropbox_tokens",
       "schema": "",
@@ -641,6 +909,346 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.dropbox": {
+      "name": "dropbox",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dropbox_token_id": {
+          "name": "dropbox_token_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "dropbox_user_id_users_xata_id_fk": {
+          "name": "dropbox_user_id_users_xata_id_fk",
+          "tableFrom": "dropbox",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "dropbox_dropbox_token_id_dropbox_tokens_xata_id_fk": {
+          "name": "dropbox_dropbox_token_id_dropbox_tokens_xata_id_fk",
+          "tableFrom": "dropbox",
+          "tableTo": "dropbox_tokens",
+          "columnsFrom": [
+            "dropbox_token_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.google_drive_accounts": {
+      "name": "google_drive_accounts",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_beta_user": {
+          "name": "is_beta_user",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "google_drive_accounts_user_id_users_xata_id_fk": {
+          "name": "google_drive_accounts_user_id_users_xata_id_fk",
+          "tableFrom": "google_drive_accounts",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "google_drive_accounts_email_unique": {
+          "name": "google_drive_accounts_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.google_drive_directories": {
+      "name": "google_drive_directories",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "path": {
+          "name": "path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "google_drive_id": {
+          "name": "google_drive_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_id": {
+          "name": "file_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "google_drive_directories_parent_id_google_drive_directories_xata_id_fk": {
+          "name": "google_drive_directories_parent_id_google_drive_directories_xata_id_fk",
+          "tableFrom": "google_drive_directories",
+          "tableTo": "google_drive_directories",
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "google_drive_directories_file_id_unique": {
+          "name": "google_drive_directories_file_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "file_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.google_drive_paths": {
+      "name": "google_drive_paths",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "google_drive_id": {
+          "name": "google_drive_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "track_id": {
+          "name": "track_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "directory_id": {
+          "name": "directory_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "file_id": {
+          "name": "file_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "google_drive_paths_directory_id_google_drive_directories_xata_id_fk": {
+          "name": "google_drive_paths_directory_id_google_drive_directories_xata_id_fk",
+          "tableFrom": "google_drive_paths",
+          "tableTo": "google_drive_directories",
+          "columnsFrom": [
+            "directory_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "google_drive_paths_file_id_unique": {
+          "name": "google_drive_paths_file_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "file_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.google_drive_tokens": {
       "name": "google_drive_tokens",
       "schema": "",
@@ -674,6 +1282,84 @@
       },
       "indexes": {},
       "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.google_drive": {
+      "name": "google_drive",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "google_drive_token_id": {
+          "name": "google_drive_token_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "google_drive_google_drive_token_id_google_drive_tokens_xata_id_fk": {
+          "name": "google_drive_google_drive_token_id_google_drive_tokens_xata_id_fk",
+          "tableFrom": "google_drive",
+          "tableTo": "google_drive_tokens",
+          "columnsFrom": [
+            "google_drive_token_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "google_drive_user_id_users_xata_id_fk": {
+          "name": "google_drive_user_id_users_xata_id_fk",
+          "tableFrom": "google_drive",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -978,6 +1664,97 @@
           "tableTo": "shouts",
           "columnsFrom": [
             "shout_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.queue_tracks": {
+      "name": "queue_tracks",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "track_id": {
+          "name": "track_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_uri": {
+          "name": "file_uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "queue_tracks_user_id_users_xata_id_fk": {
+          "name": "queue_tracks_user_id_users_xata_id_fk",
+          "tableFrom": "queue_tracks",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "queue_tracks_track_id_tracks_xata_id_fk": {
+          "name": "queue_tracks_track_id_tracks_xata_id_fk",
+          "tableFrom": "queue_tracks",
+          "tableTo": "tracks",
+          "columnsFrom": [
+            "track_id"
           ],
           "columnsTo": [
             "xata_id"

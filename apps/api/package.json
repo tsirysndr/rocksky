@@ -17,7 +17,8 @@
 		"pkl:gen": "tsx ./scripts/pkl.ts",
 		"dev:xrpc": "tsx --watch ./src/server.ts",
 		"prod:xrpc": "tsx ./src/server.ts",
-		"db:migrate": "drizzle-kit migrate"
+		"db:migrate": "drizzle-kit migrate",
+		"db:gen-migration": "drizzle-kit generate"
 	},
 	"dependencies": {
 		"@atproto/api": "^0.13.31",

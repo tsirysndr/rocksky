@@ -11,6 +11,7 @@
   "scripts": {
     "dev": "turbo dev",
     "db:migrate": "cd apps/api && bun run db:migrate",
+    "db:gen-migration": "cd apps/api && bun run db:gen-migration",
     "pkl:eval": "cd apps/api && bun run pkl:eval",
     "pkl:gen": "cd apps/api && bun run pkl:gen",
     "lexgen": "cd apps/api && bun run lexgen",
