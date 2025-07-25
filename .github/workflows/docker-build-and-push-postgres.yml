@@ -43,14 +43,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: crates/xataid-extension
-          push: true
-          tags: |
-            ghcr.io/tsirysndr/postgres-xataid:${{ github.sha }}
-            ghcr.io/tsirysndr/postgres-xataid:latest
       - name: Publish to Github Container Registry
         run: |
           docker pull tsiry/postgres-xataid:latest
