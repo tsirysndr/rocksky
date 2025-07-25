@@ -10,7 +10,7 @@ services:
     image: docker.dragonflydb.io/dragonflydb/dragonfly:latest
     command: --maxmemory=4g
     ports:
-      - "6380:6379"
+      - "6379:6379"
     ulimits:
       memlock:
         soft: -1

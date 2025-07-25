@@ -1,8 +1,15 @@
 import { ctx } from "context";
 import cors from "cors";
+import type { Request, Response } from "express";
 import express from "express";
+import { createProxyMiddleware } from "http-proxy-middleware";
 import { createServer } from "lexicon";
 import API from "./xrpc";
+
+const proxyMiddleware = createProxyMiddleware<Request, Response>({
+  target: "http://localhost:8000",
+  changeOrigin: true,
+});
 
 let server = createServer({
   validateResponse: false,
@@ -18,6 +25,7 @@ server = API(server, ctx);
 const app = express();
 app.use(cors());
 app.use(server.xrpc.router);
+app.use(proxyMiddleware);
 
 app.listen(process.env.ROCKSKY_XPRC_PORT || 3004, () => {
   console.log(
