@@ -1,0 +1,9 @@
+:80 {
+	root * /usr/share/caddy
+	file_server
+
+	@notStatic {
+		not path /index.html /assets/* /favicon.ico
+	}
+	rewrite @notStatic /index.html
+}
