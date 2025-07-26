@@ -30,6 +30,7 @@
   "workspaces": [
     "apps/api",
     "apps/web",
+    "apps/web-mobile",
     "apps/app-proxy",
     "apps/cli",
     "apps/doc",

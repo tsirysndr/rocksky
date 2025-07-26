@@ -50,7 +50,7 @@ function Feed() {
                     >
                       <LabelMedium color={"#ff2876"}>@{song.user}</LabelMedium>
                     </Link>
-                    <LabelMedium>is listening to this song</LabelMedium>
+                    <LabelMedium>recently played this song</LabelMedium>
                     <StatefulTooltip
                       content={dayjs(song.date).format(
                         "MMMM D, YYYY [at] HH:mm A"
