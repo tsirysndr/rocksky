@@ -90,7 +90,7 @@ function Feed() {
                   </Link>
                   <Handle link={`/profile/${song.user}`} did={song.user} />{" "}
                   <LabelMedium className="!text-[var(--color-text-primary)]">
-                    is listening to this song
+                    recently played this song
                   </LabelMedium>
                   <StatefulTooltip
                     content={dayjs(song.date).format(
