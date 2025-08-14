@@ -791,4 +791,85 @@ mod tests {
         let result = serde_json::from_str::<ScrobbleRequest>(json);
         assert!(result.is_ok(), "Failed to parse JSON: {:?}", result.err());
     }
+
+    #[test]
+    fn test_deezer_scrobble_request() {
+        let json = r#"
+      {
+  "eventName": "nowplaying",
+  "time": 1747899797294,
+  "data": {
+    "song": {
+        "parsed": {
+          "track": "Exile Is A Habit",
+          "artist": "Fox Stevenson",
+          "albumArtist": null,
+          "album": "Sunk Cost Fallacy",
+          "duration": 261,
+          "uniqueID": "3382194151",
+          "currentTime": null,
+          "isPlaying": true,
+          "trackArt": "https://cdn-images.dzcdn.net/images/cover/f8f25df28395fcc1b036982ad1475737/500x500.jpg",
+          "isPodcast": false,
+          "originUrl": "https://www.deezer.com/en/album/761728451",
+          "scrobblingDisallowedReason": null
+        },
+        "processed": {
+          "track": "Exile Is A Habit",
+          "artist": "Fox Stevenson",
+          "albumArtist": null,
+          "album": "Sunk Cost Fallacy",
+          "duration": 258
+        },
+        "noRegex": {
+          "track": "Exile Is A Habit",
+          "artist": "Fox Stevenson",
+          "albumArtist": null,
+          "album": "Sunk Cost Fallacy",
+          "duration": null
+        },
+        "flags": {
+          "isScrobbled": false,
+          "isCorrectedByUser": false,
+          "isRegexEditedByUser": {
+            "track": false,
+            "artist": false,
+            "album": false,
+            "albumArtist": false
+          },
+          "isAlbumFetched": false,
+          "isValid": true,
+          "isMarkedAsPlaying": false,
+          "isSkipped": false,
+          "isReplaying": false,
+          "hasBlockedTag": false,
+          "isLovedInService": null,
+          "finishedProcessing": true
+        },
+        "metadata": {
+          "startTimestamp": 1754673593,
+          "label": "Deezer",
+          "trackArtUrl": "https://lastfm.freetls.fastly.net/i/u/300x300/b3eee782a80469085b2105fc63f0e534.png",
+          "artistUrl": "https://www.last.fm/music/Fox+Stevenson",
+          "trackUrl": "https://www.last.fm/music/Fox+Stevenson/_/Exile+Is+A+Habit",
+          "albumUrl": "https://www.last.fm/music/Fox+Stevenson/Exile+Is+A+Habit",
+          "userPlayCount": 0
+        },
+        "connector": {
+          "label": "Deezer",
+          "matches": [
+            "*://www.deezer.com/*"
+          ],
+          "js": "deezer.js",
+          "id": "deezer"
+        },
+      "controllerTabId": 2105807456
+    }
+  }
+}
+      "#;
+
+        let result = serde_json::from_str::<ScrobbleRequest>(json);
+        assert!(result.is_ok(), "Failed to parse JSON: {:?}", result.err());
+    }
 }
