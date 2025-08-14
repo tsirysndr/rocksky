@@ -115,7 +115,7 @@ function Handle(props: HandleProps) {
         focusLock={false}
       >
         <Link to={link} className="no-underline">
-          <LabelMedium className="!text-[var(--color-primary)]">
+          <LabelMedium className="!text-[var(--color-primary)] !overflow-hidden !text-ellipsis !max-w-[250px]">
             @{did}
           </LabelMedium>
         </Link>
