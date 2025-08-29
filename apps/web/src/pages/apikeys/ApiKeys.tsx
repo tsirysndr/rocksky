@@ -57,13 +57,18 @@ function ApiKeys() {
 
     const values = getValues();
 
-    await createApiKey({ name: values.name, description: values.description });
+    await createApiKey(
+      { name: values.name, description: values.description },
+      {
+        onSuccess: async () => {
+          apiKeys = await apiKeys.refetch();
+        },
+      }
+    );
 
     setIsOpen(false);
     clearErrors();
     reset();
-
-    apiKeys = await apiKeys.refetch();
   };
 
   const onDisable = async (id: string) => {
@@ -71,8 +76,14 @@ function ApiKeys() {
       ...prev,
       [id]: false,
     }));
-    await updateApiKey({ id, enabled: false });
-    apiKeys = await apiKeys.refetch();
+    await updateApiKey(
+      { id, enabled: false },
+      {
+        onSuccess: async () => {
+          apiKeys = await apiKeys.refetch();
+        },
+      }
+    );
   };
 
   const onEnable = async (id: string) => {
@@ -80,13 +91,22 @@ function ApiKeys() {
       ...prev,
       [id]: true,
     }));
-    await updateApiKey({ id, enabled: true });
-    apiKeys = await apiKeys.refetch();
+    await updateApiKey(
+      { id, enabled: true },
+      {
+        onSuccess: async () => {
+          apiKeys = await apiKeys.refetch();
+        },
+      }
+    );
   };
 
   const onDelete = async (id: string) => {
-    await deleteApiKey(id);
-    apiKeys = await apiKeys.refetch();
+    await deleteApiKey(id, {
+      onSuccess: async () => {
+        apiKeys = await apiKeys.refetch();
+      },
+    });
   };
 
   if (!jwt) {
