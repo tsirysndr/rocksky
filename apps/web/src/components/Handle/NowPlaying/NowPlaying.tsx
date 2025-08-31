@@ -49,7 +49,7 @@ function NowPlaying({ did }: NowPlayingProps) {
             did,
           },
         }),
-        axios.get(`${API_URL}/spotify/currently-playing`, {
+        axios.get(`${API_URL}/xrpc/app.rocksky.spotify.getCurrentlyPlaying`, {
           headers: {
             authorization: `Bearer ${localStorage.getItem("token")}`,
           },
@@ -87,14 +87,17 @@ function NowPlaying({ did }: NowPlayingProps) {
         return;
       }
     }
-    const { data } = await axios.get(`${API_URL}/spotify/currently-playing`, {
-      headers: {
-        authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      params: {
-        did,
-      },
-    });
+    const { data } = await axios.get(
+      `${API_URL}/xrpc/app.rocksky.spotify.getCurrentlyPlaying`,
+      {
+        headers: {
+          authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        params: {
+          did,
+        },
+      }
+    );
     if (data.item) {
       setNowPlaying({
         ...nowPlaying,
