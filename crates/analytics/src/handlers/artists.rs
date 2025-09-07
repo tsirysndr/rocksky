@@ -1,13 +1,13 @@
 use std::sync::{Arc, Mutex};
 
-use actix_web::{web, HttpRequest, HttpResponse};
-use analytics::types::{
+use crate::types::{
     album::Album,
     artist::{
         Artist, GetArtistAlbumsParams, GetArtistTracksParams, GetArtistsParams, GetTopArtistsParams,
     },
     track::Track,
 };
+use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::Error;
 use duckdb::Connection;
 use tokio_stream::StreamExt;

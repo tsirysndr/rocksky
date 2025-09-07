@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
+use crate::types::track::{GetLovedTracksParams, GetTopTracksParams, GetTracksParams, Track};
 use actix_web::{web, HttpRequest, HttpResponse};
-use analytics::types::track::{GetLovedTracksParams, GetTopTracksParams, GetTracksParams, Track};
 use anyhow::Error;
 use duckdb::Connection;
 use tokio_stream::StreamExt;

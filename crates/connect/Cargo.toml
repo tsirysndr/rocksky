@@ -1,5 +1,5 @@
 [package]
-name = "connect"
+name = "rocksky-connect"
 version = "0.1.0"
 authors = ["Tsiry Sandratraina <tsiry.sndr@rocksky.app>"]
 edition = "2024"

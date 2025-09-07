@@ -1,5 +1,5 @@
 [package]
-name = "spotify"
+name = "rocksky-spotify"
 version = "0.1.0"
 authors.workspace = true
 edition.workspace = true

@@ -14,7 +14,7 @@ use sqlx::{Pool, Postgres};
 use crate::{
     crypto::{decrypt_aes_256_ctr, generate_token},
     types::{self, spotify_token::SpotifyTokenWithEmail},
-    xata::{self, track::Track},
+    xata::{self},
 };
 
 const ROCKSKY_API: &str = "https://api.rocksky.app";

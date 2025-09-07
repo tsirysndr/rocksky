@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
+use crate::types::scrobble::{GetScrobblesParams, ScrobbleTrack};
 use actix_web::{web, HttpRequest, HttpResponse};
-use analytics::types::scrobble::{GetScrobblesParams, ScrobbleTrack};
 use anyhow::Error;
 use duckdb::Connection;
 use tokio_stream::StreamExt;

@@ -13,7 +13,7 @@ pub mod xata;
 async fn main() -> Result<(), anyhow::Error> {
     dotenv()?;
     let jetstream_server = env::var("JETSTREAM_SERVER")
-        .unwrap_or_else(|_| "wss://jetstream2.us-east.bsky.network".to_string());
+        .unwrap_or_else(|_| "wss://jetstream2.us-west.bsky.network".to_string());
     let url = format!(
         "{}/subscribe?wantedCollections=app.rocksky.*",
         jetstream_server

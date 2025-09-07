@@ -24,6 +24,10 @@
           "position": {
             "type": "integer",
             "description": "Position in the queue to insert the items at, defaults to the end if not specified"
+          },
+          "shuffle": {
+            "type": "boolean",
+            "description": "Whether to shuffle the added items in the queue"
           }
         }
       }

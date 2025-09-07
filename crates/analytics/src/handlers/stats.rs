@@ -1,8 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use crate::read_payload;
-use actix_web::{web, HttpRequest, HttpResponse};
-use analytics::types::{
+use crate::types::{
     scrobble::{ScrobblesPerDay, ScrobblesPerMonth, ScrobblesPerYear},
     stats::{
         GetAlbumScrobblesParams, GetArtistScrobblesParams, GetScrobblesPerDayParams,
@@ -10,6 +9,7 @@ use analytics::types::{
         GetTrackScrobblesParams,
     },
 };
+use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::Error;
 use duckdb::Connection;
 use serde_json::json;

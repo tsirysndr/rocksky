@@ -1892,6 +1892,10 @@ export const schemaDict = {
               description:
                 'Position in the queue to insert the items at, defaults to the end if not specified',
             },
+            shuffle: {
+              type: 'boolean',
+              description: 'Whether to shuffle the added items in the queue',
+            },
           },
         },
       },
@@ -2032,6 +2036,15 @@ export const schemaDict = {
             },
             directoryId: {
               type: 'string',
+            },
+            shuffle: {
+              type: 'boolean',
+            },
+            recurse: {
+              type: 'boolean',
+            },
+            position: {
+              type: 'integer',
             },
           },
         },

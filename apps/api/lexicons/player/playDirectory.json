@@ -16,6 +16,15 @@
           },
           "directoryId": {
             "type": "string"
+          },
+          "shuffle": {
+            "type": "boolean"
+          },
+          "recurse": {
+            "type": "boolean"
+          },
+          "position": {
+            "type": "integer"
           }
         }
       }

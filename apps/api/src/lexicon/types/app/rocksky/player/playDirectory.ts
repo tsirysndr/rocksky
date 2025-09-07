@@ -11,6 +11,9 @@ import { HandlerAuth, HandlerPipeThrough } from '@atproto/xrpc-server'
 export interface QueryParams {
   playerId?: string
   directoryId: string
+  shuffle?: boolean
+  recurse?: boolean
+  position?: number
 }
 
 export type InputSchema = undefined

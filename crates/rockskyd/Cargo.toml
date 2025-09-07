@@ -1,0 +1,22 @@
+[package]
+name = "rockskyd"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+clap = "4.5.31"
+tokio = { version = "1.43.0", features = ["full"] }
+dotenv = "0.15.0"
+anyhow = "1.0.96"
+rocksky-analytics = { path = "../analytics" }
+rocksky-dropbox = { path = "../dropbox" }
+rocksky-googledrive = { path = "../googledrive" }
+rocksky-jetstream = { path = "../jetstream" }
+rocksky-playlists = { path = "../playlists" }
+rocksky-scrobbler = { path = "../scrobbler" }
+rocksky-spotify = { path = "../spotify" }
+rocksky-tracklist = { path = "../tracklist" }
+rocksky-webscrobbler = { path = "../webscrobbler" }

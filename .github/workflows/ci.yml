@@ -7,10 +7,18 @@ on:
     branches:
       - main
 jobs:
-  fmt:
+  tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          apt-get update && apt-get install -y \
+            libreadline-dev \
+            pkg-config \
+            flex \
+            bison \
+            build-essential
       - name: Setup Fluent CI
         uses: fluentci-io/setup-fluentci@v5
         with:
@@ -23,3 +31,6 @@ jobs:
         run: |
           type cargo
           cargo fmt --all --check
+      - name: Run tests
+        run: |
+          cargo test -p rocksky-tracklist

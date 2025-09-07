@@ -9,7 +9,7 @@ use async_nats::connect;
 use dotenv::dotenv;
 use duckdb::Connection;
 use owo_colors::OwoColorize;
-use playlists::subscriber::subscribe;
+use rocksky_playlists::subscriber::subscribe;
 use spotify::get_user_playlists;
 use sqlx::postgres::PgPoolOptions;
 

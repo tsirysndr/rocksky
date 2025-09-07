@@ -16,6 +16,15 @@ defs = new Mapping<String, Procedure> {
         ["directoryId"] = new StringType {
           type = "string"
         }
+        ["shuffle"] = new BooleanType {
+          type = "boolean"
+        }
+        ["recurse"] = new BooleanType {
+          type = "boolean"
+        }
+        ["position"] = new IntegerType {
+          type = "integer"
+        }
       }
     }
   }

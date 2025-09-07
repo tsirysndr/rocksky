@@ -1,10 +1,10 @@
 use std::sync::{Arc, Mutex};
 
-use actix_web::{web, HttpRequest, HttpResponse};
-use analytics::types::{
+use crate::types::{
     album::{Album, GetAlbumTracksParams, GetAlbumsParams, GetTopAlbumsParams},
     track::Track,
 };
+use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::Error;
 use duckdb::Connection;
 use tokio_stream::StreamExt;

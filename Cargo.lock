@@ -49,7 +49,7 @@ dependencies = [
  "mime",
  "percent-encoding",
  "pin-project-lite",
- "rand 0.9.1",
+ "rand 0.9.2",
  "sha1",
  "smallvec",
  "tokio",
@@ -339,26 +339,6 @@ name = "allocator-api2"
 version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
-
-[[package]]
-name = "analytics"
-version = "0.1.0"
-dependencies = [
- "actix-web",
- "anyhow",
- "async-nats",
- "chrono",
- "clap",
- "dotenv",
- "duckdb",
- "owo-colors",
- "polars",
- "serde",
- "serde_json",
- "sqlx",
- "tokio",
- "tokio-stream",
-]
 
 [[package]]
 name = "android-tzdata"
@@ -1276,27 +1256,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "connect"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "base64 0.22.1",
- "dirs",
- "futures-util",
- "http 1.3.1",
- "jsonrpsee",
- "owo-colors",
- "reqwest",
- "serde",
- "serde_json",
- "tokio",
- "tokio-stream",
- "tokio-tungstenite",
- "tungstenite",
-]
-
-[[package]]
 name = "const-oid"
 version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1677,36 +1636,6 @@ name = "dotenvy"
 version = "0.15.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1aaf95b3e5c8f23aa320147307562d361db0ae0d51242340f558153b4eb2439b"
-
-[[package]]
-name = "dropbox"
-version = "0.1.0"
-dependencies = [
- "actix-web",
- "aes",
- "anyhow",
- "async-nats",
- "chrono",
- "clap",
- "ctr",
- "dotenv",
- "futures",
- "hex",
- "jsonwebtoken",
- "lofty",
- "md5",
- "owo-colors",
- "redis 0.29.5",
- "reqwest",
- "serde",
- "serde_json",
- "sha256",
- "sqlx",
- "symphonia",
- "tempfile",
- "tokio",
- "tokio-stream",
-]
 
 [[package]]
 name = "duckdb"
@@ -2181,37 +2110,6 @@ dependencies = [
  "serde_json",
  "wasm-bindgen",
  "web-sys",
-]
-
-[[package]]
-name = "googledrive"
-version = "0.1.0"
-dependencies = [
- "actix-web",
- "aes",
- "anyhow",
- "async-nats",
- "chrono",
- "clap",
- "ctr",
- "dotenv",
- "futures",
- "hex",
- "jsonwebtoken",
- "lofty",
- "md5",
- "owo-colors",
- "redis 0.29.5",
- "reqwest",
- "serde",
- "serde_json",
- "serde_urlencoded",
- "sha256",
- "sqlx",
- "symphonia",
- "tempfile",
- "tokio",
- "tokio-stream",
 ]
 
 [[package]]
@@ -2771,28 +2669,6 @@ name = "itoa"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4a5f13b858c8d314ee3e8f639011f7ccefe71f97f96e50151fb991f267928e2c"
-
-[[package]]
-name = "jetstream"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-nats",
- "chrono",
- "dotenv",
- "futures-util",
- "owo-colors",
- "reqwest",
- "serde",
- "serde_json",
- "sha256",
- "sqlx",
- "tokio",
- "tokio-stream",
- "tokio-tungstenite",
- "tungstenite",
- "url",
-]
 
 [[package]]
 name = "jni"
@@ -3748,7 +3624,7 @@ dependencies = [
  "pgrx-pg-config",
  "postgres",
  "proptest",
- "rand 0.9.1",
+ "rand 0.9.2",
  "regex",
  "serde",
  "serde_json",
@@ -3863,31 +3739,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc1691dd09e82f428ce8d6310bd6d5da2557c82ff17694d2a32cad7242aea89f"
 dependencies = [
  "array-init-cursor",
-]
-
-[[package]]
-name = "playlists"
-version = "0.1.0"
-dependencies = [
- "aes",
- "anyhow",
- "async-nats",
- "chrono",
- "clap",
- "ctr",
- "dotenv",
- "duckdb",
- "hex",
- "jsonwebtoken",
- "owo-colors",
- "polars",
- "reqwest",
- "serde",
- "serde_json",
- "sha2",
- "sqlx",
- "tokio",
- "tokio-stream",
 ]
 
 [[package]]
@@ -4421,7 +4272,7 @@ dependencies = [
  "hmac",
  "md-5",
  "memchr",
- "rand 0.9.1",
+ "rand 0.9.2",
  "sha2",
  "stringprep",
 ]
@@ -4490,7 +4341,7 @@ dependencies = [
  "bitflags 2.9.1",
  "lazy_static",
  "num-traits",
- "rand 0.9.1",
+ "rand 0.9.2",
  "rand_chacha 0.9.0",
  "rand_xorshift",
  "regex-syntax",
@@ -4583,7 +4434,7 @@ dependencies = [
  "bytes",
  "getrandom 0.3.3",
  "lru-slab",
- "rand 0.9.1",
+ "rand 0.9.2",
  "ring",
  "rustc-hash",
  "rustls 0.23.27",
@@ -4657,9 +4508,9 @@ dependencies = [
 
 [[package]]
 name = "rand"
-version = "0.9.1"
+version = "0.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9fbfd9d094a40bf3ae768db9361049ace4c0e04a4fd6b359518bd7b73a73dd97"
+checksum = "6db2770f06117d490610c7488547d543617b21bfa07796d7a12f6f1bd53850d1"
 dependencies = [
  "rand_chacha 0.9.0",
  "rand_core 0.9.3",
@@ -4797,13 +4648,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1bc42f3a12fd4408ce64d8efef67048a924e543bd35c6591c0447fda9054695f"
 dependencies = [
  "arc-swap",
+ "bytes",
  "combine",
+ "futures-util",
  "itoa",
  "num-bigint",
  "percent-encoding",
+ "pin-project-lite",
+ "rustls 0.23.27",
+ "rustls-native-certs 0.8.1",
  "ryu",
  "sha1_smol",
  "socket2",
+ "tokio",
+ "tokio-rustls 0.26.2",
+ "tokio-util",
  "url",
 ]
 
@@ -4958,6 +4817,286 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "rocksky-analytics"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "anyhow",
+ "async-nats",
+ "chrono",
+ "clap",
+ "dotenv",
+ "duckdb",
+ "owo-colors",
+ "polars",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "tokio-stream",
+]
+
+[[package]]
+name = "rocksky-connect"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64 0.22.1",
+ "dirs",
+ "futures-util",
+ "http 1.3.1",
+ "jsonrpsee",
+ "owo-colors",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-stream",
+ "tokio-tungstenite",
+ "tungstenite",
+]
+
+[[package]]
+name = "rocksky-dropbox"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "aes",
+ "anyhow",
+ "async-nats",
+ "chrono",
+ "clap",
+ "ctr",
+ "dotenv",
+ "futures",
+ "hex",
+ "jsonwebtoken",
+ "lofty",
+ "md5",
+ "owo-colors",
+ "redis 0.29.5",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha256",
+ "sqlx",
+ "symphonia",
+ "tempfile",
+ "tokio",
+ "tokio-stream",
+]
+
+[[package]]
+name = "rocksky-googledrive"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "aes",
+ "anyhow",
+ "async-nats",
+ "chrono",
+ "clap",
+ "ctr",
+ "dotenv",
+ "futures",
+ "hex",
+ "jsonwebtoken",
+ "lofty",
+ "md5",
+ "owo-colors",
+ "redis 0.29.5",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "serde_urlencoded",
+ "sha256",
+ "sqlx",
+ "symphonia",
+ "tempfile",
+ "tokio",
+ "tokio-stream",
+]
+
+[[package]]
+name = "rocksky-jetstream"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-nats",
+ "chrono",
+ "dotenv",
+ "futures-util",
+ "owo-colors",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha256",
+ "sqlx",
+ "tokio",
+ "tokio-stream",
+ "tokio-tungstenite",
+ "tungstenite",
+ "url",
+]
+
+[[package]]
+name = "rocksky-playlists"
+version = "0.1.0"
+dependencies = [
+ "aes",
+ "anyhow",
+ "async-nats",
+ "chrono",
+ "clap",
+ "ctr",
+ "dotenv",
+ "duckdb",
+ "hex",
+ "jsonwebtoken",
+ "owo-colors",
+ "polars",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha2",
+ "sqlx",
+ "tokio",
+ "tokio-stream",
+]
+
+[[package]]
+name = "rocksky-scrobbler"
+version = "0.1.0"
+dependencies = [
+ "actix-limitation",
+ "actix-session 0.10.1",
+ "actix-web",
+ "aes",
+ "anyhow",
+ "chrono",
+ "ctr",
+ "dotenv",
+ "hex",
+ "jsonwebtoken",
+ "md5",
+ "owo-colors",
+ "quick-xml 0.37.5",
+ "rand 0.9.2",
+ "redis 0.29.5",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "tokio-stream",
+ "uuid",
+]
+
+[[package]]
+name = "rocksky-spotify"
+version = "0.1.0"
+dependencies = [
+ "aes",
+ "anyhow",
+ "async-nats",
+ "chrono",
+ "ctr",
+ "dotenv",
+ "hex",
+ "jsonwebtoken",
+ "owo-colors",
+ "redis 0.29.5",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "tokio-stream",
+]
+
+[[package]]
+name = "rocksky-storage"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "anyhow",
+ "dotenv",
+ "owo-colors",
+ "rust-s3",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "tokio-stream",
+]
+
+[[package]]
+name = "rocksky-tracklist"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "anyhow",
+ "async-nats",
+ "clap",
+ "dotenv",
+ "owo-colors",
+ "polars",
+ "rand 0.9.2",
+ "redis 0.29.5",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-stream",
+ "uuid",
+]
+
+[[package]]
+name = "rocksky-webscrobbler"
+version = "0.1.0"
+dependencies = [
+ "actix-limitation",
+ "actix-session 0.10.1",
+ "actix-web",
+ "aes",
+ "anyhow",
+ "chrono",
+ "ctr",
+ "dotenv",
+ "hex",
+ "jsonwebtoken",
+ "md5",
+ "owo-colors",
+ "rand 0.9.2",
+ "redis 0.29.5",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "tokio-stream",
+]
+
+[[package]]
+name = "rockskyd"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "dotenv",
+ "rocksky-analytics",
+ "rocksky-dropbox",
+ "rocksky-googledrive",
+ "rocksky-jetstream",
+ "rocksky-playlists",
+ "rocksky-scrobbler",
+ "rocksky-spotify",
+ "rocksky-tracklist",
+ "rocksky-webscrobbler",
+ "tokio",
 ]
 
 [[package]]
@@ -5288,34 +5427,6 @@ name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
-
-[[package]]
-name = "scrobbler"
-version = "0.1.0"
-dependencies = [
- "actix-limitation",
- "actix-session 0.10.1",
- "actix-web",
- "aes",
- "anyhow",
- "chrono",
- "ctr",
- "dotenv",
- "hex",
- "jsonwebtoken",
- "md5",
- "owo-colors",
- "quick-xml 0.37.5",
- "rand 0.9.1",
- "redis 0.29.5",
- "reqwest",
- "serde",
- "serde_json",
- "sqlx",
- "tokio",
- "tokio-stream",
- "uuid",
-]
 
 [[package]]
 name = "sct"
@@ -5650,28 +5761,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "spotify"
-version = "0.1.0"
-dependencies = [
- "aes",
- "anyhow",
- "async-nats",
- "chrono",
- "ctr",
- "dotenv",
- "hex",
- "jsonwebtoken",
- "owo-colors",
- "redis 0.29.5",
- "reqwest",
- "serde",
- "serde_json",
- "sqlx",
- "tokio",
- "tokio-stream",
-]
-
-[[package]]
 name = "sptr"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5904,22 +5993,6 @@ name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
-
-[[package]]
-name = "storage"
-version = "0.1.0"
-dependencies = [
- "actix-web",
- "anyhow",
- "dotenv",
- "owo-colors",
- "rust-s3",
- "serde",
- "serde_json",
- "sqlx",
- "tokio",
- "tokio-stream",
-]
 
 [[package]]
 name = "streaming-decompression"
@@ -6478,7 +6551,7 @@ dependencies = [
  "pin-project-lite",
  "postgres-protocol",
  "postgres-types",
- "rand 0.9.1",
+ "rand 0.9.2",
  "socket2",
  "tokio",
  "tokio-util",
@@ -6741,7 +6814,7 @@ dependencies = [
  "http 1.3.1",
  "httparse",
  "log",
- "rand 0.9.1",
+ "rand 0.9.2",
  "rustls 0.23.27",
  "rustls-pki-types",
  "sha1",
@@ -6874,9 +6947,9 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "uuid"
-version = "1.17.0"
+version = "1.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3cf4199d1e5d15ddd86a694e4d0dffa9c323ce759fea589f00fef9d81cc1931d"
+checksum = "f33196643e165781c20a5ead5582283a7dacbb87855d867fbc2df3f81eddc1be"
 dependencies = [
  "getrandom 0.3.3",
  "js-sys",
@@ -7073,32 +7146,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2853738d1cc4f2da3a225c18ec6c3721abb31961096e9dbf5ab35fa88b19cfdb"
 dependencies = [
  "rustls-pki-types",
-]
-
-[[package]]
-name = "webscrobbler"
-version = "0.1.0"
-dependencies = [
- "actix-limitation",
- "actix-session 0.10.1",
- "actix-web",
- "aes",
- "anyhow",
- "chrono",
- "ctr",
- "dotenv",
- "hex",
- "jsonwebtoken",
- "md5",
- "owo-colors",
- "rand 0.9.1",
- "redis 0.29.5",
- "reqwest",
- "serde",
- "serde_json",
- "sqlx",
- "tokio",
- "tokio-stream",
 ]
 
 [[package]]

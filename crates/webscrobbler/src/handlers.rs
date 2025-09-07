@@ -1,4 +1,4 @@
-use crate::{cache::Cache, repo, scrobbler::scrobble, types::ScrobbleRequest, BANNER};
+use crate::{cache::Cache, consts::BANNER, repo, scrobbler::scrobble, types::ScrobbleRequest};
 use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder};
 use owo_colors::OwoColorize;
 use sqlx::{Pool, Postgres};
