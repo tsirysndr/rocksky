@@ -119,6 +119,10 @@
     "dev:webscrobbler": {
       "persistent": false,
       "cache": false
+    },
+    "dev:tracklist": {
+      "persistent": false,
+      "cache": false
     }
   }
 }

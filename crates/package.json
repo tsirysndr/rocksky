@@ -1,15 +1,16 @@
 {
   "name": "@rocksky/crates",
   "scripts": {
-    "dev:analytics": "cargo run -p analytics --release -- serve",
-    "dev:connect": "cargo run -p connect --release",
-    "dev:dropbox": "cargo run -p dropbox --release -- serve",
-    "dev:googledrive": "cargo run -p googledrive --release -- serve",
-    "dev:jetstream": "cargo run -p jetstream --release",
-    "dev:playlists": "cargo run -p playlists --release",
-    "dev:scrobbler": "cargo run -p scrobbler --release -- serve",
-    "dev:spotify": "cargo run -p spotify --release -- serve",
-    "dev:storage": "cargo run -p storage --release -- serve",
-    "dev:webscrobbler": "cargo run -p webscrobbler --release -- serve"
+    "dev:analytics": "cargo run -p rockskyd --release -- analytics serve",
+    "dev:connect": "cargo run -p rocksky-connect --release",
+    "dev:dropbox": "cargo run -p rockskyd --release -- dropbox serve",
+    "dev:googledrive": "cargo run -p rockskyd --release -- googledrive serve",
+    "dev:jetstream": "cargo run -p rockskyd --release -- jetstream",
+    "dev:playlists": "cargo run -p rockskyd --release -- playlist",
+    "dev:scrobbler": "cargo run -p rockskyd --release -- scrobbler",
+    "dev:spotify": "cargo run -p rockskyd --release -- spotify",
+    "dev:storage": "cargo run -p rocksky-storage --release -- serve",
+    "dev:webscrobbler": "cargo run -p rockskyd --release -- webscrobbler",
+    "dev:tracklist": "cargo run -p rockskyd --release -- tracklist"
   }
 }

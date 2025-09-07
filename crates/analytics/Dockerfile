@@ -1,4 +1,4 @@
-FROM rust:1.88-bookworm AS builder
+FROM rust:1.89-bookworm AS builder
 
 RUN apt-get update && apt-get install -y \
   curl \
@@ -18,18 +18,18 @@ RUN wget https://github.com/duckdb/duckdb/releases/download/v1.3.2/libduckdb-lin
 
 WORKDIR /app
 
-COPY ./crates/analytics ./crates/analytics
+COPY ./crates ./crates
 COPY Cargo.toml .
 COPY Cargo.lock .
 
-RUN cargo build --release -p analytics
+RUN cargo build --release -p rockskyd
 
 FROM debian:bookworm-slim
 
-COPY --from=builder /app/target/release/analytics /usr/local/bin/analytics
+COPY --from=builder /app/target/release/rockskyd /usr/local/bin/rockskyd
 
 COPY --from=builder /usr/lib/libduckdb.so /usr/lib/libduckdb.so
 
 EXPOSE 7879
 
-CMD ["analytics"]
+CMD ["rockskyd", "analytics", "serve"]
