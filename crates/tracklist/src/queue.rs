@@ -240,13 +240,16 @@ pub async fn insert_tracks_at(
 
 #[cfg(test)]
 mod tests {
+    use std::env;
+
     use super::*;
     use anyhow::Error;
     use redis::AsyncCommands;
     use uuid::Uuid;
 
     async fn setup_redis() -> redis::Client {
-        redis::Client::open("redis://localhost:6379/").expect("Failed to create Redis client")
+        redis::Client::open(env::var("REDIS_URL").unwrap_or("redis://127.0.0.1".into()))
+            .expect("Failed to create Redis client")
     }
 
     async fn cleanup(client: &redis::Client, did: &str) -> Result<(), Error> {
