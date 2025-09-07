@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Install dependencies
         run: |
-          apt-get update && apt-get install -y \
+          sudo apt-get update && sudo apt-get install -y \
             libreadline-dev \
             pkg-config \
             flex \
