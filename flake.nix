@@ -28,6 +28,10 @@
           pkgs.duckdb
           pkgs.turbo
           pkgs.git
+          pkgs.wasm-pack
+          pkgs.gcc
+          pkgs.gnumake
+          pkgs.pkg-config
          ];
        };
     });
