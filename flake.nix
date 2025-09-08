@@ -32,6 +32,12 @@
           pkgs.gcc
           pkgs.gnumake
           pkgs.pkg-config
+          pkgs.readline
+          pkgs.flex
+          pkgs.bison
+          pkgs.binutils
+          pkgs.glibc.dev
+          pkgs.clang
          ];
        };
     });
