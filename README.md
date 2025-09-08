@@ -29,6 +29,8 @@ A decentralized music tracking and discovery platform built on the AT Protocol ð
 3. Set up the environment variables:
   ```bash
     cp apps/api/.env.example apps/api/.env
+    cp .env.example .env
+    # Edit the .env files to add your configurations
   ```
 4. Start the Docker containers:
    ```bash
