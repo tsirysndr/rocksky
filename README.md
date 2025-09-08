@@ -1,6 +1,7 @@
 # Rocksky
 
 [![ci](https://github.com/tsirysndr/rocksky/actions/workflows/ci.yml/badge.svg)](https://github.com/tsirysndr/rocksky/actions/workflows/ci.yml)
+[![discord](https://img.shields.io/discord/1132020671262773358?label=discord&logo=discord&color=5865F2)](https://discord.gg/EVcBy2fVa3)
 
 A decentralized music tracking and discovery platform built on the AT Protocol 🎵
 
@@ -52,3 +53,16 @@ A decentralized music tracking and discovery platform built on the AT Protocol �
    ```bash
    turbo dev --filter=@rocksky/api --filter=@rocksky/web
    ```
+
+## 📚 Documentation
+[View the full documentation](https://docs.rocksky.app)
+
+## ✍️ Feedback
+This repository is the central place to collect feedback and issues related to [Rocksky](https://rocksky.app).
+
+Please open an issue if you want to leave feedback. Feel free to also join our [**Discord server**](https://discord.gg/EVcBy2fVa3)
+
+## 🤝 Contributing
+We would love to hear your feedback or suggestions. The best way to reach us is on [Discord](https://discord.gg/EVcBy2fVa3).
+
+We also welcome pull requests into this repo. See [CONTRIBUTING.md](CONTRIBUTING.md)  for information on setting up this repo locally.
