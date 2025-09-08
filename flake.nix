@@ -26,6 +26,8 @@
           pkgs.bun
           pkgs.nodejs
           pkgs.duckdb
+          pkgs.turbo
+          pkgs.git
          ];
        };
     });
