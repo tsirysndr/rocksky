@@ -5,6 +5,8 @@
 
 A decentralized music tracking and discovery platform built on the AT Protocol 🎵
 
+![Preview](./.github/assets/preview.png)
+
 ## 📦 Prerequisites
 
 - Node.js (v22 or later)
