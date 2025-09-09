@@ -1,8 +1,4 @@
-import type {
-  CacheResult,
-  DidCache,
-  DidDocument,
-} from "@atproto/identity";
+import type { CacheResult, DidCache, DidDocument } from "@atproto/identity";
 import type { Storage } from "unstorage";
 
 const HOUR = 60e3 * 60;
