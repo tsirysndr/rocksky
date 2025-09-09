@@ -7,6 +7,12 @@ pub struct AddTrackParams {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct AddTracksParams {
+    pub did: String,
+    pub track_ids: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct InsertTrackAtParams {
     pub did: String,
     pub track_id: String,

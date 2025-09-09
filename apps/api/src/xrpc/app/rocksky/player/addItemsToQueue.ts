@@ -3,7 +3,6 @@ import { Context } from "context";
 import { Effect, pipe } from "effect";
 import { Server } from "lexicon";
 import { QueryParams } from "lexicon/types/app/rocksky/player/addItemsToQueue";
-import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
   const addItemsToQueue = (params, auth: HandlerAuth) =>
@@ -42,8 +41,9 @@ const handleAddItemsToQueue = ({
   Effect.tryPromise({
     try: async () => {
       await ctx.db.transaction(async (tx) => {
-        await tx.select().from(tables.queueTracks).execute();
+        // await tx.select().from(tables.queueTracks).execute();
         // Logic to add items to the queue would go here
+        // await ctx.tracklist.post("/tracklist.addTrack");
       });
     },
     catch: (err) => {

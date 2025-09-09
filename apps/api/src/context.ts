@@ -34,6 +34,7 @@ export const ctx = {
   analytics: axios.create({ baseURL: env.ANALYTICS }),
   dropbox: axios.create({ baseURL: env.DROPBOX }),
   googledrive: axios.create({ baseURL: env.GOOGLE_DRIVE }),
+  tracklist: axios.create({ baseURL: env.TRACKLIST }),
   redis: await redis
     .createClient({ url: env.REDIS_URL })
     .on("error", (err) => {

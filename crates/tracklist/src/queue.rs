@@ -17,6 +17,21 @@ pub async fn add_track(
     Ok(queue)
 }
 
+pub async fn add_tracks(
+    client: &redis::Client,
+    did: &str,
+    track_ids: Vec<String>,
+) -> Result<Vec<String>, Error> {
+    let mut conn = client.get_multiplexed_async_connection().await?;
+
+    conn.rpush::<_, _, i32>(format!("user:{}:queue", did), track_ids)
+        .await?;
+
+    let queue: Vec<String> = conn.lrange(format!("user:{}:queue", did), 0, -1).await?;
+
+    Ok(queue)
+}
+
 pub async fn insert_track_at(
     client: &redis::Client,
     did: &str,
@@ -276,6 +291,20 @@ mod tests {
         assert_eq!(queue, vec![track_id, track_id2]);
 
         // Cleanup
+        cleanup(&client, &did).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_add_tracks() -> Result<(), Error> {
+        let client = setup_redis().await;
+        let did = Uuid::new_v4().to_string();
+
+        let track_ids = vec!["track:67890", "track:67891", "track:67892"];
+        add_tracks(&client, &did, track_ids.iter().map(|s| s.to_string()).collect()).await?;
+
+        let queue = get_queue(&client, &did).await?;
+        assert_eq!(queue, track_ids);
         cleanup(&client, &did).await?;
         Ok(())
     }

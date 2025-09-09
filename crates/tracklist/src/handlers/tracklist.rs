@@ -20,6 +20,19 @@ pub async fn add_track(
     Ok(HttpResponse::Ok().json(web::Json(json!(new_queue))))
 }
 
+pub async fn add_tracks(
+    payload: &mut web::Payload,
+    _req: &HttpRequest,
+    client: Arc<redis::Client>,
+) -> Result<HttpResponse, Error> {
+    let body = read_payload!(payload);
+    let params = serde_json::from_slice::<AddTracksParams>(&body)?;
+
+    let new_queue = queue::add_tracks(&client, &params.did, params.track_ids).await?;
+
+    Ok(HttpResponse::Ok().json(web::Json(json!(new_queue))))
+}
+
 pub async fn insert_track_at(
     payload: &mut web::Payload,
     _req: &HttpRequest,
