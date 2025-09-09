@@ -4,7 +4,7 @@ import { SearchResponse } from "../types/search";
 
 export const search = async (query: string) => {
   const response = await axios.get<SearchResponse>(
-    `${API_URL}/search?q=${query}&size=100`
+    `${API_URL}/search?q=${query}&size=100`,
   );
   return response.data;
 };

@@ -50,7 +50,7 @@ export const useNowPlaying = (did: string) => {
     queryKey: ["now-playing", "spotify", did],
     queryFn: () =>
       fetch(`${API_URL}/spotify/currently-playing?did=${did}`).then((res) =>
-        res.json()
+        res.json(),
       ),
     refetchInterval: 15000,
     enabled: !!did,

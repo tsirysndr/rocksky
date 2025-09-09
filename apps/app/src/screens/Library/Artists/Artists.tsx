@@ -49,7 +49,7 @@ const ArtistItem = memo(
       did=""
       row
     />
-  )
+  ),
 );
 
 const FooterLoader = memo(({ isLoading }: { isLoading: boolean }) => (
@@ -85,12 +85,12 @@ const Artists: FC<ArtistsProps> = (props) => {
         className="mt-[10px]"
       />
     ),
-    [onPressArtist]
+    [onPressArtist],
   );
 
   const renderFooter = useCallback(
     () => <FooterLoader isLoading={isLoading || isFetchingMore} />,
-    [isLoading, isFetchingMore]
+    [isLoading, isFetchingMore],
   );
 
   return (

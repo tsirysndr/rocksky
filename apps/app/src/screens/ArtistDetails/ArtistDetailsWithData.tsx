@@ -27,10 +27,10 @@ const ArtistDetailsWithData: FC<ArtistDetailsWithDataProps> = (props) => {
   const rkey = route?.params?.uri?.split("at://")[1]?.split("/")[2];
   const artistResult = useArtistQuery(did!, rkey!);
   const tracksResult = useArtistTracksQuery(
-    route?.params?.uri?.split("at://")[1]!
+    route?.params?.uri?.split("at://")[1]!,
   );
   const albumsResult = useArtistAlbumsQuery(
-    route?.params?.uri?.split("at://")[1]!
+    route?.params?.uri?.split("at://")[1]!,
   );
   return (
     <ArtistDetails

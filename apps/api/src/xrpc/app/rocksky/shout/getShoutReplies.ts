@@ -19,7 +19,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({ shouts: [] });
-      })
+      }),
     );
   server.app.rocksky.shout.getShoutReplies({
     auth: ctx.authVerifier,
@@ -57,7 +57,7 @@ const retrieve = ({
 };
 
 const presentation = (
-  data: { shouts: SelectShout; users: SelectUser }[]
+  data: { shouts: SelectShout; users: SelectUser }[],
 ): Effect.Effect<ShoutView, never> => {
   return Effect.sync(() => ({
     shouts: data.map((item) => ({

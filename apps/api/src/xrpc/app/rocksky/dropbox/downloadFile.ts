@@ -1,8 +1,8 @@
-import { Context } from "context";
+import type { Context } from "context";
 import { eq } from "drizzle-orm";
 import { Effect } from "effect";
-import { Server } from "lexicon";
-import { QueryParams } from "lexicon/types/app/rocksky/dropbox/downloadFile";
+import type { Server } from "lexicon";
+import type { QueryParams } from "lexicon/types/app/rocksky/dropbox/downloadFile";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {

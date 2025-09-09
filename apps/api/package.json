@@ -19,7 +19,9 @@
 		"prod:xrpc": "tsx ./src/server.ts",
 		"db:migrate": "drizzle-kit migrate",
 		"db:gen-migration": "drizzle-kit generate",
-		"prod:all": "concurrently 'tsx ./src/index.ts' 'tsx ./src/server.ts'"
+		"prod:all": "concurrently 'tsx ./src/index.ts' 'tsx ./src/server.ts'",
+		"format": "biome format src",
+		"lint": "biome lint src"
 	},
 	"dependencies": {
 		"@atproto/api": "^0.13.31",
@@ -74,6 +76,7 @@
 		"zod": "^3.24.1"
 	},
 	"devDependencies": {
+		"@biomejs/biome": "^2.2.3",
 		"@pkl-community/pkl": "^0.28.2",
 		"@types/express": "^5.0.2",
 		"@types/lodash": "^4.17.17",

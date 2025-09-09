@@ -55,7 +55,7 @@ function useShout() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-      }
+      },
     );
     return response.data;
   };
@@ -67,7 +67,7 @@ function useShout() {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-      }
+      },
     );
     return response.data;
   }, []);
@@ -81,14 +81,14 @@ function useShout() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-      }
+      },
     );
     return response.data;
   };
 
   const getReplies = useCallback(async (uri: string) => {
     const response = await axios.get(
-      `${API_URL}/users/${uri.replace("at://", "")}/replies`
+      `${API_URL}/users/${uri.replace("at://", "")}/replies`,
     );
     return response.data;
   }, []);
@@ -101,7 +101,7 @@ function useShout() {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-      }
+      },
     );
     return response.data;
   };
@@ -113,7 +113,7 @@ function useShout() {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-      }
+      },
     );
     return response.data;
   };
@@ -125,7 +125,7 @@ function useShout() {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-      }
+      },
     );
     return response.data;
   };

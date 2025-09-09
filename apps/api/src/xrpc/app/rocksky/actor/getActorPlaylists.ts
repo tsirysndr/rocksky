@@ -1,11 +1,11 @@
-import { Context } from "context";
+import type { Context } from "context";
 import { eq, or, sql } from "drizzle-orm";
 import { Effect, pipe } from "effect";
-import { Server } from "lexicon";
-import { QueryParams } from "lexicon/types/app/rocksky/actor/getActorPlaylists";
-import { PlaylistViewBasic } from "lexicon/types/app/rocksky/playlist/defs";
+import type { Server } from "lexicon";
+import type { QueryParams } from "lexicon/types/app/rocksky/actor/getActorPlaylists";
+import type { PlaylistViewBasic } from "lexicon/types/app/rocksky/playlist/defs";
 import tables from "schema";
-import { SelectPlaylist } from "schema/playlists";
+import type { SelectPlaylist } from "schema/playlists";
 
 export default function (server: Server, ctx: Context) {
   const getActorPlaylists = (params) =>
@@ -18,7 +18,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({ playlists: [] });
-      })
+      }),
     );
   server.app.rocksky.actor.getActorPlaylists({
     handler: async ({ params }) => {
@@ -55,8 +55,8 @@ const retrieve = ({
         .where(
           or(
             eq(tables.users.did, params.did),
-            eq(tables.users.handle, params.did)
-          )
+            eq(tables.users.handle, params.did),
+          ),
         )
         .offset(params.offset)
         .limit(params.limit)
@@ -71,14 +71,14 @@ const retrieve = ({
             curatorName: row.users.displayName,
             curatorAvatarUrl: row.users.avatar,
             curatorHandle: row.users.handle,
-          }))
+          })),
         ),
     catch: (error) => new Error(`Failed to retrieve user playlists: ${error}`),
   });
 };
 
 const presentation = (
-  playlists: Playlist[]
+  playlists: Playlist[],
 ): Effect.Effect<{ playlists: PlaylistViewBasic[] }, never> => {
   return Effect.sync(() => ({
     playlists: playlists.map((playlist) => ({

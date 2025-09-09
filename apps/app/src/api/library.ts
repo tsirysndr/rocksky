@@ -24,7 +24,7 @@ export const getSongByUri = async (uri: string) => {
 
 export const getArtistTracks = async (
   uri: string,
-  limit = 10
+  limit = 10,
 ): Promise<
   {
     id: string;
@@ -39,14 +39,14 @@ export const getArtistTracks = async (
   }[]
 > => {
   const response = await axios.get(
-    `${API_URL}/users/${uri}/tracks?size=${limit}`
+    `${API_URL}/users/${uri}/tracks?size=${limit}`,
   );
   return response.data;
 };
 
 export const getArtistAlbums = async (
   uri: string,
-  limit = 10
+  limit = 10,
 ): Promise<
   {
     id: string;
@@ -58,14 +58,14 @@ export const getArtistAlbums = async (
   }[]
 > => {
   const response = await axios.get(
-    `${API_URL}/users/${uri}/albums?size=${limit}`
+    `${API_URL}/users/${uri}/albums?size=${limit}`,
   );
   return response.data;
 };
 
 export const getArtists = async (did: string, offset = 0, limit = 30) => {
   const response = await axios.get(
-    `${API_URL}/users/${did}/artists?size=${limit}&offset=${offset}`
+    `${API_URL}/users/${did}/artists?size=${limit}&offset=${offset}`,
   );
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return response.data.map((x: any) => ({ ...x, scrobbles: x.play_count }));
@@ -73,7 +73,7 @@ export const getArtists = async (did: string, offset = 0, limit = 30) => {
 
 export const getAlbums = async (did: string, offset = 0, limit = 12) => {
   const response = await axios.get(
-    `${API_URL}/users/${did}/albums?size=${limit}&offset=${offset}`
+    `${API_URL}/users/${did}/albums?size=${limit}&offset=${offset}`,
   );
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return response.data.map((x: any) => ({
@@ -84,7 +84,7 @@ export const getAlbums = async (did: string, offset = 0, limit = 12) => {
 
 export const getTracks = async (did: string, offset = 0, limit = 20) => {
   const response = await axios.get(
-    `${API_URL}/users/${did}/tracks?size=${limit}&offset=${offset}`
+    `${API_URL}/users/${did}/tracks?size=${limit}&offset=${offset}`,
   );
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return response.data.map((x: any) => ({ ...x, scrobbles: x.play_count }));
@@ -92,21 +92,21 @@ export const getTracks = async (did: string, offset = 0, limit = 20) => {
 
 export const getLovedTracks = async (did: string, offset = 0, limit = 20) => {
   const response = await axios.get(
-    `${API_URL}/users/${did}/likes?size=${limit}&offset=${offset}`
+    `${API_URL}/users/${did}/likes?size=${limit}&offset=${offset}`,
   );
   return response.data;
 };
 
 export const getAlbum = async (did: string, rkey: string) => {
   const response = await axios.get(
-    `${API_URL}/users/${did}/app.rocksky.album/${rkey}`
+    `${API_URL}/users/${did}/app.rocksky.album/${rkey}`,
   );
   return response.data;
 };
 
 export const getArtist = async (did: string, rkey: string) => {
   const response = await axios.get(
-    `${API_URL}/users/${did}/app.rocksky.artist/${rkey}`
+    `${API_URL}/users/${did}/app.rocksky.artist/${rkey}`,
   );
   return response.data;
 };

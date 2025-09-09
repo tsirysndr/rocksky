@@ -75,7 +75,7 @@ function SpotifyLogin() {
           message:
             "Your request to join the beta program has been submitted. We'll notify you once you're approved!",
         },
-        DURATION.long
+        DURATION.long,
       );
 
       close();

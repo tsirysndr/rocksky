@@ -14,7 +14,7 @@ export type LibraryProps = {
 
 function Library(props: LibraryProps) {
   const [activeKey, setActiveKey] = useState<Key>(
-    _.get(props, "activeKey", "0")
+    _.get(props, "activeKey", "0"),
   );
   const { tab } = useSearch({ strict: false });
   console.log("tab", tab);

@@ -1,13 +1,13 @@
-import { HandlerAuth } from "@atproto/xrpc-server";
-import { Context } from "context";
+import type { HandlerAuth } from "@atproto/xrpc-server";
+import type { Context } from "context";
 import { count, desc, eq } from "drizzle-orm";
 import { sql } from "drizzle-orm/sql";
 import { Effect, pipe } from "effect";
-import { Server } from "lexicon";
-import { ShoutView } from "lexicon/types/app/rocksky/shout/defs";
-import { QueryParams } from "lexicon/types/app/rocksky/shout/getAlbumShouts";
+import type { Server } from "lexicon";
+import type { ShoutView } from "lexicon/types/app/rocksky/shout/defs";
+import type { QueryParams } from "lexicon/types/app/rocksky/shout/getAlbumShouts";
 import tables from "schema";
-import { SelectUser } from "schema/users";
+import type { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
   const getAlbumShouts = (params, auth: HandlerAuth) =>
@@ -21,7 +21,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({ shouts: [] });
-      })
+      }),
     );
   server.app.rocksky.shout.getAlbumShouts({
     auth: ctx.authVerifier,
@@ -106,7 +106,7 @@ const retrieve = ({
         .leftJoin(tables.albums, eq(tables.shouts.albumId, tables.albums.id))
         .leftJoin(
           tables.shoutLikes,
-          eq(tables.shouts.id, tables.shoutLikes.shoutId)
+          eq(tables.shouts.id, tables.shoutLikes.shoutId),
         )
         .where(eq(tables.albums.uri, params.uri))
         .groupBy(
@@ -119,7 +119,7 @@ const retrieve = ({
           tables.users.did,
           tables.users.handle,
           tables.users.displayName,
-          tables.users.avatar
+          tables.users.avatar,
         )
         .orderBy(desc(tables.shouts.createdAt))
         .execute(),
@@ -131,7 +131,7 @@ const presentation = (
   data: {
     shouts: Shouts;
     users: Users;
-  }[]
+  }[],
 ): Effect.Effect<ShoutView, never> => {
   return Effect.sync(() => ({
     shouts: data.map((item) => ({

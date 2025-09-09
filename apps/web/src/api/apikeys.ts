@@ -10,7 +10,7 @@ export const createApiKey = async (name: string, description?: string) => {
   return await axios.post<ApiKey>(
     `${API_URL}/apikeys`,
     { name, description },
-    { headers }
+    { headers },
   );
 };
 
@@ -32,11 +32,11 @@ export const updateApiKey = async (
   id: string,
   enabled: boolean,
   name?: string,
-  description?: string
+  description?: string,
 ) => {
   return await axios.put<ApiKey>(
     `${API_URL}/apikeys/${id}`,
     { name, description, enabled },
-    { headers }
+    { headers },
   );
 };

@@ -86,7 +86,7 @@ function Albums(props: AlbumsProps) {
         artistUri: x.artistUri,
         uri: x.uri,
         scrobbles: x.scrobbles,
-      }))
+      })),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [albumsResult.data, albumsResult.isLoading, albumsResult.isError, did]);

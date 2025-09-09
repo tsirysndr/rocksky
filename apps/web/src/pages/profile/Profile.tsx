@@ -32,7 +32,7 @@ export type ProfileProps = {
 function Profile(props: ProfileProps) {
   const [profiles, setProfiles] = useAtom(profilesAtom);
   const [activeKey, setActiveKey] = useState<Key>(
-    _.get(props, "activeKey", "0").split("/")[0]
+    _.get(props, "activeKey", "0").split("/")[0],
   );
   const { did } = useParams({ strict: false });
   const profile = useProfileByDidQuery(did!);

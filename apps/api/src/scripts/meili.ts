@@ -23,8 +23,8 @@ await main();
 
 async function createAlbums() {
   const { meilisearch } = ctx;
-  let skip = 0;
-  let size = 100;
+  const skip = 0;
+  const size = 100;
   const total = await ctx.db
     .select({ value: count() })
     .from(tables.albums)
@@ -42,7 +42,7 @@ async function createAlbums() {
 
 async function createArtists() {
   const { meilisearch } = ctx;
-  let size = 100;
+  const size = 100;
   const total = await ctx.db
     .select({ value: count() })
     .from(tables.artists)
@@ -51,7 +51,7 @@ async function createArtists() {
   for (let i = 0; i < total; i += size) {
     const skip = i;
     console.log(
-      `Processing ${chalk.magentaBright("artists")}: ${chalk.magentaBright(skip)} to ${chalk.magentaBright(skip + size)}`
+      `Processing ${chalk.magentaBright("artists")}: ${chalk.magentaBright(skip)} to ${chalk.magentaBright(skip + size)}`,
     );
     const results = await ctx.db
       .select()
@@ -66,7 +66,7 @@ async function createArtists() {
 
 async function createTracks() {
   const { meilisearch } = ctx;
-  let size = 100;
+  const size = 100;
   const total = await ctx.db
     .select({ value: count() })
     .from(tables.tracks)
@@ -75,7 +75,7 @@ async function createTracks() {
   for (let i = 0; i < total; i += size) {
     const skip = i;
     console.log(
-      `Processing ${chalk.magentaBright("tracks")}: ${chalk.magentaBright(skip)} to ${chalk.magentaBright(skip + size)}`
+      `Processing ${chalk.magentaBright("tracks")}: ${chalk.magentaBright(skip)} to ${chalk.magentaBright(skip + size)}`,
     );
     const results = await ctx.db
       .select()
@@ -90,7 +90,7 @@ async function createTracks() {
 
 async function createUsers() {
   const { meilisearch } = ctx;
-  let size = 100;
+  const size = 100;
   const total = await ctx.db
     .select({ value: count() })
     .from(tables.users)
@@ -100,7 +100,7 @@ async function createUsers() {
   for (let i = 0; i < total; i += size) {
     const skip = i;
     console.log(
-      `Processing ${chalk.magentaBright("users")}: ${chalk.magentaBright(skip)} to ${chalk.magentaBright(skip + size)}`
+      `Processing ${chalk.magentaBright("users")}: ${chalk.magentaBright(skip)} to ${chalk.magentaBright(skip + size)}`,
     );
     const results = await ctx.db
       .select()

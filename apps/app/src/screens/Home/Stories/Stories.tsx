@@ -25,7 +25,7 @@ const StoryItem = memo(
       className="mr-[10px]"
       onPress={onPress}
     />
-  )
+  ),
 );
 
 const Stories: FC<StoriesProps> = (props) => {

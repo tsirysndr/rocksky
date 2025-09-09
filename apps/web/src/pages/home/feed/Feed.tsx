@@ -94,7 +94,7 @@ function Feed() {
                   </LabelMedium>
                   <StatefulTooltip
                     content={dayjs(song.date).format(
-                      "MMMM D, YYYY [at] HH:mm A"
+                      "MMMM D, YYYY [at] HH:mm A",
                     )}
                     returnFocus
                     autoFocus

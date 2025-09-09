@@ -192,7 +192,7 @@ function Shout(props: ShoutProps) {
               <div>
                 <StatefulTooltip
                   content={dayjs(shout.date).format(
-                    "MMMM D, YYYY [at] HH:mm A"
+                    "MMMM D, YYYY [at] HH:mm A",
                   )}
                   returnFocus
                   autoFocus

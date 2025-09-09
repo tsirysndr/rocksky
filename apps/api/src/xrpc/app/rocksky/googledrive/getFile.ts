@@ -1,6 +1,6 @@
-import { Context } from "context";
+import type { Context } from "context";
 import { pipe } from "effect";
-import { Server } from "lexicon";
+import type { Server } from "lexicon";
 
 export default function (server: Server, ctx: Context) {
   const getFile = (params) => pipe(params, retrieve, presentation);

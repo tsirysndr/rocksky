@@ -49,7 +49,7 @@ function useProfile(token?: string | null) {
             headers: {
               Authorization: `Bearer ${token}`,
             },
-          }
+          },
         ).then((res) => res.text());
         setData(response);
         setError(null);

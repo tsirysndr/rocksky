@@ -1,9 +1,9 @@
-import { Context } from "context";
+import type { Context } from "context";
 import { and, asc, eq, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { Effect, pipe } from "effect";
-import { Server } from "lexicon";
-import { QueryParams } from "lexicon/types/app/rocksky/googledrive/getFiles";
+import type { Server } from "lexicon";
+import type { QueryParams } from "lexicon/types/app/rocksky/googledrive/getFiles";
 import _ from "lodash";
 import * as R from "ramda";
 import tables from "schema";
@@ -19,7 +19,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({ files: [], directories: [] });
-      })
+      }),
     );
   server.app.rocksky.googledrive.getFiles({
     auth: ctx.authVerifier,
@@ -54,16 +54,16 @@ const retrieve = ({
             tables.googleDrive,
             eq(
               tables.googleDrive.id,
-              tables.googleDriveDirectories.googleDriveId
-            )
+              tables.googleDriveDirectories.googleDriveId,
+            ),
           )
           .leftJoin(
             tables.users,
-            eq(tables.googleDrive.userId, tables.users.id)
+            eq(tables.googleDrive.userId, tables.users.id),
           )
           .leftJoin(
             parentAlias,
-            eq(parentAlias.id, tables.googleDriveDirectories.parentId)
+            eq(parentAlias.id, tables.googleDriveDirectories.parentId),
           )
           .leftJoin(parentDirAlias, eq(parentDirAlias.id, parentAlias.parentId))
           .where(
@@ -72,11 +72,11 @@ const retrieve = ({
               or(
                 eq(
                   parentAlias.path,
-                  _.get(params, "at", "/Music").replace(/\/$/, "").trim()
+                  _.get(params, "at", "/Music").replace(/\/$/, "").trim(),
                 ),
-                eq(parentAlias.fileId, _.get(params, "at", "").trim())
-              )
-            )
+                eq(parentAlias.fileId, _.get(params, "at", "").trim()),
+              ),
+            ),
           )
           .orderBy(asc(tables.googleDriveDirectories.name))
           .execute(),
@@ -85,16 +85,16 @@ const retrieve = ({
           .from(tables.googleDrivePaths)
           .leftJoin(
             parentAlias,
-            eq(tables.googleDrivePaths.directoryId, parentAlias.id)
+            eq(tables.googleDrivePaths.directoryId, parentAlias.id),
           )
           .leftJoin(parentDirAlias, eq(parentDirAlias.id, parentAlias.parentId))
           .leftJoin(
             tables.googleDrive,
-            eq(tables.googleDrive.id, tables.googleDrivePaths.googleDriveId)
+            eq(tables.googleDrive.id, tables.googleDrivePaths.googleDriveId),
           )
           .leftJoin(
             tables.users,
-            eq(tables.googleDrive.userId, tables.users.id)
+            eq(tables.googleDrive.userId, tables.users.id),
           )
           .where(
             and(
@@ -102,11 +102,11 @@ const retrieve = ({
               or(
                 eq(
                   parentAlias.path,
-                  _.get(params, "at", "/Music").replace(/\/$/, "").trim()
+                  _.get(params, "at", "/Music").replace(/\/$/, "").trim(),
                 ),
-                eq(parentAlias.fileId, _.get(params, "at", "").trim())
-              )
-            )
+                eq(parentAlias.fileId, _.get(params, "at", "").trim()),
+              ),
+            ),
           )
           .orderBy(asc(tables.googleDrivePaths.name))
           .execute(),
@@ -120,16 +120,17 @@ const retrieve = ({
 };
 
 const presentation = (
-  data: [Directories, Files]
+  data: [Directories, Files],
 ): Effect.Effect<any, never> => {
   return Effect.sync(() => ({
     directory: R.omit(
       ["createdAt", "updatedAt", "xataVersion"],
-      _.get(data, "0.0.parent", null) || _.get(data, "1.0.parent", null)
+      _.get(data, "0.0.parent", null) || _.get(data, "1.0.parent", null),
     ),
     parentDirectory: R.omit(
       ["createdAt", "updatedAt"],
-      _.get(data, "0.0.parent_dir", null) || _.get(data, "1.0.parent_dir", null)
+      _.get(data, "0.0.parent_dir", null) ||
+        _.get(data, "1.0.parent_dir", null),
     ),
     directories: data[0].map((item) => ({
       id: item.google_drive_directories.id,

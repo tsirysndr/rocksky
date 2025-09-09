@@ -1,8 +1,8 @@
 import SqliteDb from "better-sqlite3";
 import {
   Kysely,
-  Migration,
-  MigrationProvider,
+  type Migration,
+  type MigrationProvider,
   Migrator,
   SqliteDialect,
 } from "kysely";

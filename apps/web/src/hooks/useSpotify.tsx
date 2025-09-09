@@ -38,7 +38,7 @@ function useSpotify() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-      }
+      },
     );
     return response.data;
   };
@@ -52,7 +52,7 @@ function useSpotify() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-      }
+      },
     );
     return response.data;
   };
@@ -66,7 +66,7 @@ function useSpotify() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-      }
+      },
     );
     return response.data;
   };
@@ -80,7 +80,7 @@ function useSpotify() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-      }
+      },
     );
     return response.data;
   };
@@ -97,7 +97,7 @@ function useSpotify() {
         params: {
           position_ms,
         },
-      }
+      },
     );
     return response.data;
   };

@@ -1,9 +1,9 @@
-import { Context } from "context";
+import type { Context } from "context";
 import { eq } from "drizzle-orm";
 import { Effect, Match, pipe } from "effect";
-import { Server } from "lexicon";
-import { ChartsView } from "lexicon/types/app/rocksky/charts/defs";
-import { QueryParams } from "lexicon/types/app/rocksky/charts/getScrobblesChart";
+import type { Server } from "lexicon";
+import type { ChartsView } from "lexicon/types/app/rocksky/charts/defs";
+import type { QueryParams } from "lexicon/types/app/rocksky/charts/getScrobblesChart";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
@@ -17,7 +17,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({ scrobbles: [] });
-      })
+      }),
     );
   server.app.rocksky.charts.getScrobblesChart({
     handler: async ({ params }) => {
@@ -37,17 +37,17 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
         Match.when({ did: (did) => !!did }, ({ did }) =>
           ctx.analytics.post("library.getScrobblesPerDay", {
             user_did: did,
-          })
+          }),
         ),
         Match.when({ artisturi: (uri) => !!uri }, ({ artisturi }) =>
           ctx.analytics.post("library.getArtistScrobbles", {
             artist_id: artisturi,
-          })
+          }),
         ),
         Match.when({ albumuri: (uri) => !!uri }, ({ albumuri }) =>
           ctx.analytics.post("library.getAlbumScrobbles", {
             album_id: albumuri,
-          })
+          }),
         ),
         Match.when(
           { songuri: (uri) => !!uri && uri.includes("app.rocksky.scrobble") },
@@ -57,7 +57,7 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
               .from(tables.scrobbles)
               .leftJoin(
                 tables.tracks,
-                eq(tables.scrobbles.trackId, tables.tracks.id)
+                eq(tables.scrobbles.trackId, tables.tracks.id),
               )
               .where(eq(tables.scrobbles.uri, songuri))
               .execute()
@@ -65,17 +65,19 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
               .then((uri) =>
                 ctx.analytics.post("library.getTrackScrobbles", {
                   track_id: uri,
-                })
-              )
+                }),
+              ),
         ),
         Match.when(
           { songuri: (uri) => !!uri && !uri.includes("app.rocksky.scrobble") },
           ({ songuri }) =>
             ctx.analytics.post("library.getTrackScrobbles", {
               track_id: songuri,
-            })
+            }),
         ),
-        Match.orElse(() => ctx.analytics.post("library.getScrobblesPerDay", {}))
+        Match.orElse(() =>
+          ctx.analytics.post("library.getScrobblesPerDay", {}),
+        ),
       );
 
       return match(params);

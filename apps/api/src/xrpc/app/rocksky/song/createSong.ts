@@ -38,7 +38,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({});
-      })
+      }),
     );
   server.app.rocksky.song.createSong({
     auth: ctx.authVerifier,
@@ -72,11 +72,11 @@ const withAgent = ({
               ctx,
               did,
               input,
-            }))
+            })),
         ),
         Match.orElse(() => {
           throw new Error("Authentication required to create a song");
-        })
+        }),
       ),
     catch: (error) => new Error(`Failed to create agent: ${error}`),
   });
@@ -145,24 +145,24 @@ const computeTrackHash = (track: Track): Effect.Effect<string, never> =>
   Effect.succeed(
     createHash("sha256")
       .update(`${track.title} - ${track.artist} - ${track.album}`.toLowerCase())
-      .digest("hex")
+      .digest("hex"),
   );
 
 const computeAlbumHash = (track: Track): Effect.Effect<string, never> =>
   Effect.succeed(
     createHash("sha256")
       .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
-      .digest("hex")
+      .digest("hex"),
   );
 
 const computeArtistHash = (track: Track): Effect.Effect<string, never> =>
   Effect.succeed(
-    createHash("sha256").update(track.albumArtist.toLowerCase()).digest("hex")
+    createHash("sha256").update(track.albumArtist.toLowerCase()).digest("hex"),
   );
 
 const fetchExistingTrack = (
   ctx: Context,
-  trackHash: string
+  trackHash: string,
 ): Effect.Effect<SelectTrack | undefined, Error> =>
   Effect.tryPromise(() =>
     ctx.db
@@ -170,7 +170,7 @@ const fetchExistingTrack = (
       .from(tables.tracks)
       .where(eq(tables.tracks.sha256, trackHash))
       .execute()
-      .then(([row]) => row)
+      .then(([row]) => row),
   );
 
 const uploadImage = (url: string, agent: Agent) =>
@@ -190,10 +190,10 @@ const uploadImage = (url: string, agent: Agent) =>
     Effect.flatMap(([imageBuffer, options]) =>
       pipe(
         Effect.tryPromise(() => agent.uploadBlob(imageBuffer, options)),
-        Effect.map((uploadResponse) => uploadResponse.data.blob)
-      )
+        Effect.map((uploadResponse) => uploadResponse.data.blob),
+      ),
     ),
-    Effect.catchAll(() => Effect.succeed(undefined as BlobRef | undefined))
+    Effect.catchAll(() => Effect.succeed(undefined as BlobRef | undefined)),
   );
 
 const generateRkey = Effect.succeed(TID.nextStr());
@@ -202,13 +202,13 @@ const putRecord = <T>(
   agent: Agent,
   collection: string,
   record: T,
-  validate: (record: T) => { success: boolean }
+  validate: (record: T) => { success: boolean },
 ): Effect.Effect<string, Error> =>
   pipe(
     Effect.succeed(record),
     Effect.filterOrFail(
       (rec) => validate(rec).success,
-      () => new Error("Invalid record")
+      () => new Error("Invalid record"),
     ),
     Effect.flatMap(() =>
       pipe(
@@ -221,19 +221,19 @@ const putRecord = <T>(
               rkey,
               record,
               validate: false,
-            })
-          )
+            }),
+          ),
         ),
         Effect.tap((res) =>
-          Effect.logInfo(`Record created at ${res.data.uri}`)
+          Effect.logInfo(`Record created at ${res.data.uri}`),
         ),
-        Effect.map((res) => res.data.uri)
-      )
+        Effect.map((res) => res.data.uri),
+      ),
     ),
     Effect.catchAll((error) => {
       console.error(`Error creating ${collection} record`, error);
       return Effect.fail(error);
-    })
+    }),
   );
 
 const putArtistRecord = (track: Track, agent: Agent) =>
@@ -248,8 +248,8 @@ const putArtistRecord = (track: Track, agent: Agent) =>
       picture,
     })),
     Effect.flatMap((record) =>
-      putRecord(agent, "app.rocksky.artist", record, Artist.validateRecord)
-    )
+      putRecord(agent, "app.rocksky.artist", record, Artist.validateRecord),
+    ),
   );
 
 const putAlbumRecord = (track: Track, agent: Agent) =>
@@ -257,9 +257,9 @@ const putAlbumRecord = (track: Track, agent: Agent) =>
     Match.value(track.albumArt).pipe(
       Match.when(
         (url) => !!url,
-        (url) => uploadImage(url, agent)
+        (url) => uploadImage(url, agent),
       ),
-      Match.orElse(() => Effect.succeed(undefined as BlobRef | undefined))
+      Match.orElse(() => Effect.succeed(undefined as BlobRef | undefined)),
     ),
     Effect.map((albumArt) => ({
       $type: "app.rocksky.album",
@@ -273,8 +273,8 @@ const putAlbumRecord = (track: Track, agent: Agent) =>
       albumArt,
     })),
     Effect.flatMap((record) =>
-      putRecord(agent, "app.rocksky.album", record, Album.validateRecord)
-    )
+      putRecord(agent, "app.rocksky.album", record, Album.validateRecord),
+    ),
   );
 
 const putSongRecord = (track: Track, agent: Agent) =>
@@ -282,9 +282,9 @@ const putSongRecord = (track: Track, agent: Agent) =>
     Match.value(track.albumArt).pipe(
       Match.when(
         (url) => !!url,
-        (url) => uploadImage(url, agent)
+        (url) => uploadImage(url, agent),
       ),
-      Match.orElse(() => Effect.succeed(undefined as BlobRef | undefined))
+      Match.orElse(() => Effect.succeed(undefined as BlobRef | undefined)),
     ),
     Effect.map((albumArt) => ({
       $type: "app.rocksky.song",
@@ -307,8 +307,8 @@ const putSongRecord = (track: Track, agent: Agent) =>
       spotifyLink: track.spotifyLink ?? undefined,
     })),
     Effect.flatMap((record) =>
-      putRecord(agent, "app.rocksky.song", record, Song.validateRecord)
-    )
+      putRecord(agent, "app.rocksky.song", record, Song.validateRecord),
+    ),
   );
 
 const ensureTrack = (ctx: Context, track: Track, agent: Agent) =>
@@ -323,24 +323,24 @@ const ensureTrack = (ctx: Context, track: Track, agent: Agent) =>
             Effect.tap((trackOpt) =>
               trackOpt
                 ? updateTrackMetadata(ctx, track, trackOpt)
-                : Effect.succeed(undefined)
+                : Effect.succeed(undefined),
             ),
             Effect.flatMap((trackOpt) =>
               trackOpt.uri
                 ? Effect.succeed(trackOpt.uri)
-                : putSongRecord(track, agent)
-            )
-          )
-        )
-      )
-    )
+                : putSongRecord(track, agent),
+            ),
+          ),
+        ),
+      ),
+    ),
   );
 
 // Update track metadata (album_uri and artist_uri)
 const updateTrackMetadata = (
   ctx: Context,
   track: Track,
-  trackRecord: SelectTrack
+  trackRecord: SelectTrack,
 ) =>
   pipe(
     Effect.succeed(trackRecord),
@@ -355,8 +355,8 @@ const updateTrackMetadata = (
                   .from(tables.albums)
                   .where(eq(tables.albums.sha256, albumHash))
                   .execute()
-                  .then(([row]) => row)
-              )
+                  .then(([row]) => row),
+              ),
             ),
             Effect.flatMap((album) =>
               Option.fromNullable(album).pipe(
@@ -366,14 +366,14 @@ const updateTrackMetadata = (
                       .update(tables.tracks)
                       .set({ albumUri: album.uri })
                       .where(eq(tables.tracks.id, trackRecord.id))
-                      .execute()
-                  )
+                      .execute(),
+                  ),
                 ),
-                Effect.catchAll(() => Effect.succeed(undefined))
-              )
-            )
+                Effect.catchAll(() => Effect.succeed(undefined)),
+              ),
+            ),
           )
-        : Effect.succeed(undefined)
+        : Effect.succeed(undefined),
     ),
     Effect.tap((trackRecord) =>
       !trackRecord.artistUri
@@ -386,8 +386,8 @@ const updateTrackMetadata = (
                   .from(tables.artists)
                   .where(eq(tables.artists.sha256, artistHash))
                   .execute()
-                  .then(([row]) => row)
-              )
+                  .then(([row]) => row),
+              ),
             ),
             Effect.flatMap((artist) =>
               Option.fromNullable(artist).pipe(
@@ -397,15 +397,15 @@ const updateTrackMetadata = (
                       .update(tables.tracks)
                       .set({ artistUri: artist.uri })
                       .where(eq(tables.tracks.id, trackRecord.id))
-                      .execute()
-                  )
+                      .execute(),
+                  ),
                 ),
-                Effect.catchAll(() => Effect.succeed(undefined))
-              )
-            )
+                Effect.catchAll(() => Effect.succeed(undefined)),
+              ),
+            ),
           )
-        : Effect.succeed(undefined)
-    )
+        : Effect.succeed(undefined),
+    ),
   );
 
 // Ensure artist exists or create it
@@ -420,7 +420,7 @@ const ensureArtist = (ctx: Context, track: Track, agent: Agent) =>
             .from(tables.artists)
             .where(eq(tables.artists.sha256, artistHash))
             .execute()
-            .then(([row]) => row)
+            .then(([row]) => row),
         ),
         Effect.flatMap((existingArtist) =>
           pipe(
@@ -428,12 +428,12 @@ const ensureArtist = (ctx: Context, track: Track, agent: Agent) =>
             Effect.flatMap((artistOpt) =>
               artistOpt.uri
                 ? Effect.succeed(artistOpt.uri)
-                : putArtistRecord(track, agent)
-            )
-          )
-        )
-      )
-    )
+                : putArtistRecord(track, agent),
+            ),
+          ),
+        ),
+      ),
+    ),
   );
 
 // Ensure album exists or create it
@@ -448,7 +448,7 @@ const ensureAlbum = (ctx: Context, track: Track, agent: Agent) =>
             .from(tables.albums)
             .where(eq(tables.albums.sha256, albumHash))
             .execute()
-            .then(([row]) => row)
+            .then(([row]) => row),
         ),
         Effect.flatMap((existingAlbum) =>
           pipe(
@@ -456,12 +456,12 @@ const ensureAlbum = (ctx: Context, track: Track, agent: Agent) =>
             Effect.flatMap((albumOpt) =>
               albumOpt.uri
                 ? Effect.succeed(albumOpt.uri)
-                : putAlbumRecord(track, agent)
-            )
-          )
-        )
-      )
-    )
+                : putAlbumRecord(track, agent),
+            ),
+          ),
+        ),
+      ),
+    ),
   );
 
 // Fetch track, album, and artist by URIs
@@ -469,7 +469,7 @@ const fetchRecordsByUris = (
   ctx: Context,
   trackUri: string,
   albumUri: string,
-  artistUri: string
+  artistUri: string,
 ): Effect.Effect<
   {
     track: SelectTrack | null;
@@ -485,7 +485,7 @@ const fetchRecordsByUris = (
         .from(tables.tracks)
         .where(eq(tables.tracks.uri, trackUri))
         .execute()
-        .then(([row]) => row)
+        .then(([row]) => row),
     ),
     album: Effect.tryPromise(() =>
       ctx.db
@@ -493,7 +493,7 @@ const fetchRecordsByUris = (
         .from(tables.albums)
         .where(eq(tables.albums.uri, albumUri))
         .execute()
-        .then(([row]) => row)
+        .then(([row]) => row),
     ),
     artist: Effect.tryPromise(() =>
       ctx.db
@@ -501,7 +501,7 @@ const fetchRecordsByUris = (
         .from(tables.artists)
         .where(eq(tables.artists.uri, artistUri))
         .execute()
-        .then(([row]) => row)
+        .then(([row]) => row),
     ),
   });
 
@@ -510,7 +510,7 @@ const ensureRelationships = (
   ctx: Context,
   track: SelectTrack,
   album: SelectAlbum,
-  artist: SelectArtist
+  artist: SelectArtist,
 ) =>
   pipe(
     Effect.all({
@@ -521,11 +521,11 @@ const ensureRelationships = (
           .where(
             and(
               eq(tables.albumTracks.albumId, album.id),
-              eq(tables.albumTracks.trackId, track.id)
-            )
+              eq(tables.albumTracks.trackId, track.id),
+            ),
           )
           .execute()
-          .then(([row]) => row)
+          .then(([row]) => row),
       ),
 
       artistTrack: Effect.tryPromise(() =>
@@ -535,11 +535,11 @@ const ensureRelationships = (
           .where(
             and(
               eq(tables.artistTracks.artistId, artist.id),
-              eq(tables.artistTracks.trackId, track.id)
-            )
+              eq(tables.artistTracks.trackId, track.id),
+            ),
           )
           .execute()
-          .then(([row]) => row)
+          .then(([row]) => row),
       ),
       artistAlbum: Effect.tryPromise(() =>
         ctx.db
@@ -548,11 +548,11 @@ const ensureRelationships = (
           .where(
             and(
               eq(tables.artistAlbums.artistId, artist.id),
-              eq(tables.artistAlbums.albumId, album.id)
-            )
+              eq(tables.artistAlbums.albumId, album.id),
+            ),
           )
           .execute()
-          .then(([row]) => row)
+          .then(([row]) => row),
       ),
     }),
     Effect.flatMap(({ albumTrack, artistTrack, artistAlbum }) =>
@@ -570,9 +570,9 @@ const ensureRelationships = (
                   } as InsertAlbumTrack)
                   .returning()
                   .execute()
-                  .then(([row]) => row)
-              )
-            )
+                  .then(([row]) => row),
+              ),
+            ),
           ),
           pipe(
             Option.fromNullable(artistTrack),
@@ -586,9 +586,9 @@ const ensureRelationships = (
                   } as InsertArtistTrack)
                   .returning()
                   .execute()
-                  .then(([row]) => row)
-              )
-            )
+                  .then(([row]) => row),
+              ),
+            ),
           ),
           pipe(
             Option.fromNullable(artistAlbum),
@@ -602,18 +602,18 @@ const ensureRelationships = (
                   } as InsertArtistAlbum)
                   .returning()
                   .execute()
-                  .then(([row]) => row)
-              )
-            )
+                  .then(([row]) => row),
+              ),
+            ),
           ),
         ]),
         Effect.map(([albumTrack, artistTrack, artistAlbum]) => ({
           albumTrack,
           artistTrack,
           artistAlbum,
-        }))
-      )
-    )
+        })),
+      ),
+    ),
   );
 
 // Update track with album and artist URIs if missing
@@ -621,7 +621,7 @@ const updateTrackUris = (
   ctx: Context,
   track: SelectTrack,
   album: SelectAlbum,
-  artist: SelectArtist
+  artist: SelectArtist,
 ) =>
   pipe(
     Effect.succeed(track),
@@ -634,9 +634,9 @@ const updateTrackUris = (
                 albumUri: album.uri,
               })
               .where(eq(tables.tracks.id, trackRecord.id))
-              .execute()
+              .execute(),
           )
-        : Effect.succeed(undefined)
+        : Effect.succeed(undefined),
     ),
     Effect.tap((trackRecord) =>
       !trackRecord.artistUri
@@ -647,10 +647,10 @@ const updateTrackUris = (
                 artistUri: artist.uri,
               })
               .where(eq(tables.tracks.id, trackRecord.id))
-              .execute()
+              .execute(),
           )
-        : Effect.succeed(undefined)
-    )
+        : Effect.succeed(undefined),
+    ),
   );
 
 const publishTrack = (
@@ -658,7 +658,7 @@ const publishTrack = (
   track: SelectTrack,
   albumTrack: SelectAlbumTrack,
   artistTrack: SelectArtistTrack,
-  artistAlbum: SelectArtistAlbum
+  artistAlbum: SelectArtistAlbum,
 ) =>
   pipe(
     Effect.succeed(
@@ -708,16 +708,16 @@ const publishTrack = (
           xata_updatedat: artistAlbum.updatedAt.toISOString(),
           xata_version: artistAlbum.xataVersion,
         },
-      })
+      }),
     ),
     Effect.flatMap((message) =>
       Effect.try(() =>
         ctx.nc.publish(
           "rocksky.track",
-          Buffer.from(JSON.stringify(message).replaceAll("sha_256", "sha256"))
-        )
-      )
-    )
+          Buffer.from(JSON.stringify(message).replaceAll("sha_256", "sha256")),
+        ),
+      ),
+    ),
   );
 
 export const saveTrack = (ctx: Context, track: Track, agent: Agent) =>
@@ -770,29 +770,29 @@ export const saveTrack = (ctx: Context, track: Track, agent: Agent) =>
                         Effect.filterOrFail(
                           () => !!track,
                           () =>
-                            new Error(`Track not found for uri: ${trackUri}`)
-                        )
+                            new Error(`Track not found for uri: ${trackUri}`),
+                        ),
                       ),
                       Option.fromNullable(album).pipe(
                         Effect.filterOrFail(
                           () => !!album,
                           () =>
-                            new Error(`Album not found for uri: ${albumUri}`)
-                        )
+                            new Error(`Album not found for uri: ${albumUri}`),
+                        ),
                       ),
                       Option.fromNullable(artist).pipe(
                         Effect.filterOrFail(
                           () => !!artist,
                           () =>
-                            new Error(`Artist not found for uri: ${artistUri}`)
-                        )
+                            new Error(`Artist not found for uri: ${artistUri}`),
+                        ),
                       ),
                     ]),
                     Effect.flatMap(([track, album, artist]) =>
                       pipe(
                         updateTrackUris(ctx, track, album, artist),
                         Effect.flatMap(() =>
-                          ensureRelationships(ctx, track, album, artist)
+                          ensureRelationships(ctx, track, album, artist),
                         ),
                         Effect.map(
                           ({ albumTrack, artistTrack, artistAlbum }) => ({
@@ -803,11 +803,11 @@ export const saveTrack = (ctx: Context, track: Track, agent: Agent) =>
                             albumTrack,
                             artistTrack,
                             artistAlbum,
-                          })
-                        )
-                      )
-                    )
-                  )
+                          }),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
                 Effect.tap(
                   ({
@@ -829,8 +829,8 @@ export const saveTrack = (ctx: Context, track: Track, agent: Agent) =>
                         track.albumUri &&
                         track.artistUri
                         ? `Track saved successfully after ${chalk.magenta(tries + 1)} tries`
-                        : `Track not yet saved, retrying... ${chalk.magenta(tries + 1)}`
-                    )
+                        : `Track not yet saved, retrying... ${chalk.magenta(tries + 1)}`,
+                    ),
                 ),
                 Effect.tap(
                   ({
@@ -845,25 +845,25 @@ export const saveTrack = (ctx: Context, track: Track, agent: Agent) =>
                     tries === 15
                       ? pipe(
                           Effect.logError(
-                            "Failed to save track after 15 tries"
+                            "Failed to save track after 15 tries",
                           ),
                           Effect.tap(() =>
                             Effect.logDebug(
-                              `Debug info: track=${JSON.stringify(track)}, album=${JSON.stringify(album)}, artist=${JSON.stringify(artist)}, albumTrack=${JSON.stringify(albumTrack)}, artistTrack=${JSON.stringify(artistTrack)}, artistAlbum=${JSON.stringify(artistAlbum)}`
-                            )
-                          )
+                              `Debug info: track=${JSON.stringify(track)}, album=${JSON.stringify(album)}, artist=${JSON.stringify(artist)}, albumTrack=${JSON.stringify(albumTrack)}, artistTrack=${JSON.stringify(artistTrack)}, artistAlbum=${JSON.stringify(artistAlbum)}`,
+                            ),
+                          ),
                         )
-                      : Effect.succeed(undefined)
+                      : Effect.succeed(undefined),
                 ),
-                Effect.delay("1 second")
+                Effect.delay("1 second"),
               ),
-          }
+          },
         ),
         Effect.tap(({ tries, track, albumTrack, artistTrack, artistAlbum }) =>
           tries < 15 && track && albumTrack && artistTrack && artistAlbum
             ? publishTrack(ctx, track, albumTrack, artistTrack, artistAlbum)
-            : Effect.succeed(undefined)
-        )
-      )
-    )
+            : Effect.succeed(undefined),
+        ),
+      ),
+    ),
   );

@@ -97,7 +97,7 @@ const Artist = () => {
       artistTracksResult.data.map((track) => ({
         ...track,
         scrobbles: track.playCount || 1,
-      }))
+      })),
     );
   }, [
     artistTracksResult.data,

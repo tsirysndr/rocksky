@@ -1,8 +1,8 @@
-import { Context } from "context";
+import type { Context } from "context";
 import { Effect, pipe } from "effect";
-import { Server } from "lexicon";
-import { QueryParams } from "lexicon/types/app/rocksky/artist/getArtistTracks";
-import { SongViewBasic } from "lexicon/types/app/rocksky/song/defs";
+import type { Server } from "lexicon";
+import type { QueryParams } from "lexicon/types/app/rocksky/artist/getArtistTracks";
+import type { SongViewBasic } from "lexicon/types/app/rocksky/song/defs";
 import { deepCamelCaseKeys } from "lib";
 
 export default function (server: Server, ctx: Context) {
@@ -16,7 +16,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({ tracks: [] });
-      })
+      }),
     );
   server.app.rocksky.artist.getArtistTracks({
     handler: async ({ params }) => {

@@ -46,7 +46,7 @@ const AlbumsWithData: FC<AlbumsWithDataProps> = (props) => {
           cover: album.album_art,
           uri: album.uri,
           rank: index + 1,
-        }))
+        })),
     );
   }, [data]);
 

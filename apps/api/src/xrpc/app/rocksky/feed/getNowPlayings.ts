@@ -1,8 +1,8 @@
-import { Context } from "context";
+import type { Context } from "context";
 import { Effect, pipe } from "effect";
-import { Server } from "lexicon";
-import { NowPlayingView } from "lexicon/types/app/rocksky/feed/defs";
-import { QueryParams } from "lexicon/types/app/rocksky/feed/getNowPlayings";
+import type { Server } from "lexicon";
+import type { NowPlayingView } from "lexicon/types/app/rocksky/feed/defs";
+import type { QueryParams } from "lexicon/types/app/rocksky/feed/getNowPlayings";
 import { deepCamelCaseKeys } from "lib";
 
 export default function (server: Server, ctx: Context) {
@@ -16,7 +16,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({});
-      })
+      }),
     );
   server.app.rocksky.feed.getNowPlayings({
     handler: async ({ params }) => {

@@ -1,14 +1,14 @@
-import { Context } from "context";
+import type { Context } from "context";
 import { asc, count, eq, or } from "drizzle-orm";
 import { Effect, pipe } from "effect";
-import { Server } from "lexicon";
-import { AlbumViewDetailed } from "lexicon/types/app/rocksky/album/defs";
-import { QueryParams } from "lexicon/types/app/rocksky/album/getAlbum";
+import type { Server } from "lexicon";
+import type { AlbumViewDetailed } from "lexicon/types/app/rocksky/album/defs";
+import type { QueryParams } from "lexicon/types/app/rocksky/album/getAlbum";
 import { dedupeTracksKeepLyrics } from "lib";
 import * as R from "ramda";
 import tables from "schema";
-import { SelectAlbum } from "schema/albums";
-import { SelectTrack } from "schema/tracks";
+import type { SelectAlbum } from "schema/albums";
+import type { SelectTrack } from "schema/tracks";
 
 export default function (server: Server, ctx: Context) {
   const getAlbum = (params) =>
@@ -21,7 +21,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({});
-      })
+      }),
     );
   server.app.rocksky.album.getAlbum({
     handler: async ({ params }) => {
@@ -42,13 +42,13 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
         .from(tables.userAlbums)
         .leftJoin(
           tables.albums,
-          eq(tables.userAlbums.albumId, tables.albums.id)
+          eq(tables.userAlbums.albumId, tables.albums.id),
         )
         .where(
           or(
             eq(tables.userAlbums.uri, params.uri),
-            eq(tables.albums.uri, params.uri)
-          )
+            eq(tables.albums.uri, params.uri),
+          ),
         )
         .execute()
         .then((rows) => rows[0]?.albums);
@@ -59,12 +59,12 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
           .from(tables.albumTracks)
           .leftJoin(
             tables.tracks,
-            eq(tables.albumTracks.trackId, tables.tracks.id)
+            eq(tables.albumTracks.trackId, tables.tracks.id),
           )
           .where(eq(tables.albumTracks.albumId, album?.id))
           .orderBy(
             asc(tables.tracks.discNumber),
-            asc(tables.tracks.trackNumber)
+            asc(tables.tracks.trackNumber),
           )
           .execute()
           .then((rows) => rows.map((data) => data.tracks))
@@ -74,7 +74,7 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
               ...R.omit(["lyrics"], track),
               createdAt: track.createdAt.toISOString(),
               updatedAt: track.updatedAt.toISOString(),
-            }))
+            })),
           ),
         ctx.db
           .select({ count: count() })

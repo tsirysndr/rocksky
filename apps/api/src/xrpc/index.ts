@@ -1,5 +1,5 @@
-import { Context } from "context";
-import { Server } from "lexicon";
+import type { Context } from "context";
+import type { Server } from "lexicon";
 import getActorAlbums from "./app/rocksky/actor/getActorAlbums";
 import getActorArtists from "./app/rocksky/actor/getActorArtists";
 import getActorLovedSongs from "./app/rocksky/actor/getActorLovedSongs";

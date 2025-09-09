@@ -33,9 +33,9 @@ export const deepCamelCaseKeys = <T>(obj: T): any => {
       R.toPairs,
       R.map(
         ([key, value]) =>
-          [_.camelCase(String(key)), deepCamelCaseKeys(value)] as [string, any]
+          [_.camelCase(String(key)), deepCamelCaseKeys(value)] as [string, any],
       ),
-      R.fromPairs
+      R.fromPairs,
     )(obj as object);
   }
   return obj;
@@ -49,9 +49,9 @@ export const deepSnakeCaseKeys = <T>(obj: T): any => {
       R.toPairs,
       R.map(
         ([key, value]) =>
-          [_.snakeCase(String(key)), deepSnakeCaseKeys(value)] as [string, any]
+          [_.snakeCase(String(key)), deepSnakeCaseKeys(value)] as [string, any],
       ),
-      R.fromPairs
+      R.fromPairs,
     )(obj as object);
   }
   return obj;

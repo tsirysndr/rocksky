@@ -1,7 +1,7 @@
-import {
-  type CacheResult,
-  type DidCache,
-  type DidDocument,
+import type {
+  CacheResult,
+  DidCache,
+  DidDocument,
 } from "@atproto/identity";
 import type { Storage } from "unstorage";
 
@@ -44,7 +44,7 @@ export class StorageCache implements DidCache {
 
   async refreshCache(
     did: string,
-    getDoc: () => Promise<DidDocument | null>
+    getDoc: () => Promise<DidDocument | null>,
   ): Promise<void> {
     const doc = await getDoc();
     if (doc) {

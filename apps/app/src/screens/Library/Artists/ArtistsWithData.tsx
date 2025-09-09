@@ -45,7 +45,7 @@ const ArtistsWithData: FC<ArtistsWithDataProps> = (props) => {
           image: artist.picture,
           uri: artist.uri,
           rank: index + 1,
-        }))
+        })),
     );
   }, [data]);
 

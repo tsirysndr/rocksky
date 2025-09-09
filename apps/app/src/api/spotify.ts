@@ -10,7 +10,7 @@ export const play = async () => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
-    }
+    },
   );
   return response.data;
 };
@@ -24,7 +24,7 @@ export const pause = async () => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
-    }
+    },
   );
   return response.data;
 };
@@ -38,7 +38,7 @@ export const next = async () => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
-    }
+    },
   );
   return response.data;
 };
@@ -52,7 +52,7 @@ export const previous = async () => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
-    }
+    },
   );
   return response.data;
 };
@@ -69,7 +69,7 @@ export const seek = async (position_ms: number) => {
       params: {
         position_ms,
       },
-    }
+    },
   );
   return response.data;
 };

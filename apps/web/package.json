@@ -8,11 +8,12 @@
     "prod": "vite --mode prod",
     "build": "tsc -b && vite build",
     "build:prod": "tsc -b && vite build --mode prod",
-    "lint": "eslint .",
+    "lint": "biome lint src",
     "preview": "bun run build && wrangler pages dev ./dist",
     "deploy": "bun run build && wrangler pages deploy ./dist",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "format": "biome format src"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -70,6 +71,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.2.3",
     "@chromatic-com/storybook": "^3.2.4",
     "@cloudflare/workers-types": "^4.20250124.3",
     "@eslint/js": "^9.17.0",

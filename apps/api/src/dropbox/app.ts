@@ -47,7 +47,7 @@ app.get("/oauth/callback", async (c) => {
       client_id: env.DROPBOX_CLIENT_ID,
       client_secret: env.DROPBOX_CLIENT_SECRET,
       redirect_uri: env.DROPBOX_REDIRECT_URI,
-    }
+    },
   );
 
   const dropbox = await ctx.client.db.dropbox
@@ -60,9 +60,9 @@ app.get("/oauth/callback", async (c) => {
     {
       refresh_token: encrypt(
         response.data.refresh_token,
-        env.SPOTIFY_ENCRYPTION_KEY
+        env.SPOTIFY_ENCRYPTION_KEY,
       ),
-    }
+    },
   );
 
   await ctx.client.db.dropbox.createOrUpdate(dropbox?.xata_id, {
@@ -305,11 +305,11 @@ app.get("/download", async (c) => {
 
   c.header(
     "Content-Type",
-    response.headers["content-type"] || "application/octet-stream"
+    response.headers["content-type"] || "application/octet-stream",
   );
   c.header(
     "Content-Disposition",
-    response.headers["content-disposition"] || "attachment"
+    response.headers["content-disposition"] || "attachment",
   );
 
   return new Response(response.data, {

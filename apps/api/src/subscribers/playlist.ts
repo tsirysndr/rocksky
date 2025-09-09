@@ -1,7 +1,7 @@
 import { TID } from "@atproto/common";
-import { BlobRef } from "@atproto/lexicon";
+import type { BlobRef } from "@atproto/lexicon";
 import chalk from "chalk";
-import { Context } from "context";
+import type { Context } from "context";
 import { eq } from "drizzle-orm";
 import * as Playlist from "lexicon/types/app/rocksky/playlist";
 import { createAgent } from "lib/agent";
@@ -19,7 +19,7 @@ export function onNewPlaylist(ctx: Context) {
         did: string;
       } = JSON.parse(sc.decode(m.data));
       console.log(
-        `New playlist: ${chalk.cyan(payload.did)} - ${chalk.greenBright(payload.id)}`
+        `New playlist: ${chalk.cyan(payload.did)} - ${chalk.greenBright(payload.id)}`,
       );
       await putPlaylistRecord(ctx, payload);
     }
@@ -28,13 +28,13 @@ export function onNewPlaylist(ctx: Context) {
 
 async function putPlaylistRecord(
   ctx: Context,
-  payload: { id: string; did: string }
+  payload: { id: string; did: string },
 ) {
   const agent = await createAgent(ctx.oauthClient, payload.did);
 
   if (!agent) {
     console.error(
-      `Failed to create agent, skipping playlist: ${chalk.cyan(payload.id)} for ${chalk.greenBright(payload.did)}`
+      `Failed to create agent, skipping playlist: ${chalk.cyan(payload.id)} for ${chalk.greenBright(payload.did)}`,
     );
     return;
   }
@@ -110,6 +110,6 @@ async function putPlaylistRecord(
 
   await ctx.meilisearch.post(
     `indexes/playlists/documents?primaryKey=id`,
-    updatedPlaylist
+    updatedPlaylist,
   );
 }

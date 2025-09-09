@@ -53,7 +53,7 @@ const AlbumItem = memo(
       did=""
       row
     />
-  )
+  ),
 );
 
 const FooterLoader = memo(({ isLoading }: { isLoading: boolean }) => (
@@ -90,12 +90,12 @@ const Albums: FC<AlbumsProps> = (props) => {
         className="mt-[15px]"
       />
     ),
-    [onPressAlbum]
+    [onPressAlbum],
   );
 
   const renderFooter = useCallback(
     () => <FooterLoader isLoading={isLoading || isFetchingMore} />,
-    [isLoading, isFetchingMore]
+    [isLoading, isFetchingMore],
   );
 
   return (

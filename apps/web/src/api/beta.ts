@@ -10,19 +10,19 @@ export const joinBeta = async (email: string, platform: string) => {
       return await axios.post(
         `${API_URL}/spotify/join`,
         { email },
-        { headers }
+        { headers },
       );
     case "google":
       return await axios.post(
         `${API_URL}/googledrive/join`,
         { email },
-        { headers }
+        { headers },
       );
     case "dropbox":
       return await axios.post(
         `${API_URL}/dropbox/join`,
         { email },
-        { headers }
+        { headers },
       );
     default:
       return;

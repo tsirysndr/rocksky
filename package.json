@@ -2,7 +2,7 @@
   "name": "rocksky",
   "version": "0.0.0",
   "devDependencies": {
-    "@biomejs/biome": "^2.1.1",
+    "@biomejs/biome": "^2.2.3",
     "prettier": "^3.5.3",
     "turbo": "^2.5.5"
   },

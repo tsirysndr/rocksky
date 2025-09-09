@@ -1,4 +1,4 @@
-import { Context } from "context";
+import type { Context } from "context";
 import { onNewPlaylist } from "./playlist";
 import { onNewTrack } from "./track";
 import { onNewUser } from "./user";

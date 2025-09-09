@@ -6,7 +6,7 @@ export async function getContentType(url: string): Promise<string | null> {
 }
 
 export default async function downloadImage(
-  url?: string | null
+  url?: string | null,
 ): Promise<Buffer | null> {
   if (!url) {
     return null;

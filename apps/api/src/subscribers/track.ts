@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { Context } from "context";
+import type { Context } from "context";
 import { eq } from "drizzle-orm";
 import _ from "lodash";
 import { StringCodec } from "nats";
@@ -42,7 +42,7 @@ export function onNewTrack(ctx: Context) {
         ctx.meilisearch.post(`indexes/albums/documents?primaryKey=id`, albums),
         ctx.meilisearch.post(
           `indexes/artists/documents?primaryKey=id`,
-          artists
+          artists,
         ),
         ctx.meilisearch.post(`indexes/tracks/documents?primaryKey=id`, tracks),
       ]);

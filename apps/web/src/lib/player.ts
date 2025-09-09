@@ -23,7 +23,7 @@ class AudioPlayer {
     this.buffer = this.audioContext.createBuffer(
       channels,
       pcmData.length / channels,
-      sampleRate
+      sampleRate,
     );
 
     for (let i = 0; i < channels; i++) {

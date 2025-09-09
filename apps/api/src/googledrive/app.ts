@@ -32,13 +32,13 @@ app.get("/login", async (c) => {
   }
 
   const credentials = JSON.parse(
-    fs.readFileSync("credentials.json").toString("utf-8")
+    fs.readFileSync("credentials.json").toString("utf-8"),
   );
   const { client_id, client_secret } = credentials.installed || credentials.web;
   const oAuth2Client = new google.auth.OAuth2(
     client_id,
     client_secret,
-    env.GOOGLE_REDIRECT_URI
+    env.GOOGLE_REDIRECT_URI,
   );
 
   // Generate Auth URL
@@ -60,7 +60,7 @@ app.get("/oauth/callback", async (c) => {
   const entries = Object.fromEntries(params.entries());
 
   const credentials = JSON.parse(
-    fs.readFileSync("credentials.json").toString("utf-8")
+    fs.readFileSync("credentials.json").toString("utf-8"),
   );
   const { client_id, client_secret } = credentials.installed || credentials.web;
 
@@ -83,9 +83,9 @@ app.get("/oauth/callback", async (c) => {
       {
         refresh_token: encrypt(
           response.data.refresh_token,
-          env.SPOTIFY_ENCRYPTION_KEY
+          env.SPOTIFY_ENCRYPTION_KEY,
         ),
-      }
+      },
     );
 
   await ctx.client.db.google_drive.createOrUpdate(googledrive?.xata_id, {
@@ -181,7 +181,7 @@ app.get("/files", async (c) => {
         {
           did,
           parent_id,
-        }
+        },
       );
       return c.json(data);
     }
@@ -202,7 +202,7 @@ app.get("/files", async (c) => {
       {
         did,
         parent_id: response.data.files[0].id,
-      }
+      },
     );
     return c.json(data);
   } catch (error) {
@@ -210,14 +210,14 @@ app.get("/files", async (c) => {
       console.error("Axios error:", error.response?.data || error.message);
 
       const credentials = JSON.parse(
-        fs.readFileSync("credentials.json").toString("utf-8")
+        fs.readFileSync("credentials.json").toString("utf-8"),
       );
       const { client_id, client_secret } =
         credentials.installed || credentials.web;
       const oAuth2Client = new google.auth.OAuth2(
         client_id,
         client_secret,
-        env.GOOGLE_REDIRECT_URI
+        env.GOOGLE_REDIRECT_URI,
       );
 
       // Generate Auth URL
@@ -294,11 +294,11 @@ app.get("/files/:id/download", async (c) => {
 
   c.header(
     "Content-Type",
-    response.headers["content-type"] || "application/octet-stream"
+    response.headers["content-type"] || "application/octet-stream",
   );
   c.header(
     "Content-Disposition",
-    response.headers["content-disposition"] || "attachment"
+    response.headers["content-disposition"] || "attachment",
   );
 
   return new Response(response.data, {

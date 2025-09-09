@@ -53,7 +53,7 @@ function Navbar() {
   const jwt = localStorage.getItem("token");
   const { enqueue } = useSnackbar();
   const profileStats = useProfileStatsByDidQuery(
-    R.propOr(undefined, "did", profile)
+    R.propOr(undefined, "did", profile),
   );
 
   const { data } = useQuery({
@@ -83,7 +83,7 @@ function Navbar() {
         {
           message: "Spotify account connected successfully!",
         },
-        DURATION.long
+        DURATION.long,
       );
     }
   }, [enqueue, profile]);
@@ -201,7 +201,7 @@ function Navbar() {
                               });
                               localStorage.setItem(
                                 "darkMode",
-                                e.target.checked ? "true" : "false"
+                                e.target.checked ? "true" : "false",
                               );
                             }}
                             labelPlacement={LABEL_PLACEMENT.right}

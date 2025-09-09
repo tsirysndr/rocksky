@@ -12,7 +12,7 @@ const AvatarWithData = () => {
   const setDid = useSetAtom(didAtom);
 
   const { data, isLoading } = useProfileByDidQuery(
-    handle || "did:plc:7vdlgi2bflelz7mmuxoqjfcr"
+    handle || "did:plc:7vdlgi2bflelz7mmuxoqjfcr",
   );
 
   useEffect(() => {
@@ -32,7 +32,7 @@ const AvatarWithData = () => {
           did={data.did}
           onOpenBlueskyProfile={(handle: string) => {
             Linking.openURL(
-              `https://bsky.app/profile/${handle.replace("@", "")}`
+              `https://bsky.app/profile/${handle.replace("@", "")}`,
             );
           }}
           onViewOnPdsls={(did: string) => {

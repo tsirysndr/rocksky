@@ -1,11 +1,11 @@
-import { Context } from "context";
+import type { Context } from "context";
 import { count, eq, or } from "drizzle-orm";
 import { Effect, pipe } from "effect";
-import { Server } from "lexicon";
-import { SongViewDetailed } from "lexicon/types/app/rocksky/song/defs";
-import { QueryParams } from "lexicon/types/app/rocksky/song/getSong";
+import type { Server } from "lexicon";
+import type { SongViewDetailed } from "lexicon/types/app/rocksky/song/defs";
+import type { QueryParams } from "lexicon/types/app/rocksky/song/getSong";
 import tables from "schema";
-import { SelectTrack } from "schema/tracks";
+import type { SelectTrack } from "schema/tracks";
 
 export default function (server: Server, ctx: Context) {
   const getSong = (params) =>
@@ -18,7 +18,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({});
-      })
+      }),
     );
   server.app.rocksky.song.getSong({
     handler: async ({ params }) => {
@@ -39,13 +39,13 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
         .from(tables.userTracks)
         .leftJoin(
           tables.tracks,
-          eq(tables.userTracks.trackId, tables.tracks.id)
+          eq(tables.userTracks.trackId, tables.tracks.id),
         )
         .where(
           or(
             eq(tables.userTracks.uri, params.uri),
-            eq(tables.tracks.uri, params.uri)
-          )
+            eq(tables.tracks.uri, params.uri),
+          ),
         )
         .execute()
         .then(([row]) => row?.tracks);

@@ -1,10 +1,10 @@
-import { HandlerAuth } from "@atproto/xrpc-server";
-import { Context } from "context";
+import type { HandlerAuth } from "@atproto/xrpc-server";
+import type { Context } from "context";
 import { and, asc, eq, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { Effect, pipe } from "effect";
-import { Server } from "lexicon";
-import { QueryParams } from "lexicon/types/app/rocksky/dropbox/getFiles";
+import type { Server } from "lexicon";
+import type { QueryParams } from "lexicon/types/app/rocksky/dropbox/getFiles";
 import _ from "lodash";
 import * as R from "ramda";
 import tables from "schema";
@@ -20,7 +20,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({ files: [], directories: [] });
-      })
+      }),
     );
   server.app.rocksky.dropbox.getFiles({
     auth: ctx.authVerifier,
@@ -53,12 +53,12 @@ const retrieve = ({
           .from(tables.dropboxDirectories)
           .leftJoin(
             tables.dropbox,
-            eq(tables.dropbox.id, tables.dropboxDirectories.dropboxId)
+            eq(tables.dropbox.id, tables.dropboxDirectories.dropboxId),
           )
           .leftJoin(tables.users, eq(tables.dropbox.userId, tables.users.id))
           .leftJoin(
             parentAlias,
-            eq(parentAlias.id, tables.dropboxDirectories.parentId)
+            eq(parentAlias.id, tables.dropboxDirectories.parentId),
           )
           .leftJoin(parentDirAlias, eq(parentDirAlias.id, parentAlias.parentId))
           .where(
@@ -67,11 +67,11 @@ const retrieve = ({
               or(
                 eq(
                   parentAlias.path,
-                  _.get(params, "at", "/Music").replace(/\/$/, "").trim()
+                  _.get(params, "at", "/Music").replace(/\/$/, "").trim(),
                 ),
-                eq(parentAlias.fileId, _.get(params, "at", "").trim())
-              )
-            )
+                eq(parentAlias.fileId, _.get(params, "at", "").trim()),
+              ),
+            ),
           )
           .orderBy(asc(tables.dropboxDirectories.name))
           .execute(),
@@ -80,12 +80,12 @@ const retrieve = ({
           .from(tables.dropboxPaths)
           .leftJoin(
             parentAlias,
-            eq(parentAlias.id, tables.dropboxPaths.directoryId)
+            eq(parentAlias.id, tables.dropboxPaths.directoryId),
           )
           .leftJoin(parentDirAlias, eq(parentDirAlias.id, parentAlias.parentId))
           .leftJoin(
             tables.dropbox,
-            eq(tables.dropbox.id, tables.dropboxPaths.dropboxId)
+            eq(tables.dropbox.id, tables.dropboxPaths.dropboxId),
           )
           .leftJoin(tables.users, eq(tables.dropbox.userId, tables.users.id))
           .where(
@@ -94,11 +94,11 @@ const retrieve = ({
               or(
                 eq(
                   parentAlias.path,
-                  _.get(params, "at", "/Music").replace(/\/$/, "").trim()
+                  _.get(params, "at", "/Music").replace(/\/$/, "").trim(),
                 ),
-                eq(parentAlias.fileId, _.get(params, "at", "").trim())
-              )
-            )
+                eq(parentAlias.fileId, _.get(params, "at", "").trim()),
+              ),
+            ),
           )
           .orderBy(asc(tables.dropboxPaths.name))
           .execute(),
@@ -112,16 +112,17 @@ const retrieve = ({
 };
 
 const presentation = (
-  data: [Directories, Files]
+  data: [Directories, Files],
 ): Effect.Effect<any, never> => {
   return Effect.sync(() => ({
     directory: R.omit(
       ["createdAt", "updatedAt", "xataVersion"],
-      _.get(data, "0.0.parent", null) || _.get(data, "1.0.parent", null)
+      _.get(data, "0.0.parent", null) || _.get(data, "1.0.parent", null),
     ),
     parentDirectory: R.omit(
       ["createdAt", "updatedAt", "xataVersion"],
-      _.get(data, "0.0.parent_dir", null) || _.get(data, "1.0.parent_dir", null)
+      _.get(data, "0.0.parent_dir", null) ||
+        _.get(data, "1.0.parent_dir", null),
     ),
     directories: data[0].map((item) => ({
       id: item.dropbox_directories.id,

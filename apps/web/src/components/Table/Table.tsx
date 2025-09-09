@@ -50,7 +50,7 @@ const Table: FC<TableProps> = ({ columns, files }) => {
                   ? null
                   : flexRender(
                       header.column.columnDef.header,
-                      header.getContext()
+                      header.getContext(),
                     )}
               </th>
             ))}

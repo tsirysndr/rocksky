@@ -69,7 +69,7 @@ function TopTracks(props: TopTracksProps) {
   const tracksResult = useTracksQuery(
     did!,
     (currentPage - 1) * props.size!,
-    props.size!
+    props.size!,
   );
   const user = useAtomValue(userAtom);
   const pages = useMemo(() => {

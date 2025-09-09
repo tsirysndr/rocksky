@@ -17,7 +17,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({});
-      })
+      }),
     );
   server.app.rocksky.shout.removeShout({
     auth: ctx.authVerifier,

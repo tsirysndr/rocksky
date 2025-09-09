@@ -238,7 +238,7 @@ function Search() {
                                   />
                                 )}
                                 {["artists", "albums", "tracks"].includes(
-                                  item._federation.indexUid
+                                  item._federation.indexUid,
                                 ) && (
                                   <div className="overflow-hidden">
                                     <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[var(--color-text)]">

@@ -1,13 +1,13 @@
-import { Context } from "context";
+import type { Context } from "context";
 import { desc, eq, sql } from "drizzle-orm";
 import { Effect, pipe } from "effect";
-import { Server } from "lexicon";
-import { PlaylistViewBasic } from "lexicon/types/app/rocksky/playlist/defs";
-import { QueryParams } from "lexicon/types/app/rocksky/playlist/getPlaylists";
+import type { Server } from "lexicon";
+import type { PlaylistViewBasic } from "lexicon/types/app/rocksky/playlist/defs";
+import type { QueryParams } from "lexicon/types/app/rocksky/playlist/getPlaylists";
 import * as R from "ramda";
 import tables from "schema";
-import { SelectPlaylist } from "schema/playlists";
-import { SelectUser } from "schema/users";
+import type { SelectPlaylist } from "schema/playlists";
+import type { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
   const getPlaylists = (params) =>
@@ -20,7 +20,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({ playlists: [] });
-      })
+      }),
     );
   server.app.rocksky.playlist.getPlaylists({
     handler: async ({ params }) => {
@@ -55,11 +55,11 @@ const retrieve = ({
         .from(tables.userPlaylists)
         .leftJoin(
           tables.playlists,
-          eq(tables.userPlaylists.playlistId, tables.playlists.id)
+          eq(tables.userPlaylists.playlistId, tables.playlists.id),
         )
         .leftJoin(
           tables.users,
-          eq(tables.userPlaylists.userId, tables.users.id)
+          eq(tables.userPlaylists.userId, tables.users.id),
         )
         .orderBy(desc(tables.playlists.createdAt))
         .limit(params.limit || 20)
@@ -70,7 +70,7 @@ const retrieve = ({
 };
 
 const presentation = (
-  data: Playlists
+  data: Playlists,
 ): Effect.Effect<{ playlists: PlaylistViewBasic[] }, never> => {
   return Effect.sync(() => ({
     playlists: data.map((playlist) => ({

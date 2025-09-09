@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { Context } from "context";
+import type { Context } from "context";
 import { eq } from "drizzle-orm";
 import _ from "lodash";
 import { StringCodec } from "nats";
@@ -23,7 +23,7 @@ export function onNewUser(ctx: Context) {
 
       await ctx.meilisearch.post(
         `/indexes/users/documents?primaryKey=id`,
-        results
+        results,
       );
     }
   })();

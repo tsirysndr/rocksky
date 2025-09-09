@@ -79,11 +79,11 @@ const Song = () => {
 
   const artistTracksResult = useArtistTracksQuery(
     songResult.data?.artistUri || scrobbleResult.data?.artistUri,
-    5
+    5,
   );
   const artistAlbumResult = useArtistAlbumsQuery(
     songResult.data?.artistUri || scrobbleResult.data?.artistUri,
-    10
+    10,
   );
 
   const song = useAtomValue(songAtom);
@@ -175,7 +175,7 @@ const Song = () => {
         artistUri: x.artistUri,
         albumUri: x.albumUri,
         scrobbles: x.playCount,
-      }))
+      })),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [artistTracksResult.data, artistTracksResult.isLoading]);
@@ -318,12 +318,14 @@ const Song = () => {
               </div>
             </Group>
 
-            {// eslint-disable-next-line @typescript-eslint/no-explicit-any
-            song?.tags.map((tag: any) => (
-              <Tag closeable={false} kind={KIND.purple}>
-                {tag}
-              </Tag>
-            ))}
+            {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              song?.tags.map((tag: any) => (
+                <Tag closeable={false} kind={KIND.purple}>
+                  {tag}
+                </Tag>
+              ))
+            }
 
             {song?.lyrics && (
               <>

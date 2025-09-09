@@ -64,7 +64,7 @@ function ScrobblesAreaChart() {
 
       if (pathname.includes("/artist/")) {
         const charts = await getArtistChart(
-          `at://${did}/app.rocksky.artist/${rkey}`
+          `at://${did}/app.rocksky.artist/${rkey}`,
         );
         setData(charts);
         return;
@@ -72,7 +72,7 @@ function ScrobblesAreaChart() {
 
       if (pathname.includes("/album/")) {
         const charts = await getAlbumChart(
-          `at://${did}/app.rocksky.album/${rkey}`
+          `at://${did}/app.rocksky.album/${rkey}`,
         );
         setData(charts);
         return;
@@ -80,7 +80,7 @@ function ScrobblesAreaChart() {
 
       if (pathname.includes("/song/")) {
         const charts = await getSongChart(
-          `at://${did}/app.rocksky.song/${rkey}`
+          `at://${did}/app.rocksky.song/${rkey}`,
         );
         setData(charts);
         return;
@@ -88,7 +88,7 @@ function ScrobblesAreaChart() {
 
       if (pathname.includes("/scrobble/")) {
         const charts = await getSongChart(
-          `at://${did}/app.rocksky.scrobble/${rkey}`
+          `at://${did}/app.rocksky.scrobble/${rkey}`,
         );
         setData(charts);
         return;

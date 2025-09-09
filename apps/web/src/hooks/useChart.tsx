@@ -52,7 +52,7 @@ function useChart() {
 
   const { data: scrobblesChart } = useSWR(
     "/xrpc/app.rocksky.charts.getScrobblesChart",
-    fetcher
+    fetcher,
   );
 
   const getScrobblesChart = () => {
@@ -62,7 +62,7 @@ function useChart() {
   const getSongChart = async (uri: string) => {
     const response = await client.get(
       "/xrpc/app.rocksky.charts.getScrobblesChart",
-      { params: { songuri: uri } }
+      { params: { songuri: uri } },
     );
     if (response.status !== 200) {
       return [];
@@ -73,7 +73,7 @@ function useChart() {
   const getArtistChart = async (uri: string) => {
     const response = await client.get(
       "/xrpc/app.rocksky.charts.getScrobblesChart",
-      { params: { artisturi: uri } }
+      { params: { artisturi: uri } },
     );
     if (response.status !== 200) {
       return [];
@@ -84,7 +84,7 @@ function useChart() {
   const getAlbumChart = async (uri: string) => {
     const response = await client.get(
       "/xrpc/app.rocksky.charts.getScrobblesChart",
-      { params: { albumuri: uri } }
+      { params: { albumuri: uri } },
     );
     if (response.status !== 200) {
       return [];
@@ -95,7 +95,7 @@ function useChart() {
   const getProfileChart = async (did: string) => {
     const response = await client.get(
       "/xrpc/app.rocksky.charts.getScrobblesChart",
-      { params: { did } }
+      { params: { did } },
     );
     if (response.status !== 200) {
       return [];

@@ -1,0 +1,33 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.player.addDirectoryToQueue",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Add directory to the player's queue",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "directory"
+        ],
+        "properties": {
+          "playerId": {
+            "type": "string"
+          },
+          "directory": {
+            "type": "string",
+            "description": "The directory to add to the queue"
+          },
+          "position": {
+            "type": "integer",
+            "description": "Position in the queue to insert the directory at, defaults to the end if not specified"
+          },
+          "shuffle": {
+            "type": "boolean",
+            "description": "Whether to shuffle the added directory in the queue"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,14 +1,14 @@
-import { Context } from "context";
+import type { Context } from "context";
 import { count, countDistinct, eq } from "drizzle-orm";
 import { Effect, pipe } from "effect";
-import { Server } from "lexicon";
-import { ScrobbleViewDetailed } from "lexicon/types/app/rocksky/scrobble/defs";
-import { QueryParams } from "lexicon/types/app/rocksky/scrobble/getScrobble";
+import type { Server } from "lexicon";
+import type { ScrobbleViewDetailed } from "lexicon/types/app/rocksky/scrobble/defs";
+import type { QueryParams } from "lexicon/types/app/rocksky/scrobble/getScrobble";
 import * as R from "ramda";
 import tables from "schema";
-import { SelectScrobble } from "schema/scrobbles";
-import { SelectTrack } from "schema/tracks";
-import { SelectUser } from "schema/users";
+import type { SelectScrobble } from "schema/scrobbles";
+import type { SelectTrack } from "schema/tracks";
+import type { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
   const getScrobble = (params) =>
@@ -21,7 +21,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error("Error retrieving scrobble:", err);
         return Effect.succeed({});
-      })
+      }),
     );
   server.app.rocksky.scrobble.getScrobble({
     handler: async ({ params }) => {
@@ -61,7 +61,7 @@ const retrieve = ({
           .from(tables.scrobbles)
           .leftJoin(
             tables.tracks,
-            eq(tables.tracks.id, tables.scrobbles.trackId)
+            eq(tables.tracks.id, tables.scrobbles.trackId),
           )
           .leftJoin(tables.users, eq(tables.scrobbles.userId, tables.users.id))
           .where(eq(tables.scrobbles.trackId, scrobble?.tracks.id))
@@ -73,7 +73,7 @@ const retrieve = ({
           .from(tables.scrobbles)
           .leftJoin(
             tables.tracks,
-            eq(tables.scrobbles.trackId, tables.tracks.id)
+            eq(tables.scrobbles.trackId, tables.tracks.id),
           )
           .where(eq(tables.scrobbles.trackId, scrobble?.tracks.id))
           .execute()

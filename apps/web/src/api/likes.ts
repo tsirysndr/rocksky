@@ -10,7 +10,7 @@ export const like = async (uri: string) => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
-    }
+    },
   );
   return response.data;
 };
@@ -21,13 +21,13 @@ export const unlike = async (uri: string) => {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
-    }
+    },
   );
   return response.data;
 };
 export const getLikes = async (uri: string) => {
   const response = await axios.get(
-    `${API_URL}/users/${uri.replace("at://", "")}/likes`
+    `${API_URL}/users/${uri.replace("at://", "")}/likes`,
   );
   return response.data;
 };

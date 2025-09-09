@@ -1,87 +1,87 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import { ValidationResult, BlobRef } from '@atproto/lexicon'
-import { lexicons } from '../../../../lexicons'
-import { isObj, hasProp } from '../../../../util'
-import { CID } from 'multiformats/cid'
+import { type ValidationResult, BlobRef } from "@atproto/lexicon";
+import { lexicons } from "../../../../lexicons";
+import { isObj, hasProp } from "../../../../util";
+import { CID } from "multiformats/cid";
 
 export interface ScrobbleViewBasic {
   /** The unique identifier of the scrobble. */
-  id?: string
+  id?: string;
   /** The handle of the user who created the scrobble. */
-  user?: string
+  user?: string;
   /** The title of the scrobble. */
-  title?: string
+  title?: string;
   /** The artist of the song. */
-  artist?: string
+  artist?: string;
   /** The URI of the artist. */
-  artistUri?: string
+  artistUri?: string;
   /** The album of the song. */
-  album?: string
+  album?: string;
   /** The URI of the album. */
-  albumUri?: string
+  albumUri?: string;
   /** The album art URL of the song. */
-  cover?: string
+  cover?: string;
   /** The timestamp when the scrobble was created. */
-  date?: string
+  date?: string;
   /** The URI of the scrobble. */
-  uri?: string
+  uri?: string;
   /** The SHA256 hash of the scrobble data. */
-  sha256?: string
-  [k: string]: unknown
+  sha256?: string;
+  [k: string]: unknown;
 }
 
 export function isScrobbleViewBasic(v: unknown): v is ScrobbleViewBasic {
   return (
     isObj(v) &&
-    hasProp(v, '$type') &&
-    v.$type === 'app.rocksky.scrobble.defs#scrobbleViewBasic'
-  )
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.scrobble.defs#scrobbleViewBasic"
+  );
 }
 
 export function validateScrobbleViewBasic(v: unknown): ValidationResult {
-  return lexicons.validate('app.rocksky.scrobble.defs#scrobbleViewBasic', v)
+  return lexicons.validate("app.rocksky.scrobble.defs#scrobbleViewBasic", v);
 }
 
 export interface ScrobbleViewDetailed {
   /** The unique identifier of the scrobble. */
-  id?: string
+  id?: string;
   /** The handle of the user who created the scrobble. */
-  user?: string
+  user?: string;
   /** The title of the scrobble. */
-  title?: string
+  title?: string;
   /** The artist of the song. */
-  artist?: string
+  artist?: string;
   /** The URI of the artist. */
-  artistUri?: string
+  artistUri?: string;
   /** The album of the song. */
-  album?: string
+  album?: string;
   /** The URI of the album. */
-  albumUri?: string
+  albumUri?: string;
   /** The album art URL of the song. */
-  cover?: string
+  cover?: string;
   /** The timestamp when the scrobble was created. */
-  date?: string
+  date?: string;
   /** The URI of the scrobble. */
-  uri?: string
+  uri?: string;
   /** The SHA256 hash of the scrobble data. */
-  sha256?: string
+  sha256?: string;
   /** The number of listeners */
-  listeners?: number
+  listeners?: number;
   /** The number of scrobbles for this song */
-  scrobbles?: number
-  [k: string]: unknown
+  scrobbles?: number;
+  [k: string]: unknown;
 }
 
 export function isScrobbleViewDetailed(v: unknown): v is ScrobbleViewDetailed {
   return (
     isObj(v) &&
-    hasProp(v, '$type') &&
-    v.$type === 'app.rocksky.scrobble.defs#scrobbleViewDetailed'
-  )
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.scrobble.defs#scrobbleViewDetailed"
+  );
 }
 
 export function validateScrobbleViewDetailed(v: unknown): ValidationResult {
-  return lexicons.validate('app.rocksky.scrobble.defs#scrobbleViewDetailed', v)
+  return lexicons.validate("app.rocksky.scrobble.defs#scrobbleViewDetailed", v);
 }

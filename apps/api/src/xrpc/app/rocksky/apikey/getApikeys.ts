@@ -1,7 +1,7 @@
-import { HandlerAuth } from "@atproto/xrpc-server";
-import { Context } from "context";
+import type { HandlerAuth } from "@atproto/xrpc-server";
+import type { Context } from "context";
 import { Effect, pipe } from "effect";
-import { Server } from "lexicon";
+import type { Server } from "lexicon";
 
 export default function (server: Server, ctx: Context) {
   const getApikeys = (params, auth: HandlerAuth) =>
@@ -14,7 +14,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({});
-      })
+      }),
     );
   server.app.rocksky.apikey.getApikeys({
     auth: ctx.authVerifier,

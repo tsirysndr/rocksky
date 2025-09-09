@@ -1,8 +1,8 @@
-import { Context } from "context";
+import type { Context } from "context";
 import { eq } from "drizzle-orm";
 import { Effect, pipe } from "effect";
-import { Server } from "lexicon";
-import { InputSchema } from "lexicon/types/app/rocksky/apikey/updateApikey";
+import type { Server } from "lexicon";
+import type { InputSchema } from "lexicon/types/app/rocksky/apikey/updateApikey";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
@@ -16,7 +16,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({});
-      })
+      }),
     );
   server.app.rocksky.apikey.updateApikey({
     auth: ctx.authVerifier,

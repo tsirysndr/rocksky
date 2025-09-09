@@ -106,23 +106,23 @@ const Home = () => {
           date: item.date,
           uri: item.uri,
           albumUri: item.albumUri,
-        }))
+        })),
     );
   }, [data?.pages]); // Only depend on data.pages instead of all of data
 
   const handleSongPress = useCallback(
     (uri: string) => navigation.navigate("SongDetails", { uri }),
-    [navigation]
+    [navigation],
   );
 
   const handleProfilePress = useCallback(
     (handle: string) => navigation.navigate("UserProfile", { handle }),
-    [navigation]
+    [navigation],
   );
 
   const handleAlbumPress = useCallback(
     (uri: string) => navigation.navigate("AlbumDetails", { uri }),
-    [navigation]
+    [navigation],
   );
 
   const renderItem = useCallback(
@@ -134,12 +134,12 @@ const Home = () => {
         onPressAlbum={handleAlbumPress}
       />
     ),
-    [handleSongPress, handleProfilePress, handleAlbumPress]
+    [handleSongPress, handleProfilePress, handleAlbumPress],
   );
 
   const renderFooter = useCallback(
     () => <FooterLoader isLoading={isLoading || isFetchingNextPage} />,
-    [isLoading, isFetchingNextPage]
+    [isLoading, isFetchingNextPage],
   );
 
   const handleRefresh = useCallback(async () => {

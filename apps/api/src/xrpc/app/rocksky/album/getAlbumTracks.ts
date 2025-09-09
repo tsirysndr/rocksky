@@ -1,9 +1,9 @@
-import { Context } from "context";
+import type { Context } from "context";
 import { asc, eq } from "drizzle-orm";
 import { Effect, pipe } from "effect";
-import { Server } from "lexicon";
-import { QueryParams } from "lexicon/types/app/rocksky/album/getAlbumTracks";
-import { SongViewBasic } from "lexicon/types/app/rocksky/song/defs";
+import type { Server } from "lexicon";
+import type { QueryParams } from "lexicon/types/app/rocksky/album/getAlbumTracks";
+import type { SongViewBasic } from "lexicon/types/app/rocksky/song/defs";
 import { dedupeTracksKeepLyrics } from "lib";
 import * as R from "ramda";
 import tables from "schema";
@@ -19,7 +19,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({});
-      })
+      }),
     );
   server.app.rocksky.album.getAlbumTracks({
     handler: async ({ params }) => {
@@ -40,15 +40,15 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
         .from(tables.albumTracks)
         .leftJoin(
           tables.tracks,
-          eq(tables.albumTracks.trackId, tables.tracks.id)
+          eq(tables.albumTracks.trackId, tables.tracks.id),
         )
         .leftJoin(
           tables.albums,
-          eq(tables.albumTracks.albumId, tables.albums.id)
+          eq(tables.albumTracks.albumId, tables.albums.id),
         )
         .leftJoin(
           tables.userAlbums,
-          eq(tables.albums.id, tables.userAlbums.albumId)
+          eq(tables.albums.id, tables.userAlbums.albumId),
         )
         .where(eq(tables.userAlbums.uri, params.uri))
         .orderBy(asc(tables.tracks.discNumber), asc(tables.tracks.trackNumber))
@@ -60,14 +60,14 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
             ...R.omit(["lyrics"], track),
             createdAt: track.createdAt.toISOString(),
             updatedAt: track.updatedAt.toISOString(),
-          }))
+          })),
         ),
     catch: (error) => new Error(`Failed to retrieve album tracks: ${error}`),
   });
 };
 
 const presentation = (
-  tracks
+  tracks,
 ): Effect.Effect<{ tracks: SongViewBasic[] }, never> => {
   return Effect.sync(() => ({ tracks }));
 };

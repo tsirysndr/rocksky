@@ -65,7 +65,7 @@ function StickyPlayerWithData() {
           type: "command",
           action: "play",
           token: localStorage.getItem("token"),
-        })
+        }),
       );
       return;
     }
@@ -79,7 +79,7 @@ function StickyPlayerWithData() {
           type: "command",
           action: "pause",
           token: localStorage.getItem("token"),
-        })
+        }),
       );
       return;
     }
@@ -93,7 +93,7 @@ function StickyPlayerWithData() {
           type: "command",
           action: "next",
           token: localStorage.getItem("token"),
-        })
+        }),
       );
       return;
     }
@@ -107,7 +107,7 @@ function StickyPlayerWithData() {
           type: "command",
           action: "previous",
           token: localStorage.getItem("token"),
-        })
+        }),
       );
       return;
     }
@@ -124,7 +124,7 @@ function StickyPlayerWithData() {
           args: {
             position,
           },
-        })
+        }),
       );
       return;
     }
@@ -251,7 +251,7 @@ function StickyPlayerWithData() {
           type: "register",
           clientName: "rocksky",
           token: localStorage.getItem("token"),
-        })
+        }),
       );
 
       if (heartbeatInterval.current) {
@@ -263,7 +263,7 @@ function StickyPlayerWithData() {
           JSON.stringify({
             type: "heartbeat",
             token: localStorage.getItem("token"),
-          })
+          }),
         );
       }, 3000);
 

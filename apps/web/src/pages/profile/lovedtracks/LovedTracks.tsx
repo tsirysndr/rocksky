@@ -45,7 +45,7 @@ function LovedTracks() {
   const lovedTracksResult = useLovedTracksQuery(
     did!,
     (currentPage - 1) * size,
-    size
+    size,
   );
   const user = useAtomValue(userAtom);
   const profileStats = useProfileStatsByDidQuery(did!);
@@ -70,7 +70,7 @@ function LovedTracks() {
       lovedTracksResult.data.map((item: any) => ({
         ...item,
         date: item.createdAt,
-      }))
+      })),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [

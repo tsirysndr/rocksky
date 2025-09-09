@@ -1,8 +1,8 @@
-import { Context } from "context";
+import type { Context } from "context";
 import { Effect, pipe } from "effect";
-import { Server } from "lexicon";
-import { ArtistViewBasic } from "lexicon/types/app/rocksky/artist/defs";
-import { QueryParams } from "lexicon/types/app/rocksky/artist/getArtists";
+import type { Server } from "lexicon";
+import type { ArtistViewBasic } from "lexicon/types/app/rocksky/artist/defs";
+import type { QueryParams } from "lexicon/types/app/rocksky/artist/getArtists";
 import { deepCamelCaseKeys } from "lib";
 
 export default function (server: Server, ctx: Context) {
@@ -16,7 +16,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({ artists: [] });
-      })
+      }),
     );
   server.app.rocksky.artist.getArtists({
     handler: async ({ params }) => {

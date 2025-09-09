@@ -68,6 +68,12 @@
       ],
       "outputs": []
     },
+    "format": {
+      "dependsOn": [
+        "^format"
+      ],
+      "outputs": []
+    },
     "adb:reverse": {
       "persistent": true,
       "cache": false

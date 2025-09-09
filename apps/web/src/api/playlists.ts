@@ -1,7 +1,7 @@
 import { client } from ".";
 
 export const getPlaylists = async (
-  did: string
+  did: string,
 ): Promise<
   {
     id: string;
@@ -19,14 +19,14 @@ export const getPlaylists = async (
     "/xrpc/app.rocksky.actor.getActorPlaylists",
     {
       params: { did },
-    }
+    },
   );
   return response.data.playlists;
 };
 
 export const getPlaylist = async (
   did: string,
-  rkey: string
+  rkey: string,
 ): Promise<{
   id: string;
   name: string;

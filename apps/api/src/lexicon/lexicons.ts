@@ -1,82 +1,82 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import { LexiconDoc, Lexicons } from '@atproto/lexicon'
+import { type LexiconDoc, Lexicons } from "@atproto/lexicon";
 
 export const schemaDict = {
   AppRockskyActorDefs: {
     lexicon: 1,
-    id: 'app.rocksky.actor.defs',
+    id: "app.rocksky.actor.defs",
     defs: {
       profileViewDetailed: {
-        type: 'object',
+        type: "object",
         properties: {
           id: {
-            type: 'string',
-            description: 'The unique identifier of the actor.',
+            type: "string",
+            description: "The unique identifier of the actor.",
           },
           did: {
-            type: 'string',
-            description: 'The DID of the actor.',
+            type: "string",
+            description: "The DID of the actor.",
           },
           handle: {
-            type: 'string',
-            description: 'The handle of the actor.',
+            type: "string",
+            description: "The handle of the actor.",
           },
           displayName: {
-            type: 'string',
-            description: 'The display name of the actor.',
+            type: "string",
+            description: "The display name of the actor.",
           },
           avatar: {
-            type: 'string',
+            type: "string",
             description: "The URL of the actor's avatar image.",
-            format: 'uri',
+            format: "uri",
           },
           createdAt: {
-            type: 'string',
-            description: 'The date and time when the actor was created.',
-            format: 'datetime',
+            type: "string",
+            description: "The date and time when the actor was created.",
+            format: "datetime",
           },
           updatedAt: {
-            type: 'string',
-            description: 'The date and time when the actor was last updated.',
-            format: 'datetime',
+            type: "string",
+            description: "The date and time when the actor was last updated.",
+            format: "datetime",
           },
         },
       },
       profileViewBasic: {
-        type: 'object',
+        type: "object",
         properties: {
           id: {
-            type: 'string',
-            description: 'The unique identifier of the actor.',
+            type: "string",
+            description: "The unique identifier of the actor.",
           },
           did: {
-            type: 'string',
-            description: 'The DID of the actor.',
+            type: "string",
+            description: "The DID of the actor.",
           },
           handle: {
-            type: 'string',
-            description: 'The handle of the actor.',
+            type: "string",
+            description: "The handle of the actor.",
           },
           displayName: {
-            type: 'string',
-            description: 'The display name of the actor.',
+            type: "string",
+            description: "The display name of the actor.",
           },
           avatar: {
-            type: 'string',
+            type: "string",
             description: "The URL of the actor's avatar image.",
-            format: 'uri',
+            format: "uri",
           },
           createdAt: {
-            type: 'string',
-            description: 'The date and time when the actor was created.',
-            format: 'datetime',
+            type: "string",
+            description: "The date and time when the actor was created.",
+            format: "datetime",
           },
           updatedAt: {
-            type: 'string',
-            description: 'The date and time when the actor was last updated.',
-            format: 'datetime',
+            type: "string",
+            description: "The date and time when the actor was last updated.",
+            format: "datetime",
           },
         },
       },
@@ -84,42 +84,42 @@ export const schemaDict = {
   },
   AppRockskyActorGetActorAlbums: {
     lexicon: 1,
-    id: 'app.rocksky.actor.getActorAlbums',
+    id: "app.rocksky.actor.getActorAlbums",
     defs: {
       main: {
-        type: 'query',
-        description: 'Get albums for an actor',
+        type: "query",
+        description: "Get albums for an actor",
         parameters: {
-          type: 'params',
-          required: ['did'],
+          type: "params",
+          required: ["did"],
           properties: {
             did: {
-              type: 'string',
-              description: 'The DID or handle of the actor',
-              format: 'at-identifier',
+              type: "string",
+              description: "The DID or handle of the actor",
+              format: "at-identifier",
             },
             limit: {
-              type: 'integer',
-              description: 'The maximum number of albums to return',
+              type: "integer",
+              description: "The maximum number of albums to return",
               minimum: 1,
             },
             offset: {
-              type: 'integer',
-              description: 'The offset for pagination',
+              type: "integer",
+              description: "The offset for pagination",
               minimum: 0,
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
+            type: "object",
             properties: {
               albums: {
-                type: 'array',
+                type: "array",
                 items: {
-                  type: 'ref',
-                  ref: 'lex:app.rocksky.album.defs#albumViewBasic',
+                  type: "ref",
+                  ref: "lex:app.rocksky.album.defs#albumViewBasic",
                 },
               },
             },
@@ -130,42 +130,42 @@ export const schemaDict = {
   },
   AppRockskyActorGetActorArtists: {
     lexicon: 1,
-    id: 'app.rocksky.actor.getActorArtists',
+    id: "app.rocksky.actor.getActorArtists",
     defs: {
       main: {
-        type: 'query',
-        description: 'Get artists for an actor',
+        type: "query",
+        description: "Get artists for an actor",
         parameters: {
-          type: 'params',
-          required: ['did'],
+          type: "params",
+          required: ["did"],
           properties: {
             did: {
-              type: 'string',
-              description: 'The DID or handle of the actor',
-              format: 'at-identifier',
+              type: "string",
+              description: "The DID or handle of the actor",
+              format: "at-identifier",
             },
             limit: {
-              type: 'integer',
-              description: 'The maximum number of albums to return',
+              type: "integer",
+              description: "The maximum number of albums to return",
               minimum: 1,
             },
             offset: {
-              type: 'integer',
-              description: 'The offset for pagination',
+              type: "integer",
+              description: "The offset for pagination",
               minimum: 0,
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
+            type: "object",
             properties: {
               artists: {
-                type: 'array',
+                type: "array",
                 items: {
-                  type: 'ref',
-                  ref: 'lex:app.rocksky.artist.defs#artistViewBasic',
+                  type: "ref",
+                  ref: "lex:app.rocksky.artist.defs#artistViewBasic",
                 },
               },
             },
@@ -176,42 +176,42 @@ export const schemaDict = {
   },
   AppRockskyActorGetActorLovedSongs: {
     lexicon: 1,
-    id: 'app.rocksky.actor.getActorLovedSongs',
+    id: "app.rocksky.actor.getActorLovedSongs",
     defs: {
       main: {
-        type: 'query',
-        description: 'Get loved songs for an actor',
+        type: "query",
+        description: "Get loved songs for an actor",
         parameters: {
-          type: 'params',
-          required: ['did'],
+          type: "params",
+          required: ["did"],
           properties: {
             did: {
-              type: 'string',
-              description: 'The DID or handle of the actor',
-              format: 'at-identifier',
+              type: "string",
+              description: "The DID or handle of the actor",
+              format: "at-identifier",
             },
             limit: {
-              type: 'integer',
-              description: 'The maximum number of albums to return',
+              type: "integer",
+              description: "The maximum number of albums to return",
               minimum: 1,
             },
             offset: {
-              type: 'integer',
-              description: 'The offset for pagination',
+              type: "integer",
+              description: "The offset for pagination",
               minimum: 0,
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
+            type: "object",
             properties: {
               tracks: {
-                type: 'array',
+                type: "array",
                 items: {
-                  type: 'ref',
-                  ref: 'lex:app.rocksky.song.defs#songViewBasic',
+                  type: "ref",
+                  ref: "lex:app.rocksky.song.defs#songViewBasic",
                 },
               },
             },
@@ -222,42 +222,42 @@ export const schemaDict = {
   },
   AppRockskyActorGetActorPlaylists: {
     lexicon: 1,
-    id: 'app.rocksky.actor.getActorPlaylists',
+    id: "app.rocksky.actor.getActorPlaylists",
     defs: {
       main: {
-        type: 'query',
-        description: 'Get playlists for an actor',
+        type: "query",
+        description: "Get playlists for an actor",
         parameters: {
-          type: 'params',
-          required: ['did'],
+          type: "params",
+          required: ["did"],
           properties: {
             did: {
-              type: 'string',
-              description: 'The DID or handle of the actor',
-              format: 'at-identifier',
+              type: "string",
+              description: "The DID or handle of the actor",
+              format: "at-identifier",
             },
             limit: {
-              type: 'integer',
-              description: 'The maximum number of albums to return',
+              type: "integer",
+              description: "The maximum number of albums to return",
               minimum: 1,
             },
             offset: {
-              type: 'integer',
-              description: 'The offset for pagination',
+              type: "integer",
+              description: "The offset for pagination",
               minimum: 0,
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
+            type: "object",
             properties: {
               playlists: {
-                type: 'array',
+                type: "array",
                 items: {
-                  type: 'ref',
-                  ref: 'lex:app.rocksky.playlist.defs#playlistViewBasic',
+                  type: "ref",
+                  ref: "lex:app.rocksky.playlist.defs#playlistViewBasic",
                 },
               },
             },
@@ -268,42 +268,42 @@ export const schemaDict = {
   },
   AppRockskyActorGetActorScrobbles: {
     lexicon: 1,
-    id: 'app.rocksky.actor.getActorScrobbles',
+    id: "app.rocksky.actor.getActorScrobbles",
     defs: {
       main: {
-        type: 'query',
-        description: 'Get scrobbles for an actor',
+        type: "query",
+        description: "Get scrobbles for an actor",
         parameters: {
-          type: 'params',
-          required: ['did'],
+          type: "params",
+          required: ["did"],
           properties: {
             did: {
-              type: 'string',
-              description: 'The DID or handle of the actor',
-              format: 'at-identifier',
+              type: "string",
+              description: "The DID or handle of the actor",
+              format: "at-identifier",
             },
             limit: {
-              type: 'integer',
-              description: 'The maximum number of albums to return',
+              type: "integer",
+              description: "The maximum number of albums to return",
               minimum: 1,
             },
             offset: {
-              type: 'integer',
-              description: 'The offset for pagination',
+              type: "integer",
+              description: "The offset for pagination",
               minimum: 0,
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
+            type: "object",
             properties: {
               scrobbles: {
-                type: 'array',
+                type: "array",
                 items: {
-                  type: 'ref',
-                  ref: 'lex:app.rocksky.scrobble.defs#scrobbleViewBasic',
+                  type: "ref",
+                  ref: "lex:app.rocksky.scrobble.defs#scrobbleViewBasic",
                 },
               },
             },
@@ -314,42 +314,42 @@ export const schemaDict = {
   },
   AppRockskyActorGetActorSongs: {
     lexicon: 1,
-    id: 'app.rocksky.actor.getActorSongs',
+    id: "app.rocksky.actor.getActorSongs",
     defs: {
       main: {
-        type: 'query',
-        description: 'Get songs for an actor',
+        type: "query",
+        description: "Get songs for an actor",
         parameters: {
-          type: 'params',
-          required: ['did'],
+          type: "params",
+          required: ["did"],
           properties: {
             did: {
-              type: 'string',
-              description: 'The DID or handle of the actor',
-              format: 'at-identifier',
+              type: "string",
+              description: "The DID or handle of the actor",
+              format: "at-identifier",
             },
             limit: {
-              type: 'integer',
-              description: 'The maximum number of albums to return',
+              type: "integer",
+              description: "The maximum number of albums to return",
               minimum: 1,
             },
             offset: {
-              type: 'integer',
-              description: 'The offset for pagination',
+              type: "integer",
+              description: "The offset for pagination",
               minimum: 0,
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
+            type: "object",
             properties: {
               songs: {
-                type: 'array',
+                type: "array",
                 items: {
-                  type: 'ref',
-                  ref: 'lex:app.rocksky.song.defs#songViewBasic',
+                  type: "ref",
+                  ref: "lex:app.rocksky.song.defs#songViewBasic",
                 },
               },
             },
@@ -360,26 +360,26 @@ export const schemaDict = {
   },
   AppRockskyActorGetProfile: {
     lexicon: 1,
-    id: 'app.rocksky.actor.getProfile',
+    id: "app.rocksky.actor.getProfile",
     defs: {
       main: {
-        type: 'query',
-        description: 'Get the profile of an actor',
+        type: "query",
+        description: "Get the profile of an actor",
         parameters: {
-          type: 'params',
+          type: "params",
           properties: {
             did: {
-              type: 'string',
-              description: 'The DID or handle of the actor',
-              format: 'at-identifier',
+              type: "string",
+              description: "The DID or handle of the actor",
+              format: "at-identifier",
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.actor.defs#profileViewDetailed',
+            type: "ref",
+            ref: "lex:app.rocksky.actor.defs#profileViewDetailed",
           },
         },
       },
@@ -387,53 +387,53 @@ export const schemaDict = {
   },
   AppBskyActorProfile: {
     lexicon: 1,
-    id: 'app.bsky.actor.profile',
+    id: "app.bsky.actor.profile",
     defs: {
       main: {
-        type: 'record',
-        description: 'A declaration of a Bluesky account profile.',
-        key: 'literal:self',
+        type: "record",
+        description: "A declaration of a Bluesky account profile.",
+        key: "literal:self",
         record: {
-          type: 'object',
+          type: "object",
           properties: {
             displayName: {
-              type: 'string',
+              type: "string",
               maxGraphemes: 64,
               maxLength: 640,
             },
             description: {
-              type: 'string',
-              description: 'Free-form profile description text.',
+              type: "string",
+              description: "Free-form profile description text.",
               maxGraphemes: 256,
               maxLength: 2560,
             },
             avatar: {
-              type: 'blob',
+              type: "blob",
               description:
                 "Small image to be displayed next to posts from account. AKA, 'profile picture'",
-              accept: ['image/png', 'image/jpeg'],
+              accept: ["image/png", "image/jpeg"],
               maxSize: 1000000,
             },
             banner: {
-              type: 'blob',
+              type: "blob",
               description:
-                'Larger horizontal image to display behind profile view.',
-              accept: ['image/png', 'image/jpeg'],
+                "Larger horizontal image to display behind profile view.",
+              accept: ["image/png", "image/jpeg"],
               maxSize: 10000000,
             },
             labels: {
-              type: 'union',
+              type: "union",
               description:
-                'Self-label values, specific to the Bluesky application, on the overall account.',
-              refs: ['lex:com.atproto.label.defs#selfLabels'],
+                "Self-label values, specific to the Bluesky application, on the overall account.",
+              refs: ["lex:com.atproto.label.defs#selfLabels"],
             },
             joinedViaStarterPack: {
-              type: 'ref',
-              ref: 'lex:com.atproto.repo.strongRef',
+              type: "ref",
+              ref: "lex:com.atproto.repo.strongRef",
             },
             createdAt: {
-              type: 'string',
-              format: 'datetime',
+              type: "string",
+              format: "datetime",
             },
           },
         },
@@ -442,85 +442,85 @@ export const schemaDict = {
   },
   AppRockskyAlbum: {
     lexicon: 1,
-    id: 'app.rocksky.album',
+    id: "app.rocksky.album",
     defs: {
       main: {
-        type: 'record',
-        description: 'A declaration of an album.',
-        key: 'tid',
+        type: "record",
+        description: "A declaration of an album.",
+        key: "tid",
         record: {
-          type: 'object',
-          required: ['title', 'artist', 'createdAt'],
+          type: "object",
+          required: ["title", "artist", "createdAt"],
           properties: {
             title: {
-              type: 'string',
-              description: 'The title of the album.',
+              type: "string",
+              description: "The title of the album.",
               minLength: 1,
               maxLength: 512,
             },
             artist: {
-              type: 'string',
-              description: 'The artist of the album.',
+              type: "string",
+              description: "The artist of the album.",
               minLength: 1,
               maxLength: 256,
             },
             duration: {
-              type: 'integer',
-              description: 'The duration of the album in seconds.',
+              type: "integer",
+              description: "The duration of the album in seconds.",
             },
             releaseDate: {
-              type: 'string',
-              description: 'The release date of the album.',
-              format: 'datetime',
+              type: "string",
+              description: "The release date of the album.",
+              format: "datetime",
             },
             year: {
-              type: 'integer',
-              description: 'The year the album was released.',
+              type: "integer",
+              description: "The year the album was released.",
             },
             genre: {
-              type: 'string',
-              description: 'The genre of the album.',
+              type: "string",
+              description: "The genre of the album.",
               maxLength: 256,
             },
             albumArt: {
-              type: 'blob',
-              description: 'The album art of the album.',
-              accept: ['image/png', 'image/jpeg'],
+              type: "blob",
+              description: "The album art of the album.",
+              accept: ["image/png", "image/jpeg"],
               maxSize: 2000000,
             },
             tags: {
-              type: 'array',
-              description: 'The tags of the album.',
+              type: "array",
+              description: "The tags of the album.",
               items: {
-                type: 'string',
+                type: "string",
                 minLength: 1,
                 maxLength: 256,
               },
             },
             youtubeLink: {
-              type: 'string',
-              description: 'The YouTube link of the album.',
-              format: 'uri',
+              type: "string",
+              description: "The YouTube link of the album.",
+              format: "uri",
             },
             spotifyLink: {
-              type: 'string',
-              description: 'The Spotify link of the album.',
-              format: 'uri',
+              type: "string",
+              description: "The Spotify link of the album.",
+              format: "uri",
             },
             tidalLink: {
-              type: 'string',
-              description: 'The tidal link of the album.',
-              format: 'uri',
+              type: "string",
+              description: "The tidal link of the album.",
+              format: "uri",
             },
             appleMusicLink: {
-              type: 'string',
-              description: 'The Apple Music link of the album.',
-              format: 'uri',
+              type: "string",
+              description: "The Apple Music link of the album.",
+              format: "uri",
             },
             createdAt: {
-              type: 'string',
-              description: 'The date and time when the album was created.',
-              format: 'datetime',
+              type: "string",
+              description: "The date and time when the album was created.",
+              format: "datetime",
             },
           },
         },
@@ -529,121 +529,121 @@ export const schemaDict = {
   },
   AppRockskyAlbumDefs: {
     lexicon: 1,
-    id: 'app.rocksky.album.defs',
+    id: "app.rocksky.album.defs",
     defs: {
       albumViewBasic: {
-        type: 'object',
+        type: "object",
         properties: {
           id: {
-            type: 'string',
-            description: 'The unique identifier of the album.',
+            type: "string",
+            description: "The unique identifier of the album.",
           },
           uri: {
-            type: 'string',
-            description: 'The URI of the album.',
-            format: 'at-uri',
+            type: "string",
+            description: "The URI of the album.",
+            format: "at-uri",
           },
           title: {
-            type: 'string',
-            description: 'The title of the album.',
+            type: "string",
+            description: "The title of the album.",
           },
           artist: {
-            type: 'string',
-            description: 'The artist of the album.',
+            type: "string",
+            description: "The artist of the album.",
           },
           artistUri: {
-            type: 'string',
+            type: "string",
             description: "The URI of the album's artist.",
-            format: 'at-uri',
+            format: "at-uri",
           },
           year: {
-            type: 'integer',
-            description: 'The year the album was released.',
+            type: "integer",
+            description: "The year the album was released.",
           },
           albumArt: {
-            type: 'string',
-            description: 'The URL of the album art image.',
-            format: 'uri',
+            type: "string",
+            description: "The URL of the album art image.",
+            format: "uri",
           },
           releaseDate: {
-            type: 'string',
-            description: 'The release date of the album.',
+            type: "string",
+            description: "The release date of the album.",
           },
           sha256: {
-            type: 'string',
-            description: 'The SHA256 hash of the album.',
+            type: "string",
+            description: "The SHA256 hash of the album.",
           },
           playCount: {
-            type: 'integer',
-            description: 'The number of times the album has been played.',
+            type: "integer",
+            description: "The number of times the album has been played.",
             minimum: 0,
           },
           uniqueListeners: {
-            type: 'integer',
+            type: "integer",
             description:
-              'The number of unique listeners who have played the album.',
+              "The number of unique listeners who have played the album.",
             minimum: 0,
           },
         },
       },
       albumViewDetailed: {
-        type: 'object',
+        type: "object",
         properties: {
           id: {
-            type: 'string',
-            description: 'The unique identifier of the album.',
+            type: "string",
+            description: "The unique identifier of the album.",
           },
           uri: {
-            type: 'string',
-            description: 'The URI of the album.',
-            format: 'at-uri',
+            type: "string",
+            description: "The URI of the album.",
+            format: "at-uri",
           },
           title: {
-            type: 'string',
-            description: 'The title of the album.',
+            type: "string",
+            description: "The title of the album.",
           },
           artist: {
-            type: 'string',
-            description: 'The artist of the album.',
+            type: "string",
+            description: "The artist of the album.",
           },
           artistUri: {
-            type: 'string',
+            type: "string",
             description: "The URI of the album's artist.",
-            format: 'at-uri',
+            format: "at-uri",
           },
           year: {
-            type: 'integer',
-            description: 'The year the album was released.',
+            type: "integer",
+            description: "The year the album was released.",
           },
           albumArt: {
-            type: 'string',
-            description: 'The URL of the album art image.',
-            format: 'uri',
+            type: "string",
+            description: "The URL of the album art image.",
+            format: "uri",
           },
           releaseDate: {
-            type: 'string',
-            description: 'The release date of the album.',
+            type: "string",
+            description: "The release date of the album.",
           },
           sha256: {
-            type: 'string',
-            description: 'The SHA256 hash of the album.',
+            type: "string",
+            description: "The SHA256 hash of the album.",
           },
           playCount: {
-            type: 'integer',
-            description: 'The number of times the album has been played.',
+            type: "integer",
+            description: "The number of times the album has been played.",
             minimum: 0,
           },
           uniqueListeners: {
-            type: 'integer',
+            type: "integer",
             description:
-              'The number of unique listeners who have played the album.',
+              "The number of unique listeners who have played the album.",
             minimum: 0,
           },
           tracks: {
-            type: 'array',
+            type: "array",
             items: {
-              type: 'ref',
-              ref: 'lex:app.rocksky.song.defs.songViewBasic',
+              type: "ref",
+              ref: "lex:app.rocksky.song.defs.songViewBasic",
             },
           },
         },
@@ -652,27 +652,27 @@ export const schemaDict = {
   },
   AppRockskyAlbumGetAlbum: {
     lexicon: 1,
-    id: 'app.rocksky.album.getAlbum',
+    id: "app.rocksky.album.getAlbum",
     defs: {
       main: {
-        type: 'query',
-        description: 'Get detailed album view',
+        type: "query",
+        description: "Get detailed album view",
         parameters: {
-          type: 'params',
-          required: ['uri'],
+          type: "params",
+          required: ["uri"],
           properties: {
             uri: {
-              type: 'string',
-              description: 'The URI of the album to retrieve.',
-              format: 'at-uri',
+              type: "string",
+              description: "The URI of the album to retrieve.",
+              format: "at-uri",
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.album.defs#albumViewDetailed',
+            type: "ref",
+            ref: "lex:app.rocksky.album.defs#albumViewDetailed",
           },
         },
       },
@@ -680,36 +680,36 @@ export const schemaDict = {
   },
   AppRockskyAlbumGetAlbums: {
     lexicon: 1,
-    id: 'app.rocksky.album.getAlbums',
+    id: "app.rocksky.album.getAlbums",
     defs: {
       main: {
-        type: 'query',
-        description: 'Get albums',
+        type: "query",
+        description: "Get albums",
         parameters: {
-          type: 'params',
+          type: "params",
           properties: {
             limit: {
-              type: 'integer',
-              description: 'The maximum number of albums to return',
+              type: "integer",
+              description: "The maximum number of albums to return",
               minimum: 1,
             },
             offset: {
-              type: 'integer',
-              description: 'The offset for pagination',
+              type: "integer",
+              description: "The offset for pagination",
               minimum: 0,
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
+            type: "object",
             properties: {
               albums: {
-                type: 'array',
+                type: "array",
                 items: {
-                  type: 'ref',
-                  ref: 'lex:app.rocksky.album.defs#albumViewBasic',
+                  type: "ref",
+                  ref: "lex:app.rocksky.album.defs#albumViewBasic",
                 },
               },
             },
@@ -720,32 +720,32 @@ export const schemaDict = {
   },
   AppRockskyAlbumGetAlbumTracks: {
     lexicon: 1,
-    id: 'app.rocksky.album.getAlbumTracks',
+    id: "app.rocksky.album.getAlbumTracks",
     defs: {
       main: {
-        type: 'query',
-        description: 'Get tracks for an album',
+        type: "query",
+        description: "Get tracks for an album",
         parameters: {
-          type: 'params',
-          required: ['uri'],
+          type: "params",
+          required: ["uri"],
           properties: {
             uri: {
-              type: 'string',
-              description: 'The URI of the album to retrieve tracks from',
-              format: 'at-uri',
+              type: "string",
+              description: "The URI of the album to retrieve tracks from",
+              format: "at-uri",
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
+            type: "object",
             properties: {
               tracks: {
-                type: 'array',
+                type: "array",
                 items: {
-                  type: 'ref',
-                  ref: 'lex:app.rocksky.song.defs#songViewBasic',
+                  type: "ref",
+                  ref: "lex:app.rocksky.song.defs#songViewBasic",
                 },
               },
             },
@@ -756,33 +756,33 @@ export const schemaDict = {
   },
   AppRockskyApikeyCreateApikey: {
     lexicon: 1,
-    id: 'app.rocksky.apikey.createApikey',
+    id: "app.rocksky.apikey.createApikey",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Create a new API key for the authenticated user',
+        type: "procedure",
+        description: "Create a new API key for the authenticated user",
         input: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
-            required: ['name'],
+            type: "object",
+            required: ["name"],
             properties: {
               name: {
-                type: 'string',
-                description: 'The name of the API key.',
+                type: "string",
+                description: "The name of the API key.",
               },
               description: {
-                type: 'string',
-                description: 'A description for the API key.',
+                type: "string",
+                description: "A description for the API key.",
               },
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.apikey.defs#apiKey',
+            type: "ref",
+            ref: "lex:app.rocksky.apikey.defs#apiKey",
           },
         },
       },
@@ -790,27 +790,27 @@ export const schemaDict = {
   },
   AppRockskyApikeyDefs: {
     lexicon: 1,
-    id: 'app.rocksky.apikey.defs',
+    id: "app.rocksky.apikey.defs",
     defs: {
       apiKeyView: {
-        type: 'object',
+        type: "object",
         properties: {
           id: {
-            type: 'string',
-            description: 'The unique identifier of the API key.',
+            type: "string",
+            description: "The unique identifier of the API key.",
           },
           name: {
-            type: 'string',
-            description: 'The name of the API key.',
+            type: "string",
+            description: "The name of the API key.",
           },
           description: {
-            type: 'string',
-            description: 'A description for the API key.',
+            type: "string",
+            description: "A description for the API key.",
           },
           createdAt: {
-            type: 'string',
-            description: 'The date and time when the API key was created.',
-            format: 'datetime',
+            type: "string",
+            description: "The date and time when the API key was created.",
+            format: "datetime",
           },
         },
       },
@@ -818,40 +818,40 @@ export const schemaDict = {
   },
   AppRockskyApikeysDefs: {
     lexicon: 1,
-    id: 'app.rocksky.apikeys.defs',
+    id: "app.rocksky.apikeys.defs",
     defs: {},
   },
   AppRockskyApikeyGetApikeys: {
     lexicon: 1,
-    id: 'app.rocksky.apikey.getApikeys',
+    id: "app.rocksky.apikey.getApikeys",
     defs: {
       main: {
-        type: 'query',
-        description: 'Get a list of API keys for the authenticated user',
+        type: "query",
+        description: "Get a list of API keys for the authenticated user",
         parameters: {
-          type: 'params',
+          type: "params",
           properties: {
             offset: {
-              type: 'integer',
+              type: "integer",
               description:
-                'The number of API keys to skip before starting to collect the result set.',
+                "The number of API keys to skip before starting to collect the result set.",
             },
             limit: {
-              type: 'integer',
-              description: 'The number of API keys to return per page.',
+              type: "integer",
+              description: "The number of API keys to return per page.",
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
+            type: "object",
             properties: {
               apiKeys: {
-                type: 'array',
+                type: "array",
                 items: {
-                  type: 'ref',
-                  ref: 'lex:app.rocksky.apikey.defs#apikeyView',
+                  type: "ref",
+                  ref: "lex:app.rocksky.apikey.defs#apikeyView",
                 },
               },
             },
@@ -862,26 +862,26 @@ export const schemaDict = {
   },
   AppRockskyApikeyRemoveApikey: {
     lexicon: 1,
-    id: 'app.rocksky.apikey.removeApikey',
+    id: "app.rocksky.apikey.removeApikey",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Remove an API key for the authenticated user',
+        type: "procedure",
+        description: "Remove an API key for the authenticated user",
         parameters: {
-          type: 'params',
-          required: ['id'],
+          type: "params",
+          required: ["id"],
           properties: {
             id: {
-              type: 'string',
-              description: 'The ID of the API key to remove.',
+              type: "string",
+              description: "The ID of the API key to remove.",
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.apikey.defs#apiKey',
+            type: "ref",
+            ref: "lex:app.rocksky.apikey.defs#apiKey",
           },
         },
       },
@@ -889,37 +889,37 @@ export const schemaDict = {
   },
   AppRockskyApikeyUpdateApikey: {
     lexicon: 1,
-    id: 'app.rocksky.apikey.updateApikey',
+    id: "app.rocksky.apikey.updateApikey",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Update an existing API key for the authenticated user',
+        type: "procedure",
+        description: "Update an existing API key for the authenticated user",
         input: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
-            required: ['id', 'name'],
+            type: "object",
+            required: ["id", "name"],
             properties: {
               id: {
-                type: 'string',
-                description: 'The ID of the API key to update.',
+                type: "string",
+                description: "The ID of the API key to update.",
               },
               name: {
-                type: 'string',
-                description: 'The new name of the API key.',
+                type: "string",
+                description: "The new name of the API key.",
               },
               description: {
-                type: 'string',
-                description: 'A new description for the API key.',
+                type: "string",
+                description: "A new description for the API key.",
               },
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.apikey.defs#apiKey',
+            type: "ref",
+            ref: "lex:app.rocksky.apikey.defs#apiKey",
           },
         },
       },
@@ -927,61 +927,61 @@ export const schemaDict = {
   },
   AppRockskyArtist: {
     lexicon: 1,
-    id: 'app.rocksky.artist',
+    id: "app.rocksky.artist",
     defs: {
       main: {
-        type: 'record',
-        description: 'A declaration of an artist.',
-        key: 'tid',
+        type: "record",
+        description: "A declaration of an artist.",
+        key: "tid",
         record: {
-          type: 'object',
-          required: ['name', 'createdAt'],
+          type: "object",
+          required: ["name", "createdAt"],
           properties: {
             name: {
-              type: 'string',
-              description: 'The name of the artist.',
+              type: "string",
+              description: "The name of the artist.",
               minLength: 1,
               maxLength: 512,
             },
             bio: {
-              type: 'string',
-              description: 'The biography of the artist.',
+              type: "string",
+              description: "The biography of the artist.",
               maxLength: 1000,
             },
             picture: {
-              type: 'blob',
-              description: 'The picture of the artist.',
-              accept: ['image/png', 'image/jpeg'],
+              type: "blob",
+              description: "The picture of the artist.",
+              accept: ["image/png", "image/jpeg"],
               maxSize: 2000000,
             },
             tags: {
-              type: 'array',
-              description: 'The tags of the artist.',
+              type: "array",
+              description: "The tags of the artist.",
               items: {
-                type: 'string',
+                type: "string",
                 minLength: 1,
                 maxLength: 256,
               },
             },
             born: {
-              type: 'string',
-              description: 'The birth date of the artist.',
-              format: 'datetime',
+              type: "string",
+              description: "The birth date of the artist.",
+              format: "datetime",
             },
             died: {
-              type: 'string',
-              description: 'The death date of the artist.',
-              format: 'datetime',
+              type: "string",
+              description: "The death date of the artist.",
+              format: "datetime",
             },
             bornIn: {
-              type: 'string',
-              description: 'The birth place of the artist.',
+              type: "string",
+              description: "The birth place of the artist.",
               maxLength: 256,
             },
             createdAt: {
-              type: 'string',
-              description: 'The date when the artist was created.',
-              format: 'datetime',
+              type: "string",
+              description: "The date when the artist was created.",
+              format: "datetime",
             },
           },
         },
@@ -990,78 +990,78 @@ export const schemaDict = {
   },
   AppRockskyArtistDefs: {
     lexicon: 1,
-    id: 'app.rocksky.artist.defs',
+    id: "app.rocksky.artist.defs",
     defs: {
       artistViewBasic: {
-        type: 'object',
+        type: "object",
         properties: {
           id: {
-            type: 'string',
-            description: 'The unique identifier of the artist.',
+            type: "string",
+            description: "The unique identifier of the artist.",
           },
           uri: {
-            type: 'string',
-            description: 'The URI of the artist.',
-            format: 'at-uri',
+            type: "string",
+            description: "The URI of the artist.",
+            format: "at-uri",
           },
           name: {
-            type: 'string',
-            description: 'The name of the artist.',
+            type: "string",
+            description: "The name of the artist.",
           },
           picture: {
-            type: 'string',
-            description: 'The picture of the artist.',
+            type: "string",
+            description: "The picture of the artist.",
           },
           sha256: {
-            type: 'string',
-            description: 'The SHA256 hash of the artist.',
+            type: "string",
+            description: "The SHA256 hash of the artist.",
           },
           playCount: {
-            type: 'integer',
-            description: 'The number of times the artist has been played.',
+            type: "integer",
+            description: "The number of times the artist has been played.",
             minimum: 0,
           },
           uniqueListeners: {
-            type: 'integer',
+            type: "integer",
             description:
-              'The number of unique listeners who have played the artist.',
+              "The number of unique listeners who have played the artist.",
             minimum: 0,
           },
         },
       },
       artistViewDetailed: {
-        type: 'object',
+        type: "object",
         properties: {
           id: {
-            type: 'string',
-            description: 'The unique identifier of the artist.',
+            type: "string",
+            description: "The unique identifier of the artist.",
           },
           uri: {
-            type: 'string',
-            description: 'The URI of the artist.',
-            format: 'at-uri',
+            type: "string",
+            description: "The URI of the artist.",
+            format: "at-uri",
           },
           name: {
-            type: 'string',
-            description: 'The name of the artist.',
+            type: "string",
+            description: "The name of the artist.",
           },
           picture: {
-            type: 'string',
-            description: 'The picture of the artist.',
+            type: "string",
+            description: "The picture of the artist.",
           },
           sha256: {
-            type: 'string',
-            description: 'The SHA256 hash of the artist.',
+            type: "string",
+            description: "The SHA256 hash of the artist.",
           },
           playCount: {
-            type: 'integer',
-            description: 'The number of times the artist has been played.',
+            type: "integer",
+            description: "The number of times the artist has been played.",
             minimum: 0,
           },
           uniqueListeners: {
-            type: 'integer',
+            type: "integer",
             description:
-              'The number of unique listeners who have played the artist.',
+              "The number of unique listeners who have played the artist.",
             minimum: 0,
           },
         },
@@ -1070,32 +1070,32 @@ export const schemaDict = {
   },
   AppRockskyArtistGetArtistAlbums: {
     lexicon: 1,
-    id: 'app.rocksky.artist.getArtistAlbums',
+    id: "app.rocksky.artist.getArtistAlbums",
     defs: {
       main: {
-        type: 'query',
+        type: "query",
         description: "Get artist's albums",
         parameters: {
-          type: 'params',
-          required: ['uri'],
+          type: "params",
+          required: ["uri"],
           properties: {
             uri: {
-              type: 'string',
-              description: 'The URI of the artist to retrieve albums from',
-              format: 'at-uri',
+              type: "string",
+              description: "The URI of the artist to retrieve albums from",
+              format: "at-uri",
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
+            type: "object",
             properties: {
               albums: {
-                type: 'array',
+                type: "array",
                 items: {
-                  type: 'ref',
-                  ref: 'lex:app.rocksky.album.defs#albumViewBasic',
+                  type: "ref",
+                  ref: "lex:app.rocksky.album.defs#albumViewBasic",
                 },
               },
             },
@@ -1106,27 +1106,27 @@ export const schemaDict = {
   },
   AppRockskyArtistGetArtist: {
     lexicon: 1,
-    id: 'app.rocksky.artist.getArtist',
+    id: "app.rocksky.artist.getArtist",
     defs: {
       main: {
-        type: 'query',
-        description: 'Get artist details',
+        type: "query",
+        description: "Get artist details",
         parameters: {
-          type: 'params',
-          required: ['uri'],
+          type: "params",
+          required: ["uri"],
           properties: {
             uri: {
-              type: 'string',
-              description: 'The URI of the artist to retrieve details from',
-              format: 'at-uri',
+              type: "string",
+              description: "The URI of the artist to retrieve details from",
+              format: "at-uri",
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.artist.defs#artistViewDetailed',
+            type: "ref",
+            ref: "lex:app.rocksky.artist.defs#artistViewDetailed",
           },
         },
       },
@@ -1134,36 +1134,36 @@ export const schemaDict = {
   },
   AppRockskyArtistGetArtists: {
     lexicon: 1,
-    id: 'app.rocksky.artist.getArtists',
+    id: "app.rocksky.artist.getArtists",
     defs: {
       main: {
-        type: 'query',
-        description: 'Get artists',
+        type: "query",
+        description: "Get artists",
         parameters: {
-          type: 'params',
+          type: "params",
           properties: {
             limit: {
-              type: 'integer',
-              description: 'The maximum number of artists to return',
+              type: "integer",
+              description: "The maximum number of artists to return",
               minimum: 1,
             },
             offset: {
-              type: 'integer',
-              description: 'The offset for pagination',
+              type: "integer",
+              description: "The offset for pagination",
               minimum: 0,
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
+            type: "object",
             properties: {
               artists: {
-                type: 'array',
+                type: "array",
                 items: {
-                  type: 'ref',
-                  ref: 'lex:app.rocksky.artist.defs#artistViewBasic',
+                  type: "ref",
+                  ref: "lex:app.rocksky.artist.defs#artistViewBasic",
                 },
               },
             },
@@ -1174,41 +1174,41 @@ export const schemaDict = {
   },
   AppRockskyArtistGetArtistTracks: {
     lexicon: 1,
-    id: 'app.rocksky.artist.getArtistTracks',
+    id: "app.rocksky.artist.getArtistTracks",
     defs: {
       main: {
-        type: 'query',
+        type: "query",
         description: "Get artist's tracks",
         parameters: {
-          type: 'params',
+          type: "params",
           properties: {
             uri: {
-              type: 'string',
-              description: 'The URI of the artist to retrieve albums from',
-              format: 'at-uri',
+              type: "string",
+              description: "The URI of the artist to retrieve albums from",
+              format: "at-uri",
             },
             limit: {
-              type: 'integer',
-              description: 'The maximum number of tracks to return',
+              type: "integer",
+              description: "The maximum number of tracks to return",
               minimum: 1,
             },
             offset: {
-              type: 'integer',
-              description: 'The offset for pagination',
+              type: "integer",
+              description: "The offset for pagination",
               minimum: 0,
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
+            type: "object",
             properties: {
               tracks: {
-                type: 'array',
+                type: "array",
                 items: {
-                  type: 'ref',
-                  ref: 'lex:app.rocksky.song.defs#songViewBasic',
+                  type: "ref",
+                  ref: "lex:app.rocksky.song.defs#songViewBasic",
                 },
               },
             },
@@ -1219,31 +1219,31 @@ export const schemaDict = {
   },
   AppRockskyChartsDefs: {
     lexicon: 1,
-    id: 'app.rocksky.charts.defs',
+    id: "app.rocksky.charts.defs",
     defs: {
       chartsView: {
-        type: 'object',
+        type: "object",
         properties: {
           scrobbles: {
-            type: 'array',
+            type: "array",
             items: {
-              type: 'ref',
-              ref: 'lex:app.rocksky.charts.defs#scrobbleViewBasic',
+              type: "ref",
+              ref: "lex:app.rocksky.charts.defs#scrobbleViewBasic",
             },
           },
         },
       },
       scrobbleViewBasic: {
-        type: 'object',
+        type: "object",
         properties: {
           date: {
-            type: 'string',
-            description: 'The date of the scrobble.',
-            format: 'datetime',
+            type: "string",
+            description: "The date of the scrobble.",
+            format: "datetime",
           },
           count: {
-            type: 'integer',
-            description: 'The number of scrobbles on this date.',
+            type: "integer",
+            description: "The number of scrobbles on this date.",
           },
         },
       },
@@ -1251,41 +1251,41 @@ export const schemaDict = {
   },
   AppRockskyChartsGetScrobblesChart: {
     lexicon: 1,
-    id: 'app.rocksky.charts.getScrobblesChart',
+    id: "app.rocksky.charts.getScrobblesChart",
     defs: {
       main: {
-        type: 'query',
-        description: 'Get the scrobbles chart',
+        type: "query",
+        description: "Get the scrobbles chart",
         parameters: {
-          type: 'params',
+          type: "params",
           properties: {
             did: {
-              type: 'string',
-              description: 'The DID or handle of the actor',
-              format: 'at-identifier',
+              type: "string",
+              description: "The DID or handle of the actor",
+              format: "at-identifier",
             },
             artisturi: {
-              type: 'string',
-              description: 'The URI of the artist to filter by',
-              format: 'at-uri',
+              type: "string",
+              description: "The URI of the artist to filter by",
+              format: "at-uri",
             },
             albumuri: {
-              type: 'string',
-              description: 'The URI of the album to filter by',
-              format: 'at-uri',
+              type: "string",
+              description: "The URI of the album to filter by",
+              format: "at-uri",
             },
             songuri: {
-              type: 'string',
-              description: 'The URI of the track to filter by',
-              format: 'at-uri',
+              type: "string",
+              description: "The URI of the track to filter by",
+              format: "at-uri",
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.charts.defs#chartsView',
+            type: "ref",
+            ref: "lex:app.rocksky.charts.defs#chartsView",
           },
         },
       },
@@ -1293,61 +1293,61 @@ export const schemaDict = {
   },
   AppRockskyDropboxDefs: {
     lexicon: 1,
-    id: 'app.rocksky.dropbox.defs',
+    id: "app.rocksky.dropbox.defs",
     defs: {
       fileView: {
-        type: 'object',
+        type: "object",
         properties: {
           id: {
-            type: 'string',
-            description: 'The unique identifier of the file.',
+            type: "string",
+            description: "The unique identifier of the file.",
           },
           name: {
-            type: 'string',
-            description: 'The name of the file.',
+            type: "string",
+            description: "The name of the file.",
           },
           pathLower: {
-            type: 'string',
-            description: 'The lowercased path of the file.',
+            type: "string",
+            description: "The lowercased path of the file.",
           },
           pathDisplay: {
-            type: 'string',
-            description: 'The display path of the file.',
+            type: "string",
+            description: "The display path of the file.",
           },
           clientModified: {
-            type: 'string',
+            type: "string",
             description:
-              'The last modified date and time of the file on the client.',
-            format: 'datetime',
+              "The last modified date and time of the file on the client.",
+            format: "datetime",
           },
           serverModified: {
-            type: 'string',
+            type: "string",
             description:
-              'The last modified date and time of the file on the server.',
-            format: 'datetime',
+              "The last modified date and time of the file on the server.",
+            format: "datetime",
           },
         },
       },
       fileListView: {
-        type: 'object',
+        type: "object",
         properties: {
           files: {
-            type: 'array',
-            description: 'A list of files in the Dropbox.',
+            type: "array",
+            description: "A list of files in the Dropbox.",
             items: {
-              type: 'ref',
-              ref: 'lex:app.rocksky.dropbox.defs#fileView',
+              type: "ref",
+              ref: "lex:app.rocksky.dropbox.defs#fileView",
             },
           },
         },
       },
       temporaryLinkView: {
-        type: 'object',
+        type: "object",
         properties: {
           link: {
-            type: 'string',
-            description: 'The temporary link to access the file.',
-            format: 'uri',
+            type: "string",
+            description: "The temporary link to access the file.",
+            format: "uri",
           },
         },
       },
@@ -1355,48 +1355,48 @@ export const schemaDict = {
   },
   AppRockskyDropboxDownloadFile: {
     lexicon: 1,
-    id: 'app.rocksky.dropbox.downloadFile',
+    id: "app.rocksky.dropbox.downloadFile",
     defs: {
       main: {
-        type: 'query',
-        description: 'Download a file from Dropbox by its unique identifier',
+        type: "query",
+        description: "Download a file from Dropbox by its unique identifier",
         parameters: {
-          type: 'params',
-          required: ['fileId'],
+          type: "params",
+          required: ["fileId"],
           properties: {
             fileId: {
-              type: 'string',
-              description: 'The unique identifier of the file to download',
+              type: "string",
+              description: "The unique identifier of the file to download",
             },
           },
         },
         output: {
-          encoding: 'application/octet-stream',
+          encoding: "application/octet-stream",
         },
       },
     },
   },
   AppRockskyDropboxGetFiles: {
     lexicon: 1,
-    id: 'app.rocksky.dropbox.getFiles',
+    id: "app.rocksky.dropbox.getFiles",
     defs: {
       main: {
-        type: 'query',
-        description: 'Retrieve a list of files from Dropbox',
+        type: "query",
+        description: "Retrieve a list of files from Dropbox",
         parameters: {
-          type: 'params',
+          type: "params",
           properties: {
             at: {
-              type: 'string',
-              description: 'Path to the Dropbox folder or root directory',
+              type: "string",
+              description: "Path to the Dropbox folder or root directory",
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.dropbox.defs#fileListView',
+            type: "ref",
+            ref: "lex:app.rocksky.dropbox.defs#fileListView",
           },
         },
       },
@@ -1404,26 +1404,26 @@ export const schemaDict = {
   },
   AppRockskyDropboxGetMetadata: {
     lexicon: 1,
-    id: 'app.rocksky.dropbox.getMetadata',
+    id: "app.rocksky.dropbox.getMetadata",
     defs: {
       main: {
-        type: 'query',
-        description: 'Retrieve metadata of a file or folder in Dropbox',
+        type: "query",
+        description: "Retrieve metadata of a file or folder in Dropbox",
         parameters: {
-          type: 'params',
-          required: ['path'],
+          type: "params",
+          required: ["path"],
           properties: {
             path: {
-              type: 'string',
-              description: 'Path to the file or folder in Dropbox',
+              type: "string",
+              description: "Path to the file or folder in Dropbox",
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.dropbox.defs#fileView',
+            type: "ref",
+            ref: "lex:app.rocksky.dropbox.defs#fileView",
           },
         },
       },
@@ -1431,26 +1431,26 @@ export const schemaDict = {
   },
   AppRockskyDropboxGetTemporaryLink: {
     lexicon: 1,
-    id: 'app.rocksky.dropbox.getTemporaryLink',
+    id: "app.rocksky.dropbox.getTemporaryLink",
     defs: {
       main: {
-        type: 'query',
-        description: 'Retrieve a temporary link to access a file in Dropbox',
+        type: "query",
+        description: "Retrieve a temporary link to access a file in Dropbox",
         parameters: {
-          type: 'params',
-          required: ['path'],
+          type: "params",
+          required: ["path"],
           properties: {
             path: {
-              type: 'string',
-              description: 'Path to the file in Dropbox',
+              type: "string",
+              description: "Path to the file in Dropbox",
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.dropbox.defs#temporaryLinkView',
+            type: "ref",
+            ref: "lex:app.rocksky.dropbox.defs#temporaryLinkView",
           },
         },
       },
@@ -1458,103 +1458,103 @@ export const schemaDict = {
   },
   AppRockskyFeedDefs: {
     lexicon: 1,
-    id: 'app.rocksky.feed.defs',
+    id: "app.rocksky.feed.defs",
     defs: {
       searchResultsView: {
-        type: 'object',
+        type: "object",
         properties: {
           hits: {
-            type: 'array',
+            type: "array",
             items: {
-              type: 'union',
+              type: "union",
               refs: [
-                'lex:app.rocksky.song.defs#songViewBasic',
-                'lex:app.rocksky.album.defs#albumViewBasic',
-                'lex:app.rocksky.artist.defs#artistViewBasic',
-                'lex:app.rocksky.playlist.defs#playlistViewBasic',
-                'lex:app.rocksky.actor.defs#profileViewBasic',
+                "lex:app.rocksky.song.defs#songViewBasic",
+                "lex:app.rocksky.album.defs#albumViewBasic",
+                "lex:app.rocksky.artist.defs#artistViewBasic",
+                "lex:app.rocksky.playlist.defs#playlistViewBasic",
+                "lex:app.rocksky.actor.defs#profileViewBasic",
               ],
             },
           },
           processingTimeMs: {
-            type: 'integer',
+            type: "integer",
           },
           limit: {
-            type: 'integer',
+            type: "integer",
           },
           offset: {
-            type: 'integer',
+            type: "integer",
           },
           estimatedTotalHits: {
-            type: 'integer',
+            type: "integer",
           },
         },
       },
       nowPlayingView: {
-        type: 'object',
+        type: "object",
         properties: {
           album: {
-            type: 'string',
+            type: "string",
           },
           albumArt: {
-            type: 'string',
-            format: 'uri',
+            type: "string",
+            format: "uri",
           },
           albumArtist: {
-            type: 'string',
+            type: "string",
           },
           albumUri: {
-            type: 'string',
-            format: 'at-uri',
+            type: "string",
+            format: "at-uri",
           },
           artist: {
-            type: 'string',
+            type: "string",
           },
           artistUri: {
-            type: 'string',
-            format: 'at-uri',
+            type: "string",
+            format: "at-uri",
           },
           avatar: {
-            type: 'string',
-            format: 'uri',
+            type: "string",
+            format: "uri",
           },
           createdAt: {
-            type: 'string',
+            type: "string",
           },
           did: {
-            type: 'string',
-            format: 'at-identifier',
+            type: "string",
+            format: "at-identifier",
           },
           handle: {
-            type: 'string',
+            type: "string",
           },
           id: {
-            type: 'string',
+            type: "string",
           },
           title: {
-            type: 'string',
+            type: "string",
           },
           trackId: {
-            type: 'string',
+            type: "string",
           },
           trackUri: {
-            type: 'string',
-            format: 'at-uri',
+            type: "string",
+            format: "at-uri",
           },
           uri: {
-            type: 'string',
-            format: 'at-uri',
+            type: "string",
+            format: "at-uri",
           },
         },
       },
       nowPlayingsView: {
-        type: 'object',
+        type: "object",
         properties: {
           nowPlayings: {
-            type: 'array',
+            type: "array",
             items: {
-              type: 'ref',
-              ref: 'lex:app.rocksky.feed.defs#nowPlayingView',
+              type: "ref",
+              ref: "lex:app.rocksky.feed.defs#nowPlayingView",
             },
           },
         },
@@ -1563,27 +1563,27 @@ export const schemaDict = {
   },
   AppRockskyFeedGetNowPlayings: {
     lexicon: 1,
-    id: 'app.rocksky.feed.getNowPlayings',
+    id: "app.rocksky.feed.getNowPlayings",
     defs: {
       main: {
-        type: 'query',
-        description: 'Get all currently playing tracks by users',
+        type: "query",
+        description: "Get all currently playing tracks by users",
         parameters: {
-          type: 'params',
+          type: "params",
           properties: {
             size: {
-              type: 'integer',
+              type: "integer",
               description:
-                'The maximum number of now playing tracks to return.',
+                "The maximum number of now playing tracks to return.",
               minimum: 1,
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.feed.defs#nowPlayingsView',
+            type: "ref",
+            ref: "lex:app.rocksky.feed.defs#nowPlayingsView",
           },
         },
       },
@@ -1591,26 +1591,26 @@ export const schemaDict = {
   },
   AppRockskyFeedSearch: {
     lexicon: 1,
-    id: 'app.rocksky.feed.search',
+    id: "app.rocksky.feed.search",
     defs: {
       main: {
-        type: 'query',
-        description: 'Search for content in the feed',
+        type: "query",
+        description: "Search for content in the feed",
         parameters: {
-          type: 'params',
-          required: ['query'],
+          type: "params",
+          required: ["query"],
           properties: {
             query: {
-              type: 'string',
-              description: 'The search query string',
+              type: "string",
+              description: "The search query string",
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.feed.defs#searchResultsView',
+            type: "ref",
+            ref: "lex:app.rocksky.feed.defs#searchResultsView",
           },
         },
       },
@@ -1618,25 +1618,25 @@ export const schemaDict = {
   },
   AppRockskyGoogledriveDefs: {
     lexicon: 1,
-    id: 'app.rocksky.googledrive.defs',
+    id: "app.rocksky.googledrive.defs",
     defs: {
       fileView: {
-        type: 'object',
+        type: "object",
         properties: {
           id: {
-            type: 'string',
-            description: 'The unique identifier of the file.',
+            type: "string",
+            description: "The unique identifier of the file.",
           },
         },
       },
       fileListView: {
-        type: 'object',
+        type: "object",
         properties: {
           files: {
-            type: 'array',
+            type: "array",
             items: {
-              type: 'ref',
-              ref: 'lex:app.rocksky.googledrive.defs#fileView',
+              type: "ref",
+              ref: "lex:app.rocksky.googledrive.defs#fileView",
             },
           },
         },
@@ -1645,50 +1645,50 @@ export const schemaDict = {
   },
   AppRockskyGoogledriveDownloadFile: {
     lexicon: 1,
-    id: 'app.rocksky.googledrive.downloadFile',
+    id: "app.rocksky.googledrive.downloadFile",
     defs: {
       main: {
-        type: 'query',
+        type: "query",
         description:
-          'Download a file from Google Drive by its unique identifier',
+          "Download a file from Google Drive by its unique identifier",
         parameters: {
-          type: 'params',
-          required: ['fileId'],
+          type: "params",
+          required: ["fileId"],
           properties: {
             fileId: {
-              type: 'string',
-              description: 'The unique identifier of the file to download',
+              type: "string",
+              description: "The unique identifier of the file to download",
             },
           },
         },
         output: {
-          encoding: 'application/octet-stream',
+          encoding: "application/octet-stream",
         },
       },
     },
   },
   AppRockskyGoogledriveGetFile: {
     lexicon: 1,
-    id: 'app.rocksky.googledrive.getFile',
+    id: "app.rocksky.googledrive.getFile",
     defs: {
       main: {
-        type: 'query',
-        description: 'Get a file from Google Drive by its unique identifier',
+        type: "query",
+        description: "Get a file from Google Drive by its unique identifier",
         parameters: {
-          type: 'params',
-          required: ['fileId'],
+          type: "params",
+          required: ["fileId"],
           properties: {
             fileId: {
-              type: 'string',
-              description: 'The unique identifier of the file to retrieve',
+              type: "string",
+              description: "The unique identifier of the file to retrieve",
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.googledrive.defs#fileView',
+            type: "ref",
+            ref: "lex:app.rocksky.googledrive.defs#fileView",
           },
         },
       },
@@ -1696,25 +1696,25 @@ export const schemaDict = {
   },
   AppRockskyGoogledriveGetFiles: {
     lexicon: 1,
-    id: 'app.rocksky.googledrive.getFiles',
+    id: "app.rocksky.googledrive.getFiles",
     defs: {
       main: {
-        type: 'query',
-        description: 'Get a list of files from Google Drive',
+        type: "query",
+        description: "Get a list of files from Google Drive",
         parameters: {
-          type: 'params',
+          type: "params",
           properties: {
             at: {
-              type: 'string',
-              description: 'Path to the Google Drive folder or root directory',
+              type: "string",
+              description: "Path to the Google Drive folder or root directory",
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.googledrive.defs#fileListView',
+            type: "ref",
+            ref: "lex:app.rocksky.googledrive.defs#fileListView",
           },
         },
       },
@@ -1722,29 +1722,29 @@ export const schemaDict = {
   },
   AppRockskyLikeDislikeShout: {
     lexicon: 1,
-    id: 'app.rocksky.like.dislikeShout',
+    id: "app.rocksky.like.dislikeShout",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Dislike a shout',
+        type: "procedure",
+        description: "Dislike a shout",
         input: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
+            type: "object",
             properties: {
               uri: {
-                type: 'string',
-                description: 'The unique identifier of the shout to dislike',
-                format: 'at-uri',
+                type: "string",
+                description: "The unique identifier of the shout to dislike",
+                format: "at-uri",
               },
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.shout.defs#shoutView',
+            type: "ref",
+            ref: "lex:app.rocksky.shout.defs#shoutView",
           },
         },
       },
@@ -1752,29 +1752,29 @@ export const schemaDict = {
   },
   AppRockskyLikeDislikeSong: {
     lexicon: 1,
-    id: 'app.rocksky.like.dislikeSong',
+    id: "app.rocksky.like.dislikeSong",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Dislike a song',
+        type: "procedure",
+        description: "Dislike a song",
         input: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
+            type: "object",
             properties: {
               uri: {
-                type: 'string',
-                description: 'The unique identifier of the song to dislike',
-                format: 'at-uri',
+                type: "string",
+                description: "The unique identifier of the song to dislike",
+                format: "at-uri",
               },
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.song.defs#songViewDetailed',
+            type: "ref",
+            ref: "lex:app.rocksky.song.defs#songViewDetailed",
           },
         },
       },
@@ -1782,24 +1782,24 @@ export const schemaDict = {
   },
   AppRockskyLike: {
     lexicon: 1,
-    id: 'app.rocksky.like',
+    id: "app.rocksky.like",
     defs: {
       main: {
-        type: 'record',
-        description: 'A declaration of a like.',
-        key: 'tid',
+        type: "record",
+        description: "A declaration of a like.",
+        key: "tid",
         record: {
-          type: 'object',
-          required: ['createdAt', 'subject'],
+          type: "object",
+          required: ["createdAt", "subject"],
           properties: {
             createdAt: {
-              type: 'string',
-              description: 'The date when the like was created.',
-              format: 'datetime',
+              type: "string",
+              description: "The date when the like was created.",
+              format: "datetime",
             },
             subject: {
-              type: 'ref',
-              ref: 'lex:com.atproto.repo.strongRef',
+              type: "ref",
+              ref: "lex:com.atproto.repo.strongRef",
             },
           },
         },
@@ -1808,29 +1808,29 @@ export const schemaDict = {
   },
   AppRockskyLikeLikeShout: {
     lexicon: 1,
-    id: 'app.rocksky.like.likeShout',
+    id: "app.rocksky.like.likeShout",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Like a shout',
+        type: "procedure",
+        description: "Like a shout",
         input: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
+            type: "object",
             properties: {
               uri: {
-                type: 'string',
-                description: 'The unique identifier of the shout to like',
-                format: 'at-uri',
+                type: "string",
+                description: "The unique identifier of the shout to like",
+                format: "at-uri",
               },
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.shout.defs#shoutView',
+            type: "ref",
+            ref: "lex:app.rocksky.shout.defs#shoutView",
           },
         },
       },
@@ -1838,29 +1838,62 @@ export const schemaDict = {
   },
   AppRockskyLikeLikeSong: {
     lexicon: 1,
-    id: 'app.rocksky.like.likeSong',
+    id: "app.rocksky.like.likeSong",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Like a song',
+        type: "procedure",
+        description: "Like a song",
         input: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
+            type: "object",
             properties: {
               uri: {
-                type: 'string',
-                description: 'The unique identifier of the song to like',
-                format: 'at-uri',
+                type: "string",
+                description: "The unique identifier of the song to like",
+                format: "at-uri",
               },
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.song.defs#songViewDetailed',
+            type: "ref",
+            ref: "lex:app.rocksky.song.defs#songViewDetailed",
+          },
+        },
+      },
+    },
+  },
+  AppRockskyPlayerAddDirectoryToQueue: {
+    lexicon: 1,
+    id: "app.rocksky.player.addDirectoryToQueue",
+    defs: {
+      main: {
+        type: "procedure",
+        description: "Add directory to the player's queue",
+        parameters: {
+          type: "params",
+          required: ["directory"],
+          properties: {
+            playerId: {
+              type: "string",
+            },
+            directory: {
+              type: "string",
+              description: "The directory to add to the queue",
+            },
+            position: {
+              type: "integer",
+              description:
+                "Position in the queue to insert the directory at, defaults to the end if not specified",
+            },
+            shuffle: {
+              type: "boolean",
+              description:
+                "Whether to shuffle the added directory in the queue",
+            },
           },
         },
       },
@@ -1868,33 +1901,33 @@ export const schemaDict = {
   },
   AppRockskyPlayerAddItemsToQueue: {
     lexicon: 1,
-    id: 'app.rocksky.player.addItemsToQueue',
+    id: "app.rocksky.player.addItemsToQueue",
     defs: {
       main: {
-        type: 'procedure',
+        type: "procedure",
         description: "Add items to the player's queue",
         parameters: {
-          type: 'params',
-          required: ['items'],
+          type: "params",
+          required: ["items"],
           properties: {
             playerId: {
-              type: 'string',
+              type: "string",
             },
             items: {
-              type: 'array',
+              type: "array",
               items: {
-                type: 'string',
-                description: 'List of file identifiers to add to the queue',
+                type: "string",
+                description: "List of file identifiers to add to the queue",
               },
             },
             position: {
-              type: 'integer',
+              type: "integer",
               description:
-                'Position in the queue to insert the items at, defaults to the end if not specified',
+                "Position in the queue to insert the items at, defaults to the end if not specified",
             },
             shuffle: {
-              type: 'boolean',
-              description: 'Whether to shuffle the added items in the queue',
+              type: "boolean",
+              description: "Whether to shuffle the added items in the queue",
             },
           },
         },
@@ -1903,25 +1936,25 @@ export const schemaDict = {
   },
   AppRockskyPlayerDefs: {
     lexicon: 1,
-    id: 'app.rocksky.player.defs',
+    id: "app.rocksky.player.defs",
     defs: {
       currentlyPlayingViewDetailed: {
-        type: 'object',
+        type: "object",
         properties: {
           title: {
-            type: 'string',
-            description: 'The title of the currently playing track',
+            type: "string",
+            description: "The title of the currently playing track",
           },
         },
       },
       playbackQueueViewDetailed: {
-        type: 'object',
+        type: "object",
         properties: {
           tracks: {
-            type: 'array',
+            type: "array",
             items: {
-              type: 'ref',
-              ref: 'lex:app.rocksky.song.defs.songViewBasic',
+              type: "ref",
+              ref: "lex:app.rocksky.song.defs.songViewBasic",
             },
           },
         },
@@ -1930,30 +1963,30 @@ export const schemaDict = {
   },
   AppRockskyPlayerGetCurrentlyPlaying: {
     lexicon: 1,
-    id: 'app.rocksky.player.getCurrentlyPlaying',
+    id: "app.rocksky.player.getCurrentlyPlaying",
     defs: {
       main: {
-        type: 'query',
-        description: 'Get the currently playing track',
+        type: "query",
+        description: "Get the currently playing track",
         parameters: {
-          type: 'params',
+          type: "params",
           properties: {
             playerId: {
-              type: 'string',
+              type: "string",
             },
             actor: {
-              type: 'string',
+              type: "string",
               description:
-                'Handle or DID of the actor to retrieve the currently playing track for. If not provided, defaults to the current user.',
-              format: 'at-identifier',
+                "Handle or DID of the actor to retrieve the currently playing track for. If not provided, defaults to the current user.",
+              format: "at-identifier",
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.player.defs#currentlyPlayingViewDetailed',
+            type: "ref",
+            ref: "lex:app.rocksky.player.defs#currentlyPlayingViewDetailed",
           },
         },
       },
@@ -1961,24 +1994,24 @@ export const schemaDict = {
   },
   AppRockskyPlayerGetPlaybackQueue: {
     lexicon: 1,
-    id: 'app.rocksky.player.getPlaybackQueue',
+    id: "app.rocksky.player.getPlaybackQueue",
     defs: {
       main: {
-        type: 'query',
-        description: 'Retrieve the current playback queue',
+        type: "query",
+        description: "Retrieve the current playback queue",
         parameters: {
-          type: 'params',
+          type: "params",
           properties: {
             playerId: {
-              type: 'string',
+              type: "string",
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.player.defs#playbackQueueViewDetailed',
+            type: "ref",
+            ref: "lex:app.rocksky.player.defs#playbackQueueViewDetailed",
           },
         },
       },
@@ -1986,16 +2019,16 @@ export const schemaDict = {
   },
   AppRockskyPlayerNext: {
     lexicon: 1,
-    id: 'app.rocksky.player.next',
+    id: "app.rocksky.player.next",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Play the next track in the queue',
+        type: "procedure",
+        description: "Play the next track in the queue",
         parameters: {
-          type: 'params',
+          type: "params",
           properties: {
             playerId: {
-              type: 'string',
+              type: "string",
             },
           },
         },
@@ -2004,16 +2037,16 @@ export const schemaDict = {
   },
   AppRockskyPlayerPause: {
     lexicon: 1,
-    id: 'app.rocksky.player.pause',
+    id: "app.rocksky.player.pause",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Pause the currently playing track',
+        type: "procedure",
+        description: "Pause the currently playing track",
         parameters: {
-          type: 'params',
+          type: "params",
           properties: {
             playerId: {
-              type: 'string',
+              type: "string",
             },
           },
         },
@@ -2022,29 +2055,29 @@ export const schemaDict = {
   },
   AppRockskyPlayerPlayDirectory: {
     lexicon: 1,
-    id: 'app.rocksky.player.playDirectory',
+    id: "app.rocksky.player.playDirectory",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Play all tracks in a directory',
+        type: "procedure",
+        description: "Play all tracks in a directory",
         parameters: {
-          type: 'params',
-          required: ['directoryId'],
+          type: "params",
+          required: ["directoryId"],
           properties: {
             playerId: {
-              type: 'string',
+              type: "string",
             },
             directoryId: {
-              type: 'string',
+              type: "string",
             },
             shuffle: {
-              type: 'boolean',
+              type: "boolean",
             },
             recurse: {
-              type: 'boolean',
+              type: "boolean",
             },
             position: {
-              type: 'integer',
+              type: "integer",
             },
           },
         },
@@ -2053,20 +2086,20 @@ export const schemaDict = {
   },
   AppRockskyPlayerPlayFile: {
     lexicon: 1,
-    id: 'app.rocksky.player.playFile',
+    id: "app.rocksky.player.playFile",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Play a specific audio file',
+        type: "procedure",
+        description: "Play a specific audio file",
         parameters: {
-          type: 'params',
-          required: ['fileId'],
+          type: "params",
+          required: ["fileId"],
           properties: {
             playerId: {
-              type: 'string',
+              type: "string",
             },
             fileId: {
-              type: 'string',
+              type: "string",
             },
           },
         },
@@ -2075,16 +2108,16 @@ export const schemaDict = {
   },
   AppRockskyPlayerPlay: {
     lexicon: 1,
-    id: 'app.rocksky.player.play',
+    id: "app.rocksky.player.play",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Resume playback of the currently paused track',
+        type: "procedure",
+        description: "Resume playback of the currently paused track",
         parameters: {
-          type: 'params',
+          type: "params",
           properties: {
             playerId: {
-              type: 'string',
+              type: "string",
             },
           },
         },
@@ -2093,16 +2126,16 @@ export const schemaDict = {
   },
   AppRockskyPlayerPrevious: {
     lexicon: 1,
-    id: 'app.rocksky.player.previous',
+    id: "app.rocksky.player.previous",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Play the previous track in the queue',
+        type: "procedure",
+        description: "Play the previous track in the queue",
         parameters: {
-          type: 'params',
+          type: "params",
           properties: {
             playerId: {
-              type: 'string',
+              type: "string",
             },
           },
         },
@@ -2111,22 +2144,22 @@ export const schemaDict = {
   },
   AppRockskyPlayerSeek: {
     lexicon: 1,
-    id: 'app.rocksky.player.seek',
+    id: "app.rocksky.player.seek",
     defs: {
       main: {
-        type: 'procedure',
+        type: "procedure",
         description:
-          'Seek to a specific position in the currently playing track',
+          "Seek to a specific position in the currently playing track",
         parameters: {
-          type: 'params',
-          required: ['position'],
+          type: "params",
+          required: ["position"],
           properties: {
             playerId: {
-              type: 'string',
+              type: "string",
             },
             position: {
-              type: 'integer',
-              description: 'The position in seconds to seek to',
+              type: "integer",
+              description: "The position in seconds to seek to",
             },
           },
         },
@@ -2135,22 +2168,22 @@ export const schemaDict = {
   },
   AppRockskyPlaylistCreatePlaylist: {
     lexicon: 1,
-    id: 'app.rocksky.playlist.createPlaylist',
+    id: "app.rocksky.playlist.createPlaylist",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Create a new playlist',
+        type: "procedure",
+        description: "Create a new playlist",
         parameters: {
-          type: 'params',
-          required: ['name'],
+          type: "params",
+          required: ["name"],
           properties: {
             name: {
-              type: 'string',
-              description: 'The name of the playlist',
+              type: "string",
+              description: "The name of the playlist",
             },
             description: {
-              type: 'string',
-              description: 'A brief description of the playlist',
+              type: "string",
+              description: "A brief description of the playlist",
             },
           },
         },
@@ -2159,122 +2192,122 @@ export const schemaDict = {
   },
   AppRockskyPlaylistDefs: {
     lexicon: 1,
-    id: 'app.rocksky.playlist.defs',
+    id: "app.rocksky.playlist.defs",
     defs: {
       playlistViewDetailed: {
-        type: 'object',
+        type: "object",
         description:
-          'Detailed view of a playlist, including its tracks and metadata',
+          "Detailed view of a playlist, including its tracks and metadata",
         properties: {
           id: {
-            type: 'string',
-            description: 'The unique identifier of the playlist.',
+            type: "string",
+            description: "The unique identifier of the playlist.",
           },
           title: {
-            type: 'string',
-            description: 'The title of the playlist.',
+            type: "string",
+            description: "The title of the playlist.",
           },
           uri: {
-            type: 'string',
-            description: 'The URI of the playlist.',
-            format: 'at-uri',
+            type: "string",
+            description: "The URI of the playlist.",
+            format: "at-uri",
           },
           curatorDid: {
-            type: 'string',
-            description: 'The DID of the curator of the playlist.',
-            format: 'at-identifier',
+            type: "string",
+            description: "The DID of the curator of the playlist.",
+            format: "at-identifier",
           },
           curatorHandle: {
-            type: 'string',
-            description: 'The handle of the curator of the playlist.',
-            format: 'at-identifier',
+            type: "string",
+            description: "The handle of the curator of the playlist.",
+            format: "at-identifier",
           },
           curatorName: {
-            type: 'string',
-            description: 'The name of the curator of the playlist.',
+            type: "string",
+            description: "The name of the curator of the playlist.",
           },
           curatorAvatarUrl: {
-            type: 'string',
-            description: 'The URL of the avatar image of the curator.',
-            format: 'uri',
+            type: "string",
+            description: "The URL of the avatar image of the curator.",
+            format: "uri",
           },
           description: {
-            type: 'string',
-            description: 'A description of the playlist.',
+            type: "string",
+            description: "A description of the playlist.",
           },
           coverImageUrl: {
-            type: 'string',
-            description: 'The URL of the cover image for the playlist.',
-            format: 'uri',
+            type: "string",
+            description: "The URL of the cover image for the playlist.",
+            format: "uri",
           },
           createdAt: {
-            type: 'string',
-            description: 'The date and time when the playlist was created.',
-            format: 'datetime',
+            type: "string",
+            description: "The date and time when the playlist was created.",
+            format: "datetime",
           },
           tracks: {
-            type: 'array',
-            description: 'A list of tracks in the playlist.',
+            type: "array",
+            description: "A list of tracks in the playlist.",
             items: {
-              type: 'ref',
-              ref: 'lex:app.rocksky.song.defs#songViewBasic',
+              type: "ref",
+              ref: "lex:app.rocksky.song.defs#songViewBasic",
             },
           },
         },
       },
       playlistViewBasic: {
-        type: 'object',
-        description: 'Basic view of a playlist, including its metadata',
+        type: "object",
+        description: "Basic view of a playlist, including its metadata",
         properties: {
           id: {
-            type: 'string',
-            description: 'The unique identifier of the playlist.',
+            type: "string",
+            description: "The unique identifier of the playlist.",
           },
           title: {
-            type: 'string',
-            description: 'The title of the playlist.',
+            type: "string",
+            description: "The title of the playlist.",
           },
           uri: {
-            type: 'string',
-            description: 'The URI of the playlist.',
-            format: 'at-uri',
+            type: "string",
+            description: "The URI of the playlist.",
+            format: "at-uri",
           },
           curatorDid: {
-            type: 'string',
-            description: 'The DID of the curator of the playlist.',
-            format: 'at-identifier',
+            type: "string",
+            description: "The DID of the curator of the playlist.",
+            format: "at-identifier",
           },
           curatorHandle: {
-            type: 'string',
-            description: 'The handle of the curator of the playlist.',
-            format: 'at-identifier',
+            type: "string",
+            description: "The handle of the curator of the playlist.",
+            format: "at-identifier",
           },
           curatorName: {
-            type: 'string',
-            description: 'The name of the curator of the playlist.',
+            type: "string",
+            description: "The name of the curator of the playlist.",
           },
           curatorAvatarUrl: {
-            type: 'string',
-            description: 'The URL of the avatar image of the curator.',
-            format: 'uri',
+            type: "string",
+            description: "The URL of the avatar image of the curator.",
+            format: "uri",
           },
           description: {
-            type: 'string',
-            description: 'A description of the playlist.',
+            type: "string",
+            description: "A description of the playlist.",
           },
           coverImageUrl: {
-            type: 'string',
-            description: 'The URL of the cover image for the playlist.',
-            format: 'uri',
+            type: "string",
+            description: "The URL of the cover image for the playlist.",
+            format: "uri",
           },
           createdAt: {
-            type: 'string',
-            description: 'The date and time when the playlist was created.',
-            format: 'datetime',
+            type: "string",
+            description: "The date and time when the playlist was created.",
+            format: "datetime",
           },
           trackCount: {
-            type: 'integer',
-            description: 'The number of tracks in the playlist.',
+            type: "integer",
+            description: "The number of tracks in the playlist.",
             minimum: 0,
           },
         },
@@ -2283,27 +2316,27 @@ export const schemaDict = {
   },
   AppRockskyPlaylistGetPlaylist: {
     lexicon: 1,
-    id: 'app.rocksky.playlist.getPlaylist',
+    id: "app.rocksky.playlist.getPlaylist",
     defs: {
       main: {
-        type: 'query',
-        description: 'Retrieve a playlist by its ID',
+        type: "query",
+        description: "Retrieve a playlist by its ID",
         parameters: {
-          type: 'params',
-          required: ['uri'],
+          type: "params",
+          required: ["uri"],
           properties: {
             uri: {
-              type: 'string',
-              description: 'The URI of the playlist to retrieve.',
-              format: 'at-uri',
+              type: "string",
+              description: "The URI of the playlist to retrieve.",
+              format: "at-uri",
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.playlist.defs#playlistViewDetailed',
+            type: "ref",
+            ref: "lex:app.rocksky.playlist.defs#playlistViewDetailed",
           },
         },
       },
@@ -2311,35 +2344,35 @@ export const schemaDict = {
   },
   AppRockskyPlaylistGetPlaylists: {
     lexicon: 1,
-    id: 'app.rocksky.playlist.getPlaylists',
+    id: "app.rocksky.playlist.getPlaylists",
     defs: {
       main: {
-        type: 'query',
-        description: 'Retrieve a list of playlists',
+        type: "query",
+        description: "Retrieve a list of playlists",
         parameters: {
-          type: 'params',
+          type: "params",
           properties: {
             limit: {
-              type: 'integer',
-              description: 'The maximum number of playlists to return.',
+              type: "integer",
+              description: "The maximum number of playlists to return.",
             },
             offset: {
-              type: 'integer',
+              type: "integer",
               description:
-                'The offset for pagination, used to skip a number of playlists.',
+                "The offset for pagination, used to skip a number of playlists.",
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
+            type: "object",
             properties: {
               playlists: {
-                type: 'array',
+                type: "array",
                 items: {
-                  type: 'ref',
-                  ref: 'lex:app.rocksky.playlist.defs#playlistViewBasic',
+                  type: "ref",
+                  ref: "lex:app.rocksky.playlist.defs#playlistViewBasic",
                 },
               },
             },
@@ -2350,28 +2383,28 @@ export const schemaDict = {
   },
   AppRockskyPlaylistInsertDirectory: {
     lexicon: 1,
-    id: 'app.rocksky.playlist.insertDirectory',
+    id: "app.rocksky.playlist.insertDirectory",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Insert a directory into a playlist',
+        type: "procedure",
+        description: "Insert a directory into a playlist",
         parameters: {
-          type: 'params',
-          required: ['uri', 'directory'],
+          type: "params",
+          required: ["uri", "directory"],
           properties: {
             uri: {
-              type: 'string',
-              description: 'The URI of the playlist to start',
-              format: 'at-uri',
+              type: "string",
+              description: "The URI of the playlist to start",
+              format: "at-uri",
             },
             directory: {
-              type: 'string',
-              description: 'The directory (id) to insert into the playlist',
+              type: "string",
+              description: "The directory (id) to insert into the playlist",
             },
             position: {
-              type: 'integer',
+              type: "integer",
               description:
-                'The position in the playlist to insert the directory at, if not specified, the directory will be appended',
+                "The position in the playlist to insert the directory at, if not specified, the directory will be appended",
             },
           },
         },
@@ -2380,31 +2413,31 @@ export const schemaDict = {
   },
   AppRockskyPlaylistInsertFiles: {
     lexicon: 1,
-    id: 'app.rocksky.playlist.insertFiles',
+    id: "app.rocksky.playlist.insertFiles",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Insert files into a playlist',
+        type: "procedure",
+        description: "Insert files into a playlist",
         parameters: {
-          type: 'params',
-          required: ['uri', 'files'],
+          type: "params",
+          required: ["uri", "files"],
           properties: {
             uri: {
-              type: 'string',
-              description: 'The URI of the playlist to start',
-              format: 'at-uri',
+              type: "string",
+              description: "The URI of the playlist to start",
+              format: "at-uri",
             },
             files: {
-              type: 'array',
+              type: "array",
               items: {
-                type: 'string',
-                description: 'List of file (id) to insert into the playlist',
+                type: "string",
+                description: "List of file (id) to insert into the playlist",
               },
             },
             position: {
-              type: 'integer',
+              type: "integer",
               description:
-                'The position in the playlist to insert the files at, if not specified, files will be appended',
+                "The position in the playlist to insert the files at, if not specified, files will be appended",
             },
           },
         },
@@ -2413,62 +2446,62 @@ export const schemaDict = {
   },
   AppRockskyPlaylist: {
     lexicon: 1,
-    id: 'app.rocksky.playlist',
+    id: "app.rocksky.playlist",
     defs: {
       main: {
-        type: 'record',
-        description: 'A declaration of a playlist.',
-        key: 'tid',
+        type: "record",
+        description: "A declaration of a playlist.",
+        key: "tid",
         record: {
-          type: 'object',
-          required: ['name', 'createdAt'],
+          type: "object",
+          required: ["name", "createdAt"],
           properties: {
             name: {
-              type: 'string',
-              description: 'The name of the playlist.',
+              type: "string",
+              description: "The name of the playlist.",
               minLength: 1,
               maxLength: 512,
             },
             description: {
-              type: 'string',
-              description: 'The playlist description.',
+              type: "string",
+              description: "The playlist description.",
               minLength: 1,
               maxLength: 256,
             },
             picture: {
-              type: 'blob',
-              description: 'The picture of the playlist.',
-              accept: ['image/png', 'image/jpeg'],
+              type: "blob",
+              description: "The picture of the playlist.",
+              accept: ["image/png", "image/jpeg"],
               maxSize: 2000000,
             },
             tracks: {
-              type: 'array',
-              description: 'The tracks in the playlist.',
+              type: "array",
+              description: "The tracks in the playlist.",
               items: {
-                type: 'ref',
-                ref: 'lex:app.rocksky.song#record',
+                type: "ref",
+                ref: "lex:app.rocksky.song#record",
               },
             },
             createdAt: {
-              type: 'string',
-              description: 'The date the playlist was created.',
-              format: 'datetime',
+              type: "string",
+              description: "The date the playlist was created.",
+              format: "datetime",
             },
             spotifyLink: {
-              type: 'string',
-              description: 'The Spotify link of the playlist.',
+              type: "string",
+              description: "The Spotify link of the playlist.",
             },
             tidalLink: {
-              type: 'string',
-              description: 'The Tidal link of the playlist.',
+              type: "string",
+              description: "The Tidal link of the playlist.",
             },
             youtubeLink: {
-              type: 'string',
-              description: 'The YouTube link of the playlist.',
+              type: "string",
+              description: "The YouTube link of the playlist.",
             },
             appleMusicLink: {
-              type: 'string',
-              description: 'The Apple Music link of the playlist.',
+              type: "string",
+              description: "The Apple Music link of the playlist.",
             },
           },
         },
@@ -2477,19 +2510,19 @@ export const schemaDict = {
   },
   AppRockskyPlaylistRemovePlaylist: {
     lexicon: 1,
-    id: 'app.rocksky.playlist.removePlaylist',
+    id: "app.rocksky.playlist.removePlaylist",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Remove a playlist',
+        type: "procedure",
+        description: "Remove a playlist",
         parameters: {
-          type: 'params',
-          required: ['uri'],
+          type: "params",
+          required: ["uri"],
           properties: {
             uri: {
-              type: 'string',
-              description: 'The URI of the playlist to remove',
-              format: 'at-uri',
+              type: "string",
+              description: "The URI of the playlist to remove",
+              format: "at-uri",
             },
           },
         },
@@ -2498,24 +2531,24 @@ export const schemaDict = {
   },
   AppRockskyPlaylistRemoveTrack: {
     lexicon: 1,
-    id: 'app.rocksky.playlist.removeTrack',
+    id: "app.rocksky.playlist.removeTrack",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Remove a track from a playlist',
+        type: "procedure",
+        description: "Remove a track from a playlist",
         parameters: {
-          type: 'params',
-          required: ['uri', 'position'],
+          type: "params",
+          required: ["uri", "position"],
           properties: {
             uri: {
-              type: 'string',
-              description: 'The URI of the playlist to remove the track from',
-              format: 'at-uri',
+              type: "string",
+              description: "The URI of the playlist to remove the track from",
+              format: "at-uri",
             },
             position: {
-              type: 'integer',
+              type: "integer",
               description:
-                'The position of the track to remove in the playlist',
+                "The position of the track to remove in the playlist",
             },
           },
         },
@@ -2524,28 +2557,28 @@ export const schemaDict = {
   },
   AppRockskyPlaylistStartPlaylist: {
     lexicon: 1,
-    id: 'app.rocksky.playlist.startPlaylist',
+    id: "app.rocksky.playlist.startPlaylist",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Start a playlist',
+        type: "procedure",
+        description: "Start a playlist",
         parameters: {
-          type: 'params',
-          required: ['uri'],
+          type: "params",
+          required: ["uri"],
           properties: {
             uri: {
-              type: 'string',
-              description: 'The URI of the playlist to start',
-              format: 'at-uri',
+              type: "string",
+              description: "The URI of the playlist to start",
+              format: "at-uri",
             },
             shuffle: {
-              type: 'boolean',
-              description: 'Whether to shuffle the playlist when starting it',
+              type: "boolean",
+              description: "Whether to shuffle the playlist when starting it",
             },
             position: {
-              type: 'integer',
+              type: "integer",
               description:
-                'The position in the playlist to start from, if not specified, starts from the beginning',
+                "The position in the playlist to start from, if not specified, starts from the beginning",
             },
           },
         },
@@ -2554,67 +2587,67 @@ export const schemaDict = {
   },
   AppRockskyRadioDefs: {
     lexicon: 1,
-    id: 'app.rocksky.radio.defs',
+    id: "app.rocksky.radio.defs",
     defs: {
       radioViewBasic: {
-        type: 'object',
+        type: "object",
         properties: {
           id: {
-            type: 'string',
-            description: 'The unique identifier of the radio.',
+            type: "string",
+            description: "The unique identifier of the radio.",
           },
           name: {
-            type: 'string',
-            description: 'The name of the radio.',
+            type: "string",
+            description: "The name of the radio.",
           },
           description: {
-            type: 'string',
-            description: 'A brief description of the radio.',
+            type: "string",
+            description: "A brief description of the radio.",
           },
           createdAt: {
-            type: 'string',
-            description: 'The date and time when the radio was created.',
-            format: 'datetime',
+            type: "string",
+            description: "The date and time when the radio was created.",
+            format: "datetime",
           },
         },
       },
       radioViewDetailed: {
-        type: 'object',
+        type: "object",
         properties: {
           id: {
-            type: 'string',
-            description: 'The unique identifier of the radio.',
+            type: "string",
+            description: "The unique identifier of the radio.",
           },
           name: {
-            type: 'string',
-            description: 'The name of the radio.',
+            type: "string",
+            description: "The name of the radio.",
           },
           description: {
-            type: 'string',
-            description: 'A brief description of the radio.',
+            type: "string",
+            description: "A brief description of the radio.",
           },
           website: {
-            type: 'string',
-            description: 'The website of the radio.',
-            format: 'uri',
+            type: "string",
+            description: "The website of the radio.",
+            format: "uri",
           },
           url: {
-            type: 'string',
-            description: 'The streaming URL of the radio.',
-            format: 'uri',
+            type: "string",
+            description: "The streaming URL of the radio.",
+            format: "uri",
           },
           genre: {
-            type: 'string',
-            description: 'The genre of the radio.',
+            type: "string",
+            description: "The genre of the radio.",
           },
           logo: {
-            type: 'string',
-            description: 'The logo of the radio station.',
+            type: "string",
+            description: "The logo of the radio station.",
           },
           createdAt: {
-            type: 'string',
-            description: 'The date and time when the radio was created.',
-            format: 'datetime',
+            type: "string",
+            description: "The date and time when the radio was created.",
+            format: "datetime",
           },
         },
       },
@@ -2622,54 +2655,54 @@ export const schemaDict = {
   },
   AppRockskyRadio: {
     lexicon: 1,
-    id: 'app.rocksky.radio',
+    id: "app.rocksky.radio",
     defs: {
       main: {
-        type: 'record',
-        description: 'A declaration of a radio station.',
-        key: 'tid',
+        type: "record",
+        description: "A declaration of a radio station.",
+        key: "tid",
         record: {
-          type: 'object',
-          required: ['name', 'url', 'createdAt'],
+          type: "object",
+          required: ["name", "url", "createdAt"],
           properties: {
             name: {
-              type: 'string',
-              description: 'The name of the radio station.',
+              type: "string",
+              description: "The name of the radio station.",
               minLength: 1,
               maxLength: 512,
             },
             url: {
-              type: 'string',
-              description: 'The URL of the radio station.',
-              format: 'uri',
+              type: "string",
+              description: "The URL of the radio station.",
+              format: "uri",
             },
             description: {
-              type: 'string',
-              description: 'A description of the radio station.',
+              type: "string",
+              description: "A description of the radio station.",
               minLength: 1,
               maxLength: 1000,
             },
             genre: {
-              type: 'string',
-              description: 'The genre of the radio station.',
+              type: "string",
+              description: "The genre of the radio station.",
               minLength: 1,
               maxLength: 256,
             },
             logo: {
-              type: 'blob',
-              description: 'The logo of the radio station.',
-              accept: ['image/png', 'image/jpeg'],
+              type: "blob",
+              description: "The logo of the radio station.",
+              accept: ["image/png", "image/jpeg"],
               maxSize: 2000000,
             },
             website: {
-              type: 'string',
-              description: 'The website of the radio station.',
-              format: 'uri',
+              type: "string",
+              description: "The website of the radio station.",
+              format: "uri",
             },
             createdAt: {
-              type: 'string',
-              description: 'The date when the radio station was created.',
-              format: 'datetime',
+              type: "string",
+              description: "The date when the radio station was created.",
+              format: "datetime",
             },
           },
         },
@@ -2678,125 +2711,125 @@ export const schemaDict = {
   },
   AppRockskyScrobbleCreateScrobble: {
     lexicon: 1,
-    id: 'app.rocksky.scrobble.createScrobble',
+    id: "app.rocksky.scrobble.createScrobble",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Create a new scrobble',
+        type: "procedure",
+        description: "Create a new scrobble",
         input: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
-            required: ['title', 'artist'],
+            type: "object",
+            required: ["title", "artist"],
             properties: {
               title: {
-                type: 'string',
-                description: 'The title of the track being scrobbled',
+                type: "string",
+                description: "The title of the track being scrobbled",
               },
               artist: {
-                type: 'string',
-                description: 'The artist of the track being scrobbled',
+                type: "string",
+                description: "The artist of the track being scrobbled",
               },
               album: {
-                type: 'string',
-                description: 'The album of the track being scrobbled',
+                type: "string",
+                description: "The album of the track being scrobbled",
               },
               duration: {
-                type: 'integer',
-                description: 'The duration of the track in seconds',
+                type: "integer",
+                description: "The duration of the track in seconds",
               },
               mbId: {
-                type: 'string',
-                description: 'The MusicBrainz ID of the track, if available',
+                type: "string",
+                description: "The MusicBrainz ID of the track, if available",
               },
               albumArt: {
-                type: 'string',
-                description: 'The URL of the album art for the track',
-                format: 'uri',
+                type: "string",
+                description: "The URL of the album art for the track",
+                format: "uri",
               },
               trackNumber: {
-                type: 'integer',
-                description: 'The track number of the track in the album',
+                type: "integer",
+                description: "The track number of the track in the album",
               },
               releaseDate: {
-                type: 'string',
+                type: "string",
                 description:
-                  'The release date of the track, formatted as YYYY-MM-DD',
+                  "The release date of the track, formatted as YYYY-MM-DD",
               },
               year: {
-                type: 'integer',
-                description: 'The year the track was released',
+                type: "integer",
+                description: "The year the track was released",
               },
               discNumber: {
-                type: 'integer',
+                type: "integer",
                 description:
-                  'The disc number of the track in the album, if applicable',
+                  "The disc number of the track in the album, if applicable",
               },
               lyrics: {
-                type: 'string',
-                description: 'The lyrics of the track, if available',
+                type: "string",
+                description: "The lyrics of the track, if available",
               },
               composer: {
-                type: 'string',
-                description: 'The composer of the track, if available',
+                type: "string",
+                description: "The composer of the track, if available",
               },
               copyrightMessage: {
-                type: 'string',
+                type: "string",
                 description:
-                  'The copyright message for the track, if available',
+                  "The copyright message for the track, if available",
               },
               label: {
-                type: 'string',
-                description: 'The record label of the track, if available',
+                type: "string",
+                description: "The record label of the track, if available",
               },
               artistPicture: {
-                type: 'string',
+                type: "string",
                 description: "The URL of the artist's picture, if available",
-                format: 'uri',
+                format: "uri",
               },
               spotifyLink: {
-                type: 'string',
-                description: 'The Spotify link for the track, if available',
-                format: 'uri',
+                type: "string",
+                description: "The Spotify link for the track, if available",
+                format: "uri",
               },
               lastfmLink: {
-                type: 'string',
-                description: 'The Last.fm link for the track, if available',
-                format: 'uri',
+                type: "string",
+                description: "The Last.fm link for the track, if available",
+                format: "uri",
               },
               tidalLink: {
-                type: 'string',
-                description: 'The Tidal link for the track, if available',
-                format: 'uri',
+                type: "string",
+                description: "The Tidal link for the track, if available",
+                format: "uri",
               },
               appleMusicLink: {
-                type: 'string',
-                description: 'The Apple Music link for the track, if available',
-                format: 'uri',
+                type: "string",
+                description: "The Apple Music link for the track, if available",
+                format: "uri",
               },
               youtubeLink: {
-                type: 'string',
-                description: 'The Youtube link for the track, if available',
-                format: 'uri',
+                type: "string",
+                description: "The Youtube link for the track, if available",
+                format: "uri",
               },
               deezerLink: {
-                type: 'string',
-                description: 'The Deezer link for the track, if available',
-                format: 'uri',
+                type: "string",
+                description: "The Deezer link for the track, if available",
+                format: "uri",
               },
               timestamp: {
-                type: 'integer',
+                type: "integer",
                 description:
-                  'The timestamp of the scrobble in milliseconds since epoch',
+                  "The timestamp of the scrobble in milliseconds since epoch",
               },
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.scrobble.defs#scrobbleViewBasic',
+            type: "ref",
+            ref: "lex:app.rocksky.scrobble.defs#scrobbleViewBasic",
           },
         },
       },
@@ -2804,121 +2837,121 @@ export const schemaDict = {
   },
   AppRockskyScrobbleDefs: {
     lexicon: 1,
-    id: 'app.rocksky.scrobble.defs',
+    id: "app.rocksky.scrobble.defs",
     defs: {
       scrobbleViewBasic: {
-        type: 'object',
+        type: "object",
         properties: {
           id: {
-            type: 'string',
-            description: 'The unique identifier of the scrobble.',
+            type: "string",
+            description: "The unique identifier of the scrobble.",
           },
           user: {
-            type: 'string',
-            description: 'The handle of the user who created the scrobble.',
+            type: "string",
+            description: "The handle of the user who created the scrobble.",
           },
           title: {
-            type: 'string',
-            description: 'The title of the scrobble.',
+            type: "string",
+            description: "The title of the scrobble.",
           },
           artist: {
-            type: 'string',
-            description: 'The artist of the song.',
+            type: "string",
+            description: "The artist of the song.",
           },
           artistUri: {
-            type: 'string',
-            description: 'The URI of the artist.',
-            format: 'at-uri',
+            type: "string",
+            description: "The URI of the artist.",
+            format: "at-uri",
           },
           album: {
-            type: 'string',
-            description: 'The album of the song.',
+            type: "string",
+            description: "The album of the song.",
           },
           albumUri: {
-            type: 'string',
-            description: 'The URI of the album.',
-            format: 'at-uri',
+            type: "string",
+            description: "The URI of the album.",
+            format: "at-uri",
           },
           cover: {
-            type: 'string',
-            description: 'The album art URL of the song.',
-            format: 'uri',
+            type: "string",
+            description: "The album art URL of the song.",
+            format: "uri",
           },
           date: {
-            type: 'string',
-            description: 'The timestamp when the scrobble was created.',
-            format: 'datetime',
+            type: "string",
+            description: "The timestamp when the scrobble was created.",
+            format: "datetime",
           },
           uri: {
-            type: 'string',
-            description: 'The URI of the scrobble.',
-            format: 'uri',
+            type: "string",
+            description: "The URI of the scrobble.",
+            format: "uri",
           },
           sha256: {
-            type: 'string',
-            description: 'The SHA256 hash of the scrobble data.',
+            type: "string",
+            description: "The SHA256 hash of the scrobble data.",
           },
         },
       },
       scrobbleViewDetailed: {
-        type: 'object',
+        type: "object",
         properties: {
           id: {
-            type: 'string',
-            description: 'The unique identifier of the scrobble.',
+            type: "string",
+            description: "The unique identifier of the scrobble.",
           },
           user: {
-            type: 'string',
-            description: 'The handle of the user who created the scrobble.',
+            type: "string",
+            description: "The handle of the user who created the scrobble.",
           },
           title: {
-            type: 'string',
-            description: 'The title of the scrobble.',
+            type: "string",
+            description: "The title of the scrobble.",
           },
           artist: {
-            type: 'string',
-            description: 'The artist of the song.',
+            type: "string",
+            description: "The artist of the song.",
           },
           artistUri: {
-            type: 'string',
-            description: 'The URI of the artist.',
-            format: 'at-uri',
+            type: "string",
+            description: "The URI of the artist.",
+            format: "at-uri",
           },
           album: {
-            type: 'string',
-            description: 'The album of the song.',
+            type: "string",
+            description: "The album of the song.",
           },
           albumUri: {
-            type: 'string',
-            description: 'The URI of the album.',
-            format: 'at-uri',
+            type: "string",
+            description: "The URI of the album.",
+            format: "at-uri",
           },
           cover: {
-            type: 'string',
-            description: 'The album art URL of the song.',
-            format: 'uri',
+            type: "string",
+            description: "The album art URL of the song.",
+            format: "uri",
           },
           date: {
-            type: 'string',
-            description: 'The timestamp when the scrobble was created.',
-            format: 'datetime',
+            type: "string",
+            description: "The timestamp when the scrobble was created.",
+            format: "datetime",
           },
           uri: {
-            type: 'string',
-            description: 'The URI of the scrobble.',
-            format: 'uri',
+            type: "string",
+            description: "The URI of the scrobble.",
+            format: "uri",
           },
           sha256: {
-            type: 'string',
-            description: 'The SHA256 hash of the scrobble data.',
+            type: "string",
+            description: "The SHA256 hash of the scrobble data.",
           },
           listeners: {
-            type: 'integer',
-            description: 'The number of listeners',
+            type: "integer",
+            description: "The number of listeners",
           },
           scrobbles: {
-            type: 'integer',
-            description: 'The number of scrobbles for this song',
+            type: "integer",
+            description: "The number of scrobbles for this song",
           },
         },
       },
@@ -2926,27 +2959,27 @@ export const schemaDict = {
   },
   AppRockskyScrobbleGetScrobble: {
     lexicon: 1,
-    id: 'app.rocksky.scrobble.getScrobble',
+    id: "app.rocksky.scrobble.getScrobble",
     defs: {
       main: {
-        type: 'query',
-        description: 'Get a scrobble by its unique identifier',
+        type: "query",
+        description: "Get a scrobble by its unique identifier",
         parameters: {
-          type: 'params',
-          required: ['uri'],
+          type: "params",
+          required: ["uri"],
           properties: {
             uri: {
-              type: 'string',
-              description: 'The unique identifier of the scrobble',
-              format: 'at-uri',
+              type: "string",
+              description: "The unique identifier of the scrobble",
+              format: "at-uri",
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.scrobble.defs#scrobbleViewDetailed',
+            type: "ref",
+            ref: "lex:app.rocksky.scrobble.defs#scrobbleViewDetailed",
           },
         },
       },
@@ -2954,41 +2987,41 @@ export const schemaDict = {
   },
   AppRockskyScrobbleGetScrobbles: {
     lexicon: 1,
-    id: 'app.rocksky.scrobble.getScrobbles',
+    id: "app.rocksky.scrobble.getScrobbles",
     defs: {
       main: {
-        type: 'query',
-        description: 'Get scrobbles all scrobbles',
+        type: "query",
+        description: "Get scrobbles all scrobbles",
         parameters: {
-          type: 'params',
+          type: "params",
           properties: {
             did: {
-              type: 'string',
-              description: 'The DID or handle of the actor',
-              format: 'at-identifier',
+              type: "string",
+              description: "The DID or handle of the actor",
+              format: "at-identifier",
             },
             limit: {
-              type: 'integer',
-              description: 'The maximum number of scrobbles to return',
+              type: "integer",
+              description: "The maximum number of scrobbles to return",
               minimum: 1,
             },
             offset: {
-              type: 'integer',
-              description: 'The offset for pagination',
+              type: "integer",
+              description: "The offset for pagination",
               minimum: 0,
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
+            type: "object",
             properties: {
               scrobbles: {
-                type: 'array',
+                type: "array",
                 items: {
-                  type: 'ref',
-                  ref: 'lex:app.rocksky.scrobble.defs#scrobbleViewBasic',
+                  type: "ref",
+                  ref: "lex:app.rocksky.scrobble.defs#scrobbleViewBasic",
                 },
               },
             },
@@ -2999,143 +3032,143 @@ export const schemaDict = {
   },
   AppRockskyScrobble: {
     lexicon: 1,
-    id: 'app.rocksky.scrobble',
+    id: "app.rocksky.scrobble",
     defs: {
       main: {
-        type: 'record',
-        description: 'A declaration of a scrobble.',
-        key: 'tid',
+        type: "record",
+        description: "A declaration of a scrobble.",
+        key: "tid",
         record: {
-          type: 'object',
+          type: "object",
           required: [
-            'title',
-            'artist',
-            'album',
-            'albumArtist',
-            'duration',
-            'createdAt',
+            "title",
+            "artist",
+            "album",
+            "albumArtist",
+            "duration",
+            "createdAt",
           ],
           properties: {
             title: {
-              type: 'string',
-              description: 'The title of the song.',
+              type: "string",
+              description: "The title of the song.",
               minLength: 1,
               maxLength: 512,
             },
             artist: {
-              type: 'string',
-              description: 'The artist of the song.',
+              type: "string",
+              description: "The artist of the song.",
               minLength: 1,
               maxLength: 256,
             },
             albumArtist: {
-              type: 'string',
-              description: 'The album artist of the song.',
+              type: "string",
+              description: "The album artist of the song.",
               minLength: 1,
               maxLength: 256,
             },
             album: {
-              type: 'string',
-              description: 'The album of the song.',
+              type: "string",
+              description: "The album of the song.",
               minLength: 1,
               maxLength: 256,
             },
             duration: {
-              type: 'integer',
-              description: 'The duration of the song in seconds.',
+              type: "integer",
+              description: "The duration of the song in seconds.",
               minimum: 1,
             },
             trackNumber: {
-              type: 'integer',
-              description: 'The track number of the song in the album.',
+              type: "integer",
+              description: "The track number of the song in the album.",
               minimum: 1,
             },
             discNumber: {
-              type: 'integer',
-              description: 'The disc number of the song in the album.',
+              type: "integer",
+              description: "The disc number of the song in the album.",
               minimum: 1,
             },
             releaseDate: {
-              type: 'string',
-              description: 'The release date of the song.',
-              format: 'datetime',
+              type: "string",
+              description: "The release date of the song.",
+              format: "datetime",
             },
             year: {
-              type: 'integer',
-              description: 'The year the song was released.',
+              type: "integer",
+              description: "The year the song was released.",
             },
             genre: {
-              type: 'string',
-              description: 'The genre of the song.',
+              type: "string",
+              description: "The genre of the song.",
               maxLength: 256,
             },
             tags: {
-              type: 'array',
-              description: 'The tags of the song.',
+              type: "array",
+              description: "The tags of the song.",
               items: {
-                type: 'string',
+                type: "string",
                 minLength: 1,
                 maxLength: 256,
               },
             },
             composer: {
-              type: 'string',
-              description: 'The composer of the song.',
+              type: "string",
+              description: "The composer of the song.",
               maxLength: 256,
             },
             lyrics: {
-              type: 'string',
-              description: 'The lyrics of the song.',
+              type: "string",
+              description: "The lyrics of the song.",
               maxLength: 10000,
             },
             copyrightMessage: {
-              type: 'string',
-              description: 'The copyright message of the song.',
+              type: "string",
+              description: "The copyright message of the song.",
               maxLength: 256,
             },
             wiki: {
-              type: 'string',
-              description: 'Informations about the song',
+              type: "string",
+              description: "Informations about the song",
               maxLength: 10000,
             },
             albumArt: {
-              type: 'blob',
-              description: 'The album art of the song.',
-              accept: ['image/png', 'image/jpeg'],
+              type: "blob",
+              description: "The album art of the song.",
+              accept: ["image/png", "image/jpeg"],
               maxSize: 2000000,
             },
             youtubeLink: {
-              type: 'string',
-              description: 'The YouTube link of the song.',
-              format: 'uri',
+              type: "string",
+              description: "The YouTube link of the song.",
+              format: "uri",
             },
             spotifyLink: {
-              type: 'string',
-              description: 'The Spotify link of the song.',
-              format: 'uri',
+              type: "string",
+              description: "The Spotify link of the song.",
+              format: "uri",
             },
             tidalLink: {
-              type: 'string',
-              description: 'The Tidal link of the song.',
-              format: 'uri',
+              type: "string",
+              description: "The Tidal link of the song.",
+              format: "uri",
             },
             appleMusicLink: {
-              type: 'string',
-              description: 'The Apple Music link of the song.',
-              format: 'uri',
+              type: "string",
+              description: "The Apple Music link of the song.",
+              format: "uri",
             },
             createdAt: {
-              type: 'string',
-              description: 'The date when the song was created.',
-              format: 'datetime',
+              type: "string",
+              description: "The date when the song was created.",
+              format: "datetime",
             },
             mbid: {
-              type: 'string',
-              description: 'The MusicBrainz ID of the song.',
+              type: "string",
+              description: "The MusicBrainz ID of the song.",
             },
             label: {
-              type: 'string',
-              description: 'The label of the song.',
+              type: "string",
+              description: "The label of the song.",
               maxLength: 256,
             },
           },
@@ -3145,29 +3178,29 @@ export const schemaDict = {
   },
   AppRockskyShoutCreateShout: {
     lexicon: 1,
-    id: 'app.rocksky.shout.createShout',
+    id: "app.rocksky.shout.createShout",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Create a new shout',
+        type: "procedure",
+        description: "Create a new shout",
         input: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
+            type: "object",
             properties: {
               message: {
-                type: 'string',
-                description: 'The content of the shout',
+                type: "string",
+                description: "The content of the shout",
                 minLength: 1,
               },
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.shout.defs#shoutView',
+            type: "ref",
+            ref: "lex:app.rocksky.shout.defs#shoutView",
           },
         },
       },
@@ -3175,61 +3208,61 @@ export const schemaDict = {
   },
   AppRockskyShoutDefs: {
     lexicon: 1,
-    id: 'app.rocksky.shout.defs',
+    id: "app.rocksky.shout.defs",
     defs: {
       author: {
-        type: 'object',
+        type: "object",
         properties: {
           id: {
-            type: 'string',
-            description: 'The unique identifier of the author.',
+            type: "string",
+            description: "The unique identifier of the author.",
           },
           did: {
-            type: 'string',
-            description: 'The decentralized identifier (DID) of the author.',
-            format: 'at-identifier',
+            type: "string",
+            description: "The decentralized identifier (DID) of the author.",
+            format: "at-identifier",
           },
           handle: {
-            type: 'string',
-            description: 'The handle of the author.',
-            format: 'at-identifier',
+            type: "string",
+            description: "The handle of the author.",
+            format: "at-identifier",
           },
           displayName: {
-            type: 'string',
-            description: 'The display name of the author.',
+            type: "string",
+            description: "The display name of the author.",
           },
           avatar: {
-            type: 'string',
+            type: "string",
             description: "The URL of the author's avatar image.",
-            format: 'uri',
+            format: "uri",
           },
         },
       },
       shoutView: {
-        type: 'object',
+        type: "object",
         properties: {
           id: {
-            type: 'string',
-            description: 'The unique identifier of the shout.',
+            type: "string",
+            description: "The unique identifier of the shout.",
           },
           message: {
-            type: 'string',
-            description: 'The content of the shout.',
+            type: "string",
+            description: "The content of the shout.",
           },
           parent: {
-            type: 'string',
+            type: "string",
             description:
-              'The ID of the parent shout if this is a reply, otherwise null.',
+              "The ID of the parent shout if this is a reply, otherwise null.",
           },
           createdAt: {
-            type: 'string',
-            description: 'The date and time when the shout was created.',
-            format: 'datetime',
+            type: "string",
+            description: "The date and time when the shout was created.",
+            format: "datetime",
           },
           author: {
-            type: 'ref',
-            description: 'The author of the shout.',
-            ref: 'lex:app.rocksky.shout.defs#author',
+            type: "ref",
+            description: "The author of the shout.",
+            ref: "lex:app.rocksky.shout.defs#author",
           },
         },
       },
@@ -3237,44 +3270,44 @@ export const schemaDict = {
   },
   AppRockskyShoutGetAlbumShouts: {
     lexicon: 1,
-    id: 'app.rocksky.shout.getAlbumShouts',
+    id: "app.rocksky.shout.getAlbumShouts",
     defs: {
       main: {
-        type: 'query',
-        description: 'Get shouts for an album',
+        type: "query",
+        description: "Get shouts for an album",
         parameters: {
-          type: 'params',
-          required: ['uri'],
+          type: "params",
+          required: ["uri"],
           properties: {
             uri: {
-              type: 'string',
+              type: "string",
               description:
-                'The unique identifier of the album to retrieve shouts for',
-              format: 'at-uri',
+                "The unique identifier of the album to retrieve shouts for",
+              format: "at-uri",
             },
             limit: {
-              type: 'integer',
-              description: 'The maximum number of shouts to return',
+              type: "integer",
+              description: "The maximum number of shouts to return",
               minimum: 1,
             },
             offset: {
-              type: 'integer',
+              type: "integer",
               description:
-                'The number of shouts to skip before starting to collect the result set',
+                "The number of shouts to skip before starting to collect the result set",
               minimum: 0,
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
+            type: "object",
             properties: {
               shouts: {
-                type: 'array',
+                type: "array",
                 items: {
-                  type: 'ref',
-                  ref: 'lex:app.rocksky.shout.defs#shoutViewBasic',
+                  type: "ref",
+                  ref: "lex:app.rocksky.shout.defs#shoutViewBasic",
                 },
               },
             },
@@ -3285,43 +3318,43 @@ export const schemaDict = {
   },
   AppRockskyShoutGetArtistShouts: {
     lexicon: 1,
-    id: 'app.rocksky.shout.getArtistShouts',
+    id: "app.rocksky.shout.getArtistShouts",
     defs: {
       main: {
-        type: 'query',
-        description: 'Get shouts for an artist',
+        type: "query",
+        description: "Get shouts for an artist",
         parameters: {
-          type: 'params',
-          required: ['uri'],
+          type: "params",
+          required: ["uri"],
           properties: {
             uri: {
-              type: 'string',
-              description: 'The URI of the artist to retrieve shouts for',
-              format: 'at-uri',
+              type: "string",
+              description: "The URI of the artist to retrieve shouts for",
+              format: "at-uri",
             },
             limit: {
-              type: 'integer',
-              description: 'The maximum number of shouts to return',
+              type: "integer",
+              description: "The maximum number of shouts to return",
               minimum: 1,
             },
             offset: {
-              type: 'integer',
+              type: "integer",
               description:
-                'The number of shouts to skip before starting to collect the result set',
+                "The number of shouts to skip before starting to collect the result set",
               minimum: 0,
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
+            type: "object",
             properties: {
               shouts: {
-                type: 'array',
+                type: "array",
                 items: {
-                  type: 'ref',
-                  ref: 'lex:app.rocksky.shout.defs#shoutViewBasic',
+                  type: "ref",
+                  ref: "lex:app.rocksky.shout.defs#shoutViewBasic",
                 },
               },
             },
@@ -3332,42 +3365,42 @@ export const schemaDict = {
   },
   AppRockskyShoutGetProfileShouts: {
     lexicon: 1,
-    id: 'app.rocksky.shout.getProfileShouts',
+    id: "app.rocksky.shout.getProfileShouts",
     defs: {
       main: {
-        type: 'query',
+        type: "query",
         description: "Get the shouts of an actor's profile",
         parameters: {
-          type: 'params',
-          required: ['did'],
+          type: "params",
+          required: ["did"],
           properties: {
             did: {
-              type: 'string',
-              description: 'The DID or handle of the actor',
-              format: 'at-identifier',
+              type: "string",
+              description: "The DID or handle of the actor",
+              format: "at-identifier",
             },
             offset: {
-              type: 'integer',
-              description: 'The offset for pagination',
+              type: "integer",
+              description: "The offset for pagination",
               minimum: 0,
             },
             limit: {
-              type: 'integer',
-              description: 'The maximum number of shouts to return',
+              type: "integer",
+              description: "The maximum number of shouts to return",
               minimum: 1,
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
+            type: "object",
             properties: {
               shouts: {
-                type: 'array',
+                type: "array",
                 items: {
-                  type: 'ref',
-                  ref: 'lex:app.rocksky.shout.defs#shoutViewBasic',
+                  type: "ref",
+                  ref: "lex:app.rocksky.shout.defs#shoutViewBasic",
                 },
               },
             },
@@ -3378,43 +3411,43 @@ export const schemaDict = {
   },
   AppRockskyShoutGetShoutReplies: {
     lexicon: 1,
-    id: 'app.rocksky.shout.getShoutReplies',
+    id: "app.rocksky.shout.getShoutReplies",
     defs: {
       main: {
-        type: 'query',
-        description: 'Get replies to a shout',
+        type: "query",
+        description: "Get replies to a shout",
         parameters: {
-          type: 'params',
-          required: ['uri'],
+          type: "params",
+          required: ["uri"],
           properties: {
             uri: {
-              type: 'string',
-              description: 'The URI of the shout to retrieve replies for',
-              format: 'at-uri',
+              type: "string",
+              description: "The URI of the shout to retrieve replies for",
+              format: "at-uri",
             },
             limit: {
-              type: 'integer',
-              description: 'The maximum number of shouts to return',
+              type: "integer",
+              description: "The maximum number of shouts to return",
               minimum: 1,
             },
             offset: {
-              type: 'integer',
+              type: "integer",
               description:
-                'The number of shouts to skip before starting to collect the result set',
+                "The number of shouts to skip before starting to collect the result set",
               minimum: 0,
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
+            type: "object",
             properties: {
               shouts: {
-                type: 'array',
+                type: "array",
                 items: {
-                  type: 'ref',
-                  ref: 'lex:app.rocksky.shout.defs#shoutViewBasic',
+                  type: "ref",
+                  ref: "lex:app.rocksky.shout.defs#shoutViewBasic",
                 },
               },
             },
@@ -3425,32 +3458,32 @@ export const schemaDict = {
   },
   AppRockskyShoutGetTrackShouts: {
     lexicon: 1,
-    id: 'app.rocksky.shout.getTrackShouts',
+    id: "app.rocksky.shout.getTrackShouts",
     defs: {
       main: {
-        type: 'query',
-        description: 'Get all shouts for a specific track',
+        type: "query",
+        description: "Get all shouts for a specific track",
         parameters: {
-          type: 'params',
-          required: ['uri'],
+          type: "params",
+          required: ["uri"],
           properties: {
             uri: {
-              type: 'string',
-              description: 'The URI of the track to retrieve shouts for',
-              format: 'at-uri',
+              type: "string",
+              description: "The URI of the track to retrieve shouts for",
+              format: "at-uri",
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
+            type: "object",
             properties: {
               shouts: {
-                type: 'array',
+                type: "array",
                 items: {
-                  type: 'ref',
-                  ref: 'lex:app.rocksky.shout.defs#shoutViewBasic',
+                  type: "ref",
+                  ref: "lex:app.rocksky.shout.defs#shoutViewBasic",
                 },
               },
             },
@@ -3461,26 +3494,26 @@ export const schemaDict = {
   },
   AppRockskyShoutRemoveShout: {
     lexicon: 1,
-    id: 'app.rocksky.shout.removeShout',
+    id: "app.rocksky.shout.removeShout",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Remove a shout by its ID',
+        type: "procedure",
+        description: "Remove a shout by its ID",
         parameters: {
-          type: 'params',
-          required: ['id'],
+          type: "params",
+          required: ["id"],
           properties: {
             id: {
-              type: 'string',
-              description: 'The ID of the shout to be removed',
+              type: "string",
+              description: "The ID of the shout to be removed",
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.shout.defs#shoutView',
+            type: "ref",
+            ref: "lex:app.rocksky.shout.defs#shoutView",
           },
         },
       },
@@ -3488,34 +3521,34 @@ export const schemaDict = {
   },
   AppRockskyShoutReplyShout: {
     lexicon: 1,
-    id: 'app.rocksky.shout.replyShout',
+    id: "app.rocksky.shout.replyShout",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Reply to a shout',
+        type: "procedure",
+        description: "Reply to a shout",
         input: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
-            required: ['shoutId', 'message'],
+            type: "object",
+            required: ["shoutId", "message"],
             properties: {
               shoutId: {
-                type: 'string',
-                description: 'The unique identifier of the shout to reply to',
+                type: "string",
+                description: "The unique identifier of the shout to reply to",
               },
               message: {
-                type: 'string',
-                description: 'The content of the reply',
+                type: "string",
+                description: "The content of the reply",
                 minLength: 1,
               },
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.shout.defs#shoutView',
+            type: "ref",
+            ref: "lex:app.rocksky.shout.defs#shoutView",
           },
         },
       },
@@ -3523,34 +3556,34 @@ export const schemaDict = {
   },
   AppRockskyShoutReportShout: {
     lexicon: 1,
-    id: 'app.rocksky.shout.reportShout',
+    id: "app.rocksky.shout.reportShout",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Report a shout for moderation',
+        type: "procedure",
+        description: "Report a shout for moderation",
         input: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
-            required: ['shoutId'],
+            type: "object",
+            required: ["shoutId"],
             properties: {
               shoutId: {
-                type: 'string',
-                description: 'The unique identifier of the shout to report',
+                type: "string",
+                description: "The unique identifier of the shout to report",
               },
               reason: {
-                type: 'string',
-                description: 'The reason for reporting the shout',
+                type: "string",
+                description: "The reason for reporting the shout",
                 minLength: 1,
               },
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.shout.defs#shoutView',
+            type: "ref",
+            ref: "lex:app.rocksky.shout.defs#shoutView",
           },
         },
       },
@@ -3558,34 +3591,34 @@ export const schemaDict = {
   },
   AppRockskyShout: {
     lexicon: 1,
-    id: 'app.rocksky.shout',
+    id: "app.rocksky.shout",
     defs: {
       main: {
-        type: 'record',
-        description: 'A declaration of a shout.',
-        key: 'tid',
+        type: "record",
+        description: "A declaration of a shout.",
+        key: "tid",
         record: {
-          type: 'object',
-          required: ['message', 'createdAt', 'subject'],
+          type: "object",
+          required: ["message", "createdAt", "subject"],
           properties: {
             message: {
-              type: 'string',
-              description: 'The message of the shout.',
+              type: "string",
+              description: "The message of the shout.",
               minLength: 1,
               maxLength: 1000,
             },
             createdAt: {
-              type: 'string',
-              description: 'The date when the shout was created.',
-              format: 'datetime',
+              type: "string",
+              description: "The date when the shout was created.",
+              format: "datetime",
             },
             parent: {
-              type: 'ref',
-              ref: 'lex:com.atproto.repo.strongRef',
+              type: "ref",
+              ref: "lex:com.atproto.repo.strongRef",
             },
             subject: {
-              type: 'ref',
-              ref: 'lex:com.atproto.repo.strongRef',
+              type: "ref",
+              ref: "lex:com.atproto.repo.strongRef",
             },
           },
         },
@@ -3594,78 +3627,78 @@ export const schemaDict = {
   },
   AppRockskySongCreateSong: {
     lexicon: 1,
-    id: 'app.rocksky.song.createSong',
+    id: "app.rocksky.song.createSong",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Create a new song',
+        type: "procedure",
+        description: "Create a new song",
         input: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
-            required: ['title', 'artist', 'album', 'albumArtist'],
+            type: "object",
+            required: ["title", "artist", "album", "albumArtist"],
             properties: {
               title: {
-                type: 'string',
-                description: 'The title of the song',
+                type: "string",
+                description: "The title of the song",
               },
               artist: {
-                type: 'string',
-                description: 'The artist of the song',
+                type: "string",
+                description: "The artist of the song",
               },
               albumArtist: {
-                type: 'string',
+                type: "string",
                 description:
-                  'The album artist of the song, if different from the main artist',
+                  "The album artist of the song, if different from the main artist",
               },
               album: {
-                type: 'string',
-                description: 'The album of the song, if applicable',
+                type: "string",
+                description: "The album of the song, if applicable",
               },
               duration: {
-                type: 'integer',
-                description: 'The duration of the song in seconds',
+                type: "integer",
+                description: "The duration of the song in seconds",
               },
               mbId: {
-                type: 'string',
-                description: 'The MusicBrainz ID of the song, if available',
+                type: "string",
+                description: "The MusicBrainz ID of the song, if available",
               },
               albumArt: {
-                type: 'string',
-                description: 'The URL of the album art for the song',
-                format: 'uri',
+                type: "string",
+                description: "The URL of the album art for the song",
+                format: "uri",
               },
               trackNumber: {
-                type: 'integer',
+                type: "integer",
                 description:
-                  'The track number of the song in the album, if applicable',
+                  "The track number of the song in the album, if applicable",
               },
               releaseDate: {
-                type: 'string',
+                type: "string",
                 description:
-                  'The release date of the song, formatted as YYYY-MM-DD',
+                  "The release date of the song, formatted as YYYY-MM-DD",
               },
               year: {
-                type: 'integer',
-                description: 'The year the song was released',
+                type: "integer",
+                description: "The year the song was released",
               },
               discNumber: {
-                type: 'integer',
+                type: "integer",
                 description:
-                  'The disc number of the song in the album, if applicable',
+                  "The disc number of the song in the album, if applicable",
               },
               lyrics: {
-                type: 'string',
-                description: 'The lyrics of the song, if available',
+                type: "string",
+                description: "The lyrics of the song, if available",
               },
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.song.defs#songViewDetailed',
+            type: "ref",
+            ref: "lex:app.rocksky.song.defs#songViewDetailed",
           },
         },
       },
@@ -3673,159 +3706,159 @@ export const schemaDict = {
   },
   AppRockskySongDefs: {
     lexicon: 1,
-    id: 'app.rocksky.song.defs',
+    id: "app.rocksky.song.defs",
     defs: {
       songViewBasic: {
-        type: 'object',
+        type: "object",
         properties: {
           id: {
-            type: 'string',
-            description: 'The unique identifier of the song.',
+            type: "string",
+            description: "The unique identifier of the song.",
           },
           title: {
-            type: 'string',
-            description: 'The title of the song.',
+            type: "string",
+            description: "The title of the song.",
           },
           artist: {
-            type: 'string',
-            description: 'The artist of the song.',
+            type: "string",
+            description: "The artist of the song.",
           },
           albumArtist: {
-            type: 'string',
-            description: 'The artist of the album the song belongs to.',
+            type: "string",
+            description: "The artist of the album the song belongs to.",
           },
           albumArt: {
-            type: 'string',
-            description: 'The URL of the album art image.',
-            format: 'uri',
+            type: "string",
+            description: "The URL of the album art image.",
+            format: "uri",
           },
           uri: {
-            type: 'string',
-            description: 'The URI of the song.',
-            format: 'at-uri',
+            type: "string",
+            description: "The URI of the song.",
+            format: "at-uri",
           },
           album: {
-            type: 'string',
-            description: 'The album of the song.',
+            type: "string",
+            description: "The album of the song.",
           },
           duration: {
-            type: 'integer',
-            description: 'The duration of the song in milliseconds.',
+            type: "integer",
+            description: "The duration of the song in milliseconds.",
           },
           trackNumber: {
-            type: 'integer',
-            description: 'The track number of the song in the album.',
+            type: "integer",
+            description: "The track number of the song in the album.",
           },
           discNumber: {
-            type: 'integer',
-            description: 'The disc number of the song in the album.',
+            type: "integer",
+            description: "The disc number of the song in the album.",
           },
           playCount: {
-            type: 'integer',
-            description: 'The number of times the song has been played.',
+            type: "integer",
+            description: "The number of times the song has been played.",
             minimum: 0,
           },
           uniqueListeners: {
-            type: 'integer',
+            type: "integer",
             description:
-              'The number of unique listeners who have played the song.',
+              "The number of unique listeners who have played the song.",
             minimum: 0,
           },
           albumUri: {
-            type: 'string',
-            description: 'The URI of the album the song belongs to.',
-            format: 'at-uri',
+            type: "string",
+            description: "The URI of the album the song belongs to.",
+            format: "at-uri",
           },
           artistUri: {
-            type: 'string',
-            description: 'The URI of the artist of the song.',
-            format: 'at-uri',
+            type: "string",
+            description: "The URI of the artist of the song.",
+            format: "at-uri",
           },
           sha256: {
-            type: 'string',
-            description: 'The SHA256 hash of the song.',
+            type: "string",
+            description: "The SHA256 hash of the song.",
           },
           createdAt: {
-            type: 'string',
-            description: 'The timestamp when the song was created.',
-            format: 'datetime',
+            type: "string",
+            description: "The timestamp when the song was created.",
+            format: "datetime",
           },
         },
       },
       songViewDetailed: {
-        type: 'object',
+        type: "object",
         properties: {
           id: {
-            type: 'string',
-            description: 'The unique identifier of the song.',
+            type: "string",
+            description: "The unique identifier of the song.",
           },
           title: {
-            type: 'string',
-            description: 'The title of the song.',
+            type: "string",
+            description: "The title of the song.",
           },
           artist: {
-            type: 'string',
-            description: 'The artist of the song.',
+            type: "string",
+            description: "The artist of the song.",
           },
           albumArtist: {
-            type: 'string',
-            description: 'The artist of the album the song belongs to.',
+            type: "string",
+            description: "The artist of the album the song belongs to.",
           },
           albumArt: {
-            type: 'string',
-            description: 'The URL of the album art image.',
-            format: 'uri',
+            type: "string",
+            description: "The URL of the album art image.",
+            format: "uri",
           },
           uri: {
-            type: 'string',
-            description: 'The URI of the song.',
-            format: 'at-uri',
+            type: "string",
+            description: "The URI of the song.",
+            format: "at-uri",
           },
           album: {
-            type: 'string',
-            description: 'The album of the song.',
+            type: "string",
+            description: "The album of the song.",
           },
           duration: {
-            type: 'integer',
-            description: 'The duration of the song in milliseconds.',
+            type: "integer",
+            description: "The duration of the song in milliseconds.",
           },
           trackNumber: {
-            type: 'integer',
-            description: 'The track number of the song in the album.',
+            type: "integer",
+            description: "The track number of the song in the album.",
           },
           discNumber: {
-            type: 'integer',
-            description: 'The disc number of the song in the album.',
+            type: "integer",
+            description: "The disc number of the song in the album.",
           },
           playCount: {
-            type: 'integer',
-            description: 'The number of times the song has been played.',
+            type: "integer",
+            description: "The number of times the song has been played.",
             minimum: 0,
           },
           uniqueListeners: {
-            type: 'integer',
+            type: "integer",
             description:
-              'The number of unique listeners who have played the song.',
+              "The number of unique listeners who have played the song.",
             minimum: 0,
           },
           albumUri: {
-            type: 'string',
-            description: 'The URI of the album the song belongs to.',
-            format: 'at-uri',
+            type: "string",
+            description: "The URI of the album the song belongs to.",
+            format: "at-uri",
           },
           artistUri: {
-            type: 'string',
-            description: 'The URI of the artist of the song.',
-            format: 'at-uri',
+            type: "string",
+            description: "The URI of the artist of the song.",
+            format: "at-uri",
           },
           sha256: {
-            type: 'string',
-            description: 'The SHA256 hash of the song.',
+            type: "string",
+            description: "The SHA256 hash of the song.",
           },
           createdAt: {
-            type: 'string',
-            description: 'The timestamp when the song was created.',
-            format: 'datetime',
+            type: "string",
+            description: "The timestamp when the song was created.",
+            format: "datetime",
           },
         },
       },
@@ -3833,27 +3866,27 @@ export const schemaDict = {
   },
   AppRockskySongGetSong: {
     lexicon: 1,
-    id: 'app.rocksky.song.getSong',
+    id: "app.rocksky.song.getSong",
     defs: {
       main: {
-        type: 'query',
-        description: 'Get a song by its uri',
+        type: "query",
+        description: "Get a song by its uri",
         parameters: {
-          type: 'params',
-          required: ['uri'],
+          type: "params",
+          required: ["uri"],
           properties: {
             uri: {
-              type: 'string',
-              description: 'The unique identifier of the song to retrieve',
-              format: 'at-uri',
+              type: "string",
+              description: "The unique identifier of the song to retrieve",
+              format: "at-uri",
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.song.defs#songViewDetailed',
+            type: "ref",
+            ref: "lex:app.rocksky.song.defs#songViewDetailed",
           },
         },
       },
@@ -3861,36 +3894,36 @@ export const schemaDict = {
   },
   AppRockskySongGetSongs: {
     lexicon: 1,
-    id: 'app.rocksky.song.getSongs',
+    id: "app.rocksky.song.getSongs",
     defs: {
       main: {
-        type: 'query',
-        description: 'Get songs',
+        type: "query",
+        description: "Get songs",
         parameters: {
-          type: 'params',
+          type: "params",
           properties: {
             limit: {
-              type: 'integer',
-              description: 'The maximum number of songs to return',
+              type: "integer",
+              description: "The maximum number of songs to return",
               minimum: 1,
             },
             offset: {
-              type: 'integer',
-              description: 'The offset for pagination',
+              type: "integer",
+              description: "The offset for pagination",
               minimum: 0,
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'object',
+            type: "object",
             properties: {
               songs: {
-                type: 'array',
+                type: "array",
                 items: {
-                  type: 'ref',
-                  ref: 'lex:app.rocksky.song.defs#songViewBasic',
+                  type: "ref",
+                  ref: "lex:app.rocksky.song.defs#songViewBasic",
                 },
               },
             },
@@ -3901,144 +3934,144 @@ export const schemaDict = {
   },
   AppRockskySong: {
     lexicon: 1,
-    id: 'app.rocksky.song',
+    id: "app.rocksky.song",
     defs: {
       main: {
-        type: 'record',
-        description: 'A declaration of a song.',
-        key: 'tid',
+        type: "record",
+        description: "A declaration of a song.",
+        key: "tid",
         record: {
-          type: 'object',
+          type: "object",
           required: [
-            'title',
-            'artist',
-            'album',
-            'albumArtist',
-            'duration',
-            'createdAt',
+            "title",
+            "artist",
+            "album",
+            "albumArtist",
+            "duration",
+            "createdAt",
           ],
           properties: {
             title: {
-              type: 'string',
-              description: 'The title of the song.',
+              type: "string",
+              description: "The title of the song.",
               minLength: 1,
               maxLength: 512,
             },
             artist: {
-              type: 'string',
-              description: 'The artist of the song.',
+              type: "string",
+              description: "The artist of the song.",
               minLength: 1,
               maxLength: 256,
             },
             albumArtist: {
-              type: 'string',
-              description: 'The album artist of the song.',
+              type: "string",
+              description: "The album artist of the song.",
               minLength: 1,
               maxLength: 256,
             },
             album: {
-              type: 'string',
-              description: 'The album of the song.',
+              type: "string",
+              description: "The album of the song.",
               minLength: 1,
               maxLength: 256,
             },
             duration: {
-              type: 'integer',
-              description: 'The duration of the song in seconds.',
+              type: "integer",
+              description: "The duration of the song in seconds.",
               minimum: 1,
             },
             trackNumber: {
-              type: 'integer',
-              description: 'The track number of the song in the album.',
+              type: "integer",
+              description: "The track number of the song in the album.",
               minimum: 1,
             },
             discNumber: {
-              type: 'integer',
-              description: 'The disc number of the song in the album.',
+              type: "integer",
+              description: "The disc number of the song in the album.",
               minimum: 1,
             },
             releaseDate: {
-              type: 'string',
-              description: 'The release date of the song.',
-              format: 'datetime',
+              type: "string",
+              description: "The release date of the song.",
+              format: "datetime",
             },
             year: {
-              type: 'integer',
-              description: 'The year the song was released.',
+              type: "integer",
+              description: "The year the song was released.",
             },
             genre: {
-              type: 'string',
-              description: 'The genre of the song.',
+              type: "string",
+              description: "The genre of the song.",
               minLength: 1,
               maxLength: 256,
             },
             tags: {
-              type: 'array',
-              description: 'The tags of the song.',
+              type: "array",
+              description: "The tags of the song.",
               items: {
-                type: 'string',
+                type: "string",
                 minLength: 1,
                 maxLength: 256,
               },
             },
             composer: {
-              type: 'string',
-              description: 'The composer of the song.',
+              type: "string",
+              description: "The composer of the song.",
               maxLength: 256,
             },
             lyrics: {
-              type: 'string',
-              description: 'The lyrics of the song.',
+              type: "string",
+              description: "The lyrics of the song.",
               maxLength: 10000,
             },
             copyrightMessage: {
-              type: 'string',
-              description: 'The copyright message of the song.',
+              type: "string",
+              description: "The copyright message of the song.",
               maxLength: 256,
             },
             wiki: {
-              type: 'string',
-              description: 'Informations about the song',
+              type: "string",
+              description: "Informations about the song",
               maxLength: 10000,
             },
             albumArt: {
-              type: 'blob',
-              description: 'The album art of the song.',
-              accept: ['image/png', 'image/jpeg'],
+              type: "blob",
+              description: "The album art of the song.",
+              accept: ["image/png", "image/jpeg"],
               maxSize: 2000000,
             },
             youtubeLink: {
-              type: 'string',
-              description: 'The YouTube link of the song.',
-              format: 'uri',
+              type: "string",
+              description: "The YouTube link of the song.",
+              format: "uri",
             },
             spotifyLink: {
-              type: 'string',
-              description: 'The Spotify link of the song.',
-              format: 'uri',
+              type: "string",
+              description: "The Spotify link of the song.",
+              format: "uri",
             },
             tidalLink: {
-              type: 'string',
-              description: 'The Tidal link of the song.',
-              format: 'uri',
+              type: "string",
+              description: "The Tidal link of the song.",
+              format: "uri",
             },
             appleMusicLink: {
-              type: 'string',
-              description: 'The Apple Music link of the song.',
-              format: 'uri',
+              type: "string",
+              description: "The Apple Music link of the song.",
+              format: "uri",
             },
             createdAt: {
-              type: 'string',
-              description: 'The date when the song was created.',
-              format: 'datetime',
+              type: "string",
+              description: "The date when the song was created.",
+              format: "datetime",
             },
             mbid: {
-              type: 'string',
-              description: 'The MusicBrainz ID of the song.',
+              type: "string",
+              description: "The MusicBrainz ID of the song.",
             },
             label: {
-              type: 'string',
-              description: 'The label of the song.',
+              type: "string",
+              description: "The label of the song.",
               maxLength: 256,
             },
           },
@@ -4048,34 +4081,34 @@ export const schemaDict = {
   },
   AppRockskySpotifyDefs: {
     lexicon: 1,
-    id: 'app.rocksky.spotify.defs',
+    id: "app.rocksky.spotify.defs",
     defs: {
       spotifyTrackView: {
-        type: 'object',
+        type: "object",
         properties: {
           id: {
-            type: 'string',
-            description: 'The unique identifier of the Spotify track.',
+            type: "string",
+            description: "The unique identifier of the Spotify track.",
           },
           name: {
-            type: 'string',
-            description: 'The name of the track.',
+            type: "string",
+            description: "The name of the track.",
           },
           artist: {
-            type: 'string',
-            description: 'The name of the artist.',
+            type: "string",
+            description: "The name of the artist.",
           },
           album: {
-            type: 'string',
-            description: 'The name of the album.',
+            type: "string",
+            description: "The name of the album.",
           },
           duration: {
-            type: 'integer',
-            description: 'The duration of the track in milliseconds.',
+            type: "integer",
+            description: "The duration of the track in milliseconds.",
           },
           previewUrl: {
-            type: 'string',
-            description: 'A URL to a preview of the track.',
+            type: "string",
+            description: "A URL to a preview of the track.",
           },
         },
       },
@@ -4083,27 +4116,27 @@ export const schemaDict = {
   },
   AppRockskySpotifyGetCurrentlyPlaying: {
     lexicon: 1,
-    id: 'app.rocksky.spotify.getCurrentlyPlaying',
+    id: "app.rocksky.spotify.getCurrentlyPlaying",
     defs: {
       main: {
-        type: 'query',
-        description: 'Get the currently playing track',
+        type: "query",
+        description: "Get the currently playing track",
         parameters: {
-          type: 'params',
+          type: "params",
           properties: {
             actor: {
-              type: 'string',
+              type: "string",
               description:
-                'Handle or DID of the actor to retrieve the currently playing track for. If not provided, defaults to the current user.',
-              format: 'at-identifier',
+                "Handle or DID of the actor to retrieve the currently playing track for. If not provided, defaults to the current user.",
+              format: "at-identifier",
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.player.defs#currentlyPlayingViewDetailed',
+            type: "ref",
+            ref: "lex:app.rocksky.player.defs#currentlyPlayingViewDetailed",
           },
         },
       },
@@ -4111,59 +4144,59 @@ export const schemaDict = {
   },
   AppRockskySpotifyNext: {
     lexicon: 1,
-    id: 'app.rocksky.spotify.next',
+    id: "app.rocksky.spotify.next",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Play the next track in the queue',
+        type: "procedure",
+        description: "Play the next track in the queue",
       },
     },
   },
   AppRockskySpotifyPause: {
     lexicon: 1,
-    id: 'app.rocksky.spotify.pause',
+    id: "app.rocksky.spotify.pause",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Pause the currently playing track',
+        type: "procedure",
+        description: "Pause the currently playing track",
       },
     },
   },
   AppRockskySpotifyPlay: {
     lexicon: 1,
-    id: 'app.rocksky.spotify.play',
+    id: "app.rocksky.spotify.play",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Resume playback of the currently paused track',
+        type: "procedure",
+        description: "Resume playback of the currently paused track",
       },
     },
   },
   AppRockskySpotifyPrevious: {
     lexicon: 1,
-    id: 'app.rocksky.spotify.previous',
+    id: "app.rocksky.spotify.previous",
     defs: {
       main: {
-        type: 'procedure',
-        description: 'Play the previous track in the queue',
+        type: "procedure",
+        description: "Play the previous track in the queue",
       },
     },
   },
   AppRockskySpotifySeek: {
     lexicon: 1,
-    id: 'app.rocksky.spotify.seek',
+    id: "app.rocksky.spotify.seek",
     defs: {
       main: {
-        type: 'procedure',
+        type: "procedure",
         description:
-          'Seek to a specific position in the currently playing track',
+          "Seek to a specific position in the currently playing track",
         parameters: {
-          type: 'params',
-          required: ['position'],
+          type: "params",
+          required: ["position"],
           properties: {
             position: {
-              type: 'integer',
-              description: 'The position in seconds to seek to',
+              type: "integer",
+              description: "The position in seconds to seek to",
             },
           },
         },
@@ -4172,30 +4205,30 @@ export const schemaDict = {
   },
   AppRockskyStatsDefs: {
     lexicon: 1,
-    id: 'app.rocksky.stats.defs',
+    id: "app.rocksky.stats.defs",
     defs: {
       statsView: {
-        type: 'object',
+        type: "object",
         properties: {
           scrobbles: {
-            type: 'integer',
-            description: 'The total number of scrobbles.',
+            type: "integer",
+            description: "The total number of scrobbles.",
           },
           artists: {
-            type: 'integer',
-            description: 'The total number of unique artists scrobbled.',
+            type: "integer",
+            description: "The total number of unique artists scrobbled.",
           },
           lovedTracks: {
-            type: 'integer',
-            description: 'The total number of tracks marked as loved.',
+            type: "integer",
+            description: "The total number of tracks marked as loved.",
           },
           albums: {
-            type: 'integer',
-            description: 'The total number of unique albums scrobbled.',
+            type: "integer",
+            description: "The total number of unique albums scrobbled.",
           },
           tracks: {
-            type: 'integer',
-            description: 'The total number of unique tracks scrobbled.',
+            type: "integer",
+            description: "The total number of unique tracks scrobbled.",
           },
         },
       },
@@ -4203,26 +4236,26 @@ export const schemaDict = {
   },
   AppRockskyStatsGetStats: {
     lexicon: 1,
-    id: 'app.rocksky.stats.getStats',
+    id: "app.rocksky.stats.getStats",
     defs: {
       main: {
-        type: 'query',
+        type: "query",
         parameters: {
-          type: 'params',
-          required: ['did'],
+          type: "params",
+          required: ["did"],
           properties: {
             did: {
-              type: 'string',
-              description: 'The DID or handle of the user to get stats for.',
-              format: 'at-identifier',
+              type: "string",
+              description: "The DID or handle of the user to get stats for.",
+              format: "at-identifier",
             },
           },
         },
         output: {
-          encoding: 'application/json',
+          encoding: "application/json",
           schema: {
-            type: 'ref',
-            ref: 'lex:app.rocksky.stats.defs#statsView',
+            type: "ref",
+            ref: "lex:app.rocksky.stats.defs#statsView",
           },
         },
       },
@@ -4230,128 +4263,129 @@ export const schemaDict = {
   },
   ComAtprotoRepoStrongRef: {
     lexicon: 1,
-    id: 'com.atproto.repo.strongRef',
-    description: 'A URI with a content-hash fingerprint.',
+    id: "com.atproto.repo.strongRef",
+    description: "A URI with a content-hash fingerprint.",
     defs: {
       main: {
-        type: 'object',
-        required: ['uri', 'cid'],
+        type: "object",
+        required: ["uri", "cid"],
         properties: {
           uri: {
-            type: 'string',
-            format: 'at-uri',
+            type: "string",
+            format: "at-uri",
           },
           cid: {
-            type: 'string',
-            format: 'cid',
+            type: "string",
+            format: "cid",
           },
         },
       },
     },
   },
-} as const satisfies Record<string, LexiconDoc>
+} as const satisfies Record<string, LexiconDoc>;
 
-export const schemas = Object.values(schemaDict)
-export const lexicons: Lexicons = new Lexicons(schemas)
+export const schemas = Object.values(schemaDict);
+export const lexicons: Lexicons = new Lexicons(schemas);
 export const ids = {
-  AppRockskyActorDefs: 'app.rocksky.actor.defs',
-  AppRockskyActorGetActorAlbums: 'app.rocksky.actor.getActorAlbums',
-  AppRockskyActorGetActorArtists: 'app.rocksky.actor.getActorArtists',
-  AppRockskyActorGetActorLovedSongs: 'app.rocksky.actor.getActorLovedSongs',
-  AppRockskyActorGetActorPlaylists: 'app.rocksky.actor.getActorPlaylists',
-  AppRockskyActorGetActorScrobbles: 'app.rocksky.actor.getActorScrobbles',
-  AppRockskyActorGetActorSongs: 'app.rocksky.actor.getActorSongs',
-  AppRockskyActorGetProfile: 'app.rocksky.actor.getProfile',
-  AppBskyActorProfile: 'app.bsky.actor.profile',
-  AppRockskyAlbum: 'app.rocksky.album',
-  AppRockskyAlbumDefs: 'app.rocksky.album.defs',
-  AppRockskyAlbumGetAlbum: 'app.rocksky.album.getAlbum',
-  AppRockskyAlbumGetAlbums: 'app.rocksky.album.getAlbums',
-  AppRockskyAlbumGetAlbumTracks: 'app.rocksky.album.getAlbumTracks',
-  AppRockskyApikeyCreateApikey: 'app.rocksky.apikey.createApikey',
-  AppRockskyApikeyDefs: 'app.rocksky.apikey.defs',
-  AppRockskyApikeysDefs: 'app.rocksky.apikeys.defs',
-  AppRockskyApikeyGetApikeys: 'app.rocksky.apikey.getApikeys',
-  AppRockskyApikeyRemoveApikey: 'app.rocksky.apikey.removeApikey',
-  AppRockskyApikeyUpdateApikey: 'app.rocksky.apikey.updateApikey',
-  AppRockskyArtist: 'app.rocksky.artist',
-  AppRockskyArtistDefs: 'app.rocksky.artist.defs',
-  AppRockskyArtistGetArtistAlbums: 'app.rocksky.artist.getArtistAlbums',
-  AppRockskyArtistGetArtist: 'app.rocksky.artist.getArtist',
-  AppRockskyArtistGetArtists: 'app.rocksky.artist.getArtists',
-  AppRockskyArtistGetArtistTracks: 'app.rocksky.artist.getArtistTracks',
-  AppRockskyChartsDefs: 'app.rocksky.charts.defs',
-  AppRockskyChartsGetScrobblesChart: 'app.rocksky.charts.getScrobblesChart',
-  AppRockskyDropboxDefs: 'app.rocksky.dropbox.defs',
-  AppRockskyDropboxDownloadFile: 'app.rocksky.dropbox.downloadFile',
-  AppRockskyDropboxGetFiles: 'app.rocksky.dropbox.getFiles',
-  AppRockskyDropboxGetMetadata: 'app.rocksky.dropbox.getMetadata',
-  AppRockskyDropboxGetTemporaryLink: 'app.rocksky.dropbox.getTemporaryLink',
-  AppRockskyFeedDefs: 'app.rocksky.feed.defs',
-  AppRockskyFeedGetNowPlayings: 'app.rocksky.feed.getNowPlayings',
-  AppRockskyFeedSearch: 'app.rocksky.feed.search',
-  AppRockskyGoogledriveDefs: 'app.rocksky.googledrive.defs',
-  AppRockskyGoogledriveDownloadFile: 'app.rocksky.googledrive.downloadFile',
-  AppRockskyGoogledriveGetFile: 'app.rocksky.googledrive.getFile',
-  AppRockskyGoogledriveGetFiles: 'app.rocksky.googledrive.getFiles',
-  AppRockskyLikeDislikeShout: 'app.rocksky.like.dislikeShout',
-  AppRockskyLikeDislikeSong: 'app.rocksky.like.dislikeSong',
-  AppRockskyLike: 'app.rocksky.like',
-  AppRockskyLikeLikeShout: 'app.rocksky.like.likeShout',
-  AppRockskyLikeLikeSong: 'app.rocksky.like.likeSong',
-  AppRockskyPlayerAddItemsToQueue: 'app.rocksky.player.addItemsToQueue',
-  AppRockskyPlayerDefs: 'app.rocksky.player.defs',
-  AppRockskyPlayerGetCurrentlyPlaying: 'app.rocksky.player.getCurrentlyPlaying',
-  AppRockskyPlayerGetPlaybackQueue: 'app.rocksky.player.getPlaybackQueue',
-  AppRockskyPlayerNext: 'app.rocksky.player.next',
-  AppRockskyPlayerPause: 'app.rocksky.player.pause',
-  AppRockskyPlayerPlayDirectory: 'app.rocksky.player.playDirectory',
-  AppRockskyPlayerPlayFile: 'app.rocksky.player.playFile',
-  AppRockskyPlayerPlay: 'app.rocksky.player.play',
-  AppRockskyPlayerPrevious: 'app.rocksky.player.previous',
-  AppRockskyPlayerSeek: 'app.rocksky.player.seek',
-  AppRockskyPlaylistCreatePlaylist: 'app.rocksky.playlist.createPlaylist',
-  AppRockskyPlaylistDefs: 'app.rocksky.playlist.defs',
-  AppRockskyPlaylistGetPlaylist: 'app.rocksky.playlist.getPlaylist',
-  AppRockskyPlaylistGetPlaylists: 'app.rocksky.playlist.getPlaylists',
-  AppRockskyPlaylistInsertDirectory: 'app.rocksky.playlist.insertDirectory',
-  AppRockskyPlaylistInsertFiles: 'app.rocksky.playlist.insertFiles',
-  AppRockskyPlaylist: 'app.rocksky.playlist',
-  AppRockskyPlaylistRemovePlaylist: 'app.rocksky.playlist.removePlaylist',
-  AppRockskyPlaylistRemoveTrack: 'app.rocksky.playlist.removeTrack',
-  AppRockskyPlaylistStartPlaylist: 'app.rocksky.playlist.startPlaylist',
-  AppRockskyRadioDefs: 'app.rocksky.radio.defs',
-  AppRockskyRadio: 'app.rocksky.radio',
-  AppRockskyScrobbleCreateScrobble: 'app.rocksky.scrobble.createScrobble',
-  AppRockskyScrobbleDefs: 'app.rocksky.scrobble.defs',
-  AppRockskyScrobbleGetScrobble: 'app.rocksky.scrobble.getScrobble',
-  AppRockskyScrobbleGetScrobbles: 'app.rocksky.scrobble.getScrobbles',
-  AppRockskyScrobble: 'app.rocksky.scrobble',
-  AppRockskyShoutCreateShout: 'app.rocksky.shout.createShout',
-  AppRockskyShoutDefs: 'app.rocksky.shout.defs',
-  AppRockskyShoutGetAlbumShouts: 'app.rocksky.shout.getAlbumShouts',
-  AppRockskyShoutGetArtistShouts: 'app.rocksky.shout.getArtistShouts',
-  AppRockskyShoutGetProfileShouts: 'app.rocksky.shout.getProfileShouts',
-  AppRockskyShoutGetShoutReplies: 'app.rocksky.shout.getShoutReplies',
-  AppRockskyShoutGetTrackShouts: 'app.rocksky.shout.getTrackShouts',
-  AppRockskyShoutRemoveShout: 'app.rocksky.shout.removeShout',
-  AppRockskyShoutReplyShout: 'app.rocksky.shout.replyShout',
-  AppRockskyShoutReportShout: 'app.rocksky.shout.reportShout',
-  AppRockskyShout: 'app.rocksky.shout',
-  AppRockskySongCreateSong: 'app.rocksky.song.createSong',
-  AppRockskySongDefs: 'app.rocksky.song.defs',
-  AppRockskySongGetSong: 'app.rocksky.song.getSong',
-  AppRockskySongGetSongs: 'app.rocksky.song.getSongs',
-  AppRockskySong: 'app.rocksky.song',
-  AppRockskySpotifyDefs: 'app.rocksky.spotify.defs',
+  AppRockskyActorDefs: "app.rocksky.actor.defs",
+  AppRockskyActorGetActorAlbums: "app.rocksky.actor.getActorAlbums",
+  AppRockskyActorGetActorArtists: "app.rocksky.actor.getActorArtists",
+  AppRockskyActorGetActorLovedSongs: "app.rocksky.actor.getActorLovedSongs",
+  AppRockskyActorGetActorPlaylists: "app.rocksky.actor.getActorPlaylists",
+  AppRockskyActorGetActorScrobbles: "app.rocksky.actor.getActorScrobbles",
+  AppRockskyActorGetActorSongs: "app.rocksky.actor.getActorSongs",
+  AppRockskyActorGetProfile: "app.rocksky.actor.getProfile",
+  AppBskyActorProfile: "app.bsky.actor.profile",
+  AppRockskyAlbum: "app.rocksky.album",
+  AppRockskyAlbumDefs: "app.rocksky.album.defs",
+  AppRockskyAlbumGetAlbum: "app.rocksky.album.getAlbum",
+  AppRockskyAlbumGetAlbums: "app.rocksky.album.getAlbums",
+  AppRockskyAlbumGetAlbumTracks: "app.rocksky.album.getAlbumTracks",
+  AppRockskyApikeyCreateApikey: "app.rocksky.apikey.createApikey",
+  AppRockskyApikeyDefs: "app.rocksky.apikey.defs",
+  AppRockskyApikeysDefs: "app.rocksky.apikeys.defs",
+  AppRockskyApikeyGetApikeys: "app.rocksky.apikey.getApikeys",
+  AppRockskyApikeyRemoveApikey: "app.rocksky.apikey.removeApikey",
+  AppRockskyApikeyUpdateApikey: "app.rocksky.apikey.updateApikey",
+  AppRockskyArtist: "app.rocksky.artist",
+  AppRockskyArtistDefs: "app.rocksky.artist.defs",
+  AppRockskyArtistGetArtistAlbums: "app.rocksky.artist.getArtistAlbums",
+  AppRockskyArtistGetArtist: "app.rocksky.artist.getArtist",
+  AppRockskyArtistGetArtists: "app.rocksky.artist.getArtists",
+  AppRockskyArtistGetArtistTracks: "app.rocksky.artist.getArtistTracks",
+  AppRockskyChartsDefs: "app.rocksky.charts.defs",
+  AppRockskyChartsGetScrobblesChart: "app.rocksky.charts.getScrobblesChart",
+  AppRockskyDropboxDefs: "app.rocksky.dropbox.defs",
+  AppRockskyDropboxDownloadFile: "app.rocksky.dropbox.downloadFile",
+  AppRockskyDropboxGetFiles: "app.rocksky.dropbox.getFiles",
+  AppRockskyDropboxGetMetadata: "app.rocksky.dropbox.getMetadata",
+  AppRockskyDropboxGetTemporaryLink: "app.rocksky.dropbox.getTemporaryLink",
+  AppRockskyFeedDefs: "app.rocksky.feed.defs",
+  AppRockskyFeedGetNowPlayings: "app.rocksky.feed.getNowPlayings",
+  AppRockskyFeedSearch: "app.rocksky.feed.search",
+  AppRockskyGoogledriveDefs: "app.rocksky.googledrive.defs",
+  AppRockskyGoogledriveDownloadFile: "app.rocksky.googledrive.downloadFile",
+  AppRockskyGoogledriveGetFile: "app.rocksky.googledrive.getFile",
+  AppRockskyGoogledriveGetFiles: "app.rocksky.googledrive.getFiles",
+  AppRockskyLikeDislikeShout: "app.rocksky.like.dislikeShout",
+  AppRockskyLikeDislikeSong: "app.rocksky.like.dislikeSong",
+  AppRockskyLike: "app.rocksky.like",
+  AppRockskyLikeLikeShout: "app.rocksky.like.likeShout",
+  AppRockskyLikeLikeSong: "app.rocksky.like.likeSong",
+  AppRockskyPlayerAddDirectoryToQueue: "app.rocksky.player.addDirectoryToQueue",
+  AppRockskyPlayerAddItemsToQueue: "app.rocksky.player.addItemsToQueue",
+  AppRockskyPlayerDefs: "app.rocksky.player.defs",
+  AppRockskyPlayerGetCurrentlyPlaying: "app.rocksky.player.getCurrentlyPlaying",
+  AppRockskyPlayerGetPlaybackQueue: "app.rocksky.player.getPlaybackQueue",
+  AppRockskyPlayerNext: "app.rocksky.player.next",
+  AppRockskyPlayerPause: "app.rocksky.player.pause",
+  AppRockskyPlayerPlayDirectory: "app.rocksky.player.playDirectory",
+  AppRockskyPlayerPlayFile: "app.rocksky.player.playFile",
+  AppRockskyPlayerPlay: "app.rocksky.player.play",
+  AppRockskyPlayerPrevious: "app.rocksky.player.previous",
+  AppRockskyPlayerSeek: "app.rocksky.player.seek",
+  AppRockskyPlaylistCreatePlaylist: "app.rocksky.playlist.createPlaylist",
+  AppRockskyPlaylistDefs: "app.rocksky.playlist.defs",
+  AppRockskyPlaylistGetPlaylist: "app.rocksky.playlist.getPlaylist",
+  AppRockskyPlaylistGetPlaylists: "app.rocksky.playlist.getPlaylists",
+  AppRockskyPlaylistInsertDirectory: "app.rocksky.playlist.insertDirectory",
+  AppRockskyPlaylistInsertFiles: "app.rocksky.playlist.insertFiles",
+  AppRockskyPlaylist: "app.rocksky.playlist",
+  AppRockskyPlaylistRemovePlaylist: "app.rocksky.playlist.removePlaylist",
+  AppRockskyPlaylistRemoveTrack: "app.rocksky.playlist.removeTrack",
+  AppRockskyPlaylistStartPlaylist: "app.rocksky.playlist.startPlaylist",
+  AppRockskyRadioDefs: "app.rocksky.radio.defs",
+  AppRockskyRadio: "app.rocksky.radio",
+  AppRockskyScrobbleCreateScrobble: "app.rocksky.scrobble.createScrobble",
+  AppRockskyScrobbleDefs: "app.rocksky.scrobble.defs",
+  AppRockskyScrobbleGetScrobble: "app.rocksky.scrobble.getScrobble",
+  AppRockskyScrobbleGetScrobbles: "app.rocksky.scrobble.getScrobbles",
+  AppRockskyScrobble: "app.rocksky.scrobble",
+  AppRockskyShoutCreateShout: "app.rocksky.shout.createShout",
+  AppRockskyShoutDefs: "app.rocksky.shout.defs",
+  AppRockskyShoutGetAlbumShouts: "app.rocksky.shout.getAlbumShouts",
+  AppRockskyShoutGetArtistShouts: "app.rocksky.shout.getArtistShouts",
+  AppRockskyShoutGetProfileShouts: "app.rocksky.shout.getProfileShouts",
+  AppRockskyShoutGetShoutReplies: "app.rocksky.shout.getShoutReplies",
+  AppRockskyShoutGetTrackShouts: "app.rocksky.shout.getTrackShouts",
+  AppRockskyShoutRemoveShout: "app.rocksky.shout.removeShout",
+  AppRockskyShoutReplyShout: "app.rocksky.shout.replyShout",
+  AppRockskyShoutReportShout: "app.rocksky.shout.reportShout",
+  AppRockskyShout: "app.rocksky.shout",
+  AppRockskySongCreateSong: "app.rocksky.song.createSong",
+  AppRockskySongDefs: "app.rocksky.song.defs",
+  AppRockskySongGetSong: "app.rocksky.song.getSong",
+  AppRockskySongGetSongs: "app.rocksky.song.getSongs",
+  AppRockskySong: "app.rocksky.song",
+  AppRockskySpotifyDefs: "app.rocksky.spotify.defs",
   AppRockskySpotifyGetCurrentlyPlaying:
-    'app.rocksky.spotify.getCurrentlyPlaying',
-  AppRockskySpotifyNext: 'app.rocksky.spotify.next',
-  AppRockskySpotifyPause: 'app.rocksky.spotify.pause',
-  AppRockskySpotifyPlay: 'app.rocksky.spotify.play',
-  AppRockskySpotifyPrevious: 'app.rocksky.spotify.previous',
-  AppRockskySpotifySeek: 'app.rocksky.spotify.seek',
-  AppRockskyStatsDefs: 'app.rocksky.stats.defs',
-  AppRockskyStatsGetStats: 'app.rocksky.stats.getStats',
-  ComAtprotoRepoStrongRef: 'com.atproto.repo.strongRef',
-}
+    "app.rocksky.spotify.getCurrentlyPlaying",
+  AppRockskySpotifyNext: "app.rocksky.spotify.next",
+  AppRockskySpotifyPause: "app.rocksky.spotify.pause",
+  AppRockskySpotifyPlay: "app.rocksky.spotify.play",
+  AppRockskySpotifyPrevious: "app.rocksky.spotify.previous",
+  AppRockskySpotifySeek: "app.rocksky.spotify.seek",
+  AppRockskyStatsDefs: "app.rocksky.stats.defs",
+  AppRockskyStatsGetStats: "app.rocksky.stats.getStats",
+  ComAtprotoRepoStrongRef: "com.atproto.repo.strongRef",
+};

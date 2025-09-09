@@ -1,5 +1,5 @@
-import { AuthOutput } from "@atproto/xrpc-server";
-import express from "express";
+import type { AuthOutput } from "@atproto/xrpc-server";
+import type express from "express";
 import jwt from "jsonwebtoken";
 import { env } from "./env";
 

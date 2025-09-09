@@ -1,47 +1,61 @@
-
 @tailwind utilities;
 
 @font-face {
-  font-family: 'RockfordSansLight';
-  src: local('RockfordSansLight'), url(./assets/fonts/RockfordSans-Light.otf) format('opentype');
+  font-family: "RockfordSansLight";
+  src:
+    local("RockfordSansLight"),
+    url(./assets/fonts/RockfordSans-Light.otf) format("opentype");
 }
 
 @font-face {
-  font-family: 'RockfordSansRegular';
-  src: local('RockfordSans'), url(./assets/fonts/RockfordSans-Regular.otf) format('opentype');
+  font-family: "RockfordSansRegular";
+  src:
+    local("RockfordSans"),
+    url(./assets/fonts/RockfordSans-Regular.otf) format("opentype");
 }
 
 @font-face {
-  font-family: 'RockfordSansMedium';
-  src: local('RockfordSans'), url(./assets/fonts/RockfordSans-Medium.otf) format('opentype');
+  font-family: "RockfordSansMedium";
+  src:
+    local("RockfordSans"),
+    url(./assets/fonts/RockfordSans-Medium.otf) format("opentype");
 }
 
 @font-face {
-  font-family: 'RockfordSansBold';
+  font-family: "RockfordSansBold";
   font-weight: 900;
-  src: local('RockfordSans'), url(./assets/fonts/RockfordSans-Bold.otf) format('opentype');
+  src:
+    local("RockfordSans"),
+    url(./assets/fonts/RockfordSans-Bold.otf) format("opentype");
 }
 
 @font-face {
-  font-family: 'RockfordSansExtraBold';
+  font-family: "RockfordSansExtraBold";
   font-weight: 900;
-  src: local('RockfordSans'), url(./assets/fonts/RockfordSans-ExtraBold.otf) format('opentype');
+  src:
+    local("RockfordSans"),
+    url(./assets/fonts/RockfordSans-ExtraBold.otf) format("opentype");
 }
 
 @font-face {
-  font-family: 'UberMove';
-  src: local('RockfordSans'), url(./assets/fonts/RockfordSans-Light.otf) format('opentype');
+  font-family: "UberMove";
+  src:
+    local("RockfordSans"),
+    url(./assets/fonts/RockfordSans-Light.otf) format("opentype");
 }
 
 @font-face {
-  font-family: 'UberMoveText';
-  src: local('RockfordSans'), url(./assets/fonts/RockfordSans-Regular.otf) format('opentype');
+  font-family: "UberMoveText";
+  src:
+    local("RockfordSans"),
+    url(./assets/fonts/RockfordSans-Regular.otf) format("opentype");
 }
 
 body {
   margin: 0;
-  font-family: RockfordSansLight, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+  font-family:
+    RockfordSansLight, -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+    "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -72,7 +86,7 @@ body {
 
 .dark {
   --color-background: #130825;
-  --color-text: oklch(95.07% .028 338.58);
+  --color-text: oklch(95.07% 0.028 338.58);
   --color-primary: #ff2876;
   --color-text-muted: rgb(191 174 195 / 65%);
   --color-border: #310e64;
@@ -100,8 +114,8 @@ td > div {
   color: var(--color-text-muted) !important;
 }
 
-
-
 * {
-  transition: background-color 0.1s ease, color 0.1s ease;
+  transition:
+    background-color 0.1s ease,
+    color 0.1s ease;
 }

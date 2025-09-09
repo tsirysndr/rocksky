@@ -1,9 +1,9 @@
 import { Agent } from "@atproto/api";
-import { NodeOAuthClient } from "@atproto/oauth-client-node";
+import type { NodeOAuthClient } from "@atproto/oauth-client-node";
 
 export async function createAgent(
   oauthClient: NodeOAuthClient,
-  did: string
+  did: string,
 ): Promise<Agent | null> {
   let agent = null;
   let retry = 0;

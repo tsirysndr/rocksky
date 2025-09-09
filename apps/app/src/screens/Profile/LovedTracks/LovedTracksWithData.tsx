@@ -23,7 +23,7 @@ const LovedTracksWithData = () => {
             uri: track.uri,
             albumUri: track.album_uri,
             date: xata_createdat,
-          })
+          }),
         ) ?? []
       }
       total={data?.lovedTracks ?? 0}

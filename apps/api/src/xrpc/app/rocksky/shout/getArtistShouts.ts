@@ -1,12 +1,12 @@
-import { HandlerAuth } from "@atproto/xrpc-server";
-import { Context } from "context";
+import type { HandlerAuth } from "@atproto/xrpc-server";
+import type { Context } from "context";
 import { count, desc, eq, sql } from "drizzle-orm";
 import { Effect, pipe } from "effect";
-import { Server } from "lexicon";
-import { ShoutView } from "lexicon/types/app/rocksky/shout/defs";
-import { QueryParams } from "lexicon/types/app/rocksky/shout/getArtistShouts";
+import type { Server } from "lexicon";
+import type { ShoutView } from "lexicon/types/app/rocksky/shout/defs";
+import type { QueryParams } from "lexicon/types/app/rocksky/shout/getArtistShouts";
 import tables from "schema";
-import { SelectUser } from "schema/users";
+import type { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
   const getArtistShouts = (params, auth: HandlerAuth) =>
@@ -20,7 +20,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({ shouts: [] });
-      })
+      }),
     );
   server.app.rocksky.shout.getArtistShouts({
     auth: ctx.authVerifier,
@@ -105,7 +105,7 @@ const retrieve = ({
         .leftJoin(tables.artists, eq(tables.shouts.artistId, tables.artists.id))
         .leftJoin(
           tables.shoutLikes,
-          eq(tables.shouts.id, tables.shoutLikes.shoutId)
+          eq(tables.shouts.id, tables.shoutLikes.shoutId),
         )
         .where(eq(tables.artists.uri, params.uri))
         .groupBy(
@@ -118,7 +118,7 @@ const retrieve = ({
           tables.users.did,
           tables.users.handle,
           tables.users.displayName,
-          tables.users.avatar
+          tables.users.avatar,
         )
         .orderBy(desc(tables.shouts.createdAt))
         .execute(),
@@ -130,7 +130,7 @@ const presentation = (
   data: {
     shouts: Shouts;
     users: Users;
-  }[]
+  }[],
 ): Effect.Effect<ShoutView, never> => {
   return Effect.sync(() => ({
     shouts: data.map((item) => ({

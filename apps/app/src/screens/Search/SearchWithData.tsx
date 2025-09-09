@@ -39,11 +39,13 @@ const SearchWithData = () => {
     setResults(
       R.pipe(
         R.prop("records"),
-        R.sort(R.descend((item) => R.path(["record", "xata_score"], item) ?? 0))
+        R.sort(
+          R.descend((item) => R.path(["record", "xata_score"], item) ?? 0),
+        ),
       )(data) as {
         record: any;
         table: string;
-      }[]
+      }[],
     );
   }, [data]);
 

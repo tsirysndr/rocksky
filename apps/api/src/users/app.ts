@@ -1,4 +1,4 @@
-import { BlobRef } from "@atproto/lexicon";
+import type { BlobRef } from "@atproto/lexicon";
 import { equals } from "@xata.io/client";
 import { ctx } from "context";
 import {
@@ -28,7 +28,7 @@ import {
   unlikeShout,
 } from "shouts/shouts.service";
 import { shoutSchema } from "types/shout";
-import { Track } from "types/track";
+import type { Track } from "types/track";
 import { dedupeTracksKeepLyrics } from "./utils";
 
 const app = new Hono();
@@ -131,7 +131,7 @@ app.get("/:did/tracks", async (c) => {
     data.map((item) => ({
       ...item,
       tags: [],
-    }))
+    })),
   );
 });
 
@@ -161,7 +161,7 @@ app.get("/:did/playlists", async (c) => {
     results.map((x) => ({
       ...x.playlists,
       trackCount: +x.trackCount,
-    }))
+    })),
   );
 });
 
@@ -335,7 +335,7 @@ app.get("/:did/app.rocksky.album/:rkey", async (c) => {
     scrobbles: _.get(scrobbles.summaries, "0.total", 1),
     label: _.get(tracks, "0.track_id.label", ""),
     tracks: dedupeTracksKeepLyrics(tracks.map((track) => track.track_id)).sort(
-      (a, b) => a.track_number - b.track_number
+      (a, b) => a.track_number - b.track_number,
     ),
     tags: [],
   });
@@ -426,7 +426,7 @@ app.get("/:did/app.rocksky.artist/:rkey/tracks", async (c) => {
       ...R.omit(["xata_id"], item.track_id),
       id: item.track_id.xata_id,
       xata_version: item.xata_version,
-    }))
+    })),
   );
 });
 
@@ -460,8 +460,8 @@ app.get("/:did/app.rocksky.artist/:rkey/albums", async (c) => {
         ...R.omit(["xata_id"], item.album_id),
         id: item.album_id.xata_id,
         xata_version: item.xata_version,
-      }))
-    )
+      })),
+    ),
   );
 });
 
@@ -491,11 +491,11 @@ app.get("/:did/app.rocksky.playlist/:rkey", async (c) => {
     .from(tables.playlistTracks)
     .leftJoin(
       tables.playlists,
-      eq(tables.playlistTracks.playlistId, tables.playlists.id)
+      eq(tables.playlistTracks.playlistId, tables.playlists.id),
     )
     .leftJoin(
       tables.tracks,
-      eq(tables.playlistTracks.trackId, tables.tracks.id)
+      eq(tables.playlistTracks.trackId, tables.tracks.id),
     )
     .where(eq(tables.playlists.uri, uri))
     .groupBy(
@@ -539,7 +539,7 @@ app.get("/:did/app.rocksky.playlist/:rkey", async (c) => {
       tables.playlists.picture,
       tables.playlists.spotifyLink,
       tables.playlists.tidalLink,
-      tables.playlists.appleMusicLink
+      tables.playlists.appleMusicLink,
     )
     .orderBy(asc(tables.playlistTracks.createdAt))
     .execute();
@@ -653,7 +653,7 @@ app.post("/:did/app.rocksky.artist/:rkey/shouts", async (c) => {
     parsed.data,
     `at://${did}/app.rocksky.artist/${rkey}`,
     user,
-    agent
+    agent,
   );
   return c.json({});
 });
@@ -698,7 +698,7 @@ app.post("/:did/app.rocksky.album/:rkey/shouts", async (c) => {
     parsed.data,
     `at://${did}/app.rocksky.album/${rkey}`,
     user,
-    agent
+    agent,
   );
   return c.json({});
 });
@@ -743,7 +743,7 @@ app.post("/:did/app.rocksky.song/:rkey/shouts", async (c) => {
     parsed.data,
     `at://${did}/app.rocksky.song/${rkey}`,
     user,
-    agent
+    agent,
   );
 
   return c.json({});
@@ -789,7 +789,7 @@ app.post("/:did/app.rocksky.scrobble/:rkey/shouts", async (c) => {
     parsed.data,
     `at://${did}/app.rocksky.scrobble/${rkey}`,
     user,
-    agent
+    agent,
   );
 
   return c.json({});
@@ -1038,7 +1038,7 @@ app.post("/:did/app.rocksky.shout/:rkey/replies", async (c) => {
     parsed.data,
     `at://${did}/app.rocksky.shout/${rkey}`,
     user,
-    agent
+    agent,
   );
   return c.json({});
 });
@@ -1103,7 +1103,7 @@ app.get("/:did/app.rocksky.artist/:rkey/shouts", async (c) => {
     .leftJoin(tables.artists, eq(tables.shouts.artistId, tables.artists.id))
     .leftJoin(
       tables.shoutLikes,
-      eq(tables.shouts.id, tables.shoutLikes.shoutId)
+      eq(tables.shouts.id, tables.shoutLikes.shoutId),
     )
     .where(eq(tables.artists.uri, `at://${did}/app.rocksky.artist/${rkey}`))
     .groupBy(
@@ -1116,7 +1116,7 @@ app.get("/:did/app.rocksky.artist/:rkey/shouts", async (c) => {
       tables.users.did,
       tables.users.handle,
       tables.users.displayName,
-      tables.users.avatar
+      tables.users.avatar,
     )
     .orderBy(desc(tables.shouts.createdAt))
     .execute();
@@ -1184,7 +1184,7 @@ app.get("/:did/app.rocksky.album/:rkey/shouts", async (c) => {
     .leftJoin(tables.albums, eq(tables.shouts.albumId, tables.albums.id))
     .leftJoin(
       tables.shoutLikes,
-      eq(tables.shouts.id, tables.shoutLikes.shoutId)
+      eq(tables.shouts.id, tables.shoutLikes.shoutId),
     )
     .where(eq(tables.albums.uri, `at://${did}/app.rocksky.album/${rkey}`))
     .groupBy(
@@ -1197,7 +1197,7 @@ app.get("/:did/app.rocksky.album/:rkey/shouts", async (c) => {
       tables.users.did,
       tables.users.handle,
       tables.users.displayName,
-      tables.users.avatar
+      tables.users.avatar,
     )
     .orderBy(desc(tables.shouts.createdAt))
     .execute();
@@ -1265,7 +1265,7 @@ app.get("/:did/app.rocksky.song/:rkey/shouts", async (c) => {
     .leftJoin(tables.tracks, eq(tables.shouts.trackId, tables.tracks.id))
     .leftJoin(
       tables.shoutLikes,
-      eq(tables.shouts.id, tables.shoutLikes.shoutId)
+      eq(tables.shouts.id, tables.shoutLikes.shoutId),
     )
     .where(eq(tables.tracks.uri, `at://${did}/app.rocksky.song/${rkey}`))
     .groupBy(
@@ -1278,7 +1278,7 @@ app.get("/:did/app.rocksky.song/:rkey/shouts", async (c) => {
       tables.users.did,
       tables.users.handle,
       tables.users.displayName,
-      tables.users.avatar
+      tables.users.avatar,
     )
     .orderBy(desc(tables.shouts.createdAt))
     .execute();
@@ -1345,11 +1345,11 @@ app.get("/:did/app.rocksky.scrobble/:rkey/shouts", async (c) => {
     .leftJoin(tables.users, eq(tables.shouts.authorId, tables.users.id))
     .leftJoin(
       tables.scrobbles,
-      eq(tables.shouts.scrobbleId, tables.scrobbles.id)
+      eq(tables.shouts.scrobbleId, tables.scrobbles.id),
     )
     .leftJoin(
       tables.shoutLikes,
-      eq(tables.shouts.id, tables.shoutLikes.shoutId)
+      eq(tables.shouts.id, tables.shoutLikes.shoutId),
     )
     .where(eq(tables.scrobbles.uri, `at://${did}/app.rocksky.scrobble/${rkey}`))
     .groupBy(
@@ -1362,7 +1362,7 @@ app.get("/:did/app.rocksky.scrobble/:rkey/shouts", async (c) => {
       tables.users.did,
       tables.users.handle,
       tables.users.displayName,
-      tables.users.avatar
+      tables.users.avatar,
     )
     .orderBy(desc(tables.shouts.createdAt))
     .execute();
@@ -1437,12 +1437,12 @@ app.get("/:did/shouts", async (c) => {
     .leftJoin(tables.shouts, eq(tables.profileShouts.shoutId, tables.shouts.id))
     .leftJoin(
       aliasedTable(tables.users, "authors"),
-      eq(tables.shouts.authorId, aliasedTable(tables.users, "authors").id)
+      eq(tables.shouts.authorId, aliasedTable(tables.users, "authors").id),
     )
     .leftJoin(tables.users, eq(tables.profileShouts.userId, tables.users.id))
     .leftJoin(
       tables.shoutLikes,
-      eq(tables.shouts.id, tables.shoutLikes.shoutId)
+      eq(tables.shouts.id, tables.shoutLikes.shoutId),
     )
     .groupBy(
       tables.profileShouts.id,
@@ -1461,7 +1461,7 @@ app.get("/:did/shouts", async (c) => {
       aliasedTable(tables.users, "authors").did,
       aliasedTable(tables.users, "authors").handle,
       aliasedTable(tables.users, "authors").displayName,
-      aliasedTable(tables.users, "authors").avatar
+      aliasedTable(tables.users, "authors").avatar,
     )
     .orderBy(desc(tables.profileShouts.createdAt))
     .execute();

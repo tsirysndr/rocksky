@@ -1,8 +1,8 @@
-import { Context } from "context";
+import type { Context } from "context";
 import { Effect, pipe } from "effect";
-import { Server } from "lexicon";
-import { StatsView } from "lexicon/types/app/rocksky/stats/defs";
-import { QueryParams } from "lexicon/types/app/rocksky/stats/getStats";
+import type { Server } from "lexicon";
+import type { StatsView } from "lexicon/types/app/rocksky/stats/defs";
+import type { QueryParams } from "lexicon/types/app/rocksky/stats/getStats";
 import { deepCamelCaseKeys } from "lib";
 
 export default function (server: Server, ctx: Context) {
@@ -13,7 +13,7 @@ export default function (server: Server, ctx: Context) {
       Effect.flatMap(presentation),
       Effect.retry({ times: 3 }),
       Effect.timeout("10 seconds"),
-      Effect.catchAll(() => Effect.succeed(defaultStats))
+      Effect.catchAll(() => Effect.succeed(defaultStats)),
     );
   server.app.rocksky.stats.getStats({
     handler: async ({ params }) => {

@@ -1,13 +1,13 @@
-import { Agent } from "@atproto/api";
-import { HandlerAuth } from "@atproto/xrpc-server";
-import { Context } from "context";
+import type { Agent } from "@atproto/api";
+import type { HandlerAuth } from "@atproto/xrpc-server";
+import type { Context } from "context";
 import { eq } from "drizzle-orm";
 import { Effect, pipe } from "effect";
-import { Server } from "lexicon";
-import { InputSchema } from "lexicon/types/app/rocksky/shout/createShout";
+import type { Server } from "lexicon";
+import type { InputSchema } from "lexicon/types/app/rocksky/shout/createShout";
 import { createAgent } from "lib/agent";
 import tables from "schema";
-import { SelectUser } from "schema/users";
+import type { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
   const createShout = (input, auth: HandlerAuth) =>
@@ -23,7 +23,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({});
-      })
+      }),
     );
   server.app.rocksky.shout.createShout({
     auth: ctx.authVerifier,

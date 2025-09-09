@@ -1,5 +1,5 @@
 import { ctx } from "context";
-import { Context, MiddlewareHandler } from "hono";
+import type { Context, MiddlewareHandler } from "hono";
 
 type RateLimitOptions = {
   limit: number; // max requests

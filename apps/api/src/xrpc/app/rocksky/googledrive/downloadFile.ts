@@ -1,5 +1,5 @@
-import { Context } from "context";
-import { Server } from "lexicon";
+import type { Context } from "context";
+import type { Server } from "lexicon";
 
 export default function (server: Server, ctx: Context) {
   server.app.rocksky.googledrive.downloadFile({

@@ -17,7 +17,7 @@ export const usePlaylistQuery = (did: string, rkey: string) =>
 
 const usePlaylists = () => {
   const getPlaylists = async (
-    did: string
+    did: string,
   ): Promise<
     {
       id: string;
@@ -37,7 +37,7 @@ const usePlaylists = () => {
 
   const getPlaylist = async (
     did: string,
-    rkey: string
+    rkey: string,
   ): Promise<{
     id: string;
     name: string;
@@ -72,7 +72,7 @@ const usePlaylists = () => {
     }[];
   }> => {
     const response = await axios.get(
-      `${API_URL}/users/${did}/app.rocksky.playlist/${rkey}`
+      `${API_URL}/users/${did}/app.rocksky.playlist/${rkey}`,
     );
     return response.data;
   };

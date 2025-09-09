@@ -14,7 +14,7 @@ export const createClient = async (db: Database) => {
       client_id: publicUrl
         ? `${url}/client-metadata.json`
         : `http://localhost?redirect_uri=${enc(
-            `${url}/oauth/callback`
+            `${url}/oauth/callback`,
           )}&scope=${enc("atproto transition:generic")}`,
       client_uri: url,
       redirect_uris: [`${url}/oauth/callback`],

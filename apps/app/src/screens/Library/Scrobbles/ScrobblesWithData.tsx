@@ -50,7 +50,7 @@ const ScrobblesWithData: FC<ScrobblesWithDataProps> = (props) => {
           listeningDate: dayjs.utc(scrobble.created_at).local().fromNow(),
           uri: scrobble.uri,
           albumUri: scrobble.album_uri,
-        }))
+        })),
     );
   }, [data]);
 

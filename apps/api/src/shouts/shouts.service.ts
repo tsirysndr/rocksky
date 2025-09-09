@@ -1,18 +1,18 @@
-import { Agent, AtpAgent } from "@atproto/api";
+import { type Agent, AtpAgent } from "@atproto/api";
 import { TID } from "@atproto/common";
-import { Context } from "context";
+import type { Context } from "context";
 import * as LikeLexicon from "lexicon/types/app/rocksky/like";
 import * as ShoutLexicon from "lexicon/types/app/rocksky/shout";
 import { validateMain } from "lexicon/types/com/atproto/repo/strongRef";
 import _ from "lodash";
-import { Shout } from "types/shout";
+import type { Shout } from "types/shout";
 
 export async function createShout(
   ctx: Context,
   shout: Shout,
   uri: string,
   user,
-  agent: Agent
+  agent: Agent,
 ) {
   let album, artist, track, scrobble, profile, collection;
   if (uri.includes("app.rocksky.song")) {
@@ -105,7 +105,7 @@ export async function replyShout(
   reply: Shout,
   shoutUri: string,
   user,
-  agent: Agent
+  agent: Agent,
 ) {
   const shout = await ctx.client.db.shouts
     .select(["track_id.*", "album_id.*", "artist_id.*", "scrobble_id.*", "uri"])
@@ -147,7 +147,7 @@ export async function replyShout(
     profileRecord.uri;
 
   let service = await fetch(
-    `https://plc.directory/${subjectUri.split("/").slice(0, 3).join("/").split("at://")[1]}`
+    `https://plc.directory/${subjectUri.split("/").slice(0, 3).join("/").split("at://")[1]}`,
   )
     .then((res) => res.json())
     .then((data) => data.service);
@@ -171,7 +171,7 @@ export async function replyShout(
   }
 
   service = await fetch(
-    `https://plc.directory/${shoutUri.split("/").slice(0, 3).join("/").split("at://")[1]}`
+    `https://plc.directory/${shoutUri.split("/").slice(0, 3).join("/").split("at://")[1]}`,
   )
     .then((res) => res.json())
     .then((data) => data.service);
@@ -254,7 +254,7 @@ export async function likeShout(
   ctx: Context,
   shoutUri: string,
   user,
-  agent: Agent
+  agent: Agent,
 ) {
   const rkey = TID.nextStr();
   const likes = await ctx.client.db.shout_likes
@@ -269,7 +269,7 @@ export async function likeShout(
   }
 
   const { service } = await fetch(
-    `https://plc.directory/${shoutUri.split("/").slice(0, 3).join("/").split("at://")[1]}`
+    `https://plc.directory/${shoutUri.split("/").slice(0, 3).join("/").split("at://")[1]}`,
   ).then((res) => res.json());
 
   const atpAgent = new AtpAgent({
@@ -333,7 +333,7 @@ export async function unlikeShout(
   ctx: Context,
   shoutUri: string,
   user,
-  agent: Agent
+  agent: Agent,
 ) {
   const likes = await ctx.client.db.shout_likes
     .filter({

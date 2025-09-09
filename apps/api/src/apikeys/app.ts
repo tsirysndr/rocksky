@@ -114,7 +114,7 @@ app.put("/:id", async (c) => {
     .update(tables.apiKeys)
     .set(data)
     .where(
-      and(eq(tables.apiKeys.id, id), eq(tables.apiKeys.userId, user.xata_id))
+      and(eq(tables.apiKeys.id, id), eq(tables.apiKeys.userId, user.xata_id)),
     )
     .execute();
 
@@ -150,7 +150,7 @@ app.delete("/:id", async (c) => {
   await ctx.db
     .delete(tables.apiKeys)
     .where(
-      and(eq(tables.apiKeys.id, id), eq(tables.apiKeys.userId, user.xata_id))
+      and(eq(tables.apiKeys.id, id), eq(tables.apiKeys.userId, user.xata_id)),
     )
     .execute();
 

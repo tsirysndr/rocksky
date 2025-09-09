@@ -1,11 +1,11 @@
-import { Context } from "context";
+import type { Context } from "context";
 import { count, eq, or } from "drizzle-orm";
 import { Effect, pipe } from "effect";
-import { Server } from "lexicon";
-import { ArtistViewDetailed } from "lexicon/types/app/rocksky/artist/defs";
-import { QueryParams } from "lexicon/types/app/rocksky/artist/getArtist";
+import type { Server } from "lexicon";
+import type { ArtistViewDetailed } from "lexicon/types/app/rocksky/artist/defs";
+import type { QueryParams } from "lexicon/types/app/rocksky/artist/getArtist";
 import tables from "schema";
-import { SelectArtist } from "schema/artists";
+import type { SelectArtist } from "schema/artists";
 
 export default function (server: Server, ctx: Context) {
   const getArtist = (params) =>
@@ -18,7 +18,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({});
-      })
+      }),
     );
   server.app.rocksky.artist.getArtist({
     handler: async ({ params }) => {
@@ -39,13 +39,13 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
         .from(tables.userArtists)
         .leftJoin(
           tables.artists,
-          eq(tables.userArtists.artistId, tables.artists.id)
+          eq(tables.userArtists.artistId, tables.artists.id),
         )
         .where(
           or(
             eq(tables.userArtists.uri, params.uri),
-            eq(tables.artists.uri, params.uri)
-          )
+            eq(tables.artists.uri, params.uri),
+          ),
         )
         .execute()
         .then(([row]) => row?.artists);

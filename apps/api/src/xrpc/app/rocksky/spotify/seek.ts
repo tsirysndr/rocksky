@@ -1,13 +1,13 @@
-import { HandlerAuth } from "@atproto/xrpc-server";
-import { Context } from "context";
+import type { HandlerAuth } from "@atproto/xrpc-server";
+import type { Context } from "context";
 import { eq } from "drizzle-orm";
 import { Effect, pipe } from "effect";
-import { Server } from "lexicon";
-import { QueryParams } from "lexicon/types/app/rocksky/spotify/seek";
+import type { Server } from "lexicon";
+import type { QueryParams } from "lexicon/types/app/rocksky/spotify/seek";
 import { decrypt } from "lib/crypto";
 import { env } from "lib/env";
 import tables from "schema";
-import { SelectUser } from "schema/users";
+import type { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
   const seek = (params, auth: HandlerAuth) =>
@@ -23,7 +23,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({});
-      })
+      }),
     );
   server.app.rocksky.spotify.seek({
     auth: ctx.authVerifier,
@@ -75,7 +75,7 @@ const withSpotifyRefreshToken = ({
         .where(eq(tables.spotifyTokens.userId, user.id))
         .execute()
         .then(([spotifyToken]) =>
-          decrypt(spotifyToken.refreshToken, env.SPOTIFY_ENCRYPTION_KEY)
+          decrypt(spotifyToken.refreshToken, env.SPOTIFY_ENCRYPTION_KEY),
         )
         .then((refreshToken) => ({
           refreshToken,
@@ -132,7 +132,7 @@ const handleSeek = ({
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
-        }
+        },
       ).then((res) => res.status),
     catch: (error) => new Error(`Failed to handle next action: ${error}`),
   });

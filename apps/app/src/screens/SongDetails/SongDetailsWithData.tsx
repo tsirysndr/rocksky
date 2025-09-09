@@ -23,14 +23,14 @@ const SongDetailsWithData: FC<SongDetailsWithDataProps> = (props) => {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const songResult = useSongByUriQuery(route?.params?.uri?.split("at://")[1]!);
   const scrobbleResult = useFeedByUriQuery(
-    route?.params?.uri?.split("at://")[1]!
+    route?.params?.uri?.split("at://")[1]!,
   );
   const song = songResult.data?.title ? songResult.data : scrobbleResult.data;
   const artistTracksResult = useArtistTracksQuery(
-    song?.artistUri?.split("at://")[1]!
+    song?.artistUri?.split("at://")[1]!,
   );
   const artistAlbumsResult = useArtistAlbumsQuery(
-    song?.artistUri?.split("at://")[1]!
+    song?.artistUri?.split("at://")[1]!,
   );
   return (
     <>

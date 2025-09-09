@@ -1,9 +1,9 @@
-import { HandlerAuth } from "@atproto/xrpc-server";
-import { Context } from "context";
+import type { HandlerAuth } from "@atproto/xrpc-server";
+import type { Context } from "context";
 import { eq } from "drizzle-orm";
 import { Effect, pipe } from "effect";
-import { Server } from "lexicon";
-import { QueryParams } from "lexicon/types/app/rocksky/player/seek";
+import type { Server } from "lexicon";
+import type { QueryParams } from "lexicon/types/app/rocksky/player/seek";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
@@ -17,7 +17,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({});
-      })
+      }),
     );
   server.app.rocksky.player.seek({
     auth: ctx.authVerifier,

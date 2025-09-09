@@ -52,6 +52,6 @@ createRoot(document.getElementById("root")!).render(
         </ToasterContainer>
       </BaseProvider>
     </StyletronProvider>
-  </QueryClientProvider>
+  </QueryClientProvider>,
   //</StrictMode>
 );

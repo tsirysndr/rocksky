@@ -25,10 +25,10 @@ async function updateUris(did: string) {
         equals(
           createHash("sha256")
             .update(
-              `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
+              `${track.title} - ${track.artist} - ${track.album}`.toLowerCase(),
             )
-            .digest("hex")
-        )
+            .digest("hex"),
+        ),
       )
       .getFirst();
 
@@ -40,8 +40,8 @@ async function updateUris(did: string) {
           equals(
             createHash("sha256")
               .update(`${track.album} - ${track.album_artist}`.toLowerCase())
-              .digest("hex")
-          )
+              .digest("hex"),
+          ),
         )
         .getFirst();
       if (album) {
@@ -59,8 +59,8 @@ async function updateUris(did: string) {
           equals(
             createHash("sha256")
               .update(track.album_artist.toLowerCase())
-              .digest("hex")
-          )
+              .digest("hex"),
+          ),
         )
         .getFirst();
       if (artist) {
@@ -76,8 +76,8 @@ async function updateUris(did: string) {
         equals(
           createHash("sha256")
             .update(`${track.album} - ${track.album_artist}`.toLowerCase())
-            .digest("hex")
-        )
+            .digest("hex"),
+        ),
       )
       .getFirst();
 
@@ -89,8 +89,8 @@ async function updateUris(did: string) {
           equals(
             createHash("sha256")
               .update(track.album_artist.toLowerCase())
-              .digest("hex")
-          )
+              .digest("hex"),
+          ),
         )
         .getFirst();
       if (artist) {

@@ -10,7 +10,7 @@ export const shout = async (uri: string, message: string) => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
-    }
+    },
   );
   return response.data;
 };
@@ -22,7 +22,7 @@ export const getShouts = async (uri: string) => {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
-    }
+    },
   );
   return response.data;
 };
@@ -36,14 +36,14 @@ export const reply = async (uri: string, message: string) => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
-    }
+    },
   );
   return response.data;
 };
 
 export const getReplies = async (uri: string) => {
   const response = await axios.get(
-    `${API_URL}/users/${uri.replace("at://", "")}/replies`
+    `${API_URL}/users/${uri.replace("at://", "")}/replies`,
   );
   return response.data;
 };
@@ -56,7 +56,7 @@ export const reportShout = async (uri: string) => {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
-    }
+    },
   );
   return response.data;
 };
@@ -68,7 +68,7 @@ export const deleteShout = async (uri: string) => {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
-    }
+    },
   );
   return response.data;
 };
@@ -80,7 +80,7 @@ export const cancelReport = async (uri: string) => {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
-    }
+    },
   );
   return response.data;
 };

@@ -1,9 +1,9 @@
-import { Context } from "context";
+import type { Context } from "context";
 import { aliasedTable, count, desc, eq, or, sql } from "drizzle-orm";
 import { Effect, pipe } from "effect";
-import { Server } from "lexicon";
-import { ShoutView } from "lexicon/types/app/rocksky/shout/defs";
-import { QueryParams } from "lexicon/types/app/rocksky/shout/getProfileShouts";
+import type { Server } from "lexicon";
+import type { ShoutView } from "lexicon/types/app/rocksky/shout/defs";
+import type { QueryParams } from "lexicon/types/app/rocksky/shout/getProfileShouts";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
@@ -17,7 +17,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({ shouts: [] });
-      })
+      }),
     );
   server.app.rocksky.shout.getProfileShouts({
     auth: ctx.authVerifier,
@@ -46,8 +46,8 @@ const retrieve = ({
         .where(
           or(
             eq(tables.users.did, params.did),
-            eq(tables.users.handle, params.did)
-          )
+            eq(tables.users.handle, params.did),
+          ),
         )
         .execute();
       return ctx.db
@@ -99,24 +99,24 @@ const retrieve = ({
         .where(
           or(
             eq(tables.users.did, params.did),
-            eq(tables.users.handle, params.did)
-          )
+            eq(tables.users.handle, params.did),
+          ),
         )
         .leftJoin(
           tables.shouts,
-          eq(tables.profileShouts.shoutId, tables.shouts.id)
+          eq(tables.profileShouts.shoutId, tables.shouts.id),
         )
         .leftJoin(
           aliasedTable(tables.users, "authors"),
-          eq(tables.shouts.authorId, aliasedTable(tables.users, "authors").id)
+          eq(tables.shouts.authorId, aliasedTable(tables.users, "authors").id),
         )
         .leftJoin(
           tables.users,
-          eq(tables.profileShouts.userId, tables.users.id)
+          eq(tables.profileShouts.userId, tables.users.id),
         )
         .leftJoin(
           tables.shoutLikes,
-          eq(tables.shouts.id, tables.shoutLikes.shoutId)
+          eq(tables.shouts.id, tables.shoutLikes.shoutId),
         )
         .groupBy(
           tables.profileShouts.id,
@@ -135,7 +135,7 @@ const retrieve = ({
           aliasedTable(tables.users, "authors").did,
           aliasedTable(tables.users, "authors").handle,
           aliasedTable(tables.users, "authors").displayName,
-          aliasedTable(tables.users, "authors").avatar
+          aliasedTable(tables.users, "authors").avatar,
         )
         .orderBy(desc(tables.profileShouts.createdAt))
         .execute();
@@ -148,7 +148,7 @@ const presentation = (
   data: {
     shouts: Shouts;
     users: Users;
-  }[]
+  }[],
 ): Effect.Effect<ShoutView, never> => {
   return Effect.sync(() => ({
     shouts: data.map((item) => ({

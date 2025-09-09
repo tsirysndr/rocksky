@@ -1,14 +1,14 @@
-import { Context } from "context";
+import type { Context } from "context";
 import { asc, eq, sql } from "drizzle-orm";
 import { Effect, pipe } from "effect";
-import { Server } from "lexicon";
-import { PlaylistViewDetailed } from "lexicon/types/app/rocksky/playlist/defs";
-import { QueryParams } from "lexicon/types/app/rocksky/playlist/getPlaylist";
+import type { Server } from "lexicon";
+import type { PlaylistViewDetailed } from "lexicon/types/app/rocksky/playlist/defs";
+import type { QueryParams } from "lexicon/types/app/rocksky/playlist/getPlaylist";
 import * as R from "ramda";
 import tables from "schema";
-import { SelectPlaylist } from "schema/playlists";
-import { SelectTrack } from "schema/tracks";
-import { SelectUser } from "schema/users";
+import type { SelectPlaylist } from "schema/playlists";
+import type { SelectTrack } from "schema/tracks";
+import type { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
   const getPlaylist = (params) =>
@@ -21,7 +21,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({});
-      })
+      }),
     );
   server.app.rocksky.playlist.getPlaylist({
     handler: async ({ params }) => {
@@ -57,11 +57,11 @@ const retrieve = ({
           .from(tables.userPlaylists)
           .leftJoin(
             tables.playlists,
-            eq(tables.userPlaylists.playlistId, tables.playlists.id)
+            eq(tables.userPlaylists.playlistId, tables.playlists.id),
           )
           .leftJoin(
             tables.users,
-            eq(tables.userPlaylists.userId, tables.users.id)
+            eq(tables.userPlaylists.userId, tables.users.id),
           )
           .where(eq(tables.playlists.uri, params.uri))
           .execute()
@@ -71,11 +71,11 @@ const retrieve = ({
           .from(tables.playlistTracks)
           .leftJoin(
             tables.tracks,
-            eq(tables.playlistTracks.trackId, tables.tracks.id)
+            eq(tables.playlistTracks.trackId, tables.tracks.id),
           )
           .leftJoin(
             tables.playlists,
-            eq(tables.playlistTracks.playlistId, tables.playlists.id)
+            eq(tables.playlistTracks.playlistId, tables.playlists.id),
           )
           .where(eq(tables.playlists.uri, params.uri))
           .orderBy(asc(tables.playlistTracks.createdAt))

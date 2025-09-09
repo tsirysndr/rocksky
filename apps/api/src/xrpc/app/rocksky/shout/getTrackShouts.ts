@@ -17,7 +17,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({ shouts: [] });
-      })
+      }),
     );
   server.app.rocksky.shout.getTrackShouts({
     auth: ctx.authVerifier,
@@ -84,7 +84,7 @@ const retrieve = ({
         .leftJoin(tables.tracks, eq(tables.shouts.trackId, tables.tracks.id))
         .leftJoin(
           tables.shoutLikes,
-          eq(tables.shouts.id, tables.shoutLikes.shoutId)
+          eq(tables.shouts.id, tables.shoutLikes.shoutId),
         )
         .where(eq(tables.tracks.uri, params.uri))
         .groupBy(
@@ -97,7 +97,7 @@ const retrieve = ({
           tables.users.did,
           tables.users.handle,
           tables.users.displayName,
-          tables.users.avatar
+          tables.users.avatar,
         )
         .orderBy(desc(tables.shouts.createdAt))
         .execute();
@@ -110,7 +110,7 @@ const presentation = (
   data: {
     shouts: Shouts;
     users: Users;
-  }[]
+  }[],
 ): Effect.Effect<ShoutView, never> => {
   return Effect.sync(() => ({
     shouts: data.map((item) => ({

@@ -63,7 +63,7 @@ function ApiKeys() {
         onSuccess: async () => {
           apiKeys = await apiKeys.refetch();
         },
-      }
+      },
     );
 
     setIsOpen(false);
@@ -82,7 +82,7 @@ function ApiKeys() {
         onSuccess: async () => {
           apiKeys = await apiKeys.refetch();
         },
-      }
+      },
     );
   };
 
@@ -97,7 +97,7 @@ function ApiKeys() {
         onSuccess: async () => {
           apiKeys = await apiKeys.refetch();
         },
-      }
+      },
     );
   };
 

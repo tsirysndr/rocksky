@@ -60,7 +60,7 @@ const SongItem = memo(
       className={className}
       did=""
     />
-  )
+  ),
 );
 
 const FooterLoader = memo(({ isLoading }: { isLoading: boolean }) => (
@@ -100,12 +100,12 @@ const Tracks: FC<TracksProps> = (props) => {
         albumUri={item.albumUri}
       />
     ),
-    [onPressTrack, onPressAlbum]
+    [onPressTrack, onPressAlbum],
   );
 
   const renderFooter = useCallback(
     () => <FooterLoader isLoading={isLoading || isFetchingMore} />,
-    [isLoading, isFetchingMore]
+    [isLoading, isFetchingMore],
   );
 
   const getItemLayout = useCallback(
@@ -114,7 +114,7 @@ const Tracks: FC<TracksProps> = (props) => {
       offset: 70 * index,
       index,
     }),
-    []
+    [],
   );
 
   const handleEndReached = useCallback(() => {

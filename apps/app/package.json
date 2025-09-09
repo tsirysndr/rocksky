@@ -8,12 +8,13 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "expo lint",
+    "lint": "biome lint src",
     "storybook-generate": "sb-rn-get-stories",
     "storybook": "STORYBOOK_ENABLED='true' expo start",
     "storybook:android": "STORYBOOK_ENABLED='true' expo run:android",
     "test": "jest",
-    "adb:reverse": "adb reverse tcp:8081 tcp:8081"
+    "adb:reverse": "adb reverse tcp:8081 tcp:8081",
+    "format": "biome format src"
   },
   "jest": {
     "preset": "react-native"
@@ -75,6 +76,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@biomejs/biome": "^2.2.3",
     "@gorhom/bottom-sheet": "^5.1.4",
     "@react-native-community/datetimepicker": "^8.3.0",
     "@react-native-community/slider": "^4.5.6",

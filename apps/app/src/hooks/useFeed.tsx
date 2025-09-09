@@ -21,7 +21,7 @@ export const useFeedInfiniteQuery = (size = 20) =>
         `${API_URL}/public/scrobbles?size=${size}&offset=${pageParam * size}`,
         {
           method: "GET",
-        }
+        },
       ).then((res) => res.json());
       return {
         feed: data,

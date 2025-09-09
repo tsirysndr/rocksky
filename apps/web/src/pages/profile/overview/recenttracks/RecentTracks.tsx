@@ -69,7 +69,7 @@ function RecentTracks(props: RecentTracksProps) {
   const recentTracksResult = useRecentTracksByDidQuery(
     did!,
     (currentPage - 1) * props.size!,
-    props.size!
+    props.size!,
   );
   const setRecentTracks = useSetAtom(recentTracksAtom);
   const recentTracks = useAtomValue(recentTracksAtom);
@@ -105,7 +105,7 @@ function RecentTracks(props: RecentTracksProps) {
         scrobbleUri: item.uri,
         albumUri: item.albumUri,
         artistUri: item.artistUri,
-      }))
+      })),
     );
 
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -18,13 +18,13 @@ export const getProfileStatsByDid = async (did: string) => {
 export const getRecentTracksByDid = async (
   did: string,
   offset = 0,
-  limit = 10
+  limit = 10,
 ): Promise<Scrobble[]> => {
   const response = await client.get<{ scrobbles: Scrobble[] }>(
     "/xrpc/app.rocksky.actor.getActorScrobbles",
     {
       params: { did, offset, limit },
-    }
+    },
   );
   return response.data.scrobbles || [];
 };

@@ -1,8 +1,8 @@
-import { HandlerAuth } from "@atproto/xrpc-server";
-import { Context } from "context";
+import type { HandlerAuth } from "@atproto/xrpc-server";
+import type { Context } from "context";
 import { Effect, pipe } from "effect";
-import { Server } from "lexicon";
-import { QueryParams } from "lexicon/types/app/rocksky/playlist/createPlaylist";
+import type { Server } from "lexicon";
+import type { QueryParams } from "lexicon/types/app/rocksky/playlist/createPlaylist";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
@@ -20,7 +20,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({});
-      })
+      }),
     );
   server.app.rocksky.playlist.createPlaylist({
     auth: ctx.authVerifier,

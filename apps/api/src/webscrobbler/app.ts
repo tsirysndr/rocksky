@@ -90,7 +90,7 @@ app.put("/:id", async (c) => {
       uuid: id,
       user_id: user.xata_id,
       name: "webscrobbler",
-    }
+    },
   );
 
   return c.json(record);

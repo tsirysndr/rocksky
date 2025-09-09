@@ -1,11 +1,11 @@
-import { Context } from "context";
+import type { Context } from "context";
 import { desc, eq, or } from "drizzle-orm";
 import { Effect, pipe } from "effect";
-import { Server } from "lexicon";
-import { QueryParams } from "lexicon/types/app/rocksky/actor/getActorLovedSongs";
-import { SongViewBasic } from "lexicon/types/app/rocksky/song/defs";
+import type { Server } from "lexicon";
+import type { QueryParams } from "lexicon/types/app/rocksky/actor/getActorLovedSongs";
+import type { SongViewBasic } from "lexicon/types/app/rocksky/song/defs";
 import tables from "schema";
-import { SelectTrack } from "schema/tracks";
+import type { SelectTrack } from "schema/tracks";
 
 export default function (server: Server, ctx: Context) {
   const getActorLovedSongs = (params) =>
@@ -18,7 +18,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({ tracks: [] });
-      })
+      }),
     );
   server.app.rocksky.actor.getActorLovedSongs({
     handler: async ({ params }) => {
@@ -45,14 +45,14 @@ const retrieve = ({
         .from(tables.lovedTracks)
         .leftJoin(
           tables.tracks,
-          eq(tables.lovedTracks.trackId, tables.tracks.id)
+          eq(tables.lovedTracks.trackId, tables.tracks.id),
         )
         .leftJoin(tables.users, eq(tables.lovedTracks.userId, tables.users.id))
         .where(
           or(
             eq(tables.users.did, params.did),
-            eq(tables.users.handle, params.did)
-          )
+            eq(tables.users.handle, params.did),
+          ),
         )
         .limit(params.limit ?? 10)
         .offset(params.offset ?? 0)
@@ -62,14 +62,14 @@ const retrieve = ({
           rows.map((row) => ({
             ...row.tracks,
             createdAt: row.loved_tracks.createdAt,
-          }))
+          })),
         ),
     catch: (error) => new Error(`Failed to retrieve loved songs: ${error}`),
   });
 };
 
 const presentation = (
-  data: SelectTrack[]
+  data: SelectTrack[],
 ): Effect.Effect<{ tracks: SongViewBasic[] }, never> => {
   return Effect.sync(() => ({
     tracks: data.map((track) => ({

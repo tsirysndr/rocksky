@@ -1,21 +1,21 @@
-import { Agent, AtpAgent } from "@atproto/api";
-import { OutputSchema } from "@atproto/api/dist/client/types/com/atproto/repo/getRecord";
-import { HandlerAuth } from "@atproto/xrpc-server";
-import { Context } from "context";
+import { type Agent, AtpAgent } from "@atproto/api";
+import type { OutputSchema } from "@atproto/api/dist/client/types/com/atproto/repo/getRecord";
+import type { HandlerAuth } from "@atproto/xrpc-server";
+import type { Context } from "context";
 import { eq } from "drizzle-orm";
 import { Effect, pipe } from "effect";
-import { Server } from "lexicon";
-import { ProfileViewDetailed } from "lexicon/types/app/rocksky/actor/defs";
-import { QueryParams } from "lexicon/types/app/rocksky/actor/getProfile";
+import type { Server } from "lexicon";
+import type { ProfileViewDetailed } from "lexicon/types/app/rocksky/actor/defs";
+import type { QueryParams } from "lexicon/types/app/rocksky/actor/getProfile";
 import { createAgent } from "lib/agent";
 import _ from "lodash";
 import * as R from "ramda";
 import tables from "schema";
-import { SelectDropboxAccounts } from "schema/dropbox-accounts";
-import { SelectGoogleDriveAccounts } from "schema/google-drive-accounts";
-import { SelectSpotifyAccount } from "schema/spotify-accounts";
-import { SelectSpotifyToken } from "schema/spotify-tokens";
-import { SelectUser } from "schema/users";
+import type { SelectDropboxAccounts } from "schema/dropbox-accounts";
+import type { SelectGoogleDriveAccounts } from "schema/google-drive-accounts";
+import type { SelectSpotifyAccount } from "schema/spotify-accounts";
+import type { SelectSpotifyToken } from "schema/spotify-tokens";
+import type { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
   const getActorProfile = (params, auth: HandlerAuth) =>
@@ -33,7 +33,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({});
-      })
+      }),
     );
   server.app.rocksky.actor.getProfile({
     auth: ctx.authVerifier,
@@ -192,7 +192,7 @@ const retrieveProfile = ({
           .from(tables.spotifyAccounts)
           .leftJoin(
             tables.users,
-            eq(tables.spotifyAccounts.userId, tables.users.id)
+            eq(tables.spotifyAccounts.userId, tables.users.id),
           )
           .where(eq(tables.users.did, did))
           .execute()
@@ -202,7 +202,7 @@ const retrieveProfile = ({
           .from(tables.spotifyTokens)
           .leftJoin(
             tables.users,
-            eq(tables.spotifyTokens.userId, tables.users.id)
+            eq(tables.spotifyTokens.userId, tables.users.id),
           )
           .where(eq(tables.users.did, did))
           .execute()
@@ -212,7 +212,7 @@ const retrieveProfile = ({
           .from(tables.googleDriveAccounts)
           .leftJoin(
             tables.users,
-            eq(tables.googleDriveAccounts.userId, tables.users.id)
+            eq(tables.googleDriveAccounts.userId, tables.users.id),
           )
           .where(eq(tables.users.did, did))
           .execute()
@@ -222,7 +222,7 @@ const retrieveProfile = ({
           .from(tables.dropboxAccounts)
           .leftJoin(
             tables.users,
-            eq(tables.dropboxAccounts.userId, tables.users.id)
+            eq(tables.dropboxAccounts.userId, tables.users.id),
           )
           .where(eq(tables.users.did, did))
           .execute()
