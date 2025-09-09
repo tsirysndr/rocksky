@@ -23,7 +23,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({});
-      }),
+      })
     );
   server.app.rocksky.spotify.getCurrentlyPlaying({
     auth: ctx.authVerifier,
@@ -54,8 +54,8 @@ const withUser = ({
         .where(
           or(
             eq(tables.users.did, params.actor || did),
-            eq(tables.users.handle, params.actor || did),
-          ),
+            eq(tables.users.handle, params.actor || did)
+          )
         )
         .execute()
         .then((users) => ({ user: users[0], ctx, params, did })),
@@ -90,13 +90,13 @@ const withSpotifyAccount = ({
         .from(tables.spotifyAccounts)
         .leftJoin(
           tables.users,
-          eq(tables.users.id, tables.spotifyAccounts.userId),
+          eq(tables.users.id, tables.spotifyAccounts.userId)
         )
         .where(
           or(
             eq(tables.users.did, params.actor || did),
-            eq(tables.users.handle, params.actor || did),
-          ),
+            eq(tables.users.handle, params.actor || did)
+          )
         )
         .execute()
         .then(([results]) => ({
@@ -129,8 +129,8 @@ const retrieve = ({
           Match.value(cached).pipe(
             Match.when(null, () => ({})),
             Match.when(undefined, () => ({})),
-            Match.orElse(() => JSON.parse(cached)),
-          ),
+            Match.orElse(() => JSON.parse(cached))
+          )
         )
         .then((cached) => [cached, ctx, user]),
     catch: (error) =>
@@ -143,7 +143,7 @@ const withUriAndLikes = ([track, ctx, user]: [any, Context, SelectUser]) => {
     try: async () => {
       const sha256 = createHash("sha256")
         .update(
-          `${track.item.name} - ${track.item.artists.map((x) => x.name).join(", ")} - ${track.item.album.name}`.toLowerCase(),
+          `${track.item.name} - ${track.item.artists.map((x) => x.name).join(", ")} - ${track.item.album.name}`.toLowerCase()
         )
         .digest("hex");
       const [record] = await ctx.db
@@ -156,18 +156,18 @@ const withUriAndLikes = ([track, ctx, user]: [any, Context, SelectUser]) => {
         .from(tables.lovedTracks)
         .leftJoin(
           tables.tracks,
-          eq(tables.lovedTracks.trackId, tables.tracks.id),
+          eq(tables.lovedTracks.trackId, tables.tracks.id)
         )
         .leftJoin(tables.users, eq(tables.lovedTracks.userId, tables.users.id))
         .where(
-          and(eq(tables.tracks.sha256, sha256), eq(tables.users.did, user.did)),
+          and(eq(tables.tracks.sha256, sha256), eq(tables.users.did, user.did))
         )
         .execute()
         .then((results) =>
           Match.value(track).pipe(
             Match.when(
               (t) => !Object.keys(t).length,
-              () => ({}),
+              () => ({})
             ),
             Match.orElse(() => ({
               ...track,
@@ -175,8 +175,8 @@ const withUriAndLikes = ([track, ctx, user]: [any, Context, SelectUser]) => {
               artistUri: record?.artistUri,
               albumUri: record?.albumUri,
               liked: results.length > 0,
-            })),
-          ),
+            }))
+          )
         );
     },
     catch: (error) => new Error(`Failed to retrieve URI and likes: ${error}`),

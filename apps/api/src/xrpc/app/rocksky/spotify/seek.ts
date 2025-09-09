@@ -107,7 +107,7 @@ const withSpotifyToken = ({
           client_secret: env.SPOTIFY_CLIENT_SECRET,
         }),
       })
-        .then((res) => res.json())
+        .then((res) => res.json() as Promise<{ access_token: string }>)
         .then((data) => ({
           accessToken: data.access_token,
           position: params.position,
