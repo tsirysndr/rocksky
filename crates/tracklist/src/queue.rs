@@ -301,7 +301,12 @@ mod tests {
         let did = Uuid::new_v4().to_string();
 
         let track_ids = vec!["track:67890", "track:67891", "track:67892"];
-        add_tracks(&client, &did, track_ids.iter().map(|s| s.to_string()).collect()).await?;
+        add_tracks(
+            &client,
+            &did,
+            track_ids.iter().map(|s| s.to_string()).collect(),
+        )
+        .await?;
 
         let queue = get_queue(&client, &did).await?;
         assert_eq!(queue, track_ids);
