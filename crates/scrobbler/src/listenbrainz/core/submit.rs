@@ -1,5 +1,5 @@
 use actix_web::HttpResponse;
-use anyhow::{Context, Error};
+use anyhow::Error;
 use owo_colors::OwoColorize;
 use serde_json::json;
 use std::sync::Arc;
