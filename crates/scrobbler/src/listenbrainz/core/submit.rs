@@ -41,14 +41,6 @@ pub async fn submit_listens(
                 })));
             }
             Err(e) => {
-                if !e.to_string().contains("error decoding response body") {
-                    println!("Non-retryable error: {}", e.to_string().red());
-                    println!("{:#?}", payload);
-                    return Ok(HttpResponse::BadRequest().json(serde_json::json!({
-                      "error": 4,
-                      "message": format!("Failed to parse listens: {}", e)
-                    })));
-                }
                 println!(
                     "Retryable error on attempt {}/{}: {}",
                     attempt,
