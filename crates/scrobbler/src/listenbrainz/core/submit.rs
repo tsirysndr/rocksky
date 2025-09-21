@@ -27,9 +27,10 @@ pub async fn submit_listens(
 
     const RETRIES: usize = 5;
     for attempt in 1..=RETRIES {
-        match scrobble_listenbrainz(pool, cache, &payload, token).await.with_context(
-            || format!("Attempt {}/{}: Error submitting listens", attempt, RETRIES),
-        ) {
+        match scrobble_listenbrainz(pool, cache, &payload, token)
+            .await
+            .with_context(|| format!("Attempt {}/{}: Error submitting listens", attempt, RETRIES))
+        {
             Ok(_) => {
                 return Ok(HttpResponse::Ok().json(json!({
                   "status": "ok",
@@ -48,7 +49,12 @@ pub async fn submit_listens(
                       "message": format!("Failed to parse listens: {}", e)
                     })));
                 }
-                println!("Retryable error on attempt {}/{}: {}", attempt, RETRIES, e.to_string().yellow());
+                println!(
+                    "Retryable error on attempt {}/{}: {}",
+                    attempt,
+                    RETRIES,
+                    e.to_string().yellow()
+                );
                 println!("{:#?}", payload);
 
                 if attempt == RETRIES {
@@ -65,7 +71,7 @@ pub async fn submit_listens(
 
     unreachable!();
 
-   /* match scrobble_listenbrainz(pool, cache, payload, token).await {
+    /* match scrobble_listenbrainz(pool, cache, payload, token).await {
         Ok(_) => Ok(HttpResponse::Ok().json(json!({
           "status": "ok",
           "payload": {
