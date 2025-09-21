@@ -69,7 +69,7 @@ A decentralized music tracking and discovery platform built on the AT Protocol �
 ## ✍️ Feedback
 This repository is the central place to collect feedback and issues related to [Rocksky](https://rocksky.app).
 
-Please [**open an issue**](https://github.com/tsirysndr/rocksky/issues/new) if you want to leave feedback. Feel free to also join our [**Discord server**](https://discord.gg/EVcBy2fVa3)
+Please [**open an issue**](https://tangled.org/@rocksky.app/rocksky/issues/new) if you want to leave feedback. Feel free to also join our [**Discord server**](https://discord.gg/EVcBy2fVa3)
 
 ## 🤝 Contributing
 We would love to hear your feedback or suggestions. The best way to reach us is on [Discord](https://discord.gg/EVcBy2fVa3).
