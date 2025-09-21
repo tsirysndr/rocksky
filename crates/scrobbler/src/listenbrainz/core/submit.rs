@@ -29,7 +29,6 @@ pub async fn submit_listens(
     for attempt in 1..=RETRIES {
         match scrobble_listenbrainz(pool, cache, &payload, token)
             .await
-            .with_context(|| format!("Attempt {}/{}: Error submitting listens", attempt, RETRIES))
         {
             Ok(_) => {
                 return Ok(HttpResponse::Ok().json(json!({
