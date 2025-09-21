@@ -27,7 +27,7 @@ pub async fn submit_listens(
         })));
     }
 
-    const RETRIES: usize = 5;
+    const RETRIES: usize = 15;
     for attempt in 1..=RETRIES {
         match scrobble_listenbrainz(pool, cache, &payload, token).await {
             Ok(_) => {
