@@ -432,7 +432,7 @@ pub async fn scrobble_v1(
 pub async fn scrobble_listenbrainz(
     pool: &Pool<Postgres>,
     cache: &Cache,
-    req: SubmitListensRequest,
+    req: &SubmitListensRequest,
     token: &str,
 ) -> Result<(), Error> {
     println!("Listenbrainz\n{:#?}", req);
@@ -656,6 +656,10 @@ pub async fn scrobble_listenbrainz(
         return Ok(());
     }
 
+    // Temporary disable Musicbrainz search to reduce rate limiting issues
+    // and because it often returns wrong results
+    // we can re-enable it later with a retry mechanism
+    /*
     let query = format!(
         r#"recording:"{}" AND artist:"{}""#,
         scrobble.track, scrobble.artist
@@ -670,6 +674,7 @@ pub async fn scrobble_listenbrainz(
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
         return Ok(());
     }
+    */
 
     println!(
         "{} {} - {}, skipping",

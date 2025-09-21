@@ -1,5 +1,5 @@
 use actix_web::HttpResponse;
-use anyhow::Error;
+use anyhow::{Context, Error};
 use owo_colors::OwoColorize;
 use serde_json::json;
 use std::sync::Arc;
@@ -24,7 +24,48 @@ pub async fn submit_listens(
           },
         })));
     }
-    match scrobble_listenbrainz(pool, cache, payload, token).await {
+
+    const RETRIES: usize = 5;
+    for attempt in 1..=RETRIES {
+        match scrobble_listenbrainz(pool, cache, &payload, token).await.with_context(
+            || format!("Attempt {}/{}: Error submitting listens", attempt, RETRIES),
+        ) {
+            Ok(_) => {
+                return Ok(HttpResponse::Ok().json(json!({
+                  "status": "ok",
+                  "payload": {
+                    "submitted_listens": 1,
+                    "ignored_listens": 0
+                  },
+                })));
+            }
+            Err(e) => {
+                if !e.to_string().contains("error decoding response body") {
+                    println!("Non-retryable error: {}", e.to_string().red());
+                    println!("{:#?}", payload);
+                    return Ok(HttpResponse::BadRequest().json(serde_json::json!({
+                      "error": 4,
+                      "message": format!("Failed to parse listens: {}", e)
+                    })));
+                }
+                println!("Retryable error on attempt {}/{}: {}", attempt, RETRIES, e.to_string().yellow());
+                println!("{:#?}", payload);
+
+                if attempt == RETRIES {
+                    return Ok(HttpResponse::BadRequest().json(serde_json::json!({
+                      "error": 4,
+                      "message": format!("Failed to parse listens after {} attempts: {}", RETRIES, e)
+                    })));
+                }
+
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            }
+        }
+    }
+
+    unreachable!();
+
+   /* match scrobble_listenbrainz(pool, cache, payload, token).await {
         Ok(_) => Ok(HttpResponse::Ok().json(json!({
           "status": "ok",
           "payload": {
@@ -40,4 +81,5 @@ pub async fn submit_listens(
             })))
         }
     }
+    */
 }
