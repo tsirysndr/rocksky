@@ -77,7 +77,7 @@ pub async fn submit_listens(
                     })));
                 }
 
-                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                tokio::time::sleep(std::time::Duration::from_secs(2)).await;
             }
         }
     }
