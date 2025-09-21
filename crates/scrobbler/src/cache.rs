@@ -39,6 +39,12 @@ impl Cache {
         Ok(())
     }
 
+    pub fn del(&self, key: &str) -> Result<(), Error> {
+        let mut con = self.client.get_connection()?;
+        redis::cmd("DEL").arg(key).query::<()>(&mut con)?;
+        Ok(())
+    }
+
     pub fn exists(&self, key: &str) -> Result<bool, Error> {
         let mut con = self.client.get_connection()?;
         let result: bool = redis::cmd("EXISTS").arg(key).query(&mut con)?;

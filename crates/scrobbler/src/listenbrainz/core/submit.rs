@@ -4,6 +4,8 @@ use owo_colors::OwoColorize;
 use serde_json::json;
 use std::sync::Arc;
 
+use crate::auth::decode_token;
+use crate::repo;
 use crate::{cache::Cache, scrobbler::scrobble_listenbrainz};
 
 use crate::listenbrainz::types::SubmitListensRequest;
@@ -38,6 +40,28 @@ pub async fn submit_listens(
                 })));
             }
             Err(e) => {
+                let artist = payload.payload[0].track_metadata.artist_name.clone();
+                let track = payload.payload[0].track_metadata.track_name.clone();
+
+                let did = match decode_token(token) {
+                    Ok(claims) => claims.did,
+                    Err(e) => {
+                        let user = repo::user::get_user_by_apikey(pool, token)
+                            .await?
+                            .map(|user| user.did);
+                        if let Some(did) = user {
+                            did
+                        } else {
+                            return Err(Error::msg(format!(
+                                "Failed to decode token: {} {}",
+                                e, token
+                            )));
+                        }
+                    }
+                };
+
+                cache.del(&format!("listenbrainz:cache:{}:{}:{}", artist, track, did))?;
+
                 println!(
                     "Retryable error on attempt {}/{}: {}",
                     attempt,
