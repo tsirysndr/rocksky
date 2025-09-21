@@ -27,9 +27,7 @@ pub async fn submit_listens(
 
     const RETRIES: usize = 5;
     for attempt in 1..=RETRIES {
-        match scrobble_listenbrainz(pool, cache, &payload, token)
-            .await
-        {
+        match scrobble_listenbrainz(pool, cache, &payload, token).await {
             Ok(_) => {
                 return Ok(HttpResponse::Ok().json(json!({
                   "status": "ok",
