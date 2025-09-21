@@ -18,6 +18,13 @@ A decentralized music tracking and discovery platform built on the AT Protocol ð
 
 ## ðŸš€ Getting Started
 
+> [!IMPORTANT]
+>
+> Self-hosting or running Rocksky locally is still **difficult** at this stage.
+> Parts of the API are still tied to [**Xata Postgres**](https://xata.io), and a full migration to standard **Postgres** is ongoing.
+> Until this migration is complete, expect setup to be non-trivial.
+
+
 1. Clone the repository:
   ```bash
    git clone https://github.com/tsirysndr/rocksky
