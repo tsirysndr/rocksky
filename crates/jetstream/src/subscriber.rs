@@ -7,7 +7,7 @@ use sqlx::postgres::PgPoolOptions;
 use tokio::sync::Mutex;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
-use crate::{repo::save_scrobble, types::Root};
+use crate::{repo::save_scrobble, types::Root, webhook_worker::AppState};
 
 pub const SCROBBLE_NSID: &str = "app.rocksky.scrobble";
 pub const ARTIST_NSID: &str = "app.rocksky.artist";
@@ -28,7 +28,7 @@ impl ScrobbleSubscriber {
         }
     }
 
-    pub async fn run(&self) -> Result<(), Error> {
+    pub async fn run(&self, state: Arc<Mutex<AppState>>) -> Result<(), Error> {
         // Get the connection string outside of the task
         let db_url = env::var("XATA_POSTGRES_URL")
             .context("Failed to get XATA_POSTGRES_URL environment variable")?;
@@ -48,7 +48,7 @@ impl ScrobbleSubscriber {
         while let Some(msg) = ws_stream.next().await {
             match msg {
                 Ok(msg) => {
-                    if let Err(e) = handle_message(pool.clone(), msg).await {
+                    if let Err(e) = handle_message(state.clone(), pool.clone(), msg).await {
                         eprintln!("Error handling message: {}", e);
                     }
                 }
@@ -63,7 +63,11 @@ impl ScrobbleSubscriber {
     }
 }
 
-async fn handle_message(pool: Arc<Mutex<sqlx::PgPool>>, msg: Message) -> Result<(), Error> {
+async fn handle_message(
+    state: Arc<Mutex<AppState>>,
+    pool: Arc<Mutex<sqlx::PgPool>>,
+    msg: Message,
+) -> Result<(), Error> {
     tokio::spawn(async move {
         if let Message::Text(text) = msg {
             let message: Root = serde_json::from_str(&text)?;
@@ -74,7 +78,7 @@ async fn handle_message(pool: Arc<Mutex<sqlx::PgPool>>, msg: Message) -> Result<
 
             println!("Received message: {:#?}", message);
             if let Some(commit) = message.commit {
-                match save_scrobble(pool, &message.did, commit).await {
+                match save_scrobble(state, pool, &message.did, commit).await {
                     Ok(_) => {
                         println!("Scrobble saved successfully");
                     }

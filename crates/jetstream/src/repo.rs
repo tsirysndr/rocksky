@@ -10,6 +10,11 @@ use crate::{
     profile::did_to_profile,
     subscriber::{ALBUM_NSID, ARTIST_NSID, SCROBBLE_NSID, SONG_NSID},
     types::{AlbumRecord, ArtistRecord, Commit, ScrobbleRecord, SongRecord},
+    webhook::discord::{
+        self,
+        model::{ScrobbleData, WebhookEnvelope},
+    },
+    webhook_worker::{push_to_queue, AppState},
     xata::{
         album::Album, album_track::AlbumTrack, artist::Artist, artist_album::ArtistAlbum,
         artist_track::ArtistTrack, track::Track, user::User, user_album::UserAlbum,
@@ -18,6 +23,7 @@ use crate::{
 };
 
 pub async fn save_scrobble(
+    state: Arc<Mutex<AppState>>,
     pool: Arc<Mutex<Pool<Postgres>>>,
     did: &str,
     commit: Commit,
@@ -85,6 +91,61 @@ pub async fn save_scrobble(
                 .await?;
 
                 tx.commit().await?;
+
+                let users: Vec<User> =
+                    sqlx::query_as::<_, User>("SELECT * FROM users WHERE did = $1")
+                        .bind(did)
+                        .fetch_all(&*pool)
+                        .await?;
+
+                if users.is_empty() {
+                    return Err(anyhow::anyhow!(
+                        "User with DID {} not found in database",
+                        did
+                    ));
+                }
+
+                // Push to webhook queue (Discord)
+                match push_to_queue(
+                    state,
+                    &WebhookEnvelope {
+                        r#type: "scrobble.created".to_string(),
+                        id: Some(commit.rkey.clone()),
+                        data: ScrobbleData {
+                            user: discord::model::User {
+                                did: did.to_string(),
+                                display_name: users[0].display_name.clone(),
+                                handle: users[0].handle.clone(),
+                            },
+                            track: discord::model::Track {
+                                title: scrobble_record.title.clone(),
+                                artist: scrobble_record.artist.clone(),
+                                album: scrobble_record.album.clone(),
+                                duration: scrobble_record.duration,
+                                artwork_url: scrobble_record.album_art.clone().map(|x| {
+                                    format!(
+                                        "https://cdn.bsky.app/img/feed_thumbnail/plain/{}/{}@{}",
+                                        did,
+                                        x.r#ref.link,
+                                        x.mime_type.split('/').last().unwrap_or("jpeg")
+                                    )
+                                }),
+                                spotify_url: scrobble_record.spotify_link.clone(),
+                                tidal_url: scrobble_record.tidal_link.clone(),
+                                youtube_url: scrobble_record.youtube_link.clone(),
+                            },
+                            played_at: scrobble_record.created_at.clone(),
+                        },
+                        delivered_at: Some(chrono::Utc::now().to_rfc3339()),
+                    },
+                )
+                .await
+                {
+                    Ok(_) => {}
+                    Err(e) => {
+                        eprintln!("Failed to push to webhook queue: {}", e);
+                    }
+                }
             }
 
             if commit.collection == ARTIST_NSID {
