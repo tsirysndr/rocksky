@@ -4,8 +4,7 @@ use serde::{Deserialize, Serialize};
 pub struct WebhookEnvelope {
     #[serde(default)]
     pub r#type: String,
-    #[serde(default)]
-    pub id: Option<String>,
+    pub id: String,
     #[serde(default)]
     pub delivered_at: Option<String>,
     pub data: ScrobbleData,
@@ -54,8 +53,7 @@ pub struct DiscordWebhookPayload {
 #[derive(Debug, Serialize)]
 pub struct DiscordEmbed {
     pub title: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub url: Option<String>,
+    pub url: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

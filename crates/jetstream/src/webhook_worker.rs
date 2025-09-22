@@ -74,7 +74,7 @@ async fn run_worker(
             match brpop_once(st.clone(), 1).await {
                 Ok(Some(json_str)) => {
                     if let Ok(env) = serde_json::from_str::<WebhookEnvelope>(&json_str) {
-                        embeds.push(discord::embed_from_scrobble(&env.data));
+                        embeds.push(discord::embed_from_scrobble(&env.data, &env.id));
                     }
                 }
                 Ok(None) => break,

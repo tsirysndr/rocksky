@@ -110,7 +110,7 @@ pub async fn save_scrobble(
                     state,
                     &WebhookEnvelope {
                         r#type: "scrobble.created".to_string(),
-                        id: Some(commit.rkey.clone()),
+                        id: commit.rkey.clone(),
                         data: ScrobbleData {
                             user: discord::model::User {
                                 did: did.to_string(),

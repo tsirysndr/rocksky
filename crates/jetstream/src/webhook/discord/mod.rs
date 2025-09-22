@@ -3,14 +3,8 @@ pub mod model;
 use crate::webhook::discord::model::*;
 use reqwest::Client;
 
-pub fn embed_from_scrobble(s: &ScrobbleData) -> DiscordEmbed {
-    let url = s
-        .track
-        .spotify_url
-        .as_ref()
-        .or(s.track.tidal_url.as_ref())
-        .or(s.track.youtube_url.as_ref())
-        .cloned();
+pub fn embed_from_scrobble(s: &ScrobbleData, rkey: &str) -> DiscordEmbed {
+    let url = format!("https://rocksky.app/{}/scrobble/{}", s.user.did, rkey);
 
     let mut desc = format!("**{}**\nby {}", esc(&s.track.title), esc(&s.track.artist));
     desc.push_str(&format!("\non *{}*", esc(&s.track.album)));
