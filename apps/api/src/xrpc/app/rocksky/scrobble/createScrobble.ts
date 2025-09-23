@@ -1,32 +1,32 @@
-import { Agent, BlobRef } from "@atproto/api";
+import type { Agent, BlobRef } from "@atproto/api";
 import { TID } from "@atproto/common";
-import { HandlerAuth } from "@atproto/xrpc-server";
+import type { HandlerAuth } from "@atproto/xrpc-server";
 import chalk from "chalk";
-import { Context } from "context";
+import type { Context } from "context";
 import dayjs from "dayjs";
 import { and, eq } from "drizzle-orm";
 import { Effect, Match, Option, pipe } from "effect";
-import { Server } from "lexicon";
+import type { Server } from "lexicon";
 import * as Album from "lexicon/types/app/rocksky/album";
 import * as Artist from "lexicon/types/app/rocksky/artist";
 import * as Scrobble from "lexicon/types/app/rocksky/scrobble";
-import { InputSchema } from "lexicon/types/app/rocksky/scrobble/createScrobble";
-import { ScrobbleViewBasic } from "lexicon/types/app/rocksky/scrobble/defs";
+import type { InputSchema } from "lexicon/types/app/rocksky/scrobble/createScrobble";
+import type { ScrobbleViewBasic } from "lexicon/types/app/rocksky/scrobble/defs";
 import * as Song from "lexicon/types/app/rocksky/song";
 import { deepSnakeCaseKeys } from "lib";
 import { createAgent } from "lib/agent";
 import downloadImage from "lib/downloadImage";
 import { createHash } from "node:crypto";
 import tables from "schema";
-import { SelectAlbum } from "schema/albums";
-import { SelectArtist } from "schema/artists";
-import { SelectScrobble } from "schema/scrobbles";
-import { SelectTrack } from "schema/tracks";
-import { InsertUserAlbum } from "schema/user-albums";
-import { InsertUserArtist } from "schema/user-artists";
-import { InsertUserTrack } from "schema/user-tracks";
-import { SelectUser } from "schema/users";
-import { Track, trackSchema } from "types/track";
+import type { SelectAlbum } from "schema/albums";
+import type { SelectArtist } from "schema/artists";
+import type { SelectScrobble } from "schema/scrobbles";
+import type { SelectTrack } from "schema/tracks";
+import type { InsertUserAlbum } from "schema/user-albums";
+import type { InsertUserArtist } from "schema/user-artists";
+import type { InsertUserTrack } from "schema/user-tracks";
+import type { SelectUser } from "schema/users";
+import { type Track, trackSchema } from "types/track";
 
 export default function (server: Server, ctx: Context) {
   const createScrobble = (input, auth: HandlerAuth) =>

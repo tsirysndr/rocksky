@@ -1,14 +1,14 @@
-import { Context } from "context";
+import type { Context } from "context";
 import { desc, eq } from "drizzle-orm";
 import { Effect, pipe } from "effect";
-import { Server } from "lexicon";
-import { ScrobbleViewBasic } from "lexicon/types/app/rocksky/scrobble/defs";
-import { QueryParams } from "lexicon/types/app/rocksky/scrobble/getScrobbles";
+import type { Server } from "lexicon";
+import type { ScrobbleViewBasic } from "lexicon/types/app/rocksky/scrobble/defs";
+import type { QueryParams } from "lexicon/types/app/rocksky/scrobble/getScrobbles";
 import * as R from "ramda";
 import tables from "schema";
-import { SelectScrobble } from "schema/scrobbles";
-import { SelectTrack } from "schema/tracks";
-import { SelectUser } from "schema/users";
+import type { SelectScrobble } from "schema/scrobbles";
+import type { SelectTrack } from "schema/tracks";
+import type { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
   const getScrobbles = (params) =>
@@ -21,7 +21,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error("Error retrieving scrobbles:", err);
         return Effect.succeed({ scrobbles: [] });
-      }),
+      })
     );
   server.app.rocksky.scrobble.getScrobbles({
     handler: async ({ params }) => {
@@ -58,7 +58,7 @@ const retrieve = ({
 };
 
 const presentation = (
-  data: Scrobbles,
+  data: Scrobbles
 ): Effect.Effect<{ scrobbles: ScrobbleViewBasic[] }, never> => {
   return Effect.sync(() => ({
     scrobbles: data.map(({ scrobbles, tracks, users }) => ({
@@ -66,6 +66,8 @@ const presentation = (
       cover: tracks.albumArt,
       date: scrobbles.timestamp.toISOString(),
       user: users.handle,
+      userDisplayName: users.displayName,
+      userAvatar: users.avatar,
       uri: scrobbles.uri,
       tags: [],
       id: scrobbles.id,

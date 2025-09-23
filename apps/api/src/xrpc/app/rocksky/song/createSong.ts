@@ -1,29 +1,29 @@
-import { Agent, BlobRef } from "@atproto/api";
+import type { Agent, BlobRef } from "@atproto/api";
 import { TID } from "@atproto/common";
-import { HandlerAuth } from "@atproto/xrpc-server";
+import type { HandlerAuth } from "@atproto/xrpc-server";
 import chalk from "chalk";
-import { Context } from "context";
+import type { Context } from "context";
 import { and, eq } from "drizzle-orm";
 import { Effect, Match, Option, pipe } from "effect";
-import { NoSuchElementException, UnknownException } from "effect/Cause";
-import { Server } from "lexicon";
+import type { NoSuchElementException, UnknownException } from "effect/Cause";
+import type { Server } from "lexicon";
 import * as Album from "lexicon/types/app/rocksky/album";
 import * as Artist from "lexicon/types/app/rocksky/artist";
 import * as Song from "lexicon/types/app/rocksky/song";
-import { InputSchema } from "lexicon/types/app/rocksky/song/createSong";
-import { SongViewDetailed } from "lexicon/types/app/rocksky/song/defs";
+import type { InputSchema } from "lexicon/types/app/rocksky/song/createSong";
+import type { SongViewDetailed } from "lexicon/types/app/rocksky/song/defs";
 import { deepSnakeCaseKeys } from "lib";
 import { createAgent } from "lib/agent";
 import downloadImage from "lib/downloadImage";
 import { createHash } from "node:crypto";
 import tables from "schema";
-import { InsertAlbumTrack, SelectAlbumTrack } from "schema/album-tracks";
-import { SelectAlbum } from "schema/albums";
-import { InsertArtistAlbum, SelectArtistAlbum } from "schema/artist-albums";
-import { InsertArtistTrack, SelectArtistTrack } from "schema/artist-tracks";
-import { SelectArtist } from "schema/artists";
-import { SelectTrack } from "schema/tracks";
-import { Track, trackSchema } from "types/track";
+import type { InsertAlbumTrack, SelectAlbumTrack } from "schema/album-tracks";
+import type { SelectAlbum } from "schema/albums";
+import type { InsertArtistAlbum, SelectArtistAlbum } from "schema/artist-albums";
+import type { InsertArtistTrack, SelectArtistTrack } from "schema/artist-tracks";
+import type { SelectArtist } from "schema/artists";
+import type { SelectTrack } from "schema/tracks";
+import { type Track, trackSchema } from "types/track";
 
 export default function (server: Server, ctx: Context) {
   const createSong = (input: InputSchema, auth: HandlerAuth) =>

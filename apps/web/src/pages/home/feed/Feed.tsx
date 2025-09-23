@@ -1,6 +1,6 @@
 import styled from "@emotion/styled";
 import { Link } from "@tanstack/react-router";
-import { BlockProps } from "baseui/block";
+import type { BlockProps } from "baseui/block";
 import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
 import { StatefulTooltip } from "baseui/tooltip";
 import { HeadingMedium, LabelMedium } from "baseui/typography";

@@ -1,12 +1,12 @@
-import { Context } from "context";
+import type { Context } from "context";
 import { asc, eq } from "drizzle-orm";
 import { Effect, pipe } from "effect";
-import { Server } from "lexicon";
-import { ShoutView } from "lexicon/types/app/rocksky/shout/defs";
-import { QueryParams } from "lexicon/types/app/rocksky/shout/getShoutReplies";
+import type { Server } from "lexicon";
+import type { ShoutView } from "lexicon/types/app/rocksky/shout/defs";
+import type { QueryParams } from "lexicon/types/app/rocksky/shout/getShoutReplies";
 import tables from "schema";
-import { SelectShout } from "schema/shouts";
-import { SelectUser } from "schema/users";
+import type { SelectShout } from "schema/shouts";
+import type { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
   const getShoutReplies = (params) =>

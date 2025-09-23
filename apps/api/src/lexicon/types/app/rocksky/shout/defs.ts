@@ -1,58 +1,58 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import { type ValidationResult, BlobRef } from "@atproto/lexicon";
-import { lexicons } from "../../../../lexicons";
-import { isObj, hasProp } from "../../../../util";
-import { CID } from "multiformats/cid";
+import { type ValidationResult, BlobRef } from '@atproto/lexicon'
+import { lexicons } from '../../../../lexicons'
+import { isObj, hasProp } from '../../../../util'
+import { CID } from 'multiformats/cid'
 
 export interface Author {
   /** The unique identifier of the author. */
-  id?: string;
+  id?: string
   /** The decentralized identifier (DID) of the author. */
-  did?: string;
+  did?: string
   /** The handle of the author. */
-  handle?: string;
+  handle?: string
   /** The display name of the author. */
-  displayName?: string;
+  displayName?: string
   /** The URL of the author's avatar image. */
-  avatar?: string;
-  [k: string]: unknown;
+  avatar?: string
+  [k: string]: unknown
 }
 
 export function isAuthor(v: unknown): v is Author {
   return (
     isObj(v) &&
-    hasProp(v, "$type") &&
-    v.$type === "app.rocksky.shout.defs#author"
-  );
+    hasProp(v, '$type') &&
+    v.$type === 'app.rocksky.shout.defs#author'
+  )
 }
 
 export function validateAuthor(v: unknown): ValidationResult {
-  return lexicons.validate("app.rocksky.shout.defs#author", v);
+  return lexicons.validate('app.rocksky.shout.defs#author', v)
 }
 
 export interface ShoutView {
   /** The unique identifier of the shout. */
-  id?: string;
+  id?: string
   /** The content of the shout. */
-  message?: string;
+  message?: string
   /** The ID of the parent shout if this is a reply, otherwise null. */
-  parent?: string;
+  parent?: string
   /** The date and time when the shout was created. */
-  createdAt?: string;
-  author?: Author;
-  [k: string]: unknown;
+  createdAt?: string
+  author?: Author
+  [k: string]: unknown
 }
 
 export function isShoutView(v: unknown): v is ShoutView {
   return (
     isObj(v) &&
-    hasProp(v, "$type") &&
-    v.$type === "app.rocksky.shout.defs#shoutView"
-  );
+    hasProp(v, '$type') &&
+    v.$type === 'app.rocksky.shout.defs#shoutView'
+  )
 }
 
 export function validateShoutView(v: unknown): ValidationResult {
-  return lexicons.validate("app.rocksky.shout.defs#shoutView", v);
+  return lexicons.validate('app.rocksky.shout.defs#shoutView', v)
 }

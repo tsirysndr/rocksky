@@ -14,6 +14,15 @@ defs = new Mapping<String, ObjectType> {
         type = "string"
         description = "The handle of the user who created the scrobble."
       }
+      ["userDisplayName"] = new StringType {
+        type = "string"
+        description = "The display name of the user who created the scrobble."
+      }
+      ["userAvatar"] = new StringType {
+        type = "string"
+        description = "The avatar URL of the user who created the scrobble."
+        format = "uri"
+      }
       ["title"] = new StringType {
         type = "string"
         description = "The title of the scrobble."

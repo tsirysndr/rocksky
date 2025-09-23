@@ -1,8 +1,8 @@
-import { Agent, BlobRef } from "@atproto/api";
+import type { Agent, BlobRef } from "@atproto/api";
 import { TID } from "@atproto/common";
 import { equals } from "@xata.io/client";
 import chalk from "chalk";
-import { Context } from "context";
+import type { Context } from "context";
 import { createHash } from "crypto";
 import dayjs from "dayjs";
 import * as Album from "lexicon/types/app/rocksky/album";
@@ -10,7 +10,7 @@ import * as Artist from "lexicon/types/app/rocksky/artist";
 import * as Scrobble from "lexicon/types/app/rocksky/scrobble";
 import * as Song from "lexicon/types/app/rocksky/song";
 import downloadImage, { getContentType } from "lib/downloadImage";
-import { Track } from "types/track";
+import type { Track } from "types/track";
 
 export async function putArtistRecord(
   track: Track,
@@ -64,10 +64,10 @@ export async function putAlbumRecord(
   agent: Agent,
 ): Promise<string | null> {
   const rkey = TID.nextStr();
-  let albumArt = undefined;
+  let albumArt ;
 
   if (track.albumArt) {
-    let options = undefined;
+    let options ;
     if (track.albumArt.endsWith(".jpeg") || track.albumArt.endsWith(".jpg")) {
       options = { encoding: "image/jpeg" };
     }
@@ -124,10 +124,10 @@ export async function putSongRecord(
   agent: Agent,
 ): Promise<string | null> {
   const rkey = TID.nextStr();
-  let albumArt = undefined;
+  let albumArt ;
 
   if (track.albumArt) {
-    let options = undefined;
+    let options ;
     if (track.albumArt.endsWith(".jpeg") || track.albumArt.endsWith(".jpg")) {
       options = { encoding: "image/jpeg" };
     }
@@ -153,15 +153,15 @@ export async function putSongRecord(
       : undefined,
     year: track.year,
     albumArt,
-    composer: !!track.composer ? track.composer : undefined,
-    lyrics: !!track.lyrics ? track.lyrics : undefined,
+    composer: track.composer ? track.composer : undefined,
+    lyrics: track.lyrics ? track.lyrics : undefined,
     trackNumber: track.trackNumber,
     discNumber: track.discNumber === 0 ? 1 : track.discNumber,
-    copyrightMessage: !!track.copyrightMessage
+    copyrightMessage: track.copyrightMessage
       ? track.copyrightMessage
       : undefined,
     createdAt: new Date().toISOString(),
-    spotifyLink: !!track.spotifyLink ? track.spotifyLink : undefined,
+    spotifyLink: track.spotifyLink ? track.spotifyLink : undefined,
   };
 
   if (!Song.validateRecord(record).success) {
@@ -191,10 +191,10 @@ async function putScrobbleRecord(
   agent: Agent,
 ): Promise<string | null> {
   const rkey = TID.nextStr();
-  let albumArt = undefined;
+  let albumArt ;
 
   if (track.albumArt) {
-    let options = undefined;
+    let options ;
     if (track.albumArt.endsWith(".jpeg") || track.albumArt.endsWith(".jpg")) {
       options = { encoding: "image/jpeg" };
     }
@@ -222,16 +222,16 @@ async function putScrobbleRecord(
       ? track.releaseDate.toISOString()
       : undefined,
     year: track.year,
-    composer: !!track.composer ? track.composer : undefined,
-    lyrics: !!track.lyrics ? track.lyrics : undefined,
-    copyrightMessage: !!track.copyrightMessage
+    composer: track.composer ? track.composer : undefined,
+    lyrics: track.lyrics ? track.lyrics : undefined,
+    copyrightMessage: track.copyrightMessage
       ? track.copyrightMessage
       : undefined,
     // if track.timestamp is not null, set it to the timestamp
     createdAt: track.timestamp
       ? dayjs.unix(track.timestamp).toISOString()
       : new Date().toISOString(),
-    spotifyLink: !!track.spotifyLink ? track.spotifyLink : undefined,
+    spotifyLink: track.spotifyLink ? track.spotifyLink : undefined,
   };
 
   if (!Scrobble.validateRecord(record).success) {

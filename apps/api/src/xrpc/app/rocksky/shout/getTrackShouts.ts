@@ -1,9 +1,9 @@
-import { Context } from "context";
+import type { Context } from "context";
 import { count, desc, eq, sql } from "drizzle-orm";
 import { Effect, pipe } from "effect";
-import { Server } from "lexicon";
-import { ShoutView } from "lexicon/types/app/rocksky/shout/defs";
-import { QueryParams } from "lexicon/types/app/rocksky/shout/getTrackShouts";
+import type { Server } from "lexicon";
+import type { ShoutView } from "lexicon/types/app/rocksky/shout/defs";
+import type { QueryParams } from "lexicon/types/app/rocksky/shout/getTrackShouts";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {

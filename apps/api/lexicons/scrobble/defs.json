@@ -13,6 +13,15 @@
           "type": "string",
           "description": "The handle of the user who created the scrobble."
         },
+        "userDisplayName": {
+          "type": "string",
+          "description": "The display name of the user who created the scrobble."
+        },
+        "userAvatar": {
+          "type": "string",
+          "description": "The avatar URL of the user who created the scrobble.",
+          "format": "uri"
+        },
         "title": {
           "type": "string",
           "description": "The title of the scrobble."
