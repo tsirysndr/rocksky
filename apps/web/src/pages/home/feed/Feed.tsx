@@ -83,6 +83,7 @@ function Feed() {
 											did: song.uri?.split("at://")[1]?.split("/")[0] || "",
 											rkey: song.uri?.split("/").pop() || "",
 										}}
+										className="no-underline text-[var(--color-text-primary)]"
 									>
 										<SongCover
 											cover={song.cover}

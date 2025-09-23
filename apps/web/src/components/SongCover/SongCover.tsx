@@ -7,24 +7,19 @@ const Cover = styled.img<{ size?: number }>`
   width: 240px;
   margin-bottom: 10px;
   ${(props) =>
-    props.size &&
-    css`
+		props.size &&
+		css`
       height: ${props.size}px;
       width: ${props.size}px;
     `}
 `;
 
 const SongTitle = styled.div`
-  color: #fff;
-  font-size: 18px;
-  text-decoration-color: rgb(255, 255, 255);
+  font-size: 16px;
   text-decoration-line: none;
-  text-decoration-style: solid;
-  text-decoration-thickness: auto;
   text-size-adjust: 100%;
-  font-weight: 600;
+  font-weight: 400;
   font-family: RockfordSansRegular;
-  text-shadow: rgba(0, 0, 0, 1) 0px 0px 12px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -49,34 +44,30 @@ const Artist = styled.div`
   max-width: 210px;
 `;
 
-const Metadata = styled.div`
-  position: absolute;
-  bottom: 15px;
-  padding: 15px;
-`;
-
 const CoverWrapper = styled.div`
   position: relative;
 `;
 
 export type SongCoverProps = {
-  cover: string;
-  title?: string;
-  artist?: string;
-  size?: number;
+	cover: string;
+	title?: string;
+	artist?: string;
+	size?: number;
 };
 
 function SongCover(props: SongCoverProps) {
-  const { title, artist, cover, size } = props;
-  return (
-    <CoverWrapper>
-      <Cover src={cover} size={size} />
-      <Metadata>
-        <SongTitle>{title}</SongTitle>
-        <Artist>{artist}</Artist>
-      </Metadata>
-    </CoverWrapper>
-  );
+	const { title, artist, cover, size } = props;
+	return (
+		<CoverWrapper>
+			<Cover src={cover} size={size} />
+			<div className="mb-[13px]">
+				<SongTitle className="!text-[var(--color-text-primary)]">
+					{title}
+				</SongTitle>
+				<Artist>{artist}</Artist>
+			</div>
+		</CoverWrapper>
+	);
 }
 
 export default SongCover;
