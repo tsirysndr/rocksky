@@ -6,7 +6,12 @@ use reqwest::Client;
 pub fn embed_from_scrobble(s: &ScrobbleData, rkey: &str) -> DiscordEmbed {
     let url = format!("https://rocksky.app/{}/scrobble/{}", s.user.did, rkey);
 
-    let mut desc = format!("**{}**\nby {}", esc(&s.track.title), esc(&s.track.artist));
+    let mut desc = format!(
+        "**[{}]({})**\nby {}",
+        esc(&s.track.title),
+        url,
+        esc(&s.track.artist)
+    );
     desc.push_str(&format!("\non *{}*", esc(&s.track.album)));
 
     DiscordEmbed {
