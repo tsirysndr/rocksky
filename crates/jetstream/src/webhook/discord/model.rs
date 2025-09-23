@@ -22,6 +22,7 @@ pub struct User {
     pub did: String,
     pub display_name: String,
     pub handle: String,
+    pub avatar_url: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -62,6 +63,14 @@ pub struct DiscordEmbed {
     pub thumbnail: Option<DiscordThumb>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub footer: Option<DiscordFooter>,
+    pub author: DiscordAuthor,
+}
+
+#[derive(Debug, Serialize)]
+pub struct DiscordAuthor {
+    pub name: String,
+    pub url: String,
+    pub icon_url: String,
 }
 
 #[derive(Debug, Serialize)]

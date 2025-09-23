@@ -10,7 +10,7 @@ pub fn embed_from_scrobble(s: &ScrobbleData, rkey: &str) -> DiscordEmbed {
     desc.push_str(&format!("\non *{}*", esc(&s.track.album)));
 
     DiscordEmbed {
-        title: s.user.display_name.clone(),
+        title: String::new(),
         url,
         description: Some(desc),
         timestamp: Some(s.played_at.clone()),
@@ -18,6 +18,11 @@ pub fn embed_from_scrobble(s: &ScrobbleData, rkey: &str) -> DiscordEmbed {
         footer: Some(DiscordFooter {
             text: format!("Rocksky • {}", s.user.handle.clone()),
         }),
+        author: DiscordAuthor {
+            name: s.user.display_name.clone(),
+            url: format!("https://rocksky.app/profile/{}", s.user.handle),
+            icon_url: s.user.avatar_url.clone(),
+        },
     }
 }
 

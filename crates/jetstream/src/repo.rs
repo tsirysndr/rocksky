@@ -116,6 +116,7 @@ pub async fn save_scrobble(
                                 did: did.to_string(),
                                 display_name: users[0].display_name.clone(),
                                 handle: users[0].handle.clone(),
+                                avatar_url: users[0].avatar.clone(),
                             },
                             track: discord::model::Track {
                                 title: scrobble_record.title.clone(),
