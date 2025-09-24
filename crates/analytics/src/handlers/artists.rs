@@ -402,13 +402,14 @@ pub async fn get_artist_listeners(
             s.user_id,
             s.track_id,
             t.artist,
+            t.album_artist,
             t.title as track_title,
             t.uri as track_uri,
             COUNT(*) as play_count
         FROM scrobbles s
         JOIN tracks t ON s.track_id = t.id
-        WHERE t.artist = ?
-        GROUP BY s.user_id, s.track_id, t.artist, t.title, t.uri
+        WHERE t.artist = ? OR t.album_artist = ?
+        GROUP BY s.user_id, s.track_id, t.artist, t.title, t.uri, t.album_artist
     ),
     user_top_tracks AS (
         SELECT
@@ -468,7 +469,12 @@ pub async fn get_artist_listeners(
     )?;
 
     let listeners = stmt.query_map(
-        [&artist.name, &limit.to_string(), &offset.to_string()],
+        [
+            &artist.name,
+            &artist.name,
+            &limit.to_string(),
+            &offset.to_string(),
+        ],
         |row| {
             Ok(ArtistListener {
                 artist: row.get(0)?,
