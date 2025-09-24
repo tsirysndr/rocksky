@@ -401,8 +401,7 @@ pub async fn get_artist_listeners(
         SELECT
             s.user_id,
             s.track_id,
-            t.artist,
-            t.album_artist,
+            t.album_artist AS artist,
             t.title as track_title,
             t.uri as track_uri,
             COUNT(*) as play_count
