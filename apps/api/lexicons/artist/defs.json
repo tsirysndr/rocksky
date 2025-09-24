@@ -73,6 +73,36 @@
           "minimum": 0
         }
       }
+    },
+    "listenerViewBasic": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the actor."
+        },
+        "did": {
+          "type": "string",
+          "description": "The DID of the listener."
+        },
+        "handle": {
+          "type": "string",
+          "description": "The handle of the listener."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The display name of the listener."
+        },
+        "avatar": {
+          "type": "string",
+          "description": "The URL of the listener's avatar image.",
+          "format": "uri"
+        },
+        "mostListenedSong": {
+          "type": "ref",
+          "ref": "app.rocksky.song.defs#songViewBasic"
+        }
+      }
     }
   }
 }

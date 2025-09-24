@@ -3,7 +3,8 @@ use std::sync::{Arc, Mutex};
 use crate::types::{
     album::Album,
     artist::{
-        Artist, GetArtistAlbumsParams, GetArtistTracksParams, GetArtistsParams, GetTopArtistsParams,
+        Artist, ArtistListener, GetArtistAlbumsParams, GetArtistListenersParams,
+        GetArtistTracksParams, GetArtistsParams, GetTopArtistsParams,
     },
     track::Track,
 };
@@ -363,4 +364,128 @@ pub async fn get_artist_albums(
 
     let albums: Result<Vec<_>, _> = albums.collect();
     Ok(HttpResponse::Ok().json(albums?))
+}
+
+pub async fn get_artist_listeners(
+    payload: &mut web::Payload,
+    _req: &HttpRequest,
+    conn: Arc<Mutex<Connection>>,
+) -> Result<HttpResponse, Error> {
+    let body = read_payload!(payload);
+    let params = serde_json::from_slice::<GetArtistListenersParams>(&body)?;
+    let pagination = params.pagination.unwrap_or_default();
+    let offset = pagination.skip.unwrap_or(0);
+    let limit = pagination.take.unwrap_or(10);
+
+    let conn = conn.lock().unwrap();
+    let mut stmt =
+        conn.prepare("SELECT id, name, uri FROM artists WHERE id = ? OR uri = ? OR name = ?")?;
+    let artist = stmt.query_row(
+        [&params.artist_id, &params.artist_id, &params.artist_id],
+        |row| {
+            Ok(crate::types::artist::ArtistBasic {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                uri: row.get(2)?,
+            })
+        },
+    )?;
+
+    if artist.id.is_empty() {
+        return Ok(HttpResponse::Ok().json(Vec::<ArtistListener>::new()));
+    }
+
+    let mut stmt = conn.prepare(
+        r#"
+        WITH user_track_counts AS (
+        SELECT
+            s.user_id,
+            s.track_id,
+            t.artist,
+            t.title as track_title,
+            t.uri as track_uri,
+            COUNT(*) as play_count
+        FROM scrobbles s
+        JOIN tracks t ON s.track_id = t.id
+        WHERE t.artist = ?
+        GROUP BY s.user_id, s.track_id, t.artist, t.title, t.uri
+    ),
+    user_top_tracks AS (
+        SELECT
+            user_id,
+            artist,
+            track_id,
+            track_title,
+            track_uri,
+            play_count,
+            ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY play_count DESC, track_title) as rn
+        FROM user_track_counts
+    ),
+    artist_listener_counts AS (
+        SELECT
+            user_id,
+            artist,
+            SUM(play_count) as total_artist_plays
+        FROM user_track_counts
+        GROUP BY user_id, artist
+    ),
+    top_artist_listeners AS (
+        SELECT
+            user_id,
+            artist,
+            total_artist_plays,
+            ROW_NUMBER() OVER (ORDER BY total_artist_plays DESC) as listener_rank
+        FROM artist_listener_counts
+    ),
+    paginated_listeners AS (
+        SELECT
+            user_id,
+            artist,
+            total_artist_plays,
+            listener_rank
+        FROM top_artist_listeners
+        ORDER BY listener_rank
+        LIMIT ? OFFSET ?
+    )
+    SELECT
+        pl.artist,
+        pl.listener_rank,
+        u.id as user_id,
+        u.display_name,
+        u.did,
+        u.handle,
+        u.avatar,
+        pl.total_artist_plays,
+        utt.track_title as most_played_track,
+        utt.track_uri as most_played_track_uri,
+        utt.play_count as track_play_count
+    FROM paginated_listeners pl
+    JOIN users u ON pl.user_id = u.id
+    JOIN user_top_tracks utt ON pl.user_id = utt.user_id
+        AND utt.rn = 1
+    ORDER BY pl.listener_rank;
+    "#,
+    )?;
+
+    let listeners = stmt.query_map(
+        [&artist.name, &limit.to_string(), &offset.to_string()],
+        |row| {
+            Ok(ArtistListener {
+                artist: row.get(0)?,
+                listener_rank: row.get(1)?,
+                user_id: row.get(2)?,
+                display_name: row.get(3)?,
+                did: row.get(4)?,
+                handle: row.get(5)?,
+                avatar: row.get(6)?,
+                total_artist_plays: row.get(7)?,
+                most_played_track: row.get(8)?,
+                most_played_track_uri: row.get(9)?,
+                track_play_count: row.get(10)?,
+            })
+        },
+    )?;
+
+    let listeners: Result<Vec<_>, _> = listeners.collect();
+    Ok(HttpResponse::Ok().json(listeners?))
 }
