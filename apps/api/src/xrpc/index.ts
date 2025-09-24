@@ -16,6 +16,7 @@ import removeApikey from "./app/rocksky/apikey/removeApikey";
 import updateApikey from "./app/rocksky/apikey/updateApikey";
 import getArtist from "./app/rocksky/artist/getArtist";
 import getArtistAlbums from "./app/rocksky/artist/getArtistAlbums";
+import getArtistListeners from "./app/rocksky/artist/getArtistListeners";
 import getArtists from "./app/rocksky/artist/getArtists";
 import getArtistTracks from "./app/rocksky/artist/getArtistTracks";
 import getScrobblesChart from "./app/rocksky/charts/getScrobblesChart";
@@ -91,6 +92,7 @@ export default function (server: Server, ctx: Context) {
   getArtist(server, ctx);
   getArtistAlbums(server, ctx);
   getArtists(server, ctx);
+  getArtistListeners(server, ctx);
   getArtistTracks(server, ctx);
   getScrobblesChart(server, ctx);
   downloadFileFromDropbox(server, ctx);
