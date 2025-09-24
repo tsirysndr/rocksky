@@ -1066,6 +1066,36 @@ export const schemaDict = {
           },
         },
       },
+      listenerViewBasic: {
+        type: 'object',
+        properties: {
+          id: {
+            type: 'string',
+            description: 'The unique identifier of the actor.',
+          },
+          did: {
+            type: 'string',
+            description: 'The DID of the listener.',
+          },
+          handle: {
+            type: 'string',
+            description: 'The handle of the listener.',
+          },
+          displayName: {
+            type: 'string',
+            description: 'The display name of the listener.',
+          },
+          avatar: {
+            type: 'string',
+            description: "The URL of the listener's avatar image.",
+            format: 'uri',
+          },
+          mostListenedSong: {
+            type: 'ref',
+            ref: 'lex:app.rocksky.song.defs#songViewBasic',
+          },
+        },
+      },
     },
   },
   AppRockskyArtistGetArtistAlbums: {
@@ -1127,6 +1157,42 @@ export const schemaDict = {
           schema: {
             type: 'ref',
             ref: 'lex:app.rocksky.artist.defs#artistViewDetailed',
+          },
+        },
+      },
+    },
+  },
+  AppRockskyArtistGetArtistListeners: {
+    lexicon: 1,
+    id: 'app.rocksky.artist.getArtistListeners',
+    defs: {
+      main: {
+        type: 'query',
+        description: 'Get artist listeners',
+        parameters: {
+          type: 'params',
+          required: ['uri'],
+          properties: {
+            uri: {
+              type: 'string',
+              description: 'The URI of the artist to retrieve listeners from',
+              format: 'at-uri',
+            },
+          },
+        },
+        output: {
+          encoding: 'application/json',
+          schema: {
+            type: 'object',
+            properties: {
+              listeners: {
+                type: 'array',
+                items: {
+                  type: 'ref',
+                  ref: 'lex:app.rocksky.artist.defs#listenerViewBasic',
+                },
+              },
+            },
           },
         },
       },
@@ -4321,6 +4387,7 @@ export const ids = {
   AppRockskyArtistDefs: 'app.rocksky.artist.defs',
   AppRockskyArtistGetArtistAlbums: 'app.rocksky.artist.getArtistAlbums',
   AppRockskyArtistGetArtist: 'app.rocksky.artist.getArtist',
+  AppRockskyArtistGetArtistListeners: 'app.rocksky.artist.getArtistListeners',
   AppRockskyArtistGetArtists: 'app.rocksky.artist.getArtists',
   AppRockskyArtistGetArtistTracks: 'app.rocksky.artist.getArtistTracks',
   AppRockskyChartsDefs: 'app.rocksky.charts.defs',

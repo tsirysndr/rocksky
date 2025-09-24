@@ -5,6 +5,7 @@ import { type ValidationResult, BlobRef } from '@atproto/lexicon'
 import { lexicons } from '../../../../lexicons'
 import { isObj, hasProp } from '../../../../util'
 import { CID } from 'multiformats/cid'
+import type * as AppRockskySongDefs from '../song/defs'
 
 export interface ArtistViewBasic {
   /** The unique identifier of the artist. */
@@ -64,4 +65,31 @@ export function isArtistViewDetailed(v: unknown): v is ArtistViewDetailed {
 
 export function validateArtistViewDetailed(v: unknown): ValidationResult {
   return lexicons.validate('app.rocksky.artist.defs#artistViewDetailed', v)
+}
+
+export interface ListenerViewBasic {
+  /** The unique identifier of the actor. */
+  id?: string
+  /** The DID of the listener. */
+  did?: string
+  /** The handle of the listener. */
+  handle?: string
+  /** The display name of the listener. */
+  displayName?: string
+  /** The URL of the listener's avatar image. */
+  avatar?: string
+  mostListenedSong?: AppRockskySongDefs.SongViewBasic
+  [k: string]: unknown
+}
+
+export function isListenerViewBasic(v: unknown): v is ListenerViewBasic {
+  return (
+    isObj(v) &&
+    hasProp(v, '$type') &&
+    v.$type === 'app.rocksky.artist.defs#listenerViewBasic'
+  )
+}
+
+export function validateListenerViewBasic(v: unknown): ValidationResult {
+  return lexicons.validate('app.rocksky.artist.defs#listenerViewBasic', v)
 }

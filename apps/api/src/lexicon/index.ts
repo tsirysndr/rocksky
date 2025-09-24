@@ -25,6 +25,7 @@ import type * as AppRockskyApikeyRemoveApikey from './types/app/rocksky/apikey/r
 import type * as AppRockskyApikeyUpdateApikey from './types/app/rocksky/apikey/updateApikey'
 import type * as AppRockskyArtistGetArtistAlbums from './types/app/rocksky/artist/getArtistAlbums'
 import type * as AppRockskyArtistGetArtist from './types/app/rocksky/artist/getArtist'
+import type * as AppRockskyArtistGetArtistListeners from './types/app/rocksky/artist/getArtistListeners'
 import type * as AppRockskyArtistGetArtists from './types/app/rocksky/artist/getArtists'
 import type * as AppRockskyArtistGetArtistTracks from './types/app/rocksky/artist/getArtistTracks'
 import type * as AppRockskyChartsGetScrobblesChart from './types/app/rocksky/charts/getScrobblesChart'
@@ -355,6 +356,17 @@ export class AppRockskyArtistNS {
     >,
   ) {
     const nsid = 'app.rocksky.artist.getArtist' // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg)
+  }
+
+  getArtistListeners<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyArtistGetArtistListeners.Handler<ExtractAuth<AV>>,
+      AppRockskyArtistGetArtistListeners.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = 'app.rocksky.artist.getArtistListeners' // @ts-ignore
     return this._server.xrpc.method(nsid, cfg)
   }
 

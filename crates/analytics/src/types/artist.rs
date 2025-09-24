@@ -34,6 +34,28 @@ pub struct Artist {
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
+pub struct ArtistBasic {
+    pub id: String,
+    pub name: String,
+    pub uri: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct ArtistListener {
+    pub artist: String,
+    pub listener_rank: i64,
+    pub user_id: String,
+    pub display_name: String,
+    pub did: String,
+    pub handle: String,
+    pub avatar: String,
+    pub total_artist_plays: i64,
+    pub most_played_track: String,
+    pub most_played_track_uri: String,
+    pub track_play_count: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct GetArtistsParams {
     pub user_did: Option<String>,
     pub pagination: Option<Pagination>,
@@ -54,4 +76,10 @@ pub struct GetArtistTracksParams {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GetArtistAlbumsParams {
     pub artist_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct GetArtistListenersParams {
+    pub artist_id: String,
+    pub pagination: Option<Pagination>,
 }

@@ -12,6 +12,8 @@ use stats::{
 };
 use tracks::{get_loved_tracks, get_top_tracks, get_tracks};
 
+use crate::handlers::artists::get_artist_listeners;
+
 pub mod albums;
 pub mod artists;
 pub mod scrobbles;
@@ -58,6 +60,7 @@ pub async fn handle(
         "library.getAlbumTracks" => get_album_tracks(payload, req, conn.clone()).await,
         "library.getArtistAlbums" => get_artist_albums(payload, req, conn.clone()).await,
         "library.getArtistTracks" => get_artist_tracks(payload, req, conn.clone()).await,
+        "library.getArtistListeners" => get_artist_listeners(payload, req, conn.clone()).await,
         _ => return Err(anyhow::anyhow!("Method not found")),
     }
 }

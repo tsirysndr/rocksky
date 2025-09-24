@@ -90,4 +90,40 @@ defs = new Mapping<String, ObjectType> {
 
     }
   }
+
+  ["listenerViewBasic"] {
+    type = "object"
+    properties {
+      ["id"] = new StringType {
+        type = "string"
+        description = "The unique identifier of the actor."
+      }
+
+      ["did"] = new StringType {
+        type = "string"
+        description = "The DID of the listener."
+      }
+
+      ["handle"] = new StringType {
+        type = "string"
+        description = "The handle of the listener."
+      }
+
+      ["displayName"] = new StringType {
+        type = "string"
+        description = "The display name of the listener."
+      }
+
+      ["avatar"] = new StringType {
+        type = "string"
+        format = "uri"
+        description = "The URL of the listener's avatar image."
+      }
+
+      ["mostListenedSong"] = new Ref {
+        ref = "app.rocksky.song.defs#songViewBasic"
+      }
+
+    }
+  }
 }
