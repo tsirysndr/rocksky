@@ -13,6 +13,12 @@ defs = new Mapping<String, Query> {
           description = "The URI of the artist to retrieve listeners from"
           format = "at-uri"
         }
+        ["offset"] = new IntegerType {
+          description = "Number of items to skip before returning results"
+        }
+        ["limit"] = new IntegerType {
+          description = "Maximum number of results to return"
+        }
       }
     }
     output {

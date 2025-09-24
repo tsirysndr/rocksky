@@ -12,6 +12,10 @@ import type * as AppRockskyArtistDefs from './defs'
 export interface QueryParams {
   /** The URI of the artist to retrieve listeners from */
   uri: string
+  /** Number of items to skip before returning results */
+  offset?: number
+  /** Maximum number of results to return */
+  limit?: number
 }
 
 export type InputSchema = undefined

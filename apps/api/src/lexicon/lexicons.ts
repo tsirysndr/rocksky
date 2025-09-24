@@ -1208,6 +1208,14 @@ export const schemaDict = {
               description: 'The URI of the artist to retrieve listeners from',
               format: 'at-uri',
             },
+            offset: {
+              type: 'integer',
+              description: 'Number of items to skip before returning results',
+            },
+            limit: {
+              type: 'integer',
+              description: 'Maximum number of results to return',
+            },
           },
         },
         output: {

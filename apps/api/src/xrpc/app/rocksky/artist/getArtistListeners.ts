@@ -39,6 +39,10 @@ const retrieve = ({
     try: () =>
       ctx.analytics.post("library.getArtistListeners", {
         artist_id: params.uri,
+        pagination: {
+          skip: params.offset || 0,
+          take: params.limit || 100,
+        },
       }),
     catch: (error) =>
       new Error(`Failed to retrieve artist's listeners: ${error}`),
