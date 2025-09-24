@@ -1066,6 +1066,25 @@ export const schemaDict = {
           },
         },
       },
+      songViewBasic: {
+        type: 'object',
+        properties: {
+          uri: {
+            type: 'string',
+            description: 'The URI of the song.',
+            format: 'at-uri',
+          },
+          title: {
+            type: 'string',
+            description: 'The title of the song.',
+          },
+          playCount: {
+            type: 'integer',
+            description: 'The number of times the song has been played.',
+            minimum: 0,
+          },
+        },
+      },
       listenerViewBasic: {
         type: 'object',
         properties: {
@@ -1092,7 +1111,18 @@ export const schemaDict = {
           },
           mostListenedSong: {
             type: 'ref',
-            ref: 'lex:app.rocksky.song.defs#songViewBasic',
+            ref: 'lex:app.rocksky.artist.defs#songViewBasic',
+          },
+          totalPlays: {
+            type: 'integer',
+            description: 'The total number of plays by the listener.',
+            minimum: 0,
+          },
+          rank: {
+            type: 'integer',
+            description:
+              'The rank of the listener among all listeners of the artist.',
+            minimum: 1,
           },
         },
       },
