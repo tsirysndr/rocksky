@@ -29,7 +29,7 @@ export const getSongByUri = async (uri: string) => {
 
 export const getArtistTracks = async (
   uri: string,
-  limit = 10,
+  limit = 10
 ): Promise<
   {
     id: string;
@@ -45,14 +45,14 @@ export const getArtistTracks = async (
 > => {
   const response = await client.get(
     "/xrpc/app.rocksky.artist.getArtistTracks",
-    { params: { uri, limit } },
+    { params: { uri, limit } }
   );
   return response.data.tracks;
 };
 
 export const getArtistAlbums = async (
   uri: string,
-  limit = 10,
+  limit = 10
 ): Promise<
   {
     id: string;
@@ -65,7 +65,7 @@ export const getArtistAlbums = async (
 > => {
   const response = await client.get(
     "/xrpc/app.rocksky.artist.getArtistAlbums",
-    { params: { uri, limit } },
+    { params: { uri, limit } }
   );
   return response.data.albums;
 };
@@ -96,7 +96,7 @@ export const getLovedTracks = async (did: string, offset = 0, limit = 20) => {
     "/xrpc/app.rocksky.actor.getActorLovedSongs",
     {
       params: { did, limit, offset },
-    },
+    }
   );
   return response.data.tracks;
 };
@@ -112,5 +112,13 @@ export const getArtist = async (did: string, rkey: string) => {
   const response = await client.get("/xrpc/app.rocksky.artist.getArtist", {
     params: { uri: `at://${did}/app.rocksky.artist/${rkey}` },
   });
+  return response.data;
+};
+
+export const getArtistListeners = async (uri: string, limit: number) => {
+  const response = await client.get(
+    "/xrpc/app.rocksky.artist.getArtistListeners",
+    { params: { uri, limit } }
+  );
   return response.data;
 };
