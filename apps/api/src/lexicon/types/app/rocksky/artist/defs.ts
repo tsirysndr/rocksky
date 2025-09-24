@@ -5,7 +5,6 @@ import { type ValidationResult, BlobRef } from '@atproto/lexicon'
 import { lexicons } from '../../../../lexicons'
 import { isObj, hasProp } from '../../../../util'
 import { CID } from 'multiformats/cid'
-import type * as AppRockskySongDefs from '../song/defs'
 
 export interface ArtistViewBasic {
   /** The unique identifier of the artist. */
@@ -67,6 +66,28 @@ export function validateArtistViewDetailed(v: unknown): ValidationResult {
   return lexicons.validate('app.rocksky.artist.defs#artistViewDetailed', v)
 }
 
+export interface SongViewBasic {
+  /** The URI of the song. */
+  uri?: string
+  /** The title of the song. */
+  title?: string
+  /** The number of times the song has been played. */
+  playCount?: number
+  [k: string]: unknown
+}
+
+export function isSongViewBasic(v: unknown): v is SongViewBasic {
+  return (
+    isObj(v) &&
+    hasProp(v, '$type') &&
+    v.$type === 'app.rocksky.artist.defs#songViewBasic'
+  )
+}
+
+export function validateSongViewBasic(v: unknown): ValidationResult {
+  return lexicons.validate('app.rocksky.artist.defs#songViewBasic', v)
+}
+
 export interface ListenerViewBasic {
   /** The unique identifier of the actor. */
   id?: string
@@ -78,7 +99,11 @@ export interface ListenerViewBasic {
   displayName?: string
   /** The URL of the listener's avatar image. */
   avatar?: string
-  mostListenedSong?: AppRockskySongDefs.SongViewBasic
+  mostListenedSong?: SongViewBasic
+  /** The total number of plays by the listener. */
+  totalPlays?: number
+  /** The rank of the listener among all listeners of the artist. */
+  rank?: number
   [k: string]: unknown
 }
 
