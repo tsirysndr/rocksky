@@ -51,7 +51,8 @@ pub struct ArtistListener {
     pub avatar: String,
     pub total_artist_plays: i64,
     pub most_played_track: String,
-    pub most_played_track_uri: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub most_played_track_uri: Option<String>,
     pub track_play_count: i64,
 }
 
