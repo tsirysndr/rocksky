@@ -73,7 +73,7 @@ async fn handle_message(
                 return Ok::<(), Error>(());
             }
 
-            tracing::info!(message = %text.bright_green(), "Received message");
+            tracing::info!(message = %text, "Received message");
             if let Some(commit) = message.commit {
                 match save_scrobble(state, pool, &message.did, commit).await {
                     Ok(_) => {
