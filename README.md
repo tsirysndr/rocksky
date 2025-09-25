@@ -7,6 +7,45 @@ A decentralized music tracking and discovery platform built on the AT Protocol �
 
 ![Preview](./.github/assets/preview.png)
 
+## ✨ Features
+
+### 🎵 Scrobbling APIs
+- **Last.fm Compatible API** – drop-in replacement for Last.fm scrobblers
+- **ListenBrainz Compatible API** – works with clients that support ListenBrainz
+
+### 🎵 Spotify Integration
+
+
+### 🕒 Playback & History
+
+- **Recently Played Timeline** – browse your listening history
+- **Stories View** – see what other users are playing in real time
+- **Stats** – visualize scrobbles per day
+
+## 📊 User Insights
+
+- **Top Artists, Tracks, and Albums** – personalized charts of your listening habits
+- **Shoutbox & Likes** – interact with other listeners and share reactions
+
+### 🌐 Client Integrations
+- **Spotify** – detect now playing tracks and scrobble directly from Spotify
+- **Jellyfin** – track plays from your media server
+- **Pano Scrobbler** – Android/Linux/Windows support
+- **WebScrobbler** – scrobble directly from your browser
+
+### 🔍 Search
+- **Search Engine** – fast search powered by MeiliSearch
+
+## 🚧 Coming Soon / Roadmap
+- **Webhooks** - subscribe to scrobble events and integrate with Discord or your own apps
+- **Personalized Feeds** – discover music through community-driven feed algorithms
+- **Last.fm → Rocksky** Mirroring (Future Scrobbles) – automatically mirror new scrobbles from Last.fm into Rocksky
+- **Rocksky Connect** – remote playback across devices (similar to Spotify Connect)
+- **Multi-Source Libraries** – browse and scrobble from Google Drive, Dropbox, S3, FTP, and more
+- **Stream & Scrobble Your Own Music** – upload your library and play directly on Rocksky
+- **Extensions** – customize and extend Rocksky with your own logic
+- **Crossfade & Equalizer Settings Sync** – carry your playback preferences across devices
+
 ## 📦 Prerequisites
 
 - Node.js (v22 or later)
