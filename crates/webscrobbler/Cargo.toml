@@ -42,3 +42,4 @@ rand = "0.9.0"
 tokio-stream = { version = "0.1.17", features = ["full"] }
 actix-session = "0.10.1"
 actix-limitation = "0.5.1"
+tracing = "0.1.41"

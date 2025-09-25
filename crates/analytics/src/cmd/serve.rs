@@ -29,7 +29,7 @@ async fn call_method(
     req: HttpRequest,
 ) -> Result<impl Responder, actix_web::Error> {
     let method = req.match_info().get("method").unwrap_or("unknown");
-    println!("Method: {}", method.bright_green());
+    tracing::info!(method = %method.bright_green(), "API call");
 
     let conn = data.get_ref().clone();
     handle(method, &mut payload, &req, conn)
@@ -45,7 +45,7 @@ pub async fn serve(conn: Arc<Mutex<Connection>>) -> Result<(), Error> {
     let addr = format!("{}:{}", host, port);
 
     let url = format!("http://{}", addr);
-    println!("Listening on {}", url.bright_green());
+    tracing::info!(url = %url.bright_green(), "Listening on");
 
     let conn = conn.clone();
     HttpServer::new(move || {

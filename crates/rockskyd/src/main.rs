@@ -1,5 +1,6 @@
 use clap::Command;
 use dotenv::dotenv;
+use tracing_subscriber::fmt::format::Format;
 
 pub mod cmd;
 
@@ -35,6 +36,17 @@ fn cli() -> Command {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let format = Format::default()
+        .with_level(true)
+        .with_target(true)
+        .with_ansi(true)
+        .compact();
+
+    tracing_subscriber::fmt()
+        .event_format(format)
+        .with_max_level(tracing::Level::INFO)
+        .init();
+
     dotenv().ok();
 
     let args = cli().get_matches();

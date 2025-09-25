@@ -44,3 +44,4 @@ uuid = { version = "1.17.0", features = ["v4"] }
 actix-limitation = "0.5.1"
 actix-session = "0.10.1"
 tokio-stream = { version = "0.1.17", features = ["full"] }
+tracing = "0.1.41"

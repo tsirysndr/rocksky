@@ -19,6 +19,7 @@ pub async fn get_scrobbles(
     let offset = pagination.skip.unwrap_or(0);
     let limit = pagination.take.unwrap_or(20);
     let did = params.user_did;
+    tracing::info!(limit, offset, user_did = ?did, "Get scrobbles");
 
     let conn = conn.lock().unwrap();
     let mut stmt = match did {
@@ -139,6 +140,7 @@ pub async fn get_distinct_scrobbles(
     let pagination = params.pagination.unwrap_or_default();
     let offset = pagination.skip.unwrap_or(0);
     let limit = pagination.take.unwrap_or(10);
+    tracing::info!(limit, offset, user_did = ?params.user_did, "Get distinct scrobbles");
 
     let conn = conn.lock().unwrap();
     let mut stmt = conn.prepare(

@@ -26,3 +26,4 @@ sqlx = { version = "0.8.3", features = [
 ] }
 actix-web = "4.9.0"
 tokio-stream = { version = "0.1.17", features = ["full"] }
+tracing = "0.1.41"

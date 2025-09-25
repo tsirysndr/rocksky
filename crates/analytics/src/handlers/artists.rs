@@ -318,6 +318,7 @@ pub async fn get_artist_albums(
     let body = read_payload!(payload);
     let params = serde_json::from_slice::<GetArtistAlbumsParams>(&body)?;
     let conn = conn.lock().unwrap();
+    tracing::info!(artist_id = %params.artist_id, "Get artist albums");
 
     let mut stmt = conn.prepare(r#"
         SELECT
@@ -376,6 +377,7 @@ pub async fn get_artist_listeners(
     let pagination = params.pagination.unwrap_or_default();
     let offset = pagination.skip.unwrap_or(0);
     let limit = pagination.take.unwrap_or(10);
+    tracing::info!(artist_id = %params.artist_id, limit, offset, "Get artist listeners");
 
     let conn = conn.lock().unwrap();
     let mut stmt =
