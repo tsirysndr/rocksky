@@ -16,16 +16,9 @@ use crate::{
     },
     webhook_worker::{push_to_queue, AppState},
     xata::{
-        album::Album,
-        album_track::AlbumTrack,
-        artist::Artist,
-        artist_album::ArtistAlbum,
-        artist_track::ArtistTrack,
-        track::Track,
-        user::{self, User},
-        user_album::UserAlbum,
-        user_artist::UserArtist,
-        user_track::UserTrack,
+        album::Album, album_track::AlbumTrack, artist::Artist, artist_album::ArtistAlbum,
+        artist_track::ArtistTrack, track::Track, user::User, user_album::UserAlbum,
+        user_artist::UserArtist, user_track::UserTrack,
     },
 };
 
