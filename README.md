@@ -19,7 +19,7 @@ A decentralized music tracking and discovery platform built on the AT Protocol �
 - **Stories View** – see what other users are playing in real time
 - **Stats** – visualize scrobbles per day
 
-## 📊 User Insights
+### 📊 User Insights
 
 - **Top Artists, Tracks, and Albums** – personalized charts of your listening habits
 - **Shoutbox & Likes** – interact with other listeners and share reactions
