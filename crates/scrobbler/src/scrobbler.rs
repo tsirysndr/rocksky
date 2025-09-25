@@ -1,7 +1,6 @@
 use std::{collections::BTreeMap, env};
 
 use anyhow::Error;
-use owo_colors::OwoColorize;
 use rand::Rng;
 use sqlx::{Pool, Postgres};
 
