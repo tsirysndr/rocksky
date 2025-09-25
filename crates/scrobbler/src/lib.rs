@@ -56,10 +56,7 @@ pub async fn run() -> Result<(), Error> {
         .parse::<u16>()
         .unwrap_or(7882);
 
-    println!(
-        "Starting Scrobble server @ {}",
-        format!("{}:{}", host, port).green()
-    );
+    tracing::info!(url = %format!("http://{}:{}", host, port).bright_green(), "Starting Scrobble server @");
 
     let limiter = web::Data::new(
         Limiter::builder("redis://127.0.0.1")

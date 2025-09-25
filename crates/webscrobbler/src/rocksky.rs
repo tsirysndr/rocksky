@@ -1,5 +1,4 @@
 use anyhow::Error;
-use owo_colors::OwoColorize;
 use reqwest::Client;
 
 use crate::{auth::generate_token, cache::Cache, types::Track};
@@ -26,7 +25,7 @@ pub async fn scrobble(cache: &Cache, did: &str, track: Track, timestamp: u64) ->
     let token = generate_token(did)?;
     let client = Client::new();
 
-    println!("Scrobbling track: \n {:#?}", track);
+    tracing::info!(did = %did, track = ?track, "Scrobbling track");
 
     let response = client
         .post(&format!("{}/now-playing", ROCKSKY_API))
@@ -36,16 +35,13 @@ pub async fn scrobble(cache: &Cache, did: &str, track: Track, timestamp: u64) ->
         .await?;
 
     if !response.status().is_success() {
-        println!(
-            "Failed to scrobble track: {}",
-            response.status().to_string()
-        );
+        tracing::error!(did = %did, artist = %track.artist, track = %track.title, status = %response.status(), "Failed to scrobble track");
         let text = response.text().await?;
-        println!("Response: {}", text);
+        tracing::error!(did = %did, response = %text, "Response");
         return Err(Error::msg(format!("Failed to scrobble track: {}", text)));
     }
 
-    println!("Scrobbled track: {}", track.title.green());
+    tracing::info!(did = %did, artist = %track.artist, track = %track.title, "Scrobbled track");
 
     Ok(())
 }

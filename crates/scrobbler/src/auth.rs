@@ -37,7 +37,7 @@ pub async fn authenticate_v1(
             let expected_password = md5::compute(expected_password);
             let expected_password = format!("{:x}", expected_password);
             if expected_password != password_md5 {
-                println!("{} != {}", expected_password, password_md5);
+                tracing::error!(expected = %expected_password, provided = %password_md5, "Invalid password");
                 return Err(Error::msg("Invalid password"));
             }
             Ok(())

@@ -58,8 +58,7 @@ pub async fn handle_submit_listens(
     let body = String::from_utf8_lossy(&payload);
     let req = serde_json::from_str::<SubmitListensRequest>(&body)
         .map_err(|e| {
-            println!("{}", body);
-            println!("Error parsing request body: {}", e);
+            tracing::error!(body = %body, error = %e, "Error parsing request body");
             e
         })
         .map_err(actix_web::error::ErrorBadRequest)?;
@@ -116,7 +115,7 @@ pub async fn handle_validate_token(
             }));
         }
         Err(e) => {
-            println!("Error validating token: {}", e);
+            tracing::error!(error = %e, "Error validating token");
             return HttpResponse::InternalServerError().finish();
         }
     }
@@ -127,13 +126,13 @@ pub async fn handle_search_users(
     query: web::Query<String>,
     data: web::Data<Arc<Pool<Postgres>>>,
 ) -> impl Responder {
-    let pool = data.get_ref();
+    let _pool = data.get_ref();
     let query = query.into_inner();
 
     match search_users(&query).await {
         Ok(users) => HttpResponse::Ok().json(users),
         Err(e) => {
-            println!("Error searching users: {}", e);
+            tracing::error!(error = %e, "Error searching users");
             HttpResponse::InternalServerError().finish()
         }
     }
@@ -145,7 +144,7 @@ pub async fn handle_get_listens(user_name: web::Path<String>) -> impl Responder 
     match get_listens(&user_name).await {
         Ok(listens) => HttpResponse::Ok().json(listens),
         Err(e) => {
-            println!("Error getting listens for user {}: {}", user_name, e);
+            tracing::error!(error = %e, "Error getting listens for user {}", user_name);
             HttpResponse::InternalServerError().finish()
         }
     }
@@ -157,7 +156,7 @@ pub async fn handle_get_listen_count(user_name: web::Path<String>) -> impl Respo
     match get_listen_count(&user_name).await {
         Ok(count) => HttpResponse::Ok().json(count),
         Err(e) => {
-            println!("Error getting listen count for user {}: {}", user_name, e);
+            tracing::error!(error = %e, "Error getting listen count for user {}", user_name);
             HttpResponse::InternalServerError().finish()
         }
     }
@@ -169,7 +168,7 @@ pub async fn handle_get_playing_now(user_name: web::Path<String>) -> impl Respon
     match get_playing_now(&user_name).await {
         Ok(playing_now) => HttpResponse::Ok().json(playing_now),
         Err(e) => {
-            println!("Error getting playing now for user {}: {}", user_name, e);
+            tracing::error!(error = %e, "Error getting playing now for user {}", user_name);
             HttpResponse::InternalServerError().finish()
         }
     }
@@ -181,7 +180,7 @@ pub async fn handle_get_artists(user_name: web::Path<String>) -> impl Responder 
     match get_top_artists(&user_name).await {
         Ok(artists) => HttpResponse::Ok().json(artists),
         Err(e) => {
-            println!("Error getting top artists: {}", e);
+            tracing::error!(error = %e, "Error getting top artists");
             HttpResponse::InternalServerError().finish()
         }
     }
@@ -193,7 +192,7 @@ pub async fn handle_get_releases(user_name: web::Path<String>) -> impl Responder
     match get_top_releases(&user_name).await {
         Ok(releases) => HttpResponse::Ok().json(releases),
         Err(e) => {
-            println!("Error getting top releases: {}", e);
+            tracing::error!(error = %e, "Error getting top releases");
             HttpResponse::InternalServerError().finish()
         }
     }
@@ -205,7 +204,7 @@ pub async fn handle_get_recordings(user_name: web::Path<String>) -> impl Respond
     match get_top_recordings(&user_name).await {
         Ok(recordings) => HttpResponse::Ok().json(recordings),
         Err(e) => {
-            println!("Error getting sitewide recordings: {}", e);
+            tracing::error!(error = %e, "Error getting top recordings");
             HttpResponse::InternalServerError().finish()
         }
     }
@@ -217,7 +216,7 @@ pub async fn handle_get_release_groups(user_name: web::Path<String>) -> impl Res
     match get_top_release_groups(&user_name).await {
         Ok(release_groups) => HttpResponse::Ok().json(release_groups),
         Err(e) => {
-            println!("Error getting top release groups: {}", e);
+            tracing::error!(error = %e, "Error getting top release groups");
             HttpResponse::InternalServerError().finish()
         }
     }
@@ -229,7 +228,7 @@ pub async fn handle_get_recording_activity(user_name: web::Path<String>) -> impl
     match get_top_recordings(&user_name).await {
         Ok(recordings) => HttpResponse::Ok().json(recordings),
         Err(e) => {
-            println!("Error getting top recordings: {}", e);
+            tracing::error!(error = %e, "Error getting top recordings");
             HttpResponse::InternalServerError().finish()
         }
     }

@@ -18,7 +18,7 @@ pub fn nowplaying(
             let a = form.get("a").unwrap().to_string();
             let t = form.get("t").unwrap().to_string();
 
-            println!("Now playing: {} - {} {}", a, t, s.cyan());
+            tracing::info!(artist = %a, track = %t, user = %s.cyan(), "Now playing");
 
             let user_id = verify_session_id(cache, &s);
             if let Err(e) = user_id {

@@ -42,15 +42,15 @@ pub fn on_scrobble(nc: Arc<Mutex<Client>>, conn: Arc<Mutex<Connection>>) {
                 let data = String::from_utf8(msg.payload.to_vec()).unwrap();
                 match serde_json::from_str::<ScrobblePayload>(&data) {
                     Ok(payload) => match save_scrobble(conn.clone(), payload.clone()).await {
-                        Ok(_) => println!(
-                            "Scrobble saved successfully for {}",
-                            payload.scrobble.uri.cyan()
+                        Ok(_) => tracing::info!(
+                            uri = %payload.scrobble.uri.cyan(),
+                            "Scrobble saved successfully",
                         ),
-                        Err(e) => eprintln!("Error saving scrobble: {}", e),
+                        Err(e) => tracing::error!("Error saving scrobble: {}", e),
                     },
                     Err(e) => {
-                        eprintln!("Error parsing payload: {}", e);
-                        println!("{}", data);
+                        tracing::error!("Error parsing payload: {}", e);
+                        tracing::debug!("{}", data);
                     }
                 }
             }
@@ -77,13 +77,16 @@ pub fn on_new_track(nc: Arc<Mutex<Client>>, conn: Arc<Mutex<Connection>>) {
                 match serde_json::from_str::<NewTrackPayload>(&data) {
                     Ok(payload) => match save_track(conn.clone(), payload.clone()).await {
                         Ok(_) => {
-                            println!("Song saved successfully for {}", payload.track.title.cyan())
+                            tracing::info!(
+                                title = %payload.track.title.cyan(),
+                                "Track saved successfully",
+                            )
                         }
-                        Err(e) => eprintln!("Error saving song: {}", e),
+                        Err(e) => tracing::error!("Error saving track: {}", e),
                     },
                     Err(e) => {
-                        eprintln!("Error parsing payload: {}", e);
-                        println!("{}", data);
+                        tracing::error!("Error parsing payload: {}", e);
+                        tracing::debug!("{}", data);
                     }
                 }
             }
@@ -109,15 +112,15 @@ pub fn on_like(nc: Arc<Mutex<Client>>, conn: Arc<Mutex<Connection>>) {
                 let data = String::from_utf8(msg.payload.to_vec()).unwrap();
                 match serde_json::from_str::<LikePayload>(&data) {
                     Ok(payload) => match like(conn.clone(), payload.clone()).await {
-                        Ok(_) => println!(
-                            "Like saved successfully for {}",
-                            payload.track_id.xata_id.cyan()
+                        Ok(_) => tracing::info!(
+                            track_id = %payload.track_id.xata_id.cyan(),
+                            "Like saved successfully",
                         ),
-                        Err(e) => eprintln!("Error saving like: {}", e),
+                        Err(e) => tracing::error!("Error saving like: {}", e),
                     },
                     Err(e) => {
-                        eprintln!("Error parsing payload: {}", e);
-                        println!("{}", data);
+                        tracing::error!("Error parsing payload: {}", e);
+                        tracing::debug!("{}", data);
                     }
                 }
             }
@@ -143,15 +146,15 @@ pub fn on_unlike(nc: Arc<Mutex<Client>>, conn: Arc<Mutex<Connection>>) {
                 let data = String::from_utf8(msg.payload.to_vec()).unwrap();
                 match serde_json::from_str::<UnlikePayload>(&data) {
                     Ok(payload) => match unlike(conn.clone(), payload.clone()).await {
-                        Ok(_) => println!(
-                            "Unlike saved successfully for {}",
-                            payload.track_id.xata_id.cyan()
+                        Ok(_) => tracing::info!(
+                            track_id = %payload.track_id.xata_id.cyan(),
+                            "Unlike saved successfully",
                         ),
-                        Err(e) => eprintln!("Error saving unlike: {}", e),
+                        Err(e) => tracing::error!("Error saving unlike: {}", e),
                     },
                     Err(e) => {
-                        eprintln!("Error parsing payload: {}", e);
-                        println!("{}", data);
+                        tracing::error!("Error parsing payload: {}", e);
+                        tracing::debug!("{}", data);
                     }
                 }
             }
@@ -177,16 +180,15 @@ pub fn on_new_user(nc: Arc<Mutex<Client>>, conn: Arc<Mutex<Connection>>) {
                 let data = String::from_utf8(msg.payload.to_vec()).unwrap();
                 match serde_json::from_str::<UserPayload>(&data) {
                     Ok(payload) => match save_user(conn.clone(), payload.clone()).await {
-                        Ok(_) => println!(
-                            "User saved successfully for {}{}",
-                            "@".cyan(),
-                            payload.handle.cyan()
+                        Ok(_) => tracing::info!(
+                            handle = %payload.handle.cyan(),
+                            "User saved successfully",
                         ),
-                        Err(e) => eprintln!("Error saving user: {}", e),
+                        Err(e) => tracing::error!("Error saving user: {}", e),
                     },
                     Err(e) => {
-                        eprintln!("Error parsing payload: {}", e);
-                        println!("{}", data);
+                        tracing::error!("Error parsing payload: {}", e);
+                        tracing::debug!("{}", data);
                     }
                 }
             }
@@ -253,7 +255,7 @@ pub async fn save_scrobble(
         Ok(_) => (),
         Err(e) => {
             if !e.to_string().contains("violates primary key constraint") {
-                println!("[artists] error: {}", e);
+                tracing::error!("[artists] error: {}", e);
                 return Err(e.into());
             }
         }
@@ -308,7 +310,7 @@ pub async fn save_scrobble(
         Ok(_) => (),
         Err(e) => {
             if !e.to_string().contains("violates primary key constraint") {
-                println!("[albums] error: {}", e);
+                tracing::error!("[albums] error: {}", e);
                 return Err(e.into());
             }
         }
@@ -371,7 +373,7 @@ pub async fn save_scrobble(
         Ok(_) => (),
         Err(e) => {
             if !e.to_string().contains("violates primary key constraint") {
-                println!("[tracks] error: {}", e);
+                tracing::error!("[tracks] error: {}", e);
                 return Err(e.into());
             }
         }
@@ -394,7 +396,7 @@ pub async fn save_scrobble(
         Ok(_) => (),
         Err(e) => {
             if !e.to_string().contains("violates primary key constraint") {
-                println!("[album_tracks] error: {}", e);
+                tracing::error!("[album_tracks] error: {}", e);
                 return Err(e.into());
             }
         }
@@ -412,7 +414,7 @@ pub async fn save_scrobble(
         Ok(_) => (),
         Err(e) => {
             if !e.to_string().contains("violates primary key constraint") {
-                println!("[artist_tracks] error: {}", e);
+                tracing::error!("[artist_tracks] error: {}", e);
                 return Err(e.into());
             }
         }
@@ -430,7 +432,7 @@ pub async fn save_scrobble(
         Ok(_) => (),
         Err(e) => {
             if !e.to_string().contains("violates primary key constraint") {
-                println!("[artist_albums] error: {}", e);
+                tracing::error!("[artist_albums] error: {}", e);
                 return Err(e.into());
             }
         }
@@ -448,7 +450,7 @@ pub async fn save_scrobble(
         Ok(_) => (),
         Err(e) => {
             if !e.to_string().contains("violates primary key constraint") {
-                println!("[user_albums] error: {}", e);
+                tracing::error!("[user_albums] error: {}", e);
                 return Err(e.into());
             }
         }
@@ -466,7 +468,7 @@ pub async fn save_scrobble(
         Ok(_) => (),
         Err(e) => {
             if !e.to_string().contains("violates primary key constraint") {
-                println!("[user_artists] error: {}", e);
+                tracing::error!("[user_artists] error: {}", e);
                 return Err(e.into());
             }
         }
@@ -484,7 +486,7 @@ pub async fn save_scrobble(
         Ok(_) => (),
         Err(e) => {
             if !e.to_string().contains("violates primary key constraint") {
-                println!("[user_tracks] error: {}", e);
+                tracing::error!("[user_tracks] error: {}", e);
                 return Err(e.into());
             }
         }
@@ -521,7 +523,7 @@ pub async fn save_scrobble(
         Ok(_) => (),
         Err(e) => {
             if !e.to_string().contains("violates primary key constraint") {
-                println!("[scrobbles] error: {}", e);
+                tracing::error!("[scrobbles] error: {}", e);
                 return Err(e.into());
             }
         }
@@ -593,7 +595,7 @@ pub async fn save_track(
         Ok(_) => (),
         Err(e) => {
             if !e.to_string().contains("violates primary key constraint") {
-                println!("[tracks] error: {}", e);
+                tracing::error!("[tracks] error: {}", e);
                 return Err(e.into());
             }
         }
@@ -616,7 +618,7 @@ pub async fn save_track(
         Ok(_) => (),
         Err(e) => {
             if !e.to_string().contains("violates primary key constraint") {
-                println!("[album_tracks] error: {}", e);
+                tracing::error!("[album_tracks] error: {}", e);
                 return Err(e.into());
             }
         }
@@ -634,7 +636,7 @@ pub async fn save_track(
         Ok(_) => (),
         Err(e) => {
             if !e.to_string().contains("violates primary key constraint") {
-                println!("[artist_tracks] error: {}", e);
+                tracing::error!("[artist_tracks] error: {}", e);
                 return Err(e.into());
             }
         }

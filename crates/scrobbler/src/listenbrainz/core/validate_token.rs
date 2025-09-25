@@ -12,7 +12,7 @@ pub async fn validate_token(token: &str) -> Result<HttpResponse, Error> {
           },
         }))),
         Err(e) => {
-            println!("Error validating token: {}", e);
+            tracing::error!(error = %e, "Failed to validate token");
             Ok(HttpResponse::BadRequest().json(serde_json::json!({
               "error": 4,
               "message": format!("Failed to validate token: {}", e)

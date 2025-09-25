@@ -44,10 +44,7 @@ pub async fn start_server() -> Result<(), Error> {
         .parse::<u16>()
         .unwrap_or(7883);
 
-    println!(
-        "Starting WebScrobbler Webhook @ {}",
-        format!("{}:{}", host, port).green()
-    );
+    tracing::info!(url = %format!("http://{}:{}", host, port).bright_green(), "Starting WebScrobbler server @");
 
     let limiter = web::Data::new(
         Limiter::builder("redis://127.0.0.1")

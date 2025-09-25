@@ -17,7 +17,7 @@ pub async fn submit_listens(
     token: &str,
 ) -> Result<HttpResponse, Error> {
     if payload.listen_type != "playing_now" {
-        println!("skipping listen type: {}", payload.listen_type.cyan());
+        tracing::info!(listen_type = %payload.listen_type.cyan(), "Skipping listen type");
         return Ok(HttpResponse::Ok().json(json!({
           "status": "ok",
           "payload": {
@@ -62,13 +62,7 @@ pub async fn submit_listens(
 
                 cache.del(&format!("listenbrainz:cache:{}:{}:{}", artist, track, did))?;
 
-                println!(
-                    "Retryable error on attempt {}/{}: {}",
-                    attempt,
-                    RETRIES,
-                    e.to_string().yellow()
-                );
-                println!("{:#?}", payload);
+                tracing::error!(error = %e, attempt = attempt, "Retryable error submitting listens for {} - {} (attempt {}/{})", artist, track, attempt, RETRIES);
 
                 if attempt == RETRIES {
                     return Ok(HttpResponse::BadRequest().json(serde_json::json!({

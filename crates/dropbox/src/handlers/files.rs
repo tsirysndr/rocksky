@@ -2,6 +2,7 @@ use std::{env, sync::Arc, thread};
 
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::Error;
+use owo_colors::OwoColorize;
 use sqlx::{Pool, Postgres};
 use tokio_stream::StreamExt;
 
@@ -24,6 +25,7 @@ pub async fn get_files(
     let body = read_payload!(payload);
     let params = serde_json::from_slice::<GetFilesParams>(&body)?;
     let refresh_token = find_dropbox_refresh_token(&pool.clone(), &params.did).await?;
+    tracing::info!(did = %params.did.bright_green(), "dropbox.getFiles");
 
     if refresh_token.is_none() {
         return Ok(HttpResponse::Unauthorized().finish());
@@ -48,6 +50,7 @@ pub async fn create_music_folder(
     let body = read_payload!(payload);
     let params = serde_json::from_slice::<GetFilesParams>(&body)?;
     let refresh_token = find_dropbox_refresh_token(&pool.clone(), &params.did).await?;
+    tracing::info!(did = %params.did.bright_green(), "dropbox.createMusicFolder");
 
     if refresh_token.is_none() {
         return Ok(HttpResponse::Unauthorized().finish());
@@ -72,6 +75,7 @@ pub async fn get_files_at(
     let body = read_payload!(payload);
     let params = serde_json::from_slice::<GetFilesAtParams>(&body)?;
     let refresh_token = find_dropbox_refresh_token(&pool.clone(), &params.did).await?;
+    tracing::info!(did = %params.did.bright_green(), path = %params.path.bright_green(), "dropbox.getFilesAt");
 
     if refresh_token.is_none() {
         return Ok(HttpResponse::Unauthorized().finish());
@@ -96,6 +100,7 @@ pub async fn download_file(
     let body = read_payload!(payload);
     let params = serde_json::from_slice::<DownloadFileParams>(&body)?;
     let refresh_token = find_dropbox_refresh_token(&pool.clone(), &params.did).await?;
+    tracing::info!(did = %params.did.bright_green(), path = %params.path.bright_green(), "dropbox.downloadFile");
 
     if refresh_token.is_none() {
         return Ok(HttpResponse::Unauthorized().finish());
@@ -118,6 +123,7 @@ pub async fn get_temporary_link(
     let body = read_payload!(payload);
     let params = serde_json::from_slice::<DownloadFileParams>(&body)?;
     let refresh_token = find_dropbox_refresh_token(&pool.clone(), &params.did).await?;
+    tracing::info!(did = %params.did.bright_green(), path = %params.path.bright_green(), "dropbox.getTemporaryLink");
 
     if refresh_token.is_none() {
         return Ok(HttpResponse::Unauthorized().finish());
@@ -142,6 +148,7 @@ pub async fn get_metadata(
     let body = read_payload!(payload);
     let params = serde_json::from_slice::<DownloadFileParams>(&body)?;
     let refresh_token = find_dropbox_refresh_token(&pool.clone(), &params.did).await?;
+    tracing::info!(did = %params.did.bright_green(), path = %params.path.bright_green(), "dropbox.getMetadata");
 
     if refresh_token.is_none() {
         return Ok(HttpResponse::Unauthorized().finish());
@@ -165,6 +172,7 @@ pub async fn scan_folder(
 ) -> Result<HttpResponse, Error> {
     let body = read_payload!(payload);
     let params = serde_json::from_slice::<ScanFolderParams>(&body)?;
+    tracing::info!(did = %params.did.bright_green(), path = %params.path.bright_green(), "dropbox.scanFolder");
 
     let pool = pool.clone();
     thread::spawn(move || {

@@ -32,7 +32,7 @@ async fn handle_scrobble(
     req: HttpRequest,
 ) -> Result<impl Responder, actix_web::Error> {
     let id = req.match_info().get("id").unwrap();
-    println!("Received scrobble for ID: {}", id.cyan());
+    tracing::info!(id = %id.bright_green(), "Received scrobble");
 
     let pool = data.get_ref().clone();
 
@@ -50,15 +50,14 @@ async fn handle_scrobble(
     let body = read_payload!(payload);
     let params = serde_json::from_slice::<ScrobbleRequest>(&body).map_err(|err| {
         let body = String::from_utf8_lossy(&body);
-        println!("Failed to parse JSON: {}", body);
-        println!("Failed to parse JSON: {}", err);
+        tracing::error!(body = %body, error = %err, "Failed to parse JSON");
         actix_web::error::ErrorBadRequest(format!("Failed to parse JSON: {}", err))
     })?;
 
-    println!("Parsed scrobble request: {:#?}", params);
+    tracing::info!(params = ?params, "Parsed scrobble request");
 
     if params.event_name != "scrobble" {
-        println!("Skipping non-scrobble event: {}", params.event_name.green());
+        tracing::info!(event_name = %params.event_name.cyan(), "Skipping non-scrobble event");
         return Ok(HttpResponse::Ok().body("Skipping non-scrobble event"));
     }
 
@@ -75,7 +74,7 @@ async fn handle_scrobble(
             })?;
 
         if spotify_token.is_some() {
-            println!("User has a Spotify token, skipping scrobble");
+            tracing::info!("User has a Spotify token, skipping scrobble");
             return Ok(HttpResponse::Ok().body("User has a Spotify token, skipping scrobble"));
         }
     }
@@ -91,18 +90,12 @@ async fn handle_scrobble(
         ));
 
         if cached.is_err() {
-            println!(
-                "Failed to check cache for Emby scrobble: {}",
-                cached.unwrap_err()
-            );
+            tracing::error!(artist = %artist, track = %track, error = %cached.unwrap_err(), "Failed to check cache for Emby scrobble");
             return Ok(HttpResponse::Ok().body("Failed to check cache for Emby scrobble"));
         }
 
         if cached.unwrap().is_some() {
-            println!(
-                "Skipping duplicate scrobble for Emby: {} - {}",
-                artist, track
-            );
+            tracing::warn!(artist = %artist, track = %track, "Skipping duplicate scrobble for Emby");
             return Ok(HttpResponse::Ok().body("Skipping duplicate scrobble for Emby"));
         }
     }

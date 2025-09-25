@@ -91,14 +91,14 @@ pub fn scan_audio_files(
             .await?;
 
         if res.status().as_u16() == 400 || res.status().as_u16() == 409 {
-            println!("Path not found: {}", path.bright_red());
+            tracing::error!(path = %path.bright_red(), "Path not found");
             return Ok(());
         }
 
         let entry = res.json::<Entry>().await?;
 
         if entry.tag.clone().unwrap().as_str() == "folder" {
-            println!("Scanning folder: {}", path.bright_green());
+            tracing::info!(path = %path.bright_green(), "Scanning folder");
 
             let parent_path = Path::new(&path)
                 .parent()
@@ -160,7 +160,7 @@ pub fn scan_audio_files(
 
         let client = Client::new();
 
-        println!("Downloading file: {}", path.bright_green());
+        tracing::info!(path = %path.bright_green(), "Downloading file");
 
         let res = client
             .post(&format!("{}/files/download", CONTENT_URL))
@@ -176,15 +176,12 @@ pub fn scan_audio_files(
         let mut tmpfile = File::create(&tmppath)?;
         tmpfile.write_all(&bytes)?;
 
-        println!(
-            "Reading file: {}",
-            &tmppath.clone().display().to_string().bright_green()
-        );
+        tracing::info!(path = %tmppath.clone().display().to_string().bright_green(), "Reading file");
 
         let tagged_file = match Probe::open(&tmppath)?.read() {
             Ok(tagged_file) => tagged_file,
             Err(e) => {
-                println!("Error opening file: {}", e);
+                tracing::error!(path = %tmppath.clone().display().to_string().bright_red(), "Error reading file: {}", e);
                 return Ok(());
             }
         };
@@ -193,71 +190,57 @@ pub fn scan_audio_files(
         let tag = match primary_tag {
             Some(tag) => tag,
             None => {
-                println!("No tag found in file");
+                tracing::error!(path = %tmppath.clone().display().to_string().bright_red(), "No tag found in file");
                 return Ok(());
             }
         };
 
         let pictures = tag.pictures();
 
-        println!(
-            "Title: {}",
-            tag.get_string(&lofty::tag::ItemKey::TrackTitle)
-                .unwrap_or_default()
-                .bright_green()
+        tracing::info!(
+            title = %tag
+                .get_string(&lofty::tag::ItemKey::TrackTitle)
+                .unwrap_or_default(),
         );
-        println!(
-            "Artist: {}",
-            tag.get_string(&lofty::tag::ItemKey::TrackArtist)
-                .unwrap_or_default()
-                .bright_green()
+        tracing::info!(
+            artist = %tag
+                .get_string(&lofty::tag::ItemKey::TrackArtist)
+                .unwrap_or_default(),
         );
-        println!(
-            "Album Artist: {}",
-            tag.get_string(&lofty::tag::ItemKey::AlbumArtist)
-                .unwrap_or_default()
-                .bright_green()
+        tracing::info!(
+            album = %tag
+                .get_string(&lofty::tag::ItemKey::AlbumTitle)
+                .unwrap_or_default(),
         );
-        println!(
-            "Album: {}",
-            tag.get_string(&lofty::tag::ItemKey::AlbumTitle)
-                .unwrap_or_default()
-                .bright_green()
+        tracing::info!(
+            album_artist = %tag
+                .get_string(&lofty::tag::ItemKey::AlbumArtist)
+                .unwrap_or_default(),
         );
-        println!(
-            "Lyrics: {}",
-            tag.get_string(&lofty::tag::ItemKey::Lyrics)
-                .unwrap_or_default()
-                .bright_green()
+        tracing::info!(
+            lyrics = %tag
+                .get_string(&lofty::tag::ItemKey::Lyrics)
+                .unwrap_or_default(),
         );
-        println!("Year: {}", tag.year().unwrap_or_default().bright_green());
-        println!(
-            "Track Number: {}",
-            tag.track().unwrap_or_default().bright_green()
+        tracing::info!(year = %tag.year().unwrap_or_default());
+        tracing::info!(track_number = %tag.track().unwrap_or_default());
+        tracing::info!(track_total = %tag.track_total().unwrap_or_default());
+        tracing::info!(
+            release_date = %tag
+                .get_string(&lofty::tag::ItemKey::OriginalReleaseDate)
+                .unwrap_or_default(),
         );
-        println!(
-            "Track Total: {}",
-            tag.track_total().unwrap_or_default().bright_green()
+        tracing::info!(
+            recording_date = %tag
+                .get_string(&lofty::tag::ItemKey::RecordingDate)
+                .unwrap_or_default(),
         );
-        println!(
-            "Release Date: {:?}",
-            tag.get_string(&lofty::tag::ItemKey::OriginalReleaseDate)
-                .unwrap_or_default()
-                .bright_green()
+        tracing::info!(
+            copyright_message = %tag
+                .get_string(&lofty::tag::ItemKey::CopyrightMessage)
+                .unwrap_or_default(),
         );
-        println!(
-            "Recording Date: {:?}",
-            tag.get_string(&lofty::tag::ItemKey::RecordingDate)
-                .unwrap_or_default()
-                .bright_green()
-        );
-        println!(
-            "Copyright Message: {}",
-            tag.get_string(&lofty::tag::ItemKey::CopyrightMessage)
-                .unwrap_or_default()
-                .bright_green()
-        );
-        println!("Pictures: {:?}", pictures);
+        tracing::info!(pictures = ?pictures);
 
         let title = tag
             .get_string(&lofty::tag::ItemKey::TrackTitle)
@@ -290,18 +273,18 @@ pub fn scan_audio_files(
 
         match track {
             Some(track) => {
-                println!("Track exists: {}", title.bright_green());
+                tracing::info!(title = %title.bright_green(), "Track exists");
                 let parent_path = Path::new(&path)
                     .parent()
                     .map(|p| p.to_string_lossy().to_string());
                 let status =
                     create_dropbox_path(&pool, &entry, &track, &dropbox_id, parent_path).await;
-                println!("status: {:?}", status);
+                tracing::info!(status = ?status);
 
                 // TODO: publish file metadata to nats
             }
             None => {
-                println!("Creating track: {}", title.bright_green());
+                tracing::info!(title = %title.bright_green(), "Creating track");
                 let album_art =
                     upload_album_cover(albumart_id.into(), pictures, &access_token).await?;
                 let client = Client::new();
@@ -338,7 +321,7 @@ pub fn scan_audio_files(
                     }))
                     .send()
                     .await?;
-                println!("Track Saved: {} {}", title, response.status());
+                tracing::info!(title = title, status = %response.status(), "Track saved");
                 tokio::time::sleep(std::time::Duration::from_secs(3)).await;
 
                 let track = get_track_by_hash(&pool, &hash).await?;
@@ -353,7 +336,7 @@ pub fn scan_audio_files(
                     return Ok(());
                 }
 
-                println!("Failed to create track: {}", title.bright_green());
+                tracing::error!(title = %title.bright_red(), "Failed to create track");
             }
         }
 
@@ -413,7 +396,7 @@ pub async fn upload_album_cover(
         .send()
         .await?;
 
-    println!("Cover uploaded: {}", response.status());
+    tracing::info!(status = %response.status(), "Cover uploaded");
 
     Ok(Some(name))
 }
@@ -433,15 +416,18 @@ pub async fn get_track_duration(path: &Path) -> Result<u64, Error> {
     let meta_opts = MetadataOptions::default();
     let format_opts = FormatOptions::default();
 
-    let probed =
-        match symphonia::default::get_probe().format(&hint, media_source, &format_opts, &meta_opts)
-        {
-            Ok(probed) => probed,
-            Err(_) => {
-                println!("Error probing file");
-                return Ok(duration);
-            }
-        };
+    let probed = match symphonia::default::get_probe().format(
+        &hint,
+        media_source,
+        &format_opts,
+        &meta_opts,
+    ) {
+        Ok(probed) => probed,
+        Err(e) => {
+            tracing::error!(path = %path.display().to_string().bright_red(), "Error probing file: {}", e);
+            return Ok(duration);
+        }
+    };
 
     if let Some(track) = probed.format.tracks().first() {
         if let Some(duration) = track.codec_params.n_frames {

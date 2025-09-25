@@ -79,7 +79,7 @@ async fn run_worker(
                 }
                 Ok(None) => break,
                 Err(e) => {
-                    eprintln!("Failed to pop from Redis: {}", e);
+                    tracing::error!(error = %e, "Failed to pop from Redis");
                     break;
                 }
             }
@@ -93,7 +93,7 @@ async fn run_worker(
         tokens -= 1;
 
         if let Err(e) = discord::post_embeds(&http, &discord_webhook_url, embeds).await {
-            eprintln!("Failed to post to Discord webhook: {}", e);
+            tracing::error!(error = %e, "Failed to post to Discord webhook");
         }
     }
 }
