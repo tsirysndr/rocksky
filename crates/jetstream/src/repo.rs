@@ -16,9 +16,16 @@ use crate::{
     },
     webhook_worker::{push_to_queue, AppState},
     xata::{
-        album::Album, album_track::AlbumTrack, artist::Artist, artist_album::ArtistAlbum,
-        artist_track::ArtistTrack, track::Track, user::User, user_album::UserAlbum,
-        user_artist::UserArtist, user_track::UserTrack,
+        album::Album,
+        album_track::AlbumTrack,
+        artist::Artist,
+        artist_album::ArtistAlbum,
+        artist_track::ArtistTrack,
+        track::Track,
+        user::{self, User},
+        user_album::UserAlbum,
+        user_artist::UserArtist,
+        user_track::UserTrack,
     },
 };
 
@@ -56,14 +63,7 @@ pub async fn save_scrobble(
 
                 let user_id = save_user(&mut tx, did).await?;
 
-                println!(
-                    "Saving scrobble: {} ",
-                    format!(
-                        "{} - {} - {}",
-                        scrobble_record.title, scrobble_record.artist, scrobble_record.album
-                    )
-                    .magenta()
-                );
+                tracing::info!(title = %scrobble_record.title.magenta(), artist = %scrobble_record.artist.magenta(), album = %scrobble_record.album.magenta(), "Saving scrobble");
 
                 sqlx::query(
                     r#"
@@ -144,7 +144,7 @@ pub async fn save_scrobble(
                 {
                     Ok(_) => {}
                     Err(e) => {
-                        eprintln!("Failed to push to webhook queue: {}", e);
+                        tracing::error!(error = %e, "Failed to push to webhook queue");
                     }
                 }
             }
@@ -188,7 +188,7 @@ pub async fn save_scrobble(
             }
         }
         _ => {
-            println!("Unsupported operation: {}", commit.operation);
+            tracing::warn!(operation = %commit.operation, "Unsupported operation");
         }
     }
     Ok(())
@@ -341,11 +341,11 @@ pub async fn save_album(
         .await?;
 
     if !albums.is_empty() {
-        println!("Album already exists: {}", albums[0].title.magenta());
+        tracing::info!(name = %albums[0].title.magenta(), "Album already exists");
         return Ok(albums[0].xata_id.clone());
     }
 
-    println!("Saving album: {}", scrobble_record.album.magenta());
+    tracing::info!(name = %scrobble_record.album, "Saving new album");
 
     let uri: Option<String> = None;
     let artist_uri: Option<String> = None;
@@ -402,11 +402,11 @@ pub async fn save_artist(
         .await?;
 
     if !artists.is_empty() {
-        println!("Artist already exists: {}", artists[0].name.magenta());
+        tracing::info!(name = %scrobble_record.album_artist, "Artist already exists");
         return Ok(artists[0].xata_id.clone());
     }
 
-    println!("Saving artist: {}", scrobble_record.album_artist.magenta());
+    tracing::info!(name = %scrobble_record.album_artist, "Saving new artist");
 
     let uri: Option<String> = None;
     let picture = "";
@@ -450,17 +450,11 @@ pub async fn save_album_track(
             .await?;
 
     if !album_tracks.is_empty() {
-        println!(
-            "Album track already exists: {}",
-            format!("{} - {}", album_id, track_id).magenta()
-        );
+        tracing::info!(album_id = %album_id, track_id = %track_id, "Album track already exists");
         return Ok(());
     }
 
-    println!(
-        "Saving album track: {}",
-        format!("{} - {}", album_id, track_id).magenta()
-    );
+    tracing::info!(album_id = %album_id, track_id = %track_id, "Saving album track");
 
     sqlx::query(
         r#"
@@ -492,17 +486,11 @@ pub async fn save_artist_track(
             .await?;
 
     if !artist_tracks.is_empty() {
-        println!(
-            "Artist track already exists: {}",
-            format!("{} - {}", artist_id, track_id).magenta()
-        );
+        tracing::info!(artist_id = %artist_id, track_id = %track_id, "Artist track already exists");
         return Ok(());
     }
 
-    println!(
-        "Saving artist track: {}",
-        format!("{} - {}", artist_id, track_id).magenta()
-    );
+    tracing::info!(artist_id = %artist_id, track_id = %track_id, "Saving artist track");
 
     sqlx::query(
         r#"
@@ -534,17 +522,11 @@ pub async fn save_artist_album(
             .await?;
 
     if !artist_albums.is_empty() {
-        println!(
-            "Artist album already exists: {}",
-            format!("{} - {}", artist_id, album_id).magenta()
-        );
+        tracing::info!(artist_id = %artist_id, album_id = %album_id, "Artist album already exists");
         return Ok(());
     }
 
-    println!(
-        "Saving artist album: {}",
-        format!("{} - {}", artist_id, album_id).magenta()
-    );
+    tracing::info!(artist_id = %artist_id, album_id = %album_id, "Saving artist album");
 
     sqlx::query(
         r#"
@@ -585,7 +567,7 @@ pub async fn save_user_artist(
 
     match artists.is_empty() {
         true => {
-            println!("Saving artist: {}", record.name.magenta());
+            tracing::info!(name = %record.name, "Artist not found in database, inserting new artist");
             let did = users[0].did.clone();
             sqlx::query(
                 r#"
@@ -632,10 +614,7 @@ pub async fn save_user_artist(
             .await?;
 
     if !user_artists.is_empty() {
-        println!(
-            "User artist already exists: {}",
-            format!("{} - {}", user_id, artist_id).magenta()
-        );
+        tracing::info!(user_id = %user_id, artist_id = %artist_id, "Updating user artist");
         sqlx::query(
             r#"
       UPDATE user_artists
@@ -652,10 +631,7 @@ pub async fn save_user_artist(
         return Ok(());
     }
 
-    println!(
-        "Saving user artist: {}",
-        format!("{} - {}", user_id, artist_id).magenta()
-    );
+    tracing::info!(user_id = %user_id, artist_id = %artist_id, "Inserting user artist");
 
     sqlx::query(
         r#"
@@ -699,7 +675,7 @@ pub async fn save_user_album(
 
     match albums.is_empty() {
         true => {
-            println!("Saving album: {}", record.title.magenta());
+            tracing::info!(title = %record.title, artist = %record.artist, "Album not found in database, inserting new album");
             let did = users[0].did.clone();
             sqlx::query(
                 r#"
@@ -752,10 +728,7 @@ pub async fn save_user_album(
             .await?;
 
     if !user_albums.is_empty() {
-        println!(
-            "User album already exists: {}",
-            format!("{} - {}", user_id, album_id).magenta()
-        );
+        tracing::info!(user_id = %user_id, album_id = %album_id, "Updating user album");
         sqlx::query(
             r#"
       UPDATE user_albums
@@ -772,10 +745,7 @@ pub async fn save_user_album(
         return Ok(());
     }
 
-    println!(
-        "Saving user album: {}",
-        format!("{} - {}", user_id, album_id).magenta()
-    );
+    tracing::info!(user_id = %user_id, album_id = %album_id, "Inserting user album");
 
     sqlx::query(
         r#"
@@ -822,7 +792,7 @@ pub async fn save_user_track(
 
     match tracks.is_empty() {
         true => {
-            println!("Saving track: {}", record.title.magenta());
+            tracing::info!(title = %record.title, artist = %record.artist, album = %record.album, "Track not found in database, inserting new track");
             let did = users[0].did.clone();
             sqlx::query(
                 r#"
@@ -894,10 +864,7 @@ pub async fn save_user_track(
             .await?;
 
     if !user_tracks.is_empty() {
-        println!(
-            "User track already exists: {}",
-            format!("{} - {}", user_id, track_id).magenta()
-        );
+        tracing::info!(user_id = %user_id, track_id = %track_id, "Updating user track");
         sqlx::query(
             r#"
       UPDATE user_tracks
@@ -914,10 +881,7 @@ pub async fn save_user_track(
         return Ok(());
     }
 
-    println!(
-        "Saving user track: {}",
-        format!("{} - {}", user_id, track_id).magenta()
-    );
+    tracing::info!(user_id = %user_id, track_id = %track_id, "Inserting user track");
 
     sqlx::query(
         r#"
@@ -954,7 +918,7 @@ pub async fn update_artist_uri(
         .await?;
 
     if artists.is_empty() {
-        println!("Artist not found: {}", record.name.magenta());
+        tracing::warn!(name = %record.name, "Artist not found in database");
         return Ok(());
     }
 
@@ -1023,7 +987,7 @@ pub async fn update_album_uri(
         .fetch_all(&mut **tx)
         .await?;
     if albums.is_empty() {
-        println!("Album not found: {}", record.title.magenta());
+        tracing::warn!(title = %record.title, "Album not found in database");
         return Ok(());
     }
     let album_id = &albums[0].xata_id;
@@ -1082,7 +1046,7 @@ pub async fn update_track_uri(
         .await?;
 
     if tracks.is_empty() {
-        println!("Track not found: {}", record.title.magenta());
+        tracing::warn!(title = %record.title, "Track not found in database");
         return Ok(());
     }
 

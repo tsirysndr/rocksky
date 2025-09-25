@@ -1,3 +1,4 @@
+use owo_colors::OwoColorize;
 use sqlx::{Pool, Postgres};
 
 use crate::{
@@ -47,7 +48,11 @@ pub async fn create_google_drive_path(
     .execute(pool)
     .await?;
 
-    println!("{:?}", result);
+    tracing::info!(
+        file_id = %file.id.bright_green(),
+        rows_affected = %result.rows_affected(),
+        "Google Drive path created"
+    );
 
     sqlx::query(
         r#"

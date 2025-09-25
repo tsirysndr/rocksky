@@ -25,7 +25,7 @@ pub async fn scrobble(cache: &Cache, did: &str, track: Track, timestamp: u64) ->
     let token = generate_token(did)?;
     let client = Client::new();
 
-    println!("Scrobbling track: \n {:#?}", track);
+    tracing::info!(did = %did, track = ?track, "Scrobbling track");
 
     let response = client
         .post(&format!("{}/now-playing", ROCKSKY_API))
@@ -35,11 +35,10 @@ pub async fn scrobble(cache: &Cache, did: &str, track: Track, timestamp: u64) ->
         .await?;
 
     let status = response.status();
-    println!("Response status: {}", status);
+    tracing::info!(did = %did, artist = %track.artist, track = %track.title, status = %status, "Scrobble response");
     if !status.is_success() {
         let response_text = response.text().await?;
-        println!("did: {}", did);
-        println!("Failed to scrobble track: {}", response_text);
+        tracing::error!(did = %did, response = %response_text, "Failed to scrobble track");
         return Err(Error::msg(format!(
             "Failed to scrobble track: {}",
             response_text

@@ -34,7 +34,7 @@ pub async fn scrobble(
 
     let cached = cache.get(&key)?;
     if cached.is_some() {
-        println!("{}", format!("Cached: {}", key).yellow());
+        tracing::info!(artist = %scrobble.data.song.parsed.artist, track = %scrobble.data.song.parsed.track, "Using cached track");
         let track = serde_json::from_str::<Track>(&cached.unwrap())?;
         rocksky::scrobble(cache, &did, track, scrobble.time).await?;
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
@@ -127,7 +127,7 @@ pub async fn scrobble(
     let result = spotify_client.search(&query).await?;
 
     if let Some(track) = result.tracks.items.first() {
-        println!("{}", "Spotify (track)".yellow());
+        tracing::info!("Spotify (track)");
         let mut track = track.clone();
 
         if let Some(album) = spotify_client.get_album(&track.album.id).await? {
@@ -154,18 +154,13 @@ pub async fn scrobble(
 
     if let Some(recording) = result.recordings.first() {
         let result = mb_client.get_recording(&recording.id).await?;
-        println!("{}", "Musicbrainz (recording)".yellow());
+        tracing::info!("Musicbrainz (recording)");
         rocksky::scrobble(cache, &did, result.into(), scrobble.time).await?;
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
         return Ok(());
     }
 
-    println!(
-        "{} {} - {}, skipping",
-        "Track not found: ".yellow(),
-        scrobble.data.song.parsed.artist,
-        scrobble.data.song.parsed.track
-    );
+    tracing::warn!(artist = %scrobble.data.song.parsed.artist, track = %scrobble.data.song.parsed.track, "Track not found, skipping");
 
     Ok(())
 }

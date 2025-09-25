@@ -36,11 +36,7 @@ impl SpotifyClient {
         let data = response.text().await?;
 
         if data == "Too many requests" {
-            println!(
-                "> retry-after {}",
-                headers.get("retry-after").unwrap().to_str().unwrap()
-            );
-            println!("> {} [get_album]", data);
+            tracing::info!(retry_after = %headers.get("retry-after").unwrap().to_str().unwrap(), data = %data, "Rate limited on get_album");
             return Ok(None);
         }
 
@@ -56,11 +52,7 @@ impl SpotifyClient {
         let data = response.text().await?;
 
         if data == "Too many requests" {
-            println!(
-                "> retry-after {}",
-                headers.get("retry-after").unwrap().to_str().unwrap()
-            );
-            println!("> {} [get_artist]", data);
+            tracing::info!(retry_after = %headers.get("retry-after").unwrap().to_str().unwrap(), data = %data, "Rate limited on get_artist");
             return Ok(None);
         }
 

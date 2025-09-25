@@ -29,7 +29,7 @@ pub async fn submission(
             }
 
             let user_id = user_id.unwrap();
-            println!("Submission: {} - {} {} {} {}", a, t, i, user_id, s.cyan());
+            tracing::info!(artist = %a, track = %t, timestamp = %i, user_id = %user_id, "Submission");
 
             match scrobble_v1(pool, cache, &form).await {
                 Ok(_) => Ok(HttpResponse::Ok().body("OK\n")),

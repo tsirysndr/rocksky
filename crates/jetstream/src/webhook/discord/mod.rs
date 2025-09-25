@@ -37,7 +37,7 @@ pub async fn post_embeds(
     embeds: Vec<DiscordEmbed>,
 ) -> reqwest::Result<()> {
     if discord_webhook_url.is_empty() {
-        println!("DISCORD_WEBHOOK_URL is not set, skipping webhook post");
+        tracing::warn!("DISCORD_WEBHOOK_URL is not set, skipping webhook post");
         return Ok(());
     }
 
@@ -48,7 +48,7 @@ pub async fn post_embeds(
     let res = http.post(discord_webhook_url).json(&body).send().await?;
     if !res.status().is_success() {
         let text = res.text().await.unwrap_or_default();
-        eprintln!("Failed to post to Discord webhook: {}", text);
+        tracing::error!(error = %text, "Failed to post to Discord webhook");
     }
     Ok(())
 }

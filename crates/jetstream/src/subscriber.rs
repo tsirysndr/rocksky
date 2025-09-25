@@ -40,20 +40,17 @@ impl ScrobbleSubscriber {
         let pool = Arc::new(Mutex::new(pool));
 
         let (mut ws_stream, _) = connect_async(&self.service_url).await?;
-        println!(
-            "Connected to jetstream at {}",
-            self.service_url.bright_green()
-        );
+        tracing::info!(url = %self.service_url.bright_green(), "Connected to jetstream at");
 
         while let Some(msg) = ws_stream.next().await {
             match msg {
                 Ok(msg) => {
                     if let Err(e) = handle_message(state.clone(), pool.clone(), msg).await {
-                        eprintln!("Error handling message: {}", e);
+                        tracing::error!(error = %e, "Error handling message");
                     }
                 }
                 Err(e) => {
-                    eprintln!("WebSocket error: {}", e);
+                    tracing::error!(error = %e, "WebSocket error");
                     break;
                 }
             }
@@ -76,14 +73,14 @@ async fn handle_message(
                 return Ok::<(), Error>(());
             }
 
-            println!("Received message: {:#?}", message);
+            tracing::info!(message = %text.bright_green(), "Received message");
             if let Some(commit) = message.commit {
                 match save_scrobble(state, pool, &message.did, commit).await {
                     Ok(_) => {
-                        println!("Scrobble saved successfully");
+                        tracing::info!(user_id = %message.did.bright_green(), "Scrobble saved successfully");
                     }
                     Err(e) => {
-                        eprintln!("Error saving scrobble: {}", e);
+                        tracing::error!(error = %e, "Error saving scrobble");
                     }
                 }
             }

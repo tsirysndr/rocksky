@@ -104,7 +104,7 @@ pub fn scan_audio_files(
         let file = res.json::<File>().await?;
 
         if file.mime_type == "application/vnd.google-apps.folder" {
-            println!("Scanning folder: {}", file.name.bright_green());
+            tracing::info!(folder = %file.name.bright_green(), "Scanning folder");
 
             create_google_drive_directory(
                 &pool,
@@ -172,7 +172,7 @@ pub fn scan_audio_files(
             return Ok(());
         }
 
-        println!("Downloading file: {}", file.name.bright_green());
+        tracing::info!(file = %file.name.bright_green(), "Downloading file");
 
         let client = Client::new();
 
@@ -191,15 +191,12 @@ pub fn scan_audio_files(
         let mut tmpfile = std::fs::File::create(&tmppath)?;
         tmpfile.write_all(&bytes)?;
 
-        println!(
-            "Reading file: {}",
-            &tmppath.clone().display().to_string().bright_green()
-        );
+        tracing::info!(path = %tmppath.display(), "Reading file");
 
         let tagged_file = match Probe::open(&tmppath)?.read() {
             Ok(tagged_file) => tagged_file,
             Err(e) => {
-                println!("Error opening file: {}", e);
+                tracing::warn!(file = %file.name.bright_green(), error = %e, "Failed to open file with lofty");
                 return Ok(());
             }
         };
@@ -208,71 +205,25 @@ pub fn scan_audio_files(
         let tag = match primary_tag {
             Some(tag) => tag,
             None => {
-                println!("No tag found in file");
+                tracing::warn!(file = %file.name.bright_green(), "No tag found in file");
                 return Ok(());
             }
         };
 
         let pictures = tag.pictures();
 
-        println!(
-            "Title: {}",
-            tag.get_string(&lofty::tag::ItemKey::TrackTitle)
-                .unwrap_or_default()
-                .bright_green()
-        );
-        println!(
-            "Artist: {}",
-            tag.get_string(&lofty::tag::ItemKey::TrackArtist)
-                .unwrap_or_default()
-                .bright_green()
-        );
-        println!(
-            "Album Artist: {}",
-            tag.get_string(&lofty::tag::ItemKey::AlbumArtist)
-                .unwrap_or_default()
-                .bright_green()
-        );
-        println!(
-            "Album: {}",
-            tag.get_string(&lofty::tag::ItemKey::AlbumTitle)
-                .unwrap_or_default()
-                .bright_green()
-        );
-        println!(
-            "Lyrics: {}",
-            tag.get_string(&lofty::tag::ItemKey::Lyrics)
-                .unwrap_or_default()
-                .bright_green()
-        );
-        println!("Year: {}", tag.year().unwrap_or_default().bright_green());
-        println!(
-            "Track Number: {}",
-            tag.track().unwrap_or_default().bright_green()
-        );
-        println!(
-            "Track Total: {}",
-            tag.track_total().unwrap_or_default().bright_green()
-        );
-        println!(
-            "Release Date: {:?}",
-            tag.get_string(&lofty::tag::ItemKey::OriginalReleaseDate)
-                .unwrap_or_default()
-                .bright_green()
-        );
-        println!(
-            "Recording Date: {:?}",
-            tag.get_string(&lofty::tag::ItemKey::RecordingDate)
-                .unwrap_or_default()
-                .bright_green()
-        );
-        println!(
-            "Copyright Message: {}",
-            tag.get_string(&lofty::tag::ItemKey::CopyrightMessage)
-                .unwrap_or_default()
-                .bright_green()
-        );
-        println!("Pictures: {:?}", pictures);
+        tracing::info!(title = %tag.get_string(&lofty::tag::ItemKey::TrackTitle).unwrap_or_default(), "Title");
+        tracing::info!(artist = %tag.get_string(&lofty::tag::ItemKey::TrackArtist).unwrap_or_default(), "Artist");
+        tracing::info!(album_artist = %tag.get_string(&lofty::tag::ItemKey::AlbumArtist).unwrap_or_default(), "Album artist");
+        tracing::info!(album = %tag.get_string(&lofty::tag::ItemKey::AlbumTitle).unwrap_or_default(), "Album");
+        tracing::info!(lyrics = %tag.get_string(&lofty::tag::ItemKey::Lyrics).unwrap_or_default(), "Lyrics");
+        tracing::info!(year = %tag.year().unwrap_or_default(), "Year");
+        tracing::info!(track_number = %tag.track().unwrap_or_default(), "Track number");
+        tracing::info!(track_total = %tag.track_total().unwrap_or_default(), "Track total");
+        tracing::info!(release_date = %tag.get_string(&lofty::tag::ItemKey::OriginalReleaseDate).unwrap_or_default(), "Release date");
+        tracing::info!(recording_date = %tag.get_string(&lofty::tag::ItemKey::RecordingDate).unwrap_or_default(), "Recording date");
+        tracing::info!(copyright = %tag.get_string(&lofty::tag::ItemKey::CopyrightMessage).unwrap_or_default(), "Copyright message");
+        tracing::info!(pictures = %pictures.len(), "Pictures found");
 
         let title = tag
             .get_string(&lofty::tag::ItemKey::TrackTitle)
@@ -304,9 +255,9 @@ pub fn scan_audio_files(
 
         match track {
             Some(track) => {
-                println!("Track exists: {}", title.bright_green());
+                tracing::info!(title = %title.bright_green(), "Track exists");
                 let parent_drive_id = parent_drive_file_id.as_deref();
-                let status = create_google_drive_path(
+                create_google_drive_path(
                     &pool,
                     &file,
                     &track,
@@ -315,11 +266,10 @@ pub fn scan_audio_files(
                 )
                 .await?;
 
-                println!("status: {:?}", status);
                 // TODO: publish file metadata to nats
             }
             None => {
-                println!("Creating track: {}", title.bright_green());
+                tracing::info!(title = %title.bright_green(), "Creating track");
 
                 let albumart =
                     upload_album_cover(albumart_id.into(), pictures, &access_token).await?;
@@ -358,22 +308,20 @@ pub fn scan_audio_files(
                     }))
                     .send()
                     .await?;
-                println!("Track Saved: {} {}", title, response.status());
+                tracing::info!(status = %response.status(), "Track saved");
                 tokio::time::sleep(std::time::Duration::from_secs(3)).await;
 
                 let track = get_track_by_hash(&pool, &hash).await?;
                 if let Some(track) = track {
                     let parent_drive_id = parent_drive_file_id.as_deref();
-                    let status = create_google_drive_path(
+                    create_google_drive_path(
                         &pool,
                         &file,
                         &track,
                         &google_drive_id,
                         parent_drive_id.unwrap_or(""),
                     )
-                    .await;
-
-                    println!("status: {:?}", status);
+                    .await?;
 
                     // TODO: publish file metadata to nats
 
@@ -382,7 +330,7 @@ pub fn scan_audio_files(
                     return Ok(());
                 }
 
-                println!("Failed to create track: {}", title.bright_green());
+                tracing::warn!(title = %title.bright_green(), "Failed to create track");
             }
         }
 
@@ -442,7 +390,7 @@ pub async fn upload_album_cover(
         .send()
         .await?;
 
-    println!("Cover uploaded: {}", response.status());
+    tracing::info!(status = %response.status(), "Cover uploaded");
 
     Ok(Some(name))
 }
@@ -466,8 +414,8 @@ pub async fn get_track_duration(path: &Path) -> Result<u64, Error> {
         match symphonia::default::get_probe().format(&hint, media_source, &format_opts, &meta_opts)
         {
             Ok(probed) => probed,
-            Err(_) => {
-                println!("Error probing file");
+            Err(e) => {
+                tracing::warn!(path = %path.display(), error = %e, "Failed to probe media");
                 return Ok(duration);
             }
         };
