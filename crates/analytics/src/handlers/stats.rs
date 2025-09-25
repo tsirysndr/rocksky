@@ -23,6 +23,7 @@ pub async fn get_stats(
     let body = read_payload!(payload);
 
     let params = serde_json::from_slice::<GetStatsParams>(&body)?;
+    tracing::info!(user_did = ?params.user_did, "Get stats");
 
     let conn = conn.lock().unwrap();
     let mut stmt = conn.prepare("SELECT COUNT(*) FROM scrobbles s LEFT JOIN users u ON s.user_id = u.id WHERE u.did = ? OR u.handle = ?")?;
@@ -118,6 +119,7 @@ pub async fn get_scrobbles_per_day(
         .end
         .unwrap_or(GetScrobblesPerDayParams::default().end.unwrap());
     let did = params.user_did;
+    tracing::info!(start = %start, end = %end, user_did = ?did, "Get scrobbles per day");
 
     let conn = conn.lock().unwrap();
     match did {
@@ -190,6 +192,7 @@ pub async fn get_scrobbles_per_month(
         .end
         .unwrap_or(GetScrobblesPerDayParams::default().end.unwrap());
     let did = params.user_did;
+    tracing::info!(start = %start, end = %end, user_did = ?did, "Get scrobbles per month");
 
     let conn = conn.lock().unwrap();
     match did {
@@ -266,6 +269,7 @@ pub async fn get_scrobbles_per_year(
         .end
         .unwrap_or(GetScrobblesPerDayParams::default().end.unwrap());
     let did = params.user_did;
+    tracing::info!(start = %start, end = %end, user_did = ?did, "Get scrobbles per year");
 
     let conn = conn.lock().unwrap();
     match did {
@@ -338,6 +342,8 @@ pub async fn get_album_scrobbles(
         .end
         .unwrap_or(GetAlbumScrobblesParams::default().end.unwrap());
     let conn = conn.lock().unwrap();
+    tracing::info!(album_id = %params.album_id, start = %start, end = %end, "Get album scrobbles");
+
     let mut stmt = conn.prepare(
         r#"
         SELECT
@@ -379,6 +385,7 @@ pub async fn get_artist_scrobbles(
         .end
         .unwrap_or(GetArtistScrobblesParams::default().end.unwrap());
     let conn = conn.lock().unwrap();
+    tracing::info!(artist_id = %params.artist_id, start = %start, end = %end, "Get artist scrobbles");
 
     let mut stmt = conn.prepare(
         r#"
@@ -426,6 +433,7 @@ pub async fn get_track_scrobbles(
         .end
         .unwrap_or(GetTrackScrobblesParams::default().end.unwrap());
     let conn = conn.lock().unwrap();
+    tracing::info!(track_id = %params.track_id, start = %start, end = %end, "Get track scrobbles");
 
     let mut stmt = conn.prepare(
         r#"

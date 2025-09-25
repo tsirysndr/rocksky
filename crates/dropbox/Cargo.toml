@@ -43,3 +43,4 @@ symphonia = { version = "0.5.4", features = ["all"] }
 tempfile = "3.19.1"
 tokio = { version = "1.43.0", features = ["full"] }
 tokio-stream = { version = "0.1.17", features = ["full"] }
+tracing = "0.1.41"

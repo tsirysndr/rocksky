@@ -194,12 +194,7 @@ pub async fn load_tracks(conn: Arc<Mutex<Connection>>, pool: &Pool<Postgres>) ->
     .await?;
 
     for (i, track) in tracks.clone().into_iter().enumerate() {
-        println!(
-            "track {} - {} - {}",
-            i,
-            track.title.bright_green(),
-            track.artist
-        );
+        tracing::info!(track = i, title = %track.title.bright_green(), artist = %track.artist);
         match conn.execute(
             "INSERT INTO tracks (
               id,
@@ -255,11 +250,11 @@ pub async fn load_tracks(conn: Arc<Mutex<Connection>>, pool: &Pool<Postgres>) ->
             ],
         ) {
             Ok(_) => (),
-            Err(e) => println!("error: {}", e),
+            Err(e) => tracing::error!(error = %e, "Error inserting track"),
         }
     }
 
-    println!("tracks: {:?}", tracks.len());
+    tracing::info!(tracks = tracks.len(), "Loaded tracks");
     Ok(())
 }
 
@@ -277,7 +272,7 @@ pub async fn load_artists(
     .await?;
 
     for (i, artist) in artists.clone().into_iter().enumerate() {
-        println!("artist {} - {}", i, artist.name.bright_green());
+        tracing::info!(artist = i, name = %artist.name.bright_green());
         match conn.execute(
             "INSERT INTO artists (
               id,
@@ -323,11 +318,11 @@ pub async fn load_artists(
             ],
         ) {
             Ok(_) => (),
-            Err(e) => println!("error: {}", e),
+            Err(e) => tracing::error!(error = %e, "Error inserting artist"),
         }
     }
 
-    println!("artists: {:?}", artists.len());
+    tracing::info!(artists = artists.len(), "Loaded artists");
     Ok(())
 }
 
@@ -342,7 +337,7 @@ pub async fn load_albums(conn: Arc<Mutex<Connection>>, pool: &Pool<Postgres>) ->
     .await?;
 
     for (i, album) in albums.clone().into_iter().enumerate() {
-        println!("album {} - {}", i, album.title.bright_green());
+        tracing::info!(album = i, title = %album.title.bright_green(), artist = %album.artist);
         match conn.execute(
             "INSERT INTO albums (
               id,
@@ -388,11 +383,11 @@ pub async fn load_albums(conn: Arc<Mutex<Connection>>, pool: &Pool<Postgres>) ->
             ],
         ) {
             Ok(_) => (),
-            Err(e) => println!("error: {}", e),
+            Err(e) => tracing::error!(error = %e, "Error inserting album"),
         }
     }
 
-    println!("albums: {:?}", albums.len());
+    tracing::info!(albums = albums.len(), "Loaded albums");
     Ok(())
 }
 
@@ -407,7 +402,7 @@ pub async fn load_users(conn: Arc<Mutex<Connection>>, pool: &Pool<Postgres>) -> 
     .await?;
 
     for (i, user) in users.clone().into_iter().enumerate() {
-        println!("user {} - {}", i, user.display_name.bright_green());
+        tracing::info!(user = i, name = %user.display_name.bright_green());
         match conn.execute(
             "INSERT INTO users (
               id,
@@ -429,11 +424,11 @@ pub async fn load_users(conn: Arc<Mutex<Connection>>, pool: &Pool<Postgres>) -> 
             ],
         ) {
             Ok(_) => (),
-            Err(e) => println!("error: {}", e),
+            Err(e) => tracing::error!(error = %e, "Error inserting user"),
         }
     }
 
-    println!("users: {:?}", users.len());
+    tracing::info!(users = users.len(), "Loaded users");
     Ok(())
 }
 
@@ -451,15 +446,7 @@ pub async fn load_scrobbles(
     .await?;
 
     for (i, scrobble) in scrobbles.clone().into_iter().enumerate() {
-        println!(
-            "scrobble {} - {}",
-            i,
-            match scrobble.uri.clone() {
-                Some(uri) => uri.to_string(),
-                None => "None".to_string(),
-            }
-            .bright_green()
-        );
+        tracing::info!(scrobble = i, uri = %scrobble.uri.clone().unwrap_or_else(|| "None".to_string()).bright_green());
         match conn.execute(
             "INSERT INTO scrobbles (
               id,
@@ -489,11 +476,11 @@ pub async fn load_scrobbles(
             ],
         ) {
             Ok(_) => (),
-            Err(e) => println!("error: {}", e),
+            Err(e) => tracing::error!(error = %e, "Error inserting scrobble"),
         }
     }
 
-    println!("scrobbles: {:?}", scrobbles.len());
+    tracing::info!(scrobbles = scrobbles.len(), "Loaded scrobbles");
     Ok(())
 }
 
@@ -511,12 +498,7 @@ pub async fn load_album_tracks(
     .await?;
 
     for (i, album_track) in album_tracks.clone().into_iter().enumerate() {
-        println!(
-            "album_track {} - {} - {}",
-            i,
-            album_track.album_id.bright_green(),
-            album_track.track_id
-        );
+        tracing::info!(album_track = i, album_id = %album_track.album_id.bright_green(), track_id = %album_track.track_id);
         match conn.execute(
             "INSERT INTO album_tracks (
               id,
@@ -532,10 +514,11 @@ pub async fn load_album_tracks(
             ],
         ) {
             Ok(_) => (),
-            Err(e) => println!("error: {}", e),
+            Err(e) => tracing::error!(error = %e, "Error inserting album_track"),
         }
     }
-    println!("album_tracks: {:?}", album_tracks.len());
+
+    tracing::info!(album_tracks = album_tracks.len(), "Loaded album_tracks");
     Ok(())
 }
 
@@ -553,12 +536,7 @@ pub async fn load_loved_tracks(
     .await?;
 
     for (i, loved_track) in loved_tracks.clone().into_iter().enumerate() {
-        println!(
-            "loved_track {} - {} - {}",
-            i,
-            loved_track.user_id.bright_green(),
-            loved_track.track_id
-        );
+        tracing::info!(loved_track = i, user_id = %loved_track.user_id.bright_green(), track_id = %loved_track.track_id);
         match conn.execute(
             "INSERT INTO loved_tracks (
               id,
@@ -577,11 +555,11 @@ pub async fn load_loved_tracks(
             ],
         ) {
             Ok(_) => (),
-            Err(e) => println!("error: {}", e),
+            Err(e) => tracing::error!(error = %e, "Error inserting loved_track"),
         }
     }
 
-    println!("loved_tracks: {:?}", loved_tracks.len());
+    tracing::info!(loved_tracks = loved_tracks.len(), "Loaded loved_tracks");
     Ok(())
 }
 
@@ -599,12 +577,7 @@ pub async fn load_artist_tracks(
     .await?;
 
     for (i, artist_track) in artist_tracks.clone().into_iter().enumerate() {
-        println!(
-            "artist_track {} - {} - {}",
-            i,
-            artist_track.artist_id.bright_green(),
-            artist_track.track_id
-        );
+        tracing::info!(artist_track = i, artist_id = %artist_track.artist_id.bright_green(), track_id = %artist_track.track_id);
         match conn.execute(
             "INSERT INTO artist_tracks (id, artist_id, track_id, created_at) VALUES (?, ?, ?, ?)",
             params![
@@ -615,11 +588,11 @@ pub async fn load_artist_tracks(
             ],
         ) {
             Ok(_) => (),
-            Err(e) => println!("error: {}", e),
+            Err(e) => tracing::error!(error = %e, "Error inserting artist_track"),
         }
     }
 
-    println!("artist_tracks: {:?}", artist_tracks.len());
+    tracing::info!(artist_tracks = artist_tracks.len(), "Loaded artist_tracks");
     Ok(())
 }
 
@@ -637,12 +610,7 @@ pub async fn load_artist_albums(
     .await?;
 
     for (i, artist_album) in artist_albums.clone().into_iter().enumerate() {
-        println!(
-            "artist_albums {} - {} - {}",
-            i,
-            artist_album.artist_id.bright_green(),
-            artist_album.album_id
-        );
+        tracing::info!(artist_album = i, artist_id = %artist_album.artist_id.bright_green(), album_id = %artist_album.album_id);
         match conn.execute(
             "INSERT INTO artist_albums (id, artist_id, album_id, created_at) VALUES (?, ?, ?, ?)",
             params![
@@ -653,11 +621,11 @@ pub async fn load_artist_albums(
             ],
         ) {
             Ok(_) => (),
-            Err(e) => println!("error: {}", e),
+            Err(e) => tracing::error!(error = %e, "Error inserting artist_album"),
         }
     }
 
-    println!("artist_albums: {:?}", artist_albums.len());
+    tracing::info!(artist_albums = artist_albums.len(), "Loaded artist_albums");
     Ok(())
 }
 
@@ -675,12 +643,7 @@ pub async fn load_user_albums(
     .await?;
 
     for (i, user_album) in user_albums.clone().into_iter().enumerate() {
-        println!(
-            "user_album {} - {} - {}",
-            i,
-            user_album.user_id.bright_green(),
-            user_album.album_id
-        );
+        tracing::info!(user_album = i, user_id = %user_album.user_id.bright_green(), album_id = %user_album.album_id);
         match conn.execute(
             "INSERT INTO user_albums (id, user_id, album_id, created_at) VALUES (?, ?, ?, ?)",
             params![
@@ -691,11 +654,11 @@ pub async fn load_user_albums(
             ],
         ) {
             Ok(_) => (),
-            Err(e) => println!("error: {}", e),
+            Err(e) => tracing::error!(error = %e, "Error inserting user_album"),
         }
     }
 
-    println!("user_albums: {:?}", user_albums.len());
+    tracing::info!(user_albums = user_albums.len(), "Loaded user_albums");
     Ok(())
 }
 
@@ -713,12 +676,7 @@ pub async fn load_user_artists(
     .await?;
 
     for (i, user_artist) in user_artists.clone().into_iter().enumerate() {
-        println!(
-            "user_artist {} - {} - {}",
-            i,
-            user_artist.user_id.bright_green(),
-            user_artist.artist_id
-        );
+        tracing::info!(user_artist = i, user_id = %user_artist.user_id.bright_green(), artist_id = %user_artist.artist_id);
         match conn.execute(
             "INSERT INTO user_artists (id, user_id, artist_id, created_at) VALUES (?, ?, ?, ?)",
             params![
@@ -729,11 +687,11 @@ pub async fn load_user_artists(
             ],
         ) {
             Ok(_) => (),
-            Err(e) => println!("error: {}", e),
+            Err(e) => tracing::error!(error = %e, "Error inserting user_artist"),
         }
     }
 
-    println!("user_artists: {:?}", user_artists.len());
+    tracing::info!(user_artists = user_artists.len(), "Loaded user_artists");
     Ok(())
 }
 
@@ -751,12 +709,7 @@ pub async fn load_user_tracks(
     .await?;
 
     for (i, user_track) in user_tracks.clone().into_iter().enumerate() {
-        println!(
-            "user_track {} - {} - {}",
-            i,
-            user_track.user_id.bright_green(),
-            user_track.track_id
-        );
+        tracing::info!(user_track = i, user_id = %user_track.user_id.bright_green(), track_id = %user_track.track_id);
         match conn.execute(
             "INSERT INTO user_tracks (id, user_id, track_id, created_at) VALUES (?, ?, ?, ?)",
             params![
@@ -767,10 +720,10 @@ pub async fn load_user_tracks(
             ],
         ) {
             Ok(_) => (),
-            Err(e) => println!("error: {}", e),
+            Err(e) => tracing::error!(error = %e, "Error inserting user_track"),
         }
     }
 
-    println!("user_tracks: {:?}", user_tracks.len());
+    tracing::info!(user_tracks = user_tracks.len(), "Loaded user_tracks");
     Ok(())
 }

@@ -16,7 +16,7 @@ pub async fn subscribe(conn: Arc<Mutex<Connection>>) -> Result<(), Error> {
     let addr = env::var("NATS_URL").unwrap_or_else(|_| "nats://localhost:4222".to_string());
     let conn = conn.clone();
     let nc = connect(&addr).await?;
-    println!("Connected to NATS server at {}", addr.bright_green());
+    tracing::info!(server = %addr.bright_green(), "Connected to NATS");
 
     let nc = Arc::new(Mutex::new(nc));
     on_scrobble(nc.clone(), conn.clone());
@@ -652,7 +652,7 @@ pub async fn save_track(
         Ok(_) => (),
         Err(e) => {
             if !e.to_string().contains("violates primary key constraint") {
-                println!("[artist_albums] error: {}", e);
+                tracing::error!("[artist_albums] error: {}", e);
                 return Err(e.into());
             }
         }
@@ -684,7 +684,7 @@ pub async fn like(conn: Arc<Mutex<Connection>>, payload: LikePayload) -> Result<
         Ok(_) => (),
         Err(e) => {
             if !e.to_string().contains("violates primary key constraint") {
-                println!("[likes] error: {}", e);
+                tracing::error!("[likes] error: {}", e);
                 return Err(e.into());
             }
         }
@@ -700,7 +700,7 @@ pub async fn unlike(conn: Arc<Mutex<Connection>>, payload: UnlikePayload) -> Res
     ) {
         Ok(_) => (),
         Err(e) => {
-            println!("[unlikes] error: {}", e);
+            tracing::error!("[unlikes] error: {}", e);
             return Err(e.into());
         }
     }
@@ -740,7 +740,7 @@ pub async fn save_user(conn: Arc<Mutex<Connection>>, payload: UserPayload) -> Re
         Ok(_) => (),
         Err(e) => {
             if !e.to_string().contains("violates primary key constraint") {
-                println!("[users] error: {}", e);
+                tracing::error!("[users] error: {}", e);
                 return Err(e.into());
             }
         }
@@ -921,8 +921,8 @@ mod tests {
 
         match serde_json::from_str::<types::ScrobblePayload>(data) {
             Err(e) => {
-                eprintln!("Error parsing payload: {}", e);
-                println!("{}", data);
+                tracing::error!("Error parsing payload: {}", e);
+                tracing::error!("{}", data);
             }
             Ok(_) => {}
         }

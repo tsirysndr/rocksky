@@ -19,6 +19,7 @@ pub async fn get_tracks(
     let offset = pagination.skip.unwrap_or(0);
     let limit = pagination.take.unwrap_or(20);
     let did = params.user_did;
+    tracing::info!(limit, offset, user_did = ?did, "Get tracks");
 
     let conn = conn.lock().unwrap();
     match did {
@@ -178,6 +179,7 @@ pub async fn get_loved_tracks(
     let offset = pagination.skip.unwrap_or(0);
     let limit = pagination.take.unwrap_or(20);
     let did = params.user_did;
+    tracing::info!(limit, offset, user_did = ?did, "Get loved tracks");
 
     let conn = conn.lock().unwrap();
     let mut stmt = conn.prepare(
@@ -261,6 +263,7 @@ pub async fn get_top_tracks(
     let offset = pagination.skip.unwrap_or(0);
     let limit = pagination.take.unwrap_or(20);
     let did = params.user_did;
+    tracing::info!(limit, offset, user_did = ?did, "Get top tracks");
 
     let conn = conn.lock().unwrap();
     match did {
