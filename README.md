@@ -13,9 +13,6 @@ A decentralized music tracking and discovery platform built on the AT Protocol �
 - **Last.fm Compatible API** – drop-in replacement for Last.fm scrobblers
 - **ListenBrainz Compatible API** – works with clients that support ListenBrainz
 
-### 🎵 Spotify Integration
-
-
 ### 🕒 Playback & History
 
 - **Recently Played Timeline** – browse your listening history
