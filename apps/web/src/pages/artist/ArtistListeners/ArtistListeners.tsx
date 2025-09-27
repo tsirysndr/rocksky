@@ -58,9 +58,9 @@ function ArtistListeners(props: ArtistListenersProps) {
 								</Link>
 							)}
 							{!item.mostListenedSong.uri && (
-								<div style={{ fontWeight: 600 }}>
+								<span style={{ fontWeight: 600 }}>
 									{item.mostListenedSong.title}
-								</div>
+								</span>
 							)}{" "}
 							a lot
 						</div>
