@@ -32,6 +32,11 @@ fn cli() -> Command {
         .subcommand(Command::new("spotify").about("Start Spotify Listener Service"))
         .subcommand(Command::new("tracklist").about("Start User Current Track Queue Service"))
         .subcommand(Command::new("webscrobbler").about("Start Webscrobbler API"))
+        .subcommand(
+            Command::new("feed")
+                .about("Feed related commands")
+                .subcommand(Command::new("serve").about("Serve the Rocksky Feed API")),
+        )
 }
 
 #[tokio::main]
@@ -85,6 +90,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Some(("webscrobbler", _)) => {
             cmd::webscrobbler::start_webscrobbler_service().await?;
         }
+        Some(("feed", sub_m)) => match sub_m.subcommand() {
+            Some(("serve", _)) => cmd::feed::serve().await?,
+            _ => println!("Unknown feed command"),
+        },
         _ => {
             println!("No valid subcommand was used. Use --help to see available commands.");
         }
