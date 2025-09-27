@@ -5479,6 +5479,7 @@ dependencies = [
  "owo-colors",
  "rocksky-analytics",
  "rocksky-dropbox",
+ "rocksky-feed",
  "rocksky-googledrive",
  "rocksky-jetstream",
  "rocksky-playlists",
