@@ -110,8 +110,8 @@ async fn did_json(config: Config) -> Result<impl warp::Reply, warp::Rejection> {
         context: vec!["https://www.w3.org/ns/did/v1".to_owned()],
         id: format!("did:web:{}", config.feed_generator_hostname),
         service: vec![Service {
-            id: "#rsky_fg".to_owned(),
-            type_: "RskyFeedGenerator".to_owned(),
+            id: "#rocksky_fg".to_owned(),
+            type_: "RockskyFeedGenerator".to_owned(),
             service_endpoint: format!("https://{}", config.feed_generator_hostname),
         }],
     }))

@@ -53,5 +53,5 @@ pub async fn run() {
     let addr_str = format!("{}:{}", host, port);
     let addr: SocketAddr = addr_str.parse().expect("Invalid address format");
 
-    feed.start("recently-played", addr).await;
+    feed.start("RecentlyPlayed", addr).await;
 }

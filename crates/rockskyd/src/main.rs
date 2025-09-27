@@ -35,7 +35,11 @@ fn cli() -> Command {
         .subcommand(
             Command::new("pull")
                 .about("Pull data from a remote PostgreSQL database to your local PostgresSQL instance")
-                .long_about("Pull data from a remote PostgreSQL database to your local PostgresSQL instance. Ensure that the SOURCE_POSTGRES_URL environment variable is set to your remote PostgreSQL connection string."),
+                .long_about("Pull data from a remote PostgreSQL database to your local PostgresSQL instance. Ensure that the SOURCE_POSTGRES_URL environment variable is set to your remote PostgreSQL connection string."))
+        .subcommand(
+            Command::new("feed")
+                .about("Feed related commands")
+                .subcommand(Command::new("serve").about("Serve the Rocksky Feed API"))
         )
 }
 
@@ -93,6 +97,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Some(("pull", _)) => {
             cmd::pull::pull_data().await?;
         }
+        Some(("feed", sub_m)) => match sub_m.subcommand() {
+            Some(("serve", _)) => cmd::feed::serve().await?,
+            _ => println!("Unknown feed command"),
+        },
         _ => {
             println!("No valid subcommand was used. Use --help to see available commands.");
         }
