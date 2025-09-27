@@ -77,7 +77,7 @@ app.get("/oauth/callback", async (c) => {
           ? Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365 * 1000
           : Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
       },
-      env.JWT_SECRET,
+      env.JWT_SECRET
     );
     ctx.kv.set(did, token);
   } catch (err) {
@@ -128,8 +128,7 @@ app.get("/profile", async (c) => {
   });
   const handle = await ctx.resolver.resolveDidToHandle(did);
   const profile: { handle?: string; displayName?: string; avatar?: BlobRef } =
-    Profile.isRecord(profileRecord.value) &&
-    Profile.validateRecord(profileRecord.value).success
+    Profile.isRecord(profileRecord.value)
       ? { ...profileRecord.value, handle }
       : {};
 
