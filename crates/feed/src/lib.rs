@@ -1,5 +1,5 @@
+use anyhow::Error;
 use std::{env, net::SocketAddr, sync::Arc};
-
 use tokio::sync::Mutex;
 
 use crate::{
@@ -42,7 +42,7 @@ impl FeedHandler for RecentlyPlayedFeedHandler {
     }
 }
 
-pub async fn run() {
+pub async fn run() -> Result<(), Error> {
     let mut feed = RecentlyPlayedFeed {
         handler: RecentlyPlayedFeedHandler {
             scrobbles: Arc::new(Mutex::new(Vec::new())),
@@ -53,5 +53,6 @@ pub async fn run() {
     let addr_str = format!("{}:{}", host, port);
     let addr: SocketAddr = addr_str.parse().expect("Invalid address format");
 
-    feed.start("RecentlyPlayed", addr).await;
+    feed.start("RecentlyPlayed", addr).await?;
+    Ok(())
 }
