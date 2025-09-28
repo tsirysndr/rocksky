@@ -1,3 +1,5 @@
+use anyhow::Error;
+
 use crate::musicbrainz::{recording::Recordings, release::Release};
 use std::cmp::Ordering;
 
@@ -179,6 +181,26 @@ fn date_key(d: Option<&str>) -> i32 {
     9_999_01_01
 }
 
+pub fn normalize_date(d: Option<&str>) -> Result<Option<String>, Error> {
+    if let Some(d) = d {
+        let mut parts = d.split('-');
+        let y = parts.next().unwrap_or("9999");
+        let m = parts.next().unwrap_or("01");
+        let day = parts.next().unwrap_or("01");
+
+        let y: i32 = y.parse().unwrap_or(9999);
+        let m: i32 = m.parse().unwrap_or(1);
+        let day: i32 = day.parse().unwrap_or(1);
+
+        if y == 9999 {
+            return Err(Error::msg("Invalid date"));
+        }
+
+        return Ok(Some(format!("{:04}-{:02}-{:02}", y, m, day)));
+    }
+    Ok(None)
+}
+
 fn is_live_release(rel: &Release) -> bool {
     let t_live = rel.title.to_ascii_lowercase().contains("live");
     let d_live = rel
@@ -209,6 +231,16 @@ mod tests {
         assert_eq!(date_key(Some("2020")), 20200101);
         assert_eq!(date_key(None), 99990101);
         assert_eq!(date_key(Some("invalid-date")), 99990101);
+    }
+
+    #[test]
+    fn test_normalize_date() -> Result<(), Error> {
+        assert_eq!(normalize_date(Some("2020-5-3"))?, Some("2020-05-03".into()));
+        assert_eq!(normalize_date(Some("2020-05"))?, Some("2020-05-01".into()));
+        assert_eq!(normalize_date(Some("2020"))?, Some("2020-01-01".into()));
+        assert_eq!(normalize_date(None)?, None);
+        assert!(normalize_date(Some("invalid-date")).is_err());
+        Ok(())
     }
 
     #[test]

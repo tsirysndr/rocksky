@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{musicbrainz, spotify, xata};
+use crate::{
+    musicbrainz::{self, normalize_date},
+    spotify, xata,
+};
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Scrobble {
@@ -77,7 +80,10 @@ impl From<musicbrainz::recording::Recording> for Track {
             .first()
             .map(|release| release.title.clone())
             .unwrap_or_default();
-        let release_date = releases.first().and_then(|release| release.date.clone());
+        let release_date = releases
+            .first()
+            .and_then(|release| release.date.clone())
+            .and_then(|date| normalize_date(Some(&date)).unwrap_or(None));
         Track {
             title: recording.title.clone(),
             album,

@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{musicbrainz, spotify, xata};
+use crate::{
+    musicbrainz::{self, normalize_date},
+    spotify, xata,
+};
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Connector {
@@ -161,7 +164,10 @@ impl From<musicbrainz::recording::Recording> for Track {
             .map(|credit| credit.name.clone())
             .unwrap_or_default();
         let releases = recording.releases.unwrap_or_default();
-        let release_date = releases.first().and_then(|release| release.date.clone());
+        let release_date = releases
+            .first()
+            .and_then(|release| release.date.clone())
+            .and_then(|date| normalize_date(Some(&date)).unwrap_or(None));
         let album_artist = releases
             .first()
             .and_then(|release| {
