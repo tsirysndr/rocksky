@@ -105,7 +105,7 @@ impl From<musicbrainz::recording::Recording> for Track {
                         .and_then(|media| media.first())
                         .and_then(|media| {
                             media
-                                .tracks
+                                .track
                                 .as_ref()
                                 .and_then(|tracks| tracks.first())
                                 .map(|track| track.number.parse::<u32>().unwrap())
@@ -119,7 +119,7 @@ impl From<musicbrainz::recording::Recording> for Track {
                         .media
                         .as_ref()
                         .and_then(|media| media.first())
-                        .map(|media| media.position)
+                        .map(|media| media.position.unwrap_or(1) as u32)
                 })
                 .unwrap_or_default(),
             ..Default::default()

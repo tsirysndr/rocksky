@@ -296,6 +296,25 @@ mod tests {
         assert_eq!(best.status.as_deref(), Some("Bootleg"));
         assert_eq!(best.country.as_deref(), Some("XW"));
 
+        assert_eq!(
+            normalize_date(best.date.as_deref()).unwrap(),
+            Some("2017-01-01".into())
+        );
+
+        assert_eq!(
+            best.media
+                .as_ref()
+                .and_then(|media| media.first())
+                .and_then(|media| {
+                    media
+                        .track
+                        .as_ref()
+                        .and_then(|tracks| tracks.first())
+                        .map(|track| track.number.parse::<u32>().unwrap())
+                }),
+            Some(1)
+        );
+
         let query = format!(
             r#"recording:"{}" AND artist:"{}" AND status:Official"#,
             "Don't Stay", "Linkin Park"

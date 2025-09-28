@@ -65,8 +65,8 @@ pub struct Media {
     #[serde(rename = "format-id")]
     pub format_id: Option<String>,
     pub discs: Option<Vec<Disc>>,
-    pub position: u32,
-    pub tracks: Option<Vec<Track>>,
+    pub position: Option<u32>,
+    pub track: Option<Vec<Track>>,
     #[serde(rename = "track-offset")]
     pub track_offset: u32,
     pub title: Option<String>,
@@ -85,11 +85,11 @@ pub struct Disc {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Track {
-    pub length: i64,
+    pub length: Option<i64>,
     pub id: String,
-    pub position: u32,
+    pub position: Option<u32>,
     pub title: String,
-    pub recording: Recording,
+    pub recording: Option<Recording>,
     #[serde(rename = "artist-credit")]
     pub artist_credit: Option<Vec<ArtistCredit>>,
     pub number: String,
