@@ -76,7 +76,7 @@ function Feed() {
       }
       console.log(">> WebSocket connection closed");
     };
-  }, [queryClient]);
+  }, [queryClient, feedUri]);
 
   return (
     <Container>
@@ -129,6 +129,7 @@ function Feed() {
                     cover={song.cover}
                     artist={song.artist}
                     title={song.title}
+                    withLikeButton
                   />
                 </Link>
                 <div className="flex">

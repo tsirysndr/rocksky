@@ -1,11 +1,12 @@
 import { css } from "@emotion/react";
 import styled from "@emotion/styled";
+import InteractionBar from "./InteractionBar";
 
 const Cover = styled.img<{ size?: number }>`
   border-radius: 8px;
   height: 240px;
   width: 240px;
-  margin-bottom: 10px;
+  margin-bottom: -5px;
   ${(props) =>
     props.size &&
     css`
@@ -53,14 +54,18 @@ export type SongCoverProps = {
   title?: string;
   artist?: string;
   size?: number;
+  withLikeButton?: boolean;
 };
 
 function SongCover(props: SongCoverProps) {
-  const { title, artist, cover, size } = props;
+  const { title, artist, cover, size, withLikeButton } = props;
   return (
     <CoverWrapper>
-      <Cover src={cover} size={size} />
-      <div className="mb-[13px]">
+      <div className={`relative h-[100%] w-[92%]`}>
+        {withLikeButton && <InteractionBar />}
+        <Cover src={cover} size={size} />
+      </div>
+      <div className="mb-[13px] mt-[10px]">
         <SongTitle className="!text-[var(--color-text-primary)]">
           {title}
         </SongTitle>
