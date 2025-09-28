@@ -389,7 +389,6 @@ pub async fn scrobble_v1(
         // check if artists don't contain the scrobble artist (to avoid wrong matches)
         if !artists.contains(&scrobble.artist.to_lowercase()) {
             tracing::warn!(artist = %artist, track = ?track, "Artist mismatch, skipping");
-            return Ok(());
         } else {
             tracing::info!(artist = %scrobble.artist, track = %scrobble.track, "Spotify (track)");
             scrobble.album = Some(track.album.name.clone());
@@ -638,7 +637,6 @@ pub async fn scrobble_listenbrainz(
         // check if artists don't contain the scrobble artist (to avoid wrong matches)
         if !artists.contains(&scrobble.artist.to_lowercase()) {
             tracing::warn!(artist = %artist, track = ?track, "Artist mismatch, skipping");
-            return Ok(());
         } else {
             tracing::info!("Spotify (track)");
             scrobble.album = Some(track.album.name.clone());
