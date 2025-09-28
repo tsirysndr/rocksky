@@ -610,6 +610,20 @@ pub async fn scrobble_listenbrainz(
         .await?;
 
     if let Some(track) = result.tracks.items.first() {
+        let artists = track
+            .artists
+            .iter()
+            .map(|a| a.name.clone())
+            .collect::<Vec<_>>()
+            .join(", ")
+            .to_lowercase();
+
+        // check if artists don't contain the scrobble artist (to avoid wrong matches)
+        if !artists.contains(&scrobble.artist.to_lowercase()) {
+            tracing::warn!(artist = %artist, track = %track, "Artist mismatch, skipping");
+            return Ok(());
+        }
+
         tracing::info!("Spotify (track)");
         scrobble.album = Some(track.album.name.clone());
         let mut track = track.clone();
