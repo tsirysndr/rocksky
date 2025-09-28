@@ -168,6 +168,7 @@ impl From<musicbrainz::recording::Recording> for Track {
             .first()
             .and_then(|release| release.date.clone())
             .and_then(|date| normalize_date(Some(&date)).unwrap_or(None));
+        tracing::info!(release_date = ?release_date, "Normalized release date:");
         let album_artist = releases
             .first()
             .and_then(|release| {
