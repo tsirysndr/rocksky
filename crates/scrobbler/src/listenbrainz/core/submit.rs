@@ -5,6 +5,7 @@ use serde_json::json;
 use std::sync::Arc;
 
 use crate::auth::decode_token;
+use crate::musicbrainz::client::MusicbrainzClient;
 use crate::repo;
 use crate::{cache::Cache, scrobbler::scrobble_listenbrainz};
 
@@ -14,6 +15,7 @@ pub async fn submit_listens(
     payload: SubmitListensRequest,
     cache: &Cache,
     pool: &Arc<sqlx::Pool<sqlx::Postgres>>,
+    mb_client: &Arc<MusicbrainzClient>,
     token: &str,
 ) -> Result<HttpResponse, Error> {
     if payload.listen_type != "playing_now" {
@@ -29,7 +31,7 @@ pub async fn submit_listens(
 
     const RETRIES: usize = 15;
     for attempt in 1..=RETRIES {
-        match scrobble_listenbrainz(pool, cache, &payload, token).await {
+        match scrobble_listenbrainz(pool, cache, mb_client, &payload, token).await {
             Ok(_) => {
                 return Ok(HttpResponse::Ok().json(json!({
                   "status": "ok",

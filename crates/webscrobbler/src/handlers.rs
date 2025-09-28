@@ -1,4 +1,7 @@
-use crate::{cache::Cache, consts::BANNER, repo, scrobbler::scrobble, types::ScrobbleRequest};
+use crate::{
+    cache::Cache, consts::BANNER, musicbrainz::client::MusicbrainzClient, repo,
+    scrobbler::scrobble, types::ScrobbleRequest,
+};
 use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder};
 use owo_colors::OwoColorize;
 use sqlx::{Pool, Postgres};
@@ -28,6 +31,7 @@ pub async fn index() -> impl Responder {
 async fn handle_scrobble(
     data: web::Data<Arc<Pool<Postgres>>>,
     cache: web::Data<Cache>,
+    mb_client: web::Data<Arc<MusicbrainzClient>>,
     mut payload: web::Payload,
     req: HttpRequest,
 ) -> Result<impl Responder, actix_web::Error> {
@@ -100,7 +104,8 @@ async fn handle_scrobble(
         }
     }
 
-    scrobble(&pool, &cache, params, &user.did)
+    let mb_client = mb_client.get_ref().as_ref();
+    scrobble(&pool, &cache, mb_client, params, &user.did)
         .await
         .map_err(|err| {
             actix_web::error::ErrorInternalServerError(format!("Failed to scrobble: {}", err))

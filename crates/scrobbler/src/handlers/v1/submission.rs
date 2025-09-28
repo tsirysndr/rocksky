@@ -4,13 +4,15 @@ use serde_json::json;
 use std::{collections::BTreeMap, sync::Arc};
 
 use crate::{
-    auth::verify_session_id, cache::Cache, params::validate_required_params, scrobbler::scrobble_v1,
+    auth::verify_session_id, cache::Cache, musicbrainz::client::MusicbrainzClient,
+    params::validate_required_params, scrobbler::scrobble_v1,
 };
 
 pub async fn submission(
     form: BTreeMap<String, String>,
     cache: &Cache,
     pool: &Arc<sqlx::Pool<sqlx::Postgres>>,
+    mb_client: &Arc<MusicbrainzClient>,
 ) -> Result<HttpResponse, Error> {
     match validate_required_params(&form, &["s", "a[0]", "t[0]", "i[0]"]) {
         Ok(_) => {
@@ -30,7 +32,7 @@ pub async fn submission(
             let user_id = user_id.unwrap();
             tracing::info!(artist = %a, track = %t, timestamp = %i, user_id = %user_id, "Submission");
 
-            match scrobble_v1(pool, cache, &form).await {
+            match scrobble_v1(pool, cache, mb_client, &form).await {
                 Ok(_) => Ok(HttpResponse::Ok().body("OK\n")),
                 Err(e) => Ok(HttpResponse::BadRequest().json(json!({
                     "error": 4,

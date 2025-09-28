@@ -11,7 +11,7 @@ use anyhow::Error;
 use owo_colors::OwoColorize;
 use sqlx::postgres::PgPoolOptions;
 
-use crate::{cache::Cache, consts::BANNER};
+use crate::{cache::Cache, consts::BANNER, musicbrainz::client::MusicbrainzClient};
 
 pub mod auth;
 pub mod cache;
@@ -37,6 +37,9 @@ pub async fn start_server() -> Result<(), Error> {
         .await?;
 
     let conn = Arc::new(pool);
+
+    let mb_client = MusicbrainzClient::new().await?;
+    let mb_client = Arc::new(mb_client);
 
     let host = env::var("WEBSCROBBLER_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
     let port = env::var("WEBSCROBBLER_PORT")
@@ -65,6 +68,7 @@ pub async fn start_server() -> Result<(), Error> {
             .app_data(limiter.clone())
             .app_data(Data::new(conn.clone()))
             .app_data(Data::new(cache.clone()))
+            .app_data(Data::new(mb_client.clone()))
             .service(handlers::index)
             .service(handlers::handle_scrobble)
     })

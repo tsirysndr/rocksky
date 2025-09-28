@@ -16,6 +16,7 @@ use crate::{
         },
         types::SubmitListensRequest,
     },
+    musicbrainz::client::MusicbrainzClient,
     read_payload, repo,
 };
 use tokio_stream::StreamExt;
@@ -39,6 +40,7 @@ pub async fn handle_submit_listens(
     req: HttpRequest,
     data: web::Data<Arc<Pool<Postgres>>>,
     cache: web::Data<Cache>,
+    mb_client: web::Data<Arc<MusicbrainzClient>>,
     mut payload: web::Payload,
 ) -> impl Responder {
     let token = match req.headers().get("Authorization") {
@@ -63,7 +65,8 @@ pub async fn handle_submit_listens(
         })
         .map_err(actix_web::error::ErrorBadRequest)?;
 
-    submit_listens(req, cache.get_ref(), data.get_ref(), token)
+    let mb_client = mb_client.get_ref();
+    submit_listens(req, cache.get_ref(), data.get_ref(), &mb_client, token)
         .await
         .map_err(actix_web::error::ErrorInternalServerError)
 }

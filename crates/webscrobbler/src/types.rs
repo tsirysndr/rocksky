@@ -163,7 +163,10 @@ impl From<musicbrainz::recording::Recording> for Track {
         let releases = recording.releases.unwrap_or_default();
         let album_artist = releases
             .first()
-            .and_then(|release| release.artist_credit.first())
+            .and_then(|release| {
+                let credits = release.artist_credit.clone().unwrap_or_default();
+                credits.first().map(|credit| credit.clone())
+            })
             .map(|credit| credit.name.clone());
         let album = releases
             .first()

@@ -69,10 +69,10 @@ impl From<musicbrainz::recording::Recording> for Track {
             .map(|credit| credit.name.clone())
             .unwrap_or_default();
         let releases = recording.releases.unwrap_or_default();
-        let album_artist = releases
-            .first()
-            .and_then(|release| release.artist_credit.first())
-            .map(|credit| credit.name.clone());
+        let album_artist = releases.first().and_then(|release| {
+            let credits = release.artist_credit.clone().unwrap_or_default();
+            credits.first().map(|credit| credit.name.clone())
+        });
         let album = releases
             .first()
             .map(|release| release.title.clone())

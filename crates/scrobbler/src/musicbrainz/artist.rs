@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, Default)]
 pub struct Artist {
     pub name: String,
     #[serde(rename = "sort-name")]
@@ -29,7 +29,7 @@ pub struct Artist {
     pub aliases: Option<Vec<Alias>>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, Default)]
 pub struct ArtistCredit {
     pub joinphrase: Option<String>,
     pub name: String,

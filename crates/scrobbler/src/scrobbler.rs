@@ -9,7 +9,9 @@ use crate::{
     cache::Cache,
     crypto::decrypt_aes_256_ctr,
     listenbrainz::types::SubmitListensRequest,
-    musicbrainz::client::MusicbrainzClient,
+    musicbrainz::{
+        client::MusicbrainzClient, get_best_release_from_recordings, recording::Recording,
+    },
     repo, rocksky,
     spotify::{client::SpotifyClient, refresh_token},
     types::{Scrobble, Track},
@@ -94,6 +96,7 @@ fn parse_batch(form: &BTreeMap<String, String>) -> Result<Vec<Scrobble>, Error> 
 pub async fn scrobble(
     pool: &Pool<Postgres>,
     cache: &Cache,
+    mb_client: &MusicbrainzClient,
     form: &BTreeMap<String, String>,
 ) -> Result<Vec<Scrobble>, Error> {
     let mut scrobbles = parse_batch(form)?;
@@ -109,8 +112,6 @@ pub async fn scrobble(
     if spofity_tokens.is_empty() {
         return Err(Error::msg("No Spotify tokens found"));
     }
-
-    let mb_client = MusicbrainzClient::new();
 
     for scrobble in &mut scrobbles {
         /*
@@ -224,7 +225,7 @@ pub async fn scrobble(
         }
 
         let query = format!(
-            r#"recording:"{}" AND artist:"{}""#,
+            r#"recording:"{}" AND artist:"{}" AND status:Official"#,
             scrobble.track, scrobble.artist
         );
         let result = mb_client.search(&query).await?;
@@ -248,6 +249,7 @@ pub async fn scrobble(
 pub async fn scrobble_v1(
     pool: &Pool<Postgres>,
     cache: &Cache,
+    mb_client: &MusicbrainzClient,
     form: &BTreeMap<String, String>,
 ) -> Result<(), Error> {
     let session_id = form.get("s").unwrap().to_string();
@@ -268,8 +270,6 @@ pub async fn scrobble_v1(
     if spofity_tokens.is_empty() {
         return Err(Error::msg("No Spotify tokens found"));
     }
-
-    let mb_client = MusicbrainzClient::new();
 
     let mut scrobble = Scrobble {
         artist: artist.trim().to_string(),
@@ -399,12 +399,16 @@ pub async fn scrobble_v1(
     }
 
     let query = format!(
-        r#"recording:"{}" AND artist:"{}""#,
+        r#"recording:"{}" AND artist:"{}" AND status:Official"#,
         scrobble.track, scrobble.artist
     );
-    let result = mb_client.search(&query).await?;
-
-    if let Some(recording) = result.recordings.first() {
+    let result = search_musicbrainz_recording(&query, mb_client, &scrobble).await;
+    if let Err(e) = result {
+        tracing::warn!(artist = %scrobble.artist, track = %scrobble.track, "Musicbrainz search error: {}", e);
+        return Ok(());
+    }
+    let result = result.unwrap();
+    if let Some(recording) = result {
         let result = mb_client.get_recording(&recording.id).await?;
         tracing::info!(%scrobble.artist, %scrobble.track, "Musicbrainz (recording)");
         scrobble.album = Some(Track::from(result.clone()).album);
@@ -421,6 +425,7 @@ pub async fn scrobble_v1(
 pub async fn scrobble_listenbrainz(
     pool: &Pool<Postgres>,
     cache: &Cache,
+    mb_client: &MusicbrainzClient,
     req: &SubmitListensRequest,
     token: &str,
 ) -> Result<(), Error> {
@@ -502,8 +507,6 @@ pub async fn scrobble_listenbrainz(
     if spofity_tokens.is_empty() {
         return Err(Error::msg("No Spotify tokens found"));
     }
-
-    let mb_client = MusicbrainzClient::new();
 
     let mut scrobble = Scrobble {
         artist: artist.trim().to_string(),
@@ -620,7 +623,7 @@ pub async fn scrobble_listenbrainz(
 
         // check if artists don't contain the scrobble artist (to avoid wrong matches)
         if !artists.contains(&scrobble.artist.to_lowercase()) {
-            tracing::warn!(artist = %artist, track = %track, "Artist mismatch, skipping");
+            tracing::warn!(artist = %artist, track = ?track, "Artist mismatch, skipping");
             return Ok(());
         }
 
@@ -644,27 +647,58 @@ pub async fn scrobble_listenbrainz(
         return Ok(());
     }
 
-    // Temporary disable Musicbrainz search to reduce rate limiting issues
-    // and because it often returns wrong results
-    // we can re-enable it later with a retry mechanism
-    /*
     let query = format!(
-        r#"recording:"{}" AND artist:"{}""#,
+        r#"recording:"{}" AND artist:"{}" AND status:Official"#,
         scrobble.track, scrobble.artist
     );
-    let result = mb_client.search(&query).await?;
-
-    if let Some(recording) = result.recordings.first() {
-        let result = mb_client.get_recording(&recording.id).await?;
-        println!("{}", "Musicbrainz (recording)".yellow());
-        scrobble.album = Some(Track::from(result.clone()).album);
+    let result = search_musicbrainz_recording(&query, mb_client, &scrobble).await;
+    if let Err(e) = result {
+        tracing::warn!(artist = %artist, track = %track, "Musicbrainz search error: {}", e);
+        return Ok(());
+    }
+    let result = result.unwrap();
+    if let Some(result) = result {
+        tracing::info!("Musicbrainz (recording)");
         rocksky::scrobble(cache, &did, result.into(), scrobble.timestamp).await?;
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
         return Ok(());
     }
-    */
 
     tracing::warn!(artist = %artist, track = %track, "Track not found, skipping");
 
     Ok(())
+}
+
+async fn search_musicbrainz_recording(
+    query: &str,
+    mb_client: &MusicbrainzClient,
+    scrobble: &Scrobble,
+) -> Result<Option<Recording>, Error> {
+    let result = mb_client.search(&query).await;
+    if let Err(e) = result {
+        tracing::warn!(artist = %scrobble.artist, track = %scrobble.track, "Musicbrainz search error: {}", e);
+        return Ok(None);
+    }
+    let result = result.unwrap();
+
+    let release = get_best_release_from_recordings(&result, &scrobble.artist);
+
+    if let Some(release) = release {
+        let recording = result.recordings.into_iter().find(|r| {
+            r.releases
+                .as_ref()
+                .map(|releases| releases.iter().any(|rel| rel.id == release.id))
+                .unwrap_or(false)
+        });
+        if recording.is_none() {
+            tracing::warn!(artist = %scrobble.artist, track = %scrobble.track, "Recording not found in MusicBrainz result, skipping");
+            return Ok(None);
+        }
+        let recording = recording.unwrap();
+        let result = mb_client.get_recording(&recording.id).await?;
+        tracing::info!("Musicbrainz (recording)");
+        return Ok(Some(result));
+    }
+
+    Ok(None)
 }

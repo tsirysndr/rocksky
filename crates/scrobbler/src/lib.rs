@@ -27,7 +27,7 @@ use anyhow::Error;
 use owo_colors::OwoColorize;
 use sqlx::postgres::PgPoolOptions;
 
-use crate::cache::Cache;
+use crate::{cache::Cache, musicbrainz::client::MusicbrainzClient};
 
 pub const BANNER: &str = r#"
     ___             ___          _____                 __    __    __
@@ -71,12 +71,16 @@ pub async fn run() -> Result<(), Error> {
             .unwrap(),
     );
 
+    let mb_client = MusicbrainzClient::new().await?;
+    let mb_client = Arc::new(mb_client);
+
     HttpServer::new(move || {
         App::new()
             .wrap(RateLimiter::default())
             .app_data(limiter.clone())
             .app_data(Data::new(conn.clone()))
             .app_data(Data::new(cache.clone()))
+            .app_data(Data::new(mb_client.clone()))
             .service(handlers::handle_methods)
             .service(handlers::handle_nowplaying)
             .service(handlers::handle_submission)

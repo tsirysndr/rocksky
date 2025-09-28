@@ -5,14 +5,15 @@ use sqlx::Pool;
 use std::collections::BTreeMap;
 
 use crate::{
-    auth::authenticate, cache::Cache, params::validate_scrobble_params, response::build_response,
-    scrobbler::scrobble,
+    auth::authenticate, cache::Cache, musicbrainz::client::MusicbrainzClient,
+    params::validate_scrobble_params, response::build_response, scrobbler::scrobble,
 };
 
 pub async fn handle_scrobble(
     form: BTreeMap<String, String>,
     conn: &Pool<sqlx::Postgres>,
     cache: &Cache,
+    mb_client: &MusicbrainzClient,
 ) -> Result<HttpResponse, Error> {
     let params = match validate_scrobble_params(&form, &["api_key", "api_sig", "sk", "method"]) {
         Ok(params) => params,
@@ -31,7 +32,7 @@ pub async fn handle_scrobble(
         })));
     }
 
-    match scrobble(&conn, cache, &form).await {
+    match scrobble(&conn, cache, mb_client, &form).await {
         Ok(scrobbles) => Ok(HttpResponse::Ok().json(build_response(scrobbles))),
         Err(e) => {
             if e.to_string().contains("Timestamp") {
