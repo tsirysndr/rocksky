@@ -695,8 +695,9 @@ async fn search_musicbrainz_recording(
             return Ok(None);
         }
         let recording = recording.unwrap();
-        let result = mb_client.get_recording(&recording.id).await?;
+        let mut result = mb_client.get_recording(&recording.id).await?;
         tracing::info!("Musicbrainz (recording)");
+        result.releases = Some(vec![release]);
         return Ok(Some(result));
     }
 

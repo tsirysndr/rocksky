@@ -77,18 +77,18 @@ impl From<musicbrainz::recording::Recording> for Track {
             .first()
             .map(|release| release.title.clone())
             .unwrap_or_default();
+        let release_date = releases.first().and_then(|release| release.date.clone());
         Track {
             title: recording.title.clone(),
             album,
             artist: artist_credit,
             album_artist,
             duration: recording.length.unwrap_or_default(),
-            year: recording
-                .first_release_date
+            year: release_date
                 .as_ref()
                 .and_then(|date| date.split('-').next())
                 .and_then(|year| year.parse::<u32>().ok()),
-            release_date: recording.first_release_date.clone(),
+            release_date: release_date.clone(),
             track_number: releases
                 .first()
                 .and_then(|release| {

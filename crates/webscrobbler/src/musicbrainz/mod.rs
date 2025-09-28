@@ -1,3 +1,5 @@
+use anyhow::Error;
+
 use crate::musicbrainz::{recording::Recordings, release::Release};
 use std::cmp::Ordering;
 
@@ -12,6 +14,7 @@ fn get_best_release(releases: &[Release]) -> Option<Release> {
         return None;
     }
 
+    // Remove the single filtering - this was causing the issue
     let mut candidates: Vec<&Release> = releases.iter().collect();
 
     if candidates.is_empty() {
