@@ -1,5 +1,3 @@
-use anyhow::Error;
-
 use crate::musicbrainz::{recording::Recordings, release::Release};
 use std::cmp::Ordering;
 
