@@ -131,7 +131,7 @@ pub async fn scrobble(
         let artists = track
             .artists
             .iter()
-            .map(|a| a.name.clone())
+            .map(|a| a.name.to_lowercase().clone())
             .collect::<Vec<_>>()
             .join(", ")
             .to_lowercase();
@@ -139,26 +139,25 @@ pub async fn scrobble(
         // check if artists don't contain the scrobble artist (to avoid wrong matches)
         if !artists.contains(&scrobble.data.song.parsed.artist.trim().to_lowercase()) {
             tracing::warn!(artist = %artist, track = ?track, "Artist mismatch, skipping");
+        } else {
+            tracing::info!("Spotify (track)");
+            let mut track = track.clone();
+
+            if let Some(album) = spotify_client.get_album(&track.album.id).await? {
+                track.album = album;
+            }
+
+            if let Some(artist) = spotify_client
+                .get_artist(&track.album.artists[0].id)
+                .await?
+            {
+                track.album.artists[0] = artist;
+            }
+
+            rocksky::scrobble(cache, &did, track.into(), scrobble.time).await?;
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             return Ok(());
         }
-
-        tracing::info!("Spotify (track)");
-        let mut track = track.clone();
-
-        if let Some(album) = spotify_client.get_album(&track.album.id).await? {
-            track.album = album;
-        }
-
-        if let Some(artist) = spotify_client
-            .get_artist(&track.album.artists[0].id)
-            .await?
-        {
-            track.album.artists[0] = artist;
-        }
-
-        rocksky::scrobble(cache, &did, track.into(), scrobble.time).await?;
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        return Ok(());
     }
 
     let query = format!(
