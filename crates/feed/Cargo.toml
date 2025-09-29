@@ -14,7 +14,6 @@ atrium-api = "0.25.5"
 atrium-xrpc-client = "0.5.14"
 chrono = { version = "= 0.4.39", features = ["serde"] }
 duckdb = { version = "1.2.0", features = ["chrono"] }
-jetstream-oxide = "=0.1.2"
 reqwest = { version = "0.12.12", features = [
   "rustls-tls",
   "json",
@@ -33,3 +32,9 @@ sqlx = { version = "0.8.3", features = [
   "derive",
   "macros",
 ] }
+tungstenite = { version = "0.26.2", features = ["rustls"] }
+tokio-tungstenite = { version = "0.26.2", features = [
+  "tokio-rustls",
+  "rustls-tls-webpki-roots",
+] }
+tokio-stream = { version = "0.1.17", features = ["full"] }

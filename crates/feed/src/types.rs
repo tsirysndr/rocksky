@@ -1,3 +1,5 @@
+use serde_json::Value;
+
 #[derive(Debug, Clone)]
 pub struct Request {
     pub cursor: Option<String>,
@@ -51,4 +53,22 @@ pub(crate) struct Service {
     pub(crate) type_: String,
     #[serde(rename = "serviceEndpoint")]
     pub(crate) service_endpoint: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Commit {
+    pub rev: String,
+    pub operation: String,
+    pub collection: String,
+    pub rkey: String,
+    pub record: Value,
+    pub cid: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Root {
+    pub did: String,
+    pub time_us: i64,
+    pub kind: String,
+    pub commit: Option<Commit>,
 }
