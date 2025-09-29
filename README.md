@@ -63,7 +63,7 @@ A decentralized music tracking and discovery platform built on the AT Protocol ð
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/tsirysndr/rocksky
+   git clone git@tangled.sh:rocksky.app/rocksky
    cd rocksky
    ```
 2. Install dependencies:
