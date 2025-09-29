@@ -11,7 +11,9 @@ use crate::{
 pub mod config;
 pub mod feed;
 pub mod feed_handler;
+pub mod subscriber;
 pub mod types;
+pub mod xata;
 
 pub struct RecentlyPlayedFeed {
     handler: RecentlyPlayedFeedHandler,
