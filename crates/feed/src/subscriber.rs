@@ -1,21 +1,14 @@
 use std::{env, sync::Arc};
 
 use anyhow::{Context, Error};
-use futures_util::StreamExt;
 use owo_colors::OwoColorize;
 use sqlx::postgres::PgPoolOptions;
 use tokio::sync::Mutex;
-use tokio_tungstenite::{connect_async, tungstenite::Message};
+use tokio_stream::StreamExt;
+use tokio_tungstenite::connect_async;
+use tungstenite::Message;
 
-use crate::{repo::save_scrobble, types::Root, webhook_worker::AppState};
-
-pub const SCROBBLE_NSID: &str = "app.rocksky.scrobble";
-pub const ARTIST_NSID: &str = "app.rocksky.artist";
-pub const ALBUM_NSID: &str = "app.rocksky.album";
-pub const SONG_NSID: &str = "app.rocksky.song";
-pub const PLAYLIST_NSID: &str = "app.rocksky.playlist";
-pub const LIKE_NSID: &str = "app.rocksky.like";
-pub const SHOUT_NSID: &str = "app.rocksky.shout";
+use crate::types::Root;
 
 pub struct ScrobbleSubscriber {
     pub service_url: String,
@@ -28,7 +21,7 @@ impl ScrobbleSubscriber {
         }
     }
 
-    pub async fn run(&self, state: Arc<Mutex<AppState>>) -> Result<(), Error> {
+    pub async fn run(&self) -> Result<(), Error> {
         let db_url = env::var("XATA_POSTGRES_URL")
             .context("Failed to get XATA_POSTGRES_URL environment variable")?;
 
@@ -44,7 +37,7 @@ impl ScrobbleSubscriber {
         while let Some(msg) = ws_stream.next().await {
             match msg {
                 Ok(msg) => {
-                    if let Err(e) = handle_message(state.clone(), pool.clone(), msg) {
+                    if let Err(e) = handle_message(pool.clone(), msg) {
                         tracing::error!(error = %e, "Error handling message");
                     }
                 }
@@ -59,11 +52,7 @@ impl ScrobbleSubscriber {
     }
 }
 
-fn handle_message(
-    state: Arc<Mutex<AppState>>,
-    pool: Arc<Mutex<sqlx::PgPool>>,
-    msg: Message,
-) -> Result<(), Error> {
+fn handle_message(_pool: Arc<Mutex<sqlx::PgPool>>, msg: Message) -> Result<(), Error> {
     tokio::spawn(async move {
         if let Message::Text(text) = msg {
             let message: Root = serde_json::from_str(&text)?;
@@ -73,19 +62,8 @@ fn handle_message(
             }
 
             tracing::info!(message = %text, "Received message");
-            if let Some(commit) = message.commit {
-                match save_scrobble(state, pool, &message.did, commit).await {
-                    Ok(_) => {
-                        tracing::info!(user_id = %message.did.bright_green(), "Scrobble saved successfully");
-                    }
-                    Err(e) => {
-                        tracing::error!(error = %e, "Error saving scrobble");
-                    }
-                }
-            }
         }
-        Ok(())
+        Ok::<(), Error>(())
     });
-
     Ok(())
 }

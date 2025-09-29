@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::subscriber::ScrobbleSubscriber;
 use crate::types::{DidDocument, FeedSkeletonParameters, Service};
 use crate::{feed_handler::FeedHandler, types::FeedSkeletonQuery};
 use anyhow::Error;
@@ -113,11 +114,23 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
                 }
             }));
             let feed_server = warp::serve(routes);
-            let firehose_listener = tokio::spawn(async move {});
+            let firehose_listener = tokio::spawn(async move {
+                let jetstream_server = env::var("JETSTREAM_SERVER")
+                    .unwrap_or_else(|_| "wss://jetstream2.us-west.bsky.network".to_string());
+                let url = format!(
+                    "{}/subscribe?wantedCollections=app.rocksky.*",
+                    jetstream_server
+                );
+                let subscriber = ScrobbleSubscriber::new(&url);
+
+                subscriber.run().await?;
+
+                Ok::<(), Error>(())
+            });
 
             tokio::join!(feed_server.run(address), firehose_listener)
                 .1
-                .expect("Couldn't await tasks");
+                .expect("Couldn't await tasks")?;
 
             Ok::<(), Error>(())
         }
