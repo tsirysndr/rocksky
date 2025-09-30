@@ -1,7 +1,7 @@
 import { equals } from "@xata.io/client";
 import chalk from "chalk";
 import { ctx } from "context";
-import { createHash } from "crypto";
+import { createHash } from "node:crypto";
 import { publishScrobble } from "nowplaying/nowplaying.service";
 
 const args = process.argv.slice(2);
@@ -14,7 +14,7 @@ async function updateUris(did: string) {
     })
     .getPaginated({
       pagination: {
-        size: process.env.SYNC_SIZE ? parseInt(process.env.SYNC_SIZE) : 20,
+        size: process.env.SYNC_SIZE ? parseInt(process.env.SYNC_SIZE, 10) : 20,
       },
       sort: [{ xata_createdat: "desc" }],
     });
@@ -25,10 +25,10 @@ async function updateUris(did: string) {
         equals(
           createHash("sha256")
             .update(
-              `${track.title} - ${track.artist} - ${track.album}`.toLowerCase(),
+              `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
             )
-            .digest("hex"),
-        ),
+            .digest("hex")
+        )
       )
       .getFirst();
 
@@ -40,8 +40,8 @@ async function updateUris(did: string) {
           equals(
             createHash("sha256")
               .update(`${track.album} - ${track.album_artist}`.toLowerCase())
-              .digest("hex"),
-          ),
+              .digest("hex")
+          )
         )
         .getFirst();
       if (album) {
@@ -59,8 +59,8 @@ async function updateUris(did: string) {
           equals(
             createHash("sha256")
               .update(track.album_artist.toLowerCase())
-              .digest("hex"),
-          ),
+              .digest("hex")
+          )
         )
         .getFirst();
       if (artist) {
@@ -76,8 +76,8 @@ async function updateUris(did: string) {
         equals(
           createHash("sha256")
             .update(`${track.album} - ${track.album_artist}`.toLowerCase())
-            .digest("hex"),
-        ),
+            .digest("hex")
+        )
       )
       .getFirst();
 
@@ -89,8 +89,8 @@ async function updateUris(did: string) {
           equals(
             createHash("sha256")
               .update(track.album_artist.toLowerCase())
-              .digest("hex"),
-          ),
+              .digest("hex")
+          )
         )
         .getFirst();
       if (artist) {
