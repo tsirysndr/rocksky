@@ -267,6 +267,21 @@ const refreshProfile = ([
           .where(eq(tables.users.did, profile.did))
           .execute();
         profile.user = users[0];
+        profile.ctx.nc.publish(
+          "rocksky.user",
+          Buffer.from(
+            JSON.stringify({
+              xata_id: profile.user.id,
+              did: profile.user.did,
+              handle: profile.user.handle,
+              display_name: profile.user.displayName,
+              avatar: profile.user.avatar,
+              xata_createdat: profile.user.createdAt.toISOString(),
+              xata_updatedat: profile.user.updatedAt.toISOString(),
+              xata_version: 1,
+            })
+          )
+        );
       } else {
         // Update existing user in background if handle or avatar or displayName changed
         if (
@@ -286,6 +301,21 @@ const refreshProfile = ([
             })
             .where(eq(tables.users.id, profile.user.id))
             .execute();
+          profile.ctx.nc.publish(
+            "rocksky.user",
+            Buffer.from(
+              JSON.stringify({
+                xata_id: profile.user.id,
+                did: profile.user.did,
+                handle,
+                display_name: _.get(profile, "profileRecord.value.displayName"),
+                avatar: `https://cdn.bsky.app/img/avatar/plain/${profile.did}/${_.get(profile, "profileRecord.value.avatar.ref", "").toString()}@jpeg`,
+                xata_createdat: profile.user.createdAt.toISOString(),
+                xata_updatedat: new Date().toISOString(),
+                xata_version: (profile.user.xataVersion || 1) + 1,
+              })
+            )
+          );
         }
       }
 
