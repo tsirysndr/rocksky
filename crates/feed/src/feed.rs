@@ -1,8 +1,10 @@
 use crate::config::Config;
+use crate::feed_handler::FeedHandler;
 use crate::subscriber::ScrobbleSubscriber;
-use crate::types::{DidDocument, FeedSkeletonParameters, Service};
-use crate::{feed_handler::FeedHandler, types::FeedSkeletonQuery};
+use crate::types::{DidDocument, FeedSkeleton, Request, Service, SkeletonFeedScrobbleData};
 use anyhow::Error;
+use atrium_api::app::bsky::feed::get_feed_skeleton::Parameters as FeedSkeletonQuery;
+use atrium_api::app::bsky::feed::get_feed_skeleton::ParametersData as FeedSkeletonParameters;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::{Pool, Postgres};
 use std::env;
@@ -149,7 +151,7 @@ async fn did_json(config: Config) -> Result<impl warp::Reply, warp::Rejection> {
     }))
 }
 
-async fn describe_feed_generator(feed_name: String) -> Result<impl warp::Reply, warp::Rejection> {
+async fn describe_feed_generator(_feed_name: String) -> Result<impl warp::Reply, warp::Rejection> {
     Ok(warp::reply::json(&serde_json::json!({})))
 }
 
@@ -157,5 +159,23 @@ async fn get_feed_skeleton<Handler: FeedHandler>(
     query: FeedSkeletonQuery,
     handler: Handler,
 ) -> Result<impl warp::Reply, warp::Rejection> {
-    Ok(warp::reply::json(&serde_json::json!({})))
+    let skeleton = handler
+        .serve_feed(Request {
+            cursor: query.cursor.clone(),
+            feed: query.feed.clone(),
+            limit: query.limit.map(u8::from),
+        })
+        .await;
+
+    Ok::<warp::reply::Json, warp::Rejection>(warp::reply::json(&FeedSkeleton {
+        cursor: skeleton.cursor,
+        feed: skeleton
+            .feed
+            .into_iter()
+            .map(|uri| SkeletonFeedScrobbleData {
+                feed_context: None,
+                scrobble: uri.0,
+            })
+            .collect(),
+    }))
 }

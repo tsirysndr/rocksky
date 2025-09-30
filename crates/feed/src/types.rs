@@ -22,17 +22,6 @@ pub struct FeedResult {
     pub feed: Vec<Uri>,
 }
 
-pub struct FeedSkeletonQuery {}
-
-#[derive(Deserialize)]
-pub struct FeedSkeletonParameters {}
-
-impl Into<FeedSkeletonQuery> for FeedSkeletonParameters {
-    fn into(self) -> FeedSkeletonQuery {
-        FeedSkeletonQuery {}
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct Scrobble {}
 
@@ -71,4 +60,17 @@ pub struct Root {
     pub time_us: i64,
     pub kind: String,
     pub commit: Option<Commit>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SkeletonFeedScrobbleData {
+    #[serde(skip_serializing_if = "core::option::Option::is_none")]
+    pub feed_context: core::option::Option<String>,
+    pub scrobble: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct FeedSkeleton {
+    pub cursor: Option<String>,
+    pub feed: Vec<SkeletonFeedScrobbleData>,
 }
