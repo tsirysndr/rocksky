@@ -268,17 +268,25 @@ const refreshProfile = ([
           .execute();
         profile.user = users[0];
       } else {
-        // Update existing user in background
-        profile.ctx.db
-          .update(tables.users)
-          .set({
-            handle,
-            avatar: `https://cdn.bsky.app/img/avatar/plain/${profile.did}/${_.get(profile, "profileRecord.value.avatar.ref", "").toString()}@jpeg`,
-            displayName: _.get(profile, "profileRecord.value.displayName"),
-            updatedAt: new Date(),
-          })
-          .where(eq(tables.users.id, profile.user.id))
-          .execute();
+        // Update existing user in background if handle or avatar or displayName changed
+        if (
+          profile.user.handle !== handle ||
+          profile.user.avatar !==
+            `https://cdn.bsky.app/img/avatar/plain/${profile.did}/${_.get(profile, "profileRecord.value.avatar.ref", "").toString()}@jpeg` ||
+          profile.user.displayName !==
+            _.get(profile, "profileRecord.value.displayName")
+        ) {
+          profile.ctx.db
+            .update(tables.users)
+            .set({
+              handle,
+              avatar: `https://cdn.bsky.app/img/avatar/plain/${profile.did}/${_.get(profile, "profileRecord.value.avatar.ref", "").toString()}@jpeg`,
+              displayName: _.get(profile, "profileRecord.value.displayName"),
+              updatedAt: new Date(),
+            })
+            .where(eq(tables.users.id, profile.user.id))
+            .execute();
+        }
       }
 
       return [
