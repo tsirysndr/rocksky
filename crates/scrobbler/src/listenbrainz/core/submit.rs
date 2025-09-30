@@ -18,7 +18,7 @@ pub async fn submit_listens(
     mb_client: &Arc<MusicbrainzClient>,
     token: &str,
 ) -> Result<HttpResponse, Error> {
-    if payload.listen_type != "playing_now" {
+    if payload.listen_type != "single" {
         tracing::info!(listen_type = %payload.listen_type.cyan(), "Skipping listen type");
         return Ok(HttpResponse::Ok().json(json!({
           "status": "ok",
