@@ -19,7 +19,10 @@ pub async fn submit_listens(
     token: &str,
 ) -> Result<HttpResponse, Error> {
     if payload.listen_type != "single" {
-        tracing::info!(listen_type = %payload.listen_type.cyan(), "Skipping listen type");
+        let artist = payload.payload[0].track_metadata.artist_name.clone();
+        let track = payload.payload[0].track_metadata.track_name.clone();
+        tracing::info!(listen_type = %payload.listen_type.cyan(), artist = %artist, track = %track, "Skipping listen type");
+
         return Ok(HttpResponse::Ok().json(json!({
           "status": "ok",
           "payload": {
