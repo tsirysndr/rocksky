@@ -368,11 +368,19 @@ export async function scrobbleTrack(
   userDid: string
 ): Promise<void> {
   // check if scrobble already exists (user did + timestamp)
+  const scrobbleTime = dayjs.unix(track.timestamp);
   if (track.timestamp) {
     const existingScrobble = await ctx.client.db.scrobbles
+      .filter("user_id.did", equals(userDid))
       .filter({
-        "user_id.did": userDid,
-        timestamp: dayjs.unix(track.timestamp).toISOString(),
+        $any: [
+          {
+            timestamp: {
+              $ge: scrobbleTime.subtract(5, "seconds").toISOString(),
+            },
+          },
+          { timestamp: { $le: scrobbleTime.add(5, "seconds").toISOString() } },
+        ],
       })
       .getFirst();
 
