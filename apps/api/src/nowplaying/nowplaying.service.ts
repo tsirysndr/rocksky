@@ -372,7 +372,7 @@ export async function scrobbleTrack(
     const existingScrobble = await ctx.client.db.scrobbles
       .filter({
         "user_id.did": userDid,
-        timestamp: dayjs.unix(track.timestamp).toDate(),
+        timestamp: dayjs.unix(track.timestamp).toISOString(),
       })
       .getFirst();
 
