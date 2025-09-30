@@ -12,7 +12,7 @@ use crate::{
     musicbrainz::{
         client::MusicbrainzClient, get_best_release_from_recordings, recording::Recording,
     },
-    repo::{self, album},
+    repo::{self},
     rocksky,
     spotify::{client::SpotifyClient, refresh_token},
     types::{Scrobble, Track},
@@ -579,8 +579,12 @@ pub async fn scrobble_listenbrainz(
     if let Some(track) = result {
         tracing::info!(id = %track.xata_id, artist = %track.artist, album = %track.album, album_atist = %track.album_artist, album_uri = ?track.album_uri, artist_uri = ?track.artist_uri, "Xata (track)");
         scrobble.album = Some(track.album.clone());
-        let album = repo::album::get_album_by_track_id(pool, &track.xata_id).await?;
-        let artist = repo::artist::get_artist_by_track_id(pool, &track.xata_id).await?;
+        let album =
+            repo::album::get_album_by_uri(pool, &track.album_uri.clone().unwrap_or_default())
+                .await?;
+        let artist =
+            repo::artist::get_artist_by_uri(pool, &track.artist_uri.clone().unwrap_or_default())
+                .await?;
         let mut track: Track = track.into();
         track.year = match album.year {
             Some(year) => Some(year as u32),

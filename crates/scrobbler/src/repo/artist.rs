@@ -20,3 +20,17 @@ pub async fn get_artist_by_track_id(
 
     Ok(results[0].clone())
 }
+
+pub async fn get_artist_by_uri(pool: &Pool<Postgres>, uri: &str) -> Result<Artist, Error> {
+    let results: Vec<Artist> = sqlx::query_as(
+        r#"
+    SELECT * FROM artists
+    WHERE artists.uri = $1
+    "#,
+    )
+    .bind(uri)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(results[0].clone())
+}
