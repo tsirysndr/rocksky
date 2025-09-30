@@ -33,7 +33,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({});
-      }),
+      })
     );
   server.app.rocksky.actor.getProfile({
     auth: ctx.authVerifier,
@@ -192,7 +192,7 @@ const retrieveProfile = ({
           .from(tables.spotifyAccounts)
           .leftJoin(
             tables.users,
-            eq(tables.spotifyAccounts.userId, tables.users.id),
+            eq(tables.spotifyAccounts.userId, tables.users.id)
           )
           .where(eq(tables.users.did, did))
           .execute()
@@ -202,7 +202,7 @@ const retrieveProfile = ({
           .from(tables.spotifyTokens)
           .leftJoin(
             tables.users,
-            eq(tables.spotifyTokens.userId, tables.users.id),
+            eq(tables.spotifyTokens.userId, tables.users.id)
           )
           .where(eq(tables.users.did, did))
           .execute()
@@ -212,7 +212,7 @@ const retrieveProfile = ({
           .from(tables.googleDriveAccounts)
           .leftJoin(
             tables.users,
-            eq(tables.googleDriveAccounts.userId, tables.users.id),
+            eq(tables.googleDriveAccounts.userId, tables.users.id)
           )
           .where(eq(tables.users.did, did))
           .execute()
@@ -222,7 +222,7 @@ const retrieveProfile = ({
           .from(tables.dropboxAccounts)
           .leftJoin(
             tables.users,
-            eq(tables.dropboxAccounts.userId, tables.users.id),
+            eq(tables.dropboxAccounts.userId, tables.users.id)
           )
           .where(eq(tables.users.did, did))
           .execute()
@@ -250,6 +250,37 @@ const refreshProfile = ([
 ]) => {
   return Effect.tryPromise({
     try: async () => {
+      if (!profile.user) {
+        await profile.ctx.db
+          .insert(tables.users)
+          .values({
+            id: "",
+            did: profile.did,
+            handle,
+            avatar: `https://cdn.bsky.app/img/avatar/plain/${profile.did}/${_.get(profile, "profileRecord.value.avatar.ref", "").toString()}@jpeg`,
+            displayName: _.get(profile, "profileRecord.value.displayName"),
+          })
+          .execute();
+        const users = await profile.ctx.db
+          .select()
+          .from(tables.users)
+          .where(eq(tables.users.did, profile.did))
+          .execute();
+        profile.user = users[0];
+      } else {
+        // Update existing user in background
+        profile.ctx.db
+          .update(tables.users)
+          .set({
+            handle,
+            avatar: `https://cdn.bsky.app/img/avatar/plain/${profile.did}/${_.get(profile, "profileRecord.value.avatar.ref", "").toString()}@jpeg`,
+            displayName: _.get(profile, "profileRecord.value.displayName"),
+            updatedAt: new Date(),
+          })
+          .where(eq(tables.users.id, profile.user.id))
+          .execute();
+      }
+
       return [
         profile,
         handle,
