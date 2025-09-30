@@ -102,6 +102,33 @@ async function updateUris(did: string) {
   }
 }
 
+if (args.includes("--background")) {
+  console.log("Wait for new scrobbles to sync ...");
+  const sub = ctx.nc.subscribe("rocksky.user.scrobble.sync");
+  for await (const m of sub) {
+    const did = new TextDecoder().decode(m.data);
+    // wait for 10 seconds to ensure the scrobble is fully created
+    await new Promise((resolve) => setTimeout(resolve, 10000));
+    console.log(`Syncing scrobbles ${chalk.magenta(did)} ...`);
+    await updateUris(did);
+    const { records } = await ctx.client.db.scrobbles
+      .filter({
+        $any: [{ "user_id.did": did }, { "user_id.handle": did }],
+      })
+      .getPaginated({
+        pagination: {
+          size: 5,
+        },
+        sort: [{ xata_createdat: "desc" }],
+      });
+    for (const scrobble of records) {
+      console.log(`Syncing scrobble ${chalk.cyan(scrobble.xata_id)} ...`);
+      await publishScrobble(ctx, scrobble.xata_id);
+    }
+  }
+  process.exit(0);
+}
+
 for (const arg of args) {
   console.log(`Syncing scrobbles ${chalk.magenta(arg)} ...`);
   await updateUris(arg);

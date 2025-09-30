@@ -14,7 +14,7 @@ import type { Track } from "types/track";
 
 export async function putArtistRecord(
   track: Track,
-  agent: Agent,
+  agent: Agent
 ): Promise<string | null> {
   const rkey = TID.nextStr();
   const record: {
@@ -61,13 +61,13 @@ export async function putArtistRecord(
 
 export async function putAlbumRecord(
   track: Track,
-  agent: Agent,
+  agent: Agent
 ): Promise<string | null> {
   const rkey = TID.nextStr();
-  let albumArt ;
+  let albumArt;
 
   if (track.albumArt) {
-    let options ;
+    let options;
     if (track.albumArt.endsWith(".jpeg") || track.albumArt.endsWith(".jpg")) {
       options = { encoding: "image/jpeg" };
     }
@@ -121,13 +121,13 @@ export async function putAlbumRecord(
 
 export async function putSongRecord(
   track: Track,
-  agent: Agent,
+  agent: Agent
 ): Promise<string | null> {
   const rkey = TID.nextStr();
-  let albumArt ;
+  let albumArt;
 
   if (track.albumArt) {
-    let options ;
+    let options;
     if (track.albumArt.endsWith(".jpeg") || track.albumArt.endsWith(".jpg")) {
       options = { encoding: "image/jpeg" };
     }
@@ -188,13 +188,13 @@ export async function putSongRecord(
 
 async function putScrobbleRecord(
   track: Track,
-  agent: Agent,
+  agent: Agent
 ): Promise<string | null> {
   const rkey = TID.nextStr();
-  let albumArt ;
+  let albumArt;
 
   if (track.albumArt) {
-    let options ;
+    let options;
     if (track.albumArt.endsWith(".jpeg") || track.albumArt.endsWith(".jpg")) {
       options = { encoding: "image/jpeg" };
     }
@@ -365,7 +365,7 @@ export async function scrobbleTrack(
   ctx: Context,
   track: Track,
   agent: Agent,
-  userDid: string,
+  userDid: string
 ): Promise<void> {
   let existingTrack = await ctx.client.db.tracks
     .filter(
@@ -373,10 +373,10 @@ export async function scrobbleTrack(
       equals(
         createHash("sha256")
           .update(
-            `${track.title} - ${track.artist} - ${track.album}`.toLowerCase(),
+            `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
           )
-          .digest("hex"),
-      ),
+          .digest("hex")
+      )
     )
     .getFirst();
 
@@ -387,8 +387,8 @@ export async function scrobbleTrack(
         equals(
           createHash("sha256")
             .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
-            .digest("hex"),
-        ),
+            .digest("hex")
+        )
       )
       .getFirst();
     if (album) {
@@ -405,8 +405,8 @@ export async function scrobbleTrack(
         equals(
           createHash("sha256")
             .update(track.albumArtist.toLowerCase())
-            .digest("hex"),
-        ),
+            .digest("hex")
+        )
       )
       .getFirst();
     if (artist) {
@@ -433,8 +433,8 @@ export async function scrobbleTrack(
       equals(
         createHash("sha256")
           .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
-          .digest("hex"),
-      ),
+          .digest("hex")
+      )
     )
     .getFirst();
 
@@ -447,10 +447,10 @@ export async function scrobbleTrack(
         equals(
           createHash("sha256")
             .update(
-              `${track.title} - ${track.artist} - ${track.album}`.toLowerCase(),
+              `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
             )
-            .digest("hex"),
-        ),
+            .digest("hex")
+        )
       )
       .getFirst();
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -463,7 +463,7 @@ export async function scrobbleTrack(
 
   if (existingTrack) {
     console.log(
-      `Song found: ${chalk.cyan(existingTrack.xata_id)} - ${track.title}, after ${chalk.magenta(tries)} tries`,
+      `Song found: ${chalk.cyan(existingTrack.xata_id)} - ${track.title}, after ${chalk.magenta(tries)} tries`
     );
   }
 
@@ -513,10 +513,10 @@ export async function scrobbleTrack(
       equals(
         createHash("sha256")
           .update(
-            `${track.title} - ${track.artist} - ${track.album}`.toLowerCase(),
+            `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
           )
-          .digest("hex"),
-      ),
+          .digest("hex")
+      )
     )
     .getFirst();
 
@@ -526,7 +526,7 @@ export async function scrobbleTrack(
     tries < 30
   ) {
     console.log(
-      `Artist uri not ready, trying again: ${chalk.magenta(tries + 1)}`,
+      `Artist uri not ready, trying again: ${chalk.magenta(tries + 1)}`
     );
     existingTrack = await ctx.client.db.tracks
       .filter(
@@ -534,10 +534,10 @@ export async function scrobbleTrack(
         equals(
           createHash("sha256")
             .update(
-              `${track.title} - ${track.artist} - ${track.album}`.toLowerCase(),
+              `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
             )
-            .digest("hex"),
-        ),
+            .digest("hex")
+        )
       )
       .getFirst();
 
@@ -549,8 +549,8 @@ export async function scrobbleTrack(
           equals(
             createHash("sha256")
               .update(track.albumArtist.toLowerCase())
-              .digest("hex"),
-          ),
+              .digest("hex")
+          )
         )
         .getFirst();
       if (artist) {
@@ -569,8 +569,8 @@ export async function scrobbleTrack(
           equals(
             createHash("sha256")
               .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
-              .digest("hex"),
-          ),
+              .digest("hex")
+          )
         )
         .getFirst();
       if (album) {
@@ -597,7 +597,7 @@ export async function scrobbleTrack(
 
   if (existingTrack?.artist_uri) {
     console.log(
-      `Artist uri ready: ${chalk.cyan(existingTrack.xata_id)} - ${track.title}, after ${chalk.magenta(tries)} tries`,
+      `Artist uri ready: ${chalk.cyan(existingTrack.xata_id)} - ${track.title}, after ${chalk.magenta(tries)} tries`
     );
   }
 
@@ -650,4 +650,6 @@ export async function scrobbleTrack(
   if (tries === 30 && !scrobble) {
     console.log(`Scrobble not found after ${chalk.magenta("30 tries")}`);
   }
+
+  ctx.nc.publish("rocksky.user.scrobble.sync", Buffer.from(userDid));
 }
