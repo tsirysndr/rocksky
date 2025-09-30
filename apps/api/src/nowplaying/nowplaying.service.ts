@@ -367,6 +367,25 @@ export async function scrobbleTrack(
   agent: Agent,
   userDid: string
 ): Promise<void> {
+  // check if scrobble already exists (user did + timestamp)
+  if (track.timestamp) {
+    const existingScrobble = await ctx.client.db.scrobbles
+      .filter({
+        "user_id.did": userDid,
+        timestamp: track.timestamp,
+      })
+      .getFirst();
+
+    if (existingScrobble) {
+      console.log(
+        `Scrobble already exists for ${chalk.cyan(track.title)} at ${chalk.cyan(
+          dayjs.unix(track.timestamp).format("YYYY-MM-DD HH:mm:ss")
+        )}`
+      );
+      return;
+    }
+  }
+
   let existingTrack = await ctx.client.db.tracks
     .filter(
       "sha256",
