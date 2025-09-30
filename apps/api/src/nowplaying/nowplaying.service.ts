@@ -372,6 +372,8 @@ export async function scrobbleTrack(
   if (track.timestamp) {
     const existingScrobble = await ctx.client.db.scrobbles
       .filter("user_id.did", equals(userDid))
+      .filter("track_id.title", equals(track.title))
+      .filter("track_id.artist", equals(track.artist))
       .filter({
         $any: [
           {
