@@ -1,0 +1,18 @@
+{
+  "done": true,
+  "migration": {
+    "name": "sql_70e285f209c400",
+    "operations": [
+      {
+        "sql": {
+          "up": "CREATE UNIQUE INDEX unique_drive_path ON google_drive_directories USING btree (google_drive_id, path)"
+        }
+      }
+    ]
+  },
+  "migrationType": "inferred",
+  "name": "sql_70e285f209c400",
+  "parent": "mig_d1m2edioqhr2s1o6vo00",
+  "schema": "public",
+  "startedAt": "2025-07-07T20:29:49.116223Z"
+}

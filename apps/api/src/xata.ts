@@ -381,7 +381,6 @@ const tables = [
         name: "api_keys__pgroll_new_shared_secret_key",
         columns: ["shared_secret"],
       },
-      api_keys_name_unique: { name: "api_keys_name_unique", columns: ["name"] },
     },
     columns: [
       {
@@ -412,7 +411,7 @@ const tables = [
         name: "name",
         type: "text",
         notNull: true,
-        unique: true,
+        unique: false,
         defaultValue: null,
         comment: "",
       },
@@ -805,6 +804,14 @@ const tables = [
         comment: "",
       },
       {
+        name: "genres",
+        type: "multiple",
+        notNull: false,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
         name: "lastfm_link",
         type: "text",
         notNull: false,
@@ -1174,6 +1181,119 @@ const tables = [
     ],
   },
   {
+    name: "dropbox_directories",
+    checkConstraints: {
+      dropbox_directories_xata_id_length_xata_id: {
+        name: "dropbox_directories_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {
+      dropbox_id_link: {
+        name: "dropbox_id_link",
+        columns: ["dropbox_id"],
+        referencedTable: "dropbox",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+      parent_id_link: {
+        name: "parent_id_link",
+        columns: ["parent_id"],
+        referencedTable: "dropbox_directories",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+    },
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_dropbox_directories_xata_id_key: {
+        name: "_pgroll_new_dropbox_directories_xata_id_key",
+        columns: ["xata_id"],
+      },
+      dropbox_directories__pgroll_new_file_id_key: {
+        name: "dropbox_directories__pgroll_new_file_id_key",
+        columns: ["file_id"],
+      },
+    },
+    columns: [
+      {
+        name: "dropbox_id",
+        type: "link",
+        link: { table: "dropbox" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"dropbox"}',
+      },
+      {
+        name: "file_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "name",
+        type: "text",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "parent_id",
+        type: "link",
+        link: { table: "dropbox_directories" },
+        notNull: false,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"dropbox_directories"}',
+      },
+      {
+        name: "path",
+        type: "text",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
     name: "dropbox_paths",
     checkConstraints: {
       dropbox_paths_xata_id_length_xata_id: {
@@ -1183,6 +1303,13 @@ const tables = [
       },
     },
     foreignKeys: {
+      directory_id_link: {
+        name: "directory_id_link",
+        columns: ["directory_id"],
+        referencedTable: "dropbox_directories",
+        referencedColumns: ["xata_id"],
+        onDelete: "SET NULL",
+      },
       dropbox_id_link: {
         name: "dropbox_id_link",
         columns: ["dropbox_id"],
@@ -1210,6 +1337,15 @@ const tables = [
       },
     },
     columns: [
+      {
+        name: "directory_id",
+        type: "link",
+        link: { table: "dropbox_directories" },
+        notNull: false,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"dropbox_directories"}',
+      },
       {
         name: "dropbox_id",
         type: "link",
@@ -1521,6 +1657,119 @@ const tables = [
     ],
   },
   {
+    name: "google_drive_directories",
+    checkConstraints: {
+      google_drive_directories_xata_id_length_xata_id: {
+        name: "google_drive_directories_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {
+      google_drive_id_link: {
+        name: "google_drive_id_link",
+        columns: ["google_drive_id"],
+        referencedTable: "google_drive",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+      parent_id_link: {
+        name: "parent_id_link",
+        columns: ["parent_id"],
+        referencedTable: "google_drive_directories",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+    },
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_google_drive_directories_xata_id_key: {
+        name: "_pgroll_new_google_drive_directories_xata_id_key",
+        columns: ["xata_id"],
+      },
+      google_drive_directories__pgroll_new_file_id_key: {
+        name: "google_drive_directories__pgroll_new_file_id_key",
+        columns: ["file_id"],
+      },
+    },
+    columns: [
+      {
+        name: "file_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "google_drive_id",
+        type: "link",
+        link: { table: "google_drive" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"google_drive"}',
+      },
+      {
+        name: "name",
+        type: "text",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "parent_id",
+        type: "link",
+        link: { table: "google_drive_directories" },
+        notNull: false,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"google_drive_directories"}',
+      },
+      {
+        name: "path",
+        type: "text",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
     name: "google_drive_paths",
     checkConstraints: {
       google_drive_paths_xata_id_length_xata_id: {
@@ -1530,6 +1779,13 @@ const tables = [
       },
     },
     foreignKeys: {
+      directory_id_link: {
+        name: "directory_id_link",
+        columns: ["directory_id"],
+        referencedTable: "google_drive_directories",
+        referencedColumns: ["xata_id"],
+        onDelete: "SET NULL",
+      },
       google_drive_id_link: {
         name: "google_drive_id_link",
         columns: ["google_drive_id"],
@@ -1557,6 +1813,15 @@ const tables = [
       },
     },
     columns: [
+      {
+        name: "directory_id",
+        type: "link",
+        link: { table: "google_drive_directories" },
+        notNull: false,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"google_drive_directories"}',
+      },
       {
         name: "file_id",
         type: "text",
@@ -2228,6 +2493,14 @@ const tables = [
     },
     columns: [
       {
+        name: "file_uri",
+        type: "text",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
         name: "position",
         type: "int",
         notNull: true,
@@ -2497,6 +2770,107 @@ const tables = [
     ],
   },
   {
+    name: "s3_directories",
+    checkConstraints: {
+      s3_directories_xata_id_length_xata_id: {
+        name: "s3_directories_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {
+      parent_id_link: {
+        name: "parent_id_link",
+        columns: ["parent_id"],
+        referencedTable: "s3_directories",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+      s3_bucket_id_link: {
+        name: "s3_bucket_id_link",
+        columns: ["s3_bucket_id"],
+        referencedTable: "s3_bucket",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+    },
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_s3_directories_xata_id_key: {
+        name: "_pgroll_new_s3_directories_xata_id_key",
+        columns: ["xata_id"],
+      },
+    },
+    columns: [
+      {
+        name: "name",
+        type: "text",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "parent_id",
+        type: "link",
+        link: { table: "s3_directories" },
+        notNull: false,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"s3_directories"}',
+      },
+      {
+        name: "path",
+        type: "text",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "s3_bucket_id",
+        type: "link",
+        link: { table: "s3_bucket" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"s3_bucket"}',
+      },
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
     name: "s3_paths",
     checkConstraints: {
       s3_paths_xata_id_length_xata_id: {
@@ -2506,6 +2880,13 @@ const tables = [
       },
     },
     foreignKeys: {
+      directory_id_link: {
+        name: "directory_id_link",
+        columns: ["directory_id"],
+        referencedTable: "s3_directories",
+        referencedColumns: ["xata_id"],
+        onDelete: "SET NULL",
+      },
       s3_bucket_id_link: {
         name: "s3_bucket_id_link",
         columns: ["s3_bucket_id"],
@@ -2529,6 +2910,15 @@ const tables = [
       },
     },
     columns: [
+      {
+        name: "directory_id",
+        type: "link",
+        link: { table: "s3_directories" },
+        notNull: false,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"s3_directories"}',
+      },
       {
         name: "name",
         type: "text",
@@ -2904,6 +3294,107 @@ const tables = [
     ],
   },
   {
+    name: "sftp_directories",
+    checkConstraints: {
+      ftp_directories_xata_id_length_xata_id: {
+        name: "ftp_directories_xata_id_length_xata_id",
+        columns: ["xata_id"],
+        definition: "CHECK ((length(xata_id) < 256))",
+      },
+    },
+    foreignKeys: {
+      parent_id_link: {
+        name: "parent_id_link",
+        columns: ["parent_id"],
+        referencedTable: "sftp_directories",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+      sftp_id_link: {
+        name: "sftp_id_link",
+        columns: ["sftp_id"],
+        referencedTable: "sftp",
+        referencedColumns: ["xata_id"],
+        onDelete: "CASCADE",
+      },
+    },
+    primaryKey: [],
+    uniqueConstraints: {
+      _pgroll_new_ftp_directories_xata_id_key: {
+        name: "_pgroll_new_ftp_directories_xata_id_key",
+        columns: ["xata_id"],
+      },
+    },
+    columns: [
+      {
+        name: "name",
+        type: "text",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "parent_id",
+        type: "link",
+        link: { table: "sftp_directories" },
+        notNull: false,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"sftp_directories"}',
+      },
+      {
+        name: "path",
+        type: "text",
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: "",
+      },
+      {
+        name: "sftp_id",
+        type: "link",
+        link: { table: "sftp" },
+        notNull: true,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"sftp"}',
+      },
+      {
+        name: "xata_createdat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_id",
+        type: "text",
+        notNull: true,
+        unique: true,
+        defaultValue: "('rec_'::text || (xata_private.xid())::text)",
+        comment: "",
+      },
+      {
+        name: "xata_updatedat",
+        type: "datetime",
+        notNull: true,
+        unique: false,
+        defaultValue: "now()",
+        comment: "",
+      },
+      {
+        name: "xata_version",
+        type: "int",
+        notNull: true,
+        unique: false,
+        defaultValue: "0",
+        comment: "",
+      },
+    ],
+  },
+  {
     name: "sftp_path",
     checkConstraints: {
       sftp_path_xata_id_length_xata_id: {
@@ -2913,6 +3404,13 @@ const tables = [
       },
     },
     foreignKeys: {
+      directory_id_link: {
+        name: "directory_id_link",
+        columns: ["directory_id"],
+        referencedTable: "sftp_directories",
+        referencedColumns: ["xata_id"],
+        onDelete: "SET NULL",
+      },
       sftp_id_link: {
         name: "sftp_id_link",
         columns: ["sftp_id"],
@@ -2936,6 +3434,15 @@ const tables = [
       },
     },
     columns: [
+      {
+        name: "directory_id",
+        type: "link",
+        link: { table: "sftp_directories" },
+        notNull: false,
+        unique: false,
+        defaultValue: null,
+        comment: '{"xata.link":"sftp_directories"}',
+      },
       {
         name: "name",
         type: "text",
@@ -4569,6 +5076,9 @@ export type DropboxRecord = Dropbox & XataRecord;
 export type DropboxAccounts = InferredTypes["dropbox_accounts"];
 export type DropboxAccountsRecord = DropboxAccounts & XataRecord;
 
+export type DropboxDirectories = InferredTypes["dropbox_directories"];
+export type DropboxDirectoriesRecord = DropboxDirectories & XataRecord;
+
 export type DropboxPaths = InferredTypes["dropbox_paths"];
 export type DropboxPathsRecord = DropboxPaths & XataRecord;
 
@@ -4580,6 +5090,9 @@ export type GoogleDriveRecord = GoogleDrive & XataRecord;
 
 export type GoogleDriveAccounts = InferredTypes["google_drive_accounts"];
 export type GoogleDriveAccountsRecord = GoogleDriveAccounts & XataRecord;
+
+export type GoogleDriveDirectories = InferredTypes["google_drive_directories"];
+export type GoogleDriveDirectoriesRecord = GoogleDriveDirectories & XataRecord;
 
 export type GoogleDrivePaths = InferredTypes["google_drive_paths"];
 export type GoogleDrivePathsRecord = GoogleDrivePaths & XataRecord;
@@ -4611,6 +5124,9 @@ export type RadiosRecord = Radios & XataRecord;
 export type S3Bucket = InferredTypes["s3_bucket"];
 export type S3BucketRecord = S3Bucket & XataRecord;
 
+export type S3Directories = InferredTypes["s3_directories"];
+export type S3DirectoriesRecord = S3Directories & XataRecord;
+
 export type S3Paths = InferredTypes["s3_paths"];
 export type S3PathsRecord = S3Paths & XataRecord;
 
@@ -4625,6 +5141,9 @@ export type SftpRecord = Sftp & XataRecord;
 
 export type SftpAccess = InferredTypes["sftp_access"];
 export type SftpAccessRecord = SftpAccess & XataRecord;
+
+export type SftpDirectories = InferredTypes["sftp_directories"];
+export type SftpDirectoriesRecord = SftpDirectories & XataRecord;
 
 export type SftpPath = InferredTypes["sftp_path"];
 export type SftpPathRecord = SftpPath & XataRecord;
@@ -4683,10 +5202,12 @@ export type DatabaseSchema = {
   builtin_storage_paths: BuiltinStoragePathsRecord;
   dropbox: DropboxRecord;
   dropbox_accounts: DropboxAccountsRecord;
+  dropbox_directories: DropboxDirectoriesRecord;
   dropbox_paths: DropboxPathsRecord;
   dropbox_tokens: DropboxTokensRecord;
   google_drive: GoogleDriveRecord;
   google_drive_accounts: GoogleDriveAccountsRecord;
+  google_drive_directories: GoogleDriveDirectoriesRecord;
   google_drive_paths: GoogleDrivePathsRecord;
   google_drive_tokens: GoogleDriveTokensRecord;
   loved_tracks: LovedTracksRecord;
@@ -4697,11 +5218,13 @@ export type DatabaseSchema = {
   queue_tracks: QueueTracksRecord;
   radios: RadiosRecord;
   s3_bucket: S3BucketRecord;
+  s3_directories: S3DirectoriesRecord;
   s3_paths: S3PathsRecord;
   s3_tokens: S3TokensRecord;
   scrobbles: ScrobblesRecord;
   sftp: SftpRecord;
   sftp_access: SftpAccessRecord;
+  sftp_directories: SftpDirectoriesRecord;
   sftp_path: SftpPathRecord;
   shout_likes: ShoutLikesRecord;
   shout_reports: ShoutReportsRecord;
@@ -4732,7 +5255,7 @@ export class XataClient extends DatabaseClient<DatabaseSchema> {
   }
 }
 
-let instance: XataClient | undefined;
+let instance: XataClient | undefined = undefined;
 
 export const getXataClient = () => {
   if (instance) return instance;

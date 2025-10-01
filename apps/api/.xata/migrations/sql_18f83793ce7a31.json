@@ -1,0 +1,18 @@
+{
+  "done": true,
+  "migration": {
+    "name": "sql_18f83793ce7a31",
+    "operations": [
+      {
+        "sql": {
+          "up": "CREATE INDEX idx_google_drive_directories_path ON google_drive_directories USING btree (path)"
+        }
+      }
+    ]
+  },
+  "migrationType": "inferred",
+  "name": "sql_18f83793ce7a31",
+  "parent": "sql_18cc4eb60ac890",
+  "schema": "public",
+  "startedAt": "2025-07-13T03:40:29.714531Z"
+}

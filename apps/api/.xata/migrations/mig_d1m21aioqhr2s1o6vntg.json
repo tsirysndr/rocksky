@@ -1,0 +1,21 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_d1m21aioqhr2s1o6vntg",
+    "operations": [
+      {
+        "drop_constraint": {
+          "up": "\"path\"",
+          "down": "\"path\"",
+          "name": "s3_directories__pgroll_new_path_key",
+          "table": "s3_directories"
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_d1m21aioqhr2s1o6vntg",
+  "parent": "mig_d1m210ioqhr2s1o6vnsg",
+  "schema": "public",
+  "startedAt": "2025-07-07T19:31:55.444336Z"
+}

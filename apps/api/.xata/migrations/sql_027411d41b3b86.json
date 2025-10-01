@@ -1,0 +1,18 @@
+{
+  "done": true,
+  "migration": {
+    "name": "sql_027411d41b3b86",
+    "operations": [
+      {
+        "sql": {
+          "up": "CREATE UNIQUE INDEX unique_dropbox_path ON dropbox_directories USING btree (dropbox_id, path)"
+        }
+      }
+    ]
+  },
+  "migrationType": "inferred",
+  "name": "sql_027411d41b3b86",
+  "parent": "sql_70e285f209c400",
+  "schema": "public",
+  "startedAt": "2025-07-07T20:30:25.496512Z"
+}

@@ -71,11 +71,15 @@ pub async fn scrobble(
         None => None,
       },
       "label": track_item.album.label,
-      "artistPicture":  match artist {
-        Some(artist) => match artist.images {
+      "artistPicture":  match &artist {
+        Some(artist) => match &artist.images {
           Some(images) => Some(images.first().map(|image| image.url.clone())),
           None => None
         },
+        None => None
+      },
+      "genres": match &artist {
+        Some(artist) => artist.genres.clone(),
         None => None
       },
   }))

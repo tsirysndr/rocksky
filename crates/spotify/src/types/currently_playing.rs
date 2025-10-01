@@ -95,6 +95,7 @@ pub struct Artist {
     pub artist_type: String,
     pub uri: String,
     pub images: Option<Vec<Image>>,
+    pub genres: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

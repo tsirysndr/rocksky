@@ -1,0 +1,18 @@
+{
+  "done": true,
+  "migration": {
+    "name": "sql_18cc4eb60ac890",
+    "operations": [
+      {
+        "sql": {
+          "up": "CREATE INDEX idx_dropbox_directories_path ON dropbox_directories USING btree (path)"
+        }
+      }
+    ]
+  },
+  "migrationType": "inferred",
+  "name": "sql_18cc4eb60ac890",
+  "parent": "mig_d1o1f1qoqhr2s1o705dg",
+  "schema": "public",
+  "startedAt": "2025-07-13T03:39:39.136028Z"
+}

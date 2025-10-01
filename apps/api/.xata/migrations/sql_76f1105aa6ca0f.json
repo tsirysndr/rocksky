@@ -1,0 +1,18 @@
+{
+  "done": true,
+  "migration": {
+    "name": "sql_76f1105aa6ca0f",
+    "operations": [
+      {
+        "sql": {
+          "up": "CREATE UNIQUE INDEX unique_sftp_path ON sftp_directories USING btree (sftp_id, path)"
+        }
+      }
+    ]
+  },
+  "migrationType": "inferred",
+  "name": "sql_76f1105aa6ca0f",
+  "parent": "sql_2d6fff5c5e6c78",
+  "schema": "public",
+  "startedAt": "2025-07-07T20:31:54.518491Z"
+}

@@ -39,6 +39,7 @@ pub struct Track {
     pub label: Option<String>,
     pub artist_picture: Option<String>,
     pub timestamp: Option<u64>,
+    pub genres: Option<Vec<String>>,
 }
 
 impl From<xata::track::Track> for Track {
@@ -59,6 +60,7 @@ impl From<xata::track::Track> for Track {
             disc_number: track.disc_number as u32,
             year: None,
             release_date: None,
+            genres: None,
         }
     }
 }
@@ -173,6 +175,11 @@ impl From<&spotify::types::Track> for Track {
                 _ => None,
             },
             label: track.album.label.clone(),
+            genres: track
+                .album
+                .artists
+                .first()
+                .and_then(|artist| artist.genres.clone()),
             ..Default::default()
         }
     }

@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_d1m223rj0aqdfvuvbfo0",
+    "operations": [
+      {
+        "add_column": {
+          "up": "''",
+          "table": "dropbox_directories",
+          "column": {
+            "name": "name",
+            "type": "text",
+            "comment": ""
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_d1m223rj0aqdfvuvbfo0",
+  "parent": "mig_d1m21q9r27un0qigpao0",
+  "schema": "public",
+  "startedAt": "2025-07-07T19:33:36.261724Z"
+}

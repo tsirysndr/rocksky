@@ -1,0 +1,30 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_d1m2cthr27un0qigpavg",
+    "operations": [
+      {
+        "add_column": {
+          "up": "''",
+          "table": "dropbox_directories",
+          "column": {
+            "name": "dropbox_id",
+            "type": "text",
+            "comment": "{\"xata.link\":\"dropbox\"}",
+            "references": {
+              "name": "dropbox_id_link",
+              "table": "dropbox",
+              "column": "xata_id",
+              "on_delete": "CASCADE"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_d1m2cthr27un0qigpavg",
+  "parent": "mig_d1m2c02oqhr2s1o6vnv0",
+  "schema": "public",
+  "startedAt": "2025-07-07T19:56:39.777931Z"
+}

@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_d1m1q2qoqhr2s1o6vnn0",
+    "operations": [
+      {
+        "add_column": {
+          "up": "''",
+          "table": "sftp_directories",
+          "column": {
+            "name": "name",
+            "type": "text",
+            "comment": ""
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_d1m1q2qoqhr2s1o6vnn0",
+  "parent": "mig_d1m1pihr27un0qigpah0",
+  "schema": "public",
+  "startedAt": "2025-07-07T19:16:28.582367Z"
+}

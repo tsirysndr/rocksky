@@ -15,6 +15,7 @@ const artists = pgTable("artists", {
   spotifyLink: text("spotify_link"),
   tidalLink: text("tidal_link"),
   youtubeLink: text("youtube_link"),
+  genres: text("genres").array(),
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
   updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
   xataVersion: integer("xata_version"),

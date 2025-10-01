@@ -1,0 +1,21 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_d2mlh1gbs5avv4bj7f0g",
+    "operations": [
+      {
+        "drop_constraint": {
+          "up": "\"name\"",
+          "down": "\"name\"",
+          "name": "api_keys_name_unique",
+          "table": "api_keys"
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_d2mlh1gbs5avv4bj7f0g",
+  "parent": "mig_d20ot3jj0aqdfvuvdh6g",
+  "schema": "public",
+  "startedAt": "2025-08-26T06:47:35.046302Z"
+}

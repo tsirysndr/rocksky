@@ -1,0 +1,21 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_d1m210ioqhr2s1o6vnsg",
+    "operations": [
+      {
+        "drop_constraint": {
+          "up": "\"path\"",
+          "down": "\"path\"",
+          "name": "google_drive_directories__pgroll_new_path_key",
+          "table": "google_drive_directories"
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_d1m210ioqhr2s1o6vnsg",
+  "parent": "mig_d1m20hpr27un0qigpan0",
+  "schema": "public",
+  "startedAt": "2025-07-07T19:31:15.285501Z"
+}

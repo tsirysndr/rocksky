@@ -1,0 +1,25 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_d1mb1urj0aqdfvuvbhk0",
+    "operations": [
+      {
+        "add_column": {
+          "up": "''",
+          "table": "google_drive_directories",
+          "column": {
+            "name": "file_id",
+            "type": "text",
+            "unique": true,
+            "comment": ""
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_d1mb1urj0aqdfvuvbhk0",
+  "parent": "sql_76f1105aa6ca0f",
+  "schema": "public",
+  "startedAt": "2025-07-08T05:47:40.211674Z"
+}

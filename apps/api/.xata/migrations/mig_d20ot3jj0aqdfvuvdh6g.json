@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_d20ot3jj0aqdfvuvdh6g",
+    "operations": [
+      {
+        "add_column": {
+          "up": "''",
+          "table": "queue_tracks",
+          "column": {
+            "name": "file_uri",
+            "type": "text",
+            "comment": ""
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_d20ot3jj0aqdfvuvdh6g",
+  "parent": "sql_d58ea73a9fcdc5",
+  "schema": "public",
+  "startedAt": "2025-07-24T01:38:23.467364Z"
+}

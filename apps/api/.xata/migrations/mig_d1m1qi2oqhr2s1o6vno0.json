@@ -1,0 +1,30 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_d1m1qi2oqhr2s1o6vno0",
+    "operations": [
+      {
+        "add_column": {
+          "table": "sftp_directories",
+          "column": {
+            "name": "parent_id",
+            "type": "text",
+            "comment": "{\"xata.link\":\"sftp_directories\"}",
+            "nullable": true,
+            "references": {
+              "name": "parent_id_link",
+              "table": "sftp_directories",
+              "column": "xata_id",
+              "on_delete": "CASCADE"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_d1m1qi2oqhr2s1o6vno0",
+  "parent": "mig_d1m1q2qoqhr2s1o6vnn0",
+  "schema": "public",
+  "startedAt": "2025-07-07T19:17:29.004821Z"
+}

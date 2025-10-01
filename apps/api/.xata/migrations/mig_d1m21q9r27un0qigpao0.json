@@ -1,0 +1,21 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_d1m21q9r27un0qigpao0",
+    "operations": [
+      {
+        "drop_constraint": {
+          "up": "\"path\"",
+          "down": "\"path\"",
+          "name": "sftp_directories__pgroll_new_path_key",
+          "table": "sftp_directories"
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_d1m21q9r27un0qigpao0",
+  "parent": "mig_d1m21aioqhr2s1o6vntg",
+  "schema": "public",
+  "startedAt": "2025-07-07T19:32:57.960317Z"
+}

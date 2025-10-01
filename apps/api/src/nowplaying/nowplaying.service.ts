@@ -22,10 +22,12 @@ export async function putArtistRecord(
     name: string;
     createdAt: string;
     picture?: BlobRef;
+    tags?: string[];
   } = {
     $type: "app.rocksky.artist",
     name: track.albumArtist,
     createdAt: new Date().toISOString(),
+    tags: track.genres,
   };
 
   if (track.artistPicture) {
@@ -162,6 +164,7 @@ export async function putSongRecord(
       : undefined,
     createdAt: new Date().toISOString(),
     spotifyLink: track.spotifyLink ? track.spotifyLink : undefined,
+    tags: track.genres,
   };
 
   if (!Song.validateRecord(record).success) {

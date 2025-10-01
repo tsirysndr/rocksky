@@ -1,0 +1,30 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_d1m2dupr27un0qigpb0g",
+    "operations": [
+      {
+        "add_column": {
+          "up": "''",
+          "table": "s3_directories",
+          "column": {
+            "name": "s3_bucket_id",
+            "type": "text",
+            "comment": "{\"xata.link\":\"s3_bucket\"}",
+            "references": {
+              "name": "s3_bucket_id_link",
+              "table": "s3_bucket",
+              "column": "xata_id",
+              "on_delete": "CASCADE"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_d1m2dupr27un0qigpb0g",
+  "parent": "mig_d1m2cthr27un0qigpavg",
+  "schema": "public",
+  "startedAt": "2025-07-07T19:58:51.774928Z"
+}

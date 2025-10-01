@@ -30,6 +30,7 @@ export const trackSchema = z.object({
   appleMusicLink: z.string().optional().nullable(),
   deezerLink: z.string().optional().nullable(),
   timestamp: z.number().optional().nullable(),
+  genres: z.array(z.string()).optional().nullable(),
 });
 
 export type Track = z.infer<typeof trackSchema>;

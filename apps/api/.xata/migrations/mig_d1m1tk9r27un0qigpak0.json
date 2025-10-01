@@ -1,0 +1,25 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_d1m1tk9r27un0qigpak0",
+    "operations": [
+      {
+        "add_column": {
+          "up": "''",
+          "table": "s3_directories",
+          "column": {
+            "name": "path",
+            "type": "text",
+            "unique": true,
+            "comment": ""
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_d1m1tk9r27un0qigpak0",
+  "parent": "mig_d1m1t8aoqhr2s1o6vnp0",
+  "schema": "public",
+  "startedAt": "2025-07-07T19:24:02.056561Z"
+}

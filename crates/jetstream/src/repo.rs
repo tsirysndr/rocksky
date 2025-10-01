@@ -409,9 +409,10 @@ pub async fn save_artist(
       name,
       sha256,
       uri,
-      picture
+      picture,
+      genres
     ) VALUES (
-      $1, $2, $3, $4
+      $1, $2, $3, $4, $5
     )
   "#,
     )
@@ -419,6 +420,7 @@ pub async fn save_artist(
     .bind(&hash)
     .bind(uri)
     .bind(picture)
+    .bind(scrobble_record.tags)
     .execute(&mut **tx)
     .await?;
 

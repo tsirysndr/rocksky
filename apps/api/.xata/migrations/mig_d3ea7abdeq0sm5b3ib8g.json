@@ -1,0 +1,24 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_d3ea7abdeq0sm5b3ib8g",
+    "operations": [
+      {
+        "add_column": {
+          "table": "artists",
+          "column": {
+            "name": "genres",
+            "type": "text[]",
+            "comment": "",
+            "nullable": true
+          }
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_d3ea7abdeq0sm5b3ib8g",
+  "parent": "mig_d2mlh1gbs5avv4bj7f0g",
+  "schema": "public",
+  "startedAt": "2025-10-01T03:44:42.977368Z"
+}

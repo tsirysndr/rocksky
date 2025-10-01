@@ -18,6 +18,7 @@ pub struct Artist {
     pub youtube_link: Option<String>,
     pub apple_music_link: Option<String>,
     pub uri: Option<String>,
+    pub genres: Option<Vec<String>>,
     #[serde(with = "chrono::serde::ts_seconds")]
     pub xata_createdat: DateTime<Utc>,
 }

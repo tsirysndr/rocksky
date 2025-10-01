@@ -1,0 +1,19 @@
+{
+  "done": true,
+  "migration": {
+    "name": "mig_d1m1of2oqhr2s1o6vnm0",
+    "operations": [
+      {
+        "rename_table": {
+          "to": "sftp_directories",
+          "from": "ftp_directories"
+        }
+      }
+    ]
+  },
+  "migrationType": "pgroll",
+  "name": "mig_d1m1of2oqhr2s1o6vnm0",
+  "parent": "mig_d1m1ob2oqhr2s1o6vnl0",
+  "schema": "public",
+  "startedAt": "2025-07-07T19:13:01.468679Z"
+}
