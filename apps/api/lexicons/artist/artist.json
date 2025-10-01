@@ -33,6 +33,11 @@
             ],
             "maxSize": 2000000
           },
+          "pictureUrl": {
+            "type": "string",
+            "description": "The URL of the picture of the artist.",
+            "format": "uri"
+          },
           "tags": {
             "type": "array",
             "description": "The tags of the artist.",

@@ -53,6 +53,11 @@
             ],
             "maxSize": 2000000
           },
+          "albumArtUrl": {
+            "type": "string",
+            "description": "The URL of the album art of the album.",
+            "format": "uri"
+          },
           "tags": {
             "type": "array",
             "description": "The tags of the album.",

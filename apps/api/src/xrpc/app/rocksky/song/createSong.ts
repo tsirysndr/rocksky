@@ -19,8 +19,14 @@ import { createHash } from "node:crypto";
 import tables from "schema";
 import type { InsertAlbumTrack, SelectAlbumTrack } from "schema/album-tracks";
 import type { SelectAlbum } from "schema/albums";
-import type { InsertArtistAlbum, SelectArtistAlbum } from "schema/artist-albums";
-import type { InsertArtistTrack, SelectArtistTrack } from "schema/artist-tracks";
+import type {
+  InsertArtistAlbum,
+  SelectArtistAlbum,
+} from "schema/artist-albums";
+import type {
+  InsertArtistTrack,
+  SelectArtistTrack,
+} from "schema/artist-tracks";
 import type { SelectArtist } from "schema/artists";
 import type { SelectTrack } from "schema/tracks";
 import { type Track, trackSchema } from "types/track";

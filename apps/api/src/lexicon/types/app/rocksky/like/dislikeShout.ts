@@ -1,49 +1,49 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import type express from 'express'
-import { ValidationResult, BlobRef } from '@atproto/lexicon'
-import { lexicons } from '../../../../lexicons'
-import { isObj, hasProp } from '../../../../util'
-import { CID } from 'multiformats/cid'
-import type { HandlerAuth, HandlerPipeThrough } from '@atproto/xrpc-server'
-import type * as AppRockskyShoutDefs from '../shout/defs'
+import express from "express";
+import { ValidationResult, BlobRef } from "@atproto/lexicon";
+import { lexicons } from "../../../../lexicons";
+import { isObj, hasProp } from "../../../../util";
+import { CID } from "multiformats/cid";
+import { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
+import * as AppRockskyShoutDefs from "../shout/defs";
 
-export type QueryParams = {}
+export interface QueryParams {}
 
 export interface InputSchema {
   /** The unique identifier of the shout to dislike */
-  uri?: string
-  [k: string]: unknown
+  uri?: string;
+  [k: string]: unknown;
 }
 
-export type OutputSchema = AppRockskyShoutDefs.ShoutView
+export type OutputSchema = AppRockskyShoutDefs.ShoutView;
 
 export interface HandlerInput {
-  encoding: 'application/json'
-  body: InputSchema
+  encoding: "application/json";
+  body: InputSchema;
 }
 
 export interface HandlerSuccess {
-  encoding: 'application/json'
-  body: OutputSchema
-  headers?: { [key: string]: string }
+  encoding: "application/json";
+  body: OutputSchema;
+  headers?: { [key: string]: string };
 }
 
 export interface HandlerError {
-  status: number
-  message?: string
+  status: number;
+  message?: string;
 }
 
-export type HandlerOutput = HandlerError | HandlerSuccess | HandlerPipeThrough
+export type HandlerOutput = HandlerError | HandlerSuccess | HandlerPipeThrough;
 export type HandlerReqCtx<HA extends HandlerAuth = never> = {
-  auth: HA
-  params: QueryParams
-  input: HandlerInput
-  req: express.Request
-  res: express.Response
-  resetRouteRateLimits: () => Promise<void>
-}
+  auth: HA;
+  params: QueryParams;
+  input: HandlerInput;
+  req: express.Request;
+  res: express.Response;
+  resetRouteRateLimits: () => Promise<void>;
+};
 export type Handler<HA extends HandlerAuth = never> = (
   ctx: HandlerReqCtx<HA>,
-) => Promise<HandlerOutput> | HandlerOutput
+) => Promise<HandlerOutput> | HandlerOutput;

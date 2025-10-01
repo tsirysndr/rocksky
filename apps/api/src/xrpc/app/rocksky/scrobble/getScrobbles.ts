@@ -21,7 +21,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error("Error retrieving scrobbles:", err);
         return Effect.succeed({ scrobbles: [] });
-      })
+      }),
     );
   server.app.rocksky.scrobble.getScrobbles({
     handler: async ({ params }) => {
@@ -58,7 +58,7 @@ const retrieve = ({
 };
 
 const presentation = (
-  data: Scrobbles
+  data: Scrobbles,
 ): Effect.Effect<{ scrobbles: ScrobbleViewBasic[] }, never> => {
   return Effect.sync(() => ({
     scrobbles: data.map(({ scrobbles, tracks, users }) => ({

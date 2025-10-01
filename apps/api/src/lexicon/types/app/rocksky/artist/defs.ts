@@ -1,120 +1,120 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import { type ValidationResult, BlobRef } from '@atproto/lexicon'
-import { lexicons } from '../../../../lexicons'
-import { isObj, hasProp } from '../../../../util'
-import { CID } from 'multiformats/cid'
+import { ValidationResult, BlobRef } from "@atproto/lexicon";
+import { lexicons } from "../../../../lexicons";
+import { isObj, hasProp } from "../../../../util";
+import { CID } from "multiformats/cid";
 
 export interface ArtistViewBasic {
   /** The unique identifier of the artist. */
-  id?: string
+  id?: string;
   /** The URI of the artist. */
-  uri?: string
+  uri?: string;
   /** The name of the artist. */
-  name?: string
+  name?: string;
   /** The picture of the artist. */
-  picture?: string
+  picture?: string;
   /** The SHA256 hash of the artist. */
-  sha256?: string
+  sha256?: string;
   /** The number of times the artist has been played. */
-  playCount?: number
+  playCount?: number;
   /** The number of unique listeners who have played the artist. */
-  uniqueListeners?: number
-  [k: string]: unknown
+  uniqueListeners?: number;
+  [k: string]: unknown;
 }
 
 export function isArtistViewBasic(v: unknown): v is ArtistViewBasic {
   return (
     isObj(v) &&
-    hasProp(v, '$type') &&
-    v.$type === 'app.rocksky.artist.defs#artistViewBasic'
-  )
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.artist.defs#artistViewBasic"
+  );
 }
 
 export function validateArtistViewBasic(v: unknown): ValidationResult {
-  return lexicons.validate('app.rocksky.artist.defs#artistViewBasic', v)
+  return lexicons.validate("app.rocksky.artist.defs#artistViewBasic", v);
 }
 
 export interface ArtistViewDetailed {
   /** The unique identifier of the artist. */
-  id?: string
+  id?: string;
   /** The URI of the artist. */
-  uri?: string
+  uri?: string;
   /** The name of the artist. */
-  name?: string
+  name?: string;
   /** The picture of the artist. */
-  picture?: string
+  picture?: string;
   /** The SHA256 hash of the artist. */
-  sha256?: string
+  sha256?: string;
   /** The number of times the artist has been played. */
-  playCount?: number
+  playCount?: number;
   /** The number of unique listeners who have played the artist. */
-  uniqueListeners?: number
-  [k: string]: unknown
+  uniqueListeners?: number;
+  [k: string]: unknown;
 }
 
 export function isArtistViewDetailed(v: unknown): v is ArtistViewDetailed {
   return (
     isObj(v) &&
-    hasProp(v, '$type') &&
-    v.$type === 'app.rocksky.artist.defs#artistViewDetailed'
-  )
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.artist.defs#artistViewDetailed"
+  );
 }
 
 export function validateArtistViewDetailed(v: unknown): ValidationResult {
-  return lexicons.validate('app.rocksky.artist.defs#artistViewDetailed', v)
+  return lexicons.validate("app.rocksky.artist.defs#artistViewDetailed", v);
 }
 
 export interface SongViewBasic {
   /** The URI of the song. */
-  uri?: string
+  uri?: string;
   /** The title of the song. */
-  title?: string
+  title?: string;
   /** The number of times the song has been played. */
-  playCount?: number
-  [k: string]: unknown
+  playCount?: number;
+  [k: string]: unknown;
 }
 
 export function isSongViewBasic(v: unknown): v is SongViewBasic {
   return (
     isObj(v) &&
-    hasProp(v, '$type') &&
-    v.$type === 'app.rocksky.artist.defs#songViewBasic'
-  )
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.artist.defs#songViewBasic"
+  );
 }
 
 export function validateSongViewBasic(v: unknown): ValidationResult {
-  return lexicons.validate('app.rocksky.artist.defs#songViewBasic', v)
+  return lexicons.validate("app.rocksky.artist.defs#songViewBasic", v);
 }
 
 export interface ListenerViewBasic {
   /** The unique identifier of the actor. */
-  id?: string
+  id?: string;
   /** The DID of the listener. */
-  did?: string
+  did?: string;
   /** The handle of the listener. */
-  handle?: string
+  handle?: string;
   /** The display name of the listener. */
-  displayName?: string
+  displayName?: string;
   /** The URL of the listener's avatar image. */
-  avatar?: string
-  mostListenedSong?: SongViewBasic
+  avatar?: string;
+  mostListenedSong?: SongViewBasic;
   /** The total number of plays by the listener. */
-  totalPlays?: number
+  totalPlays?: number;
   /** The rank of the listener among all listeners of the artist. */
-  rank?: number
-  [k: string]: unknown
+  rank?: number;
+  [k: string]: unknown;
 }
 
 export function isListenerViewBasic(v: unknown): v is ListenerViewBasic {
   return (
     isObj(v) &&
-    hasProp(v, '$type') &&
-    v.$type === 'app.rocksky.artist.defs#listenerViewBasic'
-  )
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.artist.defs#listenerViewBasic"
+  );
 }
 
 export function validateListenerViewBasic(v: unknown): ValidationResult {
-  return lexicons.validate('app.rocksky.artist.defs#listenerViewBasic', v)
+  return lexicons.validate("app.rocksky.artist.defs#listenerViewBasic", v);
 }

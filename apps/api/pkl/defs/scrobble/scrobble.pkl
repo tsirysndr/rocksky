@@ -115,6 +115,12 @@ defs = new Mapping<String, Record> {
           maxSize = 2000000
         }
 
+        ["albumArtUrl"] = new StringType {
+          type = "string"
+          description = "The URL of the album art of the song."
+          format = "uri"
+        }
+
         ["youtubeLink"] = new StringType {
           type = "string"
           description = "The YouTube link of the song."

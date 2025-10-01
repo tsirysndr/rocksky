@@ -23,7 +23,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({});
-      })
+      }),
     );
   server.app.rocksky.spotify.next({
     auth: ctx.authVerifier,
@@ -72,7 +72,7 @@ const withSpotifyRefreshToken = ({
         .where(eq(tables.spotifyTokens.userId, user.id))
         .execute()
         .then(([spotifyToken]) =>
-          decrypt(spotifyToken.refreshToken, env.SPOTIFY_ENCRYPTION_KEY)
+          decrypt(spotifyToken.refreshToken, env.SPOTIFY_ENCRYPTION_KEY),
         )
         .then((refreshToken) => ({
           user,

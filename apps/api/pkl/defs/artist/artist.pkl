@@ -31,6 +31,12 @@ defs = new Mapping<String, Record> {
           maxSize = 2000000
         }
 
+        ["pictureUrl"] = new StringType {
+          type = "string"
+          description = "The URL of the picture of the artist."
+          format = "uri"
+        }
+
         ["tags"] = new Array {
           type = "array"
           description = "The tags of the artist."

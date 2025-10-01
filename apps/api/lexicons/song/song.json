@@ -109,6 +109,11 @@
             ],
             "maxSize": 2000000
           },
+          "albumArtUrl": {
+            "type": "string",
+            "description": "The URL of the album art of the song.",
+            "format": "uri"
+          },
           "youtubeLink": {
             "type": "string",
             "description": "The YouTube link of the song.",

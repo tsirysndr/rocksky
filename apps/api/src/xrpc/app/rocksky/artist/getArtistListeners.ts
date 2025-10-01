@@ -15,7 +15,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({ listeners: [] });
-      })
+      }),
     );
   server.app.rocksky.artist.getArtistListeners({
     handler: async ({ params }) => {
