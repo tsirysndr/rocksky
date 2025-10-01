@@ -11,7 +11,7 @@ export async function likeTrack(
   ctx: Context,
   track: Track,
   user,
-  agent: Agent
+  agent: Agent,
 ) {
   const existingTrack = await ctx.client.db.tracks
     .filter(
@@ -19,10 +19,10 @@ export async function likeTrack(
       equals(
         createHash("sha256")
           .update(
-            `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
+            `${track.title} - ${track.artist} - ${track.album}`.toLowerCase(),
           )
-          .digest("hex")
-      )
+          .digest("hex"),
+      ),
     )
     .getFirst();
 
@@ -43,10 +43,10 @@ export async function likeTrack(
       // compute sha256 (lowercase(title + artist + album))
       sha256: createHash("sha256")
         .update(
-          `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
+          `${track.title} - ${track.artist} - ${track.album}`.toLowerCase(),
         )
         .digest("hex"),
-    }
+    },
   );
 
   const existingArtist = await ctx.client.db.artists
@@ -55,8 +55,8 @@ export async function likeTrack(
       equals(
         createHash("sha256")
           .update(track.albumArtist.toLocaleLowerCase())
-          .digest("hex")
-      )
+          .digest("hex"),
+      ),
     )
     .getFirst();
   const { xata_id: artist_id } = await ctx.client.db.artists.createOrUpdate(
@@ -67,7 +67,7 @@ export async function likeTrack(
       sha256: createHash("sha256")
         .update(track.albumArtist.toLowerCase())
         .digest("hex"),
-    }
+    },
   );
 
   const existingAlbum = await ctx.client.db.albums
@@ -76,8 +76,8 @@ export async function likeTrack(
       equals(
         createHash("sha256")
           .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
-          .digest("hex")
-      )
+          .digest("hex"),
+      ),
     )
     .getFirst();
 
@@ -95,7 +95,7 @@ export async function likeTrack(
       sha256: createHash("sha256")
         .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
         .digest("hex"),
-    }
+    },
   );
 
   const existingAlbumTrack = await ctx.client.db.album_tracks
@@ -118,7 +118,7 @@ export async function likeTrack(
     {
       artist_id,
       track_id,
-    }
+    },
   );
 
   const existingArtistAlbum = await ctx.client.db.artist_albums
@@ -131,7 +131,7 @@ export async function likeTrack(
     {
       artist_id,
       album_id,
-    }
+    },
   );
 
   const lovedTrack = await ctx.client.db.loved_tracks
@@ -144,7 +144,7 @@ export async function likeTrack(
     {
       user_id: user.xata_id,
       track_id,
-    }
+    },
   );
 
   if (existingTrack.uri) {
@@ -206,7 +206,7 @@ export async function unLikeTrack(
   ctx: Context,
   trackSha256: string,
   user,
-  agent: Agent
+  agent: Agent,
 ) {
   const track = await ctx.client.db.tracks
     .filter("sha256", equals(trackSha256))
@@ -244,7 +244,7 @@ export async function getLovedTracks(
   ctx: Context,
   user,
   size = 10,
-  offset = 0
+  offset = 0,
 ) {
   const lovedTracks = await ctx.client.db.loved_tracks
     .select(["track_id.*"])

@@ -70,7 +70,7 @@ function handleWebsocket(c: Context) {
               if (data.type === "track") {
                 const sha256 = createHash("sha256")
                   .update(
-                    `${data.title} - ${data.artist} - ${data.album}`.toLowerCase()
+                    `${data.title} - ${data.artist} - ${data.album}`.toLowerCase(),
                   )
                   .digest("hex");
                 const [cachedTrack, cachedLikes] = await Promise.all([
@@ -93,7 +93,7 @@ function handleWebsocket(c: Context) {
                   await ctx.redis.setEx(
                     `likes:${did}:${sha256}`,
                     2,
-                    JSON.stringify({ liked: data.liked })
+                    JSON.stringify({ liked: data.liked }),
                   );
                 }
 
@@ -113,7 +113,7 @@ function handleWebsocket(c: Context) {
                       ...data,
                       sha256,
                       liked: data.liked,
-                    })
+                    }),
                   );
                 } else {
                   const [track] = await ctx.db
@@ -136,7 +136,7 @@ function handleWebsocket(c: Context) {
                           albumUri: track.albumUri,
                           artistUri: track.artistUri,
                           liked: data.liked,
-                        })
+                        }),
                       ),
                       ctx.redis.setEx(
                         `nowplaying:${did}`,
@@ -145,7 +145,7 @@ function handleWebsocket(c: Context) {
                           ...data,
                           sha256,
                           liked: data.liked,
-                        })
+                        }),
                       ),
                     ]);
                   }
@@ -154,7 +154,7 @@ function handleWebsocket(c: Context) {
                 await ctx.redis.setEx(
                   `nowplaying:${did}:status`,
                   3,
-                  `${data.status}`
+                  `${data.status}`,
                 );
               }
 
@@ -163,7 +163,7 @@ function handleWebsocket(c: Context) {
                   type: "message",
                   data,
                   device_id,
-                })
+                }),
               );
             }
           });
@@ -175,7 +175,7 @@ function handleWebsocket(c: Context) {
             ignoreExpiration: true,
           });
           console.log(
-            `Control message: ${chalk.greenBright(type)}, ${chalk.greenBright(target)}, ${chalk.greenBright(action)}, ${chalk.greenBright(args)}, ${chalk.greenBright("***")}`
+            `Control message: ${chalk.greenBright(type)}, ${chalk.greenBright(target)}, ${chalk.greenBright(action)}, ${chalk.greenBright(args)}, ${chalk.greenBright("***")}`,
           );
           // Handle control message
           const deviceId = userDevices[did]?.find((id) => id === target);
@@ -184,7 +184,7 @@ function handleWebsocket(c: Context) {
             if (targetDevice) {
               targetDevice.send(JSON.stringify({ type, action, args }));
               console.log(
-                `Control message sent to device: ${chalk.greenBright(deviceId)}, ${chalk.greenBright(target)}`
+                `Control message sent to device: ${chalk.greenBright(deviceId)}, ${chalk.greenBright(target)}`,
               );
               return;
             }
@@ -196,7 +196,7 @@ function handleWebsocket(c: Context) {
             if (targetDevice) {
               targetDevice.send(JSON.stringify({ type, action, args }));
               console.log(
-                `Control message sent to all devices: ${chalk.greenBright(id)}, ${chalk.greenBright(target)}`
+                `Control message sent to all devices: ${chalk.greenBright(id)}, ${chalk.greenBright(target)}`,
               );
             }
           });
@@ -208,7 +208,7 @@ function handleWebsocket(c: Context) {
         if (registerMessage.success) {
           const { type, clientName, token } = registerMessage.data;
           console.log(
-            `Register message: ${chalk.greenBright(type)}, ${chalk.greenBright(clientName)}, ${chalk.greenBright("****")}`
+            `Register message: ${chalk.greenBright(type)}, ${chalk.greenBright(clientName)}, ${chalk.greenBright("****")}`,
           );
           // Handle register Message
           const { did } = jwt.verify(token, env.JWT_SECRET, {
@@ -221,7 +221,7 @@ function handleWebsocket(c: Context) {
           deviceNames[deviceId] = clientName;
           userDevices[did] = [...(userDevices[did] || []), deviceId];
           console.log(
-            `Device registered: ${chalk.greenBright(deviceId)}, ${chalk.greenBright(clientName)}`
+            `Device registered: ${chalk.greenBright(deviceId)}, ${chalk.greenBright(clientName)}`,
           );
 
           // broadcast to all devices
@@ -235,7 +235,7 @@ function handleWebsocket(c: Context) {
                     type: "device_registered",
                     deviceId,
                     clientName,
-                  })
+                  }),
                 );
               }
             });
@@ -266,7 +266,7 @@ function handleWebsocket(c: Context) {
         const clientName = deviceNames[deviceId];
         delete deviceNames[deviceId];
         console.log(
-          `Device name removed: ${chalk.redBright(deviceId)}, ${chalk.redBright(clientName)}`
+          `Device name removed: ${chalk.redBright(deviceId)}, ${chalk.redBright(clientName)}`,
         );
       }
     },

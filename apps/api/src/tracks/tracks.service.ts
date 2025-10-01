@@ -16,10 +16,10 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
       equals(
         createHash("sha256")
           .update(
-            `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
+            `${track.title} - ${track.artist} - ${track.album}`.toLowerCase(),
           )
-          .digest("hex")
-      )
+          .digest("hex"),
+      ),
     )
     .getFirst();
 
@@ -36,8 +36,8 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
         equals(
           createHash("sha256")
             .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
-            .digest("hex")
-        )
+            .digest("hex"),
+        ),
       )
       .getFirst();
     if (album) {
@@ -54,8 +54,8 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
         equals(
           createHash("sha256")
             .update(track.albumArtist.toLowerCase())
-            .digest("hex")
-        )
+            .digest("hex"),
+        ),
       )
       .getFirst();
     if (artist) {
@@ -72,8 +72,8 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
       equals(
         createHash("sha256")
           .update(track.albumArtist.toLocaleLowerCase())
-          .digest("hex")
-      )
+          .digest("hex"),
+      ),
     )
     .getFirst();
 
@@ -88,8 +88,8 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
       equals(
         createHash("sha256")
           .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
-          .digest("hex")
-      )
+          .digest("hex"),
+      ),
     )
     .getFirst();
 
@@ -116,7 +116,7 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
     if (!track_id || !album_id || !artist_id) {
       console.log(
         "Track not yet saved (uri not saved), retrying...",
-        tries + 1
+        tries + 1,
       );
       await new Promise((resolve) => setTimeout(resolve, 1000));
       tries += 1;
