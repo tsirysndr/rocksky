@@ -116,14 +116,7 @@ pub async fn save_scrobble(
                                 artist: scrobble_record.artist.clone(),
                                 album: scrobble_record.album.clone(),
                                 duration: scrobble_record.duration,
-                                artwork_url: scrobble_record.album_art.clone().map(|x| {
-                                    format!(
-                                        "https://cdn.bsky.app/img/feed_thumbnail/plain/{}/{}@{}",
-                                        did,
-                                        x.r#ref.link,
-                                        x.mime_type.split('/').last().unwrap_or("jpeg")
-                                    )
-                                }),
+                                artwork_url: scrobble_record.album_art_url.clone(),
                                 spotify_url: scrobble_record.spotify_link.clone(),
                                 tidal_url: scrobble_record.tidal_link.clone(),
                                 youtube_url: scrobble_record.youtube_link.clone(),
@@ -281,14 +274,7 @@ pub async fn save_track(
     .bind(scrobble_record.title)
     .bind(scrobble_record.artist)
     .bind(scrobble_record.album)
-    .bind(scrobble_record.album_art.map(|x| {
-        format!(
-            "https://cdn.bsky.app/img/feed_thumbnail/plain/{}/{}@{}",
-            did,
-            x.r#ref.link,
-            x.mime_type.split('/').last().unwrap_or("jpeg")
-        )
-    }))
+    .bind(scrobble_record.album_art_url)
     .bind(scrobble_record.album_artist)
     .bind(scrobble_record.track_number)
     .bind(scrobble_record.duration)
@@ -360,14 +346,7 @@ pub async fn save_album(
     )
     .bind(scrobble_record.album)
     .bind(scrobble_record.album_artist)
-    .bind(scrobble_record.album_art.map(|x| {
-        format!(
-            "https://cdn.bsky.app/img/feed_thumbnail/plain/{}/{}@{}",
-            did,
-            x.r#ref.link,
-            x.mime_type.split('/').last().unwrap_or("jpeg")
-        )
-    }))
+    .bind(scrobble_record.album_art_url)
     .bind(scrobble_record.year)
     .bind(scrobble_record.release_date)
     .bind(&hash)
@@ -579,14 +558,7 @@ pub async fn save_user_artist(
             .bind(record.name)
             .bind(&hash)
             .bind(uri)
-            .bind(record.picture.map(|x| {
-                format!(
-                    "https://cdn.bsky.app/img/avatar/plain/{}/{}@{}",
-                    did,
-                    x.r#ref.link,
-                    x.mime_type.split('/').last().unwrap_or("jpeg")
-                )
-            }))
+            .bind(record.picture_url)
             .execute(&mut **tx)
             .await?;
 
@@ -689,14 +661,7 @@ pub async fn save_user_album(
             )
             .bind(record.title)
             .bind(record.artist)
-            .bind(record.album_art.map(|x| {
-                format!(
-                    "https://cdn.bsky.app/img/feed_thumbnail/plain/{}/{}@{}",
-                    did,
-                    x.r#ref.link,
-                    x.mime_type.split('/').last().unwrap_or("jpeg")
-                )
-            }))
+            .bind(record.album_art_url)
             .bind(record.year)
             .bind(record.release_date)
             .bind(&hash)
@@ -816,14 +781,7 @@ pub async fn save_user_track(
             .bind(record.title)
             .bind(record.artist)
             .bind(record.album)
-            .bind(record.album_art.map(|x| {
-                format!(
-                    "https://cdn.bsky.app/img/feed_thumbnail/plain/{}/{}@{}",
-                    did,
-                    x.r#ref.link,
-                    x.mime_type.split('/').last().unwrap_or("jpeg")
-                )
-            }))
+            .bind(record.album_art_url)
             .bind(record.album_artist)
             .bind(record.track_number)
             .bind(record.duration)

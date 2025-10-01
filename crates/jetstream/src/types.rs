@@ -66,6 +66,8 @@ pub struct ScrobbleRecord {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub album_art: Option<ImageBlob>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub album_art_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub youtube_link: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub spotify_link: Option<String>,
@@ -133,6 +135,8 @@ pub struct ArtistRecord {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub picture: Option<ImageBlob>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub picture_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub born: Option<String>,
@@ -158,6 +162,8 @@ pub struct AlbumRecord {
     pub genre: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub album_art: Option<ImageBlob>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub album_art_url: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -202,6 +208,8 @@ pub struct SongRecord {
     pub wiki: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub album_art: Option<ImageBlob>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub album_art_url: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub youtube_link: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
