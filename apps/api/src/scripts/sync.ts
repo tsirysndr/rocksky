@@ -25,10 +25,10 @@ async function updateUris(did: string) {
         equals(
           createHash("sha256")
             .update(
-              `${track.title} - ${track.artist} - ${track.album}`.toLowerCase(),
+              `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
             )
-            .digest("hex"),
-        ),
+            .digest("hex")
+        )
       )
       .getFirst();
 
@@ -40,8 +40,8 @@ async function updateUris(did: string) {
           equals(
             createHash("sha256")
               .update(`${track.album} - ${track.album_artist}`.toLowerCase())
-              .digest("hex"),
-          ),
+              .digest("hex")
+          )
         )
         .getFirst();
       if (album) {
@@ -59,8 +59,8 @@ async function updateUris(did: string) {
           equals(
             createHash("sha256")
               .update(track.album_artist.toLowerCase())
-              .digest("hex"),
-          ),
+              .digest("hex")
+          )
         )
         .getFirst();
       if (artist) {
@@ -76,8 +76,8 @@ async function updateUris(did: string) {
         equals(
           createHash("sha256")
             .update(`${track.album} - ${track.album_artist}`.toLowerCase())
-            .digest("hex"),
-        ),
+            .digest("hex")
+        )
       )
       .getFirst();
 
@@ -89,8 +89,8 @@ async function updateUris(did: string) {
           equals(
             createHash("sha256")
               .update(track.album_artist.toLowerCase())
-              .digest("hex"),
-          ),
+              .digest("hex")
+          )
         )
         .getFirst();
       if (artist) {
@@ -107,8 +107,8 @@ if (args.includes("--background")) {
   const sub = ctx.nc.subscribe("rocksky.user.scrobble.sync");
   for await (const m of sub) {
     const did = new TextDecoder().decode(m.data);
-    // wait for 10 seconds to ensure the scrobble is fully created
-    await new Promise((resolve) => setTimeout(resolve, 10000));
+    // wait for 15 seconds to ensure the scrobble is fully created
+    await new Promise((resolve) => setTimeout(resolve, 15000));
     console.log(`Syncing scrobbles ${chalk.magenta(did)} ...`);
     await updateUris(did);
     const { records } = await ctx.client.db.scrobbles
