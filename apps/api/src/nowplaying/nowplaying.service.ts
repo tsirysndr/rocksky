@@ -3,18 +3,18 @@ import { TID } from "@atproto/common";
 import { equals } from "@xata.io/client";
 import chalk from "chalk";
 import type { Context } from "context";
-import { createHash } from "crypto";
 import dayjs from "dayjs";
 import * as Album from "lexicon/types/app/rocksky/album";
 import * as Artist from "lexicon/types/app/rocksky/artist";
 import * as Scrobble from "lexicon/types/app/rocksky/scrobble";
 import * as Song from "lexicon/types/app/rocksky/song";
 import downloadImage, { getContentType } from "lib/downloadImage";
+import { createHash } from "node:crypto";
 import type { Track } from "types/track";
 
 export async function putArtistRecord(
   track: Track,
-  agent: Agent,
+  agent: Agent
 ): Promise<string | null> {
   const rkey = TID.nextStr();
   const record: {
@@ -63,7 +63,7 @@ export async function putArtistRecord(
 
 export async function putAlbumRecord(
   track: Track,
-  agent: Agent,
+  agent: Agent
 ): Promise<string | null> {
   const rkey = TID.nextStr();
   let albumArt;
@@ -123,7 +123,7 @@ export async function putAlbumRecord(
 
 export async function putSongRecord(
   track: Track,
-  agent: Agent,
+  agent: Agent
 ): Promise<string | null> {
   const rkey = TID.nextStr();
   let albumArt;
@@ -191,7 +191,7 @@ export async function putSongRecord(
 
 async function putScrobbleRecord(
   track: Track,
-  agent: Agent,
+  agent: Agent
 ): Promise<string | null> {
   const rkey = TID.nextStr();
   let albumArt;
@@ -369,7 +369,7 @@ export async function scrobbleTrack(
   ctx: Context,
   track: Track,
   agent: Agent,
-  userDid: string,
+  userDid: string
 ): Promise<void> {
   // check if scrobble already exists (user did + timestamp)
   const scrobbleTime = dayjs.unix(track.timestamp);
@@ -393,8 +393,8 @@ export async function scrobbleTrack(
     if (existingScrobble) {
       console.log(
         `Scrobble already exists for ${chalk.cyan(track.title)} at ${chalk.cyan(
-          dayjs.unix(track.timestamp).format("YYYY-MM-DD HH:mm:ss"),
-        )}`,
+          dayjs.unix(track.timestamp).format("YYYY-MM-DD HH:mm:ss")
+        )}`
       );
       return;
     }
@@ -406,10 +406,10 @@ export async function scrobbleTrack(
       equals(
         createHash("sha256")
           .update(
-            `${track.title} - ${track.artist} - ${track.album}`.toLowerCase(),
+            `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
           )
-          .digest("hex"),
-      ),
+          .digest("hex")
+      )
     )
     .getFirst();
 
@@ -420,8 +420,8 @@ export async function scrobbleTrack(
         equals(
           createHash("sha256")
             .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
-            .digest("hex"),
-        ),
+            .digest("hex")
+        )
       )
       .getFirst();
     if (album) {
@@ -438,8 +438,8 @@ export async function scrobbleTrack(
         equals(
           createHash("sha256")
             .update(track.albumArtist.toLowerCase())
-            .digest("hex"),
-        ),
+            .digest("hex")
+        )
       )
       .getFirst();
     if (artist) {
@@ -466,8 +466,8 @@ export async function scrobbleTrack(
       equals(
         createHash("sha256")
           .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
-          .digest("hex"),
-      ),
+          .digest("hex")
+      )
     )
     .getFirst();
 
@@ -480,10 +480,10 @@ export async function scrobbleTrack(
         equals(
           createHash("sha256")
             .update(
-              `${track.title} - ${track.artist} - ${track.album}`.toLowerCase(),
+              `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
             )
-            .digest("hex"),
-        ),
+            .digest("hex")
+        )
       )
       .getFirst();
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -496,7 +496,7 @@ export async function scrobbleTrack(
 
   if (existingTrack) {
     console.log(
-      `Song found: ${chalk.cyan(existingTrack.xata_id)} - ${track.title}, after ${chalk.magenta(tries)} tries`,
+      `Song found: ${chalk.cyan(existingTrack.xata_id)} - ${track.title}, after ${chalk.magenta(tries)} tries`
     );
   }
 
@@ -546,10 +546,10 @@ export async function scrobbleTrack(
       equals(
         createHash("sha256")
           .update(
-            `${track.title} - ${track.artist} - ${track.album}`.toLowerCase(),
+            `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
           )
-          .digest("hex"),
-      ),
+          .digest("hex")
+      )
     )
     .getFirst();
 
@@ -559,7 +559,7 @@ export async function scrobbleTrack(
     tries < 30
   ) {
     console.log(
-      `Artist uri not ready, trying again: ${chalk.magenta(tries + 1)}`,
+      `Artist uri not ready, trying again: ${chalk.magenta(tries + 1)}`
     );
     existingTrack = await ctx.client.db.tracks
       .filter(
@@ -567,10 +567,10 @@ export async function scrobbleTrack(
         equals(
           createHash("sha256")
             .update(
-              `${track.title} - ${track.artist} - ${track.album}`.toLowerCase(),
+              `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
             )
-            .digest("hex"),
-        ),
+            .digest("hex")
+        )
       )
       .getFirst();
 
@@ -582,8 +582,8 @@ export async function scrobbleTrack(
           equals(
             createHash("sha256")
               .update(track.albumArtist.toLowerCase())
-              .digest("hex"),
-          ),
+              .digest("hex")
+          )
         )
         .getFirst();
       if (artist) {
@@ -602,8 +602,8 @@ export async function scrobbleTrack(
           equals(
             createHash("sha256")
               .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
-              .digest("hex"),
-          ),
+              .digest("hex")
+          )
         )
         .getFirst();
       if (album) {
@@ -630,7 +630,7 @@ export async function scrobbleTrack(
 
   if (existingTrack?.artist_uri) {
     console.log(
-      `Artist uri ready: ${chalk.cyan(existingTrack.xata_id)} - ${track.title}, after ${chalk.magenta(tries)} tries`,
+      `Artist uri ready: ${chalk.cyan(existingTrack.xata_id)} - ${track.title}, after ${chalk.magenta(tries)} tries`
     );
   }
 

@@ -1,11 +1,11 @@
 import { equals } from "@xata.io/client";
 import { ctx } from "context";
-import crypto, { createHash } from "crypto";
 import { Hono } from "hono";
 import jwt from "jsonwebtoken";
 import { decrypt, encrypt } from "lib/crypto";
 import { env } from "lib/env";
 import { requestCounter } from "metrics";
+import crypto, { createHash } from "node:crypto";
 import { rateLimiter } from "ratelimiter";
 import { emailSchema } from "types/email";
 
@@ -17,7 +17,7 @@ app.use(
     limit: 10, // max Spotify API calls
     window: 15, // per 10 seconds
     keyPrefix: "spotify-ratelimit",
-  }),
+  })
 );
 
 app.get("/login", async (c) => {
@@ -44,7 +44,7 @@ app.get("/login", async (c) => {
   const redirectUrl = `https://accounts.spotify.com/en/authorize?client_id=${env.SPOTIFY_CLIENT_ID}&response_type=code&redirect_uri=${env.SPOTIFY_REDIRECT_URI}&scope=user-read-private%20user-read-email%20user-read-playback-state%20user-read-currently-playing%20user-modify-playback-state%20playlist-modify-public%20playlist-modify-private%20playlist-read-private%20playlist-read-collaborative&state=${state}`;
   c.header(
     "Set-Cookie",
-    `session-id=${state}; Path=/; HttpOnly; SameSite=Strict; Secure`,
+    `session-id=${state}; Path=/; HttpOnly; SameSite=Strict; Secure`
   );
   return c.json({ redirectUrl });
 });
@@ -210,7 +210,7 @@ app.get("/currently-playing", async (c) => {
 
   const sha256 = createHash("sha256")
     .update(
-      `${track.item.name} - ${track.item.artists.map((x) => x.name).join(", ")} - ${track.item.album.name}`.toLowerCase(),
+      `${track.item.name} - ${track.item.artists.map((x) => x.name).join(", ")} - ${track.item.album.name}`.toLowerCase()
     )
     .digest("hex");
 
@@ -264,7 +264,7 @@ app.put("/pause", async (c) => {
 
   const refreshToken = decrypt(
     spotifyToken.refresh_token,
-    env.SPOTIFY_ENCRYPTION_KEY,
+    env.SPOTIFY_ENCRYPTION_KEY
   );
 
   // get new access token
@@ -330,7 +330,7 @@ app.put("/play", async (c) => {
 
   const refreshToken = decrypt(
     spotifyToken.refresh_token,
-    env.SPOTIFY_ENCRYPTION_KEY,
+    env.SPOTIFY_ENCRYPTION_KEY
   );
 
   // get new access token
@@ -396,7 +396,7 @@ app.post("/next", async (c) => {
 
   const refreshToken = decrypt(
     spotifyToken.refresh_token,
-    env.SPOTIFY_ENCRYPTION_KEY,
+    env.SPOTIFY_ENCRYPTION_KEY
   );
 
   // get new access token
@@ -462,7 +462,7 @@ app.post("/previous", async (c) => {
 
   const refreshToken = decrypt(
     spotifyToken.refresh_token,
-    env.SPOTIFY_ENCRYPTION_KEY,
+    env.SPOTIFY_ENCRYPTION_KEY
   );
 
   // get new access token
@@ -488,7 +488,7 @@ app.post("/previous", async (c) => {
       headers: {
         Authorization: `Bearer ${access_token}`,
       },
-    },
+    }
   );
 
   if (response.status === 403) {
@@ -531,7 +531,7 @@ app.put("/seek", async (c) => {
 
   const refreshToken = decrypt(
     spotifyToken.refresh_token,
-    env.SPOTIFY_ENCRYPTION_KEY,
+    env.SPOTIFY_ENCRYPTION_KEY
   );
 
   // get new access token
@@ -558,7 +558,7 @@ app.put("/seek", async (c) => {
       headers: {
         Authorization: `Bearer ${access_token}`,
       },
-    },
+    }
   );
 
   if (response.status === 403) {
