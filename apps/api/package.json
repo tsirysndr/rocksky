@@ -13,6 +13,7 @@
 		"meili:sync": "tsx ./src/scripts/meili.ts",
 		"sync:library": "tsx ./src/scripts/sync-library.ts",
 		"avatar": "tsx ./src/scripts/avatar.ts",
+		"genres": "tsx ./src/scripts/genres.ts",
 		"pkl:eval": "pkl eval -f json",
 		"pkl:gen": "tsx ./scripts/pkl.ts",
 		"dev:xrpc": "tsx --watch ./src/server.ts",
