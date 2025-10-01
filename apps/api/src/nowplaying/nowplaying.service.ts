@@ -1,4 +1,4 @@
-import type { Agent, BlobRef } from "@atproto/api";
+import type { Agent } from "@atproto/api";
 import { TID } from "@atproto/common";
 import { equals } from "@xata.io/client";
 import chalk from "chalk";
@@ -8,7 +8,6 @@ import * as Album from "lexicon/types/app/rocksky/album";
 import * as Artist from "lexicon/types/app/rocksky/artist";
 import * as Scrobble from "lexicon/types/app/rocksky/scrobble";
 import * as Song from "lexicon/types/app/rocksky/song";
-import downloadImage, { getContentType } from "lib/downloadImage";
 import { createHash } from "node:crypto";
 import type { Track } from "types/track";
 
@@ -21,23 +20,15 @@ export async function putArtistRecord(
     $type: string;
     name: string;
     createdAt: string;
-    picture?: BlobRef;
+    pictureUrl?: string;
     tags?: string[];
   } = {
     $type: "app.rocksky.artist",
     name: track.albumArtist,
     createdAt: new Date().toISOString(),
+    pictureUrl: track.artistPicture,
     tags: track.genres,
   };
-
-  if (track.artistPicture) {
-    const imageBuffer = await downloadImage(track.artistPicture);
-    const encoding = await getContentType(track.artistPicture);
-    const uploadResponse = await agent.uploadBlob(imageBuffer, {
-      encoding,
-    });
-    record.picture = uploadResponse.data.blob;
-  }
 
   if (!Artist.validateRecord(record).success) {
     console.log(Artist.validateRecord(record));
@@ -66,26 +57,6 @@ export async function putAlbumRecord(
   agent: Agent
 ): Promise<string | null> {
   const rkey = TID.nextStr();
-  let albumArt;
-
-  if (track.albumArt) {
-    let options;
-    if (track.albumArt.endsWith(".jpeg") || track.albumArt.endsWith(".jpg")) {
-      options = { encoding: "image/jpeg" };
-    }
-
-    if (track.albumArt.endsWith(".png")) {
-      options = { encoding: "image/png" };
-    }
-
-    if (!options?.encoding) {
-      options = { encoding: await getContentType(track.albumArt) };
-    }
-
-    const imageBuffer = await downloadImage(track.albumArt);
-    const uploadResponse = await agent.uploadBlob(imageBuffer, options);
-    albumArt = uploadResponse.data.blob;
-  }
 
   const record = {
     $type: "app.rocksky.album",
@@ -96,7 +67,7 @@ export async function putAlbumRecord(
       ? track.releaseDate.toISOString()
       : undefined,
     createdAt: new Date().toISOString(),
-    albumArt,
+    albumArtUrl: track.albumArt,
   };
 
   if (!Album.validateRecord(record).success) {
@@ -126,22 +97,6 @@ export async function putSongRecord(
   agent: Agent
 ): Promise<string | null> {
   const rkey = TID.nextStr();
-  let albumArt;
-
-  if (track.albumArt) {
-    let options;
-    if (track.albumArt.endsWith(".jpeg") || track.albumArt.endsWith(".jpg")) {
-      options = { encoding: "image/jpeg" };
-    }
-
-    if (track.albumArt.endsWith(".png")) {
-      options = { encoding: "image/png" };
-    }
-
-    const imageBuffer = await downloadImage(track.albumArt);
-    const uploadResponse = await agent.uploadBlob(imageBuffer, options);
-    albumArt = uploadResponse.data.blob;
-  }
 
   const record = {
     $type: "app.rocksky.song",
@@ -154,7 +109,7 @@ export async function putSongRecord(
       ? track.releaseDate.toISOString()
       : undefined,
     year: track.year,
-    albumArt,
+    albumArtUrl: track.albumArt,
     composer: track.composer ? track.composer : undefined,
     lyrics: track.lyrics ? track.lyrics : undefined,
     trackNumber: track.trackNumber,
@@ -194,28 +149,12 @@ async function putScrobbleRecord(
   agent: Agent
 ): Promise<string | null> {
   const rkey = TID.nextStr();
-  let albumArt;
-
-  if (track.albumArt) {
-    let options;
-    if (track.albumArt.endsWith(".jpeg") || track.albumArt.endsWith(".jpg")) {
-      options = { encoding: "image/jpeg" };
-    }
-
-    if (track.albumArt.endsWith(".png")) {
-      options = { encoding: "image/png" };
-    }
-
-    const imageBuffer = await downloadImage(track.albumArt);
-    const uploadResponse = await agent.uploadBlob(imageBuffer, options);
-    albumArt = uploadResponse.data.blob;
-  }
 
   const record = {
     $type: "app.rocksky.scrobble",
     title: track.title,
     albumArtist: track.albumArtist,
-    albumArt,
+    albumArtUrl: track.albumArt,
     artist: track.artist,
     album: track.album,
     duration: track.duration,

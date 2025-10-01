@@ -1,4 +1,4 @@
-import type { Agent, BlobRef } from "@atproto/api";
+import type { Agent } from "@atproto/api";
 import { TID } from "@atproto/common";
 import type { HandlerAuth } from "@atproto/xrpc-server";
 import chalk from "chalk";
@@ -15,7 +15,6 @@ import type { ScrobbleViewBasic } from "lexicon/types/app/rocksky/scrobble/defs"
 import * as Song from "lexicon/types/app/rocksky/song";
 import { deepSnakeCaseKeys } from "lib";
 import { createAgent } from "lib/agent";
-import downloadImage from "lib/downloadImage";
 import { createHash } from "node:crypto";
 import tables from "schema";
 import type { SelectAlbum } from "schema/albums";
@@ -38,9 +37,9 @@ export default function (server: Server, ctx: Context) {
         pipe(
           scrobbleTrack(ctx, track, agent, did),
           Effect.tap(() =>
-            Effect.logInfo(`Scrobble created for ${chalk.cyan(track.title)}`),
-          ),
-        ),
+            Effect.logInfo(`Scrobble created for ${chalk.cyan(track.title)}`)
+          )
+        )
       ),
       Effect.flatMap(presentation),
       Effect.retry({ times: 3 }),
@@ -48,7 +47,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({});
-      }),
+      })
     );
   server.app.rocksky.scrobble.createScrobble({
     auth: ctx.authVerifier,
@@ -82,11 +81,11 @@ const withAgent = ({
               ctx,
               did,
               input,
-            })),
+            }))
         ),
         Match.orElse(() => {
           throw new Error("Authentication required to create a scrobble");
-        }),
+        })
       ),
     catch: (error) => new Error(`Failed to create agent: ${error}`),
   });
@@ -121,40 +120,17 @@ type ValidatedInput = {
 
 const generateRkey = Effect.succeed(TID.nextStr());
 
-const uploadImage = (url: string, agent: Agent) =>
-  pipe(
-    Effect.tryPromise(() => downloadImage(url)),
-    Effect.map<
-      Buffer<ArrayBufferLike>,
-      [Buffer<ArrayBufferLike>, { encoding: string } | undefined]
-    >((imageBuffer) => {
-      if (url.endsWith(".jpeg") || url.endsWith(".jpg")) {
-        return [imageBuffer, { encoding: "image/jpeg" }];
-      } else if (url.endsWith(".png")) {
-        return [imageBuffer, { encoding: "image/png" }];
-      }
-      return [imageBuffer, undefined];
-    }),
-    Effect.flatMap(([imageBuffer, options]) =>
-      pipe(
-        Effect.tryPromise(() => agent.uploadBlob(imageBuffer, options)),
-        Effect.map((uploadResponse) => uploadResponse.data.blob),
-      ),
-    ),
-    Effect.catchAll(() => Effect.succeed(undefined as BlobRef | undefined)),
-  );
-
 const putRecord = <T>(
   agent: Agent,
   collection: string,
   record: T,
-  validate: (record: T) => { success: boolean },
+  validate: (record: T) => { success: boolean }
 ) =>
   pipe(
     Effect.succeed(record),
     Effect.filterOrFail(
       (rec) => validate(rec).success,
-      () => new Error("Invalid record"),
+      () => new Error("Invalid record")
     ),
     Effect.flatMap(() =>
       pipe(
@@ -167,48 +143,38 @@ const putRecord = <T>(
               rkey,
               record,
               validate: false,
-            }),
-          ),
+            })
+          )
         ),
         Effect.tap((res) =>
-          Effect.logInfo(`Record created at ${res.data.uri}`),
+          Effect.logInfo(`Record created at ${res.data.uri}`)
         ),
-        Effect.map((res) => res.data.uri),
-      ),
+        Effect.map((res) => res.data.uri)
+      )
     ),
     Effect.catchAll((error) => {
       console.error(`Error creating ${collection} record`, error);
       return Effect.succeed(null);
-    }),
+    })
   );
 
 const putArtistRecord = (track: Track, agent: Agent) =>
   pipe(
-    track.artistPicture
-      ? uploadImage(track.artistPicture, agent)
-      : Effect.succeed(undefined),
-    Effect.map((picture) => ({
+    Effect.succeed({
       $type: "app.rocksky.artist",
       name: track.albumArtist,
       createdAt: new Date().toISOString(),
-      picture,
+      pictureUrl: track.artistPicture,
       tags: track.genres,
-    })),
+    }),
     Effect.flatMap((record) =>
-      putRecord(agent, "app.rocksky.artist", record, Artist.validateRecord),
-    ),
+      putRecord(agent, "app.rocksky.artist", record, Artist.validateRecord)
+    )
   );
 
 const putAlbumRecord = (track: Track, agent: Agent) =>
   pipe(
-    Match.value(track.albumArt).pipe(
-      Match.when(
-        (url) => !!url,
-        (url) => uploadImage(url, agent),
-      ),
-      Match.orElse(() => Effect.succeed(undefined as BlobRef | undefined)),
-    ),
-    Effect.map((albumArt) => ({
+    Effect.succeed({
       $type: "app.rocksky.album",
       title: track.album,
       artist: track.albumArtist,
@@ -217,23 +183,16 @@ const putAlbumRecord = (track: Track, agent: Agent) =>
         ? track.releaseDate.toISOString()
         : undefined,
       createdAt: new Date().toISOString(),
-      albumArt,
-    })),
+      albumArtUrl: track.albumArt,
+    }),
     Effect.flatMap((record) =>
-      putRecord(agent, "app.rocksky.album", record, Album.validateRecord),
-    ),
+      putRecord(agent, "app.rocksky.album", record, Album.validateRecord)
+    )
   );
 
 const putSongRecord = (track: Track, agent: Agent) =>
   pipe(
-    Match.value(track.albumArt).pipe(
-      Match.when(
-        (url) => !!url,
-        (url) => uploadImage(url, agent),
-      ),
-      Match.orElse(() => Effect.succeed(undefined as BlobRef | undefined)),
-    ),
-    Effect.map((albumArt) => ({
+    Effect.succeed({
       $type: "app.rocksky.song",
       title: track.title,
       artist: track.artist,
@@ -244,7 +203,7 @@ const putSongRecord = (track: Track, agent: Agent) =>
         ? track.releaseDate.toISOString()
         : undefined,
       year: track.year,
-      albumArt,
+      albumArtUrl: track.albumArt,
       composer: track.composer ?? undefined,
       lyrics: track.lyrics ?? undefined,
       trackNumber: track.trackNumber,
@@ -252,26 +211,19 @@ const putSongRecord = (track: Track, agent: Agent) =>
       copyrightMessage: track.copyrightMessage ?? undefined,
       createdAt: new Date().toISOString(),
       spotifyLink: track.spotifyLink ?? undefined,
-    })),
+    }),
     Effect.flatMap((record) =>
-      putRecord(agent, "app.rocksky.song", record, Song.validateRecord),
-    ),
+      putRecord(agent, "app.rocksky.song", record, Song.validateRecord)
+    )
   );
 
 const putScrobbleRecord = (track: Track, agent: Agent) =>
   pipe(
-    Match.value(track.albumArt).pipe(
-      Match.when(
-        (url) => !!url,
-        (url) => uploadImage(url, agent),
-      ),
-      Match.orElse(() => Effect.succeed(undefined as BlobRef | undefined)),
-    ),
-    Effect.map((albumArt) => ({
+    Effect.succeed({
       $type: "app.rocksky.scrobble",
       title: track.title,
       albumArtist: track.albumArtist,
-      albumArt,
+      albumArtUrl: track.albumArt,
       artist: track.artist,
       album: track.album,
       duration: track.duration,
@@ -288,10 +240,10 @@ const putScrobbleRecord = (track: Track, agent: Agent) =>
         ? dayjs.unix(track.timestamp).toISOString()
         : new Date().toISOString(),
       spotifyLink: track.spotifyLink ?? undefined,
-    })),
+    }),
     Effect.flatMap((record) =>
-      putRecord(agent, "app.rocksky.scrobble", record, Scrobble.validateRecord),
-    ),
+      putRecord(agent, "app.rocksky.scrobble", record, Scrobble.validateRecord)
+    )
   );
 
 const getScrobble = ({ ctx, id }: { ctx: Context; id: string }) =>
@@ -303,12 +255,12 @@ const getScrobble = ({ ctx, id }: { ctx: Context; id: string }) =>
       .leftJoin(tables.albums, eq(tables.albums.id, tables.scrobbles.albumId))
       .leftJoin(
         tables.artists,
-        eq(tables.artists.id, tables.scrobbles.artistId),
+        eq(tables.artists.id, tables.scrobbles.artistId)
       )
       .leftJoin(tables.users, eq(tables.users.id, tables.scrobbles.userId))
       .where(eq(tables.scrobbles.id, id))
       .execute()
-      .then(([row]) => row),
+      .then(([row]) => row)
   );
 
 const getUserAlbum = (
@@ -318,7 +270,7 @@ const getUserAlbum = (
     artists: SelectArtist;
     users: SelectUser;
     tracks: SelectTrack;
-  },
+  }
 ) =>
   Effect.tryPromise(() =>
     ctx.db
@@ -326,7 +278,7 @@ const getUserAlbum = (
       .from(tables.userAlbums)
       .where(eq(tables.userAlbums.albumId, scrobble.albums.id))
       .execute()
-      .then(([row]) => row),
+      .then(([row]) => row)
   );
 
 const getUserArtist = (
@@ -336,7 +288,7 @@ const getUserArtist = (
     artists: SelectArtist;
     users: SelectUser;
     tracks: SelectTrack;
-  },
+  }
 ) =>
   Effect.tryPromise(() =>
     ctx.db
@@ -344,7 +296,7 @@ const getUserArtist = (
       .from(tables.userArtists)
       .where(eq(tables.userArtists.id, scrobble.artists.id))
       .execute()
-      .then(([row]) => row),
+      .then(([row]) => row)
   );
 
 const getUserTrack = (
@@ -354,7 +306,7 @@ const getUserTrack = (
     artists: SelectArtist;
     users: SelectUser;
     tracks: SelectTrack;
-  },
+  }
 ) =>
   Effect.tryPromise(() =>
     ctx.db
@@ -362,7 +314,7 @@ const getUserTrack = (
       .from(tables.userTracks)
       .where(eq(tables.userTracks.id, scrobble.tracks.id))
       .execute()
-      .then(([row]) => row),
+      .then(([row]) => row)
   );
 
 const getAlbumTrack = (
@@ -372,7 +324,7 @@ const getAlbumTrack = (
     artists: SelectArtist;
     users: SelectUser;
     tracks: SelectTrack;
-  },
+  }
 ) =>
   Effect.tryPromise(() =>
     ctx.db
@@ -380,7 +332,7 @@ const getAlbumTrack = (
       .from(tables.albumTracks)
       .where(eq(tables.albumTracks.trackId, scrobble.tracks.id))
       .execute()
-      .then(([row]) => row),
+      .then(([row]) => row)
   );
 
 const getArtistTrack = (
@@ -390,7 +342,7 @@ const getArtistTrack = (
     artists: SelectArtist;
     users: SelectUser;
     tracks: SelectTrack;
-  },
+  }
 ) =>
   Effect.tryPromise(() =>
     ctx.db
@@ -398,7 +350,7 @@ const getArtistTrack = (
       .from(tables.artistTracks)
       .where(eq(tables.artistTracks.trackId, scrobble.tracks.id))
       .execute()
-      .then(([row]) => row),
+      .then(([row]) => row)
   );
 
 const getArtistAlbum = (
@@ -408,7 +360,7 @@ const getArtistAlbum = (
     artists: SelectArtist;
     users: SelectUser;
     tracks: SelectTrack;
-  },
+  }
 ) =>
   Effect.tryPromise(() =>
     ctx.db
@@ -417,10 +369,10 @@ const getArtistAlbum = (
       .where(
         and(
           eq(tables.artistAlbums.albumId, scrobble.albums.id),
-          eq(tables.artistAlbums.artistId, scrobble.artists.id),
-        ),
+          eq(tables.artistAlbums.artistId, scrobble.artists.id)
+        )
       )
-      .then(([row]) => row),
+      .then(([row]) => row)
   );
 
 const createUserArtist = (
@@ -430,7 +382,7 @@ const createUserArtist = (
     artists: SelectArtist;
     users: SelectUser;
     tracks: SelectTrack;
-  },
+  }
 ) =>
   pipe(
     Effect.tryPromise(() =>
@@ -442,7 +394,7 @@ const createUserArtist = (
           uri: scrobble.artists.uri,
           scrobbles: 1,
         } as InsertUserArtist)
-        .execute(),
+        .execute()
     ),
     Effect.flatMap(() =>
       Effect.tryPromise(() =>
@@ -451,9 +403,9 @@ const createUserArtist = (
           .from(tables.userArtists)
           .where(eq(tables.userArtists.artistId, scrobble.artists.id))
           .execute()
-          .then(([row]) => row),
-      ),
-    ),
+          .then(([row]) => row)
+      )
+    )
   );
 
 const createUserAlbum = (
@@ -463,7 +415,7 @@ const createUserAlbum = (
     artists: SelectArtist;
     users: SelectUser;
     tracks: SelectTrack;
-  },
+  }
 ) =>
   pipe(
     Effect.tryPromise(() =>
@@ -475,7 +427,7 @@ const createUserAlbum = (
           uri: scrobble.albums.uri,
           scrobbles: 1,
         } as InsertUserAlbum)
-        .execute(),
+        .execute()
     ),
     Effect.flatMap(() =>
       Effect.tryPromise(() =>
@@ -484,9 +436,9 @@ const createUserAlbum = (
           .from(tables.userAlbums)
           .where(eq(tables.userAlbums.albumId, scrobble.albums.id))
           .execute()
-          .then(([row]) => row),
-      ),
-    ),
+          .then(([row]) => row)
+      )
+    )
   );
 
 const createUserTrack = (
@@ -496,7 +448,7 @@ const createUserTrack = (
     artists: SelectArtist;
     users: SelectUser;
     tracks: SelectTrack;
-  },
+  }
 ) =>
   pipe(
     Effect.tryPromise(() =>
@@ -508,7 +460,7 @@ const createUserTrack = (
           uri: scrobble.tracks.uri,
           scrobbles: 1,
         } as InsertUserTrack)
-        .execute(),
+        .execute()
     ),
     Effect.flatMap(() =>
       Effect.tryPromise(() =>
@@ -516,9 +468,9 @@ const createUserTrack = (
           .select()
           .from(tables.userTracks)
           .where(eq(tables.userTracks.trackId, scrobble.tracks.id))
-          .then(([row]) => row),
-      ),
-    ),
+          .then(([row]) => row)
+      )
+    )
   );
 
 const publishScrobble = (ctx: Context, id: string) =>
@@ -689,50 +641,50 @@ const publishScrobble = (ctx: Context, id: string) =>
                             xata_updatedat: artistAlbum.updatedAt.toISOString(),
                             xata_version: artistAlbum.xataVersion,
                           },
-                        }),
-                      ),
-                    ),
-                  ),
-                ),
+                        })
+                      )
+                    )
+                  )
+                )
               ),
               Effect.flatMap((data) =>
                 Effect.try(() =>
                   ctx.nc.publish(
                     "rocksky.scrobble",
                     Buffer.from(
-                      JSON.stringify(data).replaceAll("sha_256", "sha256"),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ),
-      ),
-    ),
+                      JSON.stringify(data).replaceAll("sha_256", "sha256")
+                    )
+                  )
+                )
+              )
+            )
+        )
+      )
+    )
   );
 
 const computeTrackHash = (track: Track): Effect.Effect<string, never> =>
   Effect.succeed(
     createHash("sha256")
       .update(`${track.title} - ${track.artist} - ${track.album}`.toLowerCase())
-      .digest("hex"),
+      .digest("hex")
   );
 
 const computeAlbumHash = (track: Track): Effect.Effect<string, never> =>
   Effect.succeed(
     createHash("sha256")
       .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
-      .digest("hex"),
+      .digest("hex")
   );
 
 const computeArtistHash = (track: Track): Effect.Effect<string, never> =>
   Effect.succeed(
-    createHash("sha256").update(track.albumArtist.toLowerCase()).digest("hex"),
+    createHash("sha256").update(track.albumArtist.toLowerCase()).digest("hex")
   );
 
 const fetchExistingTrack = (
   ctx: Context,
-  trackHash: string,
+  trackHash: string
 ): Effect.Effect<SelectTrack | undefined, Error> =>
   Effect.tryPromise(() =>
     ctx.db
@@ -740,14 +692,14 @@ const fetchExistingTrack = (
       .from(tables.tracks)
       .where(eq(tables.tracks.sha256, trackHash))
       .execute()
-      .then(([row]) => row),
+      .then(([row]) => row)
   );
 
 // Update track metadata (album_uri and artist_uri)
 const updateTrackMetadata = (
   ctx: Context,
   track: Track,
-  trackRecord: SelectTrack,
+  trackRecord: SelectTrack
 ) =>
   pipe(
     Effect.succeed(trackRecord),
@@ -762,8 +714,8 @@ const updateTrackMetadata = (
                   .from(tables.albums)
                   .where(eq(tables.albums.sha256, albumHash))
                   .execute()
-                  .then(([row]) => row),
-              ),
+                  .then(([row]) => row)
+              )
             ),
             Effect.flatMap((album) =>
               album
@@ -774,12 +726,12 @@ const updateTrackMetadata = (
                         albumUri: album.uri,
                       })
                       .where(eq(tables.tracks.id, trackRecord.id))
-                      .execute(),
+                      .execute()
                   )
-                : Effect.succeed(undefined),
-            ),
+                : Effect.succeed(undefined)
+            )
           )
-        : Effect.succeed(undefined),
+        : Effect.succeed(undefined)
     ),
     Effect.tap((trackRecord) =>
       !trackRecord.artistUri
@@ -792,8 +744,8 @@ const updateTrackMetadata = (
                   .from(tables.artists)
                   .where(eq(tables.artists.sha256, artistHash))
                   .execute()
-                  .then(([row]) => row),
-              ),
+                  .then(([row]) => row)
+              )
             ),
             Effect.flatMap((artist) =>
               artist
@@ -804,13 +756,13 @@ const updateTrackMetadata = (
                         artistUri: artist.uri,
                       })
                       .where(eq(tables.tracks.id, trackRecord.id))
-                      .execute(),
+                      .execute()
                   )
-                : Effect.succeed(undefined),
-            ),
+                : Effect.succeed(undefined)
+            )
           )
-        : Effect.succeed(undefined),
-    ),
+        : Effect.succeed(undefined)
+    )
   );
 
 // Ensure track exists or create it
@@ -819,7 +771,7 @@ const ensureTrack = (
   track: Track,
   agent: Agent,
   userDid: string,
-  existingTrack: SelectTrack | undefined,
+  existingTrack: SelectTrack | undefined
 ) =>
   pipe(
     Effect.succeed(existingTrack),
@@ -827,10 +779,10 @@ const ensureTrack = (
       Match.value(trackOpt).pipe(
         Match.when(
           (value) => !!value,
-          () => updateTrackMetadata(ctx, track, trackOpt),
+          () => updateTrackMetadata(ctx, track, trackOpt)
         ),
-        Match.orElse(() => Effect.succeed(undefined)),
-      ),
+        Match.orElse(() => Effect.succeed(undefined))
+      )
     ),
     Effect.flatMap((trackOpt) =>
       pipe(
@@ -840,29 +792,29 @@ const ensureTrack = (
             .from(tables.userTracks)
             .leftJoin(
               tables.tracks,
-              eq(tables.userTracks.trackId, tables.tracks.id),
+              eq(tables.userTracks.trackId, tables.tracks.id)
             )
             .leftJoin(
               tables.users,
-              eq(tables.userTracks.userId, tables.users.id),
+              eq(tables.userTracks.userId, tables.users.id)
             )
             .where(
               and(
                 eq(tables.tracks.id, trackOpt?.id),
-                eq(tables.users.did, userDid),
-              ),
+                eq(tables.users.did, userDid)
+              )
             )
             .execute()
-            .then(([row]) => row.user_tracks),
+            .then(([row]) => row.user_tracks)
         ),
         Effect.flatMap((userTrack) =>
           Option.isNone(Option.fromNullable(userTrack)) ||
           !userTrack?.uri?.includes(userDid)
             ? putSongRecord(track, agent)
-            : Effect.succeed(null),
-        ),
-      ),
-    ),
+            : Effect.succeed(null)
+        )
+      )
+    )
   );
 
 // Ensure album exists or create it
@@ -870,7 +822,7 @@ const ensureAlbum = (
   ctx: Context,
   track: Track,
   agent: Agent,
-  userDid: string,
+  userDid: string
 ) =>
   pipe(
     computeAlbumHash(track),
@@ -881,8 +833,8 @@ const ensureAlbum = (
           .from(tables.albums)
           .where(eq(tables.albums.sha256, albumHash))
           .execute()
-          .then(([row]) => row),
-      ),
+          .then(([row]) => row)
+      )
     ),
     Effect.flatMap((existingAlbum) =>
       pipe(
@@ -894,31 +846,31 @@ const ensureAlbum = (
               .from(tables.userAlbums)
               .leftJoin(
                 tables.albums,
-                eq(tables.userAlbums.albumId, tables.albums.id),
+                eq(tables.userAlbums.albumId, tables.albums.id)
               )
               .leftJoin(
                 tables.users,
-                eq(tables.userAlbums.userId, tables.users.id),
+                eq(tables.userAlbums.userId, tables.users.id)
               )
               .where(
                 and(
                   eq(tables.albums.id, album.id),
-                  eq(tables.users.did, userDid),
-                ),
+                  eq(tables.users.did, userDid)
+                )
               )
               .execute()
-              .then(([row]) => row.user_albums),
-          ),
+              .then(([row]) => row.user_albums)
+          )
         ),
         Effect.flatMap((userAlbum) =>
           Option.isNone(Option.fromNullable(existingAlbum)) ||
           Option.isNone(Option.fromNullable(userAlbum)) ||
           !userAlbum?.uri?.includes(userDid)
             ? putAlbumRecord(track, agent)
-            : Effect.succeed(null),
-        ),
-      ),
-    ),
+            : Effect.succeed(null)
+        )
+      )
+    )
   );
 
 // Ensure artist exists or create it
@@ -926,7 +878,7 @@ const ensureArtist = (
   ctx: Context,
   track: Track,
   agent: Agent,
-  userDid: string,
+  userDid: string
 ) =>
   pipe(
     computeArtistHash(track),
@@ -937,8 +889,8 @@ const ensureArtist = (
           .from(tables.artists)
           .where(eq(tables.artists.sha256, artistHash))
           .execute()
-          .then(([row]) => row),
-      ),
+          .then(([row]) => row)
+      )
     ),
     Effect.flatMap((existingArtist) =>
       pipe(
@@ -950,21 +902,21 @@ const ensureArtist = (
               .from(tables.userArtists)
               .leftJoin(
                 tables.artists,
-                eq(tables.userArtists.artistId, tables.artists.id),
+                eq(tables.userArtists.artistId, tables.artists.id)
               )
               .leftJoin(
                 tables.users,
-                eq(tables.userArtists.userId, tables.users.id),
+                eq(tables.userArtists.userId, tables.users.id)
               )
               .where(
                 and(
                   eq(tables.artists.id, artist.id),
-                  eq(tables.users.did, userDid),
-                ),
+                  eq(tables.users.did, userDid)
+                )
               )
               .execute()
-              .then(([row]) => row.user_artists),
-          ),
+              .then(([row]) => row.user_artists)
+          )
         ),
         Effect.flatMap((userArtist) =>
           Effect.if(
@@ -974,18 +926,18 @@ const ensureArtist = (
             {
               onTrue: () => putArtistRecord(track, agent),
               onFalse: () => Effect.succeed(null),
-            },
-          ),
-        ),
-      ),
-    ),
+            }
+          )
+        )
+      )
+    )
   );
 
 // Retry fetching track until metadata is ready
 const retryFetchTrack = (
   ctx: Context,
   trackHash: string,
-  initialTrack: SelectTrack | undefined,
+  initialTrack: SelectTrack | undefined
 ) =>
   pipe(
     Effect.iterate(
@@ -1001,38 +953,38 @@ const retryFetchTrack = (
                 .from(tables.tracks)
                 .where(eq(tables.tracks.sha256, trackHash))
                 .execute()
-                .then(([row]) => row),
+                .then(([row]) => row)
             ),
             Effect.flatMap((trackRecord) =>
               Option.fromNullable(trackRecord).pipe(
                 Effect.flatMap((track) =>
-                  updateTrackMetadata(ctx, track, trackRecord),
-                ),
-              ),
+                  updateTrackMetadata(ctx, track, trackRecord)
+                )
+              )
             ),
             Effect.tap((trackRecord) =>
               Effect.logInfo(
                 trackRecord
                   ? `Track metadata ready: ${chalk.cyan(trackRecord.id)} - ${track.title}, after ${chalk.magenta(tries + 1)} tries`
-                  : `Retrying track fetch: ${chalk.magenta(tries + 1)}`,
-              ),
+                  : `Retrying track fetch: ${chalk.magenta(tries + 1)}`
+              )
             ),
             Effect.map((trackRecord) => ({
               tries: tries + 1,
               track: trackRecord,
             })),
-            Effect.delay("1 second"),
+            Effect.delay("1 second")
           ),
-      },
+      }
     ),
     Effect.tap(({ tries, track }) =>
       tries >= 30 && !(track?.artistUri && track?.albumUri)
         ? Effect.logError(
-            `Track metadata not ready after ${chalk.magenta("30 tries")}`,
+            `Track metadata not ready after ${chalk.magenta("30 tries")}`
           )
-        : Effect.succeed(undefined),
+        : Effect.succeed(undefined)
     ),
-    Effect.map(({ track }) => track),
+    Effect.map(({ track }) => track)
   );
 
 // Retry fetching scrobble until complete
@@ -1070,23 +1022,23 @@ const retryFetchScrobble = (ctx: Context, scrobbleUri: string) =>
                 .from(tables.scrobbles)
                 .leftJoin(
                   tables.tracks,
-                  eq(tables.scrobbles.trackId, tables.tracks.id),
+                  eq(tables.scrobbles.trackId, tables.tracks.id)
                 )
                 .leftJoin(
                   tables.albums,
-                  eq(tables.scrobbles.albumId, tables.albums.id),
+                  eq(tables.scrobbles.albumId, tables.albums.id)
                 )
                 .leftJoin(
                   tables.artists,
-                  eq(tables.scrobbles.artistId, tables.artists.id),
+                  eq(tables.scrobbles.artistId, tables.artists.id)
                 )
                 .leftJoin(
                   tables.users,
-                  eq(tables.scrobbles.userId, tables.users.id),
+                  eq(tables.scrobbles.userId, tables.users.id)
                 )
                 .where(eq(tables.scrobbles.uri, scrobbleUri))
                 .execute()
-                .then(([row]) => row),
+                .then(([row]) => row)
             ),
             Effect.tap((scrobble) =>
               Effect.if(
@@ -1103,11 +1055,11 @@ const retryFetchScrobble = (ctx: Context, scrobbleUri: string) =>
                           artistUri: scrobble.artists.uri,
                         })
                         .where(eq(tables.albums.id, scrobble.albums.id))
-                        .execute(),
+                        .execute()
                     ),
                   onFalse: () => Effect.succeed(undefined),
-                },
-              ),
+                }
+              )
             ),
             Effect.flatMap(() =>
               Effect.tryPromise(() =>
@@ -1116,24 +1068,24 @@ const retryFetchScrobble = (ctx: Context, scrobbleUri: string) =>
                   .from(tables.scrobbles)
                   .leftJoin(
                     tables.tracks,
-                    eq(tables.scrobbles.trackId, tables.tracks.id),
+                    eq(tables.scrobbles.trackId, tables.tracks.id)
                   )
                   .leftJoin(
                     tables.albums,
-                    eq(tables.scrobbles.albumId, tables.albums.id),
+                    eq(tables.scrobbles.albumId, tables.albums.id)
                   )
                   .leftJoin(
                     tables.artists,
-                    eq(tables.scrobbles.artistId, tables.artists.id),
+                    eq(tables.scrobbles.artistId, tables.artists.id)
                   )
                   .leftJoin(
                     tables.users,
-                    eq(tables.scrobbles.userId, tables.users.id),
+                    eq(tables.scrobbles.userId, tables.users.id)
                   )
                   .where(eq(tables.scrobbles.uri, scrobbleUri))
                   .execute()
-                  .then(([row]) => row),
-              ),
+                  .then(([row]) => row)
+              )
             ),
             Effect.map((scrobble) => ({
               tries: tries + 1,
@@ -1150,12 +1102,12 @@ const retryFetchScrobble = (ctx: Context, scrobbleUri: string) =>
                   scrobble.tracks.albumUri &&
                   scrobble.scrobbles
                   ? `Scrobble found after ${chalk.magenta(tries + 1)} tries`
-                  : `Scrobble not found, trying again: ${chalk.magenta(tries + 1)}`,
-              ),
+                  : `Scrobble not found, trying again: ${chalk.magenta(tries + 1)}`
+              )
             ),
-            Effect.delay("1 second"),
+            Effect.delay("1 second")
           ),
-      },
+      }
     ),
     Effect.tap(({ tries, scrobble }) =>
       tries >= 30 &&
@@ -1169,18 +1121,18 @@ const retryFetchScrobble = (ctx: Context, scrobbleUri: string) =>
         scrobble.tracks.albumUri
       )
         ? Effect.logError(
-            `Scrobble not found after ${chalk.magenta("30 tries")}`,
+            `Scrobble not found after ${chalk.magenta("30 tries")}`
           )
-        : Effect.succeed(undefined),
+        : Effect.succeed(undefined)
     ),
-    Effect.map(({ scrobble }) => scrobble),
+    Effect.map(({ scrobble }) => scrobble)
   );
 
 export const scrobbleTrack = (
   ctx: Context,
   track: Track,
   agent: Agent,
-  userDid: string,
+  userDid: string
 ) =>
   pipe(
     computeTrackHash(track),
@@ -1193,7 +1145,7 @@ export const scrobbleTrack = (
             Effect.flatMap(() => ensureAlbum(ctx, track, agent, userDid)),
             Effect.flatMap(() => ensureArtist(ctx, track, agent, userDid)),
             Effect.flatMap(() =>
-              retryFetchTrack(ctx, trackHash, existingTrack),
+              retryFetchTrack(ctx, trackHash, existingTrack)
             ),
             Effect.flatMap(() =>
               pipe(
@@ -1213,17 +1165,17 @@ export const scrobbleTrack = (
                         ? pipe(
                             publishScrobble(ctx, scrobble.scrobbles.id),
                             Effect.tap(() =>
-                              Effect.logInfo("Scrobble published"),
-                            ),
+                              Effect.logInfo("Scrobble published")
+                            )
                           )
-                        : Effect.succeed(undefined),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    ),
+                        : Effect.succeed(undefined)
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    )
   );

@@ -1,11 +1,9 @@
 import { TID } from "@atproto/common";
-import type { BlobRef } from "@atproto/lexicon";
 import chalk from "chalk";
 import type { Context } from "context";
 import { eq } from "drizzle-orm";
 import * as Playlist from "lexicon/types/app/rocksky/playlist";
 import { createAgent } from "lib/agent";
-import downloadImage, { getContentType } from "lib/downloadImage";
 import { StringCodec } from "nats";
 import tables from "schema";
 
@@ -19,7 +17,7 @@ export function onNewPlaylist(ctx: Context) {
         did: string;
       } = JSON.parse(sc.decode(m.data));
       console.log(
-        `New playlist: ${chalk.cyan(payload.did)} - ${chalk.greenBright(payload.id)}`,
+        `New playlist: ${chalk.cyan(payload.did)} - ${chalk.greenBright(payload.id)}`
       );
       await putPlaylistRecord(ctx, payload);
     }
@@ -28,13 +26,13 @@ export function onNewPlaylist(ctx: Context) {
 
 async function putPlaylistRecord(
   ctx: Context,
-  payload: { id: string; did: string },
+  payload: { id: string; did: string }
 ) {
   const agent = await createAgent(ctx.oauthClient, payload.did);
 
   if (!agent) {
     console.error(
-      `Failed to create agent, skipping playlist: ${chalk.cyan(payload.id)} for ${chalk.greenBright(payload.did)}`,
+      `Failed to create agent, skipping playlist: ${chalk.cyan(payload.id)} for ${chalk.greenBright(payload.did)}`
     );
     return;
   }
@@ -56,7 +54,7 @@ async function putPlaylistRecord(
     name: string;
     description?: string;
     createdAt: string;
-    picture?: BlobRef;
+    pictureUrl?: string;
     spotifyLink?: string;
     tidalLink?: string;
     appleMusicLink?: string;
@@ -66,17 +64,9 @@ async function putPlaylistRecord(
     name: playlist.name,
     description: playlist.description,
     createdAt: new Date().toISOString(),
+    pictureUrl: playlist.picture,
     spotifyLink: playlist.spotifyLink,
   };
-
-  if (playlist.picture) {
-    const imageBuffer = await downloadImage(playlist.picture);
-    const encoding = await getContentType(playlist.picture);
-    const uploadResponse = await agent.uploadBlob(imageBuffer, {
-      encoding,
-    });
-    record.picture = uploadResponse.data.blob;
-  }
 
   if (!Playlist.validateRecord(record)) {
     console.error(`Invalid record: ${chalk.redBright(JSON.stringify(record))}`);
@@ -110,6 +100,6 @@ async function putPlaylistRecord(
 
   await ctx.meilisearch.post(
     `indexes/playlists/documents?primaryKey=id`,
-    updatedPlaylist,
+    updatedPlaylist
   );
 }
