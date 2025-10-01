@@ -44,9 +44,9 @@ pub async fn save_scrobble(
                 let scrobble_record: ScrobbleRecord =
                     serde_json::from_value(commit.record.clone())?;
 
-                let album_id = save_album(&mut tx, scrobble_record.clone(), did).await?;
+                let album_id = save_album(&mut tx, scrobble_record.clone()).await?;
                 let artist_id = save_artist(&mut tx, scrobble_record.clone()).await?;
-                let track_id = save_track(&mut tx, scrobble_record.clone(), did).await?;
+                let track_id = save_track(&mut tx, scrobble_record.clone()).await?;
 
                 save_album_track(&mut tx, &album_id, &track_id).await?;
                 save_artist_track(&mut tx, &artist_id, &track_id).await?;
@@ -224,7 +224,6 @@ pub async fn save_user(
 pub async fn save_track(
     tx: &mut sqlx::Transaction<'_, Postgres>,
     scrobble_record: ScrobbleRecord,
-    did: &str,
 ) -> Result<String, Error> {
     let uri: Option<String> = None;
     let hash = sha256::digest(
@@ -304,7 +303,6 @@ pub async fn save_track(
 pub async fn save_album(
     tx: &mut sqlx::Transaction<'_, Postgres>,
     scrobble_record: ScrobbleRecord,
-    did: &str,
 ) -> Result<String, Error> {
     let hash = sha256::digest(
         format!(
@@ -532,17 +530,11 @@ pub async fn save_user_artist(
         .fetch_all(&mut **tx)
         .await?;
 
-    let users: Vec<User> = sqlx::query_as("SELECT * FROM users WHERE xata_id = $1")
-        .bind(user_id)
-        .fetch_all(&mut **tx)
-        .await?;
-
     let artist_id: &str;
 
     match artists.is_empty() {
         true => {
             tracing::info!(name = %record.name, "Artist not found in database, inserting new artist");
-            let did = users[0].did.clone();
             sqlx::query(
                 r#"
         INSERT INTO artists (
@@ -627,11 +619,6 @@ pub async fn save_user_album(
     record: AlbumRecord,
     uri: &str,
 ) -> Result<(), Error> {
-    let users: Vec<User> = sqlx::query_as("SELECT * FROM users WHERE xata_id = $1")
-        .bind(user_id)
-        .fetch_all(&mut **tx)
-        .await?;
-
     let hash = sha256::digest(format!("{} - {}", record.title, record.artist).to_lowercase());
     let mut albums: Vec<Album> = sqlx::query_as("SELECT * FROM albums WHERE sha256 = $1")
         .bind(&hash)
@@ -643,7 +630,6 @@ pub async fn save_user_album(
     match albums.is_empty() {
         true => {
             tracing::info!(title = %record.title, artist = %record.artist, "Album not found in database, inserting new album");
-            let did = users[0].did.clone();
             sqlx::query(
                 r#"
         INSERT INTO albums (
@@ -743,17 +729,11 @@ pub async fn save_user_track(
         .fetch_all(&mut **tx)
         .await?;
 
-    let users: Vec<User> = sqlx::query_as("SELECT * FROM users WHERE xata_id = $1")
-        .bind(user_id)
-        .fetch_all(&mut **tx)
-        .await?;
-
     let track_id: &str;
 
     match tracks.is_empty() {
         true => {
             tracing::info!(title = %record.title, artist = %record.artist, album = %record.album, "Track not found in database, inserting new track");
-            let did = users[0].did.clone();
             sqlx::query(
                 r#"
         INSERT INTO tracks (
