@@ -1,13 +1,13 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import express from "express";
+import type express from "express";
 import { ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
-import { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
-import * as AppRockskyPlayerDefs from "../player/defs";
+import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
+import type * as AppRockskyPlayerDefs from "../player/defs";
 
 export interface QueryParams {
   /** Handle or DID of the actor to retrieve the currently playing track for. If not provided, defaults to the current user. */

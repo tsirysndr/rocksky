@@ -1,15 +1,15 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import { ValidationResult, BlobRef } from "@atproto/lexicon";
+import { type ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
-import * as AppRockskySongDefs from "../song/defs";
-import * as AppRockskyAlbumDefs from "../album/defs";
-import * as AppRockskyArtistDefs from "../artist/defs";
-import * as AppRockskyPlaylistDefs from "../playlist/defs";
-import * as AppRockskyActorDefs from "../actor/defs";
+import type * as AppRockskySongDefs from "../song/defs";
+import type * as AppRockskyAlbumDefs from "../album/defs";
+import type * as AppRockskyArtistDefs from "../artist/defs";
+import type * as AppRockskyPlaylistDefs from "../playlist/defs";
+import type * as AppRockskyActorDefs from "../actor/defs";
 
 export interface SearchResultsView {
   hits?: (

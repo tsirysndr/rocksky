@@ -1,12 +1,12 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import { ValidationResult, BlobRef } from "@atproto/lexicon";
+import type { ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
-import * as ComAtprotoLabelDefs from "../../../com/atproto/label/defs";
-import * as ComAtprotoRepoStrongRef from "../../../com/atproto/repo/strongRef";
+import type * as ComAtprotoLabelDefs from "../../../com/atproto/label/defs";
+import type * as ComAtprotoRepoStrongRef from "../../../com/atproto/repo/strongRef";
 
 export interface Record {
   displayName?: string;

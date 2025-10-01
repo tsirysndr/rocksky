@@ -1,11 +1,11 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import { ValidationResult, BlobRef } from "@atproto/lexicon";
+import { type ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
-import * as AppRockskySongDefsSongViewBasic from "../song/defs/songViewBasic";
+import type * as AppRockskySongDefsSongViewBasic from "../song/defs/songViewBasic";
 
 export interface AlbumViewBasic {
   /** The unique identifier of the album. */

@@ -1,15 +1,15 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import express from "express";
+import type express from "express";
 import { ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
-import { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
-import * as AppRockskyShoutDefs from "./defs";
+import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
+import type * as AppRockskyShoutDefs from "./defs";
 
-export interface QueryParams {}
+export type QueryParams = {}
 
 export interface InputSchema {
   /** The unique identifier of the shout to report */

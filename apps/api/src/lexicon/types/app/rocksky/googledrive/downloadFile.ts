@@ -1,13 +1,13 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import express from "express";
-import stream from "stream";
+import type express from "express";
+import type stream from "stream";
 import { ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
-import { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
+import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
 
 export interface QueryParams {
   /** The unique identifier of the file to download */

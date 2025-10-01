@@ -5255,7 +5255,7 @@ export class XataClient extends DatabaseClient<DatabaseSchema> {
   }
 }
 
-let instance: XataClient | undefined = undefined;
+let instance: XataClient | undefined ;
 
 export const getXataClient = () => {
   if (instance) return instance;
