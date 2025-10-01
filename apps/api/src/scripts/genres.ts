@@ -41,49 +41,58 @@ async function getSpotifyToken(): Promise<string> {
 
 async function getGenresAndPicture(artists) {
   for (const artist of artists) {
-    const token = await getSpotifyToken();
-    // search artist by name on spotify
-    const result = await fetch(
-      `https://api.spotify.com/v1/search?q=${encodeURIComponent(artist.name)}&type=artist&limit=1`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    )
-      .then(
-        (res) =>
-          res.json() as Promise<{
-            artists: {
-              items: Array<{
-                id: string;
-                name: string;
-                genres: string[];
-                images: Array<{ url: string }>;
-              }>;
-            };
-          }>
-      )
-      .then(async (data) => _.get(data, "artists.items.0"));
+    do {
+      try {
+        const token = await getSpotifyToken();
+        // search artist by name on spotify
+        const result = await fetch(
+          `https://api.spotify.com/v1/search?q=${encodeURIComponent(artist.name)}&type=artist&limit=1`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        )
+          .then(
+            (res) =>
+              res.json() as Promise<{
+                artists: {
+                  items: Array<{
+                    id: string;
+                    name: string;
+                    genres: string[];
+                    images: Array<{ url: string }>;
+                  }>;
+                };
+              }>
+          )
+          .then(async (data) => _.get(data, "artists.items.0"));
 
-    if (result) {
-      console.log(JSON.stringify(result, null, 2), "\n");
-      if (result.genres && result.genres.length > 0) {
-        await ctx.db
-          .update(tables.artists)
-          .set({ genres: result.genres })
-          .where(eq(tables.artists.id, artist.id))
-          .execute();
+        if (result) {
+          console.log(JSON.stringify(result, null, 2), "\n");
+          if (result.genres && result.genres.length > 0) {
+            await ctx.db
+              .update(tables.artists)
+              .set({ genres: result.genres })
+              .where(eq(tables.artists.id, artist.id))
+              .execute();
+          }
+          // update artist picture if not set
+          if (!artist.picture && result.images && result.images.length > 0) {
+            await ctx.db
+              .update(tables.artists)
+              .set({ picture: result.images[0].url })
+              .where(eq(tables.artists.id, artist.id))
+              .execute();
+          }
+        }
+        break; // exit the retry loop on success
+      } catch (error) {
+        console.error("Error fetching genres for artist:", artist.name, error);
+        // wait for a while before retrying
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
-      // update artist picture if not set
-      if (!artist.picture && result.images && result.images.length > 0) {
-        await ctx.db
-          .update(tables.artists)
-          .set({ picture: result.images[0].url })
-          .where(eq(tables.artists.id, artist.id))
-          .execute();
-      }
-    }
+    } while (true);
 
     // sleep for a while to avoid rate limiting
     await new Promise((resolve) => setTimeout(resolve, 1000));
