@@ -11,7 +11,7 @@ async function getSpotifyToken(): Promise<string> {
     .from(tables.spotifyTokens)
     .leftJoin(
       tables.spotifyAccounts,
-      eq(tables.spotifyAccounts.userId, tables.spotifyTokens.userId),
+      eq(tables.spotifyAccounts.userId, tables.spotifyTokens.userId)
     )
     .where(eq(tables.spotifyAccounts.isBetaUser, true))
     .execute()
@@ -51,7 +51,7 @@ async function getGenresAndPicture(artists) {
             headers: {
               Authorization: `Bearer ${token}`,
             },
-          },
+          }
         )
           .then(
             (res) =>
@@ -64,7 +64,7 @@ async function getGenresAndPicture(artists) {
                     images: Array<{ url: string }>;
                   }>;
                 };
-              }>,
+              }>
           )
           .then(async (data) => _.get(data, "artists.items.0"));
 
@@ -92,6 +92,7 @@ async function getGenresAndPicture(artists) {
         // wait for a while before retrying
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
+      // biome-ignore lint/correctness/noConstantCondition: true
     } while (true);
 
     // sleep for a while to avoid rate limiting
