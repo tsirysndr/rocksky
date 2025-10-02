@@ -5362,6 +5362,7 @@ name = "rocksky-feed"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "atrium-api",
  "atrium-xrpc-client",
  "chrono",

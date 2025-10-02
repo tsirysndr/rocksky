@@ -1,21 +1,23 @@
 use anyhow::Error;
+use async_trait::async_trait;
 
 pub mod duckdb;
 pub mod postgres;
 
+#[async_trait]
 pub trait Repo {
-    fn insert_album() -> Result<(), Error>;
-    fn insert_artist() -> Result<(), Error>;
-    fn insert_scrobble() -> Result<(), Error>;
-    fn insert_track() -> Result<(), Error>;
-    fn insert_user() -> Result<(), Error>;
-    fn get_albums() -> Result<(), Error>;
-    fn get_artists() -> Result<(), Error>;
-    fn get_scrobbles() -> Result<(), Error>;
-    fn get_tracks() -> Result<(), Error>;
-    fn get_users() -> Result<(), Error>;
-    fn get_album() -> Result<(), Error>;
-    fn get_artist() -> Result<(), Error>;
-    fn get_track() -> Result<(), Error>;
-    fn get_user() -> Result<(), Error>;
+    async fn insert_album(self) -> Result<(), Error>;
+    async fn insert_artist(self) -> Result<(), Error>;
+    async fn insert_scrobble(self) -> Result<(), Error>;
+    async fn insert_track(self) -> Result<(), Error>;
+    async fn insert_user(self) -> Result<(), Error>;
+    async fn get_albums(self) -> Result<(), Error>;
+    async fn get_artists(self) -> Result<(), Error>;
+    async fn get_scrobbles(self) -> Result<(), Error>;
+    async fn get_tracks(self) -> Result<(), Error>;
+    async fn get_users(self) -> Result<(), Error>;
+    async fn get_album(self) -> Result<(), Error>;
+    async fn get_artist(self) -> Result<(), Error>;
+    async fn get_track(self) -> Result<(), Error>;
+    async fn get_user(self) -> Result<(), Error>;
 }
