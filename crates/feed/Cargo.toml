@@ -38,3 +38,4 @@ tokio-tungstenite = { version = "0.26.2", features = [
   "rustls-tls-webpki-roots",
 ] }
 tokio-stream = { version = "0.1.17", features = ["full"] }
+async-trait = "0.1.89"
