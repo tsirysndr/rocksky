@@ -18,7 +18,7 @@ for (const did of args) {
   }
 
   const plc = await fetch(`https://plc.directory/${user.did}`).then((res) =>
-    res.json(),
+    res.json()
   );
 
   const serviceEndpoint = _.get(plc, "service.0.serviceEndpoint");
@@ -28,10 +28,10 @@ for (const did of args) {
   }
 
   const profile = await fetch(
-    `${serviceEndpoint}/xrpc/com.atproto.repo.getRecord?repo=${user.did}&collection=app.bsky.actor.profile&rkey=self`,
+    `${serviceEndpoint}/xrpc/com.atproto.repo.getRecord?repo=${user.did}&collection=app.bsky.actor.profile&rkey=self`
   ).then((res) => res.json());
   const ref = _.get(profile, "value.avatar.ref.$link");
-  const type = _.get(profile, "value.avatar.mimeType").split("/")[1];
+  const type = _.get(profile, "value.avatar.mimeType", "").split("/")[1];
   await ctx.db
     .update(users)
     .set({
