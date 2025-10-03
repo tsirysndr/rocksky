@@ -331,7 +331,7 @@ export async function scrobbleTrack(
   if (existingScrobble) {
     console.log(
       `Scrobble already exists for ${chalk.cyan(track.title)} at ${chalk.cyan(
-        dayjs.unix(track.timestamp).format("YYYY-MM-DD HH:mm:ss")
+        scrobbleTime.format("YYYY-MM-DD HH:mm:ss")
       )}`
     );
     return;
