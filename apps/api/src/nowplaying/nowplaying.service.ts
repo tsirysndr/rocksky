@@ -320,10 +320,10 @@ export async function scrobbleTrack(
       $any: [
         {
           timestamp: {
-            $ge: scrobbleTime.subtract(10, "seconds").toISOString(),
+            $ge: scrobbleTime.subtract(5, "seconds").toISOString(),
           },
         },
-        { timestamp: { $le: scrobbleTime.add(10, "seconds").toISOString() } },
+        { timestamp: { $le: scrobbleTime.add(5, "seconds").toISOString() } },
       ],
     })
     .getFirst();
