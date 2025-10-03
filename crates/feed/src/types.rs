@@ -121,6 +121,14 @@ pub struct ScrobbleRecord {
     pub label: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mbid: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub artist_picture: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub artist_uri: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub album_uri: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub song_uri: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
