@@ -5332,6 +5332,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "sha256",
  "sqlx",
  "tokio",
  "tokio-stream",
@@ -5339,6 +5340,7 @@ dependencies = [
  "tracing",
  "tungstenite 0.26.2",
  "warp",
+ "xid",
 ]
 
 [[package]]

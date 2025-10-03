@@ -7,17 +7,28 @@ use tokio::sync::Mutex;
 use crate::{
     feed::Feed,
     feed_handler::FeedHandler,
+    repo::duckdb::DB_PATH,
     types::{FeedResult, Scrobble},
 };
 
 pub mod config;
+pub mod did;
 pub mod feed;
 pub mod feed_handler;
 pub mod feeds;
 pub mod repo;
 pub mod subscriber;
+pub mod sync;
 pub mod types;
 pub mod xata;
+
+pub const SCROBBLE_NSID: &str = "app.rocksky.scrobble";
+pub const ARTIST_NSID: &str = "app.rocksky.artist";
+pub const ALBUM_NSID: &str = "app.rocksky.album";
+pub const SONG_NSID: &str = "app.rocksky.song";
+pub const PLAYLIST_NSID: &str = "app.rocksky.playlist";
+pub const LIKE_NSID: &str = "app.rocksky.like";
+pub const SHOUT_NSID: &str = "app.rocksky.shout";
 
 pub struct RecentlyPlayedFeed {
     handler: RecentlyPlayedFeedHandler,
@@ -53,7 +64,7 @@ impl FeedHandler for RecentlyPlayedFeedHandler {
 }
 
 pub async fn run() -> Result<(), Error> {
-    let conn = Connection::open("./rocksky-seed.ddb")?;
+    let conn = Connection::open(DB_PATH)?;
     let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(&env::var("XATA_POSTGRES_URL")?)

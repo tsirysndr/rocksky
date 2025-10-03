@@ -39,3 +39,5 @@ tokio-tungstenite = { version = "0.26.2", features = [
 ] }
 tokio-stream = { version = "0.1.17", features = ["full"] }
 async-trait = "0.1.89"
+xid = "1.1.1"
+sha256 = "1.6.0"

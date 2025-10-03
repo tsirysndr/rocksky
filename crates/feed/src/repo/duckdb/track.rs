@@ -1,13 +1,93 @@
-use std::sync::Arc;
+use crate::{repo::duckdb::DB_PATH, types::SongRecord};
+use anyhow::Error;
+use duckdb::params;
 
-use tokio::sync::Mutex;
+pub async fn save_track(uri: &str, record: SongRecord) -> Result<(), anyhow::Error> {
+    let uri = uri.to_string();
+    tokio::task::spawn_blocking(move || -> Result<(), Error> {
+        let conn = duckdb::Connection::open(DB_PATH)?;
+        let track_hash = sha256::digest(
+            format!("{} - {} - {}", record.title, record.artist, record.album).to_lowercase(),
+        );
 
-pub struct TrackRepo {
-    pub conn: Arc<Mutex<duckdb::Connection>>,
-}
+        match conn.execute(
+            "INSERT INTO tracks (
+                id,
+                title,
+                artist,
+                album_artist,
+                album_art,
+                album,
+                track_number,
+                disc_number,
+                spotify_link,
+                tidal_link,
+                youtube_link,
+                apple_music_link,
+                copyright_message,
+                label,
+                lyrics,
+                composer,
+                duration,
+                mb_id,
+                sha256,
+                uri
+            ) VALUES (
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?
+            ) ON CONFLICT (sha256) DO UPDATE SET
+                uri = EXCLUDED.uri;
+             ",
+            params![
+                xid::new().to_string(),
+                record.title,
+                record.artist,
+                record.album_artist,
+                record.album_art_url,
+                record.album,
+                record.track_number,
+                record.disc_number,
+                record.spotify_link,
+                record.tidal_link,
+                record.youtube_link,
+                record.apple_music_link,
+                record.copyright_message,
+                record.label,
+                record.lyrics,
+                record.composer,
+                record.duration,
+                record.mbid,
+                track_hash,
+                uri
+            ],
+        ) {
+            Ok(x) => tracing::info!("Track successfully inserted or updated: {}", x),
+            Err(e) => tracing::error!(error = %e, "Error inserting/updating track"),
+        }
 
-impl TrackRepo {
-    pub fn new(conn: Arc<Mutex<duckdb::Connection>>) -> Self {
-        Self { conn }
-    }
+        conn.close()
+            .map_err(|(_, e)| Error::msg(format!("Error closing connection: {}", e)))?;
+        Ok(())
+    })
+    .await??;
+
+    Ok(())
 }
