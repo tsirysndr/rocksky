@@ -66,8 +66,10 @@ pub async fn save_scrobble(
                         release_date,
                         album_art,
                         year,
+                        uri,
                         sha256
                     ) VALUES (
+                        ?,
                         ?,
                         ?,
                         ?,
@@ -83,6 +85,7 @@ pub async fn save_scrobble(
                 record.release_date,
                 record.album_art_url,
                 record.year,
+                record.album_uri,
                 album_hash,
             ],
         ) {
@@ -97,8 +100,12 @@ pub async fn save_scrobble(
                         id,
                         name,
                         sha256,
+                        picture,
+                        uri,
                         tags
                     ) VALUES (
+                        ?,
+                        ?,
                         ?,
                         ?,
                         ?,
@@ -114,7 +121,13 @@ pub async fn save_scrobble(
                         .join(", "))
                     .unwrap_or_default()
             ),
-            params![xid::new().to_string(), record.album_artist, artist_hash],
+            params![
+                xid::new().to_string(),
+                record.album_artist,
+                artist_hash,
+                record.artist_picture,
+                record.artist_uri
+            ],
         ) {
             Ok(x) => tracing::info!("Artist inserted or already exists {}", x),
             Err(e) => tracing::error!(error = %e, "Error inserting artist"),
@@ -143,8 +156,10 @@ pub async fn save_scrobble(
                 composer,
                 duration,
                 mb_id,
+                uri,
                 sha256
             ) VALUES (
+                ?,
                 ?,
                 ?,
                 ?,
@@ -184,6 +199,7 @@ pub async fn save_scrobble(
                 record.composer,
                 record.duration,
                 record.mbid,
+                record.song_uri,
                 track_hash,
             ],
         ) {
@@ -303,7 +319,7 @@ pub async fn save_scrobble(
             (SELECT id FROM albums WHERE sha256 = ?),
             (SELECT id FROM artists WHERE sha256 = ?),
             ?,
-            CURRENT_TIMESTAMP,
+            ?,
         )",
             params![
                 xid::new().to_string(),
@@ -312,6 +328,7 @@ pub async fn save_scrobble(
                 album_hash,
                 artist_hash,
                 uri,
+                record.created_at,
             ],
         ) {
             Ok(x) => tracing::info!("Scrobble inserted {}", x),
