@@ -125,7 +125,10 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
                 );
                 let subscriber = ScrobbleSubscriber::new(&url);
 
-                subscriber.run().await?;
+                match subscriber.run().await {
+                    Ok(_) => tracing::info!("Firehose listener exited normally"),
+                    Err(e) => tracing::error!(error = %e, "Firehose listener exited with error"),
+                }
 
                 Ok::<(), Error>(())
             });

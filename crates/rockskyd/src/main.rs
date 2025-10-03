@@ -40,6 +40,7 @@ fn cli() -> Command {
             Command::new("feed")
                 .about("Feed related commands")
                 .subcommand(Command::new("serve").about("Serve the Rocksky Feed API"))
+                .subcommand(Command::new("sync").about("Sync scrobbles feed data to DuckDB")),
         )
 }
 
@@ -99,6 +100,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Some(("feed", sub_m)) => match sub_m.subcommand() {
             Some(("serve", _)) => cmd::feed::serve().await?,
+            Some(("sync", _)) => cmd::feed::sync().await?,
             _ => println!("Unknown feed command"),
         },
         _ => {
