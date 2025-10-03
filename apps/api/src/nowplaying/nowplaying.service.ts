@@ -317,7 +317,7 @@ export async function scrobbleTrack(
     .filter("track_id.title", equals(track.title))
     .filter("track_id.artist", equals(track.artist))
     .filter({
-      $any: [
+      $all: [
         {
           timestamp: {
             $ge: scrobbleTime.subtract(5, "seconds").toISOString(),
