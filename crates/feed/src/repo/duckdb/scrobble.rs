@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, thread::sleep};
 
 use anyhow::Error;
 use duckdb::{params, OptionalExt};
