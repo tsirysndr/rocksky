@@ -139,6 +139,9 @@ pub async fn sync_scrobbles(ddb: RepoImpl) -> Result<(), Error> {
         let repo = ddb.clone();
         repo.insert_scrobble(&did, &scrobble_uri, record).await?;
 
+        // sleep a bit to avoid overwhelming the database
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+
         i += 1;
     }
 
