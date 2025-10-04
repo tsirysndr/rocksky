@@ -43,13 +43,7 @@ pub async fn save_album(
                         ?,
                         ?,
                         ?
-                    ) ON CONFLICT (sha256) DO UPDATE SET
-                        uri = EXCLUDED.uri,
-                        year = EXCLUDED.year,
-                        album_art = EXCLUDED.album_art,
-                        release_date = EXCLUDED.release_date,
-                        artist = EXCLUDED.artist,
-                        title = EXCLUDED.title;",
+                    );",
         params![
             xid::new().to_string(),
             record.title,

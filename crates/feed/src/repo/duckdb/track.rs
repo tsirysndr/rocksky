@@ -67,9 +67,7 @@ pub async fn save_track(
                 ?,
                 ?,
                 ?
-            ) ON CONFLICT (sha256) DO UPDATE SET
-                uri = EXCLUDED.uri;
-             ",
+            );",
         params![
             xid::new().to_string(),
             record.title,
