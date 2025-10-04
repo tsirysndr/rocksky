@@ -27,10 +27,7 @@ pub struct DuckdbRepo {
 impl DuckdbRepo {
     pub async fn new() -> Result<Self, Error> {
         let manager = DuckDBConnectionManager::file(DB_PATH);
-        let pool = r2d2::Pool::builder()
-            .idle_timeout(Some(std::time::Duration::from_secs(60)))
-            .max_size(15)
-            .build(manager)?;
+        let pool = r2d2::Pool::builder().build(manager)?;
         Ok(Self { pool })
     }
 }
