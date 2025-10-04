@@ -27,7 +27,12 @@ pub async fn sync_scrobbles(ddb: RepoImpl) -> Result<(), Error> {
         let total_scrobbles = total_scrobbles.0;
         tracing::info!(total = %total_scrobbles.magenta(), "Total scrobbles to sync");
 
-        for offset in (0..total_scrobbles).step_by(BATCH_SIZE as usize) {
+        let start = env::var("SYNC_START_OFFSET")
+            .ok()
+            .and_then(|s| s.parse::<i64>().ok())
+            .unwrap_or(0);
+
+        for offset in (start..total_scrobbles).step_by(BATCH_SIZE as usize) {
             tracing::info!(
                 offset = %(offset).magenta(),
                 end = %(offset + BATCH_SIZE).magenta(),
@@ -77,7 +82,11 @@ pub async fn sync_scrobbles(ddb: RepoImpl) -> Result<(), Error> {
         Ok::<(), Error>(())
     });
 
-    let mut i = 1;
+    let mut i = env::var("SYNC_START_OFFSET")
+        .ok()
+        .and_then(|s| s.parse::<i64>().ok())
+        .unwrap_or(0)
+        + 1;
 
     let pool = PgPoolOptions::new()
         .max_connections(5)
@@ -140,7 +149,7 @@ pub async fn sync_scrobbles(ddb: RepoImpl) -> Result<(), Error> {
         repo.insert_scrobble(&did, &scrobble_uri, record).await?;
 
         // sleep a bit to avoid overwhelming the database
-        tokio::time::sleep(std::time::Duration::from_millis(600)).await;
+        tokio::time::sleep(std::time::Duration::from_millis(300)).await;
 
         i += 1;
     }

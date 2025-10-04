@@ -7,7 +7,7 @@ use tokio::sync::Mutex;
 use crate::{
     feed::Feed,
     feed_handler::FeedHandler,
-    repo::duckdb::DB_PATH,
+    repo::{duckdb::DB_PATH, RepoImpl},
     types::{FeedResult, Scrobble},
 };
 
@@ -56,7 +56,7 @@ impl FeedHandler for RecentlyPlayedFeedHandler {
         todo!()
     }
 
-    async fn serve_feed(&self, _request: types::Request) -> FeedResult {
+    async fn serve_feed(&self, _repo: RepoImpl, _request: types::Request) -> FeedResult {
         FeedResult {
             feed: vec![],
             cursor: None,

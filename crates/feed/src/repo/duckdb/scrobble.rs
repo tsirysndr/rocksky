@@ -1,10 +1,14 @@
+use std::sync::Arc;
+
 use anyhow::Error;
 use duckdb::{params, OptionalExt};
+use std::sync::Mutex;
 
 use crate::{did::did_to_profile, r2d2_duckdb::DuckDBConnectionManager, types::ScrobbleRecord};
 
 pub async fn save_scrobble(
     pool: r2d2::Pool<DuckDBConnectionManager>,
+    mutex: Arc<Mutex<()>>,
     did: &str,
     uri: &str,
     record: ScrobbleRecord,
@@ -15,6 +19,7 @@ pub async fn save_scrobble(
     let uri = uri.to_string();
 
     tokio::task::spawn_blocking(move || -> Result<(), Error> {
+        let _lock = mutex.lock().unwrap();
         let mut conn = pool.get()?;
         let tx = conn.transaction()?;
         let mut user = tx.prepare("SELECT id FROM users WHERE did = ?")?;

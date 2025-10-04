@@ -1,3 +1,6 @@
+use std::sync::Arc;
+use std::sync::Mutex;
+
 use crate::{
     repo::duckdb::{
         album::save_album, artist::save_artist, scrobble::save_scrobble, track::save_track,
@@ -22,13 +25,17 @@ pub const DB_PATH: &str = "./rocksky-feed.ddb";
 #[derive(Clone)]
 pub struct DuckdbRepo {
     pool: r2d2::Pool<DuckDBConnectionManager>,
+    mutex: Arc<Mutex<()>>,
 }
 
 impl DuckdbRepo {
     pub async fn new() -> Result<Self, Error> {
         let manager = DuckDBConnectionManager::file(DB_PATH);
         let pool = r2d2::Pool::builder().build(manager)?;
-        Ok(Self { pool })
+        Ok(Self {
+            pool,
+            mutex: Arc::new(Mutex::new(())),
+        })
     }
 }
 
@@ -48,7 +55,7 @@ impl Repo for DuckdbRepo {
         uri: &str,
         record: ScrobbleRecord,
     ) -> Result<(), anyhow::Error> {
-        save_scrobble(self.pool.clone(), did, uri, record).await
+        save_scrobble(self.pool.clone(), self.mutex.clone(), did, uri, record).await
     }
 
     async fn insert_track(self, uri: &str, record: SongRecord) -> Result<(), anyhow::Error> {
