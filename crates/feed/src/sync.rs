@@ -8,7 +8,7 @@ use sqlx::Row;
 use crate::repo::{duckdb::DuckdbRepo, Repo, RepoImpl};
 use crate::types::ScrobbleRecord;
 
-pub async fn sync_scrobbles(ddb: Option<RepoImpl>) -> Result<(), Error> {
+pub async fn sync_scrobbles(ddb: RepoImpl) -> Result<(), Error> {
     tracing::info!("Starting scrobble synchronization...");
 
     let (tx, mut rx) = tokio::sync::mpsc::channel::<PgRow>(500);
@@ -89,7 +89,7 @@ pub async fn sync_scrobbles(ddb: Option<RepoImpl>) -> Result<(), Error> {
         .await?;
     let total_scrobbles = total_scrobbles.0;
 
-    let repo = RepoImpl::Duckdb(DuckdbRepo::new().await?);
+    let repo = ddb.clone();
     repo.create_tables().await?;
 
     while let Some(row) = rx.recv().await {
@@ -136,14 +136,7 @@ pub async fn sync_scrobbles(ddb: Option<RepoImpl>) -> Result<(), Error> {
             song_uri: row.get::<Option<String>, _>("track_uri"),
         };
 
-        let repo = match ddb {
-            Some(RepoImpl::Duckdb(_)) => RepoImpl::Duckdb(DuckdbRepo::new().await?),
-            Some(RepoImpl::Postgres(_)) => {
-                unimplemented!("Postgres repo not implemented yet");
-            }
-            None => RepoImpl::Duckdb(DuckdbRepo::new().await?),
-        };
-
+        let repo = ddb.clone();
         repo.insert_scrobble(&did, &scrobble_uri, record).await?;
 
         i += 1;
