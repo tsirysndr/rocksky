@@ -21,9 +21,8 @@ pub async fn save_scrobble(
     let handle = tokio::task::spawn_blocking(move || -> Result<(), Error> {
         tracing::info!("Inserting scrobble for user: {}, scrobble: {}", did, uri);
         let _lock = mutex.lock().unwrap();
-        let mut conn = pool.get()?;
-        let tx = conn.transaction()?;
-        let mut user = tx.prepare("SELECT id FROM users WHERE did = ?")?;
+        let conn = pool.get()?;
+        let mut user = conn.prepare("SELECT id FROM users WHERE did = ?")?;
         let user_id: Option<String> = user.query_row(params![did], |row| row.get(0)).optional()?;
 
         if user_id.is_none() {
@@ -39,7 +38,7 @@ pub async fn save_scrobble(
                 )
             });
 
-            tx.execute(
+            conn.execute(
                 "INSERT OR IGNORE INTO users (
                   id,
                   display_name,
@@ -65,7 +64,7 @@ pub async fn save_scrobble(
         let album_hash =
             sha256::digest(format!("{} - {}", record.album, record.album_artist).to_lowercase());
 
-        match tx.execute(
+        match conn.execute(
             "INSERT OR IGNORE INTO albums (
                         id,
                         title,
@@ -101,7 +100,7 @@ pub async fn save_scrobble(
         }
 
         let artist_hash = sha256::digest(record.album_artist.to_lowercase());
-        match tx.execute(
+        match conn.execute(
             &format!(
                 "INSERT OR IGNORE INTO artists (
                         id,
@@ -144,7 +143,7 @@ pub async fn save_scrobble(
         let track_hash = sha256::digest(
             format!("{} - {} - {}", record.title, record.artist, record.album).to_lowercase(),
         );
-        match tx.execute(
+        match conn.execute(
             "INSERT OR IGNORE INTO tracks (
                 id,
                 title,
@@ -215,7 +214,7 @@ pub async fn save_scrobble(
             Err(e) => tracing::error!(error = %e, "Error inserting track"),
         }
 
-        match tx.execute(
+        match conn.execute(
             "INSERT OR IGNORE INTO album_tracks (
                 id,
                 album_id,
@@ -231,7 +230,7 @@ pub async fn save_scrobble(
             Err(e) => tracing::error!(error = %e, "Error inserting album-track relation"),
         }
 
-        match tx.execute(
+        match conn.execute(
             "INSERT OR IGNORE INTO user_artists (
                 id,
                 user_id,
@@ -247,7 +246,7 @@ pub async fn save_scrobble(
             Err(e) => tracing::error!(error = %e, "Error inserting user-artist relation"),
         }
 
-        match tx.execute(
+        match conn.execute(
             "INSERT OR IGNORE INTO user_albums (
                 id,
                 user_id,
@@ -263,7 +262,7 @@ pub async fn save_scrobble(
             Err(e) => tracing::error!(error = %e, "Error inserting user-album relation"),
         }
 
-        match tx.execute(
+        match conn.execute(
             "INSERT OR IGNORE INTO user_tracks (
                 id,
                 user_id,
@@ -279,7 +278,7 @@ pub async fn save_scrobble(
             Err(e) => tracing::error!(error = %e, "Error inserting user-track relation"),
         }
 
-        match tx.execute(
+        match conn.execute(
             "INSERT OR IGNORE INTO artist_albums (
                 id,
                 artist_id,
@@ -295,7 +294,7 @@ pub async fn save_scrobble(
             Err(e) => tracing::error!(error = %e, "Error inserting artist-album relation"),
         }
 
-        match tx.execute(
+        match conn.execute(
             "INSERT OR IGNORE INTO artist_tracks (
                 id,
                 artist_id,
@@ -311,7 +310,7 @@ pub async fn save_scrobble(
             Err(e) => tracing::error!(error = %e, "Error inserting artist-track relation"),
         }
 
-        match tx.execute(
+        match conn.execute(
             "INSERT OR IGNORE INTO scrobbles (
               id,
               user_id,
@@ -343,10 +342,7 @@ pub async fn save_scrobble(
             Err(e) => tracing::error!(error = %e, "Error inserting scrobble"),
         }
 
-        match tx.commit() {
-            Ok(_) => tracing::info!("Transaction committed successfully"),
-            Err(e) => tracing::error!(error = %e, "Error committing transaction"),
-        }
+        tracing::info!("Scrobble insertion process completed for user: {}", did);
 
         Ok::<(), Error>(())
     });
