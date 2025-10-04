@@ -14,7 +14,7 @@ pub async fn save_album(
     let album_hash = sha256::digest(format!("{} - {}", record.title, record.artist).to_lowercase());
 
     match conn.execute(
-        "UPDATE albums SET uri = ? WHERE sha256 = ?;",
+        "UPDATE albums SET uri = ? WHERE sha256 = ? AND uri IS NULL;",
         params![uri, album_hash],
     ) {
         Ok(x) => {

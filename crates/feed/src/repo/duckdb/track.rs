@@ -14,7 +14,7 @@ pub async fn save_track(
     );
 
     match conn.execute(
-        "UPDATE tracks SET uri = ? WHERE sha256 = ?;",
+        "UPDATE tracks SET uri = ? WHERE sha256 = ?AND uri IS NULL;",
         params![uri, track_hash],
     ) {
         Ok(x) => {
