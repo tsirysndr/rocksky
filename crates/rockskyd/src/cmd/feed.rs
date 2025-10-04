@@ -1,10 +1,10 @@
 use anyhow::Error;
 
-pub async fn serve() -> Result<(), Error> {
-    rocksky_feed::run().await?;
+pub async fn serve(enable_sync: bool) -> Result<(), Error> {
+    rocksky_feed::run(enable_sync).await?;
     Ok(())
 }
 
 pub async fn sync() -> Result<(), Error> {
-    rocksky_feed::sync::sync_scrobbles().await
+    rocksky_feed::sync::sync_scrobbles(None).await
 }

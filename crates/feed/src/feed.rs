@@ -1,6 +1,9 @@
 use crate::config::Config;
 use crate::feed_handler::FeedHandler;
+use crate::repo::duckdb::DuckdbRepo;
+use crate::repo::{Repo, RepoImpl};
 use crate::subscriber::ScrobbleSubscriber;
+use crate::sync::sync_scrobbles;
 use crate::types::{DidDocument, FeedSkeleton, Request, Service, SkeletonFeedScrobbleData};
 use anyhow::Error;
 use atrium_api::app::bsky::feed::get_feed_skeleton::Parameters as FeedSkeletonQuery;
@@ -29,8 +32,9 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
         &mut self,
         name: impl AsRef<str>,
         address: impl Into<SocketAddr> + Debug + Clone + Send,
+        enable_sync: bool,
     ) -> impl std::future::Future<Output = Result<(), Error>> + Send {
-        self.start_with_config(name, Config::load_env_config(), address)
+        self.start_with_config(name, Config::load_env_config(), address, enable_sync)
     }
 
     /// Starts the feed generator server & connects to the firehose.
@@ -47,6 +51,7 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
         name: impl AsRef<str>,
         config: Config,
         address: impl Into<SocketAddr> + Debug + Clone + Send,
+        enable_sync: bool,
     ) -> impl std::future::Future<Output = Result<(), Error>> + Send {
         let handler = self.handler();
         let address = address.clone();
@@ -115,6 +120,19 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
                     );
                 }
             }));
+
+            let ddb = DuckdbRepo::new().await?;
+            let ddb = RepoImpl::Duckdb(ddb);
+            ddb.clone().create_tables().await?;
+            let ddb_clone = ddb.clone();
+
+            let sync_feed = tokio::spawn(async move {
+                if !enable_sync {
+                    return Ok::<(), Error>(());
+                }
+                sync_scrobbles(Some(ddb_clone)).await?;
+                Ok::<(), Error>(())
+            });
             let feed_server = warp::serve(routes);
             let firehose_listener = tokio::spawn(async move {
                 let jetstream_server = env::var("JETSTREAM_SERVER")
@@ -125,7 +143,7 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
                 );
                 let subscriber = ScrobbleSubscriber::new(&url);
 
-                match subscriber.run().await {
+                match subscriber.run(ddb).await {
                     Ok(_) => tracing::info!("Firehose listener exited normally"),
                     Err(e) => tracing::error!(error = %e, "Firehose listener exited with error"),
                 }
@@ -133,7 +151,7 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
                 Ok::<(), Error>(())
             });
 
-            tokio::join!(feed_server.run(address), firehose_listener)
+            tokio::join!(feed_server.run(address), firehose_listener, sync_feed)
                 .1
                 .expect("Couldn't await tasks")?;
 

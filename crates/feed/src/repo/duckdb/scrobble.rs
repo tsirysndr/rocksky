@@ -1,20 +1,21 @@
 use anyhow::Error;
 use duckdb::{params, OptionalExt};
 
-use crate::{did::did_to_profile, repo::duckdb::DB_PATH, types::ScrobbleRecord};
+use crate::{did::did_to_profile, r2d2_duckdb::DuckDBConnectionManager, types::ScrobbleRecord};
 
 pub async fn save_scrobble(
+    pool: r2d2::Pool<DuckDBConnectionManager>,
     did: &str,
     uri: &str,
     record: ScrobbleRecord,
-) -> Result<(), anyhow::Error> {
+) -> Result<(), Error> {
     let did = did.to_string();
     let cloned_did = did.clone();
 
     let uri = uri.to_string();
 
     tokio::task::spawn_blocking(move || -> Result<(), Error> {
-        let mut conn = duckdb::Connection::open(DB_PATH)?;
+        let mut conn = pool.get()?;
         let tx = conn.transaction()?;
         let mut user = tx.prepare("SELECT id FROM users WHERE did = ?")?;
         let user_id: Option<String> = user.query_row(params![did], |row| row.get(0)).optional()?;
@@ -337,10 +338,7 @@ pub async fn save_scrobble(
 
         tx.commit()?;
 
-        conn.close()
-            .map_err(|(_, e)| Error::msg(format!("Error closing connection: {}", e)))?;
-
-        Ok(())
+        Ok::<(), Error>(())
     })
     .await??;
 

@@ -1,17 +1,20 @@
-use crate::{repo::duckdb::DB_PATH, types::AlbumRecord};
+use crate::r2d2_duckdb::DuckDBConnectionManager;
+use crate::types::AlbumRecord;
 use anyhow::Error;
 use duckdb::params;
 
-pub async fn save_album(uri: &str, record: AlbumRecord) -> Result<(), anyhow::Error> {
+pub async fn save_album(
+    pool: r2d2::Pool<DuckDBConnectionManager>,
+    uri: &str,
+    record: AlbumRecord,
+) -> Result<(), Error> {
     let uri = uri.to_string();
-    tokio::task::spawn_blocking(move || -> Result<(), Error> {
-        let conn = duckdb::Connection::open(DB_PATH)?;
+    let conn = pool.get()?;
 
-        let album_hash =
-            sha256::digest(format!("{} - {}", record.title, record.artist).to_lowercase());
+    let album_hash = sha256::digest(format!("{} - {}", record.title, record.artist).to_lowercase());
 
-        match conn.execute(
-            "INSERT INTO albums (
+    match conn.execute(
+        "INSERT INTO albums (
                         id,
                         title,
                         artist,
@@ -36,26 +39,20 @@ pub async fn save_album(uri: &str, record: AlbumRecord) -> Result<(), anyhow::Er
                         release_date = EXCLUDED.release_date,
                         artist = EXCLUDED.artist,
                         title = EXCLUDED.title;",
-            params![
-                xid::new().to_string(),
-                record.title,
-                record.artist,
-                record.release_date,
-                record.album_art_url,
-                record.year,
-                album_hash,
-                uri
-            ],
-        ) {
-            Ok(x) => tracing::info!("Album successfully inserted or updated: {}", x),
-            Err(e) => tracing::error!(error = %e, "Error inserting/updating album"),
-        }
-
-        conn.close()
-            .map_err(|(_, e)| Error::msg(format!("Error closing connection: {}", e)))?;
-        Ok(())
-    })
-    .await??;
+        params![
+            xid::new().to_string(),
+            record.title,
+            record.artist,
+            record.release_date,
+            record.album_art_url,
+            record.year,
+            album_hash,
+            uri
+        ],
+    ) {
+        Ok(x) => tracing::info!("Album successfully inserted or updated: {}", x),
+        Err(e) => tracing::error!(error = %e, "Error inserting/updating album"),
+    }
 
     Ok(())
 }
