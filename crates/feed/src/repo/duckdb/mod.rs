@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::{
     repo::duckdb::{
         album::save_album, artist::save_artist, scrobble::save_scrobble, track::save_track,
@@ -9,9 +7,9 @@ use crate::{
 };
 
 use super::Repo;
+use crate::r2d2_duckdb::DuckDBConnectionManager;
 use anyhow::Error;
 use async_trait::async_trait;
-use tokio::sync::Mutex;
 
 pub mod album;
 pub mod artist;
@@ -23,25 +21,25 @@ pub const DB_PATH: &str = "./rocksky-feed.ddb";
 
 #[derive(Clone)]
 pub struct DuckdbRepo {
-    pub conn: Arc<Mutex<duckdb::Connection>>,
+    pool: r2d2::Pool<DuckDBConnectionManager>,
 }
 
 impl DuckdbRepo {
     pub async fn new() -> Result<Self, Error> {
-        let conn = duckdb::Connection::open(DB_PATH)?;
-        let conn = Arc::new(Mutex::new(conn));
-        Ok(Self { conn: conn.clone() })
+        let manager = DuckDBConnectionManager::file(DB_PATH);
+        let pool = r2d2::Pool::builder().build(manager)?;
+        Ok(Self { pool })
     }
 }
 
 #[async_trait]
 impl Repo for DuckdbRepo {
     async fn insert_album(self, uri: &str, record: AlbumRecord) -> Result<(), anyhow::Error> {
-        save_album(uri, record).await
+        save_album(self.pool.clone(), uri, record).await
     }
 
     async fn insert_artist(self, uri: &str, record: ArtistRecord) -> Result<(), anyhow::Error> {
-        save_artist(uri, record).await
+        save_artist(self.pool.clone(), uri, record).await
     }
 
     async fn insert_scrobble(
@@ -50,15 +48,15 @@ impl Repo for DuckdbRepo {
         uri: &str,
         record: ScrobbleRecord,
     ) -> Result<(), anyhow::Error> {
-        save_scrobble(did, uri, record).await
+        save_scrobble(self.pool.clone(), did, uri, record).await
     }
 
     async fn insert_track(self, uri: &str, record: SongRecord) -> Result<(), anyhow::Error> {
-        save_track(uri, record).await
+        save_track(self.pool.clone(), uri, record).await
     }
 
     async fn insert_user(self, did: &str) -> Result<(), anyhow::Error> {
-        save_user(did).await
+        save_user(self.pool.clone(), did).await
     }
 
     async fn get_albums(self) -> Result<(), anyhow::Error> {
@@ -98,7 +96,7 @@ impl Repo for DuckdbRepo {
     }
 
     async fn create_tables(self) -> Result<(), anyhow::Error> {
-        let conn = self.conn.lock().await;
+        let conn = self.pool.get()?;
         conn.execute_batch(
             "BEGIN;
       CREATE TABLE IF NOT EXISTS artists (

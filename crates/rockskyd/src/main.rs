@@ -1,4 +1,4 @@
-use clap::Command;
+use clap::{arg, Command};
 use dotenv::dotenv;
 use tracing_subscriber::fmt::format::Format;
 
@@ -39,7 +39,11 @@ fn cli() -> Command {
         .subcommand(
             Command::new("feed")
                 .about("Feed related commands")
-                .subcommand(Command::new("serve").about("Serve the Rocksky Feed API"))
+                .subcommand(
+                    Command::new("serve")
+                        .arg(arg!(--sync "Enable sync mode").required(false))
+                        .about("Serve the Rocksky Feed API"),
+                )
                 .subcommand(Command::new("sync").about("Sync scrobbles feed data to DuckDB")),
         )
 }
@@ -99,7 +103,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             cmd::pull::pull_data().await?;
         }
         Some(("feed", sub_m)) => match sub_m.subcommand() {
-            Some(("serve", _)) => cmd::feed::serve().await?,
+            Some(("serve", args)) => {
+                let enable_sync = args.get_flag("sync");
+                cmd::feed::serve(enable_sync).await?
+            }
             Some(("sync", _)) => cmd::feed::sync().await?,
             _ => println!("Unknown feed command"),
         },
