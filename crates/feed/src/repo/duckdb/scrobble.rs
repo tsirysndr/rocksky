@@ -18,7 +18,8 @@ pub async fn save_scrobble(
 
     let uri = uri.to_string();
 
-    tokio::task::spawn_blocking(move || -> Result<(), Error> {
+    let handle = tokio::task::spawn_blocking(move || -> Result<(), Error> {
+        tracing::info!("Inserting scrobble for user: {}, scrobble: {}", did, uri);
         let _lock = mutex.lock().unwrap();
         let mut conn = pool.get()?;
         let tx = conn.transaction()?;
@@ -122,6 +123,7 @@ pub async fn save_scrobble(
                     .as_ref()
                     .map(|tags| tags
                         .iter()
+                        .map(|tag| tag.replace('\'', "''"))
                         .map(|tag| format!("'{}'", tag))
                         .collect::<Vec<_>>()
                         .join(", "))
@@ -341,11 +343,15 @@ pub async fn save_scrobble(
             Err(e) => tracing::error!(error = %e, "Error inserting scrobble"),
         }
 
-        tx.commit()?;
+        match tx.commit() {
+            Ok(_) => tracing::info!("Transaction committed successfully"),
+            Err(e) => tracing::error!(error = %e, "Error committing transaction"),
+        }
 
         Ok::<(), Error>(())
-    })
-    .await??;
+    });
+
+    handle.await??;
 
     Ok(())
 }

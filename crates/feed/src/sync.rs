@@ -11,19 +11,21 @@ use crate::types::ScrobbleRecord;
 pub async fn sync_scrobbles(ddb: RepoImpl) -> Result<(), Error> {
     tracing::info!("Starting scrobble synchronization...");
 
+    let pool = PgPoolOptions::new()
+        .max_connections(10)
+        .connect(&env::var("XATA_POSTGRES_URL")?)
+        .await?;
+
     let (tx, mut rx) = tokio::sync::mpsc::channel::<PgRow>(100);
 
+    let pool_clone = pool.clone();
     let handle = tokio::spawn(async move {
-        let pool = PgPoolOptions::new()
-            .max_connections(5)
-            .connect(&env::var("XATA_POSTGRES_URL")?)
-            .await?;
-
         const BATCH_SIZE: i64 = 1000;
 
-        let total_scrobbles: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM scrobbles")
-            .fetch_one(&pool)
-            .await?;
+        let total_scrobbles: (i64,) =
+            sqlx::query_as("SELECT COUNT(*) FROM scrobbles WHERE uri IS NOT NULL")
+                .fetch_one(&pool_clone)
+                .await?;
         let total_scrobbles = total_scrobbles.0;
         tracing::info!(total = %total_scrobbles.magenta(), "Total scrobbles to sync");
 
@@ -65,13 +67,14 @@ pub async fn sync_scrobbles(ddb: RepoImpl) -> Result<(), Error> {
         LEFT JOIN artists ar ON s.artist_id = ar.xata_id
         LEFT JOIN tracks t ON s.track_id = t.xata_id
         LEFT JOIN users u ON s.user_id = u.xata_id
+      WHERE s.uri IS NOT NULL
       ORDER BY s.timestamp DESC
       LIMIT $1 OFFSET $2
     "#,
             )
             .bind(BATCH_SIZE)
             .bind(offset as i64)
-            .fetch_all(&pool)
+            .fetch_all(&pool_clone)
             .await?;
 
             for row in result {
@@ -88,14 +91,10 @@ pub async fn sync_scrobbles(ddb: RepoImpl) -> Result<(), Error> {
         .unwrap_or(0)
         + 1;
 
-    let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&env::var("XATA_POSTGRES_URL")?)
-        .await?;
-
-    let total_scrobbles: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM scrobbles")
-        .fetch_one(&pool)
-        .await?;
+    let total_scrobbles: (i64,) =
+        sqlx::query_as("SELECT COUNT(*) FROM scrobbles WHERE uri IS NOT NULL")
+            .fetch_one(&pool)
+            .await?;
     let total_scrobbles = total_scrobbles.0;
 
     let repo = ddb.clone();
@@ -108,6 +107,7 @@ pub async fn sync_scrobbles(ddb: RepoImpl) -> Result<(), Error> {
         let scrobble_uri = row.get::<Option<String>, _>("uri");
         if scrobble_uri.is_none() {
             tracing::warn!(count = %i.magenta(), "Skipping scrobble with no URI");
+            i += 1;
             continue;
         }
         let scrobble_uri = scrobble_uri.unwrap();
@@ -146,7 +146,12 @@ pub async fn sync_scrobbles(ddb: RepoImpl) -> Result<(), Error> {
         };
 
         let repo = ddb.clone();
-        repo.insert_scrobble(&did, &scrobble_uri, record).await?;
+        match repo.insert_scrobble(&did, &scrobble_uri, record).await {
+            Ok(_) => tracing::info!(count = %i.magenta(), "Scrobble inserted successfully"),
+            Err(e) => {
+                tracing::error!(error = %e, "Error inserting scrobble");
+            }
+        }
 
         i += 1;
     }
