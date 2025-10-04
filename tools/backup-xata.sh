@@ -6,4 +6,4 @@ set -euo pipefail
 
 BACKUP_NAME="xata-backup-$(date +%Y%m%d-%H%M%S).sql.gz"
 
-pg_dump $XATA_POSTGRES_URL --no-owner --no-acl | pv -pteba | gzip > "$BACKUP_NAME"
+pg_dump $XATA_POSTGRES_URL --no-owner --no-acl -Fc | pv -pteba | gzip > "$BACKUP_NAME"
