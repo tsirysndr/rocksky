@@ -14,7 +14,18 @@ pub async fn save_track(
     );
 
     match conn.execute(
-        "INSERT INTO tracks (
+        "UPDATE tracks SET uri = ? WHERE sha256 = ?;",
+        params![uri, track_hash],
+    ) {
+        Ok(x) => {
+            tracing::info!("Track URI updated successfully: {}", x);
+            return Ok(());
+        }
+        Err(e) => tracing::error!(error = %e, "Error updating track URI"),
+    }
+
+    match conn.execute(
+        "INSERT OR IGNORE INTO tracks (
                 id,
                 title,
                 artist,

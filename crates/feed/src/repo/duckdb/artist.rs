@@ -11,9 +11,21 @@ pub async fn save_artist(
     let conn = pool.get()?;
 
     let artist_hash = sha256::digest(record.name.to_lowercase());
+
+    match conn.execute(
+        "UPDATE artists SET uri = ?, picture = ? WHERE sha256 = ?;",
+        params![uri, record.picture_url, artist_hash],
+    ) {
+        Ok(x) => {
+            tracing::info!("Artist URI updated successfully: {}", x);
+            return Ok(());
+        }
+        Err(e) => tracing::error!(error = %e, "Error updating artist URI"),
+    }
+
     match conn.execute(
         &format!(
-            "INSERT INTO artists (
+            "INSERT OR IGNORE INTO artists (
                         id,
                         name,
                         picture,
@@ -27,9 +39,7 @@ pub async fn save_artist(
                         ?,
                         ?,
                         [{}]
-                    ) ON CONFLICT (sha256) DO UPDATE SET
-                        uri = EXCLUDED.uri,
-                        tags = EXCLUDED.tags;",
+                    );",
             record
                 .tags
                 .as_ref()
