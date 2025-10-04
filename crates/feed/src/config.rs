@@ -1,7 +1,4 @@
 use std::env;
-
-use dotenv::dotenv;
-
 #[derive(Debug, Clone)]
 /// Configuration values for a Feed service
 pub struct Config {
@@ -24,7 +21,6 @@ impl Config {
     /// PUBLISHER_DID
     /// FEED_GENERATOR_HOSTNAME
     pub fn load_env_config() -> Self {
-        dotenv().expect("Missing .env");
         Config {
             publisher_did: env::var("PUBLISHER_DID")
                 .expect(".env file is missing an entry for PUBLISHER_DID"),
