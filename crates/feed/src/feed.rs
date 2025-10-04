@@ -143,9 +143,17 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
                 );
                 let subscriber = ScrobbleSubscriber::new(&url);
 
-                match subscriber.run(ddb).await {
-                    Ok(_) => tracing::info!("Firehose listener exited normally"),
-                    Err(e) => tracing::error!(error = %e, "Firehose listener exited with error"),
+                // loop, reconnecting on failure
+                loop {
+                    match subscriber.run(ddb.clone()).await {
+                        Ok(_) => tracing::info!("Connected to jetstream server"),
+                        Err(e) => {
+                            tracing::error!(error = %e, "Failed to connect to jetstream server, retrying in 1 second...");
+                            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                            continue;
+                        }
+                    }
+                    break;
                 }
 
                 Ok::<(), Error>(())
