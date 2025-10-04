@@ -5,7 +5,7 @@ use owo_colors::OwoColorize;
 use sqlx::postgres::{PgPoolOptions, PgRow};
 use sqlx::Row;
 
-use crate::repo::{duckdb::DuckdbRepo, Repo, RepoImpl};
+use crate::repo::{Repo, RepoImpl};
 use crate::types::ScrobbleRecord;
 
 pub async fn sync_scrobbles(ddb: RepoImpl) -> Result<(), Error> {
