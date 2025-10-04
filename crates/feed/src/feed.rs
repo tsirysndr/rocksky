@@ -130,7 +130,7 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
                 if !enable_sync {
                     return Ok::<(), Error>(());
                 }
-                sync_scrobbles(Some(ddb_clone)).await?;
+                sync_scrobbles(ddb_clone).await?;
                 Ok::<(), Error>(())
             });
             let feed_server = warp::serve(routes);
