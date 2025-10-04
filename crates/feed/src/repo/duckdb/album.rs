@@ -14,7 +14,18 @@ pub async fn save_album(
     let album_hash = sha256::digest(format!("{} - {}", record.title, record.artist).to_lowercase());
 
     match conn.execute(
-        "INSERT INTO albums (
+        "UPDATE albums SET uri = ? WHERE sha256 = ?;",
+        params![uri, album_hash],
+    ) {
+        Ok(x) => {
+            tracing::info!("Album URI updated successfully: {}", x);
+            return Ok(());
+        }
+        Err(e) => tracing::error!(error = %e, "Error updating album URI"),
+    }
+
+    match conn.execute(
+        "INSERT OR IGNORE INTO albums (
                         id,
                         title,
                         artist,
