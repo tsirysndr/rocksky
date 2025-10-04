@@ -16,6 +16,7 @@ pub mod did;
 pub mod feed;
 pub mod feed_handler;
 pub mod feeds;
+mod r2d2_duckdb;
 pub mod repo;
 pub mod subscriber;
 pub mod sync;
@@ -63,7 +64,7 @@ impl FeedHandler for RecentlyPlayedFeedHandler {
     }
 }
 
-pub async fn run() -> Result<(), Error> {
+pub async fn run(enable_sync: bool) -> Result<(), Error> {
     let conn = Connection::open(DB_PATH)?;
     let pool = PgPoolOptions::new()
         .max_connections(5)
@@ -81,6 +82,6 @@ pub async fn run() -> Result<(), Error> {
     let addr_str = format!("{}:{}", host, port);
     let addr: SocketAddr = addr_str.parse().expect("Invalid address format");
 
-    feed.start("RecentlyPlayed", addr).await?;
+    feed.start("RecentlyPlayed", addr, enable_sync).await?;
     Ok(())
 }

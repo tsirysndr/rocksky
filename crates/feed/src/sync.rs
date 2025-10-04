@@ -8,7 +8,7 @@ use sqlx::Row;
 use crate::repo::{duckdb::DuckdbRepo, Repo, RepoImpl};
 use crate::types::ScrobbleRecord;
 
-pub async fn sync_scrobbles() -> Result<(), Error> {
+pub async fn sync_scrobbles(ddb: Option<RepoImpl>) -> Result<(), Error> {
     tracing::info!("Starting scrobble synchronization...");
 
     let (tx, mut rx) = tokio::sync::mpsc::channel::<PgRow>(500);
@@ -60,6 +60,7 @@ pub async fn sync_scrobbles() -> Result<(), Error> {
         LEFT JOIN artists ar ON s.artist_id = ar.xata_id
         LEFT JOIN tracks t ON s.track_id = t.xata_id
         LEFT JOIN users u ON s.user_id = u.xata_id
+      ORDER BY s.timestamp DESC
       LIMIT $1 OFFSET $2
     "#,
             )
@@ -135,7 +136,14 @@ pub async fn sync_scrobbles() -> Result<(), Error> {
             song_uri: row.get::<Option<String>, _>("track_uri"),
         };
 
-        let repo = DuckdbRepo::new().await?;
+        let repo = match ddb {
+            Some(RepoImpl::Duckdb(_)) => RepoImpl::Duckdb(DuckdbRepo::new().await?),
+            Some(RepoImpl::Postgres(_)) => {
+                unimplemented!("Postgres repo not implemented yet");
+            }
+            None => RepoImpl::Duckdb(DuckdbRepo::new().await?),
+        };
+
         repo.insert_scrobble(&did, &scrobble_uri, record).await?;
 
         i += 1;
