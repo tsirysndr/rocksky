@@ -11,3 +11,4 @@ rocksky-backup.sql
 *.db
 *.parquet
 *.sql.gz
+*.dump
