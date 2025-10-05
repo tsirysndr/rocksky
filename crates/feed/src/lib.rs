@@ -16,7 +16,6 @@ pub mod did;
 pub mod feed;
 pub mod feed_handler;
 pub mod feeds;
-mod r2d2_duckdb;
 pub mod repo;
 pub mod subscriber;
 pub mod sync;

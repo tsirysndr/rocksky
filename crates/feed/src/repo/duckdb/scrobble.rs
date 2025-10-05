@@ -4,11 +4,10 @@ use anyhow::Error;
 use duckdb::{params, OptionalExt};
 use std::sync::Mutex;
 
-use crate::{did::did_to_profile, r2d2_duckdb::DuckDBConnectionManager, types::ScrobbleRecord};
+use crate::{did::did_to_profile, types::ScrobbleRecord};
 
-pub async fn save_scrobble(
-    pool: r2d2::Pool<DuckDBConnectionManager>,
-    mutex: Arc<Mutex<()>>,
+pub fn save_scrobble(
+    conn: Arc<Mutex<duckdb::Connection>>,
     did: &str,
     uri: &str,
     record: ScrobbleRecord,
@@ -17,29 +16,27 @@ pub async fn save_scrobble(
     let cloned_did = did.clone();
 
     let uri = uri.to_string();
+    let conn = conn.lock().unwrap();
 
-    let handle = tokio::task::spawn_blocking(move || -> Result<(), Error> {
-        tracing::info!("Inserting scrobble for user: {}, scrobble: {}", did, uri);
-        let _lock = mutex.lock().unwrap();
-        let conn = pool.get()?;
-        let mut user = conn.prepare("SELECT id FROM users WHERE did = ?")?;
-        let user_id: Option<String> = user.query_row(params![did], |row| row.get(0)).optional()?;
+    tracing::info!("Inserting scrobble for user: {}, scrobble: {}", did, uri);
+    let mut user = conn.prepare("SELECT id FROM users WHERE did = ?")?;
+    let user_id: Option<String> = user.query_row(params![did], |row| row.get(0)).optional()?;
 
-        if user_id.is_none() {
-            let rt = tokio::runtime::Runtime::new()?;
-            let profile = rt.block_on(did_to_profile(&did))?;
+    if user_id.is_none() {
+        let rt = tokio::runtime::Runtime::new()?;
+        let profile = rt.block_on(did_to_profile(&did))?;
 
-            let avatar = profile.avatar.map(|blob| {
-                format!(
-                    "https://cdn.bsky.app/img/avatar/plain/{}/{}@{}",
-                    did,
-                    blob.r#ref.link,
-                    blob.mime_type.split('/').last().unwrap_or("jpeg")
-                )
-            });
+        let avatar = profile.avatar.map(|blob| {
+            format!(
+                "https://cdn.bsky.app/img/avatar/plain/{}/{}@{}",
+                did,
+                blob.r#ref.link,
+                blob.mime_type.split('/').last().unwrap_or("jpeg")
+            )
+        });
 
-            conn.execute(
-                "INSERT OR IGNORE INTO users (
+        conn.execute(
+            "INSERT OR IGNORE INTO users (
                   id,
                   display_name,
                   did,
@@ -51,21 +48,21 @@ pub async fn save_scrobble(
                   ?,
                   ?,
                   ?)",
-                params![
-                    xid::new().to_string(),
-                    profile.display_name.unwrap_or_default(),
-                    did,
-                    profile.handle.unwrap_or_default(),
-                    avatar,
-                ],
-            )?;
-        }
+            params![
+                xid::new().to_string(),
+                profile.display_name.unwrap_or_default(),
+                did,
+                profile.handle.unwrap_or_default(),
+                avatar,
+            ],
+        )?;
+    }
 
-        let album_hash =
-            sha256::digest(format!("{} - {}", record.album, record.album_artist).to_lowercase());
+    let album_hash =
+        sha256::digest(format!("{} - {}", record.album, record.album_artist).to_lowercase());
 
-        match conn.execute(
-            "INSERT OR IGNORE INTO albums (
+    match conn.execute(
+        "INSERT OR IGNORE INTO albums (
                         id,
                         title,
                         artist,
@@ -84,25 +81,25 @@ pub async fn save_scrobble(
                         ?,
                         ?
                     )",
-            params![
-                xid::new().to_string(),
-                record.album,
-                record.album_artist,
-                record.release_date,
-                record.album_art_url,
-                record.year,
-                record.album_uri,
-                album_hash,
-            ],
-        ) {
-            Ok(x) => tracing::info!("Album inserted or already exists {}", x),
-            Err(e) => tracing::error!(error = %e, "Error inserting album"),
-        }
+        params![
+            xid::new().to_string(),
+            record.album,
+            record.album_artist,
+            record.release_date,
+            record.album_art_url,
+            record.year,
+            record.album_uri,
+            album_hash,
+        ],
+    ) {
+        Ok(x) => tracing::info!("Album inserted or already exists {}", x),
+        Err(e) => tracing::error!(error = %e, "Error inserting album"),
+    }
 
-        let artist_hash = sha256::digest(record.album_artist.to_lowercase());
-        match conn.execute(
-            &format!(
-                "INSERT OR IGNORE INTO artists (
+    let artist_hash = sha256::digest(record.album_artist.to_lowercase());
+    match conn.execute(
+        &format!(
+            "INSERT OR IGNORE INTO artists (
                         id,
                         name,
                         sha256,
@@ -117,34 +114,34 @@ pub async fn save_scrobble(
                         ?,
                         [{}]
                     )",
-                record
-                    .tags
-                    .as_ref()
-                    .map(|tags| tags
-                        .iter()
-                        .map(|tag| tag.replace('\'', "''"))
-                        .map(|tag| format!("'{}'", tag))
-                        .collect::<Vec<_>>()
-                        .join(", "))
-                    .unwrap_or_default()
-            ),
-            params![
-                xid::new().to_string(),
-                record.album_artist,
-                artist_hash,
-                record.artist_picture,
-                record.artist_uri
-            ],
-        ) {
-            Ok(x) => tracing::info!("Artist inserted or already exists {}", x),
-            Err(e) => tracing::error!(error = %e, "Error inserting artist"),
-        }
+            record
+                .tags
+                .as_ref()
+                .map(|tags| tags
+                    .iter()
+                    .map(|tag| tag.replace('\'', "''"))
+                    .map(|tag| format!("'{}'", tag))
+                    .collect::<Vec<_>>()
+                    .join(", "))
+                .unwrap_or_default()
+        ),
+        params![
+            xid::new().to_string(),
+            record.album_artist,
+            artist_hash,
+            record.artist_picture,
+            record.artist_uri
+        ],
+    ) {
+        Ok(x) => tracing::info!("Artist inserted or already exists {}", x),
+        Err(e) => tracing::error!(error = %e, "Error inserting artist"),
+    }
 
-        let track_hash = sha256::digest(
-            format!("{} - {} - {}", record.title, record.artist, record.album).to_lowercase(),
-        );
-        match conn.execute(
-            "INSERT OR IGNORE INTO tracks (
+    let track_hash = sha256::digest(
+        format!("{} - {} - {}", record.title, record.artist, record.album).to_lowercase(),
+    );
+    match conn.execute(
+        "INSERT OR IGNORE INTO tracks (
                 id,
                 title,
                 artist,
@@ -187,35 +184,35 @@ pub async fn save_scrobble(
                 ?,
                 ?
             )",
-            params![
-                xid::new().to_string(),
-                record.title,
-                record.artist,
-                record.album_artist,
-                record.album_art_url,
-                record.album,
-                record.track_number,
-                record.disc_number,
-                record.spotify_link,
-                record.tidal_link,
-                record.youtube_link,
-                record.apple_music_link,
-                record.copyright_message,
-                record.label,
-                record.lyrics,
-                record.composer,
-                record.duration,
-                record.mbid,
-                record.song_uri,
-                track_hash,
-            ],
-        ) {
-            Ok(x) => tracing::info!("Track inserted or already exists {}", x),
-            Err(e) => tracing::error!(error = %e, "Error inserting track"),
-        }
+        params![
+            xid::new().to_string(),
+            record.title,
+            record.artist,
+            record.album_artist,
+            record.album_art_url,
+            record.album,
+            record.track_number,
+            record.disc_number,
+            record.spotify_link,
+            record.tidal_link,
+            record.youtube_link,
+            record.apple_music_link,
+            record.copyright_message,
+            record.label,
+            record.lyrics,
+            record.composer,
+            record.duration,
+            record.mbid,
+            record.song_uri,
+            track_hash,
+        ],
+    ) {
+        Ok(x) => tracing::info!("Track inserted or already exists {}", x),
+        Err(e) => tracing::error!(error = %e, "Error inserting track"),
+    }
 
-        match conn.execute(
-            "INSERT OR IGNORE INTO album_tracks (
+    match conn.execute(
+        "INSERT OR IGNORE INTO album_tracks (
                 id,
                 album_id,
                 track_id
@@ -224,14 +221,14 @@ pub async fn save_scrobble(
                 (SELECT id FROM albums WHERE sha256 = ?),
                 (SELECT id FROM tracks WHERE sha256 = ?),
             )",
-            params![xid::new().to_string(), album_hash, track_hash],
-        ) {
-            Ok(x) => tracing::info!("Album-Track relation inserted or already exists {}", x),
-            Err(e) => tracing::error!(error = %e, "Error inserting album-track relation"),
-        }
+        params![xid::new().to_string(), album_hash, track_hash],
+    ) {
+        Ok(x) => tracing::info!("Album-Track relation inserted or already exists {}", x),
+        Err(e) => tracing::error!(error = %e, "Error inserting album-track relation"),
+    }
 
-        match conn.execute(
-            "INSERT OR IGNORE INTO user_artists (
+    match conn.execute(
+        "INSERT OR IGNORE INTO user_artists (
                 id,
                 user_id,
                 artist_id
@@ -240,14 +237,14 @@ pub async fn save_scrobble(
                 (SELECT id FROM users WHERE did = ?),
                 (SELECT id FROM artists WHERE sha256 = ?),
             )",
-            params![xid::new().to_string(), cloned_did, artist_hash],
-        ) {
-            Ok(x) => tracing::info!("User-Artist relation inserted or already exists {}", x),
-            Err(e) => tracing::error!(error = %e, "Error inserting user-artist relation"),
-        }
+        params![xid::new().to_string(), cloned_did, artist_hash],
+    ) {
+        Ok(x) => tracing::info!("User-Artist relation inserted or already exists {}", x),
+        Err(e) => tracing::error!(error = %e, "Error inserting user-artist relation"),
+    }
 
-        match conn.execute(
-            "INSERT OR IGNORE INTO user_albums (
+    match conn.execute(
+        "INSERT OR IGNORE INTO user_albums (
                 id,
                 user_id,
                 album_id
@@ -256,14 +253,14 @@ pub async fn save_scrobble(
                 (SELECT id FROM users WHERE did = ?),
                 (SELECT id FROM albums WHERE sha256 = ?),
             )",
-            params![xid::new().to_string(), cloned_did, album_hash],
-        ) {
-            Ok(x) => tracing::info!("User-Album relation inserted or already exists {}", x),
-            Err(e) => tracing::error!(error = %e, "Error inserting user-album relation"),
-        }
+        params![xid::new().to_string(), cloned_did, album_hash],
+    ) {
+        Ok(x) => tracing::info!("User-Album relation inserted or already exists {}", x),
+        Err(e) => tracing::error!(error = %e, "Error inserting user-album relation"),
+    }
 
-        match conn.execute(
-            "INSERT OR IGNORE INTO user_tracks (
+    match conn.execute(
+        "INSERT OR IGNORE INTO user_tracks (
                 id,
                 user_id,
                 track_id
@@ -272,14 +269,14 @@ pub async fn save_scrobble(
                 (SELECT id FROM users WHERE did = ?),
                 (SELECT id FROM tracks WHERE sha256 = ?),
             )",
-            params![xid::new().to_string(), cloned_did, track_hash],
-        ) {
-            Ok(x) => tracing::info!("User-Track relation inserted or already exists {}", x),
-            Err(e) => tracing::error!(error = %e, "Error inserting user-track relation"),
-        }
+        params![xid::new().to_string(), cloned_did, track_hash],
+    ) {
+        Ok(x) => tracing::info!("User-Track relation inserted or already exists {}", x),
+        Err(e) => tracing::error!(error = %e, "Error inserting user-track relation"),
+    }
 
-        match conn.execute(
-            "INSERT OR IGNORE INTO artist_albums (
+    match conn.execute(
+        "INSERT OR IGNORE INTO artist_albums (
                 id,
                 artist_id,
                 album_id
@@ -288,14 +285,14 @@ pub async fn save_scrobble(
                 (SELECT id FROM artists WHERE sha256 = ?),
                 (SELECT id FROM albums WHERE sha256 = ?),
             )",
-            params![xid::new().to_string(), artist_hash, album_hash],
-        ) {
-            Ok(x) => tracing::info!("Artist-Album relation inserted or already exists {}", x),
-            Err(e) => tracing::error!(error = %e, "Error inserting artist-album relation"),
-        }
+        params![xid::new().to_string(), artist_hash, album_hash],
+    ) {
+        Ok(x) => tracing::info!("Artist-Album relation inserted or already exists {}", x),
+        Err(e) => tracing::error!(error = %e, "Error inserting artist-album relation"),
+    }
 
-        match conn.execute(
-            "INSERT OR IGNORE INTO artist_tracks (
+    match conn.execute(
+        "INSERT OR IGNORE INTO artist_tracks (
                 id,
                 artist_id,
                 track_id
@@ -304,14 +301,14 @@ pub async fn save_scrobble(
                 (SELECT id FROM artists WHERE sha256 = ?),
                 (SELECT id FROM tracks WHERE sha256 = ?),
             )",
-            params![xid::new().to_string(), artist_hash, track_hash],
-        ) {
-            Ok(x) => tracing::info!("Artist-Track relation inserted or already exists {}", x),
-            Err(e) => tracing::error!(error = %e, "Error inserting artist-track relation"),
-        }
+        params![xid::new().to_string(), artist_hash, track_hash],
+    ) {
+        Ok(x) => tracing::info!("Artist-Track relation inserted or already exists {}", x),
+        Err(e) => tracing::error!(error = %e, "Error inserting artist-track relation"),
+    }
 
-        match conn.execute(
-            "INSERT OR IGNORE INTO scrobbles (
+    match conn.execute(
+        "INSERT OR IGNORE INTO scrobbles (
               id,
               user_id,
               track_id,
@@ -328,26 +325,21 @@ pub async fn save_scrobble(
             ?,
             ?,
         )",
-            params![
-                xid::new().to_string(),
-                cloned_did,
-                track_hash,
-                album_hash,
-                artist_hash,
-                uri,
-                record.created_at,
-            ],
-        ) {
-            Ok(x) => tracing::info!("Scrobble inserted {}", x),
-            Err(e) => tracing::error!(error = %e, "Error inserting scrobble"),
-        }
+        params![
+            xid::new().to_string(),
+            cloned_did,
+            track_hash,
+            album_hash,
+            artist_hash,
+            uri,
+            record.created_at,
+        ],
+    ) {
+        Ok(x) => tracing::info!("Scrobble inserted {}", x),
+        Err(e) => tracing::error!(error = %e, "Error inserting scrobble"),
+    }
 
-        tracing::info!("Scrobble insertion process completed for user: {}", did);
-
-        Ok::<(), Error>(())
-    });
-
-    handle.await??;
+    tracing::info!("Scrobble insertion process completed for user: {}", did);
 
     Ok(())
 }
