@@ -58,7 +58,7 @@ impl DuckdbRepo {
         let (save_tx, mut save_rx) = tokio::sync::mpsc::channel::<SaveMessage>(100);
 
         let manager = DuckDBConnectionManager::file(DB_PATH);
-        let pool = r2d2::Pool::builder().build(manager)?;
+        let pool = r2d2::Pool::builder().max_size(1).build(manager)?;
 
         let pool_clone = pool.clone();
 
