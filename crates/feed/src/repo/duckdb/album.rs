@@ -26,6 +26,14 @@ pub fn save_album(
     }
 
     match conn.execute(
+        "UPDATE tracks SET album_uri = ? WHERE album = ? AND album_artist = ? AND album_uri IS NULL;",
+        params![uri, record.title, record.artist],
+    ) {
+        Ok(x) => tracing::info!("Track album_uri updated successfully: {}", x),
+        Err(e) => tracing::error!(error = %e, "Error updating track album_uri"),
+    }
+
+    match conn.execute(
         "INSERT OR IGNORE INTO albums (
                         id,
                         title,
