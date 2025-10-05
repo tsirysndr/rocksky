@@ -84,7 +84,7 @@ impl DuckdbRepo {
                 };
 
                 if let Err(e) = result {
-                    eprintln!("Error processing save message: {:?}", e);
+                    tracing::error!(error = %e, "Error saving record to DuckDB");
                 }
             }
         });
