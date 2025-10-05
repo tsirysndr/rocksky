@@ -54,7 +54,7 @@ pub struct DuckdbRepo {
 
 impl DuckdbRepo {
     pub async fn new() -> Result<Self, Error> {
-        let (save_tx, mut save_rx) = tokio::sync::mpsc::channel::<SaveMessage>(100);
+        let (save_tx, mut save_rx) = tokio::sync::mpsc::channel::<SaveMessage>(1);
 
         let conn = Arc::new(Mutex::new(duckdb::Connection::open(DB_PATH)?));
         let conn_clone = conn.clone();
