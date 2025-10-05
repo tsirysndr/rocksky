@@ -308,7 +308,7 @@ pub fn save_scrobble(
     }
 
     match conn.execute(
-        "INSERT INTO scrobbles (
+        "INSERT OR IGNORE INTO scrobbles (
               id,
               user_id,
               track_id,
