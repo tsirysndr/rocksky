@@ -32,6 +32,11 @@ fn cli() -> Command {
         .subcommand(Command::new("spotify").about("Start Spotify Listener Service"))
         .subcommand(Command::new("tracklist").about("Start User Current Track Queue Service"))
         .subcommand(Command::new("webscrobbler").about("Start Webscrobbler API"))
+        .subcommand(
+            Command::new("pull")
+                .about("Pull data from a remote PostgreSQL database to your local PostgresSQL instance")
+                .long_about("Pull data from a remote PostgreSQL database to your local PostgresSQL instance. Ensure that the SOURCE_POSTGRES_URL environment variable is set to your remote PostgreSQL connection string."),
+        )
 }
 
 #[tokio::main]
@@ -84,6 +89,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Some(("webscrobbler", _)) => {
             cmd::webscrobbler::start_webscrobbler_service().await?;
+        }
+        Some(("pull", _)) => {
+            cmd::pull::pull_data().await?;
         }
         _ => {
             println!("No valid subcommand was used. Use --help to see available commands.");

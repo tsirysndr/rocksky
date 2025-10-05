@@ -4968,6 +4968,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "rocksky-pgpull"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "owo-colors",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "rocksky-playlists"
 version = "0.1.0"
 dependencies = [
@@ -5126,6 +5140,7 @@ dependencies = [
  "rocksky-dropbox",
  "rocksky-googledrive",
  "rocksky-jetstream",
+ "rocksky-pgpull",
  "rocksky-playlists",
  "rocksky-scrobbler",
  "rocksky-spotify",
