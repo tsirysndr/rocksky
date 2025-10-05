@@ -15,8 +15,8 @@ pub fn save_artist(
     let artist_hash = sha256::digest(record.name.to_lowercase());
 
     match conn.execute(
-        "UPDATE artists SET uri = ?, picture = ? WHERE sha256 = ? AND URI IS NULL;",
-        params![uri, record.picture_url, artist_hash],
+        "UPDATE artists SET uri = ?, picture = ? WHERE name = ? AND uri IS NULL;",
+        params![uri, record.picture_url, record.name],
     ) {
         Ok(x) => {
             tracing::info!("Artist URI updated successfully: {}", x);

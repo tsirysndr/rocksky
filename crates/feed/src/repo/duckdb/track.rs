@@ -16,8 +16,8 @@ pub fn save_track(
     );
 
     match conn.execute(
-        "UPDATE tracks SET uri = ? WHERE sha256 = ? AND uri IS NULL;",
-        params![uri, track_hash],
+        "UPDATE tracks SET uri = ? WHERE title = ? AND artist = ? AND album = ? AND uri IS NULL;",
+        params![uri, record.title, record.artist, record.album],
     ) {
         Ok(x) => {
             tracing::info!("Track URI updated successfully: {}", x);
