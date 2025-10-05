@@ -162,8 +162,12 @@ pub fn save_scrobble(
                 duration,
                 mb_id,
                 uri,
+                album_uri,
+                artist_uri,
                 sha256
             ) VALUES (
+                ?,
+                ?,
                 ?,
                 ?,
                 ?,
@@ -205,6 +209,8 @@ pub fn save_scrobble(
             record.duration,
             record.mbid,
             record.song_uri,
+            record.album_uri,
+            record.artist_uri,
             track_hash,
         ],
     ) {
