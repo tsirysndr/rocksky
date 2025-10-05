@@ -13,6 +13,7 @@ use super::Repo;
 use crate::r2d2_duckdb::DuckDBConnectionManager;
 use anyhow::Error;
 use async_trait::async_trait;
+use tokio::sync::mpsc::Sender;
 
 pub mod album;
 pub mod artist;
@@ -22,31 +23,98 @@ pub mod user;
 
 pub const DB_PATH: &str = "./rocksky-feed.ddb";
 
+#[derive(Debug)]
+enum SaveMessage {
+    Album {
+        uri: String,
+        record: AlbumRecord,
+    },
+    Artist {
+        uri: String,
+        record: ArtistRecord,
+    },
+    Scrobble {
+        did: String,
+        uri: String,
+        record: ScrobbleRecord,
+    },
+    Track {
+        uri: String,
+        record: SongRecord,
+    },
+    User {
+        did: String,
+    },
+}
+
 #[derive(Clone)]
 pub struct DuckdbRepo {
     pool: r2d2::Pool<DuckDBConnectionManager>,
-    mutex: Arc<Mutex<()>>,
+    save_tx: Sender<SaveMessage>,
 }
 
 impl DuckdbRepo {
     pub async fn new() -> Result<Self, Error> {
+        let (save_tx, mut save_rx) = tokio::sync::mpsc::channel::<SaveMessage>(100);
+
         let manager = DuckDBConnectionManager::file(DB_PATH);
         let pool = r2d2::Pool::builder().build(manager)?;
-        Ok(Self {
-            pool,
-            mutex: Arc::new(Mutex::new(())),
-        })
+
+        let pool_clone = pool.clone();
+
+        tokio::spawn(async move {
+            let mutex = Arc::new(Mutex::new(()));
+            while let Some(msg) = save_rx.recv().await {
+                let result = match msg {
+                    SaveMessage::Album { uri, record } => {
+                        save_album(pool_clone.clone(), mutex.clone(), &uri, record).await
+                    }
+                    SaveMessage::Artist { uri, record } => {
+                        save_artist(pool_clone.clone(), mutex.clone(), &uri, record).await
+                    }
+                    SaveMessage::Scrobble { did, uri, record } => {
+                        save_scrobble(pool_clone.clone(), mutex.clone(), &did, &uri, record).await
+                    }
+                    SaveMessage::Track { uri, record } => {
+                        save_track(pool_clone.clone(), mutex.clone(), &uri, record).await
+                    }
+                    SaveMessage::User { did } => {
+                        save_user(pool_clone.clone(), mutex.clone(), &did).await
+                    }
+                };
+
+                if let Err(e) = result {
+                    eprintln!("Error processing save message: {:?}", e);
+                }
+            }
+        });
+
+        Ok(Self { pool, save_tx })
     }
 }
 
 #[async_trait]
 impl Repo for DuckdbRepo {
     async fn insert_album(self, uri: &str, record: AlbumRecord) -> Result<(), anyhow::Error> {
-        save_album(self.pool.clone(), uri, record).await
+        self.save_tx
+            .send(SaveMessage::Album {
+                uri: uri.to_string(),
+                record,
+            })
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to send album save message: {}", e))?;
+        Ok(())
     }
 
     async fn insert_artist(self, uri: &str, record: ArtistRecord) -> Result<(), anyhow::Error> {
-        save_artist(self.pool.clone(), uri, record).await
+        self.save_tx
+            .send(SaveMessage::Artist {
+                uri: uri.to_string(),
+                record,
+            })
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to send artist save message: {}", e))?;
+        Ok(())
     }
 
     async fn insert_scrobble(
@@ -55,15 +123,36 @@ impl Repo for DuckdbRepo {
         uri: &str,
         record: ScrobbleRecord,
     ) -> Result<(), anyhow::Error> {
-        save_scrobble(self.pool.clone(), self.mutex.clone(), did, uri, record).await
+        self.save_tx
+            .send(SaveMessage::Scrobble {
+                did: did.to_string(),
+                uri: uri.to_string(),
+                record,
+            })
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to send scrobble save message: {}", e))?;
+        Ok(())
     }
 
     async fn insert_track(self, uri: &str, record: SongRecord) -> Result<(), anyhow::Error> {
-        save_track(self.pool.clone(), uri, record).await
+        self.save_tx
+            .send(SaveMessage::Track {
+                uri: uri.to_string(),
+                record,
+            })
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to send track save message: {}", e))?;
+        Ok(())
     }
 
     async fn insert_user(self, did: &str) -> Result<(), anyhow::Error> {
-        save_user(self.pool.clone(), did).await
+        self.save_tx
+            .send(SaveMessage::User {
+                did: did.to_string(),
+            })
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to send user save message: {}", e))?;
+        Ok(())
     }
 
     async fn get_albums(self) -> Result<(), anyhow::Error> {
