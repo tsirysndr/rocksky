@@ -1,12 +1,16 @@
+use std::sync::{Arc, Mutex};
+
 use crate::{r2d2_duckdb::DuckDBConnectionManager, types::ArtistRecord};
 use anyhow::Error;
 use duckdb::params;
 
 pub async fn save_artist(
     pool: r2d2::Pool<DuckDBConnectionManager>,
+    mutex: Arc<Mutex<()>>,
     uri: &str,
     record: ArtistRecord,
 ) -> Result<(), Error> {
+    let _lock = mutex.lock().unwrap();
     let uri = uri.to_string();
     let conn = pool.get()?;
 

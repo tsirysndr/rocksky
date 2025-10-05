@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use crate::r2d2_duckdb::DuckDBConnectionManager;
 use crate::types::AlbumRecord;
 use anyhow::Error;
@@ -5,9 +7,11 @@ use duckdb::params;
 
 pub async fn save_album(
     pool: r2d2::Pool<DuckDBConnectionManager>,
+    mutex: Arc<Mutex<()>>,
     uri: &str,
     record: AlbumRecord,
 ) -> Result<(), Error> {
+    let _lock = mutex.lock().unwrap();
     let uri = uri.to_string();
     let conn = pool.get()?;
 
