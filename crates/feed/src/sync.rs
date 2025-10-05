@@ -2,7 +2,7 @@ use std::env;
 
 use anyhow::Error;
 use owo_colors::OwoColorize;
-use sqlx::postgres::{PgPoolOptions, PgRow};
+use sqlx::postgres::PgPoolOptions;
 use sqlx::Row;
 
 use crate::repo::{Repo, RepoImpl};
@@ -11,37 +11,38 @@ use crate::types::ScrobbleRecord;
 pub async fn sync_scrobbles(ddb: RepoImpl) -> Result<(), Error> {
     tracing::info!("Starting scrobble synchronization...");
 
+    let repo = ddb.clone();
+    repo.create_tables().await?;
+
     let pool = PgPoolOptions::new()
         .max_connections(10)
         .connect(&env::var("XATA_POSTGRES_URL")?)
         .await?;
 
-    let (tx, mut rx) = tokio::sync::mpsc::channel::<PgRow>(100);
-
     let pool_clone = pool.clone();
-    let handle = tokio::spawn(async move {
-        const BATCH_SIZE: i64 = 1000;
 
-        let total_scrobbles: (i64,) =
-            sqlx::query_as("SELECT COUNT(*) FROM scrobbles WHERE uri IS NOT NULL")
-                .fetch_one(&pool_clone)
-                .await?;
-        let total_scrobbles = total_scrobbles.0;
-        tracing::info!(total = %total_scrobbles.magenta(), "Total scrobbles to sync");
+    const BATCH_SIZE: i64 = 1000;
 
-        let start = env::var("SYNC_START_OFFSET")
-            .ok()
-            .and_then(|s| s.parse::<i64>().ok())
-            .unwrap_or(0);
+    let total_scrobbles: (i64,) =
+        sqlx::query_as("SELECT COUNT(*) FROM scrobbles WHERE uri IS NOT NULL")
+            .fetch_one(&pool_clone)
+            .await?;
+    let total_scrobbles = total_scrobbles.0;
+    tracing::info!(total = %total_scrobbles.magenta(), "Total scrobbles to sync");
 
-        for offset in (start..total_scrobbles).step_by(BATCH_SIZE as usize) {
-            tracing::info!(
-                offset = %(offset).magenta(),
-                end = %(offset + BATCH_SIZE).magenta(),
-                "Syncing scrobbles batch:",
-            );
-            let result = sqlx::query(
-                r#"
+    let start = env::var("SYNC_START_OFFSET")
+        .ok()
+        .and_then(|s| s.parse::<i64>().ok())
+        .unwrap_or(0);
+
+    for offset in (start..total_scrobbles).step_by(BATCH_SIZE as usize) {
+        tracing::info!(
+            offset = %(offset).magenta(),
+            end = %(offset + BATCH_SIZE).magenta(),
+            "Syncing scrobbles batch:",
+        );
+        let result = sqlx::query(
+            r#"
       SELECT
         s.xata_id,
         s.user_id,
@@ -71,97 +72,72 @@ pub async fn sync_scrobbles(ddb: RepoImpl) -> Result<(), Error> {
       ORDER BY s.timestamp DESC
       LIMIT $1 OFFSET $2
     "#,
-            )
-            .bind(BATCH_SIZE)
-            .bind(offset as i64)
-            .fetch_all(&pool_clone)
-            .await?;
+        )
+        .bind(BATCH_SIZE)
+        .bind(offset as i64)
+        .fetch_all(&pool_clone)
+        .await?;
 
-            for row in result {
-                tx.send(row).await?;
+        for row in result {
+            tracing::info!(
+                count = %offset.magenta(),
+                total = %total_scrobbles.magenta(),
+                title = %row.get::<String, _>("title").cyan(),
+                did = %row.get::<String, _>("did"),
+                "Inserting scrobble..."
+            );
+
+            let scrobble_uri = row.get::<Option<String>, _>("uri");
+            if scrobble_uri.is_none() {
+                tracing::warn!(count = %offset.magenta(), "Skipping scrobble with no URI");
+                continue;
+            }
+            let scrobble_uri = scrobble_uri.unwrap();
+
+            let did = row.get::<String, _>("did");
+            let record: ScrobbleRecord = ScrobbleRecord {
+                track_number: row.get::<Option<i32>, _>("track_number"),
+                disc_number: row.get::<Option<i32>, _>("disc_number"),
+                title: row.get::<String, _>("title"),
+                artist: row.get::<String, _>("artist"),
+                album_artist: row.get::<String, _>("album_artist"),
+                album_art_url: row.get::<Option<String>, _>("album_art"),
+                album: row.get::<String, _>("album"),
+                duration: row.get::<i32, _>("duration"),
+                release_date: row.get::<Option<String>, _>("release_date"),
+                year: row.get::<Option<i32>, _>("year"),
+                genre: row.get::<Option<String>, _>("genre"),
+                tags: row.get::<Option<Vec<String>>, _>("genres"),
+                composer: row.get::<Option<String>, _>("composer"),
+                lyrics: row.get::<Option<String>, _>("lyrics"),
+                copyright_message: row.get::<Option<String>, _>("copyright_message"),
+                wiki: None,
+                youtube_link: row.get::<Option<String>, _>("youtube_link"),
+                spotify_link: row.get::<Option<String>, _>("spotify_link"),
+                tidal_link: row.get::<Option<String>, _>("tidal_link"),
+                apple_music_link: row.get::<Option<String>, _>("apple_music_link"),
+                created_at: row
+                    .get::<chrono::DateTime<chrono::Utc>, _>("timestamp")
+                    .to_rfc3339(),
+                label: row.get::<Option<String>, _>("label"),
+                mbid: row.get::<Option<String>, _>("mb_id"),
+                artist_picture: row.get::<Option<String>, _>("picture"),
+                artist_uri: row.get::<Option<String>, _>("artist_uri"),
+                album_uri: row.get::<Option<String>, _>("album_uri"),
+                song_uri: row.get::<Option<String>, _>("track_uri"),
+            };
+
+            let repo = ddb.clone();
+            match repo.insert_scrobble(&did, &scrobble_uri, record).await {
+                Ok(_) => {
+                    tracing::info!(count = %offset.magenta(), "Scrobble inserted successfully")
+                }
+                Err(e) => {
+                    tracing::error!(error = %e, "Error inserting scrobble");
+                }
             }
         }
-
-        Ok::<(), Error>(())
-    });
-
-    let mut i = env::var("SYNC_START_OFFSET")
-        .ok()
-        .and_then(|s| s.parse::<i64>().ok())
-        .unwrap_or(0)
-        + 1;
-
-    let total_scrobbles: (i64,) =
-        sqlx::query_as("SELECT COUNT(*) FROM scrobbles WHERE uri IS NOT NULL")
-            .fetch_one(&pool)
-            .await?;
-    let total_scrobbles = total_scrobbles.0;
-
-    let repo = ddb.clone();
-    repo.create_tables().await?;
-
-    while let Some(row) = rx.recv().await {
-        // println!("{:#?}", row);
-        tracing::info!(
-            count = %i.magenta(),
-            total = %total_scrobbles.magenta(),
-            title = %row.get::<String, _>("title").cyan(),
-            did = %row.get::<String, _>("did"),
-            "Inserting scrobble..."
-        );
-
-        let scrobble_uri = row.get::<Option<String>, _>("uri");
-        if scrobble_uri.is_none() {
-            tracing::warn!(count = %i.magenta(), "Skipping scrobble with no URI");
-            i += 1;
-            continue;
-        }
-        let scrobble_uri = scrobble_uri.unwrap();
-
-        let did = row.get::<String, _>("did");
-        let record: ScrobbleRecord = ScrobbleRecord {
-            track_number: row.get::<Option<i32>, _>("track_number"),
-            disc_number: row.get::<Option<i32>, _>("disc_number"),
-            title: row.get::<String, _>("title"),
-            artist: row.get::<String, _>("artist"),
-            album_artist: row.get::<String, _>("album_artist"),
-            album_art_url: row.get::<Option<String>, _>("album_art"),
-            album: row.get::<String, _>("album"),
-            duration: row.get::<i32, _>("duration"),
-            release_date: row.get::<Option<String>, _>("release_date"),
-            year: row.get::<Option<i32>, _>("year"),
-            genre: row.get::<Option<String>, _>("genre"),
-            tags: row.get::<Option<Vec<String>>, _>("genres"),
-            composer: row.get::<Option<String>, _>("composer"),
-            lyrics: row.get::<Option<String>, _>("lyrics"),
-            copyright_message: row.get::<Option<String>, _>("copyright_message"),
-            wiki: None,
-            youtube_link: row.get::<Option<String>, _>("youtube_link"),
-            spotify_link: row.get::<Option<String>, _>("spotify_link"),
-            tidal_link: row.get::<Option<String>, _>("tidal_link"),
-            apple_music_link: row.get::<Option<String>, _>("apple_music_link"),
-            created_at: row
-                .get::<chrono::DateTime<chrono::Utc>, _>("timestamp")
-                .to_rfc3339(),
-            label: row.get::<Option<String>, _>("label"),
-            mbid: row.get::<Option<String>, _>("mb_id"),
-            artist_picture: row.get::<Option<String>, _>("picture"),
-            artist_uri: row.get::<Option<String>, _>("artist_uri"),
-            album_uri: row.get::<Option<String>, _>("album_uri"),
-            song_uri: row.get::<Option<String>, _>("track_uri"),
-        };
-
-        let repo = ddb.clone();
-        match repo.insert_scrobble(&did, &scrobble_uri, record).await {
-            Ok(_) => tracing::info!(count = %i.magenta(), "Scrobble inserted successfully"),
-            Err(e) => {
-                tracing::error!(error = %e, "Error inserting scrobble");
-            }
-        }
-
-        i += 1;
     }
 
-    handle.await??;
     Ok(())
 }
