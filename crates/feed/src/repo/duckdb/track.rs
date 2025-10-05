@@ -1,18 +1,16 @@
 use std::sync::{Arc, Mutex};
 
-use crate::{r2d2_duckdb::DuckDBConnectionManager, types::SongRecord};
+use crate::types::SongRecord;
 use anyhow::Error;
 use duckdb::params;
 
-pub async fn save_track(
-    pool: r2d2::Pool<DuckDBConnectionManager>,
-    mutex: Arc<Mutex<()>>,
+pub fn save_track(
+    conn: Arc<Mutex<duckdb::Connection>>,
     uri: &str,
     record: SongRecord,
 ) -> Result<(), Error> {
-    let _lock = mutex.lock().unwrap();
     let uri = uri.to_string();
-    let conn = pool.get()?;
+    let conn = conn.lock().unwrap();
     let track_hash = sha256::digest(
         format!("{} - {} - {}", record.title, record.artist, record.album).to_lowercase(),
     );

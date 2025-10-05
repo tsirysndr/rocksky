@@ -10,7 +10,6 @@ use crate::{
 };
 
 use super::Repo;
-use crate::r2d2_duckdb::DuckDBConnectionManager;
 use anyhow::Error;
 use async_trait::async_trait;
 use tokio::sync::mpsc::Sender;
@@ -49,7 +48,7 @@ enum SaveMessage {
 
 #[derive(Clone)]
 pub struct DuckdbRepo {
-    pool: r2d2::Pool<DuckDBConnectionManager>,
+    conn: Arc<Mutex<duckdb::Connection>>,
     save_tx: Sender<SaveMessage>,
 }
 
@@ -57,30 +56,24 @@ impl DuckdbRepo {
     pub async fn new() -> Result<Self, Error> {
         let (save_tx, mut save_rx) = tokio::sync::mpsc::channel::<SaveMessage>(100);
 
-        let manager = DuckDBConnectionManager::file(DB_PATH);
-        let pool = r2d2::Pool::builder().max_size(1).build(manager)?;
-
-        let pool_clone = pool.clone();
-
+        let conn = Arc::new(Mutex::new(duckdb::Connection::open(DB_PATH)?));
+        let conn_clone = conn.clone();
         tokio::spawn(async move {
-            let mutex = Arc::new(Mutex::new(()));
             while let Some(msg) = save_rx.recv().await {
                 let result = match msg {
                     SaveMessage::Album { uri, record } => {
-                        save_album(pool_clone.clone(), mutex.clone(), &uri, record).await
+                        save_album(conn_clone.clone(), &uri, record)
                     }
                     SaveMessage::Artist { uri, record } => {
-                        save_artist(pool_clone.clone(), mutex.clone(), &uri, record).await
+                        save_artist(conn_clone.clone(), &uri, record)
                     }
                     SaveMessage::Scrobble { did, uri, record } => {
-                        save_scrobble(pool_clone.clone(), mutex.clone(), &did, &uri, record).await
+                        save_scrobble(conn_clone.clone(), &did, &uri, record)
                     }
                     SaveMessage::Track { uri, record } => {
-                        save_track(pool_clone.clone(), mutex.clone(), &uri, record).await
+                        save_track(conn_clone.clone(), &uri, record)
                     }
-                    SaveMessage::User { did } => {
-                        save_user(pool_clone.clone(), mutex.clone(), &did).await
-                    }
+                    SaveMessage::User { did } => save_user(conn_clone.clone(), &did),
                 };
 
                 if let Err(e) = result {
@@ -89,7 +82,7 @@ impl DuckdbRepo {
             }
         });
 
-        Ok(Self { pool, save_tx })
+        Ok(Self { conn, save_tx })
     }
 }
 
@@ -192,7 +185,7 @@ impl Repo for DuckdbRepo {
     }
 
     async fn create_tables(self) -> Result<(), anyhow::Error> {
-        let conn = self.pool.get()?;
+        let conn = self.conn.lock().unwrap();
         conn.execute_batch(
             "BEGIN;
       CREATE TABLE IF NOT EXISTS artists (
