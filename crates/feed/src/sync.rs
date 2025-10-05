@@ -35,6 +35,7 @@ pub async fn sync_scrobbles(ddb: RepoImpl) -> Result<(), Error> {
         .and_then(|s| s.parse::<i64>().ok())
         .unwrap_or(0);
 
+    let mut i = 1;
     for offset in (start..total_scrobbles).step_by(BATCH_SIZE as usize) {
         tracing::info!(
             offset = %(offset).magenta(),
@@ -80,7 +81,7 @@ pub async fn sync_scrobbles(ddb: RepoImpl) -> Result<(), Error> {
 
         for row in result {
             tracing::info!(
-                count = %offset.magenta(),
+                count = %i.magenta(),
                 total = %total_scrobbles.magenta(),
                 title = %row.get::<String, _>("title").cyan(),
                 did = %row.get::<String, _>("did"),
@@ -89,7 +90,8 @@ pub async fn sync_scrobbles(ddb: RepoImpl) -> Result<(), Error> {
 
             let scrobble_uri = row.get::<Option<String>, _>("uri");
             if scrobble_uri.is_none() {
-                tracing::warn!(count = %offset.magenta(), "Skipping scrobble with no URI");
+                tracing::warn!(count = %i.magenta(), "Skipping scrobble with no URI");
+                i += 1;
                 continue;
             }
             let scrobble_uri = scrobble_uri.unwrap();
@@ -130,12 +132,14 @@ pub async fn sync_scrobbles(ddb: RepoImpl) -> Result<(), Error> {
             let repo = ddb.clone();
             match repo.insert_scrobble(&did, &scrobble_uri, record).await {
                 Ok(_) => {
-                    tracing::info!(count = %offset.magenta(), "Scrobble inserted successfully")
+                    tracing::info!(count = %i.magenta(), "Scrobble inserted successfully")
                 }
                 Err(e) => {
                     tracing::error!(error = %e, "Error inserting scrobble");
                 }
             }
+
+            i += 1;
         }
     }
 
