@@ -1,11 +1,14 @@
-use std::sync::Arc;
+use std::{sync::Arc, thread};
 
 use anyhow::Error;
 use duckdb::{params, OptionalExt};
 use owo_colors::OwoColorize;
 use std::sync::Mutex;
 
-use crate::{did::did_to_profile, types::ScrobbleRecord};
+use crate::{
+    did::did_to_profile,
+    types::{Profile, ScrobbleRecord},
+};
 
 pub fn save_scrobble(
     conn: Arc<Mutex<duckdb::Connection>>,
@@ -23,18 +26,30 @@ pub fn save_scrobble(
     let mut user = conn.prepare("SELECT id FROM users WHERE did = ?")?;
     let user_id: Option<String> = user.query_row(params![did], |row| row.get(0)).optional()?;
 
+    let did_clone = did.clone();
     if user_id.is_none() {
-        let rt = tokio::runtime::Runtime::new()?;
-        let profile = rt.block_on(did_to_profile(&did))?;
+        let handle = thread::spawn(move || {
+            let rt = tokio::runtime::Runtime::new()?;
+            let profile = rt.block_on(did_to_profile(&did_clone))?;
 
-        let avatar = profile.avatar.map(|blob| {
-            format!(
-                "https://cdn.bsky.app/img/avatar/plain/{}/{}@{}",
-                did,
-                blob.r#ref.link,
-                blob.mime_type.split('/').last().unwrap_or("jpeg")
-            )
+            let avatar = profile.avatar.map(|blob| {
+                format!(
+                    "https://cdn.bsky.app/img/avatar/plain/{}/{}@{}",
+                    did_clone,
+                    blob.r#ref.link,
+                    blob.mime_type.split('/').last().unwrap_or("jpeg")
+                )
+            });
+            Ok::<(Option<String>, Option<String>, Option<String>), Error>((
+                profile.display_name,
+                profile.handle,
+                avatar,
+            ))
         });
+
+        let (display_name, handle, avatar) = handle
+            .join()
+            .map_err(|e| anyhow::anyhow!("Thread panicked: {:?}", e))??;
 
         conn.execute(
             "INSERT OR IGNORE INTO users (
@@ -51,9 +66,9 @@ pub fn save_scrobble(
                   ?)",
             params![
                 xid::new().to_string(),
-                profile.display_name.unwrap_or_default(),
+                display_name.unwrap_or_default(),
                 did,
-                profile.handle.unwrap_or_default(),
+                handle.unwrap_or_default(),
                 avatar,
             ],
         )?;
