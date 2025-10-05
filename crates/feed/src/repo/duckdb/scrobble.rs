@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use anyhow::Error;
 use duckdb::{params, OptionalExt};
+use owo_colors::OwoColorize;
 use std::sync::Mutex;
 
 use crate::{did::did_to_profile, types::ScrobbleRecord};
@@ -335,8 +336,10 @@ pub fn save_scrobble(
             record.created_at,
         ],
     ) {
-        Ok(x) => tracing::info!("Scrobble inserted {}", x),
-        Err(e) => tracing::error!(error = %e, "Error inserting scrobble"),
+        Ok(x) => tracing::info!(title = %record.title.cyan(), "Scrobble inserted {}", x),
+        Err(e) => {
+            tracing::error!(title = %record.title.cyan(),error = %e, "Error inserting scrobble")
+        }
     }
 
     tracing::info!("Scrobble insertion process completed for user: {}", did);
