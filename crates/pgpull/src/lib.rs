@@ -1,5 +1,8 @@
 use std::env;
 
+mod repo;
+mod xata;
+
 use anyhow::Error;
 
 pub async fn pull_data() -> Result<(), Error> {
