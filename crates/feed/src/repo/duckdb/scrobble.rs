@@ -5,10 +5,7 @@ use duckdb::{params, OptionalExt};
 use owo_colors::OwoColorize;
 use std::sync::Mutex;
 
-use crate::{
-    did::did_to_profile,
-    types::{Profile, ScrobbleRecord},
-};
+use crate::{did::did_to_profile, types::ScrobbleRecord};
 
 pub fn save_scrobble(
     conn: Arc<Mutex<duckdb::Connection>>,
