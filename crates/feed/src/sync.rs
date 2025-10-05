@@ -102,7 +102,13 @@ pub async fn sync_scrobbles(ddb: RepoImpl) -> Result<(), Error> {
 
     while let Some(row) = rx.recv().await {
         // println!("{:#?}", row);
-        tracing::info!(count = %i.magenta(), total = %total_scrobbles.magenta(), "Inserting scrobble...");
+        tracing::info!(
+            count = %i.magenta(),
+            total = %total_scrobbles.magenta(),
+            title = %row.get::<String, _>("title").cyan(),
+            did = %row.get::<String, _>("did"),
+            "Inserting scrobble..."
+        );
 
         let scrobble_uri = row.get::<Option<String>, _>("uri");
         if scrobble_uri.is_none() {
