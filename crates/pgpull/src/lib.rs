@@ -9,21 +9,176 @@ use sqlx::{postgres::PgPoolOptions, PgPool};
 
 const MAX_CONNECTIONS: u32 = 5;
 const BATCH_SIZE: usize = 1000;
-
+const BACKUP_URL: &str = "https://backup.rocksky.app/rocksky-backup.sql";
+const BACKUP_PATH: &str = "/tmp/rocksky-backup.sql";
 #[derive(Clone)]
 pub struct DatabasePools {
     pub source: PgPool,
     pub destination: PgPool,
 }
 
-async fn setup_database_pools() -> Result<DatabasePools, Error> {
+pub async fn pull_data() -> Result<(), Error> {
     if env::var("SOURCE_POSTGRES_URL").is_err() {
-        tracing::error!(
-            "SOURCE_POSTGRES_URL is not set. Please set it to your PostgreSQL connection string."
+        tracing::info!(
+            backup = %BACKUP_URL.magenta(),
+            "SOURCE_POSTGRES_URL not set, downloading backup from Rocksky"
         );
-        std::process::exit(1);
+        download_backup().await?;
+        return Ok(());
     }
 
+    let pools = setup_database_pools().await?;
+
+    // Sync core entities first
+    let album_sync = tokio::spawn({
+        let pools = pools.clone();
+        async move { sync_albums(&pools).await }
+    });
+
+    let artist_sync = tokio::spawn({
+        let pools = pools.clone();
+        async move { sync_artists(&pools).await }
+    });
+
+    let track_sync = tokio::spawn({
+        let pools = pools.clone();
+        async move { sync_tracks(&pools).await }
+    });
+
+    let user_sync = tokio::spawn({
+        let pools = pools.clone();
+        async move { sync_users(&pools).await }
+    });
+
+    let (album_sync, artist_sync, track_sync, user_sync) =
+        tokio::join!(album_sync, artist_sync, track_sync, user_sync);
+
+    album_sync.context("Album sync task failed")??;
+    artist_sync.context("Artist sync task failed")??;
+    track_sync.context("Track sync task failed")??;
+    user_sync.context("User sync task failed")??;
+
+    // Sync relationship entities
+    let playlist_sync = tokio::spawn({
+        let pools = pools.clone();
+        async move { sync_playlists(&pools).await }
+    });
+
+    let loved_track_sync = tokio::spawn({
+        let pools = pools.clone();
+        async move { sync_loved_tracks(&pools).await }
+    });
+
+    let scrobble_sync = tokio::spawn({
+        let pools = pools.clone();
+        async move { sync_scrobbles(&pools).await }
+    });
+
+    let (loved_track_sync, playlist_sync, scrobble_sync) =
+        tokio::join!(loved_track_sync, playlist_sync, scrobble_sync);
+    loved_track_sync.context("Loved track sync task failed")??;
+    playlist_sync.context("Playlist sync task failed")??;
+    scrobble_sync.context("Scrobble sync task failed")??;
+
+    // Sync junction tables
+    let album_track_sync = tokio::spawn({
+        let pools = pools.clone();
+        async move { sync_album_tracks(&pools).await }
+    });
+
+    let artist_album_sync = tokio::spawn({
+        let pools = pools.clone();
+        async move { sync_artist_albums(&pools).await }
+    });
+
+    let artist_track_sync = tokio::spawn({
+        let pools = pools.clone();
+        async move { sync_artist_tracks(&pools).await }
+    });
+
+    let playlist_track_sync = tokio::spawn({
+        let pools = pools.clone();
+        async move { sync_playlist_tracks(&pools).await }
+    });
+
+    let user_album_sync = tokio::spawn({
+        let pools = pools.clone();
+        async move { sync_user_albums(&pools).await }
+    });
+
+    let user_artist_sync = tokio::spawn({
+        let pools = pools.clone();
+        async move { sync_user_artists(&pools).await }
+    });
+
+    let user_track_sync = tokio::spawn({
+        let pools = pools.clone();
+        async move { sync_user_tracks(&pools).await }
+    });
+
+    let user_playlist_sync = tokio::spawn({
+        let pools = pools.clone();
+        async move { sync_user_playlists(&pools).await }
+    });
+
+    let (
+        album_track_sync,
+        artist_album_sync,
+        artist_track_sync,
+        playlist_track_sync,
+        user_album_sync,
+        user_artist_sync,
+        user_track_sync,
+        user_playlist_sync,
+    ) = tokio::join!(
+        album_track_sync,
+        artist_album_sync,
+        artist_track_sync,
+        playlist_track_sync,
+        user_album_sync,
+        user_artist_sync,
+        user_track_sync,
+        user_playlist_sync
+    );
+
+    album_track_sync.context("Album track sync task failed")??;
+    artist_album_sync.context("Artist album sync task failed")??;
+    artist_track_sync.context("Artist track sync task failed")??;
+    playlist_track_sync.context("Playlist track sync task failed")??;
+    user_album_sync.context("User album sync task failed")??;
+    user_artist_sync.context("User artist sync task failed")??;
+    user_track_sync.context("User track sync task failed")??;
+    user_playlist_sync.context("User playlist sync task failed")??;
+
+    Ok(())
+}
+
+async fn download_backup() -> Result<(), Error> {
+    let _ = tokio::fs::remove_file(BACKUP_PATH).await;
+
+    tokio::process::Command::new("curl")
+        .arg("-o")
+        .arg(BACKUP_PATH)
+        .arg(BACKUP_URL)
+        .stderr(std::process::Stdio::inherit())
+        .stdout(std::process::Stdio::inherit())
+        .spawn()?
+        .wait()
+        .await?;
+
+    tokio::process::Command::new("psql")
+        .arg(&env::var("XATA_POSTGRES_URL")?)
+        .arg("-f")
+        .arg(BACKUP_PATH)
+        .stderr(std::process::Stdio::inherit())
+        .stdout(std::process::Stdio::inherit())
+        .spawn()?
+        .wait()
+        .await?;
+    Ok(())
+}
+
+async fn setup_database_pools() -> Result<DatabasePools, Error> {
     let source = PgPoolOptions::new()
         .max_connections(MAX_CONNECTIONS)
         .connect(&env::var("SOURCE_POSTGRES_URL")?)
@@ -539,132 +694,5 @@ async fn sync_user_playlists(pools: &DatabasePools) -> Result<(), Error> {
             i += 1;
         }
     }
-    Ok(())
-}
-
-pub async fn pull_data() -> Result<(), Error> {
-    let pools = setup_database_pools().await?;
-
-    // Sync core entities first
-    let album_sync = tokio::spawn({
-        let pools = pools.clone();
-        async move { sync_albums(&pools).await }
-    });
-
-    let artist_sync = tokio::spawn({
-        let pools = pools.clone();
-        async move { sync_artists(&pools).await }
-    });
-
-    let track_sync = tokio::spawn({
-        let pools = pools.clone();
-        async move { sync_tracks(&pools).await }
-    });
-
-    let user_sync = tokio::spawn({
-        let pools = pools.clone();
-        async move { sync_users(&pools).await }
-    });
-
-    let (album_sync, artist_sync, track_sync, user_sync) =
-        tokio::join!(album_sync, artist_sync, track_sync, user_sync);
-
-    album_sync.context("Album sync task failed")??;
-    artist_sync.context("Artist sync task failed")??;
-    track_sync.context("Track sync task failed")??;
-    user_sync.context("User sync task failed")??;
-
-    // Sync relationship entities
-    let playlist_sync = tokio::spawn({
-        let pools = pools.clone();
-        async move { sync_playlists(&pools).await }
-    });
-
-    let loved_track_sync = tokio::spawn({
-        let pools = pools.clone();
-        async move { sync_loved_tracks(&pools).await }
-    });
-
-    let scrobble_sync = tokio::spawn({
-        let pools = pools.clone();
-        async move { sync_scrobbles(&pools).await }
-    });
-
-    let (loved_track_sync, playlist_sync, scrobble_sync) =
-        tokio::join!(loved_track_sync, playlist_sync, scrobble_sync);
-    loved_track_sync.context("Loved track sync task failed")??;
-    playlist_sync.context("Playlist sync task failed")??;
-    scrobble_sync.context("Scrobble sync task failed")??;
-
-    // Sync junction tables
-    let album_track_sync = tokio::spawn({
-        let pools = pools.clone();
-        async move { sync_album_tracks(&pools).await }
-    });
-
-    let artist_album_sync = tokio::spawn({
-        let pools = pools.clone();
-        async move { sync_artist_albums(&pools).await }
-    });
-
-    let artist_track_sync = tokio::spawn({
-        let pools = pools.clone();
-        async move { sync_artist_tracks(&pools).await }
-    });
-
-    let playlist_track_sync = tokio::spawn({
-        let pools = pools.clone();
-        async move { sync_playlist_tracks(&pools).await }
-    });
-
-    let user_album_sync = tokio::spawn({
-        let pools = pools.clone();
-        async move { sync_user_albums(&pools).await }
-    });
-
-    let user_artist_sync = tokio::spawn({
-        let pools = pools.clone();
-        async move { sync_user_artists(&pools).await }
-    });
-
-    let user_track_sync = tokio::spawn({
-        let pools = pools.clone();
-        async move { sync_user_tracks(&pools).await }
-    });
-
-    let user_playlist_sync = tokio::spawn({
-        let pools = pools.clone();
-        async move { sync_user_playlists(&pools).await }
-    });
-
-    let (
-        album_track_sync,
-        artist_album_sync,
-        artist_track_sync,
-        playlist_track_sync,
-        user_album_sync,
-        user_artist_sync,
-        user_track_sync,
-        user_playlist_sync,
-    ) = tokio::join!(
-        album_track_sync,
-        artist_album_sync,
-        artist_track_sync,
-        playlist_track_sync,
-        user_album_sync,
-        user_artist_sync,
-        user_track_sync,
-        user_playlist_sync
-    );
-
-    album_track_sync.context("Album track sync task failed")??;
-    artist_album_sync.context("Artist album sync task failed")??;
-    artist_track_sync.context("Artist track sync task failed")??;
-    playlist_track_sync.context("Playlist track sync task failed")??;
-    user_album_sync.context("User album sync task failed")??;
-    user_artist_sync.context("User artist sync task failed")??;
-    user_track_sync.context("User track sync task failed")??;
-    user_playlist_sync.context("User playlist sync task failed")??;
-
     Ok(())
 }
