@@ -89,50 +89,6 @@
       "outputs": [
         "./coverage/**"
       ]
-    },
-    "dev:analytics": {
-      "persistent": false,
-      "cache": false
-    },
-    "dev:connect": {
-      "persistent": false,
-      "cache": false
-    },
-    "dev:dropbox": {
-      "persistent": false,
-      "cache": false
-    },
-    "dev:googledrive": {
-      "persistent": false,
-      "cache": false
-    },
-    "dev:jetstream": {
-      "persistent": false,
-      "cache": false
-    },
-    "dev:playlists": {
-      "persistent": false,
-      "cache": false
-    },
-    "dev:scrobbler": {
-      "persistent": false,
-      "cache": false
-    },
-    "dev:spotify": {
-      "persistent": false,
-      "cache": false
-    },
-    "dev:storage": {
-      "persistent": false,
-      "cache": false
-    },
-    "dev:webscrobbler": {
-      "persistent": false,
-      "cache": false
-    },
-    "dev:tracklist": {
-      "persistent": false,
-      "cache": false
     }
   }
 }

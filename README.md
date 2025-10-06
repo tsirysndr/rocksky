@@ -86,15 +86,20 @@ A decentralized music tracking and discovery platform built on the AT Protocol ð
    ```bash
    turbo db:migrate --filter=@rocksky/api
    ```
-6. Start Analytics API:
+6. Populate database (Optional):
    ```bash
-   turbo dev:analytics
+   bun run db:pgpull
    ```
-7. Start jetstream:
+
+7. Start Analytics API:
    ```bash
-   turbo dev:jetstream
+   bun run dev:analytics
    ```
-8. Start the development server:
+8. Start jetstream:
+   ```bash
+   bun run dev:jetstream
+   ```
+9. Start the development server:
    ```bash
    turbo dev --filter=@rocksky/api --filter=@rocksky/web
    ```
