@@ -37,7 +37,6 @@
     "apps/doc",
     "apps/spotify-proxy",
     "apps/uploads",
-    "apps/xata-proxy",
-    "crates"
+    "apps/xata-proxy"
   ]
 }
