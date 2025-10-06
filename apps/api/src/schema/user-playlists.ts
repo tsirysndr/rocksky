@@ -1,6 +1,6 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
-import tracks from "./tracks";
+import playlists from "./playlists";
 import users from "./users";
 
 const userPlaylists = pgTable("user_playlists", {
@@ -10,9 +10,9 @@ const userPlaylists = pgTable("user_playlists", {
     .references(() => users.id),
   playlistId: text("playlist_id")
     .notNull()
-    .references(() => tracks.id),
+    .references(() => playlists.id),
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
-  uri: text("uri").unique().notNull(),
+  uri: text("uri").unique(),
 });
 
 export type SelectUserPlaylist = InferSelectModel<typeof userPlaylists>;

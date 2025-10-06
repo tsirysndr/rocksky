@@ -9,7 +9,7 @@ const googleDriveAccounts = pgTable("google_drive_accounts", {
   userId: text("user_id")
     .notNull()
     .references(() => users.id),
-  xataVersion: text("xata_version").notNull(),
+  xataVersion: text("xata_version"),
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
   updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
 });

@@ -13,7 +13,7 @@ const userArtists = pgTable("user_artists", {
     .references(() => artists.id),
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
   updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
-  xataVersion: integer("xata_version").notNull(),
+  xataVersion: integer("xata_version"),
   scrobbles: integer("scrobbles"),
   uri: text("uri").unique().notNull(),
 });

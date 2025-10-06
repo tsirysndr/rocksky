@@ -20,6 +20,7 @@ rocksky-scrobbler = { path = "../scrobbler" }
 rocksky-spotify = { path = "../spotify" }
 rocksky-tracklist = { path = "../tracklist" }
 rocksky-webscrobbler = { path = "../webscrobbler" }
+rocksky-pgpull = { path = "../pgpull" }
 tracing = "0.1.41"
 tracing-subscriber = "0.3.20"
 tracing-log = "0.2.0"

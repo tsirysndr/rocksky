@@ -1,5 +1,5 @@
 {
-  "id": "49adc24b-83c8-4065-8e13-80045e7f0f27",
+  "id": "6b33dcd0-52df-4403-bdc0-31517769923d",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -44,7 +44,7 @@
           "name": "xata_version",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         }
       },
       "indexes": {},
@@ -360,7 +360,7 @@
           "name": "xata_version",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         }
       },
       "indexes": {},
@@ -438,7 +438,7 @@
           "name": "xata_version",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         }
       },
       "indexes": {},
@@ -558,6 +558,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "genres": {
+          "name": "genres",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
         "xata_createdat": {
           "name": "xata_createdat",
           "type": "timestamp",
@@ -635,7 +641,7 @@
           "name": "xata_version",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "xata_createdat": {
           "name": "xata_createdat",
@@ -726,7 +732,7 @@
           "name": "xata_version",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "xata_createdat": {
           "name": "xata_createdat",
@@ -823,7 +829,7 @@
           "name": "xata_version",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "xata_createdat": {
           "name": "xata_createdat",
@@ -935,7 +941,7 @@
           "name": "xata_version",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "xata_createdat": {
           "name": "xata_createdat",
@@ -1020,7 +1026,7 @@
           "name": "xata_version",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "xata_createdat": {
           "name": "xata_createdat",
@@ -1111,7 +1117,7 @@
           "name": "xata_version",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "xata_createdat": {
           "name": "xata_createdat",
@@ -1202,7 +1208,7 @@
           "name": "xata_version",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "xata_createdat": {
           "name": "xata_createdat",
@@ -1314,7 +1320,7 @@
           "name": "xata_version",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "xata_createdat": {
           "name": "xata_createdat",
@@ -2232,7 +2238,7 @@
           "name": "xata_version",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "email": {
           "name": "email",
@@ -2304,7 +2310,7 @@
           "name": "xata_version",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "access_token": {
           "name": "access_token",
@@ -2576,20 +2582,6 @@
           "columns": [
             "uri"
           ]
-        },
-        "tracks_album_uri_unique": {
-          "name": "tracks_album_uri_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "album_uri"
-          ]
-        },
-        "tracks_artist_uri_unique": {
-          "name": "tracks_artist_uri_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "artist_uri"
-          ]
         }
       },
       "policies": {},
@@ -2636,7 +2628,7 @@
           "name": "xata_version",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "scrobbles": {
           "name": "scrobbles",
@@ -2734,7 +2726,7 @@
           "name": "xata_version",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "scrobbles": {
           "name": "scrobbles",
@@ -2911,7 +2903,7 @@
           "name": "xata_version",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "uri": {
           "name": "uri",
@@ -2989,7 +2981,7 @@
           "name": "display_name",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "handle": {
           "name": "handle",

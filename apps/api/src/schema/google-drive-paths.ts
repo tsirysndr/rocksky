@@ -9,7 +9,7 @@ const googleDrivePaths = pgTable("google_drive_paths", {
   name: text("name").notNull(),
   directoryId: text("directory_id").references(() => googleDriveDirectories.id),
   fileId: text("file_id").notNull().unique(),
-  xataVersion: text("xata_version").notNull(),
+  xataVersion: text("xata_version"),
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
   updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
 });

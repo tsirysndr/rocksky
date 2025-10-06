@@ -4,7 +4,7 @@ import users from "./users";
 
 const spotifyTokens = pgTable("spotify_tokens", {
   id: text("xata_id").primaryKey(),
-  xataVersion: integer("xata_version").notNull(),
+  xataVersion: integer("xata_version"),
   accessToken: text("access_token").notNull(),
   refreshToken: text("refresh_token").notNull(),
   userId: text("user_id")

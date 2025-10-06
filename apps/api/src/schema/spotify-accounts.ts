@@ -10,7 +10,7 @@ import users from "./users";
 
 const spotifyAccounts = pgTable("spotify_accounts", {
   id: text("xata_id").primaryKey(),
-  xataVersion: integer("xata_version").notNull(),
+  xataVersion: integer("xata_version"),
   email: text("email").notNull(),
   userId: text("user_id")
     .notNull()

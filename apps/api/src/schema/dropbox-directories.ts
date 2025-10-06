@@ -8,7 +8,7 @@ const dropboxDirectories = pgTable("dropbox_directories", {
   parentId: text("parent_id").references(() => dropboxDirectories.id),
   dropboxId: text("dropbox_id").notNull(),
   fileId: text("file_id").notNull().unique(),
-  xataVersion: text("xata_version").notNull(),
+  xataVersion: text("xata_version"),
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
   updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
 });
