@@ -92,8 +92,7 @@ pub async fn insert_album_track(
         r#"INSERT INTO album_tracks (
         xata_id,
         album_id,
-        track_id,
-        xata_createdat
+        track_id
     ) VALUES ($1, $2, $3)
       ON CONFLICT (xata_id) DO NOTHING"#,
     )

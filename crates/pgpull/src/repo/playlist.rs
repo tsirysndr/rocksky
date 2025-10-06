@@ -86,15 +86,13 @@ pub async fn insert_playlist_track(
         xata_id,
         playlist_id,
         track_id,
-        added_by,
         xata_createdat
-    ) VALUES ($1, $2, $3, $4, $5)
+    ) VALUES ($1, $2, $3, $4)
       ON CONFLICT (xata_id) DO NOTHING"#,
     )
     .bind(&playlist_track.xata_id)
     .bind(&playlist_track.playlist_id)
     .bind(&playlist_track.track_id)
-    .bind(&playlist_track.added_by)
     .bind(playlist_track.xata_createdat)
     .execute(pool)
     .await?;
