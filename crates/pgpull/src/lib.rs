@@ -239,7 +239,12 @@ pub async fn pull_data() -> Result<(), Error> {
 
             for loved_track in &loved_tracks {
                 tracing::info!(user_id = %loved_track.user_id.cyan(), track_id = %loved_track.track_id.magenta(), i = %i.magenta(), total = %total_loved_tracks.magenta(), "Inserting loved track");
-                repo::loved_track::insert_loved_track(&dest_pool_clone, loved_track).await?;
+                match repo::loved_track::insert_loved_track(&dest_pool_clone, loved_track).await {
+                    Ok(_) => {}
+                    Err(e) => {
+                        tracing::error!(error = %e, "Failed to insert loved track");
+                    }
+                }
                 i += 1;
             }
         }
