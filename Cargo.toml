@@ -1,5 +1,4 @@
 [workspace]
-default-members = ["crates/*"]
 members = ["crates/*"]
 resolver = "2"
 

@@ -26,7 +26,7 @@
     "dev:storage": "cargo run -p rocksky-storage --release -- serve",
     "dev:webscrobbler": "cargo run -p rockskyd --release -- webscrobbler",
     "dev:tracklist": "cargo run -p rockskyd --release -- tracklist",
-    "build:raichu": "cd crates/raichu && wasm-pack build --release --target web && cp -r pkg ../../apps/web/src"
+    "db:pgpull": "cargo run -p rockskyd --release -- pull && rm -f rocksky-analytics.ddb* rocksky-feed.ddb* && curl -o rocksky-analytics.ddb https://backup.rocksky.app/rocksky-analytics.ddb && curl -o rocksky-feed.ddb https://backup.rocksky.app/rocksky-feed.ddb"
   },
   "workspaces": [
     "apps/api",
@@ -37,7 +37,6 @@
     "apps/doc",
     "apps/spotify-proxy",
     "apps/uploads",
-    "apps/xata-proxy",
-    "crates"
+    "apps/xata-proxy"
   ]
 }
