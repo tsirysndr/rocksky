@@ -1,5 +1,5 @@
 {
-  "id": "49adc24b-83c8-4065-8e13-80045e7f0f27",
+  "id": "97b0b357-40d7-42b5-ab53-2738bd804a2c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -555,6 +555,12 @@
         "youtube_link": {
           "name": "youtube_link",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "genres": {
+          "name": "genres",
+          "type": "text[]",
           "primaryKey": false,
           "notNull": false
         },
@@ -2576,20 +2582,6 @@
           "columns": [
             "uri"
           ]
-        },
-        "tracks_album_uri_unique": {
-          "name": "tracks_album_uri_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "album_uri"
-          ]
-        },
-        "tracks_artist_uri_unique": {
-          "name": "tracks_artist_uri_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "artist_uri"
-          ]
         }
       },
       "policies": {},
@@ -2989,7 +2981,7 @@
           "name": "display_name",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "handle": {
           "name": "handle",
