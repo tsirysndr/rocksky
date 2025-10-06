@@ -4,7 +4,7 @@ CREATE TABLE "album_tracks" (
 	"track_id" text NOT NULL,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL,
 	"xata_updatedat" timestamp DEFAULT now() NOT NULL,
-	"xata_version" integer NOT NULL
+	"xata_version" integer
 );
 --> statement-breakpoint
 CREATE TABLE "albums" (
@@ -50,7 +50,7 @@ CREATE TABLE "artist_albums" (
 	"album_id" text NOT NULL,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL,
 	"xata_updatedat" timestamp DEFAULT now() NOT NULL,
-	"xata_version" integer NOT NULL
+	"xata_version" integer
 );
 --> statement-breakpoint
 CREATE TABLE "artist_tracks" (
@@ -59,7 +59,7 @@ CREATE TABLE "artist_tracks" (
 	"track_id" text NOT NULL,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL,
 	"xata_updatedat" timestamp DEFAULT now() NOT NULL,
-	"xata_version" integer NOT NULL
+	"xata_version" integer
 );
 --> statement-breakpoint
 CREATE TABLE "artists" (
@@ -89,7 +89,7 @@ CREATE TABLE "dropbox_accounts" (
 	"email" text NOT NULL,
 	"is_beta_user" boolean DEFAULT false NOT NULL,
 	"user_id" text NOT NULL,
-	"xata_version" text NOT NULL,
+	"xata_version" text,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL,
 	"xata_updatedat" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "dropbox_accounts_email_unique" UNIQUE("email")
@@ -102,7 +102,7 @@ CREATE TABLE "dropbox_directories" (
 	"parent_id" text,
 	"dropbox_id" text NOT NULL,
 	"file_id" text NOT NULL,
-	"xata_version" text NOT NULL,
+	"xata_version" text,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL,
 	"xata_updatedat" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "dropbox_directories_file_id_unique" UNIQUE("file_id")
@@ -116,7 +116,7 @@ CREATE TABLE "dropbox_paths" (
 	"track_id" text NOT NULL,
 	"directory_id" text,
 	"file_id" text NOT NULL,
-	"xata_version" text NOT NULL,
+	"xata_version" text,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL,
 	"xata_updatedat" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "dropbox_paths_file_id_unique" UNIQUE("file_id")
@@ -133,7 +133,7 @@ CREATE TABLE "dropbox" (
 	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
 	"user_id" text NOT NULL,
 	"dropbox_token_id" text NOT NULL,
-	"xata_version" text NOT NULL,
+	"xata_version" text,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL,
 	"xata_updatedat" timestamp DEFAULT now() NOT NULL
 );
@@ -143,7 +143,7 @@ CREATE TABLE "google_drive_accounts" (
 	"email" text NOT NULL,
 	"is_beta_user" boolean DEFAULT false NOT NULL,
 	"user_id" text NOT NULL,
-	"xata_version" text NOT NULL,
+	"xata_version" text,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL,
 	"xata_updatedat" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "google_drive_accounts_email_unique" UNIQUE("email")
@@ -156,7 +156,7 @@ CREATE TABLE "google_drive_directories" (
 	"parent_id" text,
 	"google_drive_id" text NOT NULL,
 	"file_id" text NOT NULL,
-	"xata_version" text NOT NULL,
+	"xata_version" text,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL,
 	"xata_updatedat" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "google_drive_directories_file_id_unique" UNIQUE("file_id")
@@ -169,7 +169,7 @@ CREATE TABLE "google_drive_paths" (
 	"name" text NOT NULL,
 	"directory_id" text,
 	"file_id" text NOT NULL,
-	"xata_version" text NOT NULL,
+	"xata_version" text,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL,
 	"xata_updatedat" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "google_drive_paths_file_id_unique" UNIQUE("file_id")
@@ -186,7 +186,7 @@ CREATE TABLE "google_drive" (
 	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
 	"google_drive_token_id" text NOT NULL,
 	"user_id" text NOT NULL,
-	"xata_version" text NOT NULL,
+	"xata_version" text,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL,
 	"xata_updatedat" timestamp DEFAULT now() NOT NULL
 );
@@ -287,7 +287,7 @@ CREATE TABLE "shouts" (
 --> statement-breakpoint
 CREATE TABLE "spotify_accounts" (
 	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
-	"xata_version" integer NOT NULL,
+	"xata_version" integer,
 	"email" text NOT NULL,
 	"user_id" text NOT NULL,
 	"is_beta_user" boolean DEFAULT false NOT NULL,
@@ -297,7 +297,7 @@ CREATE TABLE "spotify_accounts" (
 --> statement-breakpoint
 CREATE TABLE "spotify_tokens" (
 	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
-	"xata_version" integer NOT NULL,
+	"xata_version" integer,
 	"access_token" text NOT NULL,
 	"refresh_token" text NOT NULL,
 	"user_id" text NOT NULL,
@@ -347,7 +347,7 @@ CREATE TABLE "user_albums" (
 	"album_id" text NOT NULL,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL,
 	"xata_updatedat" timestamp DEFAULT now() NOT NULL,
-	"xata_version" integer NOT NULL,
+	"xata_version" integer,
 	"scrobbles" integer,
 	"uri" text NOT NULL,
 	CONSTRAINT "user_albums_uri_unique" UNIQUE("uri")
@@ -359,7 +359,7 @@ CREATE TABLE "user_artists" (
 	"artist_id" text NOT NULL,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL,
 	"xata_updatedat" timestamp DEFAULT now() NOT NULL,
-	"xata_version" integer NOT NULL,
+	"xata_version" integer,
 	"scrobbles" integer,
 	"uri" text NOT NULL,
 	CONSTRAINT "user_artists_uri_unique" UNIQUE("uri")
@@ -380,7 +380,7 @@ CREATE TABLE "user_tracks" (
 	"track_id" text NOT NULL,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL,
 	"xata_updatedat" timestamp DEFAULT now() NOT NULL,
-	"xata_version" integer NOT NULL,
+	"xata_version" integer,
 	"uri" text NOT NULL,
 	"scrobbles" integer,
 	CONSTRAINT "user_tracks_uri_unique" UNIQUE("uri")

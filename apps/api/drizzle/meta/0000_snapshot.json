@@ -1,5 +1,5 @@
 {
-  "id": "f7f59d87-3fa3-4146-91b5-692a483d2abc",
+  "id": "6b33dcd0-52df-4403-bdc0-31517769923d",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -44,7 +44,7 @@
           "name": "xata_version",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         }
       },
       "indexes": {},
@@ -360,7 +360,7 @@
           "name": "xata_version",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         }
       },
       "indexes": {},
@@ -438,7 +438,7 @@
           "name": "xata_version",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         }
       },
       "indexes": {},
@@ -641,7 +641,7 @@
           "name": "xata_version",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "xata_createdat": {
           "name": "xata_createdat",
@@ -732,7 +732,7 @@
           "name": "xata_version",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "xata_createdat": {
           "name": "xata_createdat",
@@ -829,7 +829,7 @@
           "name": "xata_version",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "xata_createdat": {
           "name": "xata_createdat",
@@ -941,7 +941,7 @@
           "name": "xata_version",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "xata_createdat": {
           "name": "xata_createdat",
@@ -1026,7 +1026,7 @@
           "name": "xata_version",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "xata_createdat": {
           "name": "xata_createdat",
@@ -1117,7 +1117,7 @@
           "name": "xata_version",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "xata_createdat": {
           "name": "xata_createdat",
@@ -1208,7 +1208,7 @@
           "name": "xata_version",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "xata_createdat": {
           "name": "xata_createdat",
@@ -1320,7 +1320,7 @@
           "name": "xata_version",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "xata_createdat": {
           "name": "xata_createdat",
@@ -2238,7 +2238,7 @@
           "name": "xata_version",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "email": {
           "name": "email",
@@ -2310,7 +2310,7 @@
           "name": "xata_version",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "access_token": {
           "name": "access_token",
@@ -2628,7 +2628,7 @@
           "name": "xata_version",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "scrobbles": {
           "name": "scrobbles",
@@ -2726,7 +2726,7 @@
           "name": "xata_version",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "scrobbles": {
           "name": "scrobbles",
@@ -2903,7 +2903,7 @@
           "name": "xata_version",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "uri": {
           "name": "uri",

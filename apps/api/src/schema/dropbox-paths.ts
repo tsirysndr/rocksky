@@ -10,7 +10,7 @@ const dropboxPaths = pgTable("dropbox_paths", {
   trackId: text("track_id").notNull(),
   directoryId: text("directory_id").references(() => dropboxDirectories.id),
   fileId: text("file_id").notNull().unique(),
-  xataVersion: text("xata_version").notNull(),
+  xataVersion: text("xata_version"),
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
   updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
 });

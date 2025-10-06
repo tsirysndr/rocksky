@@ -297,5 +297,341 @@ pub async fn pull_data() -> Result<(), Error> {
     playlist_sync.context("Playlist sync task failed")??;
     scrobble_sync.context("Scrobble sync task failed")??;
 
+    let pool_clone = pool.clone();
+    let dest_pool_clone = dest_pool.clone();
+    let album_track_sync = tokio::spawn(async move {
+        let total_album_tracks: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM album_tracks")
+            .fetch_one(&pool_clone)
+            .await?;
+        let total_album_tracks = total_album_tracks.0;
+        tracing::info!(total = %total_album_tracks.magenta(), "Total album tracks to sync");
+
+        const BATCH_SIZE: usize = 1000;
+
+        let start = 0;
+        let mut i = 1;
+
+        for offset in (start..total_album_tracks).step_by(BATCH_SIZE) {
+            let album_tracks =
+                repo::album::get_album_tracks(&pool_clone, offset as i64, BATCH_SIZE as i64)
+                    .await?;
+            tracing::info!(
+                offset = %offset.magenta(),
+                end = %((offset + album_tracks.len() as i64).min(total_album_tracks)).magenta(),
+                total = %total_album_tracks.magenta(),
+                "Fetched album tracks"
+            );
+
+            for album_track in &album_tracks {
+                tracing::info!(album_id = %album_track.album_id.cyan(), track_id = %album_track.track_id.magenta(), i = %i.magenta(), total = %total_album_tracks.magenta(), "Inserting album track");
+                match repo::album::insert_album_track(&dest_pool_clone, album_track).await {
+                    Ok(_) => {}
+                    Err(e) => {
+                        tracing::error!(error = %e, "Failed to insert album track");
+                    }
+                }
+                i += 1;
+            }
+        }
+        Ok::<(), Error>(())
+    });
+
+    let pool_clone = pool.clone();
+    let dest_pool_clone = dest_pool.clone();
+    let artist_album_sync = tokio::spawn(async move {
+        let total_artist_albums: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM artist_albums")
+            .fetch_one(&pool_clone)
+            .await?;
+        let total_artist_albums = total_artist_albums.0;
+        tracing::info!(total = %total_artist_albums.magenta(), "Total artist albums to sync");
+
+        const BATCH_SIZE: usize = 1000;
+
+        let start = 0;
+        let mut i = 1;
+
+        for offset in (start..total_artist_albums).step_by(BATCH_SIZE) {
+            let artist_albums =
+                repo::artist::get_artist_albums(&pool_clone, offset as i64, BATCH_SIZE as i64)
+                    .await?;
+            tracing::info!(
+                offset = %offset.magenta(),
+                end = %((offset + artist_albums.len() as i64).min(total_artist_albums)).magenta(),
+                total = %total_artist_albums.magenta(),
+                "Fetched artist albums"
+            );
+
+            for artist_album in &artist_albums {
+                tracing::info!(artist_id = %artist_album.artist_id.cyan(), album_id = %artist_album.album_id.magenta(), i = %i.magenta(), total = %total_artist_albums.magenta(), "Inserting artist album");
+                match repo::artist::insert_artist_album(&dest_pool_clone, artist_album).await {
+                    Ok(_) => {}
+                    Err(e) => {
+                        tracing::error!(error = %e, "Failed to insert artist album");
+                    }
+                }
+                i += 1;
+            }
+        }
+        Ok::<(), Error>(())
+    });
+
+    let pool_clone = pool.clone();
+    let dest_pool_clone = dest_pool.clone();
+    let artist_track_sync = tokio::spawn(async move {
+        let total_artist_tracks: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM artist_tracks")
+            .fetch_one(&pool_clone)
+            .await?;
+        let total_artist_tracks = total_artist_tracks.0;
+        tracing::info!(total = %total_artist_tracks.magenta(), "Total artist tracks to sync");
+        const BATCH_SIZE: usize = 1000;
+
+        let start = 0;
+        let mut i = 1;
+
+        for offset in (start..total_artist_tracks).step_by(BATCH_SIZE) {
+            let artist_tracks =
+                repo::artist::get_artist_tracks(&pool_clone, offset as i64, BATCH_SIZE as i64)
+                    .await?;
+            tracing::info!(
+                offset = %offset.magenta(),
+                end = %((offset + artist_tracks.len() as i64).min(total_artist_tracks)).magenta(),
+                total = %total_artist_tracks.magenta(),
+                "Fetched artist tracks"
+            );
+
+            for artist_track in &artist_tracks {
+                tracing::info!(artist_id = %artist_track.artist_id.cyan(), track_id = %artist_track.track_id.magenta(), i = %i.magenta(), total = %total_artist_tracks.magenta(), "Inserting artist track");
+                match repo::artist::insert_artist_track(&dest_pool_clone, artist_track).await {
+                    Ok(_) => {}
+                    Err(e) => {
+                        tracing::error!(error = %e, "Failed to insert artist track");
+                    }
+                }
+                i += 1;
+            }
+        }
+        Ok::<(), Error>(())
+    });
+
+    let pool_clone = pool.clone();
+    let dest_pool_clone = dest_pool.clone();
+    let playlist_track_sync = tokio::spawn(async move {
+        let total_playlist_tracks: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM playlist_tracks")
+            .fetch_one(&pool_clone)
+            .await?;
+        let total_playlist_tracks = total_playlist_tracks.0;
+        tracing::info!(total = %total_playlist_tracks.magenta(), "Total playlist tracks to sync");
+
+        const BATCH_SIZE: usize = 1000;
+
+        let start = 0;
+        let mut i = 1;
+
+        for offset in (start..total_playlist_tracks).step_by(BATCH_SIZE) {
+            let playlist_tracks =
+                repo::playlist::get_playlist_tracks(&pool_clone, offset as i64, BATCH_SIZE as i64)
+                    .await?;
+            tracing::info!(
+                offset = %offset.magenta(),
+                end = %((offset + playlist_tracks.len() as i64).min(total_playlist_tracks)).magenta(),
+                total = %total_playlist_tracks.magenta(),
+                "Fetched playlist tracks"
+            );
+
+            for playlist_track in &playlist_tracks {
+                tracing::info!(playlist_id = %playlist_track.playlist_id.cyan(), track_id = %playlist_track.track_id.magenta(), i = %i.magenta(), total = %total_playlist_tracks.magenta(), "Inserting playlist track");
+                match repo::playlist::insert_playlist_track(&dest_pool_clone, playlist_track).await
+                {
+                    Ok(_) => {}
+                    Err(e) => {
+                        tracing::error!(error = %e, "Failed to insert playlist track");
+                    }
+                }
+                i += 1;
+            }
+        }
+        Ok::<(), Error>(())
+    });
+
+    let pool_clone = pool.clone();
+    let dest_pool_clone = dest_pool.clone();
+    let user_album_sync = tokio::spawn(async move {
+        let total_user_albums: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM user_albums")
+            .fetch_one(&pool_clone)
+            .await?;
+        let total_user_albums = total_user_albums.0;
+        tracing::info!(total = %total_user_albums.magenta(), "Total user albums to sync");
+        const BATCH_SIZE: usize = 1000;
+
+        let start = 0;
+        let mut i = 1;
+
+        for offset in (start..total_user_albums).step_by(BATCH_SIZE) {
+            let user_albums =
+                repo::album::get_user_albums(&pool_clone, offset as i64, BATCH_SIZE as i64).await?;
+            tracing::info!(
+                offset = %offset.magenta(),
+                end = %((offset + user_albums.len() as i64).min(total_user_albums)).magenta(),
+                total = %total_user_albums.magenta(),
+                "Fetched user albums"
+            );
+
+            for user_album in &user_albums {
+                tracing::info!(user_id = %user_album.user_id.cyan(), album_id = %user_album.album_id.magenta(), i = %i.magenta(), total = %total_user_albums.magenta(), "Inserting user album");
+                match repo::album::insert_user_album(&dest_pool_clone, user_album).await {
+                    Ok(_) => {}
+                    Err(e) => {
+                        tracing::error!(error = %e, "Failed to insert user album");
+                    }
+                }
+                i += 1;
+            }
+        }
+        Ok::<(), Error>(())
+    });
+
+    let pool_clone = pool.clone();
+    let dest_pool_clone = dest_pool.clone();
+    let user_artist_sync = tokio::spawn(async move {
+        let total_user_artists: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM user_artists")
+            .fetch_one(&pool_clone)
+            .await?;
+        let total_user_artists = total_user_artists.0;
+        tracing::info!(total = %total_user_artists.magenta(), "Total user artists to sync");
+        const BATCH_SIZE: usize = 1000;
+
+        let start = 0;
+        let mut i = 1;
+
+        for offset in (start..total_user_artists).step_by(BATCH_SIZE) {
+            let user_artists =
+                repo::artist::get_user_artists(&pool_clone, offset as i64, BATCH_SIZE as i64)
+                    .await?;
+            tracing::info!(
+                offset = %offset.magenta(),
+                end = %((offset + user_artists.len() as i64).min(total_user_artists)).magenta(),
+                total = %total_user_artists.magenta(),
+                "Fetched user artists"
+            );
+
+            for user_artist in &user_artists {
+                tracing::info!(user_id = %user_artist.user_id.cyan(), artist_id = %user_artist.artist_id.magenta(), i = %i.magenta(), total = %total_user_artists.magenta(), "Inserting user artist");
+                match repo::artist::insert_user_artist(&dest_pool_clone, user_artist).await {
+                    Ok(_) => {}
+                    Err(e) => {
+                        tracing::error!(error = %e, "Failed to insert user artist");
+                    }
+                }
+                i += 1;
+            }
+        }
+        Ok::<(), Error>(())
+    });
+
+    let pool_clone = pool.clone();
+    let dest_pool_clone = dest_pool.clone();
+    let user_track_sync = tokio::spawn(async move {
+        let total_user_tracks: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM user_tracks")
+            .fetch_one(&pool_clone)
+            .await?;
+        let total_user_tracks = total_user_tracks.0;
+        tracing::info!(total = %total_user_tracks.magenta(), "Total user tracks to sync");
+        const BATCH_SIZE: usize = 1000;
+
+        let start = 0;
+        let mut i = 1;
+
+        for offset in (start..total_user_tracks).step_by(BATCH_SIZE) {
+            let user_tracks =
+                repo::track::get_user_tracks(&pool_clone, offset as i64, BATCH_SIZE as i64).await?;
+            tracing::info!(
+                offset = %offset.magenta(),
+                end = %((offset + user_tracks.len() as i64).min(total_user_tracks)).magenta(),
+                total = %total_user_tracks.magenta(),
+                "Fetched user tracks"
+            );
+
+            for user_track in &user_tracks {
+                tracing::info!(user_id = %user_track.user_id.cyan(), track_id = %user_track.track_id.magenta(), i = %i.magenta(), total = %total_user_tracks.magenta(), "Inserting user track");
+                match repo::track::insert_user_track(&dest_pool_clone, user_track).await {
+                    Ok(_) => {}
+                    Err(e) => {
+                        tracing::error!(error = %e, "Failed to insert user track");
+                    }
+                }
+                i += 1;
+            }
+        }
+        Ok::<(), Error>(())
+    });
+
+    let pool_clone = pool.clone();
+    let dest_pool_clone = dest_pool.clone();
+    let user_playlist_sync = tokio::spawn(async move {
+        let total_user_playlists: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM user_playlists")
+            .fetch_one(&pool_clone)
+            .await?;
+
+        let total_user_playlists = total_user_playlists.0;
+        tracing::info!(total = %total_user_playlists.magenta(), "Total user playlists to sync");
+        const BATCH_SIZE: usize = 1000;
+
+        let start = 0;
+        let mut i = 1;
+
+        for offset in (start..total_user_playlists).step_by(BATCH_SIZE) {
+            let user_playlists =
+                repo::playlist::get_user_playlists(&pool_clone, offset as i64, BATCH_SIZE as i64)
+                    .await?;
+            tracing::info!(
+                offset = %offset.magenta(),
+                end = %((offset + user_playlists.len() as i64).min(total_user_playlists)).magenta(),
+                total = %total_user_playlists.magenta(),
+                "Fetched user playlists"
+            );
+
+            for user_playlist in &user_playlists {
+                tracing::info!(user_id = %user_playlist.user_id.cyan(), playlist_id = %user_playlist.playlist_id.magenta(), i = %i.magenta(), total = %total_user_playlists.magenta(), "Inserting user playlist");
+                match repo::playlist::insert_user_playlist(&dest_pool_clone, user_playlist).await {
+                    Ok(_) => {}
+                    Err(e) => {
+                        tracing::error!(error = %e, "Failed to insert user playlist");
+                    }
+                }
+                i += 1;
+            }
+        }
+        Ok::<(), Error>(())
+    });
+
+    let (
+        album_track_sync,
+        artist_album_sync,
+        artist_track_sync,
+        playlist_track_sync,
+        user_album_sync,
+        user_artist_sync,
+        user_track_sync,
+        user_playlist_sync,
+    ) = tokio::join!(
+        album_track_sync,
+        artist_album_sync,
+        artist_track_sync,
+        playlist_track_sync,
+        user_album_sync,
+        user_artist_sync,
+        user_track_sync,
+        user_playlist_sync
+    );
+
+    album_track_sync.context("Album track sync task failed")??;
+    artist_album_sync.context("Artist album sync task failed")??;
+    artist_track_sync.context("Artist track sync task failed")??;
+    playlist_track_sync.context("Playlist track sync task failed")??;
+    user_album_sync.context("User album sync task failed")??;
+    user_artist_sync.context("User artist sync task failed")??;
+    user_track_sync.context("User track sync task failed")??;
+    user_playlist_sync.context("User playlist sync task failed")??;
+
     Ok(())
 }

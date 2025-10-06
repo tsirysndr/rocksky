@@ -11,7 +11,7 @@ const dropbox = pgTable("dropbox", {
   dropboxTokenId: text("dropbox_token_id")
     .notNull()
     .references(() => dropboxTokens.id),
-  xataVersion: text("xata_version").notNull(),
+  xataVersion: text("xata_version"),
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
   updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
 });
