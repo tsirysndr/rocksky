@@ -151,7 +151,7 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
             });
 
             tokio::join!(feed_server.run(address), firehose_listener, sync_feed)
-                .1
+                .2
                 .expect("Couldn't await tasks")?;
 
             Ok::<(), Error>(())
