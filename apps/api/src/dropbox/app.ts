@@ -1,11 +1,13 @@
 import { equals } from "@xata.io/client";
 import axios from "axios";
 import { ctx } from "context";
+import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import jwt from "jsonwebtoken";
 import { encrypt } from "lib/crypto";
 import { env } from "lib/env";
 import { requestCounter } from "metrics";
+import tables from "schema";
 import { emailSchema } from "types/email";
 
 const app = new Hono();
@@ -23,14 +25,21 @@ app.get("/login", async (c) => {
     ignoreExpiration: true,
   });
 
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  const user = await ctx.db
+    .select()
+    .from(tables.users)
+    .where(eq(tables.users.did, did))
+    .limit(1)
+    .execute()
+    .then((res) => res[0]);
+
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
   }
 
   const clientId = env.DROPBOX_CLIENT_ID;
-  const redirectUri = `https://www.dropbox.com/oauth2/authorize?client_id=${clientId}&redirect_uri=${env.DROPBOX_REDIRECT_URI}&response_type=code&token_access_type=offline&state=${user.xata_id}`;
+  const redirectUri = `https://www.dropbox.com/oauth2/authorize?client_id=${clientId}&redirect_uri=${env.DROPBOX_REDIRECT_URI}&response_type=code&token_access_type=offline&state=${user.id}`;
   return c.json({ redirectUri });
 });
 
@@ -47,28 +56,58 @@ app.get("/oauth/callback", async (c) => {
       client_id: env.DROPBOX_CLIENT_ID,
       client_secret: env.DROPBOX_CLIENT_SECRET,
       redirect_uri: env.DROPBOX_REDIRECT_URI,
-    },
+    }
   );
 
-  const dropbox = await ctx.client.db.dropbox
-    .select(["*", "user_id.*", "dropbox_token_id.*"])
-    .filter("user_id.xata_id", equals(entries.state))
-    .getFirst();
+  const { dropbox, dropbox_tokens } = await ctx.db
+    .select()
+    .from(tables.dropbox)
+    .where(eq(tables.dropbox.userId, entries.state))
+    .leftJoin(
+      tables.dropboxTokens,
+      eq(tables.dropboxTokens.id, tables.dropbox.dropboxTokenId)
+    )
+    .limit(1)
+    .execute()
+    .then((res) => res[0]);
 
-  const newDropboxToken = await ctx.client.db.dropbox_tokens.createOrUpdate(
-    dropbox?.dropbox_token_id?.xata_id,
-    {
-      refresh_token: encrypt(
+  const newDropboxToken = await ctx.db
+    .insert(tables.dropboxTokens)
+    .values({
+      id: dropbox_tokens?.id,
+      refreshToken: encrypt(
         response.data.refresh_token,
-        env.SPOTIFY_ENCRYPTION_KEY,
+        env.SPOTIFY_ENCRYPTION_KEY
       ),
-    },
-  );
+    })
+    .onConflictDoUpdate({
+      target: tables.dropboxTokens.id, // specify the conflict column (primary key)
+      set: {
+        refreshToken: encrypt(
+          response.data.refresh_token,
+          env.SPOTIFY_ENCRYPTION_KEY
+        ),
+      },
+    })
+    .returning()
+    .execute()
+    .then((res) => res[0]);
 
-  await ctx.client.db.dropbox.createOrUpdate(dropbox?.xata_id, {
-    dropbox_token_id: newDropboxToken.xata_id,
-    user_id: entries.state,
-  });
+  await ctx.db
+    .insert(tables.dropbox)
+    .values({
+      id: dropbox?.id,
+      dropboxTokenId: newDropboxToken.id,
+      userId: entries.state,
+    })
+    .onConflictDoUpdate({
+      target: tables.dropbox.id,
+      set: {
+        dropboxTokenId: newDropboxToken.id,
+        userId: entries.state,
+      },
+    })
+    .execute();
 
   return c.redirect(`${env.FRONTEND_URL}/dropbox`);
 });
@@ -86,7 +125,13 @@ app.post("/join", async (c) => {
     ignoreExpiration: true,
   });
 
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  const user = await ctx.db
+    .select()
+    .from(tables.users)
+    .where(eq(tables.users.did, did))
+    .limit(1)
+    .execute()
+    .then((res) => res[0]);
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
@@ -103,11 +148,14 @@ app.post("/join", async (c) => {
   const { email } = parsed.data;
 
   try {
-    await ctx.client.db.dropbox_accounts.create({
-      user_id: user.xata_id,
-      email,
-      is_beta_user: false,
-    });
+    await ctx.db
+      .insert(tables.dropboxAccounts)
+      .values({
+        userId: user.id,
+        email,
+        isBetaUser: false,
+      })
+      .execute();
   } catch (e) {
     if (
       !e.message.includes("invalid record: column [user_id]: is not unique")
@@ -305,11 +353,11 @@ app.get("/download", async (c) => {
 
   c.header(
     "Content-Type",
-    response.headers["content-type"] || "application/octet-stream",
+    response.headers["content-type"] || "application/octet-stream"
   );
   c.header(
     "Content-Disposition",
-    response.headers["content-disposition"] || "attachment",
+    response.headers["content-disposition"] || "attachment"
   );
 
   return new Response(response.data, {

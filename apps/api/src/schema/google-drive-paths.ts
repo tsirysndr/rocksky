@@ -1,9 +1,11 @@
-import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
+import { type InferInsertModel, type InferSelectModel, sql } from "drizzle-orm";
 import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import googleDriveDirectories from "./google-drive-directories";
 
 const googleDrivePaths = pgTable("google_drive_paths", {
-  id: text("xata_id").primaryKey(),
+  id: text("xata_id")
+    .primaryKey()
+    .default(sql`xata_id()`),
   googleDriveId: text("google_drive_id").notNull(),
   trackId: text("track_id").notNull(),
   name: text("name").notNull(),

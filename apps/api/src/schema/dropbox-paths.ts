@@ -1,9 +1,11 @@
-import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
+import { type InferInsertModel, type InferSelectModel, sql } from "drizzle-orm";
 import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import dropboxDirectories from "./dropbox-directories";
 
 const dropboxPaths = pgTable("dropbox_paths", {
-  id: text("xata_id").primaryKey(),
+  id: text("xata_id")
+    .primaryKey()
+    .default(sql`xata_id()`),
   path: text("path").notNull(),
   name: text("name").notNull(),
   dropboxId: text("dropbox_id").notNull(),
