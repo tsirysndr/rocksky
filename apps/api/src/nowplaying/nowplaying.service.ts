@@ -432,8 +432,13 @@ export async function publishScrobble(ctx: Context, id: string) {
         xata_createdat: artist_album.createdAt.toISOString(),
         xata_updatedat: artist_album.updatedAt.toISOString(),
       },
-    })
+    }),
+    null,
+    2
   );
+
+  console.log("Publishing scrobble to NATS");
+  console.log(message.replaceAll("sha_256", "sha256"));
 
   ctx.nc.publish(
     "rocksky.scrobble",
@@ -487,7 +492,10 @@ export async function publishScrobble(ctx: Context, id: string) {
     })
   );
 
-  ctx.nc.publish("rocksky.track", Buffer.from(trackMessage));
+  ctx.nc.publish(
+    "rocksky.track",
+    Buffer.from(trackMessage.replaceAll("sha_256", "sha256"))
+  );
 }
 
 export async function scrobbleTrack(
