@@ -435,7 +435,10 @@ export async function publishScrobble(ctx: Context, id: string) {
     })
   );
 
-  ctx.nc.publish("rocksky.scrobble", Buffer.from(message));
+  ctx.nc.publish(
+    "rocksky.scrobble",
+    Buffer.from(message.replaceAll("sha_256", "sha256"))
+  );
 
   const trackMessage = JSON.stringify(
     deepSnakeCaseKeys({
