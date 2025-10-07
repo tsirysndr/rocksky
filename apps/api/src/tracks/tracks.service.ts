@@ -222,10 +222,48 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
 
       const message = JSON.stringify(
         deepSnakeCaseKeys({
-          track: track_id,
-          album_track,
-          artist_track,
-          artist_album,
+          track: {
+            ...track_id,
+            xata_id: track_id.id,
+            xata_createdat: track_id.createdAt.toISOString(),
+            xata_updatedat: track_id.updatedAt.toISOString(),
+          },
+          album_track: {
+            ...album_track,
+            album_id: {
+              xata_id: album_track.albumId,
+            },
+            track_id: {
+              xata_id: album_track.trackId,
+            },
+            xata_id: album_track.id,
+            xata_createdat: album_track.createdAt.toISOString(),
+            xata_updatedat: album_track.updatedAt.toISOString(),
+          },
+          artist_track: {
+            ...artist_track,
+            artist_id: {
+              xata_id: artist_track.artistId,
+            },
+            track_id: {
+              xata_id: artist_track.trackId,
+            },
+            xata_id: artist_track.id,
+            xata_createdat: artist_track.createdAt.toISOString(),
+            xata_updatedat: artist_track.updatedAt.toISOString(),
+          },
+          artist_album: {
+            ...artist_album,
+            artist_id: {
+              xata_id: artist_album.artistId,
+            },
+            album_id: {
+              xata_id: artist_album.albumId,
+            },
+            xata_id: artist_album.id,
+            xata_createdat: artist_album.createdAt.toISOString(),
+            xata_updatedat: artist_album.updatedAt.toISOString(),
+          },
         })
       );
 

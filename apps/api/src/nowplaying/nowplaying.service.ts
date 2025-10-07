@@ -330,13 +330,108 @@ export async function publishScrobble(ctx: Context, id: string) {
 
   const message = JSON.stringify(
     deepSnakeCaseKeys({
-      scrobble,
-      user_album,
-      user_artist,
-      user_track,
-      album_track,
-      artist_track,
-      artist_album,
+      scrobble: {
+        ...scrobble.scrobble,
+        album_id: {
+          ...scrobble.album,
+          xata_id: scrobble.album.id,
+          xata_createdat: scrobble.album.createdAt.toISOString(),
+          xata_updatedat: scrobble.album.updatedAt.toISOString(),
+        },
+        artist_id: {
+          ...scrobble.artist,
+          xata_id: scrobble.artist.id,
+          xata_createdat: scrobble.artist.createdAt.toISOString(),
+          xata_updatedat: scrobble.artist.updatedAt.toISOString(),
+        },
+        track_id: {
+          ...scrobble.track,
+          xata_id: scrobble.track.id,
+          xata_createdat: scrobble.track.createdAt.toISOString(),
+          xata_updatedat: scrobble.track.updatedAt.toISOString(),
+        },
+        user_id: {
+          ...scrobble.user,
+          xata_id: scrobble.user.id,
+          xata_createdat: scrobble.user.createdAt.toISOString(),
+          xata_updatedat: scrobble.user.updatedAt.toISOString(),
+        },
+        xata_id: scrobble.scrobble.id,
+        xata_createdat: scrobble.scrobble.createdAt.toISOString(),
+        xata_updatedat: scrobble.scrobble.updatedAt.toISOString(),
+      },
+      user_album: {
+        ...user_album,
+        album_id: {
+          xata_id: scrobble.album.id,
+        },
+        user_id: {
+          xata_id: scrobble.user.id,
+        },
+        xata_id: user_album.id,
+        xata_createdat: user_album.createdAt.toISOString(),
+        xata_updatedat: user_album.updatedAt.toISOString(),
+      },
+      user_artist: {
+        ...user_artist,
+        artist_id: {
+          xata_id: scrobble.artist.id,
+        },
+        user_id: {
+          xata_id: scrobble.user.id,
+        },
+        xata_id: user_artist.id,
+        xata_createdat: user_artist.createdAt.toISOString(),
+        xata_updatedat: user_artist.updatedAt.toISOString(),
+      },
+      user_track: {
+        ...user_track,
+        track_id: {
+          xata_id: scrobble.track.id,
+        },
+        user_id: {
+          xata_id: scrobble.user.id,
+        },
+        xata_id: user_track.id,
+        xata_createdat: user_track.createdAt.toISOString(),
+        xata_updatedat: user_track.updatedAt.toISOString(),
+      },
+      album_track: {
+        ...album_track,
+        album_id: {
+          xata_id: scrobble.album.id,
+        },
+        track_id: {
+          xata_id: scrobble.track.id,
+        },
+        xata_id: album_track.id,
+        xata_createdat: album_track.createdAt.toISOString(),
+        xata_updatedat: album_track.updatedAt.toISOString(),
+      },
+      artist_track: {
+        ...artist_track,
+        artist_id: {
+          xata_id: scrobble.artist.id,
+        },
+        track_id: {
+          xata_id: scrobble.track.id,
+        },
+        xata_id: artist_track.id,
+        xata_createdat: artist_track.createdAt.toISOString(),
+        xata_updatedat: artist_track.updatedAt.toISOString(),
+      },
+      artist_album: {
+        ...artist_album,
+        artist_id: {
+          xata_id: scrobble.artist.id,
+        },
+        album_id: {
+          xata_id: scrobble.album.id,
+        },
+        xata_id: artist_album.id,
+        xata_createdat: artist_album.createdAt.toISOString(),
+        xata_updatedat: artist_album.updatedAt.toISOString(),
+      },
     })
   );
 
@@ -344,10 +439,48 @@ export async function publishScrobble(ctx: Context, id: string) {
 
   const trackMessage = JSON.stringify(
     deepSnakeCaseKeys({
-      track: scrobble.track,
-      album_track,
-      artist_track,
-      artist_album,
+      track: {
+        ...scrobble.track,
+        xata_id: scrobble.track.id,
+        xata_createdat: scrobble.track.createdAt.toISOString(),
+        xata_updatedat: scrobble.track.updatedAt.toISOString(),
+      },
+      album_track: {
+        ...album_track,
+        album_id: {
+          xata_id: album_track.albumId,
+        },
+        track_id: {
+          xata_id: album_track.trackId,
+        },
+        xata_id: album_track.id,
+        xata_createdat: album_track.createdAt.toISOString(),
+        xata_updatedat: album_track.updatedAt.toISOString(),
+      },
+      artist_track: {
+        ...artist_track,
+        artist_id: {
+          xata_id: artist_track.artistId,
+        },
+        track_id: {
+          xata_id: artist_track.trackId,
+        },
+        xata_id: artist_track.id,
+        xata_createdat: artist_track.createdAt.toISOString(),
+        xata_updatedat: artist_track.updatedAt.toISOString(),
+      },
+      artist_album: {
+        ...artist_album,
+        artist_id: {
+          xata_id: artist_album.artistId,
+        },
+        album_id: {
+          xata_id: artist_album.albumId,
+        },
+        xata_id: artist_album.id,
+        xata_createdat: artist_album.createdAt.toISOString(),
+        xata_updatedat: artist_album.updatedAt.toISOString(),
+      },
     })
   );
 
