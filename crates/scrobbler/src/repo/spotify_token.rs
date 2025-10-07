@@ -12,6 +12,7 @@ pub async fn get_spotify_token(
     SELECT * FROM spotify_tokens
     LEFT JOIN spotify_accounts ON spotify_tokens.user_id = spotify_accounts.user_id
     LEFT JOIN users ON spotify_accounts.user_id = users.xata_id
+    WHERE is_beta_user = true
     WHERE users.did = $1
   "#,
     )
