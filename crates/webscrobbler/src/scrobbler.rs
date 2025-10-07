@@ -131,6 +131,8 @@ pub async fn scrobble(
 
     let result = spotify_client.search(&query).await?;
 
+    tracing::info!(total = %result.tracks.total, "Spotify search results");
+
     if let Some(track) = result.tracks.items.first() {
         let artists = track
             .artists
