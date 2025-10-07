@@ -1,4 +1,4 @@
-import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
+import { type InferInsertModel, type InferSelectModel, sql } from "drizzle-orm";
 import {
   boolean,
   integer,
@@ -9,7 +9,9 @@ import {
 import users from "./users";
 
 const spotifyAccounts = pgTable("spotify_accounts", {
-  id: text("xata_id").primaryKey(),
+  id: text("xata_id")
+    .primaryKey()
+    .default(sql`xata_id()`),
   xataVersion: integer("xata_version"),
   email: text("email").notNull(),
   userId: text("user_id")

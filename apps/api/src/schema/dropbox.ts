@@ -1,10 +1,12 @@
-import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
+import { type InferInsertModel, type InferSelectModel, sql } from "drizzle-orm";
 import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import dropboxTokens from "./dropbox-tokens";
 import users from "./users";
 
 const dropbox = pgTable("dropbox", {
-  id: text("xata_id").primaryKey(),
+  id: text("xata_id")
+    .primaryKey()
+    .default(sql`xata_id()`),
   userId: text("user_id")
     .notNull()
     .references(() => users.id),

@@ -1,8 +1,10 @@
-import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
+import { type InferInsertModel, type InferSelectModel, sql } from "drizzle-orm";
 import { integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 const artists = pgTable("artists", {
-  id: text("xata_id").primaryKey(),
+  id: text("xata_id")
+    .primaryKey()
+    .default(sql`xata_id()`),
   name: text("name").notNull(),
   biography: text("biography"),
   born: timestamp("born"),

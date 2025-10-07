@@ -1,10 +1,12 @@
-import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
+import { type InferInsertModel, type InferSelectModel, sql } from "drizzle-orm";
 import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import googleDriveTokens from "./google-drive-tokens";
 import users from "./users";
 
 const googleDrive = pgTable("google_drive", {
-  id: text("xata_id").primaryKey(),
+  id: text("xata_id")
+    .primaryKey()
+    .default(sql`xata_id()`),
   googleDriveTokenId: text("google_drive_token_id")
     .notNull()
     .references(() => googleDriveTokens.id),

@@ -45,7 +45,6 @@
 		"@opentelemetry/sdk-node": "^0.200.0",
 		"@opentelemetry/semantic-conventions": "^1.32.0",
 		"@pyroscope/nodejs": "^0.4.5",
-		"@xata.io/client": "^0.0.0-next.va121e4207b94bfe0a3c025fc00b247b923880930",
 		"assert": "^2.1.0",
 		"axios": "^1.7.9",
 		"better-sqlite3": "^11.8.1",

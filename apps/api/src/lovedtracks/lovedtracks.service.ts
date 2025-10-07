@@ -1,166 +1,261 @@
 import type { Agent } from "@atproto/api";
 import { TID } from "@atproto/common";
-import { equals } from "@xata.io/client";
 import type { Context } from "context";
+import { and, desc, eq, type SQLWrapper } from "drizzle-orm";
 import * as LikeLexicon from "lexicon/types/app/rocksky/like";
 import { validateMain } from "lexicon/types/com/atproto/repo/strongRef";
 import { createHash } from "node:crypto";
 import type { Track } from "types/track";
+import albumTracks from "../schema/album-tracks";
+import albums from "../schema/albums";
+import artistAlbums from "../schema/artist-albums";
+import artistTracks from "../schema/artist-tracks";
+import artists from "../schema/artists";
+import lovedTracks from "../schema/loved-tracks";
+import tracks from "../schema/tracks";
 
 export async function likeTrack(
   ctx: Context,
   track: Track,
   user,
-  agent: Agent,
+  agent: Agent
 ) {
-  const existingTrack = await ctx.client.db.tracks
-    .filter(
-      "sha256",
-      equals(
-        createHash("sha256")
-          .update(
-            `${track.title} - ${track.artist} - ${track.album}`.toLowerCase(),
-          )
-          .digest("hex"),
-      ),
+  const trackSha256 = createHash("sha256")
+    .update(`${track.title} - ${track.artist} - ${track.album}`.toLowerCase())
+    .digest("hex");
+
+  const existingTrack = await ctx.db
+    .select()
+    .from(tracks)
+    .where(eq(tracks.sha256, trackSha256))
+    .limit(1)
+    .then((rows) => rows[0]);
+
+  let trackId: string;
+  if (existingTrack) {
+    const [updatedTrack] = await ctx.db
+      .update(tracks)
+      .set({
+        title: track.title,
+        artist: track.artist,
+        album: track.album,
+        albumArt: track.albumArt,
+        albumArtist: track.albumArtist,
+        trackNumber: track.trackNumber,
+        duration: track.duration,
+        mbId: track.mbId,
+        composer: track.composer,
+        lyrics: track.lyrics,
+        discNumber: track.discNumber,
+        sha256: trackSha256,
+      })
+      .where(eq(tracks.id, existingTrack.id))
+      .returning();
+    trackId = updatedTrack.id;
+  } else {
+    const [createdTrack] = await ctx.db
+      .insert(tracks)
+      .values({
+        title: track.title,
+        artist: track.artist,
+        album: track.album,
+        albumArt: track.albumArt,
+        albumArtist: track.albumArtist,
+        trackNumber: track.trackNumber,
+        duration: track.duration,
+        mbId: track.mbId,
+        composer: track.composer,
+        lyrics: track.lyrics,
+        discNumber: track.discNumber,
+        sha256: trackSha256,
+      })
+      .returning();
+    trackId = createdTrack.id;
+  }
+
+  const artistSha256 = createHash("sha256")
+    .update(track.albumArtist.toLowerCase())
+    .digest("hex");
+
+  const existingArtist = await ctx.db
+    .select()
+    .from(artists)
+    .where(eq(artists.sha256, artistSha256))
+    .limit(1)
+    .then((rows) => rows[0]);
+
+  let artistId: string;
+  if (existingArtist) {
+    const [updatedArtist] = await ctx.db
+      .update(artists)
+      .set({
+        name: track.albumArtist,
+        sha256: artistSha256,
+      })
+      .where(eq(artists.id, existingArtist.id))
+      .returning();
+    artistId = updatedArtist.id;
+  } else {
+    const [createdArtist] = await ctx.db
+      .insert(artists)
+      .values({
+        name: track.albumArtist,
+        sha256: artistSha256,
+      })
+      .returning();
+    artistId = createdArtist.id;
+  }
+
+  const albumSha256 = createHash("sha256")
+    .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
+    .digest("hex");
+
+  const existingAlbum = await ctx.db
+    .select()
+    .from(albums)
+    .where(eq(albums.sha256, albumSha256))
+    .limit(1)
+    .then((rows) => rows[0]);
+
+  let albumId: string;
+  if (existingAlbum) {
+    const [updatedAlbum] = await ctx.db
+      .update(albums)
+      .set({
+        title: track.album,
+        artist: track.albumArtist,
+        albumArt: track.albumArt,
+        year: track.year,
+        releaseDate: track.releaseDate
+          ? track.releaseDate.toISOString()
+          : undefined,
+        sha256: albumSha256,
+      })
+      .where(eq(albums.id, existingAlbum.id))
+      .returning();
+    albumId = updatedAlbum.id;
+  } else {
+    const [createdAlbum] = await ctx.db
+      .insert(albums)
+      .values({
+        title: track.album,
+        artist: track.albumArtist,
+        albumArt: track.albumArt,
+        year: track.year,
+        releaseDate: track.releaseDate
+          ? track.releaseDate.toISOString()
+          : undefined,
+        sha256: albumSha256,
+      })
+      .returning();
+    albumId = createdAlbum.id;
+  }
+
+  // Create or update album_tracks relationship
+  const existingAlbumTrack = await ctx.db
+    .select()
+    .from(albumTracks)
+    .where(
+      and(eq(albumTracks.albumId, albumId), eq(albumTracks.trackId, trackId))
     )
-    .getFirst();
+    .limit(1)
+    .then((rows) => rows[0]);
 
-  const { xata_id: track_id } = await ctx.client.db.tracks.createOrUpdate(
-    existingTrack?.xata_id,
-    {
-      title: track.title,
-      artist: track.artist,
-      album: track.album,
-      album_art: track.albumArt,
-      album_artist: track.albumArtist,
-      track_number: track.trackNumber,
-      duration: track.duration,
-      mb_id: track.mbId,
-      composer: track.composer,
-      lyrics: track.lyrics,
-      disc_number: track.discNumber,
-      // compute sha256 (lowercase(title + artist + album))
-      sha256: createHash("sha256")
-        .update(
-          `${track.title} - ${track.artist} - ${track.album}`.toLowerCase(),
-        )
-        .digest("hex"),
-    },
-  );
+  if (!existingAlbumTrack) {
+    await ctx.db.insert(albumTracks).values({
+      albumId,
+      trackId,
+    });
+  }
 
-  const existingArtist = await ctx.client.db.artists
-    .filter(
-      "sha256",
-      equals(
-        createHash("sha256")
-          .update(track.albumArtist.toLocaleLowerCase())
-          .digest("hex"),
-      ),
+  // Create or update artist_tracks relationship
+  const existingArtistTrack = await ctx.db
+    .select()
+    .from(artistTracks)
+    .where(
+      and(
+        eq(artistTracks.artistId, artistId),
+        eq(artistTracks.trackId, trackId)
+      )
     )
-    .getFirst();
-  const { xata_id: artist_id } = await ctx.client.db.artists.createOrUpdate(
-    existingArtist?.xata_id,
-    {
-      name: track.albumArtist,
-      // compute sha256 (lowercase(name))
-      sha256: createHash("sha256")
-        .update(track.albumArtist.toLowerCase())
-        .digest("hex"),
-    },
-  );
+    .limit(1)
+    .then((rows) => rows[0]);
 
-  const existingAlbum = await ctx.client.db.albums
-    .filter(
-      "sha256",
-      equals(
-        createHash("sha256")
-          .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
-          .digest("hex"),
-      ),
+  if (!existingArtistTrack) {
+    await ctx.db.insert(artistTracks).values({
+      artistId,
+      trackId,
+    });
+  }
+
+  // Create or update artist_albums relationship
+  const existingArtistAlbum = await ctx.db
+    .select()
+    .from(artistAlbums)
+    .where(
+      and(
+        eq(artistAlbums.artistId, artistId),
+        eq(artistAlbums.albumId, albumId)
+      )
     )
-    .getFirst();
+    .limit(1)
+    .then((rows) => rows[0]);
 
-  const { xata_id: album_id } = await ctx.client.db.albums.createOrUpdate(
-    existingAlbum?.xata_id,
-    {
-      title: track.album,
-      artist: track.albumArtist,
-      album_art: track.albumArt,
-      year: track.year,
-      release_date: track.releaseDate
-        ? track.releaseDate.toISOString()
-        : undefined,
-      // compute sha256 (lowercase(title + artist))
-      sha256: createHash("sha256")
-        .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
-        .digest("hex"),
-    },
-  );
+  if (!existingArtistAlbum) {
+    await ctx.db.insert(artistAlbums).values({
+      artistId,
+      albumId,
+    });
+  }
 
-  const existingAlbumTrack = await ctx.client.db.album_tracks
-    .filter("album_id", equals(album_id))
-    .filter("track_id", equals(track_id))
-    .getFirst();
+  // Create or update loved track
+  const existingLovedTrack = await ctx.db
+    .select()
+    .from(lovedTracks)
+    .where(
+      and(eq(lovedTracks.userId, user.id), eq(lovedTracks.trackId, trackId))
+    )
+    .limit(1)
+    .then((rows) => rows[0]);
 
-  await ctx.client.db.album_tracks.createOrUpdate(existingAlbumTrack?.xata_id, {
-    album_id,
-    track_id,
-  });
+  let created: { id: string | SQLWrapper };
+  if (existingLovedTrack) {
+    [created] = await ctx.db
+      .update(lovedTracks)
+      .set({
+        userId: user.id,
+        trackId,
+      })
+      .where(eq(lovedTracks.id, existingLovedTrack.id))
+      .returning();
+  } else {
+    [created] = await ctx.db
+      .insert(lovedTracks)
+      .values({
+        userId: user.id,
+        trackId,
+      })
+      .returning();
+  }
 
-  const existingArtistTrack = await ctx.client.db.artist_tracks
-    .filter("artist_id", equals(artist_id))
-    .filter("track_id", equals(track_id))
-    .getFirst();
+  // Get the track with uri for ATProto operations
+  const trackWithUri = await ctx.db
+    .select()
+    .from(tracks)
+    .where(eq(tracks.id, trackId))
+    .limit(1)
+    .then((rows) => rows[0]);
 
-  await ctx.client.db.artist_tracks.createOrUpdate(
-    existingArtistTrack?.xata_id,
-    {
-      artist_id,
-      track_id,
-    },
-  );
-
-  const existingArtistAlbum = await ctx.client.db.artist_albums
-    .filter("artist_id", equals(artist_id))
-    .filter("album_id", equals(album_id))
-    .getFirst();
-
-  await ctx.client.db.artist_albums.createOrUpdate(
-    existingArtistAlbum?.xata_id,
-    {
-      artist_id,
-      album_id,
-    },
-  );
-
-  const lovedTrack = await ctx.client.db.loved_tracks
-    .filter("user_id", equals(user.xata_id))
-    .filter("track_id", equals(track_id))
-    .getFirst();
-
-  let created = await ctx.client.db.loved_tracks.createOrUpdate(
-    lovedTrack?.xata_id,
-    {
-      user_id: user.xata_id,
-      track_id,
-    },
-  );
-
-  if (existingTrack.uri) {
+  if (trackWithUri?.uri) {
     const rkey = TID.nextStr();
     const subjectRecord = await agent.com.atproto.repo.getRecord({
-      repo: existingTrack.uri
-        .split("/")
-        .slice(0, 3)
-        .join("/")
-        .split("at://")[1],
+      repo: trackWithUri.uri.split("/").slice(0, 3).join("/").split("at://")[1],
       collection: "app.rocksky.song",
-      rkey: existingTrack.uri.split("/").pop(),
+      rkey: trackWithUri.uri.split("/").pop(),
     });
 
     const subjectRef = validateMain({
-      uri: existingTrack.uri,
+      uri: trackWithUri.uri,
       cid: subjectRecord.data.cid,
     });
     if (!subjectRef.success) {
@@ -188,9 +283,12 @@ export async function likeTrack(
       });
       const uri = res.data.uri;
       console.log(`Like record created at: ${uri}`);
-      created = await ctx.client.db.loved_tracks.update(created.xata_id, {
-        uri,
-      });
+
+      [created] = await ctx.db
+        .update(lovedTracks)
+        .set({ uri })
+        .where(eq(lovedTracks.id, created.id))
+        .returning();
     } catch (e) {
       console.error(`Error creating like record: ${e.message}`);
     }
@@ -206,34 +304,43 @@ export async function unLikeTrack(
   ctx: Context,
   trackSha256: string,
   user,
-  agent: Agent,
+  agent: Agent
 ) {
-  const track = await ctx.client.db.tracks
-    .filter("sha256", equals(trackSha256))
-    .getFirst();
+  const track = await ctx.db
+    .select()
+    .from(tracks)
+    .where(eq(tracks.sha256, trackSha256))
+    .limit(1)
+    .then((rows) => rows[0]);
 
   if (!track) {
     return;
   }
 
-  const lovedTrack = await ctx.client.db.loved_tracks
-    .filter("user_id", equals(user.xata_id))
-    .filter("track_id", equals(track.xata_id))
-    .getFirst();
+  const lovedTrack = await ctx.db
+    .select()
+    .from(lovedTracks)
+    .where(
+      and(eq(lovedTracks.userId, user.id), eq(lovedTracks.trackId, track.id))
+    )
+    .limit(1)
+    .then((rows) => rows[0]);
 
   if (!lovedTrack) {
     return;
   }
 
-  const rkey = lovedTrack.uri.split("/").pop();
+  const rkey = lovedTrack.uri?.split("/").pop();
 
   await Promise.all([
-    agent.com.atproto.repo.deleteRecord({
-      repo: agent.assertDid,
-      collection: "app.rocksky.like",
-      rkey,
-    }),
-    ctx.client.db.loved_tracks.delete(lovedTrack.xata_id),
+    rkey
+      ? agent.com.atproto.repo.deleteRecord({
+          repo: agent.assertDid,
+          collection: "app.rocksky.like",
+          rkey,
+        })
+      : Promise.resolve(),
+    ctx.db.delete(lovedTracks).where(eq(lovedTracks.id, lovedTrack.id)),
   ]);
 
   const message = JSON.stringify(lovedTrack);
@@ -244,18 +351,19 @@ export async function getLovedTracks(
   ctx: Context,
   user,
   size = 10,
-  offset = 0,
+  offset = 0
 ) {
-  const lovedTracks = await ctx.client.db.loved_tracks
-    .select(["track_id.*"])
-    .filter("user_id", equals(user.xata_id))
-    .sort("xata_createdat", "desc")
-    .getPaginated({
-      pagination: {
-        size,
-        offset,
-      },
-    });
+  const lovedTracksData = await ctx.db
+    .select({
+      lovedTrack: lovedTracks,
+      track: tracks,
+    })
+    .from(lovedTracks)
+    .innerJoin(tracks, eq(lovedTracks.trackId, tracks.id))
+    .where(eq(lovedTracks.userId, user.id))
+    .orderBy(desc(lovedTracks.createdAt))
+    .limit(size)
+    .offset(offset);
 
-  return lovedTracks.records;
+  return lovedTracksData.map((item) => item.track);
 }

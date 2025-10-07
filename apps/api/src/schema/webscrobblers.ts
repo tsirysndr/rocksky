@@ -1,9 +1,11 @@
-import type { InferSelectModel } from "drizzle-orm";
+import { type InferSelectModel, sql } from "drizzle-orm";
 import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import users from "./users";
 
 const webscrobblers = pgTable("webscrobblers", {
-  id: text("xata_id").primaryKey(),
+  id: text("xata_id")
+    .primaryKey()
+    .default(sql`xata_id()`),
   name: text("name").notNull(),
   uuid: text("uuid").notNull(),
   description: text("description"),

@@ -1,4 +1,4 @@
-import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
+import { type InferInsertModel, type InferSelectModel, sql } from "drizzle-orm";
 import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import albums from "./albums";
 import scrobbles from "./scrobbles";
@@ -6,7 +6,9 @@ import tracks from "./tracks";
 import users from "./users";
 
 const shouts = pgTable("shouts", {
-  id: text("xata_id").primaryKey(),
+  id: text("xata_id")
+    .primaryKey()
+    .default(sql`xata_id()`),
   content: text("content").notNull(),
   trackId: text("track_id").references(() => tracks.id),
   artistId: text("artist_id").references(() => users.id),
