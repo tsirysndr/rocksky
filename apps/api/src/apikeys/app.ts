@@ -105,8 +105,8 @@ app.post("/", async (c) => {
     id: record.id,
     name: record.name,
     description: record.description,
-    apiKey: record.apiKey,
-    sharedSecret: record.sharedSecret,
+    api_key: record.apiKey,
+    shared_secret: record.sharedSecret,
   });
 });
 
@@ -147,8 +147,8 @@ app.put("/:id", async (c) => {
     id: record.id,
     name: record.name,
     description: record.description,
-    apiKey: record.apiKey,
-    sharedSecret: record.sharedSecret,
+    api_key: record.apiKey,
+    shared_secret: record.sharedSecret,
   });
 });
 
