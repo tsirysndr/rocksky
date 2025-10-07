@@ -267,7 +267,10 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
         })
       );
 
-      ctx.nc.publish("rocksky.track", Buffer.from(message));
+      ctx.nc.publish(
+        "rocksky.track",
+        Buffer.from(message.replaceAll("sha_256", "sha256"))
+      );
       break;
     }
 

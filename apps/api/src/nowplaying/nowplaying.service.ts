@@ -335,30 +335,41 @@ export async function publishScrobble(ctx: Context, id: string) {
         album_id: {
           ...scrobble.album,
           xata_id: scrobble.album.id,
+          createdAt: scrobble.album.createdAt.toISOString(),
+          updatedAt: scrobble.album.updatedAt.toISOString(),
           xata_createdat: scrobble.album.createdAt.toISOString(),
           xata_updatedat: scrobble.album.updatedAt.toISOString(),
         },
         artist_id: {
           ...scrobble.artist,
           xata_id: scrobble.artist.id,
+          createdAt: scrobble.artist.createdAt.toISOString(),
+          updatedAt: scrobble.artist.updatedAt.toISOString(),
           xata_createdat: scrobble.artist.createdAt.toISOString(),
           xata_updatedat: scrobble.artist.updatedAt.toISOString(),
         },
         track_id: {
           ...scrobble.track,
           xata_id: scrobble.track.id,
+          createdAt: scrobble.track.createdAt.toISOString(),
+          updatedAt: scrobble.track.updatedAt.toISOString(),
           xata_createdat: scrobble.track.createdAt.toISOString(),
           xata_updatedat: scrobble.track.updatedAt.toISOString(),
         },
         user_id: {
           ...scrobble.user,
           xata_id: scrobble.user.id,
+          createdAt: scrobble.user.createdAt.toISOString(),
+          updatedAt: scrobble.user.updatedAt.toISOString(),
           xata_createdat: scrobble.user.createdAt.toISOString(),
           xata_updatedat: scrobble.user.updatedAt.toISOString(),
         },
         xata_id: scrobble.scrobble.id,
         xata_createdat: scrobble.scrobble.createdAt.toISOString(),
         xata_updatedat: scrobble.scrobble.updatedAt.toISOString(),
+        timestamp: scrobble.scrobble.timestamp
+          ? scrobble.scrobble.timestamp.toISOString()
+          : scrobble.scrobble.createdAt.toISOString(),
       },
       user_album: {
         ...user_album,
@@ -436,9 +447,6 @@ export async function publishScrobble(ctx: Context, id: string) {
     null,
     2
   );
-
-  console.log("Publishing scrobble to NATS");
-  console.log(message.replaceAll("sha_256", "sha256"));
 
   ctx.nc.publish(
     "rocksky.scrobble",
