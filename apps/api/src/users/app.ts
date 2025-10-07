@@ -1107,7 +1107,7 @@ app.get("/:did/app.rocksky.artist/:rkey/shouts", async (c) => {
       EXISTS (
         SELECT 1
         FROM ${tables.shoutLikes}
-        WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.id
+        WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.xata_id
           AND ${tables.shoutLikes}.user_id = ${user.id}
       )`.as("liked"),
           }
@@ -1192,7 +1192,7 @@ app.get("/:did/app.rocksky.album/:rkey/shouts", async (c) => {
       EXISTS (
         SELECT 1
         FROM ${tables.shoutLikes}
-        WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.id
+        WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.xata_id
           AND ${tables.shoutLikes}.user_id = ${user.id}
       )`.as("liked"),
           }
@@ -1277,7 +1277,7 @@ app.get("/:did/app.rocksky.song/:rkey/shouts", async (c) => {
       EXISTS (
         SELECT 1
         FROM ${tables.shoutLikes}
-        WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.id
+        WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.xata_id
           AND ${tables.shoutLikes}.user_id = ${user.id}
       )`.as("liked"),
           }
@@ -1362,7 +1362,7 @@ app.get("/:did/app.rocksky.scrobble/:rkey/shouts", async (c) => {
         EXISTS (
           SELECT 1
           FROM ${tables.shoutLikes}
-          WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.id
+          WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.xata_id
             AND ${tables.shoutLikes}.user_id = ${user.id}
         )`.as("liked"),
           }
@@ -1450,14 +1450,14 @@ app.get("/:did/shouts", async (c) => {
         EXISTS (
           SELECT 1
           FROM ${tables.shoutLikes}
-          WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.id
+          WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.xata_id
             AND ${tables.shoutLikes}.user_id = ${user.id}
         )`.as("liked"),
             reported: sql<boolean>`
         EXISTS (
           SELECT 1
           FROM ${tables.shoutReports}
-          WHERE ${tables.shoutReports}.shout_id = ${tables.shouts}.id
+          WHERE ${tables.shoutReports}.shout_id = ${tables.shouts}.xata_id
             AND ${tables.shoutReports}.user_id = ${user.id}
         )`.as("reported"),
           }
