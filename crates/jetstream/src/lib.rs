@@ -41,8 +41,7 @@ pub async fn subscribe() -> Result<(), Error> {
                 continue;
             }
         }
-        break;
+        tracing::warn!("Disconnected from jetstream server, reconnecting in 1 second...");
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     }
-
-    Ok(())
 }
