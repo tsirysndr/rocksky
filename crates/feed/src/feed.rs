@@ -136,17 +136,18 @@ pub trait Feed<Handler: FeedHandler + Clone + Send + Sync + 'static> {
                 // loop, reconnecting on failure
                 loop {
                     match subscriber.run(ddb.clone()).await {
-                        Ok(_) => tracing::info!("Connected to jetstream server"),
+                        Ok(_) => {}
                         Err(e) => {
                             tracing::error!(error = %e, "Failed to connect to jetstream server, retrying in 1 second...");
                             tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                             continue;
                         }
                     }
-                    break;
+                    tracing::warn!(
+                        "Disconnected from jetstream server, reconnecting in 1 second..."
+                    );
+                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                 }
-
-                Ok::<(), Error>(())
             });
 
             tokio::join!(feed_server.run(address), firehose_listener, sync_feed)
