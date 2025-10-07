@@ -32,7 +32,11 @@ pub async fn start_server() -> Result<(), Error> {
     let cache = Cache::new()?;
 
     let pool = PgPoolOptions::new()
-        .max_connections(5)
+        .max_connections(10)
+        .min_connections(5)
+        .acquire_timeout(Duration::from_secs(10))
+        .idle_timeout(Duration::from_secs(300))
+        .max_lifetime(Duration::from_secs(1800))
         .connect(&env::var("XATA_POSTGRES_URL")?)
         .await?;
 
