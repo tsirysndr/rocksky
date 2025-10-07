@@ -33,7 +33,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({});
-      }),
+      })
     );
   server.app.rocksky.actor.getProfile({
     auth: ctx.authVerifier,
@@ -138,8 +138,9 @@ const withUser = ({
   agent,
 }: WithAgent): Effect.Effect<WithUser, Error> => {
   return Effect.tryPromise({
-    try: async () =>
-      ctx.db
+    try: async () => {
+      console.log(">> did", did);
+      return ctx.db
         .select()
         .from(tables.users)
         .where(eq(tables.users.did, did))
@@ -150,7 +151,8 @@ const withUser = ({
           params,
           did,
           agent,
-        })),
+        }));
+    },
     catch: (error) => new Error(`Failed to retrieve current user: ${error}`),
   });
 };
@@ -192,7 +194,7 @@ const retrieveProfile = ({
           .from(tables.spotifyAccounts)
           .leftJoin(
             tables.users,
-            eq(tables.spotifyAccounts.userId, tables.users.id),
+            eq(tables.spotifyAccounts.userId, tables.users.id)
           )
           .where(eq(tables.users.did, did))
           .execute()
@@ -202,7 +204,7 @@ const retrieveProfile = ({
           .from(tables.spotifyTokens)
           .leftJoin(
             tables.users,
-            eq(tables.spotifyTokens.userId, tables.users.id),
+            eq(tables.spotifyTokens.userId, tables.users.id)
           )
           .where(eq(tables.users.did, did))
           .execute()
@@ -212,7 +214,7 @@ const retrieveProfile = ({
           .from(tables.googleDriveAccounts)
           .leftJoin(
             tables.users,
-            eq(tables.googleDriveAccounts.userId, tables.users.id),
+            eq(tables.googleDriveAccounts.userId, tables.users.id)
           )
           .where(eq(tables.users.did, did))
           .execute()
@@ -222,7 +224,7 @@ const retrieveProfile = ({
           .from(tables.dropboxAccounts)
           .leftJoin(
             tables.users,
-            eq(tables.dropboxAccounts.userId, tables.users.id),
+            eq(tables.dropboxAccounts.userId, tables.users.id)
           )
           .where(eq(tables.users.did, did))
           .execute()
@@ -279,8 +281,8 @@ const refreshProfile = ([
               xata_createdat: profile.user.createdAt.toISOString(),
               xata_updatedat: profile.user.updatedAt.toISOString(),
               xata_version: 1,
-            }),
-          ),
+            })
+          )
         );
       } else {
         // Update existing user in background if handle or avatar or displayName changed
@@ -313,8 +315,8 @@ const refreshProfile = ([
                 xata_createdat: profile.user.createdAt.toISOString(),
                 xata_updatedat: new Date().toISOString(),
                 xata_version: (profile.user.xataVersion || 1) + 1,
-              }),
-            ),
+              })
+            )
           );
         }
       }
