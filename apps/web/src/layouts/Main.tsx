@@ -253,20 +253,19 @@ function Main(props: MainProps) {
 							>
 								API Docs
 							</Link>
-
-							<Link
-								href="https://discord.gg/EVcBy2fVa3"
-								target="_blank"
-								className="text-[var(--color-primary)]"
-							>
-								Discord
-							</Link>
 							<Link
 								href="https://tangled.org/@rocksky.app/rocksky"
 								target="_blank"
-								className="text-[var(--color-primary)]"
+								className="mr-[10px] text-[var(--color-primary)]"
 							>
 								Source
+							</Link>
+							<Link
+								href="https://discord.gg/EVcBy2fVa3"
+								target="_blank"
+								className="mr-[10px] text-[var(--color-primary)]"
+							>
+								Discord
 							</Link>
 						</div>
 					</div>
