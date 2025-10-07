@@ -45,6 +45,7 @@ export async function putArtistRecord(
 
   if (!Artist.validateRecord(record).success) {
     console.log(Artist.validateRecord(record));
+    console.log(JSON.stringify(record, null, 2));
     throw new Error("Invalid record");
   }
 
@@ -85,6 +86,7 @@ export async function putAlbumRecord(
 
   if (!Album.validateRecord(record).success) {
     console.log(Album.validateRecord(record));
+    console.log(JSON.stringify(record, null, 2));
     throw new Error("Invalid record");
   }
 
@@ -137,6 +139,7 @@ export async function putSongRecord(
 
   if (!Song.validateRecord(record).success) {
     console.log(Song.validateRecord(record));
+    console.log(chalk.cyan(JSON.stringify(record, null, 2)));
     throw new Error("Invalid record");
   }
 
@@ -192,6 +195,7 @@ async function putScrobbleRecord(
 
   if (!Scrobble.validateRecord(record).success) {
     console.log(Scrobble.validateRecord(record));
+    console.log(JSON.stringify(record, null, 2));
     throw new Error("Invalid record");
   }
 
