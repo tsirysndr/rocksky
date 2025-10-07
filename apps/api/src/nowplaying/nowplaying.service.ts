@@ -9,6 +9,7 @@ import * as Artist from "lexicon/types/app/rocksky/artist";
 import * as Scrobble from "lexicon/types/app/rocksky/scrobble";
 import * as Song from "lexicon/types/app/rocksky/song";
 import { deepSnakeCaseKeys } from "lib";
+import _ from "lodash";
 import { createHash } from "node:crypto";
 import type { Track } from "types/track";
 import albumTracks from "../schema/album-tracks";
@@ -39,7 +40,7 @@ export async function putArtistRecord(
     name: track.albumArtist,
     createdAt: new Date().toISOString(),
     pictureUrl: track.artistPicture,
-    tags: track.genres,
+    tags: _.get(track, "genres", []),
   };
 
   if (!Artist.validateRecord(record).success) {
@@ -131,7 +132,7 @@ export async function putSongRecord(
       : undefined,
     createdAt: new Date().toISOString(),
     spotifyLink: track.spotifyLink ? track.spotifyLink : undefined,
-    tags: track.genres,
+    tags: _.get(track, "genres", []),
   };
 
   if (!Song.validateRecord(record).success) {
@@ -186,7 +187,7 @@ async function putScrobbleRecord(
       ? dayjs.unix(track.timestamp).toISOString()
       : new Date().toISOString(),
     spotifyLink: track.spotifyLink ? track.spotifyLink : undefined,
-    tags: track.genres,
+    tags: _.get(track, "genres", []),
   };
 
   if (!Scrobble.validateRecord(record).success) {
