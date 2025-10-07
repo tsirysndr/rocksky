@@ -39,7 +39,7 @@ export async function putArtistRecord(
     name: track.albumArtist,
     createdAt: new Date().toISOString(),
     pictureUrl: track.artistPicture,
-    tags: [],
+    tags: track.genres || [],
   };
 
   if (!Artist.validateRecord(record).success) {
@@ -133,7 +133,7 @@ export async function putSongRecord(
       : undefined,
     createdAt: new Date().toISOString(),
     spotifyLink: track.spotifyLink ? track.spotifyLink : undefined,
-    tags: [],
+    tags: track.genres || [],
   };
 
   if (!Song.validateRecord(record).success) {
@@ -189,7 +189,7 @@ async function putScrobbleRecord(
       ? dayjs.unix(track.timestamp).toISOString()
       : new Date().toISOString(),
     spotifyLink: track.spotifyLink ? track.spotifyLink : undefined,
-    tags: [],
+    tags: track.genres || [],
   };
 
   if (!Scrobble.validateRecord(record).success) {
