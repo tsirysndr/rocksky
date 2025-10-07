@@ -33,7 +33,6 @@
         "@opentelemetry/sdk-node": "^0.200.0",
         "@opentelemetry/semantic-conventions": "^1.32.0",
         "@pyroscope/nodejs": "^0.4.5",
-        "@xata.io/client": "^0.0.0-next.va121e4207b94bfe0a3c025fc00b247b923880930",
         "assert": "^2.1.0",
         "axios": "^1.7.9",
         "better-sqlite3": "^11.8.1",
@@ -327,9 +326,6 @@
         "vitest": "2.1.8",
         "wrangler": "^3.107.3",
       },
-    },
-    "crates": {
-      "name": "@rocksky/crates",
     },
   },
   "packages": {
@@ -942,8 +938,6 @@
     "@rocksky/app-proxy": ["@rocksky/app-proxy@workspace:apps/app-proxy"],
 
     "@rocksky/cli": ["@rocksky/cli@workspace:apps/cli"],
-
-    "@rocksky/crates": ["@rocksky/crates@workspace:crates"],
 
     "@rocksky/doc": ["@rocksky/doc@workspace:apps/doc"],
 

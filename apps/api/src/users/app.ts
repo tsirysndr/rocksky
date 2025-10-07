@@ -1,8 +1,8 @@
 import type { BlobRef } from "@atproto/lexicon";
-import { equals } from "@xata.io/client";
 import { ctx } from "context";
 import {
   aliasedTable,
+  and,
   asc,
   count,
   desc,
@@ -16,11 +16,11 @@ import jwt from "jsonwebtoken";
 import * as Profile from "lexicon/types/app/bsky/actor/profile";
 import { createAgent } from "lib/agent";
 import { env } from "lib/env";
-import _ from "lodash";
 import { likeTrack, unLikeTrack } from "lovedtracks/lovedtracks.service";
 import { requestCounter } from "metrics";
 import * as R from "ramda";
 import tables from "schema";
+import { SelectUser } from "schema/users";
 import {
   createShout,
   likeShout,
@@ -39,25 +39,17 @@ app.get("/:did/likes", async (c) => {
   const size = +c.req.query("size") || 10;
   const offset = +c.req.query("offset") || 0;
 
-  const lovedTracks = await ctx.client.db.loved_tracks
-    .select(["track_id.*", "user_id.*"])
-    .filter({
-      $any: [
-        {
-          "user_id.did": did,
-        },
-        {
-          "user_id.handle": did,
-        },
-      ],
-    })
-    .sort("xata_createdat", "desc")
-    .getPaginated({
-      pagination: {
-        size,
-        offset,
-      },
-    });
+  const lovedTracks = await ctx.db
+    .select()
+    .from(tables.lovedTracks)
+    .leftJoin(tables.tracks, eq(tables.lovedTracks.trackId, tables.tracks.id))
+    .leftJoin(tables.users, eq(tables.lovedTracks.userId, tables.users.id))
+    .where(or(eq(tables.users.did, did), eq(tables.users.handle, did)))
+    .orderBy(desc(tables.lovedTracks.createdAt))
+    .limit(size)
+    .offset(offset)
+    .execute();
+
   return c.json(lovedTracks);
 });
 
@@ -131,7 +123,7 @@ app.get("/:did/tracks", async (c) => {
     data.map((item) => ({
       ...item,
       tags: [],
-    })),
+    }))
   );
 });
 
@@ -161,7 +153,7 @@ app.get("/:did/playlists", async (c) => {
     results.map((x) => ({
       ...x.playlists,
       trackCount: +x.trackCount,
-    })),
+    }))
   );
 });
 
@@ -174,10 +166,15 @@ app.get("/:did/app.rocksky.scrobble/:rkey", async (c) => {
   const rkey = c.req.param("rkey");
   const uri = `at://${did}/app.rocksky.scrobble/${rkey}`;
 
-  const scrobble = await ctx.client.db.scrobbles
-    .select(["track_id.*", "user_id.*", "xata_createdat", "uri"])
-    .filter("uri", equals(uri))
-    .getFirst();
+  const scrobble = await ctx.db
+    .select()
+    .from(tables.scrobbles)
+    .leftJoin(tables.tracks, eq(tables.scrobbles.trackId, tables.tracks.id))
+    .leftJoin(tables.users, eq(tables.scrobbles.userId, tables.users.id))
+    .where(eq(tables.scrobbles.uri, uri))
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
 
   if (!scrobble) {
     c.status(404);
@@ -185,35 +182,25 @@ app.get("/:did/app.rocksky.scrobble/:rkey", async (c) => {
   }
 
   const [listeners, scrobbles] = await Promise.all([
-    ctx.client.db.user_tracks.select(["track_id.*"]).summarize({
-      filter: {
-        "track_id.xata_id": scrobble.track_id.xata_id,
-      },
-      columns: ["track_id.*"],
-      summaries: {
-        total: {
-          count: "*",
-        },
-      },
-    }),
-    ctx.client.db.scrobbles.select(["track_id.*", "xata_createdat"]).summarize({
-      filter: {
-        "track_id.xata_id": scrobble.track_id.xata_id,
-      },
-      columns: ["track_id.*"],
-      summaries: {
-        total: {
-          count: "*",
-        },
-      },
-    }),
+    ctx.db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(tables.userTracks)
+      .where(eq(tables.userTracks.trackId, scrobble.tracks.id))
+      .execute()
+      .then((rows) => rows[0].count),
+    ctx.db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(tables.scrobbles)
+      .where(eq(tables.scrobbles.trackId, scrobble.tracks.id))
+      .execute()
+      .then((rows) => rows[0].count),
   ]);
 
   return c.json({
-    ...R.omit(["xata_id"], scrobble),
-    id: scrobble.xata_id,
-    listeners: _.get(listeners.summaries, "0.total", 1),
-    scrobbles: _.get(scrobbles.summaries, "0.total", 1),
+    ...scrobble,
+    id: scrobble.scrobbles.id,
+    listeners: listeners || 1,
+    scrobbles: scrobbles || 1,
     tags: [],
   });
 });
@@ -227,12 +214,17 @@ app.get("/:did/app.rocksky.artist/:rkey", async (c) => {
   const rkey = c.req.param("rkey");
   const uri = `at://${did}/app.rocksky.artist/${rkey}`;
 
-  const artist = await ctx.client.db.user_artists
-    .select(["artist_id.*"])
-    .filter({
-      $any: [{ uri }, { "artist_id.uri": uri }],
-    })
-    .getFirst();
+  const artist = await ctx.db
+    .select()
+    .from(tables.userArtists)
+    .leftJoin(
+      tables.artists,
+      eq(tables.userArtists.artistId, tables.artists.id)
+    )
+    .where(or(eq(tables.userArtists.uri, uri), eq(tables.artists.uri, uri)))
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
 
   if (!artist) {
     c.status(404);
@@ -240,37 +232,25 @@ app.get("/:did/app.rocksky.artist/:rkey", async (c) => {
   }
 
   const [listeners, scrobbles] = await Promise.all([
-    ctx.client.db.user_artists.select(["artist_id.*"]).summarize({
-      filter: {
-        "artist_id.xata_id": equals(artist.artist_id.xata_id),
-      },
-      columns: ["artist_id.*"],
-      summaries: {
-        total: {
-          count: "*",
-        },
-      },
-    }),
-    ctx.client.db.scrobbles
-      .select(["artist_id.*", "xata_createdat"])
-      .summarize({
-        filter: {
-          "artist_id.xata_id": artist.artist_id.xata_id,
-        },
-        columns: ["artist_id.*"],
-        summaries: {
-          total: {
-            count: "*",
-          },
-        },
-      }),
+    ctx.db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(tables.userArtists)
+      .where(eq(tables.userArtists.artistId, artist.artists.id))
+      .execute()
+      .then((rows) => rows[0].count),
+    ctx.db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(tables.scrobbles)
+      .where(eq(tables.scrobbles.artistId, artist.artists.id))
+      .execute()
+      .then((rows) => rows[0].count),
   ]);
 
   return c.json({
-    ...R.omit(["xata_id"], artist.artist_id),
-    id: artist.artist_id.xata_id,
-    listeners: _.get(listeners.summaries, "0.total", 1),
-    scrobbles: _.get(scrobbles.summaries, "0.total", 1),
+    ...R.omit(["id"], artist.artists),
+    id: artist.artists.id,
+    listeners: listeners || 1,
+    scrobbles: scrobbles || 1,
     tags: [],
   });
 });
@@ -285,57 +265,51 @@ app.get("/:did/app.rocksky.album/:rkey", async (c) => {
   const rkey = c.req.param("rkey");
   const uri = `at://${did}/app.rocksky.album/${rkey}`;
 
-  const album = await ctx.client.db.user_albums
-    .select(["album_id.*"])
-    .filter({
-      $any: [{ uri }, { "album_id.uri": uri }],
-    })
-    .getFirst();
+  const album = await ctx.db
+    .select()
+    .from(tables.userAlbums)
+    .leftJoin(tables.albums, eq(tables.userAlbums.albumId, tables.albums.id))
+    .where(or(eq(tables.userAlbums.uri, uri), eq(tables.albums.uri, uri)))
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
 
   if (!album) {
     c.status(404);
     return c.text("Album not found");
   }
 
-  const tracks = await ctx.client.db.album_tracks
-    .select(["track_id.*"])
-    .filter("album_id.xata_id", equals(album.album_id.xata_id))
-    .sort("track_id.track_number", "asc")
-    .getAll();
+  const tracks = await ctx.db
+    .select()
+    .from(tables.albumTracks)
+    .leftJoin(tables.tracks, eq(tables.albumTracks.trackId, tables.tracks.id))
+    .where(eq(tables.albumTracks.albumId, album.albums.id))
+    .orderBy(asc(tables.tracks.trackNumber))
+    .execute();
 
   const [listeners, scrobbles] = await Promise.all([
-    ctx.client.db.user_albums.select(["album_id.*"]).summarize({
-      filter: {
-        "album_id.xata_id": equals(album.album_id.xata_id),
-      },
-      columns: ["album_id.*"],
-      summaries: {
-        total: {
-          count: "*",
-        },
-      },
-    }),
-    ctx.client.db.scrobbles.select(["album_id.*", "xata_createdat"]).summarize({
-      filter: {
-        "album_id.xata_id": album.album_id.xata_id,
-      },
-      columns: ["album_id.*"],
-      summaries: {
-        total: {
-          count: "*",
-        },
-      },
-    }),
+    ctx.db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(tables.userAlbums)
+      .where(eq(tables.userAlbums.albumId, album.albums.id))
+      .execute()
+      .then((rows) => rows[0].count),
+    ctx.db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(tables.scrobbles)
+      .where(eq(tables.scrobbles.albumId, album.albums.id))
+      .execute()
+      .then((rows) => rows[0].count),
   ]);
 
   return c.json({
-    ...R.omit(["xata_id"], album.album_id),
-    id: album.album_id.xata_id,
-    listeners: _.get(listeners.summaries, "0.total", 1),
-    scrobbles: _.get(scrobbles.summaries, "0.total", 1),
-    label: _.get(tracks, "0.track_id.label", ""),
-    tracks: dedupeTracksKeepLyrics(tracks.map((track) => track.track_id)).sort(
-      (a, b) => a.track_number - b.track_number,
+    ...R.omit(["id"], album.albums),
+    id: album.albums.id,
+    listeners: listeners || 1,
+    scrobbles: scrobbles || 1,
+    label: tracks[0]?.tracks.label || "",
+    tracks: dedupeTracksKeepLyrics(tracks.map((track) => track.tracks)).sort(
+      (a, b) => a.track_number - b.track_number
     ),
     tags: [],
   });
@@ -351,13 +325,23 @@ app.get("/:did/app.rocksky.song/:rkey", async (c) => {
   const uri = `at://${did}/app.rocksky.song/${rkey}`;
 
   const [_track, user_track] = await Promise.all([
-    ctx.client.db.tracks.filter("uri", equals(uri)).getFirst(),
-    ctx.client.db.user_tracks
-      .select(["track_id.*"])
-      .filter("uri", equals(uri))
-      .getFirst(),
+    ctx.db
+      .select()
+      .from(tables.tracks)
+      .where(eq(tables.tracks.uri, uri))
+      .limit(1)
+      .execute()
+      .then((rows) => rows[0]),
+    ctx.db
+      .select()
+      .from(tables.userTracks)
+      .leftJoin(tables.tracks, eq(tables.userTracks.trackId, tables.tracks.id))
+      .where(eq(tables.userTracks.uri, uri))
+      .limit(1)
+      .execute()
+      .then((rows) => rows[0]),
   ]);
-  const track = _track || user_track.track_id;
+  const track = _track || user_track?.tracks;
 
   if (!track) {
     c.status(404);
@@ -365,36 +349,26 @@ app.get("/:did/app.rocksky.song/:rkey", async (c) => {
   }
 
   const [listeners, scrobbles] = await Promise.all([
-    ctx.client.db.user_tracks.select(["track_id.*"]).summarize({
-      filter: {
-        "track_id.xata_id": equals(track.xata_id),
-      },
-      columns: ["track_id.*"],
-      summaries: {
-        total: {
-          count: "*",
-        },
-      },
-    }),
-    ctx.client.db.scrobbles.select(["track_id.*", "xata_createdat"]).summarize({
-      filter: {
-        "track_id.xata_id": track.xata_id,
-      },
-      columns: ["track_id.*"],
-      summaries: {
-        total: {
-          count: "*",
-        },
-      },
-    }),
+    ctx.db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(tables.userTracks)
+      .where(eq(tables.userTracks.trackId, track.id))
+      .execute()
+      .then((rows) => rows[0].count),
+    ctx.db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(tables.scrobbles)
+      .where(eq(tables.scrobbles.trackId, track.id))
+      .execute()
+      .then((rows) => rows[0].count),
   ]);
 
   return c.json({
-    ...R.omit(["xata_id"], track),
-    id: track.xata_id,
+    ...R.omit(["id"], track),
+    id: track.id,
     tags: [],
-    listeners: _.get(listeners.summaries, "0.total", 1),
-    scrobbles: _.get(scrobbles.summaries, "0.total", 1),
+    listeners: listeners || 1,
+    scrobbles: scrobbles || 1,
   });
 });
 
@@ -409,24 +383,22 @@ app.get("/:did/app.rocksky.artist/:rkey/tracks", async (c) => {
   const size = +c.req.query("size") || 10;
   const offset = +c.req.query("offset") || 0;
 
-  const tracks = await ctx.client.db.artist_tracks
-    .select(["track_id.*", "xata_version"])
-    .filter({
-      "artist_id.uri": equals(uri),
-    })
-    .sort("xata_version", "desc")
-    .getPaginated({
-      pagination: {
-        size,
-        offset,
-      },
-    });
+  const tracks = await ctx.db
+    .select()
+    .from(tables.artistTracks)
+    .leftJoin(tables.tracks, eq(tables.artistTracks.trackId, tables.tracks.id))
+    .where(eq(tables.artistTracks.artistId, uri)) // Assuming artist_id is the URI or ID; adjust if needed
+    .orderBy(desc(tables.artistTracks.xataVersion))
+    .limit(size)
+    .offset(offset)
+    .execute();
+
   return c.json(
-    tracks.records.map((item) => ({
-      ...R.omit(["xata_id"], item.track_id),
-      id: item.track_id.xata_id,
-      xata_version: item.xata_version,
-    })),
+    tracks.map((item) => ({
+      ...R.omit(["id"], item.tracks),
+      id: item.tracks.id,
+      xata_version: item.artist_tracks.xataVersion,
+    }))
   );
 });
 
@@ -441,27 +413,25 @@ app.get("/:did/app.rocksky.artist/:rkey/albums", async (c) => {
   const size = +c.req.query("size") || 10;
   const offset = +c.req.query("offset") || 0;
 
-  const albums = await ctx.client.db.artist_albums
-    .select(["album_id.*", "xata_version"])
-    .filter({
-      "artist_id.uri": equals(uri),
-    })
-    .sort("xata_version", "desc")
-    .getPaginated({
-      pagination: {
-        size,
-        offset,
-      },
-    });
+  const albums = await ctx.db
+    .select()
+    .from(tables.artistAlbums)
+    .leftJoin(tables.albums, eq(tables.artistAlbums.albumId, tables.albums.id))
+    .where(eq(tables.artistAlbums.artistId, uri)) // Assuming artist_id is the URI or ID; adjust if needed
+    .orderBy(desc(tables.artistAlbums.xataVersion))
+    .limit(size)
+    .offset(offset)
+    .execute();
+
   return c.json(
     R.uniqBy(
       (item) => item.id,
-      albums.records.map((item) => ({
-        ...R.omit(["xata_id"], item.album_id),
-        id: item.album_id.xata_id,
-        xata_version: item.xata_version,
-      })),
-    ),
+      albums.map((item) => ({
+        ...R.omit(["id"], item.albums),
+        id: item.albums.id,
+        xata_version: item.artist_albums.xataVersion,
+      }))
+    )
   );
 });
 
@@ -491,11 +461,11 @@ app.get("/:did/app.rocksky.playlist/:rkey", async (c) => {
     .from(tables.playlistTracks)
     .leftJoin(
       tables.playlists,
-      eq(tables.playlistTracks.playlistId, tables.playlists.id),
+      eq(tables.playlistTracks.playlistId, tables.playlists.id)
     )
     .leftJoin(
       tables.tracks,
-      eq(tables.playlistTracks.trackId, tables.tracks.id),
+      eq(tables.playlistTracks.trackId, tables.tracks.id)
     )
     .where(eq(tables.playlists.uri, uri))
     .groupBy(
@@ -539,7 +509,7 @@ app.get("/:did/app.rocksky.playlist/:rkey", async (c) => {
       tables.playlists.picture,
       tables.playlists.spotifyLink,
       tables.playlists.tidalLink,
-      tables.playlists.appleMusicLink,
+      tables.playlists.appleMusicLink
     )
     .orderBy(asc(tables.playlistTracks.createdAt))
     .execute();
@@ -589,21 +559,26 @@ app.get("/:did", async (c) => {
           .where(eq(tables.users.did, did))
           .execute();
 
-        const user = await ctx.client.db.users
-          .select(["*"])
-          .filter("did", equals(did))
-          .getFirst();
+        const user = await ctx.db
+          .select()
+          .from(tables.users)
+          .where(eq(tables.users.did, did))
+          .limit(1)
+          .execute()
+          .then((rows) => rows[0]);
 
         ctx.nc.publish("rocksky.user", Buffer.from(JSON.stringify(user)));
       }
     }
   }
 
-  const user = await ctx.client.db.users
-    .filter({
-      $any: [{ did }, { handle: did }],
-    })
-    .getFirst();
+  const user = await ctx.db
+    .select()
+    .from(tables.users)
+    .where(or(eq(tables.users.did, did), eq(tables.users.handle, did)))
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
 
   if (!user) {
     c.status(404);
@@ -630,9 +605,13 @@ app.post("/:did/app.rocksky.artist/:rkey/shouts", async (c) => {
   });
   const agent = await createAgent(ctx.oauthClient, payload.did);
 
-  const user = await ctx.client.db.users
-    .filter("did", equals(payload.did))
-    .getFirst();
+  const user = await ctx.db
+    .select()
+    .from(tables.users)
+    .where(eq(tables.users.did, payload.did))
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
@@ -653,7 +632,7 @@ app.post("/:did/app.rocksky.artist/:rkey/shouts", async (c) => {
     parsed.data,
     `at://${did}/app.rocksky.artist/${rkey}`,
     user,
-    agent,
+    agent
   );
   return c.json({});
 });
@@ -675,9 +654,13 @@ app.post("/:did/app.rocksky.album/:rkey/shouts", async (c) => {
   });
   const agent = await createAgent(ctx.oauthClient, payload.did);
 
-  const user = await ctx.client.db.users
-    .filter("did", equals(payload.did))
-    .getFirst();
+  const user = await ctx.db
+    .select()
+    .from(tables.users)
+    .where(eq(tables.users.did, payload.did))
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
@@ -698,7 +681,7 @@ app.post("/:did/app.rocksky.album/:rkey/shouts", async (c) => {
     parsed.data,
     `at://${did}/app.rocksky.album/${rkey}`,
     user,
-    agent,
+    agent
   );
   return c.json({});
 });
@@ -720,9 +703,13 @@ app.post("/:did/app.rocksky.song/:rkey/shouts", async (c) => {
   });
   const agent = await createAgent(ctx.oauthClient, payload.did);
 
-  const user = await ctx.client.db.users
-    .filter("did", equals(payload.did))
-    .getFirst();
+  const user = await ctx.db
+    .select()
+    .from(tables.users)
+    .where(eq(tables.users.did, payload.did))
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
@@ -743,7 +730,7 @@ app.post("/:did/app.rocksky.song/:rkey/shouts", async (c) => {
     parsed.data,
     `at://${did}/app.rocksky.song/${rkey}`,
     user,
-    agent,
+    agent
   );
 
   return c.json({});
@@ -766,9 +753,13 @@ app.post("/:did/app.rocksky.scrobble/:rkey/shouts", async (c) => {
   });
   const agent = await createAgent(ctx.oauthClient, payload.did);
 
-  const user = await ctx.client.db.users
-    .filter("did", equals(payload.did))
-    .getFirst();
+  const user = await ctx.db
+    .select()
+    .from(tables.users)
+    .where(eq(tables.users.did, payload.did))
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
@@ -789,7 +780,7 @@ app.post("/:did/app.rocksky.scrobble/:rkey/shouts", async (c) => {
     parsed.data,
     `at://${did}/app.rocksky.scrobble/${rkey}`,
     user,
-    agent,
+    agent
   );
 
   return c.json({});
@@ -809,9 +800,13 @@ app.post("/:did/shouts", async (c) => {
   });
   const agent = await createAgent(ctx.oauthClient, payload.did);
 
-  const user = await ctx.client.db.users
-    .filter("did", equals(payload.did))
-    .getFirst();
+  const user = await ctx.db
+    .select()
+    .from(tables.users)
+    .where(eq(tables.users.did, payload.did))
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
@@ -825,11 +820,13 @@ app.post("/:did/shouts", async (c) => {
     return c.text("Invalid shout data: " + parsed.error.message);
   }
 
-  const _user = await ctx.client.db.users
-    .filter({
-      $any: [{ did }, { handle: did }],
-    })
-    .getFirst();
+  const _user = await ctx.db
+    .select()
+    .from(tables.users)
+    .where(or(eq(tables.users.did, did), eq(tables.users.handle, did)))
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
 
   if (!_user) {
     c.status(404);
@@ -858,9 +855,13 @@ app.post("/:did/app.rocksky.shout/:rkey/likes", async (c) => {
   });
   const agent = await createAgent(ctx.oauthClient, payload.did);
 
-  const user = await ctx.client.db.users
-    .filter("did", equals(payload.did))
-    .getFirst();
+  const user = await ctx.db
+    .select()
+    .from(tables.users)
+    .where(eq(tables.users.did, payload.did))
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
@@ -890,9 +891,13 @@ app.delete("/:did/app.rocksky.shout/:rkey/likes", async (c) => {
   });
   const agent = await createAgent(ctx.oauthClient, payload.did);
 
-  const user = await ctx.client.db.users
-    .filter("did", equals(payload.did))
-    .getFirst();
+  const user = await ctx.db
+    .select()
+    .from(tables.users)
+    .where(eq(tables.users.did, payload.did))
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
@@ -923,9 +928,13 @@ app.post("/:did/app.rocksky.song/:rkey/likes", async (c) => {
   });
   const agent = await createAgent(ctx.oauthClient, payload.did);
 
-  const user = await ctx.client.db.users
-    .filter("did", equals(payload.did))
-    .getFirst();
+  const user = await ctx.db
+    .select()
+    .from(tables.users)
+    .where(eq(tables.users.did, payload.did))
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
@@ -934,21 +943,25 @@ app.post("/:did/app.rocksky.song/:rkey/likes", async (c) => {
   const did = c.req.param("did");
   const rkey = c.req.param("rkey");
 
-  const result = await ctx.client.db.tracks
-    .filter("uri", equals(`at://${did}/app.rocksky.song/${rkey}`))
-    .getFirst();
+  const result = await ctx.db
+    .select()
+    .from(tables.tracks)
+    .where(eq(tables.tracks.uri, `at://${did}/app.rocksky.song/${rkey}`))
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
 
   const track: Track = {
     title: result.title,
     artist: result.artist,
     album: result.album,
-    albumArt: result.album_art,
-    albumArtist: result.album_artist,
-    trackNumber: result.track_number,
+    albumArt: result.albumArt,
+    albumArtist: result.albumArtist,
+    trackNumber: result.trackNumber,
     duration: result.duration,
     composer: result.composer,
     lyrics: result.lyrics,
-    discNumber: result.disc_number,
+    discNumber: result.discNumber,
   };
   await likeTrack(ctx, track, user, agent);
 
@@ -972,9 +985,13 @@ app.delete("/:did/app.rocksky.song/:rkey/likes", async (c) => {
   });
   const agent = await createAgent(ctx.oauthClient, payload.did);
 
-  const user = await ctx.client.db.users
-    .filter("did", equals(payload.did))
-    .getFirst();
+  const user = await ctx.db
+    .select()
+    .from(tables.users)
+    .where(eq(tables.users.did, payload.did))
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
@@ -983,9 +1000,13 @@ app.delete("/:did/app.rocksky.song/:rkey/likes", async (c) => {
   const did = c.req.param("did");
   const rkey = c.req.param("rkey");
 
-  const track = await ctx.client.db.tracks
-    .filter("uri", equals(`at://${did}/app.rocksky.song/${rkey}`))
-    .getFirst();
+  const track = await ctx.db
+    .select()
+    .from(tables.tracks)
+    .where(eq(tables.tracks.uri, `at://${did}/app.rocksky.song/${rkey}`))
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
 
   if (!track) {
     c.status(404);
@@ -1014,9 +1035,13 @@ app.post("/:did/app.rocksky.shout/:rkey/replies", async (c) => {
   });
   const agent = await createAgent(ctx.oauthClient, payload.did);
 
-  const user = await ctx.client.db.users
-    .filter("did", equals(payload.did))
-    .getFirst();
+  const user = await ctx.db
+    .select()
+    .from(tables.users)
+    .where(eq(tables.users.did, payload.did))
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
@@ -1038,7 +1063,7 @@ app.post("/:did/app.rocksky.shout/:rkey/replies", async (c) => {
     parsed.data,
     `at://${did}/app.rocksky.shout/${rkey}`,
     user,
-    agent,
+    agent
   );
   return c.json({});
 });
@@ -1053,15 +1078,19 @@ app.get("/:did/app.rocksky.artist/:rkey/shouts", async (c) => {
 
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
-  let user;
+  let user: SelectUser | undefined;
   if (bearer && bearer !== "null") {
     const payload = jwt.verify(bearer, env.JWT_SECRET, {
       ignoreExpiration: true,
     });
 
-    user = await ctx.client.db.users
-      .filter("did", equals(payload.did))
-      .getFirst();
+    user = await ctx.db
+      .select()
+      .from(tables.users)
+      .where(eq(tables.users.did, payload.did))
+      .limit(1)
+      .execute()
+      .then((rows) => rows[0]);
   }
 
   const shouts = await ctx.db
@@ -1078,8 +1107,8 @@ app.get("/:did/app.rocksky.artist/:rkey/shouts", async (c) => {
       EXISTS (
         SELECT 1
         FROM ${tables.shoutLikes}
-        WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.xata_id
-          AND ${tables.shoutLikes}.user_id = ${user.xata_id}
+        WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.id
+          AND ${tables.shoutLikes}.user_id = ${user.id}
       )`.as("liked"),
           }
         : {
@@ -1103,7 +1132,7 @@ app.get("/:did/app.rocksky.artist/:rkey/shouts", async (c) => {
     .leftJoin(tables.artists, eq(tables.shouts.artistId, tables.artists.id))
     .leftJoin(
       tables.shoutLikes,
-      eq(tables.shouts.id, tables.shoutLikes.shoutId),
+      eq(tables.shouts.id, tables.shoutLikes.shoutId)
     )
     .where(eq(tables.artists.uri, `at://${did}/app.rocksky.artist/${rkey}`))
     .groupBy(
@@ -1116,7 +1145,7 @@ app.get("/:did/app.rocksky.artist/:rkey/shouts", async (c) => {
       tables.users.did,
       tables.users.handle,
       tables.users.displayName,
-      tables.users.avatar,
+      tables.users.avatar
     )
     .orderBy(desc(tables.shouts.createdAt))
     .execute();
@@ -1134,15 +1163,19 @@ app.get("/:did/app.rocksky.album/:rkey/shouts", async (c) => {
 
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
-  let user;
+  let user: SelectUser | undefined;
   if (bearer && bearer !== "null") {
     const payload = jwt.verify(bearer, env.JWT_SECRET, {
       ignoreExpiration: true,
     });
 
-    user = await ctx.client.db.users
-      .filter("did", equals(payload.did))
-      .getFirst();
+    user = await ctx.db
+      .select()
+      .from(tables.users)
+      .where(eq(tables.users.did, payload.did))
+      .limit(1)
+      .execute()
+      .then((rows) => rows[0]);
   }
 
   const shouts = await ctx.db
@@ -1159,8 +1192,8 @@ app.get("/:did/app.rocksky.album/:rkey/shouts", async (c) => {
       EXISTS (
         SELECT 1
         FROM ${tables.shoutLikes}
-        WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.xata_id
-          AND ${tables.shoutLikes}.user_id = ${user.xata_id}
+        WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.id
+          AND ${tables.shoutLikes}.user_id = ${user.id}
       )`.as("liked"),
           }
         : {
@@ -1184,7 +1217,7 @@ app.get("/:did/app.rocksky.album/:rkey/shouts", async (c) => {
     .leftJoin(tables.albums, eq(tables.shouts.albumId, tables.albums.id))
     .leftJoin(
       tables.shoutLikes,
-      eq(tables.shouts.id, tables.shoutLikes.shoutId),
+      eq(tables.shouts.id, tables.shoutLikes.shoutId)
     )
     .where(eq(tables.albums.uri, `at://${did}/app.rocksky.album/${rkey}`))
     .groupBy(
@@ -1197,7 +1230,7 @@ app.get("/:did/app.rocksky.album/:rkey/shouts", async (c) => {
       tables.users.did,
       tables.users.handle,
       tables.users.displayName,
-      tables.users.avatar,
+      tables.users.avatar
     )
     .orderBy(desc(tables.shouts.createdAt))
     .execute();
@@ -1215,15 +1248,19 @@ app.get("/:did/app.rocksky.song/:rkey/shouts", async (c) => {
 
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
-  let user;
+  let user: SelectUser | undefined;
   if (bearer && bearer !== "null") {
     const payload = jwt.verify(bearer, env.JWT_SECRET, {
       ignoreExpiration: true,
     });
 
-    user = await ctx.client.db.users
-      .filter("did", equals(payload.did))
-      .getFirst();
+    user = await ctx.db
+      .select()
+      .from(tables.users)
+      .where(eq(tables.users.did, payload.did))
+      .limit(1)
+      .execute()
+      .then((rows) => rows[0]);
   }
 
   const shouts = await ctx.db
@@ -1240,8 +1277,8 @@ app.get("/:did/app.rocksky.song/:rkey/shouts", async (c) => {
       EXISTS (
         SELECT 1
         FROM ${tables.shoutLikes}
-        WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.xata_id
-          AND ${tables.shoutLikes}.user_id = ${user.xata_id}
+        WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.id
+          AND ${tables.shoutLikes}.user_id = ${user.id}
       )`.as("liked"),
           }
         : {
@@ -1265,7 +1302,7 @@ app.get("/:did/app.rocksky.song/:rkey/shouts", async (c) => {
     .leftJoin(tables.tracks, eq(tables.shouts.trackId, tables.tracks.id))
     .leftJoin(
       tables.shoutLikes,
-      eq(tables.shouts.id, tables.shoutLikes.shoutId),
+      eq(tables.shouts.id, tables.shoutLikes.shoutId)
     )
     .where(eq(tables.tracks.uri, `at://${did}/app.rocksky.song/${rkey}`))
     .groupBy(
@@ -1278,7 +1315,7 @@ app.get("/:did/app.rocksky.song/:rkey/shouts", async (c) => {
       tables.users.did,
       tables.users.handle,
       tables.users.displayName,
-      tables.users.avatar,
+      tables.users.avatar
     )
     .orderBy(desc(tables.shouts.createdAt))
     .execute();
@@ -1296,15 +1333,19 @@ app.get("/:did/app.rocksky.scrobble/:rkey/shouts", async (c) => {
 
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
-  let user;
+  let user: SelectUser | undefined;
   if (bearer && bearer !== "null") {
     const payload = jwt.verify(bearer, env.JWT_SECRET, {
       ignoreExpiration: true,
     });
 
-    user = await ctx.client.db.users
-      .filter("did", equals(payload.did))
-      .getFirst();
+    user = await ctx.db
+      .select()
+      .from(tables.users)
+      .where(eq(tables.users.did, payload.did))
+      .limit(1)
+      .execute()
+      .then((rows) => rows[0]);
   }
 
   const shouts = await ctx.db
@@ -1321,8 +1362,8 @@ app.get("/:did/app.rocksky.scrobble/:rkey/shouts", async (c) => {
         EXISTS (
           SELECT 1
           FROM ${tables.shoutLikes}
-          WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.xata_id
-            AND ${tables.shoutLikes}.user_id = ${user.xata_id}
+          WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.id
+            AND ${tables.shoutLikes}.user_id = ${user.id}
         )`.as("liked"),
           }
         : {
@@ -1345,11 +1386,11 @@ app.get("/:did/app.rocksky.scrobble/:rkey/shouts", async (c) => {
     .leftJoin(tables.users, eq(tables.shouts.authorId, tables.users.id))
     .leftJoin(
       tables.scrobbles,
-      eq(tables.shouts.scrobbleId, tables.scrobbles.id),
+      eq(tables.shouts.scrobbleId, tables.scrobbles.id)
     )
     .leftJoin(
       tables.shoutLikes,
-      eq(tables.shouts.id, tables.shoutLikes.shoutId),
+      eq(tables.shouts.id, tables.shoutLikes.shoutId)
     )
     .where(eq(tables.scrobbles.uri, `at://${did}/app.rocksky.scrobble/${rkey}`))
     .groupBy(
@@ -1362,7 +1403,7 @@ app.get("/:did/app.rocksky.scrobble/:rkey/shouts", async (c) => {
       tables.users.did,
       tables.users.handle,
       tables.users.displayName,
-      tables.users.avatar,
+      tables.users.avatar
     )
     .orderBy(desc(tables.shouts.createdAt))
     .execute();
@@ -1376,15 +1417,19 @@ app.get("/:did/shouts", async (c) => {
 
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
-  let user;
+  let user: SelectUser | undefined;
   if (bearer && bearer !== "null") {
     const payload = jwt.verify(bearer, env.JWT_SECRET, {
       ignoreExpiration: true,
     });
 
-    user = await ctx.client.db.users
-      .filter("did", equals(payload.did))
-      .getFirst();
+    user = await ctx.db
+      .select()
+      .from(tables.users)
+      .where(eq(tables.users.did, payload.did))
+      .limit(1)
+      .execute()
+      .then((rows) => rows[0]);
   }
 
   const shouts = await ctx.db
@@ -1405,15 +1450,15 @@ app.get("/:did/shouts", async (c) => {
         EXISTS (
           SELECT 1
           FROM ${tables.shoutLikes}
-          WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.xata_id
-            AND ${tables.shoutLikes}.user_id = ${user.xata_id}
+          WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.id
+            AND ${tables.shoutLikes}.user_id = ${user.id}
         )`.as("liked"),
             reported: sql<boolean>`
         EXISTS (
           SELECT 1
           FROM ${tables.shoutReports}
-          WHERE ${tables.shoutReports}.shout_id = ${tables.shouts}.xata_id
-            AND ${tables.shoutReports}.user_id = ${user.xata_id}
+          WHERE ${tables.shoutReports}.shout_id = ${tables.shouts}.id
+            AND ${tables.shoutReports}.user_id = ${user.id}
         )`.as("reported"),
           }
         : {
@@ -1437,12 +1482,12 @@ app.get("/:did/shouts", async (c) => {
     .leftJoin(tables.shouts, eq(tables.profileShouts.shoutId, tables.shouts.id))
     .leftJoin(
       aliasedTable(tables.users, "authors"),
-      eq(tables.shouts.authorId, aliasedTable(tables.users, "authors").id),
+      eq(tables.shouts.authorId, aliasedTable(tables.users, "authors").id)
     )
     .leftJoin(tables.users, eq(tables.profileShouts.userId, tables.users.id))
     .leftJoin(
       tables.shoutLikes,
-      eq(tables.shouts.id, tables.shoutLikes.shoutId),
+      eq(tables.shouts.id, tables.shoutLikes.shoutId)
     )
     .groupBy(
       tables.profileShouts.id,
@@ -1461,7 +1506,7 @@ app.get("/:did/shouts", async (c) => {
       aliasedTable(tables.users, "authors").did,
       aliasedTable(tables.users, "authors").handle,
       aliasedTable(tables.users, "authors").displayName,
-      aliasedTable(tables.users, "authors").avatar,
+      aliasedTable(tables.users, "authors").avatar
     )
     .orderBy(desc(tables.profileShouts.createdAt))
     .execute();
@@ -1476,10 +1521,13 @@ app.get("/:did/app.rocksky.shout/:rkey/likes", async (c) => {
   });
   const did = c.req.param("did");
   const rkey = c.req.param("rkey");
-  const likes = await ctx.client.db.shout_likes
-    .select(["user_id.*", "xata_createdat"])
-    .filter("shout_id.uri", `at://${did}/app.rocksky.shout/${rkey}`)
-    .getAll();
+  const likes = await ctx.db
+    .select()
+    .from(tables.shoutLikes)
+    .leftJoin(tables.users, eq(tables.shoutLikes.userId, tables.users.id))
+    .leftJoin(tables.shouts, eq(tables.shoutLikes.shoutId, tables.shouts.id))
+    .where(eq(tables.shouts.uri, `at://${did}/app.rocksky.shout/${rkey}`))
+    .execute();
   return c.json(likes);
 });
 
@@ -1490,11 +1538,13 @@ app.get("/:did/app.rocksky.shout/:rkey/replies", async (c) => {
   });
   const did = c.req.param("did");
   const rkey = c.req.param("rkey");
-  const shouts = await ctx.client.db.shouts
-    .select(["author_id.*", "xata_createdat"])
-    .filter("parent_id.uri", `at://${did}/app.rocksky.shout/${rkey}`)
-    .sort("xata_createdat", "asc")
-    .getAll();
+  const shouts = await ctx.db
+    .select()
+    .from(tables.shouts)
+    .leftJoin(tables.users, eq(tables.shouts.authorId, tables.users.id))
+    .where(eq(tables.shouts.parentId, `at://${did}/app.rocksky.shout/${rkey}`))
+    .orderBy(asc(tables.shouts.createdAt))
+    .execute();
   return c.json(shouts);
 });
 
@@ -1533,13 +1583,21 @@ app.post("/:did/app.rocksky.shout/:rkey/report", async (c) => {
   const payload = jwt.verify(bearer, env.JWT_SECRET, {
     ignoreExpiration: true,
   });
-  const shout = await ctx.client.db.shouts
-    .filter("uri", `at://${did}/app.rocksky.shout/${rkey}`)
-    .getFirst();
+  const shout = await ctx.db
+    .select()
+    .from(tables.shouts)
+    .where(eq(tables.shouts.uri, `at://${did}/app.rocksky.shout/${rkey}`))
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
 
-  const user = await ctx.client.db.users
-    .filter("did", equals(payload.did))
-    .getFirst();
+  const user = await ctx.db
+    .select()
+    .from(tables.users)
+    .where(eq(tables.users.did, payload.did))
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
 
   if (!shout) {
     c.status(404);
@@ -1551,21 +1609,32 @@ app.post("/:did/app.rocksky.shout/:rkey/report", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const existingReport = await ctx.client.db.shout_reports
-    .filter({
-      user_id: user.xata_id,
-      shout_id: shout.xata_id,
-    })
-    .getFirst();
+  const existingReport = await ctx.db
+    .select()
+    .from(tables.shoutReports)
+    .where(
+      and(
+        eq(tables.shoutReports.userId, user.id),
+        eq(tables.shoutReports.shoutId, shout.id)
+      )
+    )
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
 
   if (existingReport) {
     return c.json(existingReport);
   }
 
-  const report = await ctx.client.db.shout_reports.create({
-    user_id: user.xata_id,
-    shout_id: shout.xata_id,
-  });
+  const report = await ctx.db
+    .insert(tables.shoutReports)
+    .values({
+      userId: user.id,
+      shoutId: shout.id,
+    })
+    .returning()
+    .execute()
+    .then((rows) => rows[0]);
 
   return c.json(report);
 });
@@ -1588,13 +1657,21 @@ app.delete("/:did/app.rocksky.shout/:rkey/report", async (c) => {
   const payload = jwt.verify(bearer, env.JWT_SECRET, {
     ignoreExpiration: true,
   });
-  const shout = await ctx.client.db.shouts
-    .filter("uri", `at://${did}/app.rocksky.shout/${rkey}`)
-    .getFirst();
+  const shout = await ctx.db
+    .select()
+    .from(tables.shouts)
+    .where(eq(tables.shouts.uri, `at://${did}/app.rocksky.shout/${rkey}`))
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
 
-  const user = await ctx.client.db.users
-    .filter("did", equals(payload.did))
-    .getFirst();
+  const user = await ctx.db
+    .select()
+    .from(tables.users)
+    .where(eq(tables.users.did, payload.did))
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
 
   if (!shout) {
     c.status(404);
@@ -1606,25 +1683,33 @@ app.delete("/:did/app.rocksky.shout/:rkey/report", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const report = await ctx.client.db.shout_reports
-    .select(["user_id.*", "shout_id.*"])
-    .filter({
-      user_id: user.xata_id,
-      shout_id: shout.xata_id,
-    })
-    .getFirst();
+  const report = await ctx.db
+    .select()
+    .from(tables.shoutReports)
+    .where(
+      and(
+        eq(tables.shoutReports.userId, user.id),
+        eq(tables.shoutReports.shoutId, shout.id)
+      )
+    )
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
 
   if (!report) {
     c.status(404);
     return c.text("Report not found");
   }
 
-  if (report.user_id.xata_id !== user.xata_id) {
+  if (report.userId !== user.id) {
     c.status(403);
     return c.text("Forbidden");
   }
 
-  await ctx.client.db.shout_reports.delete(report.xata_id);
+  await ctx.db
+    .delete(tables.shoutReports)
+    .where(eq(tables.shoutReports.id, report.id))
+    .execute();
 
   return c.json(report);
 });
@@ -1649,33 +1734,33 @@ app.delete("/:did/app.rocksky.shout/:rkey", async (c) => {
   });
   const agent = await createAgent(ctx.oauthClient, payload.did);
 
-  const user = await ctx.client.db.users
-    .filter("did", equals(payload.did))
-    .getFirst();
+  const user = await ctx.db
+    .select()
+    .from(tables.users)
+    .where(eq(tables.users.did, payload.did))
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
 
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
   }
 
-  const shout = await ctx.client.db.shouts
-    .select([
-      "author_id.*",
-      "uri",
-      "content",
-      "xata_id",
-      "xata_createdat",
-      "parent_id",
-    ])
-    .filter("uri", `at://${did}/app.rocksky.shout/${rkey}`)
-    .getFirst();
+  const shout = await ctx.db
+    .select()
+    .from(tables.shouts)
+    .where(eq(tables.shouts.uri, `at://${did}/app.rocksky.shout/${rkey}`))
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
 
   if (!shout) {
     c.status(404);
     return c.text("Shout not found");
   }
 
-  if (shout.author_id.xata_id !== user.xata_id) {
+  if (shout.authorId !== user.id) {
     c.status(403);
     return c.text("Forbidden");
   }
@@ -1687,7 +1772,7 @@ app.delete("/:did/app.rocksky.shout/:rkey", async (c) => {
       },
     })
     .from(tables.shouts)
-    .where(eq(tables.shouts.parentId, shout.xata_id))
+    .where(eq(tables.shouts.parentId, shout.id))
     .execute();
 
   const replyIds = replies.map(({ replies: r }) => r.id);
@@ -1705,7 +1790,7 @@ app.delete("/:did/app.rocksky.shout/:rkey", async (c) => {
 
   await ctx.db
     .delete(tables.profileShouts)
-    .where(eq(tables.profileShouts.shoutId, shout.xata_id))
+    .where(eq(tables.profileShouts.shoutId, shout.id))
     .execute();
 
   await ctx.db
@@ -1715,12 +1800,12 @@ app.delete("/:did/app.rocksky.shout/:rkey", async (c) => {
 
   await ctx.db
     .delete(tables.shoutLikes)
-    .where(eq(tables.shoutLikes.shoutId, shout.xata_id))
+    .where(eq(tables.shoutLikes.shoutId, shout.id))
     .execute();
 
   await ctx.db
     .delete(tables.shoutReports)
-    .where(eq(tables.shoutReports.shoutId, shout.xata_id))
+    .where(eq(tables.shoutReports.shoutId, shout.id))
     .execute();
 
   await ctx.db
@@ -1730,7 +1815,7 @@ app.delete("/:did/app.rocksky.shout/:rkey", async (c) => {
 
   await ctx.db
     .delete(tables.shouts)
-    .where(eq(tables.shouts.id, shout.xata_id))
+    .where(eq(tables.shouts.id, shout.id))
     .execute();
 
   await agent.com.atproto.repo.deleteRecord({

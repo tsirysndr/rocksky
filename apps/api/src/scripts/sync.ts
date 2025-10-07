@@ -1,102 +1,116 @@
-import { equals } from "@xata.io/client";
 import chalk from "chalk";
 import { ctx } from "context";
+import { desc, eq, or } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { publishScrobble } from "nowplaying/nowplaying.service";
+import albums from "../schema/albums";
+import artists from "../schema/artists";
+import scrobbles from "../schema/scrobbles";
+import tracks from "../schema/tracks";
+import users from "../schema/users";
 
 const args = process.argv.slice(2);
 
 async function updateUris(did: string) {
-  const { records } = await ctx.client.db.scrobbles
-    .select(["track_id.*", "user_id.*"])
-    .filter({
-      $any: [{ "user_id.did": did }, { "user_id.handle": did }],
+  // Get scrobbles with track and user data
+  const records = await ctx.db
+    .select({
+      track: tracks,
+      user: users,
     })
-    .getPaginated({
-      pagination: {
-        size: process.env.SYNC_SIZE ? parseInt(process.env.SYNC_SIZE, 10) : 20,
-      },
-      sort: [{ xata_createdat: "desc" }],
-    });
-  for (const { track_id: track } of records) {
-    const existingTrack = await ctx.client.db.tracks
-      .filter(
-        "sha256",
-        equals(
-          createHash("sha256")
-            .update(
-              `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
-            )
-            .digest("hex")
-        )
-      )
-      .getFirst();
+    .from(scrobbles)
+    .innerJoin(tracks, eq(scrobbles.trackId, tracks.id))
+    .innerJoin(users, eq(scrobbles.userId, users.id))
+    .where(or(eq(users.did, did), eq(users.handle, did)))
+    .orderBy(desc(scrobbles.createdAt))
+    .limit(process.env.SYNC_SIZE ? parseInt(process.env.SYNC_SIZE, 10) : 20);
 
-    if (existingTrack && !existingTrack.album_uri) {
-      console.log(`Updating album uri for ${chalk.cyan(track.xata_id)} ...`);
-      const album = await ctx.client.db.albums
-        .filter(
-          "sha256",
-          equals(
-            createHash("sha256")
-              .update(`${track.album} - ${track.album_artist}`.toLowerCase())
-              .digest("hex")
-          )
-        )
-        .getFirst();
+  for (const { track } of records) {
+    const trackHash = createHash("sha256")
+      .update(`${track.title} - ${track.artist} - ${track.album}`.toLowerCase())
+      .digest("hex");
+
+    const existingTrack = await ctx.db
+      .select()
+      .from(tracks)
+      .where(eq(tracks.sha256, trackHash))
+      .limit(1)
+      .then((rows) => rows[0]);
+
+    if (existingTrack && !existingTrack.albumUri) {
+      console.log(`Updating album uri for ${chalk.cyan(track.id)} ...`);
+
+      const albumHash = createHash("sha256")
+        .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
+        .digest("hex");
+
+      const album = await ctx.db
+        .select()
+        .from(albums)
+        .where(eq(albums.sha256, albumHash))
+        .limit(1)
+        .then((rows) => rows[0]);
+
       if (album) {
-        await ctx.client.db.tracks.update(existingTrack.xata_id, {
-          album_uri: album.uri,
-        });
+        await ctx.db
+          .update(tracks)
+          .set({ albumUri: album.uri })
+          .where(eq(tracks.id, existingTrack.id));
       }
     }
 
-    if (existingTrack && !existingTrack.artist_uri) {
-      console.log(`Updating artist uri for ${chalk.cyan(track.xata_id)} ...`);
-      const artist = await ctx.client.db.artists
-        .filter(
-          "sha256",
-          equals(
-            createHash("sha256")
-              .update(track.album_artist.toLowerCase())
-              .digest("hex")
-          )
-        )
-        .getFirst();
+    if (existingTrack && !existingTrack.artistUri) {
+      console.log(`Updating artist uri for ${chalk.cyan(track.id)} ...`);
+
+      const artistHash = createHash("sha256")
+        .update(track.albumArtist.toLowerCase())
+        .digest("hex");
+
+      const artist = await ctx.db
+        .select()
+        .from(artists)
+        .where(eq(artists.sha256, artistHash))
+        .limit(1)
+        .then((rows) => rows[0]);
+
       if (artist) {
-        await ctx.client.db.tracks.update(existingTrack.xata_id, {
-          artist_uri: artist.uri,
-        });
+        await ctx.db
+          .update(tracks)
+          .set({ artistUri: artist.uri })
+          .where(eq(tracks.id, existingTrack.id));
       }
     }
 
-    const album = await ctx.client.db.albums
-      .filter(
-        "sha256",
-        equals(
-          createHash("sha256")
-            .update(`${track.album} - ${track.album_artist}`.toLowerCase())
-            .digest("hex")
-        )
-      )
-      .getFirst();
+    const albumHash = createHash("sha256")
+      .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
+      .digest("hex");
 
-    if (existingTrack && !album.artist_uri) {
-      console.log(`Updating artist uri for ${chalk.cyan(album.xata_id)} ...`);
-      const artist = await ctx.client.db.artists
-        .filter(
-          "sha256",
-          equals(
-            createHash("sha256")
-              .update(track.album_artist.toLowerCase())
-              .digest("hex")
-          )
-        )
-        .getFirst();
+    const album = await ctx.db
+      .select()
+      .from(albums)
+      .where(eq(albums.sha256, albumHash))
+      .limit(1)
+      .then((rows) => rows[0]);
+
+    if (existingTrack && album && !album.artistUri) {
+      console.log(`Updating artist uri for ${chalk.cyan(album.id)} ...`);
+
+      const artistHash = createHash("sha256")
+        .update(track.albumArtist.toLowerCase())
+        .digest("hex");
+
+      const artist = await ctx.db
+        .select()
+        .from(artists)
+        .where(eq(artists.sha256, artistHash))
+        .limit(1)
+        .then((rows) => rows[0]);
+
       if (artist) {
-        await ctx.client.db.albums.update(album.xata_id, {
-          artist_uri: artist.uri,
-        });
+        await ctx.db
+          .update(albums)
+          .set({ artistUri: artist.uri })
+          .where(eq(albums.id, album.id));
       }
     }
   }
@@ -111,19 +125,20 @@ if (args.includes("--background")) {
     await new Promise((resolve) => setTimeout(resolve, 15000));
     console.log(`Syncing scrobbles ${chalk.magenta(did)} ...`);
     await updateUris(did);
-    const { records } = await ctx.client.db.scrobbles
-      .filter({
-        $any: [{ "user_id.did": did }, { "user_id.handle": did }],
+
+    const records = await ctx.db
+      .select({
+        scrobble: scrobbles,
       })
-      .getPaginated({
-        pagination: {
-          size: 5,
-        },
-        sort: [{ xata_createdat: "desc" }],
-      });
-    for (const scrobble of records) {
-      console.log(`Syncing scrobble ${chalk.cyan(scrobble.xata_id)} ...`);
-      await publishScrobble(ctx, scrobble.xata_id);
+      .from(scrobbles)
+      .innerJoin(users, eq(scrobbles.userId, users.id))
+      .where(or(eq(users.did, did), eq(users.handle, did)))
+      .orderBy(desc(scrobbles.createdAt))
+      .limit(5);
+
+    for (const { scrobble } of records) {
+      console.log(`Syncing scrobble ${chalk.cyan(scrobble.id)} ...`);
+      await publishScrobble(ctx, scrobble.id);
     }
   }
   process.exit(0);
@@ -133,19 +148,19 @@ for (const arg of args) {
   console.log(`Syncing scrobbles ${chalk.magenta(arg)} ...`);
   await updateUris(arg);
 
-  const { records } = await ctx.client.db.scrobbles
-    .filter({
-      $any: [{ "user_id.did": arg }, { "user_id.handle": arg }],
+  const records = await ctx.db
+    .select({
+      scrobble: scrobbles,
     })
-    .getPaginated({
-      pagination: {
-        size: process.env.SYNC_SIZE ? parseInt(process.env.SYNC_SIZE) : 20,
-      },
-      sort: [{ xata_createdat: "desc" }],
-    });
-  for (const scrobble of records) {
-    console.log(`Syncing scrobble ${chalk.cyan(scrobble.xata_id)} ...`);
-    await publishScrobble(ctx, scrobble.xata_id);
+    .from(scrobbles)
+    .innerJoin(users, eq(scrobbles.userId, users.id))
+    .where(or(eq(users.did, arg), eq(users.handle, arg)))
+    .orderBy(desc(scrobbles.createdAt))
+    .limit(process.env.SYNC_SIZE ? parseInt(process.env.SYNC_SIZE) : 20);
+
+  for (const { scrobble } of records) {
+    console.log(`Syncing scrobble ${chalk.cyan(scrobble.id)} ...`);
+    await publishScrobble(ctx, scrobble.id);
   }
   console.log(`Synced ${chalk.greenBright(records.length)} scrobbles`);
 }

@@ -1,17 +1,18 @@
-import { equals } from "@xata.io/client";
 import { ctx } from "context";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
+import { deepSnakeCaseKeys } from "lib";
 import _ from "lodash";
 import users from "schema/users";
 
 const args = process.argv.slice(2);
 
 for (const did of args) {
-  const user = await ctx.client.db.users
-    .filter({
-      $any: [{ did }, { handle: did }],
-    })
-    .getFirst();
+  const [user] = await ctx.db
+    .select()
+    .from(users)
+    .where(or(eq(users.did, did), eq(users.handle, did)))
+    .limit(1)
+    .execute();
   if (!user) {
     console.log(`User ${did} not found`);
     continue;
@@ -41,14 +42,19 @@ for (const did of args) {
     .where(eq(users.did, user.did))
     .execute();
 
-  const u = await ctx.client.db.users
-    .select(["*"])
-    .filter("did", equals(user.did))
-    .getFirst();
+  const [u] = await ctx.db
+    .select()
+    .from(users)
+    .where(eq(users.did, user.did))
+    .limit(1)
+    .execute();
 
   console.log(u);
 
-  ctx.nc.publish("rocksky.user", Buffer.from(JSON.stringify(u)));
+  ctx.nc.publish(
+    "rocksky.user",
+    Buffer.from(JSON.stringify(deepSnakeCaseKeys(u)))
+  );
 }
 
 console.log("Done");

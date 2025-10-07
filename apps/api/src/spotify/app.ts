@@ -1,5 +1,5 @@
-import { equals } from "@xata.io/client";
 import { ctx } from "context";
+import { and, eq, or } from "drizzle-orm";
 import { Hono } from "hono";
 import jwt from "jsonwebtoken";
 import { decrypt, encrypt } from "lib/crypto";
@@ -7,6 +7,11 @@ import { env } from "lib/env";
 import { requestCounter } from "metrics";
 import crypto, { createHash } from "node:crypto";
 import { rateLimiter } from "ratelimiter";
+import lovedTracks from "schema/loved-tracks";
+import spotifyAccounts from "schema/spotify-accounts";
+import spotifyTokens from "schema/spotify-tokens";
+import tracks from "schema/tracks";
+import users from "schema/users";
 import { emailSchema } from "types/email";
 
 const app = new Hono();
@@ -17,7 +22,7 @@ app.use(
     limit: 10, // max Spotify API calls
     window: 15, // per 10 seconds
     keyPrefix: "spotify-ratelimit",
-  }),
+  })
 );
 
 app.get("/login", async (c) => {
@@ -33,7 +38,13 @@ app.get("/login", async (c) => {
     ignoreExpiration: true,
   });
 
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  const user = await ctx.db
+    .select()
+    .from(users)
+    .where(eq(users.did, did))
+    .limit(1)
+    .then((rows) => rows[0]);
+
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
@@ -44,7 +55,7 @@ app.get("/login", async (c) => {
   const redirectUrl = `https://accounts.spotify.com/en/authorize?client_id=${env.SPOTIFY_CLIENT_ID}&response_type=code&redirect_uri=${env.SPOTIFY_REDIRECT_URI}&scope=user-read-private%20user-read-email%20user-read-playback-state%20user-read-currently-playing%20user-modify-playback-state%20playlist-modify-public%20playlist-modify-private%20playlist-read-private%20playlist-read-collaborative&state=${state}`;
   c.header(
     "Set-Cookie",
-    `session-id=${state}; Path=/; HttpOnly; SameSite=Strict; Secure`,
+    `session-id=${state}; Path=/; HttpOnly; SameSite=Strict; Secure`
   );
   return c.json({ redirectUrl });
 });
@@ -67,7 +78,10 @@ app.get("/callback", async (c) => {
       client_secret: env.SPOTIFY_CLIENT_SECRET,
     }),
   });
-  const { access_token, refresh_token } = await response.json();
+  const { access_token, refresh_token } = await response.json<{
+    access_token: string;
+    refresh_token: string;
+  }>();
 
   if (!state) {
     return c.redirect(env.FRONTEND_URL);
@@ -79,26 +93,51 @@ app.get("/callback", async (c) => {
   }
 
   ctx.kv.delete(state);
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  const user = await ctx.db
+    .select()
+    .from(users)
+    .where(eq(users.did, did))
+    .limit(1)
+    .then((rows) => rows[0]);
 
   if (!user) {
     return c.redirect(env.FRONTEND_URL);
   }
 
-  const spotifyToken = await ctx.client.db.spotify_tokens
-    .filter("user_id", equals(user.xata_id))
-    .getFirst();
+  const existingSpotifyToken = await ctx.db
+    .select()
+    .from(spotifyTokens)
+    .where(eq(spotifyTokens.userId, user.id))
+    .limit(1)
+    .then((rows) => rows[0]);
 
-  await ctx.client.db.spotify_tokens.createOrUpdate(spotifyToken?.xata_id, {
-    user_id: user.xata_id,
-    access_token: encrypt(access_token, env.SPOTIFY_ENCRYPTION_KEY),
-    refresh_token: encrypt(refresh_token, env.SPOTIFY_ENCRYPTION_KEY),
-  });
+  if (existingSpotifyToken) {
+    await ctx.db
+      .update(spotifyTokens)
+      .set({
+        accessToken: encrypt(access_token, env.SPOTIFY_ENCRYPTION_KEY),
+        refreshToken: encrypt(refresh_token, env.SPOTIFY_ENCRYPTION_KEY),
+      })
+      .where(eq(spotifyTokens.id, existingSpotifyToken.id));
+  } else {
+    await ctx.db.insert(spotifyTokens).values({
+      userId: user.id,
+      accessToken: encrypt(access_token, env.SPOTIFY_ENCRYPTION_KEY),
+      refreshToken: encrypt(refresh_token, env.SPOTIFY_ENCRYPTION_KEY),
+    });
+  }
 
-  const spotifyUser = await ctx.client.db.spotify_accounts
-    .filter("user_id", equals(user.xata_id))
-    .filter("is_beta_user", equals(true))
-    .getFirst();
+  const spotifyUser = await ctx.db
+    .select()
+    .from(spotifyAccounts)
+    .where(
+      and(
+        eq(spotifyAccounts.userId, user.id),
+        eq(spotifyAccounts.isBetaUser, true)
+      )
+    )
+    .limit(1)
+    .then((rows) => rows[0]);
 
   if (spotifyUser?.email) {
     ctx.nc.publish("rocksky.spotify.user", Buffer.from(spotifyUser.email));
@@ -120,7 +159,13 @@ app.post("/join", async (c) => {
     ignoreExpiration: true,
   });
 
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  const user = await ctx.db
+    .select()
+    .from(users)
+    .where(eq(users.did, did))
+    .limit(1)
+    .then((rows) => rows[0]);
+
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
@@ -137,15 +182,13 @@ app.post("/join", async (c) => {
   const { email } = parsed.data;
 
   try {
-    await ctx.client.db.spotify_accounts.create({
-      user_id: user.xata_id,
+    await ctx.db.insert(spotifyAccounts).values({
+      userId: user.id,
       email,
-      is_beta_user: false,
+      isBetaUser: false,
     });
   } catch (e) {
-    if (
-      !e.message.includes("invalid record: column [user_id]: is not unique")
-    ) {
+    if (!e.message.includes("duplicate key value violates unique constraint")) {
       console.error(e.message);
     } else {
       throw e;
@@ -179,29 +222,37 @@ app.get("/currently-playing", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const user = await ctx.client.db.users
-    .filter({
-      $any: [{ did }, { handle: did }],
-    })
-    .getFirst();
+  const user = await ctx.db
+    .select()
+    .from(users)
+    .where(or(eq(users.did, did), eq(users.handle, did)))
+    .limit(1)
+    .then((rows) => rows[0]);
 
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
   }
 
-  const spotifyAccount = await ctx.client.db.spotify_accounts
-    .filter({
-      $any: [{ "user_id.did": did }, { "user_id.handle": did }],
+  const spotifyAccount = await ctx.db
+    .select({
+      spotifyAccount: spotifyAccounts,
+      user: users,
     })
-    .getFirst();
+    .from(spotifyAccounts)
+    .innerJoin(users, eq(spotifyAccounts.userId, users.id))
+    .where(or(eq(users.did, did), eq(users.handle, did)))
+    .limit(1)
+    .then((rows) => rows[0]);
 
   if (!spotifyAccount) {
     c.status(401);
     return c.text("Unauthorized");
   }
 
-  const cached = await ctx.redis.get(`${spotifyAccount.email}:current`);
+  const cached = await ctx.redis.get(
+    `${spotifyAccount.spotifyAccount.email}:current`
+  );
   if (!cached) {
     return c.json({});
   }
@@ -210,23 +261,34 @@ app.get("/currently-playing", async (c) => {
 
   const sha256 = createHash("sha256")
     .update(
-      `${track.item.name} - ${track.item.artists.map((x) => x.name).join(", ")} - ${track.item.album.name}`.toLowerCase(),
+      `${track.item.name} - ${track.item.artists.map((x) => x.name).join(", ")} - ${track.item.album.name}`.toLowerCase()
     )
     .digest("hex");
 
   const [result, liked] = await Promise.all([
-    ctx.client.db.tracks.filter("sha256", equals(sha256)).getFirst(),
-    ctx.client.db.loved_tracks
-      .filter("user_id", equals(user.xata_id))
-      .filter("track_id.sha256", equals(sha256))
-      .getFirst(),
+    ctx.db
+      .select()
+      .from(tracks)
+      .where(eq(tracks.sha256, sha256))
+      .limit(1)
+      .then((rows) => rows[0]),
+    ctx.db
+      .select({
+        lovedTrack: lovedTracks,
+        track: tracks,
+      })
+      .from(lovedTracks)
+      .innerJoin(tracks, eq(lovedTracks.trackId, tracks.id))
+      .where(and(eq(lovedTracks.userId, user.id), eq(tracks.sha256, sha256)))
+      .limit(1)
+      .then((rows) => rows[0]),
   ]);
 
   return c.json({
     ...track,
     songUri: result?.uri,
-    artistUri: result?.artist_uri,
-    albumUri: result?.album_uri,
+    artistUri: result?.artistUri,
+    albumUri: result?.albumUri,
     liked: !!liked,
     sha256,
   });
@@ -246,16 +308,24 @@ app.put("/pause", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  const user = await ctx.db
+    .select()
+    .from(users)
+    .where(eq(users.did, did))
+    .limit(1)
+    .then((rows) => rows[0]);
 
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
   }
 
-  const spotifyToken = await ctx.client.db.spotify_tokens
-    .filter("user_id", equals(user.xata_id))
-    .getFirst();
+  const spotifyToken = await ctx.db
+    .select()
+    .from(spotifyTokens)
+    .where(eq(spotifyTokens.userId, user.id))
+    .limit(1)
+    .then((rows) => rows[0]);
 
   if (!spotifyToken) {
     c.status(401);
@@ -263,8 +333,8 @@ app.put("/pause", async (c) => {
   }
 
   const refreshToken = decrypt(
-    spotifyToken.refresh_token,
-    env.SPOTIFY_ENCRYPTION_KEY,
+    spotifyToken.refreshToken,
+    env.SPOTIFY_ENCRYPTION_KEY
   );
 
   // get new access token
@@ -281,7 +351,9 @@ app.put("/pause", async (c) => {
     }),
   });
 
-  const { access_token } = await newAccessToken.json();
+  const { access_token } = await newAccessToken.json<{
+    access_token: string;
+  }>();
 
   const response = await fetch("https://api.spotify.com/v1/me/player/pause", {
     method: "PUT",
@@ -312,16 +384,24 @@ app.put("/play", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  const user = await ctx.db
+    .select()
+    .from(users)
+    .where(eq(users.did, did))
+    .limit(1)
+    .then((rows) => rows[0]);
 
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
   }
 
-  const spotifyToken = await ctx.client.db.spotify_tokens
-    .filter("user_id", equals(user.xata_id))
-    .getFirst();
+  const spotifyToken = await ctx.db
+    .select()
+    .from(spotifyTokens)
+    .where(eq(spotifyTokens.userId, user.id))
+    .limit(1)
+    .then((rows) => rows[0]);
 
   if (!spotifyToken) {
     c.status(401);
@@ -329,8 +409,8 @@ app.put("/play", async (c) => {
   }
 
   const refreshToken = decrypt(
-    spotifyToken.refresh_token,
-    env.SPOTIFY_ENCRYPTION_KEY,
+    spotifyToken.refreshToken,
+    env.SPOTIFY_ENCRYPTION_KEY
   );
 
   // get new access token
@@ -347,7 +427,9 @@ app.put("/play", async (c) => {
     }),
   });
 
-  const { access_token } = await newAccessToken.json();
+  const { access_token } = await newAccessToken.json<{
+    access_token: string;
+  }>();
 
   const response = await fetch("https://api.spotify.com/v1/me/player/play", {
     method: "PUT",
@@ -378,16 +460,24 @@ app.post("/next", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  const user = await ctx.db
+    .select()
+    .from(users)
+    .where(eq(users.did, did))
+    .limit(1)
+    .then((rows) => rows[0]);
 
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
   }
 
-  const spotifyToken = await ctx.client.db.spotify_tokens
-    .filter("user_id", equals(user.xata_id))
-    .getFirst();
+  const spotifyToken = await ctx.db
+    .select()
+    .from(spotifyTokens)
+    .where(eq(spotifyTokens.userId, user.id))
+    .limit(1)
+    .then((rows) => rows[0]);
 
   if (!spotifyToken) {
     c.status(401);
@@ -395,8 +485,8 @@ app.post("/next", async (c) => {
   }
 
   const refreshToken = decrypt(
-    spotifyToken.refresh_token,
-    env.SPOTIFY_ENCRYPTION_KEY,
+    spotifyToken.refreshToken,
+    env.SPOTIFY_ENCRYPTION_KEY
   );
 
   // get new access token
@@ -413,7 +503,9 @@ app.post("/next", async (c) => {
     }),
   });
 
-  const { access_token } = await newAccessToken.json();
+  const { access_token } = await newAccessToken.json<{
+    access_token: string;
+  }>();
 
   const response = await fetch("https://api.spotify.com/v1/me/player/next", {
     method: "POST",
@@ -444,16 +536,24 @@ app.post("/previous", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  const user = await ctx.db
+    .select()
+    .from(users)
+    .where(eq(users.did, did))
+    .limit(1)
+    .then((rows) => rows[0]);
 
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
   }
 
-  const spotifyToken = await ctx.client.db.spotify_tokens
-    .filter("user_id", equals(user.xata_id))
-    .getFirst();
+  const spotifyToken = await ctx.db
+    .select()
+    .from(spotifyTokens)
+    .where(eq(spotifyTokens.userId, user.id))
+    .limit(1)
+    .then((rows) => rows[0]);
 
   if (!spotifyToken) {
     c.status(401);
@@ -461,8 +561,8 @@ app.post("/previous", async (c) => {
   }
 
   const refreshToken = decrypt(
-    spotifyToken.refresh_token,
-    env.SPOTIFY_ENCRYPTION_KEY,
+    spotifyToken.refreshToken,
+    env.SPOTIFY_ENCRYPTION_KEY
   );
 
   // get new access token
@@ -479,7 +579,9 @@ app.post("/previous", async (c) => {
     }),
   });
 
-  const { access_token } = await newAccessToken.json();
+  const { access_token } = await newAccessToken.json<{
+    access_token: string;
+  }>();
 
   const response = await fetch(
     "https://api.spotify.com/v1/me/player/previous",
@@ -488,7 +590,7 @@ app.post("/previous", async (c) => {
       headers: {
         Authorization: `Bearer ${access_token}`,
       },
-    },
+    }
   );
 
   if (response.status === 403) {
@@ -513,16 +615,24 @@ app.put("/seek", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  const user = await ctx.db
+    .select()
+    .from(users)
+    .where(eq(users.did, did))
+    .limit(1)
+    .then((rows) => rows[0]);
 
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
   }
 
-  const spotifyToken = await ctx.client.db.spotify_tokens
-    .filter("user_id", equals(user.xata_id))
-    .getFirst();
+  const spotifyToken = await ctx.db
+    .select()
+    .from(spotifyTokens)
+    .where(eq(spotifyTokens.userId, user.id))
+    .limit(1)
+    .then((rows) => rows[0]);
 
   if (!spotifyToken) {
     c.status(401);
@@ -530,8 +640,8 @@ app.put("/seek", async (c) => {
   }
 
   const refreshToken = decrypt(
-    spotifyToken.refresh_token,
-    env.SPOTIFY_ENCRYPTION_KEY,
+    spotifyToken.refreshToken,
+    env.SPOTIFY_ENCRYPTION_KEY
   );
 
   // get new access token
@@ -548,7 +658,9 @@ app.put("/seek", async (c) => {
     }),
   });
 
-  const { access_token } = await newAccessToken.json();
+  const { access_token } = await newAccessToken.json<{
+    access_token: string;
+  }>();
 
   const position = c.req.query("position_ms");
   const response = await fetch(
@@ -558,7 +670,7 @@ app.put("/seek", async (c) => {
       headers: {
         Authorization: `Bearer ${access_token}`,
       },
-    },
+    }
   );
 
   if (response.status === 403) {

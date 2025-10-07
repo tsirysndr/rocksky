@@ -1,4 +1,3 @@
-import { equals } from "@xata.io/client";
 import { ctx } from "context";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
@@ -6,7 +5,8 @@ import jwt from "jsonwebtoken";
 import { env } from "lib/env";
 import crypto from "node:crypto";
 import * as R from "ramda";
-import tables from "schema";
+import apiKeys from "schema/api-keys";
+import users from "schema/users";
 import { apiKeySchema } from "types/apikey";
 
 const app = new Hono();
@@ -23,7 +23,13 @@ app.get("/", async (c) => {
     ignoreExpiration: true,
   });
 
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  const user = await ctx.db
+    .select()
+    .from(users)
+    .where(eq(users.did, did))
+    .limit(1)
+    .then((rows) => rows[0]);
+
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
@@ -32,15 +38,14 @@ app.get("/", async (c) => {
   const size = +c.req.query("size") || 20;
   const offset = +c.req.query("offset") || 0;
 
-  const apikeys = await ctx.db
+  const apikeysData = await ctx.db
     .select()
-    .from(tables.apiKeys)
-    .where(eq(tables.apiKeys.userId, user.xata_id))
+    .from(apiKeys)
+    .where(eq(apiKeys.userId, user.id))
     .limit(size)
-    .offset(offset)
-    .execute();
+    .offset(offset);
 
-  return c.json(apikeys.map((x) => R.omit(["userId"])(x)));
+  return c.json(apikeysData.map((x) => R.omit(["userId"])(x)));
 });
 
 app.post("/", async (c) => {
@@ -55,7 +60,13 @@ app.post("/", async (c) => {
     ignoreExpiration: true,
   });
 
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  const user = await ctx.db
+    .select()
+    .from(users)
+    .where(eq(users.did, did))
+    .limit(1)
+    .then((rows) => rows[0]);
+
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
@@ -70,22 +81,32 @@ app.post("/", async (c) => {
   }
   const newApiKey = parsed.data;
 
-  const api_key = crypto.randomBytes(16).toString("hex");
-  const shared_secret = crypto.randomBytes(16).toString("hex");
+  if (!newApiKey.name) {
+    c.status(400);
+    return c.text("Missing required field: name");
+  }
 
-  const record = await ctx.client.db.api_keys.create({
-    ...newApiKey,
-    api_key,
-    shared_secret,
-    user_id: user.xata_id,
-  });
+  const apiKey = crypto.randomBytes(16).toString("hex");
+  const sharedSecret = crypto.randomBytes(16).toString("hex");
+
+  const [record] = await ctx.db
+    .insert(apiKeys)
+    .values({
+      name: newApiKey.name,
+      description: newApiKey.description ?? "",
+      enabled: newApiKey.enabled ?? true,
+      apiKey,
+      sharedSecret,
+      userId: user.id,
+    })
+    .returning();
 
   return c.json({
-    id: record.xata_id,
+    id: record.id,
     name: record.name,
     description: record.description,
-    api_key: record.api_key,
-    shared_secret: record.shared_secret,
+    apiKey: record.apiKey,
+    sharedSecret: record.sharedSecret,
   });
 });
 
@@ -101,7 +122,13 @@ app.put("/:id", async (c) => {
     ignoreExpiration: true,
   });
 
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  const user = await ctx.db
+    .select()
+    .from(users)
+    .where(eq(users.did, did))
+    .limit(1)
+    .then((rows) => rows[0]);
+
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
@@ -110,20 +137,18 @@ app.put("/:id", async (c) => {
   const data = await c.req.json();
   const id = c.req.param("id");
 
-  const record = await ctx.db
-    .update(tables.apiKeys)
+  const [record] = await ctx.db
+    .update(apiKeys)
     .set(data)
-    .where(
-      and(eq(tables.apiKeys.id, id), eq(tables.apiKeys.userId, user.xata_id)),
-    )
-    .execute();
+    .where(and(eq(apiKeys.id, id), eq(apiKeys.userId, user.id)))
+    .returning();
 
   return c.json({
-    id: record.xata_id,
+    id: record.id,
     name: record.name,
     description: record.description,
-    api_key: record.api_key,
-    shared_secret: record.shared_secret,
+    apiKey: record.apiKey,
+    sharedSecret: record.sharedSecret,
   });
 });
 
@@ -139,7 +164,13 @@ app.delete("/:id", async (c) => {
     ignoreExpiration: true,
   });
 
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  const user = await ctx.db
+    .select()
+    .from(users)
+    .where(eq(users.did, did))
+    .limit(1)
+    .then((rows) => rows[0]);
+
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
@@ -148,11 +179,8 @@ app.delete("/:id", async (c) => {
   const id = c.req.param("id");
 
   await ctx.db
-    .delete(tables.apiKeys)
-    .where(
-      and(eq(tables.apiKeys.id, id), eq(tables.apiKeys.userId, user.xata_id)),
-    )
-    .execute();
+    .delete(apiKeys)
+    .where(and(eq(apiKeys.id, id), eq(apiKeys.userId, user.id)));
 
   return c.json({ success: true });
 });

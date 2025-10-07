@@ -1,5 +1,5 @@
 import { ctx } from "context";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import { Hono } from "hono";
 import jwt from "jsonwebtoken";
 import { env } from "lib/env";
@@ -21,11 +21,13 @@ app.get("/", async (c) => {
     ignoreExpiration: true,
   });
 
-  const user = await ctx.client.db.users
-    .filter({
-      $any: [{ did }, { handle: did }],
-    })
-    .getFirst();
+  const user = await ctx.db
+    .select()
+    .from(users)
+    .where(or(eq(users.did, did), eq(users.handle, did)))
+    .limit(1)
+    .then((rows) => rows[0]);
+
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
@@ -35,15 +37,17 @@ app.get("/", async (c) => {
     .select()
     .from(webscrobblers)
     .leftJoin(users, eq(webscrobblers.userId, users.id))
-    .where(eq(users.did, did))
-    .execute();
+    .where(eq(users.did, did));
 
   if (records.length === 0) {
-    const record = await ctx.client.db.webscrobblers.create({
-      uuid: uuid(),
-      user_id: user.xata_id,
-      name: "webscrobbler",
-    });
+    const [record] = await ctx.db
+      .insert(webscrobblers)
+      .values({
+        uuid: uuid(),
+        userId: user.id,
+        name: "webscrobbler",
+      })
+      .returning();
     return c.json(record);
   }
 
@@ -63,11 +67,13 @@ app.put("/:id", async (c) => {
     ignoreExpiration: true,
   });
 
-  const user = await ctx.client.db.users
-    .filter({
-      $any: [{ did }, { handle: did }],
-    })
-    .getFirst();
+  const user = await ctx.db
+    .select()
+    .from(users)
+    .where(or(eq(users.did, did), eq(users.handle, did)))
+    .limit(1)
+    .then((rows) => rows[0]);
+
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
@@ -80,20 +86,35 @@ app.put("/:id", async (c) => {
     return c.text("Invalid id");
   }
 
-  const existing = await ctx.client.db.webscrobblers
-    .filter({ user_id: user.xata_id })
-    .getFirst();
+  const existing = await ctx.db
+    .select()
+    .from(webscrobblers)
+    .where(eq(webscrobblers.userId, user.id))
+    .limit(1)
+    .then((rows) => rows[0]);
 
-  const record = await ctx.client.db.webscrobblers.createOrReplace(
-    existing?.xata_id,
-    {
-      uuid: id,
-      user_id: user.xata_id,
-      name: "webscrobbler",
-    },
-  );
-
-  return c.json(record);
+  if (existing) {
+    const [record] = await ctx.db
+      .update(webscrobblers)
+      .set({
+        uuid: id,
+        userId: user.id,
+        name: "webscrobbler",
+      })
+      .where(eq(webscrobblers.id, existing.id))
+      .returning();
+    return c.json(record);
+  } else {
+    const [record] = await ctx.db
+      .insert(webscrobblers)
+      .values({
+        uuid: id,
+        userId: user.id,
+        name: "webscrobbler",
+      })
+      .returning();
+    return c.json(record);
+  }
 });
 
 export default app;

@@ -9,7 +9,6 @@ import { connect } from "nats";
 import redis from "redis";
 import sqliteKv from "sqliteKv";
 import { createStorage } from "unstorage";
-import { getXataClient } from "xata";
 
 const { DB_PATH } = env;
 export const db = createDb(DB_PATH);
@@ -21,14 +20,11 @@ const kv = createStorage({
 
 const baseIdResolver = createIdResolver(kv);
 
-const client = getXataClient();
-
 export const ctx = {
   oauthClient: await createClient(db),
   resolver: createBidirectionalResolver(baseIdResolver),
   baseIdResolver,
   kv: new Map<string, string>(),
-  client,
   db: drizzle.db,
   nc: await connect({ servers: env.NATS_URL }),
   analytics: axios.create({ baseURL: env.ANALYTICS }),

@@ -1,15 +1,27 @@
 import type { Agent } from "@atproto/api";
 import { TID } from "@atproto/common";
-import { equals } from "@xata.io/client";
 import chalk from "chalk";
 import type { Context } from "context";
 import dayjs from "dayjs";
+import { and, eq, gte, lte, or } from "drizzle-orm";
 import * as Album from "lexicon/types/app/rocksky/album";
 import * as Artist from "lexicon/types/app/rocksky/artist";
 import * as Scrobble from "lexicon/types/app/rocksky/scrobble";
 import * as Song from "lexicon/types/app/rocksky/song";
+import { deepSnakeCaseKeys } from "lib";
 import { createHash } from "node:crypto";
 import type { Track } from "types/track";
+import albumTracks from "../schema/album-tracks";
+import albums from "../schema/albums";
+import artistAlbums from "../schema/artist-albums";
+import artistTracks from "../schema/artist-tracks";
+import artists from "../schema/artists";
+import scrobbles from "../schema/scrobbles";
+import tracks from "../schema/tracks";
+import userAlbums from "../schema/user-albums";
+import userArtists from "../schema/user-artists";
+import userTracks from "../schema/user-tracks";
+import users from "../schema/users";
 
 export async function putArtistRecord(
   track: Track,
@@ -200,10 +212,22 @@ async function putScrobbleRecord(
 }
 
 export async function publishScrobble(ctx: Context, id: string) {
-  const scrobble = await ctx.client.db.scrobbles
-    .select(["*", "track_id.*", "album_id.*", "artist_id.*", "user_id.*"])
-    .filter("xata_id", equals(id))
-    .getFirst();
+  const scrobble = await ctx.db
+    .select({
+      scrobble: scrobbles,
+      track: tracks,
+      album: albums,
+      artist: artists,
+      user: users,
+    })
+    .from(scrobbles)
+    .innerJoin(tracks, eq(scrobbles.trackId, tracks.id))
+    .innerJoin(albums, eq(scrobbles.albumId, albums.id))
+    .innerJoin(artists, eq(scrobbles.artistId, artists.id))
+    .innerJoin(users, eq(scrobbles.userId, users.id))
+    .where(eq(scrobbles.id, id))
+    .limit(1)
+    .then((rows) => rows[0]);
 
   const [
     _user_album,
@@ -213,93 +237,119 @@ export async function publishScrobble(ctx: Context, id: string) {
     artist_track,
     artist_album,
   ] = await Promise.all([
-    ctx.client.db.user_albums
-      .select(["*"])
-      .filter("album_id.xata_id", equals(scrobble.album_id.xata_id))
-      .getFirst(),
-    ctx.client.db.user_artists
-      .select(["*"])
-      .filter("artist_id.xata_id", equals(scrobble.artist_id.xata_id))
-      .getFirst(),
-    ctx.client.db.user_tracks
-      .select(["*"])
-      .filter("track_id.xata_id", equals(scrobble.track_id.xata_id))
-      .getFirst(),
-    ctx.client.db.album_tracks
-      .select(["*"])
-      .filter("track_id.xata_id", equals(scrobble.track_id.xata_id))
-      .getFirst(),
-    ctx.client.db.artist_tracks
-      .select(["*"])
-      .filter("track_id.xata_id", equals(scrobble.track_id.xata_id))
-      .getFirst(),
-    ctx.client.db.artist_albums
-      .select(["*"])
-      .filter("album_id.xata_id", equals(scrobble.album_id.xata_id))
-      .filter("artist_id.xata_id", equals(scrobble.artist_id.xata_id))
-      .getFirst(),
+    ctx.db
+      .select()
+      .from(userAlbums)
+      .where(eq(userAlbums.albumId, scrobble.album.id))
+      .limit(1)
+      .then((rows) => rows[0]),
+    ctx.db
+      .select()
+      .from(userArtists)
+      .where(eq(userArtists.artistId, scrobble.artist.id))
+      .limit(1)
+      .then((rows) => rows[0]),
+    ctx.db
+      .select()
+      .from(userTracks)
+      .where(eq(userTracks.trackId, scrobble.track.id))
+      .limit(1)
+      .then((rows) => rows[0]),
+    ctx.db
+      .select()
+      .from(albumTracks)
+      .where(eq(albumTracks.trackId, scrobble.track.id))
+      .limit(1)
+      .then((rows) => rows[0]),
+    ctx.db
+      .select()
+      .from(artistTracks)
+      .where(eq(artistTracks.trackId, scrobble.track.id))
+      .limit(1)
+      .then((rows) => rows[0]),
+    ctx.db
+      .select()
+      .from(artistAlbums)
+      .where(
+        and(
+          eq(artistAlbums.albumId, scrobble.album.id),
+          eq(artistAlbums.artistId, scrobble.artist.id)
+        )
+      )
+      .limit(1)
+      .then((rows) => rows[0]),
   ]);
 
   let user_artist = _user_artist;
   if (!user_artist) {
-    await ctx.client.db.user_artists.create({
-      user_id: scrobble.user_id.xata_id,
-      artist_id: scrobble.artist_id.xata_id,
-      uri: scrobble.artist_id.uri,
+    await ctx.db.insert(userArtists).values({
+      userId: scrobble.user.id,
+      artistId: scrobble.artist.id,
+      uri: scrobble.artist.uri,
       scrobbles: 1,
     });
-    user_artist = await ctx.client.db.user_artists
-      .select(["*"])
-      .filter("artist_id.xata_id", equals(scrobble.artist_id.xata_id))
-      .getFirst();
+    user_artist = await ctx.db
+      .select()
+      .from(userArtists)
+      .where(eq(userArtists.artistId, scrobble.artist.id))
+      .limit(1)
+      .then((rows) => rows[0]);
   }
 
   let user_album = _user_album;
   if (!user_album) {
-    await ctx.client.db.user_albums.create({
-      user_id: scrobble.user_id.xata_id,
-      album_id: scrobble.album_id.xata_id,
-      uri: scrobble.album_id.uri,
+    await ctx.db.insert(userAlbums).values({
+      userId: scrobble.user.id,
+      albumId: scrobble.album.id,
+      uri: scrobble.album.uri,
       scrobbles: 1,
     });
-    user_album = await ctx.client.db.user_albums
-      .select(["*"])
-      .filter("album_id.xata_id", equals(scrobble.album_id.xata_id))
-      .getFirst();
+    user_album = await ctx.db
+      .select()
+      .from(userAlbums)
+      .where(eq(userAlbums.albumId, scrobble.album.id))
+      .limit(1)
+      .then((rows) => rows[0]);
   }
 
   let user_track = _user_track;
   if (!user_track) {
-    await ctx.client.db.user_tracks.create({
-      user_id: scrobble.user_id.xata_id,
-      track_id: scrobble.track_id.xata_id,
-      uri: scrobble.track_id.uri,
+    await ctx.db.insert(userTracks).values({
+      userId: scrobble.user.id,
+      trackId: scrobble.track.id,
+      uri: scrobble.track.uri,
       scrobbles: 1,
     });
-    user_track = await ctx.client.db.user_tracks
-      .select(["*"])
-      .filter("track_id.xata_id", equals(scrobble.track_id.xata_id))
-      .getFirst();
+    user_track = await ctx.db
+      .select()
+      .from(userTracks)
+      .where(eq(userTracks.trackId, scrobble.track.id))
+      .limit(1)
+      .then((rows) => rows[0]);
   }
 
-  const message = JSON.stringify({
-    scrobble,
-    user_album,
-    user_artist,
-    user_track,
-    album_track,
-    artist_track,
-    artist_album,
-  });
+  const message = JSON.stringify(
+    deepSnakeCaseKeys({
+      scrobble,
+      user_album,
+      user_artist,
+      user_track,
+      album_track,
+      artist_track,
+      artist_album,
+    })
+  );
 
   ctx.nc.publish("rocksky.scrobble", Buffer.from(message));
 
-  const trackMessage = JSON.stringify({
-    track: scrobble.track_id,
-    album_track,
-    artist_track,
-    artist_album,
-  });
+  const trackMessage = JSON.stringify(
+    deepSnakeCaseKeys({
+      track: scrobble.track,
+      album_track,
+      artist_track,
+      artist_album,
+    })
+  );
 
   ctx.nc.publish("rocksky.track", Buffer.from(trackMessage));
 }
@@ -312,21 +362,26 @@ export async function scrobbleTrack(
 ): Promise<void> {
   // check if scrobble already exists (user did + timestamp)
   const scrobbleTime = dayjs.unix(track.timestamp || dayjs().unix());
-  const existingScrobble = await ctx.client.db.scrobbles
-    .filter("user_id.did", equals(userDid))
-    .filter("track_id.title", equals(track.title))
-    .filter("track_id.artist", equals(track.artist))
-    .filter({
-      $all: [
-        {
-          timestamp: {
-            $ge: scrobbleTime.subtract(5, "seconds").toISOString(),
-          },
-        },
-        { timestamp: { $le: scrobbleTime.add(5, "seconds").toISOString() } },
-      ],
+  const existingScrobble = await ctx.db
+    .select({
+      scrobble: scrobbles,
+      user: users,
+      track: tracks,
     })
-    .getFirst();
+    .from(scrobbles)
+    .innerJoin(users, eq(scrobbles.userId, users.id))
+    .innerJoin(tracks, eq(scrobbles.trackId, tracks.id))
+    .where(
+      and(
+        eq(users.did, userDid),
+        eq(tracks.title, track.title),
+        eq(tracks.artist, track.artist),
+        gte(scrobbles.timestamp, scrobbleTime.subtract(5, "seconds").toDate()),
+        lte(scrobbles.timestamp, scrobbleTime.add(5, "seconds").toDate())
+      )
+    )
+    .limit(1)
+    .then((rows) => rows[0]);
 
   if (existingScrobble) {
     console.log(
@@ -337,10 +392,12 @@ export async function scrobbleTrack(
     return;
   }
 
-  let existingTrack = await ctx.client.db.tracks
-    .filter(
-      "sha256",
-      equals(
+  let existingTrack = await ctx.db
+    .select()
+    .from(tracks)
+    .where(
+      eq(
+        tracks.sha256,
         createHash("sha256")
           .update(
             `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
@@ -348,73 +405,93 @@ export async function scrobbleTrack(
           .digest("hex")
       )
     )
-    .getFirst();
+    .limit(1)
+    .then((rows) => rows[0]);
 
-  if (existingTrack && !existingTrack.album_uri) {
-    const album = await ctx.client.db.albums
-      .filter(
-        "sha256",
-        equals(
+  if (existingTrack && !existingTrack.albumUri) {
+    const album = await ctx.db
+      .select()
+      .from(albums)
+      .where(
+        eq(
+          albums.sha256,
           createHash("sha256")
             .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
             .digest("hex")
         )
       )
-      .getFirst();
+      .limit(1)
+      .then((rows) => rows[0]);
     if (album) {
-      await ctx.client.db.tracks.update(existingTrack.xata_id, {
-        album_uri: album.uri,
-      });
+      await ctx.db
+        .update(tracks)
+        .set({ albumUri: album.uri })
+        .where(eq(tracks.id, existingTrack.id));
     }
   }
 
-  if (existingTrack && !existingTrack.artist_uri) {
-    const artist = await ctx.client.db.artists
-      .filter(
-        "sha256",
-        equals(
+  if (existingTrack && !existingTrack.artistUri) {
+    const artist = await ctx.db
+      .select()
+      .from(artists)
+      .where(
+        eq(
+          artists.sha256,
           createHash("sha256")
             .update(track.albumArtist.toLowerCase())
             .digest("hex")
         )
       )
-      .getFirst();
+      .limit(1)
+      .then((rows) => rows[0]);
     if (artist) {
-      await ctx.client.db.tracks.update(existingTrack.xata_id, {
-        artist_uri: artist.uri,
-      });
+      await ctx.db
+        .update(tracks)
+        .set({ artistUri: artist.uri })
+        .where(eq(tracks.id, existingTrack.id));
     }
   }
 
-  const userTrack = await ctx.client.db.user_tracks
-    .filter({
-      "track_id.xata_id": existingTrack?.xata_id,
-      "user_id.did": userDid,
+  const userTrack = await ctx.db
+    .select({
+      userTrack: userTracks,
+      track: tracks,
+      user: users,
     })
-    .getFirst();
+    .from(userTracks)
+    .innerJoin(tracks, eq(userTracks.trackId, tracks.id))
+    .innerJoin(users, eq(userTracks.userId, users.id))
+    .where(and(eq(tracks.id, existingTrack?.id || ""), eq(users.did, userDid)))
+    .limit(1)
+    .then((rows) => rows[0]);
 
-  if (!existingTrack?.uri || !userTrack?.uri?.includes(userDid)) {
+  if (!existingTrack?.uri || !userTrack?.userTrack.uri?.includes(userDid)) {
     await putSongRecord(track, agent);
   }
 
-  const existingAlbum = await ctx.client.db.albums
-    .filter(
-      "sha256",
-      equals(
+  const existingAlbum = await ctx.db
+    .select()
+    .from(albums)
+    .where(
+      eq(
+        albums.sha256,
         createHash("sha256")
           .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
           .digest("hex")
       )
     )
-    .getFirst();
+    .limit(1)
+    .then((rows) => rows[0]);
 
   let tries = 0;
   while (!existingTrack && tries < 30) {
     console.log(`Song not found, trying again: ${chalk.magenta(tries + 1)}`);
-    existingTrack = await ctx.client.db.tracks
-      .filter(
-        "sha256",
-        equals(
+    existingTrack = await ctx.db
+      .select()
+      .from(tracks)
+      .where(
+        eq(
+          tracks.sha256,
           createHash("sha256")
             .update(
               `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
@@ -422,7 +499,8 @@ export async function scrobbleTrack(
             .digest("hex")
         )
       )
-      .getFirst();
+      .limit(1)
+      .then((rows) => rows[0]);
     await new Promise((resolve) => setTimeout(resolve, 1000));
     tries += 1;
   }
@@ -433,54 +511,73 @@ export async function scrobbleTrack(
 
   if (existingTrack) {
     console.log(
-      `Song found: ${chalk.cyan(existingTrack.xata_id)} - ${track.title}, after ${chalk.magenta(tries)} tries`
+      `Song found: ${chalk.cyan(existingTrack.id)} - ${track.title}, after ${chalk.magenta(tries)} tries`
     );
   }
 
-  const existingArtist = await ctx.client.db.artists
-    .filter({
-      $any: [
-        {
-          sha256: createHash("sha256")
-            .update(track.albumArtist.toLocaleLowerCase())
-            .digest("hex"),
-        },
-        {
-          sha256: createHash("sha256")
-            .update(track.artist.toLocaleLowerCase())
-            .digest("hex"),
-        },
-      ],
-    })
-    .getFirst();
+  const existingArtist = await ctx.db
+    .select()
+    .from(artists)
+    .where(
+      or(
+        eq(
+          artists.sha256,
+          createHash("sha256")
+            .update(track.albumArtist.toLowerCase())
+            .digest("hex")
+        ),
+        eq(
+          artists.sha256,
+          createHash("sha256").update(track.artist.toLowerCase()).digest("hex")
+        )
+      )
+    )
+    .limit(1)
+    .then((rows) => rows[0]);
 
-  const userArtist = await ctx.client.db.user_artists
-    .filter({
-      "artist_id.xata_id": existingArtist?.xata_id,
-      "user_id.did": userDid,
+  const userArtist = await ctx.db
+    .select({
+      userArtist: userArtists,
+      artist: artists,
+      user: users,
     })
-    .getFirst();
+    .from(userArtists)
+    .innerJoin(artists, eq(userArtists.artistId, artists.id))
+    .innerJoin(users, eq(userArtists.userId, users.id))
+    .where(
+      and(eq(artists.id, existingArtist?.id || ""), eq(users.did, userDid))
+    )
+    .limit(1)
+    .then((rows) => rows[0]);
 
-  if (!existingArtist?.uri || !userArtist?.uri?.includes(userDid)) {
+  if (!existingArtist?.uri || !userArtist?.userArtist.uri?.includes(userDid)) {
     await putArtistRecord(track, agent);
   }
 
-  const userAlbum = await ctx.client.db.user_albums
-    .filter({
-      "album_id.xata_id": existingAlbum?.xata_id,
-      "user_id.did": userDid,
+  const userAlbum = await ctx.db
+    .select({
+      userAlbum: userAlbums,
+      album: albums,
+      user: users,
     })
-    .getFirst();
+    .from(userAlbums)
+    .innerJoin(albums, eq(userAlbums.albumId, albums.id))
+    .innerJoin(users, eq(userAlbums.userId, users.id))
+    .where(and(eq(albums.id, existingAlbum?.id || ""), eq(users.did, userDid)))
+    .limit(1)
+    .then((rows) => rows[0]);
 
-  if (!existingAlbum?.uri || !userAlbum?.uri?.includes(userDid)) {
+  if (!existingAlbum?.uri || !userAlbum?.userAlbum.uri?.includes(userDid)) {
     await putAlbumRecord(track, agent);
   }
 
   tries = 0;
-  existingTrack = await ctx.client.db.tracks
-    .filter(
-      "sha256",
-      equals(
+  existingTrack = await ctx.db
+    .select()
+    .from(tracks)
+    .where(
+      eq(
+        tracks.sha256,
         createHash("sha256")
           .update(
             `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
@@ -488,20 +585,19 @@ export async function scrobbleTrack(
           .digest("hex")
       )
     )
-    .getFirst();
+    .limit(1)
+    .then((rows) => rows[0]);
 
-  while (
-    !existingTrack?.artist_uri &&
-    !existingTrack?.album_uri &&
-    tries < 30
-  ) {
+  while (!existingTrack?.artistUri && !existingTrack?.albumUri && tries < 30) {
     console.log(
       `Artist uri not ready, trying again: ${chalk.magenta(tries + 1)}`
     );
-    existingTrack = await ctx.client.db.tracks
-      .filter(
-        "sha256",
-        equals(
+    existingTrack = await ctx.db
+      .select()
+      .from(tracks)
+      .where(
+        eq(
+          tracks.sha256,
           createHash("sha256")
             .update(
               `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
@@ -509,49 +605,59 @@ export async function scrobbleTrack(
             .digest("hex")
         )
       )
-      .getFirst();
+      .limit(1)
+      .then((rows) => rows[0]);
 
     // start update artist uri if it is not set
-    if (existingTrack && !existingTrack.artist_uri) {
-      const artist = await ctx.client.db.artists
-        .filter(
-          "sha256",
-          equals(
+    if (existingTrack && !existingTrack.artistUri) {
+      const artist = await ctx.db
+        .select()
+        .from(artists)
+        .where(
+          eq(
+            artists.sha256,
             createHash("sha256")
               .update(track.albumArtist.toLowerCase())
               .digest("hex")
           )
         )
-        .getFirst();
+        .limit(1)
+        .then((rows) => rows[0]);
       if (artist) {
-        await ctx.client.db.tracks.update(existingTrack.xata_id, {
-          artist_uri: artist.uri,
-        });
+        await ctx.db
+          .update(tracks)
+          .set({ artistUri: artist.uri })
+          .where(eq(tracks.id, existingTrack.id));
       }
     }
     // end update artist uri
 
     // start update album uri if it is not set
-    if (existingTrack && !existingTrack.album_uri) {
-      const album = await ctx.client.db.albums
-        .filter(
-          "sha256",
-          equals(
+    if (existingTrack && !existingTrack.albumUri) {
+      const album = await ctx.db
+        .select()
+        .from(albums)
+        .where(
+          eq(
+            albums.sha256,
             createHash("sha256")
               .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
               .digest("hex")
           )
         )
-        .getFirst();
+        .limit(1)
+        .then((rows) => rows[0]);
       if (album) {
-        await ctx.client.db.tracks.update(existingTrack.xata_id, {
-          album_uri: album.uri,
-        });
+        await ctx.db
+          .update(tracks)
+          .set({ albumUri: album.uri })
+          .where(eq(tracks.id, existingTrack.id));
 
-        if (!album.artist_uri && existingTrack?.artist_uri) {
-          await ctx.client.db.albums.update(album.xata_id, {
-            artist_uri: existingTrack.artist_uri,
-          });
+        if (!album.artistUri && existingTrack?.artistUri) {
+          await ctx.db
+            .update(albums)
+            .set({ artistUri: existingTrack.artistUri })
+            .where(eq(albums.id, album.id));
         }
       }
     }
@@ -561,13 +667,13 @@ export async function scrobbleTrack(
     tries += 1;
   }
 
-  if (tries === 30 && !existingTrack?.artist_uri) {
+  if (tries === 30 && !existingTrack?.artistUri) {
     console.log(`Artist uri not ready after ${chalk.magenta("30 tries")}`);
   }
 
-  if (existingTrack?.artist_uri) {
+  if (existingTrack?.artistUri) {
     console.log(
-      `Artist uri ready: ${chalk.cyan(existingTrack.xata_id)} - ${track.title}, after ${chalk.magenta(tries)} tries`
+      `Artist uri ready: ${chalk.cyan(existingTrack.id)} - ${track.title}, after ${chalk.magenta(tries)} tries`
     );
   }
 
@@ -577,38 +683,63 @@ export async function scrobbleTrack(
   tries = 0;
   let scrobble = null;
   while (!scrobble && tries < 30) {
-    scrobble = await ctx.client.db.scrobbles
-      .select(["*", "track_id.*", "album_id.*", "artist_id.*", "user_id.*"])
-      .filter("uri", equals(scrobbleUri))
-      .getFirst();
+    scrobble = await ctx.db
+      .select({
+        scrobble: scrobbles,
+        track: tracks,
+        album: albums,
+        artist: artists,
+        user: users,
+      })
+      .from(scrobbles)
+      .innerJoin(tracks, eq(scrobbles.trackId, tracks.id))
+      .innerJoin(albums, eq(scrobbles.albumId, albums.id))
+      .innerJoin(artists, eq(scrobbles.artistId, artists.id))
+      .innerJoin(users, eq(scrobbles.userId, users.id))
+      .where(eq(scrobbles.uri, scrobbleUri))
+      .limit(1)
+      .then((rows) => rows[0]);
 
     if (
       scrobble &&
-      scrobble.album_id &&
-      !scrobble.album_id.artist_uri &&
-      scrobble.artist_id.uri
+      scrobble.album &&
+      !scrobble.album.artistUri &&
+      scrobble.artist.uri
     ) {
-      await ctx.client.db.albums.update(scrobble.album_id.xata_id, {
-        artist_uri: scrobble.artist_id.uri,
-      });
+      await ctx.db
+        .update(albums)
+        .set({ artistUri: scrobble.artist.uri })
+        .where(eq(albums.id, scrobble.album.id));
     }
 
-    scrobble = await ctx.client.db.scrobbles
-      .select(["*", "track_id.*", "album_id.*", "artist_id.*", "user_id.*"])
-      .filter("uri", equals(scrobbleUri))
-      .getFirst();
+    scrobble = await ctx.db
+      .select({
+        scrobble: scrobbles,
+        track: tracks,
+        album: albums,
+        artist: artists,
+        user: users,
+      })
+      .from(scrobbles)
+      .innerJoin(tracks, eq(scrobbles.trackId, tracks.id))
+      .innerJoin(albums, eq(scrobbles.albumId, albums.id))
+      .innerJoin(artists, eq(scrobbles.artistId, artists.id))
+      .innerJoin(users, eq(scrobbles.userId, users.id))
+      .where(eq(scrobbles.uri, scrobbleUri))
+      .limit(1)
+      .then((rows) => rows[0]);
 
     if (
       scrobble &&
-      scrobble.track_id &&
-      scrobble.album_id &&
-      scrobble.artist_id &&
-      scrobble.album_id.artist_uri &&
-      scrobble.track_id.artist_uri &&
-      scrobble.track_id.album_uri
+      scrobble.track &&
+      scrobble.album &&
+      scrobble.artist &&
+      scrobble.album.artistUri &&
+      scrobble.track.artistUri &&
+      scrobble.track.albumUri
     ) {
       console.log("Scrobble found after ", chalk.magenta(tries + 1), " tries");
-      await publishScrobble(ctx, scrobble.xata_id);
+      await publishScrobble(ctx, scrobble.scrobble.id);
       console.log("Scrobble published");
       break;
     }

@@ -1,4 +1,3 @@
-import { equals } from "@xata.io/client";
 import axios from "axios";
 import { ctx } from "context";
 import { eq } from "drizzle-orm";
@@ -191,7 +190,12 @@ app.get("/files", async (c) => {
     ignoreExpiration: true,
   });
 
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  const [user] = await ctx.db
+    .select()
+    .from(tables.users)
+    .where(eq(tables.users.did, did))
+    .limit(1)
+    .execute();
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
@@ -238,7 +242,12 @@ app.get("/temporary-link", async (c) => {
     ignoreExpiration: true,
   });
 
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  const [user] = await ctx.db
+    .select()
+    .from(tables.users)
+    .where(eq(tables.users.did, did))
+    .limit(1)
+    .execute();
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
@@ -271,7 +280,12 @@ app.get("/files/:id", async (c) => {
     ignoreExpiration: true,
   });
 
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  const [user] = await ctx.db
+    .select()
+    .from(tables.users)
+    .where(eq(tables.users.did, did))
+    .limit(1)
+    .execute();
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
@@ -300,7 +314,12 @@ app.get("/file", async (c) => {
     ignoreExpiration: true,
   });
 
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  const [user] = await ctx.db
+    .select()
+    .from(tables.users)
+    .where(eq(tables.users.did, did))
+    .limit(1)
+    .execute();
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
@@ -334,7 +353,12 @@ app.get("/download", async (c) => {
     ignoreExpiration: true,
   });
 
-  const user = await ctx.client.db.users.filter("did", equals(did)).getFirst();
+  const [user] = await ctx.db
+    .select()
+    .from(tables.users)
+    .where(eq(tables.users.did, did))
+    .limit(1)
+    .execute();
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");

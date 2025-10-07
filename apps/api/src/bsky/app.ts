@@ -1,14 +1,18 @@
 import type { BlobRef } from "@atproto/lexicon";
 import { isValidHandle } from "@atproto/syntax";
-import { equals } from "@xata.io/client";
 import { ctx } from "context";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import jwt from "jsonwebtoken";
 import * as Profile from "lexicon/types/app/bsky/actor/profile";
+import { deepSnakeCaseKeys } from "lib";
 import { createAgent } from "lib/agent";
 import { env } from "lib/env";
 import { requestCounter } from "metrics";
+import dropboxAccounts from "schema/dropbox-accounts";
+import googleDriveAccounts from "schema/google-drive-accounts";
+import spotifyAccounts from "schema/spotify-accounts";
+import spotifyTokens from "schema/spotify-tokens";
 import users from "schema/users";
 
 const app = new Hono();
@@ -61,7 +65,7 @@ app.post("/login", async (c) => {
 app.get("/oauth/callback", async (c) => {
   requestCounter.add(1, { method: "GET", route: "/oauth/callback" });
   const params = new URLSearchParams(c.req.url.split("?")[1]);
-  let did, cli;
+  let did: string, cli: string;
 
   try {
     const { session } = await ctx.oauthClient.callback(params);
@@ -77,7 +81,7 @@ app.get("/oauth/callback", async (c) => {
           ? Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365 * 1000
           : Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
       },
-      env.JWT_SECRET,
+      env.JWT_SECRET
     );
     ctx.kv.set(did, token);
   } catch (err) {
@@ -85,10 +89,14 @@ app.get("/oauth/callback", async (c) => {
     return c.redirect(`${env.FRONTEND_URL}?error=1`);
   }
 
-  const spotifyUser = await ctx.client.db.spotify_accounts
-    .filter("user_id.did", equals(did))
-    .filter("is_beta_user", equals(true))
-    .getFirst();
+  const [spotifyUser] = await ctx.db
+    .select()
+    .from(spotifyAccounts)
+    .where(
+      and(eq(spotifyAccounts.userId, did), eq(spotifyAccounts.isBetaUser, true))
+    )
+    .limit(1)
+    .execute();
 
   if (spotifyUser?.email) {
     ctx.nc.publish("rocksky.spotify.user", Buffer.from(spotifyUser.email));
@@ -134,12 +142,15 @@ app.get("/profile", async (c) => {
 
   if (profile.handle) {
     try {
-      await ctx.client.db.users.create({
-        did,
-        handle,
-        display_name: profile.displayName,
-        avatar: `https://cdn.bsky.app/img/avatar/plain/${did}/${profile.avatar.ref.toString()}@jpeg`,
-      });
+      await ctx.db
+        .insert(users)
+        .values({
+          did,
+          handle,
+          displayName: profile.displayName,
+          avatar: `https://cdn.bsky.app/img/avatar/plain/${did}/${profile.avatar.ref.toString()}@jpeg`,
+        })
+        .execute();
     } catch (e) {
       if (!e.message.includes("invalid record: column [did]: is not unique")) {
         console.error(e.message);
@@ -156,40 +167,65 @@ app.get("/profile", async (c) => {
       }
     }
 
-    const [user, lastUser, previousLastUser] = await Promise.all([
-      ctx.client.db.users.select(["*"]).filter("did", equals(did)).getFirst(),
+    const [user, lastUser] = await Promise.all([
+      ctx.db.select().from(users).where(eq(users.did, did)).limit(1).execute(),
       ctx.db
         .select()
         .from(users)
         .orderBy(desc(users.createdAt))
         .limit(1)
         .execute(),
-      ctx.kv.get("lastUser"),
     ]);
 
-    ctx.nc.publish("rocksky.user", Buffer.from(JSON.stringify(user)));
+    ctx.nc.publish(
+      "rocksky.user",
+      Buffer.from(JSON.stringify(deepSnakeCaseKeys(user)))
+    );
 
     await ctx.kv.set("lastUser", lastUser[0].id);
-    // if (lastUser[0].id !== previousLastUser) {
-    //  ctx.nc.publish("rocksky.user", Buffer.from(JSON.stringify(user)));
-    // }
   }
 
   const [spotifyUser, spotifyToken, googledrive, dropbox] = await Promise.all([
-    ctx.client.db.spotify_accounts
-      .select(["user_id.*", "email", "is_beta_user"])
-      .filter("user_id.did", equals(did))
-      .getFirst(),
-    ctx.client.db.spotify_tokens.filter("user_id.did", equals(did)).getFirst(),
-    ctx.client.db.google_drive_accounts
-      .select(["user_id.*", "email", "is_beta_user"])
-      .filter("user_id.did", equals(did))
-      .getFirst(),
-    ctx.client.db.dropbox_accounts
-      .select(["user_id.*", "email", "is_beta_user"])
-      .filter("user_id.did", equals(did))
-      .getFirst(),
-  ]);
+    ctx.db
+      .select()
+      .from(spotifyAccounts)
+      .where(
+        and(
+          eq(spotifyAccounts.userId, did),
+          eq(spotifyAccounts.isBetaUser, true)
+        )
+      )
+      .limit(1)
+      .execute(),
+    ctx.db
+      .select()
+      .from(spotifyTokens)
+      .where(eq(spotifyTokens.userId, did))
+      .limit(1)
+      .execute(),
+    ctx.db
+      .select()
+      .from(googleDriveAccounts)
+      .where(
+        and(
+          eq(googleDriveAccounts.userId, did),
+          eq(googleDriveAccounts.isBetaUser, true)
+        )
+      )
+      .limit(1)
+      .execute(),
+    ctx.db
+      .select()
+      .from(dropboxAccounts)
+      .where(
+        and(
+          eq(dropboxAccounts.userId, did),
+          eq(dropboxAccounts.isBetaUser, true)
+        )
+      )
+      .limit(1)
+      .execute(),
+  ]).then(([s, t, g, d]) => deepSnakeCaseKeys([s[0], t[0], g[0], d[0]]));
 
   return c.json({
     ...profile,

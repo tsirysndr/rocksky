@@ -1,44 +1,92 @@
 import { type Agent, AtpAgent } from "@atproto/api";
 import { TID } from "@atproto/common";
 import type { Context } from "context";
+import { and, eq } from "drizzle-orm";
 import * as LikeLexicon from "lexicon/types/app/rocksky/like";
 import * as ShoutLexicon from "lexicon/types/app/rocksky/shout";
 import { validateMain } from "lexicon/types/com/atproto/repo/strongRef";
 import _ from "lodash";
 import type { Shout } from "types/shout";
+import albums, { type SelectAlbum } from "../schema/albums";
+import artists, { type SelectArtist } from "../schema/artists";
+import profileShouts from "../schema/profile-shouts";
+import scrobbles, { type SelectScrobble } from "../schema/scrobbles";
+import shoutLikes from "../schema/shout-likes";
+import shouts from "../schema/shouts";
+import tracks, { type SelectTrack } from "../schema/tracks";
+import users, { type SelectUser } from "../schema/users";
 
 export async function createShout(
   ctx: Context,
   shout: Shout,
   uri: string,
   user,
-  agent: Agent,
+  agent: Agent
 ) {
-  let album, artist, track, scrobble, profile, collection;
+  let album: SelectAlbum,
+    artist: SelectArtist,
+    track: SelectTrack,
+    scrobble: {
+      scrobble: SelectScrobble;
+      track: SelectTrack;
+      album: SelectAlbum;
+      artist: SelectArtist;
+    },
+    profile: SelectUser,
+    collection: string;
+
   if (uri.includes("app.rocksky.song")) {
-    track = await ctx.client.db.tracks.filter("uri", uri).getFirst();
+    track = await ctx.db
+      .select()
+      .from(tracks)
+      .where(eq(tracks.uri, uri))
+      .limit(1)
+      .then((rows) => rows[0]);
     collection = "app.rocksky.song";
   } else if (uri.includes("app.rocksky.album")) {
-    album = await ctx.client.db.albums.filter("uri", uri).getFirst();
+    album = await ctx.db
+      .select()
+      .from(albums)
+      .where(eq(albums.uri, uri))
+      .limit(1)
+      .then((rows) => rows[0]);
     collection = "app.rocksky.album";
   } else if (uri.includes("app.rocksky.artist")) {
-    artist = await ctx.client.db.artists.filter("uri", uri).getFirst();
+    artist = await ctx.db
+      .select()
+      .from(artists)
+      .where(eq(artists.uri, uri))
+      .limit(1)
+      .then((rows) => rows[0]);
     collection = "app.rocksky.artist";
   } else if (uri.includes("app.rocksky.scrobble")) {
-    scrobble = await ctx.client.db.scrobbles
-      .select(["track_id.*", "album_id.*", "artist_id.*", "uri"])
-      .filter("uri", uri)
-      .getFirst();
+    scrobble = await ctx.db
+      .select({
+        scrobble: scrobbles,
+        track: tracks,
+        album: albums,
+        artist: artists,
+      })
+      .from(scrobbles)
+      .innerJoin(tracks, eq(scrobbles.trackId, tracks.id))
+      .innerJoin(albums, eq(scrobbles.albumId, albums.id))
+      .innerJoin(artists, eq(scrobbles.artistId, artists.id))
+      .where(eq(scrobbles.uri, uri))
+      .limit(1)
+      .then((rows) => rows[0]);
     collection = "app.rocksky.scrobble";
   } else {
-    profile = await ctx.client.db.users
-      .filter("did", uri.split("at://").pop())
-      .getFirst();
+    profile = await ctx.db
+      .select()
+      .from(users)
+      .where(eq(users.did, uri.split("at://").pop()))
+      .limit(1)
+      .then((rows) => rows[0]);
     collection = "app.bsky.actor.profile";
   }
 
   const subjectUri =
-    album?.uri || track?.uri || artist?.uri || scrobble?.uri || "self";
+    album?.uri || track?.uri || artist?.uri || scrobble?.scrobble.uri || "self";
   const subjectRecord = await agent.com.atproto.repo.getRecord({
     repo: agent.assertDid,
     collection,
@@ -79,20 +127,24 @@ export async function createShout(
 
     console.log(`Shout record created at: ${uri}`);
 
-    const createdShout = await ctx.client.db.shouts.create({
-      content: shout.message,
-      uri,
-      author_id: user.xata_id,
-      album_id: album?.xata_id,
-      artist_id: artist?.xata_id,
-      track_id: track?.xata_id,
-      scrobble_id: scrobble?.xata_id,
-    });
+    const createdShout = await ctx.db
+      .insert(shouts)
+      .values({
+        content: shout.message,
+        uri,
+        authorId: user.id,
+        albumId: album?.id,
+        artistId: artist?.id,
+        trackId: track?.id,
+        scrobbleId: scrobble?.scrobble.id,
+      })
+      .returning()
+      .then((rows) => rows[0]);
 
     if (profile) {
-      await ctx.client.db.profile_shouts.create({
-        shout_id: createdShout.xata_id,
-        user_id: profile.xata_id,
+      await ctx.db.insert(profileShouts).values({
+        shoutId: createdShout.id,
+        userId: profile.id,
       });
     }
   } catch (e) {
@@ -105,12 +157,25 @@ export async function replyShout(
   reply: Shout,
   shoutUri: string,
   user,
-  agent: Agent,
+  agent: Agent
 ) {
-  const shout = await ctx.client.db.shouts
-    .select(["track_id.*", "album_id.*", "artist_id.*", "scrobble_id.*", "uri"])
-    .filter("uri", shoutUri)
-    .getFirst();
+  const shout = await ctx.db
+    .select({
+      shout: shouts,
+      track: tracks,
+      album: albums,
+      artist: artists,
+      scrobble: scrobbles,
+    })
+    .from(shouts)
+    .leftJoin(tracks, eq(shouts.trackId, tracks.id))
+    .leftJoin(albums, eq(shouts.albumId, albums.id))
+    .leftJoin(artists, eq(shouts.artistId, artists.id))
+    .leftJoin(scrobbles, eq(shouts.scrobbleId, scrobbles.id))
+    .where(eq(shouts.uri, shoutUri))
+    .limit(1)
+    .then((rows) => rows[0]);
+
   if (!shout) {
     throw new Error("Shout not found");
   }
@@ -123,33 +188,33 @@ export async function replyShout(
 
   let collection = "app.bsky.actor.profile";
 
-  if (shout.track_id) {
+  if (shout.track) {
     collection = "app.rocksky.song";
   }
 
-  if (shout.album_id) {
+  if (shout.album) {
     collection = "app.rocksky.album";
   }
 
-  if (shout.artist_id) {
+  if (shout.artist) {
     collection = "app.rocksky.artist";
   }
 
-  if (shout.scrobble_id) {
+  if (shout.scrobble) {
     collection = "app.rocksky.scrobble";
   }
 
   const subjectUri =
-    shout.track_id?.uri ||
-    shout.album_id?.uri ||
-    shout.artist_id?.uri ||
-    shout.scrobble_id?.uri ||
+    shout.track?.uri ||
+    shout.album?.uri ||
+    shout.artist?.uri ||
+    shout.scrobble?.uri ||
     profileRecord.uri;
 
   let service = await fetch(
-    `https://plc.directory/${subjectUri.split("/").slice(0, 3).join("/").split("at://")[1]}`,
+    `https://plc.directory/${subjectUri.split("/").slice(0, 3).join("/").split("at://")[1]}`
   )
-    .then((res) => res.json())
+    .then((res) => res.json<{ service: { seviceEndpoint: string }[] }>())
     .then((data) => data.service);
 
   let atpAgent = new AtpAgent({
@@ -171,9 +236,9 @@ export async function replyShout(
   }
 
   service = await fetch(
-    `https://plc.directory/${shoutUri.split("/").slice(0, 3).join("/").split("at://")[1]}`,
+    `https://plc.directory/${shoutUri.split("/").slice(0, 3).join("/").split("at://")[1]}`
   )
-    .then((res) => res.json())
+    .then((res) => res.json<{ service: { seviceEndpoint: string }[] }>())
     .then((data) => data.service);
 
   atpAgent = new AtpAgent({
@@ -187,7 +252,7 @@ export async function replyShout(
   });
 
   const parentRef = validateMain({
-    uri: shout.uri,
+    uri: shout.shout.uri,
     cid: parentRecord.data.cid,
   });
   if (!parentRef.success) {
@@ -220,29 +285,32 @@ export async function replyShout(
 
     console.log(`Reply record created at: ${uri}`);
 
-    const createdShout = await ctx.client.db.shouts.create({
-      content: reply.message,
-      uri,
-      parent_id: shout.xata_id,
-      author_id: user.xata_id,
-      track_id: shout.track_id?.xata_id,
-      album_id: shout.album_id?.xata_id,
-      artist_id: shout.artist_id?.xata_id,
-      scrobble_id: shout.scrobble_id?.xata_id,
-    });
+    const createdShout = await ctx.db
+      .insert(shouts)
+      .values({
+        content: reply.message,
+        uri,
+        parentId: shout.shout.id,
+        authorId: user.id,
+        trackId: shout.track?.id,
+        albumId: shout.album?.id,
+        artistId: shout.artist?.id,
+        scrobbleId: shout.scrobble?.id,
+      })
+      .returning()
+      .then((rows) => rows[0]);
 
-    if (
-      !shout.track_id &&
-      !shout.album_id &&
-      !shout.artist_id &&
-      !shout.scrobble_id
-    ) {
-      const profileShout = await ctx.client.db.profile_shouts
-        .filter("shout_id", shout.xata_id)
-        .getFirst();
-      await ctx.client.db.profile_shouts.create({
-        shout_id: createdShout.xata_id,
-        user_id: profileShout.user_id,
+    if (!shout.track && !shout.album && !shout.artist && !shout.scrobble) {
+      const profileShout = await ctx.db
+        .select()
+        .from(profileShouts)
+        .where(eq(profileShouts.shoutId, shout.shout.id))
+        .limit(1)
+        .then((rows) => rows[0]);
+
+      await ctx.db.insert(profileShouts).values({
+        shoutId: createdShout.id,
+        userId: profileShout.userId,
       });
     }
   } catch (e) {
@@ -254,23 +322,28 @@ export async function likeShout(
   ctx: Context,
   shoutUri: string,
   user,
-  agent: Agent,
+  agent: Agent
 ) {
   const rkey = TID.nextStr();
-  const likes = await ctx.client.db.shout_likes
-    .filter({
-      "shout_id.uri": shoutUri,
-      "user_id.xata_id": user.xata_id,
+
+  const likes = await ctx.db
+    .select({
+      like: shoutLikes,
+      shout: shouts,
     })
-    .getFirst();
+    .from(shoutLikes)
+    .innerJoin(shouts, eq(shoutLikes.shoutId, shouts.id))
+    .where(and(eq(shouts.uri, shoutUri), eq(shoutLikes.userId, user.id)))
+    .limit(1)
+    .then((rows) => rows[0]);
 
   if (likes) {
     return;
   }
 
   const { service } = await fetch(
-    `https://plc.directory/${shoutUri.split("/").slice(0, 3).join("/").split("at://")[1]}`,
-  ).then((res) => res.json());
+    `https://plc.directory/${shoutUri.split("/").slice(0, 3).join("/").split("at://")[1]}`
+  ).then((res) => res.json<{ service: [{ serviceEndpoint: string }] }>());
 
   const atpAgent = new AtpAgent({
     service: _.get(service, "0.serviceEndpoint"),
@@ -311,17 +384,21 @@ export async function likeShout(
     });
     const uri = res.data.uri;
     console.log(`Like record created at: ${uri}`);
-    const shout = await ctx.client.db.shouts
-      .select(["xata_id", "uri"])
-      .filter("uri", shoutUri)
-      .getFirst();
+
+    const shout = await ctx.db
+      .select()
+      .from(shouts)
+      .where(eq(shouts.uri, shoutUri))
+      .limit(1)
+      .then((rows) => rows[0]);
+
     if (!shout) {
       throw new Error("Shout not found");
     }
 
-    await ctx.client.db.shout_likes.create({
-      shout_id: shout.xata_id,
-      user_id: user.xata_id,
+    await ctx.db.insert(shoutLikes).values({
+      shoutId: shout.id,
+      userId: user.id,
       uri,
     });
   } catch (e) {
@@ -333,20 +410,24 @@ export async function unlikeShout(
   ctx: Context,
   shoutUri: string,
   user,
-  agent: Agent,
+  agent: Agent
 ) {
-  const likes = await ctx.client.db.shout_likes
-    .filter({
-      "shout_id.uri": shoutUri,
-      "user_id.xata_id": user.xata_id,
+  const likes = await ctx.db
+    .select({
+      like: shoutLikes,
+      shout: shouts,
     })
-    .getFirst();
+    .from(shoutLikes)
+    .innerJoin(shouts, eq(shoutLikes.shoutId, shouts.id))
+    .where(and(eq(shouts.uri, shoutUri), eq(shoutLikes.userId, user.id)))
+    .limit(1)
+    .then((rows) => rows[0]);
 
   if (!likes) {
     return;
   }
 
-  const rkey = likes.uri.split("/").pop();
+  const rkey = likes.like.uri.split("/").pop();
 
   await Promise.all([
     agent.com.atproto.repo.deleteRecord({
@@ -354,6 +435,6 @@ export async function unlikeShout(
       collection: "app.rocksky.like",
       rkey,
     }),
-    ctx.client.db.shout_likes.delete(likes.xata_id),
+    ctx.db.delete(shoutLikes).where(eq(shoutLikes.id, likes.like.id)),
   ]);
 }
