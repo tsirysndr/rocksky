@@ -826,7 +826,8 @@ export async function scrobbleTrack(
     {
       artist: track.artist.split(",").map((a) => ({ name: a.trim() })),
       name: track.title,
-      album: track.album,
+      // temporarily disable album to see if it improves matching
+      // album: track.album,
     }
   );
 
