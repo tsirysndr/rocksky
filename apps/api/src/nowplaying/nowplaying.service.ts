@@ -107,7 +107,7 @@ export async function putSongRecord(
 ): Promise<string | null> {
   const rkey = TID.nextStr();
 
-  const record = {
+  const record: Song.Record = {
     $type: "app.rocksky.song",
     title: track.title,
     artist: track.artist,
@@ -129,6 +129,7 @@ export async function putSongRecord(
     createdAt: new Date().toISOString(),
     spotifyLink: track.spotifyLink ? track.spotifyLink : undefined,
     tags: track.genres || [],
+    mbid: track.mbId,
   };
 
   if (!Song.validateRecord(record).success) {
