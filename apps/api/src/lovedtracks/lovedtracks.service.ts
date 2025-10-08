@@ -18,7 +18,7 @@ export async function likeTrack(
   ctx: Context,
   track: Track,
   user,
-  agent: Agent
+  agent: Agent,
 ) {
   const trackSha256 = createHash("sha256")
     .update(`${track.title} - ${track.artist} - ${track.album}`.toLowerCase())
@@ -156,7 +156,7 @@ export async function likeTrack(
     .select()
     .from(albumTracks)
     .where(
-      and(eq(albumTracks.albumId, albumId), eq(albumTracks.trackId, trackId))
+      and(eq(albumTracks.albumId, albumId), eq(albumTracks.trackId, trackId)),
     )
     .limit(1)
     .then((rows) => rows[0]);
@@ -175,8 +175,8 @@ export async function likeTrack(
     .where(
       and(
         eq(artistTracks.artistId, artistId),
-        eq(artistTracks.trackId, trackId)
-      )
+        eq(artistTracks.trackId, trackId),
+      ),
     )
     .limit(1)
     .then((rows) => rows[0]);
@@ -195,8 +195,8 @@ export async function likeTrack(
     .where(
       and(
         eq(artistAlbums.artistId, artistId),
-        eq(artistAlbums.albumId, albumId)
-      )
+        eq(artistAlbums.albumId, albumId),
+      ),
     )
     .limit(1)
     .then((rows) => rows[0]);
@@ -213,7 +213,7 @@ export async function likeTrack(
     .select()
     .from(lovedTracks)
     .where(
-      and(eq(lovedTracks.userId, user.id), eq(lovedTracks.trackId, trackId))
+      and(eq(lovedTracks.userId, user.id), eq(lovedTracks.trackId, trackId)),
     )
     .limit(1)
     .then((rows) => rows[0]);
@@ -304,7 +304,7 @@ export async function unLikeTrack(
   ctx: Context,
   trackSha256: string,
   user,
-  agent: Agent
+  agent: Agent,
 ) {
   const track = await ctx.db
     .select()
@@ -321,7 +321,7 @@ export async function unLikeTrack(
     .select()
     .from(lovedTracks)
     .where(
-      and(eq(lovedTracks.userId, user.id), eq(lovedTracks.trackId, track.id))
+      and(eq(lovedTracks.userId, user.id), eq(lovedTracks.trackId, track.id)),
     )
     .limit(1)
     .then((rows) => rows[0]);
@@ -351,7 +351,7 @@ export async function getLovedTracks(
   ctx: Context,
   user,
   size = 10,
-  offset = 0
+  offset = 0,
 ) {
   const lovedTracksData = await ctx.db
     .select({

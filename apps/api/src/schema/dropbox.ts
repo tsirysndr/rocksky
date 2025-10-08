@@ -4,9 +4,7 @@ import dropboxTokens from "./dropbox-tokens";
 import users from "./users";
 
 const dropbox = pgTable("dropbox", {
-  id: text("xata_id")
-    .primaryKey()
-    .default(sql`xata_id()`),
+  id: text("xata_id").primaryKey().default(sql`xata_id()`),
   userId: text("user_id")
     .notNull()
     .references(() => users.id),

@@ -4,9 +4,7 @@ import playlists from "./playlists";
 import users from "./users";
 
 const userPlaylists = pgTable("user_playlists", {
-  id: text("xata_id")
-    .primaryKey()
-    .default(sql`xata_id()`),
+  id: text("xata_id").primaryKey().default(sql`xata_id()`),
   userId: text("user_id")
     .notNull()
     .references(() => users.id),

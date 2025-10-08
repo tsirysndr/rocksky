@@ -3,9 +3,7 @@ import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import dropboxDirectories from "./dropbox-directories";
 
 const dropboxPaths = pgTable("dropbox_paths", {
-  id: text("xata_id")
-    .primaryKey()
-    .default(sql`xata_id()`),
+  id: text("xata_id").primaryKey().default(sql`xata_id()`),
   path: text("path").notNull(),
   name: text("name").notNull(),
   dropboxId: text("dropbox_id").notNull(),

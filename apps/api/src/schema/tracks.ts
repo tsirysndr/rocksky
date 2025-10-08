@@ -2,9 +2,7 @@ import { type InferInsertModel, type InferSelectModel, sql } from "drizzle-orm";
 import { integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 const tracks = pgTable("tracks", {
-  id: text("xata_id")
-    .primaryKey()
-    .default(sql`xata_id()`),
+  id: text("xata_id").primaryKey().default(sql`xata_id()`),
   title: text("title").notNull(),
   artist: text("artist").notNull(),
   albumArtist: text("album_artist").notNull(),

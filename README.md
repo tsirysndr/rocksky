@@ -47,6 +47,7 @@ A decentralized music tracking and discovery platform built on the AT Protocol ð
 
 - Node.js (v22 or later)
 - Rust
+- Go
 - Turbo
 - Docker
 - Wasm Pack https://rustwasm.github.io/wasm-pack/installer/
@@ -92,7 +93,11 @@ A decentralized music tracking and discovery platform built on the AT Protocol ð
    ```bash
    bun run dev:jetstream
    ```
-9. Start the development server:
+9. Start musicbrainz:
+   ```bash
+   bun run mb
+   ```
+10. Start the development server:
    ```bash
    turbo dev --filter=@rocksky/api --filter=@rocksky/web
    ```

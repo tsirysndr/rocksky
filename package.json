@@ -26,7 +26,8 @@
     "dev:storage": "cargo run -p rocksky-storage --release -- serve",
     "dev:webscrobbler": "cargo run -p rockskyd --release -- webscrobbler",
     "dev:tracklist": "cargo run -p rockskyd --release -- tracklist",
-    "db:pgpull": "cargo run -p rockskyd --release -- pull && rm -f rocksky-analytics.ddb* rocksky-feed.ddb* && curl -o rocksky-analytics.ddb https://backup.rocksky.app/rocksky-analytics.ddb && curl -o rocksky-feed.ddb https://backup.rocksky.app/rocksky-feed.ddb"
+    "db:pgpull": "cargo run -p rockskyd --release -- pull && rm -f rocksky-analytics.ddb* rocksky-feed.ddb* && curl -o rocksky-analytics.ddb https://backup.rocksky.app/rocksky-analytics.ddb && curl -o rocksky-feed.ddb https://backup.rocksky.app/rocksky-feed.ddb",
+    "mb": "cd musicbrainz && go run main.go"
   },
   "workspaces": [
     "apps/api",

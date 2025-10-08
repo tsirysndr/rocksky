@@ -55,7 +55,7 @@ app.get("/oauth/callback", async (c) => {
       client_id: env.DROPBOX_CLIENT_ID,
       client_secret: env.DROPBOX_CLIENT_SECRET,
       redirect_uri: env.DROPBOX_REDIRECT_URI,
-    }
+    },
   );
 
   const { dropbox, dropbox_tokens } = await ctx.db
@@ -64,7 +64,7 @@ app.get("/oauth/callback", async (c) => {
     .where(eq(tables.dropbox.userId, entries.state))
     .leftJoin(
       tables.dropboxTokens,
-      eq(tables.dropboxTokens.id, tables.dropbox.dropboxTokenId)
+      eq(tables.dropboxTokens.id, tables.dropbox.dropboxTokenId),
     )
     .limit(1)
     .execute()
@@ -76,7 +76,7 @@ app.get("/oauth/callback", async (c) => {
       id: dropbox_tokens?.id,
       refreshToken: encrypt(
         response.data.refresh_token,
-        env.SPOTIFY_ENCRYPTION_KEY
+        env.SPOTIFY_ENCRYPTION_KEY,
       ),
     })
     .onConflictDoUpdate({
@@ -84,7 +84,7 @@ app.get("/oauth/callback", async (c) => {
       set: {
         refreshToken: encrypt(
           response.data.refresh_token,
-          env.SPOTIFY_ENCRYPTION_KEY
+          env.SPOTIFY_ENCRYPTION_KEY,
         ),
       },
     })
@@ -377,11 +377,11 @@ app.get("/download", async (c) => {
 
   c.header(
     "Content-Type",
-    response.headers["content-type"] || "application/octet-stream"
+    response.headers["content-type"] || "application/octet-stream",
   );
   c.header(
     "Content-Disposition",
-    response.headers["content-disposition"] || "attachment"
+    response.headers["content-disposition"] || "attachment",
   );
 
   return new Response(response.data, {

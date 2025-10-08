@@ -10,7 +10,7 @@ import * as Scrobble from "lexicon/types/app/rocksky/scrobble";
 import * as Song from "lexicon/types/app/rocksky/song";
 import { deepSnakeCaseKeys } from "lib";
 import { createHash } from "node:crypto";
-import type { Track } from "types/track";
+import type { MusicbrainzTrack, Track } from "types/track";
 import albumTracks from "../schema/album-tracks";
 import albums from "../schema/albums";
 import artistAlbums from "../schema/artist-albums";
@@ -22,6 +22,7 @@ import userAlbums from "../schema/user-albums";
 import userArtists from "../schema/user-artists";
 import userTracks from "../schema/user-tracks";
 import users from "../schema/users";
+import tealfm from "../tealfm";
 
 export async function putArtistRecord(
   track: Track,
@@ -822,6 +823,28 @@ export async function scrobbleTrack(
   if (existingTrack?.artistUri) {
     console.log(
       `Artist uri ready: ${chalk.cyan(existingTrack.id)} - ${track.title}, after ${chalk.magenta(tries)} tries`
+    );
+  }
+
+  const { data: mbTrack } = await ctx.musicbrainz.post<MusicbrainzTrack>(
+    "/hydrate",
+    {
+      artist: track.artist.split(",").map((a) => ({ name: a.trim() })),
+      name: track.title,
+      album: track.album,
+    }
+  );
+
+  track.mbId = mbTrack?.trackMBID;
+
+  if (userDid === "did:plc:7vdlgi2bflelz7mmuxoqjfcr" && mbTrack?.trackMBID) {
+    mbTrack.timestamp = track.timestamp
+      ? dayjs.unix(track.timestamp).toISOString()
+      : new Date().toISOString();
+    await tealfm.publishPlayingNow(
+      agent,
+      mbTrack,
+      Math.floor(track.duration / 1000)
     );
   }
 

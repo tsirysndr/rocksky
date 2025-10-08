@@ -34,3 +34,16 @@ export const trackSchema = z.object({
 });
 
 export type Track = z.infer<typeof trackSchema>;
+
+export type MusicbrainzTrack = {
+  trackMBID: string;
+  releaseMBID: string;
+  name: string;
+  artist: {
+    id: string;
+    mbid: string;
+    name: string;
+  }[];
+  album: string;
+  timestamp: string;
+};

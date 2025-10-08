@@ -31,6 +31,7 @@ export const ctx = {
   dropbox: axios.create({ baseURL: env.DROPBOX }),
   googledrive: axios.create({ baseURL: env.GOOGLE_DRIVE }),
   tracklist: axios.create({ baseURL: env.TRACKLIST }),
+  musicbrainz: axios.create({ baseURL: env.MUSICBRAINZ_URL }),
   redis: await redis
     .createClient({ url: env.REDIS_URL })
     .on("error", (err) => {

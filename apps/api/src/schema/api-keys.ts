@@ -3,9 +3,7 @@ import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import users from "./users";
 
 const apiKeys = pgTable("api_keys", {
-  id: text("xata_id")
-    .primaryKey()
-    .default(sql`xata_id()`),
+  id: text("xata_id").primaryKey().default(sql`xata_id()`),
   name: text("name").notNull(),
   apiKey: text("api_key").notNull(),
   sharedSecret: text("shared_secret").notNull(),

@@ -9,6 +9,11 @@ import {
   type StreamAuthVerifier,
 } from "@atproto/xrpc-server";
 import { schemas } from "./lexicons";
+import type * as FmTealAlphaActorGetProfile from "./types/fm/teal/alpha/actor/getProfile";
+import type * as FmTealAlphaActorGetProfiles from "./types/fm/teal/alpha/actor/getProfiles";
+import type * as FmTealAlphaActorSearchActors from "./types/fm/teal/alpha/actor/searchActors";
+import type * as FmTealAlphaFeedGetActorFeed from "./types/fm/teal/alpha/feed/getActorFeed";
+import type * as FmTealAlphaFeedGetPlay from "./types/fm/teal/alpha/feed/getPlay";
 import type * as AppRockskyActorGetActorAlbums from "./types/app/rocksky/actor/getActorAlbums";
 import type * as AppRockskyActorGetActorArtists from "./types/app/rocksky/actor/getActorArtists";
 import type * as AppRockskyActorGetActorLovedSongs from "./types/app/rocksky/actor/getActorLovedSongs";
@@ -90,13 +95,118 @@ export function createServer(options?: XrpcOptions): Server {
 
 export class Server {
   xrpc: XrpcServer;
+  fm: FmNS;
   app: AppNS;
   com: ComNS;
 
   constructor(options?: XrpcOptions) {
     this.xrpc = createXrpcServer(schemas, options);
+    this.fm = new FmNS(this);
     this.app = new AppNS(this);
     this.com = new ComNS(this);
+  }
+}
+
+export class FmNS {
+  _server: Server;
+  teal: FmTealNS;
+
+  constructor(server: Server) {
+    this._server = server;
+    this.teal = new FmTealNS(server);
+  }
+}
+
+export class FmTealNS {
+  _server: Server;
+  alpha: FmTealAlphaNS;
+
+  constructor(server: Server) {
+    this._server = server;
+    this.alpha = new FmTealAlphaNS(server);
+  }
+}
+
+export class FmTealAlphaNS {
+  _server: Server;
+  actor: FmTealAlphaActorNS;
+  feed: FmTealAlphaFeedNS;
+
+  constructor(server: Server) {
+    this._server = server;
+    this.actor = new FmTealAlphaActorNS(server);
+    this.feed = new FmTealAlphaFeedNS(server);
+  }
+}
+
+export class FmTealAlphaActorNS {
+  _server: Server;
+
+  constructor(server: Server) {
+    this._server = server;
+  }
+
+  getProfile<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      FmTealAlphaActorGetProfile.Handler<ExtractAuth<AV>>,
+      FmTealAlphaActorGetProfile.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "fm.teal.alpha.actor.getProfile"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  getProfiles<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      FmTealAlphaActorGetProfiles.Handler<ExtractAuth<AV>>,
+      FmTealAlphaActorGetProfiles.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "fm.teal.alpha.actor.getProfiles"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  searchActors<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      FmTealAlphaActorSearchActors.Handler<ExtractAuth<AV>>,
+      FmTealAlphaActorSearchActors.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "fm.teal.alpha.actor.searchActors"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+}
+
+export class FmTealAlphaFeedNS {
+  _server: Server;
+
+  constructor(server: Server) {
+    this._server = server;
+  }
+
+  getActorFeed<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      FmTealAlphaFeedGetActorFeed.Handler<ExtractAuth<AV>>,
+      FmTealAlphaFeedGetActorFeed.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "fm.teal.alpha.feed.getActorFeed"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  getPlay<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      FmTealAlphaFeedGetPlay.Handler<ExtractAuth<AV>>,
+      FmTealAlphaFeedGetPlay.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "fm.teal.alpha.feed.getPlay"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
   }
 }
 
