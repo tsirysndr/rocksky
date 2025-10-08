@@ -9,7 +9,7 @@ import { CID } from "multiformats/cid";
 import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
 import type * as AppRockskySongDefs from "./defs";
 
-export type QueryParams = {};
+export type QueryParams = {}
 
 export interface InputSchema {
   /** The title of the song */

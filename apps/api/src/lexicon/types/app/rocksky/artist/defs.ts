@@ -119,7 +119,7 @@ export function validateListenerViewBasic(v: unknown): ValidationResult {
   return lexicons.validate("app.rocksky.artist.defs#listenerViewBasic", v);
 }
 
-export interface Artists {
+export interface ArtistMbid {
   /** The MusicBrainz Identifier (MBID) of the artist. */
   mbid?: string;
   /** The name of the artist. */
@@ -127,14 +127,14 @@ export interface Artists {
   [k: string]: unknown;
 }
 
-export function isArtists(v: unknown): v is Artists {
+export function isArtistMbid(v: unknown): v is ArtistMbid {
   return (
     isObj(v) &&
     hasProp(v, "$type") &&
-    v.$type === "app.rocksky.artist.defs#artists"
+    v.$type === "app.rocksky.artist.defs#artistMbid"
   );
 }
 
-export function validateArtists(v: unknown): ValidationResult {
-  return lexicons.validate("app.rocksky.artist.defs#artists", v);
+export function validateArtistMbid(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.artist.defs#artistMbid", v);
 }

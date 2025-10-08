@@ -1720,7 +1720,7 @@ export const schemaDict = {
           },
         },
       },
-      artists: {
+      artistMbid: {
         type: "object",
         properties: {
           mbid: {

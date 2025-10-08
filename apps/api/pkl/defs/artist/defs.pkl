@@ -162,7 +162,7 @@ defs = new Mapping<String, ObjectType> {
     }
   }
 
-  ["artists"] {
+  ["artistMbid"] {
     type = "object"
     properties {
       ["mbid"] = new StringType {
