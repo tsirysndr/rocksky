@@ -80,6 +80,15 @@ pub struct ScrobbleRecord {
     pub label: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mbid: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub artists: Option<Vec<ArtistMbid>>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct ArtistMbid {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mbid: Option<String>,
+    pub name: String,
 }
 
 #[derive(Debug, Deserialize)]
