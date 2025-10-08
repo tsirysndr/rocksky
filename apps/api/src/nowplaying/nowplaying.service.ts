@@ -29,13 +29,7 @@ export async function putArtistRecord(
   agent: Agent
 ): Promise<string | null> {
   const rkey = TID.nextStr();
-  const record: {
-    $type: string;
-    name: string;
-    createdAt: string;
-    pictureUrl?: string;
-    tags?: string[];
-  } = {
+  const record: Artist.Record = {
     $type: "app.rocksky.artist",
     name: track.albumArtist,
     createdAt: new Date().toISOString(),
@@ -166,7 +160,7 @@ async function putScrobbleRecord(
 ): Promise<string | null> {
   const rkey = TID.nextStr();
 
-  const record = {
+  const record: Scrobble.Record = {
     $type: "app.rocksky.scrobble",
     title: track.title,
     albumArtist: track.albumArtist,
@@ -191,6 +185,7 @@ async function putScrobbleRecord(
       : new Date().toISOString(),
     spotifyLink: track.spotifyLink ? track.spotifyLink : undefined,
     tags: track.genres || [],
+    mbid: track.mbId,
   };
 
   if (!Scrobble.validateRecord(record).success) {
