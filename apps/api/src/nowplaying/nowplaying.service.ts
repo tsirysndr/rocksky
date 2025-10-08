@@ -26,7 +26,7 @@ import tealfm from "../tealfm";
 
 export async function putArtistRecord(
   track: Track,
-  agent: Agent
+  agent: Agent,
 ): Promise<string | null> {
   const rkey = TID.nextStr();
   const record: Artist.Record = {
@@ -62,7 +62,7 @@ export async function putArtistRecord(
 
 export async function putAlbumRecord(
   track: Track,
-  agent: Agent
+  agent: Agent,
 ): Promise<string | null> {
   const rkey = TID.nextStr();
 
@@ -103,7 +103,7 @@ export async function putAlbumRecord(
 
 export async function putSongRecord(
   track: Track,
-  agent: Agent
+  agent: Agent,
 ): Promise<string | null> {
   const rkey = TID.nextStr();
 
@@ -111,6 +111,7 @@ export async function putSongRecord(
     $type: "app.rocksky.song",
     title: track.title,
     artist: track.artist,
+    artists: track.artists === null ? undefined : track.artists,
     album: track.album,
     albumArtist: track.albumArtist,
     duration: track.duration,
@@ -157,7 +158,7 @@ export async function putSongRecord(
 
 async function putScrobbleRecord(
   track: Track,
-  agent: Agent
+  agent: Agent,
 ): Promise<string | null> {
   const rkey = TID.nextStr();
 
@@ -167,6 +168,7 @@ async function putScrobbleRecord(
     albumArtist: track.albumArtist,
     albumArtUrl: track.albumArt,
     artist: track.artist,
+    artists: track.artists === null ? undefined : track.artists,
     album: track.album,
     duration: track.duration,
     trackNumber: track.trackNumber,
@@ -274,8 +276,8 @@ export async function publishScrobble(ctx: Context, id: string) {
       .where(
         and(
           eq(artistAlbums.albumId, scrobble.album.id),
-          eq(artistAlbums.artistId, scrobble.artist.id)
-        )
+          eq(artistAlbums.artistId, scrobble.artist.id),
+        ),
       )
       .limit(1)
       .then((rows) => rows[0]),
@@ -438,12 +440,12 @@ export async function publishScrobble(ctx: Context, id: string) {
       },
     }),
     null,
-    2
+    2,
   );
 
   ctx.nc.publish(
     "rocksky.scrobble",
-    Buffer.from(message.replaceAll("sha_256", "sha256"))
+    Buffer.from(message.replaceAll("sha_256", "sha256")),
   );
 
   const trackMessage = JSON.stringify(
@@ -490,12 +492,12 @@ export async function publishScrobble(ctx: Context, id: string) {
         xata_createdat: artist_album.createdAt.toISOString(),
         xata_updatedat: artist_album.updatedAt.toISOString(),
       },
-    })
+    }),
   );
 
   ctx.nc.publish(
     "rocksky.track",
-    Buffer.from(trackMessage.replaceAll("sha_256", "sha256"))
+    Buffer.from(trackMessage.replaceAll("sha_256", "sha256")),
   );
 }
 
@@ -503,7 +505,7 @@ export async function scrobbleTrack(
   ctx: Context,
   track: Track,
   agent: Agent,
-  userDid: string
+  userDid: string,
 ): Promise<void> {
   // check if scrobble already exists (user did + timestamp)
   const scrobbleTime = dayjs.unix(track.timestamp || dayjs().unix());
@@ -522,8 +524,8 @@ export async function scrobbleTrack(
         eq(tracks.title, track.title),
         eq(tracks.artist, track.artist),
         gte(scrobbles.timestamp, scrobbleTime.subtract(5, "seconds").toDate()),
-        lte(scrobbles.timestamp, scrobbleTime.add(5, "seconds").toDate())
-      )
+        lte(scrobbles.timestamp, scrobbleTime.add(5, "seconds").toDate()),
+      ),
     )
     .limit(1)
     .then((rows) => rows[0]);
@@ -531,8 +533,8 @@ export async function scrobbleTrack(
   if (existingScrobble) {
     console.log(
       `Scrobble already exists for ${chalk.cyan(track.title)} at ${chalk.cyan(
-        scrobbleTime.format("YYYY-MM-DD HH:mm:ss")
-      )}`
+        scrobbleTime.format("YYYY-MM-DD HH:mm:ss"),
+      )}`,
     );
     return;
   }
@@ -545,10 +547,10 @@ export async function scrobbleTrack(
         tracks.sha256,
         createHash("sha256")
           .update(
-            `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
+            `${track.title} - ${track.artist} - ${track.album}`.toLowerCase(),
           )
-          .digest("hex")
-      )
+          .digest("hex"),
+      ),
     )
     .limit(1)
     .then((rows) => rows[0]);
@@ -562,8 +564,8 @@ export async function scrobbleTrack(
           albums.sha256,
           createHash("sha256")
             .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
-            .digest("hex")
-        )
+            .digest("hex"),
+        ),
       )
       .limit(1)
       .then((rows) => rows[0]);
@@ -584,8 +586,8 @@ export async function scrobbleTrack(
           artists.sha256,
           createHash("sha256")
             .update(track.albumArtist.toLowerCase())
-            .digest("hex")
-        )
+            .digest("hex"),
+        ),
       )
       .limit(1)
       .then((rows) => rows[0]);
@@ -616,7 +618,7 @@ export async function scrobbleTrack(
       artist: track.artist.split(",").map((a) => ({ name: a.trim() })),
       name: track.title,
       album: track.album,
-    }
+    },
   );
 
   if (!mbTrack?.trackMBID) {
@@ -628,6 +630,10 @@ export async function scrobbleTrack(
   }
 
   track.mbId = mbTrack?.trackMBID;
+  track.artists = mbTrack?.artist?.map((artist) => ({
+    mbid: artist.mbid,
+    name: artist.name,
+  }));
 
   if (!existingTrack?.uri || !userTrack?.userTrack.uri?.includes(userDid)) {
     await putSongRecord(track, agent);
@@ -641,8 +647,8 @@ export async function scrobbleTrack(
         albums.sha256,
         createHash("sha256")
           .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
-          .digest("hex")
-      )
+          .digest("hex"),
+      ),
     )
     .limit(1)
     .then((rows) => rows[0]);
@@ -658,10 +664,10 @@ export async function scrobbleTrack(
           tracks.sha256,
           createHash("sha256")
             .update(
-              `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
+              `${track.title} - ${track.artist} - ${track.album}`.toLowerCase(),
             )
-            .digest("hex")
-        )
+            .digest("hex"),
+        ),
       )
       .limit(1)
       .then((rows) => rows[0]);
@@ -675,7 +681,7 @@ export async function scrobbleTrack(
 
   if (existingTrack) {
     console.log(
-      `Song found: ${chalk.cyan(existingTrack.id)} - ${track.title}, after ${chalk.magenta(tries)} tries`
+      `Song found: ${chalk.cyan(existingTrack.id)} - ${track.title}, after ${chalk.magenta(tries)} tries`,
     );
   }
 
@@ -688,13 +694,13 @@ export async function scrobbleTrack(
           artists.sha256,
           createHash("sha256")
             .update(track.albumArtist.toLowerCase())
-            .digest("hex")
+            .digest("hex"),
         ),
         eq(
           artists.sha256,
-          createHash("sha256").update(track.artist.toLowerCase()).digest("hex")
-        )
-      )
+          createHash("sha256").update(track.artist.toLowerCase()).digest("hex"),
+        ),
+      ),
     )
     .limit(1)
     .then((rows) => rows[0]);
@@ -709,7 +715,7 @@ export async function scrobbleTrack(
     .innerJoin(artists, eq(userArtists.artistId, artists.id))
     .innerJoin(users, eq(userArtists.userId, users.id))
     .where(
-      and(eq(artists.id, existingArtist?.id || ""), eq(users.did, userDid))
+      and(eq(artists.id, existingArtist?.id || ""), eq(users.did, userDid)),
     )
     .limit(1)
     .then((rows) => rows[0]);
@@ -744,17 +750,17 @@ export async function scrobbleTrack(
         tracks.sha256,
         createHash("sha256")
           .update(
-            `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
+            `${track.title} - ${track.artist} - ${track.album}`.toLowerCase(),
           )
-          .digest("hex")
-      )
+          .digest("hex"),
+      ),
     )
     .limit(1)
     .then((rows) => rows[0]);
 
   while (!existingTrack?.artistUri && !existingTrack?.albumUri && tries < 30) {
     console.log(
-      `Artist uri not ready, trying again: ${chalk.magenta(tries + 1)}`
+      `Artist uri not ready, trying again: ${chalk.magenta(tries + 1)}`,
     );
     existingTrack = await ctx.db
       .select()
@@ -764,10 +770,10 @@ export async function scrobbleTrack(
           tracks.sha256,
           createHash("sha256")
             .update(
-              `${track.title} - ${track.artist} - ${track.album}`.toLowerCase()
+              `${track.title} - ${track.artist} - ${track.album}`.toLowerCase(),
             )
-            .digest("hex")
-        )
+            .digest("hex"),
+        ),
       )
       .limit(1)
       .then((rows) => rows[0]);
@@ -782,8 +788,8 @@ export async function scrobbleTrack(
             artists.sha256,
             createHash("sha256")
               .update(track.albumArtist.toLowerCase())
-              .digest("hex")
-          )
+              .digest("hex"),
+          ),
         )
         .limit(1)
         .then((rows) => rows[0]);
@@ -806,8 +812,8 @@ export async function scrobbleTrack(
             albums.sha256,
             createHash("sha256")
               .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
-              .digest("hex")
-          )
+              .digest("hex"),
+          ),
         )
         .limit(1)
         .then((rows) => rows[0]);
@@ -837,7 +843,7 @@ export async function scrobbleTrack(
 
   if (existingTrack?.artistUri) {
     console.log(
-      `Artist uri ready: ${chalk.cyan(existingTrack.id)} - ${track.title}, after ${chalk.magenta(tries)} tries`
+      `Artist uri ready: ${chalk.cyan(existingTrack.id)} - ${track.title}, after ${chalk.magenta(tries)} tries`,
     );
   }
 
@@ -848,7 +854,7 @@ export async function scrobbleTrack(
     await tealfm.publishPlayingNow(
       agent,
       mbTrack,
-      Math.floor(track.duration / 1000)
+      Math.floor(track.duration / 1000),
     );
   }
 

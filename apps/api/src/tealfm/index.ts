@@ -9,7 +9,7 @@ const SUBMISSION_CLIENT_AGENT = "rocksky/v0.0.1";
 async function publishPlayingNow(
   agent: Agent,
   track: MusicbrainzTrack,
-  duration: number
+  duration: number,
 ) {
   try {
     const rkey = TID.nextStr();

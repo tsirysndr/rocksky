@@ -132,6 +132,21 @@
           "minimum": 1
         }
       }
+    },
+    "artists": {
+      "type": "object",
+      "properties": {
+        "mbid": {
+          "type": "string",
+          "description": "The MusicBrainz Identifier (MBID) of the artist."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the artist.",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
     }
   }
 }

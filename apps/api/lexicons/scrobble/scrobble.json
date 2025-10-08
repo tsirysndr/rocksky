@@ -29,6 +29,14 @@
             "minLength": 1,
             "maxLength": 256
           },
+          "artists": {
+            "type": "array",
+            "description": "The artists of the song with MusicBrainz IDs.",
+            "items": {
+              "type": "ref",
+              "ref": "app.rocksky.artist.defs#artistMbid"
+            }
+          },
           "albumArtist": {
             "type": "string",
             "description": "The album artist of the song.",

@@ -1720,6 +1720,21 @@ export const schemaDict = {
           },
         },
       },
+      artists: {
+        type: "object",
+        properties: {
+          mbid: {
+            type: "string",
+            description: "The MusicBrainz Identifier (MBID) of the artist.",
+          },
+          name: {
+            type: "string",
+            description: "The name of the artist.",
+            minLength: 1,
+            maxLength: 256,
+          },
+        },
+      },
     },
   },
   AppRockskyArtistGetArtistAlbums: {
@@ -3769,6 +3784,14 @@ export const schemaDict = {
               minLength: 1,
               maxLength: 256,
             },
+            artists: {
+              type: "array",
+              description: "The artists of the song with MusicBrainz IDs.",
+              items: {
+                type: "ref",
+                ref: "lex:app.rocksky.artist.defs#artistMbid",
+              },
+            },
             albumArtist: {
               type: "string",
               description: "The album artist of the song.",
@@ -4675,6 +4698,14 @@ export const schemaDict = {
               description: "The artist of the song.",
               minLength: 1,
               maxLength: 256,
+            },
+            artists: {
+              type: "array",
+              description: "The artists of the song with MusicBrainz IDs.",
+              items: {
+                type: "ref",
+                ref: "lex:app.rocksky.artist.defs#artistMbid",
+              },
             },
             albumArtist: {
               type: "string",

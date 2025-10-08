@@ -5,12 +5,15 @@ import type { ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../lexicons";
 import { isObj, hasProp } from "../../../util";
 import { CID } from "multiformats/cid";
+import type * as AppRockskyArtistDefs from "./artist/defs";
 
 export interface Record {
   /** The title of the song. */
   title: string;
   /** The artist of the song. */
   artist: string;
+  /** The artists of the song with MusicBrainz IDs. */
+  artists?: AppRockskyArtistDefs.ArtistMbid[];
   /** The album artist of the song. */
   albumArtist: string;
   /** The album of the song. */

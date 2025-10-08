@@ -3,6 +3,15 @@ import z from "zod";
 export const trackSchema = z.object({
   title: z.string().nonempty().trim(),
   artist: z.string().nonempty().trim(),
+  artists: z
+    .array(
+      z.object({
+        mbid: z.string().optional().nullable(),
+        name: z.string().nonempty().trim(),
+      }),
+    )
+    .optional()
+    .nullable(),
   album: z.string().nonempty().trim(),
   albumArtist: z.string().nonempty().trim(),
   duration: z.number(),

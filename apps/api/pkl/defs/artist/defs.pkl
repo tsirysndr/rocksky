@@ -161,4 +161,20 @@ defs = new Mapping<String, ObjectType> {
 
     }
   }
+
+  ["artists"] {
+    type = "object"
+    properties {
+      ["mbid"] = new StringType {
+        type = "string"
+        description = "The MusicBrainz Identifier (MBID) of the artist."
+      }
+      ["name"] = new StringType {
+        type = "string"
+        description = "The name of the artist."
+        minLength = 1
+        maxLength = 256
+      }
+    }
+  }
 }

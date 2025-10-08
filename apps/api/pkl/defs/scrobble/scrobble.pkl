@@ -25,6 +25,16 @@ defs = new Mapping<String, Record> {
           maxLength = 256
         }
 
+
+
+        ["artists"] = new Array {
+          type = "array"
+          description = "The artists of the song with MusicBrainz IDs."
+          items = new Ref {
+            ref = "app.rocksky.artist.defs#artistMbid"
+          }
+        }
+
         ["albumArtist"] = new StringType {
           type = "string"
           description = "The album artist of the song."
