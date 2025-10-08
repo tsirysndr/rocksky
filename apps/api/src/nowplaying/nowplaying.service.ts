@@ -609,6 +609,18 @@ export async function scrobbleTrack(
     .limit(1)
     .then((rows) => rows[0]);
 
+  const { data: mbTrack } = await ctx.musicbrainz.post<MusicbrainzTrack>(
+    "/hydrate",
+    {
+      artist: track.artist.split(",").map((a) => ({ name: a.trim() })),
+      name: track.title,
+      // temporarily disable album to see if it improves matching
+      // album: track.album,
+    }
+  );
+
+  track.mbId = mbTrack?.trackMBID;
+
   if (!existingTrack?.uri || !userTrack?.userTrack.uri?.includes(userDid)) {
     await putSongRecord(track, agent);
   }
@@ -820,18 +832,6 @@ export async function scrobbleTrack(
       `Artist uri ready: ${chalk.cyan(existingTrack.id)} - ${track.title}, after ${chalk.magenta(tries)} tries`
     );
   }
-
-  const { data: mbTrack } = await ctx.musicbrainz.post<MusicbrainzTrack>(
-    "/hydrate",
-    {
-      artist: track.artist.split(",").map((a) => ({ name: a.trim() })),
-      name: track.title,
-      // temporarily disable album to see if it improves matching
-      // album: track.album,
-    }
-  );
-
-  track.mbId = mbTrack?.trackMBID;
 
   if (userDid === "did:plc:7vdlgi2bflelz7mmuxoqjfcr" && mbTrack?.trackMBID) {
     mbTrack.timestamp = track.timestamp
