@@ -21,7 +21,7 @@ export async function createShout(
   shout: Shout,
   uri: string,
   user,
-  agent: Agent
+  agent: Agent,
 ) {
   let album: SelectAlbum,
     artist: SelectArtist,
@@ -157,7 +157,7 @@ export async function replyShout(
   reply: Shout,
   shoutUri: string,
   user,
-  agent: Agent
+  agent: Agent,
 ) {
   const shout = await ctx.db
     .select({
@@ -212,7 +212,7 @@ export async function replyShout(
     profileRecord.uri;
 
   let service = await fetch(
-    `https://plc.directory/${subjectUri.split("/").slice(0, 3).join("/").split("at://")[1]}`
+    `https://plc.directory/${subjectUri.split("/").slice(0, 3).join("/").split("at://")[1]}`,
   )
     .then((res) => res.json<{ service: { seviceEndpoint: string }[] }>())
     .then((data) => data.service);
@@ -236,7 +236,7 @@ export async function replyShout(
   }
 
   service = await fetch(
-    `https://plc.directory/${shoutUri.split("/").slice(0, 3).join("/").split("at://")[1]}`
+    `https://plc.directory/${shoutUri.split("/").slice(0, 3).join("/").split("at://")[1]}`,
   )
     .then((res) => res.json<{ service: { seviceEndpoint: string }[] }>())
     .then((data) => data.service);
@@ -322,7 +322,7 @@ export async function likeShout(
   ctx: Context,
   shoutUri: string,
   user,
-  agent: Agent
+  agent: Agent,
 ) {
   const rkey = TID.nextStr();
 
@@ -342,7 +342,7 @@ export async function likeShout(
   }
 
   const { service } = await fetch(
-    `https://plc.directory/${shoutUri.split("/").slice(0, 3).join("/").split("at://")[1]}`
+    `https://plc.directory/${shoutUri.split("/").slice(0, 3).join("/").split("at://")[1]}`,
   ).then((res) => res.json<{ service: [{ serviceEndpoint: string }] }>());
 
   const atpAgent = new AtpAgent({
@@ -410,7 +410,7 @@ export async function unlikeShout(
   ctx: Context,
   shoutUri: string,
   user,
-  agent: Agent
+  agent: Agent,
 ) {
   const likes = await ctx.db
     .select({

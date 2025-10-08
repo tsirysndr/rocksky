@@ -4,9 +4,7 @@ import googleDriveTokens from "./google-drive-tokens";
 import users from "./users";
 
 const googleDrive = pgTable("google_drive", {
-  id: text("xata_id")
-    .primaryKey()
-    .default(sql`xata_id()`),
+  id: text("xata_id").primaryKey().default(sql`xata_id()`),
   googleDriveTokenId: text("google_drive_token_id")
     .notNull()
     .references(() => googleDriveTokens.id),

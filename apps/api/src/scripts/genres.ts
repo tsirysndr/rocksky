@@ -11,7 +11,7 @@ async function getSpotifyToken(): Promise<string> {
     .from(tables.spotifyTokens)
     .leftJoin(
       tables.spotifyAccounts,
-      eq(tables.spotifyAccounts.userId, tables.spotifyTokens.userId)
+      eq(tables.spotifyAccounts.userId, tables.spotifyTokens.userId),
     )
     .where(eq(tables.spotifyAccounts.isBetaUser, true))
     .execute()
@@ -51,7 +51,7 @@ async function getGenresAndPicture(artists) {
             headers: {
               Authorization: `Bearer ${token}`,
             },
-          }
+          },
         )
           .then(
             (res) =>
@@ -64,7 +64,7 @@ async function getGenresAndPicture(artists) {
                     images: Array<{ url: string }>;
                   }>;
                 };
-              }>
+              }>,
           )
           .then(async (data) => _.get(data, "artists.items.0"));
 

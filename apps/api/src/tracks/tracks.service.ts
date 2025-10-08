@@ -132,7 +132,7 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
     if (!track_id || !album_id || !artist_id) {
       console.log(
         "Track not yet saved (uri not saved), retrying...",
-        tries + 1
+        tries + 1,
       );
       await new Promise((resolve) => setTimeout(resolve, 1000));
       tries += 1;
@@ -145,8 +145,8 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
       .where(
         and(
           eq(albumTracks.albumId, album_id.id),
-          eq(albumTracks.trackId, track_id.id)
-        )
+          eq(albumTracks.trackId, track_id.id),
+        ),
       )
       .limit(1)
       .then((results) => results[0]);
@@ -157,8 +157,8 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
       .where(
         and(
           eq(artistTracks.artistId, artist_id.id),
-          eq(artistTracks.trackId, track_id.id)
-        )
+          eq(artistTracks.trackId, track_id.id),
+        ),
       )
       .limit(1)
       .then((results) => results[0]);
@@ -169,8 +169,8 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
       .where(
         and(
           eq(artistAlbums.artistId, artist_id.id),
-          eq(artistAlbums.albumId, album_id.id)
-        )
+          eq(artistAlbums.albumId, album_id.id),
+        ),
       )
       .limit(1)
       .then((results) => results[0]);
@@ -264,12 +264,12 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
             xata_createdat: artist_album.createdAt.toISOString(),
             xata_updatedat: artist_album.updatedAt.toISOString(),
           },
-        })
+        }),
       );
 
       ctx.nc.publish(
         "rocksky.track",
-        Buffer.from(message.replaceAll("sha_256", "sha256"))
+        Buffer.from(message.replaceAll("sha_256", "sha256")),
       );
       break;
     }

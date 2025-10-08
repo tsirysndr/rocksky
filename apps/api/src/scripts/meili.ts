@@ -32,7 +32,7 @@ async function createAlbums() {
   for (let i = 0; i < total; i += size) {
     const skip = i;
     console.log(
-      `Processing ${chalk.magentaBright("albums")}: ${chalk.magentaBright(skip)} to ${chalk.magentaBright(skip + size)}`
+      `Processing ${chalk.magentaBright("albums")}: ${chalk.magentaBright(skip)} to ${chalk.magentaBright(skip + size)}`,
     );
     const results = await ctx.db
       .select()
@@ -56,7 +56,7 @@ async function createArtists() {
   for (let i = 0; i < total; i += size) {
     const skip = i;
     console.log(
-      `Processing ${chalk.magentaBright("artists")}: ${chalk.magentaBright(skip)} to ${chalk.magentaBright(skip + size)}`
+      `Processing ${chalk.magentaBright("artists")}: ${chalk.magentaBright(skip)} to ${chalk.magentaBright(skip + size)}`,
     );
     const results = await ctx.db
       .select()
@@ -80,7 +80,7 @@ async function createTracks() {
   for (let i = 0; i < total; i += size) {
     const skip = i;
     console.log(
-      `Processing ${chalk.magentaBright("tracks")}: ${chalk.magentaBright(skip)} to ${chalk.magentaBright(skip + size)}`
+      `Processing ${chalk.magentaBright("tracks")}: ${chalk.magentaBright(skip)} to ${chalk.magentaBright(skip + size)}`,
     );
     const results = await ctx.db
       .select()
@@ -105,7 +105,7 @@ async function createUsers() {
   for (let i = 0; i < total; i += size) {
     const skip = i;
     console.log(
-      `Processing ${chalk.magentaBright("users")}: ${chalk.magentaBright(skip)} to ${chalk.magentaBright(skip + size)}`
+      `Processing ${chalk.magentaBright("users")}: ${chalk.magentaBright(skip)} to ${chalk.magentaBright(skip + size)}`,
     );
     const results = await ctx.db
       .select()

@@ -5,7 +5,7 @@
 	"type": "module",
 	"module": "dist/index.js",
 	"scripts": {
-		"lexgen": "lex gen-server ./src/lexicon ./lexicons/**/* ./lexicons/*",
+		"lexgen": "lex gen-server ./src/lexicon ./src/tealfm/lexicons/teal/**/* ./lexicons/**/* ./lexicons/* ./src/tealfm/lexicons/**/*",
 		"dev": "concurrently 'tsx --watch ./src/index.ts' 'tsx --watch ./src/server.ts'",
 		"prod": "tsx ./src/index.ts",
 		"build": "pkgroll",

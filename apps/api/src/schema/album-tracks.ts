@@ -4,9 +4,7 @@ import albums from "./albums";
 import tracks from "./tracks";
 
 const albumTracks = pgTable("album_tracks", {
-  id: text("xata_id")
-    .primaryKey()
-    .default(sql`xata_id()`),
+  id: text("xata_id").primaryKey().default(sql`xata_id()`),
   albumId: text("album_id")
     .notNull()
     .references(() => albums.id),

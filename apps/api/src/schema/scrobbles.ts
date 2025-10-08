@@ -6,9 +6,7 @@ import tracks from "./tracks";
 import users from "./users";
 
 const scrobbles = pgTable("scrobbles", {
-  id: text("xata_id")
-    .primaryKey()
-    .default(sql`xata_id()`),
+  id: text("xata_id").primaryKey().default(sql`xata_id()`),
   userId: text("user_id").references(() => users.id),
   trackId: text("track_id").references(() => tracks.id),
   albumId: text("album_id").references(() => albums.id),

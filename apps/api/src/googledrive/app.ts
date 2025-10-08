@@ -42,13 +42,13 @@ app.get("/login", async (c) => {
   }
 
   const credentials = JSON.parse(
-    fs.readFileSync("credentials.json").toString("utf-8")
+    fs.readFileSync("credentials.json").toString("utf-8"),
   );
   const { client_id, client_secret } = credentials.installed || credentials.web;
   const oAuth2Client = new google.auth.OAuth2(
     client_id,
     client_secret,
-    env.GOOGLE_REDIRECT_URI
+    env.GOOGLE_REDIRECT_URI,
   );
 
   // Generate Auth URL
@@ -70,7 +70,7 @@ app.get("/oauth/callback", async (c) => {
   const entries = Object.fromEntries(params.entries());
 
   const credentials = JSON.parse(
-    fs.readFileSync("credentials.json").toString("utf-8")
+    fs.readFileSync("credentials.json").toString("utf-8"),
   );
   const { client_id, client_secret } = credentials.installed || credentials.web;
 
@@ -92,7 +92,7 @@ app.get("/oauth/callback", async (c) => {
     .innerJoin(users, eq(googleDrive.userId, users.id))
     .leftJoin(
       googleDriveTokens,
-      eq(googleDrive.googleDriveTokenId, googleDriveTokens.id)
+      eq(googleDrive.googleDriveTokenId, googleDriveTokens.id),
     )
     .where(eq(users.id, entries.state))
     .limit(1)
@@ -105,7 +105,7 @@ app.get("/oauth/callback", async (c) => {
       .set({
         refreshToken: encrypt(
           response.data.refresh_token,
-          env.SPOTIFY_ENCRYPTION_KEY
+          env.SPOTIFY_ENCRYPTION_KEY,
         ),
       })
       .where(eq(googleDriveTokens.id, existingGoogleDrive.token.id))
@@ -117,7 +117,7 @@ app.get("/oauth/callback", async (c) => {
       .values({
         refreshToken: encrypt(
           response.data.refresh_token,
-          env.SPOTIFY_ENCRYPTION_KEY
+          env.SPOTIFY_ENCRYPTION_KEY,
         ),
       })
       .returning();
@@ -237,7 +237,7 @@ app.get("/files", async (c) => {
         {
           did,
           parent_id,
-        }
+        },
       );
       return c.json(data);
     }
@@ -258,7 +258,7 @@ app.get("/files", async (c) => {
       {
         did,
         parent_id: response.data.files[0].id,
-      }
+      },
     );
     return c.json(data);
   } catch (error) {
@@ -266,14 +266,14 @@ app.get("/files", async (c) => {
       console.error("Axios error:", error.response?.data || error.message);
 
       const credentials = JSON.parse(
-        fs.readFileSync("credentials.json").toString("utf-8")
+        fs.readFileSync("credentials.json").toString("utf-8"),
       );
       const { client_id, client_secret } =
         credentials.installed || credentials.web;
       const oAuth2Client = new google.auth.OAuth2(
         client_id,
         client_secret,
-        env.GOOGLE_REDIRECT_URI
+        env.GOOGLE_REDIRECT_URI,
       );
 
       // Generate Auth URL
@@ -362,11 +362,11 @@ app.get("/files/:id/download", async (c) => {
 
   c.header(
     "Content-Type",
-    response.headers["content-type"] || "application/octet-stream"
+    response.headers["content-type"] || "application/octet-stream",
   );
   c.header(
     "Content-Disposition",
-    response.headers["content-disposition"] || "attachment"
+    response.headers["content-disposition"] || "attachment",
   );
 
   return new Response(response.data, {
