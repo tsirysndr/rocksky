@@ -847,7 +847,7 @@ export async function scrobbleTrack(
     );
   }
 
-  if (userDid === "did:plc:7vdlgi2bflelz7mmuxoqjfcr" && mbTrack?.trackMBID) {
+  if (mbTrack?.trackMBID) {
     mbTrack.timestamp = track.timestamp
       ? dayjs.unix(track.timestamp).toISOString()
       : new Date().toISOString();
