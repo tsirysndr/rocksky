@@ -36,7 +36,8 @@ async function publishPlayingNow(
         record?.recordingMbId,
         track.trackMBID,
         record?.playedTime,
-        track.timestamp
+        track.timestamp,
+        record?.submissionClientAgent
       );
       return (
         record?.recordingMbId === track.trackMBID &&
