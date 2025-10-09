@@ -11,7 +11,6 @@ async function getRecentPlays(agent: Agent, limit = 5) {
     repo: agent.assertDid,
     collection: "fm.teal.alpha.feed.play",
     limit,
-    reverse: true,
   });
   return res.data.records;
 }
