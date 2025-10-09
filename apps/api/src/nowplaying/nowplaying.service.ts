@@ -851,11 +851,8 @@ export async function scrobbleTrack(
     mbTrack.timestamp = track.timestamp
       ? dayjs.unix(track.timestamp).toISOString()
       : new Date().toISOString();
-    await tealfm.publishPlayingNow(
-      agent,
-      mbTrack,
-      Math.floor(track.duration / 1000)
-    );
+    // don't await this
+    tealfm.publishPlayingNow(agent, mbTrack, Math.floor(track.duration / 1000));
   }
 
   const scrobbleUri = await putScrobbleRecord(track, agent);

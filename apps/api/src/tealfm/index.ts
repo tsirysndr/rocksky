@@ -22,8 +22,8 @@ async function publishPlayingNow(
   duration: number
 ) {
   try {
-    // wait 20 seconds to ensure the track is actually being played
-    await new Promise((resolve) => setTimeout(resolve, 20000));
+    // wait 60 seconds to ensure the track is actually being played
+    await new Promise((resolve) => setTimeout(resolve, 60000));
     const recentPlays = await getRecentPlays(agent, 5);
     // Check if the track was played in the last 5 plays (verify by MBID and timestamp to avoid duplicates)
     const alreadyPlayed = recentPlays.some((play) => {
