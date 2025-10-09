@@ -36,15 +36,12 @@ async function publishPlayingNow(
         record?.recordingMbId,
         track.trackMBID,
         record?.playedTime,
-        track.timestamp
+        track.timestamp,
+        record?.submissionClientAgent
       );
       return (
         record?.recordingMbId === track.trackMBID &&
-        // diff in seconds less than 60
-        Math.abs(
-          new Date(record.playedTime).getTime() -
-            new Date(track.timestamp).getTime()
-        ) < 60000
+        record?.submissionClientAgent !== SUBMISSION_CLIENT_AGENT
       );
     });
     if (alreadyPlayed) {
