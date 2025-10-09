@@ -31,6 +31,13 @@ async function publishPlayingNow(
     // Check if the track was played in the last 5 plays (verify by MBID and timestamp to avoid duplicates)
     const alreadyPlayed = recentPlays.some((play) => {
       const record = Play.isRecord(play.value) ? play.value : null;
+      console.log(
+        "Checking recent play:",
+        record?.recordingMbId,
+        track.trackMBID,
+        record?.playedTime,
+        track.timestamp
+      );
       return (
         record?.recordingMbId === track.trackMBID &&
         // diff in seconds less than 60
