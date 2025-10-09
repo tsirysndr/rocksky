@@ -14,6 +14,8 @@ async function getRecentPlays(agent: Agent, limit = 5) {
     collection: "fm.teal.alpha.feed.play",
     limit,
   });
+  console.log("Recent plays:");
+  console.log(chalk.cyan(JSON.stringify(res.data.records, null, 2)));
   return res.data.records;
 }
 
@@ -26,19 +28,9 @@ async function publishPlayingNow(
     // wait 60 seconds to ensure the track is actually being played
     await new Promise((resolve) => setTimeout(resolve, 60000));
     const recentPlays = await getRecentPlays(agent, 5);
-    console.log("Recent plays:");
-    console.log(JSON.stringify(recentPlays, null, 2));
     // Check if the track was played in the last 5 plays (verify by MBID and timestamp to avoid duplicates)
     const alreadyPlayed = recentPlays.some((play) => {
       const record = Play.isRecord(play.value) ? play.value : null;
-      console.log(
-        "Checking recent play:",
-        record?.recordingMbId,
-        track.trackMBID,
-        record?.playedTime,
-        track.timestamp,
-        record?.submissionClientAgent
-      );
       return (
         record?.recordingMbId === track.trackMBID &&
         // diff in seconds less than 60
