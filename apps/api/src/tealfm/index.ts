@@ -37,11 +37,9 @@ async function publishPlayingNow(
     });
     if (alreadyPlayed) {
       console.log(
-        chalk.yellow(
-          `Track ${chalk.cyan(track.name)} by ${chalk.cyan(
-            track.artist.map((a) => a.name).join(", ")
-          )} already played recently. Skipping...`
-        )
+        `Track ${chalk.cyan(track.name)} by ${chalk.cyan(
+          track.artist.map((a) => a.name).join(", ")
+        )} already played recently. Skipping...`
       );
       return;
     }
