@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -71,6 +72,7 @@ func (s *Server) searchHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request"})
 	}
 
+	req.Track = cleanTitle(req.Track)
 	resp, _ := s.mb.SearchMusicBrainz(c.Request().Context(), req)
 
 	return c.JSON(http.StatusOK, resp)
@@ -83,7 +85,31 @@ func (s *Server) hydrateHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request"})
 	}
 
+	req.Name = cleanTitle(req.Name)
 	resp, _ := musicbrainz.HydrateTrack(s.mb, req)
 
 	return c.JSON(http.StatusOK, resp)
+}
+
+func cleanTitle(title string) string {
+	removePatterns := []string{
+		" - Album Version (Edited)",
+		" - Album Version (Explicit)",
+		" - Album Version",
+		" (Album Version (Edited))",
+		" (Album Version (Explicit))",
+		" (Album Version)",
+		" - Edited",
+		" - Explicit",
+		" - Radio Edit",
+		" (Edited)",
+		" (Explicit)",
+		" (Radio Edit)",
+	}
+
+	for _, pattern := range removePatterns {
+		title = strings.ReplaceAll(title, pattern, "")
+	}
+
+	return strings.TrimSpace(title)
 }
