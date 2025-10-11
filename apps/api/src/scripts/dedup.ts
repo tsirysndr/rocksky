@@ -45,3 +45,7 @@ for (const record of records.data.records) {
     console.log(record);
   }
 }
+
+console.log(chalk.greenBright("Deduplication complete."));
+
+process.exit(0);
