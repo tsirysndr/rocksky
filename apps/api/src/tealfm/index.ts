@@ -1,6 +1,8 @@
 import type { Agent } from "@atproto/api";
 import { TID } from "@atproto/common";
 import chalk from "chalk";
+import type * as Status from "lexicon/types/fm/teal/alpha/actor/status";
+import type { PlayView } from "lexicon/types/fm/teal/alpha/feed/defs";
 import * as Play from "lexicon/types/fm/teal/alpha/feed/play";
 import type { MusicbrainzTrack } from "types/track";
 
@@ -76,8 +78,62 @@ async function publishPlayingNow(
     });
     const uri = res.data.uri;
     console.log(`tealfm Play record created at ${uri}`);
+
+    await publishStatus(agent, track, duration);
   } catch (error) {
     console.error("Error publishing teal.fm record:", error);
+  }
+}
+
+async function publishStatus(
+  agent: Agent,
+  track: MusicbrainzTrack,
+  duration: number
+) {
+  const item: PlayView = {
+    trackName: track.name,
+    duration,
+    playedTime: track.timestamp,
+    artists: track.artist.map((artist) => ({
+      artistMbid: artist.mbid,
+      artistName: artist.name,
+    })),
+    releaseMbid: track.releaseMBID,
+    releaseName: track.album,
+    recordingMbId: track.trackMBID,
+    submissionClientAgent: SUBMISSION_CLIENT_AGENT,
+  };
+  const nowSec = Math.floor(Date.now() / 1000);
+  const expirySec = nowSec + 10 * 60; // 10 minutes from now
+  const record: Status.Record = {
+    $type: "fm.teal.alpha.actor.status",
+    item,
+    time: String(nowSec),
+    expiry: String(expirySec),
+  };
+  const swapRecord = await getStatusSwapRecord(agent);
+  const res = await agent.com.atproto.repo.putRecord({
+    repo: agent.assertDid,
+    collection: "fm.teal.alpha.actor.status",
+    rkey: "self",
+    record,
+    swapRecord,
+  });
+  console.log(`tealfm Status record published at ${res.data.uri}`);
+}
+
+async function getStatusSwapRecord(agent: Agent): Promise<string | undefined> {
+  try {
+    const res = await agent.com.atproto.repo.getRecord({
+      repo: agent.assertDid,
+      collection: "fm.teal.alpha.actor.status",
+      rkey: "self",
+    });
+    return res.data.cid;
+  } catch (err) {
+    const status = err?.response?.status ?? err?.status;
+    if (status === 400) return undefined;
+    throw err;
   }
 }
 
