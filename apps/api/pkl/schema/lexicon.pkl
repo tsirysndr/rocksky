@@ -9,7 +9,7 @@ class StringType extends BaseType {
   maxGraphemes: Int?
   minLength: Int?
   maxLength: Int?
-  format: "uri" | "datetime" | "cid" | "at-uri" | "at-identifier" | Null = null
+  format: "uri" | "datetime" | "cid" | "at-uri" | "at-identifier" | "did" | Null = null
 }
 
 class IntegerType extends BaseType {
