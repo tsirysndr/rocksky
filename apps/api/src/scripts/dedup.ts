@@ -19,32 +19,40 @@ if (!did.startsWith("did:plc:")) {
 }
 
 const agent = await createAgent(ctx.oauthClient, did);
-const records = await agent.com.atproto.repo.listRecords({
-  repo: agent.assertDid,
-  collection: "app.rocksky.scrobble",
-  limit: 100,
-});
+let cursor: string | undefined;
+const BATCH_SIZE = 100;
+let i = 1;
+do {
+  const records = await agent.com.atproto.repo.listRecords({
+    repo: agent.assertDid,
+    collection: "app.rocksky.scrobble",
+    limit: BATCH_SIZE,
+  });
 
-for (const record of records.data.records) {
-  const result = await ctx.db
-    .select()
-    .from(tables.scrobbles)
-    .where(eq(tables.scrobbles.uri, record.uri))
-    .limit(1);
-  if (result.length === 0) {
-    console.log("Deleting record:");
-    console.log(record);
-    const rkey = record.uri.split("/").pop();
-    await agent.com.atproto.repo.deleteRecord({
-      repo: agent.assertDid,
-      collection: "app.rocksky.scrobble",
-      rkey,
-    });
-  } else {
-    console.log(chalk.greenBright("Keeping record:"));
-    console.log(record);
+  for (const record of records.data.records) {
+    const result = await ctx.db
+      .select()
+      .from(tables.scrobbles)
+      .where(eq(tables.scrobbles.uri, record.uri))
+      .limit(1);
+    if (result.length === 0) {
+      console.log(`${i} Deleting record:`);
+      console.log(record);
+      const rkey = record.uri.split("/").pop();
+      await agent.com.atproto.repo.deleteRecord({
+        repo: agent.assertDid,
+        collection: "app.rocksky.scrobble",
+        rkey,
+      });
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // rate limit
+    } else {
+      console.log(chalk.greenBright(`${i} Keeping record:`));
+      console.log(record);
+    }
+    i += 1;
   }
-}
+  cursor = records.data.cursor;
+} while (cursor);
 
 console.log(chalk.greenBright("Deduplication complete."));
 
