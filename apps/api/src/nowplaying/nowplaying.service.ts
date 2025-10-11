@@ -523,8 +523,8 @@ export async function scrobbleTrack(
         eq(users.did, userDid),
         eq(tracks.title, track.title),
         eq(tracks.artist, track.artist),
-        gte(scrobbles.timestamp, scrobbleTime.subtract(5, "seconds").toDate()),
-        lte(scrobbles.timestamp, scrobbleTime.add(5, "seconds").toDate())
+        gte(scrobbles.timestamp, scrobbleTime.subtract(60, "seconds").toDate()),
+        lte(scrobbles.timestamp, scrobbleTime.add(60, "seconds").toDate())
       )
     )
     .limit(1)
