@@ -32,17 +32,16 @@ for (const record of records.data.records) {
     .where(eq(tables.scrobbles.uri, record.uri))
     .limit(1);
   if (result.length === 0) {
-    console.log(`Deleting record ${record.rkey}...`);
-    console.log("deleting record:");
+    console.log("Deleting record:");
     console.log(record);
-    /*await agent.com.atproto.repo.deleteRecord({
+    const rkey = record.uri.split("/").pop();
+    await agent.com.atproto.repo.deleteRecord({
       repo: agent.assertDid,
       collection: "app.rocksky.scrobble",
-      rkey: record.rkey,
+      rkey,
     });
-    */
   } else {
-    console.log(`Keeping record:`);
+    console.log(chalk.greenBright("Keeping record:"));
     console.log(record);
   }
 }
