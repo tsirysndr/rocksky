@@ -1,0 +1,41 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.feed.generator"
+defs = new Mapping<String, Record> {
+  ["main"] {
+    type = "record"
+    key = "tid"
+    description = "Record declaring of the existence of a feed generator, and containing metadata about it. The record can exist in any repository."
+    `record` {
+      type = "object"
+      required = List("did", "displayName", "createdAt")
+      properties {
+        ["did"] = new StringType {
+          type = "string"
+          format = "did"
+        }
+        ["avatar"] = new Blob {
+          type = "blob"
+          accept = List("image/png", "image/jpeg")
+          maxSize = 1000000
+        }
+        ["displayName"] = new StringType {
+          type = "string"
+          maxLength = 240
+          maxGraphemes = 24
+        }
+        ["description"] = new StringType {
+          type = "string"
+          maxLength = 3000
+          maxGraphemes = 300
+        }
+        ["createdAt"] = new StringType {
+          type = "string"
+          format = "datetime"
+        }
+      }
+    }
+  }
+}
+

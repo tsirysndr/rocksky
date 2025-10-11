@@ -2274,6 +2274,47 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyFeedGenerator: {
+    lexicon: 1,
+    id: "app.rocksky.feed.generator",
+    defs: {
+      main: {
+        type: "record",
+        description:
+          "Record declaring of the existence of a feed generator, and containing metadata about it. The record can exist in any repository.",
+        key: "tid",
+        record: {
+          type: "object",
+          required: ["did", "displayName", "createdAt"],
+          properties: {
+            did: {
+              type: "string",
+              format: "did",
+            },
+            avatar: {
+              type: "blob",
+              accept: ["image/png", "image/jpeg"],
+              maxSize: 1000000,
+            },
+            displayName: {
+              type: "string",
+              maxGraphemes: 24,
+              maxLength: 240,
+            },
+            description: {
+              type: "string",
+              maxGraphemes: 300,
+              maxLength: 3000,
+            },
+            createdAt: {
+              type: "string",
+              format: "datetime",
+            },
+          },
+        },
+      },
+    },
+  },
   AppRockskyFeedGetNowPlayings: {
     lexicon: 1,
     id: "app.rocksky.feed.getNowPlayings",
@@ -5081,6 +5122,7 @@ export const ids = {
   AppRockskyDropboxGetMetadata: "app.rocksky.dropbox.getMetadata",
   AppRockskyDropboxGetTemporaryLink: "app.rocksky.dropbox.getTemporaryLink",
   AppRockskyFeedDefs: "app.rocksky.feed.defs",
+  AppRockskyFeedGenerator: "app.rocksky.feed.generator",
   AppRockskyFeedGetNowPlayings: "app.rocksky.feed.getNowPlayings",
   AppRockskyFeedSearch: "app.rocksky.feed.search",
   AppRockskyGoogledriveDefs: "app.rocksky.googledrive.defs",

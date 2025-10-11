@@ -9,7 +9,7 @@ import { CID } from "multiformats/cid";
 import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
 import type * as AppRockskyShoutDefs from "../shout/defs";
 
-export type QueryParams = {}
+export type QueryParams = {};
 
 export interface InputSchema {
   /** The unique identifier of the shout to dislike */
