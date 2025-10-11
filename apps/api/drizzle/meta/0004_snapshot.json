@@ -1,0 +1,3265 @@
+{
+  "id": "944a6989-c0aa-432f-9b42-4bf221d0c597",
+  "prevId": "015093fe-a66e-4ec3-b5b6-5466c6266a39",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.album_tracks": {
+      "name": "album_tracks",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "album_id": {
+          "name": "album_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "track_id": {
+          "name": "track_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "album_tracks_album_id_albums_xata_id_fk": {
+          "name": "album_tracks_album_id_albums_xata_id_fk",
+          "tableFrom": "album_tracks",
+          "tableTo": "albums",
+          "columnsFrom": [
+            "album_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "album_tracks_track_id_tracks_xata_id_fk": {
+          "name": "album_tracks_track_id_tracks_xata_id_fk",
+          "tableFrom": "album_tracks",
+          "tableTo": "tracks",
+          "columnsFrom": [
+            "track_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.albums": {
+      "name": "albums",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "artist": {
+          "name": "artist",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "release_date": {
+          "name": "release_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "year": {
+          "name": "year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "album_art": {
+          "name": "album_art",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "uri": {
+          "name": "uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "artist_uri": {
+          "name": "artist_uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "apple_music_link": {
+          "name": "apple_music_link",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "spotify_link": {
+          "name": "spotify_link",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tidal_link": {
+          "name": "tidal_link",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "youtube_link": {
+          "name": "youtube_link",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sha256": {
+          "name": "sha256",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "albums_uri_unique": {
+          "name": "albums_uri_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "uri"
+          ]
+        },
+        "albums_apple_music_link_unique": {
+          "name": "albums_apple_music_link_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "apple_music_link"
+          ]
+        },
+        "albums_spotify_link_unique": {
+          "name": "albums_spotify_link_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "spotify_link"
+          ]
+        },
+        "albums_tidal_link_unique": {
+          "name": "albums_tidal_link_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tidal_link"
+          ]
+        },
+        "albums_youtube_link_unique": {
+          "name": "albums_youtube_link_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "youtube_link"
+          ]
+        },
+        "albums_sha256_unique": {
+          "name": "albums_sha256_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "sha256"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.api_keys": {
+      "name": "api_keys",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "api_key": {
+          "name": "api_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "shared_secret": {
+          "name": "shared_secret",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "api_keys_user_id_users_xata_id_fk": {
+          "name": "api_keys_user_id_users_xata_id_fk",
+          "tableFrom": "api_keys",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.artist_albums": {
+      "name": "artist_albums",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "artist_id": {
+          "name": "artist_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "album_id": {
+          "name": "album_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "artist_albums_artist_id_artists_xata_id_fk": {
+          "name": "artist_albums_artist_id_artists_xata_id_fk",
+          "tableFrom": "artist_albums",
+          "tableTo": "artists",
+          "columnsFrom": [
+            "artist_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "artist_albums_album_id_albums_xata_id_fk": {
+          "name": "artist_albums_album_id_albums_xata_id_fk",
+          "tableFrom": "artist_albums",
+          "tableTo": "albums",
+          "columnsFrom": [
+            "album_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.artist_tracks": {
+      "name": "artist_tracks",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "artist_id": {
+          "name": "artist_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "track_id": {
+          "name": "track_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "artist_tracks_artist_id_artists_xata_id_fk": {
+          "name": "artist_tracks_artist_id_artists_xata_id_fk",
+          "tableFrom": "artist_tracks",
+          "tableTo": "artists",
+          "columnsFrom": [
+            "artist_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "artist_tracks_track_id_tracks_xata_id_fk": {
+          "name": "artist_tracks_track_id_tracks_xata_id_fk",
+          "tableFrom": "artist_tracks",
+          "tableTo": "tracks",
+          "columnsFrom": [
+            "track_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.artists": {
+      "name": "artists",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "biography": {
+          "name": "biography",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "born": {
+          "name": "born",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "born_in": {
+          "name": "born_in",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "died": {
+          "name": "died",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "picture": {
+          "name": "picture",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sha256": {
+          "name": "sha256",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uri": {
+          "name": "uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "apple_music_link": {
+          "name": "apple_music_link",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "spotify_link": {
+          "name": "spotify_link",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tidal_link": {
+          "name": "tidal_link",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "youtube_link": {
+          "name": "youtube_link",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "genres": {
+          "name": "genres",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "artists_sha256_unique": {
+          "name": "artists_sha256_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "sha256"
+          ]
+        },
+        "artists_uri_unique": {
+          "name": "artists_uri_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "uri"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.dropbox_accounts": {
+      "name": "dropbox_accounts",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_beta_user": {
+          "name": "is_beta_user",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "dropbox_accounts_user_id_users_xata_id_fk": {
+          "name": "dropbox_accounts_user_id_users_xata_id_fk",
+          "tableFrom": "dropbox_accounts",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "dropbox_accounts_email_unique": {
+          "name": "dropbox_accounts_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.dropbox_directories": {
+      "name": "dropbox_directories",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "path": {
+          "name": "path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dropbox_id": {
+          "name": "dropbox_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_id": {
+          "name": "file_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "dropbox_directories_parent_id_dropbox_directories_xata_id_fk": {
+          "name": "dropbox_directories_parent_id_dropbox_directories_xata_id_fk",
+          "tableFrom": "dropbox_directories",
+          "tableTo": "dropbox_directories",
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "dropbox_directories_file_id_unique": {
+          "name": "dropbox_directories_file_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "file_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.dropbox_paths": {
+      "name": "dropbox_paths",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "path": {
+          "name": "path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dropbox_id": {
+          "name": "dropbox_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "track_id": {
+          "name": "track_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "directory_id": {
+          "name": "directory_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "file_id": {
+          "name": "file_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "dropbox_paths_directory_id_dropbox_directories_xata_id_fk": {
+          "name": "dropbox_paths_directory_id_dropbox_directories_xata_id_fk",
+          "tableFrom": "dropbox_paths",
+          "tableTo": "dropbox_directories",
+          "columnsFrom": [
+            "directory_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "dropbox_paths_file_id_unique": {
+          "name": "dropbox_paths_file_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "file_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.dropbox_tokens": {
+      "name": "dropbox_tokens",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "refresh_token": {
+          "name": "refresh_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.dropbox": {
+      "name": "dropbox",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dropbox_token_id": {
+          "name": "dropbox_token_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "dropbox_user_id_users_xata_id_fk": {
+          "name": "dropbox_user_id_users_xata_id_fk",
+          "tableFrom": "dropbox",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "dropbox_dropbox_token_id_dropbox_tokens_xata_id_fk": {
+          "name": "dropbox_dropbox_token_id_dropbox_tokens_xata_id_fk",
+          "tableFrom": "dropbox",
+          "tableTo": "dropbox_tokens",
+          "columnsFrom": [
+            "dropbox_token_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.feeds": {
+      "name": "feeds",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "did": {
+          "name": "did",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uri": {
+          "name": "uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "feeds_user_id_users_xata_id_fk": {
+          "name": "feeds_user_id_users_xata_id_fk",
+          "tableFrom": "feeds",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "feeds_did_unique": {
+          "name": "feeds_did_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "did"
+          ]
+        },
+        "feeds_uri_unique": {
+          "name": "feeds_uri_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "uri"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.google_drive_accounts": {
+      "name": "google_drive_accounts",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_beta_user": {
+          "name": "is_beta_user",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "google_drive_accounts_user_id_users_xata_id_fk": {
+          "name": "google_drive_accounts_user_id_users_xata_id_fk",
+          "tableFrom": "google_drive_accounts",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "google_drive_accounts_email_unique": {
+          "name": "google_drive_accounts_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.google_drive_directories": {
+      "name": "google_drive_directories",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "path": {
+          "name": "path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "google_drive_id": {
+          "name": "google_drive_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_id": {
+          "name": "file_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "google_drive_directories_parent_id_google_drive_directories_xata_id_fk": {
+          "name": "google_drive_directories_parent_id_google_drive_directories_xata_id_fk",
+          "tableFrom": "google_drive_directories",
+          "tableTo": "google_drive_directories",
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "google_drive_directories_file_id_unique": {
+          "name": "google_drive_directories_file_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "file_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.google_drive_paths": {
+      "name": "google_drive_paths",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "google_drive_id": {
+          "name": "google_drive_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "track_id": {
+          "name": "track_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "directory_id": {
+          "name": "directory_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "file_id": {
+          "name": "file_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "google_drive_paths_directory_id_google_drive_directories_xata_id_fk": {
+          "name": "google_drive_paths_directory_id_google_drive_directories_xata_id_fk",
+          "tableFrom": "google_drive_paths",
+          "tableTo": "google_drive_directories",
+          "columnsFrom": [
+            "directory_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "google_drive_paths_file_id_unique": {
+          "name": "google_drive_paths_file_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "file_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.google_drive_tokens": {
+      "name": "google_drive_tokens",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "refresh_token": {
+          "name": "refresh_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.google_drive": {
+      "name": "google_drive",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "google_drive_token_id": {
+          "name": "google_drive_token_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "google_drive_google_drive_token_id_google_drive_tokens_xata_id_fk": {
+          "name": "google_drive_google_drive_token_id_google_drive_tokens_xata_id_fk",
+          "tableFrom": "google_drive",
+          "tableTo": "google_drive_tokens",
+          "columnsFrom": [
+            "google_drive_token_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "google_drive_user_id_users_xata_id_fk": {
+          "name": "google_drive_user_id_users_xata_id_fk",
+          "tableFrom": "google_drive",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.loved_tracks": {
+      "name": "loved_tracks",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "track_id": {
+          "name": "track_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uri": {
+          "name": "uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "loved_tracks_user_id_users_xata_id_fk": {
+          "name": "loved_tracks_user_id_users_xata_id_fk",
+          "tableFrom": "loved_tracks",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "loved_tracks_track_id_tracks_xata_id_fk": {
+          "name": "loved_tracks_track_id_tracks_xata_id_fk",
+          "tableFrom": "loved_tracks",
+          "tableTo": "tracks",
+          "columnsFrom": [
+            "track_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "loved_tracks_uri_unique": {
+          "name": "loved_tracks_uri_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "uri"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.playlist_tracks": {
+      "name": "playlist_tracks",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "playlist_id": {
+          "name": "playlist_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "track_id": {
+          "name": "track_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "playlist_tracks_playlist_id_playlists_xata_id_fk": {
+          "name": "playlist_tracks_playlist_id_playlists_xata_id_fk",
+          "tableFrom": "playlist_tracks",
+          "tableTo": "playlists",
+          "columnsFrom": [
+            "playlist_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "playlist_tracks_track_id_tracks_xata_id_fk": {
+          "name": "playlist_tracks_track_id_tracks_xata_id_fk",
+          "tableFrom": "playlist_tracks",
+          "tableTo": "tracks",
+          "columnsFrom": [
+            "track_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.playlists": {
+      "name": "playlists",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "picture": {
+          "name": "picture",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "uri": {
+          "name": "uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "spotify_link": {
+          "name": "spotify_link",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tidal_link": {
+          "name": "tidal_link",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "apple_music_link": {
+          "name": "apple_music_link",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "playlists_created_by_users_xata_id_fk": {
+          "name": "playlists_created_by_users_xata_id_fk",
+          "tableFrom": "playlists",
+          "tableTo": "users",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "playlists_uri_unique": {
+          "name": "playlists_uri_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "uri"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.profile_shouts": {
+      "name": "profile_shouts",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "shout_id": {
+          "name": "shout_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "profile_shouts_user_id_users_xata_id_fk": {
+          "name": "profile_shouts_user_id_users_xata_id_fk",
+          "tableFrom": "profile_shouts",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "profile_shouts_shout_id_shouts_xata_id_fk": {
+          "name": "profile_shouts_shout_id_shouts_xata_id_fk",
+          "tableFrom": "profile_shouts",
+          "tableTo": "shouts",
+          "columnsFrom": [
+            "shout_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.queue_tracks": {
+      "name": "queue_tracks",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "track_id": {
+          "name": "track_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_uri": {
+          "name": "file_uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "queue_tracks_user_id_users_xata_id_fk": {
+          "name": "queue_tracks_user_id_users_xata_id_fk",
+          "tableFrom": "queue_tracks",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "queue_tracks_track_id_tracks_xata_id_fk": {
+          "name": "queue_tracks_track_id_tracks_xata_id_fk",
+          "tableFrom": "queue_tracks",
+          "tableTo": "tracks",
+          "columnsFrom": [
+            "track_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.scrobbles": {
+      "name": "scrobbles",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "track_id": {
+          "name": "track_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "album_id": {
+          "name": "album_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "artist_id": {
+          "name": "artist_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "uri": {
+          "name": "uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "timestamp": {
+          "name": "timestamp",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "scrobbles_user_id_users_xata_id_fk": {
+          "name": "scrobbles_user_id_users_xata_id_fk",
+          "tableFrom": "scrobbles",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "scrobbles_track_id_tracks_xata_id_fk": {
+          "name": "scrobbles_track_id_tracks_xata_id_fk",
+          "tableFrom": "scrobbles",
+          "tableTo": "tracks",
+          "columnsFrom": [
+            "track_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "scrobbles_album_id_albums_xata_id_fk": {
+          "name": "scrobbles_album_id_albums_xata_id_fk",
+          "tableFrom": "scrobbles",
+          "tableTo": "albums",
+          "columnsFrom": [
+            "album_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "scrobbles_artist_id_artists_xata_id_fk": {
+          "name": "scrobbles_artist_id_artists_xata_id_fk",
+          "tableFrom": "scrobbles",
+          "tableTo": "artists",
+          "columnsFrom": [
+            "artist_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "scrobbles_uri_unique": {
+          "name": "scrobbles_uri_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "uri"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.shout_likes": {
+      "name": "shout_likes",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "shout_id": {
+          "name": "shout_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "uri": {
+          "name": "uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "shout_likes_user_id_users_xata_id_fk": {
+          "name": "shout_likes_user_id_users_xata_id_fk",
+          "tableFrom": "shout_likes",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "shout_likes_shout_id_shouts_xata_id_fk": {
+          "name": "shout_likes_shout_id_shouts_xata_id_fk",
+          "tableFrom": "shout_likes",
+          "tableTo": "shouts",
+          "columnsFrom": [
+            "shout_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "shout_likes_uri_unique": {
+          "name": "shout_likes_uri_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "uri"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.shout_reports": {
+      "name": "shout_reports",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "shout_id": {
+          "name": "shout_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "shout_reports_user_id_users_xata_id_fk": {
+          "name": "shout_reports_user_id_users_xata_id_fk",
+          "tableFrom": "shout_reports",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "shout_reports_shout_id_shouts_xata_id_fk": {
+          "name": "shout_reports_shout_id_shouts_xata_id_fk",
+          "tableFrom": "shout_reports",
+          "tableTo": "shouts",
+          "columnsFrom": [
+            "shout_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.shouts": {
+      "name": "shouts",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "content": {
+          "name": "content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "track_id": {
+          "name": "track_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "artist_id": {
+          "name": "artist_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "album_id": {
+          "name": "album_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scrobble_id": {
+          "name": "scrobble_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "uri": {
+          "name": "uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "author_id": {
+          "name": "author_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "shouts_track_id_tracks_xata_id_fk": {
+          "name": "shouts_track_id_tracks_xata_id_fk",
+          "tableFrom": "shouts",
+          "tableTo": "tracks",
+          "columnsFrom": [
+            "track_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "shouts_artist_id_users_xata_id_fk": {
+          "name": "shouts_artist_id_users_xata_id_fk",
+          "tableFrom": "shouts",
+          "tableTo": "users",
+          "columnsFrom": [
+            "artist_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "shouts_album_id_albums_xata_id_fk": {
+          "name": "shouts_album_id_albums_xata_id_fk",
+          "tableFrom": "shouts",
+          "tableTo": "albums",
+          "columnsFrom": [
+            "album_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "shouts_scrobble_id_scrobbles_xata_id_fk": {
+          "name": "shouts_scrobble_id_scrobbles_xata_id_fk",
+          "tableFrom": "shouts",
+          "tableTo": "scrobbles",
+          "columnsFrom": [
+            "scrobble_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "shouts_author_id_users_xata_id_fk": {
+          "name": "shouts_author_id_users_xata_id_fk",
+          "tableFrom": "shouts",
+          "tableTo": "users",
+          "columnsFrom": [
+            "author_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "shouts_parent_id_shouts_xata_id_fk": {
+          "name": "shouts_parent_id_shouts_xata_id_fk",
+          "tableFrom": "shouts",
+          "tableTo": "shouts",
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "shouts_uri_unique": {
+          "name": "shouts_uri_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "uri"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.spotify_accounts": {
+      "name": "spotify_accounts",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_beta_user": {
+          "name": "is_beta_user",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "spotify_accounts_user_id_users_xata_id_fk": {
+          "name": "spotify_accounts_user_id_users_xata_id_fk",
+          "tableFrom": "spotify_accounts",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.spotify_tokens": {
+      "name": "spotify_tokens",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "access_token": {
+          "name": "access_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "refresh_token": {
+          "name": "refresh_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "spotify_tokens_user_id_users_xata_id_fk": {
+          "name": "spotify_tokens_user_id_users_xata_id_fk",
+          "tableFrom": "spotify_tokens",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.tracks": {
+      "name": "tracks",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "artist": {
+          "name": "artist",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "album_artist": {
+          "name": "album_artist",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "album_art": {
+          "name": "album_art",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "album": {
+          "name": "album",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "track_number": {
+          "name": "track_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "duration": {
+          "name": "duration",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mb_id": {
+          "name": "mb_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "youtube_link": {
+          "name": "youtube_link",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "spotify_link": {
+          "name": "spotify_link",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "apple_music_link": {
+          "name": "apple_music_link",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tidal_link": {
+          "name": "tidal_link",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sha256": {
+          "name": "sha256",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "disc_number": {
+          "name": "disc_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lyrics": {
+          "name": "lyrics",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "composer": {
+          "name": "composer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "genre": {
+          "name": "genre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "copyright_message": {
+          "name": "copyright_message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "uri": {
+          "name": "uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "album_uri": {
+          "name": "album_uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "artist_uri": {
+          "name": "artist_uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "tracks_mb_id_unique": {
+          "name": "tracks_mb_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "mb_id"
+          ]
+        },
+        "tracks_youtube_link_unique": {
+          "name": "tracks_youtube_link_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "youtube_link"
+          ]
+        },
+        "tracks_spotify_link_unique": {
+          "name": "tracks_spotify_link_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "spotify_link"
+          ]
+        },
+        "tracks_apple_music_link_unique": {
+          "name": "tracks_apple_music_link_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "apple_music_link"
+          ]
+        },
+        "tracks_tidal_link_unique": {
+          "name": "tracks_tidal_link_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tidal_link"
+          ]
+        },
+        "tracks_sha256_unique": {
+          "name": "tracks_sha256_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "sha256"
+          ]
+        },
+        "tracks_uri_unique": {
+          "name": "tracks_uri_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "uri"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.user_albums": {
+      "name": "user_albums",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "album_id": {
+          "name": "album_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scrobbles": {
+          "name": "scrobbles",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "uri": {
+          "name": "uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "user_albums_user_id_users_xata_id_fk": {
+          "name": "user_albums_user_id_users_xata_id_fk",
+          "tableFrom": "user_albums",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "user_albums_album_id_albums_xata_id_fk": {
+          "name": "user_albums_album_id_albums_xata_id_fk",
+          "tableFrom": "user_albums",
+          "tableTo": "albums",
+          "columnsFrom": [
+            "album_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "user_albums_uri_unique": {
+          "name": "user_albums_uri_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "uri"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.user_artists": {
+      "name": "user_artists",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "artist_id": {
+          "name": "artist_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scrobbles": {
+          "name": "scrobbles",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "uri": {
+          "name": "uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "user_artists_user_id_users_xata_id_fk": {
+          "name": "user_artists_user_id_users_xata_id_fk",
+          "tableFrom": "user_artists",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "user_artists_artist_id_artists_xata_id_fk": {
+          "name": "user_artists_artist_id_artists_xata_id_fk",
+          "tableFrom": "user_artists",
+          "tableTo": "artists",
+          "columnsFrom": [
+            "artist_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "user_artists_uri_unique": {
+          "name": "user_artists_uri_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "uri"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.user_playlists": {
+      "name": "user_playlists",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "playlist_id": {
+          "name": "playlist_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "uri": {
+          "name": "uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "user_playlists_user_id_users_xata_id_fk": {
+          "name": "user_playlists_user_id_users_xata_id_fk",
+          "tableFrom": "user_playlists",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "user_playlists_playlist_id_playlists_xata_id_fk": {
+          "name": "user_playlists_playlist_id_playlists_xata_id_fk",
+          "tableFrom": "user_playlists",
+          "tableTo": "playlists",
+          "columnsFrom": [
+            "playlist_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "user_playlists_uri_unique": {
+          "name": "user_playlists_uri_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "uri"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.user_tracks": {
+      "name": "user_tracks",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "track_id": {
+          "name": "track_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "uri": {
+          "name": "uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scrobbles": {
+          "name": "scrobbles",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "user_tracks_user_id_users_xata_id_fk": {
+          "name": "user_tracks_user_id_users_xata_id_fk",
+          "tableFrom": "user_tracks",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "user_tracks_track_id_tracks_xata_id_fk": {
+          "name": "user_tracks_track_id_tracks_xata_id_fk",
+          "tableFrom": "user_tracks",
+          "tableTo": "tracks",
+          "columnsFrom": [
+            "track_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "user_tracks_uri_unique": {
+          "name": "user_tracks_uri_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "uri"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "did": {
+          "name": "did",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "handle": {
+          "name": "handle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "avatar": {
+          "name": "avatar",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_did_unique": {
+          "name": "users_did_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "did"
+          ]
+        },
+        "users_handle_unique": {
+          "name": "users_handle_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "handle"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.webscrobblers": {
+      "name": "webscrobblers",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uuid": {
+          "name": "uuid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "webscrobblers_user_id_users_xata_id_fk": {
+          "name": "webscrobblers_user_id_users_xata_id_fk",
+          "tableFrom": "webscrobblers",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
