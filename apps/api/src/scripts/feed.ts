@@ -89,7 +89,9 @@ if (!userDid.startsWith("did:plc:")) {
 
 const agent = await createAgent(ctx.oauthClient, userDid);
 
-console.log("Writing app.rocksky.feed.generator record...");
+console.log(
+  `Writing ${chalk.greenBright("app.rocksky.feed.generator")} record...`
+);
 
 const record: FeedGenerator.Record = {
   $type: "app.rocksky.feed.generator",
