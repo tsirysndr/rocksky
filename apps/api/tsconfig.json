@@ -22,7 +22,7 @@
 		"target": "esnext",
 		"module": "esnext",
 		"types": [
-			"@types/bun",
+			"@types/node",
 			"@types/service-worker-mock",
 			"@cloudflare/workers-types/2023-07-01"
 		]

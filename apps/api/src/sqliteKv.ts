@@ -1,6 +1,5 @@
-import { Database } from "bun:sqlite";
-import { Kysely } from "kysely";
-import { BunSqliteDialect } from "kysely-bun-sqlite";
+import Database from "better-sqlite3";
+import { Kysely, SqliteDialect } from "kysely";
 import { defineDriver } from "unstorage";
 
 interface TableSchema {
@@ -39,13 +38,13 @@ export default defineDriver<
           throw new Error("SQLite location is required");
         }
 
-        const sqlite = new Database(location);
+        const sqlite = new Database(location, { fileMustExist: false });
 
         // Enable WAL mode
-        sqlite.run("PRAGMA journal_mode = WAL;");
+        sqlite.pragma("journal_mode = WAL");
 
         _db = new Kysely<TableSchema>({
-          dialect: new BunSqliteDialect({
+          dialect: new SqliteDialect({
             database: sqlite,
           }),
         });

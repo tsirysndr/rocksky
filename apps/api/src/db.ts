@@ -1,11 +1,11 @@
-import { Database as SqliteDb } from "bun:sqlite";
+import SqliteDb from "better-sqlite3";
 import {
   Kysely,
   type Migration,
   type MigrationProvider,
   Migrator,
+  SqliteDialect,
 } from "kysely";
-import { BunSqliteDialect } from "kysely-bun-sqlite";
 
 // Types
 
@@ -79,7 +79,7 @@ migrations["001"] = {
 
 export const createDb = (location: string): Database => {
   return new Kysely<DatabaseSchema>({
-    dialect: new BunSqliteDialect({
+    dialect: new SqliteDialect({
       database: new SqliteDb(location),
     }),
   });

@@ -24,6 +24,7 @@ import dropbox from "./dropbox/app";
 import googledrive from "./googledrive/app";
 import { env } from "./lib/env";
 import { requestCounter, requestDuration } from "./metrics";
+import "./profiling";
 import albumTracks from "./schema/album-tracks";
 import albums from "./schema/albums";
 import artistTracks from "./schema/artist-tracks";
