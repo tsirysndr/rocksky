@@ -55,9 +55,9 @@ const rkey = await prompts({
   message: "What is the record key (rkey) for the feed?",
 });
 
-if (!/^[a-zA-Z0-9_.-]{3,30}$/.test(rkey.value)) {
+if (!/^[a-zA-Z0-9_-]{3,30}$/.test(rkey.value)) {
   console.error(
-    "Invalid record key. Only alphanumeric characters, underscores, hyphens, and periods are allowed. Length must be between 3 and 30 characters."
+    "Invalid record key. Only alphanumeric characters, underscores, and hyphens are allowed. Length must be between 3 and 30 characters."
   );
   process.exit(1);
 }
