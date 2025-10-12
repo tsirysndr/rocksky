@@ -3,6 +3,7 @@ pub mod album_track;
 pub mod artist;
 pub mod artist_album;
 pub mod artist_track;
+pub mod feed;
 pub mod loved_track;
 pub mod scrobble;
 pub mod track;

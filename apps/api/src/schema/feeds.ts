@@ -11,6 +11,7 @@ const feeds = pgTable("feeds", {
   description: text("description"),
   did: text("did").notNull().unique(),
   uri: text("uri").notNull().unique(),
+  avatar: text("avatar"),
   userId: text("user_id")
     .notNull()
     .references(() => users.id),
