@@ -24,8 +24,8 @@
 		"prod:all": "concurrently 'tsx ./src/index.ts' 'tsx ./src/server.ts'",
 		"format": "biome format src",
 		"lint": "biome lint src",
-		"feed": "tsx ./src/scripts/feed.ts",
-		"dedup": "tsx ./src/scripts/dedup.ts"
+		"feed": "bun ./src/scripts/feed.ts",
+		"dedup": "bun ./src/scripts/dedup.ts"
 	},
 	"dependencies": {
 		"@atproto/api": "^0.13.31",
