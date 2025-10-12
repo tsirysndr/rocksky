@@ -1,8 +1,26 @@
 import { JoseKey } from "@atproto/jwk-jose";
 import { NodeOAuthClient } from "@atproto/oauth-client-node";
+import { importJWK } from "jose";
 import type { Database } from "../db";
 import { env } from "../lib/env";
 import { SessionStore, StateStore } from "./storage";
+
+console.log("<<");
+console.log(env.PRIVATE_KEY_1);
+console.log(">>");
+
+const keyset = await Promise.all([
+  JoseKey.fromImportable(env.PRIVATE_KEY_1),
+  JoseKey.fromImportable(env.PRIVATE_KEY_2),
+  JoseKey.fromImportable(env.PRIVATE_KEY_3),
+]);
+
+console.log(keyset[0]["jwk"]);
+
+await importJWK(keyset[0]["jwk"], "ES256");
+
+// keyset[0].createJwt(, payload)
+console.log(keyset[0]);
 
 export const createClient = async (db: Database) => {
   const publicUrl = env.PUBLIC_URL;
@@ -14,7 +32,7 @@ export const createClient = async (db: Database) => {
       client_id: publicUrl
         ? `${url}/client-metadata.json`
         : `http://localhost?redirect_uri=${enc(
-            `${url}/oauth/callback`,
+            `${url}/oauth/callback`
           )}&scope=${enc("atproto transition:generic")}`,
       client_uri: url,
       redirect_uris: [`${url}/oauth/callback`],
