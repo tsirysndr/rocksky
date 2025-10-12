@@ -24,7 +24,6 @@ import dropbox from "./dropbox/app";
 import googledrive from "./googledrive/app";
 import { env } from "./lib/env";
 import { requestCounter, requestDuration } from "./metrics";
-import "./profiling";
 import albumTracks from "./schema/album-tracks";
 import albums from "./schema/albums";
 import artistTracks from "./schema/artist-tracks";
@@ -47,7 +46,7 @@ app.use(
   rateLimiter({
     limit: 1000,
     window: 30, // 👈 30 seconds
-  }),
+  })
 );
 
 app.use("*", async (c, next) => {
@@ -162,7 +161,7 @@ app.get("/now-playing", async (c) => {
     ctx.redis.get(`nowplaying:${user.did}:status`),
   ]);
   return c.json(
-    nowPlaying ? { ...JSON.parse(nowPlaying), is_playing: status === "1" } : {},
+    nowPlaying ? { ...JSON.parse(nowPlaying), is_playing: status === "1" } : {}
   );
 });
 
@@ -314,7 +313,7 @@ app.get("/public/scrobbles", async (c) => {
       listeners: 1,
       sha256: item.track.sha256,
       id: item.scrobble.id,
-    })),
+    }))
   );
 });
 
