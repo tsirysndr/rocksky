@@ -18,10 +18,8 @@ const name = await prompts({
   message: "What is the feed name?",
 });
 
-if (!/^[a-zA-Z0-9_.-]{3,30}$/.test(name.value)) {
-  console.error(
-    "Invalid feed name. Only alphanumeric characters, underscores, hyphens, and periods are allowed. Length must be between 3 and 30 characters."
-  );
+if (name.value.length < 3 || name.value.length > 240) {
+  console.error("Feed name must be between 3 and 240 characters.");
   process.exit(1);
 }
 
