@@ -1,5 +1,6 @@
 import chalk from "chalk";
 import { ctx } from "context";
+import * as FeedGenerator from "lexicon/types/app/rocksky/feed/generator";
 import { createAgent } from "lib/agent";
 import prompts from "prompts";
 
@@ -48,9 +49,37 @@ if (!/^did:web:[a-zA-Z0-9_.-]{3,30}$/.test(did.value)) {
   process.exit(1);
 }
 
+const rkey = await prompts({
+  type: "text",
+  name: "value",
+  message: "What is the record key (rkey) for the feed?",
+});
+
+if (!/^[a-zA-Z0-9_.-]{3,30}$/.test(rkey.value)) {
+  console.error(
+    "Invalid record key. Only alphanumeric characters, underscores, hyphens, and periods are allowed. Length must be between 3 and 30 characters."
+  );
+  process.exit(1);
+}
+
+console.log("Creating feed with the following details:");
+
 console.log("Feed name:", name.value);
 console.log("Description:", description.value);
 console.log("DID:", did.value);
+console.log("Record key (rkey):", rkey.value);
+
+let confirm = await prompts({
+  type: "confirm",
+  name: "value",
+  message: "Do you want to proceed?",
+  initial: true,
+});
+
+if (!confirm.value) {
+  console.log("Feed creation cancelled.");
+  process.exit(0);
+}
 
 let userDid = args[0];
 
@@ -60,6 +89,24 @@ if (!userDid.startsWith("did:plc:")) {
 
 const agent = await createAgent(ctx.oauthClient, userDid);
 
-console.log("Creating feed...");
+console.log("Writing app.rocksky.feed.generator record...");
+
+const record: FeedGenerator.Record = {
+  $type: "app.rocksky.feed.generator",
+  displayName: name.value,
+  description: description.value,
+  did: did.value,
+  createdAt: new Date().toISOString(),
+};
+
+const res = await agent.com.atproto.repo.createRecord({
+  repo: agent.assertDid,
+  collection: "app.rocksky.feed.generator",
+  record,
+  rkey: rkey.value,
+});
+
+console.log(chalk.greenBright("Feed created successfully!"));
+console.log(`Record created at: ${chalk.cyan(res.data.uri)}`);
 
 process.exit(0);
