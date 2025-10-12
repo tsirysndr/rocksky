@@ -25,8 +25,7 @@
 		"format": "biome format src",
 		"lint": "biome lint src",
 		"feed": "bun ./src/scripts/feed.ts",
-		"dedup": "bun ./src/scripts/dedup.ts",
-		"postinstall": "cp jose-key.js ../../node_modules/.bun/@atproto+jwk-jose@0.1.5/node_modules/@atproto/jwk-jose/dist"
+		"dedup": "bun ./src/scripts/dedup.ts"
 	},
 	"dependencies": {
 		"@atproto/api": "^0.13.31",
