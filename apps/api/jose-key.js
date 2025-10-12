@@ -1,9 +1,21 @@
+"use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.JoseKey = void 0;
 const jose_1 = require("jose");
 const jwk_1 = require("@atproto/jwk");
 const util_1 = require("./util");
 const secp = require("@noble/secp256k1");
+const crypto = require("node:crypto");
+
+secp.utils.sha256Sync = (message) => {
+    return new Uint8Array(crypto.createHash('sha256').update(message).digest());
+};
+secp.utils.hmacSha256Sync = (key, ...messages) => {
+    const hmac = crypto.createHmac('sha256', key);
+    messages.map(m => hmac.update(m));
+    return new Uint8Array(hmac.digest());
+};
+
 const { JOSEError } = jose_1.errors;
 
 function base64urlEncode(buffer) {
@@ -15,8 +27,7 @@ function base64urlDecode(str) {
 }
 
 function sha256(data) {
-    const crypto = require('node:crypto');
-    return new Uint8Array(crypto.createHash('sha256').update(data).digest());
+    return secp.utils.sha256Sync(data);
 }
 
 async function signES256K(payload, header, privateKeyJwk) {
@@ -64,9 +75,11 @@ async function verifyES256K(token, publicKeyJwk, options) {
         throw new Error('Invalid signature');
     }
 
+    // Parse header and payload
     const header = JSON.parse(new TextDecoder().decode(base64urlDecode(encodedHeader)));
     const payload = JSON.parse(new TextDecoder().decode(base64urlDecode(encodedPayload)));
 
+    // Validate claims if options provided
     if (options) {
         const now = Math.floor(Date.now() / 1000);
 
@@ -105,6 +118,7 @@ class JoseKey extends jwk_1.Key {
      * take the opportunity to ensure that the `alg` is compatible with this key.
      */
     async getKeyObj(alg) {
+        console.log('>> io le alg', alg);
         if (!this.algorithms.includes(alg)) {
             throw new jwk_1.JwkError(`Key cannot be used with algorithm "${alg}"`);
         }
@@ -230,7 +244,9 @@ class JoseKey extends jwk_1.Key {
         }
     }
 
-    static async generateKeyPair(allowedAlgos = ['ES256'], options) {
+    static async generateKeyPair(allowedAlgos, options) {
+        if (allowedAlgos === undefined) allowedAlgos = ['ES256'];
+
         if (!allowedAlgos.length) {
             throw new jwk_1.JwkError('No algorithms provided for key generation');
         }
@@ -278,7 +294,9 @@ class JoseKey extends jwk_1.Key {
         });
     }
 
-    static async generate(allowedAlgos = ['ES256'], kid, options) {
+    static async generate(allowedAlgos, kid, options) {
+        if (allowedAlgos === undefined) allowedAlgos = ['ES256'];
+
         const kp = await this.generateKeyPair(allowedAlgos, {
             ...options,
             extractable: true,
