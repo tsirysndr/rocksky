@@ -3,6 +3,9 @@
   "workspaces": {
     "": {
       "name": "rocksky",
+      "dependencies": {
+        "@atproto/jwk-jose": "0.1.5",
+      },
       "devDependencies": {
         "@biomejs/biome": "^2.2.3",
         "prettier": "^3.5.3",
@@ -365,9 +368,9 @@
 
     "@atproto/identity": ["@atproto/identity@0.4.8", "", { "dependencies": { "@atproto/common-web": "^0.4.2", "@atproto/crypto": "^0.4.4" } }, "sha512-Z0sLnJ87SeNdAifT+rqpgE1Rc3layMMW25gfWNo4u40RGuRODbdfAZlTwBSU2r+Vk45hU+iE+xeQspfednCEnA=="],
 
-    "@atproto/jwk": ["@atproto/jwk@0.3.0", "", { "dependencies": { "multiformats": "^9.9.0", "zod": "^3.23.8" } }, "sha512-MIAXyNMGu1tCNHjqW/8jqfE/wgWCIoK2cJ0mR6UxwhNPvkbe35TcpRYJdtQu/E6MUd7TziyDBa/GO4dKAiePhQ=="],
+    "@atproto/jwk": ["@atproto/jwk@0.1.4", "", { "dependencies": { "multiformats": "^9.9.0", "zod": "^3.23.8" } }, "sha512-dSRuEi0FbxL5ln6hEFHp5ZW01xbQH9yJi5odZaEYpcA6beZHf/bawlU12CQy/CDsbC3FxSqrBw7Q2t7mvdSBqw=="],
 
-    "@atproto/jwk-jose": ["@atproto/jwk-jose@0.1.8", "", { "dependencies": { "@atproto/jwk": "0.3.0", "jose": "^5.2.0" } }, "sha512-aoU2Q0GpIl388KhCcv9YvAxNscALUv3xzLq5gjVPdJ+zmqw94nGZNcjiNvpnbfS+VQM9e2DrrTuwmDXnxfrrSA=="],
+    "@atproto/jwk-jose": ["@atproto/jwk-jose@0.1.5", "", { "dependencies": { "@atproto/jwk": "0.1.4", "jose": "^5.2.0" } }, "sha512-piYZ3ohKhRiGlD6/bZCV/Ed3lIi7CVd6txbofEHik22EkYWK0nWKoEriCUSTssSylwFzeOq2r31Ut16WcJoghw=="],
 
     "@atproto/jwk-webcrypto": ["@atproto/jwk-webcrypto@0.1.8", "", { "dependencies": { "@atproto/jwk": "0.3.0", "@atproto/jwk-jose": "0.1.8", "zod": "^3.23.8" } }, "sha512-oOW/G40f6M0NbTOo8uZgiSsFtcvlfNFldyxm+V+fVo5yKe6cvgvPNqckpqMsoBe6JYfImdc/zdVak9fCSSh41A=="],
 
@@ -2835,13 +2838,25 @@
 
     "@atproto-labs/identity-resolver/@atproto/syntax": ["@atproto/syntax@0.4.0", "", {}, "sha512-b9y5ceHS8YKOfP3mdKmwAx5yVj9294UN7FG2XzP6V5aKUdFazEYRnR9m5n5ZQFKa3GNvz7de9guZCJ/sUTcOAA=="],
 
+    "@atproto/jwk-webcrypto/@atproto/jwk": ["@atproto/jwk@0.3.0", "", { "dependencies": { "multiformats": "^9.9.0", "zod": "^3.23.8" } }, "sha512-MIAXyNMGu1tCNHjqW/8jqfE/wgWCIoK2cJ0mR6UxwhNPvkbe35TcpRYJdtQu/E6MUd7TziyDBa/GO4dKAiePhQ=="],
+
+    "@atproto/jwk-webcrypto/@atproto/jwk-jose": ["@atproto/jwk-jose@0.1.8", "", { "dependencies": { "@atproto/jwk": "0.3.0", "jose": "^5.2.0" } }, "sha512-aoU2Q0GpIl388KhCcv9YvAxNscALUv3xzLq5gjVPdJ+zmqw94nGZNcjiNvpnbfS+VQM9e2DrrTuwmDXnxfrrSA=="],
+
     "@atproto/lex-cli/chalk": ["chalk@4.1.2", "", { "dependencies": { "ansi-styles": "^4.1.0", "supports-color": "^7.1.0" } }, "sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA=="],
 
     "@atproto/lex-cli/commander": ["commander@9.5.0", "", {}, "sha512-KRs7WVDKg86PWiuAqhDrAQnTXZKraVcCc6vFdL14qrZ/DcWwuRo7VoiYXalXO7S5GKpqYiVEwCbgFDfxNHKJBQ=="],
 
     "@atproto/lexicon/@atproto/syntax": ["@atproto/syntax@0.4.0", "", {}, "sha512-b9y5ceHS8YKOfP3mdKmwAx5yVj9294UN7FG2XzP6V5aKUdFazEYRnR9m5n5ZQFKa3GNvz7de9guZCJ/sUTcOAA=="],
 
+    "@atproto/oauth-client/@atproto/jwk": ["@atproto/jwk@0.3.0", "", { "dependencies": { "multiformats": "^9.9.0", "zod": "^3.23.8" } }, "sha512-MIAXyNMGu1tCNHjqW/8jqfE/wgWCIoK2cJ0mR6UxwhNPvkbe35TcpRYJdtQu/E6MUd7TziyDBa/GO4dKAiePhQ=="],
+
     "@atproto/oauth-client/@atproto/xrpc": ["@atproto/xrpc@0.7.0", "", { "dependencies": { "@atproto/lexicon": "^0.4.11", "zod": "^3.23.8" } }, "sha512-SfhP9dGx2qclaScFDb58Jnrmim5nk4geZXCqg6sB0I/KZhZEkr9iIx1hLCp+sxkIfEsmEJjeWO4B0rjUIJW5cw=="],
+
+    "@atproto/oauth-client-node/@atproto/jwk": ["@atproto/jwk@0.3.0", "", { "dependencies": { "multiformats": "^9.9.0", "zod": "^3.23.8" } }, "sha512-MIAXyNMGu1tCNHjqW/8jqfE/wgWCIoK2cJ0mR6UxwhNPvkbe35TcpRYJdtQu/E6MUd7TziyDBa/GO4dKAiePhQ=="],
+
+    "@atproto/oauth-client-node/@atproto/jwk-jose": ["@atproto/jwk-jose@0.1.8", "", { "dependencies": { "@atproto/jwk": "0.3.0", "jose": "^5.2.0" } }, "sha512-aoU2Q0GpIl388KhCcv9YvAxNscALUv3xzLq5gjVPdJ+zmqw94nGZNcjiNvpnbfS+VQM9e2DrrTuwmDXnxfrrSA=="],
+
+    "@atproto/oauth-types/@atproto/jwk": ["@atproto/jwk@0.3.0", "", { "dependencies": { "multiformats": "^9.9.0", "zod": "^3.23.8" } }, "sha512-MIAXyNMGu1tCNHjqW/8jqfE/wgWCIoK2cJ0mR6UxwhNPvkbe35TcpRYJdtQu/E6MUd7TziyDBa/GO4dKAiePhQ=="],
 
     "@atproto/sync/@atproto/syntax": ["@atproto/syntax@0.4.0", "", {}, "sha512-b9y5ceHS8YKOfP3mdKmwAx5yVj9294UN7FG2XzP6V5aKUdFazEYRnR9m5n5ZQFKa3GNvz7de9guZCJ/sUTcOAA=="],
 
