@@ -232,3 +232,15 @@ pub struct SongRecord {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mbid: Option<String>,
 }
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct FeedGeneratorRecord {
+    pub display_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub avatar: Option<ImageBlob>,
+    pub did: String,
+    pub created_at: String,
+}

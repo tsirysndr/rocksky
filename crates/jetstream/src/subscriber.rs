@@ -16,6 +16,7 @@ pub const SONG_NSID: &str = "app.rocksky.song";
 pub const PLAYLIST_NSID: &str = "app.rocksky.playlist";
 pub const LIKE_NSID: &str = "app.rocksky.like";
 pub const SHOUT_NSID: &str = "app.rocksky.shout";
+pub const FEED_GENERATOR_NSID: &str = "app.rocksky.feed.generator";
 
 pub struct ScrobbleSubscriber {
     pub service_url: String,
