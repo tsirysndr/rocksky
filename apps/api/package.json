@@ -25,7 +25,8 @@
 		"format": "biome format src",
 		"lint": "biome lint src",
 		"feed": "bun ./src/scripts/feed.ts",
-		"dedup": "bun ./src/scripts/dedup.ts"
+		"dedup": "bun ./src/scripts/dedup.ts",
+		"postinstall": "cp jose-key.js ../../node_modules/.bun/@atproto+jwk-jose@0.1.5/node_modules/@atproto/jwk-jose/dist"
 	},
 	"dependencies": {
 		"@atproto/api": "^0.13.31",
@@ -39,6 +40,7 @@
 		"@atproto/xrpc-server": "^0.7.8",
 		"@hono/node-server": "^1.13.8",
 		"@hono/node-ws": "^1.1.0",
+		"@noble/secp256k1": "^3.0.0",
 		"@opentelemetry/api": "^1.9.0",
 		"@opentelemetry/auto-instrumentations-node": "^0.58.0",
 		"@opentelemetry/exporter-metrics-otlp-http": "^0.200.0",
@@ -65,6 +67,7 @@
 		"hono": "^4.4.7",
 		"http-proxy-middleware": "^3.0.5",
 		"iron-session": "^8.0.4",
+		"jose": "^6.1.0",
 		"jsonwebtoken": "^9.0.2",
 		"kysely": "^0.27.5",
 		"lodash": "^4.17.21",
