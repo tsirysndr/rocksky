@@ -87,7 +87,6 @@
 		"concurrently": "^9.2.0",
 		"drizzle-kit": "^0.31.1",
 		"pkgroll": "^2.6.1",
-		"tsx": "^4.19.2",
 		"zx": "^8.5.4"
 	},
 	"exports": {
