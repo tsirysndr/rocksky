@@ -133,7 +133,7 @@ export const refreshSessionsAboutToExpire = async (
   db: Database,
   ctx: Context
 ) => {
-  const inOneHour = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  const inOneDay = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   const now = new Date().toISOString();
 
   const sessions = await db
@@ -141,7 +141,7 @@ export const refreshSessionsAboutToExpire = async (
     .selectAll()
     .where("expiresAt", "is not", "NULL")
     .where("expiresAt", ">", now)
-    .where("expiresAt", "<=", inOneHour)
+    .where("expiresAt", "<=", inOneDay)
     .orderBy("expiresAt", "asc")
     .execute();
 
