@@ -1,4 +1,6 @@
 import SqliteDb from "better-sqlite3";
+import chalk from "chalk";
+import type { Context } from "context";
 import {
   Kysely,
   type Migration,
@@ -6,6 +8,7 @@ import {
   Migrator,
   SqliteDialect,
 } from "kysely";
+import { createAgent } from "lib/agent";
 
 // Types
 
@@ -26,6 +29,7 @@ export type Status = {
 export type AuthSession = {
   key: string;
   session: AuthSessionJson;
+  expiresAt?: string | null;
 };
 
 export type AuthState = {
@@ -75,6 +79,21 @@ migrations["001"] = {
   },
 };
 
+migrations["002"] = {
+  async up(db: Kysely<unknown>) {
+    await db.schema
+      .alterTable("auth_session")
+      .addColumn("expiresAt", "text", (col) => col.defaultTo("NULL"))
+      .execute();
+  },
+  async down(db: Kysely<unknown>) {
+    await db.schema
+      .alterTable("auth_session")
+      .dropColumn("expiresAt")
+      .execute();
+  },
+};
+
 // APIs
 
 export const createDb = (location: string): Database => {
@@ -89,6 +108,57 @@ export const migrateToLatest = async (db: Database) => {
   const migrator = new Migrator({ db, provider: migrationProvider });
   const { error } = await migrator.migrateToLatest();
   if (error) throw error;
+};
+
+// create a function that update expiresAt to value in auth_session
+export const updateExpiresAt = async (db: Database) => {
+  // get all sessions that have expiresAt is null
+  const sessions = await db.selectFrom("auth_session").selectAll().execute();
+  console.log("Found", sessions.length, "sessions to update");
+  for (const session of sessions) {
+    const data = JSON.parse(session.session) as {
+      tokenSet: { expires_at?: string | null };
+    };
+    console.log(session.key, data.tokenSet.expires_at);
+    await db
+      .updateTable("auth_session")
+      .set({ expiresAt: data.tokenSet.expires_at })
+      .where("key", "=", session.key)
+      .execute();
+  }
+
+  console.log(`Updated ${chalk.greenBright(sessions.length)} sessions`);
+};
+
+export const refreshSessionsAboutToExpire = async (
+  db: Database,
+  ctx: Context
+) => {
+  const inOneHour = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  const now = new Date().toISOString();
+
+  const sessions = await db
+    .selectFrom("auth_session")
+    .selectAll()
+    .where("expiresAt", "is not", "NULL")
+    .where("expiresAt", ">", now)
+    .where("expiresAt", "<=", inOneHour)
+    .orderBy("expiresAt", "asc")
+    .execute();
+
+  for (const session of sessions) {
+    console.log(
+      "Session about to expire:",
+      chalk.cyan(session.key),
+      session.expiresAt
+    );
+    await createAgent(ctx.oauthClient, session.key);
+    await new Promise((r) => setTimeout(r, 100));
+  }
+
+  console.log(
+    `Found ${chalk.yellowBright(sessions.length)} sessions to refresh`
+  );
 };
 
 export type Database = Kysely<DatabaseSchema>;
