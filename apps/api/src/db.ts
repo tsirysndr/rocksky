@@ -110,7 +110,6 @@ export const migrateToLatest = async (db: Database) => {
   if (error) throw error;
 };
 
-// create a function that update expiresAt to value in auth_session
 export const updateExpiresAt = async (db: Database) => {
   // get all sessions that have expiresAt is null
   const sessions = await db.selectFrom("auth_session").selectAll().execute();
