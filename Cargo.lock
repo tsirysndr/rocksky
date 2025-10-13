@@ -7314,7 +7314,7 @@ dependencies = [
  "toml_datetime 0.7.2",
  "toml_parser",
  "toml_writer",
- "winnow 0.7.10",
+ "winnow 0.7.13",
 ]
 
 [[package]]
@@ -7346,7 +7346,7 @@ dependencies = [
  "serde_spanned 0.6.9",
  "toml_datetime 0.6.11",
  "toml_write",
- "winnow 0.7.10",
+ "winnow 0.7.13",
 ]
 
 [[package]]
@@ -7358,7 +7358,7 @@ dependencies = [
  "indexmap",
  "toml_datetime 0.7.2",
  "toml_parser",
- "winnow",
+ "winnow 0.7.13",
 ]
 
 [[package]]
@@ -7367,7 +7367,7 @@ version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4cf893c33be71572e0e9aa6dd15e6677937abd686b066eac3f8cd3531688a627"
 dependencies = [
- "winnow 0.7.10",
+ "winnow 0.7.13",
 ]
 
 [[package]]
@@ -8387,6 +8387,15 @@ name = "windows_x86_64_msvc"
 version = "0.53.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "271414315aff87387382ec3d271b52d7ae78726f5d44ac98b4f4030c91880486"
+
+[[package]]
+name = "winnow"
+version = "0.6.26"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e90edd2ac1aa278a5c4599b1d89cf03074b610800f866d4026dc199d7929a28"
+dependencies = [
+ "memchr",
+]
 
 [[package]]
 name = "winnow"
