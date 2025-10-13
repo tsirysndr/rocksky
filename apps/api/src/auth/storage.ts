@@ -45,8 +45,10 @@ export class SessionStore implements NodeSavedSessionStore {
     const session = JSON.stringify(val);
     await this.db
       .insertInto("auth_session")
-      .values({ key, session })
-      .onConflict((oc) => oc.doUpdateSet({ session }))
+      .values({ key, session, expiresAt: val.tokenSet.expires_at })
+      .onConflict((oc) =>
+        oc.doUpdateSet({ session, expiresAt: val.tokenSet.expires_at })
+      )
       .execute();
   }
   async del(key: string) {
