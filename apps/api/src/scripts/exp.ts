@@ -9,8 +9,8 @@ await updateExpiresAt(db);
 
 await refreshSessionsAboutToExpire(db, ctx);
 
-// run every 5 minutes
-cron.schedule("*/5 * * * *", async () => {
+// run every 3 minutes
+cron.schedule("*/3 * * * *", async () => {
   console.log("Running session refresh job...");
   await refreshSessionsAboutToExpire(db, ctx);
 });
