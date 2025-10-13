@@ -9,3 +9,4 @@ node_modules/
 *.DS_Store
 rocksky-backup.sql
 *.db
+*.parquet
