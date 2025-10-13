@@ -48,8 +48,8 @@ pub async fn sync() -> Result<(), Error> {
 
 fn export_parquets(conn: Arc<Mutex<Connection>>) {
     thread::spawn(move || {
-        // fire every 1 minute
-        let cron_expr = "0 * * * * * *";
+        // fire every 5 minutes
+        let cron_expr = "0 */5 * * * * *";
         let schedule = cron::Schedule::from_str(cron_expr);
         if let Err(err) = schedule {
             tracing::error!("Failed to parse cron expression: {}", cron_expr);
