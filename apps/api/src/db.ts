@@ -149,8 +149,10 @@ export const refreshSessionsAboutToExpire = async (
       chalk.cyan(session.key),
       session.expiresAt
     );
-    await createAgent(ctx.oauthClient, session.key);
-    await new Promise((r) => setTimeout(r, 100));
+    const agent = await createAgent(ctx.oauthClient, session.key);
+    // Trigger a token refresh by fetching preferences
+    await agent.getPreferences();
+    await new Promise((r) => setTimeout(r, 500));
   }
 
   console.log(
