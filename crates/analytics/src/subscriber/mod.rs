@@ -222,7 +222,7 @@ pub async fn save_scrobble(
           youtube_link,
           apple_music_link,
           uri,
-          [{}]
+          genres
         ) VALUES (
           ?,
           ?,
@@ -236,7 +236,8 @@ pub async fn save_scrobble(
           ?,
           ?,
           ?,
-          ?
+          ?,
+          [{}]
         )",
             payload
                 .scrobble
@@ -245,7 +246,7 @@ pub async fn save_scrobble(
                 .as_ref()
                 .map(|genres| genres
                     .iter()
-                    .map(|g| format!("'{}'", g))
+                    .map(|g| format!("'{}'", g.replace("'", "''")))
                     .collect::<Vec<_>>()
                     .join(", "))
                 .unwrap_or_default()
