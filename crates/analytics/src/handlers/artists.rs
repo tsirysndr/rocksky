@@ -10,7 +10,7 @@ use crate::types::{
 };
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::Error;
-use duckdb::Connection;
+use duckdb::{types::Value, Connection};
 use tokio_stream::StreamExt;
 
 use crate::read_payload;
@@ -59,6 +59,7 @@ pub async fn get_artists(
             let artists = stmt.query_map(
                 [&did, &did, &limit.to_string(), &offset.to_string()],
                 |row| {
+                    let genres = extract_genres_from_value(row.get(13)?);
                     Ok(Artist {
                         id: row.get(0)?,
                         name: row.get(1)?,
@@ -73,8 +74,9 @@ pub async fn get_artists(
                         youtube_link: row.get(10)?,
                         apple_music_link: row.get(11)?,
                         uri: row.get(12)?,
-                        play_count: row.get(13)?,
-                        unique_listeners: row.get(14)?,
+                        genres,
+                        play_count: row.get(14)?,
+                        unique_listeners: row.get(15)?,
                     })
                 },
             )?;
@@ -84,6 +86,7 @@ pub async fn get_artists(
         }
         None => {
             let artists = stmt.query_map([limit, offset], |row| {
+                let genres = extract_genres_from_value(row.get(13)?);
                 Ok(Artist {
                     id: row.get(0)?,
                     name: row.get(1)?,
@@ -98,8 +101,9 @@ pub async fn get_artists(
                     youtube_link: row.get(10)?,
                     apple_music_link: row.get(11)?,
                     uri: row.get(12)?,
-                    play_count: row.get(13)?,
-                    unique_listeners: row.get(14)?,
+                    genres,
+                    play_count: row.get(14)?,
+                    unique_listeners: row.get(15)?,
                 })
             })?;
 
@@ -131,6 +135,7 @@ pub async fn get_top_artists(
                     ar.picture AS picture,
                     ar.sha256 AS sha256,
                     ar.uri AS uri,
+                    ar.genres AS genres,
                     COUNT(*) AS play_count,
                     COUNT(DISTINCT s.user_id) AS unique_listeners
                 FROM
@@ -142,7 +147,7 @@ pub async fn get_top_artists(
                 WHERE
                     s.artist_id IS NOT NULL AND (u.did = ? OR u.handle = ?)
                 GROUP BY
-                    s.artist_id, ar.name, ar.uri, ar.picture, ar.sha256
+                    s.artist_id, ar.name, ar.uri, ar.picture, ar.sha256, ar.genres
                 ORDER BY
                     play_count DESC
                 OFFSET ?
@@ -157,6 +162,7 @@ pub async fn get_top_artists(
                     ar.picture AS picture,
                     ar.sha256 AS sha256,
                     ar.uri AS uri,
+                    ar.genres AS genres,
                     COUNT(*) AS play_count,
                     COUNT(DISTINCT s.user_id) AS unique_listeners
                 FROM
@@ -166,7 +172,7 @@ pub async fn get_top_artists(
                 WHERE
                     s.artist_id IS NOT NULL
                 GROUP BY
-                    s.artist_id, ar.name, ar.uri, ar.picture, ar.sha256
+                    s.artist_id, ar.name, ar.uri, ar.picture, ar.sha256, ar.genres
                 ORDER BY
                     play_count DESC
                 OFFSET ?
@@ -180,6 +186,7 @@ pub async fn get_top_artists(
             let artists = stmt.query_map(
                 [&did, &did, &limit.to_string(), &offset.to_string()],
                 |row| {
+                    let genres = extract_genres_from_value(row.get(5)?);
                     Ok(Artist {
                         id: row.get(0)?,
                         name: row.get(1)?,
@@ -194,8 +201,9 @@ pub async fn get_top_artists(
                         youtube_link: None,
                         apple_music_link: None,
                         uri: row.get(4)?,
-                        play_count: Some(row.get(5)?),
-                        unique_listeners: Some(row.get(6)?),
+                        genres,
+                        play_count: Some(row.get(6)?),
+                        unique_listeners: Some(row.get(7)?),
                     })
                 },
             )?;
@@ -205,6 +213,7 @@ pub async fn get_top_artists(
         }
         None => {
             let artists = stmt.query_map([limit, offset], |row| {
+                let genres = extract_genres_from_value(row.get(5)?);
                 Ok(Artist {
                     id: row.get(0)?,
                     name: row.get(1)?,
@@ -219,8 +228,9 @@ pub async fn get_top_artists(
                     youtube_link: None,
                     apple_music_link: None,
                     uri: row.get(4)?,
-                    play_count: Some(row.get(5)?),
-                    unique_listeners: Some(row.get(6)?),
+                    genres,
+                    play_count: Some(row.get(6)?),
+                    unique_listeners: Some(row.get(7)?),
                 })
             })?;
 
@@ -490,4 +500,21 @@ pub async fn get_artist_listeners(
 
     let listeners: Result<Vec<_>, _> = listeners.collect();
     Ok(HttpResponse::Ok().json(listeners?))
+}
+
+fn extract_genres_from_value(value: Value) -> Option<Vec<String>> {
+    match value {
+        Value::Null => None,
+        Value::List(items) => {
+            let genres: Vec<String> = items
+                .into_iter()
+                .filter_map(|item| match item {
+                    Value::Text(s) => Some(s),
+                    _ => None,
+                })
+                .collect();
+            Some(genres)
+        }
+        _ => None,
+    }
 }

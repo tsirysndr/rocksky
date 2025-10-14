@@ -207,7 +207,8 @@ pub async fn save_scrobble(
     let conn = conn.lock().unwrap();
 
     match conn.execute(
-        "INSERT INTO artists (
+        &format!(
+            "INSERT INTO artists (
           id,
           name,
           biography,
@@ -220,7 +221,8 @@ pub async fn save_scrobble(
           tidal_link,
           youtube_link,
           apple_music_link,
-          uri
+          uri,
+          [{}]
         ) VALUES (
           ?,
           ?,
@@ -236,6 +238,18 @@ pub async fn save_scrobble(
           ?,
           ?
         )",
+            payload
+                .scrobble
+                .artist_id
+                .genres
+                .as_ref()
+                .map(|genres| genres
+                    .iter()
+                    .map(|g| format!("'{}'", g))
+                    .collect::<Vec<_>>()
+                    .join(", "))
+                .unwrap_or_default()
+        ),
         params![
             payload.scrobble.artist_id.xata_id,
             payload.scrobble.artist_id.name,
