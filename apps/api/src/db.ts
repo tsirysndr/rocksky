@@ -152,7 +152,7 @@ export const refreshSessionsAboutToExpire = async (
     const agent = await createAgent(ctx.oauthClient, session.key);
     // Trigger a token refresh by fetching preferences
     await agent.getPreferences();
-    await new Promise((r) => setTimeout(r, 500));
+    await new Promise((r) => setTimeout(r, 200));
   }
 
   console.log(
