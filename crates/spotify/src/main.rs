@@ -59,7 +59,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .await?;
                 Ok::<(), Error>(())
             }) {
-                Ok(_) => {}
+                Ok(_) => {
+                    println!(
+                        "{} Thread for user {} has exited normally",
+                        format!("[{}]", email).bright_green(),
+                        email.bright_green()
+                    );
+                    // restart the thread by publishing a message
+                    match rt.block_on(nc.publish("rocksky.spotify.user", email.clone().into())) {
+                        Ok(_) => {
+                            println!(
+                                "{} Published message to restart thread for user: {}",
+                                format!("[{}]", email).bright_green(),
+                                email.bright_green()
+                            );
+                        }
+                        Err(e) => {
+                            println!(
+                                "{} Error publishing message to restart thread: {}",
+                                format!("[{}]", email).bright_green(),
+                                e.to_string().bright_red()
+                            );
+                        }
+                    }
+                }
                 Err(e) => {
                     println!(
                         "{} Error starting thread for user: {} - {}",
