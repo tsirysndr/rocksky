@@ -24,8 +24,9 @@ pub async fn get_artist_by_track_id(
 pub async fn get_artist_by_uri(pool: &Pool<Postgres>, uri: &str) -> Result<Artist, Error> {
     let results: Vec<Artist> = sqlx::query_as(
         r#"
-    SELECT * FROM artists
-    WHERE artists.uri = $1
+    SELECT * FROM user_artists
+    LEFT JOIN artists ON user_artists.artist_id = artists.xata_id
+    WHERE user_artists.uri = $1
     "#,
     )
     .bind(uri)
