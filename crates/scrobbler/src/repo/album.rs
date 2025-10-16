@@ -23,7 +23,7 @@ pub async fn get_album_by_uri(pool: &Pool<Postgres>, uri: &str) -> Result<Album,
         r#"
     SELECT * FROM user_albums
     LEFT JOIN albums ON user_albums.album_id = albums.xata_id
-    WHERE user_albums.uri = $1
+    WHERE user_albums.uri = $1 OR albums.uri = $1
     "#,
     )
     .bind(uri)
