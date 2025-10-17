@@ -1,5 +1,7 @@
 import { JoseKey } from "@atproto/jwk-jose";
-import { NodeOAuthClient } from "@atproto/oauth-client-node";
+import { NodeOAuthClient, type RuntimeLock } from "@atproto/oauth-client-node";
+import Redis from "ioredis";
+import Redlock from "redlock";
 import type { Database } from "../db";
 import { env } from "../lib/env";
 import { SessionStore, StateStore } from "./storage";
@@ -8,6 +10,19 @@ export const createClient = async (db: Database) => {
   const publicUrl = env.PUBLIC_URL;
   const url = publicUrl || `http://127.0.0.1:${env.PORT}`;
   const enc = encodeURIComponent;
+
+  const redis = new Redis(env.REDIS_URL);
+  const redlock = new Redlock([redis]);
+
+  const requestLock: RuntimeLock = async (key, fn) => {
+    const lock = await redlock.acquire([key], 45e3); // 45 seconds
+    try {
+      return await fn();
+    } finally {
+      await lock.release();
+    }
+  };
+
   return new NodeOAuthClient({
     clientMetadata: {
       client_name: "AT Protocol Express App",
@@ -40,5 +55,6 @@ export const createClient = async (db: Database) => {
       : undefined,
     stateStore: new StateStore(db),
     sessionStore: new SessionStore(db),
+    requestLock,
   });
 };
