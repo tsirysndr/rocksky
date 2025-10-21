@@ -63,7 +63,7 @@ for (const did of args) {
 
   ctx.nc.publish("rocksky.user", Buffer.from(JSON.stringify(userPayload)));
 
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  await new Promise((resolve) => setTimeout(resolve, 3000));
 }
 
 console.log("Done");
