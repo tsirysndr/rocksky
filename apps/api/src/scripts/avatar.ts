@@ -56,7 +56,7 @@ for (const did of args) {
     avatar: u.avatar,
     xata_createdat: u.createdAt.toISOString(),
     xata_updatedat: u.updatedAt.toISOString(),
-    xata_version: profile.user.xataVersion || 1,
+    xata_version: u.xataVersion,
   };
 
   console.log(userPayload);
