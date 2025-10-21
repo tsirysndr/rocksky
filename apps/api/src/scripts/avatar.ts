@@ -1,6 +1,5 @@
 import { ctx } from "context";
 import { eq, or } from "drizzle-orm";
-import { deepSnakeCaseKeys } from "lib";
 import _ from "lodash";
 import users from "schema/users";
 
@@ -19,7 +18,7 @@ for (const did of args) {
   }
 
   const plc = await fetch(`https://plc.directory/${user.did}`).then((res) =>
-    res.json(),
+    res.json()
   );
 
   const serviceEndpoint = _.get(plc, "service.0.serviceEndpoint");
@@ -29,7 +28,7 @@ for (const did of args) {
   }
 
   const profile = await fetch(
-    `${serviceEndpoint}/xrpc/com.atproto.repo.getRecord?repo=${user.did}&collection=app.bsky.actor.profile&rkey=self`,
+    `${serviceEndpoint}/xrpc/com.atproto.repo.getRecord?repo=${user.did}&collection=app.bsky.actor.profile&rkey=self`
   ).then((res) => res.json());
   const ref = _.get(profile, "value.avatar.ref.$link");
   const type = _.get(profile, "value.avatar.mimeType", "").split("/")[1];
@@ -49,12 +48,20 @@ for (const did of args) {
     .limit(1)
     .execute();
 
-  console.log(u);
+  const userPayload = {
+    xata_id: u.id,
+    did: u.did,
+    handle: u.handle,
+    display_name: u.displayName,
+    avatar: u.avatar,
+    xata_createdat: u.createdAt.toISOString(),
+    xata_updatedat: u.updatedAt.toISOString(),
+    xata_version: profile.user.xataVersion || 1,
+  };
 
-  ctx.nc.publish(
-    "rocksky.user",
-    Buffer.from(JSON.stringify(deepSnakeCaseKeys(u))),
-  );
+  console.log(userPayload);
+
+  ctx.nc.publish("rocksky.user", Buffer.from(JSON.stringify(userPayload)));
 }
 
 console.log("Done");
