@@ -9,10 +9,11 @@ import {
 import { profileAtom } from "../atoms/profile";
 import { API_URL } from "../consts";
 
-export const useProfileByDidQuery = (did: string) =>
+export const useProfileByDidQuery = (did?: string) =>
 	useQuery({
 		queryKey: ["profile", did],
-		queryFn: () => getProfileByDid(did),
+		queryFn: () => getProfileByDid(did || ""),
+		enabled: !!did,
 	});
 
 export const useProfileStatsByDidQuery = (did: string) =>

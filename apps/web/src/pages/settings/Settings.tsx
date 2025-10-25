@@ -5,13 +5,25 @@ import { HeadingMedium } from "baseui/typography";
 import { useAtomValue } from 'jotai';
 import { profileAtom } from '../../atoms/profile';
 import { API_URL } from '../../consts';
+import { useProfileByDidQuery } from '../../hooks/useProfile';
 import Main from "../../layouts/Main";
 
 const Settings = () => {
   const profile = useAtomValue(profileAtom);
+  const { data, refetch, isLoading } = useProfileByDidQuery(profile?.did);
 
   const onConnectLastFm = async () => {
     if (profile?.lastfmConnected) {
+      await fetch(`${API_URL}/lastfm/disconnect`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      await refetch({
+        throwOnError: true,
+        cancelRefetch: true
+      });
       return;
     }
     const loginUrl = new URL(`${API_URL}/lastfm/login`);
@@ -21,12 +33,42 @@ const Settings = () => {
 
   const onConnectSpotify = async () => {
     if (profile?.spotifyConnected) {
+       await fetch(`${API_URL}/spotify/disconnect`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      await refetch({
+        throwOnError: true,
+        cancelRefetch: true
+      });
       return;
+    }
+
+    const response = await fetch(`${API_URL}/spotify/login`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+    const data = await response.json();
+    if (data.redirectUrl) {
+      window.location.href = data.redirectUrl;
     }
   }
 
   const onConnectTidal = async () => {
     if (profile?.tidalConnected) {
+       await fetch(`${API_URL}/tidal/disconnect`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      await refetch({
+        throwOnError: true,
+        cancelRefetch: true
+      });
       return;
     }
     const loginUrl = new URL(`${API_URL}/tidal/login`);
@@ -56,7 +98,8 @@ const Settings = () => {
             </p>
           </div>
 				</div>
-				<Button
+				{
+          !isLoading && profile && <Button
           onClick={onConnectLastFm}
 					overrides={{
 						BaseButton: {
@@ -70,8 +113,9 @@ const Settings = () => {
 						},
 					}}
 				>
-					{profile?.lastfmConnected ? 'Disconnect' : 'Connect'}
+					{data?.lastfmConnected ? 'Disconnect' : 'Connect'}
 				</Button>
+      }
 			</div>
 			<div className="mb-[30px]  flex-row justify-between flex items-center">
 				<div className="mb-[25px] flex-row justify-between flex">
@@ -83,7 +127,8 @@ const Settings = () => {
               </p>
             </div>
 				  </div>
-          <Button
+          {
+            !isLoading && profile && <Button
             onClick={onConnectSpotify}
             overrides={{
               BaseButton: {
@@ -97,8 +142,9 @@ const Settings = () => {
               },
             }}
           >
-            {profile?.spotifyConnected ? 'Disconnect' : 'Connect'}
+            {data?.spotifyConnected ? 'Disconnect' : 'Connect'}
           </Button>
+      }
 			</div>
 			<div className="mb-[25px] flex-row justify-between flex items-center">
 				<div className='flex-row flex'>
@@ -110,22 +156,25 @@ const Settings = () => {
             </p>
           </div>
 				</div>
-				<Button
-          onClick={onConnectTidal}
-					overrides={{
-						BaseButton: {
-							style: () => ({
-								backgroundColor: "var(--color-purple) !important",
-								color: "var(--color-button-text) !important",
-								borderRadius: "2px",
-                height: "45px",
-                width: '115.27px'
-							}),
-						},
-					}}
-				>
-          {profile?.tidalConnected ? 'Disconnect' : 'Connect'}
-				</Button>
+        {
+          !isLoading && profile &&
+            <Button
+              onClick={onConnectTidal}
+              overrides={{
+                BaseButton: {
+                  style: () => ({
+                    backgroundColor: "var(--color-purple) !important",
+                    color: "var(--color-button-text) !important",
+                    borderRadius: "2px",
+                    height: "45px",
+                    width: '115.27px'
+                  }),
+                },
+              }}
+            >
+              {data?.tidalConnected ? 'Disconnect' : 'Connect'}
+            </Button>
+      }
 			</div>
 		</Main>
 	);

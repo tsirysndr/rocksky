@@ -1,6 +1,7 @@
 import { ctx } from "context";
 import { eq, or } from "drizzle-orm";
 import { Hono } from "hono";
+import jwt from "jsonwebtoken";
 import { createPkcePair, encrypt } from "lib/crypto";
 import { env } from "lib/env";
 import crypto from "node:crypto";
@@ -166,6 +167,40 @@ app.get("/callback", async (c) => {
   });
 
   return c.redirect(`${env.FRONTEND_URL}/settings`);
+});
+
+app.put("/disconnect", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
+    ignoreExpiration: true,
+  });
+
+  const user = await ctx.db
+    .select()
+    .from(users)
+    .where(eq(users.did, did))
+    .limit(1)
+    .then((rows) => rows[0]);
+
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  await ctx.db
+    .delete(tidalTokens)
+    .where(eq(tidalTokens.userId, user.id))
+    .execute();
+
+  return c.json({
+    success: true,
+  });
 });
 
 export default app;
