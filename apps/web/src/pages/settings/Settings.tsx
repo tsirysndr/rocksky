@@ -123,7 +123,7 @@ const Settings = () => {
 					<div>
             <div style={{ fontWeight: "bold" }} className='text-[19px]'>Spotify</div>
               <p className="m-[2px]">
-                Connect your Spotify account to sync Music library and listening data
+                Connect your Spotify account to sync your music library and listening data
               </p>
             </div>
 				  </div>
@@ -152,7 +152,7 @@ const Settings = () => {
           <div>
             <div style={{ fontWeight: "bold" }} className='text-[19px]'>Tidal</div>
             <p className="m-[2px]">
-              Connect your Tidal account to sync Music Library
+              Connect your Tidal account to sync your music library
             </p>
           </div>
 				</div>

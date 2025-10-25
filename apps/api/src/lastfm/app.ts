@@ -103,11 +103,31 @@ app.get("/callback", async (c) => {
       .where(eq(lastfmTokens.userId, user.id))
       .execute();
 
+    const apiSig = crypto
+      .createHash("md5")
+      .update(
+        `api_key${env.LASTFM_API_KEY}methodauth.getSessiontoken${token}${env.LASTFM_API_SECRET}`
+      )
+      .digest("hex");
+
+    const LASTFM_API_URL = new URL("https://ws.audioscrobbler.com/2.0/");
+    LASTFM_API_URL.searchParams.set("method", "auth.getSession");
+    LASTFM_API_URL.searchParams.set("api_key", env.LASTFM_API_KEY);
+    LASTFM_API_URL.searchParams.set("token", token);
+    LASTFM_API_URL.searchParams.set("api_sig", apiSig);
+    LASTFM_API_URL.searchParams.set("format", "json");
+
+    const response = await fetch(LASTFM_API_URL.href).then((res) => res.json());
+
+    const sessionKey = response?.session?.key;
+    const username = response?.session?.name;
+
     await tx
       .insert(lastfmTokens)
       .values({
         userId: user.id,
-        token: encrypt(token, env.SPOTIFY_ENCRYPTION_KEY),
+        sessionKey: encrypt(sessionKey, env.SPOTIFY_ENCRYPTION_KEY),
+        user: username,
       })
       .execute();
   });

@@ -7,7 +7,8 @@ const lastfmTokens = pgTable("lastfm_tokens", {
     .primaryKey()
     .default(sql`xata_id()`),
   xataVersion: integer("xata_version"),
-  token: text("token").notNull(),
+  sessionKey: text("session_key").notNull(),
+  user: text("user").notNull(),
   userId: text("user_id")
     .notNull()
     .references(() => users.id),
