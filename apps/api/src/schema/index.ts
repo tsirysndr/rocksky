@@ -13,6 +13,7 @@ import googleDriveAccounts from "./google-drive-accounts";
 import googleDriveDirectories from "./google-drive-directories";
 import googleDrivePaths from "./google-drive-paths";
 import googleDrive from "./googledrive";
+import lastfmTokens from "./lastfm-tokens";
 import lovedTracks from "./loved-tracks";
 import playlistTracks from "./playlist-tracks";
 import playlists from "./playlists";
@@ -24,6 +25,8 @@ import shoutReports from "./shout-reports";
 import shouts from "./shouts";
 import spotifyAccounts from "./spotify-accounts";
 import spotifyTokens from "./spotify-tokens";
+import tidalAccounts from "./tidal-accounts";
+import tidalTokens from "./tidal-tokens";
 import tracks from "./tracks";
 import userAlbums from "./user-albums";
 import userArtists from "./user-artists";
@@ -66,4 +69,7 @@ export default {
   dropboxTokens,
   googleDrive,
   queueTracks,
+  lastfmTokens,
+  tidalAccounts,
+  tidalTokens,
 };

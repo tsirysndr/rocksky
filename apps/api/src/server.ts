@@ -29,6 +29,6 @@ app.use(proxyMiddleware);
 
 app.listen(process.env.ROCKSKY_XPRC_PORT || 3004, () => {
   console.log(
-    `Rocksky XRPC API is running on port ${process.env.ROCKSKY_XRPC_PORT || 3004}`,
+    `Rocksky XRPC API is running on port ${process.env.ROCKSKY_XRPC_PORT || 3004}`
   );
 });

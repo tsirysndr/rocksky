@@ -41,4 +41,11 @@ export const env = cleanEnv(process.env, {
   PRIVATE_KEY_3: str({}),
   MEILISEARCH_URL: str({ devDefault: "http://localhost:7700" }),
   MEILISEARCH_API_KEY: str({}),
+  TIDAL_CLIENT_ID: str({}),
+  TIDAL_CLIENT_SECRET: str({}),
+  TIDAL_REDIRECT_URI: str({
+    devDefault: "http://localhost:8000/tidal/callback",
+  }),
+  LASTFM_API_KEY: str({}),
+  LASTFM_API_SECRET: str({}),
 });

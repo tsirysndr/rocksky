@@ -92,7 +92,9 @@ export default {
 			url.pathname.startsWith('/dropbox/join') ||
 			url.pathname.startsWith('/googledrive/join') ||
 			url.pathname.startsWith('/search') ||
-			url.pathname.startsWith('/public/scrobbles')
+			url.pathname.startsWith('/public/scrobbles') ||
+			url.pathname.startsWith('/lastfm') ||
+			url.pathname.startsWith('/tidal')
 		) {
 			redirectToApi = true;
 		}

@@ -75,6 +75,8 @@ function Profile(props: ProfileProps) {
 				displayName: profile.data.displayName,
 				handle: profile.data.handle,
 				spotifyConnected: profile.data.spotifyConnected,
+				lastfmConnected: profile.data.lastfmConnected,
+				tidalConnected: profile.data.tidalConnected,
 				createdAt: profile.data.createdAt,
 				did,
 			},
