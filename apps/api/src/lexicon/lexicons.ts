@@ -1106,6 +1106,21 @@ export const schemaDict = {
               description: "The Apple Music link of the album.",
               format: "uri",
             },
+            tidalId: {
+              type: "string",
+              description: "The Tidal ID of the album.",
+              maxLength: 256,
+            },
+            spotifyId: {
+              type: "string",
+              description: "The Spotify ID of the album.",
+              maxLength: 256,
+            },
+            appleMusicId: {
+              type: "string",
+              description: "The Apple Music ID of the album.",
+              maxLength: 256,
+            },
             createdAt: {
               type: "string",
               description: "The date and time when the album was created.",
@@ -1551,6 +1566,30 @@ export const schemaDict = {
             tags: {
               type: "array",
               description: "The tags of the artist.",
+              items: {
+                type: "string",
+                minLength: 1,
+                maxLength: 256,
+              },
+            },
+            tidalId: {
+              type: "string",
+              description: "The Tidal ID of the artist.",
+              maxLength: 256,
+            },
+            spotifyId: {
+              type: "string",
+              description: "The Spotify ID of the artist.",
+              maxLength: 256,
+            },
+            appleMusicId: {
+              type: "string",
+              description: "The Apple Music ID of the artist.",
+              maxLength: 256,
+            },
+            roles: {
+              type: "array",
+              description: "The roles of the artist.",
               items: {
                 type: "string",
                 minLength: 1,
@@ -3893,6 +3932,26 @@ export const schemaDict = {
               description: "The Apple Music link of the song.",
               format: "uri",
             },
+            tidalId: {
+              type: "string",
+              description: "The Tidal ID of the song.",
+              maxLength: 256,
+            },
+            spotifyId: {
+              type: "string",
+              description: "The Spotify ID of the song.",
+              maxLength: 256,
+            },
+            appleMusicId: {
+              type: "string",
+              description: "The Apple Music ID of the song.",
+              maxLength: 256,
+            },
+            isrc: {
+              type: "string",
+              description: "The ISRC of the song.",
+              maxLength: 32,
+            },
             createdAt: {
               type: "string",
               description: "The date when the song was created.",
@@ -4808,6 +4867,26 @@ export const schemaDict = {
               type: "string",
               description: "The Apple Music link of the song.",
               format: "uri",
+            },
+            tidalId: {
+              type: "string",
+              description: "The Tidal ID of the song.",
+              maxLength: 256,
+            },
+            spotifyId: {
+              type: "string",
+              description: "The Spotify ID of the song.",
+              maxLength: 256,
+            },
+            appleMusicId: {
+              type: "string",
+              description: "The Apple Music ID of the song.",
+              maxLength: 256,
+            },
+            isrc: {
+              type: "string",
+              description: "The ISRC of the song.",
+              maxLength: 32,
             },
             createdAt: {
               type: "string",

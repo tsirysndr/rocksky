@@ -46,6 +46,35 @@ defs = new Mapping<String, Record> {
             maxLength = 256
           }
         }
+
+        ["tidalId"] = new StringType {
+          type = "string"
+          description = "The Tidal ID of the artist."
+          maxLength = 256
+        }
+
+        ["spotifyId"] = new StringType {
+          type = "string"
+          description = "The Spotify ID of the artist."
+          maxLength = 256
+        }
+
+        ["appleMusicId"] = new StringType {
+          type = "string"
+          description = "The Apple Music ID of the artist."
+          maxLength = 256
+        }
+
+        ["roles"] = new Array {
+          type = "array"
+          description = "The roles of the artist."
+          items = new StringType {
+            type = "string"
+            minLength = 1
+            maxLength = 256
+          }
+        }
+
         ["born"] = new StringType {
           type = "string"
           description = "The birth date of the artist."

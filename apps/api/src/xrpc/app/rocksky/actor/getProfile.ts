@@ -13,10 +13,10 @@ import * as R from "ramda";
 import tables from "schema";
 import type { SelectDropboxAccounts } from "schema/dropbox-accounts";
 import type { SelectGoogleDriveAccounts } from "schema/google-drive-accounts";
-import { SelectLastfmToken } from "schema/lastfm-tokens";
+import type { SelectLastfmToken } from "schema/lastfm-tokens";
 import type { SelectSpotifyAccount } from "schema/spotify-accounts";
 import type { SelectSpotifyToken } from "schema/spotify-tokens";
-import { SelectTidalToken } from "schema/tidal-tokens";
+import type { SelectTidalToken } from "schema/tidal-tokens";
 import type { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
@@ -35,7 +35,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({});
-      })
+      }),
     );
   server.app.rocksky.actor.getProfile({
     auth: ctx.authVerifier,
@@ -198,7 +198,7 @@ const retrieveProfile = ({
           .from(tables.spotifyAccounts)
           .leftJoin(
             tables.users,
-            eq(tables.spotifyAccounts.userId, tables.users.id)
+            eq(tables.spotifyAccounts.userId, tables.users.id),
           )
           .where(eq(tables.users.did, did))
           .execute()
@@ -208,7 +208,7 @@ const retrieveProfile = ({
           .from(tables.spotifyTokens)
           .leftJoin(
             tables.users,
-            eq(tables.spotifyTokens.userId, tables.users.id)
+            eq(tables.spotifyTokens.userId, tables.users.id),
           )
           .where(eq(tables.users.did, did))
           .execute()
@@ -218,7 +218,7 @@ const retrieveProfile = ({
           .from(tables.lastfmTokens)
           .leftJoin(
             tables.users,
-            eq(tables.lastfmTokens.userId, tables.users.id)
+            eq(tables.lastfmTokens.userId, tables.users.id),
           )
           .where(eq(tables.users.did, did))
           .execute()
@@ -228,7 +228,7 @@ const retrieveProfile = ({
           .from(tables.tidalTokens)
           .leftJoin(
             tables.users,
-            eq(tables.tidalTokens.userId, tables.users.id)
+            eq(tables.tidalTokens.userId, tables.users.id),
           )
           .where(eq(tables.users.did, did))
           .execute()
@@ -238,7 +238,7 @@ const retrieveProfile = ({
           .from(tables.googleDriveAccounts)
           .leftJoin(
             tables.users,
-            eq(tables.googleDriveAccounts.userId, tables.users.id)
+            eq(tables.googleDriveAccounts.userId, tables.users.id),
           )
           .where(eq(tables.users.did, did))
           .execute()
@@ -248,7 +248,7 @@ const retrieveProfile = ({
           .from(tables.dropboxAccounts)
           .leftJoin(
             tables.users,
-            eq(tables.dropboxAccounts.userId, tables.users.id)
+            eq(tables.dropboxAccounts.userId, tables.users.id),
           )
           .where(eq(tables.users.did, did))
           .execute()
@@ -309,8 +309,8 @@ const refreshProfile = ([
               xata_createdat: profile.user.createdAt.toISOString(),
               xata_updatedat: profile.user.updatedAt.toISOString(),
               xata_version: 1,
-            })
-          )
+            }),
+          ),
         );
       } else {
         // Update existing user in background if handle or avatar or displayName changed
@@ -343,8 +343,8 @@ const refreshProfile = ([
                 xata_createdat: profile.user.createdAt.toISOString(),
                 xata_updatedat: new Date().toISOString(),
                 xata_version: (profile.user.xataVersion || 1) + 1,
-              })
-            )
+              }),
+            ),
           );
         }
       }

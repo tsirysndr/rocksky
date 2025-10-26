@@ -3,9 +3,7 @@ import { integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import users from "./users";
 
 const tidalAccounts = pgTable("tidal_accounts", {
-  id: text("xata_id")
-    .primaryKey()
-    .default(sql`xata_id()`),
+  id: text("xata_id").primaryKey().default(sql`xata_id()`),
   xataVersion: integer("xata_version"),
   tidalUserId: text("tidal_user_id").notNull(),
   userId: text("user_id")

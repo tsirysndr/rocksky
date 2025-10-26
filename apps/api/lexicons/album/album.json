@@ -87,6 +87,21 @@
             "description": "The Apple Music link of the album.",
             "format": "uri"
           },
+          "tidalId": {
+            "type": "string",
+            "description": "The Tidal ID of the album.",
+            "maxLength": 256
+          },
+          "spotifyId": {
+            "type": "string",
+            "description": "The Spotify ID of the album.",
+            "maxLength": 256
+          },
+          "appleMusicId": {
+            "type": "string",
+            "description": "The Apple Music ID of the album.",
+            "maxLength": 256
+          },
           "createdAt": {
             "type": "string",
             "description": "The date and time when the album was created.",

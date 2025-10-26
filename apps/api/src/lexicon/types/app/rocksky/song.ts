@@ -52,6 +52,14 @@ export interface Record {
   tidalLink?: string;
   /** The Apple Music link of the song. */
   appleMusicLink?: string;
+  /** The Tidal ID of the song. */
+  tidalId?: string;
+  /** The Spotify ID of the song. */
+  spotifyId?: string;
+  /** The Apple Music ID of the song. */
+  appleMusicId?: string;
+  /** The ISRC of the song. */
+  isrc?: string;
   /** The date when the song was created. */
   createdAt: string;
   /** The MusicBrainz ID of the song. */

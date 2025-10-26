@@ -94,6 +94,24 @@ defs = new Mapping<String, Record> {
           format = "uri"
         }
 
+        ["tidalId"] = new StringType {
+          type = "string"
+          description = "The Tidal ID of the album."
+          maxLength = 256
+        }
+
+        ["spotifyId"] = new StringType {
+          type = "string"
+          description = "The Spotify ID of the album."
+          maxLength = 256
+        }
+
+        ["appleMusicId"] = new StringType {
+          type = "string"
+          description = "The Apple Music ID of the album."
+          maxLength = 256
+        }
+
         ["createdAt"] = new StringType {
           type = "string"
           description = "The date and time when the album was created."

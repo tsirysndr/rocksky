@@ -33,7 +33,7 @@ app.get("/login", async (c) => {
   redirectUrl.searchParams.set("redirect_uri", env.TIDAL_REDIRECT_URI);
   redirectUrl.searchParams.set(
     "scope",
-    "user.read collection.read search.read playlists.write playlists.read collection.write search.write"
+    "user.read collection.read search.read playlists.write playlists.read collection.write search.write",
   );
   redirectUrl.searchParams.set("code_challenge_method", "S256");
   redirectUrl.searchParams.set("code_challenge", codeChallenge);
@@ -63,7 +63,7 @@ app.get("/callback", async (c) => {
         error,
         errorDescription,
       },
-      400
+      400,
     );
   }
 
@@ -74,7 +74,7 @@ app.get("/callback", async (c) => {
         error: "invalid_request",
         errorDescription: "Missing code parameter",
       },
-      400
+      400,
     );
   }
 
@@ -100,7 +100,7 @@ app.get("/callback", async (c) => {
         error: "invalid_request",
         errorDescription: "Failed to exchange code for tokens",
       },
-      400
+      400,
     );
   }
 
@@ -112,7 +112,7 @@ app.get("/callback", async (c) => {
         error: "invalid_state",
         errorDescription: "Invalid state parameter",
       },
-      400
+      400,
     );
   }
 
@@ -134,7 +134,7 @@ app.get("/callback", async (c) => {
         error: "unauthorized",
         errorDescription: "User not found",
       },
-      401
+      401,
     );
   }
 

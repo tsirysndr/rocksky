@@ -40,7 +40,7 @@ app.get("/login", async (c) => {
 
   c.res.headers.set(
     "Set-Cookie",
-    `lastfm_state=${state}; HttpOnly; Path=/; SameSite=Lax`
+    `lastfm_state=${state}; HttpOnly; Path=/; SameSite=Lax`,
   );
 
   return c.redirect(redirectUrl.href);
@@ -93,7 +93,7 @@ app.get("/callback", async (c) => {
         error: "unauthorized",
         errorDescription: "User not found",
       },
-      401
+      401,
     );
   }
 
@@ -106,7 +106,7 @@ app.get("/callback", async (c) => {
     const apiSig = crypto
       .createHash("md5")
       .update(
-        `api_key${env.LASTFM_API_KEY}methodauth.getSessiontoken${token}${env.LASTFM_API_SECRET}`
+        `api_key${env.LASTFM_API_KEY}methodauth.getSessiontoken${token}${env.LASTFM_API_SECRET}`,
       )
       .digest("hex");
 

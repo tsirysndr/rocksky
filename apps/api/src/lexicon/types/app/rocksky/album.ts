@@ -33,6 +33,12 @@ export interface Record {
   tidalLink?: string;
   /** The Apple Music link of the album. */
   appleMusicLink?: string;
+  /** The Tidal ID of the album. */
+  tidalId?: string;
+  /** The Spotify ID of the album. */
+  spotifyId?: string;
+  /** The Apple Music ID of the album. */
+  appleMusicId?: string;
   /** The date and time when the album was created. */
   createdAt: string;
   [k: string]: unknown;
