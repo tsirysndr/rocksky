@@ -10,6 +10,8 @@ use crate::types::tidal::{
     track::{TrackResponse, TracksCollectionResponse, TracksResponse},
 };
 
+const BASE_URL: &str = "https://openapi.tidal.com/v2";
+
 #[derive(Debug, Deserialize)]
 pub struct AccessToken {
     pub access_token: String,
@@ -78,7 +80,8 @@ impl TidalClient {
             })
             .build()?;
         let url = format!(
-            "https://openapi.tidal.com/v2/userCollections/{}/relationships/tracks",
+            "{}/userCollections/{}/relationships/tracks",
+            BASE_URL,
             self.user_id.unwrap()
         );
         let response = client
@@ -116,7 +119,7 @@ impl TidalClient {
                 headers
             })
             .build()?;
-        let url = format!("https://openapi.tidal.com/v2/tracks/{}", track_id);
+        let url = format!("{}/tracks/{}", BASE_URL, track_id);
         let response = client
             .get(&url)
             .query(&[
@@ -159,7 +162,7 @@ impl TidalClient {
                 headers
             })
             .build()?;
-        let url = "https://openapi.tidal.com/v2/tracks";
+        let url = &format!("{}/tracks", BASE_URL);
         let filter_id = track_ids
             .into_iter()
             .map(|id| ("filter[id]", id))
@@ -203,7 +206,7 @@ impl TidalClient {
                 headers
             })
             .build()?;
-        let url = format!("https://openapi.tidal.com/v2/albums/{}", album_id);
+        let url = format!("{}/albums/{}", BASE_URL, album_id);
         let response = client
             .get(&url)
             .query(&[
@@ -245,7 +248,7 @@ impl TidalClient {
                 headers
             })
             .build()?;
-        let url = format!("https://openapi.tidal.com/v2/artists/{}", artist_id);
+        let url = format!("{}/artists/{}", BASE_URL, artist_id);
         let response = client
             .get(&url)
             .query(&[

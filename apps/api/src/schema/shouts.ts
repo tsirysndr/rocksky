@@ -17,8 +17,12 @@ const shouts = pgTable("shouts", {
     .references(() => users.id)
     .notNull(),
   parentId: text("parent_id").references(() => shouts.id),
-  createdAt: timestamp("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
+  createdAt: timestamp("xata_createdat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("xata_updatedat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 export type SelectShout = InferSelectModel<typeof shouts>;

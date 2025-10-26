@@ -17,8 +17,12 @@ const albums = pgTable("albums", {
   tidalId: integer("tidal_id").unique(),
   spotifyId: text("spotify_id").unique(),
   sha256: text("sha256").unique().notNull(),
-  createdAt: timestamp("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
+  createdAt: timestamp("xata_createdat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("xata_updatedat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
   xataVersion: integer("xata_version"),
 });
 

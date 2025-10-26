@@ -5110,6 +5110,7 @@ dependencies = [
  "jsonwebtoken",
  "md5 0.8.0",
  "owo-colors",
+ "rand 0.9.2",
  "redis 0.29.5",
  "reqwest",
  "serde",

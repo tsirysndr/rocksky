@@ -24,8 +24,9 @@ pub async fn start(pool: Pool<Postgres>, _client: Client) -> Result<(), Error> {
         let mut spotify = SpotifyClient::new(&refresh_token);
         spotify.get_access_token().await?;
 
-        let tracks = spotify.get_user_saved_tracks(0, 20, None).await?;
-        println!("Spotify user tracks: \n {:#?}", tracks);
+        spotify.get_user_saved_tracks(0, 20, None).await?;
+
+        // save user tracks to Rocksky loved tracks
     }
     Ok(())
 }

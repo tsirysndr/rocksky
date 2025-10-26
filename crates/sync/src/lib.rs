@@ -7,6 +7,8 @@ pub mod clients;
 pub mod crypto;
 pub mod lastfm;
 pub mod repo;
+pub mod rocksky;
+pub mod search;
 pub mod spotify;
 pub mod tidal;
 pub mod token;

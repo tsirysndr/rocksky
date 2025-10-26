@@ -16,8 +16,12 @@ const spotifyAccounts = pgTable("spotify_accounts", {
     .notNull()
     .references(() => users.id),
   isBetaUser: boolean("is_beta_user").default(false).notNull(),
-  createdAt: timestamp("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
+  createdAt: timestamp("xata_createdat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("xata_updatedat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 export type SelectSpotifyAccount = InferSelectModel<typeof spotifyAccounts>;

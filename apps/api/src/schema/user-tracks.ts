@@ -11,8 +11,12 @@ const userTracks = pgTable("user_tracks", {
   trackId: text("track_id")
     .notNull()
     .references(() => tracks.id),
-  createdAt: timestamp("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
+  createdAt: timestamp("xata_createdat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("xata_updatedat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
   xataVersion: integer("xata_version"),
   uri: text("uri").unique().notNull(),
   scrobbles: integer("scrobbles"),

@@ -3,6 +3,22 @@ use crate::types::spotify::{
 };
 use serde::Deserialize;
 
+#[derive(Debug, Deserialize, Clone)]
+pub struct SearchResponse {
+    pub tracks: Tracks,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct Tracks {
+    pub href: String,
+    pub limit: u32,
+    pub next: Option<String>,
+    pub offset: u32,
+    pub previous: Option<String>,
+    pub total: u32,
+    pub items: Vec<Track>,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct SavedTracks {
     pub href: String,
@@ -20,7 +36,7 @@ pub struct Item {
     pub track: Track,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Track {
     pub album: Album,
     pub artists: Vec<Artist>,

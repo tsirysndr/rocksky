@@ -19,8 +19,12 @@ const artists = pgTable("artists", {
   spotifyId: text("spotify_id").unique(),
   roles: text("roles").array(),
   genres: text("genres").array(),
-  createdAt: timestamp("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
+  createdAt: timestamp("xata_createdat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("xata_updatedat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
   xataVersion: integer("xata_version"),
 });
 

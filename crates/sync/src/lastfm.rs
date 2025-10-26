@@ -4,7 +4,15 @@ use anyhow::Error;
 use redis::Client;
 use sqlx::{Pool, Postgres};
 
-use crate::{clients::lastfm::LastFmClient, crypto::decrypt_aes_256_ctr, repo};
+use crate::{
+    clients::lastfm::LastFmClient,
+    crypto::decrypt_aes_256_ctr,
+    repo::{
+        self,
+        track::{update_lastfm_metadata, update_spotify_metadata},
+    },
+    search::search_track,
+};
 
 pub async fn start(pool: Pool<Postgres>, _client: Client) -> Result<(), Error> {
     let max = env::var("MAX_USERS")
@@ -29,6 +37,38 @@ pub async fn start(pool: Pool<Postgres>, _client: Client) -> Result<(), Error> {
 
         let loved_tracks = lastfm.get_loved_tracks(1, 1).await?;
         println!("Last.fm loved tracks: \n {:#?}", loved_tracks);
+
+        let result = search_track(
+            &pool,
+            &scrobbles.recenttracks.tracks[0].name,
+            &scrobbles.recenttracks.tracks[0].artist.text,
+        )
+        .await?;
+
+        if result.is_none() {
+            println!(
+                "Track not found in Rocksky: {} - {}",
+                &scrobbles.recenttracks.tracks[0].artist.text,
+                &scrobbles.recenttracks.tracks[0].name
+            );
+            continue;
+        }
+
+        let (track, xata_id) = result.unwrap();
+
+        if let Some(xata_id) = &xata_id {
+            update_spotify_metadata(
+                &pool,
+                xata_id,
+                &track.spotify_id.unwrap(),
+                &track.isrc.unwrap(),
+            )
+            .await?;
+            update_lastfm_metadata(&pool, xata_id, &scrobbles.recenttracks.tracks[0].url).await?;
+        }
+
+        // scrobble track to Rocksky
+        // save loved tracks to Rocksky + loved tracks
     }
     Ok(())
 }

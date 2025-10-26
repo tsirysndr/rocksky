@@ -9,8 +9,12 @@ const googleDriveDirectories = pgTable("google_drive_directories", {
   googleDriveId: text("google_drive_id").notNull(),
   fileId: text("file_id").notNull().unique(),
   xataVersion: text("xata_version"),
-  createdAt: timestamp("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
+  createdAt: timestamp("xata_createdat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("xata_updatedat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 export type SelectGoogleDriveDirectories = InferSelectModel<

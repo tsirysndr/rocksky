@@ -4,7 +4,7 @@ use anyhow::Error;
 use redis::Client;
 use sqlx::{Pool, Postgres};
 
-use crate::{clients::tidal::TidalClient, repo};
+use crate::{clients::tidal::TidalClient, repo, search::search_track};
 
 pub async fn start(pool: Pool<Postgres>, _client: Client) -> Result<(), Error> {
     let max = env::var("MAX_USERS")
@@ -44,7 +44,47 @@ pub async fn start(pool: Pool<Postgres>, _client: Client) -> Result<(), Error> {
             .find(|item| item.r#type == "artists")
             .unwrap();
 
+        let title = &track.data.attributes.title;
         tidal.get_artist(&artist.id, "US").await?;
+
+        let result = search_track(
+            &pool,
+            title,
+            artist
+                .attributes
+                .name
+                .as_ref()
+                .unwrap_or(&String::default()),
+        )
+        .await?;
+
+        if result.is_none() {
+            tracing::warn!(
+                title = %title,
+                artist = %artist.attributes.name.as_ref().unwrap_or(&String::default()),
+                "Track not found, skipping",
+            );
+            continue;
+        }
+
+        let (_song, xata_id) = result.unwrap();
+        if let Some(xata_id) = &xata_id {
+            repo::track::update_tidal_metadata(
+                &pool,
+                xata_id,
+                &track.data.id,
+                &track.data.attributes.external_links[0].href,
+                &track
+                    .data
+                    .attributes
+                    .isrc
+                    .as_ref()
+                    .unwrap_or(&String::default()),
+            )
+            .await?;
+        }
+
+        // save_track to Rocksky + loved tracks
     }
     Ok(())
 }

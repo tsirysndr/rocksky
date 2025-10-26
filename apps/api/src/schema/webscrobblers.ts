@@ -11,8 +11,12 @@ const webscrobblers = pgTable("webscrobblers", {
   userId: text("user_id")
     .notNull()
     .references(() => users.id),
-  createdAt: timestamp("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
+  createdAt: timestamp("xata_createdat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("xata_updatedat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 export type SelectWebscrobblers = InferSelectModel<typeof webscrobblers>;
