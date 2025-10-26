@@ -4,7 +4,7 @@ use std::{
 };
 
 use anyhow::Error;
-use duckdb::{params, Connection};
+use duckdb::{Connection, params};
 use owo_colors::OwoColorize;
 use reqwest::Client;
 use serde_json::json;

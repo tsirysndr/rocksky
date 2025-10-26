@@ -1,8 +1,8 @@
 use std::env;
 
 use aes::{
-    cipher::{KeyIvInit, StreamCipher},
     Aes256,
+    cipher::{KeyIvInit, StreamCipher},
 };
 use anyhow::Error;
 use hex::decode;

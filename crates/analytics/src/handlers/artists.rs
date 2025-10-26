@@ -8,7 +8,7 @@ use crate::types::{
     },
     track::Track,
 };
-use actix_web::{web, HttpRequest, HttpResponse};
+use actix_web::{HttpRequest, HttpResponse, web};
 use anyhow::Error;
 use duckdb::Connection;
 use tokio_stream::StreamExt;

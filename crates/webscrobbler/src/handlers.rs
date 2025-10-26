@@ -2,7 +2,7 @@ use crate::{
     cache::Cache, consts::BANNER, musicbrainz::client::MusicbrainzClient, repo,
     scrobbler::scrobble, types::ScrobbleRequest,
 };
-use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder};
+use actix_web::{HttpRequest, HttpResponse, Responder, get, post, web};
 use owo_colors::OwoColorize;
 use sqlx::{Pool, Postgres};
 use std::sync::Arc;

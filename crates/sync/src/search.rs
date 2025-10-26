@@ -10,7 +10,9 @@ pub async fn search_track(
 ) -> Result<Option<(Track, Option<String>)>, Error> {
     let xata_track = repo::track::get_track(pool, title, artist).await?;
 
-    if let Some(ref track) = xata_track &&  track.spotify_id.is_some(){
+    if let Some(ref track) = xata_track
+        && track.spotify_id.is_some()
+    {
         tracing::info!("Found track in Rocksky Database");
         tracing::info!(id = %track.xata_id, artist = %track.artist, album = %track.album, album_atist = %track.album_artist, album_uri = ?track.album_uri, artist_uri = ?track.artist_uri, "Xata (track)");
         return Ok(Some((track.clone().into(), Some(track.xata_id.clone()))));

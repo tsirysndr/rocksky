@@ -1,6 +1,6 @@
 use anyhow::Error;
-use async_nats::{connect, Client};
-use duckdb::{params, Connection};
+use async_nats::{Client, connect};
+use duckdb::{Connection, params};
 use owo_colors::OwoColorize;
 use std::{
     env,

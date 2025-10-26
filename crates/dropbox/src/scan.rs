@@ -9,7 +9,7 @@ use lofty::{
     tag::Accessor,
 };
 use owo_colors::OwoColorize;
-use reqwest::{multipart, Client};
+use reqwest::{Client, multipart};
 use serde_json::json;
 use sqlx::{Pool, Postgres};
 use symphonia::core::{
@@ -18,7 +18,7 @@ use symphonia::core::{
 use tempfile::TempDir;
 
 use crate::{
-    client::{get_access_token, BASE_URL, CONTENT_URL},
+    client::{BASE_URL, CONTENT_URL, get_access_token},
     consts::AUDIO_EXTENSIONS,
     crypto::decrypt_aes_256_ctr,
     repo::{
