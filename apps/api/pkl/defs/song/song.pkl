@@ -142,6 +142,12 @@ defs = new Mapping<String, Record> {
           format = "uri"
         }
 
+        ["lastfmLink"] = new StringType {
+          type = "string"
+          description = "The Last.fm link of the song."
+          format = "uri"
+        }
+
         ["tidalLink"] = new StringType {
           type = "string"
           description = "The Tidal link of the song."

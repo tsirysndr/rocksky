@@ -48,6 +48,8 @@ export interface Record {
   youtubeLink?: string;
   /** The Spotify link of the song. */
   spotifyLink?: string;
+  /** The Last.fm link of the song. */
+  lastfmLink?: string;
   /** The Tidal link of the song. */
   tidalLink?: string;
   /** The Apple Music link of the song. */

@@ -3927,6 +3927,11 @@ export const schemaDict = {
               description: "The Tidal link of the song.",
               format: "uri",
             },
+            lastfmLink: {
+              type: "string",
+              description: "The Last.fm link of the song.",
+              format: "uri",
+            },
             appleMusicLink: {
               type: "string",
               description: "The Apple Music link of the song.",
@@ -4856,6 +4861,11 @@ export const schemaDict = {
             spotifyLink: {
               type: "string",
               description: "The Spotify link of the song.",
+              format: "uri",
+            },
+            lastfmLink: {
+              type: "string",
+              description: "The Last.fm link of the song.",
               format: "uri",
             },
             tidalLink: {

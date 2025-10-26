@@ -50,6 +50,8 @@ export interface Record {
   spotifyLink?: string;
   /** The Tidal link of the song. */
   tidalLink?: string;
+  /** The Last.fm link of the song. */
+  lastfmLink?: string;
   /** The Apple Music link of the song. */
   appleMusicLink?: string;
   /** The Tidal ID of the song. */
