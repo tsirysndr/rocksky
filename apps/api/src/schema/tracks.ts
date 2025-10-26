@@ -2,7 +2,9 @@ import { type InferInsertModel, type InferSelectModel, sql } from "drizzle-orm";
 import { integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 const tracks = pgTable("tracks", {
-  id: text("xata_id").primaryKey().default(sql`xata_id()`),
+  id: text("xata_id")
+    .primaryKey()
+    .default(sql`xata_id()`),
   title: text("title").notNull(),
   artist: text("artist").notNull(),
   albumArtist: text("album_artist").notNull(),
@@ -15,6 +17,9 @@ const tracks = pgTable("tracks", {
   spotifyLink: text("spotify_link").unique(),
   appleMusicLink: text("apple_music_link").unique(),
   tidalLink: text("tidal_link").unique(),
+  tidalId: integer("tidal_id").unique(),
+  spotifyId: text("spotify_id").unique(),
+  isrc: text("isrc").unique(),
   sha256: text("sha256").unique().notNull(),
   discNumber: integer("disc_number"),
   lyrics: text("lyrics"),

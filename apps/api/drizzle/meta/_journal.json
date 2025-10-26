@@ -43,6 +43,13 @@
       "when": 1761426267815,
       "tag": "0005_awesome_victor_mancha",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1761480548535,
+      "tag": "0006_slippery_blacklash",
+      "breakpoints": true
     }
   ]
 }

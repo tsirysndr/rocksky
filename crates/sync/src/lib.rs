@@ -9,6 +9,7 @@ pub mod lastfm;
 pub mod repo;
 pub mod spotify;
 pub mod tidal;
+pub mod token;
 pub mod types;
 pub mod xata;
 

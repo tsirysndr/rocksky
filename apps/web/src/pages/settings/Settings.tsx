@@ -13,7 +13,7 @@ const Settings = () => {
   const { data, refetch, isLoading } = useProfileByDidQuery(profile?.did);
 
   const onConnectLastFm = async () => {
-    if (profile?.lastfmConnected) {
+    if (data?.lastfmConnected) {
       await fetch(`${API_URL}/lastfm/disconnect`, {
         method: 'PUT',
         headers: {
@@ -32,7 +32,7 @@ const Settings = () => {
   }
 
   const onConnectSpotify = async () => {
-    if (profile?.spotifyConnected) {
+    if (data?.spotifyConnected) {
        await fetch(`${API_URL}/spotify/disconnect`, {
         method: 'PUT',
         headers: {
@@ -51,14 +51,14 @@ const Settings = () => {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
     });
-    const data = await response.json();
-    if (data.redirectUrl) {
-      window.location.href = data.redirectUrl;
+    const url = await response.json();
+    if (url.redirectUrl) {
+      window.location.href = url.redirectUrl;
     }
   }
 
   const onConnectTidal = async () => {
-    if (profile?.tidalConnected) {
+    if (data?.tidalConnected) {
        await fetch(`${API_URL}/tidal/disconnect`, {
         method: 'PUT',
         headers: {

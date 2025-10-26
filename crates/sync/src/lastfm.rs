@@ -8,9 +8,9 @@ use crate::{clients::lastfm::LastFmClient, crypto::decrypt_aes_256_ctr, repo};
 
 pub async fn start(pool: Pool<Postgres>, _client: Client) -> Result<(), Error> {
     let max = env::var("MAX_USERS")
-        .unwrap_or("100".into())
+        .unwrap_or("500".into())
         .parse::<u32>()
-        .unwrap_or(100);
+        .unwrap_or(500);
     let offset = env::var("OFFSET_USERS")
         .unwrap_or("0".into())
         .parse::<u32>()
