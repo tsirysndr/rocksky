@@ -39,7 +39,7 @@ impl SpotifyClient {
     }
 
     pub async fn new_with_token(pool: &Pool<Postgres>) -> Result<Self, Error> {
-        let spofity_tokens = repo::spotify_token::list(pool, 0, 100).await?;
+        let spofity_tokens = repo::spotify_token::get_spotify_tokens(pool, 100).await?;
 
         if spofity_tokens.is_empty() {
             return Err(anyhow::anyhow!("No Spotify tokens found"));
