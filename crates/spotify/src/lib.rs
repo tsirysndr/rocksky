@@ -263,8 +263,10 @@ pub async fn refresh_token(
         .send()
         .await?;
     let body = response.text().await?;
-    println!("client_id: {}", client_id);
-    println!("Refresh token response body: {}", body);
+    if body.contains("error") {
+        tracing::warn!(client_id = %client_id, "Refresh token response body contains error");
+        tracing::error!(body = %body, "Refresh token response body");
+    }
     let token = serde_json::from_str::<AccessToken>(&body)?;
     Ok(token)
 }
