@@ -1,5 +1,3 @@
-use std::env;
-
 use anyhow::Error;
 use reqwest::Client;
 
