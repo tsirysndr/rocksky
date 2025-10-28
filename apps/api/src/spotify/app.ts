@@ -1,14 +1,16 @@
 import { ctx } from "context";
-import { and, eq, or } from "drizzle-orm";
+import { and, eq, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import jwt from "jsonwebtoken";
 import { decrypt, encrypt } from "lib/crypto";
 import { env } from "lib/env";
+import _ from "lodash";
 import { requestCounter } from "metrics";
 import crypto, { createHash } from "node:crypto";
 import { rateLimiter } from "ratelimiter";
 import lovedTracks from "schema/loved-tracks";
 import spotifyAccounts from "schema/spotify-accounts";
+import spotifyApps from "schema/spotify-apps";
 import spotifyTokens from "schema/spotify-tokens";
 import tracks from "schema/tracks";
 import users from "schema/users";
@@ -22,7 +24,7 @@ app.use(
     limit: 10, // max Spotify API calls
     window: 15, // per 10 seconds
     keyPrefix: "spotify-ratelimit",
-  }),
+  })
 );
 
 app.get("/login", async (c) => {
@@ -50,12 +52,29 @@ app.get("/login", async (c) => {
     return c.text("Unauthorized");
   }
 
+  const spotifyAccount = await ctx.db
+    .select()
+    .from(spotifyAccounts)
+    .leftJoin(users, eq(spotifyAccounts.userId, users.id))
+    .leftJoin(
+      spotifyApps,
+      eq(spotifyAccounts.spotifyAppId, spotifyApps.spotifyAppId)
+    )
+    .where(
+      and(
+        eq(spotifyAccounts.userId, user.id),
+        eq(spotifyAccounts.isBetaUser, true)
+      )
+    )
+    .limit(1)
+    .then((rows) => rows[0]);
+
   const state = crypto.randomBytes(16).toString("hex");
   ctx.kv.set(state, did);
-  const redirectUrl = `https://accounts.spotify.com/en/authorize?client_id=${env.SPOTIFY_CLIENT_ID}&response_type=code&redirect_uri=${env.SPOTIFY_REDIRECT_URI}&scope=user-read-private%20user-read-email%20user-read-playback-state%20user-read-currently-playing%20user-modify-playback-state%20playlist-modify-public%20playlist-modify-private%20playlist-read-private%20playlist-read-collaborative&state=${state}`;
+  const redirectUrl = `https://accounts.spotify.com/en/authorize?client_id=${spotifyAccount?.spotify_apps?.spotifyAppId}&response_type=code&redirect_uri=${env.SPOTIFY_REDIRECT_URI}&scope=user-read-private%20user-read-email%20user-read-playback-state%20user-read-currently-playing%20user-modify-playback-state%20playlist-modify-public%20playlist-modify-private%20playlist-read-private%20playlist-read-collaborative&state=${state}`;
   c.header(
     "Set-Cookie",
-    `session-id=${state}; Path=/; HttpOnly; SameSite=Strict; Secure`,
+    `session-id=${state}; Path=/; HttpOnly; SameSite=Strict; Secure`
   );
   return c.json({ redirectUrl });
 });
@@ -64,24 +83,6 @@ app.get("/callback", async (c) => {
   requestCounter.add(1, { method: "GET", route: "/spotify/callback" });
   const params = new URLSearchParams(c.req.url.split("?")[1]);
   const { code, state } = Object.fromEntries(params.entries());
-
-  const response = await fetch("https://accounts.spotify.com/api/token", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams({
-      grant_type: "authorization_code",
-      code,
-      redirect_uri: env.SPOTIFY_REDIRECT_URI,
-      client_id: env.SPOTIFY_CLIENT_ID,
-      client_secret: env.SPOTIFY_CLIENT_SECRET,
-    }),
-  });
-  const { access_token, refresh_token } = await response.json<{
-    access_token: string;
-    refresh_token: string;
-  }>();
 
   if (!state) {
     return c.redirect(env.FRONTEND_URL);
@@ -104,6 +105,59 @@ app.get("/callback", async (c) => {
     return c.redirect(env.FRONTEND_URL);
   }
 
+  const spotifyAccount = await ctx.db
+    .select()
+    .from(spotifyAccounts)
+    .where(
+      and(
+        eq(spotifyAccounts.userId, user.id),
+        eq(spotifyAccounts.isBetaUser, true)
+      )
+    )
+    .limit(1)
+    .then((rows) => rows[0]);
+
+  const spotifyAppId = spotifyAccount.spotifyAppId
+    ? spotifyAccount.spotifyAppId
+    : env.SPOTIFY_CLIENT_ID;
+
+  const spotifyAppToken = await ctx.db
+    .select()
+    .from(spotifyTokens)
+    .leftJoin(
+      spotifyApps,
+      eq(spotifyTokens.spotifyAppId, spotifyApps.spotifyAppId)
+    )
+    .where(eq(spotifyTokens.spotifyAppId, spotifyAppId))
+    .limit(1)
+    .then((rows) => rows[0]);
+
+  const response = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: env.SPOTIFY_REDIRECT_URI,
+      client_id: spotifyAppId,
+      client_secret: spotifyAppToken?.spotify_apps
+        ? decrypt(
+            spotifyAppToken.spotify_apps.spotifySecret,
+            env.SPOTIFY_ENCRYPTION_KEY
+          )
+        : env.SPOTIFY_CLIENT_SECRET,
+    }),
+  });
+  const {
+    access_token,
+    refresh_token,
+  }: {
+    access_token: string;
+    refresh_token: string;
+  } = await response.json();
+
   const existingSpotifyToken = await ctx.db
     .select()
     .from(spotifyTokens)
@@ -124,6 +178,7 @@ app.get("/callback", async (c) => {
       userId: user.id,
       accessToken: encrypt(access_token, env.SPOTIFY_ENCRYPTION_KEY),
       refreshToken: encrypt(refresh_token, env.SPOTIFY_ENCRYPTION_KEY),
+      spotifyAppId,
     });
   }
 
@@ -133,8 +188,8 @@ app.get("/callback", async (c) => {
     .where(
       and(
         eq(spotifyAccounts.userId, user.id),
-        eq(spotifyAccounts.isBetaUser, true),
-      ),
+        eq(spotifyAccounts.isBetaUser, true)
+      )
     )
     .limit(1)
     .then((rows) => rows[0]);
@@ -176,8 +231,21 @@ app.post("/join", async (c) => {
 
   if (parsed.error) {
     c.status(400);
-    return c.text("Invalid email: " + parsed.error.message);
+    return c.text(`Invalid email: ${parsed.error.message}`);
   }
+
+  const apps = await ctx.db
+    .select({
+      appId: spotifyApps.id,
+      spotifyAppId: spotifyApps.spotifyAppId,
+      accountCount: sql<number>`COUNT(${spotifyAccounts.id})`.as(
+        "account_count"
+      ),
+    })
+    .from(spotifyApps)
+    .leftJoin(spotifyAccounts, eq(spotifyApps.id, spotifyAccounts.spotifyAppId))
+    .groupBy(spotifyApps.id)
+    .having(sql`COUNT(${spotifyAccounts.id}) < 25`);
 
   const { email } = parsed.data;
 
@@ -186,6 +254,7 @@ app.post("/join", async (c) => {
       userId: user.id,
       email,
       isBetaUser: false,
+      spotifyAppId: _.get(apps, "[0].spotifyAppId"),
     });
   } catch (e) {
     if (!e.message.includes("duplicate key value violates unique constraint")) {
@@ -251,7 +320,7 @@ app.get("/currently-playing", async (c) => {
   }
 
   const cached = await ctx.redis.get(
-    `${spotifyAccount.spotifyAccount.email}:current`,
+    `${spotifyAccount.spotifyAccount.email}:current`
   );
   if (!cached) {
     return c.json({});
@@ -261,7 +330,7 @@ app.get("/currently-playing", async (c) => {
 
   const sha256 = createHash("sha256")
     .update(
-      `${track.item.name} - ${track.item.artists.map((x) => x.name).join(", ")} - ${track.item.album.name}`.toLowerCase(),
+      `${track.item.name} - ${track.item.artists.map((x) => x.name).join(", ")} - ${track.item.album.name}`.toLowerCase()
     )
     .digest("hex");
 
@@ -323,6 +392,10 @@ app.put("/pause", async (c) => {
   const spotifyToken = await ctx.db
     .select()
     .from(spotifyTokens)
+    .leftJoin(
+      spotifyApps,
+      eq(spotifyTokens.spotifyAppId, spotifyApps.spotifyAppId)
+    )
     .where(eq(spotifyTokens.userId, user.id))
     .limit(1)
     .then((rows) => rows[0]);
@@ -333,8 +406,8 @@ app.put("/pause", async (c) => {
   }
 
   const refreshToken = decrypt(
-    spotifyToken.refreshToken,
-    env.SPOTIFY_ENCRYPTION_KEY,
+    spotifyToken.spotify_tokens.refreshToken,
+    env.SPOTIFY_ENCRYPTION_KEY
   );
 
   // get new access token
@@ -346,14 +419,17 @@ app.put("/pause", async (c) => {
     body: new URLSearchParams({
       grant_type: "refresh_token",
       refresh_token: refreshToken,
-      client_id: env.SPOTIFY_CLIENT_ID,
-      client_secret: env.SPOTIFY_CLIENT_SECRET,
+      client_id: spotifyToken.spotify_apps.spotifyAppId,
+      client_secret: decrypt(
+        spotifyToken.spotify_apps.spotifySecret,
+        env.SPOTIFY_ENCRYPTION_KEY
+      ),
     }),
   });
 
-  const { access_token } = await newAccessToken.json<{
+  const { access_token } = (await newAccessToken.json()) as {
     access_token: string;
-  }>();
+  };
 
   const response = await fetch("https://api.spotify.com/v1/me/player/pause", {
     method: "PUT",
@@ -399,6 +475,10 @@ app.put("/play", async (c) => {
   const spotifyToken = await ctx.db
     .select()
     .from(spotifyTokens)
+    .leftJoin(
+      spotifyApps,
+      eq(spotifyTokens.spotifyAppId, spotifyApps.spotifyAppId)
+    )
     .where(eq(spotifyTokens.userId, user.id))
     .limit(1)
     .then((rows) => rows[0]);
@@ -409,8 +489,8 @@ app.put("/play", async (c) => {
   }
 
   const refreshToken = decrypt(
-    spotifyToken.refreshToken,
-    env.SPOTIFY_ENCRYPTION_KEY,
+    spotifyToken.spotify_tokens.refreshToken,
+    env.SPOTIFY_ENCRYPTION_KEY
   );
 
   // get new access token
@@ -422,14 +502,17 @@ app.put("/play", async (c) => {
     body: new URLSearchParams({
       grant_type: "refresh_token",
       refresh_token: refreshToken,
-      client_id: env.SPOTIFY_CLIENT_ID,
-      client_secret: env.SPOTIFY_CLIENT_SECRET,
+      client_id: spotifyToken.spotify_apps.spotifyAppId,
+      client_secret: decrypt(
+        spotifyToken.spotify_apps.spotifySecret,
+        env.SPOTIFY_ENCRYPTION_KEY
+      ),
     }),
   });
 
-  const { access_token } = await newAccessToken.json<{
+  const { access_token } = (await newAccessToken.json()) as {
     access_token: string;
-  }>();
+  };
 
   const response = await fetch("https://api.spotify.com/v1/me/player/play", {
     method: "PUT",
@@ -475,6 +558,10 @@ app.post("/next", async (c) => {
   const spotifyToken = await ctx.db
     .select()
     .from(spotifyTokens)
+    .leftJoin(
+      spotifyApps,
+      eq(spotifyTokens.spotifyAppId, spotifyApps.spotifyAppId)
+    )
     .where(eq(spotifyTokens.userId, user.id))
     .limit(1)
     .then((rows) => rows[0]);
@@ -485,8 +572,8 @@ app.post("/next", async (c) => {
   }
 
   const refreshToken = decrypt(
-    spotifyToken.refreshToken,
-    env.SPOTIFY_ENCRYPTION_KEY,
+    spotifyToken.spotify_tokens.refreshToken,
+    env.SPOTIFY_ENCRYPTION_KEY
   );
 
   // get new access token
@@ -498,14 +585,17 @@ app.post("/next", async (c) => {
     body: new URLSearchParams({
       grant_type: "refresh_token",
       refresh_token: refreshToken,
-      client_id: env.SPOTIFY_CLIENT_ID,
-      client_secret: env.SPOTIFY_CLIENT_SECRET,
+      client_id: spotifyToken.spotify_apps.spotifyAppId,
+      client_secret: decrypt(
+        spotifyToken.spotify_apps.spotifySecret,
+        env.SPOTIFY_ENCRYPTION_KEY
+      ),
     }),
   });
 
-  const { access_token } = await newAccessToken.json<{
+  const { access_token } = (await newAccessToken.json()) as {
     access_token: string;
-  }>();
+  };
 
   const response = await fetch("https://api.spotify.com/v1/me/player/next", {
     method: "POST",
@@ -551,6 +641,10 @@ app.post("/previous", async (c) => {
   const spotifyToken = await ctx.db
     .select()
     .from(spotifyTokens)
+    .leftJoin(
+      spotifyApps,
+      eq(spotifyTokens.spotifyAppId, spotifyApps.spotifyAppId)
+    )
     .where(eq(spotifyTokens.userId, user.id))
     .limit(1)
     .then((rows) => rows[0]);
@@ -561,8 +655,8 @@ app.post("/previous", async (c) => {
   }
 
   const refreshToken = decrypt(
-    spotifyToken.refreshToken,
-    env.SPOTIFY_ENCRYPTION_KEY,
+    spotifyToken.spotify_tokens.refreshToken,
+    env.SPOTIFY_ENCRYPTION_KEY
   );
 
   // get new access token
@@ -574,14 +668,17 @@ app.post("/previous", async (c) => {
     body: new URLSearchParams({
       grant_type: "refresh_token",
       refresh_token: refreshToken,
-      client_id: env.SPOTIFY_CLIENT_ID,
-      client_secret: env.SPOTIFY_CLIENT_SECRET,
+      client_id: spotifyToken.spotify_apps.spotifyAppId,
+      client_secret: decrypt(
+        spotifyToken.spotify_apps.spotifySecret,
+        env.SPOTIFY_ENCRYPTION_KEY
+      ),
     }),
   });
 
-  const { access_token } = await newAccessToken.json<{
+  const { access_token } = (await newAccessToken.json()) as {
     access_token: string;
-  }>();
+  };
 
   const response = await fetch(
     "https://api.spotify.com/v1/me/player/previous",
@@ -590,7 +687,7 @@ app.post("/previous", async (c) => {
       headers: {
         Authorization: `Bearer ${access_token}`,
       },
-    },
+    }
   );
 
   if (response.status === 403) {
@@ -630,6 +727,10 @@ app.put("/seek", async (c) => {
   const spotifyToken = await ctx.db
     .select()
     .from(spotifyTokens)
+    .leftJoin(
+      spotifyApps,
+      eq(spotifyTokens.spotifyAppId, spotifyApps.spotifyAppId)
+    )
     .where(eq(spotifyTokens.userId, user.id))
     .limit(1)
     .then((rows) => rows[0]);
@@ -640,8 +741,8 @@ app.put("/seek", async (c) => {
   }
 
   const refreshToken = decrypt(
-    spotifyToken.refreshToken,
-    env.SPOTIFY_ENCRYPTION_KEY,
+    spotifyToken.spotify_tokens.refreshToken,
+    env.SPOTIFY_ENCRYPTION_KEY
   );
 
   // get new access token
@@ -653,14 +754,17 @@ app.put("/seek", async (c) => {
     body: new URLSearchParams({
       grant_type: "refresh_token",
       refresh_token: refreshToken,
-      client_id: env.SPOTIFY_CLIENT_ID,
-      client_secret: env.SPOTIFY_CLIENT_SECRET,
+      client_id: spotifyToken.spotify_apps.spotifyAppId,
+      client_secret: decrypt(
+        spotifyToken.spotify_apps.spotifySecret,
+        env.SPOTIFY_ENCRYPTION_KEY
+      ),
     }),
   });
 
-  const { access_token } = await newAccessToken.json<{
+  const { access_token } = (await newAccessToken.json()) as {
     access_token: string;
-  }>();
+  };
 
   const position = c.req.query("position_ms");
   const response = await fetch(
@@ -670,7 +774,7 @@ app.put("/seek", async (c) => {
       headers: {
         Authorization: `Bearer ${access_token}`,
       },
-    },
+    }
   );
 
   if (response.status === 403) {

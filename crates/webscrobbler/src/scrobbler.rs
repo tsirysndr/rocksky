@@ -84,13 +84,19 @@ pub async fn scrobble(
     let mut rng = rand::rng();
     let random_index = rng.random_range(0..spofity_tokens.len());
     let spotify_token = &spofity_tokens[random_index];
+    let client_id = spotify_token.spotify_app_id.clone();
+
+    let client_secret = decrypt_aes_256_ctr(
+        &spotify_token.spotify_secret,
+        &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?,
+    )?;
 
     let spotify_token = decrypt_aes_256_ctr(
         &spotify_token.refresh_token,
         &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?,
     )?;
 
-    let spotify_token = refresh_token(&spotify_token).await?;
+    let spotify_token = refresh_token(&spotify_token, &client_id, &client_secret).await?;
     let spotify_client = SpotifyClient::new(&spotify_token.access_token);
 
     let query = match scrobble.data.song.parsed.artist.contains(" x ") {

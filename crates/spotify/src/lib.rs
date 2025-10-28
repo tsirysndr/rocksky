@@ -58,6 +58,8 @@ pub async fn run() -> Result<(), Error> {
         let email = user.0.clone();
         let token = user.1.clone();
         let did = user.2.clone();
+        let client_id = user.3.clone();
+        let client_secret = user.4.clone();
         let stop_flag = Arc::new(AtomicBool::new(false));
         let cache = cache.clone();
         let nc = nc.clone();
@@ -71,8 +73,16 @@ pub async fn run() -> Result<(), Error> {
         thread::spawn(move || {
             let rt = tokio::runtime::Runtime::new().unwrap();
             match rt.block_on(async {
-                watch_currently_playing(email.clone(), token, did, stop_flag, cache.clone())
-                    .await?;
+                watch_currently_playing(
+                    email.clone(),
+                    token,
+                    did,
+                    stop_flag,
+                    cache.clone(),
+                    client_id,
+                    client_secret,
+                )
+                .await?;
                 Ok::<(), Error>(())
             }) {
                 Ok(_) => {}
@@ -140,6 +150,8 @@ pub async fn run() -> Result<(), Error> {
             let email = user.0.clone();
             let token = user.1.clone();
             let did = user.2.clone();
+            let client_id = user.3.clone();
+            let client_secret = user.4.clone();
             let cache = cache.clone();
 
             thread::spawn(move || {
@@ -151,6 +163,8 @@ pub async fn run() -> Result<(), Error> {
                         did,
                         new_stop_flag,
                         cache.clone(),
+                        client_id,
+                        client_secret,
                     )
                     .await?;
                     Ok::<(), Error>(())
@@ -178,6 +192,8 @@ pub async fn run() -> Result<(), Error> {
                 let email = user.0.clone();
                 let token = user.1.clone();
                 let did = user.2.clone();
+                let client_id = user.3.clone();
+                let client_secret = user.4.clone();
                 let stop_flag = Arc::new(AtomicBool::new(false));
                 let cache = cache.clone();
                 let nc = nc.clone();
@@ -193,6 +209,8 @@ pub async fn run() -> Result<(), Error> {
                             did,
                             stop_flag,
                             cache.clone(),
+                            client_id,
+                            client_secret,
                         )
                         .await?;
                         Ok::<(), Error>(())
@@ -227,14 +245,11 @@ pub async fn run() -> Result<(), Error> {
     Ok(())
 }
 
-pub async fn refresh_token(token: &str) -> Result<AccessToken, Error> {
-    if env::var("SPOTIFY_CLIENT_ID").is_err() || env::var("SPOTIFY_CLIENT_SECRET").is_err() {
-        panic!("Please set SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET environment variables");
-    }
-
-    let client_id = env::var("SPOTIFY_CLIENT_ID")?;
-    let client_secret = env::var("SPOTIFY_CLIENT_SECRET")?;
-
+pub async fn refresh_token(
+    token: &str,
+    client_id: &str,
+    client_secret: &str,
+) -> Result<AccessToken, Error> {
     let client = Client::new();
 
     let response = client
@@ -255,6 +270,8 @@ pub async fn get_currently_playing(
     cache: Cache,
     user_id: &str,
     token: &str,
+    client_id: &str,
+    client_secret: &str,
 ) -> Result<Option<(CurrentlyPlaying, bool)>, Error> {
     if let Ok(Some(data)) = cache.get(user_id) {
         println!(
@@ -329,7 +346,7 @@ pub async fn get_currently_playing(
         return Ok(Some((data, changed)));
     }
 
-    let token = refresh_token(token).await?;
+    let token = refresh_token(token, client_id, client_secret).await?;
     let client = Client::new();
     let response = client
         .get(format!("{}/me/player/currently-playing", BASE_URL))
@@ -529,12 +546,14 @@ pub async fn get_artist(
     cache: Cache,
     artist_id: &str,
     token: &str,
+    client_id: &str,
+    client_secret: &str,
 ) -> Result<Option<Artist>, Error> {
     if let Ok(Some(data)) = cache.get(artist_id) {
         return Ok(Some(serde_json::from_str(&data)?));
     }
 
-    let token = refresh_token(token).await?;
+    let token = refresh_token(token, client_id, client_secret).await?;
     let client = Client::new();
     let response = client
         .get(&format!("{}/artists/{}", BASE_URL, artist_id))
@@ -569,12 +588,18 @@ pub async fn get_artist(
     Ok(Some(serde_json::from_str(&data)?))
 }
 
-pub async fn get_album(cache: Cache, album_id: &str, token: &str) -> Result<Option<Album>, Error> {
+pub async fn get_album(
+    cache: Cache,
+    album_id: &str,
+    token: &str,
+    client_id: &str,
+    client_secret: &str,
+) -> Result<Option<Album>, Error> {
     if let Ok(Some(data)) = cache.get(album_id) {
         return Ok(Some(serde_json::from_str(&data)?));
     }
 
-    let token = refresh_token(token).await?;
+    let token = refresh_token(token, client_id, client_secret).await?;
     let client = Client::new();
     let response = client
         .get(&format!("{}/albums/{}", BASE_URL, album_id))
@@ -613,12 +638,14 @@ pub async fn get_album_tracks(
     cache: Cache,
     album_id: &str,
     token: &str,
+    client_id: &str,
+    client_secret: &str,
 ) -> Result<AlbumTracks, Error> {
     if let Ok(Some(data)) = cache.get(&format!("{}:tracks", album_id)) {
         return Ok(serde_json::from_str(&data)?);
     }
 
-    let token = refresh_token(token).await?;
+    let token = refresh_token(token, client_id, client_secret).await?;
     let client = Client::new();
     let mut all_tracks = Vec::new();
     let mut offset = 0;
@@ -678,12 +705,13 @@ pub async fn find_spotify_users(
     pool: &Pool<Postgres>,
     offset: usize,
     limit: usize,
-) -> Result<Vec<(String, String, String, String)>, Error> {
+) -> Result<Vec<(String, String, String, String, String, String)>, Error> {
     let results: Vec<SpotifyTokenWithEmail> = sqlx::query_as(
         r#"
     SELECT * FROM spotify_tokens
     LEFT JOIN spotify_accounts ON spotify_tokens.user_id = spotify_accounts.user_id
     LEFT JOIN users ON spotify_accounts.user_id = users.xata_id
+    LEFT JOIN spotify_apps ON spotify_tokens.spotify_app_id = spotify_apps.spotify_app_id
     LIMIT $1 OFFSET $2
   "#,
     )
@@ -699,11 +727,17 @@ pub async fn find_spotify_users(
             &result.refresh_token,
             &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?,
         )?;
+        let spotify_secret = decrypt_aes_256_ctr(
+            &result.spotify_secret,
+            &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?,
+        )?;
         user_tokens.push((
             result.email.clone(),
             token,
             result.did.clone(),
             result.user_id.clone(),
+            result.spotify_app_id.clone(),
+            spotify_secret,
         ));
     }
 
@@ -713,12 +747,13 @@ pub async fn find_spotify_users(
 pub async fn find_spotify_user(
     pool: &Pool<Postgres>,
     email: &str,
-) -> Result<Option<(String, String, String)>, Error> {
+) -> Result<Option<(String, String, String, String, String)>, Error> {
     let result: Vec<SpotifyTokenWithEmail> = sqlx::query_as(
         r#"
     SELECT * FROM spotify_tokens
     LEFT JOIN spotify_accounts ON spotify_tokens.user_id = spotify_accounts.user_id
     LEFT JOIN users ON spotify_accounts.user_id = users.xata_id
+    LEFT JOIN spotify_apps ON spotify_tokens.spotify_app_id = spotify_apps.spotify_app_id
     WHERE spotify_accounts.email = $1
   "#,
     )
@@ -732,7 +767,17 @@ pub async fn find_spotify_user(
                 &result.refresh_token,
                 &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?,
             )?;
-            Ok(Some((result.email.clone(), token, result.did.clone())))
+            let spotify_secret = decrypt_aes_256_ctr(
+                &result.spotify_secret,
+                &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?,
+            )?;
+            Ok(Some((
+                result.email.clone(),
+                token,
+                result.did.clone(),
+                result.spotify_app_id.clone(),
+                spotify_secret,
+            )))
         }
         None => Ok(None),
     }
@@ -744,6 +789,8 @@ pub async fn watch_currently_playing(
     did: String,
     stop_flag: Arc<AtomicBool>,
     cache: Cache,
+    client_id: String,
+    client_secret: String,
 ) -> Result<(), Error> {
     println!(
         "{} {}",
@@ -832,8 +879,17 @@ pub async fn watch_currently_playing(
         let token = token.clone();
         let did = did.clone();
         let cache = cache.clone();
+        let client_id = client_id.clone();
+        let client_secret = client_secret.clone();
 
-        let currently_playing = get_currently_playing(cache.clone(), &spotify_email, &token).await;
+        let currently_playing = get_currently_playing(
+            cache.clone(),
+            &spotify_email,
+            &token,
+            &client_id,
+            &client_secret,
+        )
+        .await;
         let currently_playing = match currently_playing {
             Ok(currently_playing) => currently_playing,
             Err(e) => {
@@ -867,14 +923,44 @@ pub async fn watch_currently_playing(
             );
 
             if changed {
-                scrobble(cache.clone(), &spotify_email, &did, &token).await?;
+                scrobble(
+                    cache.clone(),
+                    &spotify_email,
+                    &did,
+                    &token,
+                    &client_id,
+                    &client_secret,
+                )
+                .await?;
 
                 thread::spawn(move || {
                     let rt = tokio::runtime::Runtime::new().unwrap();
                     match rt.block_on(async {
-                        get_album_tracks(cache.clone(), &data_item.album.id, &token).await?;
-                        get_album(cache.clone(), &data_item.album.id, &token).await?;
-                        update_library(cache.clone(), &spotify_email, &did, &token).await?;
+                        get_album_tracks(
+                            cache.clone(),
+                            &data_item.album.id,
+                            &token,
+                            &client_id,
+                            &client_secret,
+                        )
+                        .await?;
+                        get_album(
+                            cache.clone(),
+                            &data_item.album.id,
+                            &token,
+                            &client_id,
+                            &client_secret,
+                        )
+                        .await?;
+                        update_library(
+                            cache.clone(),
+                            &spotify_email,
+                            &did,
+                            &token,
+                            &client_id,
+                            &client_secret,
+                        )
+                        .await?;
                         Ok::<(), Error>(())
                     }) {
                         Ok(_) => {}

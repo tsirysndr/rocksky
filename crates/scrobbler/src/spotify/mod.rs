@@ -1,5 +1,3 @@
-use std::env;
-
 use anyhow::Error;
 use reqwest::Client;
 use types::AccessToken;
@@ -7,14 +5,11 @@ use types::AccessToken;
 pub mod client;
 pub mod types;
 
-pub async fn refresh_token(token: &str) -> Result<AccessToken, Error> {
-    if env::var("SPOTIFY_CLIENT_ID").is_err() || env::var("SPOTIFY_CLIENT_SECRET").is_err() {
-        panic!("Please set SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET environment variables");
-    }
-
-    let client_id = env::var("SPOTIFY_CLIENT_ID")?;
-    let client_secret = env::var("SPOTIFY_CLIENT_SECRET")?;
-
+pub async fn refresh_token(
+    token: &str,
+    client_id: &str,
+    client_secret: &str,
+) -> Result<AccessToken, Error> {
     let client = Client::new();
 
     let response = client

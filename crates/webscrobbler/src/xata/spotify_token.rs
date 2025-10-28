@@ -12,6 +12,8 @@ pub struct SpotifyToken {
     pub user_id: String,
     pub access_token: String,
     pub refresh_token: String,
+    pub spotify_app_id: String,
+    pub spotify_secret: String,
 }
 
 #[derive(Debug, Deserialize, sqlx::FromRow, Default, Clone)]
@@ -27,4 +29,6 @@ pub struct SpotifyTokenWithEmail {
     pub refresh_token: String,
     pub email: String,
     pub did: String,
+    pub spotify_app_id: String,
+    pub spotify_secret: String,
 }
