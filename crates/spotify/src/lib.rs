@@ -705,7 +705,7 @@ pub async fn find_spotify_users(
     pool: &Pool<Postgres>,
     offset: usize,
     limit: usize,
-) -> Result<Vec<(String, String, String, String, String, String)>, Error> {
+) -> Result<Vec<(String, String, String, String, String)>, Error> {
     let results: Vec<SpotifyTokenWithEmail> = sqlx::query_as(
         r#"
     SELECT * FROM spotify_tokens
@@ -735,7 +735,6 @@ pub async fn find_spotify_users(
             result.email.clone(),
             token,
             result.did.clone(),
-            result.user_id.clone(),
             result.spotify_app_id.clone(),
             spotify_secret,
         ));
