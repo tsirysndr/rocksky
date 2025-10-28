@@ -81,24 +81,29 @@ A decentralized music tracking and discovery platform built on the AT Protocol ð
    ```bash
    turbo db:migrate --filter=@rocksky/api
    ```
-6. Populate database (Optional):
+6. Setup Spotify App:
+   ```bash
+   # don't forget to set SPOTIFY_ENCRYPTION_KEY and SPOTIFY_ENCRYPTION_IV environment variables
+   bun run spotify <client_id> <client_secret>
+   ```
+7. Populate database (Optional):
    ```bash
    bun run db:pgpull
    ```
 
-7. Start Analytics API:
+8. Start Analytics API:
    ```bash
    bun run dev:analytics
    ```
-8. Start jetstream:
+9. Start jetstream:
    ```bash
    bun run dev:jetstream
    ```
-9. Start musicbrainz:
+10. Start musicbrainz:
    ```bash
    bun run mb
    ```
-10. Start the development server:
+11. Start the development server:
    ```bash
    turbo dev --filter=@rocksky/api --filter=@rocksky/web
    ```
