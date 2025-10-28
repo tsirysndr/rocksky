@@ -12,4 +12,6 @@ pub struct SpotifyAccount {
     pub email: String,
     pub user_id: String,
     pub is_beta_user: bool,
+    pub spotify_app_id: Option<String>,
+    pub spotify_secret: Option<String>,
 }

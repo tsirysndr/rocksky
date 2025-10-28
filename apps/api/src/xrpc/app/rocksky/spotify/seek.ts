@@ -23,7 +23,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({});
-      }),
+      })
     );
   server.app.rocksky.spotify.seek({
     auth: ctx.authVerifier,
@@ -72,13 +72,27 @@ const withSpotifyRefreshToken = ({
       ctx.db
         .select()
         .from(tables.spotifyTokens)
+        .leftJoin(
+          tables.spotifyApps,
+          eq(tables.spotifyTokens.spotifyAppId, tables.spotifyApps.spotifyAppId)
+        )
         .where(eq(tables.spotifyTokens.userId, user.id))
         .execute()
-        .then(([spotifyToken]) =>
-          decrypt(spotifyToken.refreshToken, env.SPOTIFY_ENCRYPTION_KEY),
-        )
-        .then((refreshToken) => ({
+        .then(([spotifyToken]) => [
+          decrypt(
+            spotifyToken.spotify_tokens.refreshToken,
+            env.SPOTIFY_ENCRYPTION_KEY
+          ),
+          decrypt(
+            spotifyToken.spotify_apps.spotifySecret,
+            env.SPOTIFY_ENCRYPTION_KEY
+          ),
+          spotifyToken.spotify_apps.spotifyAppId,
+        ])
+        .then(([refreshToken, clientSecret, clientId]) => ({
           refreshToken,
+          clientId,
+          clientSecret,
           params,
         })),
     catch: (error) =>
@@ -88,9 +102,13 @@ const withSpotifyRefreshToken = ({
 
 const withSpotifyToken = ({
   refreshToken,
+  clientSecret,
+  clientId,
   params,
 }: {
   refreshToken: string;
+  clientSecret: string;
+  clientId: string;
   params: QueryParams;
 }) => {
   return Effect.tryPromise({
@@ -103,8 +121,8 @@ const withSpotifyToken = ({
         body: new URLSearchParams({
           grant_type: "refresh_token",
           refresh_token: refreshToken,
-          client_id: env.SPOTIFY_CLIENT_ID,
-          client_secret: env.SPOTIFY_CLIENT_SECRET,
+          client_id: clientId,
+          client_secret: clientSecret,
         }),
       })
         .then((res) => res.json() as Promise<{ access_token: string }>)
@@ -132,7 +150,7 @@ const handleSeek = ({
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
-        },
+        }
       ).then((res) => res.status),
     catch: (error) => new Error(`Failed to handle next action: ${error}`),
   });

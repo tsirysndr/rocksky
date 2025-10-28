@@ -29,6 +29,20 @@
       "when": 1759819936859,
       "tag": "0003_same_rocket_racer",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1761572359505,
+      "tag": "0004_long_zzzax",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1761625200550,
+      "tag": "0005_same_hydra",
+      "breakpoints": true
     }
   ]
 }

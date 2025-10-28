@@ -11,6 +11,7 @@ pub async fn get_spotify_account(
         r#"
     SELECT * FROM spotify_accounts
     LEFT JOIN users ON spotify_accounts.user_id = users.xata_id
+    LEFT JOIN spotify_apps ON spotify_accounts.spotify_app_id = spotify_apps.spotify_app_id
     WHERE users.did = $1
   "#,
     )
