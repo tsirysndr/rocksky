@@ -14,6 +14,7 @@
 		"sync:library": "tsx ./src/scripts/sync-library.ts",
 		"avatar": "tsx ./src/scripts/avatar.ts",
 		"genres": "tsx ./src/scripts/genres.ts",
+		"spotify": "tsx ./src/scripts/spotify.ts",
 		"exp": "tsx ./src/scripts/exp.ts",
 		"pkl:eval": "pkl eval -f json",
 		"pkl:gen": "tsx ./scripts/pkl.ts",
