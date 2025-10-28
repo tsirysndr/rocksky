@@ -5,14 +5,11 @@ use reqwest::Client;
 
 use crate::types::{self, token::AccessToken};
 
-pub async fn refresh_token(token: &str) -> Result<AccessToken, Error> {
-    if env::var("SPOTIFY_CLIENT_ID").is_err() || env::var("SPOTIFY_CLIENT_SECRET").is_err() {
-        panic!("Please set SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET environment variables");
-    }
-
-    let client_id = env::var("SPOTIFY_CLIENT_ID")?;
-    let client_secret = env::var("SPOTIFY_CLIENT_SECRET")?;
-
+pub async fn refresh_token(
+    token: &str,
+    client_id: &str,
+    client_secret: &str,
+) -> Result<AccessToken, Error> {
     let client = Client::new();
 
     let response = client
@@ -29,8 +26,12 @@ pub async fn refresh_token(token: &str) -> Result<AccessToken, Error> {
     Ok(token)
 }
 
-pub async fn get_user_playlists(token: String) -> Result<Vec<types::playlist::Playlist>, Error> {
-    let token = refresh_token(&token).await?;
+pub async fn get_user_playlists(
+    token: String,
+    client_id: String,
+    client_secret: String,
+) -> Result<Vec<types::playlist::Playlist>, Error> {
+    let token = refresh_token(&token, &client_id, &client_secret).await?;
     let client = Client::new();
     let response = client
         .get("https://api.spotify.com/v1/me/playlists")
