@@ -262,7 +262,9 @@ pub async fn refresh_token(
         ])
         .send()
         .await?;
-    let token = response.json::<AccessToken>().await?;
+    let body = response.text().await?;
+    println!("Refresh token response body: {}", body);
+    let token = serde_json::from_str::<AccessToken>(&body)?;
     Ok(token)
 }
 
