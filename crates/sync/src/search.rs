@@ -8,6 +8,7 @@ pub async fn search_track(
     title: &str,
     artist: &str,
 ) -> Result<Option<(Track, Option<String>)>, Error> {
+    let artist = &artist.replace(", and ", ", ");
     let xata_track = repo::track::get_track(pool, title, artist).await?;
 
     if let Some(ref track) = xata_track
@@ -28,8 +29,15 @@ pub async fn search_track(
 
     let mut spotify = SpotifyClient::new_with_token(pool).await?;
     spotify.get_access_token().await?;
+    // build query
+    let artists = artist
+        .split(", ")
+        .map(|a| format!("artist:\"{}\"", a))
+        .collect::<Vec<_>>()
+        .join(" ");
+
     let results = spotify
-        .search_track(&format!(r#"track:"{}" artist:"{}""#, title, artist))
+        .search_track(&format!(r#"track:"{}" {}"#, title, artists))
         .await?;
 
     if results.tracks.items.len() == 0 {
@@ -42,12 +50,17 @@ pub async fn search_track(
         .artists
         .iter()
         .map(|a| a.name.to_lowercase().clone())
-        .collect::<Vec<_>>()
-        .join(", ")
-        .to_lowercase();
+        .collect::<Vec<_>>();
 
     // check if artists don't contain the scrobble artist (to avoid wrong matches)
-    if !artists.contains(&artist.to_lowercase()) {
+    if !artists.contains(
+        &artist
+            .to_lowercase()
+            .split(", ")
+            .next()
+            .unwrap()
+            .to_string(),
+    ) {
         tracing::warn!(artist = %artist, track = ?track, "Artist mismatch, skipping");
         return Ok(None);
     }

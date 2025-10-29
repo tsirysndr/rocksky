@@ -9,4 +9,6 @@ pub struct SpotifyToken {
     pub display_name: String,
     pub did: String,
     pub handle: String,
+    pub spotify_app_id: String,
+    pub spotify_secret: String,
 }

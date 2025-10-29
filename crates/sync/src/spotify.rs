@@ -21,7 +21,11 @@ pub async fn start(pool: Pool<Postgres>, _client: Client) -> Result<(), Error> {
             &user.refresh_token,
             &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?,
         )?;
-        let mut spotify = SpotifyClient::new(&refresh_token);
+        let client_secret = decrypt_aes_256_ctr(
+            &user.spotify_secret,
+            &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?,
+        )?;
+        let mut spotify = SpotifyClient::new(&refresh_token, &user.spotify_app_id, &client_secret);
         spotify.get_access_token().await?;
 
         spotify.get_user_saved_tracks(0, 20, None).await?;

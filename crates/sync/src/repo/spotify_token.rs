@@ -12,6 +12,7 @@ pub async fn list(
         "
       SELECT * FROM spotify_tokens
       LEFT JOIN users ON spotify_tokens.user_id = users.xata_id
+      LEFT JOIN spotify_apps ON spotify_tokens.spotify_app_id = spotify_apps.spotify_app_id
       OFFSET $1
       LIMIT $2
     ",
@@ -33,6 +34,7 @@ pub async fn get_spotify_tokens(
     SELECT * FROM spotify_tokens
     LEFT JOIN spotify_accounts ON spotify_tokens.user_id = spotify_accounts.user_id
     LEFT JOIN users ON spotify_accounts.user_id = users.xata_id
+    LEFT JOIN spotify_apps ON spotify_tokens.spotify_app_id = spotify_apps.spotify_app_id
     WHERE spotify_accounts.is_beta_user = true
     LIMIT $1
   "#,

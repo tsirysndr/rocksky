@@ -27,13 +27,17 @@ pub struct AccessToken {
 
 pub struct SpotifyClient {
     refresh_token: String,
+    client_id: String,
+    client_secret: String,
     access_token: Option<String>,
 }
 
 impl SpotifyClient {
-    pub fn new(refresh_token: &str) -> Self {
+    pub fn new(refresh_token: &str, client_id: &str, client_secret: &str) -> Self {
         SpotifyClient {
             refresh_token: refresh_token.to_string(),
+            client_id: client_id.to_string(),
+            client_secret: client_secret.to_string(),
             access_token: None,
         }
     }
@@ -59,29 +63,29 @@ impl SpotifyClient {
             &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?,
         )?;
 
+        let spotify_secret = decrypt_aes_256_ctr(
+            &spotify_token.spotify_secret,
+            &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?,
+        )?;
+
         Ok(SpotifyClient {
+            client_id: spotify_token.spotify_app_id.clone(),
+            client_secret: spotify_secret,
             refresh_token,
             access_token: None,
         })
     }
 
     pub async fn get_access_token(&mut self) -> Result<AccessToken, Error> {
-        if env::var("SPOTIFY_CLIENT_ID").is_err() || env::var("SPOTIFY_CLIENT_SECRET").is_err() {
-            panic!("Please set SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET environment variables");
-        }
-
-        let client_id = env::var("SPOTIFY_CLIENT_ID")?;
-        let client_secret = env::var("SPOTIFY_CLIENT_SECRET")?;
-
         let client = Client::new();
 
         let response = client
             .post("https://accounts.spotify.com/api/token")
-            .basic_auth(&client_id, Some(client_secret))
+            .basic_auth(&self.client_id, Some(&self.client_secret))
             .form(&[
                 ("grant_type", "refresh_token"),
                 ("refresh_token", &self.refresh_token),
-                ("client_id", &client_id),
+                ("client_id", &self.client_id),
             ])
             .send()
             .await?;
