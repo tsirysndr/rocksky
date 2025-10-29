@@ -6,7 +6,7 @@ const spotifyApps = pgTable("spotify_apps", {
     .primaryKey()
     .default(sql`xata_id()`),
   xataVersion: integer("xata_version"),
-  spotifyAppId: text("spotify_app_id").notNull(),
+  spotifyAppId: text("spotify_app_id").unique().notNull(),
   spotifySecret: text("spotify_secret").notNull(),
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
   updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
