@@ -9,6 +9,7 @@ pub async fn get_spotify_account(
     let results: Vec<SpotifyAccount> = sqlx::query_as(
         r#"
         SELECT * FROM spotify_accounts
+        LEFT JOIN spotify_apps ON spotify_accounts.spotify_app_id = spotify_apps.spotify_app_id
         WHERE user_id = $1
     "#,
     )

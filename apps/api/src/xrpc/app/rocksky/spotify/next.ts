@@ -23,7 +23,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({});
-      }),
+      })
     );
   server.app.rocksky.spotify.next({
     auth: ctx.authVerifier,
@@ -69,15 +69,27 @@ const withSpotifyRefreshToken = ({
       ctx.db
         .select()
         .from(tables.spotifyTokens)
+        .leftJoin(
+          tables.spotifyApps,
+          eq(tables.spotifyTokens.spotifyAppId, tables.spotifyApps.spotifyAppId)
+        )
         .where(eq(tables.spotifyTokens.userId, user.id))
         .execute()
-        .then(([spotifyToken]) =>
-          decrypt(spotifyToken.refreshToken, env.SPOTIFY_ENCRYPTION_KEY),
-        )
-        .then((refreshToken) => ({
-          user,
-          ctx,
+        .then(([spotifyToken]) => [
+          decrypt(
+            spotifyToken.spotify_tokens.refreshToken,
+            env.SPOTIFY_ENCRYPTION_KEY
+          ),
+          decrypt(
+            spotifyToken.spotify_apps.spotifySecret,
+            env.SPOTIFY_ENCRYPTION_KEY
+          ),
+          spotifyToken.spotify_apps.spotifyAppId,
+        ])
+        .then(([refreshToken, clientSecret, clientId]) => ({
           refreshToken,
+          clientId,
+          clientSecret,
         })),
     catch: (error) =>
       new Error(`Failed to retrieve Spotify Refresh token: ${error}`),
@@ -86,10 +98,12 @@ const withSpotifyRefreshToken = ({
 
 const withSpotifyToken = ({
   refreshToken,
-  ctx,
+  clientId,
+  clientSecret,
 }: {
   refreshToken: string;
-  ctx: Context;
+  clientId: string;
+  clientSecret;
 }) => {
   return Effect.tryPromise({
     try: () =>
@@ -101,8 +115,8 @@ const withSpotifyToken = ({
         body: new URLSearchParams({
           grant_type: "refresh_token",
           refresh_token: refreshToken,
-          client_id: env.SPOTIFY_CLIENT_ID,
-          client_secret: env.SPOTIFY_CLIENT_SECRET,
+          client_id: clientId,
+          client_secret: clientSecret,
         }),
       })
         .then((res) => res.json() as Promise<{ access_token: string }>)

@@ -1,5 +1,5 @@
 {
-  "id": "3bbd23a3-7cec-41cb-8105-2f242c5d5d28",
+  "id": "3294c136-37d7-4c61-8633-26d17c05a059",
   "prevId": "015093fe-a66e-4ec3-b5b6-5466c6266a39",
   "version": "7",
   "dialect": "postgresql",
@@ -2351,6 +2351,12 @@
           "notNull": true,
           "default": false
         },
+        "spotify_app_id": {
+          "name": "spotify_app_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "xata_createdat": {
           "name": "xata_createdat",
           "type": "timestamp",
@@ -2388,6 +2394,52 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.spotify_apps": {
+      "name": "spotify_apps",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "spotify_app_id": {
+          "name": "spotify_app_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.spotify_tokens": {
       "name": "spotify_tokens",
       "schema": "",
@@ -2419,6 +2471,12 @@
         },
         "user_id": {
           "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "spotify_app_id": {
+          "name": "spotify_app_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true

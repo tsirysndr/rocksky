@@ -18,6 +18,8 @@ pub async fn scrobble(
     spotify_email: &str,
     did: &str,
     refresh_token: &str,
+    client_id: &str,
+    client_secret: &str,
 ) -> Result<(), Error> {
     let cached = cache.get(spotify_email)?;
     if cached.is_none() {
@@ -40,6 +42,8 @@ pub async fn scrobble(
         cache.clone(),
         &track_item.artists.first().unwrap().id,
         &refresh_token,
+        &client_id,
+        &client_secret,
     )
     .await?;
 
@@ -98,6 +102,8 @@ pub async fn update_library(
     spotify_email: &str,
     did: &str,
     refresh_token: &str,
+    client_id: &str,
+    client_secret: &str,
 ) -> Result<(), Error> {
     let cached = cache.get(spotify_email)?;
     if cached.is_none() {
@@ -105,7 +111,14 @@ pub async fn update_library(
             "No currently playing song is cached for {}, refreshing",
             spotify_email
         );
-        get_currently_playing(cache.clone(), &spotify_email, &refresh_token).await?;
+        get_currently_playing(
+            cache.clone(),
+            &spotify_email,
+            &refresh_token,
+            client_id,
+            client_secret,
+        )
+        .await?;
     }
 
     let cached = cache.get(spotify_email)?;

@@ -53,7 +53,9 @@ pub async fn start() -> Result<(), Error> {
         let token = user.1.clone();
         let did = user.2.clone();
         let user_id = user.3.clone();
-        let playlists = get_user_playlists(token).await?;
+        let client_id = user.4.clone();
+        let client_secret = user.5.clone();
+        let playlists = get_user_playlists(token, client_id, client_secret).await?;
         save_playlists(&pool, conn.clone(), nc.clone(), playlists, &user_id, &did).await?;
     }
 

@@ -136,12 +136,14 @@ pub async fn find_spotify_users(
     pool: &Pool<Postgres>,
     offset: usize,
     limit: usize,
-) -> Result<Vec<(String, String, String, String)>, Error> {
+) -> Result<Vec<(String, String, String, String, String, String)>, Error> {
     let results: Vec<SpotifyTokenWithEmail> = sqlx::query_as(
         r#"
     SELECT * FROM spotify_tokens
     LEFT JOIN spotify_accounts ON spotify_tokens.user_id = spotify_accounts.user_id
     LEFT JOIN users ON spotify_accounts.user_id = users.xata_id
+    LEFT JOIN spotify_apps ON spotify_tokens.spotify_app_id = spotify_apps.spotify_app_id
+    WHERE spotify_accounts.is_beta_user = true
     LIMIT $1 OFFSET $2
   "#,
     )
@@ -157,11 +159,17 @@ pub async fn find_spotify_users(
             &result.refresh_token,
             &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?,
         )?;
+        let spotify_secret = decrypt_aes_256_ctr(
+            &result.spotify_secret,
+            &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?,
+        )?;
         user_tokens.push((
             result.email.clone(),
             token,
             result.did.clone(),
             result.user_id.clone(),
+            result.spotify_app_id.clone(),
+            spotify_secret.clone(),
         ));
     }
 

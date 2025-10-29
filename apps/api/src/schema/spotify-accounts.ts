@@ -9,13 +9,16 @@ import {
 import users from "./users";
 
 const spotifyAccounts = pgTable("spotify_accounts", {
-  id: text("xata_id").primaryKey().default(sql`xata_id()`),
+  id: text("xata_id")
+    .primaryKey()
+    .default(sql`xata_id()`),
   xataVersion: integer("xata_version"),
   email: text("email").notNull(),
   userId: text("user_id")
     .notNull()
     .references(() => users.id),
   isBetaUser: boolean("is_beta_user").default(false).notNull(),
+  spotifyAppId: text("spotify_app_id"),
   createdAt: timestamp("xata_createdat", { withTimezone: true })
     .defaultNow()
     .notNull(),
