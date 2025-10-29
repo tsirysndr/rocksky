@@ -1,6 +1,6 @@
 {
-  "id": "00a1ab29-7814-4dd3-8367-e1f3e793bd6c",
-  "prevId": "9b37358a-e47c-4b8f-833d-f2e5a1c44ec5",
+  "id": "876823a6-883c-4fec-9072-9ec67f483c8d",
+  "prevId": "b4f141d3-3e14-4aaf-b3f1-b3165d009289",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -2415,6 +2415,12 @@
           "notNull": true,
           "default": false
         },
+        "spotify_app_id": {
+          "name": "spotify_app_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "xata_createdat": {
           "name": "xata_createdat",
           "type": "timestamp",
@@ -2452,6 +2458,66 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.spotify_apps": {
+      "name": "spotify_apps",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "spotify_app_id": {
+          "name": "spotify_app_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "spotify_secret": {
+          "name": "spotify_secret",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "spotify_apps_spotify_app_id_unique": {
+          "name": "spotify_apps_spotify_app_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "spotify_app_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.spotify_tokens": {
       "name": "spotify_tokens",
       "schema": "",
@@ -2483,6 +2549,12 @@
         },
         "user_id": {
           "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "spotify_app_id": {
+          "name": "spotify_app_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true

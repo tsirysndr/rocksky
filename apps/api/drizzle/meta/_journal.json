@@ -43,6 +43,13 @@
       "when": 1761625200550,
       "tag": "0005_same_hydra",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1761704981354,
+      "tag": "0006_slow_bulldozer",
+      "breakpoints": true
     }
   ]
 }
