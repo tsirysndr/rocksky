@@ -28,3 +28,5 @@ await ctx.db
   ])
   .onConflictDoNothing()
   .execute();
+
+process.exit(0);
