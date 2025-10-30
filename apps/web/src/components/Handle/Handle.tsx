@@ -48,9 +48,7 @@ function Handle(props: HandleProps) {
 				did,
 			},
 		}));
-
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [profile.data, profile.isLoading, profile.isError, did]);
+	}, [profile.data, profile.isLoading, profile.isError, did, setProfiles]);
 
 	useEffect(() => {
 		if (profileStats.isLoading || profileStats.isError) {
@@ -71,8 +69,13 @@ function Handle(props: HandleProps) {
 				tracks: profileStats.data.tracks,
 			},
 		}));
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [profileStats.data, profileStats.isLoading, profileStats.isError, did]);
+	}, [
+		profileStats.data,
+		profileStats.isLoading,
+		profileStats.isError,
+		did,
+		setStats,
+	]);
 
 	return (
 		<StatefulPopover

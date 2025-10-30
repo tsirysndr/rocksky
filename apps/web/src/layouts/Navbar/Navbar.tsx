@@ -388,7 +388,13 @@ function Navbar() {
 							extension settings as a custom API URL:
 						</LabelMedium>
 						<Code className="mt-[15px]">{webscrobblerWebhook}</Code>
-						<StatefulTooltip content={tooltipContent}>
+						<StatefulTooltip content={tooltipContent}  overrides={{
+                Body: {
+                  style: {
+                    zIndex: 2,
+                  },
+                },
+              }}>
 							<Copy
 								onClick={handleCopyClick}
 								size={18}

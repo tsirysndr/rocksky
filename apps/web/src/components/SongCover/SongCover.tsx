@@ -7,8 +7,8 @@ const Cover = styled.img<{ size?: number }>`
   width: 240px;
   margin-bottom: 10px;
   ${(props) =>
-		props.size &&
-		css`
+    props.size &&
+    css`
       height: ${props.size}px;
       width: ${props.size}px;
     `}
@@ -49,25 +49,25 @@ const CoverWrapper = styled.div`
 `;
 
 export type SongCoverProps = {
-	cover: string;
-	title?: string;
-	artist?: string;
-	size?: number;
+  cover: string;
+  title?: string;
+  artist?: string;
+  size?: number;
 };
 
 function SongCover(props: SongCoverProps) {
-	const { title, artist, cover, size } = props;
-	return (
-		<CoverWrapper>
-			<Cover src={cover} size={size} />
-			<div className="mb-[13px]">
-				<SongTitle className="!text-[var(--color-text-primary)]">
-					{title}
-				</SongTitle>
-				<Artist>{artist}</Artist>
-			</div>
-		</CoverWrapper>
-	);
+  const { title, artist, cover, size } = props;
+  return (
+    <CoverWrapper>
+      <Cover src={cover} size={size} />
+      <div className="mb-[13px]">
+        <SongTitle className="!text-[var(--color-text-primary)]">
+          {title}
+        </SongTitle>
+        <Artist>{artist}</Artist>
+      </div>
+    </CoverWrapper>
+  );
 }
 
 export default SongCover;
