@@ -46,6 +46,7 @@ A decentralized music tracking and discovery platform built on the AT Protocol ð
 ## ðŸ“¦ Prerequisites
 
 - Node.js (v22 or later)
+- Deno
 - Rust
 - Go
 - Turbo
