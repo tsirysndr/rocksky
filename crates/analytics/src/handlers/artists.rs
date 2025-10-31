@@ -136,7 +136,7 @@ pub async fn get_top_artists(
                     ar.sha256 AS sha256,
                     ar.uri AS uri,
                     ar.genres AS genres,
-                    COUNT(*) AS play_count,
+                    COUNT(DISTINCT s.created_at) AS play_count,
                     COUNT(DISTINCT s.user_id) AS unique_listeners
                 FROM
                     scrobbles s

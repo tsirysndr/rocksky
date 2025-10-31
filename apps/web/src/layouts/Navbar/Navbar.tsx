@@ -86,7 +86,7 @@ function Navbar() {
     setTimeout(() => {
       setTooltipContent("Copy API Key");
     }, 1500);
-  }
+  };
 
   useEffect(() => {
     if (profile?.spotifyConnected && !!localStorage.getItem("spotify")) {
@@ -169,7 +169,7 @@ function Navbar() {
                         color="var(--color-text-muted)"
                         className="text-center !mr-[5px]"
                       >
-                        {numeral(profileStats.data.scrobbles).format("0,0")}
+                        {numeral(profileStats?.data?.scrobbles).format("0,0")}
                       </LabelMedium>
                       <LabelMedium color="var(--color-text-muted)">
                         scrobbles
@@ -363,7 +363,16 @@ function Navbar() {
               extension settings as a custom API URL:
             </LabelMedium>
             <Code className="mt-[15px]">{webscrobblerWebhook}</Code>
-            <StatefulTooltip content={tooltipContent}>
+            <StatefulTooltip
+              content={tooltipContent}
+              overrides={{
+                Body: {
+                  style: {
+                    zIndex: 2,
+                  },
+                },
+              }}
+            >
               <Copy
                 onClick={handleCopyClick}
                 size={18}

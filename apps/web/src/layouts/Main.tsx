@@ -51,229 +51,229 @@ const Link = styled.a`
 `;
 
 export type MainProps = {
-	children: React.ReactNode;
-	withRightPane?: boolean;
+  children: React.ReactNode;
+  withRightPane?: boolean;
 };
 
 function Main(props: MainProps) {
-	const { children } = props;
-	const withRightPane = props.withRightPane ?? true;
-	const [handle, setHandle] = useState("");
-	const jwt = localStorage.getItem("token");
-	const profile = useAtomValue(profileAtom);
-	const [token, setToken] = useState<string | null>(null);
-	const { did, cli } = useSearch({ strict: false });
+  const { children } = props;
+  const withRightPane = props.withRightPane ?? true;
+  const [handle, setHandle] = useState("");
+  const jwt = localStorage.getItem("token");
+  const profile = useAtomValue(profileAtom);
+  const [token, setToken] = useState<string | null>(null);
+  const { did, cli } = useSearch({ strict: false });
 
-	useEffect(() => {
-		if (did && did !== "null") {
-			localStorage.setItem("did", did);
+  useEffect(() => {
+    if (did && did !== "null") {
+      localStorage.setItem("did", did);
 
-			const fetchToken = async () => {
-				try {
-					const response = await fetch(`${API_URL}/token`, {
-						method: "GET",
-						headers: {
-							"session-did": did,
-						},
-					});
-					const data = await response.json();
-					localStorage.setItem("token", data.token);
-					setToken(data.token);
+      const fetchToken = async () => {
+        try {
+          const response = await fetch(`${API_URL}/token`, {
+            method: "GET",
+            headers: {
+              "session-did": did,
+            },
+          });
+          const data = await response.json();
+          localStorage.setItem("token", data.token);
+          setToken(data.token);
 
-					if (cli) {
-						await fetch("http://localhost:6996/token", {
-							method: "POST",
-							headers: {
-								"Content-Type": "application/json",
-							},
-							body: JSON.stringify({ token: data.token }),
-						});
-					}
+          if (cli) {
+            await fetch("http://localhost:6996/token", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ token: data.token }),
+            });
+          }
 
-					if (!jwt && data.token) {
-						window.location.href = "/";
-					}
-				} catch (e) {
-					console.error(e);
-				}
-			};
-			fetchToken();
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+          if (!jwt && data.token) {
+            window.location.href = "/";
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      };
+      fetchToken();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-	useProfile(token || localStorage.getItem("token"));
+  useProfile(token || localStorage.getItem("token"));
 
-	const onLogin = async () => {
-		if (!handle.trim()) {
-			return;
-		}
+  const onLogin = async () => {
+    if (!handle.trim()) {
+      return;
+    }
 
-		if (API_URL.includes("localhost")) {
-			window.location.href = `${API_URL}/login?handle=${handle}`;
-			return;
-		}
+    if (API_URL.includes("localhost")) {
+      window.location.href = `${API_URL}/login?handle=${handle}`;
+      return;
+    }
 
-		window.location.href = `https://rocksky.pages.dev/loading?handle=${handle}`;
-	};
+    window.location.href = `https://rocksky.pages.dev/loading?handle=${handle}`;
+  };
 
-	return (
-		<Container className="bg-[var(--color-background)] text-[var(--color-text)]">
-			<ToasterContainer
-				placement={PLACEMENT.top}
-				overrides={{
-					ToastBody: {
-						style: {
-							zIndex: 2,
-							boxShadow: "none",
-						},
-					},
-				}}
-			/>
-			<Flex style={{ width: withRightPane ? "770px" : "1090px" }}>
-				<Navbar />
-				<div
-					style={{
-						position: "relative",
-					}}
-				>
-					{children}
-				</div>
-			</Flex>
-			{withRightPane && (
-				<RightPane className="relative w-[300px]">
-					<div className="fixed top-[100px] w-[300px] bg-white p-[20px]">
-						<div className="mb-[30px]">
-							<Search />
-						</div>
-						{jwt && profile && !profile.spotifyConnected && <SpotifyLogin />}
-						{jwt && profile && <CloudDrive />}
-						{!jwt && (
-							<div className="mt-[40px]">
-								<div className="mb-[20px]">
-									<div className="mb-[15px]">
-										<LabelMedium className="!text-[var(--color-text)]">
-											Bluesky handle
-										</LabelMedium>
-									</div>
-									<Input
-										name="handle"
-										startEnhancer={
-											<div className="text-[var(--color-text-muted)] bg-[var(--color-input-background)]">
-												@
-											</div>
-										}
-										placeholder="<username>.bsky.social"
-										value={handle}
-										onChange={(e) => setHandle(e.target.value)}
-										overrides={{
-											Root: {
-												style: {
-													backgroundColor: "var(--color-input-background)",
-													borderColor: "var(--color-input-background)",
-												},
-											},
-											StartEnhancer: {
-												style: {
-													backgroundColor: "var(--color-input-background)",
-												},
-											},
-											InputContainer: {
-												style: {
-													backgroundColor: "var(--color-input-background)",
-												},
-											},
-											Input: {
-												style: {
-													color: "var(--color-text)",
-													caretColor: "var(--color-text)",
-												},
-											},
-										}}
-									/>
-								</div>
-								<Button
-									onClick={onLogin}
-									overrides={{
-										BaseButton: {
-											style: {
-												width: "100%",
-												backgroundColor: "var(--color-primary)",
-												":hover": {
-													backgroundColor: "var(--color-primary)",
-												},
-												":focus": {
-													backgroundColor: "var(--color-primary)",
-												},
-											},
-										},
-									}}
-								>
-									Sign In
-								</Button>
-								<LabelMedium className="text-center mt-[20px] !text-[var(--color-text-muted)]">
-									Don't have an account?
-								</LabelMedium>
-								<div className="text-center text-[var(--color-text-muted)] ">
-									<a
-										href="https://bsky.app"
-										className="no-underline cursor-pointer !text-[var(--color-primary)]"
-										target="_blank"
-									>
-										Sign up for Bluesky
-									</a>{" "}
-									to create one now!
-								</div>
-							</div>
-						)}
+  return (
+    <Container className="bg-[var(--color-background)] text-[var(--color-text)]">
+      <ToasterContainer
+        placement={PLACEMENT.top}
+        overrides={{
+          ToastBody: {
+            style: {
+              zIndex: 2,
+              boxShadow: "none",
+            },
+          },
+        }}
+      />
+      <Flex style={{ width: withRightPane ? "770px" : "1090px" }}>
+        <Navbar />
+        <div
+          style={{
+            position: "relative",
+          }}
+        >
+          {children}
+        </div>
+      </Flex>
+      {withRightPane && (
+        <RightPane className="relative w-[300px]">
+          <div className="fixed top-[100px] w-[300px] bg-white p-[20px]">
+            <div className="mb-[30px]">
+              <Search />
+            </div>
+            {jwt && profile && !profile.spotifyConnected && <SpotifyLogin />}
+            {jwt && profile && <CloudDrive />}
+            {!jwt && (
+              <div className="mt-[40px]">
+                <div className="mb-[20px]">
+                  <div className="mb-[15px]">
+                    <LabelMedium className="!text-[var(--color-text)]">
+                      Bluesky handle
+                    </LabelMedium>
+                  </div>
+                  <Input
+                    name="handle"
+                    startEnhancer={
+                      <div className="text-[var(--color-text-muted)] bg-[var(--color-input-background)]">
+                        @
+                      </div>
+                    }
+                    placeholder="<username>.bsky.social"
+                    value={handle}
+                    onChange={(e) => setHandle(e.target.value)}
+                    overrides={{
+                      Root: {
+                        style: {
+                          backgroundColor: "var(--color-input-background)",
+                          borderColor: "var(--color-input-background)",
+                        },
+                      },
+                      StartEnhancer: {
+                        style: {
+                          backgroundColor: "var(--color-input-background)",
+                        },
+                      },
+                      InputContainer: {
+                        style: {
+                          backgroundColor: "var(--color-input-background)",
+                        },
+                      },
+                      Input: {
+                        style: {
+                          color: "var(--color-text)",
+                          caretColor: "var(--color-text)",
+                        },
+                      },
+                    }}
+                  />
+                </div>
+                <Button
+                  onClick={onLogin}
+                  overrides={{
+                    BaseButton: {
+                      style: {
+                        width: "100%",
+                        backgroundColor: "var(--color-primary)",
+                        ":hover": {
+                          backgroundColor: "var(--color-primary)",
+                        },
+                        ":focus": {
+                          backgroundColor: "var(--color-primary)",
+                        },
+                      },
+                    },
+                  }}
+                >
+                  Sign In
+                </Button>
+                <LabelMedium className="text-center mt-[20px] !text-[var(--color-text-muted)]">
+                  Don't have an account?
+                </LabelMedium>
+                <div className="text-center text-[var(--color-text-muted)] ">
+                  <a
+                    href="https://bsky.app"
+                    className="no-underline cursor-pointer !text-[var(--color-primary)]"
+                    target="_blank"
+                  >
+                    Sign up for Bluesky
+                  </a>{" "}
+                  to create one now!
+                </div>
+              </div>
+            )}
 
-						<div className="mt-[40px]">
-							<ScrobblesAreaChart />
-						</div>
-						<ExternalLinks />
-						<div className="inline-flex mt-[40px]">
-							<Link
-								href="https://docs.rocksky.app/introduction-918639m0"
-								target="_blank"
-								className="mr-[10px] text-[var(--color-primary)]"
-							>
-								About
-							</Link>
-							<Link
-								href="https://docs.rocksky.app/faq-918661m0"
-								target="_blank"
-								className="mr-[10px] text-[var(--color-primary)]"
-							>
-								FAQ
-							</Link>
-							<Link
-								href="https://doc.rocksky.app/"
-								target="_blank"
-								className="mr-[10px] text-[var(--color-primary)]"
-							>
-								API Docs
-							</Link>
-							<Link
-								href="https://tangled.org/@rocksky.app/rocksky"
-								target="_blank"
-								className="mr-[10px] text-[var(--color-primary)]"
-							>
-								Source
-							</Link>
-							<Link
-								href="https://discord.gg/EVcBy2fVa3"
-								target="_blank"
-								className="mr-[10px] text-[var(--color-primary)]"
-							>
-								Discord
-							</Link>
-						</div>
-					</div>
-				</RightPane>
-			)}
-			<StickyPlayer />
-		</Container>
-	);
+            <div className="mt-[40px]">
+              <ScrobblesAreaChart />
+            </div>
+            <ExternalLinks />
+            <div className="inline-flex mt-[40px]">
+              <Link
+                href="https://docs.rocksky.app/introduction-918639m0"
+                target="_blank"
+                className="mr-[10px] text-[var(--color-primary)]"
+              >
+                About
+              </Link>
+              <Link
+                href="https://docs.rocksky.app/faq-918661m0"
+                target="_blank"
+                className="mr-[10px] text-[var(--color-primary)]"
+              >
+                FAQ
+              </Link>
+              <Link
+                href="https://doc.rocksky.app/"
+                target="_blank"
+                className="mr-[10px] text-[var(--color-primary)]"
+              >
+                API Docs
+              </Link>
+              <Link
+                href="https://tangled.org/@rocksky.app/rocksky"
+                target="_blank"
+                className="mr-[10px] text-[var(--color-primary)]"
+              >
+                Source
+              </Link>
+              <Link
+                href="https://discord.gg/EVcBy2fVa3"
+                target="_blank"
+                className="mr-[10px] text-[var(--color-primary)]"
+              >
+                Discord
+              </Link>
+            </div>
+          </div>
+        </RightPane>
+      )}
+      <StickyPlayer />
+    </Container>
+  );
 }
 
 export default Main;
