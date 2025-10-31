@@ -1,0 +1,9 @@
+{
+  "tasks": {
+    "cron": "deno run cron.ts"
+  },
+  "imports": {
+    "@std/assert": "jsr:@std/assert@1",
+    "chalk": "npm:chalk@^5.6.2"
+  }
+}

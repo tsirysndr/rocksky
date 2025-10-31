@@ -29,7 +29,8 @@
     "db:pgpull": "cargo run -p rockskyd --release -- pull && rm -f rocksky-analytics.ddb* rocksky-feed.ddb* && curl -o rocksky-analytics.ddb https://backup.rocksky.app/rocksky-analytics.ddb && curl -o rocksky-feed.ddb https://backup.rocksky.app/rocksky-feed.ddb",
     "mb": "cd musicbrainz && go run main.go",
     "spotify": "cd apps/api && bun run spotify",
-    "build:raichu": "cd crates/raichu && wasm-pack build --release --target web && cp -r pkg ../../apps/web/src"
+    "build:raichu": "cd crates/raichu && wasm-pack build --release --target web && cp -r pkg ../../apps/web/src",
+    "cron": "tools/cron.ts"
   },
   "workspaces": [
     "apps/api",
