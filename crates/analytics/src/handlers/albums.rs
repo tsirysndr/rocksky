@@ -259,7 +259,7 @@ pub async fn get_album_tracks(
       t.copyright_message,
       t.label,
       t.created_at,
-      COUNT(*) AS play_count,
+      COUNT(DISTINCT s.created_at) AS play_count,
       COUNT(DISTINCT s.user_id) AS unique_listeners
     FROM album_tracks at
     LEFT JOIN tracks t ON at.track_id = t.id
