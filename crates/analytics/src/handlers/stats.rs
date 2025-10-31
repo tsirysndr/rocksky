@@ -26,7 +26,7 @@ pub async fn get_stats(
     tracing::info!(user_did = ?params.user_did, "Get stats");
 
     let conn = conn.lock().unwrap();
-    let mut stmt = conn.prepare("SELECT COUNT(*) FROM scrobbles s LEFT JOIN users u ON s.user_id = u.id WHERE u.did = ? OR u.handle = ?")?;
+    let mut stmt = conn.prepare("SELECT COUNT(DISTINCT s.created_at) FROM scrobbles s LEFT JOIN users u ON s.user_id = u.id WHERE u.did = ? OR u.handle = ?")?;
     let scrobbles: i64 = stmt.query_row([&params.user_did, &params.user_did], |row| row.get(0))?;
 
     let mut stmt = conn.prepare(
