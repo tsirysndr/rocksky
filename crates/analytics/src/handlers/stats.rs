@@ -38,7 +38,7 @@ pub async fn get_stats(
                 ar.picture AS picture,
                 ar.sha256 AS sha256,
                 ar.uri AS uri,
-                COUNT(*) AS play_count,
+                COUNT(DISTINCT s.created_at) AS play_count,
                 COUNT(DISTINCT s.user_id) AS unique_listeners
             FROM
                 scrobbles s
@@ -70,7 +70,7 @@ pub async fn get_stats(
           a.year,
           a.uri,
           a.sha256,
-          COUNT(*) AS play_count,
+          COUNT(DISTINCT s.created_at) AS play_count,
           COUNT(DISTINCT s.user_id) AS unique_listeners
         FROM
             scrobbles s

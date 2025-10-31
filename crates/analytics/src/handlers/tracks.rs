@@ -284,7 +284,7 @@ pub async fn get_top_tracks(
                     t.album_uri,
                     t.sha256,
                     t.created_at,
-                    COUNT(*) AS play_count,
+                    COUNT(DISTINCT s.created_at) AS play_count,
                     COUNT(DISTINCT s.user_id) AS unique_listeners
                 FROM scrobbles s
                 LEFT JOIN tracks t ON s.track_id = t.id

@@ -135,7 +135,7 @@ pub async fn get_top_albums(
           a.year,
           a.uri,
           a.sha256,
-          COUNT(*) AS play_count,
+          COUNT(DISTINCT s.created_at) AS play_count,
           COUNT(DISTINCT s.user_id) AS unique_listeners
       FROM
           scrobbles s
