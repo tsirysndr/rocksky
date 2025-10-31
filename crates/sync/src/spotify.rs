@@ -1,12 +1,11 @@
 use std::env;
 
 use anyhow::Error;
-use redis::Client;
 use sqlx::{Pool, Postgres};
 
 use crate::{clients::spotify::SpotifyClient, crypto::decrypt_aes_256_ctr, repo};
 
-pub async fn start(pool: Pool<Postgres>, _client: Client) -> Result<(), Error> {
+pub async fn start(pool: Pool<Postgres>) -> Result<(), Error> {
     let max = env::var("MAX_USERS")
         .unwrap_or("500".into())
         .parse::<u32>()

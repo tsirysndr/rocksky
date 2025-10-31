@@ -1,21 +1,32 @@
 use std::{collections::HashMap, env};
 
 use anyhow::Error;
+use governor::{Quota, RateLimiter};
+use nonzero_ext::nonzero;
 
 use crate::types::lastfm::{recent_track::RecentTracksResponse, user::UserResponse};
 
 pub struct LastFmClient {
     session_key: String,
     user: Option<String>,
+    rate_limiter: RateLimiter<
+        governor::state::direct::NotKeyed,
+        governor::state::InMemoryState,
+        governor::clock::DefaultClock,
+    >,
 }
 
 const API_URL: &str = "https://ws.audioscrobbler.com/2.0/";
 
 impl LastFmClient {
     pub fn new(session_key: &str) -> Self {
+        let quota = Quota::per_second(nonzero!(5u32));
+        let rate_limiter = RateLimiter::direct(quota);
+
         LastFmClient {
             session_key: session_key.to_string(),
             user: None,
+            rate_limiter,
         }
     }
 
@@ -24,6 +35,8 @@ impl LastFmClient {
     }
 
     pub async fn get_user_info(&self) -> Result<UserResponse, Error> {
+        self.rate_limiter.until_ready().await;
+
         let client = reqwest::Client::new();
         let response = client
             .get(API_URL)
@@ -68,6 +81,8 @@ impl LastFmClient {
         limit: u32,
         page: u32,
     ) -> Result<serde_json::Value, Error> {
+        self.rate_limiter.until_ready().await;
+
         let client = reqwest::Client::new();
         let user = match &self.user {
             Some(u) => u.clone(),

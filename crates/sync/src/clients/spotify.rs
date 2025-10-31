@@ -1,4 +1,6 @@
 use anyhow::Error;
+use governor::{Quota, RateLimiter};
+use nonzero_ext::nonzero;
 use rand::Rng;
 use reqwest::Client;
 use serde::Deserialize;
@@ -30,15 +32,23 @@ pub struct SpotifyClient {
     client_id: String,
     client_secret: String,
     access_token: Option<String>,
+    rate_limiter: RateLimiter<
+        governor::state::direct::NotKeyed,
+        governor::state::InMemoryState,
+        governor::clock::DefaultClock,
+    >,
 }
 
 impl SpotifyClient {
     pub fn new(refresh_token: &str, client_id: &str, client_secret: &str) -> Self {
+        let quota = Quota::per_second(nonzero!(2u32));
+        let rate_limiter = RateLimiter::direct(quota);
         SpotifyClient {
             refresh_token: refresh_token.to_string(),
             client_id: client_id.to_string(),
             client_secret: client_secret.to_string(),
             access_token: None,
+            rate_limiter,
         }
     }
 
@@ -67,12 +77,15 @@ impl SpotifyClient {
             &spotify_token.spotify_secret,
             &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?,
         )?;
+        let quota = Quota::per_second(nonzero!(2u32));
+        let rate_limiter = RateLimiter::direct(quota);
 
         Ok(SpotifyClient {
             client_id: spotify_token.spotify_app_id.clone(),
             client_secret: spotify_secret,
             refresh_token,
             access_token: None,
+            rate_limiter,
         })
     }
 
@@ -101,6 +114,8 @@ impl SpotifyClient {
         limit: usize,
         market: Option<&str>,
     ) -> Result<SavedTracks, Error> {
+        self.rate_limiter.until_ready().await;
+
         let client = Client::new();
         let url = &format!("{}/me/tracks", BASE_URL);
         let mut params = vec![("offset", offset.to_string()), ("limit", limit.to_string())];
@@ -120,6 +135,8 @@ impl SpotifyClient {
     }
 
     pub async fn search_track(&self, query: &str) -> Result<SearchResponse, Error> {
+        self.rate_limiter.until_ready().await;
+
         let client = Client::new();
         let url = &format!("{}/search", BASE_URL);
         let params = [("q", query.to_string()), ("type", "track".to_string())];
@@ -144,6 +161,8 @@ impl SpotifyClient {
     }
 
     pub async fn get_artist(&self, id: &str) -> Result<Option<Artist>, Error> {
+        self.rate_limiter.until_ready().await;
+
         let url = format!("{}/artists/{}", BASE_URL, id);
         let client = reqwest::Client::new();
         let response = client
@@ -164,6 +183,8 @@ impl SpotifyClient {
     }
 
     pub async fn get_album(&self, id: &str) -> Result<Option<Album>, Error> {
+        self.rate_limiter.until_ready().await;
+
         let url = format!("{}/albums/{}", BASE_URL, id);
         let client = reqwest::Client::new();
         let response = client

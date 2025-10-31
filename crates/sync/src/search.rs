@@ -24,6 +24,7 @@ pub async fn search_track(
             artist_uri = ?track.artist_uri,
             "Xata (track)"
         );
+
         return Ok(Some((track.clone().into(), Some(track.xata_id.clone()))));
     }
 

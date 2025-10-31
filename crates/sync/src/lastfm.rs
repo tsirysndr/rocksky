@@ -1,7 +1,6 @@
 use std::env;
 
 use anyhow::Error;
-use redis::Client;
 use sqlx::{Pool, Postgres};
 
 use crate::{
@@ -14,7 +13,7 @@ use crate::{
     search::search_track,
 };
 
-pub async fn start(pool: Pool<Postgres>, _client: Client) -> Result<(), Error> {
+pub async fn start(pool: Pool<Postgres>) -> Result<(), Error> {
     let max = env::var("MAX_USERS")
         .unwrap_or("500".into())
         .parse::<u32>()
@@ -24,6 +23,7 @@ pub async fn start(pool: Pool<Postgres>, _client: Client) -> Result<(), Error> {
         .parse::<u32>()
         .unwrap_or(0);
     let users = repo::lastfm_token::list(&pool, offset, max).await?;
+
     for user in users {
         let session_key = decrypt_aes_256_ctr(
             &user.session_key,

@@ -1,6 +1,8 @@
 use std::env;
 
 use anyhow::Error;
+use governor::{Quota, RateLimiter};
+use nonzero_ext::nonzero;
 use reqwest::Client;
 use serde::Deserialize;
 
@@ -25,14 +27,22 @@ pub struct TidalClient {
     refresh_token: String,
     access_token: Option<String>,
     user_id: Option<u64>,
+    rate_limiter: RateLimiter<
+        governor::state::direct::NotKeyed,
+        governor::state::InMemoryState,
+        governor::clock::DefaultClock,
+    >,
 }
 
 impl TidalClient {
     pub fn new(refresh_token: &str) -> Self {
+        let quota = Quota::per_second(nonzero!(1u32));
+        let rate_limiter = RateLimiter::direct(quota);
         TidalClient {
             refresh_token: refresh_token.to_string(),
             access_token: None,
             user_id: None,
+            rate_limiter,
         }
     }
 
@@ -63,6 +73,9 @@ impl TidalClient {
                 "Access token is not set. Please call get_access_token() first."
             ));
         }
+
+        self.rate_limiter.until_ready().await;
+
         let client = Client::builder()
             .default_headers({
                 let mut headers = reqwest::header::HeaderMap::new();
@@ -103,6 +116,9 @@ impl TidalClient {
                 "Access token is not set. Please call get_access_token() first."
             ));
         }
+
+        self.rate_limiter.until_ready().await;
+
         let client = Client::builder()
             .default_headers({
                 let mut headers = reqwest::header::HeaderMap::new();
@@ -146,6 +162,9 @@ impl TidalClient {
                 "Access token is not set. Please call get_access_token() first."
             ));
         }
+
+        self.rate_limiter.until_ready().await;
+
         let client = Client::builder()
             .default_headers({
                 let mut headers = reqwest::header::HeaderMap::new();
@@ -190,6 +209,9 @@ impl TidalClient {
                 "Access token is not set. Please call get_access_token() first."
             ));
         }
+
+        self.rate_limiter.until_ready().await;
+
         let client = Client::builder()
             .default_headers({
                 let mut headers = reqwest::header::HeaderMap::new();
@@ -232,6 +254,9 @@ impl TidalClient {
                 "Access token is not set. Please call get_access_token() first."
             ));
         }
+
+        self.rate_limiter.until_ready().await;
+
         let client = Client::builder()
             .default_headers({
                 let mut headers = reqwest::header::HeaderMap::new();
