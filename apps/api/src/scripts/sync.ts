@@ -138,7 +138,14 @@ if (args.includes("--background")) {
 
     for (const { scrobble } of records) {
       console.log(`Syncing scrobble ${chalk.cyan(scrobble.id)} ...`);
-      await publishScrobble(ctx, scrobble.id);
+      try {
+        await publishScrobble(ctx, scrobble.id);
+      } catch (err) {
+        console.error(
+          `Failed to sync scrobble ${chalk.cyan(scrobble.id)}:`,
+          err
+        );
+      }
     }
   }
   process.exit(0);
@@ -156,11 +163,15 @@ for (const arg of args) {
     .innerJoin(users, eq(scrobbles.userId, users.id))
     .where(or(eq(users.did, arg), eq(users.handle, arg)))
     .orderBy(desc(scrobbles.createdAt))
-    .limit(process.env.SYNC_SIZE ? parseInt(process.env.SYNC_SIZE) : 20);
+    .limit(process.env.SYNC_SIZE ? parseInt(process.env.SYNC_SIZE, 10) : 20);
 
   for (const { scrobble } of records) {
     console.log(`Syncing scrobble ${chalk.cyan(scrobble.id)} ...`);
-    await publishScrobble(ctx, scrobble.id);
+    try {
+      await publishScrobble(ctx, scrobble.id);
+    } catch (err) {
+      console.error(`Failed to sync scrobble ${chalk.cyan(scrobble.id)}:`, err);
+    }
   }
   console.log(`Synced ${chalk.greenBright(records.length)} scrobbles`);
 }
