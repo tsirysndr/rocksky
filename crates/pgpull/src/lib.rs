@@ -5,7 +5,7 @@ mod xata;
 
 use anyhow::{Context, Error};
 use owo_colors::OwoColorize;
-use sqlx::{postgres::PgPoolOptions, PgPool};
+use sqlx::{PgPool, postgres::PgPoolOptions};
 
 const MAX_CONNECTIONS: u32 = 5;
 const BATCH_SIZE: usize = 1000;

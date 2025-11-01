@@ -11,7 +11,9 @@ const userPlaylists = pgTable("user_playlists", {
   playlistId: text("playlist_id")
     .notNull()
     .references(() => playlists.id),
-  createdAt: timestamp("xata_createdat").defaultNow().notNull(),
+  createdAt: timestamp("xata_createdat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
   uri: text("uri").unique(),
 });
 

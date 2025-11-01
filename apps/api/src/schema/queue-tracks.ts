@@ -14,8 +14,12 @@ const queueTracks = pgTable("queue_tracks", {
   position: integer("position").notNull(),
   fileUri: text("file_uri").notNull(),
   version: integer("xata_version").default(0).notNull(),
-  createdAt: timestamp("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
+  createdAt: timestamp("xata_createdat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("xata_updatedat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 export type SelectQueueTrack = InferSelectModel<typeof queueTracks>;

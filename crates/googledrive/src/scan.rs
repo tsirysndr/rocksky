@@ -9,7 +9,7 @@ use lofty::{
     tag::Accessor,
 };
 use owo_colors::OwoColorize;
-use reqwest::{multipart, Client};
+use reqwest::{Client, multipart};
 use sqlx::{Pool, Postgres};
 use symphonia::core::{
     formats::FormatOptions, io::MediaSourceStream, meta::MetadataOptions, probe::Hint,
@@ -17,7 +17,7 @@ use symphonia::core::{
 use tempfile::TempDir;
 
 use crate::{
-    client::{GoogleDriveClient, BASE_URL},
+    client::{BASE_URL, GoogleDriveClient},
     consts::AUDIO_EXTENSIONS,
     crypto::decrypt_aes_256_ctr,
     repo::{

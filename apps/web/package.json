@@ -35,6 +35,7 @@
     "@styled-icons/remix-fill": "^10.46.0",
     "@styled-icons/simple-icons": "^10.46.0",
     "@styled-icons/zondicons": "^10.46.0",
+    "@tabler/icons-react": "^3.35.0",
     "@tailwindcss/vite": "^4.1.4",
     "@tanstack/react-query": "^5.76.0",
     "@tanstack/react-query-devtools": "^5.76.0",

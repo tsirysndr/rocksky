@@ -22,6 +22,7 @@ import apikeys from "./apikeys/app";
 import bsky from "./bsky/app";
 import dropbox from "./dropbox/app";
 import googledrive from "./googledrive/app";
+import lastfm from "./lastfm/app";
 import { env } from "./lib/env";
 import { requestCounter, requestDuration } from "./metrics";
 import "./profiling";
@@ -33,6 +34,7 @@ import scrobbles from "./schema/scrobbles";
 import tracks from "./schema/tracks";
 import users from "./schema/users";
 import spotify from "./spotify/app";
+import tidal from "./tidal/app";
 import "./tracing";
 import usersApp from "./users/app";
 import webscrobbler from "./webscrobbler/app";
@@ -71,6 +73,10 @@ app.use(cors());
 app.route("/", bsky);
 
 app.route("/spotify", spotify);
+
+app.route("/tidal", tidal);
+
+app.route("/lastfm", lastfm);
 
 app.route("/dropbox", dropbox);
 

@@ -12,7 +12,9 @@ const lovedTracks = pgTable("loved_tracks", {
     .notNull()
     .references(() => tracks.id),
   uri: text("uri").unique(),
-  createdAt: timestamp("xata_createdat").defaultNow().notNull(),
+  createdAt: timestamp("xata_createdat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 export type SelectLovedTrack = InferSelectModel<typeof lovedTracks>;

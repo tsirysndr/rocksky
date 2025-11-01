@@ -1,13 +1,12 @@
 use std::env;
 
 use actix_web::{
-    get, post,
+    App, HttpRequest, HttpResponse, HttpServer, Responder, get, post,
     web::{self, Data},
-    App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
 use anyhow::Error;
 use owo_colors::OwoColorize;
-use s3::{creds::Credentials, Bucket, Region};
+use s3::{Bucket, Region, creds::Credentials};
 use serde_json::json;
 
 use crate::handlers::handle;

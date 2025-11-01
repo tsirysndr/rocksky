@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ScrobbleRouteImport } from './routes/scrobble'
 import { Route as LoadingRouteImport } from './routes/loading'
 import { Route as ApikeysRouteImport } from './routes/apikeys'
@@ -32,6 +33,11 @@ import { Route as DidPlaylistRkeyRouteImport } from './routes/$did.playlist.$rke
 import { Route as DidArtistRkeyRouteImport } from './routes/$did.artist.$rkey'
 import { Route as DidAlbumRkeyRouteImport } from './routes/$did.album.$rkey'
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ScrobbleRoute = ScrobbleRouteImport.update({
   id: '/scrobble',
   path: '/scrobble',
@@ -148,6 +154,7 @@ export interface FileRoutesByFullPath {
   '/apikeys': typeof ApikeysRoute
   '/loading': typeof LoadingRoute
   '/scrobble': typeof ScrobbleRoute
+  '/settings': typeof SettingsRoute
   '/dropbox/$id': typeof DropboxIdRoute
   '/googledrive/$id': typeof GoogledriveIdRoute
   '/dropbox': typeof DropboxIndexRoute
@@ -172,6 +179,7 @@ export interface FileRoutesByTo {
   '/apikeys': typeof ApikeysRoute
   '/loading': typeof LoadingRoute
   '/scrobble': typeof ScrobbleRoute
+  '/settings': typeof SettingsRoute
   '/dropbox/$id': typeof DropboxIdRoute
   '/googledrive/$id': typeof GoogledriveIdRoute
   '/dropbox': typeof DropboxIndexRoute
@@ -197,6 +205,7 @@ export interface FileRoutesById {
   '/apikeys': typeof ApikeysRoute
   '/loading': typeof LoadingRoute
   '/scrobble': typeof ScrobbleRoute
+  '/settings': typeof SettingsRoute
   '/dropbox/$id': typeof DropboxIdRoute
   '/googledrive/$id': typeof GoogledriveIdRoute
   '/dropbox/': typeof DropboxIndexRoute
@@ -223,6 +232,7 @@ export interface FileRouteTypes {
     | '/apikeys'
     | '/loading'
     | '/scrobble'
+    | '/settings'
     | '/dropbox/$id'
     | '/googledrive/$id'
     | '/dropbox'
@@ -247,6 +257,7 @@ export interface FileRouteTypes {
     | '/apikeys'
     | '/loading'
     | '/scrobble'
+    | '/settings'
     | '/dropbox/$id'
     | '/googledrive/$id'
     | '/dropbox'
@@ -271,6 +282,7 @@ export interface FileRouteTypes {
     | '/apikeys'
     | '/loading'
     | '/scrobble'
+    | '/settings'
     | '/dropbox/$id'
     | '/googledrive/$id'
     | '/dropbox/'
@@ -296,6 +308,7 @@ export interface RootRouteChildren {
   ApikeysRoute: typeof ApikeysRoute
   LoadingRoute: typeof LoadingRoute
   ScrobbleRoute: typeof ScrobbleRoute
+  SettingsRoute: typeof SettingsRoute
   DropboxIdRoute: typeof DropboxIdRoute
   GoogledriveIdRoute: typeof GoogledriveIdRoute
   DropboxIndexRoute: typeof DropboxIndexRoute
@@ -318,6 +331,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/scrobble': {
       id: '/scrobble'
       path: '/scrobble'
@@ -480,6 +500,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApikeysRoute: ApikeysRoute,
   LoadingRoute: LoadingRoute,
   ScrobbleRoute: ScrobbleRoute,
+  SettingsRoute: SettingsRoute,
   DropboxIdRoute: DropboxIdRoute,
   GoogledriveIdRoute: GoogledriveIdRoute,
   DropboxIndexRoute: DropboxIndexRoute,

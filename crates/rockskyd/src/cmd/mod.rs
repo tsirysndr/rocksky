@@ -6,5 +6,6 @@ pub mod playlist;
 pub mod pull;
 pub mod scrobbler;
 pub mod spotify;
+pub mod sync;
 pub mod tracklist;
 pub mod webscrobbler;

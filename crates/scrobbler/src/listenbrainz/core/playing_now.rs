@@ -1,5 +1,5 @@
 use anyhow::Error;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 pub async fn get_playing_now(user_name: &str) -> Result<Value, Error> {
     let playing_now = json!({

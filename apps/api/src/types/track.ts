@@ -40,6 +40,20 @@ export const trackSchema = z.object({
   deezerLink: z.string().optional().nullable(),
   timestamp: z.number().optional().nullable(),
   genres: z.array(z.string()).optional().nullable(),
+  isrc: z.string().optional().nullable(),
+  spotifyId: z.string().optional().nullable(),
+  tidalId: z.string().optional().nullable(),
+  appleMusicId: z.string().optional().nullable(),
+  deezerId: z.string().optional().nullable(),
+  spotifyArtistId: z.string().optional().nullable(),
+  tidalArtistId: z.string().optional().nullable(),
+  appleMusicArtistId: z.string().optional().nullable(),
+  deezerArtistId: z.string().optional().nullable(),
+  spotifyAlbumId: z.string().optional().nullable(),
+  tidalAlbumId: z.string().optional().nullable(),
+  appleMusicAlbumId: z.string().optional().nullable(),
+  deezerAlbumId: z.string().optional().nullable(),
+  artistRoles: z.array(z.string()).optional().nullable(),
 });
 
 export type Track = z.infer<typeof trackSchema>;

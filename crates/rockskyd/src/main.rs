@@ -37,6 +37,10 @@ fn cli() -> Command {
                 .about("Pull data from a remote PostgreSQL database to your local PostgresSQL instance")
                 .long_about("Pull data from a remote PostgreSQL database to your local PostgresSQL instance. Ensure that the SOURCE_POSTGRES_URL environment variable is set to your remote PostgreSQL connection string."),
         )
+        .subcommand(
+            Command::new("sync")
+                .about("Start Sync Service to pull data from various sources (tidal, spotify, lastfm ...)"),
+        )
 }
 
 #[tokio::main]
@@ -92,6 +96,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Some(("pull", _)) => {
             cmd::pull::pull_data().await?;
+        }
+        Some(("sync", _)) => {
+            cmd::sync::start_sync_service().await?;
         }
         _ => {
             println!("No valid subcommand was used. Use --help to see available commands.");

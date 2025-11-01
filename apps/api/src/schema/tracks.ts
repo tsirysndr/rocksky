@@ -14,7 +14,11 @@ const tracks = pgTable("tracks", {
   youtubeLink: text("youtube_link").unique(),
   spotifyLink: text("spotify_link").unique(),
   appleMusicLink: text("apple_music_link").unique(),
+  lastfmLink: text("lastfm_link").unique(),
   tidalLink: text("tidal_link").unique(),
+  tidalId: integer("tidal_id").unique(),
+  spotifyId: text("spotify_id").unique(),
+  isrc: text("isrc").unique(),
   sha256: text("sha256").unique().notNull(),
   discNumber: integer("disc_number"),
   lyrics: text("lyrics"),
@@ -25,8 +29,12 @@ const tracks = pgTable("tracks", {
   uri: text("uri").unique(),
   albumUri: text("album_uri"),
   artistUri: text("artist_uri"),
-  createdAt: timestamp("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
+  createdAt: timestamp("xata_createdat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("xata_updatedat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
   xataVersion: integer("xata_version"),
 });
 

@@ -149,10 +149,40 @@ defs = new Mapping<String, Record> {
           format = "uri"
         }
 
+        ["lastfmLink"] = new StringType {
+          type = "string"
+          description = "The Last.fm link of the song."
+          format = "uri"
+        }
+
         ["appleMusicLink"] = new StringType {
           type = "string"
           description = "The Apple Music link of the song."
           format = "uri"
+        }
+
+        ["tidalId"] = new StringType {
+          type = "string"
+          description = "The Tidal ID of the song."
+          maxLength = 256
+        }
+
+        ["spotifyId"] = new StringType {
+          type = "string"
+          description = "The Spotify ID of the song."
+          maxLength = 256
+        }
+
+        ["appleMusicId"] = new StringType {
+          type = "string"
+          description = "The Apple Music ID of the song."
+          maxLength = 256
+        }
+
+        ["isrc"] = new StringType {
+          type = "string"
+          description = "The ISRC of the song."
+          maxLength = 32
         }
 
         ["createdAt"] = new StringType {
