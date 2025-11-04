@@ -114,23 +114,19 @@ app.get("/callback", async (c) => {
         eq(spotifyAccounts.isBetaUser, true)
       )
     )
-    .limit(1)
-    .then((rows) => rows[0]);
-
-  const spotifyAppId = spotifyAccount.spotifyAppId
-    ? spotifyAccount.spotifyAppId
-    : env.SPOTIFY_CLIENT_ID;
-
-  const spotifyAppToken = await ctx.db
-    .select()
-    .from(spotifyTokens)
     .leftJoin(
       spotifyApps,
       eq(spotifyTokens.spotifyAppId, spotifyApps.spotifyAppId)
     )
-    .where(eq(spotifyTokens.spotifyAppId, spotifyAppId))
     .limit(1)
     .then((rows) => rows[0]);
+
+  const spotifyAppId = spotifyAccount.spotify_accounts.spotifyAppId
+    ? spotifyAccount.spotify_accounts.spotifyAppId
+    : env.SPOTIFY_CLIENT_ID;
+  const spotifySecret = spotifyAccount.spotify_apps.spotifySecret
+    ? spotifyAccount.spotify_apps.spotifySecret
+    : env.SPOTIFY_CLIENT_SECRET;
 
   const response = await fetch("https://accounts.spotify.com/api/token", {
     method: "POST",
@@ -142,12 +138,7 @@ app.get("/callback", async (c) => {
       code,
       redirect_uri: env.SPOTIFY_REDIRECT_URI,
       client_id: spotifyAppId,
-      client_secret: spotifyAppToken?.spotify_apps
-        ? decrypt(
-            spotifyAppToken.spotify_apps.spotifySecret,
-            env.SPOTIFY_ENCRYPTION_KEY
-          )
-        : env.SPOTIFY_CLIENT_SECRET,
+      client_secret: decrypt(spotifySecret, env.SPOTIFY_ENCRYPTION_KEY),
     }),
   });
   const {
