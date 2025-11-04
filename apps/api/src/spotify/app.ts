@@ -108,15 +108,15 @@ app.get("/callback", async (c) => {
   const spotifyAccount = await ctx.db
     .select()
     .from(spotifyAccounts)
+    .leftJoin(
+      spotifyApps,
+      eq(spotifyTokens.spotifyAppId, spotifyApps.spotifyAppId)
+    )
     .where(
       and(
         eq(spotifyAccounts.userId, user.id),
         eq(spotifyAccounts.isBetaUser, true)
       )
-    )
-    .leftJoin(
-      spotifyApps,
-      eq(spotifyTokens.spotifyAppId, spotifyApps.spotifyAppId)
     )
     .limit(1)
     .then((rows) => rows[0]);
