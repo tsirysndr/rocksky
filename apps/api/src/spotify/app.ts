@@ -110,7 +110,7 @@ app.get("/callback", async (c) => {
     .from(spotifyAccounts)
     .leftJoin(
       spotifyApps,
-      eq(spotifyTokens.spotifyAppId, spotifyApps.spotifyAppId)
+      eq(spotifyAccounts.spotifyAppId, spotifyApps.spotifyAppId)
     )
     .where(
       and(
