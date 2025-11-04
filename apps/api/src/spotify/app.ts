@@ -244,7 +244,7 @@ app.post("/join", async (c) => {
     })
     .from(spotifyApps)
     .leftJoin(spotifyAccounts, eq(spotifyApps.id, spotifyAccounts.spotifyAppId))
-    .groupBy(spotifyApps.id)
+    .groupBy(spotifyApps.id, spotifyApps.spotifyAppId)
     .having(sql`COUNT(${spotifyAccounts.id}) < 25`);
 
   const { email } = parsed.data;
