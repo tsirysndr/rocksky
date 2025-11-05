@@ -128,7 +128,7 @@ pub async fn get_scrobbles_per_day(
                 r#"
             SELECT
                 date_trunc('day', created_at) AS date,
-                COUNT(track_id) AS count
+                COUNT(DISTINCT scrobbles.created_at) AS count
             FROM
                 scrobbles
             LEFT JOIN users u ON scrobbles.user_id = u.id
@@ -155,7 +155,7 @@ pub async fn get_scrobbles_per_day(
                 r#"
             SELECT
                 date_trunc('day', created_at) AS date,
-                COUNT(track_id) AS count
+                COUNT(DISTINCT scrobbles.created_at) AS count
             FROM
                 scrobbles
             WHERE
@@ -202,7 +202,7 @@ pub async fn get_scrobbles_per_month(
             SELECT
                 EXTRACT(YEAR FROM created_at) || '-' ||
                 LPAD(EXTRACT(MONTH FROM created_at)::VARCHAR, 2, '0') AS year_month,
-                COUNT(*) AS count
+                COUNT(DISTINCT scrobbles.created_at) AS count
             FROM
                 scrobbles
             LEFT JOIN users u ON scrobbles.user_id = u.id
@@ -231,7 +231,7 @@ pub async fn get_scrobbles_per_month(
             SELECT
                 EXTRACT(YEAR FROM created_at) || '-' ||
                 LPAD(EXTRACT(MONTH FROM created_at)::VARCHAR, 2, '0') AS year_month,
-                COUNT(*) AS count
+                COUNT(DISTINCT scrobbles.created_at) AS count
             FROM
                 scrobbles
             WHERE
@@ -278,7 +278,7 @@ pub async fn get_scrobbles_per_year(
                 r#"
             SELECT
                 EXTRACT(YEAR FROM created_at) AS year,
-                COUNT(*) AS count
+                COUNT(DISTINCT scrobbles.created_at) AS count
             FROM
                 scrobbles
             LEFT JOIN users u ON scrobbles.user_id = u.id
@@ -305,7 +305,7 @@ pub async fn get_scrobbles_per_year(
                 r#"
             SELECT
                 EXTRACT(YEAR FROM created_at) AS year,
-                COUNT(*) AS count
+                COUNT(DISTINCT scrobbles.created_at) AS count
             FROM
                 scrobbles
             WHERE
