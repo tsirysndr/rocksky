@@ -154,16 +154,13 @@ pub async fn get_scrobbles_per_day(
             let mut stmt = conn.prepare(
                 r#"
             SELECT
-                date_trunc('day', created_at) AS date,
-                COUNT(DISTINCT scrobbles.created_at) AS count
-            FROM
-                scrobbles
-            WHERE
-                created_at BETWEEN ? AND ?
-            GROUP BY
-                date_trunc('day', created_at)
-            ORDER BY
-                date;
+              date_trunc('day', s.created_at) AS date,
+                COUNT(DISTINCT (u.did, s.created_at)) AS count
+            FROM scrobbles s
+            JOIN users u ON u.id = s.user_id
+            WHERE s.created_at BETWEEN ? AND ?
+            GROUP BY 1
+            ORDER BY 1;
             "#,
             )?;
             let scrobbles = stmt.query_map([start, end], |row| {
