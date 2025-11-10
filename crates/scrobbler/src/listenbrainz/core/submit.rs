@@ -97,8 +97,8 @@ pub async fn submit_listens(
     return Ok(HttpResponse::Ok().json(json!({
       "status": "ok",
       "payload": {
-        "submitted_listens": 0,
-        "ignored_listens": 1
+        "submitted_listens": 1,
+        "ignored_listens": 0
       },
     })));
 }
