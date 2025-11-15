@@ -3,7 +3,7 @@ use reqwest::Client;
 
 use crate::{auth::generate_token, cache::Cache, types::Track};
 
-const ROCKSKY_API: &str = "https://api.rocksky.app";
+pub const ROCKSKY_API: &str = "https://api.rocksky.app";
 
 pub async fn scrobble(cache: &Cache, did: &str, track: Track, timestamp: u64) -> Result<(), Error> {
     let key = format!(

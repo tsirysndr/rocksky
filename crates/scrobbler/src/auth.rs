@@ -10,6 +10,7 @@ use std::env;
 
 use crate::cache::Cache;
 use crate::repo;
+use crate::rocksky::ROCKSKY_API;
 use crate::signature::generate_signature;
 use crate::xata::user::User;
 
@@ -149,6 +150,29 @@ pub fn verify_session_id(cache: &Cache, session_id: &str) -> Result<String, Erro
     let user: User = serde_json::from_str(&user)
         .map_err(|e| Error::msg(format!("Failed to deserialize user: {}", e)))?;
     Ok(user.xata_id)
+}
+
+pub async fn validate_bearer_token(pool: &Pool<Postgres>, token: &str) -> Result<(), Error> {
+    let user = repo::user::get_user_by_apikey(pool, token).await?;
+    if user.is_none() {
+        return Err(Error::msg("Invalid token"));
+    }
+
+    let user = user.unwrap();
+    let jwt = generate_token(&user.did)?;
+    let client = reqwest::Client::new();
+
+    client
+        .get(&format!(
+            "{}/xrpc/app.rocksky.actor.getProfile",
+            ROCKSKY_API
+        ))
+        .bearer_auth(jwt)
+        .send()
+        .await?
+        .error_for_status()?;
+
+    Ok(())
 }
 
 #[cfg(test)]
