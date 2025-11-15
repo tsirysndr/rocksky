@@ -162,7 +162,7 @@ pub async fn validate_bearer_token(pool: &Pool<Postgres>, token: &str) -> Result
     let jwt = generate_token(&user.did)?;
     let client = reqwest::Client::new();
 
-    client
+    let res = client
         .get(&format!(
             "{}/xrpc/app.rocksky.actor.getProfile",
             ROCKSKY_API
@@ -171,6 +171,13 @@ pub async fn validate_bearer_token(pool: &Pool<Postgres>, token: &str) -> Result
         .send()
         .await?
         .error_for_status()?;
+
+    let profile: serde_json::Value = res.json().await?;
+    if profile.as_object().map_or(true, |obj| obj.is_empty()) {
+        return Err(Error::msg(
+            "ATProto session expired, please logout and login in https://rocksky.app and try again",
+        ));
+    }
 
     Ok(())
 }
