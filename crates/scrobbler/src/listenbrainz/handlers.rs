@@ -4,6 +4,7 @@ use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder};
 use sqlx::{Pool, Postgres};
 
 use crate::{
+    auth::validate_bearer_token,
     cache::Cache,
     listenbrainz::{
         core::{
@@ -55,6 +56,11 @@ pub async fn handle_submit_listens(
     if token.is_empty() {
         return Ok(HttpResponse::Unauthorized().finish());
     }
+
+    let pool = data.get_ref();
+    validate_bearer_token(pool, token)
+        .await
+        .map_err(|e| actix_web::error::ErrorUnauthorized(format!("Invalid token: {}", e)))?;
 
     let payload = read_payload!(payload);
     let body = String::from_utf8_lossy(&payload);
