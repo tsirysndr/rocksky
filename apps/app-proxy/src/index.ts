@@ -18,8 +18,8 @@ const metadata = {
 	scope: 'atproto transition:generic',
 	token_endpoint_auth_method: 'none',
 	application_type: 'web',
-	client_id: 'https://rocksky.app/client-metadata.json',
-	client_name: 'AT Protocol Express App',
+	client_id: 'https://rocksky.app/oauth-client-metadata.json',
+	client_name: 'Rocksky',
 	client_uri: 'https://rocksky.app',
 	dpop_bound_access_tokens: true,
 };
@@ -64,7 +64,7 @@ export default {
 
 		console.log('Request URL:', url.pathname, url.pathname === '/client-metadata.json');
 
-		if (url.pathname === '/client-metadata.json') {
+		if (url.pathname === '/oauth-client-metadata.json') {
 			return Response.json(metadata);
 		}
 

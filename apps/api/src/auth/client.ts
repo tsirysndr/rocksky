@@ -25,11 +25,11 @@ export const createClient = async (db: Database) => {
 
   return new NodeOAuthClient({
     clientMetadata: {
-      client_name: "AT Protocol Express App",
+      client_name: "Rocksky",
       client_id: publicUrl
-        ? `${url}/client-metadata.json`
+        ? `${url}/oauth-client-metadata.json`
         : `http://localhost?redirect_uri=${enc(
-            `${url}/oauth/callback`,
+            `${url}/oauth/callback`
           )}&scope=${enc("atproto transition:generic")}`,
       client_uri: url,
       redirect_uris: [`${url}/oauth/callback`],
