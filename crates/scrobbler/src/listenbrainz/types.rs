@@ -8,7 +8,7 @@ pub struct AdditionalInfo {
     pub release_name: Option<String>,
     pub musicbrainz_artist_id: Option<String>,
     pub musicbrainz_track_id: Option<String>,
-    pub duration_ms: Option<u64>,
+    pub duration_ms: Option<f64>,
     pub media_player: Option<String>,
     pub submission_client: Option<String>,
     #[serde(flatten)]
