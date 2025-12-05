@@ -1,7 +1,7 @@
 import type { BlobRef } from "@atproto/lexicon";
 import { isValidHandle } from "@atproto/syntax";
 import { ctx } from "context";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import jwt from "jsonwebtoken";
 import * as Profile from "lexicon/types/app/bsky/actor/profile";
@@ -145,7 +145,6 @@ app.get("/profile", async (c) => {
       await ctx.db
         .insert(users)
         .values({
-          id: sql`xata_id()`,
           did,
           handle,
           displayName: profile.displayName,
