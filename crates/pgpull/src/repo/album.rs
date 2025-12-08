@@ -62,7 +62,7 @@ pub async fn insert_album(pool: &Pool<Postgres>, album: &Album) -> Result<(), Er
         artist_uri,
         xata_createdat
     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-      ON CONFLICT (xata_id) DO NOTHING"#,
+      ON CONFLICT (sha256) DO NOTHING"#,
     )
     .bind(&album.xata_id)
     .bind(&album.title)
