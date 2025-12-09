@@ -26,7 +26,7 @@ services:
       - meilisearch_data:/data.ms
 
   db:
-    image: tsiry/postgres-xataid:latest
+    image: postgres:18
     ports:
       - '5433:5432'
     environment:
@@ -34,7 +34,7 @@ services:
       POSTGRES_PASSWORD: mysecretpassword
       POSTGRES_DB: rocksky
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/18/docke
     healthcheck:
       test: ['CMD', 'pg_isready']
       interval: 10s

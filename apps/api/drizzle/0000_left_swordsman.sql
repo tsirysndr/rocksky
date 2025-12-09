@@ -1,3 +1,85 @@
+CREATE SCHEMA xata_private;
+
+--
+-- Name: xid; Type: DOMAIN; Schema: xata_private; Owner: -
+--
+
+CREATE DOMAIN xata_private.xid AS character(20)
+	CONSTRAINT xid_check CHECK ((VALUE ~ '^[a-v0-9]{20}$'::text));
+
+CREATE FUNCTION xata_private.xid(_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP) RETURNS xata_private.xid
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+DECLARE
+    _t INT;
+    _m INT;
+    _p INT;
+    _c INT;
+BEGIN
+    _t := floor(EXTRACT(epoch FROM _at));
+    _m := xata_private._xid_machine_id();
+    _p := pg_backend_pid();
+    _c := nextval('xata_private.xid_serial')::INT;
+
+    return xata_private.xid_encode(ARRAY [
+            (_t >> 24) & 255, (_t >> 16) & 255, (_t >> 8) & 255 , _t & 255,
+            (_m >> 16) & 255, (_m >> 8) & 255 , _m & 255,
+            (_p >> 8) & 255, _p & 255,
+            (_c >> 16) & 255, (_c >> 8) & 255 , _c & 255
+        ]);
+END;
+$$;
+
+CREATE FUNCTION xata_private._xid_machine_id() RETURNS integer
+    LANGUAGE plpgsql IMMUTABLE
+    AS $$
+BEGIN
+    RETURN (SELECT system_identifier & 16777215 FROM pg_control_system());
+END;
+$$;
+
+CREATE FUNCTION xata_private.xid_encode(_id integer[]) RETURNS xata_private.xid
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    _encoding CHAR(1)[] = '{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v}';
+BEGIN
+    RETURN _encoding[1 + (_id[1] >> 3)]
+               || _encoding[1 + ((_id[2] >> 6) & 31 | (_id[1] << 2) & 31)]
+               || _encoding[1 + ((_id[2] >> 1) & 31)]
+               || _encoding[1 + ((_id[3] >> 4) & 31 | (_id[2] << 4) & 31)]
+               || _encoding[1 + (_id[4] >> 7 | (_id[3] << 1) & 31)]
+               || _encoding[1 + ((_id[4] >> 2) & 31)]
+               || _encoding[1 + (_id[5] >> 5 | (_id[4] << 3) & 31)]
+               || _encoding[1 + (_id[5] & 31)]
+               || _encoding[1 + (_id[6] >> 3)]
+               || _encoding[1 + ((_id[7] >> 6) & 31 | (_id[6] << 2) & 31)]
+               || _encoding[1 + ((_id[7] >> 1) & 31)]
+               || _encoding[1 + ((_id[8] >> 4) & 31 | (_id[7] << 4) & 31)]
+               || _encoding[1 + (_id[9] >> 7 | (_id[8] << 1) & 31)]
+               || _encoding[1 + ((_id[9] >> 2) & 31)]
+               || _encoding[1 + ((_id[10] >> 5) | (_id[9] << 3) & 31)]
+               || _encoding[1 + (_id[10] & 31)]
+               || _encoding[1 + (_id[11] >> 3)]
+               || _encoding[1 + ((_id[12] >> 6) & 31 | (_id[11] << 2) & 31)]
+               || _encoding[1 + ((_id[12] >> 1) & 31)]
+        || _encoding[1 + ((_id[12] << 4) & 31)];
+END;
+$$;
+
+CREATE SEQUENCE xata_private.xid_serial
+    START WITH 0
+    INCREMENT BY 1
+    MINVALUE 0
+    MAXVALUE 16777215
+    CACHE 1
+    CYCLE;
+
+CREATE OR REPLACE FUNCTION xata_id()
+RETURNS text AS $$
+SELECT 'rec_' || xata_private.xid();
+$$ LANGUAGE sql IMMUTABLE;
+
 CREATE TABLE "album_tracks" (
 	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
 	"album_id" text NOT NULL,
