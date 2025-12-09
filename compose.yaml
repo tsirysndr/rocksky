@@ -34,7 +34,7 @@ services:
       POSTGRES_PASSWORD: mysecretpassword
       POSTGRES_DB: rocksky
     volumes:
-      - pgdata:/var/lib/postgresql/18/docke
+      - pgdata:/var/lib/postgresql/18/docker
     healthcheck:
       test: ['CMD', 'pg_isready']
       interval: 10s
