@@ -6,6 +6,7 @@ import type { ScrobbleViewDetailed } from "lexicon/types/app/rocksky/scrobble/de
 import type { QueryParams } from "lexicon/types/app/rocksky/scrobble/getScrobble";
 import * as R from "ramda";
 import tables from "schema";
+import { SelectAlbum } from "schema/albums";
 import type { SelectScrobble } from "schema/scrobbles";
 import type { SelectTrack } from "schema/tracks";
 import type { SelectUser } from "schema/users";
@@ -21,7 +22,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error("Error retrieving scrobble:", err);
         return Effect.succeed({});
-      }),
+      })
     );
   server.app.rocksky.scrobble.getScrobble({
     handler: async ({ params }) => {
@@ -48,6 +49,7 @@ const retrieve = ({
         .from(tables.scrobbles)
         .leftJoin(tables.tracks, eq(tables.scrobbles.trackId, tables.tracks.id))
         .leftJoin(tables.users, eq(tables.scrobbles.userId, tables.users.id))
+        .leftJoin(tables.albums, eq(tables.scrobbles.albumId, tables.albums.id))
         .where(eq(tables.scrobbles.uri, params.uri))
         .execute()
         .then((rows) => rows[0]);
@@ -61,7 +63,7 @@ const retrieve = ({
           .from(tables.scrobbles)
           .leftJoin(
             tables.tracks,
-            eq(tables.tracks.id, tables.scrobbles.trackId),
+            eq(tables.tracks.id, tables.scrobbles.trackId)
           )
           .leftJoin(tables.users, eq(tables.scrobbles.userId, tables.users.id))
           .where(eq(tables.scrobbles.trackId, scrobble?.tracks.id))
@@ -73,7 +75,7 @@ const retrieve = ({
           .from(tables.scrobbles)
           .leftJoin(
             tables.tracks,
-            eq(tables.scrobbles.trackId, tables.tracks.id),
+            eq(tables.scrobbles.trackId, tables.tracks.id)
           )
           .where(eq(tables.scrobbles.trackId, scrobble?.tracks.id))
           .execute()
@@ -85,7 +87,7 @@ const retrieve = ({
 };
 
 const presentation = ([
-  { scrobbles, tracks, users },
+  { scrobbles, tracks, users, albums },
   listeners,
   scrobblesCount,
 ]: [Scrobble | undefined, number, number]): Effect.Effect<
@@ -93,7 +95,8 @@ const presentation = ([
   never
 > => {
   return Effect.sync(() => ({
-    ...R.omit(["albumArt", "id"], tracks),
+    ...R.omit(["albumArt", "id", "albumUri"], tracks),
+    albumUri: albums.uri,
     cover: tracks.albumArt,
     date: scrobbles.timestamp.toISOString(),
     user: users.handle,
@@ -109,4 +112,5 @@ type Scrobble = {
   scrobbles: SelectScrobble;
   tracks: SelectTrack;
   users: SelectUser;
+  albums: SelectAlbum;
 };
