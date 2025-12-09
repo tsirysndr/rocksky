@@ -49,7 +49,7 @@
 		"@pyroscope/nodejs": "^0.4.5",
 		"assert": "^2.1.0",
 		"axios": "^1.7.9",
-		"better-sqlite3": "^11.8.1",
+		"better-sqlite3": "^12.4.1",
 		"chalk": "^5.4.1",
 		"chanfana": "^2.0.2",
 		"cors": "^2.8.5",

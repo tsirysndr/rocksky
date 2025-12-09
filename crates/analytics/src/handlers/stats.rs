@@ -128,7 +128,7 @@ pub async fn get_scrobbles_per_day(
                 r#"
             SELECT
                 date_trunc('day', created_at) AS date,
-                COUNT(track_id) AS count
+                COUNT(DISTINCT scrobbles.created_at) AS count
             FROM
                 scrobbles
             LEFT JOIN users u ON scrobbles.user_id = u.id
@@ -154,16 +154,13 @@ pub async fn get_scrobbles_per_day(
             let mut stmt = conn.prepare(
                 r#"
             SELECT
-                date_trunc('day', created_at) AS date,
-                COUNT(track_id) AS count
-            FROM
-                scrobbles
-            WHERE
-                created_at BETWEEN ? AND ?
-            GROUP BY
-                date_trunc('day', created_at)
-            ORDER BY
-                date;
+              date_trunc('day', s.created_at) AS date,
+                COUNT(DISTINCT (u.did, s.created_at)) AS count
+            FROM scrobbles s
+            JOIN users u ON u.id = s.user_id
+            WHERE s.created_at BETWEEN ? AND ?
+            GROUP BY 1
+            ORDER BY 1;
             "#,
             )?;
             let scrobbles = stmt.query_map([start, end], |row| {
@@ -202,7 +199,7 @@ pub async fn get_scrobbles_per_month(
             SELECT
                 EXTRACT(YEAR FROM created_at) || '-' ||
                 LPAD(EXTRACT(MONTH FROM created_at)::VARCHAR, 2, '0') AS year_month,
-                COUNT(*) AS count
+                COUNT(DISTINCT scrobbles.created_at) AS count
             FROM
                 scrobbles
             LEFT JOIN users u ON scrobbles.user_id = u.id
@@ -231,7 +228,7 @@ pub async fn get_scrobbles_per_month(
             SELECT
                 EXTRACT(YEAR FROM created_at) || '-' ||
                 LPAD(EXTRACT(MONTH FROM created_at)::VARCHAR, 2, '0') AS year_month,
-                COUNT(*) AS count
+                COUNT(DISTINCT scrobbles.created_at) AS count
             FROM
                 scrobbles
             WHERE
@@ -278,7 +275,7 @@ pub async fn get_scrobbles_per_year(
                 r#"
             SELECT
                 EXTRACT(YEAR FROM created_at) AS year,
-                COUNT(*) AS count
+                COUNT(DISTINCT scrobbles.created_at) AS count
             FROM
                 scrobbles
             LEFT JOIN users u ON scrobbles.user_id = u.id
@@ -305,7 +302,7 @@ pub async fn get_scrobbles_per_year(
                 r#"
             SELECT
                 EXTRACT(YEAR FROM created_at) AS year,
-                COUNT(*) AS count
+                COUNT(DISTINCT scrobbles.created_at) AS count
             FROM
                 scrobbles
             WHERE
