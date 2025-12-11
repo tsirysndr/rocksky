@@ -20,7 +20,7 @@ async function getRecentPlays(agent: Agent, limit = 5) {
 async function publishPlayingNow(
   agent: Agent,
   track: MusicbrainzTrack,
-  duration: number
+  duration: number,
 ) {
   try {
     // wait 60 seconds to ensure the track is actually being played
@@ -31,20 +31,22 @@ async function publishPlayingNow(
       const record = Play.isRecord(play.value) ? play.value : null;
       return (
         (record?.recordingMbId === track.trackMBID ||
-          (record?.duration === duration &&
+          (Math.abs(record?.duration - duration) < 4 &&
             record?.trackName === track.name)) &&
         // diff in seconds less than 60
         Math.abs(
-          new Date(record.playedTime).getTime() -
-            new Date(track.timestamp).getTime()
-        ) < 60000
+            new Date(record.playedTime).getTime() -
+              new Date(track.timestamp).getTime(),
+          ) < 60000
       );
     });
     if (alreadyPlayed) {
       console.log(
-        `Track ${chalk.cyan(track.name)} by ${chalk.cyan(
-          track.artist.map((a) => a.name).join(", ")
-        )} already played recently. Skipping...`
+        `Track ${chalk.cyan(track.name)} by ${
+          chalk.cyan(
+            track.artist.map((a) => a.name).join(", "),
+          )
+        } already played recently. Skipping...`,
       );
       return;
     }
@@ -90,7 +92,7 @@ async function publishPlayingNow(
 async function publishStatus(
   agent: Agent,
   track: MusicbrainzTrack,
-  duration: number
+  duration: number,
 ) {
   const item: PlayView = {
     trackName: track.name,
