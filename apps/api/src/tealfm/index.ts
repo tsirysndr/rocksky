@@ -30,7 +30,9 @@ async function publishPlayingNow(
     const alreadyPlayed = recentPlays.some((play) => {
       const record = Play.isRecord(play.value) ? play.value : null;
       return (
-        record?.recordingMbId === track.trackMBID &&
+        (record?.recordingMbId === track.trackMBID ||
+          (Math.abs(record?.duration - duration) < 4 &&
+            record?.trackName === track.name)) &&
         // diff in seconds less than 60
         Math.abs(
           new Date(record.playedTime).getTime() -
