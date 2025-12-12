@@ -1,9 +1,8 @@
 use std::env;
 
 use actix_web::{
-    get, post,
+    App, HttpRequest, HttpResponse, HttpServer, Responder, get, post,
     web::{self, Data},
-    App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
 use anyhow::Error;
 use duckdb::Connection;

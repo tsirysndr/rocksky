@@ -1,0 +1,7 @@
+operations:
+- sql:
+    up: |+
+      COMMENT ON COLUMN public.s3_bucket.user_id IS '{"xata.link":"users"}';
+
+
+version_schema: sql_7f33cff9

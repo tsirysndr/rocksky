@@ -1,0 +1,130 @@
+ALTER TABLE "album_tracks" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "album_tracks" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "albums" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "albums" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "albums" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "albums" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "api_keys" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "api_keys" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "api_keys" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "api_keys" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "artist_albums" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "artist_albums" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "artist_albums" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "artist_albums" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "artist_tracks" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "artist_tracks" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "artist_tracks" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "artist_tracks" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "artists" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "artists" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "artists" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "artists" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "dropbox_accounts" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "dropbox_accounts" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "dropbox_accounts" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "dropbox_accounts" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "dropbox_directories" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "dropbox_directories" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "dropbox_directories" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "dropbox_directories" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "dropbox_paths" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "dropbox_paths" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "dropbox_paths" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "dropbox_paths" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "dropbox_tokens" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "dropbox_tokens" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "dropbox_tokens" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "dropbox_tokens" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "dropbox" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "dropbox" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "dropbox" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "dropbox" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "google_drive_accounts" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "google_drive_accounts" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "google_drive_accounts" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "google_drive_accounts" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "google_drive_directories" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "google_drive_directories" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "google_drive_directories" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "google_drive_directories" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "google_drive_paths" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "google_drive_paths" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "google_drive_paths" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "google_drive_paths" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "google_drive_tokens" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "google_drive_tokens" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "google_drive_tokens" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "google_drive_tokens" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "google_drive" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "google_drive" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "google_drive" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "google_drive" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "loved_tracks" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "loved_tracks" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "playlist_tracks" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "playlist_tracks" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "playlists" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "playlists" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "playlists" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "playlists" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "profile_shouts" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "profile_shouts" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "queue_tracks" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "queue_tracks" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "queue_tracks" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "queue_tracks" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "scrobbles" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "scrobbles" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "scrobbles" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "scrobbles" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "shout_likes" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "shout_likes" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "shout_reports" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "shout_reports" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "shouts" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "shouts" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "shouts" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "shouts" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "spotify_accounts" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "spotify_accounts" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "spotify_accounts" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "spotify_accounts" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "spotify_tokens" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "spotify_tokens" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "spotify_tokens" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "spotify_tokens" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "tidal_accounts" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "tidal_accounts" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "tidal_accounts" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "tidal_accounts" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "tidal_tokens" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "tidal_tokens" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "tidal_tokens" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "tidal_tokens" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "tracks" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "tracks" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "tracks" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "tracks" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "user_albums" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "user_albums" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "user_albums" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "user_albums" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "user_artists" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "user_artists" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "user_artists" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "user_artists" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "user_playlists" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "user_playlists" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "user_tracks" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "user_tracks" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "user_tracks" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "user_tracks" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "users" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "users" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "users" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "users" ALTER COLUMN "xata_updatedat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "webscrobblers" ALTER COLUMN "xata_createdat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "webscrobblers" ALTER COLUMN "xata_createdat" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "webscrobblers" ALTER COLUMN "xata_updatedat" SET DATA TYPE timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "webscrobblers" ALTER COLUMN "xata_updatedat" SET DEFAULT now();

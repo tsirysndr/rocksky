@@ -1,14 +1,13 @@
 use std::{env, sync::Arc};
 
 use actix_web::{
-    get, post,
+    App, HttpRequest, HttpResponse, HttpServer, Responder, get, post,
     web::{self, Data},
-    App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
 use anyhow::Error;
 use owo_colors::OwoColorize;
 use serde_json::json;
-use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
+use sqlx::{Pool, Postgres, postgres::PgPoolOptions};
 
 use crate::handlers::handle;
 

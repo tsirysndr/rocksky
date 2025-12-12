@@ -1,0 +1,6 @@
+operations:
+- sql:
+    up: |-
+      ALTER TABLE users
+        ALTER COLUMN xata_id SET DEFAULT 'rec_' || xata_private.xid()
+version_schema: sql_fba47f55

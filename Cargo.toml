@@ -4,7 +4,7 @@ resolver = "2"
 
 [workspace.package]
 authors = ["Tsiry Sandratraina <tsiry.sndr@rocksky.app"]
-edition = "2021"
+edition = "2024"
 license = "MPL-2.0"
 repository = "https://github.com/tsirysndr/rocksky"
 

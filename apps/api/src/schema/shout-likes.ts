@@ -11,7 +11,9 @@ const shoutLikes = pgTable("shout_likes", {
   shoutId: text("shout_id")
     .notNull()
     .references(() => shouts.id),
-  createdAt: timestamp("xata_createdat").defaultNow().notNull(),
+  createdAt: timestamp("xata_createdat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
   uri: text("uri").unique().notNull(),
 });
 

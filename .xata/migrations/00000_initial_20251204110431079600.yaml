@@ -1,0 +1,7 @@
+operations:
+- sql:
+    up: |+
+      COMMENT ON COLUMN public.sftp_path.track_id IS '{"xata.link":"tracks"}';
+
+
+version_schema: sql_f1e0b3d5

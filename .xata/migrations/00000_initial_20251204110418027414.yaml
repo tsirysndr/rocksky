@@ -1,0 +1,7 @@
+operations:
+- sql:
+    up: |+
+      COMMENT ON COLUMN public.dropbox.dropbox_token_id IS '{"xata.link":"dropbox_tokens"}';
+
+
+version_schema: sql_c753e7bb

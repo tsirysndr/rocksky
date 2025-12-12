@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     env,
-    sync::{atomic::AtomicBool, Arc, Mutex},
+    sync::{Arc, Mutex, atomic::AtomicBool},
     thread,
 };
 
@@ -9,7 +9,7 @@ use anyhow::Error;
 use async_nats::connect;
 use owo_colors::OwoColorize;
 use reqwest::Client;
-use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
+use sqlx::{Pool, Postgres, postgres::PgPoolOptions};
 use tokio_stream::StreamExt;
 
 use crate::{

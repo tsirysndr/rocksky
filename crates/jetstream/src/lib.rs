@@ -3,7 +3,7 @@ use std::{env, sync::Arc};
 use subscriber::ScrobbleSubscriber;
 use tokio::sync::Mutex;
 
-use crate::webhook_worker::{start_worker, AppState};
+use crate::webhook_worker::{AppState, start_worker};
 
 pub mod profile;
 pub mod repo;

@@ -50,23 +50,29 @@ mod tests {
         let profile = did_to_profile(did).await?;
 
         assert_eq!(profile.r#type, "app.bsky.actor.profile");
-        assert!(profile
-            .display_name
-            .map(|s| s.starts_with("Tsiry Sandratraina"))
-            .unwrap_or(false));
-        assert!(profile
-            .handle
-            .map(|s| s == "tsiry-sandratraina.com")
-            .unwrap_or(false));
+        assert!(
+            profile
+                .display_name
+                .map(|s| s.starts_with("Tsiry Sandratraina"))
+                .unwrap_or(false)
+        );
+        assert!(
+            profile
+                .handle
+                .map(|s| s == "tsiry-sandratraina.com")
+                .unwrap_or(false)
+        );
 
         let did = "did:plc:fgvx5xqinqoqgpfhito5er3s";
         let profile = did_to_profile(did).await?;
 
         assert_eq!(profile.r#type, "app.bsky.actor.profile");
-        assert!(profile
-            .display_name
-            .map(|s| s.starts_with("Lixtrix"))
-            .unwrap_or(false));
+        assert!(
+            profile
+                .display_name
+                .map(|s| s.starts_with("Lixtrix"))
+                .unwrap_or(false)
+        );
         assert!(profile.handle.map(|s| s == "lixtrix.art").unwrap_or(false));
 
         let did = "did:plc:d5jvs7uo4z6lw63zzreukgt4";

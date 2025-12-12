@@ -8,6 +8,8 @@ export const profileAtom = atom<{
     isBeta: boolean;
   };
   spotifyConnected: boolean;
+  tidalConnected: boolean;
+  lastfmConnected: boolean;
   googledriveUser?: {
     isBeta: boolean;
   };

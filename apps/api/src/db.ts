@@ -131,7 +131,7 @@ export const updateExpiresAt = async (db: Database) => {
 
 export const refreshSessionsAboutToExpire = async (
   db: Database,
-  ctx: Context
+  ctx: Context,
 ) => {
   const now = new Date().toISOString();
 
@@ -147,7 +147,7 @@ export const refreshSessionsAboutToExpire = async (
     console.log(
       "Session about to expire:",
       chalk.cyan(session.key),
-      session.expiresAt
+      session.expiresAt,
     );
     const agent = await createAgent(ctx.oauthClient, session.key);
     // Trigger a token refresh by fetching preferences
@@ -156,7 +156,7 @@ export const refreshSessionsAboutToExpire = async (
   }
 
   console.log(
-    `Found ${chalk.yellowBright(sessions.length)} sessions to refresh`
+    `Found ${chalk.yellowBright(sessions.length)} sessions to refresh`,
   );
 };
 
