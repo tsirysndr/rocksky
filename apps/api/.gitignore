@@ -177,3 +177,6 @@ credentials.json
 *.ddb
 *.ddb.wal
 *.bak
+
+*.sqlite-shm
+*.sqlite-wal
