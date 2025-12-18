@@ -75,6 +75,7 @@ const hydrate = ({
       return {
         data: data.map((artist) => ({
           ...artist,
+          genres: artists.find((a) => a.id === artist.id)?.genres || [],
           picture: artists.find((a) => a.id === artist.id)?.picture,
         })),
       };
