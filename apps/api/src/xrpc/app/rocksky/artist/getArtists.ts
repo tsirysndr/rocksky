@@ -4,6 +4,8 @@ import type { Server } from "lexicon";
 import type { ArtistViewBasic } from "lexicon/types/app/rocksky/artist/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/artist/getArtists";
 import { deepCamelCaseKeys } from "lib";
+import tables from "schema";
+import { inArray } from "drizzle-orm";
 
 export default function (server: Server, ctx: Context) {
   const getArtists = (params) =>
@@ -35,16 +37,48 @@ const retrieve = ({
 }: {
   params: QueryParams;
   ctx: Context;
-}): Effect.Effect<{ data: Artist[] }, Error> => {
+}): Effect.Effect<{ data: Artist[]; ctx: Context }, Error> => {
   return Effect.tryPromise({
-    try: () =>
-      ctx.analytics.post("library.getArtists", {
+    try: async () => {
+      const response = await ctx.analytics.post("library.getArtists", {
         pagination: {
           skip: params.offset || 0,
           take: params.limit || 100,
         },
-      }),
+      });
+      return { data: response.data, ctx };
+    },
     catch: (error) => new Error(`Failed to retrieve artists: ${error}`),
+  });
+};
+
+const hydrate = ({
+  data,
+  ctx,
+}: {
+  data: Artist[];
+  ctx: Context;
+}): Effect.Effect<{ data: Artist[] }, Error> => {
+  return Effect.tryPromise({
+    try: async () => {
+      const artists = await ctx.db
+        .select()
+        .from(tables.artists)
+        .where(
+          inArray(
+            tables.artists.id,
+            data.map((artist) => artist.id),
+          ),
+        )
+        .execute();
+      return {
+        data: data.map((artist) => ({
+          ...artist,
+          picture: artists.find((a) => a.id === artist.id)?.picture,
+        })),
+      };
+    },
+    catch: (error) => new Error(`Failed to hydrate artists: ${error}`),
   });
 };
 
