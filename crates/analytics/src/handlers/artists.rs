@@ -147,7 +147,7 @@ pub async fn get_artists(
             youtube_link: row.get(10)?,
             apple_music_link: row.get(11)?,
             uri: row.get(12)?,
-            genres: row.get(13)?,
+            genres: vec![],
             play_count: row.get(14)?,
             unique_listeners: row.get(15)?,
         })
