@@ -10,7 +10,7 @@ use crate::types::{
 };
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::Error;
-use duckdb::{params_from_iter, Connection};
+use duckdb::{params_from_iter, types::Value, Connection};
 use tokio_stream::StreamExt;
 
 use crate::read_payload;
@@ -147,7 +147,7 @@ pub async fn get_artists(
             youtube_link: row.get(10)?,
             apple_music_link: row.get(11)?,
             uri: row.get(12)?,
-            genres: vec![],
+            genres: extract_genres_from_value(row.get(13)?),
             play_count: row.get(14)?,
             unique_listeners: row.get(15)?,
         })
