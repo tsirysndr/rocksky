@@ -1267,6 +1267,42 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyAlbumGetAlbumTracks: {
+    lexicon: 1,
+    id: "app.rocksky.album.getAlbumTracks",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get tracks for an album",
+        parameters: {
+          type: "params",
+          required: ["uri"],
+          properties: {
+            uri: {
+              type: "string",
+              description: "The URI of the album to retrieve tracks from",
+              format: "at-uri",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {
+              tracks: {
+                type: "array",
+                items: {
+                  type: "ref",
+                  ref: "lex:app.rocksky.song.defs#songViewBasic",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
   AppRockskyAlbumGetAlbums: {
     lexicon: 1,
     id: "app.rocksky.album.getAlbums",
@@ -1299,42 +1335,6 @@ export const schemaDict = {
                 items: {
                   type: "ref",
                   ref: "lex:app.rocksky.album.defs#albumViewBasic",
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  },
-  AppRockskyAlbumGetAlbumTracks: {
-    lexicon: 1,
-    id: "app.rocksky.album.getAlbumTracks",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get tracks for an album",
-        parameters: {
-          type: "params",
-          required: ["uri"],
-          properties: {
-            uri: {
-              type: "string",
-              description: "The URI of the album to retrieve tracks from",
-              format: "at-uri",
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {
-              tracks: {
-                type: "array",
-                items: {
-                  type: "ref",
-                  ref: "lex:app.rocksky.song.defs#songViewBasic",
                 },
               },
             },
@@ -1737,6 +1737,34 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyArtistGetArtist: {
+    lexicon: 1,
+    id: "app.rocksky.artist.getArtist",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get artist details",
+        parameters: {
+          type: "params",
+          required: ["uri"],
+          properties: {
+            uri: {
+              type: "string",
+              description: "The URI of the artist to retrieve details from",
+              format: "at-uri",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "ref",
+            ref: "lex:app.rocksky.artist.defs#artistViewDetailed",
+          },
+        },
+      },
+    },
+  },
   AppRockskyArtistGetArtistAlbums: {
     lexicon: 1,
     id: "app.rocksky.artist.getArtistAlbums",
@@ -1768,34 +1796,6 @@ export const schemaDict = {
                 },
               },
             },
-          },
-        },
-      },
-    },
-  },
-  AppRockskyArtistGetArtist: {
-    lexicon: 1,
-    id: "app.rocksky.artist.getArtist",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get artist details",
-        parameters: {
-          type: "params",
-          required: ["uri"],
-          properties: {
-            uri: {
-              type: "string",
-              description: "The URI of the artist to retrieve details from",
-              format: "at-uri",
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "ref",
-            ref: "lex:app.rocksky.artist.defs#artistViewDetailed",
           },
         },
       },
@@ -1845,46 +1845,6 @@ export const schemaDict = {
       },
     },
   },
-  AppRockskyArtistGetArtists: {
-    lexicon: 1,
-    id: "app.rocksky.artist.getArtists",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get artists",
-        parameters: {
-          type: "params",
-          properties: {
-            limit: {
-              type: "integer",
-              description: "The maximum number of artists to return",
-              minimum: 1,
-            },
-            offset: {
-              type: "integer",
-              description: "The offset for pagination",
-              minimum: 0,
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {
-              artists: {
-                type: "array",
-                items: {
-                  type: "ref",
-                  ref: "lex:app.rocksky.artist.defs#artistViewBasic",
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  },
   AppRockskyArtistGetArtistTracks: {
     lexicon: 1,
     id: "app.rocksky.artist.getArtistTracks",
@@ -1922,6 +1882,50 @@ export const schemaDict = {
                 items: {
                   type: "ref",
                   ref: "lex:app.rocksky.song.defs#songViewBasic",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyArtistGetArtists: {
+    lexicon: 1,
+    id: "app.rocksky.artist.getArtists",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get artists",
+        parameters: {
+          type: "params",
+          properties: {
+            limit: {
+              type: "integer",
+              description: "The maximum number of artists to return",
+              minimum: 1,
+            },
+            offset: {
+              type: "integer",
+              description: "The offset for pagination",
+              minimum: 0,
+            },
+            names: {
+              type: "string",
+              description: "The names of the artists to return",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {
+              artists: {
+                type: "array",
+                items: {
+                  type: "ref",
+                  ref: "lex:app.rocksky.artist.defs#artistViewBasic",
                 },
               },
             },
@@ -2766,6 +2770,24 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyPlayerPlay: {
+    lexicon: 1,
+    id: "app.rocksky.player.play",
+    defs: {
+      main: {
+        type: "procedure",
+        description: "Resume playback of the currently paused track",
+        parameters: {
+          type: "params",
+          properties: {
+            playerId: {
+              type: "string",
+            },
+          },
+        },
+      },
+    },
+  },
   AppRockskyPlayerPlayDirectory: {
     lexicon: 1,
     id: "app.rocksky.player.playDirectory",
@@ -2812,24 +2834,6 @@ export const schemaDict = {
               type: "string",
             },
             fileId: {
-              type: "string",
-            },
-          },
-        },
-      },
-    },
-  },
-  AppRockskyPlayerPlay: {
-    lexicon: 1,
-    id: "app.rocksky.player.play",
-    defs: {
-      main: {
-        type: "procedure",
-        description: "Resume playback of the currently paused track",
-        parameters: {
-          type: "params",
-          properties: {
-            playerId: {
               type: "string",
             },
           },
@@ -5058,8 +5062,8 @@ export const ids = {
   AppRockskyAlbum: "app.rocksky.album",
   AppRockskyAlbumDefs: "app.rocksky.album.defs",
   AppRockskyAlbumGetAlbum: "app.rocksky.album.getAlbum",
-  AppRockskyAlbumGetAlbums: "app.rocksky.album.getAlbums",
   AppRockskyAlbumGetAlbumTracks: "app.rocksky.album.getAlbumTracks",
+  AppRockskyAlbumGetAlbums: "app.rocksky.album.getAlbums",
   AppRockskyApikeyCreateApikey: "app.rocksky.apikey.createApikey",
   AppRockskyApikeyDefs: "app.rocksky.apikey.defs",
   AppRockskyApikeysDefs: "app.rocksky.apikeys.defs",
@@ -5068,11 +5072,11 @@ export const ids = {
   AppRockskyApikeyUpdateApikey: "app.rocksky.apikey.updateApikey",
   AppRockskyArtist: "app.rocksky.artist",
   AppRockskyArtistDefs: "app.rocksky.artist.defs",
-  AppRockskyArtistGetArtistAlbums: "app.rocksky.artist.getArtistAlbums",
   AppRockskyArtistGetArtist: "app.rocksky.artist.getArtist",
+  AppRockskyArtistGetArtistAlbums: "app.rocksky.artist.getArtistAlbums",
   AppRockskyArtistGetArtistListeners: "app.rocksky.artist.getArtistListeners",
-  AppRockskyArtistGetArtists: "app.rocksky.artist.getArtists",
   AppRockskyArtistGetArtistTracks: "app.rocksky.artist.getArtistTracks",
+  AppRockskyArtistGetArtists: "app.rocksky.artist.getArtists",
   AppRockskyChartsDefs: "app.rocksky.charts.defs",
   AppRockskyChartsGetScrobblesChart: "app.rocksky.charts.getScrobblesChart",
   AppRockskyDropboxDefs: "app.rocksky.dropbox.defs",
@@ -5099,9 +5103,9 @@ export const ids = {
   AppRockskyPlayerGetPlaybackQueue: "app.rocksky.player.getPlaybackQueue",
   AppRockskyPlayerNext: "app.rocksky.player.next",
   AppRockskyPlayerPause: "app.rocksky.player.pause",
+  AppRockskyPlayerPlay: "app.rocksky.player.play",
   AppRockskyPlayerPlayDirectory: "app.rocksky.player.playDirectory",
   AppRockskyPlayerPlayFile: "app.rocksky.player.playFile",
-  AppRockskyPlayerPlay: "app.rocksky.player.play",
   AppRockskyPlayerPrevious: "app.rocksky.player.previous",
   AppRockskyPlayerSeek: "app.rocksky.player.seek",
   AppRockskyPlaylistCreatePlaylist: "app.rocksky.playlist.createPlaylist",

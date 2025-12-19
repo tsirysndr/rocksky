@@ -47,7 +47,7 @@ export class SessionStore implements NodeSavedSessionStore {
       .insertInto("auth_session")
       .values({ key, session, expiresAt: val.tokenSet.expires_at })
       .onConflict((oc) =>
-        oc.doUpdateSet({ session, expiresAt: val.tokenSet.expires_at })
+        oc.doUpdateSet({ session, expiresAt: val.tokenSet.expires_at }),
       )
       .execute();
   }

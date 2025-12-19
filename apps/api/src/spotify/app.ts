@@ -24,7 +24,7 @@ app.use(
     limit: 10, // max Spotify API calls
     window: 15, // per 10 seconds
     keyPrefix: "spotify-ratelimit",
-  })
+  }),
 );
 
 app.get("/login", async (c) => {
@@ -58,13 +58,13 @@ app.get("/login", async (c) => {
     .leftJoin(users, eq(spotifyAccounts.userId, users.id))
     .leftJoin(
       spotifyApps,
-      eq(spotifyAccounts.spotifyAppId, spotifyApps.spotifyAppId)
+      eq(spotifyAccounts.spotifyAppId, spotifyApps.spotifyAppId),
     )
     .where(
       and(
         eq(spotifyAccounts.userId, user.id),
-        eq(spotifyAccounts.isBetaUser, true)
-      )
+        eq(spotifyAccounts.isBetaUser, true),
+      ),
     )
     .limit(1)
     .then((rows) => rows[0]);
@@ -74,7 +74,7 @@ app.get("/login", async (c) => {
   const redirectUrl = `https://accounts.spotify.com/en/authorize?client_id=${spotifyAccount?.spotify_apps?.spotifyAppId}&response_type=code&redirect_uri=${env.SPOTIFY_REDIRECT_URI}&scope=user-read-private%20user-read-email%20user-read-playback-state%20user-read-currently-playing%20user-modify-playback-state%20playlist-modify-public%20playlist-modify-private%20playlist-read-private%20playlist-read-collaborative&state=${state}`;
   c.header(
     "Set-Cookie",
-    `session-id=${state}; Path=/; HttpOnly; SameSite=Strict; Secure`
+    `session-id=${state}; Path=/; HttpOnly; SameSite=Strict; Secure`,
   );
   return c.json({ redirectUrl });
 });
@@ -110,13 +110,13 @@ app.get("/callback", async (c) => {
     .from(spotifyAccounts)
     .leftJoin(
       spotifyApps,
-      eq(spotifyAccounts.spotifyAppId, spotifyApps.spotifyAppId)
+      eq(spotifyAccounts.spotifyAppId, spotifyApps.spotifyAppId),
     )
     .where(
       and(
         eq(spotifyAccounts.userId, user.id),
-        eq(spotifyAccounts.isBetaUser, true)
-      )
+        eq(spotifyAccounts.isBetaUser, true),
+      ),
     )
     .limit(1)
     .then((rows) => rows[0]);
@@ -179,8 +179,8 @@ app.get("/callback", async (c) => {
     .where(
       and(
         eq(spotifyAccounts.userId, user.id),
-        eq(spotifyAccounts.isBetaUser, true)
-      )
+        eq(spotifyAccounts.isBetaUser, true),
+      ),
     )
     .limit(1)
     .then((rows) => rows[0]);
@@ -230,7 +230,7 @@ app.post("/join", async (c) => {
       appId: spotifyApps.id,
       spotifyAppId: spotifyApps.spotifyAppId,
       accountCount: sql<number>`COUNT(${spotifyAccounts.id})`.as(
-        "account_count"
+        "account_count",
       ),
     })
     .from(spotifyApps)
@@ -311,7 +311,7 @@ app.get("/currently-playing", async (c) => {
   }
 
   const cached = await ctx.redis.get(
-    `${spotifyAccount.spotifyAccount.email}:current`
+    `${spotifyAccount.spotifyAccount.email}:current`,
   );
   if (!cached) {
     return c.json({});
@@ -321,7 +321,7 @@ app.get("/currently-playing", async (c) => {
 
   const sha256 = createHash("sha256")
     .update(
-      `${track.item.name} - ${track.item.artists.map((x) => x.name).join(", ")} - ${track.item.album.name}`.toLowerCase()
+      `${track.item.name} - ${track.item.artists.map((x) => x.name).join(", ")} - ${track.item.album.name}`.toLowerCase(),
     )
     .digest("hex");
 
@@ -385,7 +385,7 @@ app.put("/pause", async (c) => {
     .from(spotifyTokens)
     .leftJoin(
       spotifyApps,
-      eq(spotifyTokens.spotifyAppId, spotifyApps.spotifyAppId)
+      eq(spotifyTokens.spotifyAppId, spotifyApps.spotifyAppId),
     )
     .where(eq(spotifyTokens.userId, user.id))
     .limit(1)
@@ -398,7 +398,7 @@ app.put("/pause", async (c) => {
 
   const refreshToken = decrypt(
     spotifyToken.spotify_tokens.refreshToken,
-    env.SPOTIFY_ENCRYPTION_KEY
+    env.SPOTIFY_ENCRYPTION_KEY,
   );
 
   // get new access token
@@ -413,7 +413,7 @@ app.put("/pause", async (c) => {
       client_id: spotifyToken.spotify_apps.spotifyAppId,
       client_secret: decrypt(
         spotifyToken.spotify_apps.spotifySecret,
-        env.SPOTIFY_ENCRYPTION_KEY
+        env.SPOTIFY_ENCRYPTION_KEY,
       ),
     }),
   });
@@ -468,7 +468,7 @@ app.put("/play", async (c) => {
     .from(spotifyTokens)
     .leftJoin(
       spotifyApps,
-      eq(spotifyTokens.spotifyAppId, spotifyApps.spotifyAppId)
+      eq(spotifyTokens.spotifyAppId, spotifyApps.spotifyAppId),
     )
     .where(eq(spotifyTokens.userId, user.id))
     .limit(1)
@@ -481,7 +481,7 @@ app.put("/play", async (c) => {
 
   const refreshToken = decrypt(
     spotifyToken.spotify_tokens.refreshToken,
-    env.SPOTIFY_ENCRYPTION_KEY
+    env.SPOTIFY_ENCRYPTION_KEY,
   );
 
   // get new access token
@@ -496,7 +496,7 @@ app.put("/play", async (c) => {
       client_id: spotifyToken.spotify_apps.spotifyAppId,
       client_secret: decrypt(
         spotifyToken.spotify_apps.spotifySecret,
-        env.SPOTIFY_ENCRYPTION_KEY
+        env.SPOTIFY_ENCRYPTION_KEY,
       ),
     }),
   });
@@ -551,7 +551,7 @@ app.post("/next", async (c) => {
     .from(spotifyTokens)
     .leftJoin(
       spotifyApps,
-      eq(spotifyTokens.spotifyAppId, spotifyApps.spotifyAppId)
+      eq(spotifyTokens.spotifyAppId, spotifyApps.spotifyAppId),
     )
     .where(eq(spotifyTokens.userId, user.id))
     .limit(1)
@@ -564,7 +564,7 @@ app.post("/next", async (c) => {
 
   const refreshToken = decrypt(
     spotifyToken.spotify_tokens.refreshToken,
-    env.SPOTIFY_ENCRYPTION_KEY
+    env.SPOTIFY_ENCRYPTION_KEY,
   );
 
   // get new access token
@@ -579,7 +579,7 @@ app.post("/next", async (c) => {
       client_id: spotifyToken.spotify_apps.spotifyAppId,
       client_secret: decrypt(
         spotifyToken.spotify_apps.spotifySecret,
-        env.SPOTIFY_ENCRYPTION_KEY
+        env.SPOTIFY_ENCRYPTION_KEY,
       ),
     }),
   });
@@ -634,7 +634,7 @@ app.post("/previous", async (c) => {
     .from(spotifyTokens)
     .leftJoin(
       spotifyApps,
-      eq(spotifyTokens.spotifyAppId, spotifyApps.spotifyAppId)
+      eq(spotifyTokens.spotifyAppId, spotifyApps.spotifyAppId),
     )
     .where(eq(spotifyTokens.userId, user.id))
     .limit(1)
@@ -647,7 +647,7 @@ app.post("/previous", async (c) => {
 
   const refreshToken = decrypt(
     spotifyToken.spotify_tokens.refreshToken,
-    env.SPOTIFY_ENCRYPTION_KEY
+    env.SPOTIFY_ENCRYPTION_KEY,
   );
 
   // get new access token
@@ -662,7 +662,7 @@ app.post("/previous", async (c) => {
       client_id: spotifyToken.spotify_apps.spotifyAppId,
       client_secret: decrypt(
         spotifyToken.spotify_apps.spotifySecret,
-        env.SPOTIFY_ENCRYPTION_KEY
+        env.SPOTIFY_ENCRYPTION_KEY,
       ),
     }),
   });
@@ -678,7 +678,7 @@ app.post("/previous", async (c) => {
       headers: {
         Authorization: `Bearer ${access_token}`,
       },
-    }
+    },
   );
 
   if (response.status === 403) {
@@ -720,7 +720,7 @@ app.put("/seek", async (c) => {
     .from(spotifyTokens)
     .leftJoin(
       spotifyApps,
-      eq(spotifyTokens.spotifyAppId, spotifyApps.spotifyAppId)
+      eq(spotifyTokens.spotifyAppId, spotifyApps.spotifyAppId),
     )
     .where(eq(spotifyTokens.userId, user.id))
     .limit(1)
@@ -733,7 +733,7 @@ app.put("/seek", async (c) => {
 
   const refreshToken = decrypt(
     spotifyToken.spotify_tokens.refreshToken,
-    env.SPOTIFY_ENCRYPTION_KEY
+    env.SPOTIFY_ENCRYPTION_KEY,
   );
 
   // get new access token
@@ -748,7 +748,7 @@ app.put("/seek", async (c) => {
       client_id: spotifyToken.spotify_apps.spotifyAppId,
       client_secret: decrypt(
         spotifyToken.spotify_apps.spotifySecret,
-        env.SPOTIFY_ENCRYPTION_KEY
+        env.SPOTIFY_ENCRYPTION_KEY,
       ),
     }),
   });
@@ -765,7 +765,7 @@ app.put("/seek", async (c) => {
       headers: {
         Authorization: `Bearer ${access_token}`,
       },
-    }
+    },
   );
 
   if (response.status === 403) {

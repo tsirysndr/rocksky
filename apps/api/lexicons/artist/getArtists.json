@@ -17,6 +17,10 @@
             "type": "integer",
             "description": "The offset for pagination",
             "minimum": 0
+          },
+          "names": {
+            "type": "string",
+            "description": "The names of the artists to return"
           }
         }
       },

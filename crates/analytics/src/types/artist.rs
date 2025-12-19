@@ -60,6 +60,7 @@ pub struct ArtistListener {
 pub struct GetArtistsParams {
     pub user_did: Option<String>,
     pub pagination: Option<Pagination>,
+    pub names: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]

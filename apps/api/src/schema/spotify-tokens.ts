@@ -3,9 +3,7 @@ import { integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import users from "./users";
 
 const spotifyTokens = pgTable("spotify_tokens", {
-  id: text("xata_id")
-    .primaryKey()
-    .default(sql`xata_id()`),
+  id: text("xata_id").primaryKey().default(sql`xata_id()`),
   xataVersion: integer("xata_version"),
   accessToken: text("access_token").notNull(),
   refreshToken: text("refresh_token").notNull(),

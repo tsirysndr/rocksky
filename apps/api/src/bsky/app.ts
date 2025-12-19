@@ -81,7 +81,7 @@ app.get("/oauth/callback", async (c) => {
           ? Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365 * 1000
           : Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
       },
-      env.JWT_SECRET
+      env.JWT_SECRET,
     );
     ctx.kv.set(did, token);
   } catch (err) {
@@ -93,7 +93,10 @@ app.get("/oauth/callback", async (c) => {
     .select()
     .from(spotifyAccounts)
     .where(
-      and(eq(spotifyAccounts.userId, did), eq(spotifyAccounts.isBetaUser, true))
+      and(
+        eq(spotifyAccounts.userId, did),
+        eq(spotifyAccounts.isBetaUser, true),
+      ),
     )
     .limit(1)
     .execute();
@@ -179,7 +182,7 @@ app.get("/profile", async (c) => {
 
     ctx.nc.publish(
       "rocksky.user",
-      Buffer.from(JSON.stringify(deepSnakeCaseKeys(user)))
+      Buffer.from(JSON.stringify(deepSnakeCaseKeys(user))),
     );
 
     await ctx.kv.set("lastUser", lastUser[0].id);
@@ -192,8 +195,8 @@ app.get("/profile", async (c) => {
       .where(
         and(
           eq(spotifyAccounts.userId, did),
-          eq(spotifyAccounts.isBetaUser, true)
-        )
+          eq(spotifyAccounts.isBetaUser, true),
+        ),
       )
       .limit(1)
       .execute(),
@@ -209,8 +212,8 @@ app.get("/profile", async (c) => {
       .where(
         and(
           eq(googleDriveAccounts.userId, did),
-          eq(googleDriveAccounts.isBetaUser, true)
-        )
+          eq(googleDriveAccounts.isBetaUser, true),
+        ),
       )
       .limit(1)
       .execute(),
@@ -220,8 +223,8 @@ app.get("/profile", async (c) => {
       .where(
         and(
           eq(dropboxAccounts.userId, did),
-          eq(dropboxAccounts.isBetaUser, true)
-        )
+          eq(dropboxAccounts.isBetaUser, true),
+        ),
       )
       .limit(1)
       .execute(),

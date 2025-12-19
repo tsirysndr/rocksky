@@ -10,7 +10,7 @@ use crate::types::{
 };
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::Error;
-use duckdb::Connection;
+use duckdb::{params_from_iter, Connection};
 use tokio_stream::StreamExt;
 
 use crate::read_payload;
@@ -26,87 +26,134 @@ pub async fn get_artists(
     let offset = pagination.skip.unwrap_or(0);
     let limit = pagination.take.unwrap_or(20);
     let did = params.user_did;
+    let names = params.names;
 
     let conn = conn.lock().unwrap();
-    let mut stmt = match did {
-        Some(_) => conn.prepare(
-            r#"
-            SELECT a.*,
-                COUNT(*) AS play_count,
-                COUNT(DISTINCT s.user_id) AS unique_listeners
-             FROM user_artists ua
-            LEFT JOIN artists a ON ua.artist_id = a.id
-            LEFT JOIN users u ON ua.user_id = u.id
-            LEFT JOIN scrobbles s ON s.artist_id = a.id
-            WHERE u.did = ? OR u.handle = ?
-            GROUP BY a.*
-            ORDER BY play_count DESC OFFSET ? LIMIT ?;
-            "#,
-        )?,
-        None => conn.prepare(
-            "SELECT a.*,
-                COUNT(*) AS play_count,
-                COUNT(DISTINCT s.user_id) AS unique_listeners
-             FROM artists a
-             LEFT JOIN scrobbles s ON s.artist_id = a.id
-             GROUP BY a.*
-             ORDER BY play_count DESC OFFSET ? LIMIT ?",
-        )?,
-    };
 
-    match did {
-        Some(did) => {
-            let artists = stmt.query_map(
-                [&did, &did, &limit.to_string(), &offset.to_string()],
-                |row| {
-                    Ok(Artist {
-                        id: row.get(0)?,
-                        name: row.get(1)?,
-                        biography: row.get(2)?,
-                        born: row.get(3)?,
-                        born_in: row.get(4)?,
-                        died: row.get(5)?,
-                        picture: row.get(6)?,
-                        sha256: row.get(7)?,
-                        spotify_link: row.get(8)?,
-                        tidal_link: row.get(9)?,
-                        youtube_link: row.get(10)?,
-                        apple_music_link: row.get(11)?,
-                        uri: row.get(12)?,
-                        play_count: row.get(13)?,
-                        unique_listeners: row.get(14)?,
-                    })
-                },
-            )?;
+    // Build dynamic query and params based on filters
+    let (query, params_vec): (String, Vec<Box<dyn duckdb::ToSql>>) =
+        match (did.as_ref(), names.as_ref()) {
+            // Both did and names provided
+            (Some(d), Some(n)) if !n.is_empty() => {
+                let placeholders = vec!["?"; n.len()].join(", ");
+                let query = format!(
+                    r#"
+                    SELECT a.*,
+                        COUNT(*) AS play_count,
+                        COUNT(DISTINCT s.user_id) AS unique_listeners
+                     FROM user_artists ua
+                    LEFT JOIN artists a ON ua.artist_id = a.id
+                    LEFT JOIN users u ON ua.user_id = u.id
+                    LEFT JOIN scrobbles s ON s.artist_id = a.id
+                    WHERE (u.did = ? OR u.handle = ?)
+                      AND a.name IN ({})
+                    GROUP BY a.*
+                    ORDER BY play_count DESC
+                    LIMIT ? OFFSET ?
+                    "#,
+                    placeholders
+                );
+                let mut params: Vec<Box<dyn duckdb::ToSql>> =
+                    vec![Box::new(d.clone()), Box::new(d.clone())];
+                for name in n {
+                    params.push(Box::new(name.clone()));
+                }
+                params.push(Box::new(limit));
+                params.push(Box::new(offset));
+                (query, params)
+            }
+            // Only did provided
+            (Some(d), _) => {
+                let query = r#"
+                    SELECT a.*,
+                        COUNT(*) AS play_count,
+                        COUNT(DISTINCT s.user_id) AS unique_listeners
+                     FROM user_artists ua
+                    LEFT JOIN artists a ON ua.artist_id = a.id
+                    LEFT JOIN users u ON ua.user_id = u.id
+                    LEFT JOIN scrobbles s ON s.artist_id = a.id
+                    WHERE u.did = ? OR u.handle = ?
+                    GROUP BY a.*
+                    ORDER BY play_count DESC
+                    LIMIT ? OFFSET ?
+                "#
+                .to_string();
+                (
+                    query,
+                    vec![
+                        Box::new(d.clone()),
+                        Box::new(d.clone()),
+                        Box::new(limit),
+                        Box::new(offset),
+                    ],
+                )
+            }
+            // Only names provided
+            (None, Some(n)) if !n.is_empty() => {
+                let placeholders = vec!["?"; n.len()].join(", ");
+                let query = format!(
+                    r#"
+                    SELECT a.*,
+                        COUNT(*) AS play_count,
+                        COUNT(DISTINCT s.user_id) AS unique_listeners
+                     FROM artists a
+                     LEFT JOIN scrobbles s ON s.artist_id = a.id
+                     WHERE a.name IN ({})
+                     GROUP BY a.*
+                     ORDER BY play_count DESC
+                     LIMIT ? OFFSET ?
+                    "#,
+                    placeholders
+                );
+                let mut params: Vec<Box<dyn duckdb::ToSql>> = vec![];
+                for name in n {
+                    params.push(Box::new(name.clone()));
+                }
+                params.push(Box::new(limit));
+                params.push(Box::new(offset));
+                (query, params)
+            }
+            // No filters
+            (None, _) => {
+                let query = r#"
+                    SELECT a.*,
+                        COUNT(*) AS play_count,
+                        COUNT(DISTINCT s.user_id) AS unique_listeners
+                     FROM artists a
+                     LEFT JOIN scrobbles s ON s.artist_id = a.id
+                     GROUP BY a.*
+                     ORDER BY play_count DESC
+                     LIMIT ? OFFSET ?
+                "#
+                .to_string();
+                (query, vec![Box::new(limit), Box::new(offset)])
+            }
+        };
 
-            let artists: Result<Vec<_>, _> = artists.collect();
-            Ok(HttpResponse::Ok().json(artists?))
-        }
-        None => {
-            let artists = stmt.query_map([limit, offset], |row| {
-                Ok(Artist {
-                    id: row.get(0)?,
-                    name: row.get(1)?,
-                    biography: row.get(2)?,
-                    born: row.get(3)?,
-                    born_in: row.get(4)?,
-                    died: row.get(5)?,
-                    picture: row.get(6)?,
-                    sha256: row.get(7)?,
-                    spotify_link: row.get(8)?,
-                    tidal_link: row.get(9)?,
-                    youtube_link: row.get(10)?,
-                    apple_music_link: row.get(11)?,
-                    uri: row.get(12)?,
-                    play_count: row.get(13)?,
-                    unique_listeners: row.get(14)?,
-                })
-            })?;
+    // Prepare and execute query
+    let mut stmt = conn.prepare(&query)?;
+    let artists = stmt.query_map(params_from_iter(params_vec.iter()), |row| {
+        Ok(Artist {
+            id: row.get(0)?,
+            name: row.get(1)?,
+            biography: row.get(2)?,
+            born: row.get(3)?,
+            born_in: row.get(4)?,
+            died: row.get(5)?,
+            picture: row.get(6)?,
+            sha256: row.get(7)?,
+            spotify_link: row.get(8)?,
+            tidal_link: row.get(9)?,
+            youtube_link: row.get(10)?,
+            apple_music_link: row.get(11)?,
+            uri: row.get(12)?,
+            play_count: row.get(14)?,
+            unique_listeners: row.get(15)?,
+        })
+    })?;
 
-            let artists: Result<Vec<_>, _> = artists.collect();
-            Ok(HttpResponse::Ok().json(artists?))
-        }
-    }
+    let artists: Result<Vec<_>, _> = artists.collect();
+    Ok(HttpResponse::Ok().json(artists?))
 }
 
 pub async fn get_top_artists(

@@ -22,17 +22,17 @@ import type * as AppRockskyActorGetActorScrobbles from "./types/app/rocksky/acto
 import type * as AppRockskyActorGetActorSongs from "./types/app/rocksky/actor/getActorSongs";
 import type * as AppRockskyActorGetProfile from "./types/app/rocksky/actor/getProfile";
 import type * as AppRockskyAlbumGetAlbum from "./types/app/rocksky/album/getAlbum";
-import type * as AppRockskyAlbumGetAlbums from "./types/app/rocksky/album/getAlbums";
 import type * as AppRockskyAlbumGetAlbumTracks from "./types/app/rocksky/album/getAlbumTracks";
+import type * as AppRockskyAlbumGetAlbums from "./types/app/rocksky/album/getAlbums";
 import type * as AppRockskyApikeyCreateApikey from "./types/app/rocksky/apikey/createApikey";
 import type * as AppRockskyApikeyGetApikeys from "./types/app/rocksky/apikey/getApikeys";
 import type * as AppRockskyApikeyRemoveApikey from "./types/app/rocksky/apikey/removeApikey";
 import type * as AppRockskyApikeyUpdateApikey from "./types/app/rocksky/apikey/updateApikey";
-import type * as AppRockskyArtistGetArtistAlbums from "./types/app/rocksky/artist/getArtistAlbums";
 import type * as AppRockskyArtistGetArtist from "./types/app/rocksky/artist/getArtist";
+import type * as AppRockskyArtistGetArtistAlbums from "./types/app/rocksky/artist/getArtistAlbums";
 import type * as AppRockskyArtistGetArtistListeners from "./types/app/rocksky/artist/getArtistListeners";
-import type * as AppRockskyArtistGetArtists from "./types/app/rocksky/artist/getArtists";
 import type * as AppRockskyArtistGetArtistTracks from "./types/app/rocksky/artist/getArtistTracks";
+import type * as AppRockskyArtistGetArtists from "./types/app/rocksky/artist/getArtists";
 import type * as AppRockskyChartsGetScrobblesChart from "./types/app/rocksky/charts/getScrobblesChart";
 import type * as AppRockskyDropboxDownloadFile from "./types/app/rocksky/dropbox/downloadFile";
 import type * as AppRockskyDropboxGetFiles from "./types/app/rocksky/dropbox/getFiles";
@@ -53,9 +53,9 @@ import type * as AppRockskyPlayerGetCurrentlyPlaying from "./types/app/rocksky/p
 import type * as AppRockskyPlayerGetPlaybackQueue from "./types/app/rocksky/player/getPlaybackQueue";
 import type * as AppRockskyPlayerNext from "./types/app/rocksky/player/next";
 import type * as AppRockskyPlayerPause from "./types/app/rocksky/player/pause";
+import type * as AppRockskyPlayerPlay from "./types/app/rocksky/player/play";
 import type * as AppRockskyPlayerPlayDirectory from "./types/app/rocksky/player/playDirectory";
 import type * as AppRockskyPlayerPlayFile from "./types/app/rocksky/player/playFile";
-import type * as AppRockskyPlayerPlay from "./types/app/rocksky/player/play";
 import type * as AppRockskyPlayerPrevious from "./types/app/rocksky/player/previous";
 import type * as AppRockskyPlayerSeek from "./types/app/rocksky/player/seek";
 import type * as AppRockskyPlaylistCreatePlaylist from "./types/app/rocksky/playlist/createPlaylist";
@@ -365,17 +365,6 @@ export class AppRockskyAlbumNS {
     return this._server.xrpc.method(nsid, cfg);
   }
 
-  getAlbums<AV extends AuthVerifier>(
-    cfg: ConfigOf<
-      AV,
-      AppRockskyAlbumGetAlbums.Handler<ExtractAuth<AV>>,
-      AppRockskyAlbumGetAlbums.HandlerReqCtx<ExtractAuth<AV>>
-    >,
-  ) {
-    const nsid = "app.rocksky.album.getAlbums"; // @ts-ignore
-    return this._server.xrpc.method(nsid, cfg);
-  }
-
   getAlbumTracks<AV extends AuthVerifier>(
     cfg: ConfigOf<
       AV,
@@ -384,6 +373,17 @@ export class AppRockskyAlbumNS {
     >,
   ) {
     const nsid = "app.rocksky.album.getAlbumTracks"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  getAlbums<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyAlbumGetAlbums.Handler<ExtractAuth<AV>>,
+      AppRockskyAlbumGetAlbums.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.album.getAlbums"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 }
@@ -447,17 +447,6 @@ export class AppRockskyArtistNS {
     this._server = server;
   }
 
-  getArtistAlbums<AV extends AuthVerifier>(
-    cfg: ConfigOf<
-      AV,
-      AppRockskyArtistGetArtistAlbums.Handler<ExtractAuth<AV>>,
-      AppRockskyArtistGetArtistAlbums.HandlerReqCtx<ExtractAuth<AV>>
-    >,
-  ) {
-    const nsid = "app.rocksky.artist.getArtistAlbums"; // @ts-ignore
-    return this._server.xrpc.method(nsid, cfg);
-  }
-
   getArtist<AV extends AuthVerifier>(
     cfg: ConfigOf<
       AV,
@@ -466,6 +455,17 @@ export class AppRockskyArtistNS {
     >,
   ) {
     const nsid = "app.rocksky.artist.getArtist"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  getArtistAlbums<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyArtistGetArtistAlbums.Handler<ExtractAuth<AV>>,
+      AppRockskyArtistGetArtistAlbums.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.artist.getArtistAlbums"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 
@@ -480,17 +480,6 @@ export class AppRockskyArtistNS {
     return this._server.xrpc.method(nsid, cfg);
   }
 
-  getArtists<AV extends AuthVerifier>(
-    cfg: ConfigOf<
-      AV,
-      AppRockskyArtistGetArtists.Handler<ExtractAuth<AV>>,
-      AppRockskyArtistGetArtists.HandlerReqCtx<ExtractAuth<AV>>
-    >,
-  ) {
-    const nsid = "app.rocksky.artist.getArtists"; // @ts-ignore
-    return this._server.xrpc.method(nsid, cfg);
-  }
-
   getArtistTracks<AV extends AuthVerifier>(
     cfg: ConfigOf<
       AV,
@@ -499,6 +488,17 @@ export class AppRockskyArtistNS {
     >,
   ) {
     const nsid = "app.rocksky.artist.getArtistTracks"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  getArtists<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyArtistGetArtists.Handler<ExtractAuth<AV>>,
+      AppRockskyArtistGetArtists.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.artist.getArtists"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 }
@@ -770,6 +770,17 @@ export class AppRockskyPlayerNS {
     return this._server.xrpc.method(nsid, cfg);
   }
 
+  play<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyPlayerPlay.Handler<ExtractAuth<AV>>,
+      AppRockskyPlayerPlay.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.player.play"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
   playDirectory<AV extends AuthVerifier>(
     cfg: ConfigOf<
       AV,
@@ -789,17 +800,6 @@ export class AppRockskyPlayerNS {
     >,
   ) {
     const nsid = "app.rocksky.player.playFile"; // @ts-ignore
-    return this._server.xrpc.method(nsid, cfg);
-  }
-
-  play<AV extends AuthVerifier>(
-    cfg: ConfigOf<
-      AV,
-      AppRockskyPlayerPlay.Handler<ExtractAuth<AV>>,
-      AppRockskyPlayerPlay.HandlerReqCtx<ExtractAuth<AV>>
-    >,
-  ) {
-    const nsid = "app.rocksky.player.play"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 

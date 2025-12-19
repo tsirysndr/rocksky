@@ -46,6 +46,7 @@ const retrieve = ({
           skip: params.offset || 0,
           take: params.limit || 100,
         },
+        names: params.names,
       });
       return { data: response.data, ctx };
     },

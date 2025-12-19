@@ -35,18 +35,16 @@ async function publishPlayingNow(
             record?.trackName === track.name)) &&
         // diff in seconds less than 60
         Math.abs(
-            new Date(record.playedTime).getTime() -
-              new Date(track.timestamp).getTime(),
-          ) < 60000
+          new Date(record.playedTime).getTime() -
+            new Date(track.timestamp).getTime(),
+        ) < 60000
       );
     });
     if (alreadyPlayed) {
       console.log(
-        `Track ${chalk.cyan(track.name)} by ${
-          chalk.cyan(
-            track.artist.map((a) => a.name).join(", "),
-          )
-        } already played recently. Skipping...`,
+        `Track ${chalk.cyan(track.name)} by ${chalk.cyan(
+          track.artist.map((a) => a.name).join(", "),
+        )} already played recently. Skipping...`,
       );
       return;
     }

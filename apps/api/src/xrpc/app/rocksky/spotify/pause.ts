@@ -23,7 +23,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({});
-      })
+      }),
     );
   server.app.rocksky.spotify.pause({
     auth: ctx.authVerifier,
@@ -71,18 +71,21 @@ const withSpotifyRefreshToken = ({
         .from(tables.spotifyTokens)
         .leftJoin(
           tables.spotifyApps,
-          eq(tables.spotifyTokens.spotifyAppId, tables.spotifyApps.spotifyAppId)
+          eq(
+            tables.spotifyTokens.spotifyAppId,
+            tables.spotifyApps.spotifyAppId,
+          ),
         )
         .where(eq(tables.spotifyTokens.userId, user.id))
         .execute()
         .then(([spotifyToken]) => [
           decrypt(
             spotifyToken.spotify_tokens.refreshToken,
-            env.SPOTIFY_ENCRYPTION_KEY
+            env.SPOTIFY_ENCRYPTION_KEY,
           ),
           decrypt(
             spotifyToken.spotify_apps.spotifySecret,
-            env.SPOTIFY_ENCRYPTION_KEY
+            env.SPOTIFY_ENCRYPTION_KEY,
           ),
           spotifyToken.spotify_apps.spotifyAppId,
         ])

@@ -11,11 +11,11 @@ async function getSpotifyToken(): Promise<string> {
     .from(tables.spotifyTokens)
     .leftJoin(
       tables.spotifyAccounts,
-      eq(tables.spotifyAccounts.userId, tables.spotifyTokens.userId)
+      eq(tables.spotifyAccounts.userId, tables.spotifyTokens.userId),
     )
     .leftJoin(
       tables.spotifyApps,
-      eq(tables.spotifyApps.spotifyAppId, tables.spotifyTokens.spotifyAppId)
+      eq(tables.spotifyApps.spotifyAppId, tables.spotifyTokens.spotifyAppId),
     )
     .where(eq(tables.spotifyAccounts.isBetaUser, true))
     .execute();
@@ -24,7 +24,7 @@ async function getSpotifyToken(): Promise<string> {
     spotifyTokens[Math.floor(Math.random() * spotifyTokens.length)];
   const refreshToken = decrypt(
     record.spotify_tokens.refreshToken,
-    env.SPOTIFY_ENCRYPTION_KEY
+    env.SPOTIFY_ENCRYPTION_KEY,
   );
 
   const accessToken = await fetch("https://accounts.spotify.com/api/token", {
@@ -38,7 +38,7 @@ async function getSpotifyToken(): Promise<string> {
       client_id: record.spotify_apps.spotifyAppId,
       client_secret: decrypt(
         record.spotify_apps.spotifySecret,
-        env.SPOTIFY_ENCRYPTION_KEY
+        env.SPOTIFY_ENCRYPTION_KEY,
       ),
     }),
   })
@@ -60,7 +60,7 @@ async function getGenresAndPicture(artists) {
             headers: {
               Authorization: `Bearer ${token}`,
             },
-          }
+          },
         )
           .then(
             (res) =>
@@ -73,7 +73,7 @@ async function getGenresAndPicture(artists) {
                     images: Array<{ url: string }>;
                   }>;
                 };
-              }>
+              }>,
           )
           .then(async (data) => _.get(data, "artists.items.0"));
 
