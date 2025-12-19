@@ -10,10 +10,10 @@ const clientSecret = args[1];
 
 if (!clientId || !clientSecret) {
   console.error(
-    "Please provide Spotify Client ID and Client Secret as command line arguments"
+    "Please provide Spotify Client ID and Client Secret as command line arguments",
   );
   console.log(
-    chalk.greenBright("Usage: ts-node spotify.ts <client_id> <client_secret>")
+    chalk.greenBright("Usage: ts-node spotify.ts <client_id> <client_secret>"),
   );
   process.exit(1);
 }

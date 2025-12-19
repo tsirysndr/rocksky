@@ -14,6 +14,8 @@ export interface QueryParams {
   limit?: number;
   /** The offset for pagination */
   offset?: number;
+  /** The names of the artists to return */
+  names?: string;
 }
 
 export type InputSchema = undefined;

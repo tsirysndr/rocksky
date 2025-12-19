@@ -143,7 +143,7 @@ if (args.includes("--background")) {
       } catch (err) {
         console.error(
           `Failed to sync scrobble ${chalk.cyan(scrobble.id)}:`,
-          err
+          err,
         );
       }
     }
