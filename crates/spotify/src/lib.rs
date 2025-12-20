@@ -363,6 +363,8 @@ pub async fn get_currently_playing(
     let status = response.status().as_u16();
     let data = response.text().await?;
 
+    println!("> Currently playing: {}", data);
+
     if status == 429 {
         println!(
             "{}  Too many requests, retry-after {}",
