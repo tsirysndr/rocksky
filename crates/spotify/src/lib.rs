@@ -46,7 +46,7 @@ pub async fn run() -> Result<(), Error> {
     let mut sub = nc.subscribe("rocksky.spotify.user".to_string()).await?;
     println!("Subscribed to {}", "rocksky.spotify.user".bright_green());
 
-    let users = find_spotify_users(&pool, 0, 100).await?;
+    let users = find_spotify_users(&pool, 0, 500).await?;
     println!("Found {} users", users.len().bright_green());
 
     // Shared HashMap to manage threads and their stop flags
@@ -262,8 +262,13 @@ pub async fn refresh_token(
         ])
         .send()
         .await?;
-    let token = response.json::<AccessToken>().await?;
-    Ok(token)
+    let token = response.text().await?;
+    let json_token = serde_json::from_str::<AccessToken>(&token);
+    if let Err(e) = json_token {
+        println!("Error parsing token: {}", token);
+        return Err(Error::from(e));
+    }
+    Ok(json_token.unwrap())
 }
 
 pub async fn get_currently_playing(
