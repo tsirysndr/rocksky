@@ -363,7 +363,9 @@ pub async fn get_currently_playing(
     let status = response.status().as_u16();
     let data = response.text().await?;
 
-    println!("> Currently playing: {}", data);
+    if !data.contains("is_playing") && !data.contains("context") {
+        println!("> Currently playing: {}", data);
+    }
 
     if status == 429 {
         println!(
