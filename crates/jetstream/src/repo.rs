@@ -14,7 +14,7 @@ use crate::{
         self,
         model::{ScrobbleData, WebhookEnvelope},
     },
-    webhook_worker::{push_to_queue, AppState},
+    webhook_worker::{AppState, push_to_queue},
     xata::{
         album::Album, album_track::AlbumTrack, artist::Artist, artist_album::ArtistAlbum,
         artist_track::ArtistTrack, track::Track, user::User, user_album::UserAlbum,

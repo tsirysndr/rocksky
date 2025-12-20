@@ -12,8 +12,12 @@ const scrobbles = pgTable("scrobbles", {
   albumId: text("album_id").references(() => albums.id),
   artistId: text("artist_id").references(() => artists.id),
   uri: text("uri").unique(),
-  createdAt: timestamp("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
+  createdAt: timestamp("xata_createdat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("xata_updatedat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
   xataVersion: integer("xata_version"),
   timestamp: timestamp("timestamp").defaultNow().notNull(),
 });

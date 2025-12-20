@@ -1,0 +1,7 @@
+operations:
+- sql:
+    up: |+
+      COMMENT ON COLUMN public.lastfm_tokens.user_id IS '{"xata.link":"users"}';
+
+
+version_schema: sql_dd98ff6d

@@ -14,8 +14,12 @@ const playlists = pgTable("playlists", {
   createdBy: text("created_by")
     .notNull()
     .references(() => users.id),
-  createdAt: timestamp("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
+  createdAt: timestamp("xata_createdat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("xata_updatedat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 export type SelectPlaylist = InferSelectModel<typeof playlists>;

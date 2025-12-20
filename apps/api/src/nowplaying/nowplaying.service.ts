@@ -35,6 +35,10 @@ export async function putArtistRecord(
     createdAt: new Date().toISOString(),
     pictureUrl: track.artistPicture || undefined,
     tags: track.genres || [],
+    spotifyId: track.spotifyArtistId || undefined,
+    tidalId: track.tidalArtistId || undefined,
+    appleMusicId: track.appleMusicArtistId || undefined,
+    roles: track.artistRoles || undefined,
   };
 
   if (!Artist.validateRecord(record).success) {
@@ -66,7 +70,7 @@ export async function putAlbumRecord(
 ): Promise<string | null> {
   const rkey = TID.nextStr();
 
-  const record = {
+  const record: Album.Record = {
     $type: "app.rocksky.album",
     title: track.album,
     artist: track.albumArtist,
@@ -76,6 +80,9 @@ export async function putAlbumRecord(
       : undefined,
     createdAt: new Date().toISOString(),
     albumArtUrl: track.albumArt,
+    spotifyId: track.spotifyAlbumId || undefined,
+    tidalId: track.tidalAlbumId || undefined,
+    appleMusicId: track.appleMusicAlbumId || undefined,
   };
 
   if (!Album.validateRecord(record).success) {
@@ -129,8 +136,15 @@ export async function putSongRecord(
       : undefined,
     createdAt: new Date().toISOString(),
     spotifyLink: track.spotifyLink ? track.spotifyLink : undefined,
+    tidalLink: track.tidalLink ? track.tidalLink : undefined,
+    appleMusicLink: track.appleMusicLink ? track.appleMusicLink : undefined,
+    lastfmLink: track.lastfmLink ? track.lastfmLink : undefined,
     tags: track.genres || [],
     mbid: track.mbId,
+    spotifyId: track.spotifyId || undefined,
+    tidalId: track.tidalId || undefined,
+    appleMusicId: track.appleMusicId || undefined,
+    isrc: track.isrc || undefined,
   };
 
   if (!Song.validateRecord(record).success) {
@@ -187,8 +201,15 @@ async function putScrobbleRecord(
       ? dayjs.unix(track.timestamp).toISOString()
       : new Date().toISOString(),
     spotifyLink: track.spotifyLink ? track.spotifyLink : undefined,
+    tidalLink: track.tidalLink ? track.tidalLink : undefined,
+    appleMusicLink: track.appleMusicLink ? track.appleMusicLink : undefined,
+    lastfmLink: track.lastfmLink ? track.lastfmLink : undefined,
     tags: track.genres || [],
     mbid: track.mbId,
+    spotifyId: track.spotifyId || undefined,
+    tidalId: track.tidalId || undefined,
+    appleMusicId: track.appleMusicId || undefined,
+    isrc: track.isrc || undefined,
   };
 
   if (!Scrobble.validateRecord(record).success) {

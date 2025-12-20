@@ -1,4 +1,4 @@
-use actix_web::{get, post, web, HttpResponse, Responder};
+use actix_web::{HttpResponse, Responder, get, post, web};
 use anyhow::Error;
 use scrobble::handle_scrobble;
 use sqlx::{Pool, Postgres};
@@ -8,9 +8,9 @@ use v1::authenticate::authenticate;
 use v1::nowplaying::nowplaying;
 use v1::submission::submission;
 
+use crate::BANNER;
 use crate::cache::Cache;
 use crate::musicbrainz::client::MusicbrainzClient;
-use crate::BANNER;
 
 pub mod scrobble;
 pub mod v1;

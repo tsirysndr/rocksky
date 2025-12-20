@@ -3,9 +3,9 @@ use std::{env, sync::Arc, time::Duration};
 use actix_limitation::{Limiter, RateLimiter};
 use actix_session::SessionExt;
 use actix_web::{
+    App, HttpServer,
     dev::ServiceRequest,
     web::{self, Data},
-    App, HttpServer,
 };
 use anyhow::Error;
 use owo_colors::OwoColorize;

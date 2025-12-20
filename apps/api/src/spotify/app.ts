@@ -71,7 +71,7 @@ app.get("/login", async (c) => {
 
   const state = crypto.randomBytes(16).toString("hex");
   ctx.kv.set(state, did);
-  const redirectUrl = `https://accounts.spotify.com/en/authorize?client_id=${spotifyAccount?.spotify_apps?.spotifyAppId}&response_type=code&redirect_uri=${env.SPOTIFY_REDIRECT_URI}&scope=user-read-private%20user-read-email%20user-read-playback-state%20user-read-currently-playing%20user-modify-playback-state%20playlist-modify-public%20playlist-modify-private%20playlist-read-private%20playlist-read-collaborative&state=${state}`;
+  const redirectUrl = `https://accounts.spotify.com/en/authorize?client_id=${spotifyAccount?.spotify_apps?.spotifyAppId}&response_type=code&redirect_uri=${env.SPOTIFY_REDIRECT_URI}&scope=user-read-private%20user-read-email%20user-read-playback-state%20user-read-currently-playing%20user-modify-playback-state%20playlist-modify-public%20playlist-modify-private%20playlist-read-private%20playlist-read-collaborative%20user-library-read&state=${state}`;
   c.header(
     "Set-Cookie",
     `session-id=${state}; Path=/; HttpOnly; SameSite=Strict; Secure`,
@@ -774,6 +774,40 @@ app.put("/seek", async (c) => {
   }
 
   return c.json(await response.json());
+});
+
+app.put("/disconnect", async (c) => {
+  const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
+
+  if (!bearer || bearer === "null") {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
+    ignoreExpiration: true,
+  });
+
+  const user = await ctx.db
+    .select()
+    .from(users)
+    .where(eq(users.did, did))
+    .limit(1)
+    .then((rows) => rows[0]);
+
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  await ctx.db
+    .delete(spotifyTokens)
+    .where(eq(spotifyTokens.userId, user.id))
+    .execute();
+
+  return c.json({
+    success: true,
+  });
 });
 
 export default app;

@@ -1,0 +1,7 @@
+operations:
+- sql:
+    up: |+
+      COMMENT ON COLUMN public.album_tags.tag_id IS '{"xata.link":"tags"}';
+
+
+version_schema: sql_1121316d

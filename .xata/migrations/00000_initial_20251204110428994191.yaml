@@ -1,0 +1,7 @@
+operations:
+- sql:
+    up: |+
+      COMMENT ON COLUMN public.scrobbles.track_id IS '{"xata.link":"tracks"}';
+
+
+version_schema: sql_07ba59f6

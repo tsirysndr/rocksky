@@ -1,6 +1,6 @@
 use std::{env, sync::Arc, thread};
 
-use actix_web::{web, HttpRequest, HttpResponse};
+use actix_web::{HttpRequest, HttpResponse, web};
 use anyhow::Error;
 use owo_colors::OwoColorize;
 use sqlx::{Pool, Postgres};

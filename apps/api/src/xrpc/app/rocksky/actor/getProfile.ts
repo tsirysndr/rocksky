@@ -13,8 +13,10 @@ import * as R from "ramda";
 import tables from "schema";
 import type { SelectDropboxAccounts } from "schema/dropbox-accounts";
 import type { SelectGoogleDriveAccounts } from "schema/google-drive-accounts";
+import type { SelectLastfmToken } from "schema/lastfm-tokens";
 import type { SelectSpotifyAccount } from "schema/spotify-accounts";
 import type { SelectSpotifyToken } from "schema/spotify-tokens";
+import type { SelectTidalToken } from "schema/tidal-tokens";
 import type { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
@@ -168,6 +170,8 @@ const retrieveProfile = ({
     string,
     SelectSpotifyAccount,
     SelectSpotifyToken,
+    SelectLastfmToken,
+    SelectTidalToken,
     SelectGoogleDriveAccounts,
     SelectDropboxAccounts,
   ],
@@ -211,6 +215,26 @@ const retrieveProfile = ({
           .then(([result]) => result?.spotify_tokens),
         ctx.db
           .select()
+          .from(tables.lastfmTokens)
+          .leftJoin(
+            tables.users,
+            eq(tables.lastfmTokens.userId, tables.users.id),
+          )
+          .where(eq(tables.users.did, did))
+          .execute()
+          .then(([result]) => result?.lastfm_tokens),
+        ctx.db
+          .select()
+          .from(tables.tidalTokens)
+          .leftJoin(
+            tables.users,
+            eq(tables.tidalTokens.userId, tables.users.id),
+          )
+          .where(eq(tables.users.did, did))
+          .execute()
+          .then(([result]) => result?.tidal_tokens),
+        ctx.db
+          .select()
           .from(tables.googleDriveAccounts)
           .leftJoin(
             tables.users,
@@ -240,6 +264,8 @@ const refreshProfile = ([
   handle,
   selectSpotifyAccount,
   selectSpotifyToken,
+  selectLastfmToken,
+  selectTidalToken,
   selectGoogleDriveAccounts,
   selectDropboxAccounts,
 ]: [
@@ -247,6 +273,8 @@ const refreshProfile = ([
   string,
   SelectSpotifyAccount,
   SelectSpotifyToken,
+  SelectLastfmToken,
+  SelectTidalToken,
   SelectGoogleDriveAccounts,
   SelectDropboxAccounts,
 ]) => {
@@ -325,6 +353,8 @@ const refreshProfile = ([
         handle,
         selectSpotifyAccount,
         selectSpotifyToken,
+        selectLastfmToken,
+        selectTidalToken,
         selectGoogleDriveAccounts,
         selectDropboxAccounts,
       ];
@@ -338,6 +368,8 @@ const presentation = ([
   handle,
   spotifyUser,
   spotifyToken,
+  lastfmToken,
+  tidalToken,
   googledrive,
   dropbox,
 ]: [
@@ -345,6 +377,8 @@ const presentation = ([
   string,
   SelectSpotifyAccount,
   SelectSpotifyToken,
+  SelectLastfmToken,
+  SelectTidalToken,
   SelectGoogleDriveAccounts,
   SelectDropboxAccounts,
 ]): Effect.Effect<ProfileViewDetailed, never> => {
@@ -367,6 +401,8 @@ const presentation = ([
       updatedAt: spotifyToken?.updatedAt.toISOString(),
     },
     spotifyConnected: !!spotifyToken,
+    lastfmConnected: !!lastfmToken,
+    tidalConnected: !!tidalToken,
     googledrive: {
       ...googledrive,
       createdAt: googledrive?.createdAt.toISOString(),

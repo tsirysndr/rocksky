@@ -11,8 +11,12 @@ const dropboxPaths = pgTable("dropbox_paths", {
   directoryId: text("directory_id").references(() => dropboxDirectories.id),
   fileId: text("file_id").notNull().unique(),
   xataVersion: text("xata_version"),
-  createdAt: timestamp("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
+  createdAt: timestamp("xata_createdat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("xata_updatedat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 export type SelectDropboxPaths = InferSelectModel<typeof dropboxPaths>;

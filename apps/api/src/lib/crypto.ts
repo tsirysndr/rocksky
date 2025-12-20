@@ -26,3 +26,24 @@ export function decrypt(encrypted: string, key: string) {
   const decrypted = Buffer.concat([decipher.update(content), decipher.final()]);
   return decrypted.toString("utf8");
 }
+
+export function base64url(input: Buffer | string): string {
+  return Buffer.from(input)
+    .toString("base64")
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+}
+
+export function createPkcePair(): {
+  codeVerifier: string;
+  codeChallenge: string;
+} {
+  // RFC 7636 says 43–128 chars. 32 bytes → 43-ish chars after base64url (without padding).
+  const codeVerifier = base64url(crypto.randomBytes(32));
+
+  const challenge = crypto.createHash("sha256").update(codeVerifier).digest();
+
+  const codeChallenge = base64url(challenge);
+  return { codeVerifier, codeChallenge };
+}

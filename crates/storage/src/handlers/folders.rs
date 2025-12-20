@@ -1,4 +1,4 @@
-use actix_web::{web, HttpRequest, HttpResponse};
+use actix_web::{HttpRequest, HttpResponse, web};
 use anyhow::Error;
 use s3::Bucket;
 use serde_json::json;

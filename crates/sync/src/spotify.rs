@@ -1,0 +1,35 @@
+use std::env;
+
+use anyhow::Error;
+use sqlx::{Pool, Postgres};
+
+use crate::{clients::spotify::SpotifyClient, crypto::decrypt_aes_256_ctr, repo};
+
+pub async fn start(pool: Pool<Postgres>) -> Result<(), Error> {
+    let max = env::var("MAX_USERS")
+        .unwrap_or("500".into())
+        .parse::<u32>()
+        .unwrap_or(500);
+    let offset = env::var("OFFSET_USERS")
+        .unwrap_or("0".into())
+        .parse::<u32>()
+        .unwrap_or(0);
+    let users = repo::spotify_token::list(&pool, offset, max).await?;
+    for user in users {
+        let refresh_token = decrypt_aes_256_ctr(
+            &user.refresh_token,
+            &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?,
+        )?;
+        let client_secret = decrypt_aes_256_ctr(
+            &user.spotify_secret,
+            &hex::decode(env::var("SPOTIFY_ENCRYPTION_KEY")?)?,
+        )?;
+        let mut spotify = SpotifyClient::new(&refresh_token, &user.spotify_app_id, &client_secret);
+        spotify.get_access_token().await?;
+
+        spotify.get_user_saved_tracks(0, 20, None).await?;
+
+        // save user tracks to Rocksky loved tracks
+    }
+    Ok(())
+}

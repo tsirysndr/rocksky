@@ -1,11 +1,11 @@
 use std::env;
 
 use super::recording::{Recording, Recordings};
-use anyhow::{anyhow, Context, Error};
-use redis::aio::MultiplexedConnection;
+use anyhow::{Context, Error, anyhow};
 use redis::AsyncCommands;
+use redis::aio::MultiplexedConnection;
 use serde::{Deserialize, Serialize};
-use tokio::time::{timeout, Duration, Instant};
+use tokio::time::{Duration, Instant, timeout};
 
 pub const BASE_URL: &str = "https://musicbrainz.org/ws/2";
 pub const USER_AGENT: &str = "Rocksky/0.1.0 (+https://rocksky.app)";

@@ -9,7 +9,7 @@ use crate::types::{
         GetTrackScrobblesParams,
     },
 };
-use actix_web::{web, HttpRequest, HttpResponse};
+use actix_web::{HttpRequest, HttpResponse, web};
 use anyhow::Error;
 use duckdb::Connection;
 use serde_json::json;

@@ -11,7 +11,9 @@ const playlistTracks = pgTable("playlist_tracks", {
   trackId: text("track_id")
     .notNull()
     .references(() => tracks.id),
-  createdAt: timestamp("xata_createdat").defaultNow().notNull(),
+  createdAt: timestamp("xata_createdat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 export type SelectPlaylistTrack = InferSelectModel<typeof playlistTracks>;

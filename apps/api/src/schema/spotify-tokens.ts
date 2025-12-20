@@ -11,8 +11,12 @@ const spotifyTokens = pgTable("spotify_tokens", {
     .notNull()
     .references(() => users.id),
   spotifyAppId: text("spotify_app_id").notNull(),
-  createdAt: timestamp("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
+  createdAt: timestamp("xata_createdat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("xata_updatedat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 export type SelectSpotifyToken = InferSelectModel<typeof spotifyTokens>;

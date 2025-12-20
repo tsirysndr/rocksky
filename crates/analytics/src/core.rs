@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use anyhow::Error;
-use duckdb::{params, Connection};
+use duckdb::{Connection, params};
 use owo_colors::OwoColorize;
 use sqlx::{Pool, Postgres};
 

@@ -10,7 +10,7 @@ export const env = cleanEnv(process.env, {
   }),
   HOST: host({ devDefault: testOnly("localhost") }),
   PORT: port({ devDefault: testOnly(8000) }),
-  PUBLIC_URL: str({}),
+  PUBLIC_URL: str({ devDefault: undefined }),
   DB_PATH: str({ devDefault: ":memory:" }),
   KV_DB_PATH: str({ devDefault: ":memory:" }),
   COOKIE_SECRET: str({ devDefault: "00000000000000000000000000000000" }),
@@ -41,4 +41,11 @@ export const env = cleanEnv(process.env, {
   PRIVATE_KEY_3: str({}),
   MEILISEARCH_URL: str({ devDefault: "http://localhost:7700" }),
   MEILISEARCH_API_KEY: str({}),
+  TIDAL_CLIENT_ID: str({}),
+  TIDAL_CLIENT_SECRET: str({}),
+  TIDAL_REDIRECT_URI: str({
+    devDefault: "http://localhost:8000/tidal/callback",
+  }),
+  LASTFM_API_KEY: str({}),
+  LASTFM_API_SECRET: str({}),
 });

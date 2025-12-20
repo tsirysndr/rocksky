@@ -4,9 +4,7 @@ import type { Request, Response } from "express";
 import express from "express";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import { createServer } from "lexicon";
-import dns from "node:dns";
 import API from "./xrpc";
-dns.setDefaultResultOrder("ipv4first");
 
 const proxyMiddleware = createProxyMiddleware<Request, Response>({
   target: "http://localhost:8000",

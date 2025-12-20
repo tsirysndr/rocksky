@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use actix_web::{web, HttpRequest, HttpResponse};
+use actix_web::{HttpRequest, HttpResponse, web};
 use albums::{get_album_tracks, get_albums, get_top_albums};
 use anyhow::Error;
 use artists::{get_artist_albums, get_artist_tracks, get_artists, get_top_artists};

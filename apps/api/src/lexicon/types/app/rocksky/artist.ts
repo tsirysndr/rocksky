@@ -17,6 +17,14 @@ export interface Record {
   pictureUrl?: string;
   /** The tags of the artist. */
   tags?: string[];
+  /** The Tidal ID of the artist. */
+  tidalId?: string;
+  /** The Spotify ID of the artist. */
+  spotifyId?: string;
+  /** The Apple Music ID of the artist. */
+  appleMusicId?: string;
+  /** The roles of the artist. */
+  roles?: string[];
   /** The birth date of the artist. */
   born?: string;
   /** The death date of the artist. */

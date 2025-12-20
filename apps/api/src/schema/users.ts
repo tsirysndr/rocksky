@@ -7,8 +7,12 @@ const users = pgTable("users", {
   displayName: text("display_name"),
   handle: text("handle").unique().notNull(),
   avatar: text("avatar").notNull(),
-  createdAt: timestamp("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
+  createdAt: timestamp("xata_createdat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("xata_updatedat", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
   xataVersion: integer("xata_version"),
 });
 
