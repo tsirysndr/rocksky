@@ -396,28 +396,25 @@ fn compute_track_change(
     current: &CurrentlyPlaying,
     user_id: &str,
 ) -> bool {
-    // Early exit: no previous state → safe, no change
     let Some(prev) = previous else {
         println!(
-            "{} Change detection: NO PREVIOUS STATE → changed=false (cold start/restart)",
+            "{} Change detection: NO PREVIOUS → changed=false (cold start)",
             format!("[{}]", user_id).bright_green()
         );
         return false;
     };
 
-    // Early exit: nothing playing now
     let Some(curr_item) = current.item.as_ref() else {
         println!(
-            "{} Change detection: currently NOTHING playing → changed=false",
+            "{} Change detection: nothing playing now → changed=false",
             format!("[{}]", user_id).bright_green()
         );
         return false;
     };
 
-    // Case: previous was paused/stopped → now playing anything = new track
     if prev.item.is_none() {
         println!(
-            "{} Change detection: was PAUSED/STORED → now playing '{}' → changed=true",
+            "{} Change detection: was paused → now playing '{}' → changed=true",
             format!("[{}]", user_id).bright_green(),
             curr_item.name
         );
@@ -426,13 +423,12 @@ fn compute_track_change(
 
     let Some(prev_item) = prev.item.as_ref() else {
         println!(
-            "{} Change detection: previous state corrupted (no item) → changed=false (safety)",
+            "{} Change detection: previous corrupted → changed=false",
             format!("[{}]", user_id).bright_green()
         );
         return false;
     };
 
-    // Same track → no change
     if prev_item.id == curr_item.id {
         println!(
             "{} Change detection: same track '{}' → changed=false",
@@ -442,7 +438,6 @@ fn compute_track_change(
         return false;
     }
 
-    // Different track → apply 50% rule
     let progress = prev.progress_ms.unwrap_or(0) as u64;
     let duration = prev_item.duration_ms as u64;
     let percent = if duration > 0 {
@@ -451,7 +446,7 @@ fn compute_track_change(
         0.0
     };
 
-    let changed = duration > 0 && progress >= duration * 50 / 100;
+    let changed = duration > 0 && progress >= (duration * 50 / 100);
 
     println!(
         "{} Change detection: prev='{}' ({:.1}% played), curr='{}' → changed={}",
@@ -728,66 +723,47 @@ pub async fn watch_currently_playing(
         loop {
             if stop_flag_clone.load(std::sync::atomic::Ordering::Relaxed) {
                 println!(
-                    "{} Stopping Thread",
+                    "{} Stopping artificial progress thread",
                     format!("[{}]", spotify_email_clone).bright_green()
                 );
                 break;
             }
-            if let Ok(Some(cached)) = cache_clone.get(&format!("{}:current", spotify_email_clone)) {
-                if serde_json::from_str::<CurrentlyPlaying>(&cached).is_err() {
-                    thread::sleep(std::time::Duration::from_millis(800));
-                    continue;
-                }
 
-                let mut current_song = serde_json::from_str::<CurrentlyPlaying>(&cached)?;
-
-                if let Some(item) = current_song.item.clone() {
-                    if current_song.is_playing
-                        && current_song.progress_ms.unwrap_or(0) < item.duration_ms.into()
-                    {
-                        current_song.progress_ms =
-                            Some(current_song.progress_ms.unwrap_or(0) + 800);
-                        match cache_clone.setex(
-                            &format!("{}:current", spotify_email_clone),
-                            &serde_json::to_string(&current_song)?,
-                            16,
-                        ) {
-                            Ok(_) => {}
-                            Err(e) => {
-                                println!(
-                                    "{} redis error: {}",
-                                    format!("[{}]", spotify_email_clone).bright_green(),
-                                    e.to_string().bright_red()
-                                );
-                            }
-                        }
-                        thread::sleep(std::time::Duration::from_millis(800));
-                        continue;
-                    }
-                }
-                continue;
-            }
-
+            // Try to get the main cached state (same key used in polling)
             if let Ok(Some(cached)) = cache_clone.get(&spotify_email_clone) {
                 if cached == "No content" {
                     thread::sleep(std::time::Duration::from_millis(800));
                     continue;
                 }
-                match cache_clone.setex(&format!("{}:current", spotify_email_clone), &cached, 16) {
-                    Ok(_) => {}
-                    Err(e) => {
-                        println!(
-                            "{} redis error: {}",
-                            format!("[{}]", spotify_email_clone).bright_green(),
-                            e.to_string().bright_red()
-                        );
+
+                let mut current_song: CurrentlyPlaying = match serde_json::from_str(&cached) {
+                    Ok(c) => c,
+                    Err(_) => {
+                        thread::sleep(std::time::Duration::from_millis(800));
+                        continue;
+                    }
+                };
+
+                if let Some(item) = current_song.item.as_ref() {
+                    if current_song.is_playing {
+                        let new_progress = current_song.progress_ms.unwrap_or(0) + 800;
+
+                        if new_progress < item.duration_ms as u64 {
+                            current_song.progress_ms = Some(new_progress);
+
+                            // Update the MAIN cache key
+                            let _ = cache_clone.setex(
+                                &spotify_email_clone,
+                                &serde_json::to_string(&current_song).unwrap(),
+                                16,
+                            );
+                        }
                     }
                 }
             }
 
             thread::sleep(std::time::Duration::from_millis(800));
         }
-        Ok::<(), Error>(())
     });
 
     loop {
