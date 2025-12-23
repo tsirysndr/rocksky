@@ -392,40 +392,25 @@ pub async fn get_currently_playing(
 }
 
 fn compute_track_change(previous: Option<&CurrentlyPlaying>, current: &CurrentlyPlaying) -> bool {
-    // If no previous state (cold start, restart) → do NOT scrobble immediately
     let Some(prev) = previous else {
         return false;
     };
-
-    // If currently nothing playing → no new track
     let Some(curr_item) = current.item.as_ref() else {
         return false;
     };
-
-    // If previous had no item (was paused/stopped) → now playing anything = new track
     if prev.item.is_none() {
         return true;
     }
-
-    // If previous had an item → must be different track AND ≥50% played
-    let Some(prev_item) = &prev.item else {
-        return false; // safety
+    let Some(prev_item) = prev.item.as_ref() else {
+        return false;
     };
-
-    // Same track? No change
     if prev_item.id == curr_item.id {
         return false;
     }
 
-    // Different track → apply 50% rule
     let progress = prev.progress_ms.unwrap_or(0) as u64;
     let duration = prev_item.duration_ms as u64;
-
-    if duration == 0 {
-        return false; // ads, previews
-    }
-
-    progress >= (duration * 50 / 100)
+    duration > 0 && progress >= duration * 50 / 100
 }
 
 pub async fn get_artist(
@@ -686,71 +671,73 @@ pub async fn watch_currently_playing(
     let stop_flag_clone = stop_flag.clone();
     let spotify_email_clone = spotify_email.clone();
     let cache_clone = cache.clone();
-    thread::spawn(move || {
-        loop {
-            if stop_flag_clone.load(std::sync::atomic::Ordering::Relaxed) {
-                println!(
-                    "{} Stopping Thread",
-                    format!("[{}]", spotify_email_clone).bright_green()
-                );
-                break;
-            }
-            if let Ok(Some(cached)) = cache_clone.get(&format!("{}:current", spotify_email_clone)) {
-                if serde_json::from_str::<CurrentlyPlaying>(&cached).is_err() {
-                    thread::sleep(std::time::Duration::from_millis(800));
-                    continue;
+    /*
+        thread::spawn(move || {
+            loop {
+                if stop_flag_clone.load(std::sync::atomic::Ordering::Relaxed) {
+                    println!(
+                        "{} Stopping Thread",
+                        format!("[{}]", spotify_email_clone).bright_green()
+                    );
+                    break;
                 }
-
-                let mut current_song = serde_json::from_str::<CurrentlyPlaying>(&cached)?;
-
-                if let Some(item) = current_song.item.clone() {
-                    if current_song.is_playing
-                        && current_song.progress_ms.unwrap_or(0) < item.duration_ms.into()
-                    {
-                        current_song.progress_ms =
-                            Some(current_song.progress_ms.unwrap_or(0) + 800);
-                        match cache_clone.setex(
-                            &format!("{}:current", spotify_email_clone),
-                            &serde_json::to_string(&current_song)?,
-                            16,
-                        ) {
-                            Ok(_) => {}
-                            Err(e) => {
-                                println!(
-                                    "{} redis error: {}",
-                                    format!("[{}]", spotify_email_clone).bright_green(),
-                                    e.to_string().bright_red()
-                                );
-                            }
-                        }
+                if let Ok(Some(cached)) = cache_clone.get(&format!("{}:current", spotify_email_clone)) {
+                    if serde_json::from_str::<CurrentlyPlaying>(&cached).is_err() {
                         thread::sleep(std::time::Duration::from_millis(800));
                         continue;
                     }
-                }
-                continue;
-            }
 
-            if let Ok(Some(cached)) = cache_clone.get(&spotify_email_clone) {
-                if cached == "No content" {
-                    thread::sleep(std::time::Duration::from_millis(800));
+                    let mut current_song = serde_json::from_str::<CurrentlyPlaying>(&cached)?;
+
+                    if let Some(item) = current_song.item.clone() {
+                        if current_song.is_playing
+                            && current_song.progress_ms.unwrap_or(0) < item.duration_ms.into()
+                        {
+                            current_song.progress_ms =
+                                Some(current_song.progress_ms.unwrap_or(0) + 800);
+                            match cache_clone.setex(
+                                &format!("{}:current", spotify_email_clone),
+                                &serde_json::to_string(&current_song)?,
+                                16,
+                            ) {
+                                Ok(_) => {}
+                                Err(e) => {
+                                    println!(
+                                        "{} redis error: {}",
+                                        format!("[{}]", spotify_email_clone).bright_green(),
+                                        e.to_string().bright_red()
+                                    );
+                                }
+                            }
+                            thread::sleep(std::time::Duration::from_millis(800));
+                            continue;
+                        }
+                    }
                     continue;
                 }
-                match cache_clone.setex(&format!("{}:current", spotify_email_clone), &cached, 16) {
-                    Ok(_) => {}
-                    Err(e) => {
-                        println!(
-                            "{} redis error: {}",
-                            format!("[{}]", spotify_email_clone).bright_green(),
-                            e.to_string().bright_red()
-                        );
+
+                if let Ok(Some(cached)) = cache_clone.get(&spotify_email_clone) {
+                    if cached == "No content" {
+                        thread::sleep(std::time::Duration::from_millis(800));
+                        continue;
+                    }
+                    match cache_clone.setex(&format!("{}:current", spotify_email_clone), &cached, 16) {
+                        Ok(_) => {}
+                        Err(e) => {
+                            println!(
+                                "{} redis error: {}",
+                                format!("[{}]", spotify_email_clone).bright_green(),
+                                e.to_string().bright_red()
+                            );
+                        }
                     }
                 }
-            }
 
-            thread::sleep(std::time::Duration::from_millis(800));
-        }
-        Ok::<(), Error>(())
-    });
+                thread::sleep(std::time::Duration::from_millis(800));
+            }
+            Ok::<(), Error>(())
+        });
+    */
 
     loop {
         if stop_flag.load(std::sync::atomic::Ordering::Relaxed) {
