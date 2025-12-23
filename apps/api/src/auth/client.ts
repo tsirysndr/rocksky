@@ -8,7 +8,9 @@ import { SessionStore, StateStore } from "./storage";
 
 export const createClient = async (db: Database) => {
   const publicUrl = env.PUBLIC_URL;
-  const url = publicUrl || `http://127.0.0.1:${env.PORT}`;
+  const url = publicUrl.includes("localhost")
+    ? `http://127.0.0.1:${env.PORT}`
+    : publicUrl;
   const enc = encodeURIComponent;
 
   const redis = new Redis(env.REDIS_URL);
@@ -26,7 +28,7 @@ export const createClient = async (db: Database) => {
   return new NodeOAuthClient({
     clientMetadata: {
       client_name: "Rocksky",
-      client_id: publicUrl
+      client_id: !publicUrl.includes("localhost")
         ? `${url}/oauth-client-metadata.json`
         : `http://localhost?redirect_uri=${enc(
             `${url}/oauth/callback`,

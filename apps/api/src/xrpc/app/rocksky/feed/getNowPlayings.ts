@@ -1,18 +1,28 @@
 import type { Context } from "context";
-import { Effect, pipe } from "effect";
+import { Effect, pipe, Cache, Duration } from "effect";
 import type { Server } from "lexicon";
 import type { NowPlayingView } from "lexicon/types/app/rocksky/feed/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/feed/getNowPlayings";
 import { deepCamelCaseKeys } from "lib";
 
 export default function (server: Server, ctx: Context) {
+  const nowPlayingCache = Cache.make({
+    capacity: 100,
+    timeToLive: Duration.seconds(30),
+    lookup: (params: QueryParams) =>
+      pipe(
+        { params, ctx },
+        retrieve,
+        Effect.flatMap(presentation),
+        Effect.retry({ times: 3 }),
+        Effect.timeout("10 seconds"),
+      ),
+  });
+
   const getNowPlayings = (params) =>
     pipe(
-      { params, ctx },
-      retrieve,
-      Effect.flatMap(presentation),
-      Effect.retry({ times: 3 }),
-      Effect.timeout("10 seconds"),
+      nowPlayingCache,
+      Effect.flatMap((cache) => cache.get(params)),
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({});
