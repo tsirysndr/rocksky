@@ -1,19 +1,29 @@
 import type { Context } from "context";
 import { eq } from "drizzle-orm";
-import { Effect, Match, pipe } from "effect";
+import { Effect, Match, pipe, Cache, Duration } from "effect";
 import type { Server } from "lexicon";
 import type { ChartsView } from "lexicon/types/app/rocksky/charts/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/charts/getScrobblesChart";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
+  const getScrobblesCache = Cache.make({
+    capacity: 100,
+    timeToLive: Duration.seconds(30),
+    lookup: (params: QueryParams) =>
+      pipe(
+        { params, ctx },
+        retrieve,
+        Effect.flatMap(presentation),
+        Effect.retry({ times: 3 }),
+        Effect.timeout("10 seconds"),
+      ),
+  });
+
   const getScrobblesChart = (params) =>
     pipe(
-      { params, ctx },
-      retrieve,
-      Effect.flatMap(presentation),
-      Effect.retry({ times: 3 }),
-      Effect.timeout("10 seconds"),
+      getScrobblesCache,
+      Effect.flatMap((cache) => cache.get(params)),
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({ scrobbles: [] });
