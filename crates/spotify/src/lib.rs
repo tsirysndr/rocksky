@@ -321,7 +321,7 @@ pub async fn get_currently_playing(
             }
         };
 
-        let changed = compute_track_change(previous.as_ref(), &current);
+        let changed = compute_track_change(previous.as_ref(), &current, user_id);
         return Ok(Some((current, changed)));
     }
 
@@ -379,7 +379,7 @@ pub async fn get_currently_playing(
     cache.del(&format!("{}:current", user_id))?;
 
     // Determine if this is a meaningful track change
-    let changed = compute_track_change(previous.as_ref(), &current);
+    let changed = compute_track_change(previous.as_ref(), &current, user_id);
 
     // Always update previous state
     cache.setex(
@@ -391,26 +391,78 @@ pub async fn get_currently_playing(
     Ok(Some((current, changed)))
 }
 
-fn compute_track_change(previous: Option<&CurrentlyPlaying>, current: &CurrentlyPlaying) -> bool {
+fn compute_track_change(
+    previous: Option<&CurrentlyPlaying>,
+    current: &CurrentlyPlaying,
+    user_id: &str,
+) -> bool {
+    // Early exit: no previous state → safe, no change
     let Some(prev) = previous else {
+        println!(
+            "{} Change detection: NO PREVIOUS STATE → changed=false (cold start/restart)",
+            format!("[{}]", user_id).bright_green()
+        );
         return false;
     };
+
+    // Early exit: nothing playing now
     let Some(curr_item) = current.item.as_ref() else {
+        println!(
+            "{} Change detection: currently NOTHING playing → changed=false",
+            format!("[{}]", user_id).bright_green()
+        );
         return false;
     };
+
+    // Case: previous was paused/stopped → now playing anything = new track
     if prev.item.is_none() {
+        println!(
+            "{} Change detection: was PAUSED/STORED → now playing '{}' → changed=true",
+            format!("[{}]", user_id).bright_green(),
+            curr_item.name
+        );
         return true;
     }
+
     let Some(prev_item) = prev.item.as_ref() else {
+        println!(
+            "{} Change detection: previous state corrupted (no item) → changed=false (safety)",
+            format!("[{}]", user_id).bright_green()
+        );
         return false;
     };
+
+    // Same track → no change
     if prev_item.id == curr_item.id {
+        println!(
+            "{} Change detection: same track '{}' → changed=false",
+            format!("[{}]", user_id).bright_green(),
+            curr_item.name
+        );
         return false;
     }
 
+    // Different track → apply 50% rule
     let progress = prev.progress_ms.unwrap_or(0) as u64;
     let duration = prev_item.duration_ms as u64;
-    duration > 0 && progress >= duration * 50 / 100
+    let percent = if duration > 0 {
+        (progress as f64 / duration as f64) * 100.0
+    } else {
+        0.0
+    };
+
+    let changed = duration > 0 && progress >= duration * 50 / 100;
+
+    println!(
+        "{} Change detection: prev='{}' ({:.1}% played), curr='{}' → changed={}",
+        format!("[{}]", user_id).bright_green(),
+        prev_item.name,
+        percent,
+        curr_item.name,
+        changed
+    );
+
+    changed
 }
 
 pub async fn get_artist(
