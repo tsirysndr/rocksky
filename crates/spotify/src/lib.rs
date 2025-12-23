@@ -931,36 +931,33 @@ pub async fn watch_currently_playing(
             );
 
             if changed {
-                scrobble(
-                    cache.clone(),
-                    &spotify_email,
-                    &did,
-                    &token,
-                    &client_id,
-                    &client_secret,
-                )
-                .await?;
+                cache.setex(
+                    &format!("changed:{}:{}", spotify_email, data_item.id),
+                    &data_item.duration_ms.to_string(),
+                    3600 * 24,
+                )?;
+            }
 
-                thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().unwrap();
-                    match rt.block_on(async {
-                        get_album_tracks(
-                            cache.clone(),
-                            &data_item.album.id,
-                            &token,
-                            &client_id,
-                            &client_secret,
-                        )
-                        .await?;
-                        get_album(
-                            cache.clone(),
-                            &data_item.album.id,
-                            &token,
-                            &client_id,
-                            &client_secret,
-                        )
-                        .await?;
-                        update_library(
+            let current_track =
+                match cache.get(&format!("changed:{}:{}", spotify_email, data_item.id)) {
+                    Ok(x) => x.is_some(),
+                    Err(_) => false,
+                };
+
+            if let Ok(Some(cached)) = cache.get(&format!("{}:current", spotify_email)) {
+                let current_song = serde_json::from_str::<CurrentlyPlaying>(&cached)?;
+                if let Some(item) = current_song.item {
+                    let percentage = current_song.progress_ms.unwrap_or(0) as f32
+                        / data_item.duration_ms as f32
+                        * 100.0;
+                    if current_track && percentage >= 40.0 && item.id == data_item.id {
+                        println!(
+                            "{} Scrobbling track: {} {}",
+                            format!("[{}]", spotify_email).bright_green(),
+                            item.name.yellow(),
+                            format!("{:.2}%", percentage)
+                        );
+                        scrobble(
                             cache.clone(),
                             &spotify_email,
                             &did,
@@ -969,18 +966,54 @@ pub async fn watch_currently_playing(
                             &client_secret,
                         )
                         .await?;
-                        Ok::<(), Error>(())
-                    }) {
-                        Ok(_) => {}
-                        Err(e) => {
-                            println!(
-                                "{} {}",
-                                format!("[{}]", spotify_email).bright_green(),
-                                e.to_string().bright_red()
-                            );
-                        }
+
+                        match cache.del(&format!("changed:{}:{}", spotify_email, data_item.id)) {
+                            Ok(_) => {}
+                            Err(_) => tracing::error!("Failed to delete cache entry"),
+                        };
+
+                        thread::spawn(move || {
+                            let rt = tokio::runtime::Runtime::new().unwrap();
+                            match rt.block_on(async {
+                                get_album_tracks(
+                                    cache.clone(),
+                                    &data_item.album.id,
+                                    &token,
+                                    &client_id,
+                                    &client_secret,
+                                )
+                                .await?;
+                                get_album(
+                                    cache.clone(),
+                                    &data_item.album.id,
+                                    &token,
+                                    &client_id,
+                                    &client_secret,
+                                )
+                                .await?;
+                                update_library(
+                                    cache.clone(),
+                                    &spotify_email,
+                                    &did,
+                                    &token,
+                                    &client_id,
+                                    &client_secret,
+                                )
+                                .await?;
+                                Ok::<(), Error>(())
+                            }) {
+                                Ok(_) => {}
+                                Err(e) => {
+                                    println!(
+                                        "{} {}",
+                                        format!("[{}]", spotify_email).bright_green(),
+                                        e.to_string().bright_red()
+                                    );
+                                }
+                            }
+                        });
                     }
-                });
+                }
             }
         }
 
