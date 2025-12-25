@@ -4,18 +4,20 @@ import { Effect, Match, pipe } from "effect";
 import tables from "../schema/mod.ts";
 
 export default function (ctx: Context, did?: string) {
-  return pipe(
-    retrieve({
-      ctx,
-      params: {
-        did,
-      },
-    }),
-    Effect.flatMap(presentation),
-    Effect.retry({ times: 3 }),
-    Effect.timeout("10 seconds"),
-    Effect.catchAll((error) =>
-      Effect.fail(new Error(`Failed to retrieve scrobbles chart: ${error}`)),
+  return Effect.runPromise(
+    pipe(
+      retrieve({
+        ctx,
+        params: {
+          did,
+        },
+      }),
+      Effect.flatMap(presentation),
+      Effect.retry({ times: 3 }),
+      Effect.timeout("10 seconds"),
+      Effect.catchAll((error) =>
+        Effect.fail(new Error(`Failed to retrieve scrobbles chart: ${error}`)),
+      ),
     ),
   );
 }

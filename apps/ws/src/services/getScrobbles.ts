@@ -4,18 +4,20 @@ import tables from "../schema/mod.ts";
 import { eq, desc } from "drizzle-orm";
 
 export default function (ctx: Context, offset?: number, limit?: number) {
-  return pipe(
-    retrieve({
-      ctx,
-      params: {
-        offset: offset || 0,
-        limit: limit || 20,
-      },
-    }),
-    Effect.retry({ times: 3 }),
-    Effect.timeout("10 seconds"),
-    Effect.catchAll((error) =>
-      Effect.fail(new Error(`Failed to retrieve scrobbles: ${error}`)),
+  return Effect.runPromise(
+    pipe(
+      retrieve({
+        ctx,
+        params: {
+          offset: offset || 0,
+          limit: limit || 20,
+        },
+      }),
+      Effect.retry({ times: 3 }),
+      Effect.timeout("10 seconds"),
+      Effect.catchAll((error) =>
+        Effect.fail(new Error(`Failed to retrieve scrobbles: ${error}`)),
+      ),
     ),
   );
 }

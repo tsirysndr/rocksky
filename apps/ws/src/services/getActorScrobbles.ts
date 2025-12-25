@@ -3,20 +3,22 @@ import { Effect, pipe } from "effect";
 import { deepCamelCaseKeys } from "../lib/deepCamelKeys.ts";
 
 export default function (ctx: Context, did: string) {
-  return pipe(
-    retrieve({
-      ctx,
-      params: {
-        did,
-        offset: 0,
-        limit: 10,
-      },
-    }),
-    Effect.flatMap(presentation),
-    Effect.retry({ times: 3 }),
-    Effect.timeout("10 seconds"),
-    Effect.catchAll((error) =>
-      Effect.fail(new Error(`Failed to retrieve scrobbles: ${error}`)),
+  return Effect.runPromise(
+    pipe(
+      retrieve({
+        ctx,
+        params: {
+          did,
+          offset: 0,
+          limit: 10,
+        },
+      }),
+      Effect.flatMap(presentation),
+      Effect.retry({ times: 3 }),
+      Effect.timeout("10 seconds"),
+      Effect.catchAll((error) =>
+        Effect.fail(new Error(`Failed to retrieve scrobbles: ${error}`)),
+      ),
     ),
   );
 }

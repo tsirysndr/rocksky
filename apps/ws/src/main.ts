@@ -68,17 +68,18 @@ client.on("message", async (data) => {
 
     logger.info`  Cursor: ${event.time_us}`;
 
-    for (const [socket, channels] of clients) {
-      if (channels.has(collection) && socket.readyState === WebSocket.OPEN) {
-        try {
-          await new Promise((resolve) => setTimeout(resolve, 5000));
-          const nowPlayings = await getNowPlayings(ctx);
-          const scrobbles = await getScrobbles(ctx);
-          const scrobblesChart = await getScrobblesChart(ctx);
-          const actorScrobbles = await getActorScrobbles(ctx, event.did);
-          const actorAlbums = await getActorAlbums(ctx, event.did);
-          const actorArtists = await getActorArtists(ctx, event.did);
+    await new Promise((resolve) => setTimeout(resolve, 4000));
 
+    try {
+      const nowPlayings = await getNowPlayings(ctx);
+      const scrobbles = await getScrobbles(ctx);
+      const scrobblesChart = await getScrobblesChart(ctx);
+      const actorScrobbles = await getActorScrobbles(ctx, event.did);
+      const actorAlbums = await getActorAlbums(ctx, event.did);
+      const actorArtists = await getActorArtists(ctx, event.did);
+
+      for (const [socket, channels] of clients) {
+        if (channels.has(collection) && socket.readyState === WebSocket.OPEN) {
           socket.send(
             JSON.stringify({
               nowPlayings,
@@ -91,10 +92,10 @@ client.on("message", async (data) => {
               did: event.did,
             }),
           );
-        } catch (error) {
-          logger.error`Failed to send data to client: ${error}`;
         }
       }
+    } catch (error) {
+      logger.error`Failed to send data to client: ${error}`;
     }
   }
 });
