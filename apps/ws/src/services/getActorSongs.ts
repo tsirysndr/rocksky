@@ -12,7 +12,7 @@ export default function (ctx: Context, did: string) {
       },
     }),
     Effect.retry({ times: 3 }),
-    Effect.timeout("10 seconds"),
+    Effect.timeout("120 seconds"),
     Effect.catchAll((error) =>
       Effect.fail(new Error(`Failed to retrieve songs: ${error}`)),
     ),

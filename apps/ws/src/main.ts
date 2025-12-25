@@ -68,8 +68,6 @@ client.on("message", async (data) => {
 
     logger.info`  Cursor: ${event.time_us}`;
 
-    await new Promise((resolve) => setTimeout(resolve, 4000));
-
     try {
       const nowPlayings = await getNowPlayings(ctx);
       const scrobbles = await getScrobbles(ctx);

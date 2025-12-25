@@ -8,7 +8,7 @@ export default function (ctx: Context) {
       retrieve({ ctx, params: { size: 7 } }),
       Effect.flatMap(presentation),
       Effect.retry({ times: 3 }),
-      Effect.timeout("10 seconds"),
+      Effect.timeout("120 seconds"),
       Effect.catchAll((error) =>
         Effect.fail(
           new Error(`Failed to retrieve now playing songs: ${error}`),

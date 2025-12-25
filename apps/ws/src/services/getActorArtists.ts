@@ -8,7 +8,7 @@ export default function (ctx: Context, did: string) {
       retrieve({ ctx, params: { did, offset: 0, limit: 20 } }),
       Effect.flatMap(presentation),
       Effect.retry({ times: 3 }),
-      Effect.timeout("10 seconds"),
+      Effect.timeout("120 seconds"),
       Effect.catchAll((error) =>
         Effect.fail(new Error(`Failed to retrieve artists: ${error}`)),
       ),

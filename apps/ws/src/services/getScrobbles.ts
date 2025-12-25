@@ -14,7 +14,7 @@ export default function (ctx: Context, offset?: number, limit?: number) {
         },
       }),
       Effect.retry({ times: 3 }),
-      Effect.timeout("10 seconds"),
+      Effect.timeout("120 seconds"),
       Effect.catchAll((error) =>
         Effect.fail(new Error(`Failed to retrieve scrobbles: ${error}`)),
       ),
