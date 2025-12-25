@@ -11,6 +11,9 @@ import ContentLoader from "react-content-loader";
 import Handle from "../../../components/Handle";
 import SongCover from "../../../components/SongCover";
 import { useFeedQuery } from "../../../hooks/useFeed";
+import { useEffect, useRef } from "react";
+import { WS_URL } from "../../../consts";
+import { useQueryClient } from "@tanstack/react-query";
 
 dayjs.extend(relativeTime);
 
@@ -28,8 +31,41 @@ const Container = styled.div`
 `;
 
 function Feed() {
+  const queryClient = useQueryClient();
+  const socketRef = useRef<WebSocket | null>(null);
+  const heartbeatInterval = useRef<number | null>(null);
   const { data, isLoading } = useFeedQuery();
-  console.log(data);
+
+  useEffect(() => {
+    const ws = new WebSocket(`${WS_URL.replace("http", "ws")}/ws`);
+    socketRef.current = ws;
+
+    ws.onopen = () => {
+      heartbeatInterval.current = window.setInterval(() => {
+        ws.send("ping");
+      }, 3000);
+    };
+
+    ws.onmessage = (event) => {
+      if (event.data === "pong") {
+        return;
+      }
+
+      const message = JSON.parse(event.data);
+      queryClient.setQueryData(["feed"], message.scrobbles);
+    };
+
+    return () => {
+      if (ws) {
+        if (heartbeatInterval.current) {
+          clearInterval(heartbeatInterval.current);
+        }
+        ws.close();
+      }
+      console.log(">> WebSocket connection closed");
+    };
+  }, []);
+
   return (
     <Container>
       <HeadingMedium

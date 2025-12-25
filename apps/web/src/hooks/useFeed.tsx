@@ -9,7 +9,6 @@ export const useFeedQuery = (limit = 114) =>
       client.get("/xrpc/app.rocksky.scrobble.getScrobbles", {
         params: { limit },
       }),
-    refetchInterval: 7000,
     select: (res) => res.data.scrobbles || [],
   });
 
