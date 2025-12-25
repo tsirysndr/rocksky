@@ -110,7 +110,7 @@ client.on("reconnect", (data) => {
 
 client.connect();
 
-Deno.serve((req) => {
+Deno.serve({ port: parseInt(Deno.env.get("WS_PORT") || "8002") }, (req) => {
   if (req.headers.get("upgrade") != "websocket") {
     return new Response(null, { status: 426 });
   }
