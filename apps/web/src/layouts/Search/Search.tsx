@@ -76,7 +76,7 @@ function Search() {
               Search for "{keyword}"
             </Header>
             {results.length > 0 && (
-              <div className="p-[16px] overflow-y-auto min-h-[54px] max-h-[70vh]">
+              <div className="p-[16px] overflow-y-auto min-h-[54px] !max-h-[400px]">
                 {results.length > 0 && (
                   <>
                     {results.map((item: any) => (
@@ -286,6 +286,12 @@ function Search() {
             style: {
               backgroundColor: "var(--color-background)",
             },
+          },
+        }}
+        popperOptions={{
+          modifiers: {
+            flip: { enabled: false },
+            preventOverflow: { enabled: true },
           },
         }}
       >
