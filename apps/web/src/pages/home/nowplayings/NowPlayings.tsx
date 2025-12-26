@@ -7,11 +7,9 @@ import { StatefulTooltip } from "baseui/tooltip";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import utc from "dayjs/plugin/utc";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNowPlayingsQuery } from "../../../hooks/useNowPlaying";
 import styles from "./styles";
-import { WS_URL } from "../../../consts";
-import { useQueryClient } from "@tanstack/react-query";
 
 dayjs.extend(relativeTime);
 dayjs.extend(utc);
@@ -90,10 +88,7 @@ const Link = styled(DefaultLink)`
 `;
 
 function NowPlayings() {
-  const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
-  const socketRef = useRef<WebSocket | null>(null);
-  const heartbeatInterval = useRef<number | null>(null);
   const { data: nowPlayings, isLoading } = useNowPlayingsQuery();
   const [currentlyPlaying, setCurrentlyPlaying] = useState<{
     id: string;
@@ -111,37 +106,6 @@ function NowPlayings() {
   } | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [progress, setProgress] = useState(0);
-
-  useEffect(() => {
-    const ws = new WebSocket(`${WS_URL.replace("http", "ws")}/ws`);
-    socketRef.current = ws;
-
-    ws.onopen = () => {
-      heartbeatInterval.current = window.setInterval(() => {
-        ws.send("ping");
-      }, 3000);
-    };
-
-    ws.onmessage = (event) => {
-      if (event.data === "pong") {
-        return;
-      }
-
-      const message = JSON.parse(event.data);
-      queryClient.setQueryData(["now-playings"], message.nowPlayings);
-      queryClient.setQueryData(["scrobblesChart"], message.scrobblesChart);
-    };
-
-    return () => {
-      if (ws) {
-        if (heartbeatInterval.current) {
-          clearInterval(heartbeatInterval.current);
-        }
-        ws.close();
-      }
-      console.log(">> WebSocket connection closed");
-    };
-  }, []);
 
   const onNext = () => {
     const nextIndex = currentIndex + 1;

@@ -37,7 +37,7 @@ function Feed() {
   const { data, isLoading } = useFeedQuery();
 
   useEffect(() => {
-    const ws = new WebSocket(`${WS_URL.replace("http", "ws")}/ws`);
+    const ws = new WebSocket(`${WS_URL.replace("http", "ws")}`);
     socketRef.current = ws;
 
     ws.onopen = () => {
@@ -53,6 +53,8 @@ function Feed() {
 
       const message = JSON.parse(event.data);
       queryClient.setQueryData(["feed"], message.scrobbles);
+      queryClient.setQueryData(["now-playings"], message.nowPlayings);
+      queryClient.setQueryData(["scrobblesChart"], message.scrobblesChart);
     };
 
     return () => {
@@ -64,7 +66,7 @@ function Feed() {
       }
       console.log(">> WebSocket connection closed");
     };
-  }, []);
+  }, [queryClient]);
 
   return (
     <Container>
