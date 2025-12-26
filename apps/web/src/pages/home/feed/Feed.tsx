@@ -46,15 +46,22 @@ function Feed() {
       }, 3000);
     };
 
-    ws.onmessage = (event) => {
+    ws.onmessage = async (event) => {
       if (event.data === "pong") {
         return;
       }
 
       const message = JSON.parse(event.data);
-      queryClient.setQueryData(["feed"], message.scrobbles);
-      queryClient.setQueryData(["now-playings"], message.nowPlayings);
-      queryClient.setQueryData(["scrobblesChart"], message.scrobblesChart);
+      queryClient.setQueryData(["feed"], () => message.scrobbles);
+      queryClient.setQueryData(["now-playings"], () => message.nowPlayings);
+      queryClient.setQueryData(
+        ["scrobblesChart"],
+        () => message.scrobblesChart,
+      );
+
+      await queryClient.invalidateQueries({ queryKey: ["feed"] });
+      await queryClient.invalidateQueries({ queryKey: ["now-playings"] });
+      await queryClient.invalidateQueries({ queryKey: ["scrobblesChart"] });
     };
 
     return () => {
