@@ -9,6 +9,7 @@ import dropboxAccounts from "./dropbox-accounts";
 import dropboxDirectories from "./dropbox-directories";
 import dropboxPaths from "./dropbox-paths";
 import dropboxTokens from "./dropbox-tokens";
+import feeds from "./feeds";
 import googleDriveAccounts from "./google-drive-accounts";
 import googleDriveDirectories from "./google-drive-directories";
 import googleDrivePaths from "./google-drive-paths";
@@ -68,4 +69,5 @@ export default {
   dropboxTokens,
   googleDrive,
   queueTracks,
+  feeds,
 };

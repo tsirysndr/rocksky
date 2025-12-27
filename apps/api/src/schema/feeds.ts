@@ -9,7 +9,7 @@ const feeds = pgTable("feeds", {
     .default(sql`xata_id()`),
   displayName: text("display_name").notNull(),
   description: text("description"),
-  did: text("did").notNull().unique(),
+  did: text("did").notNull(),
   uri: text("uri").notNull().unique(),
   avatar: text("avatar"),
   userId: text("user_id")
