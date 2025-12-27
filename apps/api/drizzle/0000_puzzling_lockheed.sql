@@ -81,7 +81,7 @@ SELECT 'rec_' || xata_private.xid();
 $$ LANGUAGE sql IMMUTABLE;
 
 CREATE TABLE "album_tracks" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"album_id" text NOT NULL,
 	"track_id" text NOT NULL,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL,
@@ -90,7 +90,7 @@ CREATE TABLE "album_tracks" (
 );
 --> statement-breakpoint
 CREATE TABLE "albums" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"title" text NOT NULL,
 	"artist" text NOT NULL,
 	"release_date" text,
@@ -115,7 +115,7 @@ CREATE TABLE "albums" (
 );
 --> statement-breakpoint
 CREATE TABLE "api_keys" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"name" text NOT NULL,
 	"api_key" text NOT NULL,
 	"shared_secret" text NOT NULL,
@@ -127,7 +127,7 @@ CREATE TABLE "api_keys" (
 );
 --> statement-breakpoint
 CREATE TABLE "artist_albums" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"artist_id" text NOT NULL,
 	"album_id" text NOT NULL,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL,
@@ -136,7 +136,7 @@ CREATE TABLE "artist_albums" (
 );
 --> statement-breakpoint
 CREATE TABLE "artist_tracks" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"artist_id" text NOT NULL,
 	"track_id" text NOT NULL,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL,
@@ -145,7 +145,7 @@ CREATE TABLE "artist_tracks" (
 );
 --> statement-breakpoint
 CREATE TABLE "artists" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"name" text NOT NULL,
 	"biography" text,
 	"born" timestamp,
@@ -167,7 +167,7 @@ CREATE TABLE "artists" (
 );
 --> statement-breakpoint
 CREATE TABLE "dropbox_accounts" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"email" text NOT NULL,
 	"is_beta_user" boolean DEFAULT false NOT NULL,
 	"user_id" text NOT NULL,
@@ -178,7 +178,7 @@ CREATE TABLE "dropbox_accounts" (
 );
 --> statement-breakpoint
 CREATE TABLE "dropbox_directories" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"name" text NOT NULL,
 	"path" text NOT NULL,
 	"parent_id" text,
@@ -191,7 +191,7 @@ CREATE TABLE "dropbox_directories" (
 );
 --> statement-breakpoint
 CREATE TABLE "dropbox_paths" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"path" text NOT NULL,
 	"name" text NOT NULL,
 	"dropbox_id" text NOT NULL,
@@ -205,14 +205,14 @@ CREATE TABLE "dropbox_paths" (
 );
 --> statement-breakpoint
 CREATE TABLE "dropbox_tokens" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"refresh_token" text NOT NULL,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL,
 	"xata_updatedat" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "dropbox" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"user_id" text NOT NULL,
 	"dropbox_token_id" text NOT NULL,
 	"xata_version" text,
@@ -220,8 +220,23 @@ CREATE TABLE "dropbox" (
 	"xata_updatedat" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "feeds" (
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
+	"display_name" text NOT NULL,
+	"description" text,
+	"did" text NOT NULL,
+	"uri" text NOT NULL,
+	"avatar" text,
+	"user_id" text NOT NULL,
+	"xata_version" integer,
+	"xata_createdat" timestamp DEFAULT now() NOT NULL,
+	"xata_updatedat" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "feeds_did_unique" UNIQUE("did"),
+	CONSTRAINT "feeds_uri_unique" UNIQUE("uri")
+);
+--> statement-breakpoint
 CREATE TABLE "google_drive_accounts" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"email" text NOT NULL,
 	"is_beta_user" boolean DEFAULT false NOT NULL,
 	"user_id" text NOT NULL,
@@ -232,7 +247,7 @@ CREATE TABLE "google_drive_accounts" (
 );
 --> statement-breakpoint
 CREATE TABLE "google_drive_directories" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"name" text NOT NULL,
 	"path" text NOT NULL,
 	"parent_id" text,
@@ -245,7 +260,7 @@ CREATE TABLE "google_drive_directories" (
 );
 --> statement-breakpoint
 CREATE TABLE "google_drive_paths" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"google_drive_id" text NOT NULL,
 	"track_id" text NOT NULL,
 	"name" text NOT NULL,
@@ -258,14 +273,14 @@ CREATE TABLE "google_drive_paths" (
 );
 --> statement-breakpoint
 CREATE TABLE "google_drive_tokens" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"refresh_token" text NOT NULL,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL,
 	"xata_updatedat" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "google_drive" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"google_drive_token_id" text NOT NULL,
 	"user_id" text NOT NULL,
 	"xata_version" text,
@@ -274,7 +289,7 @@ CREATE TABLE "google_drive" (
 );
 --> statement-breakpoint
 CREATE TABLE "loved_tracks" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"user_id" text NOT NULL,
 	"track_id" text NOT NULL,
 	"uri" text,
@@ -283,14 +298,14 @@ CREATE TABLE "loved_tracks" (
 );
 --> statement-breakpoint
 CREATE TABLE "playlist_tracks" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"playlist_id" text NOT NULL,
 	"track_id" text NOT NULL,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "playlists" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"name" text NOT NULL,
 	"picture" text,
 	"description" text,
@@ -305,14 +320,14 @@ CREATE TABLE "playlists" (
 );
 --> statement-breakpoint
 CREATE TABLE "profile_shouts" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"user_id" text NOT NULL,
 	"shout_id" text NOT NULL,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "queue_tracks" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"user_id" text NOT NULL,
 	"track_id" text NOT NULL,
 	"position" integer NOT NULL,
@@ -323,7 +338,7 @@ CREATE TABLE "queue_tracks" (
 );
 --> statement-breakpoint
 CREATE TABLE "scrobbles" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"user_id" text,
 	"track_id" text,
 	"album_id" text,
@@ -337,7 +352,7 @@ CREATE TABLE "scrobbles" (
 );
 --> statement-breakpoint
 CREATE TABLE "shout_likes" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"user_id" text NOT NULL,
 	"shout_id" text NOT NULL,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL,
@@ -346,14 +361,14 @@ CREATE TABLE "shout_likes" (
 );
 --> statement-breakpoint
 CREATE TABLE "shout_reports" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"user_id" text NOT NULL,
 	"shout_id" text NOT NULL,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "shouts" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"content" text NOT NULL,
 	"track_id" text,
 	"artist_id" text,
@@ -368,27 +383,39 @@ CREATE TABLE "shouts" (
 );
 --> statement-breakpoint
 CREATE TABLE "spotify_accounts" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"xata_version" integer,
 	"email" text NOT NULL,
 	"user_id" text NOT NULL,
 	"is_beta_user" boolean DEFAULT false NOT NULL,
+	"spotify_app_id" text,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL,
 	"xata_updatedat" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "spotify_apps" (
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
+	"xata_version" integer,
+	"spotify_app_id" text NOT NULL,
+	"spotify_secret" text NOT NULL,
+	"xata_createdat" timestamp DEFAULT now() NOT NULL,
+	"xata_updatedat" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "spotify_apps_spotify_app_id_unique" UNIQUE("spotify_app_id")
+);
+--> statement-breakpoint
 CREATE TABLE "spotify_tokens" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"xata_version" integer,
 	"access_token" text NOT NULL,
 	"refresh_token" text NOT NULL,
 	"user_id" text NOT NULL,
+	"spotify_app_id" text NOT NULL,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL,
 	"xata_updatedat" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "tracks" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"title" text NOT NULL,
 	"artist" text NOT NULL,
 	"album_artist" text NOT NULL,
@@ -424,7 +451,7 @@ CREATE TABLE "tracks" (
 );
 --> statement-breakpoint
 CREATE TABLE "user_albums" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"user_id" text NOT NULL,
 	"album_id" text NOT NULL,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL,
@@ -436,7 +463,7 @@ CREATE TABLE "user_albums" (
 );
 --> statement-breakpoint
 CREATE TABLE "user_artists" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"user_id" text NOT NULL,
 	"artist_id" text NOT NULL,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL,
@@ -448,16 +475,16 @@ CREATE TABLE "user_artists" (
 );
 --> statement-breakpoint
 CREATE TABLE "user_playlists" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"user_id" text NOT NULL,
 	"playlist_id" text NOT NULL,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL,
-	"uri" text NOT NULL,
+	"uri" text,
 	CONSTRAINT "user_playlists_uri_unique" UNIQUE("uri")
 );
 --> statement-breakpoint
 CREATE TABLE "user_tracks" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"user_id" text NOT NULL,
 	"track_id" text NOT NULL,
 	"xata_createdat" timestamp DEFAULT now() NOT NULL,
@@ -469,7 +496,7 @@ CREATE TABLE "user_tracks" (
 );
 --> statement-breakpoint
 CREATE TABLE "users" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"did" text NOT NULL,
 	"display_name" text,
 	"handle" text NOT NULL,
@@ -482,7 +509,7 @@ CREATE TABLE "users" (
 );
 --> statement-breakpoint
 CREATE TABLE "webscrobblers" (
-	"xata_id" text PRIMARY KEY DEFAULT xata_id(),
+	"xata_id" text PRIMARY KEY DEFAULT xata_id() NOT NULL,
 	"name" text NOT NULL,
 	"uuid" text NOT NULL,
 	"description" text,
@@ -504,6 +531,7 @@ ALTER TABLE "dropbox_directories" ADD CONSTRAINT "dropbox_directories_parent_id_
 ALTER TABLE "dropbox_paths" ADD CONSTRAINT "dropbox_paths_directory_id_dropbox_directories_xata_id_fk" FOREIGN KEY ("directory_id") REFERENCES "public"."dropbox_directories"("xata_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "dropbox" ADD CONSTRAINT "dropbox_user_id_users_xata_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("xata_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "dropbox" ADD CONSTRAINT "dropbox_dropbox_token_id_dropbox_tokens_xata_id_fk" FOREIGN KEY ("dropbox_token_id") REFERENCES "public"."dropbox_tokens"("xata_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "feeds" ADD CONSTRAINT "feeds_user_id_users_xata_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("xata_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "google_drive_accounts" ADD CONSTRAINT "google_drive_accounts_user_id_users_xata_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("xata_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "google_drive_directories" ADD CONSTRAINT "google_drive_directories_parent_id_google_drive_directories_xata_id_fk" FOREIGN KEY ("parent_id") REFERENCES "public"."google_drive_directories"("xata_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "google_drive_paths" ADD CONSTRAINT "google_drive_paths_directory_id_google_drive_directories_xata_id_fk" FOREIGN KEY ("directory_id") REFERENCES "public"."google_drive_directories"("xata_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -539,7 +567,7 @@ ALTER TABLE "user_albums" ADD CONSTRAINT "user_albums_album_id_albums_xata_id_fk
 ALTER TABLE "user_artists" ADD CONSTRAINT "user_artists_user_id_users_xata_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("xata_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_artists" ADD CONSTRAINT "user_artists_artist_id_artists_xata_id_fk" FOREIGN KEY ("artist_id") REFERENCES "public"."artists"("xata_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_playlists" ADD CONSTRAINT "user_playlists_user_id_users_xata_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("xata_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "user_playlists" ADD CONSTRAINT "user_playlists_playlist_id_tracks_xata_id_fk" FOREIGN KEY ("playlist_id") REFERENCES "public"."tracks"("xata_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "user_playlists" ADD CONSTRAINT "user_playlists_playlist_id_playlists_xata_id_fk" FOREIGN KEY ("playlist_id") REFERENCES "public"."playlists"("xata_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_tracks" ADD CONSTRAINT "user_tracks_user_id_users_xata_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("xata_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_tracks" ADD CONSTRAINT "user_tracks_track_id_tracks_xata_id_fk" FOREIGN KEY ("track_id") REFERENCES "public"."tracks"("xata_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "webscrobblers" ADD CONSTRAINT "webscrobblers_user_id_users_xata_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("xata_id") ON DELETE no action ON UPDATE no action;

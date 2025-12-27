@@ -1,1 +1,0 @@
-ALTER TABLE "feeds" ADD COLUMN "avatar" text;

@@ -1,1 +1,0 @@
-ALTER TABLE "spotify_apps" ADD CONSTRAINT "spotify_apps_spotify_app_id_unique" UNIQUE("spotify_app_id");
