@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import { ctx } from "context";
-import * as FeedGenerator from "lexicon/types/app/rocksky/feed/generator";
+import type * as FeedGenerator from "lexicon/types/app/rocksky/feed/generator";
 import { createAgent } from "lib/agent";
 import prompts from "prompts";
 
@@ -42,7 +42,7 @@ const did = await prompts({
 
 if (!/^did:web:[a-zA-Z0-9_.-]{3,30}$/.test(did.value)) {
   console.error(
-    "Invalid DID format. It should start with 'did:web:' followed by 3 to 30 alphanumeric characters, underscores, hyphens, or periods."
+    "Invalid DID format. It should start with 'did:web:' followed by 3 to 30 alphanumeric characters, underscores, hyphens, or periods.",
   );
   process.exit(1);
 }
@@ -55,7 +55,7 @@ const rkey = await prompts({
 
 if (!/^[a-zA-Z0-9_-]{3,30}$/.test(rkey.value)) {
   console.error(
-    "Invalid record key. Only alphanumeric characters, underscores, and hyphens are allowed. Length must be between 3 and 30 characters."
+    "Invalid record key. Only alphanumeric characters, underscores, and hyphens are allowed. Length must be between 3 and 30 characters.",
   );
   process.exit(1);
 }
@@ -67,7 +67,7 @@ console.log("Description:", description.value);
 console.log("DID:", did.value);
 console.log("Record key (rkey):", rkey.value);
 
-let confirm = await prompts({
+const confirm = await prompts({
   type: "confirm",
   name: "value",
   message: "Do you want to proceed?",
@@ -88,7 +88,7 @@ if (!userDid.startsWith("did:plc:")) {
 const agent = await createAgent(ctx.oauthClient, userDid);
 
 console.log(
-  `Writing ${chalk.greenBright("app.rocksky.feed.generator")} record...`
+  `Writing ${chalk.greenBright("app.rocksky.feed.generator")} record...`,
 );
 
 const record: FeedGenerator.Record = {

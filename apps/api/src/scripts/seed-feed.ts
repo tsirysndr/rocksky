@@ -4,7 +4,7 @@ import { ctx } from "context";
 import { createAgent } from "lib/agent";
 import * as FeedGenerator from "lexicon/types/app/rocksky/feed/generator";
 import tables from "schema";
-import { InsertFeed } from "schema/feeds";
+import type { InsertFeed } from "schema/feeds";
 import { eq } from "drizzle-orm";
 
 const args = process.argv.slice(2);

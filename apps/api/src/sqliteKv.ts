@@ -100,7 +100,7 @@ export default defineDriver<
             oc.column("id").doUpdateSet({
               value,
               updated_at: now,
-            })
+            }),
           )
           .execute();
       },
@@ -125,10 +125,10 @@ export default defineDriver<
                     oc.column("id").doUpdateSet({
                       value,
                       updated_at: now,
-                    })
+                    }),
                   )
                   .execute();
-              })
+              }),
             );
           });
       },
@@ -169,5 +169,5 @@ export default defineDriver<
         await getDb().destroy();
       },
     };
-  }
+  },
 );

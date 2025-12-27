@@ -86,3 +86,42 @@ export function isNowPlayingsView(v: unknown): v is NowPlayingsView {
 export function validateNowPlayingsView(v: unknown): ValidationResult {
   return lexicons.validate("app.rocksky.feed.defs#nowPlayingsView", v);
 }
+
+export interface FeedGeneratorsView {
+  feeds?: FeedGeneratorView[];
+  [k: string]: unknown;
+}
+
+export function isFeedGeneratorsView(v: unknown): v is FeedGeneratorsView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.feed.defs#feedGeneratorsView"
+  );
+}
+
+export function validateFeedGeneratorsView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.feed.defs#feedGeneratorsView", v);
+}
+
+export interface FeedGeneratorView {
+  id?: string;
+  name?: string;
+  description?: string;
+  uri?: string;
+  avatar?: string;
+  creator?: AppRockskyActorDefs.ProfileViewBasic;
+  [k: string]: unknown;
+}
+
+export function isFeedGeneratorView(v: unknown): v is FeedGeneratorView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.feed.defs#feedGeneratorView"
+  );
+}
+
+export function validateFeedGeneratorView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.feed.defs#feedGeneratorView", v);
+}

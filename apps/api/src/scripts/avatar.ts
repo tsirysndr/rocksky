@@ -10,7 +10,7 @@ const BATCH_SIZE = 100; // Process 100 users at a time
 async function processUser(user: SelectUser) {
   if (!process.env.SKIP_AVATAR_UPDATE) {
     const plc = await fetch(`https://plc.directory/${user.did}`).then((res) =>
-      res.json()
+      res.json(),
     );
 
     const serviceEndpoint = _.get(plc, "service.0.serviceEndpoint");
@@ -20,7 +20,7 @@ async function processUser(user: SelectUser) {
     }
 
     const profile = await fetch(
-      `${serviceEndpoint}/xrpc/com.atproto.repo.getRecord?repo=${user.did}&collection=app.bsky.actor.profile&rkey=self`
+      `${serviceEndpoint}/xrpc/com.atproto.repo.getRecord?repo=${user.did}&collection=app.bsky.actor.profile&rkey=self`,
     ).then((res) => res.json());
     const ref = _.get(profile, "value.avatar.ref.$link");
     const type = _.get(profile, "value.avatar.mimeType", "").split("/")[1];
@@ -57,7 +57,7 @@ async function processUser(user: SelectUser) {
   console.log(userPayload);
   await ctx.nc.publish(
     "rocksky.user",
-    Buffer.from(JSON.stringify(userPayload))
+    Buffer.from(JSON.stringify(userPayload)),
   );
 }
 
@@ -95,7 +95,7 @@ if (args.length > 0) {
     }
 
     console.log(
-      `Processing batch ${Math.floor(offset / BATCH_SIZE) + 1}, users ${offset + 1}-${offset + batch.length}`
+      `Processing batch ${Math.floor(offset / BATCH_SIZE) + 1}, users ${offset + 1}-${offset + batch.length}`,
     );
 
     for (const user of batch) {

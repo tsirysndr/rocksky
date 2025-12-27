@@ -103,4 +103,42 @@ defs = new Mapping<String, ObjectType> {
       }
     }
   }
+  ["feedGeneratorsView"] = new ObjectType {
+    type = "object"
+    properties  {
+      ["feeds"] = new Array {
+        type = "array"
+        items = new Ref {
+          type = "ref"
+          ref = "app.rocksky.feed.defs#feedGeneratorView"
+        }
+      }
+    }
+  }
+  ["feedGeneratorView"] = new ObjectType {
+    type = "object"
+    properties {
+      ["id"] = new StringType {
+        type = "string"
+      }
+      ["name"] = new StringType {
+        type = "string"
+      }
+      ["description"] = new StringType {
+        type = "string"
+      }
+      ["uri"] = new StringType {
+        type = "string"
+        format = "at-uri"
+      }
+      ["avatar"] = new StringType {
+        type = "string"
+        format = "uri"
+      }
+      ["creator"] = new Ref {
+        type = "ref"
+        ref = "app.rocksky.actor.defs#profileViewBasic"
+      }
+    }
+  }
 }

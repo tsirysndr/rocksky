@@ -1267,42 +1267,6 @@ export const schemaDict = {
       },
     },
   },
-  AppRockskyAlbumGetAlbumTracks: {
-    lexicon: 1,
-    id: "app.rocksky.album.getAlbumTracks",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get tracks for an album",
-        parameters: {
-          type: "params",
-          required: ["uri"],
-          properties: {
-            uri: {
-              type: "string",
-              description: "The URI of the album to retrieve tracks from",
-              format: "at-uri",
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {
-              tracks: {
-                type: "array",
-                items: {
-                  type: "ref",
-                  ref: "lex:app.rocksky.song.defs#songViewBasic",
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  },
   AppRockskyAlbumGetAlbums: {
     lexicon: 1,
     id: "app.rocksky.album.getAlbums",
@@ -1335,6 +1299,42 @@ export const schemaDict = {
                 items: {
                   type: "ref",
                   ref: "lex:app.rocksky.album.defs#albumViewBasic",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyAlbumGetAlbumTracks: {
+    lexicon: 1,
+    id: "app.rocksky.album.getAlbumTracks",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get tracks for an album",
+        parameters: {
+          type: "params",
+          required: ["uri"],
+          properties: {
+            uri: {
+              type: "string",
+              description: "The URI of the album to retrieve tracks from",
+              format: "at-uri",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {
+              tracks: {
+                type: "array",
+                items: {
+                  type: "ref",
+                  ref: "lex:app.rocksky.song.defs#songViewBasic",
                 },
               },
             },
@@ -1845,6 +1845,50 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyArtistGetArtists: {
+    lexicon: 1,
+    id: "app.rocksky.artist.getArtists",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get artists",
+        parameters: {
+          type: "params",
+          properties: {
+            limit: {
+              type: "integer",
+              description: "The maximum number of artists to return",
+              minimum: 1,
+            },
+            offset: {
+              type: "integer",
+              description: "The offset for pagination",
+              minimum: 0,
+            },
+            names: {
+              type: "string",
+              description: "The names of the artists to return",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {
+              artists: {
+                type: "array",
+                items: {
+                  type: "ref",
+                  ref: "lex:app.rocksky.artist.defs#artistViewBasic",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
   AppRockskyArtistGetArtistTracks: {
     lexicon: 1,
     id: "app.rocksky.artist.getArtistTracks",
@@ -1882,50 +1926,6 @@ export const schemaDict = {
                 items: {
                   type: "ref",
                   ref: "lex:app.rocksky.song.defs#songViewBasic",
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  },
-  AppRockskyArtistGetArtists: {
-    lexicon: 1,
-    id: "app.rocksky.artist.getArtists",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get artists",
-        parameters: {
-          type: "params",
-          properties: {
-            limit: {
-              type: "integer",
-              description: "The maximum number of artists to return",
-              minimum: 1,
-            },
-            offset: {
-              type: "integer",
-              description: "The offset for pagination",
-              minimum: 0,
-            },
-            names: {
-              type: "string",
-              description: "The names of the artists to return",
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {
-              artists: {
-                type: "array",
-                items: {
-                  type: "ref",
-                  ref: "lex:app.rocksky.artist.defs#artistViewBasic",
                 },
               },
             },
@@ -2276,6 +2276,44 @@ export const schemaDict = {
           },
         },
       },
+      feedGeneratorsView: {
+        type: "object",
+        properties: {
+          feeds: {
+            type: "array",
+            items: {
+              type: "ref",
+              ref: "lex:app.rocksky.feed.defs#feedGeneratorView",
+            },
+          },
+        },
+      },
+      feedGeneratorView: {
+        type: "object",
+        properties: {
+          id: {
+            type: "string",
+          },
+          name: {
+            type: "string",
+          },
+          description: {
+            type: "string",
+          },
+          uri: {
+            type: "string",
+            format: "at-uri",
+          },
+          avatar: {
+            type: "string",
+            format: "uri",
+          },
+          creator: {
+            type: "ref",
+            ref: "lex:app.rocksky.actor.defs#profileViewBasic",
+          },
+        },
+      },
     },
   },
   AppRockskyFeedGenerator: {
@@ -2314,6 +2352,33 @@ export const schemaDict = {
               type: "string",
               format: "datetime",
             },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyFeedGetFeedGenerators: {
+    lexicon: 1,
+    id: "app.rocksky.feed.getFeedGenerators",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get all feed generators",
+        parameters: {
+          type: "params",
+          properties: {
+            size: {
+              type: "integer",
+              description: "The maximum number of feed generators to return.",
+              minimum: 1,
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "ref",
+            ref: "lex:app.rocksky.feed.defs#feedGeneratorsView",
           },
         },
       },
@@ -5103,8 +5168,8 @@ export const ids = {
   AppRockskyAlbum: "app.rocksky.album",
   AppRockskyAlbumDefs: "app.rocksky.album.defs",
   AppRockskyAlbumGetAlbum: "app.rocksky.album.getAlbum",
-  AppRockskyAlbumGetAlbumTracks: "app.rocksky.album.getAlbumTracks",
   AppRockskyAlbumGetAlbums: "app.rocksky.album.getAlbums",
+  AppRockskyAlbumGetAlbumTracks: "app.rocksky.album.getAlbumTracks",
   AppRockskyApikeyCreateApikey: "app.rocksky.apikey.createApikey",
   AppRockskyApikeyDefs: "app.rocksky.apikey.defs",
   AppRockskyApikeysDefs: "app.rocksky.apikeys.defs",
@@ -5116,8 +5181,8 @@ export const ids = {
   AppRockskyArtistGetArtist: "app.rocksky.artist.getArtist",
   AppRockskyArtistGetArtistAlbums: "app.rocksky.artist.getArtistAlbums",
   AppRockskyArtistGetArtistListeners: "app.rocksky.artist.getArtistListeners",
-  AppRockskyArtistGetArtistTracks: "app.rocksky.artist.getArtistTracks",
   AppRockskyArtistGetArtists: "app.rocksky.artist.getArtists",
+  AppRockskyArtistGetArtistTracks: "app.rocksky.artist.getArtistTracks",
   AppRockskyChartsDefs: "app.rocksky.charts.defs",
   AppRockskyChartsGetScrobblesChart: "app.rocksky.charts.getScrobblesChart",
   AppRockskyDropboxDefs: "app.rocksky.dropbox.defs",
@@ -5127,6 +5192,7 @@ export const ids = {
   AppRockskyDropboxGetTemporaryLink: "app.rocksky.dropbox.getTemporaryLink",
   AppRockskyFeedDefs: "app.rocksky.feed.defs",
   AppRockskyFeedGenerator: "app.rocksky.feed.generator",
+  AppRockskyFeedGetFeedGenerators: "app.rocksky.feed.getFeedGenerators",
   AppRockskyFeedGetNowPlayings: "app.rocksky.feed.getNowPlayings",
   AppRockskyFeedSearch: "app.rocksky.feed.search",
   AppRockskyGoogledriveDefs: "app.rocksky.googledrive.defs",

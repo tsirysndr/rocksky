@@ -4,9 +4,7 @@ import { integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import users from "./users";
 
 const feeds = pgTable("feeds", {
-  id: text("xata_id")
-    .primaryKey()
-    .default(sql`xata_id()`),
+  id: text("xata_id").primaryKey().default(sql`xata_id()`),
   displayName: text("display_name").notNull(),
   description: text("description"),
   did: text("did").notNull(),
