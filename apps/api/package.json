@@ -50,6 +50,7 @@
     "@opentelemetry/sdk-node": "^0.200.0",
     "@opentelemetry/semantic-conventions": "^1.32.0",
     "@pyroscope/nodejs": "^0.4.5",
+    "@types/prompts": "^2.4.9",
     "assert": "^2.1.0",
     "axios": "^1.7.9",
     "better-sqlite3": "^12.4.1",
