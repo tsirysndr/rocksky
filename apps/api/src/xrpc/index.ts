@@ -72,6 +72,7 @@ import spotifyPlay from "./app/rocksky/spotify/play";
 import spotifyPrevious from "./app/rocksky/spotify/previous";
 import spotifySeek from "./app/rocksky/spotify/seek";
 import getStats from "./app/rocksky/stats/getStats";
+import getFeedGenerators from "./app/rocksky/feed/getFeedGenerators";
 
 export default function (server: Server, ctx: Context) {
   // app.rocksky
@@ -147,6 +148,7 @@ export default function (server: Server, ctx: Context) {
   insertFiles(server, ctx);
   removePlaylist(server, ctx);
   startPlaylist(server, ctx);
+  getFeedGenerators(server, ctx);
 
   return server;
 }
