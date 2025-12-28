@@ -29,10 +29,7 @@ const handler = async (
     .limit(limit)
     .execute();
 
-  const feed = scrobbles.map(({ scrobbles }) => ({
-    scrobble: scrobbles.uri,
-    timestamp: scrobbles.timestamp,
-  }));
+  const feed = scrobbles.map(({ scrobbles }) => ({ scrobble: scrobbles.uri }));
 
   const { scrobbles: lastScrobble } =
     scrobbles.length > 0 ? scrobbles.at(-1)! : { scrobbles: null };
