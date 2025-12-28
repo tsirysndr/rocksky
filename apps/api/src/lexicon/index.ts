@@ -38,7 +38,11 @@ import type * as AppRockskyDropboxDownloadFile from "./types/app/rocksky/dropbox
 import type * as AppRockskyDropboxGetFiles from "./types/app/rocksky/dropbox/getFiles";
 import type * as AppRockskyDropboxGetMetadata from "./types/app/rocksky/dropbox/getMetadata";
 import type * as AppRockskyDropboxGetTemporaryLink from "./types/app/rocksky/dropbox/getTemporaryLink";
+import type * as AppRockskyFeedDescribeFeedGenerator from "./types/app/rocksky/feed/describeFeedGenerator";
+import type * as AppRockskyFeedGetFeed from "./types/app/rocksky/feed/getFeed";
+import type * as AppRockskyFeedGetFeedGenerator from "./types/app/rocksky/feed/getFeedGenerator";
 import type * as AppRockskyFeedGetFeedGenerators from "./types/app/rocksky/feed/getFeedGenerators";
+import type * as AppRockskyFeedGetFeedSkeleton from "./types/app/rocksky/feed/getFeedSkeleton";
 import type * as AppRockskyFeedGetNowPlayings from "./types/app/rocksky/feed/getNowPlayings";
 import type * as AppRockskyFeedSearch from "./types/app/rocksky/feed/search";
 import type * as AppRockskyGoogledriveDownloadFile from "./types/app/rocksky/googledrive/downloadFile";
@@ -582,6 +586,39 @@ export class AppRockskyFeedNS {
     this._server = server;
   }
 
+  describeFeedGenerator<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyFeedDescribeFeedGenerator.Handler<ExtractAuth<AV>>,
+      AppRockskyFeedDescribeFeedGenerator.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.feed.describeFeedGenerator"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  getFeed<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyFeedGetFeed.Handler<ExtractAuth<AV>>,
+      AppRockskyFeedGetFeed.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.feed.getFeed"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  getFeedGenerator<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyFeedGetFeedGenerator.Handler<ExtractAuth<AV>>,
+      AppRockskyFeedGetFeedGenerator.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.feed.getFeedGenerator"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
   getFeedGenerators<AV extends AuthVerifier>(
     cfg: ConfigOf<
       AV,
@@ -590,6 +627,17 @@ export class AppRockskyFeedNS {
     >,
   ) {
     const nsid = "app.rocksky.feed.getFeedGenerators"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  getFeedSkeleton<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyFeedGetFeedSkeleton.Handler<ExtractAuth<AV>>,
+      AppRockskyFeedGetFeedSkeleton.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.feed.getFeedSkeleton"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 

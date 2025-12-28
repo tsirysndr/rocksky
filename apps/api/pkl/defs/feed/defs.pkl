@@ -141,4 +141,14 @@ defs = new Mapping<String, ObjectType> {
       }
     }
   }
+  ["feedUriView"] = new ObjectType {
+     type = "object"
+     properties {
+       ["uri"] = new StringType {
+         type = "string"
+         description = "The feed URI."
+         format = "at-uri"
+       }
+     }
+   }
 }

@@ -138,6 +138,16 @@
           "ref": "app.rocksky.actor.defs#profileViewBasic"
         }
       }
+    },
+    "feedUriView": {
+      "type": "object",
+      "properties": {
+        "uri": {
+          "type": "string",
+          "description": "The feed URI.",
+          "format": "at-uri"
+        }
+      }
     }
   }
 }

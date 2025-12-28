@@ -1,0 +1,32 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.feed.getFeedGenerator"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get information about a feed generator"
+    parameters {
+      type = "params"
+      required = List("feed")
+      properties {
+        ["feed"] = new StringType {
+          type = "string"
+          description = "AT-URI of the feed generator record."
+          format = "at-uri"
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        properties {
+          ["view"] = new Ref {
+            ref = "app.rocksky.feed.defs#feedGeneratorView"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,15 +1,15 @@
-import { Server } from "lexicon";
-import { Context } from "context";
+import type { Server } from "lexicon";
+import type { Context } from "context";
 import { Effect, pipe } from "effect";
 import type { FeedGeneratorsView } from "lexicon/types/app/rocksky/feed/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/feed/getFeedGenerators";
 import tables from "schema";
-import { SelectFeed } from "schema/feeds";
+import type { SelectFeed } from "schema/feeds";
 import { eq } from "drizzle-orm";
-import { SelectUser } from "schema/users";
+import type { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
-  const getFeedGenerators = (params) =>
+  const getFeedGenerators = (params: QueryParams) =>
     pipe({ params, ctx }, retrieve, Effect.flatMap(presentation));
   server.app.rocksky.feed.getFeedGenerators({
     handler: async ({ params }) => {

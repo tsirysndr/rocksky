@@ -1,4 +1,3 @@
-
 open class BaseType {
   type: String
   description: String?
@@ -86,6 +85,10 @@ class Record extends BaseType {
 lexicon: Int = 1
 id: String
 description: String?
-defs: Mapping<String, Procedure> | Mapping<String, Record> | Mapping<String, ObjectType> | Mapping<String, Query> | Mapping<String, Array> |  Mapping<String, ObjectType | Array> | Null = null
-
-
+defs: Mapping<String, Procedure>
+  | Mapping<String, Record>
+  | Mapping<String, ObjectType>
+  | Mapping<String, Query>
+  | Mapping<String, Array>
+  | Mapping<String, ObjectType | Array>
+  | Null = null

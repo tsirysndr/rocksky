@@ -125,3 +125,21 @@ export function isFeedGeneratorView(v: unknown): v is FeedGeneratorView {
 export function validateFeedGeneratorView(v: unknown): ValidationResult {
   return lexicons.validate("app.rocksky.feed.defs#feedGeneratorView", v);
 }
+
+export interface FeedUriView {
+  /** The feed URI. */
+  uri?: string;
+  [k: string]: unknown;
+}
+
+export function isFeedUriView(v: unknown): v is FeedUriView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.feed.defs#feedUriView"
+  );
+}
+
+export function validateFeedUriView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.feed.defs#feedUriView", v);
+}
