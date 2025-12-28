@@ -3,7 +3,7 @@ import { env } from "../utils/env.ts";
 
 const app = new Hono();
 
-app.get("/.well-known/did.json", (c) => {
+app.get("/did.json", (c) => {
   return c.json({
     "@context": ["https://www.w3.org/ns/did/v1"],
     id: `did:web:${env.ROCKSKY_FEEDGEN_DOMAIN}`,
