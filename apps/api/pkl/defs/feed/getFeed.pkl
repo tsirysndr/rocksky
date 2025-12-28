@@ -20,25 +20,17 @@ defs = new Mapping<String, Query> {
           description = "The maximum number of scrobbles to return"
           minimum = 1
         }
-        ["offset"] = new IntegerType {
-          type = "integer"
-          description = "The offset for pagination"
-          minimum = 0
+        ["cursor"] = new StringType {
+          type = "string"
+          description = "The cursor for pagination"
         }
       }
     }
     output {
       encoding = "application/json"
-      schema = new ObjectType {
-        type = "object"
-        properties = new Mapping<String, Array> {
-          ["scrobbles"] = new Array {
-            type = "array"
-            items = new Ref {
-              ref = "app.rocksky.scrobble.defs#scrobbleViewBasic"
-            }
-          }
-        }
+      schema = new Ref {
+        type = "ref"
+        ref = "app.rocksky.feed.defs#feedView"
       }
     }
   }

@@ -8,6 +8,7 @@ import type * as AppRockskyAlbumDefs from "../album/defs.ts";
 import type * as AppRockskyArtistDefs from "../artist/defs.ts";
 import type * as AppRockskyPlaylistDefs from "../playlist/defs.ts";
 import type * as AppRockskyActorDefs from "../actor/defs.ts";
+import type * as AppRockskyScrobbleDefs from "../scrobble/defs.ts";
 
 const is$typed = _is$typed, validate = _validate;
 const id = "app.rocksky.feed.defs";
@@ -131,4 +132,34 @@ export function isFeedUriView<V>(v: V) {
 
 export function validateFeedUriView<V>(v: V) {
   return validate<FeedUriView & V>(v, id, hashFeedUriView);
+}
+
+export interface FeedItemView {
+  $type?: "app.rocksky.feed.defs#feedItemView";
+  scrobble?: AppRockskyScrobbleDefs.ScrobbleViewBasic;
+}
+
+const hashFeedItemView = "feedItemView";
+
+export function isFeedItemView<V>(v: V) {
+  return is$typed(v, id, hashFeedItemView);
+}
+
+export function validateFeedItemView<V>(v: V) {
+  return validate<FeedItemView & V>(v, id, hashFeedItemView);
+}
+
+export interface FeedView {
+  $type?: "app.rocksky.feed.defs#feedView";
+  feed?: (FeedItemView)[];
+}
+
+const hashFeedView = "feedView";
+
+export function isFeedView<V>(v: V) {
+  return is$typed(v, id, hashFeedView);
+}
+
+export function validateFeedView<V>(v: V) {
+  return validate<FeedView & V>(v, id, hashFeedView);
 }

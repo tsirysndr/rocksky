@@ -148,6 +148,27 @@
           "format": "at-uri"
         }
       }
+    },
+    "feedItemView": {
+      "type": "object",
+      "properties": {
+        "scrobble": {
+          "type": "ref",
+          "ref": "app.rocksky.scrobble.defs#scrobbleViewBasic"
+        }
+      }
+    },
+    "feedView": {
+      "type": "object",
+      "properties": {
+        "feed": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.feed.defs#feedItemView"
+          }
+        }
+      }
     }
   }
 }

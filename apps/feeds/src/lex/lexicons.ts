@@ -2780,6 +2780,27 @@ export const schemaDict = {
           },
         },
       },
+      "feedItemView": {
+        "type": "object",
+        "properties": {
+          "scrobble": {
+            "type": "ref",
+            "ref": "lex:app.rocksky.scrobble.defs#scrobbleViewBasic",
+          },
+        },
+      },
+      "feedView": {
+        "type": "object",
+        "properties": {
+          "feed": {
+            "type": "array",
+            "items": {
+              "type": "ref",
+              "ref": "lex:app.rocksky.feed.defs#feedItemView",
+            },
+          },
+        },
+      },
     },
   },
   "AppRockskyFeedGetFeedGenerators": {
@@ -2970,16 +2991,8 @@ export const schemaDict = {
         "output": {
           "encoding": "application/json",
           "schema": {
-            "type": "object",
-            "properties": {
-              "scrobbles": {
-                "type": "array",
-                "items": {
-                  "type": "ref",
-                  "ref": "lex:app.rocksky.scrobble.defs#scrobbleViewBasic",
-                },
-              },
-            },
+            "type": "ref",
+            "ref": "lex:app.rocksky.feed.defs#feedView",
           },
         },
       },

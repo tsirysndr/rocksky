@@ -2324,6 +2324,27 @@ export const schemaDict = {
           },
         },
       },
+      feedItemView: {
+        type: "object",
+        properties: {
+          scrobble: {
+            type: "ref",
+            ref: "lex:app.rocksky.scrobble.defs#scrobbleViewBasic",
+          },
+        },
+      },
+      feedView: {
+        type: "object",
+        properties: {
+          feed: {
+            type: "array",
+            items: {
+              type: "ref",
+              ref: "lex:app.rocksky.feed.defs#feedItemView",
+            },
+          },
+        },
+      },
     },
   },
   AppRockskyFeedDescribeFeedGenerator: {
@@ -2424,26 +2445,17 @@ export const schemaDict = {
               description: "The maximum number of scrobbles to return",
               minimum: 1,
             },
-            offset: {
-              type: "integer",
-              description: "The offset for pagination",
-              minimum: 0,
+            cursor: {
+              type: "string",
+              description: "The cursor for pagination",
             },
           },
         },
         output: {
           encoding: "application/json",
           schema: {
-            type: "object",
-            properties: {
-              scrobbles: {
-                type: "array",
-                items: {
-                  type: "ref",
-                  ref: "lex:app.rocksky.scrobble.defs#scrobbleViewBasic",
-                },
-              },
-            },
+            type: "ref",
+            ref: "lex:app.rocksky.feed.defs#feedView",
           },
         },
       },

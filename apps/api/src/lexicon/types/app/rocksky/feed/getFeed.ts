@@ -7,24 +7,19 @@ import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
 import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
-import type * as AppRockskyScrobbleDefs from "../scrobble/defs";
+import type * as AppRockskyFeedDefs from "./defs";
 
 export interface QueryParams {
   /** The feed URI. */
   feed: string;
   /** The maximum number of scrobbles to return */
   limit?: number;
-  /** The offset for pagination */
-  offset?: number;
+  /** The cursor for pagination */
+  cursor?: string;
 }
 
 export type InputSchema = undefined;
-
-export interface OutputSchema {
-  scrobbles?: AppRockskyScrobbleDefs.ScrobbleViewBasic[];
-  [k: string]: unknown;
-}
-
+export type OutputSchema = AppRockskyFeedDefs.FeedView;
 export type HandlerInput = undefined;
 
 export interface HandlerSuccess {

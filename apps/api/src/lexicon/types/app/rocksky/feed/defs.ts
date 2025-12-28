@@ -10,6 +10,7 @@ import type * as AppRockskyAlbumDefs from "../album/defs";
 import type * as AppRockskyArtistDefs from "../artist/defs";
 import type * as AppRockskyPlaylistDefs from "../playlist/defs";
 import type * as AppRockskyActorDefs from "../actor/defs";
+import type * as AppRockskyScrobbleDefs from "../scrobble/defs";
 
 export interface SearchResultsView {
   hits?: (
@@ -142,4 +143,38 @@ export function isFeedUriView(v: unknown): v is FeedUriView {
 
 export function validateFeedUriView(v: unknown): ValidationResult {
   return lexicons.validate("app.rocksky.feed.defs#feedUriView", v);
+}
+
+export interface FeedItemView {
+  scrobble?: AppRockskyScrobbleDefs.ScrobbleViewBasic;
+  [k: string]: unknown;
+}
+
+export function isFeedItemView(v: unknown): v is FeedItemView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.feed.defs#feedItemView"
+  );
+}
+
+export function validateFeedItemView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.feed.defs#feedItemView", v);
+}
+
+export interface FeedView {
+  feed?: FeedItemView[];
+  [k: string]: unknown;
+}
+
+export function isFeedView(v: unknown): v is FeedView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.feed.defs#feedView"
+  );
+}
+
+export function validateFeedView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.feed.defs#feedView", v);
 }

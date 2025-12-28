@@ -21,26 +21,17 @@
             "description": "The maximum number of scrobbles to return",
             "minimum": 1
           },
-          "offset": {
-            "type": "integer",
-            "description": "The offset for pagination",
-            "minimum": 0
+          "cursor": {
+            "type": "string",
+            "description": "The cursor for pagination"
           }
         }
       },
       "output": {
         "encoding": "application/json",
         "schema": {
-          "type": "object",
-          "properties": {
-            "scrobbles": {
-              "type": "array",
-              "items": {
-                "type": "ref",
-                "ref": "app.rocksky.scrobble.defs#scrobbleViewBasic"
-              }
-            }
-          }
+          "type": "ref",
+          "ref": "app.rocksky.feed.defs#feedView"
         }
       }
     }

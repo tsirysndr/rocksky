@@ -1,7 +1,7 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import type * as AppRockskyScrobbleDefs from "../scrobble/defs.ts";
+import type * as AppRockskyFeedDefs from "./defs.ts";
 
 export type QueryParams = {
   /** The feed URI. */
@@ -12,11 +12,7 @@ export type QueryParams = {
   offset?: number;
 };
 export type InputSchema = undefined;
-
-export interface OutputSchema {
-  scrobbles?: (AppRockskyScrobbleDefs.ScrobbleViewBasic)[];
-}
-
+export type OutputSchema = AppRockskyFeedDefs.FeedView;
 export type HandlerInput = void;
 
 export interface HandlerSuccess {
