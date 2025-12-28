@@ -1,6 +1,7 @@
 {
   "tasks": {
-    "dev": "deno run --env-file=.env -A --watch src/main.ts"
+    "dev": "deno run --env-file=.env -A --watch src/main.ts",
+    "start": "deno run --env-file=.env -A src/main.ts"
   },
   "imports": {
     "@atp/identity": "jsr:@atp/identity@^0.1.0-alpha.1",
