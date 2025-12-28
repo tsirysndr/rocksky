@@ -1,11 +1,7 @@
 import { Context } from "../context.ts";
 import { Algorithm, feedParams } from "./types.ts";
 import schema from "../schema/mod.ts";
-import { arrayContains, desc, eq } from "drizzle-orm";
-
-interface QueryFilter {
-  indexedAt?: { $lt: Date };
-}
+import { and, arrayContains, desc, eq, lt } from "drizzle-orm";
 
 const handler = async (
   ctx: Context,
@@ -14,17 +10,20 @@ const handler = async (
 ) => {
   const { limit = 50, cursor } = params;
 
-  const query: QueryFilter = {};
+  const whereConditions = [
+    arrayContains(schema.artists.genres, ["post-grunge"]),
+  ];
 
   if (cursor) {
-    query.indexedAt = { $lt: new Date(parseInt(cursor, 10)) };
+    const cursorDate = new Date(parseInt(cursor, 10));
+    whereConditions.push(lt(schema.scrobbles.timestamp, cursorDate));
   }
 
   const scrobbles = await ctx.db
     .select()
     .from(schema.scrobbles)
     .leftJoin(schema.artists, eq(schema.scrobbles.artistId, schema.artists.id))
-    .where(arrayContains(schema.artists.genres, ["post grunge"]))
+    .where(and(...whereConditions))
     .orderBy(desc(schema.scrobbles.timestamp))
     .limit(limit)
     .execute();
