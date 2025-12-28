@@ -44,12 +44,14 @@ const presentation = (
       name: feeds.displayName,
       description: feeds.description,
       avatar: feeds.avatar,
+      did: feeds.did,
       uri: feeds.uri,
       creator: {
         id: users.id,
         did: users.did,
         handle: users.handle,
         displayName: users.displayName,
+        avatar: users.avatar,
       },
     })),
   }));
