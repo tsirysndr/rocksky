@@ -10,7 +10,7 @@ const handler = async (
 ) => {
   const { limit = 50, cursor } = params;
 
-  const whereConditions = [arrayContains(schema.artists.genres, ["rnb"])];
+  const whereConditions = [arrayContains(schema.artists.genres, ["r&b"])];
 
   if (cursor) {
     const cursorDate = new Date(parseInt(cursor, 10));
