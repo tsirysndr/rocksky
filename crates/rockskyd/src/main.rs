@@ -36,16 +36,6 @@ fn cli() -> Command {
             Command::new("pull")
                 .about("Pull data from a remote PostgreSQL database to your local PostgresSQL instance")
                 .long_about("Pull data from a remote PostgreSQL database to your local PostgresSQL instance. Ensure that the SOURCE_POSTGRES_URL environment variable is set to your remote PostgreSQL connection string."))
-        .subcommand(
-            Command::new("feed")
-                .about("Feed related commands")
-                .subcommand(
-                    Command::new("serve")
-                        .arg(arg!(--sync "Enable sync mode").required(false))
-                        .about("Serve the Rocksky Feed API"),
-                )
-                .subcommand(Command::new("sync").about("Sync scrobbles feed data to DuckDB")),
-        )
 }
 
 #[tokio::main]
@@ -102,14 +92,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Some(("pull", _)) => {
             cmd::pull::pull_data().await?;
         }
-        Some(("feed", sub_m)) => match sub_m.subcommand() {
-            Some(("serve", args)) => {
-                let enable_sync = args.get_flag("sync");
-                cmd::feed::serve(enable_sync).await?
-            }
-            Some(("sync", _)) => cmd::feed::sync().await?,
-            _ => println!("Unknown feed command"),
-        },
         _ => {
             println!("No valid subcommand was used. Use --help to see available commands.");
         }
