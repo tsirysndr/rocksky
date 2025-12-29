@@ -1,6 +1,7 @@
 import { css } from "@emotion/react";
 import styled from "@emotion/styled";
 import InteractionBar from "./InteractionBar";
+import useLike from "../../hooks/useLike";
 
 const Cover = styled.img<{ size?: number }>`
   border-radius: 8px;
@@ -51,18 +52,37 @@ const CoverWrapper = styled.div`
 
 export type SongCoverProps = {
   cover: string;
+  uri?: string;
   title?: string;
   artist?: string;
   size?: number;
+  liked?: boolean;
+  likesCount?: number;
   withLikeButton?: boolean;
 };
 
 function SongCover(props: SongCoverProps) {
-  const { title, artist, cover, size, withLikeButton } = props;
+  const { like, unlike } = useLike();
+  const { title, artist, cover, size, liked, likesCount, uri, withLikeButton } =
+    props;
+  const handleLike = async () => {
+    if (!uri) return;
+    if (liked) {
+      await unlike(uri);
+    } else {
+      await like(uri);
+    }
+  };
   return (
     <CoverWrapper>
       <div className={`relative h-[100%] w-[92%]`}>
-        {withLikeButton && <InteractionBar />}
+        {withLikeButton && (
+          <InteractionBar
+            liked={!!liked}
+            likesCount={likesCount || 0}
+            onLike={handleLike}
+          />
+        )}
         <Cover src={cover} size={size} />
       </div>
       <div className="mb-[13px] mt-[10px]">

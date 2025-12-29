@@ -79,6 +79,7 @@ export const getFeed = async (uri: string, limit?: number, cursor?: string) => {
         uri: string;
         albumUri: string;
         artistUri: string;
+        trackUri: string;
         xataVersion: number;
         cover: string;
         date: string;
@@ -86,6 +87,8 @@ export const getFeed = async (uri: string, limit?: number, cursor?: string) => {
         userDisplayName: string;
         userAvatar: string;
         tags: string[];
+        likesCount: number;
+        liked: boolean;
         id: string;
       };
     }[];

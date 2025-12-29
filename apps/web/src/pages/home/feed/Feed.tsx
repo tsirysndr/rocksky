@@ -126,9 +126,12 @@ function Feed() {
                   className="no-underline text-[var(--color-text-primary)]"
                 >
                   <SongCover
+                    uri={song.trackUri}
                     cover={song.cover}
                     artist={song.artist}
                     title={song.title}
+                    liked={song.liked}
+                    likesCount={song.likesCount}
                     withLikeButton
                   />
                 </Link>
