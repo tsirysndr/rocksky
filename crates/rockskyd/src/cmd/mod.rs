@@ -1,6 +1,5 @@
 pub mod analytics;
 pub mod dropbox;
-pub mod feed;
 pub mod googledrive;
 pub mod jetstream;
 pub mod playlist;
