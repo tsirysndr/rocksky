@@ -10,11 +10,13 @@ import type { SelectScrobble } from "schema/scrobbles";
 import type { SelectTrack } from "schema/tracks";
 import type { SelectUser } from "schema/users";
 import axios from "axios";
+import { HandlerAuth } from "@atproto/xrpc-server";
+import { env } from "lib/env";
 
 export default function (server: Server, ctx: Context) {
-  const getFeed = (params: QueryParams) =>
+  const getFeed = (params: QueryParams, auth: HandlerAuth) =>
     pipe(
-      { params, ctx },
+      { params, ctx, did: auth.credentials?.did },
       retrieve,
       Effect.flatMap(hydrate),
       Effect.flatMap(presentation),
@@ -26,8 +28,9 @@ export default function (server: Server, ctx: Context) {
       }),
     );
   server.app.rocksky.feed.getFeed({
-    handler: async ({ params }) => {
-      const result = await Effect.runPromise(getFeed(params));
+    auth: ctx.authVerifier,
+    handler: async ({ params, auth }) => {
+      const result = await Effect.runPromise(getFeed(params, auth));
       return {
         encoding: "application/json",
         body: result,
@@ -36,7 +39,15 @@ export default function (server: Server, ctx: Context) {
   });
 }
 
-const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
+const retrieve = ({
+  params,
+  ctx,
+  did,
+}: {
+  params: QueryParams;
+  ctx: Context;
+  did?: string;
+}) => {
   return Effect.tryPromise({
     try: async () => {
       const [feed] = await ctx.db
@@ -47,7 +58,9 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
       if (!feed) {
         throw new Error(`Feed not found`);
       }
-      const feedUrl = `https://${feed.did.split("did:web:")[1]}`;
+      const feedUrl = env.PUBLIC_URL.includes("localhost")
+        ? "http://localhost:8002"
+        : `https://${feed.did.split("did:web:")[1]}`;
       const response = await axios.get<{
         cusrsor: string;
         feed: { scrobble: string }[];
@@ -58,7 +71,11 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
           cursor: params.cursor,
         },
       });
-      return { uris: response.data.feed.map(({ scrobble }) => scrobble), ctx };
+      return {
+        uris: response.data.feed.map(({ scrobble }) => scrobble),
+        ctx,
+        did,
+      };
     },
     catch: (error) => new Error(`Failed to retrieve feed: ${error}`),
   });
@@ -67,20 +84,52 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
 const hydrate = ({
   uris,
   ctx,
+  did,
 }: {
   uris: string[];
   ctx: Context;
+  did?: string;
 }): Effect.Effect<Scrobbles | undefined, Error> => {
   return Effect.tryPromise({
-    try: () =>
-      ctx.db
+    try: async () => {
+      const scrobbles = await ctx.db
         .select()
         .from(tables.scrobbles)
         .leftJoin(tables.tracks, eq(tables.scrobbles.trackId, tables.tracks.id))
         .leftJoin(tables.users, eq(tables.scrobbles.userId, tables.users.id))
         .where(inArray(tables.scrobbles.uri, uris))
         .orderBy(desc(tables.scrobbles.timestamp))
-        .execute(),
+        .execute();
+
+      const trackIds = scrobbles.map((row) => row.tracks?.id).filter(Boolean);
+
+      const likes = await ctx.db
+        .select()
+        .from(tables.lovedTracks)
+        .leftJoin(tables.users, eq(tables.lovedTracks.userId, tables.users.id))
+        .where(inArray(tables.lovedTracks.trackId, trackIds))
+        .execute();
+
+      const likesMap = new Map<string, { count: number; liked: boolean }>();
+
+      for (const trackId of trackIds) {
+        const trackLikes = likes.filter(
+          (l) => l.loved_tracks.trackId === trackId,
+        );
+        likesMap.set(trackId, {
+          count: trackLikes.length,
+          liked: trackLikes.some((l) => l.users.did === did),
+        });
+      }
+
+      const result = scrobbles.map((row) => ({
+        ...row,
+        likesCount: likesMap.get(row.tracks?.id)?.count ?? 0,
+        liked: likesMap.get(row.tracks?.id)?.liked ?? false,
+      }));
+
+      return result;
+    },
 
     catch: (error) => new Error(`Failed to hydrate feed: ${error}`),
   });
@@ -88,7 +137,7 @@ const hydrate = ({
 
 const presentation = (data: Scrobbles): Effect.Effect<FeedView, never> => {
   return Effect.sync(() => ({
-    feed: data.map(({ scrobbles, tracks, users }) => ({
+    feed: data.map(({ scrobbles, tracks, users, likesCount, liked }) => ({
       scrobble: {
         ...R.omit(["albumArt", "id", "lyrics"])(tracks),
         cover: tracks.albumArt,
@@ -98,6 +147,10 @@ const presentation = (data: Scrobbles): Effect.Effect<FeedView, never> => {
         userAvatar: users.avatar,
         uri: scrobbles.uri,
         tags: [],
+        likesCount,
+        liked,
+        createdAt: scrobbles.createdAt.toISOString(),
+        updatedAt: scrobbles.updatedAt.toISOString(),
         id: scrobbles.id,
       },
     })),
@@ -108,4 +161,6 @@ type Scrobbles = {
   scrobbles: SelectScrobble;
   tracks: SelectTrack;
   users: SelectUser;
+  likesCount: number;
+  liked: boolean;
 }[];
