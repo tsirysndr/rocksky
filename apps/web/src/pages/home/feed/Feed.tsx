@@ -62,7 +62,7 @@ function Feed() {
         () => message.scrobblesChart,
       );
 
-      await queryClient.invalidateQueries({ queryKey: ["feed"] });
+      await queryClient.invalidateQueries({ queryKey: ["feed", feedUri] });
       await queryClient.invalidateQueries({ queryKey: ["now-playings"] });
       await queryClient.invalidateQueries({ queryKey: ["scrobblesChart"] });
     };
@@ -114,54 +114,47 @@ function Feed() {
             flexGridColumnGap="scale800"
             flexGridRowGap="scale1000"
           >
-            {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              data.map((song: any) => (
-                <FlexGridItem {...itemProps} key={song.id}>
-                  <Link
-                    to="/$did/scrobble/$rkey"
-                    params={{
-                      did: song.uri?.split("at://")[1]?.split("/")[0] || "",
-                      rkey: song.uri?.split("/").pop() || "",
-                    }}
-                    className="no-underline text-[var(--color-text-primary)]"
-                  >
-                    <SongCover
-                      cover={song.cover}
-                      artist={song.artist}
-                      title={song.title}
+            {// eslint-disable-next-line @typescript-eslint/no-explicit-any
+            data?.map((song: any) => (
+              <FlexGridItem {...itemProps} key={song.id}>
+                <Link
+                  to="/$did/scrobble/$rkey"
+                  params={{
+                    did: song.uri?.split("at://")[1]?.split("/")[0] || "",
+                    rkey: song.uri?.split("/").pop() || "",
+                  }}
+                  className="no-underline text-[var(--color-text-primary)]"
+                >
+                  <SongCover
+                    cover={song.cover}
+                    artist={song.artist}
+                    title={song.title}
+                  />
+                </Link>
+                <div className="flex">
+                  <div className="mr-[8px]">
+                    <Avatar
+                      src={song.userAvatar}
+                      name={song.userDisplayName}
+                      size={"20px"}
                     />
-                  </Link>
-                  <div className="flex">
-                    <div className="mr-[8px]">
-                      <Avatar
-                        src={song.userAvatar}
-                        name={song.userDisplayName}
-                        size={"20px"}
-                      />
-                    </div>
-                    <Handle
-                      link={`/profile/${song.user}`}
-                      did={song.user}
-                    />{" "}
                   </div>
-                  <LabelSmall className="!text-[var(--color-text-primary)]">
-                    recently played this song
+                  <Handle link={`/profile/${song.user}`} did={song.user} />{" "}
+                </div>
+                <LabelSmall className="!text-[var(--color-text-primary)]">
+                  recently played this song
+                </LabelSmall>
+                <StatefulTooltip
+                  content={dayjs(song.date).format("MMMM D, YYYY [at] HH:mm A")}
+                  returnFocus
+                  autoFocus
+                >
+                  <LabelSmall className="!text-[var(--color-text-muted)]">
+                    {dayjs(song.date).fromNow()}
                   </LabelSmall>
-                  <StatefulTooltip
-                    content={dayjs(song.date).format(
-                      "MMMM D, YYYY [at] HH:mm A",
-                    )}
-                    returnFocus
-                    autoFocus
-                  >
-                    <LabelSmall className="!text-[var(--color-text-muted)]">
-                      {dayjs(song.date).fromNow()}
-                    </LabelSmall>
-                  </StatefulTooltip>
-                </FlexGridItem>
-              ))
-            }
+                </StatefulTooltip>
+              </FlexGridItem>
+            ))}
           </FlexGrid>
         </div>
       )}

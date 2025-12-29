@@ -3,7 +3,6 @@ export const categories = [
   "afrobeat",
   "afrobeats",
   "alternative metal",
-  "alternative r&b",
   "anime",
   "art pop",
   "breakcore",

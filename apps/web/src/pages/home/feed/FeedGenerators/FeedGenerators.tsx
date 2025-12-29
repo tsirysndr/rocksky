@@ -2,15 +2,40 @@ import { useState, useRef, useEffect } from "react";
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import { categories } from "./constants";
 import { useAtom } from "jotai";
-import { feedAtom } from "../../../../atoms/feed";
+import {
+  feedAtom,
+  feedGeneratorUriAtom,
+  feedUrisAtom,
+} from "../../../../atoms/feed";
+import { useFeedGeneratorsQuery } from "../../../../hooks/useFeed";
+import * as R from "ramda";
 
 function FeedGenerators() {
   const jwt = localStorage.getItem("token");
+  const { data: feedGenerators } = useFeedGeneratorsQuery();
+  const [feedUris, setFeedUris] = useAtom(feedUrisAtom);
+  const [, setFeedUri] = useAtom(feedGeneratorUriAtom);
   const [activeCategory, setActiveCategory] = useAtom(feedAtom);
   const [showLeftChevron, setShowLeftChevron] = useState(false);
   const [showRightChevron, setShowRightChevron] = useState(true);
   const [hasOverflow, setHasOverflow] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!feedGenerators?.feeds) {
+      return;
+    }
+    const feedRegistry = R.indexBy(
+      R.prop("name"),
+      feedGenerators.feeds
+        .map((x) => ({
+          ...x,
+          name: x.name.toLowerCase(),
+        }))
+        .filter((x) => categories.includes(x.name)),
+    );
+    setFeedUris(R.map(R.prop("uri"), feedRegistry));
+  }, [feedGenerators, setFeedUris]);
 
   // Check scroll position and update chevron visibility
   const handleScroll = () => {
@@ -49,6 +74,7 @@ function FeedGenerators() {
 
   const handleCategoryClick = (category: string, index: number) => {
     setActiveCategory(category);
+    setFeedUri(feedUris[category]);
 
     const container = scrollContainerRef.current;
     if (container) {
