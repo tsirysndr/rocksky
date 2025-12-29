@@ -149,6 +149,7 @@ const presentation = (data: Scrobbles): Effect.Effect<FeedView, never> => {
         tags: [],
         likesCount,
         liked,
+        trackUri: tracks.uri,
         createdAt: scrobbles.createdAt.toISOString(),
         updatedAt: scrobbles.updatedAt.toISOString(),
         id: scrobbles.id,
