@@ -72,7 +72,7 @@ pub async fn get_artists(
                     LEFT JOIN artists a ON ua.artist_id = a.id
                     LEFT JOIN users u ON ua.user_id = u.id
                     LEFT JOIN scrobbles s ON s.artist_id = a.id
-                    WHERE u.did = ? OR u.handle = ?
+                    WHERE (u.did = ? OR u.handle = ?) AND a.name != 'Various Artists'
                     GROUP BY a.*
                     ORDER BY play_count DESC
                     LIMIT ? OFFSET ?
@@ -121,6 +121,7 @@ pub async fn get_artists(
                         COUNT(DISTINCT s.user_id) AS unique_listeners
                      FROM artists a
                      LEFT JOIN scrobbles s ON s.artist_id = a.id
+                     WHERE a.name != 'Various Artists'
                      GROUP BY a.*
                      ORDER BY play_count DESC
                      LIMIT ? OFFSET ?
@@ -189,7 +190,7 @@ pub async fn get_top_artists(
                 LEFT JOIN
                     users u ON s.user_id = u.id
                 WHERE
-                    s.artist_id IS NOT NULL AND (u.did = ? OR u.handle = ?)
+                    s.artist_id IS NOT NULL AND (u.did = ? OR u.handle = ?) AND ar.name != 'Various Artists'
                 GROUP BY
                     s.artist_id, ar.name, ar.uri, ar.picture, ar.sha256, ar.genres
                 ORDER BY
@@ -214,7 +215,7 @@ pub async fn get_top_artists(
                 LEFT JOIN
                     artists ar ON s.artist_id = ar.id
                 WHERE
-                    s.artist_id IS NOT NULL
+                    s.artist_id IS NOT NULL AND ar.name != 'Various Artists'
                 GROUP BY
                     s.artist_id, ar.name, ar.uri, ar.picture, ar.sha256, ar.genres
                 ORDER BY
