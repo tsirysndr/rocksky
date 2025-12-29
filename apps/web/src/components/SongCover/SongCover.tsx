@@ -2,6 +2,8 @@ import { css } from "@emotion/react";
 import styled from "@emotion/styled";
 import InteractionBar from "./InteractionBar";
 import useLike from "../../hooks/useLike";
+import SignInModal from "../SignInModal";
+import { useState } from "react";
 
 const Cover = styled.img<{ size?: number }>`
   border-radius: 8px;
@@ -62,19 +64,33 @@ export type SongCoverProps = {
 };
 
 function SongCover(props: SongCoverProps) {
+  const [isSignInOpen, setIsSignInOpen] = useState(false);
+  const [liked, setLiked] = useState(props.liked);
   const { like, unlike } = useLike();
-  const { title, artist, cover, size, liked, likesCount, uri, withLikeButton } =
-    props;
+  const [likesCount, setLikesCount] = useState(props.likesCount);
+  const { title, artist, cover, size, uri, withLikeButton } = props;
   const handleLike = async () => {
     if (!uri) return;
+    if (!localStorage.getItem("token")) {
+      setIsSignInOpen(true);
+      return;
+    }
     if (liked) {
+      setLiked(false);
+      if (likesCount !== undefined && likesCount > 0) {
+        setLikesCount(likesCount - 1);
+      }
       await unlike(uri);
     } else {
+      setLiked(true);
+      if (likesCount !== undefined) {
+        setLikesCount(likesCount + 1);
+      }
       await like(uri);
     }
   };
   return (
-    <CoverWrapper>
+    <CoverWrapper onClick={(e) => e.stopPropagation()}>
       <div className={`relative h-[100%] w-[92%]`}>
         {withLikeButton && (
           <InteractionBar
@@ -91,6 +107,11 @@ function SongCover(props: SongCoverProps) {
         </SongTitle>
         <Artist>{artist}</Artist>
       </div>
+      <SignInModal
+        isOpen={isSignInOpen}
+        onClose={() => setIsSignInOpen(false)}
+        like
+      />
     </CoverWrapper>
   );
 }

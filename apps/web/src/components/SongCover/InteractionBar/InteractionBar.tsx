@@ -14,6 +14,7 @@ function InteractionBar({ likesCount, liked, onLike }: InteractionBarProps) {
         <span
           className="cursor-pointer"
           onClick={(e) => {
+            e.stopPropagation();
             e.preventDefault();
             onLike();
           }}

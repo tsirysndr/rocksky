@@ -7,10 +7,11 @@ import { useState } from "react";
 interface SignInModalProps {
   isOpen: boolean;
   onClose: () => void;
+  like?: boolean;
 }
 
 function SignInModal(props: SignInModalProps) {
-  const { isOpen, onClose } = props;
+  const { isOpen, onClose, like } = props;
   const [handle, setHandle] = useState("");
 
   const onLogin = async () => {
@@ -55,7 +56,9 @@ function SignInModal(props: SignInModalProps) {
         <ModalBody style={{ padding: 10 }}>
           <h1 style={{ color: "#ff2876", textAlign: "center" }}>Rocksky</h1>
           <p className="text-[var(--color-text)] text-[18px] mt-[40px] mb-[20px]">
-            Sign in or create your account to join the conversation!
+            {!like
+              ? "Sign in or create your account to join the conversation!"
+              : "Sign in or create your account to like songs!"}
           </p>
           <div style={{ marginBottom: 20 }}>
             <div style={{ marginBottom: 15 }}>
