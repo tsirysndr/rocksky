@@ -8,8 +8,8 @@ use tokio::sync::Mutex;
 
 use crate::{
     profile::did_to_profile,
-    subscriber::{ALBUM_NSID, ARTIST_NSID, SCROBBLE_NSID, SONG_NSID},
-    types::{AlbumRecord, ArtistRecord, Commit, ScrobbleRecord, SongRecord},
+    subscriber::{ALBUM_NSID, ARTIST_NSID, FEED_GENERATOR_NSID, SCROBBLE_NSID, SONG_NSID},
+    types::{AlbumRecord, ArtistRecord, Commit, FeedGeneratorRecord, ScrobbleRecord, SongRecord},
     webhook::discord::{
         self,
         model::{ScrobbleData, WebhookEnvelope},
@@ -29,8 +29,14 @@ pub async fn save_scrobble(
     commit: Commit,
 ) -> Result<(), Error> {
     // skip unknown collection
-    if !vec![SCROBBLE_NSID, ARTIST_NSID, ALBUM_NSID, SONG_NSID]
-        .contains(&commit.collection.as_str())
+    if !vec![
+        SCROBBLE_NSID,
+        ARTIST_NSID,
+        ALBUM_NSID,
+        SONG_NSID,
+        FEED_GENERATOR_NSID,
+    ]
+    .contains(&commit.collection.as_str())
     {
         return Ok(());
     }
@@ -169,6 +175,19 @@ pub async fn save_scrobble(
                 let song_record: SongRecord = serde_json::from_value(commit.record.clone())?;
                 save_user_track(&mut tx, &user_id, song_record.clone(), &uri).await?;
                 update_track_uri(&mut tx, &user_id, song_record, &uri).await?;
+
+                tx.commit().await?;
+            }
+
+            if commit.collection == FEED_GENERATOR_NSID {
+                let mut tx = pool.begin().await?;
+
+                let user_id = save_user(&mut tx, did).await?;
+                let uri = format!("at://{}/app.rocksky.feed.generator/{}", did, commit.rkey);
+
+                let feed_generator_record: FeedGeneratorRecord =
+                    serde_json::from_value(commit.record)?;
+                save_feed_generator(&mut tx, &user_id, feed_generator_record, &uri).await?;
 
                 tx.commit().await?;
             }
@@ -1009,5 +1028,51 @@ pub async fn update_track_uri(
     .execute(&mut **tx)
     .await?;
 
+    Ok(())
+}
+
+pub async fn save_feed_generator(
+    tx: &mut sqlx::Transaction<'_, Postgres>,
+    user_id: &str,
+    record: FeedGeneratorRecord,
+    uri: &str,
+) -> Result<(), Error> {
+    let did = uri
+        .split('/')
+        .nth(2)
+        .ok_or_else(|| anyhow::anyhow!("Invalid URI: {}", uri))?;
+    let avatar = record.avatar.map(|blob| {
+        format!(
+            "https://cdn.bsky.app/img/avatar/plain/{}/{}@{}",
+            did,
+            blob.r#ref.link,
+            blob.mime_type.split('/').last().unwrap_or("jpeg")
+        )
+    });
+
+    tracing::info!(user_id = %user_id, display_name = %record.display_name, uri = %uri, "Saving feed generator");
+
+    sqlx::query(
+        r#"
+    INSERT INTO feeds (
+        user_id,
+        uri,
+        display_name,
+        description,
+        did,
+        avatar
+    ) VALUES (
+        $1, $2, $3, $4, $5, $6
+    )
+  "#,
+    )
+    .bind(user_id)
+    .bind(uri)
+    .bind(record.display_name)
+    .bind(record.description)
+    .bind(record.did)
+    .bind(avatar)
+    .execute(&mut **tx)
+    .await?;
     Ok(())
 }

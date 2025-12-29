@@ -98,6 +98,13 @@ function ScrobblesAreaChart() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
+  const chartData =
+    pathname === "/" ||
+    pathname.startsWith("/dropbox") ||
+    (pathname.startsWith("/googledrive") && getScrobblesChart().length > 0)
+      ? getScrobblesChart()
+      : data;
+
   return (
     <>
       {!pathname.includes("/playlist/") && (
@@ -111,13 +118,7 @@ function ScrobblesAreaChart() {
           <AreaChart
             width={300}
             height={120}
-            data={
-              pathname === "/" ||
-              pathname.startsWith("/dropbox") ||
-              pathname.startsWith("/googledrive")
-                ? getScrobblesChart()
-                : data
-            }
+            data={chartData}
             className="top-[5px] right-[0px] left-[0px] bottom-[5px]"
           >
             <XAxis

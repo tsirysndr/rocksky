@@ -1,5 +1,5 @@
 {
-  "id": "6b33dcd0-52df-4403-bdc0-31517769923d",
+  "id": "64a52c57-c2fc-42d9-b22d-cbda7161f465",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -12,7 +12,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "album_id": {
           "name": "album_id",
@@ -90,7 +91,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "title": {
           "name": "title",
@@ -244,7 +246,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "name": {
           "name": "name",
@@ -328,7 +331,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "artist_id": {
           "name": "artist_id",
@@ -406,7 +410,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "artist_id": {
           "name": "artist_id",
@@ -484,7 +489,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "name": {
           "name": "name",
@@ -616,7 +622,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "email": {
           "name": "email",
@@ -696,7 +703,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "name": {
           "name": "name",
@@ -787,7 +795,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "path": {
           "name": "path",
@@ -884,7 +893,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "refresh_token": {
           "name": "refresh_token",
@@ -923,7 +933,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "user_id": {
           "name": "user_id",
@@ -993,6 +1004,111 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.feeds": {
+      "name": "feeds",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "did": {
+          "name": "did",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uri": {
+          "name": "uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "avatar": {
+          "name": "avatar",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "feeds_user_id_users_xata_id_fk": {
+          "name": "feeds_user_id_users_xata_id_fk",
+          "tableFrom": "feeds",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "xata_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "feeds_did_unique": {
+          "name": "feeds_did_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "did"
+          ]
+        },
+        "feeds_uri_unique": {
+          "name": "feeds_uri_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "uri"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.google_drive_accounts": {
       "name": "google_drive_accounts",
       "schema": "",
@@ -1001,7 +1117,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "email": {
           "name": "email",
@@ -1081,7 +1198,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "name": {
           "name": "name",
@@ -1172,7 +1290,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "google_drive_id": {
           "name": "google_drive_id",
@@ -1263,7 +1382,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "refresh_token": {
           "name": "refresh_token",
@@ -1302,7 +1422,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "google_drive_token_id": {
           "name": "google_drive_token_id",
@@ -1380,7 +1501,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "user_id": {
           "name": "user_id",
@@ -1459,7 +1581,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "playlist_id": {
           "name": "playlist_id",
@@ -1524,7 +1647,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "name": {
           "name": "name",
@@ -1627,7 +1751,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "user_id": {
           "name": "user_id",
@@ -1692,7 +1817,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "user_id": {
           "name": "user_id",
@@ -1783,7 +1909,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "user_id": {
           "name": "user_id",
@@ -1920,7 +2047,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "user_id": {
           "name": "user_id",
@@ -1999,7 +2127,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "user_id": {
           "name": "user_id",
@@ -2064,7 +2193,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "content": {
           "name": "content",
@@ -2232,7 +2362,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "xata_version": {
           "name": "xata_version",
@@ -2258,6 +2389,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "spotify_app_id": {
+          "name": "spotify_app_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "xata_createdat": {
           "name": "xata_createdat",
@@ -2296,6 +2433,66 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.spotify_apps": {
+      "name": "spotify_apps",
+      "schema": "",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "xata_id()"
+        },
+        "xata_version": {
+          "name": "xata_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "spotify_app_id": {
+          "name": "spotify_app_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "spotify_secret": {
+          "name": "spotify_secret",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "xata_createdat": {
+          "name": "xata_createdat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "xata_updatedat": {
+          "name": "xata_updatedat",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "spotify_apps_spotify_app_id_unique": {
+          "name": "spotify_apps_spotify_app_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "spotify_app_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.spotify_tokens": {
       "name": "spotify_tokens",
       "schema": "",
@@ -2304,7 +2501,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "xata_version": {
           "name": "xata_version",
@@ -2326,6 +2524,12 @@
         },
         "user_id": {
           "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "spotify_app_id": {
+          "name": "spotify_app_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -2375,7 +2579,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "title": {
           "name": "title",
@@ -2596,7 +2801,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "user_id": {
           "name": "user_id",
@@ -2694,7 +2900,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "user_id": {
           "name": "user_id",
@@ -2792,7 +2999,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "user_id": {
           "name": "user_id",
@@ -2817,7 +3025,7 @@
           "name": "uri",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         }
       },
       "indexes": {},
@@ -2835,10 +3043,10 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "user_playlists_playlist_id_tracks_xata_id_fk": {
-          "name": "user_playlists_playlist_id_tracks_xata_id_fk",
+        "user_playlists_playlist_id_playlists_xata_id_fk": {
+          "name": "user_playlists_playlist_id_playlists_xata_id_fk",
           "tableFrom": "user_playlists",
-          "tableTo": "tracks",
+          "tableTo": "playlists",
           "columnsFrom": [
             "playlist_id"
           ],
@@ -2871,7 +3079,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "user_id": {
           "name": "user_id",
@@ -2969,7 +3178,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "did": {
           "name": "did",
@@ -3047,7 +3257,8 @@
           "name": "xata_id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "xata_id()"
         },
         "name": {
           "name": "name",

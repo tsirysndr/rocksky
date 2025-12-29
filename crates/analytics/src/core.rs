@@ -1,4 +1,7 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    env,
+    sync::{Arc, Mutex},
+};
 
 use anyhow::Error;
 use duckdb::{params, Connection};
@@ -180,6 +183,88 @@ pub async fn create_tables(conn: &Connection) -> Result<(), Error> {
   ",
     )?;
 
+    match conn.execute("ALTER TABLE artists ADD COLUMN genres VARCHAR[]", []) {
+        Ok(_) => tracing::info!("Added genres column to artists table"),
+        Err(e) => tracing::warn!("Could not add genres column to artists table: {}", e),
+    }
+
+    Ok(())
+}
+
+pub async fn update_artist_genres(
+    conn: Arc<Mutex<Connection>>,
+    pool: &Pool<Postgres>,
+) -> Result<(), Error> {
+    if env::var("UPDATE_ARTIST_GENRES").is_err() {
+        tracing::info!("Skipping update_artist_genres as UPDATE_ARTIST_GENRES is not set");
+        return Ok(());
+    }
+
+    let artists: Vec<xata::artist::ArtistWithoutDate> = sqlx::query_as(
+        r#"
+      SELECT * FROM artists
+  "#,
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let conn = conn.lock().unwrap();
+
+    conn.execute_batch(
+        "
+    CREATE TABLE user_artists_new AS SELECT * FROM user_artists;
+    CREATE TABLE artist_tracks_new AS SELECT * FROM artist_tracks;
+    CREATE TABLE artist_albums_new AS SELECT * FROM artist_albums;
+    CREATE TABLE scrobbles_new AS SELECT * FROM scrobbles;
+    CREATE TABLE loved_tracks_new AS SELECT * FROM loved_tracks;
+    DROP TABLE user_artists;
+    DROP TABLE artist_tracks;
+    DROP TABLE artist_albums;
+    DROP TABLE scrobbles;
+    DROP TABLE loved_tracks;
+    ALTER TABLE user_artists_new RENAME TO user_artists;
+    ALTER TABLE artist_tracks_new RENAME TO artist_tracks;
+    ALTER TABLE artist_albums_new RENAME TO artist_albums;
+    ALTER TABLE scrobbles_new RENAME TO scrobbles;
+    ALTER TABLE loved_tracks_new RENAME TO loved_tracks;
+    ",
+    )?;
+
+    for (i, artist) in artists.clone().into_iter().enumerate() {
+        let genres_array = artist
+            .genres
+            .as_ref()
+            .map(|tags| {
+                tags.iter()
+                    .map(|tag| format!("'{}'", tag.replace("'", "''")))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            })
+            .unwrap_or_default()
+            .trim()
+            .to_string();
+
+        if genres_array.is_empty() {
+            continue;
+        }
+
+        tracing::info!(artist = i, name = %artist.name.bright_green(), genres = %genres_array,  "Updating artist genres");
+
+        match conn.execute(
+            &format!(
+                "UPDATE artists SET genres = [{}] WHERE id = ? AND genres IS NULL",
+                genres_array
+            ),
+            params![artist.xata_id],
+        ) {
+            Ok(_) => (),
+            Err(e) => {
+                tracing::error!(error = %e, genres = %genres_array, "Error updating artist >> ")
+            }
+        }
+    }
+
+    tracing::info!(artists = artists.len(), "Updated artist genres");
     Ok(())
 }
 

@@ -1,21 +1,22 @@
-amends  "../../schema/lexicon.pkl"
+amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.feed.defs"
 defs = new Mapping<String, ObjectType> {
-   ["searchResultsView"] = new ObjectType {
+  ["searchResultsView"] = new ObjectType {
     type = "object"
-    properties  {
+    properties {
       ["hits"] = new Array {
         type = "array"
         items = new Union {
           type = "union"
-          refs = List(
-            "app.rocksky.song.defs#songViewBasic",
-            "app.rocksky.album.defs#albumViewBasic",
-            "app.rocksky.artist.defs#artistViewBasic",
-            "app.rocksky.playlist.defs#playlistViewBasic",
-            "app.rocksky.actor.defs#profileViewBasic"
+          refs =
+            List(
+              "app.rocksky.song.defs#songViewBasic",
+              "app.rocksky.album.defs#albumViewBasic",
+              "app.rocksky.artist.defs#artistViewBasic",
+              "app.rocksky.playlist.defs#playlistViewBasic",
+              "app.rocksky.actor.defs#profileViewBasic"
             )
         }
       }
@@ -32,7 +33,6 @@ defs = new Mapping<String, ObjectType> {
         type = "integer"
       }
     }
-
   }
   ["nowPlayingView"] = new ObjectType {
     type = "object"
@@ -91,14 +91,84 @@ defs = new Mapping<String, ObjectType> {
       }
     }
   }
-   ["nowPlayingsView"] = new ObjectType {
+  ["nowPlayingsView"] = new ObjectType {
     type = "object"
-    properties  {
+    properties {
       ["nowPlayings"] = new Array {
         type = "array"
         items = new Ref {
           type = "ref"
           ref = "app.rocksky.feed.defs#nowPlayingView"
+        }
+      }
+    }
+  }
+  ["feedGeneratorsView"] = new ObjectType {
+    type = "object"
+    properties {
+      ["feeds"] = new Array {
+        type = "array"
+        items = new Ref {
+          type = "ref"
+          ref = "app.rocksky.feed.defs#feedGeneratorView"
+        }
+      }
+    }
+  }
+  ["feedGeneratorView"] = new ObjectType {
+    type = "object"
+    properties {
+      ["id"] = new StringType {
+        type = "string"
+      }
+      ["name"] = new StringType {
+        type = "string"
+      }
+      ["description"] = new StringType {
+        type = "string"
+      }
+      ["uri"] = new StringType {
+        type = "string"
+        format = "at-uri"
+      }
+      ["avatar"] = new StringType {
+        type = "string"
+        format = "uri"
+      }
+      ["creator"] = new Ref {
+        type = "ref"
+        ref = "app.rocksky.actor.defs#profileViewBasic"
+      }
+    }
+  }
+  ["feedUriView"] = new ObjectType {
+    type = "object"
+    properties {
+      ["uri"] = new StringType {
+        type = "string"
+        description = "The feed URI."
+        format = "at-uri"
+      }
+    }
+  }
+
+  ["feedItemView"] = new ObjectType {
+    type = "object"
+    properties {
+      ["scrobble"] = new Ref {
+        ref = "app.rocksky.scrobble.defs#scrobbleViewBasic"
+      }
+    }
+  }
+
+  ["feedView"] = new ObjectType {
+    type = "object"
+    properties {
+      ["feed"] = new Array {
+        type = "array"
+        items = new Ref {
+          type = "ref"
+          ref = "app.rocksky.feed.defs#feedItemView"
         }
       }
     }

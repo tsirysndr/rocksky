@@ -31,6 +31,8 @@ pub struct Artist {
     pub play_count: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub unique_listeners: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub genres: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]

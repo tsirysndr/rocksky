@@ -16,6 +16,7 @@ pub const SONG_NSID: &str = "app.rocksky.song";
 pub const PLAYLIST_NSID: &str = "app.rocksky.playlist";
 pub const LIKE_NSID: &str = "app.rocksky.like";
 pub const SHOUT_NSID: &str = "app.rocksky.shout";
+pub const FEED_GENERATOR_NSID: &str = "app.rocksky.feed.generator";
 
 pub struct ScrobbleSubscriber {
     pub service_url: String,
@@ -29,7 +30,6 @@ impl ScrobbleSubscriber {
     }
 
     pub async fn run(&self, state: Arc<Mutex<AppState>>) -> Result<(), Error> {
-        // Get the connection string outside of the task
         let db_url = env::var("XATA_POSTGRES_URL")
             .context("Failed to get XATA_POSTGRES_URL environment variable")?;
 
@@ -45,7 +45,7 @@ impl ScrobbleSubscriber {
         while let Some(msg) = ws_stream.next().await {
             match msg {
                 Ok(msg) => {
-                    if let Err(e) = handle_message(state.clone(), pool.clone(), msg).await {
+                    if let Err(e) = handle_message(state.clone(), pool.clone(), msg) {
                         tracing::error!(error = %e, "Error handling message");
                     }
                 }
@@ -60,7 +60,7 @@ impl ScrobbleSubscriber {
     }
 }
 
-async fn handle_message(
+fn handle_message(
     state: Arc<Mutex<AppState>>,
     pool: Arc<Mutex<sqlx::PgPool>>,
     msg: Message,

@@ -1,1 +1,0 @@
-ALTER TABLE "user_playlists" ALTER COLUMN "uri" DROP NOT NULL;

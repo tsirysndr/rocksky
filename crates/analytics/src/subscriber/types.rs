@@ -151,6 +151,8 @@ pub struct ArtistId {
     pub tidal_link: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub youtube_link: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub genres: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

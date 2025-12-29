@@ -9,7 +9,7 @@ use anyhow::Error;
 use duckdb::Connection;
 use sqlx::postgres::PgPoolOptions;
 
-use crate::core::create_tables;
+use crate::core::{create_tables, update_artist_genres};
 
 pub mod cmd;
 pub mod core;
@@ -23,7 +23,14 @@ pub async fn serve() -> Result<(), Error> {
 
     create_tables(&conn).await?;
 
+    let pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&env::var("XATA_POSTGRES_URL")?)
+        .await?;
+
     let conn = Arc::new(Mutex::new(conn));
+    update_artist_genres(conn.clone(), &pool).await?;
+
     export_parquets(conn.clone());
     cmd::serve::serve(conn).await?;
 
@@ -48,8 +55,8 @@ pub async fn sync() -> Result<(), Error> {
 
 fn export_parquets(conn: Arc<Mutex<Connection>>) {
     thread::spawn(move || {
-        // fire every 1 minute
-        let cron_expr = "0 * * * * * *";
+        // fire every 5 minutes
+        let cron_expr = "0 */5 * * * * *";
         let schedule = cron::Schedule::from_str(cron_expr);
         if let Err(err) = schedule {
             tracing::error!("Failed to parse cron expression: {}", cron_expr);

@@ -33,7 +33,7 @@ async function publishPlayingNow(
         (record?.recordingMbId === track.trackMBID ||
           (Math.abs(record?.duration - duration) < 4 &&
             record?.trackName === track.name)) &&
-        // diff in seconds less than 60
+        // diff in seconds less than 60 seconds
         Math.abs(
           new Date(record.playedTime).getTime() -
             new Date(track.timestamp).getTime(),

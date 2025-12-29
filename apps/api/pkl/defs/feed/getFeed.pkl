@@ -1,0 +1,37 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.feed.getFeed"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get the feed by uri"
+    parameters {
+      type = "params"
+      required = List("feed")
+      properties {
+        ["feed"] = new StringType {
+          type = "string"
+          description = "The feed URI."
+          format = "at-uri"
+        }
+        ["limit"] = new IntegerType {
+          type = "integer"
+          description = "The maximum number of scrobbles to return"
+          minimum = 1
+        }
+        ["cursor"] = new StringType {
+          type = "string"
+          description = "The cursor for pagination"
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new Ref {
+        type = "ref"
+        ref = "app.rocksky.feed.defs#feedView"
+      }
+    }
+  }
+}

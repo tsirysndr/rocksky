@@ -14,7 +14,7 @@ export default function (server: Server, ctx: Context) {
       retrieve,
       Effect.flatMap(presentation),
       Effect.retry({ times: 3 }),
-      Effect.timeout("10 seconds"),
+      Effect.timeout("120 seconds"),
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({ tracks: [] });

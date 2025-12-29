@@ -42,6 +42,8 @@ pub async fn scrobble(
         return Ok(());
     }
 
+    tracing::info!(artist = %scrobble.data.song.parsed.artist, track = %scrobble.data.song.parsed.track, "Searching for track (not cached)");
+
     let result = repo::track::get_track(
         pool,
         &scrobble.data.song.parsed.track,
@@ -131,7 +133,11 @@ pub async fn scrobble(
         },
     };
 
+    tracing::info!(query = %query, "Searching on Spotify");
+
     let result = spotify_client.search(&query).await?;
+
+    tracing::info!(total = %result.tracks.total, "Spotify search results");
 
     if let Some(track) = result.tracks.items.first() {
         let artists = track

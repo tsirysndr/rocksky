@@ -100,6 +100,75 @@
           }
         }
       }
+    },
+    "feedGeneratorsView": {
+      "type": "object",
+      "properties": {
+        "feeds": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.feed.defs#feedGeneratorView"
+          }
+        }
+      }
+    },
+    "feedGeneratorView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "uri": {
+          "type": "string",
+          "format": "at-uri"
+        },
+        "avatar": {
+          "type": "string",
+          "format": "uri"
+        },
+        "creator": {
+          "type": "ref",
+          "ref": "app.rocksky.actor.defs#profileViewBasic"
+        }
+      }
+    },
+    "feedUriView": {
+      "type": "object",
+      "properties": {
+        "uri": {
+          "type": "string",
+          "description": "The feed URI.",
+          "format": "at-uri"
+        }
+      }
+    },
+    "feedItemView": {
+      "type": "object",
+      "properties": {
+        "scrobble": {
+          "type": "ref",
+          "ref": "app.rocksky.scrobble.defs#scrobbleViewBasic"
+        }
+      }
+    },
+    "feedView": {
+      "type": "object",
+      "properties": {
+        "feed": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.feed.defs#feedItemView"
+          }
+        }
+      }
     }
   }
 }

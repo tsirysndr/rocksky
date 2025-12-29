@@ -1,0 +1,27 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.feed.getFeedGenerators"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get all feed generators"
+    parameters {
+      type = "params"
+      properties {
+        ["size"] = new IntegerType {
+          type = "integer"
+          description = "The maximum number of feed generators to return."
+          minimum = 1
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new Ref {
+        type = "ref"
+        ref = "app.rocksky.feed.defs#feedGeneratorsView"
+      }
+    }
+  }
+}

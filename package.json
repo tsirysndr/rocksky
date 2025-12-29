@@ -42,8 +42,5 @@
     "apps/spotify-proxy",
     "apps/uploads",
     "apps/xata-proxy"
-  ],
-  "dependencies": {
-    "@atproto/jwk-jose": "0.1.5"
-  }
+  ]
 }

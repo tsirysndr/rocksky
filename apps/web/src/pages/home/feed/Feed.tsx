@@ -4,13 +4,19 @@ import { Avatar } from "baseui/avatar";
 import type { BlockProps } from "baseui/block";
 import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
 import { StatefulTooltip } from "baseui/tooltip";
-import { HeadingMedium, LabelSmall } from "baseui/typography";
+import { LabelSmall } from "baseui/typography";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import ContentLoader from "react-content-loader";
 import Handle from "../../../components/Handle";
 import SongCover from "../../../components/SongCover";
 import { useFeedQuery } from "../../../hooks/useFeed";
+import { useEffect, useRef } from "react";
+import { WS_URL } from "../../../consts";
+import { useQueryClient } from "@tanstack/react-query";
+import FeedGenerators from "./FeedGenerators";
+import { useAtomValue } from "jotai";
+import { feedGeneratorUriAtom } from "../../../atoms/feed";
 
 dayjs.extend(relativeTime);
 
@@ -28,18 +34,53 @@ const Container = styled.div`
 `;
 
 function Feed() {
-  const { data, isLoading } = useFeedQuery();
-  console.log(data);
+  const queryClient = useQueryClient();
+  const socketRef = useRef<WebSocket | null>(null);
+  const heartbeatInterval = useRef<number | null>(null);
+  const feedUri = useAtomValue(feedGeneratorUriAtom);
+  const { data, isLoading } = useFeedQuery(feedUri);
+
+  useEffect(() => {
+    const ws = new WebSocket(`${WS_URL.replace("http", "ws")}`);
+    socketRef.current = ws;
+
+    ws.onopen = () => {
+      heartbeatInterval.current = window.setInterval(() => {
+        ws.send("ping");
+      }, 3000);
+    };
+
+    ws.onmessage = async (event) => {
+      if (event.data === "pong") {
+        return;
+      }
+
+      const message = JSON.parse(event.data);
+      queryClient.setQueryData(["now-playings"], () => message.nowPlayings);
+      queryClient.setQueryData(
+        ["scrobblesChart"],
+        () => message.scrobblesChart,
+      );
+
+      await queryClient.invalidateQueries({ queryKey: ["feed", feedUri] });
+      await queryClient.invalidateQueries({ queryKey: ["now-playings"] });
+      await queryClient.invalidateQueries({ queryKey: ["scrobblesChart"] });
+    };
+
+    return () => {
+      if (ws) {
+        if (heartbeatInterval.current) {
+          clearInterval(heartbeatInterval.current);
+        }
+        ws.close();
+      }
+      console.log(">> WebSocket connection closed");
+    };
+  }, [queryClient]);
+
   return (
     <Container>
-      <HeadingMedium
-        marginTop={"0px"}
-        marginBottom={"25px"}
-        className="!text-[var(--color-text)]"
-      >
-        Recently played
-      </HeadingMedium>
-
+      <FeedGenerators />
       {isLoading && (
         <ContentLoader
           width={800}
@@ -67,60 +108,53 @@ function Feed() {
       )}
 
       {!isLoading && (
-        <div className="pb-[100px]">
+        <div className="pb-[100px] pt-[20px]">
           <FlexGrid
             flexGridColumnCount={[1, 2, 3]}
             flexGridColumnGap="scale800"
             flexGridRowGap="scale1000"
           >
-            {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              data.map((song: any) => (
-                <FlexGridItem {...itemProps} key={song.id}>
-                  <Link
-                    to="/$did/scrobble/$rkey"
-                    params={{
-                      did: song.uri?.split("at://")[1]?.split("/")[0] || "",
-                      rkey: song.uri?.split("/").pop() || "",
-                    }}
-                    className="no-underline text-[var(--color-text-primary)]"
-                  >
-                    <SongCover
-                      cover={song.cover}
-                      artist={song.artist}
-                      title={song.title}
+            {// eslint-disable-next-line @typescript-eslint/no-explicit-any
+            data?.map((song: any) => (
+              <FlexGridItem {...itemProps} key={song.id}>
+                <Link
+                  to="/$did/scrobble/$rkey"
+                  params={{
+                    did: song.uri?.split("at://")[1]?.split("/")[0] || "",
+                    rkey: song.uri?.split("/").pop() || "",
+                  }}
+                  className="no-underline text-[var(--color-text-primary)]"
+                >
+                  <SongCover
+                    cover={song.cover}
+                    artist={song.artist}
+                    title={song.title}
+                  />
+                </Link>
+                <div className="flex">
+                  <div className="mr-[8px]">
+                    <Avatar
+                      src={song.userAvatar}
+                      name={song.userDisplayName}
+                      size={"20px"}
                     />
-                  </Link>
-                  <div className="flex">
-                    <div className="mr-[8px]">
-                      <Avatar
-                        src={song.userAvatar}
-                        name={song.userDisplayName}
-                        size={"20px"}
-                      />
-                    </div>
-                    <Handle
-                      link={`/profile/${song.user}`}
-                      did={song.user}
-                    />{" "}
                   </div>
-                  <LabelSmall className="!text-[var(--color-text-primary)]">
-                    recently played this song
+                  <Handle link={`/profile/${song.user}`} did={song.user} />{" "}
+                </div>
+                <LabelSmall className="!text-[var(--color-text-primary)]">
+                  recently played this song
+                </LabelSmall>
+                <StatefulTooltip
+                  content={dayjs(song.date).format("MMMM D, YYYY [at] HH:mm A")}
+                  returnFocus
+                  autoFocus
+                >
+                  <LabelSmall className="!text-[var(--color-text-muted)]">
+                    {dayjs(song.date).fromNow()}
                   </LabelSmall>
-                  <StatefulTooltip
-                    content={dayjs(song.date).format(
-                      "MMMM D, YYYY [at] HH:mm A",
-                    )}
-                    returnFocus
-                    autoFocus
-                  >
-                    <LabelSmall className="!text-[var(--color-text-muted)]">
-                      {dayjs(song.date).fromNow()}
-                    </LabelSmall>
-                  </StatefulTooltip>
-                </FlexGridItem>
-              ))
-            }
+                </StatefulTooltip>
+              </FlexGridItem>
+            ))}
           </FlexGrid>
         </div>
       )}
