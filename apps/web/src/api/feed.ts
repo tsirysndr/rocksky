@@ -95,6 +95,11 @@ export const getFeed = async (uri: string, limit?: number, cursor?: string) => {
       limit,
       cursor,
     },
+    headers: {
+      Authorization: localStorage.getItem("token")
+        ? `Bearer ${localStorage.getItem("token")}`
+        : undefined,
+    },
   });
 
   if (response.status !== 200) {
