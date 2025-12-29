@@ -1,9 +1,5 @@
 import { client } from ".";
 
-export const getFeed = () => {
-  return [];
-};
-
 export const getFeedByUri = async (uri: string) => {
   if (uri.includes("app.rocksky.song")) {
     return null;
@@ -57,4 +53,53 @@ export const getFeedGenerators = async () => {
     return null;
   }
   return response.data;
+};
+
+export const getFeed = async (uri: string, limit?: number, cursor?: string) => {
+  const response = await client.get<{
+    feed: {
+      scrobble: {
+        title: string;
+        artist: string;
+        albumArtist: string;
+        album: string;
+        trackNumber: number;
+        duration: number;
+        mbId: string | null;
+        youtubeLink: string | null;
+        spotifyLink: string | null;
+        appleMusicLink: string | null;
+        tidalLink: string | null;
+        sha256: string;
+        discNumber: number;
+        composer: string | null;
+        genre: string | null;
+        label: string | null;
+        copyrightMessage: string | null;
+        uri: string;
+        albumUri: string;
+        artistUri: string;
+        xataVersion: number;
+        cover: string;
+        date: string;
+        user: string;
+        userDisplayName: string;
+        userAvatar: string;
+        tags: string[];
+        id: string;
+      };
+    }[];
+  }>("/xrpc/app.rocksky.feed.getFeed", {
+    params: {
+      feed: uri,
+      limit,
+      cursor,
+    },
+  });
+
+  if (response.status !== 200) {
+    return [];
+  }
+
+  return response.data.feed.map(({ scrobble }) => scrobble);
 };

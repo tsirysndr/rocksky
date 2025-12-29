@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import { categories } from "./constants";
+import { useAtom } from "jotai";
+import { feedAtom } from "../../../../atoms/feed";
 
 function FeedGenerators() {
   const jwt = localStorage.getItem("token");
-  const [activeCategory, setActiveCategory] = useState("All");
+  const [activeCategory, setActiveCategory] = useAtom(feedAtom);
   const [showLeftChevron, setShowLeftChevron] = useState(false);
   const [showRightChevron, setShowRightChevron] = useState(true);
   const [hasOverflow, setHasOverflow] = useState(false);

@@ -15,6 +15,8 @@ import { useEffect, useRef } from "react";
 import { WS_URL } from "../../../consts";
 import { useQueryClient } from "@tanstack/react-query";
 import FeedGenerators from "./FeedGenerators";
+import { useAtomValue } from "jotai";
+import { feedGeneratorUriAtom } from "../../../atoms/feed";
 
 dayjs.extend(relativeTime);
 
@@ -35,7 +37,8 @@ function Feed() {
   const queryClient = useQueryClient();
   const socketRef = useRef<WebSocket | null>(null);
   const heartbeatInterval = useRef<number | null>(null);
-  const { data, isLoading } = useFeedQuery();
+  const feedUri = useAtomValue(feedGeneratorUriAtom);
+  const { data, isLoading } = useFeedQuery(feedUri);
 
   useEffect(() => {
     const ws = new WebSocket(`${WS_URL.replace("http", "ws")}`);
@@ -53,7 +56,6 @@ function Feed() {
       }
 
       const message = JSON.parse(event.data);
-      queryClient.setQueryData(["feed"], () => message.scrobbles);
       queryClient.setQueryData(["now-playings"], () => message.nowPlayings);
       queryClient.setQueryData(
         ["scrobblesChart"],

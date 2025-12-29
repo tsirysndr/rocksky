@@ -54,6 +54,8 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
       }>(`${feedUrl}/xrpc/app.rocksky.feed.getFeedSkeleton`, {
         params: {
           feed: feed.uri,
+          limit: params.limit,
+          cursor: params.cursor,
         },
       });
       return { uris: response.data.feed.map(({ scrobble }) => scrobble), ctx };
