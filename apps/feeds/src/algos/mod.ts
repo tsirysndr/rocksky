@@ -1,5 +1,6 @@
 import * as afrobeat from "./afrobeat.ts";
 import * as afrobeats from "./afrobeats.ts";
+import * as all from "./all.ts";
 import * as alternativeMetal from "./alternative-metal.ts";
 import * as alternativeRnb from "./alternative-rnb.ts";
 import * as anime from "./anime.ts";
@@ -54,6 +55,7 @@ import { Algorithm } from "./types.ts";
 const algos: Algorithm[] = [
   afrobeat.info,
   afrobeats.info,
+  all.info,
   alternativeMetal.info,
   alternativeRnb.info,
   anime.info,
