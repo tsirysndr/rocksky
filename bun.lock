@@ -186,6 +186,7 @@
         "@styled-icons/remix-fill": "^10.46.0",
         "@styled-icons/simple-icons": "^10.46.0",
         "@styled-icons/zondicons": "^10.46.0",
+        "@tabler/icons-react": "^3.36.0",
         "@tailwindcss/vite": "^4.1.4",
         "@tanstack/react-query": "^5.76.0",
         "@tanstack/react-query-devtools": "^5.76.0",
@@ -1152,6 +1153,10 @@
     "@swc/counter": ["@swc/counter@0.1.3", "", {}, "sha512-e2BR4lsJkkRlKZ/qCHPw9ZaSxc0MVUd7gtbtaB7aMvHeJVYe8sOB8DBZkP2DtISHGSku9sCK6T6cnY0CtXrOCQ=="],
 
     "@swc/types": ["@swc/types@0.1.25", "", { "dependencies": { "@swc/counter": "^0.1.3" } }, "sha512-iAoY/qRhNH8a/hBvm3zKj9qQ4oc2+3w1unPJa2XvTK3XjeLXtzcCingVPw/9e5mn1+0yPqxcBGp9Jf0pkfMb1g=="],
+
+    "@tabler/icons": ["@tabler/icons@3.36.0", "", {}, "sha512-z9OfTEG6QbaQWM9KBOxxUdpgvMUn0atageXyiaSc2gmYm51ORO8Ua7eUcjlks+Dc0YMK4rrodAFdK9SfjJ4ZcA=="],
+
+    "@tabler/icons-react": ["@tabler/icons-react@3.36.0", "", { "dependencies": { "@tabler/icons": "3.36.0" }, "peerDependencies": { "react": ">= 16" } }, "sha512-sSZ00bEjTdTTskVFykq294RJq+9cFatwy4uYa78HcYBCXU1kSD1DIp5yoFsQXmybkIOKCjp18OnhAYk553UIfQ=="],
 
     "@tailwindcss/node": ["@tailwindcss/node@4.1.14", "", { "dependencies": { "@jridgewell/remapping": "^2.3.4", "enhanced-resolve": "^5.18.3", "jiti": "^2.6.0", "lightningcss": "1.30.1", "magic-string": "^0.30.19", "source-map-js": "^1.2.1", "tailwindcss": "4.1.14" } }, "sha512-hpz+8vFk3Ic2xssIA3e01R6jkmsAhvkQdXlEbRTk6S10xDAtiQiM3FyvZVGsucefq764euO/b8WUW9ysLdThHw=="],
 

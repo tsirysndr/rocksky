@@ -2,7 +2,7 @@ export default {
   modal: {
     Root: {
       style: {
-        zIndex: 2,
+        zIndex: 60,
       },
     },
     Dialog: {

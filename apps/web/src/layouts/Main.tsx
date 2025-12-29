@@ -142,7 +142,7 @@ function Main(props: MainProps) {
       </Flex>
       {withRightPane && (
         <RightPane className="relative w-[300px]">
-          <div className="fixed top-[100px] h-[calc(100vh-100px)] w-[300px] bg-white p-[20px] overflow-y-auto">
+          <div className="fixed top-[100px] h-[calc(100vh-100px)] w-[300px] bg-white p-[20px] overflow-y-auto pt-[0px]">
             <div className="mb-[30px]">
               <Search />
             </div>

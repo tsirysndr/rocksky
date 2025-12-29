@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { client } from "../api";
-import { getFeedByUri } from "../api/feed";
+import { getFeedByUri, getFeedGenerators } from "../api/feed";
 
 export const useFeedQuery = (limit = 114) =>
   useQuery({
@@ -16,4 +16,10 @@ export const useFeedByUriQuery = (uri: string) =>
   useQuery({
     queryKey: ["feed", uri],
     queryFn: () => getFeedByUri(uri),
+  });
+
+export const useFeedGeneratorsQuery = () =>
+  useQuery({
+    queryKey: ["feedGenerators"],
+    queryFn: () => getFeedGenerators(),
   });

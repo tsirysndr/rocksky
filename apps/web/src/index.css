@@ -54,8 +54,17 @@
 body {
   margin: 0;
   font-family:
-    RockfordSansLight, -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
-    "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    RockfordSansLight,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "Roboto",
+    "Oxygen",
+    "Ubuntu",
+    "Cantarell",
+    "Fira Sans",
+    "Droid Sans",
+    "Helvetica Neue",
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -118,4 +127,8 @@ td > div {
   transition:
     background-color 0.1s ease,
     color 0.1s ease;
+}
+
+button {
+  font-family: RockfordSansMedium;
 }

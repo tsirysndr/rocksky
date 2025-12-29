@@ -4,7 +4,7 @@ import { Avatar } from "baseui/avatar";
 import type { BlockProps } from "baseui/block";
 import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
 import { StatefulTooltip } from "baseui/tooltip";
-import { HeadingMedium, LabelSmall } from "baseui/typography";
+import { LabelSmall } from "baseui/typography";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import ContentLoader from "react-content-loader";
@@ -14,6 +14,7 @@ import { useFeedQuery } from "../../../hooks/useFeed";
 import { useEffect, useRef } from "react";
 import { WS_URL } from "../../../consts";
 import { useQueryClient } from "@tanstack/react-query";
+import FeedGenerators from "./FeedGenerators";
 
 dayjs.extend(relativeTime);
 
@@ -77,14 +78,7 @@ function Feed() {
 
   return (
     <Container>
-      <HeadingMedium
-        marginTop={"0px"}
-        marginBottom={"25px"}
-        className="!text-[var(--color-text)]"
-      >
-        Recently played
-      </HeadingMedium>
-
+      <FeedGenerators />
       {isLoading && (
         <ContentLoader
           width={800}
@@ -112,7 +106,7 @@ function Feed() {
       )}
 
       {!isLoading && (
-        <div className="pb-[100px]">
+        <div className="pb-[100px] pt-[20px]">
           <FlexGrid
             flexGridColumnCount={[1, 2, 3]}
             flexGridColumnGap="scale800"

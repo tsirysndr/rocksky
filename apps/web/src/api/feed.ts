@@ -34,3 +34,27 @@ export const getFeedByUri = async (uri: string) => {
     uri: response.data?.uri,
   };
 };
+
+export const getFeedGenerators = async () => {
+  const response = await client.get<{
+    feeds: {
+      id: string;
+      name: string;
+      uri: string;
+      description: string;
+      did: string;
+      avatar?: string;
+      creator: {
+        avatar?: string;
+        displayName: string;
+        handle: string;
+        did: string;
+        id: string;
+      };
+    }[];
+  }>("/xrpc/app.rocksky.feed.getFeedGenerators");
+  if (response.status !== 200) {
+    return null;
+  }
+  return response.data;
+};
