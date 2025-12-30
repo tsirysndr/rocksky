@@ -312,6 +312,8 @@ export async function likeTrack(
     xata_updatedat: lovedTrack.createdAt.toISOString(),
     xata_version: 0,
   });
+  console.log(">> like");
+  console.log(message);
   ctx.nc.publish("rocksky.like", Buffer.from(message));
 
   return created;
@@ -369,6 +371,8 @@ export async function unLikeTrack(
     xata_updatedat: lovedTrack.createdAt.toISOString(),
     xata_version: 0,
   });
+  console.log(">> unlike");
+  console.log(message);
   ctx.nc.publish("rocksky.unlike", Buffer.from(message));
 }
 
