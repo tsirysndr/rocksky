@@ -237,7 +237,7 @@ function NowPlayings() {
             {showLeftChevron && (
               <button
                 onClick={() => scroll("left")}
-                className="flex-shrink-0 w-8 h-8 rounded-full bg-transparent hover:bg-[var(--color-input-background)] flex items-center justify-center transition-all outline-none border-none cursor-pointer shadow-md z-30"
+                className="flex-shrink-0 w-8 h-8 rounded-full bg-transparent hover:bg-[var(--color-input-background)] flex items-center justify-center transition-all outline-none border-none cursor-pointer shadow-md z-30 mt-[-20px]"
               >
                 <IconChevronLeft
                   size={20}
@@ -253,19 +253,19 @@ function NowPlayings() {
                   ? {
                       maskImage:
                         showLeftChevron && showRightChevron
-                          ? "linear-gradient(to right, transparent, black 50px, black calc(100% - 50px), transparent)"
+                          ? "linear-gradient(to right, transparent, black 30px, black calc(100% - 30px), transparent)"
                           : showLeftChevron
-                            ? "linear-gradient(to right, transparent, black 50px, black 100%)"
+                            ? "linear-gradient(to right, transparent, black 30px, black 100%)"
                             : showRightChevron
-                              ? "linear-gradient(to right, black 0%, black calc(100% - 50px), transparent)"
+                              ? "linear-gradient(to right, black 0%, black calc(100% - 30px), transparent)"
                               : undefined,
                       WebkitMaskImage:
                         showLeftChevron && showRightChevron
-                          ? "linear-gradient(to right, transparent, black 50px, black calc(100% - 50px), transparent)"
+                          ? "linear-gradient(to right, transparent, black 30px, black calc(100% - 30px), transparent)"
                           : showLeftChevron
-                            ? "linear-gradient(to right, transparent, black 50px, black 100%)"
+                            ? "linear-gradient(to right, transparent, black 30px, black 100%)"
                             : showRightChevron
-                              ? "linear-gradient(to right, black 0%, black calc(100% - 50px), transparent)"
+                              ? "linear-gradient(to right, black 0%, black calc(100% - 30px), transparent)"
                               : undefined,
                     }
                   : undefined
@@ -303,7 +303,7 @@ function NowPlayings() {
             {showRightChevron && (
               <button
                 onClick={() => scroll("right")}
-                className="flex-shrink-0 w-8 h-8 rounded-full bg-transparent hover:bg-[var(--color-input-background)] flex items-center justify-center transition-all outline-none border-none cursor-pointer shadow-md z-30"
+                className="flex-shrink-0 w-8 h-8 rounded-full bg-transparent hover:bg-[var(--color-input-background)] flex items-center justify-center transition-all outline-none border-none cursor-pointer shadow-md z-30 mt-[-20px]"
               >
                 <IconChevronRight
                   size={20}
