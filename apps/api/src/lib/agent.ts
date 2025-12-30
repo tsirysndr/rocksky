@@ -1,14 +1,41 @@
-import { Agent } from "@atproto/api";
+import { Agent, AtpAgent } from "@atproto/api";
 import type { NodeOAuthClient } from "@atproto/oauth-client-node";
+import extractPdsFromDid from "./extractPdsFromDid";
+import { ctx } from "context";
 
 export async function createAgent(
   oauthClient: NodeOAuthClient,
   did: string,
 ): Promise<Agent | null> {
-  let agent = null;
+  let agent: Agent | null = null;
   let retry = 0;
   do {
     try {
+      const result = await ctx.sqliteDb
+        .selectFrom("auth_session")
+        .selectAll()
+        .where("key", "=", `atp:${did}`)
+        .executeTakeFirst();
+      if (result) {
+        const pds = await extractPdsFromDid(did);
+        const atpAgent = new AtpAgent({
+          service: new URL(pds),
+        });
+
+        try {
+          await atpAgent.resumeSession(JSON.parse(result.session));
+        } catch (e) {
+          console.log("Error resuming session");
+          console.log(did);
+          console.log(e);
+          await ctx.sqliteDb
+            .deleteFrom("auth_session")
+            .where("key", "=", `atp:${did}`)
+            .execute();
+        }
+
+        return atpAgent;
+      }
       const oauthSession = await oauthClient.restore(did);
       agent = oauthSession ? new Agent(oauthSession) : null;
       if (agent === null) {

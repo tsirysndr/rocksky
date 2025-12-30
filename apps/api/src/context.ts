@@ -1,6 +1,6 @@
 import { createClient } from "auth/client";
 import axios from "axios";
-import { createDb, migrateToLatest } from "db";
+import { createDb, Database, migrateToLatest } from "db";
 import drizzle from "drizzle";
 import authVerifier from "lib/authVerifier";
 import { env } from "lib/env";
@@ -44,6 +44,8 @@ export const ctx = {
     headers: { Authorization: `Bearer ${env.MEILISEARCH_API_KEY}` },
   }),
   authVerifier,
+  sqliteDb: db,
+  sqliteKv: kv,
 };
 
 export type Context = typeof ctx;

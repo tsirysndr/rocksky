@@ -61,18 +61,30 @@ app.post("/login", async (c) => {
         service: new URL(pds),
       });
 
-      const { data } = await agent.login({
+      await agent.login({
         identifier: handle,
         password,
       });
 
-      console.log(data);
+      await ctx.sqliteDb
+        .insertInto("auth_session")
+        .values({
+          key: `atp:${did}`,
+          session: JSON.stringify(agent.session),
+        })
+        .execute();
 
-      console.log("session");
-      console.log(agent.session);
+      const token = jwt.sign(
+        {
+          did,
+          exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
+        },
+        env.JWT_SECRET,
+      );
 
-      return c.text(data.did);
+      return c.text(`jwt:${token}`);
     }
+
     const url = await ctx.oauthClient.authorize(handle, {
       scope: "atproto transition:generic",
     });
