@@ -1,6 +1,6 @@
 import { createClient } from "auth/client";
 import axios from "axios";
-import { createDb, Database, migrateToLatest } from "db";
+import { createDb, migrateToLatest } from "db";
 import drizzle from "drizzle";
 import authVerifier from "lib/authVerifier";
 import { env } from "lib/env";
