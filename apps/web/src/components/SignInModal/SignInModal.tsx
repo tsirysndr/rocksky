@@ -33,7 +33,7 @@ function SignInModal(props: SignInModalProps) {
         overrides={{
           Root: {
             style: {
-              zIndex: 1,
+              zIndex: 50,
             },
           },
           Dialog: {
