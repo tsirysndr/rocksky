@@ -16,6 +16,7 @@ import ExternalLinks from "./ExternalLinks";
 import Navbar from "./Navbar";
 import Search from "./Search";
 import SpotifyLogin from "./SpotifyLogin";
+import { IconEye, IconEyeOff, IconLock } from "@tabler/icons-react";
 
 const Container = styled.div`
   display: flex;
@@ -59,10 +60,12 @@ function Main(props: MainProps) {
   const { children } = props;
   const withRightPane = props.withRightPane ?? true;
   const [handle, setHandle] = useState("");
+  const [password, setPassword] = useState("");
   const jwt = localStorage.getItem("token");
   const profile = useAtomValue(profileAtom);
   const [token, setToken] = useState<string | null>(null);
   const { did, cli } = useSearch({ strict: false });
+  const [passwordLogin, setPasswordLogin] = useState(false);
 
   useEffect(() => {
     if (did && did !== "null") {
@@ -109,6 +112,47 @@ function Main(props: MainProps) {
       return;
     }
 
+    if (passwordLogin) {
+      if (!password.trim()) {
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ handle, password }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        alert(error);
+        return;
+      }
+
+      const data = await response.text();
+      const newToken = data.split("jwt:")[1];
+      localStorage.setItem("token", newToken);
+      setToken(data);
+
+      if (cli) {
+        await fetch("http://localhost:6996/token", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ token: newToken }),
+        });
+      }
+
+      if (!jwt && newToken) {
+        window.location.href = "/";
+      }
+
+      return;
+    }
+
     if (API_URL.includes("localhost")) {
       window.location.href = `${API_URL}/login?handle=${handle}`;
       return;
@@ -151,9 +195,15 @@ function Main(props: MainProps) {
             {!jwt && (
               <div className="mt-[40px]">
                 <div className="mb-[20px]">
-                  <div className="mb-[15px]">
-                    <LabelMedium className="!text-[var(--color-text)]">
+                  <div className="flex flex-row mb-[15px]">
+                    <LabelMedium className="!text-[var(--color-text)] flex-1">
                       Handle
+                    </LabelMedium>
+                    <LabelMedium
+                      className="!text-[var(--color-primary)] cursor-pointer"
+                      onClick={() => setPasswordLogin(!passwordLogin)}
+                    >
+                      {passwordLogin ? "OAuth Login" : "Password Login"}
                     </LabelMedium>
                   </div>
                   <Input
@@ -191,6 +241,61 @@ function Main(props: MainProps) {
                       },
                     }}
                   />
+                  {passwordLogin && (
+                    <Input
+                      name="password"
+                      startEnhancer={
+                        <div className="text-[var(--color-text-muted)] bg-[var(--color-input-background)]">
+                          <IconLock size={19} className="mt-[8px]" />
+                        </div>
+                      }
+                      type="password"
+                      placeholder="Password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      overrides={{
+                        Root: {
+                          style: {
+                            backgroundColor: "var(--color-input-background)",
+                            borderColor: "var(--color-input-background)",
+                            marginTop: "1rem",
+                          },
+                        },
+                        StartEnhancer: {
+                          style: {
+                            backgroundColor: "var(--color-input-background)",
+                          },
+                        },
+                        InputContainer: {
+                          style: {
+                            backgroundColor: "var(--color-input-background)",
+                          },
+                        },
+                        Input: {
+                          style: {
+                            color: "var(--color-text)",
+                            caretColor: "var(--color-text)",
+                          },
+                        },
+                        MaskToggleHideIcon: {
+                          component: () => (
+                            <IconEyeOff
+                              className="text-[var(--color-text-muted)]"
+                              size={20}
+                            />
+                          ),
+                        },
+                        MaskToggleShowIcon: {
+                          component: () => (
+                            <IconEye
+                              className="text-[var(--color-text-muted)]"
+                              size={20}
+                            />
+                          ),
+                        },
+                      }}
+                    />
+                  )}
                 </div>
                 <Button
                   onClick={onLogin}

@@ -72,6 +72,11 @@ app.post("/login", async (c) => {
           key: `atp:${did}`,
           session: JSON.stringify(agent.session),
         })
+        .onConflict((oc) =>
+          oc
+            .column("key")
+            .doUpdateSet({ session: JSON.stringify(agent.session) }),
+        )
         .execute();
 
       const token = jwt.sign(
