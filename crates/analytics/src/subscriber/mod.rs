@@ -679,6 +679,22 @@ pub async fn save_track(
 
 pub async fn like(conn: Arc<Mutex<Connection>>, payload: LikePayload) -> Result<(), Error> {
     let conn = conn.lock().unwrap();
+
+    let exists: bool = conn.query_row(
+        "SELECT EXISTS(SELECT 1 FROM loved_tracks WHERE user_id = ? AND track_id = ?)",
+        params![payload.user_id.xata_id, payload.track_id.xata_id],
+        |row| row.get(0),
+    )?;
+
+    if exists {
+        tracing::warn!(
+            "Like already exists, user_id = {} track_id = {}",
+            payload.user_id.xata_id,
+            payload.track_id.xata_id
+        );
+        return Ok(());
+    }
+
     match conn.execute(
         "INSERT INTO loved_tracks (
         id,
