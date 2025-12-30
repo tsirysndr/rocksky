@@ -294,7 +294,24 @@ export async function likeTrack(
     }
   }
 
-  const message = JSON.stringify(created);
+  const lovedTrack = await ctx.db
+    .select()
+    .from(lovedTracks)
+    .where(
+      and(eq(lovedTracks.userId, user.id), eq(lovedTracks.trackId, trackId)),
+    )
+    .limit(1)
+    .then((rows) => rows[0]);
+
+  const message = JSON.stringify({
+    uri: lovedTrack.uri,
+    user_id: { xata_id: user.id },
+    track_id: { xata_id: trackId },
+    xata_createdat: lovedTrack.createdAt.toDateString(),
+    xata_id: lovedTrack.id,
+    xata_updatedat: lovedTrack.createdAt.toISOString(),
+    xata_version: 0,
+  });
   ctx.nc.publish("rocksky.like", Buffer.from(message));
 
   return created;
@@ -343,7 +360,15 @@ export async function unLikeTrack(
     ctx.db.delete(lovedTracks).where(eq(lovedTracks.id, lovedTrack.id)),
   ]);
 
-  const message = JSON.stringify(lovedTrack);
+  const message = JSON.stringify({
+    uri: lovedTrack.uri,
+    user_id: { xata_id: user.id },
+    track_id: { xata_id: track.id },
+    xata_createdat: lovedTrack.createdAt.toDateString(),
+    xata_id: lovedTrack.id,
+    xata_updatedat: lovedTrack.createdAt.toISOString(),
+    xata_version: 0,
+  });
   ctx.nc.publish("rocksky.unlike", Buffer.from(message));
 }
 
