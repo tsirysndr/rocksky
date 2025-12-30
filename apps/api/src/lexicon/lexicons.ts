@@ -2913,6 +2913,61 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyGraphGetKnownFollowers: {
+    lexicon: 1,
+    id: "app.rocksky.graph.getKnownFollowers",
+    defs: {
+      main: {
+        type: "query",
+        description:
+          "Enumerates accounts which follow a specified account (actor) and are followed by the viewer.",
+        parameters: {
+          type: "params",
+          required: ["actor"],
+          properties: {
+            actor: {
+              type: "string",
+              format: "at-identifier",
+            },
+            limit: {
+              type: "integer",
+              maximum: 100,
+              minimum: 1,
+              default: 50,
+            },
+            cursor: {
+              type: "string",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["subject", "followers"],
+            properties: {
+              subject: {
+                type: "ref",
+                ref: "lex:app.rocksky.actor.defs#profileViewBasic",
+              },
+              followers: {
+                type: "array",
+                items: {
+                  type: "ref",
+                  ref: "lex:app.rocksky.actor.defs#profileViewBasic",
+                },
+              },
+              cursor: {
+                type: "string",
+                description:
+                  "A cursor value to pass to subsequent calls to get the next page of results.",
+              },
+            },
+          },
+        },
+      },
+    },
+  },
   AppRockskyLikeDislikeShout: {
     lexicon: 1,
     id: "app.rocksky.like.dislikeShout",
@@ -5577,6 +5632,7 @@ export const ids = {
   AppRockskyGraphFollow: "app.rocksky.graph.follow",
   AppRockskyGraphGetFollowers: "app.rocksky.graph.getFollowers",
   AppRockskyGraphGetFollows: "app.rocksky.graph.getFollows",
+  AppRockskyGraphGetKnownFollowers: "app.rocksky.graph.getKnownFollowers",
   AppRockskyLikeDislikeShout: "app.rocksky.like.dislikeShout",
   AppRockskyLikeDislikeSong: "app.rocksky.like.dislikeSong",
   AppRockskyLike: "app.rocksky.like",

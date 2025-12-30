@@ -50,6 +50,7 @@ import type * as AppRockskyGoogledriveGetFile from "./types/app/rocksky/googledr
 import type * as AppRockskyGoogledriveGetFiles from "./types/app/rocksky/googledrive/getFiles";
 import type * as AppRockskyGraphGetFollowers from "./types/app/rocksky/graph/getFollowers";
 import type * as AppRockskyGraphGetFollows from "./types/app/rocksky/graph/getFollows";
+import type * as AppRockskyGraphGetKnownFollowers from "./types/app/rocksky/graph/getKnownFollowers";
 import type * as AppRockskyLikeDislikeShout from "./types/app/rocksky/like/dislikeShout";
 import type * as AppRockskyLikeDislikeSong from "./types/app/rocksky/like/dislikeSong";
 import type * as AppRockskyLikeLikeShout from "./types/app/rocksky/like/likeShout";
@@ -735,6 +736,17 @@ export class AppRockskyGraphNS {
     >,
   ) {
     const nsid = "app.rocksky.graph.getFollows"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  getKnownFollowers<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyGraphGetKnownFollowers.Handler<ExtractAuth<AV>>,
+      AppRockskyGraphGetKnownFollowers.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.graph.getKnownFollowers"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 }
