@@ -110,7 +110,7 @@ A decentralized music tracking and discovery platform built on the AT Protocol ð
    ```bash
    bun run feeds
    ```
-11. Start the development server:
+12. Start the development server:
    ```bash
    turbo dev --filter=@rocksky/api --filter=@rocksky/web
    ```
