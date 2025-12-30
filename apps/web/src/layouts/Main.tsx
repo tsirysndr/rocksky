@@ -153,7 +153,7 @@ function Main(props: MainProps) {
                 <div className="mb-[20px]">
                   <div className="mb-[15px]">
                     <LabelMedium className="!text-[var(--color-text)]">
-                      Bluesky handle
+                      Handle
                     </LabelMedium>
                   </div>
                   <Input
@@ -212,17 +212,18 @@ function Main(props: MainProps) {
                   Sign In
                 </Button>
                 <LabelMedium className="text-center mt-[20px] !text-[var(--color-text-muted)]">
-                  Don't have an account?
+                  Don't have an atproto handle yet?
                 </LabelMedium>
                 <div className="text-center text-[var(--color-text-muted)] ">
+                  You can create one at{" "}
                   <a
                     href="https://bsky.app"
                     className="no-underline cursor-pointer !text-[var(--color-primary)]"
                     target="_blank"
                   >
-                    Sign up for Bluesky
+                    Bluesky
                   </a>{" "}
-                  to create one now!
+                  or any other AT Protocol service.
                 </div>
               </div>
             )}
