@@ -51,7 +51,7 @@ A decentralized music tracking and discovery platform built on the AT Protocol ð
 - Go
 - Turbo
 - Docker
-- Wasm Pack https://rustwasm.github.io/wasm-pack/installer/
+- Wasm Pack https://github.com/drager/wasm-pack
 - DuckDB https://duckdb.org/docs/installation `1.2.0`
 - Spotify `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` from setup in [Spotify developer dashboard](https://developer.spotify.com/documentation/web-api/tutorials/getting-started)
 
