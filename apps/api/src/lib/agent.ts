@@ -17,7 +17,11 @@ export async function createAgent(
         .where("key", "=", `atp:${did}`)
         .executeTakeFirst();
       if (result) {
-        const pds = await extractPdsFromDid(did);
+        let pds = await ctx.redis.get(`pds:${did}`);
+        if (!pds) {
+          pds = await extractPdsFromDid(did);
+          await ctx.redis.setEx(`pds:${did}`, 60 * 15, pds);
+        }
         const atpAgent = new AtpAgent({
           service: new URL(pds),
         });

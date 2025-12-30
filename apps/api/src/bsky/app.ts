@@ -56,7 +56,13 @@ app.post("/login", async (c) => {
       const {
         data: { did },
       } = await defaultAgent.resolveHandle({ handle });
-      const pds = await extractPdsFromDid(did);
+
+      let pds = await ctx.redis.get(`pds:${did}`);
+      if (!pds) {
+        pds = await extractPdsFromDid(did);
+        await ctx.redis.setEx(`pds:${did}`, 60 * 15, pds);
+      }
+
       const agent = new AtpAgent({
         service: new URL(pds),
       });
