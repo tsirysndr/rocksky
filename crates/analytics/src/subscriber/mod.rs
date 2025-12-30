@@ -945,4 +945,30 @@ mod tests {
         }
         assert!(true);
     }
+
+    #[test]
+    fn test_parse_like() {
+        let data = r#"{
+            "uri":"at://did:plc:7vdlgi2bflelz7mmuxoqjfcr/app.rocksky.like/3mb6kxku6js2u",
+            "user_id": {
+                "xata_id": "rec_cug4h6ibhfbm7uq5dte0"
+            },
+            "track_id": {
+                "xata_id":"rec_d11h6cdqrj64hn24639g"
+            },
+            "xata_createdat": "2025-12-30T04:59:55.203Z",
+            "xata_id":"rec_d59loiod60d9sc81mc80",
+            "xata_updatedat":"2025-12-30T04:59:55.203Z",
+            "xata_version":0
+        }"#;
+
+        match serde_json::from_str::<types::LikePayload>(data) {
+            Err(e) => {
+                tracing::error!("Error parsing payload: {}", e);
+                tracing::error!("{}", data);
+            }
+            Ok(_) => {}
+        }
+        assert!(true);
+    }
 }

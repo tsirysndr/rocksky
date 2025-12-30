@@ -307,13 +307,11 @@ export async function likeTrack(
     uri: lovedTrack.uri,
     user_id: { xata_id: user.id },
     track_id: { xata_id: trackId },
-    xata_createdat: lovedTrack.createdAt.toDateString(),
+    xata_createdat: lovedTrack.createdAt.toISOString(),
     xata_id: lovedTrack.id,
     xata_updatedat: lovedTrack.createdAt.toISOString(),
     xata_version: 0,
   });
-  console.log(">> like");
-  console.log(message);
   ctx.nc.publish("rocksky.like", Buffer.from(message));
 
   return created;
@@ -366,13 +364,11 @@ export async function unLikeTrack(
     uri: lovedTrack.uri,
     user_id: { xata_id: user.id },
     track_id: { xata_id: track.id },
-    xata_createdat: lovedTrack.createdAt.toDateString(),
+    xata_createdat: lovedTrack.createdAt.toISOString(),
     xata_id: lovedTrack.id,
     xata_updatedat: lovedTrack.createdAt.toISOString(),
     xata_version: 0,
   });
-  console.log(">> unlike");
-  console.log(message);
   ctx.nc.publish("rocksky.unlike", Buffer.from(message));
 }
 
