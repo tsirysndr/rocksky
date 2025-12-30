@@ -72,6 +72,7 @@ A decentralized music tracking and discovery platform built on the AT Protocol ð
    ```bash
    cp apps/api/.env.example apps/api/.env
    cp apps/web/.env.example apps/web/.env
+   cp apps/feeds/.env.example apps/feeds/.env
    cp .env.example .env
    # Edit the .env files to add your configurations
    ```
@@ -104,6 +105,10 @@ A decentralized music tracking and discovery platform built on the AT Protocol ð
 10. Start musicbrainz:
    ```bash
    bun run mb
+   ```
+11. Start feeds:
+   ```bash
+   bun run feeds
    ```
 11. Start the development server:
    ```bash
