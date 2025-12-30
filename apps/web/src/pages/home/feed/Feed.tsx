@@ -107,27 +107,21 @@ function Feed() {
       <FeedGenerators />
       {isLoading && (
         <ContentLoader
-          width={800}
-          height={575}
-          viewBox="0 0 800 575"
+          width="100%"
+          height={800}
+          viewBox="0 0 1100 800"
           backgroundColor="var(--color-skeleton-background)"
           foregroundColor="var(--color-skeleton-foreground)"
         >
-          <rect x="12" y="9" rx="2" ry="2" width="140" height="10" />
-          <rect x="14" y="30" rx="2" ry="2" width="667" height="11" />
-          <rect x="12" y="58" rx="2" ry="2" width="211" height="211" />
-          <rect x="240" y="57" rx="2" ry="2" width="211" height="211" />
-          <rect x="467" y="56" rx="2" ry="2" width="211" height="211" />
-          <rect x="12" y="283" rx="2" ry="2" width="211" height="211" />
-          <rect x="240" y="281" rx="2" ry="2" width="211" height="211" />
-          <rect x="468" y="279" rx="2" ry="2" width="211" height="211" />
-          <circle cx="286" cy="536" r="12" />
-          <circle cx="319" cy="535" r="12" />
-          <circle cx="353" cy="535" r="12" />
-          <rect x="378" y="524" rx="0" ry="0" width="52" height="24" />
-          <rect x="210" y="523" rx="0" ry="0" width="52" height="24" />
-          <circle cx="210" cy="535" r="12" />
-          <circle cx="428" cy="536" r="12" />
+          {/* First row - 3 items with 24px gap (scale800) */}
+          <rect x="0" y="20" rx="2" ry="2" width="349" height="349" />
+          <rect x="373" y="20" rx="2" ry="2" width="349" height="349" />
+          <rect x="746" y="20" rx="2" ry="2" width="349" height="349" />
+
+          {/* Second row - 3 items with 32px row gap (scale1000) */}
+          <rect x="0" y="401" rx="2" ry="2" width="349" height="349" />
+          <rect x="373" y="401" rx="2" ry="2" width="349" height="349" />
+          <rect x="746" y="401" rx="2" ry="2" width="349" height="349" />
         </ContentLoader>
       )}
 
@@ -196,15 +190,16 @@ function Feed() {
           <div ref={loadMoreRef} style={{ height: "20px", marginTop: "20px" }}>
             {isFetchingNextPage && (
               <ContentLoader
-                width={800}
-                height={100}
-                viewBox="0 0 800 100"
+                width="100%"
+                height={360}
+                viewBox="0 0 1100 360"
                 backgroundColor="var(--color-skeleton-background)"
                 foregroundColor="var(--color-skeleton-foreground)"
               >
-                <rect x="12" y="10" rx="2" ry="2" width="211" height="80" />
-                <rect x="240" y="10" rx="2" ry="2" width="211" height="80" />
-                <rect x="467" y="10" rx="2" ry="2" width="211" height="80" />
+                {/* 3 items with 24px gap (scale800) */}
+                <rect x="0" y="10" rx="2" ry="2" width="349" height="349" />
+                <rect x="373" y="10" rx="2" ry="2" width="349" height="349" />
+                <rect x="746" y="10" rx="2" ry="2" width="349" height="349" />
               </ContentLoader>
             )}
           </div>
