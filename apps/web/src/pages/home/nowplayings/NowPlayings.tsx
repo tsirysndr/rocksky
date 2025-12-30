@@ -7,7 +7,8 @@ import { StatefulTooltip } from "baseui/tooltip";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import utc from "dayjs/plugin/utc";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import { useNowPlayingsQuery } from "../../../hooks/useNowPlaying";
 import styles from "./styles";
 
@@ -15,9 +16,6 @@ dayjs.extend(relativeTime);
 dayjs.extend(utc);
 
 const Container = styled.div`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
   margin-bottom: 50px;
 `;
 
@@ -36,6 +34,7 @@ const StoryContainer = styled.div`
   align-items: center;
   margin-right: 20px;
   cursor: pointer;
+  flex-shrink: 0;
 `;
 
 const Handle = styled.div`
@@ -106,6 +105,10 @@ function NowPlayings() {
   } | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [showLeftChevron, setShowLeftChevron] = useState(false);
+  const [showRightChevron, setShowRightChevron] = useState(true);
+  const [hasOverflow, setHasOverflow] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const onNext = () => {
     const nextIndex = currentIndex + 1;
@@ -131,6 +134,53 @@ function NowPlayings() {
     setCurrentlyPlaying(nowPlayings![prevIndex]);
     setProgress(0);
   };
+
+  // Check scroll position and update chevron visibility
+  const handleScroll = () => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const { scrollLeft, scrollWidth, clientWidth } = container;
+
+    // Check if content overflows
+    const overflow = scrollWidth > clientWidth;
+    setHasOverflow(overflow);
+
+    // Show left chevron if scrolled from the start
+    setShowLeftChevron(scrollLeft > 10);
+
+    // Show right chevron if not scrolled to the end
+    setShowRightChevron(scrollLeft < scrollWidth - clientWidth - 10);
+  };
+
+  // Scroll left/right
+  const scroll = (direction: "left" | "right") => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const scrollAmount = 300;
+    const newScrollLeft =
+      direction === "left"
+        ? container.scrollLeft - scrollAmount
+        : container.scrollLeft + scrollAmount;
+
+    container.scrollTo({
+      left: newScrollLeft,
+      behavior: "smooth",
+    });
+  };
+
+  // Check overflow on mount and window resize
+  useEffect(() => {
+    handleScroll();
+
+    const handleResize = () => {
+      handleScroll();
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [nowPlayings]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -170,23 +220,99 @@ function NowPlayings() {
 
   return (
     <Container>
+      <style>{`
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
+
       {!isLoading && (
         <>
-          {(nowPlayings || []).map((item, index) => (
-            <StoryContainer
-              key={item.id}
-              onClick={() => {
-                setCurrentlyPlaying(item);
-                setCurrentIndex(index);
-                setIsOpen(true);
-              }}
+          <div className="relative flex items-center h-[100px]">
+            {/* Left chevron */}
+            {showLeftChevron && (
+              <button
+                onClick={() => scroll("left")}
+                className="flex-shrink-0 w-8 h-8 rounded-full bg-transparent hover:bg-[var(--color-input-background)] flex items-center justify-center transition-all outline-none border-none cursor-pointer shadow-md z-30"
+              >
+                <IconChevronLeft
+                  size={20}
+                  className="text-[var(--color-text)]"
+                />
+              </button>
+            )}
+
+            <div
+              className="relative flex-1 overflow-hidden"
+              style={
+                hasOverflow
+                  ? {
+                      maskImage:
+                        showLeftChevron && showRightChevron
+                          ? "linear-gradient(to right, transparent, black 50px, black calc(100% - 50px), transparent)"
+                          : showLeftChevron
+                            ? "linear-gradient(to right, transparent, black 50px, black 100%)"
+                            : showRightChevron
+                              ? "linear-gradient(to right, black 0%, black calc(100% - 50px), transparent)"
+                              : undefined,
+                      WebkitMaskImage:
+                        showLeftChevron && showRightChevron
+                          ? "linear-gradient(to right, transparent, black 50px, black calc(100% - 50px), transparent)"
+                          : showLeftChevron
+                            ? "linear-gradient(to right, transparent, black 50px, black 100%)"
+                            : showRightChevron
+                              ? "linear-gradient(to right, black 0%, black calc(100% - 50px), transparent)"
+                              : undefined,
+                    }
+                  : undefined
+              }
             >
-              <Story src={item.avatar} />
-              <StatefulTooltip content={item.handle} returnFocus autoFocus>
-                <Handle>{item.handle}</Handle>
-              </StatefulTooltip>
-            </StoryContainer>
-          ))}
+              <div
+                ref={scrollContainerRef}
+                onScroll={handleScroll}
+                className="flex overflow-x-auto no-scrollbar h-full"
+                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+              >
+                {(nowPlayings || []).map((item, index) => (
+                  <StoryContainer
+                    key={item.id}
+                    onClick={() => {
+                      setCurrentlyPlaying(item);
+                      setCurrentIndex(index);
+                      setIsOpen(true);
+                    }}
+                  >
+                    <Story src={item.avatar} />
+                    <StatefulTooltip
+                      content={item.handle}
+                      returnFocus
+                      autoFocus
+                    >
+                      <Handle>{item.handle}</Handle>
+                    </StatefulTooltip>
+                  </StoryContainer>
+                ))}
+              </div>
+            </div>
+
+            {/* Right chevron */}
+            {showRightChevron && (
+              <button
+                onClick={() => scroll("right")}
+                className="flex-shrink-0 w-8 h-8 rounded-full bg-transparent hover:bg-[var(--color-input-background)] flex items-center justify-center transition-all outline-none border-none cursor-pointer shadow-md z-30"
+              >
+                <IconChevronRight
+                  size={20}
+                  className="text-[var(--color-text)]"
+                />
+              </button>
+            )}
+          </div>
+
           <Modal
             onClose={() => setIsOpen(false)}
             closeable
