@@ -1,3 +1,4 @@
+import { AtpAgent } from "@atproto/api";
 import type { BlobRef } from "@atproto/lexicon";
 import { isValidHandle } from "@atproto/syntax";
 import { ctx } from "context";
@@ -8,6 +9,7 @@ import * as Profile from "lexicon/types/app/bsky/actor/profile";
 import { deepSnakeCaseKeys } from "lib";
 import { createAgent } from "lib/agent";
 import { env } from "lib/env";
+import extractPdsFromDid from "lib/extractPdsFromDid";
 import { requestCounter } from "metrics";
 import dropboxAccounts from "schema/dropbox-accounts";
 import googleDriveAccounts from "schema/google-drive-accounts";
@@ -40,13 +42,37 @@ app.get("/login", async (c) => {
 
 app.post("/login", async (c) => {
   requestCounter.add(1, { method: "POST", route: "/login" });
-  const { handle, cli } = await c.req.json();
+  const { handle, cli, password } = await c.req.json();
   if (typeof handle !== "string" || !isValidHandle(handle)) {
     c.status(400);
     return c.text("Invalid handle");
   }
 
   try {
+    if (password) {
+      const defaultAgent = new AtpAgent({
+        service: new URL("https://bsky.social"),
+      });
+      const {
+        data: { did },
+      } = await defaultAgent.resolveHandle({ handle });
+      const pds = await extractPdsFromDid(did);
+      const agent = new AtpAgent({
+        service: new URL(pds),
+      });
+
+      const { data } = await agent.login({
+        identifier: handle,
+        password,
+      });
+
+      console.log(data);
+
+      console.log("session");
+      console.log(agent.session);
+
+      return c.text(data.did);
+    }
     const url = await ctx.oauthClient.authorize(handle, {
       scope: "atproto transition:generic",
     });
