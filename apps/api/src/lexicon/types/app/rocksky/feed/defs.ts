@@ -164,6 +164,8 @@ export function validateFeedItemView(v: unknown): ValidationResult {
 
 export interface FeedView {
   feed?: FeedItemView[];
+  /** The pagination cursor for the next set of results. */
+  cursor?: string;
   [k: string]: unknown;
 }
 

@@ -171,6 +171,10 @@ defs = new Mapping<String, ObjectType> {
           ref = "app.rocksky.feed.defs#feedItemView"
         }
       }
+      ["cursor"] = new StringType {
+        type = "string"
+        description = "The pagination cursor for the next set of results."
+      }
     }
   }
 }

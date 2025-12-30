@@ -62,7 +62,7 @@ const retrieve = ({
         ? "http://localhost:8002"
         : `https://${feed.did.split("did:web:")[1]}`;
       const response = await axios.get<{
-        cusrsor: string;
+        cursor?: string;
         feed: { scrobble: string }[];
       }>(`${feedUrl}/xrpc/app.rocksky.feed.getFeedSkeleton`, {
         params: {
@@ -73,6 +73,7 @@ const retrieve = ({
       });
       return {
         uris: response.data.feed.map(({ scrobble }) => scrobble),
+        cursor: response.data.cursor,
         ctx,
         did,
       };
@@ -83,13 +84,15 @@ const retrieve = ({
 
 const hydrate = ({
   uris,
+  cursor,
   ctx,
   did,
 }: {
   uris: string[];
+  cursor?: string;
   ctx: Context;
   did?: string;
-}): Effect.Effect<Scrobbles | undefined, Error> => {
+}): Effect.Effect<ScrobblesWithCursor | undefined, Error> => {
   return Effect.tryPromise({
     try: async () => {
       const scrobbles = await ctx.db
@@ -128,33 +131,38 @@ const hydrate = ({
         liked: likesMap.get(row.tracks?.id)?.liked ?? false,
       }));
 
-      return result;
+      return { scrobbles: result, cursor };
     },
 
     catch: (error) => new Error(`Failed to hydrate feed: ${error}`),
   });
 };
 
-const presentation = (data: Scrobbles): Effect.Effect<FeedView, never> => {
+const presentation = (
+  data: ScrobblesWithCursor,
+): Effect.Effect<FeedView, never> => {
   return Effect.sync(() => ({
-    feed: data.map(({ scrobbles, tracks, users, likesCount, liked }) => ({
-      scrobble: {
-        ...R.omit(["albumArt", "id", "lyrics"])(tracks),
-        cover: tracks.albumArt,
-        date: scrobbles.timestamp.toISOString(),
-        user: users.handle,
-        userDisplayName: users.displayName,
-        userAvatar: users.avatar,
-        uri: scrobbles.uri,
-        tags: [],
-        likesCount,
-        liked,
-        trackUri: tracks.uri,
-        createdAt: scrobbles.createdAt.toISOString(),
-        updatedAt: scrobbles.updatedAt.toISOString(),
-        id: scrobbles.id,
-      },
-    })),
+    feed: data.scrobbles.map(
+      ({ scrobbles, tracks, users, likesCount, liked }) => ({
+        scrobble: {
+          ...R.omit(["albumArt", "id", "lyrics"])(tracks),
+          cover: tracks.albumArt,
+          date: scrobbles.timestamp.toISOString(),
+          user: users.handle,
+          userDisplayName: users.displayName,
+          userAvatar: users.avatar,
+          uri: scrobbles.uri,
+          tags: [],
+          likesCount,
+          liked,
+          trackUri: tracks.uri,
+          createdAt: scrobbles.createdAt.toISOString(),
+          updatedAt: scrobbles.updatedAt.toISOString(),
+          id: scrobbles.id,
+        },
+      }),
+    ),
+    cursor: data.cursor,
   }));
 };
 
@@ -165,3 +173,8 @@ type Scrobbles = {
   likesCount: number;
   liked: boolean;
 }[];
+
+type ScrobblesWithCursor = {
+  scrobbles: Scrobbles;
+  cursor?: string;
+};

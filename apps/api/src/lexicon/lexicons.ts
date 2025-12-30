@@ -2343,6 +2343,10 @@ export const schemaDict = {
               ref: "lex:app.rocksky.feed.defs#feedItemView",
             },
           },
+          cursor: {
+            type: "string",
+            description: "The pagination cursor for the next set of results.",
+          },
         },
       },
     },

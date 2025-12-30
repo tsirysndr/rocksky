@@ -92,6 +92,7 @@ export const getFeed = async (uri: string, limit?: number, cursor?: string) => {
         id: string;
       };
     }[];
+    cursor?: string;
   }>("/xrpc/app.rocksky.feed.getFeed", {
     params: {
       feed: uri,
@@ -106,8 +107,11 @@ export const getFeed = async (uri: string, limit?: number, cursor?: string) => {
   });
 
   if (response.status !== 200) {
-    return [];
+    return { songs: [], cursor: undefined };
   }
 
-  return response.data.feed.map(({ scrobble }) => scrobble);
+  return {
+    songs: response.data.feed.map(({ scrobble }) => scrobble),
+    cursor: response.data.cursor,
+  };
 };
