@@ -1,4 +1,4 @@
-import type { Agent } from "@atproto/api";
+import { AtpAgent, type Agent } from "@atproto/api";
 import { TID } from "@atproto/common";
 import type { Context } from "context";
 import { and, desc, eq, type SQLWrapper } from "drizzle-orm";
@@ -248,7 +248,10 @@ export async function likeTrack(
 
   if (trackWithUri?.uri) {
     const rkey = TID.nextStr();
-    const subjectRecord = await agent.com.atproto.repo.getRecord({
+    const subjectAgent = new AtpAgent({
+      service: new URL("https://bsky.social"),
+    });
+    const subjectRecord = await subjectAgent.com.atproto.repo.getRecord({
       repo: trackWithUri.uri.split("/").slice(0, 3).join("/").split("at://")[1],
       collection: "app.rocksky.song",
       rkey: trackWithUri.uri.split("/").pop(),
