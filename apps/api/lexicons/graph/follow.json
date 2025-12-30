@@ -1,0 +1,28 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.graph.follow",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "Record declaring a social 'follow' relationship of another account.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": [
+          "createdAt",
+          "subject"
+        ],
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          },
+          "subject": {
+            "type": "ref",
+            "ref": "com.atproto.repo.strongRef"
+          }
+        }
+      }
+    }
+  }
+}

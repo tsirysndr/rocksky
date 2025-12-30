@@ -1,0 +1,41 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.graph.defs"
+defs = new Mapping<String, ObjectType> {
+  ["notFoundActor"] = new ObjectType {
+    type = "object"
+    description = "indicates that a handle or DID could not be resolved"
+    required = List("actor", "notFound")
+    properties {
+      ["actor"] = new StringType {
+        type = "string"
+        format = "at-identifier"
+      }
+      ["notFound"] = new BooleanType {
+        type = "boolean"
+      }
+    }
+  }
+  ["relationship"] {
+    type = "object"
+    required = List("did")
+    properties {
+      ["did"] = new StringType {
+        type = "string"
+        format = "did"
+      }
+      ["following"] = new StringType {
+        type = "string"
+        format = "at-uri"
+        description = "if the actor follows this DID, this is the AT-URI of the follow record"
+      }
+      ["followedBy"] = new StringType {
+        type = "string"
+        format = "at-uri"
+        description =
+          "if the actor is followed by this DID, contains the AT-URI of the follow record"
+      }
+    }
+  }
+}

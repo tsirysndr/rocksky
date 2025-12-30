@@ -10,7 +10,7 @@ import type { SelectScrobble } from "schema/scrobbles";
 import type { SelectTrack } from "schema/tracks";
 import type { SelectUser } from "schema/users";
 import axios from "axios";
-import { HandlerAuth } from "@atproto/xrpc-server";
+import type { HandlerAuth } from "@atproto/xrpc-server";
 import { env } from "lib/env";
 
 export default function (server: Server, ctx: Context) {

@@ -2735,6 +2735,184 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyGraphDefs: {
+    lexicon: 1,
+    id: "app.rocksky.graph.defs",
+    defs: {
+      notFoundActor: {
+        type: "object",
+        description: "indicates that a handle or DID could not be resolved",
+        required: ["actor", "notFound"],
+        properties: {
+          actor: {
+            type: "string",
+            format: "at-identifier",
+          },
+          notFound: {
+            type: "boolean",
+          },
+        },
+      },
+      relationship: {
+        type: "object",
+        required: ["did"],
+        properties: {
+          did: {
+            type: "string",
+            format: "did",
+          },
+          following: {
+            type: "string",
+            description:
+              "if the actor follows this DID, this is the AT-URI of the follow record",
+            format: "at-uri",
+          },
+          followedBy: {
+            type: "string",
+            description:
+              "if the actor is followed by this DID, contains the AT-URI of the follow record",
+            format: "at-uri",
+          },
+        },
+      },
+    },
+  },
+  AppRockskyGraphFollow: {
+    lexicon: 1,
+    id: "app.rocksky.graph.follow",
+    defs: {
+      main: {
+        type: "record",
+        description:
+          "Record declaring a social 'follow' relationship of another account.",
+        key: "tid",
+        record: {
+          type: "object",
+          required: ["createdAt", "subject"],
+          properties: {
+            createdAt: {
+              type: "string",
+              format: "datetime",
+            },
+            subject: {
+              type: "ref",
+              ref: "lex:com.atproto.repo.strongRef",
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyGraphGetFollowers: {
+    lexicon: 1,
+    id: "app.rocksky.graph.getFollowers",
+    defs: {
+      main: {
+        type: "query",
+        description:
+          "Enumerates accounts which follow a specified account (actor).",
+        parameters: {
+          type: "params",
+          required: ["actor"],
+          properties: {
+            actor: {
+              type: "string",
+              format: "at-identifier",
+            },
+            limit: {
+              type: "integer",
+              maximum: 100,
+              minimum: 1,
+              default: 50,
+            },
+            cursor: {
+              type: "string",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["subject", "followers"],
+            properties: {
+              subject: {
+                type: "ref",
+                ref: "lex:app.rocksky.actor.defs#profileViewBasic",
+              },
+              followers: {
+                type: "array",
+                items: {
+                  type: "ref",
+                  ref: "lex:app.rocksky.actor.defs#profileViewBasic",
+                },
+              },
+              cursor: {
+                type: "string",
+                description:
+                  "A cursor value to pass to subsequent calls to get the next page of results.",
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyGraphGetFollows: {
+    lexicon: 1,
+    id: "app.rocksky.graph.getFollows",
+    defs: {
+      main: {
+        type: "query",
+        description:
+          "Enumerates accounts which a specified account (actor) follows.",
+        parameters: {
+          type: "params",
+          required: ["actor"],
+          properties: {
+            actor: {
+              type: "string",
+              format: "at-identifier",
+            },
+            limit: {
+              type: "integer",
+              maximum: 100,
+              minimum: 1,
+              default: 50,
+            },
+            cursor: {
+              type: "string",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["subject", "follows"],
+            properties: {
+              subject: {
+                type: "ref",
+                ref: "lex:app.rocksky.actor.defs#profileViewBasic",
+              },
+              follows: {
+                type: "array",
+                items: {
+                  type: "ref",
+                  ref: "lex:app.rocksky.actor.defs#profileViewBasic",
+                },
+              },
+              cursor: {
+                type: "string",
+                description:
+                  "A cursor value to pass to subsequent calls to get the next page of results.",
+              },
+            },
+          },
+        },
+      },
+    },
+  },
   AppRockskyLikeDislikeShout: {
     lexicon: 1,
     id: "app.rocksky.like.dislikeShout",
@@ -5395,6 +5573,10 @@ export const ids = {
   AppRockskyGoogledriveDownloadFile: "app.rocksky.googledrive.downloadFile",
   AppRockskyGoogledriveGetFile: "app.rocksky.googledrive.getFile",
   AppRockskyGoogledriveGetFiles: "app.rocksky.googledrive.getFiles",
+  AppRockskyGraphDefs: "app.rocksky.graph.defs",
+  AppRockskyGraphFollow: "app.rocksky.graph.follow",
+  AppRockskyGraphGetFollowers: "app.rocksky.graph.getFollowers",
+  AppRockskyGraphGetFollows: "app.rocksky.graph.getFollows",
   AppRockskyLikeDislikeShout: "app.rocksky.like.dislikeShout",
   AppRockskyLikeDislikeSong: "app.rocksky.like.dislikeSong",
   AppRockskyLike: "app.rocksky.like",

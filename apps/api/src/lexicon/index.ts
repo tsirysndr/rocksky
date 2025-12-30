@@ -48,6 +48,8 @@ import type * as AppRockskyFeedSearch from "./types/app/rocksky/feed/search";
 import type * as AppRockskyGoogledriveDownloadFile from "./types/app/rocksky/googledrive/downloadFile";
 import type * as AppRockskyGoogledriveGetFile from "./types/app/rocksky/googledrive/getFile";
 import type * as AppRockskyGoogledriveGetFiles from "./types/app/rocksky/googledrive/getFiles";
+import type * as AppRockskyGraphGetFollowers from "./types/app/rocksky/graph/getFollowers";
+import type * as AppRockskyGraphGetFollows from "./types/app/rocksky/graph/getFollows";
 import type * as AppRockskyLikeDislikeShout from "./types/app/rocksky/like/dislikeShout";
 import type * as AppRockskyLikeDislikeSong from "./types/app/rocksky/like/dislikeSong";
 import type * as AppRockskyLikeLikeShout from "./types/app/rocksky/like/likeShout";
@@ -237,6 +239,7 @@ export class AppRockskyNS {
   dropbox: AppRockskyDropboxNS;
   feed: AppRockskyFeedNS;
   googledrive: AppRockskyGoogledriveNS;
+  graph: AppRockskyGraphNS;
   like: AppRockskyLikeNS;
   player: AppRockskyPlayerNS;
   playlist: AppRockskyPlaylistNS;
@@ -256,6 +259,7 @@ export class AppRockskyNS {
     this.dropbox = new AppRockskyDropboxNS(server);
     this.feed = new AppRockskyFeedNS(server);
     this.googledrive = new AppRockskyGoogledriveNS(server);
+    this.graph = new AppRockskyGraphNS(server);
     this.like = new AppRockskyLikeNS(server);
     this.player = new AppRockskyPlayerNS(server);
     this.playlist = new AppRockskyPlaylistNS(server);
@@ -701,6 +705,36 @@ export class AppRockskyGoogledriveNS {
     >,
   ) {
     const nsid = "app.rocksky.googledrive.getFiles"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+}
+
+export class AppRockskyGraphNS {
+  _server: Server;
+
+  constructor(server: Server) {
+    this._server = server;
+  }
+
+  getFollowers<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyGraphGetFollowers.Handler<ExtractAuth<AV>>,
+      AppRockskyGraphGetFollowers.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.graph.getFollowers"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  getFollows<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyGraphGetFollows.Handler<ExtractAuth<AV>>,
+      AppRockskyGraphGetFollows.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.graph.getFollows"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 }

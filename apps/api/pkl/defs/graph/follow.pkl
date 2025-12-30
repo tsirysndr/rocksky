@@ -1,0 +1,26 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.graph.follow"
+defs = new Mapping<String, Record> {
+  ["main"] {
+    type = "record"
+    key = "tid"
+    description = "Record declaring a social 'follow' relationship of another account."
+    `record` {
+      type = "object"
+      required = List("createdAt", "subject")
+      properties {
+        ["createdAt"] = new StringType {
+          type = "string"
+          format = "datetime"
+        }
+
+        ["subject"] = new Ref {
+          type = "ref"
+          ref = "com.atproto.repo.strongRef"
+        }
+      }
+    }
+  }
+}

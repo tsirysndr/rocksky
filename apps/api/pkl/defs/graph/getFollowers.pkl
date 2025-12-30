@@ -1,0 +1,54 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.graph.getFollowers"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Enumerates accounts which follow a specified account (actor)."
+    parameters = new Params {
+      required = List("actor")
+      properties {
+        ["actor"] = new StringType {
+          type = "string"
+          format = "at-identifier"
+        }
+        ["limit"] = new IntegerType {
+          type = "integer"
+          maximum = 100
+          minimum = 1
+          default = 50
+        }
+        ["cursor"] = new StringType {
+          type = "string"
+        }
+      }
+    }
+
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        required = List("subject", "followers")
+        properties {
+          ["subject"] = new Ref {
+            type = "ref"
+            ref = "app.rocksky.actor.defs#profileViewBasic"
+          }
+          ["followers"] = new Array {
+            type = "array"
+            items = new Ref {
+              type = "ref"
+              ref = "app.rocksky.actor.defs#profileViewBasic"
+            }
+          }
+          ["cursor"] = new StringType {
+            type = "string"
+            description =
+              "A cursor value to pass to subsequent calls to get the next page of results."
+          }
+        }
+      }
+    }
+  }
+}

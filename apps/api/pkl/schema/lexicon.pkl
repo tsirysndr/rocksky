@@ -13,7 +13,9 @@ class StringType extends BaseType {
 
 class IntegerType extends BaseType {
   type: "integer"
+  maximum: Int?
   minimum: Int?
+  default: Int?
 }
 
 class BooleanType extends BaseType {
@@ -40,7 +42,7 @@ class Params {
 class ObjectType extends BaseType {
   type: "object"
   required: List<String>?
-  properties: Mapping<String, StringType | IntegerType | Blob | Ref | Union | Array>
+  properties: Mapping<String, StringType | IntegerType | BooleanType | Blob | Ref | Union | Array>
 }
 
 class Union extends BaseType {
