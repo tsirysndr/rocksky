@@ -528,7 +528,7 @@ pub async fn get_currently_playing(
             previous_item.id != data_item.id
                 && previous.progress_ms.unwrap_or(0) != data.progress_ms.unwrap_or(0)
         }
-        _ => false,
+        _ => data.item.is_some(),
     };
 
     // save as previous song
