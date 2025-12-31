@@ -112,16 +112,17 @@ function Feed() {
           viewBox="0 0 1100 800"
           backgroundColor="var(--color-skeleton-background)"
           foregroundColor="var(--color-skeleton-foreground)"
+          style={{ marginTop: "-100px" }}
         >
           {/* First row - 3 items with 24px gap (scale800) */}
-          <rect x="0" y="20" rx="2" ry="2" width="349" height="349" />
-          <rect x="373" y="20" rx="2" ry="2" width="349" height="349" />
-          <rect x="746" y="20" rx="2" ry="2" width="349" height="349" />
+          <rect x="0" y="0" rx="2" ry="2" width="349" height="349" />
+          <rect x="373" y="0" rx="2" ry="2" width="349" height="349" />
+          <rect x="746" y="0" rx="2" ry="2" width="349" height="349" />
 
           {/* Second row - 3 items with 32px row gap (scale1000) */}
-          <rect x="0" y="401" rx="2" ry="2" width="349" height="349" />
-          <rect x="373" y="401" rx="2" ry="2" width="349" height="349" />
-          <rect x="746" y="401" rx="2" ry="2" width="349" height="349" />
+          <rect x="0" y="381" rx="2" ry="2" width="349" height="349" />
+          <rect x="373" y="381" rx="2" ry="2" width="349" height="349" />
+          <rect x="746" y="381" rx="2" ry="2" width="349" height="349" />
         </ContentLoader>
       )}
 

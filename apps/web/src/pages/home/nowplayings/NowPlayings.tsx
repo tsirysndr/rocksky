@@ -10,7 +10,7 @@ import utc from "dayjs/plugin/utc";
 import { useEffect, useState, useRef } from "react";
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import { useNowPlayingsQuery } from "../../../hooks/useNowPlaying";
-import styles from "./styles";
+import styles, { getModalStyles } from "./styles";
 
 dayjs.extend(relativeTime);
 dayjs.extend(utc);
@@ -237,11 +237,12 @@ function NowPlayings() {
             {showLeftChevron && (
               <button
                 onClick={() => scroll("left")}
-                className="flex-shrink-0 w-8 h-8 rounded-full bg-transparent hover:bg-[var(--color-input-background)] flex items-center justify-center transition-all outline-none border-none cursor-pointer shadow-md z-30 mt-[-20px]"
+                className="flex-shrink-0 w-8 h-8 min-w-8 min-h-8 p-0 rounded-full bg-transparent hover:bg-[var(--color-input-background)] flex items-center justify-center transition-all outline-none border-none cursor-pointer shadow-md z-30 mt-[-20px]"
+                style={{ padding: "5px" }}
               >
                 <IconChevronLeft
                   size={20}
-                  className="text-[var(--color-text)]"
+                  className="text-[var(--color-text)] flex-shrink-0"
                 />
               </button>
             )}
@@ -303,11 +304,12 @@ function NowPlayings() {
             {showRightChevron && (
               <button
                 onClick={() => scroll("right")}
-                className="flex-shrink-0 w-8 h-8 rounded-full bg-transparent hover:bg-[var(--color-input-background)] flex items-center justify-center transition-all outline-none border-none cursor-pointer shadow-md z-30 mt-[-20px]"
+                className="flex-shrink-0 w-8 h-8 min-w-8 min-h-8 p-0 rounded-full bg-transparent hover:bg-[var(--color-input-background)] flex items-center justify-center transition-all outline-none border-none cursor-pointer shadow-md z-30 mt-[-20px]"
+                style={{ padding: "5px" }}
               >
                 <IconChevronRight
                   size={20}
-                  className="text-[var(--color-text)]"
+                  className="text-[var(--color-text)] flex-shrink-0"
                 />
               </button>
             )}
@@ -321,7 +323,7 @@ function NowPlayings() {
             autoFocus={false}
             size={"60vw"}
             role={ROLE.dialog}
-            overrides={styles.modal}
+            overrides={getModalStyles(currentlyPlaying?.albumArt).modal}
           >
             <ModalHeader className="text-[#fff] text-[15px]">
               <div className="w-[380px] mx-auto">
@@ -336,7 +338,10 @@ function NowPlayings() {
                     @{currentlyPlaying?.handle}
                   </div>
                 </Link>
-                <span className="ml-[10px] text-[15px] text-[var(--color-text-muted)]">
+                <span
+                  className="ml-[10px] text-[15px]"
+                  style={{ color: "rgba(255, 255, 255, 0.7)" }}
+                >
                   {dayjs.utc(currentlyPlaying?.createdAt).local().fromNow()}
                 </span>
               </div>
