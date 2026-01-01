@@ -8,8 +8,13 @@ use tokio::sync::Mutex;
 
 use crate::{
     profile::did_to_profile,
-    subscriber::{ALBUM_NSID, ARTIST_NSID, FEED_GENERATOR_NSID, SCROBBLE_NSID, SONG_NSID},
-    types::{AlbumRecord, ArtistRecord, Commit, FeedGeneratorRecord, ScrobbleRecord, SongRecord},
+    subscriber::{
+        ALBUM_NSID, ARTIST_NSID, FEED_GENERATOR_NSID, FOLLOW_NSID, SCROBBLE_NSID, SONG_NSID,
+    },
+    types::{
+        AlbumRecord, ArtistRecord, Commit, FeedGeneratorRecord, FollowRecord, ScrobbleRecord,
+        SongRecord,
+    },
     webhook::discord::{
         self,
         model::{ScrobbleData, WebhookEnvelope},
@@ -35,6 +40,7 @@ pub async fn save_scrobble(
         ALBUM_NSID,
         SONG_NSID,
         FEED_GENERATOR_NSID,
+        FOLLOW_NSID,
     ]
     .contains(&commit.collection.as_str())
     {
@@ -186,8 +192,21 @@ pub async fn save_scrobble(
                 let uri = format!("at://{}/app.rocksky.feed.generator/{}", did, commit.rkey);
 
                 let feed_generator_record: FeedGeneratorRecord =
-                    serde_json::from_value(commit.record)?;
+                    serde_json::from_value(commit.record.clone())?;
                 save_feed_generator(&mut tx, &user_id, feed_generator_record, &uri).await?;
+
+                tx.commit().await?;
+            }
+
+            if commit.collection == FOLLOW_NSID {
+                let mut tx = pool.begin().await?;
+
+                save_user(&mut tx, did).await?;
+                let uri = format!("at://{}/app.rocksky.graph.follow/{}", did, commit.rkey);
+
+                let follow_record: FollowRecord = serde_json::from_value(commit.record)?;
+                save_user(&mut tx, &follow_record.subject).await?;
+                save_follow(&mut tx, did, follow_record, &uri).await?;
 
                 tx.commit().await?;
             }
@@ -1072,6 +1091,33 @@ pub async fn save_feed_generator(
     .bind(record.description)
     .bind(record.did)
     .bind(avatar)
+    .execute(&mut **tx)
+    .await?;
+    Ok(())
+}
+
+pub async fn save_follow(
+    tx: &mut sqlx::Transaction<'_, Postgres>,
+    did: &str,
+    record: FollowRecord,
+    uri: &str,
+) -> Result<(), Error> {
+    tracing::info!(did = %did, uri = %uri, "Saving follow");
+
+    sqlx::query(
+        r#"
+    INSERT INTO follows (
+        follower_did,
+        subject_did,
+        uri
+    ) VALUES (
+        $1, $2, $3
+    )
+  "#,
+    )
+    .bind(did)
+    .bind(record.subject)
+    .bind(uri)
     .execute(&mut **tx)
     .await?;
     Ok(())

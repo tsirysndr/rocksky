@@ -244,3 +244,10 @@ pub struct FeedGeneratorRecord {
     pub did: String,
     pub created_at: String,
 }
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct FollowRecord {
+    pub subject: String,
+    pub created_at: String,
+}

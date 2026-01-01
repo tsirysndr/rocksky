@@ -9,7 +9,8 @@ import type * as ComAtprotoRepoStrongRef from "../../../com/atproto/repo/strongR
 
 export interface Record {
   createdAt: string;
-  subject: ComAtprotoRepoStrongRef.Main;
+  subject: string;
+  via?: ComAtprotoRepoStrongRef.Main;
   [k: string]: unknown;
 }
 

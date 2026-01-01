@@ -15,6 +15,13 @@
       "when": 1766863536746,
       "tag": "0001_parched_random",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1767252686993,
+      "tag": "0002_robust_wong",
+      "breakpoints": true
     }
   ]
 }

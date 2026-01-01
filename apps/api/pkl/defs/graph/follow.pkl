@@ -16,7 +16,12 @@ defs = new Mapping<String, Record> {
           format = "datetime"
         }
 
-        ["subject"] = new Ref {
+        ["subject"] = new StringType {
+          type = "string"
+          format = "did"
+        }
+
+        ["via"] = new Ref {
           type = "ref"
           ref = "com.atproto.repo.strongRef"
         }

@@ -2799,8 +2799,58 @@ export const schemaDict = {
               format: "datetime",
             },
             subject: {
+              type: "string",
+              format: "did",
+            },
+            via: {
               type: "ref",
               ref: "lex:com.atproto.repo.strongRef",
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyGraphFollowAccount: {
+    lexicon: 1,
+    id: "app.rocksky.graph.followAccount",
+    defs: {
+      main: {
+        type: "procedure",
+        description:
+          "Creates a 'follow' relationship from the authenticated account to a specified account.",
+        parameters: {
+          type: "params",
+          required: ["account"],
+          properties: {
+            account: {
+              type: "string",
+              format: "at-identifier",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["subject", "followers"],
+            properties: {
+              subject: {
+                type: "ref",
+                ref: "lex:app.rocksky.actor.defs#profileViewBasic",
+              },
+              followers: {
+                type: "array",
+                items: {
+                  type: "ref",
+                  ref: "lex:app.rocksky.actor.defs#profileViewBasic",
+                },
+              },
+              cursor: {
+                type: "string",
+                description:
+                  "A cursor value to pass to subsequent calls to get the next page of results.",
+              },
             },
           },
         },
@@ -2941,6 +2991,52 @@ export const schemaDict = {
             },
             cursor: {
               type: "string",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["subject", "followers"],
+            properties: {
+              subject: {
+                type: "ref",
+                ref: "lex:app.rocksky.actor.defs#profileViewBasic",
+              },
+              followers: {
+                type: "array",
+                items: {
+                  type: "ref",
+                  ref: "lex:app.rocksky.actor.defs#profileViewBasic",
+                },
+              },
+              cursor: {
+                type: "string",
+                description:
+                  "A cursor value to pass to subsequent calls to get the next page of results.",
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyGraphUnfollowAccount: {
+    lexicon: 1,
+    id: "app.rocksky.graph.unfollowAccount",
+    defs: {
+      main: {
+        type: "procedure",
+        description:
+          "Removes a 'follow' relationship from the authenticated account to a specified account.",
+        parameters: {
+          type: "params",
+          required: ["account"],
+          properties: {
+            account: {
+              type: "string",
+              format: "at-identifier",
             },
           },
         },
@@ -5634,9 +5730,11 @@ export const ids = {
   AppRockskyGoogledriveGetFiles: "app.rocksky.googledrive.getFiles",
   AppRockskyGraphDefs: "app.rocksky.graph.defs",
   AppRockskyGraphFollow: "app.rocksky.graph.follow",
+  AppRockskyGraphFollowAccount: "app.rocksky.graph.followAccount",
   AppRockskyGraphGetFollowers: "app.rocksky.graph.getFollowers",
   AppRockskyGraphGetFollows: "app.rocksky.graph.getFollows",
   AppRockskyGraphGetKnownFollowers: "app.rocksky.graph.getKnownFollowers",
+  AppRockskyGraphUnfollowAccount: "app.rocksky.graph.unfollowAccount",
   AppRockskyLikeDislikeShout: "app.rocksky.like.dislikeShout",
   AppRockskyLikeDislikeSong: "app.rocksky.like.dislikeSong",
   AppRockskyLike: "app.rocksky.like",

@@ -4,6 +4,7 @@ pub mod artist;
 pub mod artist_album;
 pub mod artist_track;
 pub mod feed;
+pub mod follow;
 pub mod loved_track;
 pub mod scrobble;
 pub mod track;

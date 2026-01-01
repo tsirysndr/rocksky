@@ -23,7 +23,7 @@ function InteractionBar({ likesCount, liked, onLike }: InteractionBarProps) {
           {liked && <HeartFilled color="#fff" />}
         </span>
         {likesCount > 0 && (
-          <span className="ml-[5px] mt-[-4px] text-sm text-white">
+          <span className="ml-[5px] mt-[-4px] text-sm !text-[#ffffff]">
             {likesCount}
           </span>
         )}

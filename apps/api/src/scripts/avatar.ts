@@ -55,10 +55,7 @@ async function processUser(user: SelectUser) {
   };
 
   console.log(userPayload);
-  await ctx.nc.publish(
-    "rocksky.user",
-    Buffer.from(JSON.stringify(userPayload)),
-  );
+  ctx.nc.publish("rocksky.user", Buffer.from(JSON.stringify(userPayload)));
 }
 
 if (args.length > 0) {

@@ -1,0 +1,46 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.graph.followAccount"
+defs = new Mapping<String, Procedure> {
+  ["main"] {
+    type = "procedure"
+    description =
+      "Creates a 'follow' relationship from the authenticated account to a specified account."
+    parameters = new Params {
+      required = List("account")
+      properties {
+        ["account"] = new StringType {
+          type = "string"
+          format = "at-identifier"
+        }
+      }
+    }
+
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        required = List("subject", "followers")
+        properties {
+          ["subject"] = new Ref {
+            type = "ref"
+            ref = "app.rocksky.actor.defs#profileViewBasic"
+          }
+          ["followers"] = new Array {
+            type = "array"
+            items = new Ref {
+              type = "ref"
+              ref = "app.rocksky.actor.defs#profileViewBasic"
+            }
+          }
+          ["cursor"] = new StringType {
+            type = "string"
+            description =
+              "A cursor value to pass to subsequent calls to get the next page of results."
+          }
+        }
+      }
+    }
+  }
+}

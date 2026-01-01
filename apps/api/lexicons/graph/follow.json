@@ -18,6 +18,10 @@
             "format": "datetime"
           },
           "subject": {
+            "type": "string",
+            "format": "did"
+          },
+          "via": {
             "type": "ref",
             "ref": "com.atproto.repo.strongRef"
           }

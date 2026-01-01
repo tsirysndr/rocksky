@@ -1,0 +1,49 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.graph.unfollowAccount",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Removes a 'follow' relationship from the authenticated account to a specified account.",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "account"
+        ],
+        "properties": {
+          "account": {
+            "type": "string",
+            "format": "at-identifier"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [
+            "subject",
+            "followers"
+          ],
+          "properties": {
+            "subject": {
+              "type": "ref",
+              "ref": "app.rocksky.actor.defs#profileViewBasic"
+            },
+            "followers": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "app.rocksky.actor.defs#profileViewBasic"
+              }
+            },
+            "cursor": {
+              "type": "string",
+              "description": "A cursor value to pass to subsequent calls to get the next page of results."
+            }
+          }
+        }
+      }
+    }
+  }
+}
