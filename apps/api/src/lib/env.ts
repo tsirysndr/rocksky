@@ -41,4 +41,5 @@ export const env = cleanEnv(process.env, {
   PRIVATE_KEY_3: str({}),
   MEILISEARCH_URL: str({ devDefault: "http://localhost:7700" }),
   MEILISEARCH_API_KEY: str({}),
+  DISABLED_TEALFM: str({ default: "" }),
 });

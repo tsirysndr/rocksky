@@ -4,6 +4,7 @@ import chalk from "chalk";
 import type * as Status from "lexicon/types/fm/teal/alpha/actor/status";
 import type { PlayView } from "lexicon/types/fm/teal/alpha/feed/defs";
 import * as Play from "lexicon/types/fm/teal/alpha/feed/play";
+import { env } from "lib/env";
 import type { MusicbrainzTrack } from "types/track";
 
 const SUBMISSION_CLIENT_AGENT = "rocksky/v0.0.1";
@@ -22,6 +23,11 @@ async function publishPlayingNow(
   track: MusicbrainzTrack,
   duration: number,
 ) {
+  if (env.DISABLED_TEALFM.includes(agent.assertDid)) {
+    console.log(`teal.fm is disabled for ${chalk.cyanBright(agent.assertDid)}`);
+    return;
+  }
+
   try {
     // wait 60 seconds to ensure the track is actually being played
     await new Promise((resolve) => setTimeout(resolve, 60000));
