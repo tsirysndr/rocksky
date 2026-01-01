@@ -75,6 +75,11 @@ import getStats from "./app/rocksky/stats/getStats";
 import getFeedGenerators from "./app/rocksky/feed/getFeedGenerators";
 import getFeedGenerator from "./app/rocksky/feed/getFeedGenerator";
 import getFeed from "./app/rocksky/feed/getFeed";
+import followAccount from "./app/rocksky/graph/followAccount";
+import getFollowers from "./app/rocksky/graph/getFollowers";
+import getFollows from "./app/rocksky/graph/getFollows";
+import getKnownFollowers from "./app/rocksky/graph/getKnownFollowers";
+import unfollowAccount from "./app/rocksky/graph/unfollowAccount";
 
 export default function (server: Server, ctx: Context) {
   // app.rocksky
@@ -153,6 +158,11 @@ export default function (server: Server, ctx: Context) {
   getFeedGenerators(server, ctx);
   getFeedGenerator(server, ctx);
   getFeed(server, ctx);
+  followAccount(server, ctx);
+  getFollowers(server, ctx);
+  getFollows(server, ctx);
+  getKnownFollowers(server, ctx);
+  unfollowAccount(server, ctx);
 
   return server;
 }
