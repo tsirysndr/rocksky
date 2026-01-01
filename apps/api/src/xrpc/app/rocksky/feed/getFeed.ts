@@ -131,6 +131,31 @@ const hydrate = ({
         liked: likesMap.get(row.tracks?.id)?.liked ?? false,
       }));
 
+      if (did) {
+        const [u] = await ctx.db
+          .select()
+          .from(tables.users)
+          .where(eq(tables.users.did, did))
+          .limit(1)
+          .execute();
+
+        const userPayload = {
+          xata_id: u.id,
+          did: u.did,
+          handle: u.handle,
+          display_name: u.displayName,
+          avatar: u.avatar,
+          xata_createdat: u.createdAt.toISOString(),
+          xata_updatedat: u.updatedAt.toISOString(),
+          xata_version: u.xataVersion,
+        };
+
+        ctx.nc.publish(
+          "rocksky.user",
+          Buffer.from(JSON.stringify(userPayload)),
+        );
+      }
+
       return { scrobbles: result, cursor };
     },
 
