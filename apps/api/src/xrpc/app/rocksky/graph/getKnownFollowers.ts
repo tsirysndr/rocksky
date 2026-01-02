@@ -1,5 +1,5 @@
 import type { Context } from "context";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, sql, desc, lt } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/graph/getKnownFollowers";
@@ -45,9 +45,12 @@ const retrieve = ({
   params: QueryParams;
   ctx: Context;
   viewerDid?: string;
-}): Effect.Effect<[SelectUser | undefined, SelectUser[]], Error> => {
+}): Effect.Effect<
+  [SelectUser | undefined, SelectUser[], string | undefined],
+  Error
+> => {
   if (!viewerDid) {
-    return Effect.succeed([undefined, []]);
+    return Effect.succeed([undefined, [], undefined]);
   }
 
   return Effect.tryPromise({
@@ -66,26 +69,44 @@ const retrieve = ({
           eq(tables.users.did, tables.follows.follower_did),
         )
         .where(
-          and(
-            eq(tables.follows.subject_did, params.actor),
-            sql`EXISTS (
+          params.cursor
+            ? and(
+                lt(tables.follows.createdAt, new Date(params.cursor)),
+                eq(tables.follows.subject_did, params.actor),
+                sql`EXISTS (
               SELECT 1 FROM ${tables.follows} f2
               WHERE f2.subject_did = ${tables.users.did}
                 AND f2.follower_did = ${viewerDid}
             )`,
-          ),
+              )
+            : and(
+                eq(tables.follows.subject_did, params.actor),
+                sql`EXISTS (
+              SELECT 1 FROM ${tables.follows} f2
+              WHERE f2.subject_did = ${tables.users.did}
+                AND f2.follower_did = ${viewerDid}
+            )`,
+              ),
         )
-        .limit(params.limit ?? 100)
+        .orderBy(desc(tables.follows.createdAt))
+        .limit(params.limit ?? 50)
         .execute();
-      return [user, knownFollowers.map((row) => row.users)];
+      const cursor =
+        knownFollowers.length > 0
+          ? knownFollowers[knownFollowers.length - 1].follows.createdAt
+              .getTime()
+              .toString()
+          : undefined;
+      return [user, knownFollowers.map((row) => row.users), cursor];
     },
     catch: (error) => new Error(`Failed to retrieve known followers: ${error}`),
   });
 };
 
-const presentation = ([user, followers]: [
+const presentation = ([user, followers, cursor]: [
   SelectUser | undefined,
   SelectUser[],
+  string | undefined,
 ]): Effect.Effect<
   { subject: ProfileViewBasic; followers: ProfileViewBasic[] },
   never
@@ -109,5 +130,6 @@ const presentation = ([user, followers]: [
       createdAt: follower.createdAt.toISOString(),
       updatedAt: follower.updatedAt.toISOString(),
     })),
+    cursor,
   }));
 };

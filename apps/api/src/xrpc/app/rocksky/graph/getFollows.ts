@@ -1,5 +1,5 @@
 import type { Context } from "context";
-import { eq, or, sql } from "drizzle-orm";
+import { eq, desc, and, lt } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/graph/getFollowers";
@@ -12,7 +12,9 @@ export default function (server: Server, ctx: Context) {
     pipe(
       { params, ctx },
       retrieve,
-      Effect.flatMap(([user, follows]) => presentation(user, follows)),
+      Effect.flatMap(([user, follows, cursor]) =>
+        presentation(user, follows, cursor),
+      ),
       Effect.retry({ times: 3 }),
       Effect.timeout("120 seconds"),
       Effect.catchAll((err) => {
@@ -40,7 +42,10 @@ const retrieve = ({
 }: {
   params: QueryParams;
   ctx: Context;
-}): Effect.Effect<[SelectUser | undefined, SelectUser[]], Error> => {
+}): Effect.Effect<
+  [SelectUser | undefined, SelectUser[], string | undefined],
+  Error
+> => {
   return Effect.tryPromise({
     try: () =>
       Promise.all([
@@ -53,13 +58,41 @@ const retrieve = ({
         ctx.db
           .select()
           .from(tables.follows)
-          .where(eq(tables.follows.follower_did, params.actor))
+          .where(
+            params.cursor
+              ? and(
+                  lt(tables.follows.createdAt, new Date(params.cursor)),
+                  eq(tables.follows.follower_did, params.actor),
+                )
+              : eq(tables.follows.follower_did, params.actor),
+          )
           .leftJoin(
             tables.users,
             eq(tables.users.did, tables.follows.follower_did),
           )
+          .orderBy(desc(tables.follows.createdAt))
+          .limit(params.limit ?? 50)
           .execute()
           .then((rows) => rows.map(({ users }) => users)),
+        ctx.db
+          .select()
+          .from(tables.follows)
+          .where(
+            params.cursor
+              ? and(
+                  lt(tables.follows.createdAt, new Date(params.cursor)),
+                  eq(tables.follows.follower_did, params.actor),
+                )
+              : eq(tables.follows.follower_did, params.actor),
+          )
+          .orderBy(desc(tables.follows.createdAt))
+          .limit(params.limit ?? 50)
+          .execute()
+          .then((rows) =>
+            rows.length > 0
+              ? rows[rows.length - 1]?.createdAt.getTime().toString()
+              : undefined,
+          ),
       ]),
     catch: (error) => new Error(`Failed to retrieve user follows: ${error}`),
   });
@@ -68,6 +101,7 @@ const retrieve = ({
 const presentation = (
   user: SelectUser | undefined,
   follows: SelectUser[],
+  cursor: string | undefined,
 ): Effect.Effect<
   { subject: ProfileViewBasic; follows: ProfileViewBasic[] },
   never
@@ -91,5 +125,6 @@ const presentation = (
       createdAt: follow.createdAt.toISOString(),
       updatedAt: follow.updatedAt.toISOString(),
     })),
+    cursor,
   }));
 };

@@ -1,7 +1,7 @@
 import { TID } from "@atproto/common";
 import type { HandlerAuth } from "@atproto/xrpc-server";
 import type { Context } from "context";
-import { and, eq } from "drizzle-orm";
+import { and, eq, desc } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ProfileViewBasic } from "lexicon/types/app/rocksky/actor/defs";
@@ -114,6 +114,8 @@ const handleFollow = ({
             tables.users,
             eq(tables.users.did, tables.follows.follower_did),
           )
+          .orderBy(desc(tables.follows.createdAt))
+          .limit(50)
           .execute()
           .then((rows) => rows.map(({ users }) => users)),
       ]);

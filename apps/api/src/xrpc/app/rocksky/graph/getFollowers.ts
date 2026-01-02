@@ -1,5 +1,5 @@
 import type { Context } from "context";
-import { eq, or, sql } from "drizzle-orm";
+import { eq, desc, and, lt } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/graph/getFollowers";
@@ -40,7 +40,10 @@ const retrieve = ({
 }: {
   params: QueryParams;
   ctx: Context;
-}): Effect.Effect<[SelectUser | undefined, SelectUser[]], Error> => {
+}): Effect.Effect<
+  [SelectUser | undefined, SelectUser[], string | undefined],
+  Error
+> => {
   return Effect.tryPromise({
     try: () =>
       Promise.all([
@@ -53,21 +56,50 @@ const retrieve = ({
         ctx.db
           .select()
           .from(tables.follows)
-          .where(eq(tables.follows.subject_did, params.actor))
+          .where(
+            params.cursor
+              ? and(
+                  lt(tables.follows.createdAt, new Date(params.cursor)),
+                  eq(tables.follows.subject_did, params.actor),
+                )
+              : eq(tables.follows.subject_did, params.actor),
+          )
           .leftJoin(
             tables.users,
             eq(tables.users.did, tables.follows.follower_did),
           )
+          .orderBy(desc(tables.follows.createdAt))
+          .limit(params.limit ?? 50)
           .execute()
           .then((rows) => rows.map(({ users }) => users)),
+        ctx.db
+          .select()
+          .from(tables.follows)
+          .where(
+            params.cursor
+              ? and(
+                  lt(tables.follows.createdAt, new Date(params.cursor)),
+                  eq(tables.follows.subject_did, params.actor),
+                )
+              : eq(tables.follows.subject_did, params.actor),
+          )
+          .orderBy(desc(tables.follows.createdAt))
+          .limit(params.limit ?? 50)
+          .execute()
+          .then((rows) =>
+            rows.length > 0
+              ? rows[rows.length - 1]?.createdAt.getTime().toString()
+              : undefined,
+          ),
       ]),
     catch: (error) => new Error(`Failed to retrieve user followers: ${error}`),
   });
 };
 
-const presentation = ([user, followers]: [
+const presentation = ([user, followers, cursor]: [
   SelectUser | undefined,
   SelectUser[],
+  string | undefined,
 ]): Effect.Effect<
   { subject: ProfileViewBasic; followers: ProfileViewBasic[] },
   never
@@ -91,5 +123,6 @@ const presentation = ([user, followers]: [
       createdAt: follower.createdAt.toISOString(),
       updatedAt: follower.updatedAt.toISOString(),
     })),
+    cursor,
   }));
 };
