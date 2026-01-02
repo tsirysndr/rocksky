@@ -7,7 +7,7 @@ import { HeadingMedium, LabelLarge } from "baseui/typography";
 import dayjs from "dayjs";
 import { useAtom, useSetAtom } from "jotai";
 import _ from "lodash";
-import { type Key, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { profilesAtom } from "../../atoms/profiles";
 import { userAtom } from "../../atoms/user";
 import Shout from "../../components/Shout/Shout";
