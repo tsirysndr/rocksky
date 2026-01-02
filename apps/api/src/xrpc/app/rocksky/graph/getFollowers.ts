@@ -5,6 +5,7 @@ import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/graph/getFollowers";
 import type { ProfileViewBasic } from "lexicon/types/app/rocksky/actor/defs";
 import tables from "schema";
+import { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
   const getFollowers = (params: QueryParams) =>
@@ -39,41 +40,56 @@ const retrieve = ({
 }: {
   params: QueryParams;
   ctx: Context;
-}): Effect.Effect<any[], Error> => {
+}): Effect.Effect<[SelectUser | undefined, SelectUser[]], Error> => {
   return Effect.tryPromise({
     try: () =>
-      ctx.db
-        .select()
-        .from(tables.follows)
-        .where(eq(tables.follows.subject_did, params.actor))
-        .leftJoin(
-          tables.users,
-          eq(tables.users.did, tables.follows.follower_did),
-        )
-        .execute()
-        .then((rows) =>
-          rows.map(({ users }) => ({
-            id: users.id,
-            did: users.did,
-            handle: users.handle,
-            displayName: users.displayName,
-            avatar: users.avatar,
-            createdAt: users.createdAt.toISOString(),
-            updatedAt: users.updatedAt.toISOString(),
-          })),
-        ),
+      Promise.all([
+        ctx.db
+          .select()
+          .from(tables.users)
+          .where(eq(tables.users.did, params.actor))
+          .execute()
+          .then((rows) => rows[0]),
+        ctx.db
+          .select()
+          .from(tables.follows)
+          .where(eq(tables.follows.subject_did, params.actor))
+          .leftJoin(
+            tables.users,
+            eq(tables.users.did, tables.follows.follower_did),
+          )
+          .execute()
+          .then((rows) => rows.map(({ users }) => users)),
+      ]),
     catch: (error) => new Error(`Failed to retrieve user followers: ${error}`),
   });
 };
 
-const presentation = (
-  followers: any[],
-): Effect.Effect<
+const presentation = ([user, followers]: [
+  SelectUser | undefined,
+  SelectUser[],
+]): Effect.Effect<
   { subject: ProfileViewBasic; followers: ProfileViewBasic[] },
   never
 > => {
   return Effect.sync(() => ({
-    subject: {} satisfies ProfileViewBasic,
-    followers: [],
+    subject: {
+      id: user?.id,
+      did: user?.did,
+      handle: user?.handle,
+      displayName: user?.displayName,
+      avatar: user?.avatar,
+      createdAt: user?.createdAt.toISOString(),
+      updatedAt: user?.updatedAt.toISOString(),
+    },
+    followers: followers.map((follower) => ({
+      id: follower.id,
+      did: follower.did,
+      handle: follower.handle,
+      displayName: follower.displayName,
+      avatar: follower.avatar,
+      createdAt: follower.createdAt.toISOString(),
+      updatedAt: follower.updatedAt.toISOString(),
+    })),
   }));
 };

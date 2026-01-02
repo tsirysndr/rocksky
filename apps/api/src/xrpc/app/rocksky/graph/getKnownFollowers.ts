@@ -6,6 +6,7 @@ import type { QueryParams } from "lexicon/types/app/rocksky/graph/getKnownFollow
 import type { ProfileViewBasic } from "lexicon/types/app/rocksky/actor/defs";
 import tables from "schema";
 import type { HandlerAuth } from "@atproto/xrpc-server";
+import { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
   const getKnownFollowers = (params: QueryParams, auth: HandlerAuth) =>
@@ -44,32 +45,21 @@ const retrieve = ({
   params: QueryParams;
   ctx: Context;
   viewerDid?: string;
-}): Effect.Effect<
-  {
-    subjectDid: string;
-    knownFollowers: Array<ProfileViewBasic & { id: string }>;
-  },
-  Error
-> => {
+}): Effect.Effect<[SelectUser | undefined, SelectUser[]], Error> => {
   if (!viewerDid) {
-    return Effect.succeed({
-      subjectDid: params.actor,
-      knownFollowers: [],
-    });
+    return Effect.succeed([undefined, []]);
   }
 
   return Effect.tryPromise({
     try: async () => {
+      const user = await ctx.db
+        .select()
+        .from(tables.users)
+        .where(eq(tables.users.did, params.actor))
+        .execute()
+        .then((rows) => rows[0]);
       const knownFollowers = await ctx.db
-        .select({
-          id: tables.users.id,
-          did: tables.users.did,
-          handle: tables.users.handle,
-          displayName: tables.users.displayName,
-          avatar: tables.users.avatar,
-          createdAt: tables.users.createdAt,
-          updatedAt: tables.users.updatedAt,
-        })
+        .select()
         .from(tables.follows)
         .innerJoin(
           tables.users,
@@ -87,40 +77,37 @@ const retrieve = ({
         )
         .limit(params.limit ?? 100)
         .execute();
-
-      return {
-        subjectDid: params.actor,
-        knownFollowers: knownFollowers.map((u) => ({
-          id: u.id,
-          did: u.did,
-          handle: u.handle,
-          displayName: u.displayName,
-          avatar: u.avatar,
-          createdAt: u.createdAt.toISOString(),
-          updatedAt: u.updatedAt.toISOString(),
-        })),
-      };
+      return [user, knownFollowers.map((row) => row.users)];
     },
     catch: (error) => new Error(`Failed to retrieve known followers: ${error}`),
   });
 };
 
-const presentation = ({
-  subjectDid,
-  knownFollowers,
-}: {
-  subjectDid: string;
-  knownFollowers: Array<ProfileViewBasic & { id: string }>;
-}): Effect.Effect<
+const presentation = ([user, followers]: [
+  SelectUser | undefined,
+  SelectUser[],
+]): Effect.Effect<
   { subject: ProfileViewBasic; followers: ProfileViewBasic[] },
   never
 > => {
   return Effect.sync(() => ({
     subject: {
-      did: subjectDid,
-    } satisfies ProfileViewBasic,
-    followers: knownFollowers.map(
-      ({ id, ...profile }) => profile as ProfileViewBasic,
-    ),
+      id: user?.id,
+      did: user?.did,
+      handle: user?.handle,
+      displayName: user?.displayName,
+      avatar: user?.avatar,
+      createdAt: user?.createdAt.toISOString(),
+      updatedAt: user?.updatedAt.toISOString(),
+    },
+    followers: followers.map((follower) => ({
+      id: follower.id,
+      did: follower.did,
+      handle: follower.handle,
+      displayName: follower.displayName,
+      avatar: follower.avatar,
+      createdAt: follower.createdAt.toISOString(),
+      updatedAt: follower.updatedAt.toISOString(),
+    })),
   }));
 };

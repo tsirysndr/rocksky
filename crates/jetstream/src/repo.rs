@@ -1113,6 +1113,7 @@ pub async fn save_follow(
     ) VALUES (
         $1, $2, $3
     )
+    ON CONFLICT (follower_did, subject_did) DO NOTHING
   "#,
     )
     .bind(did)

@@ -1,11 +1,13 @@
 import type { HandlerAuth } from "@atproto/xrpc-server";
 import type { Context } from "context";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import { ProfileViewBasic } from "lexicon/types/app/rocksky/actor/defs";
-import type { QueryParams } from "lexicon/types/app/rocksky/graph/unfollowAccount";
+import type { QueryParams } from "lexicon/types/app/rocksky/graph/followAccount";
+import { createAgent } from "lib/agent";
 import tables from "schema";
+import { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
   const unfollowAccount = (params: QueryParams, auth: HandlerAuth) =>
@@ -14,7 +16,7 @@ export default function (server: Server, ctx: Context) {
       handleFollow,
       Effect.flatMap(presentation),
       Effect.retry({ times: 3 }),
-      Effect.timeout("10 seconds"),
+      Effect.timeout("120 seconds"),
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({
@@ -23,7 +25,7 @@ export default function (server: Server, ctx: Context) {
         });
       }),
     );
-  server.app.rocksky.graph.followAccount({
+  server.app.rocksky.graph.unfollowAccount({
     auth: ctx.authVerifier,
     handler: async ({ params, auth }) => {
       const result = await Effect.runPromise(unfollowAccount(params, auth));
@@ -43,22 +45,126 @@ const handleFollow = ({
   params: QueryParams;
   ctx: Context;
   did?: string;
-}): Effect.Effect<any[], Error> => {
+}): Effect.Effect<[SelectUser | undefined, SelectUser[]], Error> => {
   return Effect.tryPromise({
-    try: async () => [],
-    catch: (error) => new Error(`Failed to unfollow: ${error}`),
+    try: async () => {
+      if (!did) {
+        throw new Error("User is not authenticated");
+      }
+      if (params.account === did) {
+        throw new Error("User cannot follow themselves");
+      }
+
+      if (!(await isFollowing(ctx, did, params.account))) {
+        throw new Error("User is not following");
+      }
+
+      const agent = await createAgent(ctx.oauthClient, did);
+      if (!agent) {
+        throw new Error("Unauthorized");
+      }
+
+      const follow = await ctx.db
+        .select()
+        .from(tables.follows)
+        .where(
+          and(
+            eq(tables.follows.subject_did, params.account),
+            eq(tables.follows.follower_did, did),
+          ),
+        )
+        .execute()
+        .then((rows) => rows[0]);
+
+      if (!follow) {
+        throw new Error("Follow not found");
+      }
+
+      const rkey = follow.uri.split("/").pop();
+
+      await agent.com.atproto.repo.deleteRecord({
+        repo: agent.assertDid,
+        collection: "app.rocksky.graph.follow",
+        rkey,
+      });
+
+      await ctx.db
+        .delete(tables.follows)
+        .where(
+          and(
+            eq(tables.follows.subject_did, params.account),
+            eq(tables.follows.follower_did, did),
+          ),
+        )
+        .execute();
+
+      return Promise.all([
+        ctx.db
+          .select()
+          .from(tables.users)
+          .where(eq(tables.users.did, params.account))
+          .execute()
+          .then((rows) => rows[0]),
+        ctx.db
+          .select()
+          .from(tables.follows)
+          .where(eq(tables.follows.subject_did, params.account))
+          .leftJoin(
+            tables.users,
+            eq(tables.users.did, tables.follows.follower_did),
+          )
+          .execute()
+          .then((rows) => rows.map(({ users }) => users)),
+      ]);
+    },
+    catch: (error) => new Error(`Failed to retrieve follow: ${error}`),
   });
 };
 
-const presentation = (
-  followers: any[],
-): Effect.Effect<
+const presentation = ([user, followers]: [
+  SelectUser | undefined,
+  SelectUser[],
+]): Effect.Effect<
   { subject: ProfileViewBasic; followers: ProfileViewBasic[] },
   never
 > => {
-  // Logic to format the response for play action
   return Effect.sync(() => ({
-    subject: {} satisfies ProfileViewBasic,
-    followers: [],
+    subject: {
+      id: user?.id,
+      did: user?.did,
+      handle: user?.handle,
+      displayName: user?.displayName,
+      avatar: user?.avatar,
+      createdAt: user?.createdAt.toISOString(),
+      updatedAt: user?.updatedAt.toISOString(),
+    },
+    followers: followers.map((follower) => ({
+      id: follower.id,
+      did: follower.did,
+      handle: follower.handle,
+      displayName: follower.displayName,
+      avatar: follower.avatar,
+      createdAt: follower.createdAt.toISOString(),
+      updatedAt: follower.updatedAt.toISOString(),
+    })),
   }));
+};
+
+const isFollowing = async (
+  ctx: Context,
+  followerDid: string,
+  subjectDid: string,
+): Promise<boolean> => {
+  const result = await ctx.db
+    .select()
+    .from(tables.follows)
+    .where(
+      and(
+        eq(tables.follows.follower_did, followerDid),
+        eq(tables.follows.subject_did, subjectDid),
+      ),
+    )
+    .execute();
+
+  return result.length > 0;
 };
