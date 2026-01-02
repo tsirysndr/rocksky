@@ -112,7 +112,7 @@ function Followers() {
           {allFollowers.map((follower: any) => (
             <div
               key={follower.did}
-              className="flex items-start justify-between gap-2"
+              className="flex items-start justify-between gap-2 mb-[20px]"
             >
               <div className="flex items-center gap-2">
                 <Link
