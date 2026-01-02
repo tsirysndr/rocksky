@@ -1,5 +1,5 @@
 import type { Context } from "context";
-import { eq, desc, and, lt } from "drizzle-orm";
+import { eq, desc, and, lt, inArray } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/graph/getFollowers";
@@ -59,10 +59,20 @@ const retrieve = ({
           .where(
             params.cursor
               ? and(
-                  lt(tables.follows.createdAt, new Date(params.cursor)),
-                  eq(tables.follows.subject_did, params.actor),
+                  ...[
+                    lt(tables.follows.createdAt, new Date(params.cursor)),
+                    eq(tables.follows.subject_did, params.actor),
+                    (params.dids || params.dids.length > 0) &&
+                      inArray(tables.follows.follower_did, params.dids),
+                  ],
                 )
-              : eq(tables.follows.subject_did, params.actor),
+              : and(
+                  ...[
+                    eq(tables.follows.subject_did, params.actor),
+                    (params.dids || params.dids.length > 0) &&
+                      inArray(tables.follows.follower_did, params.dids),
+                  ],
+                ),
           )
           .leftJoin(
             tables.users,
@@ -78,10 +88,20 @@ const retrieve = ({
           .where(
             params.cursor
               ? and(
-                  lt(tables.follows.createdAt, new Date(params.cursor)),
-                  eq(tables.follows.subject_did, params.actor),
+                  ...[
+                    lt(tables.follows.createdAt, new Date(params.cursor)),
+                    eq(tables.follows.subject_did, params.actor),
+                    (params.dids || params.dids.length > 0) &&
+                      inArray(tables.follows.follower_did, params.dids),
+                  ],
                 )
-              : eq(tables.follows.subject_did, params.actor),
+              : and(
+                  ...[
+                    eq(tables.follows.subject_did, params.actor),
+                    (params.dids || params.dids.length > 0) &&
+                      inArray(tables.follows.follower_did, params.dids),
+                  ],
+                ),
           )
           .orderBy(desc(tables.follows.createdAt))
           .limit(params.limit ?? 50)

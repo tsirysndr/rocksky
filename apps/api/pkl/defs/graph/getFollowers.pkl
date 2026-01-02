@@ -19,6 +19,15 @@ defs = new Mapping<String, Query> {
           minimum = 1
           default = 50
         }
+        ["dids"] = new Array {
+          type = "array"
+          items = new StringType {
+            type = "string"
+            format = "did"
+          }
+          description =
+            "If provided, filters the followers to only include those with DIDs in this list."
+        }
         ["cursor"] = new StringType {
           type = "string"
         }

@@ -17,12 +17,22 @@ import Library from "./library";
 import LovedTracks from "./lovedtracks";
 import Overview from "./overview";
 import Playlists from "./playlists";
+import { Button } from "baseui/button";
+import { IconPlus } from "@tabler/icons-react";
 
 const Group = styled.div`
   display: flex;
   flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-top: 20px;
   margin-bottom: 50px;
+`;
+
+const ProfileInfo = styled.div`
+  display: flex;
+  flex-direction: row;
+  flex: 1;
 `;
 
 export type ProfileProps = {
@@ -86,49 +96,82 @@ function Profile(props: ProfileProps) {
     return;
   }
 
+  console.log(
+    ">>",
+    profile.data?.did !== localStorage.getItem("did"),
+    profile.data?.did,
+    localStorage.getItem("did"),
+  );
+
   return (
     <Main>
       <div className="pb-[100px] pt-[75px]">
         <Group>
-          <div className="mr-[20px]">
-            <Avatar
-              name={profiles[did]?.displayName}
-              src={profiles[did]?.avatar}
-              size="150px"
-            />
-          </div>
-          <div style={{ marginTop: profiles[did]?.displayName ? 10 : 30 }}>
-            <HeadingMedium
-              marginTop="0px"
-              marginBottom={0}
-              className="!text-[var(--color-text)]"
-            >
-              {profiles[did]?.displayName}
-            </HeadingMedium>
-            <LabelLarge>
-              <a
-                href={`https://bsky.app/profile/${profiles[did]?.handle}`}
-                className="no-underline text-[var(--color-primary)]"
-              >
-                @{profiles[did]?.handle}
-              </a>
-              <span className="text-[var(--color-text-muted)] text-[15px]">
-                {" "}
-                • scrobbling since{" "}
-                {dayjs(profiles[did]?.createdAt).format("DD MMM YYYY")}
-              </span>
-            </LabelLarge>
-            <div className="flex-1 mt-[30px] mr-[10px]">
-              <a
-                href={`https://pdsls.dev/at/${profiles[did]?.did}`}
-                target="_blank"
-                className="no-underline text-[var(--color-text)] bg-[var(--color-default-button)] p-[16px] rounded-[10px] pl-[25px] pr-[25px]"
-              >
-                <ExternalLink size={24} style={{ marginRight: 10 }} />
-                View on PDSls
-              </a>
+          <ProfileInfo>
+            <div className="mr-[20px]">
+              <Avatar
+                name={profiles[did]?.displayName}
+                src={profiles[did]?.avatar}
+                size="150px"
+              />
             </div>
-          </div>
+            <div style={{ marginTop: profiles[did]?.displayName ? 10 : 30 }}>
+              <HeadingMedium
+                marginTop="0px"
+                marginBottom={0}
+                className="!text-[var(--color-text)]"
+              >
+                {profiles[did]?.displayName}
+              </HeadingMedium>
+              <LabelLarge>
+                <a
+                  href={`https://bsky.app/profile/${profiles[did]?.handle}`}
+                  className="no-underline text-[var(--color-primary)]"
+                >
+                  @{profiles[did]?.handle}
+                </a>
+                <span className="text-[var(--color-text-muted)] text-[15px]">
+                  {" "}
+                  • scrobbling since{" "}
+                  {dayjs(profiles[did]?.createdAt).format("DD MMM YYYY")}
+                </span>
+              </LabelLarge>
+              <div className="flex-1 mt-[30px] mr-[10px]">
+                <a
+                  href={`https://pdsls.dev/at/${profiles[did]?.did}`}
+                  target="_blank"
+                  className="no-underline text-[var(--color-text)] bg-[var(--color-default-button)] p-[16px] rounded-[10px] pl-[25px] pr-[25px]"
+                >
+                  <ExternalLink size={24} style={{ marginRight: 10 }} />
+                  View on PDSls
+                </a>
+              </div>
+            </div>
+          </ProfileInfo>
+          {(profile.data?.did !== localStorage.getItem("did") ||
+            !localStorage.getItem("did")) && (
+            <Button
+              shape="pill"
+              size="compact"
+              startEnhancer={<IconPlus size={18} />}
+              overrides={{
+                BaseButton: {
+                  style: {
+                    marginTop: "12px",
+                    backgroundColor: "#ff2876",
+                    ":hover": {
+                      backgroundColor: "#ff2876",
+                    },
+                    ":focus": {
+                      backgroundColor: "#ff2876",
+                    },
+                  },
+                },
+              }}
+            >
+              Follow
+            </Button>
+          )}
         </Group>
 
         <Tabs

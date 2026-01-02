@@ -2879,6 +2879,15 @@ export const schemaDict = {
               minimum: 1,
               default: 50,
             },
+            dids: {
+              type: "array",
+              description:
+                "If provided, filters the followers to only include those with DIDs in this list.",
+              items: {
+                type: "string",
+                format: "did",
+              },
+            },
             cursor: {
               type: "string",
             },
