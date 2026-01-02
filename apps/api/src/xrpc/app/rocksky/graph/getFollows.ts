@@ -1,5 +1,5 @@
 import type { Context } from "context";
-import { eq, desc, and, lt } from "drizzle-orm";
+import { eq, desc, and, lt, inArray } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/graph/getFollowers";
@@ -46,6 +46,25 @@ const retrieve = ({
   [SelectUser | undefined, SelectUser[], string | undefined],
   Error
 > => {
+  // Build where conditions dynamically
+  const buildWhereConditions = () => {
+    const conditions = [eq(tables.follows.follower_did, params.actor)];
+
+    if (params.cursor) {
+      conditions.push(
+        lt(tables.follows.createdAt, new Date(Number(params.cursor))),
+      );
+    }
+
+    if (params.dids && params.dids.length > 0) {
+      conditions.push(inArray(tables.follows.subject_did, params.dids));
+    }
+
+    return conditions.length > 1 ? and(...conditions) : conditions[0];
+  };
+
+  const whereConditions = buildWhereConditions();
+
   return Effect.tryPromise({
     try: () =>
       Promise.all([
@@ -58,17 +77,10 @@ const retrieve = ({
         ctx.db
           .select()
           .from(tables.follows)
-          .where(
-            params.cursor
-              ? and(
-                  lt(tables.follows.createdAt, new Date(params.cursor)),
-                  eq(tables.follows.follower_did, params.actor),
-                )
-              : eq(tables.follows.follower_did, params.actor),
-          )
+          .where(whereConditions)
           .leftJoin(
             tables.users,
-            eq(tables.users.did, tables.follows.follower_did),
+            eq(tables.users.did, tables.follows.subject_did),
           )
           .orderBy(desc(tables.follows.createdAt))
           .limit(params.limit ?? 50)
@@ -77,19 +89,12 @@ const retrieve = ({
         ctx.db
           .select()
           .from(tables.follows)
-          .where(
-            params.cursor
-              ? and(
-                  lt(tables.follows.createdAt, new Date(params.cursor)),
-                  eq(tables.follows.follower_did, params.actor),
-                )
-              : eq(tables.follows.follower_did, params.actor),
-          )
+          .where(whereConditions)
           .orderBy(desc(tables.follows.createdAt))
           .limit(params.limit ?? 50)
           .execute()
           .then((rows) =>
-            rows.length > 0
+            rows?.length > 0
               ? rows[rows.length - 1]?.createdAt.getTime().toString(10)
               : undefined,
           ),

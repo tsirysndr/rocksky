@@ -60,17 +60,22 @@ const retrieve = ({
             params.cursor
               ? and(
                   ...[
-                    lt(tables.follows.createdAt, new Date(params.cursor)),
+                    lt(
+                      tables.follows.createdAt,
+                      new Date(Number(params.cursor)),
+                    ),
                     eq(tables.follows.subject_did, params.actor),
-                    (params.dids || params.dids.length > 0) &&
-                      inArray(tables.follows.follower_did, params.dids),
+                    params.dids && params.dids?.length > 0
+                      ? inArray(tables.follows.follower_did, params.dids)
+                      : undefined,
                   ],
                 )
               : and(
                   ...[
                     eq(tables.follows.subject_did, params.actor),
-                    (params.dids || params.dids.length > 0) &&
-                      inArray(tables.follows.follower_did, params.dids),
+                    params.dids && params.dids?.length > 0
+                      ? inArray(tables.follows.follower_did, params.dids)
+                      : undefined,
                   ],
                 ),
           )
@@ -89,17 +94,22 @@ const retrieve = ({
             params.cursor
               ? and(
                   ...[
-                    lt(tables.follows.createdAt, new Date(params.cursor)),
+                    lt(
+                      tables.follows.createdAt,
+                      new Date(Number(params.cursor)),
+                    ),
                     eq(tables.follows.subject_did, params.actor),
-                    (params.dids || params.dids.length > 0) &&
+                    params.dids &&
+                      params.dids?.length > 0 &&
                       inArray(tables.follows.follower_did, params.dids),
                   ],
                 )
               : and(
                   ...[
                     eq(tables.follows.subject_did, params.actor),
-                    (params.dids || params.dids.length > 0) &&
-                      inArray(tables.follows.follower_did, params.dids),
+                    params.dids && params.dids?.length > 0
+                      ? inArray(tables.follows.follower_did, params.dids)
+                      : undefined,
                   ],
                 ),
           )

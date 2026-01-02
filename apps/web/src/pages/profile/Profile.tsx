@@ -18,7 +18,17 @@ import LovedTracks from "./lovedtracks";
 import Overview from "./overview";
 import Playlists from "./playlists";
 import { Button } from "baseui/button";
-import { IconPlus } from "@tabler/icons-react";
+import { IconPlus, IconCheck } from "@tabler/icons-react";
+import { followsAtom } from "../../atoms/follows";
+import SignInModal from "../../components/SignInModal";
+import {
+  useFollowAccountMutation,
+  useFollowersQuery,
+  useUnfollowAccountMutation,
+} from "../../hooks/useGraph";
+import Follows from "./follows";
+import Followers from "./followers";
+import { activeTabAtom } from "../../atoms/tab";
 
 const Group = styled.div`
   display: flex;
@@ -40,14 +50,70 @@ export type ProfileProps = {
 };
 
 function Profile(props: ProfileProps) {
+  const [follows, setFollows] = useAtom(followsAtom);
+  const [isSignInOpen, setIsSignInOpen] = useState(false);
   const [profiles, setProfiles] = useAtom(profilesAtom);
-  const [activeKey, setActiveKey] = useState<Key>(
-    _.get(props, "activeKey", "0").split("/")[0],
-  );
+  const [activeKey, setActiveKey] = useAtom(activeTabAtom);
   const { did } = useParams({ strict: false });
   const profile = useProfileByDidQuery(did!);
   const setUser = useSetAtom(userAtom);
   const { tab } = useSearch({ strict: false });
+  const { mutate: followAccount } = useFollowAccountMutation();
+  const { mutate: unfollowAccount } = useUnfollowAccountMutation();
+  const currentDid = localStorage.getItem("did");
+  const { data, isLoading } = useFollowersQuery(
+    profile.data?.did,
+    1,
+    currentDid ? [currentDid] : undefined,
+  );
+
+  const onFollow = () => {
+    if (!localStorage.getItem("token")) {
+      setIsSignInOpen(true);
+      return;
+    }
+    setFollows((prev) => new Set(prev).add(profile.data?.did));
+    followAccount(profile.data?.did);
+  };
+
+  const onUnfollow = () => {
+    if (!localStorage.getItem("token")) {
+      setIsSignInOpen(true);
+      return;
+    }
+    setFollows((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(profile.data?.did);
+      return newSet;
+    });
+    unfollowAccount(profile.data?.did);
+  };
+
+  useEffect(() => {
+    if (!props.activeKey) {
+      return;
+    }
+    setActiveKey(_.get(props, "activeKey", "0").split("/")[0]);
+  }, [props.activeKey]);
+
+  useEffect(() => {
+    if (!data || isLoading) {
+      return;
+    }
+    setFollows((prev) => {
+      const newSet = new Set(prev);
+      if (
+        data.followers.some(
+          (follower: { did: string }) => follower.did === currentDid,
+        )
+      ) {
+        newSet.add(profile.data?.did);
+      } else {
+        newSet.delete(profile.data?.did);
+      }
+      return newSet;
+    });
+  }, [data, isLoading]);
 
   useEffect(() => {
     if (tab === undefined) {
@@ -96,13 +162,6 @@ function Profile(props: ProfileProps) {
     return;
   }
 
-  console.log(
-    ">>",
-    profile.data?.did !== localStorage.getItem("did"),
-    profile.data?.did,
-    localStorage.getItem("did"),
-  );
-
   return (
     <Main>
       <div className="pb-[100px] pt-[75px]">
@@ -127,6 +186,7 @@ function Profile(props: ProfileProps) {
                 <a
                   href={`https://bsky.app/profile/${profiles[did]?.handle}`}
                   className="no-underline text-[var(--color-primary)]"
+                  target="_blank"
                 >
                   @{profiles[did]?.handle}
                 </a>
@@ -150,27 +210,59 @@ function Profile(props: ProfileProps) {
           </ProfileInfo>
           {(profile.data?.did !== localStorage.getItem("did") ||
             !localStorage.getItem("did")) && (
-            <Button
-              shape="pill"
-              size="compact"
-              startEnhancer={<IconPlus size={18} />}
-              overrides={{
-                BaseButton: {
-                  style: {
-                    marginTop: "12px",
-                    backgroundColor: "#ff2876",
-                    ":hover": {
-                      backgroundColor: "#ff2876",
+            <>
+              {!follows.has(profile.data?.did) && !isLoading && (
+                <Button
+                  shape="pill"
+                  size="compact"
+                  startEnhancer={<IconPlus size={18} />}
+                  onClick={onFollow}
+                  overrides={{
+                    BaseButton: {
+                      style: {
+                        marginTop: "12px",
+                        minWidth: "120px",
+                        backgroundColor: "#ff2876",
+                        ":hover": {
+                          backgroundColor: "#ff2876",
+                        },
+                        ":focus": {
+                          backgroundColor: "#ff2876",
+                        },
+                      },
                     },
-                    ":focus": {
-                      backgroundColor: "#ff2876",
+                  }}
+                >
+                  Follow
+                </Button>
+              )}
+              {follows.has(profile.data?.did) && !isLoading && (
+                <Button
+                  shape="pill"
+                  size="compact"
+                  startEnhancer={<IconCheck size={18} />}
+                  onClick={onUnfollow}
+                  overrides={{
+                    BaseButton: {
+                      style: {
+                        marginTop: "12px",
+                        minWidth: "120px",
+                        backgroundColor: "var(--color-default-button)",
+                        color: "var(--color-text)",
+                        ":hover": {
+                          backgroundColor: "var(--color-default-button)",
+                        },
+                        ":focus": {
+                          backgroundColor: "var(--color-default-button)",
+                        },
+                      },
                     },
-                  },
-                },
-              }}
-            >
-              Follow
-            </Button>
+                  }}
+                >
+                  Following
+                </Button>
+              )}
+            </>
           )}
         </Group>
 
@@ -222,7 +314,7 @@ function Profile(props: ProfileProps) {
             />
           </Tab>
           <Tab
-            title="Playlists"
+            title="Followers"
             overrides={{
               Tab: {
                 style: {
@@ -232,7 +324,20 @@ function Profile(props: ProfileProps) {
               },
             }}
           >
-            <Playlists />
+            <Followers />
+          </Tab>
+          <Tab
+            title="Following"
+            overrides={{
+              Tab: {
+                style: {
+                  color: "var(--color-text)",
+                  backgroundColor: "var(--color-background) !important",
+                },
+              },
+            }}
+          >
+            <Follows />
           </Tab>
           <Tab
             title="Loved Tracks"
@@ -248,7 +353,7 @@ function Profile(props: ProfileProps) {
             <LovedTracks />
           </Tab>
           <Tab
-            title="Tags"
+            title="Playlists"
             overrides={{
               Tab: {
                 style: {
@@ -257,10 +362,17 @@ function Profile(props: ProfileProps) {
                 },
               },
             }}
-          ></Tab>
+          >
+            <Playlists />
+          </Tab>
         </Tabs>
         <Shout type="profile" />
       </div>
+      <SignInModal
+        isOpen={isSignInOpen}
+        onClose={() => setIsSignInOpen(false)}
+        follow
+      />
     </Main>
   );
 }

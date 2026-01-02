@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   getFollowers,
   getFollows,
@@ -9,21 +14,47 @@ import {
 export const useFollowsQuery = (
   actor: string,
   limit: number,
+  dids?: string[],
   cursor?: string,
 ) =>
   useQuery({
-    queryKey: ["follows", actor, limit, cursor],
-    queryFn: () => getFollows(actor, limit, cursor),
+    queryKey: ["follows", actor, limit, dids, cursor],
+    queryFn: () => getFollows(actor, limit, dids, cursor),
+  });
+
+export const useFollowsInfiniteQuery = (
+  actor: string,
+  limit: number,
+  dids?: string[],
+) =>
+  useInfiniteQuery({
+    queryKey: ["follows-infinite", actor, dids, limit],
+    queryFn: ({ pageParam }) => getFollows(actor, limit, dids, pageParam),
+    getNextPageParam: (lastPage) => lastPage.cursor,
+    initialPageParam: undefined as string | undefined,
   });
 
 export const useFollowersQuery = (
   actor: string,
   limit: number,
+  dids?: string[],
   cursor?: string,
 ) =>
   useQuery({
-    queryKey: ["followers", actor, limit, cursor],
-    queryFn: () => getFollowers(actor, limit, cursor),
+    queryKey: ["followers", actor, limit, dids, cursor],
+    queryFn: () => getFollowers(actor, limit, dids, cursor),
+  });
+
+export const useFollowersInfiniteQuery = (
+  actor: string,
+  limit: number,
+  dids?: string[],
+) =>
+  useInfiniteQuery({
+    queryKey: ["followers-infinite", actor, limit, dids],
+    queryFn: ({ pageParam }) => getFollowers(actor, limit, dids, pageParam),
+    getNextPageParam: (lastPage) => lastPage.cursor,
+    initialPageParam: undefined as string | undefined,
   });
 
 export const useFollowAccountMutation = () => {
@@ -33,6 +64,12 @@ export const useFollowAccountMutation = () => {
     onSuccess: (_data, account) => {
       queryClient.invalidateQueries({ queryKey: ["follows"] });
       queryClient.invalidateQueries({ queryKey: ["followers", account] });
+      queryClient.invalidateQueries({
+        queryKey: ["follows-infinite"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["followers-infinite"],
+      });
     },
   });
 };
@@ -44,6 +81,12 @@ export const useUnfollowAccountMutation = () => {
     onSuccess: (_data, account) => {
       queryClient.invalidateQueries({ queryKey: ["follows"] });
       queryClient.invalidateQueries({ queryKey: ["followers", account] });
+      queryClient.invalidateQueries({
+        queryKey: ["follows-infinite"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["followers-infinite"],
+      });
     },
   });
 };

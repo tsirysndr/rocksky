@@ -1,5 +1,3 @@
 import { atom } from "jotai";
 
-export const followsAtom = atom<{
-  [key: string]: string[] | null;
-}>({});
+export const followsAtom = atom<Set<string>>(new Set<string>());

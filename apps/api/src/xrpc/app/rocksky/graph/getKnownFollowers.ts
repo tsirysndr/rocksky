@@ -71,7 +71,7 @@ const retrieve = ({
         .where(
           params.cursor
             ? and(
-                lt(tables.follows.createdAt, new Date(params.cursor)),
+                lt(tables.follows.createdAt, new Date(Number(params.cursor))),
                 eq(tables.follows.subject_did, params.actor),
                 sql`EXISTS (
               SELECT 1 FROM ${tables.follows} f2
@@ -92,7 +92,7 @@ const retrieve = ({
         .limit(params.limit ?? 50)
         .execute();
       const cursor =
-        knownFollowers.length > 0
+        knownFollowers?.length > 0
           ? knownFollowers[knownFollowers.length - 1].follows.createdAt
               .getTime()
               .toString(10)

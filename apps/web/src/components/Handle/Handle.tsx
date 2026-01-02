@@ -4,7 +4,7 @@ import { Block } from "baseui/block";
 import { StatefulPopover, TRIGGER_TYPE } from "baseui/popover";
 import { LabelMedium, LabelSmall } from "baseui/typography";
 import { useAtom } from "jotai";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { profilesAtom } from "../../atoms/profiles";
 import { statsAtom } from "../../atoms/stats";
 import {
@@ -13,6 +13,15 @@ import {
 } from "../../hooks/useProfile";
 import Stats from "../Stats";
 import NowPlaying from "./NowPlaying";
+import { followsAtom } from "../../atoms/follows";
+import { IconCheck, IconPlus } from "@tabler/icons-react";
+import { Button } from "baseui/button";
+import SignInModal from "../SignInModal";
+import {
+  useFollowAccountMutation,
+  useFollowersQuery,
+  useUnfollowAccountMutation,
+} from "../../hooks/useGraph";
 
 export type HandleProps = {
   link: string;
@@ -20,11 +29,62 @@ export type HandleProps = {
 };
 
 function Handle(props: HandleProps) {
+  const [follows, setFollows] = useAtom(followsAtom);
+  const [isSignInOpen, setIsSignInOpen] = useState(false);
   const { link, did } = props;
   const [profiles, setProfiles] = useAtom(profilesAtom);
   const profile = useProfileByDidQuery(did);
   const profileStats = useProfileStatsByDidQuery(did);
   const [stats, setStats] = useAtom(statsAtom);
+  const { mutate: followAccount } = useFollowAccountMutation();
+  const { mutate: unfollowAccount } = useUnfollowAccountMutation();
+  const currentDid = localStorage.getItem("did");
+  const { data, isLoading } = useFollowersQuery(
+    profile.data?.did,
+    1,
+    currentDid ? [currentDid] : undefined,
+  );
+
+  const onFollow = () => {
+    if (!localStorage.getItem("token")) {
+      setIsSignInOpen(true);
+      return;
+    }
+    setFollows((prev) => new Set(prev).add(profile.data?.did));
+    followAccount(profile.data?.did);
+  };
+
+  const onUnfollow = () => {
+    if (!localStorage.getItem("token")) {
+      setIsSignInOpen(true);
+      return;
+    }
+    setFollows((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(profile.data?.did);
+      return newSet;
+    });
+    unfollowAccount(profile.data?.did);
+  };
+
+  useEffect(() => {
+    if (!data || isLoading) {
+      return;
+    }
+    setFollows((prev) => {
+      const newSet = new Set(prev);
+      if (
+        data.followers.some(
+          (follower: { did: string }) => follower.did === currentDid,
+        )
+      ) {
+        newSet.add(profile.data?.did);
+      } else {
+        newSet.delete(profile.data?.did);
+      }
+      return newSet;
+    });
+  }, [data, isLoading]);
 
   useEffect(() => {
     if (profile.isLoading || profile.isError) {
@@ -73,52 +133,115 @@ function Handle(props: HandleProps) {
   }, [profileStats.data, profileStats.isLoading, profileStats.isError, did]);
 
   return (
-    <StatefulPopover
-      content={() => (
-        <Block className="!bg-[var(--color-background)] !text-[var(--color-text)] p-[15px] w-[380px] rounded-[6px] border-[1px] border-[var(--color-border)]">
-          <div className="flex flex-row items-center">
-            <Link to={link} className="no-underline">
-              <Avatar
-                src={profiles[did]?.avatar}
-                name={profiles[did]?.displayName}
-                size={"60px"}
-              />
-            </Link>
-            <div className="ml-[16px]">
-              <Link to={link} className="no-underline">
-                <LabelMedium
-                  marginTop={"10px"}
-                  className="!text-[var(--color-text)]"
-                >
-                  {profiles[did]?.displayName}
-                </LabelMedium>
-              </Link>
-              <a
-                href={`https://bsky.app/profile/${profiles[did]?.handle}`}
-                className="no-underline text-[var(--color-primary)]"
-              >
-                <LabelSmall className="!text-[var(--color-primary)] mt-[3px] mb-[25px]">
-                  @{did}
-                </LabelSmall>
-              </a>
+    <>
+      <StatefulPopover
+        content={() => (
+          <Block className="!bg-[var(--color-background)] !text-[var(--color-text)] p-[15px] w-[380px] rounded-[6px] border-[1px] border-[var(--color-border)]">
+            <div className="flex flex-row items-start justify-between">
+              <div className="flex flex-row items-center">
+                <Link to={link} className="no-underline">
+                  <Avatar
+                    src={profiles[did]?.avatar}
+                    name={profiles[did]?.displayName}
+                    size={"60px"}
+                  />
+                </Link>
+                <div className="ml-[16px]">
+                  <Link to={link} className="no-underline">
+                    <LabelMedium
+                      marginTop={"10px"}
+                      className="!text-[var(--color-text)]"
+                    >
+                      {profiles[did]?.displayName}
+                    </LabelMedium>
+                  </Link>
+                  <a
+                    href={`https://bsky.app/profile/${profiles[did]?.handle}`}
+                    className="no-underline text-[var(--color-primary)]"
+                    target="_blank"
+                  >
+                    <LabelSmall className="!text-[var(--color-primary)] mt-[3px] mb-[25px]">
+                      @{did}
+                    </LabelSmall>
+                  </a>
+                </div>
+              </div>
+              {(profile.data?.did !== localStorage.getItem("did") ||
+                !localStorage.getItem("did")) && (
+                <div className="ml-auto mt-[10px]">
+                  {!follows.has(profile.data?.did) && !isLoading && (
+                    <Button
+                      shape="pill"
+                      size="mini"
+                      startEnhancer={<IconPlus size={16} />}
+                      onClick={onFollow}
+                      overrides={{
+                        BaseButton: {
+                          style: {
+                            minWidth: "90px",
+                            backgroundColor: "#ff2876",
+                            ":hover": {
+                              backgroundColor: "#ff2876",
+                            },
+                            ":focus": {
+                              backgroundColor: "#ff2876",
+                            },
+                          },
+                        },
+                      }}
+                    >
+                      Follow
+                    </Button>
+                  )}
+                  {follows.has(profile.data?.did) && !isLoading && (
+                    <Button
+                      shape="pill"
+                      size="mini"
+                      startEnhancer={<IconCheck size={16} />}
+                      onClick={onUnfollow}
+                      overrides={{
+                        BaseButton: {
+                          style: {
+                            backgroundColor: "var(--color-default-button)",
+                            color: "var(--color-text)",
+                            ":hover": {
+                              backgroundColor: "var(--color-default-button)",
+                            },
+                            ":focus": {
+                              backgroundColor: "var(--color-default-button)",
+                            },
+                          },
+                        },
+                      }}
+                    >
+                      Following
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
-          </div>
 
-          {stats[did] && <Stats stats={stats[did]} mb={1} />}
+            {stats[did] && <Stats stats={stats[did]} mb={1} />}
 
-          <NowPlaying did={did} />
-        </Block>
-      )}
-      triggerType={TRIGGER_TYPE.hover}
-      autoFocus={false}
-      focusLock={false}
-    >
-      <Link to={link} className="no-underline">
-        <LabelMedium className="!text-[var(--color-primary)] !overflow-hidden !text-ellipsis !max-w-[220px] !text-[14px]">
-          @{did}
-        </LabelMedium>
-      </Link>
-    </StatefulPopover>
+            <NowPlaying did={did} />
+          </Block>
+        )}
+        triggerType={TRIGGER_TYPE.hover}
+        autoFocus={false}
+        focusLock={false}
+      >
+        <Link to={link} className="no-underline">
+          <LabelMedium className="!text-[var(--color-primary)] !overflow-hidden !text-ellipsis !max-w-[220px] !text-[14px]">
+            @{did}
+          </LabelMedium>
+        </Link>
+      </StatefulPopover>
+      <SignInModal
+        isOpen={isSignInOpen}
+        onClose={() => setIsSignInOpen(false)}
+        follow
+      />
+    </>
   );
 }
 

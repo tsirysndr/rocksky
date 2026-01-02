@@ -12,6 +12,8 @@ import type * as AppRockskyActorDefs from "../actor/defs";
 export interface QueryParams {
   actor: string;
   limit: number;
+  /** If provided, filters the follows to only include those with DIDs in this list. */
+  dids?: string[];
   cursor?: string;
 }
 

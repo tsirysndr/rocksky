@@ -8,10 +8,11 @@ interface SignInModalProps {
   isOpen: boolean;
   onClose: () => void;
   like?: boolean;
+  follow?: boolean;
 }
 
 function SignInModal(props: SignInModalProps) {
-  const { isOpen, onClose, like } = props;
+  const { isOpen, onClose, like, follow } = props;
   const [handle, setHandle] = useState("");
 
   const onLogin = async () => {
@@ -57,7 +58,9 @@ function SignInModal(props: SignInModalProps) {
           <h1 style={{ color: "#ff2876", textAlign: "center" }}>Rocksky</h1>
           <p className="text-[var(--color-text)] text-[18px] mt-[40px] mb-[20px]">
             {!like
-              ? "Sign in or create your account to join the conversation!"
+              ? !follow
+                ? "Sign in or create your account to join the conversation!"
+                : "Sign in or create your account to follow users!"
               : "Sign in or create your account to like songs!"}
           </p>
           <div style={{ marginBottom: 20 }}>

@@ -103,7 +103,7 @@ body {
   --color-placeholder: #ffffffb4;
   --color-clear-input: #ffffff;
   --color-menu-hover: #1f0d3c;
-  --color-default-button: rgba(255, 255, 255, 0.05);
+  --color-default-button: rgba(255, 255, 255, 0.06);
   --color-purple: oklch(0.5478 0.201 296.07);
   --color-blue: oklch(0.789 0.154 211.53);
   --color-pink: oklch(0.6372 0.229 346.83);
