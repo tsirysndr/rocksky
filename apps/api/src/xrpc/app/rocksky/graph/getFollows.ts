@@ -90,7 +90,7 @@ const retrieve = ({
           .execute()
           .then((rows) =>
             rows.length > 0
-              ? rows[rows.length - 1]?.createdAt.getTime().toString()
+              ? rows[rows.length - 1]?.createdAt.getTime().toString(10)
               : undefined,
           ),
       ]),

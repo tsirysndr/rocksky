@@ -151,7 +151,7 @@ const presentation = ([user, followers]: [
     })),
     cursor:
       followers.length === 50
-        ? followers[49].createdAt.getTime().toString()
+        ? followers[49].createdAt.getTime().toString(10)
         : undefined,
   }));
 };

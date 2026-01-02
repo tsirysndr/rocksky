@@ -95,7 +95,7 @@ const retrieve = ({
         knownFollowers.length > 0
           ? knownFollowers[knownFollowers.length - 1].follows.createdAt
               .getTime()
-              .toString()
+              .toString(10)
           : undefined;
       return [user, knownFollowers.map((row) => row.users), cursor];
     },
