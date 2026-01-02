@@ -15,6 +15,7 @@ import { Button } from "baseui/button";
 import { IconCheck, IconPlus } from "@tabler/icons-react";
 import SignInModal from "../../../components/SignInModal";
 import { useState, useEffect, useRef } from "react";
+import numeral from "numeral";
 
 function Followers() {
   const [, setActiveKey] = useAtom(activeTabAtom);
@@ -90,10 +91,12 @@ function Followers() {
     unfollowAccount(followerDid);
   };
 
+  const count = data?.pages?.flatMap((page) => page.count)[0];
+
   return (
     <>
       <HeadingSmall className="!text-[var(--color-text)]">
-        Followers
+        Followers {count > 0 ? `(${numeral(count).format("0,0")})` : ""}
       </HeadingSmall>
 
       {allFollowers.length === 0 && data && (

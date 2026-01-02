@@ -24,6 +24,8 @@ export interface OutputSchema {
   followers: AppRockskyActorDefs.ProfileViewBasic[];
   /** A cursor value to pass to subsequent calls to get the next page of results. */
   cursor?: string;
+  /** The total number of followers. */
+  count?: number;
   [k: string]: unknown;
 }
 

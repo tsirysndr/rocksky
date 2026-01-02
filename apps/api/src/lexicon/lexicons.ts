@@ -2915,6 +2915,10 @@ export const schemaDict = {
                 description:
                   "A cursor value to pass to subsequent calls to get the next page of results.",
               },
+              count: {
+                type: "integer",
+                description: "The total number of followers.",
+              },
             },
           },
         },
@@ -2978,6 +2982,10 @@ export const schemaDict = {
                 type: "string",
                 description:
                   "A cursor value to pass to subsequent calls to get the next page of results.",
+              },
+              count: {
+                type: "integer",
+                description: "The total number of follows.",
               },
             },
           },

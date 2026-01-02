@@ -1,5 +1,5 @@
 import type { Context } from "context";
-import { eq, desc, and, lt, inArray } from "drizzle-orm";
+import { eq, desc, and, lt, inArray, count } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/graph/getFollowers";
@@ -20,6 +20,7 @@ export default function (server: Server, ctx: Context) {
         return Effect.succeed({
           subject: {} satisfies ProfileViewBasic,
           followers: [] as ProfileViewBasic[],
+          count: 0,
         });
       }),
     );
@@ -41,7 +42,7 @@ const retrieve = ({
   params: QueryParams;
   ctx: Context;
 }): Effect.Effect<
-  [SelectUser | undefined, SelectUser[], string | undefined],
+  [SelectUser | undefined, SelectUser[], string | undefined, number],
   Error
 > => {
   return Effect.tryPromise({
@@ -121,17 +122,36 @@ const retrieve = ({
               ? rows[rows.length - 1]?.createdAt.getTime().toString(10)
               : undefined,
           ),
+        ctx.db
+          .select({ count: count() })
+          .from(tables.follows)
+          .where(
+            params.dids && params.dids?.length > 0
+              ? and(
+                  eq(tables.follows.subject_did, params.actor),
+                  inArray(tables.follows.follower_did, params.dids),
+                )
+              : eq(tables.follows.subject_did, params.actor),
+          )
+          .execute()
+          .then((rows) => rows[0]?.count ?? 0),
       ]),
     catch: (error) => new Error(`Failed to retrieve user followers: ${error}`),
   });
 };
 
-const presentation = ([user, followers, cursor]: [
+const presentation = ([user, followers, cursor, totalCount]: [
   SelectUser | undefined,
   SelectUser[],
   string | undefined,
+  number,
 ]): Effect.Effect<
-  { subject: ProfileViewBasic; followers: ProfileViewBasic[] },
+  {
+    subject: ProfileViewBasic;
+    followers: ProfileViewBasic[];
+    cursor?: string;
+    count: number;
+  },
   never
 > => {
   return Effect.sync(() => ({
@@ -154,5 +174,6 @@ const presentation = ([user, followers, cursor]: [
       updatedAt: follower.updatedAt.toISOString(),
     })),
     cursor,
+    count: totalCount,
   }));
 };

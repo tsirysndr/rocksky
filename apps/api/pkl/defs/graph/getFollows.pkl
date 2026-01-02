@@ -56,6 +56,10 @@ defs = new Mapping<String, Query> {
             description =
               "A cursor value to pass to subsequent calls to get the next page of results."
           }
+          ["count"] = new IntegerType {
+            type = "integer"
+            description = "The total number of follows."
+          }
         }
       }
     }

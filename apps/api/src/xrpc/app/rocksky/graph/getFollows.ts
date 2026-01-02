@@ -1,5 +1,5 @@
 import type { Context } from "context";
-import { eq, desc, and, lt, inArray } from "drizzle-orm";
+import { eq, desc, and, lt, inArray, count } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/graph/getFollowers";
@@ -12,8 +12,8 @@ export default function (server: Server, ctx: Context) {
     pipe(
       { params, ctx },
       retrieve,
-      Effect.flatMap(([user, follows, cursor]) =>
-        presentation(user, follows, cursor),
+      Effect.flatMap(([user, follows, cursor, totalCount]) =>
+        presentation(user, follows, cursor, totalCount),
       ),
       Effect.retry({ times: 3 }),
       Effect.timeout("120 seconds"),
@@ -22,6 +22,7 @@ export default function (server: Server, ctx: Context) {
         return Effect.succeed({
           subject: undefined,
           follows: [],
+          count: 0,
         });
       }),
     );
@@ -43,7 +44,7 @@ const retrieve = ({
   params: QueryParams;
   ctx: Context;
 }): Effect.Effect<
-  [SelectUser | undefined, SelectUser[], string | undefined],
+  [SelectUser | undefined, SelectUser[], string | undefined, number],
   Error
 > => {
   // Build where conditions dynamically
@@ -64,6 +65,19 @@ const retrieve = ({
   };
 
   const whereConditions = buildWhereConditions();
+
+  // Build where conditions for count (without cursor)
+  const buildCountWhereConditions = () => {
+    const conditions = [eq(tables.follows.follower_did, params.actor)];
+
+    if (params.dids && params.dids.length > 0) {
+      conditions.push(inArray(tables.follows.subject_did, params.dids));
+    }
+
+    return conditions.length > 1 ? and(...conditions) : conditions[0];
+  };
+
+  const countWhereConditions = buildCountWhereConditions();
 
   return Effect.tryPromise({
     try: () =>
@@ -98,6 +112,12 @@ const retrieve = ({
               ? rows[rows.length - 1]?.createdAt.getTime().toString(10)
               : undefined,
           ),
+        ctx.db
+          .select({ count: count() })
+          .from(tables.follows)
+          .where(countWhereConditions)
+          .execute()
+          .then((rows) => rows[0]?.count ?? 0),
       ]),
     catch: (error) => new Error(`Failed to retrieve user follows: ${error}`),
   });
@@ -107,8 +127,14 @@ const presentation = (
   user: SelectUser | undefined,
   follows: SelectUser[],
   cursor: string | undefined,
+  count: number,
 ): Effect.Effect<
-  { subject: ProfileViewBasic; follows: ProfileViewBasic[] },
+  {
+    subject: ProfileViewBasic;
+    follows: ProfileViewBasic[];
+    cursor?: string;
+    count: number;
+  },
   never
 > => {
   return Effect.sync(() => ({
@@ -131,5 +157,6 @@ const presentation = (
       updatedAt: follow.updatedAt.toISOString(),
     })),
     cursor,
+    count,
   }));
 };
