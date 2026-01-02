@@ -4,11 +4,11 @@ import type { Context } from "context";
 import { and, eq } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
-import { ProfileViewBasic } from "lexicon/types/app/rocksky/actor/defs";
+import type { ProfileViewBasic } from "lexicon/types/app/rocksky/actor/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/graph/followAccount";
 import { createAgent } from "lib/agent";
 import tables from "schema";
-import { SelectUser } from "schema/users";
+import type { SelectUser } from "schema/users";
 import * as FollowLexicon from "lexicon/types/app/rocksky/graph/follow";
 
 export default function (server: Server, ctx: Context) {

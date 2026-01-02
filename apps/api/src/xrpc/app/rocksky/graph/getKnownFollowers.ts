@@ -6,7 +6,7 @@ import type { QueryParams } from "lexicon/types/app/rocksky/graph/getKnownFollow
 import type { ProfileViewBasic } from "lexicon/types/app/rocksky/actor/defs";
 import tables from "schema";
 import type { HandlerAuth } from "@atproto/xrpc-server";
-import { SelectUser } from "schema/users";
+import type { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
   const getKnownFollowers = (params: QueryParams, auth: HandlerAuth) =>

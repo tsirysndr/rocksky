@@ -5,7 +5,7 @@ import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/graph/getFollowers";
 import type { ProfileViewBasic } from "lexicon/types/app/rocksky/actor/defs";
 import tables from "schema";
-import { SelectUser } from "schema/users";
+import type { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
   const getFollows = (params: QueryParams) =>
