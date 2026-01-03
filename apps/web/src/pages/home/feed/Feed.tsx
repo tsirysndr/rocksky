@@ -147,7 +147,7 @@ function Feed() {
   return (
     <Container>
       <FeedGenerators />
-      {isLoading && scrobbleLoading && (
+      {(isLoading || scrobbleLoading) && (
         <ContentLoader
           width="100%"
           height={800}
