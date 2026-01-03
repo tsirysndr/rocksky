@@ -20,7 +20,7 @@ const handler = async (
   const scrobbles = await ctx.db
     .select()
     .from(schema.scrobbles)
-    .leftJoin(
+    .innerJoin(
       schema.artists,
       and(
         eq(schema.scrobbles.artistId, schema.artists.id),
