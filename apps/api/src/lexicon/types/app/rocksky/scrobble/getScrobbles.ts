@@ -12,6 +12,8 @@ import type * as AppRockskyScrobbleDefs from "./defs";
 export interface QueryParams {
   /** The DID or handle of the actor */
   did?: string;
+  /** If true, only return scrobbles from actors the viewer is following. */
+  following?: boolean;
   /** The maximum number of scrobbles to return */
   limit?: number;
   /** The offset for pagination */

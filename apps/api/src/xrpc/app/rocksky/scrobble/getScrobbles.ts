@@ -1,5 +1,5 @@
 import type { Context } from "context";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ScrobbleViewBasic } from "lexicon/types/app/rocksky/scrobble/defs";
@@ -11,7 +11,7 @@ import type { SelectTrack } from "schema/tracks";
 import type { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
-  const getScrobbles = (params) =>
+  const getScrobbles = (params: QueryParams) =>
     pipe(
       { params, ctx },
       retrieve,
@@ -42,16 +42,40 @@ const retrieve = ({
   ctx: Context;
 }): Effect.Effect<Scrobbles | undefined, Error> => {
   return Effect.tryPromise({
-    try: () =>
-      ctx.db
+    try: async () => {
+      const baseQuery = ctx.db
         .select()
         .from(tables.scrobbles)
         .leftJoin(tables.tracks, eq(tables.scrobbles.trackId, tables.tracks.id))
-        .leftJoin(tables.users, eq(tables.scrobbles.userId, tables.users.id))
+        .leftJoin(tables.users, eq(tables.scrobbles.userId, tables.users.id));
+
+      if (params.did && params.following) {
+        const followedUsers = await ctx.db
+          .select({ subjectDid: tables.follows.subject_did })
+          .from(tables.follows)
+          .where(eq(tables.follows.follower_did, params.did))
+          .execute();
+
+        const followedDids = followedUsers.map((f) => f.subjectDid);
+
+        if (followedDids.length > 0) {
+          return baseQuery
+            .where(inArray(tables.users.did, followedDids))
+            .orderBy(desc(tables.scrobbles.timestamp))
+            .offset(params.offset || 0)
+            .limit(params.limit || 20)
+            .execute();
+        } else {
+          return [];
+        }
+      }
+
+      return baseQuery
         .orderBy(desc(tables.scrobbles.timestamp))
         .offset(params.offset || 0)
         .limit(params.limit || 20)
-        .execute(),
+        .execute();
+    },
 
     catch: (error) => new Error(`Failed to retrieve scrobbles: ${error}`),
   });

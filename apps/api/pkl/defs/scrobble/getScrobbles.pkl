@@ -1,4 +1,4 @@
-amends  "../../schema/lexicon.pkl"
+amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.scrobble.getScrobbles"
@@ -11,6 +11,10 @@ defs = new Mapping<String, Query> {
         ["did"] = new StringType {
           description = "The DID or handle of the actor"
           format = "at-identifier"
+        }
+        ["following"] = new BooleanType {
+          type = "boolean"
+          description = "If true, only return scrobbles from actors the viewer is following."
         }
         ["limit"] = new IntegerType {
           type = "integer"

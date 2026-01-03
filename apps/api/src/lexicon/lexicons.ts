@@ -4384,6 +4384,11 @@ export const schemaDict = {
               description: "The DID or handle of the actor",
               format: "at-identifier",
             },
+            following: {
+              type: "boolean",
+              description:
+                "If true, only return scrobbles from actors the viewer is following.",
+            },
             limit: {
               type: "integer",
               description: "The maximum number of scrobbles to return",
