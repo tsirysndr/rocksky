@@ -10,7 +10,7 @@ const handler = async (
 ) => {
   const { limit = 50, cursor } = params;
 
-  const whereConditions = [];
+  const whereConditions = [arrayContains(schema.artists.genres, ["drill"])];
 
   if (cursor) {
     const cursorDate = new Date(parseInt(cursor, 10));
@@ -20,14 +20,8 @@ const handler = async (
   const scrobbles = await ctx.db
     .select()
     .from(schema.scrobbles)
-    .innerJoin(
-      schema.artists,
-      and(
-        eq(schema.scrobbles.artistId, schema.artists.id),
-        arrayContains(schema.artists.genres, ["drill"]),
-      ),
-    )
-    .where(whereConditions.length > 0 ? and(...whereConditions) : undefined)
+    .innerJoin(schema.artists, eq(schema.scrobbles.artistId, schema.artists.id))
+    .where(and(...whereConditions))
     .orderBy(desc(schema.scrobbles.timestamp))
     .limit(limit)
     .execute();
