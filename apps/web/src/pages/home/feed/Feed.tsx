@@ -10,13 +10,17 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import ContentLoader from "react-content-loader";
 import Handle from "../../../components/Handle";
 import SongCover from "../../../components/SongCover";
-import { useFeedInfiniteQuery } from "../../../hooks/useFeed";
+import {
+  useFeedInfiniteQuery,
+  useScrobbleInfiniteQuery,
+} from "../../../hooks/useFeed";
 import { useEffect, useRef } from "react";
 import { WS_URL } from "../../../consts";
 import { useQueryClient } from "@tanstack/react-query";
 import FeedGenerators from "./FeedGenerators";
 import { useAtomValue } from "jotai";
 import { feedGeneratorUriAtom } from "../../../atoms/feed";
+import { followingFeedAtom } from "../../../atoms/followingFeed";
 
 dayjs.extend(relativeTime);
 
@@ -39,10 +43,20 @@ function Feed() {
   const heartbeatInterval = useRef<number | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const feedUri = useAtomValue(feedGeneratorUriAtom);
+  const followingFeed = useAtomValue(followingFeedAtom);
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useFeedInfiniteQuery(feedUri, 30);
+  const {
+    data: scrobbleData,
+    isLoading: scrobbleLoading,
+    fetchNextPage: scrobbleFetchNextPage,
+    hasNextPage: scrobbleHasNextPage,
+    isFetchingNextPage: scrobbleIsFetchingNextPage,
+  } = useScrobbleInfiniteQuery(localStorage.getItem("did")!, true, 30);
 
-  const allSongs = data?.pages.flatMap((page) => page.feed) || [];
+  const allSongs = followingFeed
+    ? scrobbleData?.pages.flatMap((page) => page.scrobbles) || []
+    : data?.pages.flatMap((page) => page.feed) || [];
 
   useEffect(() => {
     const ws = new WebSocket(`${WS_URL.replace("http", "ws")}`);
@@ -86,12 +100,32 @@ function Feed() {
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
-    if (!loadMoreRef.current || !hasNextPage || isFetchingNextPage) return;
+    const currentHasNextPage = followingFeed
+      ? scrobbleHasNextPage
+      : hasNextPage;
+    const currentIsFetchingNextPage = followingFeed
+      ? scrobbleIsFetchingNextPage
+      : isFetchingNextPage;
+
+    if (
+      !loadMoreRef.current ||
+      !currentHasNextPage ||
+      currentIsFetchingNextPage
+    )
+      return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
+        if (
+          entries[0].isIntersecting &&
+          currentHasNextPage &&
+          !currentIsFetchingNextPage
+        ) {
+          if (followingFeed) {
+            scrobbleFetchNextPage();
+          } else {
+            fetchNextPage();
+          }
         }
       },
       { threshold: 0.1 },
@@ -100,12 +134,20 @@ function Feed() {
     observer.observe(loadMoreRef.current);
 
     return () => observer.disconnect();
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+  }, [
+    followingFeed,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    scrobbleFetchNextPage,
+    scrobbleHasNextPage,
+    scrobbleIsFetchingNextPage,
+  ]);
 
   return (
     <Container>
       <FeedGenerators />
-      {isLoading && (
+      {isLoading && scrobbleLoading && (
         <ContentLoader
           width="100%"
           height={800}
@@ -126,84 +168,115 @@ function Feed() {
         </ContentLoader>
       )}
 
-      {!isLoading && (
+      {!isLoading && !scrobbleLoading && (
         <div className="pb-[100px] pt-[20px]">
-          <FlexGrid
-            flexGridColumnCount={[1, 2, 3]}
-            flexGridColumnGap="scale800"
-            flexGridRowGap="scale1000"
-          >
-            {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              allSongs.map((song: any) => (
-                <FlexGridItem {...itemProps} key={song.id}>
-                  <Link
-                    to="/$did/scrobble/$rkey"
-                    params={{
-                      did: song.uri?.split("at://")[1]?.split("/")[0] || "",
-                      rkey: song.uri?.split("/").pop() || "",
-                    }}
-                    className="no-underline text-[var(--color-text-primary)]"
-                  >
-                    <SongCover
-                      uri={song.trackUri}
-                      cover={song.cover}
-                      artist={song.artist}
-                      title={song.title}
-                      liked={song.liked}
-                      likesCount={song.likesCount}
-                      withLikeButton
-                    />
-                  </Link>
-                  <div className="flex">
-                    <div className="mr-[8px]">
-                      <Avatar
-                        src={song.userAvatar}
-                        name={song.userDisplayName}
-                        size={"20px"}
-                      />
-                    </div>
-                    <Handle
-                      link={`/profile/${song.user}`}
-                      did={song.user}
-                    />{" "}
-                  </div>
-                  <LabelSmall className="!text-[var(--color-text-primary)]">
-                    recently played this song
-                  </LabelSmall>
-                  <StatefulTooltip
-                    content={dayjs(song.date).format(
-                      "MMMM D, YYYY [at] HH:mm A",
-                    )}
-                    returnFocus
-                    autoFocus
-                  >
-                    <LabelSmall className="!text-[var(--color-text-muted)]">
-                      {dayjs(song.date).fromNow()}
-                    </LabelSmall>
-                  </StatefulTooltip>
-                </FlexGridItem>
-              ))
-            }
-          </FlexGrid>
-
-          {/* Load more trigger */}
-          <div ref={loadMoreRef} style={{ height: "20px", marginTop: "20px" }}>
-            {isFetchingNextPage && (
-              <ContentLoader
-                width="100%"
-                height={360}
-                viewBox="0 0 1100 360"
-                backgroundColor="var(--color-skeleton-background)"
-                foregroundColor="var(--color-skeleton-foreground)"
+          {followingFeed && allSongs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 mt-[100px]">
+              <LabelSmall className="!text-[var(--color-text-muted)] text-center">
+                No scrobbles from people you follow yet.
+                <br />
+                Start following users to see their music activity here.
+              </LabelSmall>
+            </div>
+          ) : (
+            <>
+              <FlexGrid
+                flexGridColumnCount={[1, 2, 3]}
+                flexGridColumnGap="scale800"
+                flexGridRowGap="scale1000"
               >
-                {/* 3 items with 24px gap (scale800) */}
-                <rect x="0" y="10" rx="2" ry="2" width="349" height="349" />
-                <rect x="373" y="10" rx="2" ry="2" width="349" height="349" />
-                <rect x="746" y="10" rx="2" ry="2" width="349" height="349" />
-              </ContentLoader>
-            )}
-          </div>
+                {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  allSongs.map((song: any) => (
+                    <FlexGridItem {...itemProps} key={song.id}>
+                      <Link
+                        to="/$did/scrobble/$rkey"
+                        params={{
+                          did: song.uri?.split("at://")[1]?.split("/")[0] || "",
+                          rkey: song.uri?.split("/").pop() || "",
+                        }}
+                        className="no-underline text-[var(--color-text-primary)]"
+                      >
+                        <SongCover
+                          uri={song.trackUri}
+                          cover={song.cover}
+                          artist={song.artist}
+                          title={song.title}
+                          liked={song.liked}
+                          likesCount={song.likesCount}
+                          withLikeButton
+                        />
+                      </Link>
+                      <div className="flex">
+                        <div className="mr-[8px]">
+                          <Avatar
+                            src={song.userAvatar}
+                            name={song.userDisplayName}
+                            size={"20px"}
+                          />
+                        </div>
+                        <Handle
+                          link={`/profile/${song.user}`}
+                          did={song.user}
+                        />{" "}
+                      </div>
+                      <LabelSmall className="!text-[var(--color-text-primary)]">
+                        recently played this song
+                      </LabelSmall>
+                      <StatefulTooltip
+                        content={dayjs(song.date).format(
+                          "MMMM D, YYYY [at] HH:mm A",
+                        )}
+                        returnFocus
+                        autoFocus
+                      >
+                        <LabelSmall className="!text-[var(--color-text-muted)]">
+                          {dayjs(song.date).fromNow()}
+                        </LabelSmall>
+                      </StatefulTooltip>
+                    </FlexGridItem>
+                  ))
+                }
+              </FlexGrid>
+
+              {/* Load more trigger */}
+              <div
+                ref={loadMoreRef}
+                style={{ height: "20px", marginTop: "20px" }}
+              >
+                {(followingFeed
+                  ? scrobbleIsFetchingNextPage
+                  : isFetchingNextPage) && (
+                  <ContentLoader
+                    width="100%"
+                    height={360}
+                    viewBox="0 0 1100 360"
+                    backgroundColor="var(--color-skeleton-background)"
+                    foregroundColor="var(--color-skeleton-foreground)"
+                  >
+                    {/* 3 items with 24px gap (scale800) */}
+                    <rect x="0" y="10" rx="2" ry="2" width="349" height="349" />
+                    <rect
+                      x="373"
+                      y="10"
+                      rx="2"
+                      ry="2"
+                      width="349"
+                      height="349"
+                    />
+                    <rect
+                      x="746"
+                      y="10"
+                      rx="2"
+                      ry="2"
+                      width="349"
+                      height="349"
+                    />
+                  </ContentLoader>
+                )}
+              </div>
+            </>
+          )}
         </div>
       )}
     </Container>

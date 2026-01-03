@@ -1,5 +1,6 @@
 export const categories = [
   "all",
+  "following",
   "afrobeat",
   "afrobeats",
   "alternative metal",
@@ -50,4 +51,6 @@ export const categories = [
   "visual kei",
   "vocaloid",
   "west coast hip hop",
-];
+].filter((category) =>
+  localStorage.getItem("did") ? true : category !== "following",
+);

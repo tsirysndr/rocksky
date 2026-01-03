@@ -1,5 +1,10 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { getFeedByUri, getFeedGenerators, getFeed } from "../api/feed";
+import {
+  getFeedByUri,
+  getFeedGenerators,
+  getFeed,
+  getScrobbles,
+} from "../api/feed";
 
 export const useFeedQuery = (feed: string, limit = 114, cursor?: string) =>
   useQuery({
@@ -34,4 +39,37 @@ export const useFeedInfiniteQuery = (feed: string, limit = 30) =>
     },
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     initialPageParam: undefined as string | undefined,
+  });
+
+export const useScrobblesQuery = (
+  did: string,
+  following = false,
+  offset = 0,
+  limit = 50,
+) =>
+  useQuery({
+    queryKey: ["scrobbles", did, following, offset, limit],
+    queryFn: async () => {
+      const data = await getScrobbles(did, following, offset, limit);
+      return data.scrobbles;
+    },
+  });
+
+export const useScrobbleInfiniteQuery = (
+  did: string,
+  following = false,
+  limit = 50,
+) =>
+  useInfiniteQuery({
+    queryKey: ["infiniteScrobbles", did, following],
+    queryFn: async ({ pageParam }) => {
+      const data = await getScrobbles(did, following, pageParam, limit);
+      return {
+        scrobbles: data.scrobbles,
+        nextOffset:
+          data.scrobbles.length === limit ? pageParam + limit : undefined,
+      };
+    },
+    getNextPageParam: (lastPage) => lastPage.nextOffset,
+    initialPageParam: 0,
   });

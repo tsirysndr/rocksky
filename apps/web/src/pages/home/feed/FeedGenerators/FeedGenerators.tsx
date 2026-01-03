@@ -9,12 +9,14 @@ import {
 } from "../../../../atoms/feed";
 import { useFeedGeneratorsQuery } from "../../../../hooks/useFeed";
 import * as R from "ramda";
+import { followingFeedAtom } from "../../../../atoms/followingFeed";
 
 function FeedGenerators() {
   const jwt = localStorage.getItem("token");
   const { data: feedGenerators } = useFeedGeneratorsQuery();
   const [feedUris, setFeedUris] = useAtom(feedUrisAtom);
   const [, setFeedUri] = useAtom(feedGeneratorUriAtom);
+  const [, setFollowingFeed] = useAtom(followingFeedAtom);
   const [activeCategory, setActiveCategory] = useAtom(feedAtom);
   const [showLeftChevron, setShowLeftChevron] = useState(false);
   const [showRightChevron, setShowRightChevron] = useState(true);
@@ -74,7 +76,12 @@ function FeedGenerators() {
 
   const handleCategoryClick = (category: string, index: number) => {
     setActiveCategory(category);
-    setFeedUri(feedUris[category]);
+    if (category !== "following") {
+      setFeedUri(feedUris[category]);
+      setFollowingFeed(false);
+    } else {
+      setFollowingFeed(true);
+    }
 
     const container = scrollContainerRef.current;
     if (container) {
