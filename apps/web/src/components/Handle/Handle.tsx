@@ -50,6 +50,9 @@ function Handle(props: HandleProps) {
       setIsSignInOpen(true);
       return;
     }
+    if (!profile.data?.did) {
+      return;
+    }
     setFollows((prev) => new Set(prev).add(profile.data?.did));
     followAccount(profile.data?.did);
   };
@@ -59,7 +62,14 @@ function Handle(props: HandleProps) {
       setIsSignInOpen(true);
       return;
     }
+    if (!profile.data?.did) {
+      return;
+    }
+
     setFollows((prev) => {
+      if (!profile.data?.did) {
+        return prev;
+      }
       const newSet = new Set(prev);
       newSet.delete(profile.data?.did);
       return newSet;
@@ -73,6 +83,9 @@ function Handle(props: HandleProps) {
     }
     setFollows((prev) => {
       const newSet = new Set(prev);
+      if (!profile.data?.did) {
+        return newSet;
+      }
       if (
         data.followers.some(
           (follower: { did: string }) => follower.did === currentDid,
@@ -84,7 +97,7 @@ function Handle(props: HandleProps) {
       }
       return newSet;
     });
-  }, [data, isLoading]);
+  }, [data, isLoading, currentDid, setFollows, profile.data?.did]);
 
   useEffect(() => {
     if (profile.isLoading || profile.isError) {
@@ -169,7 +182,7 @@ function Handle(props: HandleProps) {
               {(profile.data?.did !== localStorage.getItem("did") ||
                 !localStorage.getItem("did")) && (
                 <div className="ml-auto mt-[10px]">
-                  {!follows.has(profile.data?.did) && !isLoading && (
+                  {!follows.has(profile.data?.did || "") && !isLoading && (
                     <Button
                       shape="pill"
                       size="mini"
@@ -193,7 +206,7 @@ function Handle(props: HandleProps) {
                       Follow
                     </Button>
                   )}
-                  {follows.has(profile.data?.did) && !isLoading && (
+                  {follows.has(profile.data?.did || "") && !isLoading && (
                     <Button
                       shape="pill"
                       size="mini"

@@ -1,6 +1,6 @@
 import { css } from "@emotion/react";
 import styled from "@emotion/styled";
-import { HeadingSmall, LabelMedium } from "baseui/typography";
+import { HeadingSmall } from "baseui/typography";
 import numeral from "numeral";
 
 const Group = styled.div<{ mb?: number }>`

@@ -39,7 +39,7 @@ export const useActorNeighboursQuery = (did: string) =>
     enabled: !!did,
   });
 
-export const useActorCompatibilityQuery = (did: string | undefine) =>
+export const useActorCompatibilityQuery = (did: string | undefined) =>
   useQuery({
     queryKey: ["profile", "compatibility", did],
     queryFn: () => getActorCompatibility(did!),

@@ -25,7 +25,7 @@ function Followers() {
   const { did } = useParams({ strict: false });
   const profile = useProfileByDidQuery(did!);
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useFollowersInfiniteQuery(profile.data?.did, 20);
+    useFollowersInfiniteQuery(profile.data?.did || "", 20);
   const { mutate: followAccount } = useFollowAccountMutation();
   const { mutate: unfollowAccount } = useUnfollowAccountMutation();
 
