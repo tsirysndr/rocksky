@@ -18,7 +18,7 @@ import type { SelectSpotifyToken } from "schema/spotify-tokens";
 import type { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
-  const getActorProfile = (params, auth: HandlerAuth) =>
+  const getActorProfile = (params: QueryParams, auth: HandlerAuth) =>
     pipe(
       { params, ctx, did: auth.credentials?.did },
       resolveHandleToDid,

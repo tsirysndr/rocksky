@@ -17,6 +17,7 @@ import type * as FmTealAlphaFeedGetPlay from "./types/fm/teal/alpha/feed/getPlay
 import type * as AppRockskyActorGetActorAlbums from "./types/app/rocksky/actor/getActorAlbums";
 import type * as AppRockskyActorGetActorArtists from "./types/app/rocksky/actor/getActorArtists";
 import type * as AppRockskyActorGetActorLovedSongs from "./types/app/rocksky/actor/getActorLovedSongs";
+import type * as AppRockskyActorGetActorNeighbours from "./types/app/rocksky/actor/getActorNeighbours";
 import type * as AppRockskyActorGetActorPlaylists from "./types/app/rocksky/actor/getActorPlaylists";
 import type * as AppRockskyActorGetActorScrobbles from "./types/app/rocksky/actor/getActorScrobbles";
 import type * as AppRockskyActorGetActorSongs from "./types/app/rocksky/actor/getActorSongs";
@@ -311,6 +312,17 @@ export class AppRockskyActorNS {
     >,
   ) {
     const nsid = "app.rocksky.actor.getActorLovedSongs"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  getActorNeighbours<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyActorGetActorNeighbours.Handler<ExtractAuth<AV>>,
+      AppRockskyActorGetActorNeighbours.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.actor.getActorNeighbours"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 

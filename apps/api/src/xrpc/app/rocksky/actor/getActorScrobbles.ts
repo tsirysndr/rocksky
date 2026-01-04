@@ -6,7 +6,7 @@ import type { ScrobbleViewBasic } from "lexicon/types/app/rocksky/scrobble/defs"
 import { deepCamelCaseKeys } from "lib";
 
 export default function (server: Server, ctx: Context) {
-  const getActorScrobbles = (params) =>
+  const getActorScrobbles = (params: QueryParams) =>
     pipe(
       { params, ctx },
       retrieve,

@@ -6,7 +6,7 @@ import type { SongViewBasic } from "lexicon/types/app/rocksky/song/defs";
 import { deepCamelCaseKeys } from "lib";
 
 export default function (server: Server, ctx: Context) {
-  const getActorSongs = (params) =>
+  const getActorSongs = (params: QueryParams) =>
     pipe(
       { params, ctx },
       retrieve,

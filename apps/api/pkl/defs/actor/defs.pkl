@@ -1,4 +1,4 @@
-amends  "../../schema/lexicon.pkl"
+amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.actor.defs"
@@ -43,7 +43,6 @@ defs = new Mapping<String, ObjectType> {
         format = "datetime"
         description = "The date and time when the actor was last updated."
       }
-
     }
   }
   ["profileViewBasic"] {
@@ -85,6 +84,58 @@ defs = new Mapping<String, ObjectType> {
         type = "string"
         format = "datetime"
         description = "The date and time when the actor was last updated."
+      }
+    }
+  }
+  ["neighbourViewBasic"] {
+    type = "object"
+    properties {
+      ["userId"] = new StringType {
+        type = "string"
+      }
+
+      ["did"] = new StringType {
+        type = "string"
+      }
+
+      ["handle"] = new StringType {
+        type = "string"
+      }
+
+      ["displayName"] = new StringType {
+        type = "string"
+      }
+
+      ["avatar"] = new StringType {
+        type = "string"
+        format = "uri"
+        description = "The URL of the actor's avatar image."
+      }
+
+      ["sharedArtistsCount"] = new IntegerType {
+        type = "integer"
+        description = "The number of artists shared with the actor."
+      }
+
+      ["similarityScore"] = new IntegerType {
+        type = "integer"
+        description = "The similarity score with the actor."
+      }
+
+      ["topSharedArtistNames"] = new Array {
+        type = "array"
+        items = new StringType {
+          type = "string"
+        }
+        description = "The top shared artist names with the actor."
+      }
+
+      ["topSharedArtistsDetails"] = new Array {
+        type = "array"
+        items = new Ref {
+          ref = "app.rocksky.artist.defs#artistViewBasic"
+        }
+        description = "The top shared artist details with the actor."
       }
     }
   }

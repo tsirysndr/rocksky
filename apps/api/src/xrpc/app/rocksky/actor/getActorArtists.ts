@@ -6,7 +6,7 @@ import type { ArtistViewBasic } from "lexicon/types/app/rocksky/artist/defs";
 import { deepCamelCaseKeys } from "lib";
 
 export default function (server: Server, ctx: Context) {
-  const getActorArtists = (params) =>
+  const getActorArtists = (params: QueryParams) =>
     pipe(
       { params, ctx },
       retrieve,

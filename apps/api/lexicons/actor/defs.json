@@ -73,6 +73,51 @@
           "format": "datetime"
         }
       }
+    },
+    "neighbourViewBasic": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string"
+        },
+        "did": {
+          "type": "string"
+        },
+        "handle": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "avatar": {
+          "type": "string",
+          "description": "The URL of the actor's avatar image.",
+          "format": "uri"
+        },
+        "sharedArtistsCount": {
+          "type": "integer",
+          "description": "The number of artists shared with the actor."
+        },
+        "similarityScore": {
+          "type": "integer",
+          "description": "The similarity score with the actor."
+        },
+        "topSharedArtistNames": {
+          "type": "array",
+          "description": "The top shared artist names with the actor.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "topSharedArtistsDetails": {
+          "type": "array",
+          "description": "The top shared artist details with the actor.",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.artist.defs#artistViewBasic"
+          }
+        }
+      }
     }
   }
 }

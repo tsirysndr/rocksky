@@ -1,12 +1,13 @@
 use std::sync::{Arc, Mutex};
 
 use crate::read_payload;
+use crate::types::stats::GetNeighboursParams;
 use crate::types::{
     scrobble::{ScrobblesPerDay, ScrobblesPerMonth, ScrobblesPerYear},
     stats::{
         GetAlbumScrobblesParams, GetArtistScrobblesParams, GetScrobblesPerDayParams,
         GetScrobblesPerMonthParams, GetScrobblesPerYearParams, GetStatsParams,
-        GetTrackScrobblesParams,
+        GetTrackScrobblesParams, Neighbour,
     },
 };
 use actix_web::{web, HttpRequest, HttpResponse};
@@ -459,4 +460,93 @@ pub async fn get_track_scrobbles(
 
     let scrobbles: Result<Vec<_>, _> = scrobbles.collect();
     Ok(HttpResponse::Ok().json(scrobbles?))
+}
+
+pub async fn get_neighbours(
+    payload: &mut web::Payload,
+    _req: &HttpRequest,
+    conn: Arc<Mutex<Connection>>,
+) -> Result<HttpResponse, Error> {
+    let body = read_payload!(payload);
+    let params = serde_json::from_slice::<GetNeighboursParams>(&body)?;
+    let conn = conn.lock().unwrap();
+    tracing::info!(user_id = %params.user_id, "Get neighbours");
+
+    let mut stmt = conn.prepare(
+        r#"
+        WITH user_top_artists AS (
+              SELECT
+                  user_id,
+                  artist_id,
+                  COUNT(*) as play_count,
+                  ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY COUNT(*) DESC) as artist_rank
+              FROM scrobbles s
+              INNER JOIN artists a ON a.id = s.artist_id
+              WHERE s.artist_id IS NOT NULL
+                  AND a.name != 'Various Artists'
+              GROUP BY user_id, artist_id
+          ),
+          weighted_similarity AS (
+              SELECT
+                  u1.user_id as target_user,
+                  u2.user_id as neighbor_user,
+                  SUM(1.0 / (u1.artist_rank + u2.artist_rank)) as similarity_score,
+                  COUNT(DISTINCT u1.artist_id) as shared_artists,
+                  ARRAY_AGG(DISTINCT u1.artist_id) FILTER (WHERE u1.artist_rank <= 20) as top_shared_artists
+              FROM user_top_artists u1
+              JOIN user_top_artists u2
+                  ON u1.artist_id = u2.artist_id
+                  AND u1.user_id != u2.user_id
+              WHERE u1.user_id = ?
+                  AND u1.artist_rank <= 50
+                  AND u2.artist_rank <= 50
+              GROUP BY u1.user_id, u2.user_id
+              HAVING shared_artists >= 3
+                  AND top_shared_artists IS NOT NULL
+          )
+          SELECT
+              ws.neighbor_user,
+              u.display_name,
+              u.handle,
+              u.did,
+              u.avatar,
+              ws.similarity_score,
+              ws.shared_artists,
+              to_json(LIST(a.name ORDER BY array_position(ws.top_shared_artists, a.id))) as top_shared_artist_names,
+              to_json(LIST({'id': a.id, 'name': a.name, 'picture': a.picture, 'uri': a.uri}
+                   ORDER BY array_position(ws.top_shared_artists, a.id))) as top_shared_artists_details
+          FROM weighted_similarity ws
+          LEFT JOIN users u ON u.id = ws.neighbor_user
+          INNER JOIN UNNEST(ws.top_shared_artists) AS t(artist_id) ON true
+          INNER JOIN artists a ON a.id = t.artist_id
+          GROUP BY ws.neighbor_user, u.display_name, u.handle, u.did, u.avatar, ws.similarity_score, ws.shared_artists, ws.top_shared_artists
+          ORDER BY ws.similarity_score DESC
+          LIMIT 20
+        "#,
+    )?;
+
+    let neighbours = stmt.query_map([&params.user_id], |row| {
+        let top_shared_artist_names_json: String = row.get(7)?;
+        let top_shared_artists_details_json: String = row.get(8)?;
+
+        let top_shared_artist_names: Vec<String> =
+            serde_json::from_str(&top_shared_artist_names_json).unwrap_or_else(|_| Vec::new());
+        let top_shared_artists_details: Vec<crate::types::stats::NeighbourArtist> =
+            serde_json::from_str(&top_shared_artists_details_json).unwrap_or_else(|_| Vec::new());
+
+        Ok(Neighbour {
+            user_id: row.get(0)?,
+            display_name: row.get(1)?,
+            handle: row.get(2)?,
+            did: row.get(3)?,
+            avatar: row.get(4)?,
+            similarity_score: row.get(5)?,
+            shared_artists_count: row.get(6)?,
+            top_shared_artist_names,
+            top_shared_artists_details,
+        })
+    })?;
+
+    let neighbours: Result<Vec<_>, _> = neighbours.collect();
+    Ok(HttpResponse::Ok().json(neighbours?))
 }

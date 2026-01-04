@@ -8,7 +8,7 @@ import tables from "schema";
 import type { SelectTrack } from "schema/tracks";
 
 export default function (server: Server, ctx: Context) {
-  const getActorLovedSongs = (params) =>
+  const getActorLovedSongs = (params: QueryParams) =>
     pipe(
       { params, ctx },
       retrieve,

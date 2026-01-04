@@ -5,6 +5,7 @@ import { type ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
+import type * as AppRockskyArtistDefs from "../artist/defs";
 
 export interface ProfileViewDetailed {
   /** The unique identifier of the actor. */
@@ -64,4 +65,34 @@ export function isProfileViewBasic(v: unknown): v is ProfileViewBasic {
 
 export function validateProfileViewBasic(v: unknown): ValidationResult {
   return lexicons.validate("app.rocksky.actor.defs#profileViewBasic", v);
+}
+
+export interface NeighbourViewBasic {
+  userId?: string;
+  did?: string;
+  handle?: string;
+  displayName?: string;
+  /** The URL of the actor's avatar image. */
+  avatar?: string;
+  /** The number of artists shared with the actor. */
+  sharedArtistsCount?: number;
+  /** The similarity score with the actor. */
+  similarityScore?: number;
+  /** The top shared artist names with the actor. */
+  topSharedArtistNames?: string[];
+  /** The top shared artist details with the actor. */
+  topSharedArtistsDetails?: AppRockskyArtistDefs.ArtistViewBasic[];
+  [k: string]: unknown;
+}
+
+export function isNeighbourViewBasic(v: unknown): v is NeighbourViewBasic {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.actor.defs#neighbourViewBasic"
+  );
+}
+
+export function validateNeighbourViewBasic(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.actor.defs#neighbourViewBasic", v);
 }

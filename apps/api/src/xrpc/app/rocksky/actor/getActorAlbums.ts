@@ -6,7 +6,7 @@ import type { AlbumViewBasic } from "lexicon/types/app/rocksky/album/defs";
 import { deepCamelCaseKeys } from "lib";
 
 export default function (server: Server, ctx: Context) {
-  const getActorAlbums = (params) =>
+  const getActorAlbums = (params: QueryParams) =>
     pipe(
       { params, ctx },
       retrieve,

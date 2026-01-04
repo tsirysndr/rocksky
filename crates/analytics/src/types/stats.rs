@@ -128,3 +128,29 @@ impl Default for GetTrackScrobblesParams {
         }
     }
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetNeighboursParams {
+    pub user_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct NeighbourArtist {
+    pub id: String,
+    pub name: String,
+    pub picture: Option<String>,
+    pub uri: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Neighbour {
+    pub user_id: String,
+    pub display_name: Option<String>,
+    pub handle: String,
+    pub did: String,
+    pub avatar: String,
+    pub similarity_score: f64,
+    pub shared_artists_count: i64,
+    pub top_shared_artist_names: Vec<String>,
+    pub top_shared_artists_details: Vec<NeighbourArtist>,
+}

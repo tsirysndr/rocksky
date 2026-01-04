@@ -664,6 +664,51 @@ export const schemaDict = {
           },
         },
       },
+      neighbourViewBasic: {
+        type: "object",
+        properties: {
+          userId: {
+            type: "string",
+          },
+          did: {
+            type: "string",
+          },
+          handle: {
+            type: "string",
+          },
+          displayName: {
+            type: "string",
+          },
+          avatar: {
+            type: "string",
+            description: "The URL of the actor's avatar image.",
+            format: "uri",
+          },
+          sharedArtistsCount: {
+            type: "integer",
+            description: "The number of artists shared with the actor.",
+          },
+          similarityScore: {
+            type: "integer",
+            description: "The similarity score with the actor.",
+          },
+          topSharedArtistNames: {
+            type: "array",
+            description: "The top shared artist names with the actor.",
+            items: {
+              type: "string",
+            },
+          },
+          topSharedArtistsDetails: {
+            type: "array",
+            description: "The top shared artist details with the actor.",
+            items: {
+              type: "ref",
+              ref: "lex:app.rocksky.artist.defs#artistViewBasic",
+            },
+          },
+        },
+      },
     },
   },
   AppRockskyActorGetActorAlbums: {
@@ -796,6 +841,42 @@ export const schemaDict = {
                 items: {
                   type: "ref",
                   ref: "lex:app.rocksky.song.defs#songViewBasic",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyActorGetActorNeighbours: {
+    lexicon: 1,
+    id: "app.rocksky.actor.getActorNeighbours",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get neighbours for an actor",
+        parameters: {
+          type: "params",
+          required: ["did"],
+          properties: {
+            did: {
+              type: "string",
+              description: "The DID or handle of the actor",
+              format: "at-identifier",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {
+              neighbours: {
+                type: "array",
+                items: {
+                  type: "ref",
+                  ref: "lex:app.rocksky.actor.defs#neighbourViewBasic",
                 },
               },
             },
@@ -5716,6 +5797,7 @@ export const ids = {
   AppRockskyActorGetActorAlbums: "app.rocksky.actor.getActorAlbums",
   AppRockskyActorGetActorArtists: "app.rocksky.actor.getActorArtists",
   AppRockskyActorGetActorLovedSongs: "app.rocksky.actor.getActorLovedSongs",
+  AppRockskyActorGetActorNeighbours: "app.rocksky.actor.getActorNeighbours",
   AppRockskyActorGetActorPlaylists: "app.rocksky.actor.getActorPlaylists",
   AppRockskyActorGetActorScrobbles: "app.rocksky.actor.getActorScrobbles",
   AppRockskyActorGetActorSongs: "app.rocksky.actor.getActorSongs",
