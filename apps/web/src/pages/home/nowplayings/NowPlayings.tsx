@@ -237,7 +237,7 @@ function NowPlayings() {
             {showLeftChevron && (
               <button
                 onClick={() => scroll("left")}
-                className="flex-shrink-0 w-8 h-8 min-w-8 min-h-8 p-0 rounded-full bg-transparent hover:bg-[var(--color-input-background)] flex items-center justify-center transition-all outline-none border-none cursor-pointer shadow-md z-30 mt-[-20px]"
+                className="flex-shrink-0 w-8 h-8 min-w-8 min-h-8 p-0 rounded-full bg-transparent hover:bg-[var(--color-input-background)] flex items-center justify-center transition-all outline-none border-none cursor-pointer shadow-md z-0 mt-[-20px]"
                 style={{ padding: "5px" }}
               >
                 <IconChevronLeft
@@ -304,7 +304,7 @@ function NowPlayings() {
             {showRightChevron && (
               <button
                 onClick={() => scroll("right")}
-                className="flex-shrink-0 w-8 h-8 min-w-8 min-h-8 p-0 rounded-full bg-transparent hover:bg-[var(--color-input-background)] flex items-center justify-center transition-all outline-none border-none cursor-pointer shadow-md z-30 mt-[-20px]"
+                className="flex-shrink-0 w-8 h-8 min-w-8 min-h-8 p-0 rounded-full bg-transparent hover:bg-[var(--color-input-background)] flex items-center justify-center transition-all outline-none border-none cursor-pointer shadow-md z-0 mt-[-20px]"
                 style={{ padding: "5px" }}
               >
                 <IconChevronRight

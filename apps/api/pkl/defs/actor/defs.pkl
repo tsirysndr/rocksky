@@ -139,4 +139,70 @@ defs = new Mapping<String, ObjectType> {
       }
     }
   }
+  ["compatibilityViewBasic"] {
+    type = "object"
+    properties {
+      ["compatibilityLevel"] = new IntegerType {
+        type = "integer"
+      }
+      ["compatibilityPercentage"] = new IntegerType {
+        type = "integer"
+      }
+      ["sharedArtists"] = new IntegerType {
+        type = "integer"
+      }
+      ["topSharedArtistNames"] = new Array {
+        type = "array"
+        items = new StringType {
+          type = "string"
+        }
+      }
+      ["topSharedDetailedArtists"] = new Array {
+        type = "array"
+        items = new Ref {
+          ref = "app.rocksky.actor.defs#artistViewBasic"
+        }
+      }
+      ["user1ArtistCount"] = new IntegerType {
+        type = "integer"
+      }
+      ["user2ArtistCount"] = new IntegerType {
+        type = "integer"
+      }
+    }
+  }
+  ["artistViewBasic"] {
+    type = "object"
+    properties {
+      ["id"] = new StringType {
+        type = "string"
+      }
+
+      ["name"] = new StringType {
+        type = "string"
+      }
+
+      ["picture"] = new StringType {
+        type = "string"
+        format = "uri"
+      }
+
+      ["uri"] = new StringType {
+        type = "string"
+        format = "at-uri"
+      }
+
+      ["user1Rank"] = new IntegerType {
+        type = "integer"
+      }
+
+      ["user2Rank"] = new IntegerType {
+        type = "integer"
+      }
+
+      ["weight"] = new IntegerType {
+        type = "integer"
+      }
+    }
+  }
 }

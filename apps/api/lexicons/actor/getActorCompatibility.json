@@ -1,0 +1,35 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.actor.getActorCompatibility",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get compatibility for an actor",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "did"
+        ],
+        "properties": {
+          "did": {
+            "type": "string",
+            "description": "DID or handle to get compatibility for",
+            "format": "at-identifier"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "compatibility": {
+              "type": "ref",
+              "ref": "app.rocksky.actor.defs#compatibilityViewBasic"
+            }
+          }
+        }
+      }
+    }
+  }
+}

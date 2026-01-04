@@ -709,6 +709,67 @@ export const schemaDict = {
           },
         },
       },
+      compatibilityViewBasic: {
+        type: "object",
+        properties: {
+          compatibilityLevel: {
+            type: "integer",
+          },
+          compatibilityPercentage: {
+            type: "integer",
+          },
+          sharedArtists: {
+            type: "integer",
+          },
+          topSharedArtistNames: {
+            type: "array",
+            items: {
+              type: "string",
+            },
+          },
+          topSharedDetailedArtists: {
+            type: "array",
+            items: {
+              type: "ref",
+              ref: "lex:app.rocksky.actor.defs#artistViewBasic",
+            },
+          },
+          user1ArtistCount: {
+            type: "integer",
+          },
+          user2ArtistCount: {
+            type: "integer",
+          },
+        },
+      },
+      artistViewBasic: {
+        type: "object",
+        properties: {
+          id: {
+            type: "string",
+          },
+          name: {
+            type: "string",
+          },
+          picture: {
+            type: "string",
+            format: "uri",
+          },
+          uri: {
+            type: "string",
+            format: "at-uri",
+          },
+          user1Rank: {
+            type: "integer",
+          },
+          user2Rank: {
+            type: "integer",
+          },
+          weight: {
+            type: "integer",
+          },
+        },
+      },
     },
   },
   AppRockskyActorGetActorAlbums: {
@@ -796,6 +857,39 @@ export const schemaDict = {
                   type: "ref",
                   ref: "lex:app.rocksky.artist.defs#artistViewBasic",
                 },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyActorGetActorCompatibility: {
+    lexicon: 1,
+    id: "app.rocksky.actor.getActorCompatibility",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get compatibility for an actor",
+        parameters: {
+          type: "params",
+          required: ["did"],
+          properties: {
+            did: {
+              type: "string",
+              description: "DID or handle to get compatibility for",
+              format: "at-identifier",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {
+              compatibility: {
+                type: "ref",
+                ref: "lex:app.rocksky.actor.defs#compatibilityViewBasic",
               },
             },
           },
@@ -5796,6 +5890,8 @@ export const ids = {
   AppRockskyActorDefs: "app.rocksky.actor.defs",
   AppRockskyActorGetActorAlbums: "app.rocksky.actor.getActorAlbums",
   AppRockskyActorGetActorArtists: "app.rocksky.actor.getActorArtists",
+  AppRockskyActorGetActorCompatibility:
+    "app.rocksky.actor.getActorCompatibility",
   AppRockskyActorGetActorLovedSongs: "app.rocksky.actor.getActorLovedSongs",
   AppRockskyActorGetActorNeighbours: "app.rocksky.actor.getActorNeighbours",
   AppRockskyActorGetActorPlaylists: "app.rocksky.actor.getActorPlaylists",

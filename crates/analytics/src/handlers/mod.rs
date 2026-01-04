@@ -12,7 +12,10 @@ use stats::{
 };
 use tracks::{get_loved_tracks, get_top_tracks, get_tracks};
 
-use crate::handlers::{artists::get_artist_listeners, stats::get_neighbours};
+use crate::handlers::{
+    artists::get_artist_listeners,
+    stats::{get_compatibility, get_neighbours},
+};
 
 pub mod albums;
 pub mod artists;
@@ -62,6 +65,7 @@ pub async fn handle(
         "library.getArtistTracks" => get_artist_tracks(payload, req, conn.clone()).await,
         "library.getArtistListeners" => get_artist_listeners(payload, req, conn.clone()).await,
         "library.getNeighbours" => get_neighbours(payload, req, conn.clone()).await,
+        "library.getCompatibility" => get_compatibility(payload, req, conn.clone()).await,
         _ => return Err(anyhow::anyhow!("Method not found")),
     }
 }

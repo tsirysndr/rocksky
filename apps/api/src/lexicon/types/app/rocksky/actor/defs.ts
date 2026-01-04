@@ -96,3 +96,51 @@ export function isNeighbourViewBasic(v: unknown): v is NeighbourViewBasic {
 export function validateNeighbourViewBasic(v: unknown): ValidationResult {
   return lexicons.validate("app.rocksky.actor.defs#neighbourViewBasic", v);
 }
+
+export interface CompatibilityViewBasic {
+  compatibilityLevel?: number;
+  compatibilityPercentage?: number;
+  sharedArtists?: number;
+  topSharedArtistNames?: string[];
+  topSharedDetailedArtists?: ArtistViewBasic[];
+  user1ArtistCount?: number;
+  user2ArtistCount?: number;
+  [k: string]: unknown;
+}
+
+export function isCompatibilityViewBasic(
+  v: unknown,
+): v is CompatibilityViewBasic {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.actor.defs#compatibilityViewBasic"
+  );
+}
+
+export function validateCompatibilityViewBasic(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.actor.defs#compatibilityViewBasic", v);
+}
+
+export interface ArtistViewBasic {
+  id?: string;
+  name?: string;
+  picture?: string;
+  uri?: string;
+  user1Rank?: number;
+  user2Rank?: number;
+  weight?: number;
+  [k: string]: unknown;
+}
+
+export function isArtistViewBasic(v: unknown): v is ArtistViewBasic {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.actor.defs#artistViewBasic"
+  );
+}
+
+export function validateArtistViewBasic(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.actor.defs#artistViewBasic", v);
+}

@@ -154,3 +154,31 @@ pub struct Neighbour {
     pub top_shared_artist_names: Vec<String>,
     pub top_shared_artists_details: Vec<NeighbourArtist>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetCompatibilityParams {
+    pub user_id1: String,
+    pub user_id2: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SharedArtist {
+    pub id: String,
+    pub name: String,
+    pub picture: Option<String>,
+    pub uri: Option<String>,
+    pub user1_rank: i64,
+    pub user2_rank: i64,
+    pub weight: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Compatibility {
+    pub compatibility_percentage: f64,
+    pub compatibility_level: String,
+    pub shared_artists: i64,
+    pub user1_artist_count: i64,
+    pub user2_artist_count: i64,
+    pub top_shared_artists: Vec<String>,
+    pub top_shared_detailed_artists: Vec<SharedArtist>,
+}

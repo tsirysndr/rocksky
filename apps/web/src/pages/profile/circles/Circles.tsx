@@ -122,14 +122,16 @@ function Circles() {
                     They both listen to{" "}
                     {neighbour.topSharedArtistsDetails.map((artist, index) => (
                       <div key={artist.id} className="inline">
-                        <a
-                          href={`/${artist.uri.split("at://")[1].replace("app.rocksky.", "")}`}
+                        <Link
+                          to={
+                            `/${artist.uri.split("at://")[1].replace("app.rocksky.", "")}` as string
+                          }
                           className="no-underline"
                         >
                           <span className="mt-[0px] mb-[0px] text-[14px] !text-[var(--color-primary)]">
                             {artist.name}
                           </span>
-                        </a>
+                        </Link>
                         {index !==
                           neighbour.topSharedArtistsDetails.length - 1 &&
                           (index ===

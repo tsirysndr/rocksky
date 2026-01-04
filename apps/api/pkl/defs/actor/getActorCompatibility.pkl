@@ -1,0 +1,31 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.actor.getActorCompatibility"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get compatibility for an actor"
+    parameters = new Params {
+      required = List("did")
+      properties {
+        ["did"] = new StringType {
+          description = "DID or handle to get compatibility for"
+          format = "at-identifier"
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        properties = new Mapping<String, Ref> {
+          ["compatibility"] = new Ref {
+            type = "ref"
+            ref = "app.rocksky.actor.defs#compatibilityViewBasic"
+          }
+        }
+      }
+    }
+  }
+}
