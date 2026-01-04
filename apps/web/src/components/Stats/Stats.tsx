@@ -27,27 +27,23 @@ export type StatsProps = {
 function Stats(props: StatsProps) {
   const { stats, mb } = props;
   return (
-    <Group mb={mb}>
+    <Group mb={mb} className="!mb-[0px]">
       <div className="mr-[20px]">
-        <LabelMedium className="!text-[var(--color-text-muted)]">
-          SCROBBLES
-        </LabelMedium>
+        <b className="!text-[var(--color-text-muted)] text-[13px]">SCROBBLES</b>
         <HeadingSmall margin={0} className="!text-[var(--color-text)]">
           {numeral(stats?.scrobbles).format("0,0")}
         </HeadingSmall>
       </div>
       <div className="mr-[20px]">
-        <LabelMedium className="!text-[var(--color-text-muted)]">
-          ARTISTS
-        </LabelMedium>
+        <b className="!text-[var(--color-text-muted)] text-[13px]">ARTISTS</b>
         <HeadingSmall margin={0} className="!text-[var(--color-text)]">
           {numeral(stats?.artists).format("0,0")}
         </HeadingSmall>
       </div>
-      <div className="mr-[20px]">
-        <LabelMedium className="!text-[var(--color-text-muted)]">
+      <div>
+        <b className="!text-[var(--color-text-muted)] text-[13px]">
           LOVED TRACKS
-        </LabelMedium>
+        </b>
         <HeadingSmall margin={0} className="!text-[var(--color-text)]">
           {numeral(stats?.lovedTracks).format("0,0")}
         </HeadingSmall>

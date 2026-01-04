@@ -8,6 +8,7 @@ import RecentTracks from "./recenttracks";
 import TopAlbums from "./topalbums";
 import TopArtists from "./topartists";
 import TopTracks from "./toptracks";
+import Compatibility from "./compatibility";
 
 function Overview() {
   const { did } = useParams({ strict: false });
@@ -39,7 +40,12 @@ function Overview() {
 
   return (
     <>
-      {did && stats[did] && <Stats stats={stats[did]} />}
+      <div className="flex flex-row mb-[50px]">
+        {did && stats[did] && <Stats stats={stats[did]} />}
+        <div className="flex-1">
+          <Compatibility />
+        </div>
+      </div>
       <div className="mb-20">
         <RecentTracks />
       </div>

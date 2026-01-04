@@ -35,14 +35,14 @@ export const useFollowsInfiniteQuery = (
   });
 
 export const useFollowersQuery = (
-  actor: string,
+  actor: string | undefined,
   limit: number,
   dids?: string[],
   cursor?: string,
 ) =>
   useQuery({
     queryKey: ["followers", actor, limit, dids, cursor],
-    queryFn: () => getFollowers(actor, limit, dids, cursor),
+    queryFn: () => getFollowers(actor!, limit, dids, cursor),
   });
 
 export const useFollowersInfiniteQuery = (

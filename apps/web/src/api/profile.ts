@@ -1,11 +1,16 @@
 import { client } from ".";
+import { Compatibility } from "../types/compatibility";
 import { Neighbour } from "../types/neighbour";
+import { Profile } from "../types/profile";
 import { Scrobble } from "../types/scrobble";
 
 export const getProfileByDid = async (did: string) => {
-  const response = await client.get("/xrpc/app.rocksky.actor.getProfile", {
-    params: { did },
-  });
+  const response = await client.get<Profile>(
+    "/xrpc/app.rocksky.actor.getProfile",
+    {
+      params: { did },
+    },
+  );
   return response.data;
 };
 
@@ -35,6 +40,19 @@ export const getActorNeighbours = async (did: string) => {
     "/xrpc/app.rocksky.actor.getActorNeighbours",
     {
       params: { did },
+    },
+  );
+  return response.data;
+};
+
+export const getActorCompatibility = async (did: string) => {
+  const response = await client.get<{ compatibility: Compatibility | null }>(
+    "/xrpc/app.rocksky.actor.getActorCompatibility",
+    {
+      params: { did },
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
     },
   );
   return response.data;

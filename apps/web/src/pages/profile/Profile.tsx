@@ -73,8 +73,11 @@ function Profile(props: ProfileProps) {
       setIsSignInOpen(true);
       return;
     }
-    setFollows((prev) => new Set(prev).add(profile.data?.did));
-    followAccount(profile.data?.did);
+
+    if (!profile.data) return;
+
+    setFollows((prev) => new Set(prev).add(profile.data.did));
+    followAccount(profile.data.did);
   };
 
   const onUnfollow = () => {
@@ -82,12 +85,14 @@ function Profile(props: ProfileProps) {
       setIsSignInOpen(true);
       return;
     }
+    if (!profile.data) return;
+
     setFollows((prev) => {
       const newSet = new Set(prev);
-      newSet.delete(profile.data?.did);
+      newSet.delete(profile.data.did);
       return newSet;
     });
-    unfollowAccount(profile.data?.did);
+    unfollowAccount(profile.data.did);
   };
 
   useEffect(() => {
@@ -104,18 +109,26 @@ function Profile(props: ProfileProps) {
     }
     setFollows((prev) => {
       const newSet = new Set(prev);
+      if (!profile.data) return newSet;
       if (
         data.followers.some(
           (follower: { did: string }) => follower.did === currentDid,
         )
       ) {
-        newSet.add(profile.data?.did);
+        newSet.add(profile.data.did);
       } else {
-        newSet.delete(profile.data?.did);
+        newSet.delete(profile.data.did);
       }
       return newSet;
     });
-  }, [data, isLoading, currentDid, setFollows, profile.data?.did]);
+  }, [
+    data,
+    isLoading,
+    currentDid,
+    setFollows,
+    profile.data?.did,
+    profile.data,
+  ]);
 
   useEffect(() => {
     if (tab === undefined) {
@@ -213,7 +226,7 @@ function Profile(props: ProfileProps) {
           {(profile.data?.did !== localStorage.getItem("did") ||
             !localStorage.getItem("did")) && (
             <>
-              {!follows.has(profile.data?.did) && !isLoading && (
+              {!follows.has(profile.data?.did || "") && !isLoading && (
                 <Button
                   shape="pill"
                   size="compact"
@@ -238,7 +251,7 @@ function Profile(props: ProfileProps) {
                   Follow
                 </Button>
               )}
-              {follows.has(profile.data?.did) && !isLoading && (
+              {follows.has(profile.data?.did || "") && !isLoading && (
                 <Button
                   shape="pill"
                   size="compact"

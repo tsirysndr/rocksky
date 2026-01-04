@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSetAtom } from "jotai";
 import { useEffect, useState } from "react";
 import {
+  getActorCompatibility,
   getActorNeighbours,
   getProfileByDid,
   getProfileStatsByDid,
@@ -35,6 +36,13 @@ export const useActorNeighboursQuery = (did: string) =>
   useQuery({
     queryKey: ["profile", "neighbours", did],
     queryFn: () => getActorNeighbours(did),
+    enabled: !!did,
+  });
+
+export const useActorCompatibilityQuery = (did: string | undefine) =>
+  useQuery({
+    queryKey: ["profile", "compatibility", did],
+    queryFn: () => getActorCompatibility(did!),
     enabled: !!did,
   });
 
