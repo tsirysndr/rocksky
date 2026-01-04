@@ -17,13 +17,7 @@ import {
 import { useState } from "react";
 import SignInModal from "../../../components/SignInModal";
 import { activeTabAtom } from "../../../atoms/tab";
-
-const scrollToTop = () => {
-  const container = document.querySelector("#app-container");
-  if (container) {
-    container.scrollTo({ top: 0, behavior: "smooth" });
-  }
-};
+import scrollToTop from "../../../lib/scrollToTop";
 
 function Circles() {
   const [, setActiveKey] = useAtom(activeTabAtom);

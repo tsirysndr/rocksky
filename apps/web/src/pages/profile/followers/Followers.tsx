@@ -16,6 +16,7 @@ import { IconCheck, IconPlus } from "@tabler/icons-react";
 import SignInModal from "../../../components/SignInModal";
 import { useState, useEffect, useRef } from "react";
 import numeral from "numeral";
+import scrollToTop from "../../../lib/scrollToTop";
 
 function Followers() {
   const [, setActiveKey] = useAtom(activeTabAtom);
@@ -116,9 +117,12 @@ function Followers() {
             >
               <div className="flex items-center gap-2">
                 <Link
-                  to={`/profile/${follower.handle}` as any}
+                  to={`/profile/${follower.handle}` as string}
                   className="no-underline"
-                  onClick={() => setActiveKey(0)}
+                  onClick={() => {
+                    setActiveKey(0);
+                    scrollToTop();
+                  }}
                 >
                   <Avatar
                     src={follower.avatar}
@@ -128,9 +132,12 @@ function Followers() {
                 </Link>
                 <div className="ml-[16px]">
                   <Link
-                    to={`/profile/${follower.handle}` as any}
+                    to={`/profile/${follower.handle}` as string}
                     className="no-underline"
-                    onClick={() => setActiveKey(0)}
+                    onClick={() => {
+                      setActiveKey(0);
+                      scrollToTop();
+                    }}
                   >
                     <LabelMedium
                       marginTop={"10px"}
@@ -139,15 +146,18 @@ function Followers() {
                       {follower.displayName}
                     </LabelMedium>
                   </Link>
-                  <a
-                    href={`https://bsky.app/profile/${follower.handle}`}
+                  <Link
+                    to={`/profile/${follower.handle}` as string}
                     className="no-underline text-[var(--color-primary)]"
-                    target="_blank"
+                    onClick={() => {
+                      setActiveKey(0);
+                      scrollToTop();
+                    }}
                   >
                     <LabelSmall className="!text-[var(--color-primary)] mt-[3px] mb-[25px]">
                       @{follower.handle}
                     </LabelSmall>
-                  </a>
+                  </Link>
                 </div>
               </div>
               {(follower.did !== localStorage.getItem("did") ||

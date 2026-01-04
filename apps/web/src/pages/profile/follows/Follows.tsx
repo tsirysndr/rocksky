@@ -16,6 +16,7 @@ import { IconCheck, IconPlus } from "@tabler/icons-react";
 import SignInModal from "../../../components/SignInModal";
 import { useState, useEffect, useRef } from "react";
 import numeral from "numeral";
+import scrollToTop from "../../../lib/scrollToTop";
 
 function Follows() {
   const [, setActiveKey] = useAtom(activeTabAtom);
@@ -119,7 +120,10 @@ function Follows() {
                 <Link
                   to={`/profile/${follow.handle}` as any}
                   className="no-underline"
-                  onClick={() => setActiveKey(0)}
+                  onClick={() => {
+                    setActiveKey(0);
+                    scrollToTop();
+                  }}
                 >
                   <Avatar
                     src={follow.avatar}
@@ -129,9 +133,12 @@ function Follows() {
                 </Link>
                 <div className="ml-[16px]">
                   <Link
-                    to={`/profile/${follow.handle}` as any}
+                    to={`/profile/${follow.handle}` as string}
                     className="no-underline"
-                    onClick={() => setActiveKey(0)}
+                    onClick={() => {
+                      setActiveKey(0);
+                      scrollToTop();
+                    }}
                   >
                     <LabelMedium
                       marginTop={"10px"}
@@ -140,15 +147,18 @@ function Follows() {
                       {follow.displayName}
                     </LabelMedium>
                   </Link>
-                  <a
-                    href={`https://bsky.app/profile/${follow.handle}`}
+                  <Link
+                    to={`/profile/${follow.handle}` as string}
                     className="no-underline text-[var(--color-primary)]"
-                    target="_blank"
+                    onClick={() => {
+                      setActiveKey(0);
+                      scrollToTop();
+                    }}
                   >
                     <LabelSmall className="!text-[var(--color-primary)] mt-[3px] mb-[25px]">
                       @{follow.handle}
                     </LabelSmall>
-                  </a>
+                  </Link>
                 </div>
               </div>
               {(follow.did !== localStorage.getItem("did") ||
