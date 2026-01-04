@@ -305,12 +305,28 @@ function ApiKeys() {
         overrides={{
           Root: {
             style: {
-              zIndex: 1,
+              zIndex: 50,
+            },
+          },
+          Dialog: {
+            style: {
+              backgroundColor: "var(--color-background)",
+            },
+          },
+          Close: {
+            style: {
+              color: "var(--color-text)",
+              ":hover": {
+                color: "var(--color-text)",
+                opacity: 0.8,
+              },
             },
           },
         }}
       >
-        <ModalHeader>Create a new API key</ModalHeader>
+        <ModalHeader className="!text-[var(--color-text)]">
+          Create a new API key
+        </ModalHeader>
         <ModalBody>
           <Controller
             name="name"
@@ -321,6 +337,30 @@ function ApiKeys() {
                 placeholder="Name"
                 clearOnEscape
                 error={!!errors.name}
+                overrides={{
+                  Root: {
+                    style: {
+                      backgroundColor: "var(--color-input-background)",
+                      borderColor: "var(--color-input-background)",
+                    },
+                  },
+                  StartEnhancer: {
+                    style: {
+                      backgroundColor: "var(--color-input-background)",
+                    },
+                  },
+                  InputContainer: {
+                    style: {
+                      backgroundColor: "var(--color-input-background)",
+                    },
+                  },
+                  Input: {
+                    style: {
+                      color: "var(--color-text)",
+                      caretColor: "var(--color-text)",
+                    },
+                  },
+                }}
               />
             )}
           />
@@ -336,7 +376,20 @@ function ApiKeys() {
                 overrides={{
                   Root: {
                     style: {
+                      backgroundColor: "var(--color-input-background)",
+                      borderColor: "var(--color-input-background)",
                       marginTop: "20px",
+                    },
+                  },
+                  InputContainer: {
+                    style: {
+                      backgroundColor: "var(--color-input-background)",
+                    },
+                  },
+                  Input: {
+                    style: {
+                      color: "var(--color-text)",
+                      caretColor: "var(--color-text)",
                     },
                   },
                 }}
@@ -352,13 +405,35 @@ function ApiKeys() {
               BaseButton: {
                 style: {
                   marginRight: "10px",
+                  backgroundColor: "var(--color-background) !important",
+                  color: "var(--color-text) !important",
+                  ":hover": {
+                    backgroundColor: "var(--color-background)",
+                  },
                 },
               },
             }}
           >
             Cancel
           </Button>
-          <Button onClick={onCreate}>Create</Button>
+          <Button
+            onClick={onCreate}
+            shape="pill"
+            overrides={{
+              BaseButton: {
+                style: {
+                  backgroundColor: "var(--color-purple) !important",
+                  color: "var(--color-button-text) !important",
+                  ":hover": {
+                    backgroundColor: "var(--color-purple)",
+                    color: "var(--color-button-text) !important",
+                  },
+                },
+              },
+            }}
+          >
+            Create
+          </Button>
         </ModalFooter>
       </Modal>
     </Main>

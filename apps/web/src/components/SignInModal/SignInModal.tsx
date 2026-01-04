@@ -65,7 +65,9 @@ function SignInModal(props: SignInModalProps) {
           </p>
           <div style={{ marginBottom: 20 }}>
             <div style={{ marginBottom: 15 }}>
-              <LabelMedium>Bluesky handle</LabelMedium>
+              <LabelMedium className="!text-[var(--color-text)]">
+                Handle
+              </LabelMedium>
             </div>
             <Input
               name="handle"
@@ -126,17 +128,18 @@ function SignInModal(props: SignInModalProps) {
             marginTop={"20px"}
             className="!text-[var(--color-text-muted)] text-center"
           >
-            Don't have an account?
+            Don't have an atproto handle yet?
           </LabelMedium>
-          <div className="text-[var(--color-text-muted)] text-center">
+          <div className="text-[var(--color-text-muted)] text-center text-[16px]">
+            You can create one at{" "}
             <a
               href="https://bsky.app"
               className="text-[var(--color-primary)] no-underline cursor-pointer text-center"
               target="_blank"
             >
-              Sign up for Bluesky
+              Bluesky
             </a>{" "}
-            to create one now!
+            or any other AT Protocol service.
           </div>
         </ModalBody>
       </Modal>
