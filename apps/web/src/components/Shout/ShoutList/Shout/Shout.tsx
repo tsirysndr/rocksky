@@ -6,7 +6,7 @@ import { ListItem } from "baseui/list";
 import { NestedMenus, StatefulMenu } from "baseui/menu";
 import { PLACEMENT, StatefulPopover } from "baseui/popover";
 import { StatefulTooltip } from "baseui/tooltip";
-import { LabelMedium } from "baseui/typography";
+import { LabelMedium, LabelSmall } from "baseui/typography";
 import dayjs from "dayjs";
 import { useAtomValue } from "jotai";
 import { useState } from "react";
@@ -17,6 +17,7 @@ import HeartOutline from "../../../Icons/HeartOutline";
 import SignInModal from "../../../SignInModal";
 import DeleteShoutModal from "./DeleteShoutModal";
 import ReplyModal from "./ReplyModal";
+import scrollToTop from "../../../../lib/scrollToTop";
 
 const Link = styled(DefaultLink)`
   color: inherit;
@@ -183,10 +184,18 @@ function Shout(props: ShoutProps) {
           <div className="ml-[20px] w-full">
             <Header>
               <div>
-                <Link to={`/profile/${shout.user.handle}`}>
-                  <LabelMedium className="!text-[var(--color-text)]">
+                <Link
+                  to={`/profile/${shout.user.handle}`}
+                  className="flex no-underline"
+                  style={{ textDecoration: "none" }}
+                  onClick={() => scrollToTop()}
+                >
+                  <LabelMedium className="!text-[var(--color-text)] no-underline">
                     {shout.user.displayName}
                   </LabelMedium>
+                  <LabelSmall className="ml-[5px] mt-[4px] no-underline !text-[var(--color-text-muted)]">
+                    @{shout.user.handle}
+                  </LabelSmall>
                 </Link>
               </div>
               <div>

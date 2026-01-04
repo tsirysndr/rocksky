@@ -11,7 +11,7 @@ import {
 } from "baseui/modal";
 import { Spinner } from "baseui/spinner";
 import { Textarea } from "baseui/textarea";
-import { LabelMedium } from "baseui/typography";
+import { LabelMedium, LabelSmall } from "baseui/typography";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -19,6 +19,7 @@ import z from "zod";
 import { profileAtom } from "../../../../../atoms/profile";
 import { shoutsAtom } from "../../../../../atoms/shouts";
 import useShout from "../../../../../hooks/useShout";
+import scrollToTop from "../../../../../lib/scrollToTop";
 
 const ShoutSchema = z.object({
   message: z.string().min(1).max(1000),
@@ -238,10 +239,18 @@ function ReplyModal(props: ReplyModalProps) {
           <div className="ml-[20px] w-full">
             <Header>
               <div>
-                <Link to={`/profile/${shout.user.handle}`} onClick={close}>
-                  <LabelMedium className="!text-[var(--color-text)]">
+                <Link
+                  to={`/profile/${shout.user.handle}`}
+                  className="flex no-underline"
+                  style={{ textDecoration: "none" }}
+                  onClick={() => scrollToTop()}
+                >
+                  <LabelMedium className="!text-[var(--color-text)] no-underline">
                     {shout.user.displayName}
                   </LabelMedium>
+                  <LabelSmall className="ml-[5px] mt-[4px] no-underline !text-[var(--color-text-muted)]">
+                    @{shout.user.handle}
+                  </LabelSmall>
                 </Link>
               </div>
             </Header>
