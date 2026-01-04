@@ -162,7 +162,10 @@ function Main(props: MainProps) {
   };
 
   return (
-    <Container className="bg-[var(--color-background)] text-[var(--color-text)]">
+    <Container
+      id="app-container"
+      className="bg-[var(--color-background)] text-[var(--color-text)]"
+    >
       <ToasterContainer
         placement={PLACEMENT.top}
         overrides={{

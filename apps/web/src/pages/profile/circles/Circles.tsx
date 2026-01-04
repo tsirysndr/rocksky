@@ -18,6 +18,13 @@ import { useState } from "react";
 import SignInModal from "../../../components/SignInModal";
 import { activeTabAtom } from "../../../atoms/tab";
 
+const scrollToTop = () => {
+  const container = document.querySelector("#app-container");
+  if (container) {
+    container.scrollTo({ top: 0, behavior: "smooth" });
+  }
+};
+
 function Circles() {
   const [, setActiveKey] = useAtom(activeTabAtom);
   const [follows, setFollows] = useAtom(followsAtom);
@@ -76,7 +83,10 @@ function Circles() {
                 <Link
                   to={`/profile/${neighbour.handle}` as string}
                   className="no-underline mt-[10px]"
-                  onClick={() => setActiveKey(0)}
+                  onClick={() => {
+                    setActiveKey(0);
+                    scrollToTop();
+                  }}
                 >
                   <Avatar
                     src={neighbour.avatar}
@@ -89,24 +99,30 @@ function Circles() {
                     <Link
                       to={`/profile/${neighbour.handle}` as string}
                       className="no-underline"
-                      onClick={() => setActiveKey(0)}
+                      onClick={() => {
+                        setActiveKey(0);
+                        scrollToTop();
+                      }}
                     >
                       <LabelMedium
                         marginTop={"0px"}
-                        className="!text-[var(--color-text)]"
+                        className="!text-[var(--color-text)] mr-[5px]"
                       >
                         {neighbour.displayName}
                       </LabelMedium>
                     </Link>
-                    <a
-                      href={`https://bsky.app/profile/${neighbour.handle}`}
-                      className="no-underline text-[var(--color-primary)] ml-[5px]"
-                      target="_blank"
+                    <Link
+                      to={`/profile/${neighbour.handle}` as string}
+                      className="no-underline text-[var(--color-primary)]"
+                      onClick={() => {
+                        setActiveKey(0);
+                        scrollToTop();
+                      }}
                     >
                       <LabelSmall className="!text-[var(--color-primary)] mt-[3px] mb-[5px]">
                         @{neighbour.handle}
                       </LabelSmall>
-                    </a>
+                    </Link>
                   </div>
                   <p className="mt-[0px] mb-[0px] text-[14px]">
                     They both listen to{" "}
