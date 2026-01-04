@@ -113,13 +113,16 @@ function Circles() {
                         scrollToTop();
                       }}
                     >
-                      <LabelSmall className="!text-[var(--color-primary)] mt-[3px] mb-[5px]">
+                      <LabelSmall className="!text-[var(--color-text-muted)]  mt-[3px] mb-[5px]">
                         @{neighbour.handle}
                       </LabelSmall>
                     </Link>
                   </div>
                   <p className="mt-[0px] mb-[0px] text-[14px]">
-                    They both listen to{" "}
+                    {localStorage.getItem("did") === profile.data?.did
+                      ? "You"
+                      : "They"}{" "}
+                    both listen to{" "}
                     {neighbour.topSharedArtistsDetails.map((artist, index) => (
                       <div key={artist.id} className="inline">
                         <Link
