@@ -1,4 +1,5 @@
 import { client } from ".";
+import { Neighbour } from "../types/neighbour";
 import { Scrobble } from "../types/scrobble";
 
 export const getProfileByDid = async (did: string) => {
@@ -27,4 +28,14 @@ export const getRecentTracksByDid = async (
     },
   );
   return response.data.scrobbles || [];
+};
+
+export const getActorNeighbours = async (did: string) => {
+  const response = await client.get<{ neighbours: Neighbour[] }>(
+    "/xrpc/app.rocksky.actor.getActorNeighbours",
+    {
+      params: { did },
+    },
+  );
+  return response.data;
 };

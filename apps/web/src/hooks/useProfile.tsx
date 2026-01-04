@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSetAtom } from "jotai";
 import { useEffect, useState } from "react";
 import {
+  getActorNeighbours,
   getProfileByDid,
   getProfileStatsByDid,
   getRecentTracksByDid,
@@ -27,6 +28,13 @@ export const useRecentTracksByDidQuery = (did: string, offset = 0, size = 10) =>
   useQuery({
     queryKey: ["profile", "recent-tracks", did, offset, size],
     queryFn: () => getRecentTracksByDid(did, offset, size),
+    enabled: !!did,
+  });
+
+export const useActorNeighboursQuery = (did: string) =>
+  useQuery({
+    queryKey: ["profile", "neighbours", did],
+    queryFn: () => getActorNeighbours(did),
     enabled: !!did,
   });
 

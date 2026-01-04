@@ -29,6 +29,7 @@ import {
 import Follows from "./follows";
 import Followers from "./followers";
 import { activeTabAtom } from "../../atoms/tab";
+import Circles from "./circles";
 
 const Group = styled.div`
   display: flex;
@@ -91,10 +92,11 @@ function Profile(props: ProfileProps) {
 
   useEffect(() => {
     if (!props.activeKey) {
+      setActiveKey("0");
       return;
     }
     setActiveKey(_.get(props, "activeKey", "0").split("/")[0]);
-  }, [props.activeKey]);
+  }, [props.activeKey, setActiveKey, props]);
 
   useEffect(() => {
     if (!data || isLoading) {
@@ -113,7 +115,7 @@ function Profile(props: ProfileProps) {
       }
       return newSet;
     });
-  }, [data, isLoading]);
+  }, [data, isLoading, currentDid, setFollows, profile.data?.did]);
 
   useEffect(() => {
     if (tab === undefined) {
@@ -121,7 +123,7 @@ function Profile(props: ProfileProps) {
     }
 
     setActiveKey(1);
-  }, [tab]);
+  }, [tab, setActiveKey]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: <reason>want to run only on profile.data changes</reason>
   useEffect(() => {
@@ -338,6 +340,19 @@ function Profile(props: ProfileProps) {
             }}
           >
             <Follows />
+          </Tab>
+          <Tab
+            title="Circles"
+            overrides={{
+              Tab: {
+                style: {
+                  color: "var(--color-text)",
+                  backgroundColor: "var(--color-background) !important",
+                },
+              },
+            }}
+          >
+            <Circles />
           </Tab>
           <Tab
             title="Loved Tracks"
