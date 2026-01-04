@@ -80,6 +80,7 @@ import getFollowers from "./app/rocksky/graph/getFollowers";
 import getFollows from "./app/rocksky/graph/getFollows";
 import getKnownFollowers from "./app/rocksky/graph/getKnownFollowers";
 import unfollowAccount from "./app/rocksky/graph/unfollowAccount";
+import getActorNeighbours from "./app/rocksky/actor/getActorNeighbours";
 
 export default function (server: Server, ctx: Context) {
   // app.rocksky
@@ -163,6 +164,7 @@ export default function (server: Server, ctx: Context) {
   getFollows(server, ctx);
   getKnownFollowers(server, ctx);
   unfollowAccount(server, ctx);
+  getActorNeighbours(server, ctx);
 
   return server;
 }
