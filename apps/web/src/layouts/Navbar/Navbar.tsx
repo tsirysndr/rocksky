@@ -319,7 +319,7 @@ function Navbar() {
         overrides={{
           Root: {
             style: {
-              zIndex: 1,
+              zIndex: 50,
             },
           },
           Dialog: {

@@ -58,7 +58,14 @@ function Circles() {
       <p>
         People on Rocksky with similar music taste to @{profile.data?.handle}
       </p>
-      {!isLoading && (
+      {!isLoading && data?.neighbours.length === 0 && (
+        <div className="mt-[40px] text-center py-[60px]">
+          <LabelMedium className="!text-[var(--color-text-muted)]">
+            No circles found yet. Check back later!
+          </LabelMedium>
+        </div>
+      )}
+      {!isLoading && (data?.neighbours || []).length > 0 && (
         <div className="mt-[40px]">
           {data?.neighbours.map((neighbour: Neighbour) => (
             <div
