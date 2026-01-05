@@ -95,6 +95,7 @@ const presentation = (
       uri: scrobbles.uri,
       tags: [],
       id: scrobbles.id,
+      trackUri: tracks.uri,
     })),
   }));
 };
