@@ -6,7 +6,7 @@ import type { CompatibilityViewBasic } from "lexicon/types/app/rocksky/actor/def
 import { deepCamelCaseKeys } from "lib";
 import users from "schema/users";
 import { eq, or } from "drizzle-orm";
-import { HandlerAuth } from "@atproto/xrpc-server";
+import type { HandlerAuth } from "@atproto/xrpc-server";
 
 export default function (server: Server, ctx: Context) {
   const getActorCompatibility = (params: QueryParams, auth: HandlerAuth) =>

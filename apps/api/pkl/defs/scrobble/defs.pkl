@@ -73,6 +73,13 @@ defs = new Mapping<String, ObjectType> {
         description = "The SHA256 hash of the scrobble data."
       }
 
+      ["liked"] = new BooleanType {
+        type = "boolean"
+      }
+
+      ["likesCount"] = new IntegerType {
+        type = "integer"
+      }
     }
   }
 

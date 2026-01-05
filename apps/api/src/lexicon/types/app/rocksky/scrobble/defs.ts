@@ -33,6 +33,8 @@ export interface ScrobbleViewBasic {
   uri?: string;
   /** The SHA256 hash of the scrobble data. */
   sha256?: string;
+  liked?: boolean;
+  likesCount?: number;
   [k: string]: unknown;
 }
 

@@ -62,6 +62,12 @@
         "sha256": {
           "type": "string",
           "description": "The SHA256 hash of the scrobble data."
+        },
+        "liked": {
+          "type": "boolean"
+        },
+        "likesCount": {
+          "type": "integer"
         }
       }
     },
