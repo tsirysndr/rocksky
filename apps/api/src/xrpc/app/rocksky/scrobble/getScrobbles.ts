@@ -59,12 +59,44 @@ const retrieve = ({
         const followedDids = followedUsers.map((f) => f.subjectDid);
 
         if (followedDids.length > 0) {
-          return baseQuery
+          const scrobbles = await baseQuery
             .where(inArray(tables.users.did, followedDids))
             .orderBy(desc(tables.scrobbles.timestamp))
             .offset(params.offset || 0)
             .limit(params.limit || 20)
             .execute();
+
+          const trackIds = scrobbles.map((row) => row.tracks?.id).filter(
+            Boolean,
+          );
+
+          const likes = await ctx.db
+            .select()
+            .from(tables.lovedTracks)
+            .leftJoin(
+              tables.users,
+              eq(tables.lovedTracks.userId, tables.users.id),
+            )
+            .where(inArray(tables.lovedTracks.trackId, trackIds))
+            .execute();
+
+          const likesMap = new Map<string, { count: number; liked: boolean }>();
+
+          for (const trackId of trackIds) {
+            const trackLikes = likes.filter(
+              (l) => l.loved_tracks.trackId === trackId,
+            );
+            likesMap.set(trackId, {
+              count: trackLikes.length,
+              liked: trackLikes.some((l) => l.users.did === did),
+            });
+          }
+
+          return scrobbles.map((row) => ({
+            ...row,
+            likesCount: likesMap.get(row.tracks?.id)?.count ?? 0,
+            liked: likesMap.get(row.tracks?.id)?.liked ?? false,
+          }));
         } else {
           return [];
         }
