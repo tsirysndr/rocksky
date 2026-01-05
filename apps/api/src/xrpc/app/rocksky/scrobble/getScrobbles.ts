@@ -99,11 +99,8 @@ const retrieve = ({
 
       return scrobbles.map((row) => ({
         ...row,
-        scrobbles: {
-          ...row.scrobbles,
-          likesCount: likesMap.get(row.tracks?.id)?.count ?? 0,
-          liked: likesMap.get(row.tracks?.id)?.liked ?? false,
-        },
+        likesCount: likesMap.get(row.tracks?.id)?.count ?? 0,
+        liked: likesMap.get(row.tracks?.id)?.liked ?? false,
       }));
     },
 
@@ -115,7 +112,7 @@ const presentation = (
   data: Scrobbles,
 ): Effect.Effect<{ scrobbles: ScrobbleViewBasic[] }, never> => {
   return Effect.sync(() => ({
-    scrobbles: data.map(({ scrobbles, tracks, users }) => ({
+    scrobbles: data.map(({ scrobbles, tracks, users, liked, likesCount }) => ({
       ...R.omit(["albumArt", "id", "lyrics"])(tracks),
       cover: tracks.albumArt,
       date: scrobbles.timestamp.toISOString(),
@@ -126,6 +123,8 @@ const presentation = (
       tags: [],
       id: scrobbles.id,
       trackUri: tracks.uri,
+      likesCount: likesCount,
+      liked: liked,
     })),
   }));
 };
@@ -134,4 +133,6 @@ type Scrobbles = {
   scrobbles: SelectScrobble;
   tracks: SelectTrack;
   users: SelectUser;
+  liked: boolean;
+  likesCount: number;
 }[];
