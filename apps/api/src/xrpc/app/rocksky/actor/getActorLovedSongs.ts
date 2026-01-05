@@ -1,5 +1,5 @@
 import type { Context } from "context";
-import { desc, eq, or } from "drizzle-orm";
+import { and, desc, eq, not, or } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/actor/getActorLovedSongs";
@@ -49,9 +49,12 @@ const retrieve = ({
         )
         .leftJoin(tables.users, eq(tables.lovedTracks.userId, tables.users.id))
         .where(
-          or(
-            eq(tables.users.did, params.did),
-            eq(tables.users.handle, params.did),
+          and(
+            or(
+              eq(tables.users.did, params.did),
+              eq(tables.users.handle, params.did),
+            ),
+            not(eq(tables.lovedTracks.uri, null)),
           ),
         )
         .limit(params.limit ?? 10)
