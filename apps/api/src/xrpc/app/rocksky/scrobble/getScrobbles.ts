@@ -99,7 +99,7 @@ const retrieve = ({
 
       return scrobbles.map((row) => ({
         ...row,
-        scrobles: {
+        scrobbles: {
           ...row.scrobbles,
           likesCount: likesMap.get(row.tracks?.id)?.count ?? 0,
           liked: likesMap.get(row.tracks?.id)?.liked ?? false,
