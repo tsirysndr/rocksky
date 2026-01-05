@@ -88,7 +88,7 @@ const retrieve = ({
             );
             likesMap.set(trackId, {
               count: trackLikes.length,
-              liked: trackLikes.some((l) => l.users.did === did),
+              liked: trackLikes.some((l) => l.users.did === params.did),
             });
           }
 
@@ -125,7 +125,7 @@ const retrieve = ({
         );
         likesMap.set(trackId, {
           count: trackLikes.length,
-          liked: trackLikes.some((l) => l.users.did === did),
+          liked: trackLikes.some((l) => l.users.did === params.did),
         });
       }
 
