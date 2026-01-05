@@ -99,8 +99,11 @@ const retrieve = ({
 
       return scrobbles.map((row) => ({
         ...row,
-        likesCount: likesMap.get(row.tracks?.id)?.count ?? 0,
-        liked: likesMap.get(row.tracks?.id)?.liked ?? false,
+        scrobles: {
+          ...row.scrobbles,
+          likesCount: likesMap.get(row.tracks?.id)?.count ?? 0,
+          liked: likesMap.get(row.tracks?.id)?.liked ?? false,
+        },
       }));
     },
 
