@@ -1,5 +1,5 @@
 import type { Context } from "context";
-import { and, desc, eq, not, or } from "drizzle-orm";
+import { and, desc, eq, isNotNull, not, or } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/actor/getActorLovedSongs";
@@ -54,7 +54,7 @@ const retrieve = ({
               eq(tables.users.did, params.did),
               eq(tables.users.handle, params.did),
             ),
-            not(eq(tables.lovedTracks.uri, null)),
+            isNotNull(tables.lovedTracks.uri),
           ),
         )
         .limit(params.limit ?? 10)
