@@ -1,5 +1,5 @@
 import type { Context } from "context";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ScrobbleViewBasic } from "lexicon/types/app/rocksky/scrobble/defs";
@@ -43,101 +43,95 @@ const retrieve = ({
 }): Effect.Effect<Scrobbles | undefined, Error> => {
   return Effect.tryPromise({
     try: async () => {
-      const baseQuery = ctx.db
-        .select()
-        .from(tables.scrobbles)
-        .leftJoin(tables.tracks, eq(tables.scrobbles.trackId, tables.tracks.id))
-        .leftJoin(tables.users, eq(tables.scrobbles.userId, tables.users.id));
+      const filterDids = await getFilterDids(ctx, params);
 
-      if (params.did && params.following) {
-        const followedUsers = await ctx.db
-          .select({ subjectDid: tables.follows.subject_did })
-          .from(tables.follows)
-          .where(eq(tables.follows.follower_did, params.did))
-          .execute();
-
-        const followedDids = followedUsers.map((f) => f.subjectDid);
-
-        if (followedDids.length > 0) {
-          const scrobbles = await baseQuery
-            .where(inArray(tables.users.did, followedDids))
-            .orderBy(desc(tables.scrobbles.timestamp))
-            .offset(params.offset || 0)
-            .limit(params.limit || 20)
-            .execute();
-
-          const trackIds = scrobbles.map((row) => row.tracks?.id).filter(
-            Boolean,
-          );
-
-          const likes = await ctx.db
-            .select()
-            .from(tables.lovedTracks)
-            .leftJoin(
-              tables.users,
-              eq(tables.lovedTracks.userId, tables.users.id),
-            )
-            .where(inArray(tables.lovedTracks.trackId, trackIds))
-            .execute();
-
-          const likesMap = new Map<string, { count: number; liked: boolean }>();
-
-          for (const trackId of trackIds) {
-            const trackLikes = likes.filter(
-              (l) => l.loved_tracks.trackId === trackId,
-            );
-            likesMap.set(trackId, {
-              count: trackLikes.length,
-              liked: trackLikes.some((l) => l.users.did === params.did),
-            });
-          }
-
-          return scrobbles.map((row) => ({
-            ...row,
-            likesCount: likesMap.get(row.tracks?.id)?.count ?? 0,
-            liked: likesMap.get(row.tracks?.id)?.liked ?? false,
-          }));
-        } else {
-          return [];
-        }
+      if (filterDids !== null && filterDids.length === 0) {
+        return [];
       }
 
-      const scrobbles = await baseQuery
-        .orderBy(desc(tables.scrobbles.timestamp))
-        .offset(params.offset || 0)
-        .limit(params.limit || 20)
-        .execute();
-
-      const trackIds = scrobbles.map((row) => row.tracks?.id).filter(Boolean);
-
-      const likes = await ctx.db
-        .select()
-        .from(tables.lovedTracks)
-        .leftJoin(tables.users, eq(tables.lovedTracks.userId, tables.users.id))
-        .where(inArray(tables.lovedTracks.trackId, trackIds))
-        .execute();
-
-      const likesMap = new Map<string, { count: number; liked: boolean }>();
-
-      for (const trackId of trackIds) {
-        const trackLikes = likes.filter(
-          (l) => l.loved_tracks.trackId === trackId,
-        );
-        likesMap.set(trackId, {
-          count: trackLikes.length,
-          liked: trackLikes.some((l) => l.users.did === params.did),
-        });
-      }
-
-      return scrobbles.map((row) => ({
-        ...row,
-        likesCount: likesMap.get(row.tracks?.id)?.count ?? 0,
-        liked: likesMap.get(row.tracks?.id)?.liked ?? false,
-      }));
+      const scrobbles = await fetchScrobbles(ctx, params, filterDids);
+      return enrichWithLikes(ctx, scrobbles, params.did);
     },
-
     catch: (error) => new Error(`Failed to retrieve scrobbles: ${error}`),
   });
+};
+
+const getFilterDids = async (
+  ctx: Context,
+  params: QueryParams,
+): Promise<string[] | null> => {
+  if (!params.did || !params.following) {
+    return null; // No filtering needed
+  }
+
+  const followedUsers = await ctx.db
+    .select({ subjectDid: tables.follows.subject_did })
+    .from(tables.follows)
+    .where(eq(tables.follows.follower_did, params.did))
+    .execute();
+
+  return followedUsers.map((f) => f.subjectDid);
+};
+
+const fetchScrobbles = async (
+  ctx: Context,
+  params: QueryParams,
+  filterDids: string[] | null,
+) => {
+  const baseQuery = ctx.db
+    .select()
+    .from(tables.scrobbles)
+    .leftJoin(tables.tracks, eq(tables.scrobbles.trackId, tables.tracks.id))
+    .leftJoin(tables.users, eq(tables.scrobbles.userId, tables.users.id));
+
+  const query = filterDids
+    ? baseQuery.where(inArray(tables.users.did, filterDids))
+    : baseQuery;
+
+  return query
+    .orderBy(desc(tables.scrobbles.timestamp))
+    .offset(params.offset || 0)
+    .limit(params.limit || 20)
+    .execute();
+};
+
+const enrichWithLikes = async (
+  ctx: Context,
+  scrobbles: Awaited<ReturnType<typeof fetchScrobbles>>,
+  currentUserDid?: string,
+) => {
+  const trackIds = scrobbles
+    .map((row) => row.tracks?.id)
+    .filter((id): id is string => Boolean(id));
+
+  if (trackIds.length === 0) {
+    return scrobbles.map((row) => ({ ...row, likesCount: 0, liked: false }));
+  }
+
+  const likes = await ctx.db
+    .select()
+    .from(tables.lovedTracks)
+    .leftJoin(tables.users, eq(tables.lovedTracks.userId, tables.users.id))
+    .where(inArray(tables.lovedTracks.trackId, trackIds))
+    .execute();
+
+  const likesMap = new Map<string, { count: number; liked: boolean }>();
+
+  for (const trackId of trackIds) {
+    const trackLikes = likes.filter(
+      (l) => l.loved_tracks.trackId === trackId,
+    );
+    likesMap.set(trackId, {
+      count: trackLikes.length,
+      liked: trackLikes.some((l) => l.users?.did === currentUserDid),
+    });
+  }
+
+  return scrobbles.map((row) => ({
+    ...row,
+    likesCount: likesMap.get(row.tracks?.id ?? "")?.count ?? 0,
+    liked: likesMap.get(row.tracks?.id ?? "")?.liked ?? false,
+  }));
 };
 
 const presentation = (
@@ -155,8 +149,8 @@ const presentation = (
       tags: [],
       id: scrobbles.id,
       trackUri: tracks.uri,
-      likesCount: likesCount,
-      liked: liked,
+      likesCount,
+      liked,
     })),
   }));
 };
