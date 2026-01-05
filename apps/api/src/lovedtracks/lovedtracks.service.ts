@@ -13,6 +13,7 @@ import artistTracks from "../schema/artist-tracks";
 import artists from "../schema/artists";
 import lovedTracks from "../schema/loved-tracks";
 import tracks from "../schema/tracks";
+import extractPdsFromDid from "lib/extractPdsFromDid";
 
 export async function likeTrack(
   ctx: Context,
@@ -248,11 +249,17 @@ export async function likeTrack(
 
   if (trackWithUri?.uri) {
     const rkey = TID.nextStr();
+    const repo = trackWithUri.uri
+      .split("/")
+      .slice(0, 3)
+      .join("/")
+      .split("at://")[1];
+    const pds = await extractPdsFromDid(repo);
     const subjectAgent = new AtpAgent({
-      service: new URL("https://bsky.social"),
+      service: new URL(pds),
     });
     const subjectRecord = await subjectAgent.com.atproto.repo.getRecord({
-      repo: trackWithUri.uri.split("/").slice(0, 3).join("/").split("at://")[1],
+      repo,
       collection: "app.rocksky.song",
       rkey: trackWithUri.uri.split("/").pop(),
     });
