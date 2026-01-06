@@ -42,6 +42,8 @@ pub struct GetAlbumsParams {
 pub struct GetTopAlbumsParams {
     pub user_did: Option<String>,
     pub pagination: Option<Pagination>,
+    pub start_date: Option<String>,
+    pub end_date: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
