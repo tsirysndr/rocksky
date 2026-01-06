@@ -10,7 +10,7 @@ const handler = async (
 ) => {
   const { limit = 50, cursor } = params;
 
-  const whereConditions = [arrayContains(schema.artists.genres, ["dupstep"])];
+  const whereConditions = [arrayContains(schema.artists.genres, ["dubstep"])];
 
   if (cursor) {
     const cursorDate = new Date(parseInt(cursor, 10));
@@ -28,8 +28,9 @@ const handler = async (
 
   const feed = scrobbles.map(({ scrobbles }) => ({ scrobble: scrobbles.uri }));
 
-  const { scrobbles: lastScrobble } =
-    scrobbles.length > 0 ? scrobbles.at(-1)! : { scrobbles: null };
+  const { scrobbles: lastScrobble } = scrobbles.length > 0
+    ? scrobbles.at(-1)!
+    : { scrobbles: null };
   const nextCursor = lastScrobble
     ? lastScrobble.timestamp.getTime().toString(10)
     : undefined;
@@ -41,7 +42,7 @@ const handler = async (
 };
 
 export const publisherDid = "did:plc:vegqomyce4ssoqs7zwqvgqty";
-export const rkey = "dupstep";
+export const rkey = "dubstep";
 
 export const info = {
   handler,
