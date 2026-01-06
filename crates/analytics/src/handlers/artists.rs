@@ -165,71 +165,64 @@ pub async fn get_top_artists(
 ) -> Result<HttpResponse, Error> {
     let body = read_payload!(payload);
     let params = serde_json::from_slice::<GetTopArtistsParams>(&body)?;
-    let pagination = params.pagination.unwrap_or_default();
-    let offset = pagination.skip.unwrap_or(0);
-    let limit = pagination.take.unwrap_or(20);
-    let did = params.user_did;
+
+    let pagination = params.pagination.clone().unwrap_or_default();
+    let offset: i64 = pagination.skip.unwrap_or(0) as i64;
+    let limit: i64 = pagination.take.unwrap_or(20) as i64;
+
+    let did = params.user_did.clone();
+
+    // DuckDB-friendly optional bindings (None -> SQL NULL)
+    let start_date: Option<&str> = params.start_date.as_deref();
+    let end_date: Option<&str> = params.end_date.as_deref();
+
+    tracing::info!(
+        limit,
+        offset,
+        user_did = ?did,
+        start_date = ?params.start_date,
+        end_date = ?params.end_date,
+        "Get top artists"
+    );
 
     let conn = conn.lock().unwrap();
-    let mut stmt = match did {
-        Some(_) => conn.prepare(
-            r#"
-                SELECT
-                    s.artist_id AS id,
-                    ar.name AS artist_name,
-                    ar.picture AS picture,
-                    ar.sha256 AS sha256,
-                    ar.uri AS uri,
-                    ar.genres AS genres,
-                    COUNT(DISTINCT s.created_at) AS play_count,
-                    COUNT(DISTINCT s.user_id) AS unique_listeners
-                FROM
-                    scrobbles s
-                LEFT JOIN
-                    artists ar ON s.artist_id = ar.id
-                LEFT JOIN
-                    users u ON s.user_id = u.id
-                WHERE
-                    s.artist_id IS NOT NULL AND (u.did = ? OR u.handle = ?) AND ar.name != 'Various Artists'
-                GROUP BY
-                    s.artist_id, ar.name, ar.uri, ar.picture, ar.sha256, ar.genres
-                ORDER BY
-                    play_count DESC
-                OFFSET ?
-                LIMIT ?;
-            "#,
-        )?,
-        None => conn.prepare(
-            r#"
-                SELECT
-                    s.artist_id AS id,
-                    ar.name AS artist_name,
-                    ar.picture AS picture,
-                    ar.sha256 AS sha256,
-                    ar.uri AS uri,
-                    ar.genres AS genres,
-                    COUNT(*) AS play_count,
-                    COUNT(DISTINCT s.user_id) AS unique_listeners
-                FROM
-                    scrobbles s
-                LEFT JOIN
-                    artists ar ON s.artist_id = ar.id
-                WHERE
-                    s.artist_id IS NOT NULL AND ar.name != 'Various Artists'
-                GROUP BY
-                    s.artist_id, ar.name, ar.uri, ar.picture, ar.sha256, ar.genres
-                ORDER BY
-                    play_count DESC
-                OFFSET ?
-                LIMIT ?;
-            "#,
-        )?,
-    };
 
     match did {
         Some(did) => {
+            let mut stmt = conn.prepare(
+                r#"
+                SELECT
+                    s.artist_id AS id,
+                    ar.name AS artist_name,
+                    ar.picture AS picture,
+                    ar.sha256 AS sha256,
+                    ar.uri AS uri,
+                    ar.genres AS genres,
+                    -- "created_at" reflects scrobble time (last played)
+                    MAX(s.created_at) AS created_at,
+                    COUNT(DISTINCT s.created_at) AS play_count,
+                    COUNT(DISTINCT s.user_id) AS unique_listeners
+                FROM scrobbles s
+                LEFT JOIN artists ar ON s.artist_id = ar.id
+                LEFT JOIN users u ON s.user_id = u.id
+                WHERE
+                    s.artist_id IS NOT NULL
+                    AND (u.did = ? OR u.handle = ?)
+                    AND ar.name != 'Various Artists'
+                    AND (? IS NULL OR s.created_at >= CAST(? AS TIMESTAMP))
+                    AND (? IS NULL OR s.created_at <= CAST(? AS TIMESTAMP))
+                GROUP BY
+                    s.artist_id, ar.name, ar.uri, ar.picture, ar.sha256, ar.genres
+                ORDER BY play_count DESC
+                LIMIT ?
+                OFFSET ?;
+                "#,
+            )?;
+
             let artists = stmt.query_map(
-                [&did, &did, &limit.to_string(), &offset.to_string()],
+                duckdb::params![
+                    did, did, start_date, start_date, end_date, end_date, limit, offset
+                ],
                 |row| {
                     let genres = extract_genres_from_value(row.get(5)?);
                     Ok(Artist {
@@ -247,8 +240,8 @@ pub async fn get_top_artists(
                         apple_music_link: None,
                         uri: row.get(4)?,
                         genres,
-                        play_count: Some(row.get(6)?),
-                        unique_listeners: Some(row.get(7)?),
+                        play_count: Some(row.get(7)?),
+                        unique_listeners: Some(row.get(8)?),
                     })
                 },
             )?;
@@ -256,28 +249,59 @@ pub async fn get_top_artists(
             let artists: Result<Vec<_>, _> = artists.collect();
             Ok(HttpResponse::Ok().json(artists?))
         }
+
         None => {
-            let artists = stmt.query_map([limit, offset], |row| {
-                let genres = extract_genres_from_value(row.get(5)?);
-                Ok(Artist {
-                    id: row.get(0)?,
-                    name: row.get(1)?,
-                    biography: None,
-                    born: None,
-                    born_in: None,
-                    died: None,
-                    picture: row.get(2)?,
-                    sha256: row.get(3)?,
-                    spotify_link: None,
-                    tidal_link: None,
-                    youtube_link: None,
-                    apple_music_link: None,
-                    uri: row.get(4)?,
-                    genres,
-                    play_count: Some(row.get(6)?),
-                    unique_listeners: Some(row.get(7)?),
-                })
-            })?;
+            let mut stmt = conn.prepare(
+                r#"
+                SELECT
+                    s.artist_id AS id,
+                    ar.name AS artist_name,
+                    ar.picture AS picture,
+                    ar.sha256 AS sha256,
+                    ar.uri AS uri,
+                    ar.genres AS genres,
+                    MAX(s.created_at) AS created_at,
+                    COUNT(*) AS play_count,
+                    COUNT(DISTINCT s.user_id) AS unique_listeners
+                FROM scrobbles s
+                LEFT JOIN artists ar ON s.artist_id = ar.id
+                WHERE
+                    s.artist_id IS NOT NULL
+                    AND ar.name != 'Various Artists'
+                    AND (? IS NULL OR s.created_at >= CAST(? AS TIMESTAMP))
+                    AND (? IS NULL OR s.created_at <= CAST(? AS TIMESTAMP))
+                GROUP BY
+                    s.artist_id, ar.name, ar.uri, ar.picture, ar.sha256, ar.genres
+                ORDER BY play_count DESC
+                LIMIT ?
+                OFFSET ?;
+                "#,
+            )?;
+
+            let artists = stmt.query_map(
+                duckdb::params![start_date, start_date, end_date, end_date, limit, offset],
+                |row| {
+                    let genres = extract_genres_from_value(row.get(5)?);
+                    Ok(Artist {
+                        id: row.get(0)?,
+                        name: row.get(1)?,
+                        biography: None,
+                        born: None,
+                        born_in: None,
+                        died: None,
+                        picture: row.get(2)?,
+                        sha256: row.get(3)?,
+                        spotify_link: None,
+                        tidal_link: None,
+                        youtube_link: None,
+                        apple_music_link: None,
+                        uri: row.get(4)?,
+                        genres,
+                        play_count: Some(row.get(7)?),
+                        unique_listeners: Some(row.get(8)?),
+                    })
+                },
+            )?;
 
             let artists: Result<Vec<_>, _> = artists.collect();
             Ok(HttpResponse::Ok().json(artists?))

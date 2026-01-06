@@ -259,16 +259,31 @@ pub async fn get_top_tracks(
 ) -> Result<HttpResponse, Error> {
     let body = read_payload!(payload);
     let params = serde_json::from_slice::<GetTopTracksParams>(&body)?;
-    let pagination = params.pagination.unwrap_or_default();
-    let offset = pagination.skip.unwrap_or(0);
-    let limit = pagination.take.unwrap_or(20);
-    let did = params.user_did;
-    tracing::info!(limit, offset, user_did = ?did, "Get top tracks");
+
+    let pagination = params.pagination.clone().unwrap_or_default();
+    let offset: i64 = pagination.skip.unwrap_or(0) as i64;
+    let limit: i64 = pagination.take.unwrap_or(20) as i64;
+
+    let did = params.user_did.clone();
+
+    let start_date: Option<&str> = params.start_date.as_deref();
+    let end_date: Option<&str> = params.end_date.as_deref();
+
+    tracing::info!(
+        limit,
+        offset,
+        user_did = ?did,
+        start_date = ?params.start_date,
+        end_date = ?params.end_date,
+        "Get top tracks"
+    );
 
     let conn = conn.lock().unwrap();
+
     match did {
         Some(did) => {
-            let mut stmt = conn.prepare(r#"
+            let mut stmt = conn.prepare(
+                r#"
                 SELECT
                     t.id,
                     t.title,
@@ -291,14 +306,32 @@ pub async fn get_top_tracks(
                 LEFT JOIN artists ar ON s.artist_id = ar.id
                 LEFT JOIN albums a ON s.album_id = a.id
                 LEFT JOIN users u ON s.user_id = u.id
-                WHERE u.did = ? OR u.handle = ?
-                GROUP BY t.id, s.track_id, t.title, ar.name, a.title, t.artist, t.uri, t.album_art, t.duration, t.disc_number, t.track_number, t.artist_uri, t.album_uri, t.created_at, t.sha256, t.album_artist, t.album
+                WHERE
+                    (u.did = ? OR u.handle = ?)
+                    AND (? IS NULL OR s.created_at >= CAST(? AS TIMESTAMP))
+                    AND (? IS NULL OR s.created_at <= CAST(? AS TIMESTAMP))
+                GROUP BY
+                    t.id, s.track_id, t.title, ar.name, a.title, t.artist, t.uri,
+                    t.album_art, t.duration, t.disc_number, t.track_number,
+                    t.artist_uri, t.album_uri, t.created_at, t.sha256,
+                    t.album_artist, t.album
                 ORDER BY play_count DESC
-                OFFSET ?
-                LIMIT ?;
-            "#)?;
-            let top_tracks = stmt.query_map(
-                [&did, &did, &limit.to_string(), &offset.to_string()],
+                LIMIT ?
+                OFFSET ?;
+                "#,
+            )?;
+
+            let rows = stmt.query_map(
+                duckdb::params![
+                    did,        // u.did = ?
+                    did,        // u.handle = ?
+                    start_date, // ? IS NULL
+                    start_date, // CAST(? AS TIMESTAMP)
+                    end_date,   // ? IS NULL
+                    end_date,   // CAST(? AS TIMESTAMP)
+                    limit,      // LIMIT ?
+                    offset      // OFFSET ?
+                ],
                 |row| {
                     Ok(Track {
                         id: row.get(0)?,
@@ -321,11 +354,14 @@ pub async fn get_top_tracks(
                     })
                 },
             )?;
-            let top_tracks: Result<Vec<_>, _> = top_tracks.collect();
+
+            let top_tracks: Result<Vec<_>, _> = rows.collect();
             Ok(HttpResponse::Ok().json(top_tracks?))
         }
+
         None => {
-            let mut stmt = conn.prepare(r#"
+            let mut stmt = conn.prepare(
+                r#"
                 SELECT
                     t.id,
                     t.title,
@@ -347,34 +383,49 @@ pub async fn get_top_tracks(
                 LEFT JOIN tracks t ON s.track_id = t.id
                 LEFT JOIN artists ar ON s.artist_id = ar.id
                 LEFT JOIN albums a ON s.album_id = a.id
-                WHERE s.track_id IS NOT NULL AND s.artist_id IS NOT NULL AND s.album_id IS NOT NULL
-                GROUP BY t.id, s.track_id, t.title, ar.name, a.title, t.artist, t.uri, t.album_art, t.duration, t.disc_number, t.track_number, t.artist_uri, t.album_uri, t.created_at, t.sha256, t.album_artist, t.album
+                WHERE
+                    s.track_id IS NOT NULL
+                    AND s.artist_id IS NOT NULL
+                    AND s.album_id IS NOT NULL
+                    AND (? IS NULL OR s.created_at >= CAST(? AS TIMESTAMP))
+                    AND (? IS NULL OR s.created_at <= CAST(? AS TIMESTAMP))
+                GROUP BY
+                    t.id, s.track_id, t.title, ar.name, a.title, t.artist, t.uri,
+                    t.album_art, t.duration, t.disc_number, t.track_number,
+                    t.artist_uri, t.album_uri, t.created_at, t.sha256,
+                    t.album_artist, t.album
                 ORDER BY play_count DESC
-                OFFSET ?
-                LIMIT ?;
-            "#)?;
-            let top_tracks = stmt.query_map([limit, offset], |row| {
-                Ok(Track {
-                    id: row.get(0)?,
-                    title: row.get(1)?,
-                    artist: row.get(2)?,
-                    album_artist: row.get(3)?,
-                    album: row.get(4)?,
-                    uri: row.get(5)?,
-                    album_art: row.get(6)?,
-                    duration: row.get(7)?,
-                    disc_number: row.get(8)?,
-                    track_number: row.get(9)?,
-                    artist_uri: row.get(10)?,
-                    album_uri: row.get(11)?,
-                    sha256: row.get(12)?,
-                    created_at: row.get(13)?,
-                    play_count: row.get(14)?,
-                    unique_listeners: row.get(15)?,
-                    ..Default::default()
-                })
-            })?;
-            let top_tracks: Result<Vec<_>, _> = top_tracks.collect();
+                LIMIT ?
+                OFFSET ?;
+                "#,
+            )?;
+
+            let rows = stmt.query_map(
+                duckdb::params![start_date, start_date, end_date, end_date, limit, offset],
+                |row| {
+                    Ok(Track {
+                        id: row.get(0)?,
+                        title: row.get(1)?,
+                        artist: row.get(2)?,
+                        album_artist: row.get(3)?,
+                        album: row.get(4)?,
+                        uri: row.get(5)?,
+                        album_art: row.get(6)?,
+                        duration: row.get(7)?,
+                        disc_number: row.get(8)?,
+                        track_number: row.get(9)?,
+                        artist_uri: row.get(10)?,
+                        album_uri: row.get(11)?,
+                        sha256: row.get(12)?,
+                        created_at: row.get(13)?,
+                        play_count: row.get(14)?,
+                        unique_listeners: row.get(15)?,
+                        ..Default::default()
+                    })
+                },
+            )?;
+
+            let top_tracks: Result<Vec<_>, _> = rows.collect();
             Ok(HttpResponse::Ok().json(top_tracks?))
         }
     }

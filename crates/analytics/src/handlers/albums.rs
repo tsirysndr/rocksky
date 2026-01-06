@@ -115,79 +115,68 @@ pub async fn get_top_albums(
 ) -> Result<HttpResponse, Error> {
     let body = read_payload!(payload);
     let params = serde_json::from_slice::<GetTopAlbumsParams>(&body)?;
-    let pagination = params.pagination.unwrap_or_default();
-    let offset = pagination.skip.unwrap_or(0);
-    let limit = pagination.take.unwrap_or(20);
-    let did = params.user_did;
-    tracing::info!(limit, offset, user_did = ?did, "Get top albums");
+
+    let pagination = params.pagination.clone().unwrap_or_default();
+    let offset: i64 = pagination.skip.unwrap_or(0) as i64;
+    let limit: i64 = pagination.take.unwrap_or(20) as i64;
+
+    let did = params.user_did.clone();
+
+    // Bind Option<&str> so None becomes SQL NULL (DuckDB-friendly)
+    let start_date: Option<&str> = params.start_date.as_deref();
+    let end_date: Option<&str> = params.end_date.as_deref();
+
+    tracing::info!(
+        limit,
+        offset,
+        user_did = ?did,
+        start_date = ?params.start_date,
+        end_date = ?params.end_date,
+        "Get top albums"
+    );
 
     let conn = conn.lock().unwrap();
-    let mut stmt = match did {
-        Some(_) => conn.prepare(
-            r#"
-      SELECT
-          s.album_id AS id,
-          a.title AS title,
-          ar.name AS artist,
-          ar.uri AS artist_uri,
-          a.album_art AS album_art,
-          a.release_date,
-          a.year,
-          a.uri,
-          a.sha256,
-          COUNT(DISTINCT s.created_at) AS play_count,
-          COUNT(DISTINCT s.user_id) AS unique_listeners
-      FROM
-          scrobbles s
-      LEFT JOIN
-          albums a ON s.album_id = a.id
-      LEFT JOIN
-          artists ar ON a.artist = ar.name
-      LEFT JOIN
-          users u ON s.user_id = u.id
-      WHERE s.album_id IS NOT NULL AND (u.did = ? OR u.handle = ?) AND ar.name IS NOT NULL
-      GROUP BY
-          s.album_id, a.title, ar.name, a.release_date, a.year, a.uri, a.album_art, a.sha256, ar.uri
-      ORDER BY
-          play_count DESC
-      OFFSET ?
-      LIMIT ?;
-  "#,
-        )?,
-        None => conn.prepare(
-            r#"
-      SELECT
-          s.album_id AS id,
-          a.title AS title,
-          ar.name AS artist,
-          ar.uri AS artist_uri,
-          a.album_art AS album_art,
-          a.release_date,
-          a.year,
-          a.uri,
-          a.sha256,
-          COUNT(*) AS play_count,
-          COUNT(DISTINCT s.user_id) AS unique_listeners
-      FROM
-          scrobbles s
-      LEFT JOIN
-          albums a ON s.album_id = a.id
-      LEFT JOIN
-          artists ar ON a.artist = ar.name WHERE s.album_id IS NOT NULL
-      GROUP BY
-          s.album_id, a.title, ar.name, a.release_date, a.year, a.uri, a.album_art, a.sha256, ar.uri
-      ORDER BY
-          play_count DESC
-      OFFSET ?
-      LIMIT ?;
-    "#,
-        )?,
-    };
 
     match did {
         Some(did) => {
+            let mut stmt = conn.prepare(
+                r#"
+                SELECT
+                    s.album_id AS id,
+                    a.title AS title,
+                    ar.name AS artist,
+                    ar.uri AS artist_uri,
+                    a.album_art AS album_art,
+                    a.release_date,
+                    a.year,
+                    a.uri,
+                    a.sha256,
+                    -- return "last played" (scrobble time), not album row time
+                    MAX(s.created_at) AS created_at,
+                    COUNT(DISTINCT s.created_at) AS play_count,
+                    COUNT(DISTINCT s.user_id) AS unique_listeners
+                FROM scrobbles s
+                LEFT JOIN albums a ON s.album_id = a.id
+                LEFT JOIN artists ar ON a.artist = ar.name
+                LEFT JOIN users u ON s.user_id = u.id
+                WHERE
+                    s.album_id IS NOT NULL
+                    AND (u.did = ? OR u.handle = ?)
+                    AND ar.name IS NOT NULL
+                    AND (? IS NULL OR s.created_at >= CAST(? AS TIMESTAMP))
+                    AND (? IS NULL OR s.created_at <= CAST(? AS TIMESTAMP))
+                GROUP BY
+                    s.album_id, a.title, ar.name, a.release_date, a.year, a.uri, a.album_art, a.sha256, ar.uri
+                ORDER BY play_count DESC
+                LIMIT ?
+                OFFSET ?;
+                "#,
+            )?;
+
             let albums = stmt.query_map(
-                [&did, &did, &limit.to_string(), &offset.to_string()],
+                duckdb::params![
+                    did, did, start_date, start_date, end_date, end_date, limit, offset
+                ],
                 |row| {
                     Ok(Album {
                         id: row.get(0)?,
@@ -199,32 +188,68 @@ pub async fn get_top_albums(
                         year: row.get(6)?,
                         uri: row.get(7)?,
                         sha256: row.get(8)?,
-                        play_count: Some(row.get(9)?),
-                        unique_listeners: Some(row.get(10)?),
+                        play_count: Some(row.get(10)?),
+                        unique_listeners: Some(row.get(11)?),
                         ..Default::default()
                     })
                 },
             )?;
+
             let albums: Result<Vec<_>, _> = albums.collect();
             Ok(HttpResponse::Ok().json(web::Json(albums?)))
         }
+
         None => {
-            let albums = stmt.query_map([limit, offset], |row| {
-                Ok(Album {
-                    id: row.get(0)?,
-                    title: row.get(1)?,
-                    artist: row.get(2)?,
-                    artist_uri: row.get(3)?,
-                    album_art: row.get(4)?,
-                    release_date: row.get(5)?,
-                    year: row.get(6)?,
-                    uri: row.get(7)?,
-                    sha256: row.get(8)?,
-                    play_count: Some(row.get(9)?),
-                    unique_listeners: Some(row.get(10)?),
-                    ..Default::default()
-                })
-            })?;
+            let mut stmt = conn.prepare(
+                r#"
+                SELECT
+                    s.album_id AS id,
+                    a.title AS title,
+                    ar.name AS artist,
+                    ar.uri AS artist_uri,
+                    a.album_art AS album_art,
+                    a.release_date,
+                    a.year,
+                    a.uri,
+                    a.sha256,
+                    MAX(s.created_at) AS created_at,
+                    COUNT(*) AS play_count,
+                    COUNT(DISTINCT s.user_id) AS unique_listeners
+                FROM scrobbles s
+                LEFT JOIN albums a ON s.album_id = a.id
+                LEFT JOIN artists ar ON a.artist = ar.name
+                WHERE
+                    s.album_id IS NOT NULL
+                    AND (? IS NULL OR s.created_at >= CAST(? AS TIMESTAMP))
+                    AND (? IS NULL OR s.created_at <= CAST(? AS TIMESTAMP))
+                GROUP BY
+                    s.album_id, a.title, ar.name, a.release_date, a.year, a.uri, a.album_art, a.sha256, ar.uri
+                ORDER BY play_count DESC
+                LIMIT ?
+                OFFSET ?;
+                "#,
+            )?;
+
+            let albums = stmt.query_map(
+                duckdb::params![start_date, start_date, end_date, end_date, limit, offset],
+                |row| {
+                    Ok(Album {
+                        id: row.get(0)?,
+                        title: row.get(1)?,
+                        artist: row.get(2)?,
+                        artist_uri: row.get(3)?,
+                        album_art: row.get(4)?,
+                        release_date: row.get(5)?,
+                        year: row.get(6)?,
+                        uri: row.get(7)?,
+                        sha256: row.get(8)?,
+                        play_count: Some(row.get(10)?),
+                        unique_listeners: Some(row.get(11)?),
+                        ..Default::default()
+                    })
+                },
+            )?;
+
             let albums: Result<Vec<_>, _> = albums.collect();
             Ok(HttpResponse::Ok().json(web::Json(albums?)))
         }
