@@ -16,6 +16,10 @@ export interface QueryParams {
   limit?: number;
   /** The offset for pagination */
   offset?: number;
+  /** The start date to filter albums from (ISO 8601 format) */
+  startDate?: string;
+  /** The end date to filter albums to (ISO 8601 format) */
+  endDate?: string;
 }
 
 export type InputSchema = undefined;

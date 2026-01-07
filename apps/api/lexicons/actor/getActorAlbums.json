@@ -25,6 +25,16 @@
             "type": "integer",
             "description": "The offset for pagination",
             "minimum": 0
+          },
+          "startDate": {
+            "type": "string",
+            "description": "The start date to filter albums from (ISO 8601 format)",
+            "format": "datetime"
+          },
+          "endDate": {
+            "type": "string",
+            "description": "The end date to filter albums to (ISO 8601 format)",
+            "format": "datetime"
           }
         }
       },

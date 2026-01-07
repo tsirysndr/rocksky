@@ -44,6 +44,8 @@ const retrieve = ({
           skip: params.offset || 0,
           take: params.limit || 10,
         },
+        start_date: params.startDate,
+        end_date: params.endDate,
       }),
     catch: (error) => new Error(`Failed to retrieve tracks: ${error}`),
   });

@@ -118,9 +118,7 @@ const enrichWithLikes = async (
   const likesMap = new Map<string, { count: number; liked: boolean }>();
 
   for (const trackId of trackIds) {
-    const trackLikes = likes.filter(
-      (l) => l.loved_tracks.trackId === trackId,
-    );
+    const trackLikes = likes.filter((l) => l.loved_tracks.trackId === trackId);
     likesMap.set(trackId, {
       count: trackLikes.length,
       liked: trackLikes.some((l) => l.users?.did === currentUserDid),

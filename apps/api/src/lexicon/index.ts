@@ -30,8 +30,8 @@ import type * as AppRockskyApikeyCreateApikey from "./types/app/rocksky/apikey/c
 import type * as AppRockskyApikeyGetApikeys from "./types/app/rocksky/apikey/getApikeys";
 import type * as AppRockskyApikeyRemoveApikey from "./types/app/rocksky/apikey/removeApikey";
 import type * as AppRockskyApikeyUpdateApikey from "./types/app/rocksky/apikey/updateApikey";
-import type * as AppRockskyArtistGetArtistAlbums from "./types/app/rocksky/artist/getArtistAlbums";
 import type * as AppRockskyArtistGetArtist from "./types/app/rocksky/artist/getArtist";
+import type * as AppRockskyArtistGetArtistAlbums from "./types/app/rocksky/artist/getArtistAlbums";
 import type * as AppRockskyArtistGetArtistListeners from "./types/app/rocksky/artist/getArtistListeners";
 import type * as AppRockskyArtistGetArtists from "./types/app/rocksky/artist/getArtists";
 import type * as AppRockskyArtistGetArtistTracks from "./types/app/rocksky/artist/getArtistTracks";
@@ -41,9 +41,9 @@ import type * as AppRockskyDropboxGetFiles from "./types/app/rocksky/dropbox/get
 import type * as AppRockskyDropboxGetMetadata from "./types/app/rocksky/dropbox/getMetadata";
 import type * as AppRockskyDropboxGetTemporaryLink from "./types/app/rocksky/dropbox/getTemporaryLink";
 import type * as AppRockskyFeedDescribeFeedGenerator from "./types/app/rocksky/feed/describeFeedGenerator";
+import type * as AppRockskyFeedGetFeed from "./types/app/rocksky/feed/getFeed";
 import type * as AppRockskyFeedGetFeedGenerator from "./types/app/rocksky/feed/getFeedGenerator";
 import type * as AppRockskyFeedGetFeedGenerators from "./types/app/rocksky/feed/getFeedGenerators";
-import type * as AppRockskyFeedGetFeed from "./types/app/rocksky/feed/getFeed";
 import type * as AppRockskyFeedGetFeedSkeleton from "./types/app/rocksky/feed/getFeedSkeleton";
 import type * as AppRockskyFeedGetNowPlayings from "./types/app/rocksky/feed/getNowPlayings";
 import type * as AppRockskyFeedSearch from "./types/app/rocksky/feed/search";
@@ -65,9 +65,9 @@ import type * as AppRockskyPlayerGetCurrentlyPlaying from "./types/app/rocksky/p
 import type * as AppRockskyPlayerGetPlaybackQueue from "./types/app/rocksky/player/getPlaybackQueue";
 import type * as AppRockskyPlayerNext from "./types/app/rocksky/player/next";
 import type * as AppRockskyPlayerPause from "./types/app/rocksky/player/pause";
+import type * as AppRockskyPlayerPlay from "./types/app/rocksky/player/play";
 import type * as AppRockskyPlayerPlayDirectory from "./types/app/rocksky/player/playDirectory";
 import type * as AppRockskyPlayerPlayFile from "./types/app/rocksky/player/playFile";
-import type * as AppRockskyPlayerPlay from "./types/app/rocksky/player/play";
 import type * as AppRockskyPlayerPrevious from "./types/app/rocksky/player/previous";
 import type * as AppRockskyPlayerSeek from "./types/app/rocksky/player/seek";
 import type * as AppRockskyPlaylistCreatePlaylist from "./types/app/rocksky/playlist/createPlaylist";
@@ -483,17 +483,6 @@ export class AppRockskyArtistNS {
     this._server = server;
   }
 
-  getArtistAlbums<AV extends AuthVerifier>(
-    cfg: ConfigOf<
-      AV,
-      AppRockskyArtistGetArtistAlbums.Handler<ExtractAuth<AV>>,
-      AppRockskyArtistGetArtistAlbums.HandlerReqCtx<ExtractAuth<AV>>
-    >,
-  ) {
-    const nsid = "app.rocksky.artist.getArtistAlbums"; // @ts-ignore
-    return this._server.xrpc.method(nsid, cfg);
-  }
-
   getArtist<AV extends AuthVerifier>(
     cfg: ConfigOf<
       AV,
@@ -502,6 +491,17 @@ export class AppRockskyArtistNS {
     >,
   ) {
     const nsid = "app.rocksky.artist.getArtist"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  getArtistAlbums<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyArtistGetArtistAlbums.Handler<ExtractAuth<AV>>,
+      AppRockskyArtistGetArtistAlbums.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.artist.getArtistAlbums"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 
@@ -628,6 +628,17 @@ export class AppRockskyFeedNS {
     return this._server.xrpc.method(nsid, cfg);
   }
 
+  getFeed<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyFeedGetFeed.Handler<ExtractAuth<AV>>,
+      AppRockskyFeedGetFeed.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.feed.getFeed"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
   getFeedGenerator<AV extends AuthVerifier>(
     cfg: ConfigOf<
       AV,
@@ -647,17 +658,6 @@ export class AppRockskyFeedNS {
     >,
   ) {
     const nsid = "app.rocksky.feed.getFeedGenerators"; // @ts-ignore
-    return this._server.xrpc.method(nsid, cfg);
-  }
-
-  getFeed<AV extends AuthVerifier>(
-    cfg: ConfigOf<
-      AV,
-      AppRockskyFeedGetFeed.Handler<ExtractAuth<AV>>,
-      AppRockskyFeedGetFeed.HandlerReqCtx<ExtractAuth<AV>>
-    >,
-  ) {
-    const nsid = "app.rocksky.feed.getFeed"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 
@@ -924,6 +924,17 @@ export class AppRockskyPlayerNS {
     return this._server.xrpc.method(nsid, cfg);
   }
 
+  play<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyPlayerPlay.Handler<ExtractAuth<AV>>,
+      AppRockskyPlayerPlay.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.player.play"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
   playDirectory<AV extends AuthVerifier>(
     cfg: ConfigOf<
       AV,
@@ -943,17 +954,6 @@ export class AppRockskyPlayerNS {
     >,
   ) {
     const nsid = "app.rocksky.player.playFile"; // @ts-ignore
-    return this._server.xrpc.method(nsid, cfg);
-  }
-
-  play<AV extends AuthVerifier>(
-    cfg: ConfigOf<
-      AV,
-      AppRockskyPlayerPlay.Handler<ExtractAuth<AV>>,
-      AppRockskyPlayerPlay.HandlerReqCtx<ExtractAuth<AV>>
-    >,
-  ) {
-    const nsid = "app.rocksky.player.play"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 

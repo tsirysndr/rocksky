@@ -1,4 +1,4 @@
-amends  "../../schema/lexicon.pkl"
+amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.actor.getActorSongs"
@@ -23,9 +23,17 @@ defs = new Mapping<String, Query> {
           description = "The offset for pagination"
           minimum = 0
         }
+        ["startDate"] = new StringType {
+          description = "The start date to filter albums from (ISO 8601 format)"
+          format = "datetime"
+        }
+        ["endDate"] = new StringType {
+          description = "The end date to filter albums to (ISO 8601 format)"
+          format = "datetime"
+        }
       }
     }
-   output {
+    output {
       encoding = "application/json"
       schema = new ObjectType {
         type = "object"
