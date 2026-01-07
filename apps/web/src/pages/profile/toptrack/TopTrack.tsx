@@ -33,7 +33,7 @@ function TopTrack() {
               className="text-[var(--color-text)] no-underline hover:underline"
             >
               <span className="opacity-90 text-[18px] truncate max-w-[500px]">
-                {data[0].artist}
+                {data[0].albumArtist}
               </span>
             </Link>
           </div>
