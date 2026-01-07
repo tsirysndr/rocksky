@@ -58,6 +58,22 @@ function TopAlbums() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [albumsResult.data, albumsResult.isLoading, albumsResult.isError, did]);
 
+  useEffect(() => {
+    if (albumsResult.isLoading || albumsResult.isError) {
+      return;
+    }
+
+    if (topAlbumsRange === LAST_7_DAYS && albumsResult.data.length === 0) {
+      setRange([]);
+      setTopAlbumsRange(ALL_TIME);
+    }
+  }, [
+    albumsResult.isLoading,
+    albumsResult.isError,
+    topAlbumsRange,
+    albumsResult.data,
+  ]);
+
   const onSelectLastDays = (id: string) => {
     setTopAlbumsRange(id);
     switch (id) {

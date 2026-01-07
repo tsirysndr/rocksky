@@ -22,6 +22,7 @@ import {
   LAST_180_DAYS,
   LAST_365_DAYS,
   LAST_DAYS_LABELS,
+  ALL_TIME,
 } from "../../../../consts";
 import LastDaysMenu from "../../../../components/LastDaysMenu";
 
@@ -110,6 +111,21 @@ function TopTracks(props: TopTracksProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tracksResult.data, tracksResult.isLoading, tracksResult.isError, did]);
 
+  useEffect(() => {
+    if (tracksResult.isLoading || tracksResult.isError) {
+      return;
+    }
+
+    if (topTracksRange === LAST_7_DAYS && tracksResult.data.length === 0) {
+      setRange([]);
+      setTopTracksRange(ALL_TIME);
+    }
+  }, [
+    tracksResult.isLoading,
+    tracksResult.isError,
+    topTracksRange,
+    tracksResult.data,
+  ]);
   const onSelectLastDays = (id: string) => {
     setTopTracksRange(id);
     switch (id) {

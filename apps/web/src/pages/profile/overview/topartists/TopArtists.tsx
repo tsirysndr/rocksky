@@ -18,6 +18,7 @@ import { IconChevronDown } from "@tabler/icons-react";
 import { getLastDays } from "../../../../lib/date";
 import LastDaysMenu from "../../../../components/LastDaysMenu";
 import {
+  ALL_TIME,
   LAST_180_DAYS,
   LAST_30_DAYS,
   LAST_365_DAYS,
@@ -117,6 +118,22 @@ function TopArtists(props: TopArtistsProps) {
     setTopArtists(artistsResult.data);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [artistsResult.data, artistsResult.isLoading, artistsResult.isError, did]);
+
+  useEffect(() => {
+    if (artistsResult.isLoading || artistsResult.isError) {
+      return;
+    }
+
+    if (topArtistsRange === LAST_7_DAYS && artistsResult.data.length === 0) {
+      setRange([]);
+      setTopArtistsRange(ALL_TIME);
+    }
+  }, [
+    artistsResult.isLoading,
+    artistsResult.isError,
+    topArtistsRange,
+    artistsResult.data,
+  ]);
 
   const maxScrobbles = topArtists.length > 0 ? topArtists[0].scrobbles || 1 : 0;
 
