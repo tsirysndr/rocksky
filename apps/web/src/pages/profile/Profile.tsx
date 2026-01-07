@@ -30,6 +30,7 @@ import Follows from "./follows";
 import Followers from "./followers";
 import { activeTabAtom } from "../../atoms/tab";
 import Circles from "./circles";
+import TopTrack from "./toptrack";
 
 const Group = styled.div`
   display: flex;
@@ -37,7 +38,6 @@ const Group = styled.div`
   justify-content: space-between;
   align-items: flex-start;
   margin-top: 20px;
-  margin-bottom: 50px;
 `;
 
 const ProfileInfo = styled.div`
@@ -180,106 +180,111 @@ function Profile(props: ProfileProps) {
   return (
     <Main>
       <div className="pb-[100px] pt-[75px]">
-        <Group>
-          <ProfileInfo>
-            <div className="mr-[20px]">
-              <Avatar
-                name={profiles[did]?.displayName}
-                src={profiles[did]?.avatar}
-                size="150px"
-              />
-            </div>
-            <div style={{ marginTop: profiles[did]?.displayName ? 10 : 30 }}>
-              <HeadingMedium
-                marginTop="0px"
-                marginBottom={0}
-                className="!text-[var(--color-text)]"
-              >
-                {profiles[did]?.displayName}
-              </HeadingMedium>
-              <LabelLarge>
-                <a
-                  href={`https://bsky.app/profile/${profiles[did]?.handle}`}
-                  className="no-underline text-[var(--color-primary)]"
-                  target="_blank"
-                >
-                  @{profiles[did]?.handle}
-                </a>
-                <span className="text-[var(--color-text-muted)] text-[15px]">
-                  {" "}
-                  • scrobbling since{" "}
-                  {dayjs(profiles[did]?.createdAt).format("DD MMM YYYY")}
-                </span>
-              </LabelLarge>
-              <div className="flex-1 mt-[30px] mr-[10px]">
-                <a
-                  href={`https://pdsls.dev/at/${profiles[did]?.did}`}
-                  target="_blank"
-                  className="no-underline text-[var(--color-text)] bg-[var(--color-default-button)] p-[16px] rounded-[10px] pl-[25px] pr-[25px]"
-                >
-                  <ExternalLink size={24} style={{ marginRight: 10 }} />
-                  View on PDSls
-                </a>
+        <div className="mb-[50px]">
+          <Group>
+            <ProfileInfo>
+              <div className="mr-[20px]">
+                <Avatar
+                  name={profiles[did]?.displayName}
+                  src={profiles[did]?.avatar}
+                  size="150px"
+                />
               </div>
-            </div>
-          </ProfileInfo>
-          {(profile.data?.did !== localStorage.getItem("did") ||
-            !localStorage.getItem("did")) && (
-            <>
-              {!follows.has(profile.data?.did || "") && !isLoading && (
-                <Button
-                  shape="pill"
-                  size="compact"
-                  startEnhancer={<IconPlus size={18} />}
-                  onClick={onFollow}
-                  overrides={{
-                    BaseButton: {
-                      style: {
-                        marginTop: "12px",
-                        minWidth: "120px",
-                        backgroundColor: "#ff2876",
-                        ":hover": {
+              <div style={{ marginTop: profiles[did]?.displayName ? 10 : 30 }}>
+                <HeadingMedium
+                  marginTop="0px"
+                  marginBottom={0}
+                  className="!text-[var(--color-text)]"
+                >
+                  {profiles[did]?.displayName}
+                </HeadingMedium>
+                <LabelLarge>
+                  <a
+                    href={`https://bsky.app/profile/${profiles[did]?.handle}`}
+                    className="no-underline text-[var(--color-primary)]"
+                    target="_blank"
+                  >
+                    @{profiles[did]?.handle}
+                  </a>
+                  <span className="text-[var(--color-text-muted)] text-[15px]">
+                    {" "}
+                    • scrobbling since{" "}
+                    {dayjs(profiles[did]?.createdAt).format("DD MMM YYYY")}
+                  </span>
+                </LabelLarge>
+                <div className="flex-1 mt-[30px] mr-[10px]">
+                  <a
+                    href={`https://pdsls.dev/at/${profiles[did]?.did}`}
+                    target="_blank"
+                    className="no-underline text-[var(--color-text)] bg-[var(--color-default-button)] p-[16px] rounded-[10px] pl-[25px] pr-[25px]"
+                  >
+                    <ExternalLink size={24} style={{ marginRight: 10 }} />
+                    View on PDSls
+                  </a>
+                </div>
+              </div>
+            </ProfileInfo>
+            {(profile.data?.did !== localStorage.getItem("did") ||
+              !localStorage.getItem("did")) && (
+              <>
+                {!follows.has(profile.data?.did || "") && !isLoading && (
+                  <Button
+                    shape="pill"
+                    size="compact"
+                    startEnhancer={<IconPlus size={18} />}
+                    onClick={onFollow}
+                    overrides={{
+                      BaseButton: {
+                        style: {
+                          marginTop: "12px",
+                          minWidth: "120px",
                           backgroundColor: "#ff2876",
-                        },
-                        ":focus": {
-                          backgroundColor: "#ff2876",
+                          ":hover": {
+                            backgroundColor: "#ff2876",
+                          },
+                          ":focus": {
+                            backgroundColor: "#ff2876",
+                          },
                         },
                       },
-                    },
-                  }}
-                >
-                  Follow
-                </Button>
-              )}
-              {follows.has(profile.data?.did || "") && !isLoading && (
-                <Button
-                  shape="pill"
-                  size="compact"
-                  startEnhancer={<IconCheck size={18} />}
-                  onClick={onUnfollow}
-                  overrides={{
-                    BaseButton: {
-                      style: {
-                        marginTop: "12px",
-                        minWidth: "120px",
-                        backgroundColor: "var(--color-default-button)",
-                        color: "var(--color-text)",
-                        ":hover": {
+                    }}
+                  >
+                    Follow
+                  </Button>
+                )}
+                {follows.has(profile.data?.did || "") && !isLoading && (
+                  <Button
+                    shape="pill"
+                    size="compact"
+                    startEnhancer={<IconCheck size={18} />}
+                    onClick={onUnfollow}
+                    overrides={{
+                      BaseButton: {
+                        style: {
+                          marginTop: "12px",
+                          minWidth: "120px",
                           backgroundColor: "var(--color-default-button)",
-                        },
-                        ":focus": {
-                          backgroundColor: "var(--color-default-button)",
+                          color: "var(--color-text)",
+                          ":hover": {
+                            backgroundColor: "var(--color-default-button)",
+                          },
+                          ":focus": {
+                            backgroundColor: "var(--color-default-button)",
+                          },
                         },
                       },
-                    },
-                  }}
-                >
-                  Following
-                </Button>
-              )}
-            </>
-          )}
-        </Group>
+                    }}
+                  >
+                    Following
+                  </Button>
+                )}
+              </>
+            )}
+          </Group>
+          <div className="mt-[20px] flex justify-end">
+            <TopTrack />
+          </div>
+        </div>
 
         <Tabs
           activeKey={activeKey}
