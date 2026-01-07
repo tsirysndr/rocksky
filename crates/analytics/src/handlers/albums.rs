@@ -145,7 +145,7 @@ pub async fn get_top_albums(
                     s.album_id AS id,
                     a.title AS title,
                     ar.name AS artist,
-                    ar.uri AS artist_uri,
+                    a.artist_uri AS artist_uri,
                     a.album_art AS album_art,
                     a.release_date,
                     a.year,
@@ -157,7 +157,7 @@ pub async fn get_top_albums(
                     COUNT(DISTINCT s.user_id) AS unique_listeners
                 FROM scrobbles s
                 LEFT JOIN albums a ON s.album_id = a.id
-                LEFT JOIN artists ar ON a.artist = ar.name
+                LEFT JOIN artists ar ON a.artist_uri = ar.uri
                 LEFT JOIN users u ON s.user_id = u.id
                 WHERE
                     s.album_id IS NOT NULL
@@ -166,7 +166,7 @@ pub async fn get_top_albums(
                     AND (? IS NULL OR s.created_at >= CAST(? AS TIMESTAMP))
                     AND (? IS NULL OR s.created_at <= CAST(? AS TIMESTAMP))
                 GROUP BY
-                    s.album_id, a.title, ar.name, a.release_date, a.year, a.uri, a.album_art, a.sha256, ar.uri
+                    s.album_id, a.title, ar.name, a.release_date, a.year, a.uri, a.album_art, a.sha256, a.artist_uri
                 ORDER BY play_count DESC
                 LIMIT ?
                 OFFSET ?;
@@ -206,7 +206,7 @@ pub async fn get_top_albums(
                     s.album_id AS id,
                     a.title AS title,
                     ar.name AS artist,
-                    ar.uri AS artist_uri,
+                    a.artist_uri AS artist_uri,
                     a.album_art AS album_art,
                     a.release_date,
                     a.year,
@@ -217,13 +217,13 @@ pub async fn get_top_albums(
                     COUNT(DISTINCT s.user_id) AS unique_listeners
                 FROM scrobbles s
                 LEFT JOIN albums a ON s.album_id = a.id
-                LEFT JOIN artists ar ON a.artist = ar.name
+                LEFT JOIN artists ar ON a.artist_uri = ar.uri
                 WHERE
                     s.album_id IS NOT NULL
                     AND (? IS NULL OR s.created_at >= CAST(? AS TIMESTAMP))
                     AND (? IS NULL OR s.created_at <= CAST(? AS TIMESTAMP))
                 GROUP BY
-                    s.album_id, a.title, ar.name, a.release_date, a.year, a.uri, a.album_art, a.sha256, ar.uri
+                    s.album_id, a.title, ar.name, a.release_date, a.year, a.uri, a.album_art, a.sha256, a.artist_uri
                 ORDER BY play_count DESC
                 LIMIT ?
                 OFFSET ?;
