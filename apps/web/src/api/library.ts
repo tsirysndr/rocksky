@@ -70,23 +70,59 @@ export const getArtistAlbums = async (
   return response.data.albums;
 };
 
-export const getArtists = async (did: string, offset = 0, limit = 30) => {
+export const getArtists = async (
+  did: string,
+  offset = 0,
+  limit = 30,
+  startDate?: Date,
+  endDate?: Date,
+) => {
   const response = await client.get("/xrpc/app.rocksky.actor.getActorArtists", {
-    params: { did, limit, offset },
+    params: {
+      did,
+      limit,
+      offset,
+      startDate: startDate?.toISOString(),
+      endDate: endDate?.toISOString(),
+    },
   });
   return response.data;
 };
 
-export const getAlbums = async (did: string, offset = 0, limit = 12) => {
+export const getAlbums = async (
+  did: string,
+  offset = 0,
+  limit = 12,
+  startDate?: Date,
+  endDate?: Date,
+) => {
   const response = await client.get("/xrpc/app.rocksky.actor.getActorAlbums", {
-    params: { did, limit, offset },
+    params: {
+      did,
+      limit,
+      offset,
+      startDate: startDate?.toISOString(),
+      endDate: endDate?.toISOString(),
+    },
   });
   return response.data;
 };
 
-export const getTracks = async (did: string, offset = 0, limit = 20) => {
+export const getTracks = async (
+  did: string,
+  offset = 0,
+  limit = 20,
+  startDate?: Date,
+  endDate?: Date,
+) => {
   const response = await client.get("/xrpc/app.rocksky.actor.getActorSongs", {
-    params: { did, limit, offset },
+    params: {
+      did,
+      limit,
+      offset,
+      startDate: startDate?.toISOString(),
+      endDate: endDate?.toISOString(),
+    },
   });
   return response.data;
 };

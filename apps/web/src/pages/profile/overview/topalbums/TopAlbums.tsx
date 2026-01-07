@@ -4,11 +4,23 @@ import { BlockProps } from "baseui/block";
 import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
 import { HeadingSmall, LabelMedium, LabelSmall } from "baseui/typography";
 import { useAtomValue, useSetAtom } from "jotai";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { topAlbumsAtom } from "../../../../atoms/topAlbums";
 import { userAtom } from "../../../../atoms/user";
 import SongCover from "../../../../components/SongCover";
 import { useAlbumsQuery } from "../../../../hooks/useLibrary";
+import { IconChevronDown } from "@tabler/icons-react";
+import { getLastDays } from "../../../../lib/date";
+import {
+  ALL_TIME,
+  LAST_180_DAYS,
+  LAST_30_DAYS,
+  LAST_365_DAYS,
+  LAST_7_DAYS,
+  LAST_90_DAYS,
+  LAST_DAYS_LABELS,
+} from "../../../../consts";
+import LastDaysMenu from "../../../../components/LastDaysMenu";
 
 const itemProps: BlockProps = {
   display: "flex",
@@ -25,10 +37,12 @@ const Link = styled(DefaultLink)`
 `;
 
 function TopAlbums() {
+  const [topAlbumsRange, setTopAlbumsRange] = useState<string>(LAST_7_DAYS);
   const setTopAlbums = useSetAtom(topAlbumsAtom);
   const topAlbums = useAtomValue(topAlbumsAtom);
+  const [range, setRange] = useState<[Date, Date] | []>(getLastDays(7));
   const { did } = useParams({ strict: false });
-  const albumsResult = useAlbumsQuery(did!);
+  const albumsResult = useAlbumsQuery(did!, 0, 12, ...range);
   const user = useAtomValue(userAtom);
 
   useEffect(() => {
@@ -44,6 +58,32 @@ function TopAlbums() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [albumsResult.data, albumsResult.isLoading, albumsResult.isError, did]);
 
+  const onSelectLastDays = (id: string) => {
+    setTopAlbumsRange(id);
+    switch (id) {
+      case LAST_7_DAYS:
+        setRange(getLastDays(7));
+        break;
+      case LAST_30_DAYS:
+        setRange(getLastDays(30));
+        break;
+      case LAST_90_DAYS:
+        setRange(getLastDays(90));
+        break;
+      case LAST_180_DAYS:
+        setRange(getLastDays(180));
+        break;
+      case LAST_365_DAYS:
+        setRange(getLastDays(365));
+        break;
+      case ALL_TIME:
+        setRange([]);
+        break;
+      default:
+        setRange([]);
+    }
+  };
+
   return (
     <>
       <div className="flex flex-row justify-between items-center">
@@ -53,12 +93,17 @@ function TopAlbums() {
         >
           Top Albums
         </HeadingSmall>
-        <a
-          href={`/profile/${user?.handle}?tab=2`}
-          className="no-underline text-[var(--color-primary)] mt-[40px]"
-        >
-          See All
-        </a>
+        <LastDaysMenu onSelect={onSelectLastDays}>
+          <button className="mt-[40px] mb-[10px] bg-transparent text-[var(--color-text)] border-none cursor-pointer opacity-70 hover:opacity-100">
+            <span>
+              <span>{LAST_DAYS_LABELS[topAlbumsRange]}</span>
+            </span>
+            <IconChevronDown
+              size={16}
+              className="ml-[4px] h-[18px] mb-[-5px]"
+            />
+          </button>
+        </LastDaysMenu>
       </div>
       {!topAlbums.length && (
         <div className="text-[var(--color-text-muted)] text-[14px]">
@@ -73,8 +118,8 @@ function TopAlbums() {
         >
           {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            topAlbums.map((album: any) => (
-              <FlexGridItem {...itemProps} key={album.id}>
+            topAlbums.map((album: any, index: number) => (
+              <FlexGridItem {...itemProps} key={index}>
                 <Link
                   to={`/${album.uri?.split("at://")[1].replace("app.rocksky.", "")}`}
                 >

@@ -128,7 +128,8 @@ function RecentTracks(props: RecentTracksProps) {
           </HeadingSmall>
           <a
             href={`/profile/${user?.handle}?tab=0`}
-            className="no-underline mt-[40px] text-[var(--color-primary)]"
+            className="no-underline mt-[40px] text-[var(--color-text)] text-[13px] opacity-70 hover:opacity-100"
+            style={{ fontFamily: "RockfordSansMedium" }}
           >
             See All
           </a>

@@ -13,6 +13,17 @@ import { userAtom } from "../../../../atoms/user";
 import { useTracksQuery } from "../../../../hooks/useLibrary";
 import { useProfileStatsByDidQuery } from "../../../../hooks/useProfile";
 import styles from "./styles";
+import { IconChevronDown } from "@tabler/icons-react";
+import { getLastDays } from "../../../../lib/date";
+import {
+  LAST_7_DAYS,
+  LAST_30_DAYS,
+  LAST_90_DAYS,
+  LAST_180_DAYS,
+  LAST_365_DAYS,
+  LAST_DAYS_LABELS,
+} from "../../../../consts";
+import LastDaysMenu from "../../../../components/LastDaysMenu";
 
 type Row = {
   id: string;
@@ -51,6 +62,7 @@ interface TopTracksProps {
   offset?: number;
   size?: number;
   showPagination?: boolean;
+  withDateRange?: boolean;
 }
 
 function TopTracks(props: TopTracksProps) {
@@ -60,6 +72,11 @@ function TopTracks(props: TopTracksProps) {
     showPagination: false,
     ...props,
   };
+
+  const [range, setRange] = useState<[Date, Date] | []>(
+    props.withDateRange ? getLastDays(7) : [],
+  );
+  const [topTracksRange, setTopTracksRange] = useState<string>(LAST_7_DAYS);
   const setTopTracks = useSetAtom(topTracksAtom);
   const topTracks = useAtomValue(topTracksAtom);
   const { darkMode } = useAtomValue(themeAtom);
@@ -70,6 +87,7 @@ function TopTracks(props: TopTracksProps) {
     did!,
     (currentPage - 1) * props.size!,
     props.size!,
+    ...range,
   );
   const user = useAtomValue(userAtom);
   const pages = useMemo(() => {
@@ -92,6 +110,29 @@ function TopTracks(props: TopTracksProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tracksResult.data, tracksResult.isLoading, tracksResult.isError, did]);
 
+  const onSelectLastDays = (id: string) => {
+    setTopTracksRange(id);
+    switch (id) {
+      case LAST_7_DAYS:
+        setRange(getLastDays(7));
+        break;
+      case LAST_30_DAYS:
+        setRange(getLastDays(30));
+        break;
+      case LAST_90_DAYS:
+        setRange(getLastDays(90));
+        break;
+      case LAST_180_DAYS:
+        setRange(getLastDays(180));
+        break;
+      case LAST_365_DAYS:
+        setRange(getLastDays(365));
+        break;
+      default:
+        setRange([]);
+    }
+  };
+
   const maxScrobbles = topTracks.length > 0 ? topTracks[0].scrobbles || 1 : 0;
 
   return (
@@ -104,12 +145,17 @@ function TopTracks(props: TopTracksProps) {
           >
             Top Tracks
           </HeadingSmall>
-          <a
-            href={`/profile/${user?.handle}?tab=3`}
-            className="no-underline mt-[40px] text-[var(--color-primary)]"
-          >
-            See All
-          </a>
+          <LastDaysMenu onSelect={onSelectLastDays}>
+            <button className="mt-[40px] bg-transparent text-[var(--color-text)] border-none cursor-pointer opacity-70 hover:opacity-100">
+              {topTracksRange && (
+                <span>{LAST_DAYS_LABELS[topTracksRange]}</span>
+              )}
+              <IconChevronDown
+                size={16}
+                className="ml-[4px] h-[18px] mb-[-5px]"
+              />
+            </button>
+          </LastDaysMenu>
         </div>
       )}
 

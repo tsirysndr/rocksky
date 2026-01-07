@@ -14,6 +14,17 @@ import Artist from "../../../../components/Icons/Artist";
 import { useArtistsQuery } from "../../../../hooks/useLibrary";
 import { useProfileStatsByDidQuery } from "../../../../hooks/useProfile";
 import styles from "./styles";
+import { IconChevronDown } from "@tabler/icons-react";
+import { getLastDays } from "../../../../lib/date";
+import LastDaysMenu from "../../../../components/LastDaysMenu";
+import {
+  LAST_180_DAYS,
+  LAST_30_DAYS,
+  LAST_365_DAYS,
+  LAST_7_DAYS,
+  LAST_90_DAYS,
+  LAST_DAYS_LABELS,
+} from "../../../../consts";
 
 const Group = styled.div<{ mb?: number }>`
   display: flex;
@@ -40,17 +51,29 @@ interface TopArtistsProps {
   offset?: number;
   size?: number;
   showPagination?: boolean;
+  withDateRange?: boolean;
 }
 
 function TopArtists(props: TopArtistsProps) {
-  const { showTitle = true, size = 30, showPagination } = props;
+  const { showTitle = true, size = 30, showPagination, withDateRange } = props;
+  const [topArtistsRange, setTopArtistsRange] = useState<string | undefined>(
+    withDateRange ? LAST_7_DAYS : undefined,
+  );
+  const [range, setRange] = useState<[Date, Date] | []>(
+    withDateRange ? getLastDays(7) : [],
+  );
   const setTopArtists = useSetAtom(topArtistsAtom);
   const topArtists = useAtomValue(topArtistsAtom);
   const { darkMode } = useAtomValue(themeAtom);
   const { did } = useParams({ strict: false });
   const profileStats = useProfileStatsByDidQuery(did!);
   const [currentPage, setCurrentPage] = useState(1);
-  const artistsResult = useArtistsQuery(did!, (currentPage - 1) * size, size);
+  const artistsResult = useArtistsQuery(
+    did!,
+    (currentPage - 1) * size,
+    size,
+    ...range,
+  );
   const user = useAtomValue(userAtom);
   const pages = useMemo(() => {
     if (!did || !profileStats.data || !props.size) {
@@ -58,6 +81,29 @@ function TopArtists(props: TopArtistsProps) {
     }
     return Math.ceil(profileStats.data.artists / props.size) || 1;
   }, [profileStats.data, did, props.size]);
+
+  const onSelectLastDays = (id: string) => {
+    setTopArtistsRange(id);
+    switch (id) {
+      case LAST_7_DAYS:
+        setRange(getLastDays(7));
+        break;
+      case LAST_30_DAYS:
+        setRange(getLastDays(30));
+        break;
+      case LAST_90_DAYS:
+        setRange(getLastDays(90));
+        break;
+      case LAST_180_DAYS:
+        setRange(getLastDays(180));
+        break;
+      case LAST_365_DAYS:
+        setRange(getLastDays(365));
+        break;
+      default:
+        setRange([]);
+    }
+  };
 
   useEffect(() => {
     if (artistsResult.isLoading || artistsResult.isError) {
@@ -84,12 +130,17 @@ function TopArtists(props: TopArtistsProps) {
           >
             Top Artists
           </HeadingSmall>
-          <a
-            href={`/profile/${user?.handle}?tab=1`}
-            className="no-underline mt-[40px] text-[var(--color-primary)]"
-          >
-            See All
-          </a>
+          <LastDaysMenu onSelect={onSelectLastDays}>
+            <button className="mt-[40px] bg-transparent text-[var(--color-text)] border-none cursor-pointer opacity-70 hover:opacity-100">
+              {topArtistsRange && (
+                <span>{LAST_DAYS_LABELS[topArtistsRange]}</span>
+              )}
+              <IconChevronDown
+                size={16}
+                className="ml-[4px] h-[18px] mb-[-5px]"
+              />
+            </button>
+          </LastDaysMenu>
         </div>
       )}
 

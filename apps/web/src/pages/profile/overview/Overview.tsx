@@ -50,13 +50,13 @@ function Overview() {
         <RecentTracks />
       </div>
       <div className="mb-20">
-        <TopArtists />
+        <TopArtists withDateRange />
       </div>
       <div className="mb-20">
         <TopAlbums />
       </div>
       <div className="mb-20">
-        <TopTracks />
+        <TopTracks withDateRange />
       </div>
     </>
   );
