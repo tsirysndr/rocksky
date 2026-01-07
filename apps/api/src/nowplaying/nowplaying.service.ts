@@ -70,7 +70,7 @@ export async function putAlbumRecord(
     $type: "app.rocksky.album",
     title: track.album,
     artist: track.albumArtist,
-    year: track.year,
+    year: track.year === null ? undefined : track.year,
     releaseDate: track.releaseDate
       ? track.releaseDate.toISOString()
       : undefined,
@@ -118,7 +118,7 @@ export async function putSongRecord(
     releaseDate: track.releaseDate
       ? track.releaseDate.toISOString()
       : undefined,
-    year: track.year,
+    year: track.year === null ? undefined : track.year,
     albumArtUrl: track.albumArt,
     composer: track.composer ? track.composer : undefined,
     lyrics: track.lyrics ? track.lyrics : undefined,
@@ -176,7 +176,7 @@ async function putScrobbleRecord(
     releaseDate: track.releaseDate
       ? track.releaseDate.toISOString()
       : undefined,
-    year: track.year,
+    year: track.year === null ? undefined : track.year,
     composer: track.composer ? track.composer : undefined,
     lyrics: track.lyrics ? track.lyrics : undefined,
     copyrightMessage: track.copyrightMessage
