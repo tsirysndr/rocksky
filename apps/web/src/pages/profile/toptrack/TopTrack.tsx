@@ -5,7 +5,7 @@ import { getLastDays } from "../../../lib/date";
 function TopTrack() {
   const { did } = useParams({ strict: false });
   const { data, isLoading } = useTracksQuery(did!, 0, 1, ...getLastDays(7));
-  console.log(">> data", data);
+
   return (
     <>
       {!isLoading && data.length > 0 && (
