@@ -1,8 +1,10 @@
-use std::sync::Arc;
+use std::{env, sync::Arc};
 
 use anyhow::Error;
 use chrono::DateTime;
+use futures_util::SinkExt;
 use owo_colors::OwoColorize;
+use serde_json::json;
 use sqlx::{Pool, Postgres};
 use tokio::sync::Mutex;
 
@@ -255,6 +257,28 @@ pub async fn save_user(
             .fetch_all(&mut **tx)
             .await?;
     }
+
+    let u = &users[0];
+    let payload = json!({
+        "xata_id": u.xata_id,
+        "did": u.did,
+        "handle": u.handle,
+        "display_name": u.display_name,
+        "avatar": u.avatar,
+        "xata_createdat": u.xata_createdat.to_rfc3339(),
+        "xata_updatedat": u.xata_createdat.to_rfc3339(),
+        "xata_version": 0,
+    });
+    let payload = serde_json::to_string(&payload)?;
+
+    tokio::spawn(async move {
+        let addr = env::var("NATS_URL").unwrap_or_else(|_| "nats://localhost:4222".to_string());
+        let nc = async_nats::connect(&addr).await?;
+        tracing::info!(server = %addr.bright_green(), "Connected to NATS");
+
+        nc.publish("rocksky.user", payload.into()).await?;
+        Ok::<(), Error>(())
+    });
 
     Ok(users[0].xata_id.clone())
 }
