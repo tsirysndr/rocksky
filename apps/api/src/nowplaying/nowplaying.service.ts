@@ -612,20 +612,20 @@ export async function scrobbleTrack(
     .limit(1)
     .then((rows) => rows[0]);
 
-  let { data: mbTrack } = await ctx.musicbrainz.post<MusicbrainzTrack>(
-    "/hydrate",
-    {
-      artist: track.artist
-        .replaceAll(";", ",")
-        .split(",")
-        .map((a) => ({ name: a.trim() })),
-      name: track.title,
-      album: track.album,
-    },
-  );
+  try {
+    let { data: mbTrack } = await ctx.musicbrainz.post<MusicbrainzTrack>(
+      "/hydrate",
+      {
+        artist: track.artist
+          .replaceAll(";", ",")
+          .split(",")
+          .map((a) => ({ name: a.trim() })),
+        name: track.title,
+        album: track.album,
+      },
+    );
 
-  if (!mbTrack?.trackMBID) {
-    try {
+    if (!mbTrack?.trackMBID) {
       const response = await ctx.musicbrainz.post<MusicbrainzTrack>(
         "/hydrate",
         {
@@ -634,16 +634,16 @@ export async function scrobbleTrack(
         },
       );
       mbTrack = response.data;
-    } catch {
-      mbTrack = null;
     }
-  }
 
-  track.mbId = mbTrack?.trackMBID;
-  track.artists = mbTrack?.artist?.map((artist) => ({
-    mbid: artist.mbid,
-    name: artist.name,
-  }));
+    track.mbId = mbTrack?.trackMBID;
+    track.artists = mbTrack?.artist?.map((artist) => ({
+      mbid: artist.mbid,
+      name: artist.name,
+    }));
+  } catch (error) {
+    console.error("Error fetching MusicBrainz data");
+  }
 
   if (!existingTrack?.uri || !userTrack?.userTrack.uri?.includes(userDid)) {
     await putSongRecord(track, agent);
