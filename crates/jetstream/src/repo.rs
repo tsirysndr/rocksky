@@ -277,6 +277,8 @@ pub async fn save_user(
         tracing::info!(server = %addr.bright_green(), "Connected to NATS");
 
         nc.publish("rocksky.user", payload.into()).await?;
+        nc.flush().await?;
+
         Ok::<(), Error>(())
     });
 
