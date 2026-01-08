@@ -625,11 +625,18 @@ export async function scrobbleTrack(
   );
 
   if (!mbTrack?.trackMBID) {
-    const response = await ctx.musicbrainz.post<MusicbrainzTrack>("/hydrate", {
-      artist: track.artist.split(",").map((a) => ({ name: a.trim() })),
-      name: track.title,
-    });
-    mbTrack = response.data;
+    try {
+      const response = await ctx.musicbrainz.post<MusicbrainzTrack>(
+        "/hydrate",
+        {
+          artist: track.artist.split(",").map((a) => ({ name: a.trim() })),
+          name: track.title,
+        },
+      );
+      mbTrack = response.data;
+    } catch {
+      mbTrack = null;
+    }
   }
 
   track.mbId = mbTrack?.trackMBID;
