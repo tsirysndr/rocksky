@@ -1,8 +1,7 @@
-use std::{env, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::Error;
 use chrono::DateTime;
-use futures_util::SinkExt;
 use owo_colors::OwoColorize;
 use serde_json::json;
 use sqlx::{Pool, Postgres};
@@ -32,6 +31,7 @@ use crate::{
 pub async fn save_scrobble(
     state: Arc<Mutex<AppState>>,
     pool: Arc<Mutex<Pool<Postgres>>>,
+    nc: Arc<async_nats::Client>,
     did: &str,
     commit: Commit,
 ) -> Result<(), Error> {
@@ -88,7 +88,7 @@ pub async fn save_scrobble(
                 .bind(artist_id)
                 .bind(track_id)
                 .bind(uri)
-                .bind(user_id)
+                .bind(&user_id)
                 .bind(
                     DateTime::parse_from_rfc3339(&scrobble_record.created_at)
                         .unwrap()
@@ -98,6 +98,7 @@ pub async fn save_scrobble(
                 .await?;
 
                 tx.commit().await?;
+                publish_user(&nc, &pool, &user_id).await?;
 
                 let users: Vec<User> =
                     sqlx::query_as::<_, User>("SELECT * FROM users WHERE did = $1")
@@ -160,6 +161,7 @@ pub async fn save_scrobble(
                 update_artist_uri(&mut tx, &user_id, artist_record, &uri).await?;
 
                 tx.commit().await?;
+                publish_user(&nc, &pool, &user_id).await?;
             }
 
             if commit.collection == ALBUM_NSID {
@@ -172,6 +174,7 @@ pub async fn save_scrobble(
                 update_album_uri(&mut tx, &user_id, album_record, &uri).await?;
 
                 tx.commit().await?;
+                publish_user(&nc, &pool, &user_id).await?;
             }
 
             if commit.collection == SONG_NSID {
@@ -185,6 +188,7 @@ pub async fn save_scrobble(
                 update_track_uri(&mut tx, &user_id, song_record, &uri).await?;
 
                 tx.commit().await?;
+                publish_user(&nc, &pool, &user_id).await?;
             }
 
             if commit.collection == FEED_GENERATOR_NSID {
@@ -198,19 +202,22 @@ pub async fn save_scrobble(
                 save_feed_generator(&mut tx, &user_id, feed_generator_record, &uri).await?;
 
                 tx.commit().await?;
+                publish_user(&nc, &pool, &user_id).await?;
             }
 
             if commit.collection == FOLLOW_NSID {
                 let mut tx = pool.begin().await?;
 
-                save_user(&mut tx, did).await?;
+                let user_id = save_user(&mut tx, did).await?;
                 let uri = format!("at://{}/app.rocksky.graph.follow/{}", did, commit.rkey);
 
                 let follow_record: FollowRecord = serde_json::from_value(commit.record)?;
-                save_user(&mut tx, &follow_record.subject).await?;
+                let subject_user_id = save_user(&mut tx, &follow_record.subject).await?;
                 save_follow(&mut tx, did, follow_record, &uri).await?;
 
                 tx.commit().await?;
+                publish_user(&nc, &pool, &user_id).await?;
+                publish_user(&nc, &pool, &subject_user_id).await?;
             }
         }
         _ => {
@@ -258,7 +265,26 @@ pub async fn save_user(
             .await?;
     }
 
+    Ok(users[0].xata_id.clone())
+}
+
+pub async fn publish_user(
+    nc: &async_nats::Client,
+    pool: &Pool<Postgres>,
+    id: &str,
+) -> Result<(), Error> {
+    let users: Vec<User> = sqlx::query_as("SELECT * FROM users WHERE xata_id = $1")
+        .bind(id)
+        .fetch_all(pool)
+        .await?;
+
+    if users.is_empty() {
+        tracing::warn!(user=%id, "user not found");
+        return Ok(());
+    }
+
     let u = &users[0];
+
     let payload = json!({
         "xata_id": u.xata_id,
         "did": u.did,
@@ -271,18 +297,10 @@ pub async fn save_user(
     });
     let payload = serde_json::to_string(&payload)?;
 
-    tokio::spawn(async move {
-        let addr = env::var("NATS_URL").unwrap_or_else(|_| "nats://localhost:4222".to_string());
-        let nc = async_nats::connect(&addr).await?;
-        tracing::info!(server = %addr.bright_green(), "Connected to NATS");
+    nc.publish("rocksky.user", payload.into()).await?;
+    nc.flush().await?;
 
-        nc.publish("rocksky.user", payload.into()).await?;
-        nc.flush().await?;
-
-        Ok::<(), Error>(())
-    });
-
-    Ok(users[0].xata_id.clone())
+    Ok(())
 }
 
 pub async fn save_track(

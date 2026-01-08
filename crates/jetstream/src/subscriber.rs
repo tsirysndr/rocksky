@@ -40,13 +40,16 @@ impl ScrobbleSubscriber {
             .await?;
         let pool = Arc::new(Mutex::new(pool));
 
+        let addr = env::var("NATS_URL").unwrap_or_else(|_| "nats://localhost:4222".to_string());
+        let nc = Arc::new(async_nats::connect(&addr).await?);
+
         let (mut ws_stream, _) = connect_async(&self.service_url).await?;
         tracing::info!(url = %self.service_url.bright_green(), "Connected to jetstream at");
 
         while let Some(msg) = ws_stream.next().await {
             match msg {
                 Ok(msg) => {
-                    if let Err(e) = handle_message(state.clone(), pool.clone(), msg) {
+                    if let Err(e) = handle_message(state.clone(), pool.clone(), nc.clone(), msg) {
                         tracing::error!(error = %e, "Error handling message");
                     }
                 }
@@ -64,6 +67,7 @@ impl ScrobbleSubscriber {
 fn handle_message(
     state: Arc<Mutex<AppState>>,
     pool: Arc<Mutex<sqlx::PgPool>>,
+    nc: Arc<async_nats::Client>,
     msg: Message,
 ) -> Result<(), Error> {
     tokio::spawn(async move {
@@ -76,7 +80,7 @@ fn handle_message(
 
             tracing::info!(message = %text, "Received message");
             if let Some(commit) = message.commit {
-                match save_scrobble(state, pool, &message.did, commit).await {
+                match save_scrobble(state, pool, nc, &message.did, commit).await {
                     Ok(_) => {
                         tracing::info!(user_id = %message.did.bright_green(), "Scrobble saved successfully");
                     }
