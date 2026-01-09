@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Avatar } from "baseui/avatar";
 import type { BlockProps } from "baseui/block";
@@ -7,20 +8,19 @@ import { StatefulTooltip } from "baseui/tooltip";
 import { LabelSmall } from "baseui/typography";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { useAtomValue } from "jotai";
+import { useEffect, useRef } from "react";
 import ContentLoader from "react-content-loader";
+import { feedGeneratorUriAtom } from "../../../atoms/feed";
+import { followingFeedAtom } from "../../../atoms/followingFeed";
 import Handle from "../../../components/Handle";
 import SongCover from "../../../components/SongCover";
+import { WS_URL } from "../../../consts";
 import {
   useFeedInfiniteQuery,
   useScrobbleInfiniteQuery,
 } from "../../../hooks/useFeed";
-import { useEffect, useRef } from "react";
-import { WS_URL } from "../../../consts";
-import { useQueryClient } from "@tanstack/react-query";
 import FeedGenerators from "./FeedGenerators";
-import { useAtomValue } from "jotai";
-import { feedGeneratorUriAtom } from "../../../atoms/feed";
-import { followingFeedAtom } from "../../../atoms/followingFeed";
 
 dayjs.extend(relativeTime);
 
@@ -80,7 +80,7 @@ function Feed() {
       await queryClient.invalidateQueries({
         queryKey: ["infiniteFeed", feedUri],
       });
-      // await queryClient.invalidateQueries({ queryKey: ["now-playings"] });
+      await queryClient.invalidateQueries({ queryKey: ["now-playings"] });
       // await queryClient.invalidateQueries({ queryKey: ["scrobblesChart"] });
     };
 
