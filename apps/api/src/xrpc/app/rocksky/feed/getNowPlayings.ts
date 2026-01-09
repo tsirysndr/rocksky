@@ -1,9 +1,14 @@
 import type { Context } from "context";
-import { Effect, pipe, Cache, Duration } from "effect";
+import { desc, eq, sql } from "drizzle-orm";
+import { Cache, Duration, Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { NowPlayingView } from "lexicon/types/app/rocksky/feed/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/feed/getNowPlayings";
-import { deepCamelCaseKeys } from "lib";
+import albums from "schema/albums";
+import artists from "schema/artists";
+import scrobbles from "schema/scrobbles";
+import tracks from "schema/tracks";
+import users from "schema/users";
 
 export default function (server: Server, ctx: Context) {
   const nowPlayingCache = Cache.make({
@@ -13,9 +18,10 @@ export default function (server: Server, ctx: Context) {
       pipe(
         { params, ctx },
         retrieve,
+        Effect.map((data) => ({ data })),
         Effect.flatMap(presentation),
         Effect.retry({ times: 3 }),
-        Effect.timeout("120 seconds"),
+        Effect.timeout("120 seconds")
       ),
   });
 
@@ -26,7 +32,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({});
-      }),
+      })
     );
   server.app.rocksky.feed.getNowPlayings({
     handler: async ({ params }) => {
@@ -39,15 +45,48 @@ export default function (server: Server, ctx: Context) {
   });
 }
 
-const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
+const retrieve = ({
+  params,
+  ctx,
+}: {
+  params: QueryParams;
+  ctx: Context;
+}): Effect.Effect<NowPlayingRecord[], Error, never> => {
   return Effect.tryPromise({
     try: () =>
-      ctx.analytics.post("library.getDistinctScrobbles", {
-        pagination: {
-          skip: 0,
-          take: params.size,
-        },
-      }),
+      ctx.db
+        .select({
+          xataId: scrobbles.id,
+          trackId: tracks.id,
+          title: tracks.title,
+          artist: tracks.artist,
+          albumArtist: tracks.albumArtist,
+          album: tracks.album,
+          albumArt: tracks.albumArt,
+          handle: users.handle,
+          did: users.did,
+          avatar: users.avatar,
+          uri: scrobbles.uri,
+          trackUri: tracks.uri,
+          artistUri: artists.uri,
+          albumUri: albums.uri,
+          xataCreatedat: scrobbles.createdAt,
+        })
+        .from(scrobbles)
+        .leftJoin(artists, eq(scrobbles.artistId, artists.id))
+        .leftJoin(albums, eq(scrobbles.albumId, albums.id))
+        .leftJoin(tracks, eq(scrobbles.trackId, tracks.id))
+        .leftJoin(users, eq(scrobbles.userId, users.id))
+        .where(
+          sql`scrobbles.xata_createdat = (
+            SELECT MAX(inner_s.xata_createdat)
+            FROM scrobbles inner_s
+            WHERE inner_s.user_id = ${users.id}
+          )`
+        )
+        .orderBy(desc(scrobbles.createdAt))
+        .limit(params.size || 20)
+        .execute(),
     catch: (error) =>
       new Error(`Failed to retrieve now playing songs: ${error}`),
   });
@@ -55,8 +94,44 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
 
 const presentation = ({
   data,
+}: {
+  data: NowPlayingRecord[];
 }): Effect.Effect<{ nowPlayings: NowPlayingView[] }, never> => {
   return Effect.sync(() => ({
-    nowPlayings: deepCamelCaseKeys(data),
+    nowPlayings: data.map((record) => ({
+      album: record.album,
+      albumArt: record.albumArt,
+      albumArtist: record.albumArtist,
+      albumUri: record.albumUri,
+      artist: record.artist,
+      artistUri: record.artistUri,
+      avatar: record.avatar,
+      createdAt: record.xataCreatedat.toISOString(),
+      did: record.did,
+      handle: record.handle,
+      id: record.trackId,
+      title: record.title,
+      trackId: record.trackId,
+      trackUri: record.trackUri,
+      uri: record.uri,
+    })),
   }));
+};
+
+type NowPlayingRecord = {
+  xataId: string;
+  trackId: string;
+  title: string;
+  artist: string;
+  albumArtist: string;
+  album: string;
+  albumArt: string;
+  handle: string;
+  did: string;
+  avatar: string;
+  uri: string;
+  trackUri: string;
+  artistUri: string;
+  albumUri: string;
+  xataCreatedat: Date;
 };
