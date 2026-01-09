@@ -1,0 +1,39 @@
+import { type InferInsertModel, type InferSelectModel, sql } from "drizzle-orm";
+import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+
+const tracks = sqliteTable("tracks", {
+  id: text("id").primaryKey().notNull(),
+  title: text("title").notNull(),
+  artist: text("artist").notNull(),
+  albumArtist: text("album_artist").notNull(),
+  albumArt: text("album_art"),
+  album: text("album").notNull(),
+  trackNumber: integer("track_number"),
+  duration: integer("duration").notNull(),
+  mbId: text("mb_id").unique(),
+  youtubeLink: text("youtube_link").unique(),
+  spotifyLink: text("spotify_link").unique(),
+  appleMusicLink: text("apple_music_link").unique(),
+  tidalLink: text("tidal_link").unique(),
+  sha256: text("sha256").unique().notNull(),
+  discNumber: integer("disc_number"),
+  lyrics: text("lyrics"),
+  composer: text("composer"),
+  genre: text("genre"),
+  label: text("label"),
+  copyrightMessage: text("copyright_message"),
+  uri: text("uri").unique(),
+  albumUri: text("album_uri"),
+  artistUri: text("artist_uri"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+});
+
+export type SelectTrack = InferSelectModel<typeof tracks>;
+export type InsertTrack = InferInsertModel<typeof tracks>;
+
+export default tracks;
