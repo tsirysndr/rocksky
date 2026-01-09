@@ -21,7 +21,7 @@ export default function (server: Server, ctx: Context) {
         Effect.map((data) => ({ data })),
         Effect.flatMap(presentation),
         Effect.retry({ times: 3 }),
-        Effect.timeout("120 seconds")
+        Effect.timeout("120 seconds"),
       ),
   });
 
@@ -32,7 +32,7 @@ export default function (server: Server, ctx: Context) {
       Effect.catchAll((err) => {
         console.error(err);
         return Effect.succeed({});
-      })
+      }),
     );
   server.app.rocksky.feed.getNowPlayings({
     handler: async ({ params }) => {
@@ -78,11 +78,11 @@ const retrieve = ({
         .leftJoin(tracks, eq(scrobbles.trackId, tracks.id))
         .leftJoin(users, eq(scrobbles.userId, users.id))
         .where(
-          sql`scrobbles.timestamp = (
-            SELECT MAX(inner_s.timestamp)
+          sql`scrobbles.id IN (
+            SELECT DISTINCT ON (inner_s.user_id) inner_s.id
             FROM scrobbles inner_s
-            WHERE inner_s.user_id = ${users.id}
-          )`
+            ORDER BY inner_s.user_id, inner_s.timestamp DESC, inner_s.id DESC
+          )`,
         )
         .orderBy(desc(scrobbles.timestamp))
         .limit(params.size || 20)

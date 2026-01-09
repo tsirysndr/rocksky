@@ -1,7 +1,7 @@
 import { type InferInsertModel, type InferSelectModel, sql } from "drizzle-orm";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import artists from "./artists";
-import tracks from "./tracks";
+import artists from "./artists.js";
+import tracks from "./tracks.js";
 
 const artistTracks = sqliteTable("artist_tracks", {
   id: text("id").primaryKey().notNull(),

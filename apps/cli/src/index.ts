@@ -15,6 +15,7 @@ import { whoami } from "cmd/whoami";
 import { Command } from "commander";
 import version from "../package.json" assert { type: "json" };
 import { login } from "./cmd/login";
+import { sync } from "cmd/sync";
 
 const program = new Command();
 
@@ -22,8 +23,8 @@ program
   .name("rocksky")
   .description(
     `Command-line interface for Rocksky (${chalk.underline(
-      "https://rocksky.app"
-    )}) – scrobble tracks, view stats, and manage your listening history.`
+      "https://rocksky.app",
+    )}) – scrobble tracks, view stats, and manage your listening history.`,
   )
   .version(version.version);
 
@@ -42,7 +43,7 @@ program
   .command("nowplaying")
   .argument(
     "[did]",
-    "the DID or handle of the user to get the now playing track for."
+    "the DID or handle of the user to get the now playing track for.",
   )
   .description("get the currently playing track.")
   .action(nowplaying);
@@ -63,7 +64,7 @@ program
   .option("-l, --limit <number>", "number of results to limit")
   .argument(
     "<query>",
-    "the search query, e.g., artist, album, title or account"
+    "the search query, e.g., artist, album, title or account",
   )
   .description("search for tracks, albums, or accounts.")
   .action(search);
@@ -117,5 +118,10 @@ program
   .command("mcp")
   .description("Starts an MCP server to use with Claude or other LLMs.")
   .action(mcp);
+
+program
+  .command("sync")
+  .description("Sync your local Rocksky data from AT Protocol.")
+  .action(sync);
 
 program.parse(process.argv);
