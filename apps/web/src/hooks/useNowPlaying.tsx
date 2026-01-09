@@ -25,4 +25,5 @@ export const useNowPlayingsQuery = () =>
         { params: { size: 47 } },
       ),
     select: (res) => res.data.nowPlayings || [],
+    structuralSharing: false,
   });
