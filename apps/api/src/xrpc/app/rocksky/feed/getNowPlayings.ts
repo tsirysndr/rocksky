@@ -70,7 +70,7 @@ const retrieve = ({
           trackUri: tracks.uri,
           artistUri: artists.uri,
           albumUri: albums.uri,
-          xataCreatedat: scrobbles.createdAt,
+          xataCreatedAt: scrobbles.timestamp,
         })
         .from(scrobbles)
         .leftJoin(artists, eq(scrobbles.artistId, artists.id))
@@ -79,12 +79,12 @@ const retrieve = ({
         .leftJoin(users, eq(scrobbles.userId, users.id))
         .where(
           sql`scrobbles.xata_createdat = (
-            SELECT MAX(inner_s.xata_createdat)
+            SELECT MAX(inner_s.timestamp)
             FROM scrobbles inner_s
             WHERE inner_s.user_id = ${users.id}
           )`
         )
-        .orderBy(desc(scrobbles.createdAt))
+        .orderBy(desc(scrobbles.timestamp))
         .limit(params.size || 20)
         .execute(),
     catch: (error) =>
@@ -106,7 +106,7 @@ const presentation = ({
       artist: record.artist,
       artistUri: record.artistUri,
       avatar: record.avatar,
-      createdAt: record.xataCreatedat.toISOString(),
+      createdAt: record.xataCreatedAt.toISOString(),
       did: record.did,
       handle: record.handle,
       id: record.trackId,
@@ -133,5 +133,5 @@ type NowPlayingRecord = {
   trackUri: string;
   artistUri: string;
   albumUri: string;
-  xataCreatedat: Date;
+  xataCreatedAt: Date;
 };
