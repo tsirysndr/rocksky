@@ -80,7 +80,7 @@ client.on("message", async (data) => {
         if (channels.has(collection) && socket.readyState === WebSocket.OPEN) {
           socket.send(
             JSON.stringify({
-              nowPlayings,
+              ...nowPlayings,
               scrobbles,
               scrobblesChart,
               actorScrobbles,

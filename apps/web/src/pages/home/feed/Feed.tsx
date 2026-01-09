@@ -74,7 +74,9 @@ function Feed() {
       }
 
       const message = JSON.parse(event.data);
-      queryClient.setQueryData(["now-playings"], () => message.nowPlayings);
+      queryClient.setQueryData(["now-playings"], () => [
+        ...message.nowPlayings,
+      ]);
       queryClient.setQueryData(
         ["scrobblesChart"],
         () => message.scrobblesChart,
@@ -83,8 +85,8 @@ function Feed() {
       await queryClient.invalidateQueries({
         queryKey: ["infiniteFeed", feedUri],
       });
-      await queryClient.invalidateQueries({ queryKey: ["now-playings"] });
-      await queryClient.invalidateQueries({ queryKey: ["scrobblesChart"] });
+      // await queryClient.invalidateQueries({ queryKey: ["now-playings"] });
+      // await queryClient.invalidateQueries({ queryKey: ["scrobblesChart"] });
     };
 
     return () => {
