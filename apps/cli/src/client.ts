@@ -327,7 +327,6 @@ export class RockskyClient {
       title,
       artist,
     });
-    console.log(q);
     const response = await fetch(
       `${ROCKSKY_API_URL}/xrpc/app.rocksky.song.matchSong?${q.toString()}`,
     );
