@@ -37,9 +37,25 @@ export default function (server: Server, ctx: Context) {
 const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
   return Effect.tryPromise({
     try: async () => {
-      let track = await ctx.db
+      let record = await ctx.db
         .select()
         .from(tables.tracks)
+        .leftJoin(
+          tables.albumTracks,
+          eq(tables.albumTracks.trackId, tables.tracks.id),
+        )
+        .leftJoin(
+          tables.albums,
+          eq(tables.albumTracks.albumId, tables.albums.id),
+        )
+        .leftJoin(
+          tables.artistAlbums,
+          eq(tables.artistAlbums.albumId, tables.albums.id),
+        )
+        .leftJoin(
+          tables.artists,
+          eq(tables.artistAlbums.artistId, tables.artists.id),
+        )
         .where(
           or(
             and(
@@ -55,10 +71,14 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
         .execute()
         .then(([row]) => row);
 
-      let releaseDate = null,
-        year = null;
+      let track = record?.tracks;
 
-      if (!track) {
+      let releaseDate = null,
+        year = null,
+        artistPicture = null,
+        genres = null;
+
+      if (!record) {
         const spotifyTrack = await searchOnSpotify(
           ctx,
           params.title,
@@ -105,7 +125,15 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
             releaseDate = `${spotifyTrack.album.release_date}-01-01`;
             year = parseInt(spotifyTrack.album.release_date);
           }
+
+          artistPicture = spotifyTrack.artists[0]?.images?.[0]?.url || null;
+          genres = spotifyTrack.artists[0]?.genres || null;
         }
+      } else {
+        artistPicture = record.artists.picture;
+        genres = record.artists.genres;
+        releaseDate = record.albums.releaseDate;
+        year = record.albums.year;
       }
 
       return Promise.all([
@@ -126,23 +154,37 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
           .then((rows) => rows[0]?.count || 0),
         Promise.resolve(releaseDate),
         Promise.resolve(year),
+        Promise.resolve(artistPicture),
+        Promise.resolve(genres),
       ]);
     },
     catch: (error) => new Error(`Failed to retrieve artist: ${error}`),
   });
 };
 
-const presentation = ([track, uniqueListeners, playCount, releaseDate, year]: [
+const presentation = ([
+  track,
+  uniqueListeners,
+  playCount,
+  releaseDate,
+  year,
+  artistPicture,
+  genres,
+]: [
   SelectTrack,
   number,
   number,
   string | null,
   number | null,
+  string | null,
+  string[] | null,
 ]): Effect.Effect<SongViewDetailed, never> => {
   return Effect.sync(() => ({
     ...track,
     releaseDate,
     year,
+    artistPicture,
+    genres,
     playCount,
     uniqueListeners,
     createdAt: track.createdAt.toISOString(),
