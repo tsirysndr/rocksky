@@ -13,7 +13,7 @@ import { stats } from "cmd/stats";
 import { tracks } from "cmd/tracks";
 import { whoami } from "cmd/whoami";
 import { Command } from "commander";
-import version from "../package.json" assert { type: "json" };
+import { version } from "../package.json" assert { type: "json" };
 import { login } from "./cmd/login";
 import { sync } from "cmd/sync";
 
@@ -26,7 +26,7 @@ program
       "https://rocksky.app",
     )}) – scrobble tracks, view stats, and manage your listening history.`,
   )
-  .version(version.version);
+  .version(version);
 
 program.configureHelp({
   styleTitle: (str) => chalk.bold.cyan(str),
