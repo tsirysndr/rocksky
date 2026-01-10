@@ -16,6 +16,9 @@ import { createId } from "@paralleldrive/cuid2";
 import _ from "lodash";
 import { and, eq } from "drizzle-orm";
 import { indexBy } from "ramda";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 const PAGE_SIZE = 100;
 
@@ -29,7 +32,7 @@ export async function sync() {
   const agent: Agent = await createAgent(did, handle);
 
   const user = await createUser(agent, did, handle);
-  subscribeToJetstream(did);
+  subscribeToJetstream(user);
 
   logger.info`  DID: ${did}`;
   logger.info`  Handle: ${handle}`;
@@ -46,10 +49,21 @@ export async function sync() {
   logger.info`  Songs: ${songs.length}`;
   logger.info`  Scrobbles: ${scrobbles.length}`;
 
+  const lockFilePath = path.join(os.tmpdir(), `rocksky-${did}.lock`);
+
+  if (await fs.promises.stat(lockFilePath).catch(() => false)) {
+    logger.error`Lock file already exists, if you want to force sync, delete the lock file ${lockFilePath}`;
+    process.exit(1);
+  }
+
+  await fs.promises.writeFile(lockFilePath, "");
+
   await createArtists(artists, user);
   await createAlbums(albums, user);
   await createSongs(songs, user);
   await createScrobbles(scrobbles, user);
+
+  await fs.promises.unlink(lockFilePath);
 }
 
 const getEndpoint = () => {
@@ -509,7 +523,7 @@ const createScrobbles = async (scrobbles: Scrobbles, user: SelectUser) => {
   logger.info`🕒 ${totalScrobblesImported} scrobbles imported`;
 };
 
-const subscribeToJetstream = (_did: string) => {
+const subscribeToJetstream = (user: SelectUser) => {
   const client = new JetStreamClient({
     wantedCollections: [
       "app.rocksky.scrobble",
@@ -518,9 +532,7 @@ const subscribeToJetstream = (_did: string) => {
       "app.rocksky.song",
     ],
     endpoint: getEndpoint(),
-
-    // Optional: filter by specific DIDs
-    // wantedDids: [did],
+    wantedDids: [user.did],
 
     // Reconnection settings
     maxReconnectAttempts: 10,
@@ -540,7 +552,7 @@ const subscribeToJetstream = (_did: string) => {
     const event = data as JetStreamEvent;
 
     if (event.kind === "commit" && event.commit) {
-      const { operation, collection, record, rkey } = event.commit;
+      const { operation, collection, record, rkey, cid } = event.commit;
       const uri = `at://${event.did}/${collection}/${rkey}`;
 
       logger.info`\n📡 New event:`;
@@ -551,6 +563,7 @@ const subscribeToJetstream = (_did: string) => {
 
       if (operation === "create" && record) {
         console.log(JSON.stringify(record, null, 2));
+        await onNewCollection(record, cid, uri, user);
       }
 
       logger.info`  Cursor: ${event.time_us}`;
@@ -567,6 +580,100 @@ const subscribeToJetstream = (_did: string) => {
   });
 
   client.connect();
+};
+
+const onNewCollection = async (
+  record: any,
+  cid: string,
+  uri: string,
+  user: SelectUser,
+) => {
+  switch (record.$type) {
+    case "app.rocksky.song":
+      await onNewSong(record, cid, uri, user);
+      break;
+    case "app.rocksky.album":
+      await onNewAlbum(record, cid, uri, user);
+      break;
+    case "app.rocksky.artist":
+      await onNewArtist(record, cid, uri, user);
+      break;
+    case "app.rocksky.scrobble":
+      await onNewScrobble(record, cid, uri, user);
+      break;
+    default:
+      logger.warn`Unknown collection type: ${record.$type}`;
+  }
+};
+
+const onNewSong = async (
+  record: Song.Record,
+  cid: string,
+  uri: string,
+  user: SelectUser,
+) => {
+  const { title, artist, album } = record;
+  logger.info`  New song: ${title} by ${artist} from ${album}`;
+};
+
+const onNewAlbum = async (
+  record: Album.Record,
+  cid: string,
+  uri: string,
+  user: SelectUser,
+) => {
+  const { title, artist } = record;
+  logger.info`  New album: ${title} by ${artist}`;
+  await createAlbums(
+    [
+      {
+        cid,
+        uri,
+        value: record,
+      },
+    ],
+    user,
+  );
+};
+
+const onNewArtist = async (
+  record: Artist.Record,
+  cid: string,
+  uri: string,
+  user: SelectUser,
+) => {
+  const { name } = record;
+  logger.info`  New artist: ${name}`;
+  await createArtists(
+    [
+      {
+        cid,
+        uri,
+        value: record,
+      },
+    ],
+    user,
+  );
+};
+
+const onNewScrobble = async (
+  record: Scrobble.Record,
+  cid: string,
+  uri: string,
+  user: SelectUser,
+) => {
+  const { title, createdAt } = record;
+  logger.info`  New scrobble: ${title} at ${createdAt}`;
+  await createScrobbles(
+    [
+      {
+        cid,
+        uri,
+        value: record,
+      },
+    ],
+    user,
+  );
 };
 
 const getRockskyUserSongs = async (agent: Agent): Promise<Songs> => {
