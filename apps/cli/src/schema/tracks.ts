@@ -27,10 +27,10 @@ const tracks = sqliteTable("tracks", {
   artistUri: text("artist_uri"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+    .default(sql`(unixepoch())`),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+    .default(sql`(unixepoch())`),
 });
 
 export type SelectTrack = InferSelectModel<typeof tracks>;

@@ -17,10 +17,10 @@ const albums = sqliteTable("albums", {
   youtubeLink: text("youtube_link").unique(),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+    .default(sql`(unixepoch())`),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+    .default(sql`(unixepoch())`),
 });
 
 export type SelectAlbum = InferSelectModel<typeof albums>;

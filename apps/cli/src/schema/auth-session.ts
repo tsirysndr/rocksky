@@ -6,10 +6,10 @@ const authSessions = sqliteTable("auth_sessions", {
   session: text("session").notNull(),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+    .default(sql`(unixepoch())`),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+    .default(sql`(unixepoch())`),
 });
 
 export type SelectAuthSession = InferSelectModel<typeof authSessions>;

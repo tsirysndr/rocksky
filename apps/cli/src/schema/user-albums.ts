@@ -15,10 +15,10 @@ const userAlbums = sqliteTable(
       .references(() => albums.id),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
-      .default(sql`CURRENT_TIMESTAMP`),
+      .default(sql`(unixepoch())`),
     updatedAt: integer("updated_at", { mode: "timestamp" })
       .notNull()
-      .default(sql`CURRENT_TIMESTAMP`),
+      .default(sql`(unixepoch())`),
     scrobbles: integer("scrobbles"),
     uri: text("uri").unique().notNull(),
   },

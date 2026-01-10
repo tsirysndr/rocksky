@@ -18,10 +18,10 @@ const artists = sqliteTable("artists", {
   genres: text("genres"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+    .default(sql`(unixepoch())`),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+    .default(sql`(unixepoch())`),
 });
 
 export type SelectArtist = InferSelectModel<typeof artists>;

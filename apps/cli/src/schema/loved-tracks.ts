@@ -16,7 +16,7 @@ const lovedTracks = sqliteTable(
     uri: text("uri").unique(),
     createdAt: integer("created_at")
       .notNull()
-      .default(sql`CURRENT_TIMESTAMP`),
+      .default(sql`(unixepoch())`),
   },
   (t) => [unique("loved_tracks_unique_index").on(t.userId, t.trackId)],
 );

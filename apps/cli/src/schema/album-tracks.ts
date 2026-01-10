@@ -15,10 +15,10 @@ const albumTracks = sqliteTable(
       .references(() => tracks.id),
     createdAt: integer("created_at")
       .notNull()
-      .default(sql`CURRENT_TIMESTAMP`),
+      .default(sql`(unixepoch())`),
     updatedAt: integer("updated_at")
       .notNull()
-      .default(sql`CURRENT_TIMESTAMP`),
+      .default(sql`(unixepoch())`),
   },
 
   (t) => [unique("album_tracks_unique_index").on(t.albumId, t.trackId)],
