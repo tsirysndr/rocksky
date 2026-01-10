@@ -141,18 +141,28 @@ const searchOnSpotify = async (
     .from(tables.spotifyTokens)
     .leftJoin(
       tables.spotifyApps,
-      eq(tables.spotifyTokens.spotifyAppId, tables.spotifyApps.spotifyAppId),
+      eq(tables.spotifyApps.spotifyAppId, tables.spotifyTokens.spotifyAppId),
     )
     .leftJoin(
       tables.spotifyAccounts,
-      eq(tables.spotifyAccounts.spotifyAppId, tables.spotifyApps.id),
+      eq(tables.spotifyAccounts.userId, tables.spotifyTokens.userId),
     )
     .where(eq(tables.spotifyAccounts.isBetaUser, true))
     .limit(500)
     .execute();
 
+  if (!spotifyTokens || spotifyTokens.length === 0) {
+    console.warn("No Spotify tokens available for beta users");
+    return undefined;
+  }
+
   const { spotify_tokens, spotify_apps } =
     spotifyTokens[Math.floor(Math.random() * spotifyTokens.length)];
+
+  if (!spotify_tokens || !spotify_apps) {
+    console.warn("Invalid Spotify token or app data");
+    return undefined;
+  }
 
   const refreshToken = decrypt(
     spotify_tokens.refreshToken,
