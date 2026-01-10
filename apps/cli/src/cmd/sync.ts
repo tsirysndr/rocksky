@@ -340,6 +340,10 @@ const createSongs = async (songs: Songs, user: SelectUser) => {
 
   for (let i = 0; i < validSongData.length; i += BATCH_SIZE) {
     const batch = validSongData.slice(i, i + BATCH_SIZE);
+    const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
+    const totalBatches = Math.ceil(validSongData.length / BATCH_SIZE);
+
+    logger.info`▶️ Processing tracks batch ${batchNumber}/${totalBatches} (${Math.min(i + BATCH_SIZE, validSongData.length)}/${validSongData.length})`;
 
     ctx.db.transaction((tx) => {
       const tracks = tx
@@ -371,9 +375,7 @@ const createSongs = async (songs: Songs, user: SelectUser) => {
             artistUri: artist.uri,
           })),
         )
-        .onConflictDoNothing({
-          target: schema.tracks.cid,
-        })
+        .onConflictDoNothing()
         .returning()
         .all();
 
@@ -476,6 +478,10 @@ const createScrobbles = async (scrobbles: Scrobbles, user: SelectUser) => {
 
   for (let i = 0; i < validScrobbleData.length; i += BATCH_SIZE) {
     const batch = validScrobbleData.slice(i, i + BATCH_SIZE);
+    const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
+    const totalBatches = Math.ceil(validScrobbleData.length / BATCH_SIZE);
+
+    logger.info`🕒 Processing scrobbles batch ${batchNumber}/${totalBatches} (${Math.min(i + BATCH_SIZE, validScrobbleData.length)}/${validScrobbleData.length})`;
 
     const result = await ctx.db
       .insert(schema.scrobbles)
