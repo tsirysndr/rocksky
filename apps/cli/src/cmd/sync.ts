@@ -14,6 +14,10 @@ import { SelectUser } from "schema/users";
 import schema from "schema";
 import { createId } from "@paralleldrive/cuid2";
 import _ from "lodash";
+import { and, eq } from "drizzle-orm";
+import { indexBy } from "ramda";
+
+const PAGE_SIZE = 100;
 
 type Artists = { value: Artist.Record; uri: string; cid: string }[];
 type Albums = { value: Album.Record; uri: string; cid: string }[];
@@ -118,120 +122,385 @@ const createUser = async (
   return user;
 };
 
-const createArtists = async (artists: Artists, _user: SelectUser) => {
+const createArtists = async (artists: Artists, user: SelectUser) => {
   if (artists.length === 0) return;
 
-  await ctx.db
-    .insert(schema.artists)
-    .values(
-      artists.map((artist) => ({
-        id: createId(),
-        name: artist.value.name,
-        cid: artist.cid,
-        uri: artist.uri,
-        biography: artist.value.bio,
-        born: artist.value.born ? new Date(artist.value.born) : null,
-        bornIn: artist.value.bornIn,
-        died: artist.value.died ? new Date(artist.value.died) : null,
-        picture: artist.value.pictureUrl,
-        sha256: artist.value.sha256 as string,
-        genres: (artist.value.genres as string[]).join(", "),
-      })),
-    )
-    .onConflictDoNothing({
-      target: schema.artists.cid,
-    })
-    .returning()
-    .execute();
+  const tags = artists.map((artist) => artist.value.tags || []);
+
+  // Batch genre inserts to avoid stack overflow
+  const uniqueTags = tags
+    .flat()
+    .filter((tag) => tag)
+    .map((tag) => ({
+      id: createId(),
+      name: tag,
+    }));
+
+  const BATCH_SIZE = 500;
+  for (let i = 0; i < uniqueTags.length; i += BATCH_SIZE) {
+    const batch = uniqueTags.slice(i, i + BATCH_SIZE);
+    await ctx.db
+      .insert(schema.genres)
+      .values(batch)
+      .onConflictDoNothing({
+        target: schema.genres.name,
+      })
+      .execute();
+  }
+
+  const genres = await ctx.db.select().from(schema.genres).execute();
+
+  const genreMap = indexBy((genre) => genre.name, genres);
+
+  // Process artists in batches
+  let totalArtistsImported = 0;
+
+  for (let i = 0; i < artists.length; i += BATCH_SIZE) {
+    const batch = artists.slice(i, i + BATCH_SIZE);
+
+    ctx.db.transaction((tx) => {
+      const newArtists = tx
+        .insert(schema.artists)
+        .values(
+          batch.map((artist) => ({
+            id: createId(),
+            name: artist.value.name,
+            cid: artist.cid,
+            uri: artist.uri,
+            biography: artist.value.bio,
+            born: artist.value.born ? new Date(artist.value.born) : null,
+            bornIn: artist.value.bornIn,
+            died: artist.value.died ? new Date(artist.value.died) : null,
+            picture: artist.value.pictureUrl,
+            genres: artist.value.tags?.join(", "),
+          })),
+        )
+        .onConflictDoNothing({
+          target: schema.artists.cid,
+        })
+        .returning()
+        .all();
+
+      if (newArtists.length === 0) return;
+
+      const artistGenres = newArtists
+        .map(
+          (artist) =>
+            artist.genres
+              ?.split(", ")
+              .filter((tag) => !!tag && !!genreMap[tag])
+              .map((tag) => ({
+                id: createId(),
+                artistId: artist.id,
+                genreId: genreMap[tag].id,
+              })) || [],
+        )
+        .flat();
+
+      if (artistGenres.length > 0) {
+        tx.insert(schema.artistGenres)
+          .values(artistGenres)
+          .onConflictDoNothing({
+            target: [schema.artistGenres.artistId, schema.artistGenres.genreId],
+          })
+          .returning()
+          .run();
+      }
+
+      tx.insert(schema.userArtists)
+        .values(
+          newArtists.map((artist) => ({
+            id: createId(),
+            userId: user.id,
+            artistId: artist.id,
+            uri: artist.uri,
+          })),
+        )
+        .run();
+
+      totalArtistsImported += newArtists.length;
+    });
+  }
+
+  logger.info`👤 ${totalArtistsImported} Artists imported`;
 };
 
 const createAlbums = async (albums: Albums, user: SelectUser) => {
   if (albums.length === 0) return;
 
-  await ctx.db
-    .insert(schema.albums)
-    .values(
-      albums.map((album) => ({
-        id: createId(),
-        cid: album.cid,
-        title: "",
-        artist: "",
-        sha256: "",
-        uri: album.uri,
-        mbid: "",
-        description: "",
-        imageUrl: "",
-        spotifyId: "",
-        appleMusicId: "",
-        genres: "",
-        releaseDate: "",
-        year: undefined,
-      })),
-    )
-    .onConflictDoNothing({
-      target: schema.albums.cid,
-    })
-    .returning()
-    .execute();
+  const artists = await Promise.all(
+    albums.map(async (album) =>
+      ctx.db
+        .select()
+        .from(schema.artists)
+        .where(eq(schema.artists.name, album.value.artist))
+        .execute()
+        .then(([artist]) => artist),
+    ),
+  );
+
+  const validAlbumData = albums
+    .map((album, index) => ({ album, artist: artists[index] }))
+    .filter(({ artist }) => artist);
+
+  // Process albums in batches
+  const BATCH_SIZE = 500;
+  let totalAlbumsImported = 0;
+
+  for (let i = 0; i < validAlbumData.length; i += BATCH_SIZE) {
+    const batch = validAlbumData.slice(i, i + BATCH_SIZE);
+
+    ctx.db.transaction((tx) => {
+      const newAlbums = tx
+        .insert(schema.albums)
+        .values(
+          batch.map(({ album, artist }) => ({
+            id: createId(),
+            cid: album.cid,
+            uri: album.uri,
+            title: album.value.title,
+            artist: album.value.artist,
+            releaseDate: album.value.releaseDate,
+            year: album.value.year,
+            albumArt: album.value.albumArtUrl,
+            artistUri: artist.uri,
+            appleMusicLink: album.value.appleMusicLink,
+            spotifyLink: album.value.spotifyLink,
+            tidalLink: album.value.tidalLink,
+            youtubeLink: album.value.youtubeLink,
+          })),
+        )
+        .onConflictDoNothing({
+          target: schema.albums.cid,
+        })
+        .returning()
+        .all();
+
+      if (newAlbums.length === 0) return;
+
+      tx.insert(schema.userAlbums)
+        .values(
+          newAlbums.map((album) => ({
+            id: createId(),
+            userId: user.id,
+            albumId: album.id,
+            uri: album.uri,
+          })),
+        )
+        .run();
+
+      totalAlbumsImported += newAlbums.length;
+    });
+  }
+
+  logger.info`💿 ${totalAlbumsImported} Albums imported`;
 };
 
 const createSongs = async (songs: Songs, user: SelectUser) => {
   if (songs.length === 0) return;
 
-  await ctx.db
-    .insert(schema.tracks)
-    .values(
-      songs.map((song) => ({
-        id: createId(),
-        cid: song.cid,
-        uri: song.uri,
-        title: song.value.title,
-        artist: song.value.artist,
-        albumArtist: song.value.albumArtist,
-        albumArt: song.value.albumArtUrl,
-        album: song.value.album,
-        trackNumber: song.value.trackNumber,
-        duration: song.value.duration,
-        mbId: song.value.mbid,
-        youtubeLink: song.value.youtubeLink,
-        spotifyLink: song.value.spotifyLink,
-        appleMusicLink: song.value.appleMusicLink,
-        tidalLink: song.value.tidalLink,
-        discNumber: song.value.discNumber,
-        lyrics: song.value.lyrics,
-        composer: song.value.composer,
-        genre: song.value.genre,
-        label: song.value.label,
-        copyrightMessage: song.value.copyrightMessage,
-        albumUri: "",
-        artistUri: "",
-      })),
-    )
-    .onConflictDoNothing({
-      target: schema.tracks.cid,
-    })
-    .returning()
-    .execute();
+  const albums = await Promise.all(
+    songs.map((song) =>
+      ctx.db
+        .select()
+        .from(schema.albums)
+        .where(
+          and(
+            eq(schema.albums.artist, song.value.albumArtist),
+            eq(schema.albums.title, song.value.album),
+          ),
+        )
+        .execute()
+        .then((result) => result[0]),
+    ),
+  );
+
+  const artists = await Promise.all(
+    songs.map((song) =>
+      ctx.db
+        .select()
+        .from(schema.artists)
+        .where(eq(schema.artists.name, song.value.albumArtist))
+        .execute()
+        .then((result) => result[0]),
+    ),
+  );
+
+  const validSongData = songs
+    .map((song, index) => ({
+      song,
+      artist: artists[index],
+      album: albums[index],
+    }))
+    .filter(({ artist, album }) => artist && album);
+
+  // Process in batches to avoid stack overflow with large datasets
+  const BATCH_SIZE = 500;
+  let totalTracksImported = 0;
+
+  for (let i = 0; i < validSongData.length; i += BATCH_SIZE) {
+    const batch = validSongData.slice(i, i + BATCH_SIZE);
+
+    ctx.db.transaction((tx) => {
+      const tracks = tx
+        .insert(schema.tracks)
+        .values(
+          batch.map(({ song, artist, album }) => ({
+            id: createId(),
+            cid: song.cid,
+            uri: song.uri,
+            title: song.value.title,
+            artist: song.value.artist,
+            albumArtist: song.value.albumArtist,
+            albumArt: song.value.albumArtUrl,
+            album: song.value.album,
+            trackNumber: song.value.trackNumber,
+            duration: song.value.duration,
+            mbId: song.value.mbid,
+            youtubeLink: song.value.youtubeLink,
+            spotifyLink: song.value.spotifyLink,
+            appleMusicLink: song.value.appleMusicLink,
+            tidalLink: song.value.tidalLink,
+            discNumber: song.value.discNumber,
+            lyrics: song.value.lyrics,
+            composer: song.value.composer,
+            genre: song.value.genre,
+            label: song.value.label,
+            copyrightMessage: song.value.copyrightMessage,
+            albumUri: album.uri,
+            artistUri: artist.uri,
+          })),
+        )
+        .onConflictDoNothing({
+          target: schema.tracks.cid,
+        })
+        .returning()
+        .all();
+
+      if (tracks.length === 0) return;
+
+      tx.insert(schema.albumTracks)
+        .values(
+          tracks.map((track, index) => ({
+            id: createId(),
+            albumId: batch[index].album.id,
+            trackId: track.id,
+          })),
+        )
+        .onConflictDoNothing({
+          target: [schema.albumTracks.albumId, schema.albumTracks.trackId],
+        })
+        .run();
+
+      tx.insert(schema.userTracks)
+        .values(
+          tracks.map((track) => ({
+            id: createId(),
+            userId: user.id,
+            trackId: track.id,
+            uri: track.uri,
+          })),
+        )
+        .onConflictDoNothing({
+          target: [schema.userTracks.userId, schema.userTracks.trackId],
+        })
+        .run();
+
+      totalTracksImported += tracks.length;
+    });
+  }
+
+  logger.info`▶️ ${totalTracksImported} Tracks imported`;
 };
 
 const createScrobbles = async (scrobbles: Scrobbles, user: SelectUser) => {
   if (!scrobbles.length) return;
 
-  await ctx.db
-    .insert(schema.scrobbles)
-    .values(
-      scrobbles.map((scrobble) => ({
-        id: createId(),
-        trackId: "",
-        userId: user.id,
-        timestamp: new Date(),
-      })),
-    )
-    .onConflictDoNothing({
-      target: schema.scrobbles.cid,
-    })
-    .returning()
-    .execute();
+  const tracks = await Promise.all(
+    scrobbles.map((scrobble) =>
+      ctx.db
+        .select()
+        .from(schema.tracks)
+        .where(
+          and(
+            eq(schema.tracks.title, scrobble.value.title),
+            eq(schema.tracks.artist, scrobble.value.artist),
+            eq(schema.tracks.album, scrobble.value.album),
+            eq(schema.tracks.albumArtist, scrobble.value.albumArtist),
+          ),
+        )
+        .execute()
+        .then(([track]) => track),
+    ),
+  );
+
+  const albums = await Promise.all(
+    scrobbles.map((scrobble) =>
+      ctx.db
+        .select()
+        .from(schema.albums)
+        .where(
+          and(
+            eq(schema.albums.title, scrobble.value.album),
+            eq(schema.albums.artist, scrobble.value.albumArtist),
+          ),
+        )
+        .execute()
+        .then(([album]) => album),
+    ),
+  );
+
+  const artists = await Promise.all(
+    scrobbles.map((scrobble) =>
+      ctx.db
+        .select()
+        .from(schema.artists)
+        .where(and(eq(schema.artists.name, scrobble.value.artist)))
+        .execute()
+        .then(([artist]) => artist),
+    ),
+  );
+
+  const validScrobbleData = scrobbles
+    .map((scrobble, index) => ({
+      scrobble,
+      track: tracks[index],
+      album: albums[index],
+      artist: artists[index],
+    }))
+    .filter(({ track, album, artist }) => track && album && artist);
+
+  // Process in batches to avoid stack overflow with large datasets
+  const BATCH_SIZE = 500;
+  let totalScrobblesImported = 0;
+
+  for (let i = 0; i < validScrobbleData.length; i += BATCH_SIZE) {
+    const batch = validScrobbleData.slice(i, i + BATCH_SIZE);
+
+    const result = await ctx.db
+      .insert(schema.scrobbles)
+      .values(
+        batch.map(({ scrobble, track, album, artist }) => ({
+          id: createId(),
+          userId: user.id,
+          trackId: track.id,
+          albumId: album.id,
+          artistId: artist.id,
+          uri: scrobble.uri,
+          cid: scrobble.cid,
+          timestamp: new Date(scrobble.value.createdAt),
+        })),
+      )
+      .onConflictDoNothing({
+        target: schema.scrobbles.cid,
+      })
+      .returning()
+      .execute();
+
+    totalScrobblesImported += result.length;
+  }
+
+  logger.info`🕒 ${totalScrobblesImported} scrobbles imported`;
 };
 
 const subscribeToJetstream = (_did: string) => {
@@ -301,12 +570,11 @@ const getRockskyUserSongs = async (agent: Agent): Promise<Songs> => {
     cid: string;
   }[] = [];
   let cursor: string | undefined;
-  let i = 1;
   do {
     const res = await agent.com.atproto.repo.listRecords({
       repo: agent.assertDid,
       collection: "app.rocksky.song",
-      limit: 100,
+      limit: PAGE_SIZE,
       cursor,
     });
     const records = res.data.records as Array<{
@@ -316,8 +584,9 @@ const getRockskyUserSongs = async (agent: Agent): Promise<Songs> => {
     }>;
     results = results.concat(records);
     cursor = res.data.cursor;
-    logger.info(`${chalk.greenBright(i)} songs`);
-    i += 100;
+    logger.info(
+      `${chalk.cyanBright(agent.assertDid)} ${chalk.greenBright(results.length)} songs`,
+    );
   } while (cursor);
 
   return results;
@@ -330,12 +599,11 @@ const getRockskyUserAlbums = async (agent: Agent): Promise<Albums> => {
     cid: string;
   }[] = [];
   let cursor: string | undefined;
-  let i = 1;
   do {
     const res = await agent.com.atproto.repo.listRecords({
       repo: agent.assertDid,
       collection: "app.rocksky.album",
-      limit: 100,
+      limit: PAGE_SIZE,
       cursor,
     });
 
@@ -348,8 +616,9 @@ const getRockskyUserAlbums = async (agent: Agent): Promise<Albums> => {
     results = results.concat(records);
 
     cursor = res.data.cursor;
-    logger.info(`${chalk.greenBright(i)} albums`);
-    i += 100;
+    logger.info(
+      `${chalk.cyanBright(agent.assertDid)} ${chalk.greenBright(results.length)} albums`,
+    );
   } while (cursor);
 
   return results;
@@ -362,12 +631,11 @@ const getRockskyUserArtists = async (agent: Agent): Promise<Artists> => {
     cid: string;
   }[] = [];
   let cursor: string | undefined;
-  let i = 1;
   do {
     const res = await agent.com.atproto.repo.listRecords({
       repo: agent.assertDid,
       collection: "app.rocksky.artist",
-      limit: 100,
+      limit: PAGE_SIZE,
       cursor,
     });
 
@@ -380,8 +648,9 @@ const getRockskyUserArtists = async (agent: Agent): Promise<Artists> => {
     results = results.concat(records);
 
     cursor = res.data.cursor;
-    logger.info(`${chalk.greenBright(i)} artists`);
-    i += 100;
+    logger.info(
+      `${chalk.cyanBright(agent.assertDid)} ${chalk.greenBright(results.length)} artists`,
+    );
   } while (cursor);
 
   return results;
@@ -394,12 +663,11 @@ const getRockskyUserScrobbles = async (agent: Agent): Promise<Scrobbles> => {
     cid: string;
   }[] = [];
   let cursor: string | undefined;
-  let i = 1;
   do {
     const res = await agent.com.atproto.repo.listRecords({
       repo: agent.assertDid,
       collection: "app.rocksky.scrobble",
-      limit: 100,
+      limit: PAGE_SIZE,
       cursor,
     });
 
@@ -412,8 +680,9 @@ const getRockskyUserScrobbles = async (agent: Agent): Promise<Scrobbles> => {
     results = results.concat(records);
 
     cursor = res.data.cursor;
-    logger.info(`${chalk.greenBright(i)} scrobbles`);
-    i += 100;
+    logger.info(
+      `${chalk.cyanBright(agent.assertDid)} ${chalk.greenBright(results.length)} scrobbles`,
+    );
   } while (cursor);
 
   return results;

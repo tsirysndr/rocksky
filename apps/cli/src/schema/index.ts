@@ -1,9 +1,11 @@
 import albumTracks from "./album-tracks";
 import albums from "./albums";
 import artistAlbums from "./artist-albums";
+import artistGenres from "./artist-genres";
 import artistTracks from "./artist-tracks";
 import artists from "./artists";
 import authSessions from "./auth-session";
+import genres from "./genres";
 import lovedTracks from "./loved-tracks";
 import scrobbles from "./scrobbles";
 import tracks from "./tracks";
@@ -26,4 +28,6 @@ export default {
   userAlbums,
   userArtists,
   userTracks,
+  genres,
+  artistGenres,
 };

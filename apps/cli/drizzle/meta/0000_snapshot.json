@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "571a287d-ea60-4ac4-847a-307da78c375c",
+  "id": "0542b673-3d07-4b88-91a8-591a3a265288",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "album_tracks": {
@@ -45,7 +45,16 @@
           "default": "CURRENT_TIMESTAMP"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "album_tracks_unique_index": {
+          "name": "album_tracks_unique_index",
+          "columns": [
+            "album_id",
+            "track_id"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {
         "album_tracks_album_id_albums_id_fk": {
           "name": "album_tracks_album_id_albums_id_fk",
@@ -279,7 +288,16 @@
           "default": "CURRENT_TIMESTAMP"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "artist_albums_unique_index": {
+          "name": "artist_albums_unique_index",
+          "columns": [
+            "artist_id",
+            "album_id"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {
         "artist_albums_artist_id_artists_id_fk": {
           "name": "artist_albums_artist_id_artists_id_fk",
@@ -308,6 +326,46 @@
           "onUpdate": "no action"
         }
       },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "artist_genres ": {
+      "name": "artist_genres ",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "artist_id": {
+          "name": "artist_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "genre_id": {
+          "name": "genre_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "artist_genre_unique_index": {
+          "name": "artist_genre_unique_index",
+          "columns": [
+            "artist_id",
+            "genre_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
@@ -353,7 +411,16 @@
           "default": "CURRENT_TIMESTAMP"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "artist_tracks_unique_index": {
+          "name": "artist_tracks_unique_index",
+          "columns": [
+            "artist_id",
+            "track_id"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {
         "artist_tracks_artist_id_artists_id_fk": {
           "name": "artist_tracks_artist_id_artists_id_fk",
@@ -565,6 +632,54 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
+    "genres": {
+      "name": "genres",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "genres_name_unique": {
+          "name": "genres_name_unique",
+          "columns": [
+            "name"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
     "loved_tracks": {
       "name": "loved_tracks",
       "columns": {
@@ -610,6 +725,14 @@
           "name": "loved_tracks_uri_unique",
           "columns": [
             "uri"
+          ],
+          "isUnique": true
+        },
+        "loved_tracks_unique_index": {
+          "name": "loved_tracks_unique_index",
+          "columns": [
+            "user_id",
+            "track_id"
           ],
           "isUnique": true
         }
@@ -1051,8 +1174,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "artist_id": {
-          "name": "artist_id",
+        "album_id": {
+          "name": "album_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -1096,6 +1219,14 @@
             "uri"
           ],
           "isUnique": true
+        },
+        "user_albums_unique_index": {
+          "name": "user_albums_unique_index",
+          "columns": [
+            "user_id",
+            "album_id"
+          ],
+          "isUnique": true
         }
       },
       "foreignKeys": {
@@ -1112,9 +1243,113 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "user_albums_artist_id_artists_id_fk": {
-          "name": "user_albums_artist_id_artists_id_fk",
+        "user_albums_album_id_albums_id_fk": {
+          "name": "user_albums_album_id_albums_id_fk",
           "tableFrom": "user_albums",
+          "tableTo": "albums",
+          "columnsFrom": [
+            "album_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "user_artists": {
+      "name": "user_artists",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "artist_id": {
+          "name": "artist_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "scrobbles": {
+          "name": "scrobbles",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "uri": {
+          "name": "uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "user_artists_uri_unique": {
+          "name": "user_artists_uri_unique",
+          "columns": [
+            "uri"
+          ],
+          "isUnique": true
+        },
+        "user_artists_unique_index": {
+          "name": "user_artists_unique_index",
+          "columns": [
+            "user_id",
+            "artist_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "user_artists_user_id_users_id_fk": {
+          "name": "user_artists_user_id_users_id_fk",
+          "tableFrom": "user_artists",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "user_artists_artist_id_artists_id_fk": {
+          "name": "user_artists_artist_id_artists_id_fk",
+          "tableFrom": "user_artists",
           "tableTo": "artists",
           "columnsFrom": [
             "artist_id"
@@ -1190,6 +1425,14 @@
           "name": "user_tracks_uri_unique",
           "columns": [
             "uri"
+          ],
+          "isUnique": true
+        },
+        "user_tracks_unique_index": {
+          "name": "user_tracks_unique_index",
+          "columns": [
+            "user_id",
+            "track_id"
           ],
           "isUnique": true
         }

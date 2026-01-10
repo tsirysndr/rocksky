@@ -25,9 +25,7 @@ export async function createAgent(did: string, handle: string): Promise<Agent> {
     await agent.resumeSession(JSON.parse(data.session));
     return agent;
   } catch (e) {
-    ctx.logger.error`resuming session ${did}`;
-    ctx.logger.error(e);
-
+    ctx.logger.error`Resuming session ${did}`;
     await ctx.db
       .delete(authSessions)
       .where(eq(authSessions.key, did))
@@ -49,6 +47,8 @@ export async function createAgent(did: string, handle: string): Promise<Agent> {
         set: { session: JSON.stringify(agent.session) },
       })
       .execute();
+
+    ctx.logger.info`Logged in as ${handle}`;
 
     return agent;
   }

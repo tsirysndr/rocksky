@@ -8,6 +8,7 @@ CREATE TABLE `album_tracks` (
 	FOREIGN KEY (`track_id`) REFERENCES `tracks`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX `album_tracks_unique_index` ON `album_tracks` (`album_id`,`track_id`);--> statement-breakpoint
 CREATE TABLE `albums` (
 	`id` text PRIMARY KEY NOT NULL,
 	`title` text NOT NULL,
@@ -42,6 +43,14 @@ CREATE TABLE `artist_albums` (
 	FOREIGN KEY (`album_id`) REFERENCES `albums`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX `artist_albums_unique_index` ON `artist_albums` (`artist_id`,`album_id`);--> statement-breakpoint
+CREATE TABLE `artist_genres ` (
+	`id` text PRIMARY KEY NOT NULL,
+	`artist_id` text NOT NULL,
+	`genre_id` text NOT NULL
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `artist_genre_unique_index` ON `artist_genres ` (`artist_id`,`genre_id`);--> statement-breakpoint
 CREATE TABLE `artist_tracks` (
 	`id` text PRIMARY KEY NOT NULL,
 	`artist_id` text NOT NULL,
@@ -52,6 +61,7 @@ CREATE TABLE `artist_tracks` (
 	FOREIGN KEY (`track_id`) REFERENCES `tracks`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX `artist_tracks_unique_index` ON `artist_tracks` (`artist_id`,`track_id`);--> statement-breakpoint
 CREATE TABLE `artists` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
@@ -80,6 +90,14 @@ CREATE TABLE `auth_sessions` (
 	`updated_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE `genres` (
+	`id` text PRIMARY KEY NOT NULL,
+	`name` text NOT NULL,
+	`created_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	`updated_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `genres_name_unique` ON `genres` (`name`);--> statement-breakpoint
 CREATE TABLE `loved_tracks` (
 	`id` text PRIMARY KEY NOT NULL,
 	`user_id` text NOT NULL,
@@ -91,6 +109,7 @@ CREATE TABLE `loved_tracks` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `loved_tracks_uri_unique` ON `loved_tracks` (`uri`);--> statement-breakpoint
+CREATE UNIQUE INDEX `loved_tracks_unique_index` ON `loved_tracks` (`user_id`,`track_id`);--> statement-breakpoint
 CREATE TABLE `scrobbles` (
 	`xata_id` text PRIMARY KEY NOT NULL,
 	`user_id` text,
@@ -148,6 +167,20 @@ CREATE UNIQUE INDEX `tracks_cid_unique` ON `tracks` (`cid`);--> statement-breakp
 CREATE TABLE `user_albums` (
 	`id` text PRIMARY KEY NOT NULL,
 	`user_id` text NOT NULL,
+	`album_id` text NOT NULL,
+	`created_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	`updated_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	`scrobbles` integer,
+	`uri` text NOT NULL,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`album_id`) REFERENCES `albums`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `user_albums_uri_unique` ON `user_albums` (`uri`);--> statement-breakpoint
+CREATE UNIQUE INDEX `user_albums_unique_index` ON `user_albums` (`user_id`,`album_id`);--> statement-breakpoint
+CREATE TABLE `user_artists` (
+	`id` text PRIMARY KEY NOT NULL,
+	`user_id` text NOT NULL,
 	`artist_id` text NOT NULL,
 	`created_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -157,7 +190,8 @@ CREATE TABLE `user_albums` (
 	FOREIGN KEY (`artist_id`) REFERENCES `artists`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `user_albums_uri_unique` ON `user_albums` (`uri`);--> statement-breakpoint
+CREATE UNIQUE INDEX `user_artists_uri_unique` ON `user_artists` (`uri`);--> statement-breakpoint
+CREATE UNIQUE INDEX `user_artists_unique_index` ON `user_artists` (`user_id`,`artist_id`);--> statement-breakpoint
 CREATE TABLE `user_tracks` (
 	`id` text PRIMARY KEY NOT NULL,
 	`user_id` text NOT NULL,
@@ -171,6 +205,7 @@ CREATE TABLE `user_tracks` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `user_tracks_uri_unique` ON `user_tracks` (`uri`);--> statement-breakpoint
+CREATE UNIQUE INDEX `user_tracks_unique_index` ON `user_tracks` (`user_id`,`track_id`);--> statement-breakpoint
 CREATE TABLE `users` (
 	`id` text PRIMARY KEY NOT NULL,
 	`did` text NOT NULL,
