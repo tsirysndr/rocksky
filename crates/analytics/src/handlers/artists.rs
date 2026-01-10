@@ -345,7 +345,7 @@ pub async fn get_artist_tracks(
         LEFT JOIN tracks t ON at.track_id = t.id
         LEFT JOIN artists a ON at.artist_id = a.id
         LEFT JOIN scrobbles s ON s.track_id = t.id
-        WHERE at.artist_id = ? OR a.uri = ?
+        WHERE (a.id = ? OR a.uri = ?) AND (t.artist_uri = ?)
         GROUP BY
             t.id, t.title, t.artist, t.album_artist, t.album, t.uri, t.album_art, t.duration, t.disc_number, t.track_number, t.artist_uri, t.album_uri, t.sha256, t.copyright_message, t.label, t.created_at
         ORDER BY play_count DESC
@@ -355,6 +355,7 @@ pub async fn get_artist_tracks(
 
     let tracks = stmt.query_map(
         [
+            &params.artist_id,
             &params.artist_id,
             &params.artist_id,
             &limit.to_string(),

@@ -15,7 +15,6 @@ const tracks = sqliteTable("tracks", {
   spotifyLink: text("spotify_link").unique(),
   appleMusicLink: text("apple_music_link").unique(),
   tidalLink: text("tidal_link").unique(),
-  sha256: text("sha256").unique().notNull(),
   discNumber: integer("disc_number"),
   lyrics: text("lyrics"),
   composer: text("composer"),
@@ -23,6 +22,7 @@ const tracks = sqliteTable("tracks", {
   label: text("label"),
   copyrightMessage: text("copyright_message"),
   uri: text("uri").unique(),
+  cid: text("cid").unique().notNull(),
   albumUri: text("album_uri"),
   artistUri: text("artist_uri"),
   createdAt: integer("created_at", { mode: "timestamp" })

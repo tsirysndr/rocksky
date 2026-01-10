@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "a549f070-9d4d-4d38-bd6a-c04bc9a4889b",
+  "id": "571a287d-ea60-4ac4-847a-307da78c375c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "album_tracks": {
@@ -130,6 +130,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "cid": {
+          "name": "cid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "artist_uri": {
           "name": "artist_uri",
           "type": "text",
@@ -165,13 +172,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "sha256": {
-          "name": "sha256",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "integer",
@@ -194,6 +194,13 @@
           "name": "albums_uri_unique",
           "columns": [
             "uri"
+          ],
+          "isUnique": true
+        },
+        "albums_cid_unique": {
+          "name": "albums_cid_unique",
+          "columns": [
+            "cid"
           ],
           "isUnique": true
         },
@@ -222,13 +229,6 @@
           "name": "albums_youtube_link_unique",
           "columns": [
             "youtube_link"
-          ],
-          "isUnique": true
-        },
-        "albums_sha256_unique": {
-          "name": "albums_sha256_unique",
-          "columns": [
-            "sha256"
           ],
           "isUnique": true
         }
@@ -438,18 +438,18 @@
           "notNull": false,
           "autoincrement": false
         },
-        "sha256": {
-          "name": "sha256",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
         "uri": {
           "name": "uri",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
+          "autoincrement": false
+        },
+        "cid": {
+          "name": "cid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
           "autoincrement": false
         },
         "apple_music_link": {
@@ -505,21 +505,61 @@
         }
       },
       "indexes": {
-        "artists_sha256_unique": {
-          "name": "artists_sha256_unique",
-          "columns": [
-            "sha256"
-          ],
-          "isUnique": true
-        },
         "artists_uri_unique": {
           "name": "artists_uri_unique",
           "columns": [
             "uri"
           ],
           "isUnique": true
+        },
+        "artists_cid_unique": {
+          "name": "artists_cid_unique",
+          "columns": [
+            "cid"
+          ],
+          "isUnique": true
         }
       },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "auth_sessions": {
+      "name": "auth_sessions",
+      "columns": {
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "session": {
+          "name": "session",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
@@ -594,6 +634,157 @@
           "tableTo": "tracks",
           "columnsFrom": [
             "track_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "scrobbles": {
+      "name": "scrobbles",
+      "columns": {
+        "xata_id": {
+          "name": "xata_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "track_id": {
+          "name": "track_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "album_id": {
+          "name": "album_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "artist_id": {
+          "name": "artist_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "uri": {
+          "name": "uri",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "cid": {
+          "name": "cid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "timestamp": {
+          "name": "timestamp",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "scrobbles_uri_unique": {
+          "name": "scrobbles_uri_unique",
+          "columns": [
+            "uri"
+          ],
+          "isUnique": true
+        },
+        "scrobbles_cid_unique": {
+          "name": "scrobbles_cid_unique",
+          "columns": [
+            "cid"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "scrobbles_user_id_users_id_fk": {
+          "name": "scrobbles_user_id_users_id_fk",
+          "tableFrom": "scrobbles",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "scrobbles_track_id_tracks_id_fk": {
+          "name": "scrobbles_track_id_tracks_id_fk",
+          "tableFrom": "scrobbles",
+          "tableTo": "tracks",
+          "columnsFrom": [
+            "track_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "scrobbles_album_id_albums_id_fk": {
+          "name": "scrobbles_album_id_albums_id_fk",
+          "tableFrom": "scrobbles",
+          "tableTo": "albums",
+          "columnsFrom": [
+            "album_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "scrobbles_artist_id_artists_id_fk": {
+          "name": "scrobbles_artist_id_artists_id_fk",
+          "tableFrom": "scrobbles",
+          "tableTo": "artists",
+          "columnsFrom": [
+            "artist_id"
           ],
           "columnsTo": [
             "id"
@@ -700,13 +891,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "sha256": {
-          "name": "sha256",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
         "disc_number": {
           "name": "disc_number",
           "type": "integer",
@@ -754,6 +938,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false,
+          "autoincrement": false
+        },
+        "cid": {
+          "name": "cid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
           "autoincrement": false
         },
         "album_uri": {
@@ -823,17 +1014,17 @@
           ],
           "isUnique": true
         },
-        "tracks_sha256_unique": {
-          "name": "tracks_sha256_unique",
-          "columns": [
-            "sha256"
-          ],
-          "isUnique": true
-        },
         "tracks_uri_unique": {
           "name": "tracks_uri_unique",
           "columns": [
             "uri"
+          ],
+          "isUnique": true
+        },
+        "tracks_cid_unique": {
+          "name": "tracks_cid_unique",
+          "columns": [
+            "cid"
           ],
           "isUnique": true
         }

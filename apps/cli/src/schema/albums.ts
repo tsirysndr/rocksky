@@ -9,12 +9,12 @@ const albums = sqliteTable("albums", {
   year: integer("year"),
   albumArt: text("album_art"),
   uri: text("uri").unique(),
+  cid: text("cid").unique().notNull(),
   artistUri: text("artist_uri"),
   appleMusicLink: text("apple_music_link").unique(),
   spotifyLink: text("spotify_link").unique(),
   tidalLink: text("tidal_link").unique(),
   youtubeLink: text("youtube_link").unique(),
-  sha256: text("sha256").unique().notNull(),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
