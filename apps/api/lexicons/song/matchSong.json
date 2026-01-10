@@ -1,0 +1,34 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.song.matchSong",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get a song by its uri",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "title",
+          "artist"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "The title of the song to retrieve"
+          },
+          "artist": {
+            "type": "string",
+            "description": "The artist of the song to retrieve"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "ref",
+          "ref": "app.rocksky.song.defs#songViewDetailed"
+        }
+      }
+    }
+  }
+}

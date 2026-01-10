@@ -93,6 +93,7 @@ import type * as AppRockskyShoutReportShout from "./types/app/rocksky/shout/repo
 import type * as AppRockskySongCreateSong from "./types/app/rocksky/song/createSong";
 import type * as AppRockskySongGetSong from "./types/app/rocksky/song/getSong";
 import type * as AppRockskySongGetSongs from "./types/app/rocksky/song/getSongs";
+import type * as AppRockskySongMatchSong from "./types/app/rocksky/song/matchSong";
 import type * as AppRockskySpotifyGetCurrentlyPlaying from "./types/app/rocksky/spotify/getCurrentlyPlaying";
 import type * as AppRockskySpotifyNext from "./types/app/rocksky/spotify/next";
 import type * as AppRockskySpotifyPause from "./types/app/rocksky/spotify/pause";
@@ -1261,6 +1262,17 @@ export class AppRockskySongNS {
     >,
   ) {
     const nsid = "app.rocksky.song.getSongs"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  matchSong<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskySongMatchSong.Handler<ExtractAuth<AV>>,
+      AppRockskySongMatchSong.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.song.matchSong"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 }

@@ -614,7 +614,7 @@ export async function scrobbleTrack(
 
   let mbTrack;
   try {
-    let { data } = await ctx.musicbrainz.post<MusicbrainzTrack>("/hydrate", {
+    const { data } = await ctx.musicbrainz.post<MusicbrainzTrack>("/hydrate", {
       artist: track.artist
         .replaceAll(";", ",")
         .split(",")

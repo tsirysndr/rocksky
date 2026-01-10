@@ -5548,6 +5548,37 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskySongMatchSong: {
+    lexicon: 1,
+    id: "app.rocksky.song.matchSong",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get a song by its uri",
+        parameters: {
+          type: "params",
+          required: ["title", "artist"],
+          properties: {
+            title: {
+              type: "string",
+              description: "The title of the song to retrieve",
+            },
+            artist: {
+              type: "string",
+              description: "The artist of the song to retrieve",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "ref",
+            ref: "lex:app.rocksky.song.defs#songViewDetailed",
+          },
+        },
+      },
+    },
+  },
   AppRockskySong: {
     lexicon: 1,
     id: "app.rocksky.song",
@@ -6032,6 +6063,7 @@ export const ids = {
   AppRockskySongDefs: "app.rocksky.song.defs",
   AppRockskySongGetSong: "app.rocksky.song.getSong",
   AppRockskySongGetSongs: "app.rocksky.song.getSongs",
+  AppRockskySongMatchSong: "app.rocksky.song.matchSong",
   AppRockskySong: "app.rocksky.song",
   AppRockskySpotifyDefs: "app.rocksky.spotify.defs",
   AppRockskySpotifyGetCurrentlyPlaying:

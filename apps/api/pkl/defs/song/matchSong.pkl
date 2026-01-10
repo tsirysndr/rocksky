@@ -1,0 +1,28 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.song.matchSong"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get a song by its uri"
+    parameters = new Params {
+      required = List("title", "artist")
+      properties {
+        ["title"] = new StringType {
+          description = "The title of the song to retrieve"
+        }
+        ["artist"] = new StringType {
+          description = "The artist of the song to retrieve"
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new Ref {
+        type = "ref"
+        ref = "app.rocksky.song.defs#songViewDetailed"
+      }
+    }
+  }
+}
