@@ -55,6 +55,9 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
         .execute()
         .then(([row]) => row);
 
+      let releaseDate = null,
+        year = null;
+
       if (!track) {
         const spotifyTrack = await searchOnSpotify(
           ctx,
@@ -82,7 +85,7 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
             discNumber: spotifyTrack.disc_number,
             lyrics: null,
             composer: null,
-            genre: spotifyTrack.album.genres?.[0] || null,
+            genre: spotifyTrack.artists[0]?.genres?.[0] || null,
             label: spotifyTrack.album.label || null,
             copyrightMessage: spotifyTrack.album.copyrights?.[0]?.text || null,
             uri: null,
@@ -92,6 +95,16 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
             updatedAt: new Date(),
             xataVersion: 0,
           };
+
+          if (spotifyTrack.album.release_date_precision == "day") {
+            releaseDate = spotifyTrack.album.release_date;
+            year = parseInt(spotifyTrack.album.release_date.split("-")[0]);
+          }
+
+          if (spotifyTrack.album.release_date_precision == "year") {
+            releaseDate = `${spotifyTrack.album.release_date}-01-01`;
+            year = parseInt(spotifyTrack.album.release_date);
+          }
         }
       }
 
@@ -111,19 +124,25 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
           .where(eq(tables.scrobbles.trackId, track?.id))
           .execute()
           .then((rows) => rows[0]?.count || 0),
+        Promise.resolve(releaseDate),
+        Promise.resolve(year),
       ]);
     },
     catch: (error) => new Error(`Failed to retrieve artist: ${error}`),
   });
 };
 
-const presentation = ([track, uniqueListeners, playCount]: [
+const presentation = ([track, uniqueListeners, playCount, releaseDate, year]: [
   SelectTrack,
   number,
   number,
+  string | null,
+  number | null,
 ]): Effect.Effect<SongViewDetailed, never> => {
   return Effect.sync(() => ({
     ...track,
+    releaseDate,
+    year,
     playCount,
     uniqueListeners,
     createdAt: track.createdAt.toISOString(),
