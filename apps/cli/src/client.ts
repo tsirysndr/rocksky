@@ -35,12 +35,12 @@ export class RockskyClient {
           Authorization: this.token ? `Bearer ${this.token}` : undefined,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     if (!response.ok) {
       throw new Error(
-        `Failed to fetch now playing data: ${response.statusText}`
+        `Failed to fetch now playing data: ${response.statusText}`,
       );
     }
 
@@ -56,12 +56,12 @@ export class RockskyClient {
           Authorization: this.token ? `Bearer ${this.token}` : undefined,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     if (!response.ok) {
       throw new Error(
-        `Failed to fetch now playing data: ${response.statusText}`
+        `Failed to fetch now playing data: ${response.statusText}`,
       );
     }
 
@@ -78,11 +78,11 @@ export class RockskyClient {
             Authorization: this.token ? `Bearer ${this.token}` : undefined,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
       if (!response.ok) {
         throw new Error(
-          `Failed to fetch scrobbles data: ${response.statusText}`
+          `Failed to fetch scrobbles data: ${response.statusText}`,
         );
       }
       return response.json();
@@ -96,7 +96,7 @@ export class RockskyClient {
           Authorization: this.token ? `Bearer ${this.token}` : undefined,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
     if (!response.ok) {
       throw new Error(`Failed to fetch scrobbles data: ${response.statusText}`);
@@ -107,14 +107,14 @@ export class RockskyClient {
 
   async search(query: string, { size }) {
     const response = await fetch(
-      `${ROCKSKY_API_URL}/search?q=${query}&size=${size}`,
+      `${ROCKSKY_API_URL}/xrpc/app.rocksky.feed.search?query=${query}&size=${size}`,
       {
         method: "GET",
         headers: {
           Authorization: this.token ? `Bearer ${this.token}` : undefined,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     if (!response.ok) {
@@ -176,7 +176,7 @@ export class RockskyClient {
           Authorization: this.token ? `Bearer ${this.token}` : undefined,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
     if (!response.ok) {
       throw new Error(`Failed to fetch artists data: ${response.statusText}`);
@@ -207,7 +207,7 @@ export class RockskyClient {
           Authorization: this.token ? `Bearer ${this.token}` : undefined,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
     if (!response.ok) {
       throw new Error(`Failed to fetch albums data: ${response.statusText}`);
@@ -238,7 +238,7 @@ export class RockskyClient {
           Authorization: this.token ? `Bearer ${this.token}` : undefined,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
     if (!response.ok) {
       throw new Error(`Failed to fetch tracks data: ${response.statusText}`);
@@ -252,7 +252,7 @@ export class RockskyClient {
       await fs.promises.access(tokenPath);
     } catch (err) {
       console.error(
-        `You are not logged in. Please run the login command first.`
+        `You are not logged in. Please run the login command first.`,
       );
       return;
     }
@@ -279,7 +279,7 @@ export class RockskyClient {
       throw new Error(
         `Failed to scrobble track: ${
           response.statusText
-        } ${await response.text()}`
+        } ${await response.text()}`,
       );
     }
 

@@ -28,6 +28,24 @@ program
   )
   .version(version.version);
 
+program.configureHelp({
+  styleTitle: (str) => chalk.bold.cyan(str),
+  styleCommandText: (str) => chalk.yellow(str),
+  styleCommandDescription: (str) => chalk.gray(str),
+  styleDescriptionText: (str) => chalk.white(str),
+  styleOptionText: (str) => chalk.green(str),
+  styleArgumentText: (str) => chalk.magenta(str),
+  styleSubcommandText: (str) => chalk.blue(str),
+});
+
+program.addHelpText(
+  "after",
+  `
+${chalk.bold("\nLearn more about Rocksky:")}            ${chalk.underline("https://docs.rocksky.app")}
+${chalk.bold("Join our Discord community:")}      ${chalk.underline(chalk.blueBright("https://discord.gg/EVcBy2fVa3"))}
+`,
+);
+
 program
   .command("login")
   .argument("<handle>", "your BlueSky handle (e.g., <username>.bsky.social)")
