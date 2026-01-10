@@ -97,6 +97,7 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
             trackNumber: spotifyTrack.track_number,
             duration: spotifyTrack.duration_ms,
             mbId: null,
+            genre: null,
             youtubeLink: null,
             spotifyLink: spotifyTrack.external_urls.spotify,
             appleMusicLink: null,
