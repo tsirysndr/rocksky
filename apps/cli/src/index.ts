@@ -22,16 +22,21 @@ const program = new Command();
 program
   .name("rocksky")
   .description(
-    `Command-line interface for Rocksky (${chalk.underline(
-      "https://rocksky.app",
-    )}) – scrobble tracks, view stats, and manage your listening history.`,
+    `
+    ___           __        __          _______   ____
+   / _ \\___  ____/ /__ ___ / /____ __  / ___/ /  /  _/
+  / , _/ _ \\/ __/  '_/(_-</  '_/ // / / /__/ /___/ /
+ /_/|_|\\___/\\__/_/\\_\\/___/_/\\_\\\\_, /  \\___/____/___/
+                              /___/
+ ${chalk.gray("Command-line interface for Rocksky (")}${chalk.gray.underline(
+   "https://rocksky.app",
+ )}${chalk.gray(")")} ${chalk.gray("– scrobble tracks, view stats, and manage your listening history.")}`,
   )
   .version(version);
 
 program.configureHelp({
   styleTitle: (str) => chalk.bold.cyan(str),
   styleCommandText: (str) => chalk.yellow(str),
-  styleCommandDescription: (str) => chalk.gray(str),
   styleDescriptionText: (str) => chalk.white(str),
   styleOptionText: (str) => chalk.green(str),
   styleArgumentText: (str) => chalk.magenta(str),
@@ -134,12 +139,12 @@ program
 
 program
   .command("mcp")
-  .description("Starts an MCP server to use with Claude or other LLMs.")
+  .description("starts an MCP server to use with Claude or other LLMs.")
   .action(mcp);
 
 program
   .command("sync")
-  .description("Sync your local Rocksky data from AT Protocol.")
+  .description("sync your local Rocksky data from AT Protocol.")
   .action(sync);
 
 program.parse(process.argv);

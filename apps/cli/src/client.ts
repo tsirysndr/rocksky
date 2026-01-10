@@ -321,4 +321,23 @@ export class RockskyClient {
 
     return response.json();
   }
+
+  async matchSong(title: string, artist: string) {
+    const q = new URLSearchParams({
+      title,
+      artist,
+    });
+    console.log(q);
+    const response = await fetch(
+      `${ROCKSKY_API_URL}/xrpc/app.rocksky.song.matchSong?${q.toString()}`,
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to match song: ${response.statusText} ${await response.text()}`,
+      );
+    }
+
+    return response.json();
+  }
 }
