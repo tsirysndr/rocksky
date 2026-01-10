@@ -105,7 +105,6 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
             discNumber: spotifyTrack.disc_number,
             lyrics: null,
             composer: null,
-            genre: spotifyTrack.artists[0]?.genres?.[0] || null,
             label: spotifyTrack.album.label || null,
             copyrightMessage: spotifyTrack.album.copyrights?.[0]?.text || null,
             uri: null,
