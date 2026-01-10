@@ -1,4 +1,3 @@
-import { logger } from "logger";
 import drizzle from "./drizzle";
 import sqliteKv from "sqliteKv";
 import { createBidirectionalResolver, createIdResolver } from "lib/idResolver";
@@ -14,7 +13,6 @@ export const ctx = {
   db: drizzle.db,
   resolver: createBidirectionalResolver(baseIdResolver),
   baseIdResolver,
-  logger,
 };
 
 export type Context = typeof ctx;

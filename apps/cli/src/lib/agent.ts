@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import authSessions from "schema/auth-session";
 import extractPdsFromDid from "./extractPdsFromDid";
 import { env } from "./env";
+import { logger } from "logger";
 
 export async function createAgent(did: string, handle: string): Promise<Agent> {
   const pds = await extractPdsFromDid(did);
@@ -25,7 +26,7 @@ export async function createAgent(did: string, handle: string): Promise<Agent> {
     await agent.resumeSession(JSON.parse(data.session));
     return agent;
   } catch (e) {
-    ctx.logger.error`Resuming session ${did}`;
+    logger.error`Resuming session ${did}`;
     await ctx.db
       .delete(authSessions)
       .where(eq(authSessions.key, did))
@@ -48,7 +49,7 @@ export async function createAgent(did: string, handle: string): Promise<Agent> {
       })
       .execute();
 
-    ctx.logger.info`Logged in as ${handle}`;
+    logger.info`Logged in as ${handle}`;
 
     return agent;
   }
