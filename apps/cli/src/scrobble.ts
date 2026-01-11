@@ -7,6 +7,10 @@ import { Agent } from "node:http";
 import { ctx } from "context";
 import schema from "schema";
 import { and, eq, gte, lte } from "drizzle-orm";
+import os from "node:os";
+import path from "node:path";
+import fs from "node:fs";
+import chalk from "chalk";
 
 export async function publishScrobble(
   track: MatchTrackResult,
@@ -15,6 +19,15 @@ export async function publishScrobble(
   const [did, handle] = await getDidAndHandle();
   const agent: Agent = await createAgent(did, handle);
   const recentScrobble = await getRecentScrobble(did, track, timestamp);
+
+  const lockFilePath = path.join(os.tmpdir(), `rocksky-${did}.lock`);
+
+  if (fs.existsSync(lockFilePath)) {
+    logger.error(
+      `${chalk.greenBright(handle)} Scrobble publishing failed: lock file exists, maybe rocksky-cli is still syncing?\nPlease wait for rocksky to finish syncing before publishing scrobbles or delete the lock file manually ${chalk.greenBright(lockFilePath)}`,
+    );
+    process.exit(1);
+  }
 
   if (recentScrobble) {
     logger.info`${handle} Skipping scrobble for ${track.title} by ${track.artist} at ${timestamp ? dayjs.unix(timestamp).format("YYYY-MM-DD HH:mm:ss") : dayjs().format("YYYY-MM-DD HH:mm:ss")} (already scrobbled)`;
