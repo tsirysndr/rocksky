@@ -56,8 +56,8 @@ ${chalk.bold("Join our Discord community:")}      ${chalk.underline(chalk.blueBr
 
 program
   .command("login")
-  .argument("<handle>", "your BlueSky handle (e.g., <username>.bsky.social)")
-  .description("login with your BlueSky account and get a session token.")
+  .argument("<handle>", "your AT Proto handle (e.g., <username>.bsky.social)")
+  .description("login with your AT Proto account and get a session token.")
   .action(login);
 
 program
