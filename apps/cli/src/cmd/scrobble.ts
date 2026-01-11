@@ -1,7 +1,8 @@
 import { matchTrack } from "lib/matchTrack";
 import { logger } from "logger";
+import { publishScrobble } from "scrobble";
 
 export async function scrobble(track: string, artist: string, { timestamp }) {
   const match = await matchTrack(track, artist);
-  logger.info`>> scrobble ${track}, ${artist}, ${timestamp}`;
+  await publishScrobble(match, timestamp);
 }
