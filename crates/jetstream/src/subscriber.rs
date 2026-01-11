@@ -1,4 +1,4 @@
-use std::{env, sync::Arc};
+use std::{env, sync::Arc, time::Duration};
 
 use anyhow::{Context, Error};
 use futures_util::StreamExt;
@@ -36,6 +36,11 @@ impl ScrobbleSubscriber {
 
         let pool = PgPoolOptions::new()
             .max_connections(5)
+            .min_connections(2)
+            .acquire_timeout(Duration::from_secs(12))
+            .idle_timeout(Some(Duration::from_secs(10 * 60)))
+            .max_lifetime(Some(Duration::from_secs(60 * 14)))
+            .test_before_acquire(true)
             .connect(&db_url)
             .await?;
         let pool = Arc::new(Mutex::new(pool));
