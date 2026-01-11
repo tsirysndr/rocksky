@@ -16,7 +16,7 @@ import * as Scrobble from "lexicon/types/app/rocksky/scrobble";
 import * as Song from "lexicon/types/app/rocksky/song";
 import { TID } from "@atproto/common";
 import { Agent } from "@atproto/api";
-import { createUser, subscribeToJetstream } from "cmd/sync";
+import { createUser, subscribeToJetstream, sync } from "cmd/sync";
 
 export async function publishScrobble(
   track: MatchTrackResult,
@@ -49,6 +49,13 @@ export async function publishScrobble(
   }
 
   logger.info`${handle} Publishing scrobble for ${track.title} by ${track.artist} at ${timestamp ? dayjs.unix(timestamp).format("YYYY-MM-DD HH:mm:ss") : dayjs().format("YYYY-MM-DD HH:mm:ss")}`;
+
+  if (await shouldSync(agent)) {
+    logger.info`${handle} Syncing scrobbles before publishing`;
+    await sync();
+  } else {
+    logger.info`${handle} No need to sync scrobbles before publishing`;
+  }
 
   if (dryRun) {
     logger.info`${handle} Dry run: Skipping publishing scrobble for ${track.title} by ${track.artist} at ${timestamp ? dayjs.unix(timestamp).format("YYYY-MM-DD HH:mm:ss") : dayjs().format("YYYY-MM-DD HH:mm:ss")}`;
@@ -343,4 +350,34 @@ async function putScrobbleRecord(
     logger.error`Error creating scrobble record: ${e}`;
     return null;
   }
+}
+
+async function shouldSync(agent: Agent): Promise<boolean> {
+  const res = await agent.com.atproto.repo.listRecords({
+    repo: agent.assertDid,
+    collection: "app.rocksky.scrobble",
+    limit: 1,
+  });
+
+  const records = res.data.records as Array<{
+    uri: string;
+    cid: string;
+    value: Scrobble.Record;
+  }>;
+
+  if (!records.length) {
+    logger.info`No scrobble records found`;
+    return true;
+  }
+
+  const { count } = await ctx.db
+    .select({
+      count: sql<number>`count(*)`,
+    })
+    .from(schema.scrobbles)
+    .where(eq(schema.scrobbles.cid, records[0].cid))
+    .execute()
+    .then((result) => result[0]);
+
+  return count === 0;
 }
