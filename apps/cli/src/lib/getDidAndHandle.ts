@@ -10,14 +10,14 @@ export async function getDidAndHandle(): Promise<[string, string]> {
 
   if (!handle) {
     console.error(
-      `❌ No AT Proto handle or did provided, please provide one in the environment variables ${chalk.bold("ROCKSKY_HANDLE")} or ${chalk.bold("ROCKSKY_IDENTIFIER")}`,
+      `❌ No AT Proto handle or DID provided, please provide one in the environment variables ${chalk.bold("ROCKSKY_HANDLE")} or ${chalk.bold("ROCKSKY_IDENTIFIER")}`,
     );
     process.exit(1);
   }
 
   if (!env.ROCKSKY_PASSWORD) {
     console.error(
-      `❌ No app password provided, please provide one in the environment variable ${chalk.bold("ROCKSKY_PASSWORD")}\nYou can create one at ${chalk.blueBright.underline("https://bsky.app/settings/app-passwords")}`,
+      `❌ No app password provided, please provide one in the environment variable ${chalk.bold("ROCKSKY_PASSWORD")}\nYou can create one at ${chalk.blueBright("https://bsky.app/settings/app-passwords")}`,
     );
     process.exit(1);
   }
