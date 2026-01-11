@@ -36,8 +36,6 @@ export async function sync() {
   const user = await createUser(agent, did, handle);
   await subscribeToJetstream(user);
 
-  cleanUpJetstreamLockOnExit(user.did);
-
   logger.info`  DID: ${did}`;
   logger.info`  Handle: ${handle}`;
 
@@ -542,6 +540,7 @@ export const subscribeToJetstream = (user: SelectUser): Promise<void> => {
   return new Promise((resolve) => {
     client.on("open", () => {
       logger.info`✅ Connected to JetStream!`;
+      cleanUpJetstreamLockOnExit(user.did);
       resolve();
     });
 

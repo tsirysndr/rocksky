@@ -52,11 +52,6 @@ export async function publishScrobble(
 
   if (dryRun) {
     logger.info`${handle} Dry run: Skipping publishing scrobble for ${track.title} by ${track.artist} at ${timestamp ? dayjs.unix(timestamp).format("YYYY-MM-DD HH:mm:ss") : dayjs().format("YYYY-MM-DD HH:mm:ss")}`;
-
-    await fs.promises.unlink(
-      path.join(os.tmpdir(), `rocksky-jetstream-${did}.lock`),
-    );
-
     return true;
   }
 
@@ -122,10 +117,6 @@ export async function publishScrobble(
   }
 
   await putScrobbleRecord(agent, track, timestamp);
-
-  await fs.promises.unlink(
-    path.join(os.tmpdir(), `rocksky-jetstream-${did}.lock`),
-  );
 
   return true;
 }
