@@ -30,7 +30,7 @@ export async function matchTrack(
     await ctx.kv.setItem(`${track} - ${artist}`, match);
   }
 
-  logger.info`>> matchTrack ${track}, ${artist}`;
+  logger.info`Matched track ${track}, ${artist}`;
   logger.info`${match}`;
 
   return match;

@@ -6,7 +6,7 @@ import { getDidAndHandle } from "lib/getDidAndHandle";
 import { Agent } from "node:http";
 import { ctx } from "context";
 import schema from "schema";
-import { and, eq, gte, lte } from "drizzle-orm";
+import { and, eq, gte, lte, sql } from "drizzle-orm";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
@@ -26,15 +26,22 @@ export async function publishScrobble(
     logger.error(
       `${chalk.greenBright(handle)} Scrobble publishing failed: lock file exists, maybe rocksky-cli is still syncing?\nPlease wait for rocksky to finish syncing before publishing scrobbles or delete the lock file manually ${chalk.greenBright(lockFilePath)}`,
     );
-    process.exit(1);
+    return false;
   }
 
   if (recentScrobble) {
     logger.info`${handle} Skipping scrobble for ${track.title} by ${track.artist} at ${timestamp ? dayjs.unix(timestamp).format("YYYY-MM-DD HH:mm:ss") : dayjs().format("YYYY-MM-DD HH:mm:ss")} (already scrobbled)`;
-    return;
+    return true;
+  }
+
+  const totalScrobbles = await countScrobbles(did);
+  if (totalScrobbles === 0) {
+    logger.warn`${handle} No scrobbles found for this user. Are you sure you have successfully synced your scrobbles locally?\nIf not, please run ${"rocksky sync"} to sync your scrobbles before publishing scrobbles.`;
   }
 
   logger.info`${handle} Publishing scrobble for ${track.title} by ${track.artist} at ${timestamp ? dayjs.unix(timestamp).format("YYYY-MM-DD HH:mm:ss") : dayjs().format("YYYY-MM-DD HH:mm:ss")}`;
+
+  return true;
 }
 
 async function getRecentScrobble(
@@ -69,4 +76,13 @@ async function getRecentScrobble(
     )
     .limit(1)
     .then((rows) => rows[0]);
+}
+
+async function countScrobbles(did: string): Promise<number> {
+  return ctx.db
+    .select({ count: sql<number>`count(*)` })
+    .from(schema.scrobbles)
+    .innerJoin(schema.users, eq(schema.scrobbles.userId, schema.users.id))
+    .where(eq(schema.users.did, did))
+    .then((rows) => rows[0].count);
 }
