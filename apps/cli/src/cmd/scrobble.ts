@@ -1,5 +1,4 @@
 import { matchTrack } from "lib/matchTrack";
-import { logger } from "logger";
 import { publishScrobble } from "scrobble";
 
 export async function scrobble(
