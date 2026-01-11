@@ -118,7 +118,142 @@ export namespace WebScrobbler {
   >["data"];
 }
 
-export namespace Lastfm {}
+export namespace Lastfm {
+  /* -------------------------------- Legacy API Schemas -------------------------------- */
+
+  export const LegacyNowPlayingRequestSchema = z.object({
+    s: z.string(), // session ID
+    a: z.string(), // artist
+    t: z.string(), // track
+    b: z.string().optional(), // album
+    l: z.string().optional(), // length in seconds
+    n: z.string().optional(), // track number
+    m: z.string().optional(), // MusicBrainz ID
+  });
+
+  export const LegacySubmissionRequestSchema = z.object({
+    s: z.string(), // session ID
+    "a[0]": z.string(), // artist
+    "t[0]": z.string(), // track
+    "i[0]": z.string(), // timestamp
+    "o[0]": z.string().optional(), // source (P/R/E/L/U/B)
+    "r[0]": z.string().optional(), // rating (L/B/S)
+    "l[0]": z.string().optional(), // length in seconds
+    "b[0]": z.string().optional(), // album
+    "n[0]": z.string().optional(), // track number
+    "m[0]": z.string().optional(), // MusicBrainz ID
+  });
+
+  /* -------------------------------- Auth Request -------------------------------- */
+
+  export const AuthRequestSchema = z.object({
+    method: z.string(),
+    api_key: z.string(),
+    api_sig: z.string(),
+    format: z.string().optional(),
+  });
+
+  /* -------------------------------- Auth GetSession Request -------------------------------- */
+
+  export const AuthGetSessionRequestSchema = z.object({
+    method: z.literal("auth.getSession"),
+    api_key: z.string(),
+    token: z.string(),
+    api_sig: z.string(),
+    format: z.string().optional(),
+  });
+
+  /* -------------------------------- Auth GetSession Response -------------------------------- */
+
+  export const AuthGetSessionResponseSchema = z.object({
+    session: z.object({
+      name: z.string(),
+      key: z.string(),
+      subscriber: z.number(),
+    }),
+  });
+
+  /* -------------------------------- Track Scrobble Request -------------------------------- */
+
+  export const TrackScrobbleRequestSchema = z.object({
+    method: z.literal("track.scrobble"),
+    api_key: z.string(),
+    api_sig: z.string(),
+    sk: z.string(),
+    "track[0]": z.string(),
+    "artist[0]": z.string(),
+    "timestamp[0]": z.string(),
+    "album[0]": z.string().optional(),
+    "albumArtist[0]": z.string().optional(),
+    "duration[0]": z.string().optional(),
+    format: z.string().optional(),
+  });
+
+  /* -------------------------------- Track Update Now Playing Request -------------------------------- */
+
+  export const TrackUpdateNowPlayingRequestSchema = z.object({
+    method: z.literal("track.updateNowPlaying"),
+    api_key: z.string(),
+    api_sig: z.string(),
+    sk: z.string(),
+    track: z.string(),
+    artist: z.string(),
+    album: z.string().optional(),
+    albumArtist: z.string().optional(),
+    duration: z.string().optional(),
+    format: z.string().optional(),
+  });
+
+  /* -------------------------------- Scrobble Response -------------------------------- */
+
+  export const ScrobbleResponseSchema = z.object({
+    scrobbles: z.object({
+      "@attr": z.object({
+        accepted: z.number(),
+        ignored: z.number(),
+      }),
+      scrobble: z
+        .object({
+          artist: z.object({ "#text": z.string() }),
+          track: z.object({ "#text": z.string() }),
+          album: z.object({ "#text": z.string() }).optional(),
+          albumArtist: z.object({ "#text": z.string() }).optional(),
+          timestamp: z.string(),
+          ignoredMessage: z
+            .object({ code: z.string(), "#text": z.string() })
+            .optional(),
+        })
+        .optional(),
+    }),
+  });
+
+  /* -------------------------------- Error Response -------------------------------- */
+
+  export const ErrorResponseSchema = z.object({
+    error: z.number(),
+    message: z.string(),
+  });
+
+  export type LegacyNowPlayingRequest = z.infer<
+    typeof LegacyNowPlayingRequestSchema
+  >;
+  export type LegacySubmissionRequest = z.infer<
+    typeof LegacySubmissionRequestSchema
+  >;
+  export type AuthRequest = z.infer<typeof AuthRequestSchema>;
+  export type AuthGetSessionRequest = z.infer<
+    typeof AuthGetSessionRequestSchema
+  >;
+  export type AuthGetSessionResponse = z.infer<
+    typeof AuthGetSessionResponseSchema
+  >;
+  export type TrackScrobbleRequest = z.infer<typeof TrackScrobbleRequestSchema>;
+  export type TrackUpdateNowPlayingRequest = z.infer<
+    typeof TrackUpdateNowPlayingRequestSchema
+  >;
+  export type ScrobbleResponse = z.infer<typeof ScrobbleResponseSchema>;
+  export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
+}
 
 export namespace Listenbrainz {
   /* -------------------------------- TrackMetadata -------------------------------- */
@@ -161,7 +296,7 @@ export namespace Listenbrainz {
   });
 
   export type TrackMetadata = z.infer<typeof TrackMetadataSchema>;
-  export type Listen = z.infer<typeof ListenSchema>;
+
   export type Payload = z.infer<typeof PayloadSchema>;
   export type SubmitListensRequest = z.infer<typeof SubmitListensRequestSchema>;
   export type SubmitListensResponse = z.infer<

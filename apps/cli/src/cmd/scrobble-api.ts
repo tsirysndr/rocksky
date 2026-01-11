@@ -6,21 +6,27 @@ import { env } from "lib/env";
 import chalk from "chalk";
 import { logger as log } from "logger";
 import { getDidAndHandle } from "lib/getDidAndHandle";
-import { WebScrobbler, Listenbrainz } from "types";
+import { WebScrobbler, Listenbrainz, Lastfm } from "types";
 import { matchTrack } from "lib/matchTrack";
 import _ from "lodash";
 import { publishScrobble } from "scrobble";
+import { validateLastfmSignature } from "lib/lastfm";
 
 export async function scrobbleApi({ port }) {
   const [, handle] = await getDidAndHandle();
   const app = new Hono();
 
-  if (!process.env.ROCKSKY_API_KEY || !process.env.ROCKSKY_SHARED_SECRET) {
+  if (
+    !process.env.ROCKSKY_API_KEY ||
+    !process.env.ROCKSKY_SHARED_SECRET ||
+    !process.env.ROCKSKY_SESSION_KEY
+  ) {
     console.log(`ROCKSKY_API_KEY: ${env.ROCKSKY_API_KEY}`);
     console.log(`ROCKSKY_SHARED_SECRET: ${env.ROCKSKY_SHARED_SECRET}`);
+    console.log(`ROCKSKY_SESSION_KEY: ${env.ROCKSKY_SESSION_KEY}`);
   } else {
     console.log(
-      "ROCKSKY_API_KEY and ROCKSKY_SHARED_SECRET are set from environment variables",
+      "ROCKSKY_API_KEY, ROCKSKY_SHARED_SECRET and ROCKSKY_SESSION_KEY are set from environment variables",
     );
   }
 
@@ -50,20 +56,218 @@ export async function scrobbleApi({ port }) {
     ),
   );
 
-  app.post("/nowplaying", (c) => {
-    return c.text("");
+  app.post("/nowplaying", async (c) => {
+    const formData = await c.req.parseBody();
+    const params = Object.fromEntries(
+      Object.entries(formData).map(([k, v]) => [k, String(v)]),
+    );
+
+    if (params.s !== env.ROCKSKY_SESSION_KEY) {
+      return c.text("BADSESSION\n");
+    }
+
+    const {
+      data: nowPlaying,
+      success,
+      error,
+    } = Lastfm.LegacyNowPlayingRequestSchema.safeParse(params);
+
+    if (!success) {
+      return c.text(`FAILED Invalid request: ${error}\n`);
+    }
+
+    log.info`Legacy API - Now playing: ${nowPlaying.t} by ${nowPlaying.a}`;
+
+    return c.text("OK\n");
   });
 
-  app.post("/submission", (c) => {
-    return c.text("");
+  app.post("/submission", async (c) => {
+    const formData = await c.req.parseBody();
+    const params = Object.fromEntries(
+      Object.entries(formData).map(([k, v]) => [k, String(v)]),
+    );
+
+    if (params.s !== env.ROCKSKY_SESSION_KEY) {
+      return c.text("BADSESSION\n");
+    }
+
+    const {
+      data: submission,
+      success,
+      error,
+    } = Lastfm.LegacySubmissionRequestSchema.safeParse(params);
+
+    if (!success) {
+      return c.text(`FAILED Invalid request: ${error}\n`);
+    }
+
+    log.info`Legacy API - Received scrobble: ${submission["t[0]"]} by ${submission["a[0]"]}`;
+
+    // Process scrobble asynchronously
+    (async () => {
+      const track = submission["t[0]"];
+      const artist = submission["a[0]"];
+      const timestamp = parseInt(submission["i[0]"]);
+
+      const match = await matchTrack(track, artist);
+
+      if (!match) {
+        log.warn`No match found for ${track} by ${artist}`;
+        return;
+      }
+
+      await publishScrobble(match, timestamp);
+    })().catch((err) => {
+      log.error`Error processing legacy API scrobble: ${err}`;
+    });
+
+    return c.text("OK\n");
   });
 
-  app.get("/2.0", (c) => {
+  app.get("/2.0", async (c) => {
+    const params = Object.fromEntries(
+      Object.entries(c.req.query()).map(([k, v]) => [k, String(v)]),
+    );
+
+    if (params.method === "auth.getSession") {
+      if (params.api_key !== env.ROCKSKY_API_KEY) {
+        return c.json({
+          error: 10,
+          message: "Invalid API key",
+        });
+      }
+
+      if (!validateLastfmSignature(params)) {
+        return c.json({
+          error: 13,
+          message: "Invalid method signature supplied",
+        });
+      }
+
+      return c.json({
+        session: {
+          name: handle,
+          key: env.ROCKSKY_SESSION_KEY,
+          subscriber: 0,
+        },
+      });
+    }
+
     return c.text(`${BANNER}\nWelcome to the lastfm compatibility API\n`);
   });
 
-  app.post("/2.0", (c) => {
-    return c.text("");
+  app.post("/2.0", async (c) => {
+    const contentType = c.req.header("content-type");
+    let params: Record<string, string> = {};
+
+    if (contentType?.includes("application/x-www-form-urlencoded")) {
+      const formData = await c.req.parseBody();
+      params = Object.fromEntries(
+        Object.entries(formData).map(([k, v]) => [k, String(v)]),
+      );
+    } else {
+      params = await c.req.json();
+    }
+
+    log.info`Received Last.fm API request: method=${params.method}`;
+
+    if (params.api_key !== env.ROCKSKY_API_KEY) {
+      return c.json({
+        error: 10,
+        message: "Invalid API key",
+      });
+    }
+
+    if (!validateLastfmSignature(params)) {
+      return c.json({
+        error: 13,
+        message: "Invalid method signature supplied",
+      });
+    }
+
+    if (params.method === "auth.getSession") {
+      return c.json({
+        session: {
+          name: handle,
+          key: env.ROCKSKY_SESSION_KEY,
+          subscriber: 0,
+        },
+      });
+    }
+
+    if (params.method === "track.updateNowPlaying") {
+      // Validate session key
+      if (params.sk !== env.ROCKSKY_SESSION_KEY) {
+        return c.json({
+          error: 9,
+          message: "Invalid session key",
+        });
+      }
+
+      log.info`Now playing: ${params.track} by ${params.artist}`;
+      return c.json({
+        nowplaying: {
+          artist: { "#text": params.artist },
+          track: { "#text": params.track },
+          album: { "#text": params.album || "" },
+          ignoredMessage: { code: "0", "#text": "" },
+        },
+      });
+    }
+
+    if (params.method === "track.scrobble") {
+      // Validate session key
+      if (params.sk !== env.ROCKSKY_SESSION_KEY) {
+        return c.json({
+          error: 9,
+          message: "Invalid session key",
+        });
+      }
+
+      const track = params["track[0]"] || params.track;
+      const artist = params["artist[0]"] || params.artist;
+      const timestamp = params["timestamp[0]"] || params.timestamp;
+
+      log.info`Received Last.fm scrobble: ${track} by ${artist}`;
+
+      // Process scrobble asynchronously
+      (async () => {
+        const match = await matchTrack(track, artist);
+
+        if (!match) {
+          log.warn`No match found for ${track} by ${artist}`;
+          return;
+        }
+
+        const ts = timestamp
+          ? parseInt(timestamp)
+          : Math.floor(Date.now() / 1000);
+        await publishScrobble(match, ts);
+      })().catch((err) => {
+        log.error`Error processing Last.fm scrobble: ${err}`;
+      });
+
+      return c.json({
+        scrobbles: {
+          "@attr": {
+            accepted: 1,
+            ignored: 0,
+          },
+          scrobble: {
+            artist: { "#text": artist },
+            track: { "#text": track },
+            album: { "#text": params["album[0]"] || params.album || "" },
+            timestamp: timestamp || String(Math.floor(Date.now() / 1000)),
+            ignoredMessage: { code: "0", "#text": "" },
+          },
+        },
+      });
+    }
+
+    return c.json({
+      error: 3,
+      message: "Invalid method",
+    });
   });
 
   app.post("/1/submit-listens", async (c) => {

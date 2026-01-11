@@ -16,6 +16,9 @@ export const env = cleanEnv(process.env, {
   ROCKSKY_SHARED_SECRET: str({
     default: crypto.randomBytes(16).toString("hex"),
   }),
+  ROCKSKY_SESSION_KEY: str({
+    default: crypto.randomBytes(16).toString("hex"),
+  }),
   ROCKSKY_WEBSCROBBLER_KEY: str({
     default: uuid(),
   }),
