@@ -117,3 +117,57 @@ export namespace WebScrobbler {
     typeof ScrobbleRequestSchema
   >["data"];
 }
+
+export namespace Lastfm {}
+
+export namespace Listenbrainz {
+  /* -------------------------------- TrackMetadata -------------------------------- */
+
+  export const TrackMetadataSchema = z.object({
+    artist_name: z.string(),
+    track_name: z.string(),
+    release_name: z.string().optional(),
+    additional_info: z.record(z.any()).optional(),
+  });
+
+  /* -------------------------------- Payload -------------------------------- */
+
+  export const PayloadSchema = z.object({
+    listened_at: z.number().int().nonnegative().optional(),
+    track_metadata: TrackMetadataSchema,
+  });
+
+  /* -------------------------------- SubmitListensRequest -------------------------------- */
+
+  export const SubmitListensRequestSchema = z.object({
+    listen_type: z.enum(["single", "playing_now", "import"]),
+    payload: z.array(PayloadSchema),
+  });
+
+  /* -------------------------------- SubmitListensResponse -------------------------------- */
+
+  export const SubmitListensResponseSchema = z.object({
+    status: z.string(),
+    code: z.number().int(),
+  });
+
+  /* -------------------------------- ValidateTokenResponse -------------------------------- */
+
+  export const ValidateTokenResponseSchema = z.object({
+    code: z.number().int(),
+    message: z.string(),
+    valid: z.boolean(),
+    user_name: z.string().optional(),
+  });
+
+  export type TrackMetadata = z.infer<typeof TrackMetadataSchema>;
+  export type Listen = z.infer<typeof ListenSchema>;
+  export type Payload = z.infer<typeof PayloadSchema>;
+  export type SubmitListensRequest = z.infer<typeof SubmitListensRequestSchema>;
+  export type SubmitListensResponse = z.infer<
+    typeof SubmitListensResponseSchema
+  >;
+  export type ValidateTokenResponse = z.infer<
+    typeof ValidateTokenResponseSchema
+  >;
+}
