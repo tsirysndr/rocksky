@@ -55,7 +55,7 @@ export async function publishScrobble(
     logger.info`${handle} Syncing scrobbles before publishing`;
     await sync();
   } else {
-    logger.info`${handle} No need to sync scrobbles before publishing`;
+    logger.info`${handle} Local scrobbles are up-to-date, skipping sync`;
   }
 
   if (dryRun) {
