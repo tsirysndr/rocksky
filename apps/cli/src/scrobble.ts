@@ -5,7 +5,7 @@ import { createAgent } from "lib/agent";
 import { getDidAndHandle } from "lib/getDidAndHandle";
 import { ctx } from "context";
 import schema from "schema";
-import { and, eq, gte, lte, sql } from "drizzle-orm";
+import { and, eq, gte, lte, or, sql } from "drizzle-orm";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
@@ -49,10 +49,69 @@ export async function publishScrobble(
 
   logger.info`${handle} Publishing scrobble for ${track.title} by ${track.artist} at ${timestamp ? dayjs.unix(timestamp).format("YYYY-MM-DD HH:mm:ss") : dayjs().format("YYYY-MM-DD HH:mm:ss")}`;
 
-  // putSongRecord
-  // putArtistRecord
-  // putAlbumRecord
-  // putScrobbleRecord
+  const existingTrack = await ctx.db
+    .select()
+    .from(schema.tracks)
+    .where(
+      or(
+        and(
+          eq(schema.tracks.title, track.title),
+          eq(schema.tracks.artist, track.artist),
+        ),
+        and(
+          eq(schema.tracks.title, track.title),
+          eq(schema.tracks.albumArtist, track.artist),
+        ),
+        and(
+          eq(schema.tracks.title, track.title),
+          eq(schema.tracks.albumArtist, track.albumArtist),
+        ),
+      ),
+    )
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
+
+  let songUri = existingTrack?.uri;
+  if (!existingTrack) {
+    songUri = await putSongRecord(agent, track);
+  }
+
+  const existingArtist = await ctx.db
+    .select()
+    .from(schema.artists)
+    .where(
+      or(
+        eq(schema.artists.name, track.artist),
+        eq(schema.artists.name, track.albumArtist),
+      ),
+    )
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
+
+  if (!existingArtist) {
+    await putArtistRecord(agent, track);
+  }
+
+  const existingAlbum = await ctx.db
+    .select()
+    .from(schema.albums)
+    .where(
+      and(
+        eq(schema.albums.title, track.album),
+        eq(schema.albums.artist, track.albumArtist),
+      ),
+    )
+    .limit(1)
+    .execute()
+    .then((rows) => rows[0]);
+
+  if (!existingAlbum) {
+    await putAlbumRecord(agent, track);
+  }
+
+  await putScrobbleRecord(agent, track, timestamp);
 
   return true;
 }
@@ -164,7 +223,7 @@ async function putArtistRecord(agent: Agent, track: MatchTrackResult) {
 
   if (!Artist.validateRecord(record).success) {
     logger.info`${Artist.validateRecord(record)}`;
-    logger.info`${JSON.stringify(record, null, 2)}`;
+    logger.info`${record}`;
     throw new Error("Invalid Artist record");
   }
 
@@ -177,10 +236,10 @@ async function putArtistRecord(agent: Agent, track: MatchTrackResult) {
       validate: false,
     });
     const uri = res.data.uri;
-    console.log(`Artist record created at ${uri}`);
+    logger.info`Artist record created at ${uri}`;
     return uri;
   } catch (e) {
-    console.error("Error creating artist record", e);
+    logger.error`Error creating artist record: ${e}`;
     return null;
   }
 }
@@ -223,4 +282,60 @@ async function putAlbumRecord(agent: Agent, track: MatchTrackResult) {
   }
 }
 
-async function putScrobbleRecord(agent: Agent, track: MatchTrackResult) {}
+async function putScrobbleRecord(
+  agent: Agent,
+  track: MatchTrackResult,
+  timestamp?: number,
+) {
+  const rkey = TID.nextStr();
+
+  const record: Scrobble.Record = {
+    $type: "app.rocksky.scrobble",
+    title: track.title,
+    albumArtist: track.albumArtist,
+    albumArtUrl: track.albumArt,
+    artist: track.artist,
+    artists: track.mbArtists === null ? undefined : track.mbArtists,
+    album: track.album,
+    duration: track.duration,
+    trackNumber: track.trackNumber,
+    discNumber: track.discNumber === 0 ? 1 : track.discNumber,
+    releaseDate: track.releaseDate
+      ? new Date(track.releaseDate).toISOString()
+      : undefined,
+    year: track.year === null ? undefined : track.year,
+    composer: track.composer ? track.composer : undefined,
+    lyrics: track.lyrics ? track.lyrics : undefined,
+    copyrightMessage: track.copyrightMessage
+      ? track.copyrightMessage
+      : undefined,
+    createdAt: timestamp
+      ? dayjs.unix(timestamp).toISOString()
+      : new Date().toISOString(),
+    spotifyLink: track.spotifyLink ? track.spotifyLink : undefined,
+    tags: track.genres || [],
+    mbid: track.mbId,
+  };
+
+  if (!Scrobble.validateRecord(record).success) {
+    logger.info`${Scrobble.validateRecord(record)}`;
+    logger.info`${record}`;
+    throw new Error("Invalid Scrobble record");
+  }
+
+  try {
+    const res = await agent.com.atproto.repo.putRecord({
+      repo: agent.assertDid,
+      collection: "app.rocksky.scrobble",
+      rkey,
+      record,
+      validate: false,
+    });
+    const uri = res.data.uri;
+    logger.info`Scrobble record created at ${uri}`;
+    return uri;
+  } catch (e) {
+    logger.error`Error creating scrobble record: ${e}`;
+    return null;
+  }
+}
