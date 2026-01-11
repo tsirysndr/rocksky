@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import { consola } from "consola";
 import { ctx } from "context";
 import { eq, or } from "drizzle-orm";
 import _ from "lodash";
@@ -15,7 +16,7 @@ async function processUser(user: SelectUser) {
 
     const serviceEndpoint = _.get(plc, "service.0.serviceEndpoint");
     if (!serviceEndpoint) {
-      console.log(`Service endpoint not found for ${user.did}`);
+      consola.info(`Service endpoint not found for ${user.did}`);
       return;
     }
 
@@ -33,7 +34,7 @@ async function processUser(user: SelectUser) {
       .where(eq(users.did, user.did))
       .execute();
   } else {
-    console.log(`Skipping avatar update for ${user.did}`);
+    consola.info(`Skipping avatar update for ${user.did}`);
   }
 
   const [u] = await ctx.db
@@ -54,7 +55,7 @@ async function processUser(user: SelectUser) {
     xata_version: u.xataVersion,
   };
 
-  console.log(userPayload);
+  consola.info(userPayload);
   ctx.nc.publish("rocksky.user", Buffer.from(JSON.stringify(userPayload)));
 }
 
@@ -67,7 +68,7 @@ if (args.length > 0) {
       .limit(1)
       .execute();
     if (!user) {
-      console.log(`User ${did} not found`);
+      consola.info(`User ${did} not found`);
       continue;
     }
 
@@ -77,7 +78,7 @@ if (args.length > 0) {
   let offset = 0;
   let processedCount = 0;
 
-  console.log("Processing all users...");
+  consola.info("Processing all users...");
 
   while (true) {
     const batch = await ctx.db
@@ -91,7 +92,7 @@ if (args.length > 0) {
       break; // No more users to process
     }
 
-    console.log(
+    consola.info(
       `Processing batch ${Math.floor(offset / BATCH_SIZE) + 1}, users ${offset + 1}-${offset + batch.length}`,
     );
 
@@ -100,7 +101,7 @@ if (args.length > 0) {
         await processUser(user);
         processedCount++;
       } catch (error) {
-        console.error(`Error processing user ${user.did}:`, error);
+        consola.error(`Error processing user ${user.did}:`, error);
       }
     }
 
@@ -110,12 +111,12 @@ if (args.length > 0) {
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
-  console.log(`Processed ${chalk.greenBright(processedCount)} users total`);
+  consola.info(`Processed ${chalk.greenBright(processedCount)} users total`);
 }
 
 // Ensure all messages are flushed before exiting
 await ctx.nc.flush();
 
-console.log("Done");
+consola.info("Done");
 
 process.exit(0);

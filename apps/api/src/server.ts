@@ -1,3 +1,4 @@
+import { consola } from "consola";
 import { ctx } from "context";
 import cors from "cors";
 import type { Request, Response } from "express";
@@ -30,7 +31,7 @@ app.use(server.xrpc.router);
 app.use(proxyMiddleware);
 
 app.listen(process.env.ROCKSKY_XPRC_PORT || 3004, () => {
-  console.log(
+  consola.info(
     `Rocksky XRPC API is running on port ${process.env.ROCKSKY_XRPC_PORT || 3004}`,
   );
 });

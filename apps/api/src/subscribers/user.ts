@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import { consola } from "consola";
 import type { Context } from "context";
 import { eq } from "drizzle-orm";
 import _ from "lodash";
@@ -19,7 +20,7 @@ export function onNewUser(ctx: Context) {
         .where(eq(tables.users.id, payload.xata_id))
         .execute();
 
-      console.log(`New user: ${chalk.cyan(_.get(results, "0.handle"))}`);
+      consola.info(`New user: ${chalk.cyan(_.get(results, "0.handle"))}`);
 
       await ctx.meilisearch.post(
         `/indexes/users/documents?primaryKey=id`,

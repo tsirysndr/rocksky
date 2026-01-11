@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import { consola } from "consola";
 import { ctx } from "context";
 import { and, eq } from "drizzle-orm";
 import type { Context } from "hono";
@@ -174,7 +175,7 @@ function handleWebsocket(c: Context) {
           const { did } = jwt.verify(token, env.JWT_SECRET, {
             ignoreExpiration: true,
           });
-          console.log(
+          consola.info(
             `Control message: ${chalk.greenBright(type)}, ${chalk.greenBright(target)}, ${chalk.greenBright(action)}, ${chalk.greenBright(args)}, ${chalk.greenBright("***")}`,
           );
           // Handle control message
@@ -183,31 +184,31 @@ function handleWebsocket(c: Context) {
             const targetDevice = devices[deviceId];
             if (targetDevice) {
               targetDevice.send(JSON.stringify({ type, action, args }));
-              console.log(
+              consola.info(
                 `Control message sent to device: ${chalk.greenBright(deviceId)}, ${chalk.greenBright(target)}`,
               );
               return;
             }
-            console.error(`Device not found: ${target}`);
+            consola.error(`Device not found: ${target}`);
             return;
           }
           userDevices[did]?.forEach((id) => {
             const targetDevice = devices[id];
             if (targetDevice) {
               targetDevice.send(JSON.stringify({ type, action, args }));
-              console.log(
+              consola.info(
                 `Control message sent to all devices: ${chalk.greenBright(id)}, ${chalk.greenBright(target)}`,
               );
             }
           });
 
-          console.error(`Device ID not found for target: ${target}`);
+          consola.error(`Device ID not found for target: ${target}`);
           return;
         }
 
         if (registerMessage.success) {
           const { type, clientName, token } = registerMessage.data;
-          console.log(
+          consola.info(
             `Register message: ${chalk.greenBright(type)}, ${chalk.greenBright(clientName)}, ${chalk.greenBright("****")}`,
           );
           // Handle register Message
@@ -220,7 +221,7 @@ function handleWebsocket(c: Context) {
           devices[deviceId] = ws;
           deviceNames[deviceId] = clientName;
           userDevices[did] = [...(userDevices[did] || []), deviceId];
-          console.log(
+          consola.info(
             `Device registered: ${chalk.greenBright(deviceId)}, ${chalk.greenBright(clientName)}`,
           );
 
@@ -244,17 +245,17 @@ function handleWebsocket(c: Context) {
           return;
         }
       } catch (e) {
-        console.error("Error parsing message:", e);
+        consola.error("Error parsing message:", e);
       }
     },
     onClose: (_, ws) => {
-      console.log("Connection closed");
+      consola.info("Connection closed");
       // remove device from devices
       const deviceId = ws.deviceId;
       const did = ws.did;
       if (deviceId && devices[deviceId]) {
         delete devices[deviceId];
-        console.log(`Device removed: ${chalk.redBright(deviceId)}`);
+        consola.info(`Device removed: ${chalk.redBright(deviceId)}`);
       }
       if (did && userDevices[did]) {
         userDevices[did] = userDevices[did].filter((id) => id !== deviceId);
@@ -265,7 +266,7 @@ function handleWebsocket(c: Context) {
       if (deviceId && deviceNames[deviceId]) {
         const clientName = deviceNames[deviceId];
         delete deviceNames[deviceId];
-        console.log(
+        consola.info(
           `Device name removed: ${chalk.redBright(deviceId)}, ${chalk.redBright(clientName)}`,
         );
       }

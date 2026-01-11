@@ -1,4 +1,5 @@
 import { type Agent, AtpAgent } from "@atproto/api";
+import { consola } from "consola";
 import type { OutputSchema } from "@atproto/api/dist/client/types/com/atproto/repo/getRecord";
 import type { HandlerAuth } from "@atproto/xrpc-server";
 import type { Context } from "context";
@@ -31,7 +32,7 @@ export default function (server: Server, ctx: Context) {
       Effect.retry({ times: 3 }),
       Effect.timeout("120 seconds"),
       Effect.catchAll((err) => {
-        console.error(err);
+        consola.error(err);
         return Effect.succeed({});
       }),
     );
@@ -139,7 +140,7 @@ const withUser = ({
 }: WithAgent): Effect.Effect<WithUser, Error> => {
   return Effect.tryPromise({
     try: async () => {
-      console.log(">> did", did);
+      consola.info(">> did", did);
       return ctx.db
         .select()
         .from(tables.users)

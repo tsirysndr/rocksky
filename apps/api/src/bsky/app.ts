@@ -1,4 +1,5 @@
 import { AtpAgent } from "@atproto/api";
+import { consola } from "consola";
 import type { BlobRef } from "@atproto/lexicon";
 import { isValidHandle } from "@atproto/syntax";
 import { ctx } from "context";
@@ -134,7 +135,7 @@ app.get("/oauth/callback", async (c) => {
     );
     ctx.kv.set(did, token);
   } catch (err) {
-    console.error({ err }, "oauth callback failed");
+    consola.error({ err }, "oauth callback failed");
     return c.redirect(`${env.FRONTEND_URL}?error=1`);
   }
 
@@ -205,7 +206,7 @@ app.get("/profile", async (c) => {
         .execute();
     } catch (e) {
       if (!e.message.includes("invalid record: column [did]: is not unique")) {
-        console.error(e.message);
+        consola.error(e.message);
       } else {
         await ctx.db
           .update(users)

@@ -1,4 +1,5 @@
 import axios from "axios";
+import { consola } from "consola";
 import { ctx } from "context";
 import { eq } from "drizzle-orm";
 import fs from "fs";
@@ -185,7 +186,7 @@ app.post("/join", async (c) => {
     });
   } catch (e) {
     if (!e.message.includes("duplicate key value violates unique constraint")) {
-      console.error(e.message);
+      consola.error(e.message);
     } else {
       throw e;
     }
@@ -263,7 +264,7 @@ app.get("/files", async (c) => {
     return c.json(data);
   } catch (error) {
     if (axios.isAxiosError(error)) {
-      console.error("Axios error:", error.response?.data || error.message);
+      consola.error("Axios error:", error.response?.data || error.message);
 
       const credentials = JSON.parse(
         fs.readFileSync("credentials.json").toString("utf-8"),

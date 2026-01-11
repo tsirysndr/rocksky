@@ -1,3 +1,4 @@
+import { consola } from "consola";
 import { ctx } from "context";
 import { and, eq, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
@@ -249,7 +250,7 @@ app.post("/join", async (c) => {
     });
   } catch (e) {
     if (!e.message.includes("duplicate key value violates unique constraint")) {
-      console.error(e.message);
+      consola.error(e.message);
     } else {
       throw e;
     }

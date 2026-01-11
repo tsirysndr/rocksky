@@ -1,4 +1,5 @@
 import type { Agent } from "@atproto/api";
+import { consola } from "consola";
 import { TID } from "@atproto/common";
 import type { HandlerAuth } from "@atproto/xrpc-server";
 import chalk from "chalk";
@@ -45,7 +46,7 @@ export default function (server: Server, ctx: Context) {
       Effect.retry({ times: 3 }),
       Effect.timeout("600 seconds"),
       Effect.catchAll((err) => {
-        console.error(err);
+        consola.error(err);
         return Effect.succeed({});
       }),
     );
@@ -153,7 +154,7 @@ const putRecord = <T>(
       ),
     ),
     Effect.catchAll((error) => {
-      console.error(`Error creating ${collection} record`, error);
+      consola.error(`Error creating ${collection} record`, error);
       return Effect.succeed(null);
     }),
   );

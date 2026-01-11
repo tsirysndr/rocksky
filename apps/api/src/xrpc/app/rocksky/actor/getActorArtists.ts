@@ -1,4 +1,5 @@
 import type { Context } from "context";
+import { consola } from "consola";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/actor/getActorArtists";
@@ -14,7 +15,7 @@ export default function (server: Server, ctx: Context) {
       Effect.retry({ times: 3 }),
       Effect.timeout("120 seconds"),
       Effect.catchAll((err) => {
-        console.error(err);
+        consola.error(err);
         return Effect.succeed({ artists: [] });
       }),
     );

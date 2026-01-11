@@ -1,3 +1,4 @@
+import { consola } from "consola";
 import { ctx } from "context";
 import { eq, isNull } from "drizzle-orm";
 import { decrypt } from "lib/crypto";
@@ -78,7 +79,7 @@ async function getGenresAndPicture(artists) {
           .then(async (data) => _.get(data, "artists.items.0"));
 
         if (result) {
-          console.log(JSON.stringify(result, null, 2), "\n");
+          consola.info(JSON.stringify(result, null, 2), "\n");
           if (result.genres && result.genres.length > 0) {
             await ctx.db
               .update(tables.artists)
@@ -97,7 +98,7 @@ async function getGenresAndPicture(artists) {
         }
         break; // exit the retry loop on success
       } catch (error) {
-        console.error("Error fetching genres for artist:", artist.name, error);
+        consola.error("Error fetching genres for artist:", artist.name, error);
         // wait for a while before retrying
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
@@ -130,6 +131,6 @@ for (let offset = 0; offset < count; offset += PAGE_SIZE) {
   await getGenresAndPicture(artists);
 }
 
-console.log(`Artists without genres: ${count}`);
+consola.info(`Artists without genres: ${count}`);
 
 process.exit(0);

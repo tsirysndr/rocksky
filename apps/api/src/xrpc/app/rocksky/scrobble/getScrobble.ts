@@ -1,4 +1,5 @@
 import type { Context } from "context";
+import { consola } from "consola";
 import { count, countDistinct, eq } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
@@ -20,7 +21,7 @@ export default function (server: Server, ctx: Context) {
       Effect.retry({ times: 3 }),
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
-        console.error("Error retrieving scrobble:", err);
+        consola.error("Error retrieving scrobble:", err);
         return Effect.succeed({});
       }),
     );

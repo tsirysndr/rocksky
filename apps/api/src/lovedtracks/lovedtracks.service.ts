@@ -1,5 +1,6 @@
 import { AtpAgent, type Agent } from "@atproto/api";
 import { TID } from "@atproto/common";
+import { consola } from "consola";
 import type { Context } from "context";
 import { and, desc, eq, type SQLWrapper } from "drizzle-orm";
 import * as LikeLexicon from "lexicon/types/app/rocksky/like";
@@ -279,7 +280,7 @@ export async function likeTrack(
     };
 
     if (!LikeLexicon.validateRecord(record).success) {
-      console.log(LikeLexicon.validateRecord(record));
+      consola.info(LikeLexicon.validateRecord(record));
       throw new Error("Invalid record");
     }
 
@@ -292,7 +293,7 @@ export async function likeTrack(
         validate: false,
       });
       const uri = res.data.uri;
-      console.log(`Like record created at: ${uri}`);
+      consola.info(`Like record created at: ${uri}`);
 
       [created] = await ctx.db
         .update(lovedTracks)
@@ -300,7 +301,7 @@ export async function likeTrack(
         .where(eq(lovedTracks.id, created.id))
         .returning();
     } catch (e) {
-      console.error(`Error creating like record: ${e.message}`);
+      consola.error(`Error creating like record: ${e.message}`);
     }
   }
 

@@ -1,10 +1,11 @@
 import chalk from "chalk";
+import { consola } from "consola";
 import { ctx } from "context";
 import { count } from "drizzle-orm";
 import tables from "schema";
 
 async function main() {
-  console.log(chalk.cyan("Starting Meilisearch sync..."));
+  consola.info(chalk.cyan("Starting Meilisearch sync..."));
 
   try {
     await Promise.all([
@@ -13,9 +14,9 @@ async function main() {
       createTracks(),
       createUsers(),
     ]);
-    console.log(chalk.green("Meilisearch sync completed successfully."));
+    consola.info(chalk.green("Meilisearch sync completed successfully."));
   } catch (error) {
-    console.error(chalk.red("Error during Meilisearch sync:"), error);
+    consola.error(chalk.red("Error during Meilisearch sync:"), error);
   }
 }
 
@@ -31,7 +32,7 @@ async function createAlbums() {
     .then(([row]) => row.value);
   for (let i = 0; i < total; i += size) {
     const skip = i;
-    console.log(
+    consola.info(
       `Processing ${chalk.magentaBright("albums")}: ${chalk.magentaBright(skip)} to ${chalk.magentaBright(skip + size)}`,
     );
     const results = await ctx.db
@@ -55,7 +56,7 @@ async function createArtists() {
     .then(([row]) => row.value);
   for (let i = 0; i < total; i += size) {
     const skip = i;
-    console.log(
+    consola.info(
       `Processing ${chalk.magentaBright("artists")}: ${chalk.magentaBright(skip)} to ${chalk.magentaBright(skip + size)}`,
     );
     const results = await ctx.db
@@ -79,7 +80,7 @@ async function createTracks() {
     .then(([row]) => row.value);
   for (let i = 0; i < total; i += size) {
     const skip = i;
-    console.log(
+    consola.info(
       `Processing ${chalk.magentaBright("tracks")}: ${chalk.magentaBright(skip)} to ${chalk.magentaBright(skip + size)}`,
     );
     const results = await ctx.db
@@ -104,7 +105,7 @@ async function createUsers() {
 
   for (let i = 0; i < total; i += size) {
     const skip = i;
-    console.log(
+    consola.info(
       `Processing ${chalk.magentaBright("users")}: ${chalk.magentaBright(skip)} to ${chalk.magentaBright(skip + size)}`,
     );
     const results = await ctx.db

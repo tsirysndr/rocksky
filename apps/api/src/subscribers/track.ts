@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import { consola } from "consola";
 import type { Context } from "context";
 import { eq } from "drizzle-orm";
 import _ from "lodash";
@@ -36,7 +37,7 @@ export function onNewTrack(ctx: Context) {
           .execute(),
       ]);
 
-      console.log(`New track: ${chalk.cyan(_.get(tracks, "0.title"))}`);
+      consola.info(`New track: ${chalk.cyan(_.get(tracks, "0.title"))}`);
 
       await Promise.all([
         ctx.meilisearch.post(`indexes/albums/documents?primaryKey=id`, albums),

@@ -1,4 +1,5 @@
 import type { HandlerAuth } from "@atproto/xrpc-server";
+import { consola } from "consola";
 import type { Context } from "context";
 import { count, desc, eq } from "drizzle-orm";
 import { sql } from "drizzle-orm/sql";
@@ -19,7 +20,7 @@ export default function (server: Server, ctx: Context) {
       Effect.retry({ times: 3 }),
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
-        console.error(err);
+        consola.error(err);
         return Effect.succeed({ shouts: [] });
       }),
     );

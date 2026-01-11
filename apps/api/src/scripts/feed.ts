@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import { consola } from "consola";
 import { ctx } from "context";
 import type * as FeedGenerator from "lexicon/types/app/rocksky/feed/generator";
 import { createAgent } from "lib/agent";
@@ -7,7 +8,7 @@ import prompts from "prompts";
 const args = process.argv.slice(2);
 
 if (args.length === 0) {
-  console.error("Please provide user author identifier (handle or DID).");
+  consola.error("Please provide user author identifier (handle or DID).");
   console.log(`Usage: ${chalk.cyan("npm run feed -- <handle|did>")}`);
   process.exit(1);
 }
@@ -19,7 +20,7 @@ const name = await prompts({
 });
 
 if (name.value.length < 3 || name.value.length > 240) {
-  console.error("Feed name must be between 3 and 240 characters.");
+  consola.error("Feed name must be between 3 and 240 characters.");
   process.exit(1);
 }
 
@@ -30,7 +31,7 @@ const description = await prompts({
 });
 
 if (description.value.length > 3000) {
-  console.error("Description is too long. Maximum length is 3000 characters.");
+  consola.error("Description is too long. Maximum length is 3000 characters.");
   process.exit(1);
 }
 
@@ -41,7 +42,7 @@ const did = await prompts({
 });
 
 if (!/^did:web:[a-zA-Z0-9_.-]{3,30}$/.test(did.value)) {
-  console.error(
+  consola.error(
     "Invalid DID format. It should start with 'did:web:' followed by 3 to 30 alphanumeric characters, underscores, hyphens, or periods.",
   );
   process.exit(1);
@@ -54,18 +55,18 @@ const rkey = await prompts({
 });
 
 if (!/^[a-zA-Z0-9_-]{3,30}$/.test(rkey.value)) {
-  console.error(
+  consola.error(
     "Invalid record key. Only alphanumeric characters, underscores, and hyphens are allowed. Length must be between 3 and 30 characters.",
   );
   process.exit(1);
 }
 
-console.log("Creating feed with the following details:");
-
-console.log("Feed name:", name.value);
-console.log("Description:", description.value);
-console.log("DID:", did.value);
-console.log("Record key (rkey):", rkey.value);
+consola.info("Creating feed with the following details:");
+consola.info("---");
+consola.info("Feed name:", name.value);
+consola.info("Description:", description.value);
+consola.info("DID:", did.value);
+consola.info("Record key (rkey):", rkey.value);
 
 const confirm = await prompts({
   type: "confirm",
@@ -75,7 +76,7 @@ const confirm = await prompts({
 });
 
 if (!confirm.value) {
-  console.log("Feed creation cancelled.");
+  consola.info("Feed creation cancelled.");
   process.exit(0);
 }
 
@@ -87,7 +88,7 @@ if (!userDid.startsWith("did:plc:")) {
 
 const agent = await createAgent(ctx.oauthClient, userDid);
 
-console.log(
+consola.info(
   `Writing ${chalk.greenBright("app.rocksky.feed.generator")} record...`,
 );
 
@@ -106,7 +107,7 @@ const res = await agent.com.atproto.repo.createRecord({
   rkey: rkey.value,
 });
 
-console.log(chalk.greenBright("Feed created successfully!"));
-console.log(`Record created at: ${chalk.cyan(res.data.uri)}`);
+consola.info(chalk.greenBright("Feed created successfully!"));
+consola.info(`Record created at: ${chalk.cyan(res.data.uri)}`);
 
 process.exit(0);

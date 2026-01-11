@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import { consola } from "consola";
 import { ctx } from "context";
 import { and, count, eq } from "drizzle-orm";
 import tables from "schema";
@@ -11,11 +12,11 @@ const total = await ctx.db
   .execute()
   .then(([row]) => row.value);
 
-console.log(`Total tracks to process: ${chalk.magentaBright(total)}`);
+consola.info(`Total tracks to process: ${chalk.magentaBright(total)}`);
 
 for (let i = 0; i < total; i += size) {
   const skip = i;
-  console.log(
+  consola.info(
     `Processing ${chalk.magentaBright("tracks")}: ${chalk.magentaBright(skip)} to ${chalk.magentaBright(skip + size)}`,
   );
   const results = await ctx.db
@@ -27,11 +28,11 @@ for (let i = 0; i < total; i += size) {
 
   for (const track of results) {
     if (!track.artistUri || !track.albumUri) {
-      console.log(
-        `Skipping track ${chalk.cyan(track.title)} due to missing artist or album URI`,
+      consola.info(
+        `Deleting album-track relationship for track: ${chalk.redBright(track.uri)}`,
       );
-      console.log("artistUri", track.artistUri);
-      console.log("albumUri", track.albumUri);
+      consola.info("artistUri", track.artistUri);
+      consola.info("albumUri", track.albumUri);
       continue;
     }
 
@@ -57,7 +58,9 @@ for (let i = 0; i < total; i += size) {
       .then((rows) => rows.length > 0);
 
     if (!found) {
-      console.log(`Creating artist-album relationship for track: ${track.uri}`);
+      consola.info(
+        `Creating artist-album relationship for track: ${track.uri}`,
+      );
       const [artist, album] = await Promise.all([
         ctx.db
           .select()
@@ -76,11 +79,11 @@ for (let i = 0; i < total; i += size) {
       ]);
 
       if (!artist || !album) {
-        console.error(
-          `Artist or album not found for track: ${track.uri}. Skipping...`,
+        consola.error(
+          `Artist-album relationship already exists for track: ${chalk.redBright(track.uri)}`,
         );
-        console.log("artist", artist);
-        console.log("album", album);
+        consola.info("artist", artist);
+        consola.info("album", album);
         continue;
       }
 

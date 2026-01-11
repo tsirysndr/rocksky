@@ -1,17 +1,18 @@
 import type { Agent } from "@atproto/api";
 import chalk from "chalk";
+import { consola } from "consola";
 import { ctx } from "context";
+import { eq } from "drizzle-orm";
 import { createAgent } from "lib/agent";
 import * as FeedGenerator from "lexicon/types/app/rocksky/feed/generator";
 import tables from "schema";
 import type { InsertFeed } from "schema/feeds";
-import { eq } from "drizzle-orm";
 
 const args = process.argv.slice(2);
 
 if (args.length === 0) {
-  console.error("Please provide user author identifier (handle or DID).");
-  console.log(`Usage: ${chalk.cyan("npm run seed:feed -- <handle|did>")}`);
+  consola.error("Please provide user author identifier (handle or DID).");
+  consola.info(`Usage: ${chalk.cyan("npm run seed:feed -- <handle|did>")}`);
   process.exit(1);
 }
 
@@ -57,7 +58,7 @@ for (const feed of feeds) {
     } satisfies InsertFeed)
     .onConflictDoNothing()
     .execute();
-  console.log(
+  consola.info(
     `Feed ${chalk.cyanBright(feed.value.displayName)} seeded successfully.`,
   );
 }

@@ -1,4 +1,5 @@
 import type { Context } from "context";
+import { consola } from "consola";
 import { desc, eq, sql } from "drizzle-orm";
 import { Cache, Duration, Effect, pipe } from "effect";
 import type { Server } from "lexicon";
@@ -30,7 +31,7 @@ export default function (server: Server, ctx: Context) {
       nowPlayingCache,
       Effect.flatMap((cache) => cache.get(params)),
       Effect.catchAll((err) => {
-        console.error(err);
+        consola.error(err);
         return Effect.succeed({});
       }),
     );

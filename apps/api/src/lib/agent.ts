@@ -1,5 +1,6 @@
 import { Agent, AtpAgent } from "@atproto/api";
 import type { NodeOAuthClient } from "@atproto/oauth-client-node";
+import { consola } from "consola";
 import extractPdsFromDid from "./extractPdsFromDid";
 import { ctx } from "context";
 
@@ -29,9 +30,9 @@ export async function createAgent(
         try {
           await atpAgent.resumeSession(JSON.parse(result.session));
         } catch (e) {
-          console.log("Error resuming session");
-          console.log(did);
-          console.log(e);
+          consola.info("Error resuming session");
+          consola.info(did);
+          consola.info(e);
           await ctx.sqliteDb
             .deleteFrom("auth_session")
             .where("key", "=", `atp:${did}`)
@@ -47,9 +48,9 @@ export async function createAgent(
         retry += 1;
       }
     } catch (e) {
-      console.log("Error creating agent");
-      console.log(did);
-      console.log(e);
+      consola.info("Error creating agent");
+      consola.info(did);
+      consola.info(e);
       await new Promise((r) => setTimeout(r, 1000));
       retry += 1;
     }

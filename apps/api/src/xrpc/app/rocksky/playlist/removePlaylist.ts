@@ -1,4 +1,5 @@
 import type { HandlerAuth } from "@atproto/xrpc-server";
+import { consola } from "consola";
 import type { Context } from "context";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
@@ -18,7 +19,7 @@ export default function (server: Server, ctx: Context) {
       Effect.retry({ times: 3 }),
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
-        console.error(err);
+        consola.error(err);
         return Effect.succeed({});
       }),
     );
@@ -45,7 +46,7 @@ const remove = ({
       // Logic to remove the playlist would go here
     },
     catch: (err) => {
-      console.error(err);
+      consola.error(err);
       return {};
     },
   });

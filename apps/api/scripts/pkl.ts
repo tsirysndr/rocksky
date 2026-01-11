@@ -2,6 +2,7 @@ import chalk from "chalk";
 import { readdirSync, statSync } from "fs";
 import { join } from "path";
 import { $ } from "zx";
+import { consola } from "consola";
 
 function getPklFilesRecursive(dir: string): string[] {
   const entries = readdirSync(dir);
@@ -28,7 +29,7 @@ const files = await getPklFilesRecursive(join("pkl", "defs"));
 
 await Promise.all(
   files.map(async (fullPath) => {
-    console.log(`pkl eval ${chalk.cyan(fullPath)}`);
+    consola.info(`pkl eval ${chalk.cyan(fullPath)}`);
     await $`pkl eval -f json ${fullPath} > ${fullPath.replace(/\.pkl$/, ".json").replace(/pkl[\\\/]defs/g, "lexicons")}`;
-  })
+  }),
 );

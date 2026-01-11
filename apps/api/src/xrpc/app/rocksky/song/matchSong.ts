@@ -1,4 +1,5 @@
 import type { Context } from "context";
+import { consola } from "consola";
 import { and, count, eq, or, sql } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
@@ -8,14 +9,14 @@ import { decrypt } from "lib/crypto";
 import { env } from "lib/env";
 import tables from "schema";
 import type { SelectTrack } from "schema/tracks";
-import {
+import type {
   Album,
   Artist,
   MusicBrainzArtist,
   SearchResponse,
   Track,
 } from "./types";
-import { MusicbrainzTrack } from "types/track";
+import type { MusicbrainzTrack } from "types/track";
 
 export default function (server: Server, ctx: Context) {
   const matchSong = (params: QueryParams) =>
@@ -26,7 +27,7 @@ export default function (server: Server, ctx: Context) {
       Effect.retry({ times: 3 }),
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
-        console.error(err);
+        consola.error(err);
         return Effect.succeed({});
       }),
     );
@@ -44,7 +45,7 @@ export default function (server: Server, ctx: Context) {
 const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
   return Effect.tryPromise({
     try: async () => {
-      let record = await ctx.db
+      const record = await ctx.db
         .select()
         .from(tables.tracks)
         .leftJoin(
@@ -227,7 +228,7 @@ const searchOnSpotify = async (
     .execute();
 
   if (!spotifyTokens || spotifyTokens.length === 0) {
-    console.warn("No Spotify tokens available for beta users");
+    consola.warn("No Spotify tokens available for beta users");
     return undefined;
   }
 
@@ -235,7 +236,7 @@ const searchOnSpotify = async (
     spotifyTokens[Math.floor(Math.random() * spotifyTokens.length)];
 
   if (!spotify_tokens || !spotify_apps) {
-    console.warn("Invalid Spotify token or app data");
+    consola.warn("Invalid Spotify token or app data");
     return undefined;
   }
 
@@ -339,7 +340,7 @@ const searchOnMusicBrainz = async (ctx: Context, track: SelectTrack) => {
       artists,
     };
   } catch (error) {
-    console.error("Error fetching MusicBrainz data");
+    consola.error("Error fetching MusicBrainz data");
   }
 
   return {

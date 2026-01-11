@@ -1,5 +1,6 @@
 import { createClient } from "auth/client";
 import axios from "axios";
+import { consola } from "consola";
 import { createDb, migrateToLatest } from "db";
 import drizzle from "drizzle";
 import authVerifier from "lib/authVerifier";
@@ -35,7 +36,7 @@ export const ctx = {
   redis: await redis
     .createClient({ url: env.REDIS_URL })
     .on("error", (err) => {
-      console.error("Uncaught Redis Client Error", err);
+      consola.error("Uncaught Redis Client Error", err);
       process.exit(1);
     })
     .connect(),

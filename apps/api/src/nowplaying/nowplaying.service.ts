@@ -1,6 +1,7 @@
 import type { Agent } from "@atproto/api";
 import { TID } from "@atproto/common";
 import chalk from "chalk";
+import { consola } from "consola";
 import type { Context } from "context";
 import dayjs from "dayjs";
 import { and, eq, gte, lte, or } from "drizzle-orm";
@@ -38,8 +39,8 @@ export async function putArtistRecord(
   };
 
   if (!Artist.validateRecord(record).success) {
-    console.log(Artist.validateRecord(record));
-    console.log(JSON.stringify(record, null, 2));
+    consola.info(Artist.validateRecord(record));
+    consola.info(JSON.stringify(record, null, 2));
     throw new Error("Invalid record");
   }
 
@@ -52,10 +53,10 @@ export async function putArtistRecord(
       validate: false,
     });
     const uri = res.data.uri;
-    console.log(`Artist record created at ${uri}`);
+    consola.info(`Artist record created at ${uri}`);
     return uri;
   } catch (e) {
-    console.error("Error creating artist record", e);
+    consola.error("Error creating artist record", e);
     return null;
   }
 }
@@ -79,8 +80,8 @@ export async function putAlbumRecord(
   };
 
   if (!Album.validateRecord(record).success) {
-    console.log(Album.validateRecord(record));
-    console.log(JSON.stringify(record, null, 2));
+    consola.info(Album.validateRecord(record));
+    consola.info(JSON.stringify(record, null, 2));
     throw new Error("Invalid record");
   }
 
@@ -93,10 +94,10 @@ export async function putAlbumRecord(
       validate: false,
     });
     const uri = res.data.uri;
-    console.log(`Album record created at ${uri}`);
+    consola.info(`Album record created at ${uri}`);
     return uri;
   } catch (e) {
-    console.error("Error creating album record", e);
+    consola.error("Error creating album record", e);
     return null;
   }
 }
@@ -134,8 +135,8 @@ export async function putSongRecord(
   };
 
   if (!Song.validateRecord(record).success) {
-    console.log(Song.validateRecord(record));
-    console.log(chalk.cyan(JSON.stringify(record, null, 2)));
+    consola.info(Song.validateRecord(record));
+    consola.info(chalk.cyan(JSON.stringify(record, null, 2)));
     throw new Error("Invalid record");
   }
 
@@ -148,10 +149,10 @@ export async function putSongRecord(
       validate: false,
     });
     const uri = res.data.uri;
-    console.log(`Song record created at ${uri}`);
+    consola.info(`Song record created at ${uri}`);
     return uri;
   } catch (e) {
-    console.error("Error creating song record", e);
+    consola.error("Error creating song record", e);
     return null;
   }
 }
@@ -192,8 +193,8 @@ async function putScrobbleRecord(
   };
 
   if (!Scrobble.validateRecord(record).success) {
-    console.log(Scrobble.validateRecord(record));
-    console.log(JSON.stringify(record, null, 2));
+    consola.info(Scrobble.validateRecord(record));
+    consola.info(JSON.stringify(record, null, 2));
     throw new Error("Invalid record");
   }
 
@@ -206,10 +207,10 @@ async function putScrobbleRecord(
       validate: false,
     });
     const uri = res.data.uri;
-    console.log(`Scrobble record created at ${uri}`);
+    consola.info(`Scrobble record created at ${uri}`);
     return uri;
   } catch (e) {
-    console.error("Error creating scrobble record", e);
+    consola.error("Error creating scrobble record", e);
     return null;
   }
 }
@@ -531,7 +532,7 @@ export async function scrobbleTrack(
     .then((rows) => rows[0]);
 
   if (existingScrobble) {
-    console.log(
+    consola.info(
       `Scrobble already exists for ${chalk.cyan(track.title)} at ${chalk.cyan(
         scrobbleTime.format("YYYY-MM-DD HH:mm:ss"),
       )}`,
@@ -641,7 +642,7 @@ export async function scrobbleTrack(
       name: artist.name,
     }));
   } catch (error) {
-    console.error("Error fetching MusicBrainz data");
+    consola.error("Error fetching MusicBrainz data");
   }
 
   if (!existingTrack?.uri || !userTrack?.userTrack.uri?.includes(userDid)) {
@@ -664,7 +665,7 @@ export async function scrobbleTrack(
 
   let tries = 0;
   while (!existingTrack && tries < 30) {
-    console.log(`Song not found, trying again: ${chalk.magenta(tries + 1)}`);
+    consola.info(`Song not found, trying again: ${chalk.magenta(tries + 1)}`);
     existingTrack = await ctx.db
       .select()
       .from(tracks)
@@ -685,11 +686,11 @@ export async function scrobbleTrack(
   }
 
   if (tries === 30 && !existingTrack) {
-    console.log(`Song not found after ${chalk.magenta("30 tries")}`);
+    consola.info(`Song not found after ${chalk.magenta("30 tries")}`);
   }
 
   if (existingTrack) {
-    console.log(
+    consola.info(
       `Song found: ${chalk.cyan(existingTrack.id)} - ${track.title}, after ${chalk.magenta(tries)} tries`,
     );
   }
@@ -768,7 +769,7 @@ export async function scrobbleTrack(
     .then((rows) => rows[0]);
 
   while (!existingTrack?.artistUri && !existingTrack?.albumUri && tries < 30) {
-    console.log(
+    consola.info(
       `Artist uri not ready, trying again: ${chalk.magenta(tries + 1)}`,
     );
     existingTrack = await ctx.db
@@ -847,11 +848,11 @@ export async function scrobbleTrack(
   }
 
   if (tries === 30 && !existingTrack?.artistUri) {
-    console.log(`Artist uri not ready after ${chalk.magenta("30 tries")}`);
+    consola.info(`Artist uri not ready after ${chalk.magenta("30 tries")}`);
   }
 
   if (existingTrack?.artistUri) {
-    console.log(
+    consola.info(
       `Artist uri ready: ${chalk.cyan(existingTrack.id)} - ${track.title}, after ${chalk.magenta(tries)} tries`,
     );
   }
@@ -925,18 +926,18 @@ export async function scrobbleTrack(
       scrobble.track.artistUri &&
       scrobble.track.albumUri
     ) {
-      console.log("Scrobble found after ", chalk.magenta(tries + 1), " tries");
+      consola.info("Scrobble found after ", chalk.magenta(tries + 1), " tries");
       await publishScrobble(ctx, scrobble.scrobble.id);
-      console.log("Scrobble published");
+      consola.info("Scrobble published");
       break;
     }
     tries += 1;
-    console.log("Scrobble not found, trying again: ", chalk.magenta(tries));
+    consola.info("Scrobble not found, trying again: ", chalk.magenta(tries));
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 
   if (tries === 30 && !scrobble) {
-    console.log(`Scrobble not found after ${chalk.magenta("30 tries")}`);
+    consola.info(`Scrobble not found after ${chalk.magenta("30 tries")}`);
   }
 
   ctx.nc.publish("rocksky.user.scrobble.sync", Buffer.from(userDid));

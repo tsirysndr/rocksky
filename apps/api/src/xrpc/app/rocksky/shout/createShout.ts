@@ -1,4 +1,5 @@
 import type { Agent } from "@atproto/api";
+import { consola } from "consola";
 import type { HandlerAuth } from "@atproto/xrpc-server";
 import type { Context } from "context";
 import { eq } from "drizzle-orm";
@@ -21,7 +22,7 @@ export default function (server: Server, ctx: Context) {
       Effect.retry({ times: 3 }),
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
-        console.error(err);
+        consola.error(err);
         return Effect.succeed({});
       }),
     );

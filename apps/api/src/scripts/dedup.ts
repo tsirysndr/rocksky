@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import { consola } from "consola";
 import { ctx } from "context";
 import { eq } from "drizzle-orm";
 import { createAgent } from "lib/agent";
@@ -7,8 +8,8 @@ import tables from "schema";
 const args = process.argv.slice(2);
 
 if (args.length === 0) {
-  console.error("Please provide user author identifier (handle or DID).");
-  console.log(`Usage: ${chalk.cyan("npm run feed -- <handle|did>")}`);
+  consola.error("Please provide user author identifier (handle or DID).");
+  consola.info(`Usage: ${chalk.cyan("npm run feed -- <handle|did>")}`);
   process.exit(1);
 }
 
@@ -36,8 +37,8 @@ do {
       .where(eq(tables.scrobbles.uri, record.uri))
       .limit(1);
     if (result.length === 0) {
-      console.log(`${i} Deleting record:`);
-      console.log(record);
+      consola.info(`${i} Deleting record:`);
+      consola.info(record);
       const rkey = record.uri.split("/").pop();
       await agent.com.atproto.repo.deleteRecord({
         repo: agent.assertDid,
@@ -46,14 +47,14 @@ do {
       });
       await new Promise((resolve) => setTimeout(resolve, 1000)); // rate limit
     } else {
-      console.log(chalk.greenBright(`${i} Keeping record:`));
-      console.log(record);
+      consola.info(chalk.greenBright(`${i} Keeping record:`));
+      consola.info(record);
     }
     i += 1;
   }
   cursor = records.data.cursor;
 } while (cursor);
 
-console.log(chalk.greenBright("Deduplication complete."));
+consola.info(chalk.greenBright("Deduplication complete."));
 
 process.exit(0);

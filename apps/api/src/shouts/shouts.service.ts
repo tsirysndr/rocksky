@@ -1,4 +1,5 @@
 import { type Agent, AtpAgent } from "@atproto/api";
+import { consola } from "consola";
 import { TID } from "@atproto/common";
 import type { Context } from "context";
 import { and, eq } from "drizzle-orm";
@@ -98,7 +99,7 @@ export async function createShout(
     cid: subjectRecord.data.cid,
   });
   if (!subjectRef.success) {
-    console.log(subjectRef);
+    consola.info(subjectRef);
     throw new Error("Invalid ref");
   }
 
@@ -111,7 +112,7 @@ export async function createShout(
   };
 
   if (!ShoutLexicon.validateRecord(record).success) {
-    console.log(ShoutLexicon.validateRecord(record));
+    consola.info(ShoutLexicon.validateRecord(record));
     throw new Error("[shout] invalid record");
   }
 
@@ -125,7 +126,7 @@ export async function createShout(
     });
     const uri = res.data.uri;
 
-    console.log(`Shout record created at: ${uri}`);
+    consola.info(`Shout record created at: ${uri}`);
 
     const createdShout = await ctx.db
       .insert(shouts)
@@ -148,7 +149,7 @@ export async function createShout(
       });
     }
   } catch (e) {
-    console.error(`Error creating shout record: ${e.message}`);
+    consola.error(`Error creating shout record: ${e.message}`);
   }
 }
 
@@ -269,7 +270,7 @@ export async function replyShout(
   };
 
   if (!ShoutLexicon.validateRecord(record).success) {
-    console.log(ShoutLexicon.validateRecord(record));
+    consola.info(ShoutLexicon.validateRecord(record));
     throw new Error("Invalid record");
   }
 
@@ -283,7 +284,7 @@ export async function replyShout(
     });
     const uri = res.data.uri;
 
-    console.log(`Reply record created at: ${uri}`);
+    consola.info(`Reply record created at: ${uri}`);
 
     const createdShout = await ctx.db
       .insert(shouts)
@@ -314,7 +315,7 @@ export async function replyShout(
       });
     }
   } catch (e) {
-    console.error(`Error creating reply record: ${e.message}`);
+    consola.error(`Error creating reply record: ${e.message}`);
   }
 }
 
@@ -370,7 +371,7 @@ export async function likeShout(
   };
 
   if (!LikeLexicon.validateRecord(record).success) {
-    console.log(LikeLexicon.validateRecord(record));
+    consola.info(LikeLexicon.validateRecord(record));
     throw new Error("Invalid record");
   }
 
@@ -383,7 +384,7 @@ export async function likeShout(
       validate: false,
     });
     const uri = res.data.uri;
-    console.log(`Like record created at: ${uri}`);
+    consola.info(`Like record created at: ${uri}`);
 
     const shout = await ctx.db
       .select()
@@ -402,7 +403,7 @@ export async function likeShout(
       uri,
     });
   } catch (e) {
-    console.error(`Error creating like record: ${e.message}`);
+    consola.error(`Error creating like record: ${e.message}`);
   }
 }
 

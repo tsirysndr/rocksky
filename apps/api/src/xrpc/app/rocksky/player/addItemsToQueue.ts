@@ -1,4 +1,5 @@
 import type { HandlerAuth } from "@atproto/xrpc-server";
+import { consola } from "consola";
 import type { Context } from "context";
 import { inArray } from "drizzle-orm";
 import { Effect, pipe } from "effect";
@@ -20,7 +21,7 @@ export default function (server: Server, ctx: Context) {
       Effect.retry({ times: 3 }),
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
-        console.error(err);
+        consola.error(err);
         return Effect.succeed({});
       }),
     );
@@ -79,7 +80,7 @@ const handleAddItemsToQueue = ({
       });
     },
     catch: (err) => {
-      console.error(err);
+      consola.error(err);
       return {};
     },
   });

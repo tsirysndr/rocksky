@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import { consola } from "consola";
 import { ctx } from "context";
 import { encrypt } from "lib/crypto";
 import { env } from "lib/env";
@@ -9,10 +10,10 @@ const clientId = args[0];
 const clientSecret = args[1];
 
 if (!clientId || !clientSecret) {
-  console.error(
+  consola.error(
     "Please provide Spotify Client ID and Client Secret as command line arguments",
   );
-  console.log(
+  consola.info(
     chalk.greenBright("Usage: ts-node spotify.ts <client_id> <client_secret>"),
   );
   process.exit(1);

@@ -1,4 +1,5 @@
 import type { Context } from "context";
+import { consola } from "consola";
 import { and, asc, eq, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { Effect, pipe } from "effect";
@@ -17,7 +18,7 @@ export default function (server: Server, ctx: Context) {
       Effect.retry({ times: 3 }),
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
-        console.error(err);
+        consola.error(err);
         return Effect.succeed({ files: [], directories: [] });
       }),
     );
@@ -113,7 +114,7 @@ const retrieve = ({
       ]);
     },
     catch: (error) => {
-      console.error("Failed to retrieve files:", error);
+      consola.error("Failed to retrieve files:", error);
       return new Error(`Failed to retrieve albums: ${error}`);
     },
   });

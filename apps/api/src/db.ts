@@ -9,6 +9,7 @@ import {
   SqliteDialect,
 } from "kysely";
 import { createAgent } from "lib/agent";
+import { consola } from "consola";
 
 // Types
 
@@ -113,12 +114,12 @@ export const migrateToLatest = async (db: Database) => {
 export const updateExpiresAt = async (db: Database) => {
   // get all sessions that have expiresAt is null
   const sessions = await db.selectFrom("auth_session").selectAll().execute();
-  console.log("Found", sessions.length, "sessions to update");
+  consola.info("Found", sessions.length, "sessions to update");
   for (const session of sessions) {
     const data = JSON.parse(session.session) as {
       tokenSet: { expires_at?: string | null };
     };
-    console.log(session.key, data.tokenSet.expires_at);
+    consola.info(session.key, data.tokenSet.expires_at);
     await db
       .updateTable("auth_session")
       .set({ expiresAt: data.tokenSet.expires_at })
@@ -126,7 +127,7 @@ export const updateExpiresAt = async (db: Database) => {
       .execute();
   }
 
-  console.log(`Updated ${chalk.greenBright(sessions.length)} sessions`);
+  consola.info(`Updated ${chalk.greenBright(sessions.length)} sessions`);
 };
 
 export const refreshSessionsAboutToExpire = async (
@@ -144,7 +145,7 @@ export const refreshSessionsAboutToExpire = async (
     .execute();
 
   for (const session of sessions) {
-    console.log(
+    consola.info(
       "Session about to expire:",
       chalk.cyan(session.key),
       session.expiresAt,
@@ -155,7 +156,7 @@ export const refreshSessionsAboutToExpire = async (
     await new Promise((r) => setTimeout(r, 200));
   }
 
-  console.log(
+  consola.info(
     `Found ${chalk.yellowBright(sessions.length)} sessions to refresh`,
   );
 };

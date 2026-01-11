@@ -1,4 +1,5 @@
 import type { Context } from "context";
+import { consola } from "consola";
 import { eq } from "drizzle-orm";
 import { Effect, Match, pipe, Cache, Duration } from "effect";
 import type { Server } from "lexicon";
@@ -25,7 +26,7 @@ export default function (server: Server, ctx: Context) {
       getScrobblesCache,
       Effect.flatMap((cache) => cache.get(params)),
       Effect.catchAll((err) => {
-        console.error(err);
+        consola.error(err);
         return Effect.succeed({ scrobbles: [] });
       }),
     );

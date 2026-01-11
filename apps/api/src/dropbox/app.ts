@@ -1,4 +1,5 @@
 import axios from "axios";
+import { consola } from "consola";
 import { ctx } from "context";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
@@ -159,7 +160,7 @@ app.post("/join", async (c) => {
     if (
       !e.message.includes("invalid record: column [user_id]: is not unique")
     ) {
-      console.error(e.message);
+      consola.error(e.message);
     } else {
       throw e;
     }

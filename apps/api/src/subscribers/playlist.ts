@@ -1,4 +1,5 @@
 import { TID } from "@atproto/common";
+import { consola } from "consola";
 import chalk from "chalk";
 import type { Context } from "context";
 import { eq } from "drizzle-orm";
@@ -16,7 +17,7 @@ export function onNewPlaylist(ctx: Context) {
         id: string;
         did: string;
       } = JSON.parse(sc.decode(m.data));
-      console.log(
+      consola.info(
         `New playlist: ${chalk.cyan(payload.did)} - ${chalk.greenBright(payload.id)}`,
       );
       await putPlaylistRecord(ctx, payload);
@@ -31,7 +32,7 @@ async function putPlaylistRecord(
   const agent = await createAgent(ctx.oauthClient, payload.did);
 
   if (!agent) {
-    console.error(
+    consola.error(
       `Failed to create agent, skipping playlist: ${chalk.cyan(payload.id)} for ${chalk.greenBright(payload.did)}`,
     );
     return;
@@ -69,7 +70,7 @@ async function putPlaylistRecord(
   };
 
   if (!Playlist.validateRecord(record)) {
-    console.error(`Invalid record: ${chalk.redBright(JSON.stringify(record))}`);
+    consola.error(`Invalid record: ${chalk.redBright(JSON.stringify(record))}`);
     return;
   }
 
@@ -82,14 +83,14 @@ async function putPlaylistRecord(
       validate: false,
     });
     const uri = res.data.uri;
-    console.log(`Playlist record created: ${chalk.greenBright(uri)}`);
+    consola.info(`Playlist record created: ${chalk.greenBright(uri)}`);
     await ctx.db
       .update(tables.playlists)
       .set({ uri })
       .where(eq(tables.playlists.id, payload.id))
       .execute();
   } catch (e) {
-    console.error(`Failed to put record: ${chalk.redBright(e.message)}`);
+    consola.error(`Failed to put record: ${chalk.redBright(e.message)}`);
   }
 
   const [updatedPlaylist] = await ctx.db

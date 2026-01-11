@@ -1,4 +1,5 @@
 import { TID } from "@atproto/common";
+import { consola } from "consola";
 import type { HandlerAuth } from "@atproto/xrpc-server";
 import type { Context } from "context";
 import { and, eq, desc } from "drizzle-orm";
@@ -20,7 +21,7 @@ export default function (server: Server, ctx: Context) {
       Effect.retry({ times: 3 }),
       Effect.timeout("120 seconds"),
       Effect.catchAll((err) => {
-        console.error(err);
+        consola.error(err);
         return Effect.succeed({
           subject: {} satisfies ProfileViewBasic,
           followers: [],
@@ -75,7 +76,7 @@ const handleFollow = ({
       };
 
       if (!FollowLexicon.validateRecord(record).success) {
-        console.log(FollowLexicon.validateRecord(record));
+        consola.info(FollowLexicon.validateRecord(record));
         throw new Error("Invalid record");
       }
 
@@ -87,7 +88,7 @@ const handleFollow = ({
         validate: false,
       });
       const uri = res.data.uri;
-      console.log(`Follow record created at: ${uri}`);
+      consola.info(`Follow record created at: ${uri}`);
 
       await ctx.db
         .insert(tables.follows)

@@ -58,6 +58,7 @@
     "better-sqlite3": "^12.4.1",
     "chalk": "^5.4.1",
     "chanfana": "^2.0.2",
+    "consola": "^3.4.2",
     "cors": "^2.8.5",
     "dayjs": "^1.11.13",
     "dotenv": "^16.4.7",

@@ -1,4 +1,5 @@
 import type { Context } from "context";
+import { consola } from "consola";
 import { asc, count, eq, or } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
@@ -19,7 +20,7 @@ export default function (server: Server, ctx: Context) {
       Effect.retry({ times: 3 }),
       Effect.timeout("120 seconds"),
       Effect.catchAll((err) => {
-        console.error(err);
+        consola.error(err);
         return Effect.succeed({});
       }),
     );
@@ -91,7 +92,7 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
       ]);
     },
     catch: (error) => {
-      console.log("Error retrieving album:", error);
+      consola.info("Error retrieving album:", error);
       return new Error(`Failed to retrieve album: ${error}`);
     },
   });

@@ -1,4 +1,5 @@
 import type { Agent } from "@atproto/api";
+import { consola } from "consola";
 import type { Context } from "context";
 import { and, eq } from "drizzle-orm";
 import { deepSnakeCaseKeys } from "lib";
@@ -130,7 +131,7 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
       .then((results) => results[0]);
 
     if (!track_id || !album_id || !artist_id) {
-      console.log(
+      consola.info(
         "Track not yet saved (uri not saved), retrying...",
         tries + 1,
       );
@@ -218,7 +219,7 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
       track_id.albumUri &&
       track_id.artistUri
     ) {
-      console.log("Track saved successfully after", tries + 1, "tries");
+      consola.info("Track saved successfully after", tries + 1, "tries");
 
       const message = JSON.stringify(
         deepSnakeCaseKeys({
@@ -275,23 +276,23 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
     }
 
     tries += 1;
-    console.log("Track not yet saved, retrying...", tries + 1);
+    consola.info("Track not yet saved, retrying...", tries + 1);
     if (tries === 15) {
-      console.log(">>>");
-      console.log(album_track);
-      console.log(artist_track);
-      console.log(artist_album);
-      console.log(artist_id);
-      console.log(album_id);
-      console.log(track_id);
-      console.log(track_id.albumUri);
-      console.log(track_id.artistUri);
-      console.log("<<<");
+      consola.info(">>>");
+      consola.info(album_track);
+      consola.info(artist_track);
+      consola.info(artist_album);
+      consola.info(artist_id);
+      consola.info(album_id);
+      consola.info(track_id);
+      consola.info(track_id.albumUri);
+      consola.info(track_id.artistUri);
+      consola.info("<<<");
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 
   if (tries === 15) {
-    console.log("Failed to save track after 15 tries");
+    consola.info("Failed to save track after 15 tries");
   }
 }

@@ -1,6 +1,7 @@
 import type { Agent } from "@atproto/api";
 import { TID } from "@atproto/common";
 import chalk from "chalk";
+import { consola } from "consola";
 import type * as Status from "lexicon/types/fm/teal/alpha/actor/status";
 import type { PlayView } from "lexicon/types/fm/teal/alpha/feed/defs";
 import * as Play from "lexicon/types/fm/teal/alpha/feed/play";
@@ -24,7 +25,9 @@ async function publishPlayingNow(
   duration: number,
 ) {
   if (env.DISABLED_TEALFM.includes(agent.assertDid)) {
-    console.log(`teal.fm is disabled for ${chalk.cyanBright(agent.assertDid)}`);
+    consola.info(
+      `teal.fm is disabled for ${chalk.cyanBright(agent.assertDid)}`,
+    );
     return;
   }
 
@@ -47,7 +50,7 @@ async function publishPlayingNow(
       );
     });
     if (alreadyPlayed) {
-      console.log(
+      consola.info(
         `Track ${chalk.cyan(track.name)} by ${chalk.cyan(
           track.artist.map((a) => a.name).join(", "),
         )} already played recently. Skipping...`,
@@ -72,8 +75,8 @@ async function publishPlayingNow(
     };
 
     if (!Play.validateRecord(record).success) {
-      console.log(Play.validateRecord(record));
-      console.log(chalk.cyan(JSON.stringify(record, null, 2)));
+      consola.info(Play.validateRecord(record));
+      consola.info(chalk.cyan(JSON.stringify(record, null, 2)));
       throw new Error("Invalid record");
     }
 
@@ -85,11 +88,11 @@ async function publishPlayingNow(
       validate: false,
     });
     const uri = res.data.uri;
-    console.log(`tealfm Play record created at ${uri}`);
+    consola.info(`tealfm Play record created at ${uri}`);
 
     await publishStatus(agent, track, duration);
   } catch (error) {
-    console.error("Error publishing teal.fm record:", error);
+    consola.error("Error publishing teal.fm record:", error);
   }
 }
 
@@ -127,7 +130,7 @@ async function publishStatus(
     record,
     swapRecord,
   });
-  console.log(`tealfm Status record published at ${res.data.uri}`);
+  consola.info(`tealfm Status record published at ${res.data.uri}`);
 }
 
 async function getStatusSwapRecord(agent: Agent): Promise<string | undefined> {

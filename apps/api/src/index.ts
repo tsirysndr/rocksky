@@ -1,6 +1,7 @@
 import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { trace } from "@opentelemetry/api";
+import { consola } from "consola";
 import { ctx } from "context";
 import { and, desc, eq, isNotNull, or } from "drizzle-orm";
 import { Hono } from "hono";
@@ -466,7 +467,7 @@ app.post("/tracks", async (c) => {
     await saveTrack(ctx, track, agent);
   } catch (e) {
     if (!e.message.includes("duplicate key value violates unique constraint")) {
-      console.error("[tracks]", e.message);
+      consola.error("[tracks]", e.message);
     }
   }
 
