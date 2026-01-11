@@ -31,9 +31,9 @@ program
   / , _/ _ \\/ __/  '_/(_-</  '_/ // / / /__/ /___/ /
  /_/|_|\\___/\\__/_/\\_\\/___/_/\\_\\\\_, /  \\___/____/___/
                               /___/
- ${chalk.gray("Command-line interface for Rocksky (")}${chalk.gray.underline(
+ Command-line interface for Rocksky ${chalk.magentaBright(
    "https://rocksky.app",
- )}${chalk.gray(")")} ${chalk.gray("– scrobble tracks, view stats, and manage your listening history.")}`,
+ )} – scrobble tracks, view stats, and manage your listening history.`,
   )
   .version(version);
 
@@ -49,8 +49,8 @@ program.configureHelp({
 program.addHelpText(
   "after",
   `
-${chalk.bold("\nLearn more about Rocksky:")}             ${chalk.underline("https://docs.rocksky.app")}
-${chalk.bold("Join our Discord community:")}      ${chalk.underline(chalk.blueBright("https://discord.gg/EVcBy2fVa3"))}
+${chalk.bold("\nLearn more about Rocksky:")}               https://docs.rocksky.app
+${chalk.bold("Join our Discord community:")}        ${chalk.blueBright("https://discord.gg/EVcBy2fVa3")}
 `,
 );
 
