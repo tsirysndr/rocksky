@@ -17,6 +17,7 @@ import * as Song from "lexicon/types/app/rocksky/song";
 import { TID } from "@atproto/common";
 import { Agent } from "@atproto/api";
 import { createUser, subscribeToJetstream, sync } from "cmd/sync";
+import _ from "lodash";
 
 export async function publishScrobble(
   track: MatchTrackResult,
@@ -123,7 +124,33 @@ export async function publishScrobble(
     await putAlbumRecord(agent, track);
   }
 
-  await putScrobbleRecord(agent, track, timestamp);
+  const scrobbleUri = await putScrobbleRecord(agent, track, timestamp);
+
+  // wait for the scrobble to be published
+  if (scrobbleUri) {
+    const MAX_ATTEMPTS = 40;
+    let attempts = 0;
+    do {
+      const count = await ctx.db
+        .select({
+          count: sql`COUNT(*)`,
+        })
+        .from(schema.scrobbles)
+        .where(eq(schema.scrobbles.uri, scrobbleUri))
+        .execute()
+        .then((rows) => _.get(rows, "[0].count", 0) as number);
+
+      if (count > 0 || attempts >= MAX_ATTEMPTS) {
+        if (attempts == MAX_ATTEMPTS) {
+          logger.error`Failed to detect published scrobble after ${MAX_ATTEMPTS} attempts`;
+        }
+        break;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      attempts += 1;
+    } while (true);
+  }
 
   return true;
 }
