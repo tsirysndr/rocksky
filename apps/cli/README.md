@@ -1,6 +1,6 @@
 ## Rocksky CLI
 
-🎧 The official command-line interface for [Rocksky](https://rocksky.app) — a modern, decentralized music tracking and discovery platform built on the [AT Protocol](https://atproto.com).
+🎧 The official command-line interface for [Rocksky](https://rocksky.app) — a modern, decentralized music tracking and discovery platform built on [AT Protocol](https://atproto.com).
 
 ## Features
 - 🔐 Authenticate with your Rocksky account using OAuth
@@ -71,6 +71,12 @@ rocksky login
 rocksky nowplaying
 ```
 
+`scrobble` - Manually scrobbles a track.
+
+```bash
+rocksky scrobble "Karma Police" "Radiohead"
+```
+
 `scrobbles` - Lists all recently scrobbled tracks.
 
 ```bash
@@ -111,6 +117,18 @@ rocksky tracks [did]
 
 ```bash
 rocksky scrobble "Karma Police" "Radiohead"
+```
+
+`scrobble-api` - Start a local listenbrainz/lastfm compatibility server
+
+```bash
+rocksky scrobble-api
+```
+
+`sync` - Sync your local Rocksky data from AT Protocol
+
+```bash
+rocksky sync
 ```
 
 `whoami` - Displays the current user's information.
@@ -335,6 +353,3 @@ Create a new API key for the current user.
 **Returns:**
 
 A confirmation message indicating that the API key was created successfully.
-
-
-
