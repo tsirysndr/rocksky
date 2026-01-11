@@ -72,7 +72,6 @@ export async function publishScrobble(
     .execute()
     .then((rows) => rows[0]);
 
-  existingTrack?.uri;
   if (!existingTrack) {
     await putSongRecord(agent, track);
   }
