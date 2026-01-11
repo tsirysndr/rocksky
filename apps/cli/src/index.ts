@@ -49,7 +49,7 @@ program.configureHelp({
 program.addHelpText(
   "after",
   `
-${chalk.bold("\nLearn more about Rocksky:")}            ${chalk.underline("https://docs.rocksky.app")}
+${chalk.bold("\nLearn more about Rocksky:")}             ${chalk.underline("https://docs.rocksky.app")}
 ${chalk.bold("Join our Discord community:")}      ${chalk.underline(chalk.blueBright("https://discord.gg/EVcBy2fVa3"))}
 `,
 );
