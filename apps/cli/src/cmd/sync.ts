@@ -13,7 +13,7 @@ import { SelectUser } from "schema/users";
 import schema from "schema";
 import { createId } from "@paralleldrive/cuid2";
 import _ from "lodash";
-import { and, eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { indexBy } from "ramda";
 import fs from "node:fs";
 import os from "node:os";
@@ -415,6 +415,8 @@ const createSongs = async (songs: Songs, user: SelectUser) => {
 const createScrobbles = async (scrobbles: Scrobbles, user: SelectUser) => {
   if (!scrobbles.length) return;
 
+  logger.info`Loading Scrobble Tracks ...`;
+
   const tracks = await Promise.all(
     scrobbles.map((scrobble) =>
       ctx.db
@@ -433,6 +435,8 @@ const createScrobbles = async (scrobbles: Scrobbles, user: SelectUser) => {
     ),
   );
 
+  logger.info`Loading Scrobble Albums ...`;
+
   const albums = await Promise.all(
     scrobbles.map((scrobble) =>
       ctx.db
@@ -449,12 +453,19 @@ const createScrobbles = async (scrobbles: Scrobbles, user: SelectUser) => {
     ),
   );
 
+  logger.info`Loading Scrobble Artists ...`;
+
   const artists = await Promise.all(
     scrobbles.map((scrobble) =>
       ctx.db
         .select()
         .from(schema.artists)
-        .where(and(eq(schema.artists.name, scrobble.value.artist)))
+        .where(
+          or(
+            and(eq(schema.artists.name, scrobble.value.artist)),
+            and(eq(schema.artists.name, scrobble.value.albumArtist)),
+          ),
+        )
         .execute()
         .then(([artist]) => artist),
     ),
