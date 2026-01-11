@@ -1,5 +1,5 @@
 import type { Context } from "context";
-import { and, count, eq, or } from "drizzle-orm";
+import { and, count, eq, or, sql } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { SongViewDetailed } from "lexicon/types/app/rocksky/song/defs";
@@ -66,12 +66,12 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
         .where(
           or(
             and(
-              eq(tables.tracks.title, params.title),
-              eq(tables.tracks.artist, params.artist),
+              sql`LOWER(${tables.tracks.title}) = LOWER(${params.title})`,
+              sql`LOWER(${tables.tracks.artist}) = LOWER(${params.artist})`,
             ),
             and(
-              eq(tables.tracks.title, params.title),
-              eq(tables.tracks.albumArtist, params.artist),
+              sql`LOWER(${tables.tracks.title}) = LOWER(${params.title})`,
+              sql`LOWER(${tables.tracks.albumArtist}) = LOWER(${params.artist})`,
             ),
           ),
         )

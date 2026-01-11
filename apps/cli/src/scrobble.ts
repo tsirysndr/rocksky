@@ -68,16 +68,16 @@ export async function publishScrobble(
     .where(
       or(
         and(
-          eq(schema.tracks.title, track.title),
-          eq(schema.tracks.artist, track.artist),
+          sql`LOWER(${schema.tracks.title}) = LOWER(${track.title})`,
+          sql`LOWER(${schema.tracks.artist}) = LOWER(${track.artist})`,
         ),
         and(
-          eq(schema.tracks.title, track.title),
-          eq(schema.tracks.albumArtist, track.artist),
+          sql`LOWER(${schema.tracks.title}) = LOWER(${track.title})`,
+          sql`LOWER(${schema.tracks.albumArtist}) = LOWER(${track.artist})`,
         ),
         and(
-          eq(schema.tracks.title, track.title),
-          eq(schema.tracks.albumArtist, track.albumArtist),
+          sql`LOWER(${schema.tracks.title}) = LOWER(${track.title})`,
+          sql`LOWER(${schema.tracks.albumArtist}) = LOWER(${track.albumArtist})`,
         ),
       ),
     )
@@ -94,8 +94,8 @@ export async function publishScrobble(
     .from(schema.artists)
     .where(
       or(
-        eq(schema.artists.name, track.artist),
-        eq(schema.artists.name, track.albumArtist),
+        sql`LOWER(${schema.artists.name}) = LOWER(${track.artist})`,
+        sql`LOWER(${schema.artists.name}) = LOWER(${track.albumArtist})`,
       ),
     )
     .limit(1)
@@ -111,8 +111,8 @@ export async function publishScrobble(
     .from(schema.albums)
     .where(
       and(
-        eq(schema.albums.title, track.album),
-        eq(schema.albums.artist, track.albumArtist),
+        sql`LOWER(${schema.albums.title}) = LOWER(${track.album})`,
+        sql`LOWER(${schema.albums.artist}) = LOWER(${track.albumArtist})`,
       ),
     )
     .limit(1)
@@ -146,8 +146,8 @@ async function getRecentScrobble(
     .where(
       and(
         eq(schema.users.did, did),
-        eq(schema.tracks.title, track.title),
-        eq(schema.tracks.artist, track.artist),
+        sql`LOWER(${schema.tracks.title}) = LOWER(${track.title})`,
+        sql`LOWER(${schema.tracks.artist}) = LOWER(${track.artist})`,
         gte(
           schema.scrobbles.timestamp,
           scrobbleTime.subtract(60, "seconds").toDate(),
