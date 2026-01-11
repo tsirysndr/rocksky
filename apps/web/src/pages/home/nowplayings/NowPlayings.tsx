@@ -89,7 +89,14 @@ const Link = styled(DefaultLink)`
 
 function NowPlayings() {
   const [isOpen, setIsOpen] = useState(false);
-  const { data: nowPlayings, isLoading } = useNowPlayingsQuery();
+  const { data: rawNowPlayings, isLoading } = useNowPlayingsQuery();
+
+  // Deduplicate by trackId + did (user) + createdAt to ensure truly unique entries
+  const nowPlayings = _.uniqBy(
+    rawNowPlayings || [],
+    (item) => `${item.trackId}-${item.did}-${item.createdAt}`,
+  );
+
   const [currentlyPlaying, setCurrentlyPlaying] = useState<{
     id: string;
     title: string;
@@ -279,9 +286,9 @@ function NowPlayings() {
                 className="flex overflow-x-auto no-scrollbar h-full"
                 style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
               >
-                {_.uniqBy(nowPlayings || [], "handle").map((item, index) => (
+                {nowPlayings.map((item, index) => (
                   <StoryContainer
-                    key={item.id}
+                    key={`${item.id}-${item.did}-${item.createdAt}`}
                     onClick={() => {
                       setCurrentlyPlaying(item);
                       setCurrentIndex(index);
