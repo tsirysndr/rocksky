@@ -1,7 +1,6 @@
 import { JetStreamClient, JetStreamEvent } from "jetstream";
 import { logger } from "logger";
 import { ctx } from "context";
-import { isValidHandle } from "@atproto/syntax";
 import { Agent } from "@atproto/api";
 import { env } from "lib/env";
 import { createAgent } from "lib/agent";
@@ -20,6 +19,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { getDidAndHandle } from "lib/getDidAndHandle";
+import { cleanUpJetstreamLockOnExit } from "lib/cleanUpJetstreamLock";
+import { cleanUpSyncLockOnExit } from "lib/cleanUpSyncLock";
 
 const PAGE_SIZE = 100;
 
@@ -34,6 +35,8 @@ export async function sync() {
 
   const user = await createUser(agent, did, handle);
   subscribeToJetstream(user);
+
+  cleanUpJetstreamLockOnExit(user.did);
 
   logger.info`  DID: ${did}`;
   logger.info`  Handle: ${handle}`;
@@ -58,6 +61,7 @@ export async function sync() {
   }
 
   await fs.promises.writeFile(lockFilePath, "");
+  cleanUpSyncLockOnExit(user.did);
 
   await createArtists(artists, user);
   await createAlbums(albums, user);
@@ -77,7 +81,7 @@ const getEndpoint = () => {
   return `${endpoint}/subscribe`;
 };
 
-const createUser = async (
+export const createUser = async (
   agent: Agent,
   did: string,
   handle: string,
@@ -504,7 +508,17 @@ const createScrobbles = async (scrobbles: Scrobbles, user: SelectUser) => {
   logger.info`🕒 ${totalScrobblesImported} scrobbles imported`;
 };
 
-const subscribeToJetstream = (user: SelectUser) => {
+export const subscribeToJetstream = (user: SelectUser) => {
+  const lockFile = path.join(os.tmpdir(), `rocksky-jetstream-${user.did}.lock`);
+  if (fs.existsSync(lockFile)) {
+    logger.warn`JetStream subscription already in progress for user ${user.did}`;
+    logger.warn`Skipping subscription`;
+    logger.warn`Lock file exists at ${lockFile}`;
+    return;
+  }
+
+  fs.writeFileSync(lockFile, "");
+
   const client = new JetStreamClient({
     wantedCollections: [
       "app.rocksky.scrobble",

@@ -3,7 +3,6 @@ import { logger } from "logger";
 import dayjs from "dayjs";
 import { createAgent } from "lib/agent";
 import { getDidAndHandle } from "lib/getDidAndHandle";
-import { Agent } from "node:http";
 import { ctx } from "context";
 import schema from "schema";
 import { and, eq, gte, lte, sql } from "drizzle-orm";
@@ -11,6 +10,13 @@ import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
 import chalk from "chalk";
+import * as Album from "lexicon/types/app/rocksky/album";
+import * as Artist from "lexicon/types/app/rocksky/artist";
+import * as Scrobble from "lexicon/types/app/rocksky/scrobble";
+import * as Song from "lexicon/types/app/rocksky/song";
+import { TID } from "@atproto/common";
+import { Agent } from "@atproto/api";
+import { createUser, subscribeToJetstream } from "cmd/sync";
 
 export async function publishScrobble(
   track: MatchTrackResult,
@@ -19,6 +25,8 @@ export async function publishScrobble(
   const [did, handle] = await getDidAndHandle();
   const agent: Agent = await createAgent(did, handle);
   const recentScrobble = await getRecentScrobble(did, track, timestamp);
+  const user = await createUser(agent, did, handle);
+  subscribeToJetstream(user);
 
   const lockFilePath = path.join(os.tmpdir(), `rocksky-${did}.lock`);
 
@@ -40,6 +48,11 @@ export async function publishScrobble(
   }
 
   logger.info`${handle} Publishing scrobble for ${track.title} by ${track.artist} at ${timestamp ? dayjs.unix(timestamp).format("YYYY-MM-DD HH:mm:ss") : dayjs().format("YYYY-MM-DD HH:mm:ss")}`;
+
+  // putSongRecord
+  // putArtistRecord
+  // putAlbumRecord
+  // putScrobbleRecord
 
   return true;
 }
@@ -86,3 +99,128 @@ async function countScrobbles(did: string): Promise<number> {
     .where(eq(schema.users.did, did))
     .then((rows) => rows[0].count);
 }
+
+async function putSongRecord(agent: Agent, track: MatchTrackResult) {
+  const rkey = TID.nextStr();
+
+  const record: Song.Record = {
+    $type: "app.rocksky.song",
+    title: track.title,
+    artist: track.artist,
+    artists: track.mbArtists === null ? undefined : track.mbArtists,
+    album: track.album,
+    albumArtist: track.albumArtist,
+    duration: track.duration,
+    releaseDate: track.releaseDate
+      ? new Date(track.releaseDate).toISOString()
+      : undefined,
+    year: track.year === null ? undefined : track.year,
+    albumArtUrl: track.albumArt,
+    composer: track.composer ? track.composer : undefined,
+    lyrics: track.lyrics ? track.lyrics : undefined,
+    trackNumber: track.trackNumber,
+    discNumber: track.discNumber === 0 ? 1 : track.discNumber,
+    copyrightMessage: track.copyrightMessage
+      ? track.copyrightMessage
+      : undefined,
+    createdAt: new Date().toISOString(),
+    spotifyLink: track.spotifyLink ? track.spotifyLink : undefined,
+    tags: track.genres || [],
+    mbid: track.mbId,
+  };
+
+  if (!Song.validateRecord(record).success) {
+    logger.info`${Song.validateRecord(record)}`;
+    logger.info`${record}`;
+    throw new Error("Invalid Song record");
+  }
+
+  try {
+    const res = await agent.com.atproto.repo.putRecord({
+      repo: agent.assertDid,
+      collection: "app.rocksky.song",
+      rkey,
+      record,
+      validate: false,
+    });
+    const uri = res.data.uri;
+    logger.info`Song record created at ${uri}`;
+    return uri;
+  } catch (e) {
+    logger.error`Error creating song record: ${e}`;
+    return null;
+  }
+}
+
+async function putArtistRecord(agent: Agent, track: MatchTrackResult) {
+  const rkey = TID.nextStr();
+  const record: Artist.Record = {
+    $type: "app.rocksky.artist",
+    name: track.albumArtist,
+    createdAt: new Date().toISOString(),
+    pictureUrl: track.artistPicture || undefined,
+    tags: track.genres || [],
+  };
+
+  if (!Artist.validateRecord(record).success) {
+    logger.info`${Artist.validateRecord(record)}`;
+    logger.info`${JSON.stringify(record, null, 2)}`;
+    throw new Error("Invalid Artist record");
+  }
+
+  try {
+    const res = await agent.com.atproto.repo.putRecord({
+      repo: agent.assertDid,
+      collection: "app.rocksky.artist",
+      rkey,
+      record,
+      validate: false,
+    });
+    const uri = res.data.uri;
+    console.log(`Artist record created at ${uri}`);
+    return uri;
+  } catch (e) {
+    console.error("Error creating artist record", e);
+    return null;
+  }
+}
+
+async function putAlbumRecord(agent: Agent, track: MatchTrackResult) {
+  const rkey = TID.nextStr();
+
+  const record = {
+    $type: "app.rocksky.album",
+    title: track.album,
+    artist: track.albumArtist,
+    year: track.year === null ? undefined : track.year,
+    releaseDate: track.releaseDate
+      ? new Date(track.releaseDate).toISOString()
+      : undefined,
+    createdAt: new Date().toISOString(),
+    albumArtUrl: track.albumArt,
+  };
+
+  if (!Album.validateRecord(record).success) {
+    logger.info`${Album.validateRecord(record)}`;
+    logger.info`${record}`;
+    throw new Error("Invalid Album record");
+  }
+
+  try {
+    const res = await agent.com.atproto.repo.putRecord({
+      repo: agent.assertDid,
+      collection: "app.rocksky.album",
+      rkey,
+      record,
+      validate: false,
+    });
+    const uri = res.data.uri;
+    logger.info`Album record created at ${uri}`;
+    return uri;
+  } catch (e) {
+    logger.error`Error creating album record: ${e}`;
+    return null;
+  }
+}
+
+async function putScrobbleRecord(agent: Agent, track: MatchTrackResult) {}

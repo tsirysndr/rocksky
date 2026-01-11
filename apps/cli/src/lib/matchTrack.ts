@@ -3,11 +3,17 @@ import { ctx } from "context";
 import { logger } from "logger";
 import { SelectTrack } from "schema/tracks";
 
+export type MusicBrainzArtist = {
+  mbid: string;
+  name: string;
+};
+
 export type MatchTrackResult = SelectTrack & {
   genres: string[] | null;
   artistPicture: string | null;
-  releaseDate: Date | null;
+  releaseDate: string | null;
   year: number | null;
+  mbArtists: MusicBrainzArtist[] | null;
 };
 
 export async function matchTrack(
