@@ -8,7 +8,14 @@ import { decrypt } from "lib/crypto";
 import { env } from "lib/env";
 import tables from "schema";
 import type { SelectTrack } from "schema/tracks";
-import { Album, Artist, SearchResponse, Track } from "./types";
+import {
+  Album,
+  Artist,
+  MusicBrainzArtist,
+  SearchResponse,
+  Track,
+} from "./types";
+import { MusicbrainzTrack } from "types/track";
 
 export default function (server: Server, ctx: Context) {
   const matchSong = (params: QueryParams) =>
@@ -136,6 +143,9 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
         year = record.albums.year;
       }
 
+      const mbTrack = await searchOnMusicBrainz(ctx, track);
+      track.mbId = mbTrack.mbId;
+
       return Promise.all([
         Promise.resolve(track),
         ctx.db
@@ -156,6 +166,7 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
         Promise.resolve(year),
         Promise.resolve(artistPicture),
         Promise.resolve(genres),
+        Promise.resolve(mbTrack.artists),
       ]);
     },
     catch: (error) => new Error(`Failed to retrieve artist: ${error}`),
@@ -170,6 +181,7 @@ const presentation = ([
   year,
   artistPicture,
   genres,
+  mbArtists,
 ]: [
   SelectTrack,
   number,
@@ -178,6 +190,7 @@ const presentation = ([
   number | null,
   string | null,
   string[] | null,
+  MusicBrainzArtist[] | null,
 ]): Effect.Effect<SongViewDetailed, never> => {
   return Effect.sync(() => ({
     ...track,
@@ -185,6 +198,7 @@ const presentation = ([
     year,
     artistPicture,
     genres,
+    mbArtists,
     playCount,
     uniqueListeners,
     createdAt: track.createdAt.toISOString(),
@@ -288,4 +302,48 @@ const searchOnSpotify = async (
   }
 
   return track;
+};
+
+const searchOnMusicBrainz = async (ctx: Context, track: SelectTrack) => {
+  let mbTrack;
+  try {
+    const { data } = await ctx.musicbrainz.post<MusicbrainzTrack>("/hydrate", {
+      artist: track.artist
+        .replaceAll(";", ",")
+        .split(",")
+        .map((a) => ({ name: a.trim() })),
+      name: track.title,
+      album: track.album,
+    });
+    mbTrack = data;
+
+    if (!mbTrack?.trackMBID) {
+      const response = await ctx.musicbrainz.post<MusicbrainzTrack>(
+        "/hydrate",
+        {
+          artist: track.artist.split(",").map((a) => ({ name: a.trim() })),
+          name: track.title,
+        },
+      );
+      mbTrack = response.data;
+    }
+
+    const mbId = mbTrack?.trackMBID;
+    const artists: MusicBrainzArtist[] = mbTrack?.artist?.map((artist) => ({
+      mbid: artist.mbid,
+      name: artist.name,
+    }));
+
+    return {
+      mbId,
+      artists,
+    };
+  } catch (error) {
+    console.error("Error fetching MusicBrainz data");
+  }
+
+  return {
+    mbId: null,
+    artists: null,
+  };
 };

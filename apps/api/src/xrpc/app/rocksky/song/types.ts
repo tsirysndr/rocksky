@@ -88,3 +88,8 @@ export interface AccessToken {
   scope: string;
   expires_in: number;
 }
+
+export interface MusicBrainzArtist {
+  mbid: string;
+  name: string;
+}

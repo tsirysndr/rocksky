@@ -3,8 +3,19 @@ import { ctx } from "context";
 import { eq, and, or } from "drizzle-orm";
 import { logger } from "logger";
 import schema from "schema";
+import { SelectTrack } from "schema/tracks";
 
-export async function matchTrack(track: string, artist: string) {
+export type MatchTrackResult = SelectTrack & {
+  genres: string[] | null;
+  artistPicture: string | null;
+  releaseDate: Date | null;
+  year: number | null;
+};
+
+export async function matchTrack(
+  track: string,
+  artist: string,
+): Promise<MatchTrackResult | null> {
   const [result] = await ctx.db
     .select()
     .from(schema.tracks)
@@ -48,4 +59,6 @@ export async function matchTrack(track: string, artist: string) {
   }
   logger.info`>> matchTrack ${track}, ${artist}`;
   logger.info`${match}`;
+
+  return match;
 }
