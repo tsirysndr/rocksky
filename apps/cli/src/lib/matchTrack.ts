@@ -28,12 +28,12 @@ export async function matchTrack(
     match = cached;
     client.matchSong(track, artist).then((newMatch) => {
       if (newMatch) {
-        ctx.kv.setItem(`${track} - ${artist}`, newMatch);
+        ctx.kv.setItem(`${track} - ${artist}`.toLowerCase(), newMatch);
       }
     });
   } else {
     match = await client.matchSong(track, artist);
-    await ctx.kv.setItem(`${track} - ${artist}`, match);
+    await ctx.kv.setItem(`${track} - ${artist}`.toLowerCase(), match);
   }
 
   if (!match.title || !match.artist) {
