@@ -101,7 +101,7 @@ pub async fn save_scrobble(
 
                 let scrobbles: Vec<Scrobble> = sqlx::query_as::<_, Scrobble>(
                     r#"
-          SELECT * FROM scrobbles WHERE user_id = $1 ORDER BY created_at DESC LIMIT 5
+          SELECT * FROM scrobbles WHERE user_id = $1 ORDER BY xata_createdat DESC LIMIT 5
         "#,
                 )
                 .bind(&user_id)
