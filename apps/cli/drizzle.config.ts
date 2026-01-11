@@ -11,6 +11,7 @@ console.log(`Database URL: ${chalk.greenBright(url)}`);
 export default defineConfig({
   dialect: "sqlite",
   schema: "./src/schema",
+  out: "./drizzle",
   dbCredentials: {
     url,
   },

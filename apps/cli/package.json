@@ -11,7 +11,10 @@
     "lexgen": "lex gen-server ./src/lexicon ./lexicons/**/* ./lexicons/*",
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx ./src/index.ts",
-    "build": "pkgroll && chmod +x ./dist/index.js"
+    "build": "pkgroll && chmod +x ./dist/index.js && cp -r drizzle ./dist",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
   },
   "keywords": [
     "audioscrobbler",

@@ -16,6 +16,9 @@ import { Command } from "commander";
 import { version } from "../package.json" assert { type: "json" };
 import { login } from "./cmd/login";
 import { sync } from "cmd/sync";
+import { initializeDatabase } from "./drizzle";
+
+await initializeDatabase();
 
 const program = new Command();
 
