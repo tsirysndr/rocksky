@@ -537,7 +537,7 @@ export const subscribeToJetstream = (user: SelectUser): Promise<void> => {
     debug: true,
   });
 
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     client.on("open", () => {
       logger.info`✅ Connected to JetStream!`;
       cleanUpJetstreamLockOnExit(user.did);
@@ -568,6 +568,8 @@ export const subscribeToJetstream = (user: SelectUser): Promise<void> => {
 
     client.on("error", (error) => {
       logger.error`❌ Error:  ${error}`;
+      cleanUpJetstreamLockOnExit(user.did);
+      reject(error);
     });
 
     client.on("reconnect", (data) => {
