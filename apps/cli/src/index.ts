@@ -125,6 +125,7 @@ program
   .argument("<track>", "the title of the track")
   .argument("<artist>", "the artist of the track")
   .option("-t, --timestamp <timestamp>", "the timestamp of the scrobble")
+  .option("-d, --dry-run", "simulate the scrobble without actually sending it")
   .description("scrobble a track to your profile.")
   .action(scrobble);
 

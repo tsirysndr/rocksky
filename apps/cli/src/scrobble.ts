@@ -21,6 +21,7 @@ import { createUser, subscribeToJetstream } from "cmd/sync";
 export async function publishScrobble(
   track: MatchTrackResult,
   timestamp?: number,
+  dryRun?: boolean,
 ) {
   const [did, handle] = await getDidAndHandle();
   const agent: Agent = await createAgent(did, handle);
@@ -48,6 +49,11 @@ export async function publishScrobble(
   }
 
   logger.info`${handle} Publishing scrobble for ${track.title} by ${track.artist} at ${timestamp ? dayjs.unix(timestamp).format("YYYY-MM-DD HH:mm:ss") : dayjs().format("YYYY-MM-DD HH:mm:ss")}`;
+
+  if (dryRun) {
+    logger.info`${handle} Dry run: Skipping publishing scrobble for ${track.title} by ${track.artist} at ${timestamp ? dayjs.unix(timestamp).format("YYYY-MM-DD HH:mm:ss") : dayjs().format("YYYY-MM-DD HH:mm:ss")}`;
+    return true;
+  }
 
   const existingTrack = await ctx.db
     .select()
