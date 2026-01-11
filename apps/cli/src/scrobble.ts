@@ -72,9 +72,9 @@ export async function publishScrobble(
     .execute()
     .then((rows) => rows[0]);
 
-  let songUri = existingTrack?.uri;
+  existingTrack?.uri;
   if (!existingTrack) {
-    songUri = await putSongRecord(agent, track);
+    await putSongRecord(agent, track);
   }
 
   const existingArtist = await ctx.db
