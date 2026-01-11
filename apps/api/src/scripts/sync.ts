@@ -12,7 +12,7 @@ import users from "../schema/users";
 
 const args = process.argv.slice(2);
 
-async function updateUris(did: string) {
+export async function updateUris(did: string) {
   // Get scrobbles with track and user data
   const records = await ctx.db
     .select({

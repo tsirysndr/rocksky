@@ -23,8 +23,8 @@ use crate::{
     webhook_worker::{push_to_queue, AppState},
     xata::{
         album::Album, album_track::AlbumTrack, artist::Artist, artist_album::ArtistAlbum,
-        artist_track::ArtistTrack, track::Track, user::User, user_album::UserAlbum,
-        user_artist::UserArtist, user_track::UserTrack,
+        artist_track::ArtistTrack, scrobble::Scrobble, track::Track, user::User,
+        user_album::UserAlbum, user_artist::UserArtist, user_track::UserTrack,
     },
 };
 
@@ -98,6 +98,19 @@ pub async fn save_scrobble(
                 .await?;
 
                 tx.commit().await?;
+
+                let scrobbles: Vec<Scrobble> = sqlx::query_as::<_, Scrobble>(
+                    r#"
+          SELECT * FROM scrobbles WHERE user_id = $1 ORDER BY created_at DESC LIMIT 5
+        "#,
+                )
+                .bind(&user_id)
+                .fetch_all(&*pool)
+                .await?;
+
+                let scrobble_id = scrobbles[0].xata_id.clone();
+                nc.publish("rocksky.scrobble.new", scrobble_id.into())
+                    .await?;
                 publish_user(&nc, &pool, &user_id).await?;
 
                 let users: Vec<User> =
