@@ -266,7 +266,24 @@ const searchOnSpotify = async (
     access_token: string;
   };
 
-  const q = `q=track:"${encodeURIComponent(title)}"%20artist:"${encodeURIComponent(artist)}"&type=track`;
+  let q = `q=track:"${encodeURIComponent(title)}"%20artist:"${encodeURIComponent(artist)}"&type=track`;
+
+  if (artist.includes(", ")) {
+    const artists = artist
+      .split(", ")
+      .map((a) => `artist:"${encodeURIComponent(a.trim())}"`)
+      .join(" ");
+    q = `q=track:"${encodeURIComponent(title)}" ${artists}&type=track`;
+  }
+
+  if (artist.includes(" x ")) {
+    const artists = artist
+      .split(" x ")
+      .map((a) => `artist:"${encodeURIComponent(a.trim())}"`)
+      .join(" ");
+    q = `q=track:"${encodeURIComponent(title)}" ${artists}&type=track`;
+  }
+
   const response = await fetch(`https://api.spotify.com/v1/search?${q}`, {
     method: "GET",
     headers: {

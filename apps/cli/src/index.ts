@@ -17,6 +17,7 @@ import { version } from "../package.json" assert { type: "json" };
 import { login } from "./cmd/login";
 import { sync } from "cmd/sync";
 import { initializeDatabase } from "./drizzle";
+import { scrobbleApi } from "cmd/scrobble-api";
 
 await initializeDatabase();
 
@@ -57,29 +58,29 @@ ${chalk.bold("Join our Discord community:")}        ${chalk.blueBright("https://
 program
   .command("login")
   .argument("<handle>", "your AT Proto handle (e.g., <username>.bsky.social)")
-  .description("login with your AT Proto account and get a session token.")
+  .description("login with your AT Proto account and get a session token")
   .action(login);
 
 program
   .command("whoami")
-  .description("get the current logged-in user.")
+  .description("get the current logged-in user")
   .action(whoami);
 
 program
   .command("nowplaying")
   .argument(
     "[did]",
-    "the DID or handle of the user to get the now playing track for.",
+    "the DID or handle of the user to get the now playing track for",
   )
-  .description("get the currently playing track.")
+  .description("get the currently playing track")
   .action(nowplaying);
 
 program
   .command("scrobbles")
   .option("-s, --skip <number>", "number of scrobbles to skip")
   .option("-l, --limit <number>", "number of scrobbles to limit")
-  .argument("[did]", "the DID or handle of the user to get the scrobbles for.")
-  .description("display recently played tracks.")
+  .argument("[did]", "the DID or handle of the user to get the scrobbles for")
+  .description("display recently played tracks")
   .action(scrobbles);
 
 program
@@ -92,35 +93,35 @@ program
     "<query>",
     "the search query, e.g., artist, album, title or account",
   )
-  .description("search for tracks, albums, or accounts.")
+  .description("search for tracks, albums, or accounts")
   .action(search);
 
 program
   .command("stats")
   .option("-l, --limit <number>", "number of results to limit")
-  .argument("[did]", "the DID or handle of the user to get stats for.")
-  .description("get the user's listening stats.")
+  .argument("[did]", "the DID or handle of the user to get stats for")
+  .description("get the user's listening stats")
   .action(stats);
 
 program
   .command("artists")
   .option("-l, --limit <number>", "number of results to limit")
-  .argument("[did]", "the DID or handle of the user to get artists for.")
-  .description("get the user's top artists.")
+  .argument("[did]", "the DID or handle of the user to get artists for")
+  .description("get the user's top artists")
   .action(artists);
 
 program
   .command("albums")
   .option("-l, --limit <number>", "number of results to limit")
-  .argument("[did]", "the DID or handle of the user to get albums for.")
-  .description("get the user's top albums.")
+  .argument("[did]", "the DID or handle of the user to get albums for")
+  .description("get the user's top albums")
   .action(albums);
 
 program
   .command("tracks")
   .option("-l, --limit <number>", "number of results to limit")
-  .argument("[did]", "the DID or handle of the user to get tracks for.")
-  .description("get the user's top tracks.")
+  .argument("[did]", "the DID or handle of the user to get tracks for")
+  .description("get the user's top tracks")
   .action(tracks);
 
 program
@@ -129,26 +130,32 @@ program
   .argument("<artist>", "the artist of the track")
   .option("-t, --timestamp <timestamp>", "the timestamp of the scrobble")
   .option("-d, --dry-run", "simulate the scrobble without actually sending it")
-  .description("scrobble a track to your profile.")
+  .description("scrobble a track to your profile")
   .action(scrobble);
 
 program
   .command("create")
-  .description("create a new API key.")
+  .description("create a new API key")
   .command("apikey")
   .argument("<name>", "the name of the API key")
   .option("-d, --description <description>", "the description of the API key")
-  .description("create a new API key.")
+  .description("create a new API key")
   .action(createApiKey);
 
 program
   .command("mcp")
-  .description("starts an MCP server to use with Claude or other LLMs.")
+  .description("starts an MCP server to use with Claude or other LLMs")
   .action(mcp);
 
 program
   .command("sync")
-  .description("sync your local Rocksky data from AT Protocol.")
+  .description("sync your local Rocksky data from AT Protocol")
   .action(sync);
+
+program
+  .command("scrobble-api")
+  .description("start a local listenbrainz/lastfm compatibility server")
+  .option("-p, --port <port>", "the port to listen on", "8778")
+  .action(scrobbleApi);
 
 program.parse(process.argv);
