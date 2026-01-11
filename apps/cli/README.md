@@ -113,12 +113,6 @@ rocksky albums [did]
 rocksky tracks [did]
 ```
 
-`scrobble` - Manually scrobbles a track.
-
-```bash
-rocksky scrobble "Karma Police" "Radiohead"
-```
-
 `scrobble-api` - Start a local listenbrainz/lastfm compatibility server
 
 ```bash
