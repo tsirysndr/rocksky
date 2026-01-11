@@ -11,6 +11,7 @@ import { useEffect, useState, useRef } from "react";
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import { useNowPlayingsQuery } from "../../../hooks/useNowPlaying";
 import styles, { getModalStyles } from "./styles";
+import _ from "lodash";
 
 dayjs.extend(relativeTime);
 dayjs.extend(utc);
@@ -278,7 +279,7 @@ function NowPlayings() {
                 className="flex overflow-x-auto no-scrollbar h-full"
                 style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
               >
-                {(nowPlayings || []).map((item, index) => (
+                {_.uniqBy(nowPlayings || [], "handle").map((item, index) => (
                   <StoryContainer
                     key={item.id}
                     onClick={() => {
