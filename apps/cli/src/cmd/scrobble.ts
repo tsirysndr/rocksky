@@ -12,4 +12,6 @@ export async function scrobble(
   if (!success) {
     process.exit(1);
   }
+
+  process.exit(0);
 }

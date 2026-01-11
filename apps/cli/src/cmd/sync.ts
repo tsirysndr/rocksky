@@ -34,7 +34,7 @@ export async function sync() {
   const agent: Agent = await createAgent(did, handle);
 
   const user = await createUser(agent, did, handle);
-  subscribeToJetstream(user);
+  await subscribeToJetstream(user);
 
   cleanUpJetstreamLockOnExit(user.did);
 
@@ -508,13 +508,13 @@ const createScrobbles = async (scrobbles: Scrobbles, user: SelectUser) => {
   logger.info`🕒 ${totalScrobblesImported} scrobbles imported`;
 };
 
-export const subscribeToJetstream = (user: SelectUser) => {
+export const subscribeToJetstream = (user: SelectUser): Promise<void> => {
   const lockFile = path.join(os.tmpdir(), `rocksky-jetstream-${user.did}.lock`);
   if (fs.existsSync(lockFile)) {
     logger.warn`JetStream subscription already in progress for user ${user.did}`;
     logger.warn`Skipping subscription`;
     logger.warn`Lock file exists at ${lockFile}`;
-    return;
+    return Promise.resolve();
   }
 
   fs.writeFileSync(lockFile, "");
@@ -539,42 +539,45 @@ export const subscribeToJetstream = (user: SelectUser) => {
     debug: true,
   });
 
-  client.on("open", () => {
-    logger.info`✅ Connected to JetStream!`;
-  });
+  return new Promise((resolve) => {
+    client.on("open", () => {
+      logger.info`✅ Connected to JetStream!`;
+      resolve();
+    });
 
-  client.on("message", async (data) => {
-    const event = data as JetStreamEvent;
+    client.on("message", async (data) => {
+      const event = data as JetStreamEvent;
 
-    if (event.kind === "commit" && event.commit) {
-      const { operation, collection, record, rkey, cid } = event.commit;
-      const uri = `at://${event.did}/${collection}/${rkey}`;
+      if (event.kind === "commit" && event.commit) {
+        const { operation, collection, record, rkey, cid } = event.commit;
+        const uri = `at://${event.did}/${collection}/${rkey}`;
 
-      logger.info`\n📡 New event:`;
-      logger.info`  Operation: ${operation}`;
-      logger.info`  Collection: ${collection}`;
-      logger.info`  DID: ${event.did}`;
-      logger.info`  Uri: ${uri}`;
+        logger.info`\n📡 New event:`;
+        logger.info`  Operation: ${operation}`;
+        logger.info`  Collection: ${collection}`;
+        logger.info`  DID: ${event.did}`;
+        logger.info`  Uri: ${uri}`;
 
-      if (operation === "create" && record) {
-        console.log(JSON.stringify(record, null, 2));
-        await onNewCollection(record, cid, uri, user);
+        if (operation === "create" && record) {
+          console.log(JSON.stringify(record, null, 2));
+          await onNewCollection(record, cid, uri, user);
+        }
+
+        logger.info`  Cursor: ${event.time_us}`;
       }
+    });
 
-      logger.info`  Cursor: ${event.time_us}`;
-    }
+    client.on("error", (error) => {
+      logger.error`❌ Error:  ${error}`;
+    });
+
+    client.on("reconnect", (data) => {
+      const { attempt } = data as { attempt: number };
+      logger.info`🔄 Reconnecting... (attempt ${attempt})`;
+    });
+
+    client.connect();
   });
-
-  client.on("error", (error) => {
-    logger.error`❌ Error:  ${error}`;
-  });
-
-  client.on("reconnect", (data) => {
-    const { attempt } = data as { attempt: number };
-    logger.info`🔄 Reconnecting... (attempt ${attempt})`;
-  });
-
-  client.connect();
 };
 
 const onNewCollection = async (
