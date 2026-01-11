@@ -74,7 +74,6 @@ function Feed() {
       }
 
       const message = JSON.parse(event.data);
-      queryClient.setQueryData(["now-playings"], [...message.nowPlayings]);
       queryClient.setQueryData(["scrobblesChart"], message.scrobblesChart);
 
       await queryClient.invalidateQueries({
