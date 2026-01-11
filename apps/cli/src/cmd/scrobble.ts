@@ -7,6 +7,11 @@ export async function scrobble(
   { timestamp, dryRun },
 ) {
   const match = await matchTrack(track, artist);
+
+  if (!match) {
+    process.exit(1);
+  }
+
   const success = await publishScrobble(match, timestamp, dryRun);
 
   if (!success) {
