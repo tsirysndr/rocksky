@@ -5,7 +5,6 @@ import type { ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../lexicons";
 import { isObj, hasProp } from "../../../util";
 import { CID } from "multiformats/cid";
-import type * as AppRockskySong from "./song";
 
 export interface Record {
   /** The name of the playlist. */
@@ -14,8 +13,8 @@ export interface Record {
   description?: string;
   /** The picture of the playlist. */
   picture?: BlobRef;
-  /** The tracks in the playlist. */
-  tracks?: AppRockskySong.Record[];
+  /** The URL of the picture of the artist. */
+  pictureUrl?: string;
   /** The date the playlist was created. */
   createdAt: string;
   /** The Spotify link of the playlist. */

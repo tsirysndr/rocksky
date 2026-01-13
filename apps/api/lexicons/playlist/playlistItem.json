@@ -1,0 +1,39 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.playlistItem",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A playlist item represents a single entry in a playlist, containing metadata and references to media content.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": [
+          "name",
+          "createdAt",
+          "track"
+        ],
+        "properties": {
+          "subject": {
+            "type": "ref",
+            "ref": "com.atproto.repo.strongRef"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "The date the playlist was created.",
+            "format": "datetime"
+          },
+          "track": {
+            "type": "ref",
+            "ref": "app.rocksky.song.defs#songViewBasic"
+          },
+          "order": {
+            "type": "integer",
+            "description": "The order of the item in the playlist.",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}

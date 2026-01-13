@@ -1,4 +1,4 @@
-amends  "../../schema/lexicon.pkl"
+amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.playlist"
@@ -29,13 +29,10 @@ defs = new Mapping<String, Record> {
           accept = List("image/png", "image/jpeg")
           maxSize = 2000000
         }
-        ["tracks"] = new Array {
-          type = "array"
-          description = "The tracks in the playlist."
-          items = new Ref {
-            type = "ref"
-            ref = "app.rocksky.song#record"
-          }
+        ["pictureUrl"] = new StringType {
+          type = "string"
+          description = "The URL of the picture of the artist."
+          format = "uri"
         }
         ["createdAt"] = new StringType {
           type = "string"

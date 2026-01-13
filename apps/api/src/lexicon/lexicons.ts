@@ -4056,13 +4056,10 @@ export const schemaDict = {
               accept: ["image/png", "image/jpeg"],
               maxSize: 2000000,
             },
-            tracks: {
-              type: "array",
-              description: "The tracks in the playlist.",
-              items: {
-                type: "ref",
-                ref: "lex:app.rocksky.song#record",
-              },
+            pictureUrl: {
+              type: "string",
+              description: "The URL of the picture of the artist.",
+              format: "uri",
             },
             createdAt: {
               type: "string",
