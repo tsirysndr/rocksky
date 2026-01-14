@@ -5551,7 +5551,8 @@ export const schemaDict = {
     defs: {
       main: {
         type: "query",
-        description: "Get a song by its uri",
+        description:
+          "Matches a song against Rocksky’s music database and external metadata providers to resolve the best canonical track, artist, and album",
         parameters: {
           type: "params",
           required: ["title", "artist"],
