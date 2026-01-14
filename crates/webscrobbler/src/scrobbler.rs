@@ -149,7 +149,21 @@ pub async fn scrobble(
             .to_lowercase();
         let artist = scrobble.data.song.parsed.artist.trim();
         // check if artists don't contain the scrobble artist (to avoid wrong matches)
-        if !artists.contains(&scrobble.data.song.parsed.artist.trim().to_lowercase()) {
+        // scrobble artist can contain multiple artists separated by ", "
+        let scrobble_artists: Vec<String> = scrobble
+            .data
+            .song
+            .parsed
+            .artist
+            .split(", ")
+            .map(|a| a.trim().to_lowercase())
+            .collect();
+
+        let has_artist_match = scrobble_artists
+            .iter()
+            .any(|scrobble_artist| artists.contains(scrobble_artist));
+
+        if !has_artist_match {
             tracing::warn!(artist = %artist, track = ?track, "Artist mismatch, skipping");
         } else {
             tracing::info!("Spotify (track)");
