@@ -12,9 +12,10 @@ import { useAtom } from "jotai";
 import { followsAtom } from "../../../atoms/follows";
 import {
   useFollowAccountMutation,
+  useFollowsQuery,
   useUnfollowAccountMutation,
 } from "../../../hooks/useGraph";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SignInModal from "../../../components/SignInModal";
 import { activeTabAtom } from "../../../atoms/tab";
 import scrollToTop from "../../../lib/scrollToTop";
@@ -28,6 +29,16 @@ function Circles() {
   const { data, isLoading } = useActorNeighboursQuery(did!);
   const { mutate: followAccount } = useFollowAccountMutation();
   const { mutate: unfollowAccount } = useUnfollowAccountMutation();
+
+  const allCircles = data?.neighbours ?? [];
+
+  const { data: followsData } = useFollowsQuery(
+    localStorage.getItem("did")!,
+    allCircles.length,
+    allCircles
+      .map((circle) => circle.did)
+      .filter((x) => x !== localStorage.getItem("did")),
+  );
 
   const onFollow = (followerDid: string) => {
     if (!localStorage.getItem("token")) {
@@ -50,6 +61,17 @@ function Circles() {
     });
     unfollowAccount(followerDid);
   };
+
+  useEffect(() => {
+    if (!followsData) return;
+    setFollows((prev) => {
+      const newSet = new Set(prev);
+      followsData.follows.forEach((follow: { did: string }) => {
+        newSet.add(follow.did);
+      });
+      return newSet;
+    });
+  }, [followsData, setFollows]);
 
   return (
     <>
