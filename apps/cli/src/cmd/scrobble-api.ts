@@ -11,6 +11,7 @@ import { matchTrack } from "lib/matchTrack";
 import _ from "lodash";
 import { publishScrobble } from "scrobble";
 import { validateLastfmSignature } from "lib/lastfm";
+import { sync } from "./sync";
 
 export async function scrobbleApi({ port }) {
   const [, handle] = await getDidAndHandle();
@@ -453,5 +454,12 @@ export async function scrobbleApi({ port }) {
 
   log.info`lastfm/listenbrainz/webscrobbler scrobble API listening on ${"http://localhost:" + port}`;
 
+  new Promise(async () => {
+    try {
+      await sync();
+    } catch (err) {
+      log.warn`Error during initial sync: ${err}`;
+    }
+  });
   serve({ fetch: app.fetch, port });
 }
