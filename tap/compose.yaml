@@ -1,6 +1,7 @@
 services:
   tap:
     image: ghcr.io/bluesky-social/indigo/tap:latest
+    restart: always
     platform: linux/amd64
     ports:
       - "2480:2480"
