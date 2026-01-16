@@ -21,8 +21,8 @@ import path from "node:path";
 import { getDidAndHandle } from "lib/getDidAndHandle";
 import { cleanUpJetstreamLockOnExit } from "lib/cleanUpJetstreamLock";
 import { cleanUpSyncLockOnExit } from "lib/cleanUpSyncLock";
-
-const PAGE_SIZE = 100;
+import { CarReader } from "@ipld/car";
+import * as cbor from "@ipld/dag-cbor";
 
 type Artists = { value: Artist.Record; uri: string; cid: string }[];
 type Albums = { value: Album.Record; uri: string; cid: string }[];
@@ -133,7 +133,7 @@ const createArtists = async (artists: Artists, user: SelectUser) => {
       name: tag,
     }));
 
-  const BATCH_SIZE = 500;
+  const BATCH_SIZE = 1000;
   for (let i = 0; i < uniqueTags.length; i += BATCH_SIZE) {
     const batch = uniqueTags.slice(i, i + BATCH_SIZE);
     await ctx.db
@@ -241,7 +241,7 @@ const createAlbums = async (albums: Albums, user: SelectUser) => {
     .filter(({ artist }) => artist);
 
   // Process albums in batches
-  const BATCH_SIZE = 500;
+  const BATCH_SIZE = 1000;
   let totalAlbumsImported = 0;
 
   for (let i = 0; i < validAlbumData.length; i += BATCH_SIZE) {
@@ -332,7 +332,7 @@ const createSongs = async (songs: Songs, user: SelectUser) => {
     .filter(({ artist, album }) => artist && album);
 
   // Process in batches to avoid stack overflow with large datasets
-  const BATCH_SIZE = 500;
+  const BATCH_SIZE = 1000;
   let totalTracksImported = 0;
 
   for (let i = 0; i < validSongData.length; i += BATCH_SIZE) {
@@ -481,7 +481,7 @@ const createScrobbles = async (scrobbles: Scrobbles, user: SelectUser) => {
     .filter(({ track, album, artist }) => track && album && artist);
 
   // Process in batches to avoid stack overflow with large datasets
-  const BATCH_SIZE = 500;
+  const BATCH_SIZE = 1000;
   let totalScrobblesImported = 0;
 
   for (let i = 0; i < validScrobbleData.length; i += BATCH_SIZE) {
@@ -687,126 +687,205 @@ const onNewScrobble = async (
 };
 
 const getRockskyUserSongs = async (agent: Agent): Promise<Songs> => {
-  let results: {
+  const results: {
     value: Song.Record;
     uri: string;
     cid: string;
   }[] = [];
-  let cursor: string | undefined;
-  do {
-    const res = await agent.com.atproto.repo.listRecords({
-      repo: agent.assertDid,
-      collection: "app.rocksky.song",
-      limit: PAGE_SIZE,
-      cursor,
+
+  try {
+    logger.info(`Fetching repository CAR file for songs...`);
+
+    const repoRes = await agent.com.atproto.sync.getRepo({
+      did: agent.assertDid,
     });
-    const records = res.data.records as Array<{
-      uri: string;
-      cid: string;
-      value: Song.Record;
-    }>;
-    results = results.concat(records);
-    cursor = res.data.cursor;
+
+    const carReader = await CarReader.fromBytes(new Uint8Array(repoRes.data));
+    const collection = "app.rocksky.song";
+
+    for await (const { cid, bytes } of carReader.blocks()) {
+      try {
+        const decoded = cbor.decode(bytes);
+
+        // Check if this is a record with $type matching our collection
+        if (decoded && typeof decoded === "object" && "$type" in decoded) {
+          if (decoded.$type === collection) {
+            const value = decoded as unknown as Song.Record;
+            // Extract rkey from uri if present in the block, otherwise use cid
+            const uri = `at://${agent.assertDid}/${collection}/${cid.toString()}`;
+
+            results.push({
+              value,
+              uri,
+              cid: cid.toString(),
+            });
+          }
+        }
+      } catch (e) {
+        logger.warn`  Skipping block with CID ${cid.toString()} due to decode error: ${e}`;
+        continue;
+      }
+    }
+
     logger.info(
       `${chalk.cyanBright(agent.assertDid)} ${chalk.greenBright(results.length)} songs`,
     );
-  } while (cursor);
+  } catch (error) {
+    logger.error(`Error fetching songs from CAR: ${error}`);
+    throw error;
+  }
 
   return results;
 };
 
 const getRockskyUserAlbums = async (agent: Agent): Promise<Albums> => {
-  let results: {
+  const results: {
     value: Album.Record;
     uri: string;
     cid: string;
   }[] = [];
-  let cursor: string | undefined;
-  do {
-    const res = await agent.com.atproto.repo.listRecords({
-      repo: agent.assertDid,
-      collection: "app.rocksky.album",
-      limit: PAGE_SIZE,
-      cursor,
+
+  try {
+    logger.info(`Fetching repository CAR file for albums...`);
+
+    // Use getRepo to fetch the entire repository as a CAR file
+    const repoRes = await agent.com.atproto.sync.getRepo({
+      did: agent.assertDid,
     });
 
-    const records = res.data.records as Array<{
-      uri: string;
-      cid: string;
-      value: Album.Record;
-    }>;
+    // Parse the CAR file
+    const carReader = await CarReader.fromBytes(new Uint8Array(repoRes.data));
+    const collection = "app.rocksky.album";
 
-    results = results.concat(records);
+    for await (const { cid, bytes } of carReader.blocks()) {
+      try {
+        const decoded = cbor.decode(bytes);
 
-    cursor = res.data.cursor;
+        if (decoded && typeof decoded === "object" && "$type" in decoded) {
+          if (decoded.$type === collection) {
+            const value = decoded as unknown as Album.Record;
+            const uri = `at://${agent.assertDid}/${collection}/${cid.toString()}`;
+
+            results.push({
+              value,
+              uri,
+              cid: cid.toString(),
+            });
+          }
+        }
+      } catch (e) {
+        logger.warn`  Skipping block with CID ${cid.toString()} due to decode error: ${e}`;
+        continue;
+      }
+    }
+
     logger.info(
       `${chalk.cyanBright(agent.assertDid)} ${chalk.greenBright(results.length)} albums`,
     );
-  } while (cursor);
+  } catch (error) {
+    logger.error(`Error fetching albums from CAR: ${error}`);
+    throw error;
+  }
 
   return results;
 };
 
 const getRockskyUserArtists = async (agent: Agent): Promise<Artists> => {
-  let results: {
+  const results: {
     value: Artist.Record;
     uri: string;
     cid: string;
   }[] = [];
-  let cursor: string | undefined;
-  do {
-    const res = await agent.com.atproto.repo.listRecords({
-      repo: agent.assertDid,
-      collection: "app.rocksky.artist",
-      limit: PAGE_SIZE,
-      cursor,
+
+  try {
+    logger.info(`Fetching repository CAR file for artists...`);
+
+    const repoRes = await agent.com.atproto.sync.getRepo({
+      did: agent.assertDid,
     });
 
-    const records = res.data.records as Array<{
-      uri: string;
-      cid: string;
-      value: Artist.Record;
-    }>;
+    const carReader = await CarReader.fromBytes(new Uint8Array(repoRes.data));
+    const collection = "app.rocksky.artist";
 
-    results = results.concat(records);
+    for await (const { cid, bytes } of carReader.blocks()) {
+      try {
+        const decoded = cbor.decode(bytes);
 
-    cursor = res.data.cursor;
+        if (decoded && typeof decoded === "object" && "$type" in decoded) {
+          if (decoded.$type === collection) {
+            const value = decoded as unknown as Artist.Record;
+            const uri = `at://${agent.assertDid}/${collection}/${cid.toString()}`;
+
+            results.push({
+              value,
+              uri,
+              cid: cid.toString(),
+            });
+          }
+        }
+      } catch (e) {
+        // Skip blocks that can't be decoded
+        continue;
+      }
+    }
+
     logger.info(
       `${chalk.cyanBright(agent.assertDid)} ${chalk.greenBright(results.length)} artists`,
     );
-  } while (cursor);
+  } catch (error) {
+    logger.error(`Error fetching artists from CAR: ${error}`);
+    throw error;
+  }
 
   return results;
 };
 
 const getRockskyUserScrobbles = async (agent: Agent): Promise<Scrobbles> => {
-  let results: {
+  const results: {
     value: Scrobble.Record;
     uri: string;
     cid: string;
   }[] = [];
-  let cursor: string | undefined;
-  do {
-    const res = await agent.com.atproto.repo.listRecords({
-      repo: agent.assertDid,
-      collection: "app.rocksky.scrobble",
-      limit: PAGE_SIZE,
-      cursor,
+
+  try {
+    logger.info(`Fetching repository CAR file for scrobbles...`);
+
+    const repoRes = await agent.com.atproto.sync.getRepo({
+      did: agent.assertDid,
     });
 
-    const records = res.data.records as Array<{
-      uri: string;
-      cid: string;
-      value: Scrobble.Record;
-    }>;
+    const carReader = await CarReader.fromBytes(new Uint8Array(repoRes.data));
+    const collection = "app.rocksky.scrobble";
 
-    results = results.concat(records);
+    for await (const { cid, bytes } of carReader.blocks()) {
+      try {
+        const decoded = cbor.decode(bytes);
 
-    cursor = res.data.cursor;
+        if (decoded && typeof decoded === "object" && "$type" in decoded) {
+          if (decoded.$type === collection) {
+            const value = decoded as unknown as Scrobble.Record;
+            const uri = `at://${agent.assertDid}/${collection}/${cid.toString()}`;
+
+            results.push({
+              value,
+              uri,
+              cid: cid.toString(),
+            });
+          }
+        }
+      } catch (e) {
+        logger.warn`  Skipping block with CID ${cid.toString()} due to decode error: ${e}`;
+        continue;
+      }
+    }
+
     logger.info(
       `${chalk.cyanBright(agent.assertDid)} ${chalk.greenBright(results.length)} scrobbles`,
     );
-  } while (cursor);
+  } catch (error) {
+    logger.error(`Error fetching scrobbles from CAR: ${error}`);
+    throw error;
+  }
 
   return results;
 };
