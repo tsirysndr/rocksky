@@ -10,5 +10,5 @@ services:
     environment:
       #TAP_DATABASE_URL: sqlite:///data/tap.db
       TAP_RELAY_URL: https://relay1.us-east.bsky.network
-      TAP_SIGNAL_COLLECTION: app.rocksky.*
-      TAP_COLLECTION_FILTERS: app.rocksky.*
+      TAP_SIGNAL_COLLECTION: app.rocksky.song,app.rocksky.scrobble,app.rocksky.artist,app.rocksky.album,app.rocksky.graph.follow,app.rocksky.playlist,app.rocksky.playlistItem,app.rocksky.like,app.rocksky.shout
+      TAP_COLLECTION_FILTERS: app.rocksky.song,app.rocksky.scrobble,app.rocksky.artist,app.rocksky.album,app.rocksky.graph.follow,app.rocksky.playlist,app.rocksky.playlistItem,app.rocksky.like,app.rocksky.shout
