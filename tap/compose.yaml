@@ -5,10 +5,10 @@ services:
     platform: linux/amd64
     ports:
       - "2480:2480"
-    #volumes:
-    #  - ./data:/data
+    volumes:
+      - ./data:/data
     environment:
-      #TAP_DATABASE_URL: sqlite:///data/tap.db
+      TAP_DATABASE_URL: sqlite:///data/tap.db
       TAP_RELAY_URL: https://relay1.us-east.bsky.network
       TAP_SIGNAL_COLLECTION: app.rocksky.scrobble
       TAP_COLLECTION_FILTERS: app.rocksky.graph.follow,app.rocksky.*
