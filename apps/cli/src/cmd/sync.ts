@@ -624,6 +624,16 @@ const onNewSong = async (
 ) => {
   const { title, artist, album } = record;
   logger.info`  New song: ${title} by ${artist} from ${album}`;
+  await createSongs(
+    [
+      {
+        cid,
+        uri,
+        value: record,
+      },
+    ],
+    user,
+  );
 };
 
 const onNewAlbum = async (
@@ -672,8 +682,192 @@ const onNewScrobble = async (
   uri: string,
   user: SelectUser,
 ) => {
-  const { title, createdAt } = record;
+  const { title, createdAt, artist, album, albumArtist } = record;
   logger.info`  New scrobble: ${title} at ${createdAt}`;
+
+  // Check if the artist exists, create if not
+  let [artistRecord] = await ctx.db
+    .select()
+    .from(schema.artists)
+    .where(eq(schema.artists.name, record.albumArtist))
+    .execute();
+
+  if (!artistRecord) {
+    logger.info`  ⚙️  Artist not found, creating: "${albumArtist}"`;
+
+    // Create a synthetic artist record from scrobble data
+    const artistUri = `at://${user.did}/app.rocksky.artist/${createId()}`;
+    const artistCid = createId();
+
+    await createArtists(
+      [
+        {
+          cid: artistCid,
+          uri: artistUri,
+          value: {
+            $type: "app.rocksky.artist",
+            name: record.albumArtist,
+            createdAt: new Date().toISOString(),
+            tags: record.tags || [],
+          } as Artist.Record,
+        },
+      ],
+      user,
+    );
+
+    [artistRecord] = await ctx.db
+      .select()
+      .from(schema.artists)
+      .where(eq(schema.artists.name, record.albumArtist))
+      .execute();
+
+    if (!artistRecord) {
+      logger.error`  ❌ Failed to create artist. Skipping scrobble.`;
+      return;
+    }
+  }
+
+  // Check if the album exists, create if not
+  let [albumRecord] = await ctx.db
+    .select()
+    .from(schema.albums)
+    .where(
+      and(
+        eq(schema.albums.title, record.album),
+        eq(schema.albums.artist, record.albumArtist),
+      ),
+    )
+    .execute();
+
+  if (!albumRecord) {
+    logger.info`  ⚙️  Album not found, creating: "${album}" by ${albumArtist}`;
+
+    // Create a synthetic album record from scrobble data
+    const albumUri = `at://${user.did}/app.rocksky.album/${createId()}`;
+    const albumCid = createId();
+
+    await createAlbums(
+      [
+        {
+          cid: albumCid,
+          uri: albumUri,
+          value: {
+            $type: "app.rocksky.album",
+            title: record.album,
+            artist: record.albumArtist,
+            createdAt: new Date().toISOString(),
+            releaseDate: record.releaseDate,
+            year: record.year,
+            albumArt: record.albumArt,
+            artistUri: artistRecord.uri,
+            spotifyLink: record.spotifyLink,
+            appleMusicLink: record.appleMusicLink,
+            tidalLink: record.tidalLink,
+            youtubeLink: record.youtubeLink,
+          } as Album.Record,
+        },
+      ],
+      user,
+    );
+
+    // Fetch the newly created album
+    [albumRecord] = await ctx.db
+      .select()
+      .from(schema.albums)
+      .where(
+        and(
+          eq(schema.albums.title, record.album),
+          eq(schema.albums.artist, record.albumArtist),
+        ),
+      )
+      .execute();
+
+    if (!albumRecord) {
+      logger.error`  ❌ Failed to create album. Skipping scrobble.`;
+      return;
+    }
+  }
+
+  // Check if the track exists, create if not
+  let [track] = await ctx.db
+    .select()
+    .from(schema.tracks)
+    .where(
+      and(
+        eq(schema.tracks.title, record.title),
+        eq(schema.tracks.artist, record.artist),
+        eq(schema.tracks.album, record.album),
+        eq(schema.tracks.albumArtist, record.albumArtist),
+      ),
+    )
+    .execute();
+
+  if (!track) {
+    logger.info`  ⚙️  Track not found, creating: "${title}" by ${artist} from ${album}`;
+
+    // Create a synthetic track record from scrobble data
+    const trackUri = `at://${user.did}/app.rocksky.song/${createId()}`;
+    const trackCid = createId();
+
+    await createSongs(
+      [
+        {
+          cid: trackCid,
+          uri: trackUri,
+          value: {
+            $type: "app.rocksky.song",
+            title: record.title,
+            artist: record.artist,
+            albumArtist: record.albumArtist,
+            album: record.album,
+            duration: record.duration,
+            trackNumber: record.trackNumber,
+            discNumber: record.discNumber,
+            releaseDate: record.releaseDate,
+            year: record.year,
+            genre: record.genre,
+            tags: record.tags,
+            composer: record.composer,
+            lyrics: record.lyrics,
+            copyrightMessage: record.copyrightMessage,
+            albumArt: record.albumArt,
+            youtubeLink: record.youtubeLink,
+            spotifyLink: record.spotifyLink,
+            tidalLink: record.tidalLink,
+            appleMusicLink: record.appleMusicLink,
+            createdAt: new Date().toISOString(),
+            mbId: record.mbid,
+            label: record.label,
+            albumUri: albumRecord.uri,
+            artistUri: artistRecord.uri,
+          } as Song.Record,
+        },
+      ],
+      user,
+    );
+
+    // Fetch the newly created track
+    [track] = await ctx.db
+      .select()
+      .from(schema.tracks)
+      .where(
+        and(
+          eq(schema.tracks.title, record.title),
+          eq(schema.tracks.artist, record.artist),
+          eq(schema.tracks.album, record.album),
+          eq(schema.tracks.albumArtist, record.albumArtist),
+        ),
+      )
+      .execute();
+
+    if (!track) {
+      logger.error`  ❌ Failed to create track. Skipping scrobble.`;
+      return;
+    }
+  }
+
+  logger.info`  ✓ All required entities ready. Creating scrobble...`;
+
   await createScrobbles(
     [
       {
