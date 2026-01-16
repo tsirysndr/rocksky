@@ -1,0 +1,13 @@
+services:
+  tap:
+    image: ghcr.io/bluesky-social/indigo/tap:latest
+    platform: linux/amd64
+    ports:
+      - "2480:2480"
+    #volumes:
+    #  - ./data:/data
+    environment:
+      #TAP_DATABASE_URL: sqlite:///data/tap.db
+      TAP_RELAY_URL: https://relay1.us-east.bsky.network
+      TAP_SIGNAL_COLLECTION: app.rocksky.*
+      TAP_COLLECTION_FILTERS: app.rocksky.*
