@@ -2,14 +2,12 @@ import { ctx } from "./context.ts";
 import logger from "./logger.ts";
 import schema from "./schema/mod.ts";
 import { asc, inArray } from "drizzle-orm";
-import { omit } from "@es-toolkit/es-toolkit/compat";
 import type { SelectEvent } from "./schema/event.ts";
 import { assureAdminAuth, parseTapEvent } from "@atproto/tap";
 import { addToBatch, flushBatch } from "./batch.ts";
 
-const PAGE_SIZE = 100;
-const YIELD_EVERY_N_PAGES = 5;
-const YIELD_DELAY_MS = 100;
+const PAGE_SIZE = 500;
+const BATCH_SEND_SIZE = 50;
 const ADMIN_PASSWORD = Deno.env.get("TAP_ADMIN_PASSWORD")!;
 
 interface ClientState {
@@ -43,13 +41,16 @@ function safeSend(
   return false;
 }
 
+function formatEvent(evt: SelectEvent): string {
+  const { createdAt: _createdAt, record, ...rest } = evt;
+  if (record) {
+    return JSON.stringify({ ...rest, record: JSON.parse(record) });
+  }
+  return JSON.stringify(rest);
+}
+
 export function broadcastEvent(evt: SelectEvent) {
-  const message = JSON.stringify({
-    ...omit(evt, "createdAt", "record"),
-    ...(evt.record && {
-      record: JSON.parse(evt.record),
-    }),
-  });
+  const message = formatEvent(evt);
 
   for (const [socket, state] of connectedClients.entries()) {
     if (socket.readyState === WebSocket.OPEN) {
@@ -201,6 +202,8 @@ Deno.serve(
               logger.info`📄 Fetching page ${page}... (${totalEvents} events sent so far)`;
             }
 
+            // Batch send events for better performance
+            const batchMessages: string[] = [];
             for (let i = 0; i < events.length; i++) {
               const evt = events[i];
 
@@ -209,22 +212,23 @@ Deno.serve(
                 return;
               }
 
-              const success = safeSend(
-                socket,
-                JSON.stringify({
-                  ...omit(evt, "createdAt", "record"),
-                  ...(evt.record && {
-                    record: JSON.parse(evt.record),
-                  }),
-                }),
-                totalEvents,
-              );
+              batchMessages.push(formatEvent(evt));
 
-              if (success) {
-                totalEvents++;
-              } else {
-                logger.error`❌ Failed to send event at index ${totalEvents}, stopping pagination`;
-                return;
+              // Send batch when full or at end of page
+              if (
+                batchMessages.length >= BATCH_SEND_SIZE ||
+                i === events.length - 1
+              ) {
+                const batchMessage = `[${batchMessages.join(",")}]`;
+                const success = safeSend(socket, batchMessage, totalEvents);
+
+                if (success) {
+                  totalEvents += batchMessages.length;
+                  batchMessages.length = 0; // Clear batch
+                } else {
+                  logger.error`❌ Failed to send batch at ${totalEvents}, stopping pagination`;
+                  return;
+                }
               }
             }
 
@@ -247,18 +251,21 @@ Deno.serve(
             if (queuedCount > 0) {
               logger.info`📦 Sending ${queuedCount} queued events...`;
 
+              // Batch send queued events
+              const queueMessages: string[] = [];
               for (const evt of clientState.queue) {
                 if (socket.readyState !== WebSocket.OPEN) break;
 
-                safeSend(
-                  socket,
-                  JSON.stringify({
-                    ...omit(evt, "createdAt", "record"),
-                    ...(evt.record && {
-                      record: JSON.parse(evt.record),
-                    }),
-                  }),
-                );
+                queueMessages.push(formatEvent(evt));
+
+                if (queueMessages.length >= BATCH_SEND_SIZE) {
+                  safeSend(socket, `[${queueMessages.join(",")}]`);
+                  queueMessages.length = 0;
+                }
+              }
+
+              if (queueMessages.length > 0) {
+                safeSend(socket, `[${queueMessages.join(",")}]`);
               }
 
               clientState.queue = [];

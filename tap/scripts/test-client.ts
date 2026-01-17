@@ -23,7 +23,7 @@ ws.onopen = () => {
   console.log("📤 Sending ping...");
   ws.send("ping");
 
-  // Send ping every 5 seconds
+  // Send ping every 30 seconds (less frequent to not interfere with fast streaming)
   setInterval(() => {
     if (ws.readyState === WebSocket.OPEN) {
       const now = Date.now();
@@ -33,7 +33,7 @@ ws.onopen = () => {
       );
       ws.send("ping");
     }
-  }, 5000);
+  }, 30000);
 };
 
 ws.onmessage = async (event) => {
@@ -43,7 +43,18 @@ ws.onmessage = async (event) => {
 
   try {
     const data = JSON.parse(event.data);
-    if (data.type === "connected") {
+
+    // Handle batched messages (array of events)
+    if (Array.isArray(data)) {
+      messageCount += data.length;
+      if (messageCount % 500 === 0 || messageCount <= 50) {
+        console.log(
+          `📨 [${elapsed}s] Batch received: ${data.length} events (total: ${messageCount})`,
+        );
+      }
+    }
+    // Handle single messages
+    else if (data.type === "connected") {
       console.log(`📨 [${elapsed}s] Connection confirmed: ${data.message}`);
     } else if (data.type === "heartbeat") {
       console.log(`💓 [${elapsed}s] Heartbeat received`);
@@ -59,10 +70,10 @@ ws.onmessage = async (event) => {
     console.log(`📨 [${elapsed}s] Message #${messageCount}: ${event.data}`);
   }
 
-  if (messageCount % 100 === 0) {
+  if (messageCount % 500 === 0) {
     const rate = (messageCount / parseFloat(elapsed)).toFixed(2);
     console.log(
-      `📊 Progress: ${messageCount} messages received in ${elapsed}s (${rate} msg/s)`,
+      `📊 Progress: ${messageCount} events received in ${elapsed}s (${rate} events/s)`,
     );
   }
 
