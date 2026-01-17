@@ -17,9 +17,9 @@ services:
   webhook:
     build: .
     restart: always
+    environment:
+      TAP_CACHE_DATABASE_URL: file:///data/tap-cache.db
     volumes:
-      - ./tap-cache.db:/app/tap-cache.db
-      - ./tap-cache.db-shm:/app/tap-cache.db-shm
-      - ./tap-cache.db-wal:/app/tap-cache.db-wal
+      - ./cache:/data
     ports:
       - "2481:2481"
