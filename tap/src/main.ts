@@ -4,13 +4,12 @@ import schema from "./schema/mod.ts";
 import { asc, inArray } from "drizzle-orm";
 import { omit } from "@es-toolkit/es-toolkit/compat";
 import type { SelectEvent } from "./schema/event.ts";
-import { assureAdminAuth, parseTapEvent } from "@atproto/tap";
+import { parseTapEvent } from "@atproto/tap";
 import { addToBatch, flushBatch } from "./batch.ts";
 
 const PAGE_SIZE = 100;
 const YIELD_EVERY_N_PAGES = 5;
 const YIELD_DELAY_MS = 100;
-const ADMIN_PASSWORD = Deno.env.get("TAP_ADMIN_PASSWORD")!;
 
 interface ClientState {
   socket: WebSocket;
@@ -72,12 +71,6 @@ export function broadcastEvent(evt: SelectEvent) {
 
 Deno.serve({ port: parseInt(Deno.env.get("WS_PORT") || "2481") }, (req) => {
   if (req.method === "POST") {
-    try {
-      assureAdminAuth(ADMIN_PASSWORD, req.headers.get("authorization")!);
-    } catch {
-      logger.warn`Unauthorized access attempt ${req.headers.get("authorization")}`;
-      return new Response(null, { status: 401 });
-    }
     const evt = parseTapEvent(req.body);
     switch (evt.type) {
       case "identity": {
