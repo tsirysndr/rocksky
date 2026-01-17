@@ -2,14 +2,14 @@ import { ctx } from "./context.ts";
 import logger from "./logger.ts";
 import connectToTap from "./tap.ts";
 import schema from "./schema/mod.ts";
-import { asc } from "drizzle-orm";
+import { asc, inArray } from "drizzle-orm";
 import { omit } from "@es-toolkit/es-toolkit/compat";
 import type { SelectEvent } from "./schema/event.ts";
 
 const PAGE_SIZE = 50;
-const PAGE_DELAY_MS = 10;
+const PAGE_DELAY_MS = 3;
 const YIELD_EVERY_N_PAGES = 1; // Yield after every page
-const MAX_BUFFER_SIZE = 64 * 1024; // 64KB buffer limit (more conservative)
+const MAX_BUFFER_SIZE = 64 * 1024; // 64KB buffer limit
 const BACKPRESSURE_CHECK_INTERVAL = 10; // Check every 10 events
 const MESSAGE_DELAY_MS = 1; // Add tiny delay between messages
 const VERBOSE_LOGGING = false; // Set to true for detailed message tracking
@@ -18,11 +18,11 @@ interface ClientState {
   socket: WebSocket;
   isPaginating: boolean;
   queue: SelectEvent[];
+  dids?: string[];
 }
 
 const connectedClients = new Map<WebSocket, ClientState>();
 
-// Helper function to safely send message with error handling
 function safeSend(
   socket: WebSocket,
   message: string,
@@ -50,7 +50,8 @@ function safeSend(
 }
 
 async function waitForBackpressure(socket: WebSocket): Promise<void> {
-  const bufferedAmount = (socket as any).bufferedAmount;
+  const bufferedAmount = (socket as unknown as { bufferedAmount?: number })
+    .bufferedAmount;
   if (bufferedAmount && bufferedAmount > MAX_BUFFER_SIZE) {
     logger.info`⏸️  Backpressure detected (${bufferedAmount} bytes buffered), waiting...`;
     // Wait for buffer to drain
@@ -68,6 +69,14 @@ export function broadcastEvent(evt: SelectEvent) {
 
   for (const [socket, state] of connectedClients.entries()) {
     if (socket.readyState === WebSocket.OPEN) {
+      if (
+        state.dids &&
+        state.dids.length > 0 &&
+        !state.dids.includes(evt.did)
+      ) {
+        continue; // Skip events not matching the DID filter
+      }
+
       if (state.isPaginating) {
         state.queue.push(evt);
       } else {
@@ -86,13 +95,26 @@ Deno.serve({ port: parseInt(Deno.env.get("WS_PORT") || "2481") }, (req) => {
 
   const { socket, response } = Deno.upgradeWebSocket(req);
 
+  const url = new URL(req.url);
+  const didsParam = url.searchParams.get("dids");
+  const dids = didsParam
+    ? didsParam
+        .split(",")
+        .map((d) => d.trim())
+        .filter((d) => d.length > 0)
+    : undefined;
+
   socket.addEventListener("open", () => {
     logger.info`✅ Client connected! Socket state: ${socket.readyState}`;
+    if (dids && dids.length > 0) {
+      logger.info`🔍 Filtering by DIDs: ${dids.join(", ")}`;
+    }
 
     connectedClients.set(socket, {
       socket,
       isPaginating: true,
       queue: [],
+      dids,
     });
 
     safeSend(
@@ -103,17 +125,6 @@ Deno.serve({ port: parseInt(Deno.env.get("WS_PORT") || "2481") }, (req) => {
       }),
     );
     logger.info`📤 Sent connection confirmation`;
-
-    const heartbeatInterval = setInterval(() => {
-      if (socket.readyState === WebSocket.OPEN) {
-        safeSend(
-          socket,
-          JSON.stringify({ type: "heartbeat", timestamp: Date.now() }),
-        );
-      } else {
-        clearInterval(heartbeatInterval);
-      }
-    }, 10000);
 
     (async () => {
       try {
@@ -136,9 +147,14 @@ Deno.serve({ port: parseInt(Deno.env.get("WS_PORT") || "2481") }, (req) => {
         }
 
         while (hasMore && socket.readyState === WebSocket.OPEN) {
-          const events = await ctx.db
-            .select()
-            .from(schema.events)
+          let query = ctx.db.select().from(schema.events).$dynamic();
+
+          // Apply DID filter if specified
+          if (dids && dids.length > 0) {
+            query = query.where(inArray(schema.events.did, dids));
+          }
+
+          const events = await query
             .orderBy(asc(schema.events.createdAt))
             .offset(page * PAGE_SIZE)
             .limit(PAGE_SIZE)
