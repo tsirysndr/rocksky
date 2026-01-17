@@ -8,8 +8,8 @@ import type { InsertEvent } from "./schema/event.ts";
 
 export const TAP_WS_URL = Deno.env.get("TAP_URL") || "http://localhost:2480";
 
-const BATCH_SIZE = 200;
-const BATCH_TIMEOUT_MS = 50;
+const BATCH_SIZE = 100;
+const BATCH_TIMEOUT_MS = 100;
 
 export default function connectToTap() {
   const tap = new Tap(TAP_WS_URL);
@@ -17,50 +17,64 @@ export default function connectToTap() {
 
   let eventBatch: InsertEvent[] = [];
   let batchTimer: number | null = null;
-  let isFlushingBatch = false;
+  let flushPromise: Promise<void> | null = null;
 
   async function flushBatch() {
-    if (eventBatch.length === 0 || isFlushingBatch) return;
-
-    isFlushingBatch = true;
-    const toInsert = [...eventBatch];
-    eventBatch = [];
-
-    try {
-      logger.info`🔄 Flushing batch of ${toInsert.length} events...`;
-
-      const results = await ctx.db
-        .insert(schema.events)
-        .values(toInsert)
-        .onConflictDoNothing()
-        .returning()
-        .execute();
-
-      for (const result of results) {
-        broadcastEvent(result);
-      }
-
-      logger.info`📝 Batch inserted ${results.length} events`;
-    } catch (error) {
-      logger.error`Failed to insert batch: ${error}`;
-    } finally {
-      isFlushingBatch = false;
+    if (flushPromise) {
+      await flushPromise;
+      return;
     }
+
+    if (eventBatch.length === 0) return;
+
+    flushPromise = (async () => {
+      const toInsert = [...eventBatch];
+      eventBatch = [];
+
+      try {
+        logger.info`🔄 Flushing batch of ${toInsert.length} events...`;
+
+        const results = await ctx.db
+          .insert(schema.events)
+          .values(toInsert)
+          .onConflictDoNothing()
+          .returning()
+          .execute();
+
+        for (const result of results) {
+          broadcastEvent(result);
+        }
+
+        logger.info`📝 Batch inserted ${results.length} events`;
+      } catch (error) {
+        logger.error`Failed to insert batch: ${error}`;
+        // Re-add failed events to the front of the batch for retry
+        eventBatch = [...toInsert, ...eventBatch];
+      } finally {
+        flushPromise = null;
+      }
+    })();
+
+    await flushPromise;
   }
 
   function addToBatch(event: InsertEvent) {
     eventBatch.push(event);
 
+    // Clear existing timer
     if (batchTimer !== null) {
       clearTimeout(batchTimer);
+      batchTimer = null;
     }
 
+    // Flush immediately if batch is full
     if (eventBatch.length >= BATCH_SIZE) {
       flushBatch().catch((err) => logger.error`Flush error: ${err}`);
     } else {
+      // Set timer to flush after timeout
       batchTimer = setTimeout(() => {
-        flushBatch().catch((err) => logger.error`Flush error: ${err}`);
         batchTimer = null;
+        flushBatch().catch((err) => logger.error`Flush error: ${err}`);
       }, BATCH_TIMEOUT_MS);
     }
   }

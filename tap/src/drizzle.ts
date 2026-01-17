@@ -6,9 +6,16 @@ const client = createClient({
 });
 
 await client.execute("PRAGMA journal_mode = WAL;");
-await client.execute("PRAGMA busy_timeout = 5000;");
+
+await client.execute("PRAGMA busy_timeout = 30000;");
+
 await client.execute("PRAGMA synchronous = NORMAL;");
+
 await client.execute("PRAGMA cache_size = -10000;");
+
+await client.execute("PRAGMA wal_autocheckpoint = 1000;");
+
+await client.execute("PRAGMA temp_store = MEMORY;");
 
 const db = drizzle(client);
 
