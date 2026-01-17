@@ -234,6 +234,10 @@ Deno.serve(
 
             hasMore = events.length === PAGE_SIZE;
             page++;
+
+            if (hasMore && page % 5 === 0) {
+              await new Promise((resolve) => setTimeout(resolve, 100));
+            }
           }
 
           logger.info`📤 Sent all historical events: ${totalEvents} total (${page} pages)`;
