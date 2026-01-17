@@ -6,12 +6,10 @@ import { asc, inArray } from "drizzle-orm";
 import { omit } from "@es-toolkit/es-toolkit/compat";
 import type { SelectEvent } from "./schema/event.ts";
 
-const PAGE_SIZE = 50;
-const PAGE_DELAY_MS = 3;
-const YIELD_EVERY_N_PAGES = 1; // Yield after every page
-const MAX_BUFFER_SIZE = 64 * 1024; // 64KB buffer limit
-const BACKPRESSURE_CHECK_INTERVAL = 10; // Check every 10 events
-const MESSAGE_DELAY_MS = 1; // Add tiny delay between messages
+const PAGE_SIZE = 100; // Larger batches for faster streaming
+const YIELD_EVERY_N_PAGES = 5; // Yield every 5 pages (2500 events)
+const MAX_BUFFER_SIZE = 256 * 1024; // 256KB buffer limit
+const BACKPRESSURE_CHECK_INTERVAL = 100; // Check every 100 events
 const VERBOSE_LOGGING = false; // Set to true for detailed message tracking
 
 interface ClientState {
@@ -190,12 +188,7 @@ Deno.serve({ port: parseInt(Deno.env.get("WS_PORT") || "2481") }, (req) => {
               return;
             }
 
-            if (MESSAGE_DELAY_MS > 0 && i % 5 === 0) {
-              await new Promise((resolve) =>
-                setTimeout(resolve, MESSAGE_DELAY_MS),
-              );
-            }
-
+            // Check backpressure periodically (no message delay for speed)
             if (totalEvents % BACKPRESSURE_CHECK_INTERVAL === 0) {
               await waitForBackpressure(socket);
             }
@@ -205,7 +198,7 @@ Deno.serve({ port: parseInt(Deno.env.get("WS_PORT") || "2481") }, (req) => {
           page++;
 
           if (hasMore && page % YIELD_EVERY_N_PAGES === 0) {
-            await new Promise((resolve) => setTimeout(resolve, PAGE_DELAY_MS));
+            await new Promise((resolve) => setTimeout(resolve, 0));
           }
         }
 
