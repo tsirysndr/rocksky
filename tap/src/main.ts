@@ -236,7 +236,7 @@ Deno.serve(
             page++;
 
             if (hasMore && page % 5 === 0) {
-              await new Promise((resolve) => setTimeout(resolve, 100));
+              await new Promise((resolve) => setTimeout(resolve, 20));
             }
           }
 
