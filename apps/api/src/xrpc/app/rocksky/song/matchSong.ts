@@ -207,6 +207,60 @@ const presentation = ([
   }));
 };
 
+const MAX_SPOTIFY_RETRIES = 3;
+const INITIAL_RETRY_DELAY_MS = 1000;
+const SPOTIFY_TIMEOUT_MS = 30000;
+
+const retrySpotifyCall = async <T>(
+  fn: () => Promise<T>,
+  operation: string,
+): Promise<T> => {
+  let lastError: Error | undefined;
+
+  for (let attempt = 0; attempt < MAX_SPOTIFY_RETRIES; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(
+        () => controller.abort(),
+        SPOTIFY_TIMEOUT_MS,
+      );
+
+      const result = await Promise.race([
+        fn(),
+        new Promise<never>((_, reject) => {
+          controller.signal.addEventListener("abort", () =>
+            reject(new Error("Request timeout")),
+          );
+        }),
+      ]);
+
+      clearTimeout(timeoutId);
+      return result;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const isTimeout =
+        errorMessage.includes("timeout") ||
+        errorMessage.includes("timed out") ||
+        errorMessage.includes("operation timed out") ||
+        errorMessage.includes("ETIMEDOUT");
+
+      if (isTimeout && attempt < MAX_SPOTIFY_RETRIES - 1) {
+        const delay = INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt);
+        consola.warn(
+          `Spotify API timeout, retrying... attempt=${attempt + 1}, max_attempts=${MAX_SPOTIFY_RETRIES}, delay_ms=${delay}, operation=${operation}`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        lastError = error instanceof Error ? error : new Error(String(error));
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError || new Error("Max retries exceeded");
+};
+
 const searchOnSpotify = async (
   ctx: Context,
   title: string,
@@ -284,39 +338,83 @@ const searchOnSpotify = async (
     q = `q=track:"${encodeURIComponent(title)}" ${artists}&type=track`;
   }
 
-  const response = await fetch(`https://api.spotify.com/v1/search?${q}`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${access_token}`,
-    },
-  }).then((res) => res.json<SearchResponse>());
+  const response = await retrySpotifyCall(
+    async () =>
+      fetch(`https://api.spotify.com/v1/search?${q}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+      }).then((res) => res.json<SearchResponse>()),
+    "search",
+  );
 
   const track = response.tracks?.items?.[0];
 
   if (track) {
-    const album = await fetch(
-      `https://api.spotify.com/v1/albums/${track.album.id}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${access_token}`,
-        },
-      },
-    ).then((res) => res.json<Album>());
+    const normalize = (s: string): string => {
+      return s
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/á|à|ä|â|ã|å/g, "a")
+        .replace(/é|è|ë|ê/g, "e")
+        .replace(/í|ì|ï|î/g, "i")
+        .replace(/ó|ò|ö|ô|õ/g, "o")
+        .replace(/ú|ù|ü|û/g, "u")
+        .replace(/ñ/g, "n")
+        .replace(/ç/g, "c");
+    };
+
+    const spotifyArtists = track.artists.map((a) => normalize(a.name));
+
+    // Check if artists don't contain the scrobble artist (to avoid wrong matches)
+    // scrobble artist can contain multiple artists separated by ", "
+    const scrobbleArtists = artist.split(", ").map((a) => normalize(a.trim()));
+
+    // Check for matches with partial matching:
+    // 1. Check if any scrobble artist is contained in any Spotify artist
+    // 2. Check if any Spotify artist is contained in any scrobble artist
+    const hasArtistMatch = scrobbleArtists.some((scrobbleArtist) =>
+      spotifyArtists.some(
+        (spotifyArtist) =>
+          scrobbleArtist.includes(spotifyArtist) ||
+          spotifyArtist.includes(scrobbleArtist),
+      ),
+    );
+
+    if (!hasArtistMatch) {
+      consola.warn(
+        `Artist mismatch, skipping - expected: ${artist}, got: ${track.artists.map((a) => a.name).join(", ")}`,
+      );
+      return undefined;
+    }
+
+    const album = await retrySpotifyCall(
+      async () =>
+        fetch(`https://api.spotify.com/v1/albums/${track.album.id}`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${access_token}`,
+          },
+        }).then((res) => res.json<Album>()),
+      "get_album",
+    );
 
     track.album = album;
 
-    const artist = await fetch(
-      `https://api.spotify.com/v1/artists/${track.artists[0].id}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${access_token}`,
-        },
-      },
-    ).then((res) => res.json<Artist>());
+    const fetchedArtist = await retrySpotifyCall(
+      async () =>
+        fetch(`https://api.spotify.com/v1/artists/${track.artists[0].id}`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${access_token}`,
+          },
+        }).then((res) => res.json<Artist>()),
+      "get_artist",
+    );
 
-    track.artists[0] = artist;
+    track.artists[0] = fetchedArtist;
   }
 
   return track;
