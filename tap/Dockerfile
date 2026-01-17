@@ -1,4 +1,9 @@
-FROM denoland/deno:2.6.5
+FROM node:24
+
+RUN curl -fsSL https://deno.land/install.sh | sh
+
+ENV DENO_INSTALL="/root/.deno"
+ENV PATH="$DENO_INSTALL/bin:$PATH"
 
 WORKDIR /app
 
@@ -8,4 +13,4 @@ RUN deno cache src/main.ts
 
 EXPOSE 2481
 
-CMD ["run", "-A", "src/main.ts"]
+CMD ["deno", "run", "-A", "src/main.ts"]
