@@ -6,8 +6,9 @@ import { asc } from "drizzle-orm";
 import { omit } from "@es-toolkit/es-toolkit/compat";
 import type { SelectEvent } from "./schema/event.ts";
 
-const PAGE_SIZE = 10;
-const PAGE_DELAY_MS = 1;
+const PAGE_SIZE = 500;
+const PAGE_DELAY_MS = 0;
+const YIELD_EVERY_N_PAGES = 5;
 
 interface ClientState {
   socket: WebSocket;
@@ -68,9 +69,6 @@ Deno.serve({ port: parseInt(Deno.env.get("WS_PORT") || "2481") }, (req) => {
 
     (async () => {
       try {
-        // Small delay to ensure connection is fully established
-        await new Promise((resolve) => setTimeout(resolve, 100));
-
         let page = 0;
         let hasMore = true;
         let totalEvents = 0;
@@ -90,8 +88,6 @@ Deno.serve({ port: parseInt(Deno.env.get("WS_PORT") || "2481") }, (req) => {
         }
 
         while (hasMore && socket.readyState === WebSocket.OPEN) {
-          logger.info`📄 Fetching page ${page}...`;
-
           const events = await ctx.db
             .select()
             .from(schema.events)
@@ -100,7 +96,9 @@ Deno.serve({ port: parseInt(Deno.env.get("WS_PORT") || "2481") }, (req) => {
             .limit(PAGE_SIZE)
             .execute();
 
-          logger.info`📄 Got ${events.length} events from page ${page}`;
+          if (page % 10 === 0) {
+            logger.info`📄 Fetching page ${page}... (${totalEvents} events sent so far)`;
+          }
 
           for (const evt of events) {
             if (socket.readyState === WebSocket.OPEN) {
@@ -119,8 +117,7 @@ Deno.serve({ port: parseInt(Deno.env.get("WS_PORT") || "2481") }, (req) => {
           hasMore = events.length === PAGE_SIZE;
           page++;
 
-          // Yield to event loop between pages
-          if (hasMore) {
+          if (hasMore && page % YIELD_EVERY_N_PAGES === 0) {
             await new Promise((resolve) => setTimeout(resolve, PAGE_DELAY_MS));
           }
         }
@@ -173,10 +170,8 @@ Deno.serve({ port: parseInt(Deno.env.get("WS_PORT") || "2481") }, (req) => {
   });
 
   socket.addEventListener("message", (event) => {
-    logger.info`📨 Received message: ${event.data}`;
     if (event.data === "ping") {
       socket.send("pong");
-      logger.info`📤 Sent pong`;
     }
   });
 

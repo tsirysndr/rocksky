@@ -8,8 +8,8 @@ import type { InsertEvent } from "./schema/event.ts";
 
 export const TAP_WS_URL = Deno.env.get("TAP_URL") || "http://localhost:2480";
 
-const BATCH_SIZE = 50;
-const BATCH_TIMEOUT_MS = 100;
+const BATCH_SIZE = 200;
+const BATCH_TIMEOUT_MS = 50;
 
 export default function connectToTap() {
   const tap = new Tap(TAP_WS_URL);
