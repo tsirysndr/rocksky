@@ -28,6 +28,7 @@ const events = sqliteTable(
     index("type_idx").on(t.type),
     index("collection_idx").on(t.collection),
     index("did_collection_rkey_idx").on(t.did, t.collection, t.rkey),
+    index("created_at").on(t.createdAt),
   ],
 );
 

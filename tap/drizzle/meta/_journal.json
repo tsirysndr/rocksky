@@ -15,6 +15,13 @@
       "when": 1768622485450,
       "tag": "0001_funny_wrecker",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1768632671860,
+      "tag": "0002_reflective_angel",
+      "breakpoints": true
     }
   ]
 }

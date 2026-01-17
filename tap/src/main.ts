@@ -1,16 +1,16 @@
 import { ctx } from "./context.ts";
 import logger from "./logger.ts";
-import connectToTap from "./tap.ts";
 import schema from "./schema/mod.ts";
 import { asc, inArray } from "drizzle-orm";
 import { omit } from "@es-toolkit/es-toolkit/compat";
 import type { SelectEvent } from "./schema/event.ts";
+import { assureAdminAuth, parseTapEvent } from "@atproto/tap";
+import { addToBatch, flushBatch } from "./batch.ts";
 
-const PAGE_SIZE = 100; // Larger batches for faster streaming
-const YIELD_EVERY_N_PAGES = 5; // Yield every 5 pages (2500 events)
-const MAX_BUFFER_SIZE = 256 * 1024; // 256KB buffer limit
-const BACKPRESSURE_CHECK_INTERVAL = 100; // Check every 100 events
-const VERBOSE_LOGGING = false; // Set to true for detailed message tracking
+const PAGE_SIZE = 100;
+const YIELD_EVERY_N_PAGES = 5;
+const YIELD_DELAY_MS = 100;
+const ADMIN_PASSWORD = Deno.env.get("TAP_ADMIN_PASSWORD")!;
 
 interface ClientState {
   socket: WebSocket;
@@ -29,11 +29,7 @@ function safeSend(
   try {
     if (socket.readyState === WebSocket.OPEN) {
       socket.send(message);
-      if (
-        VERBOSE_LOGGING &&
-        eventCount !== undefined &&
-        eventCount % 50 === 0
-      ) {
+      if (eventCount !== undefined && eventCount % 50 === 0) {
         logger.info`📤 Sent ${eventCount} events, readyState: ${socket.readyState}`;
       }
       return true;
@@ -45,16 +41,6 @@ function safeSend(
     logger.error`Socket readyState: ${socket.readyState}`;
   }
   return false;
-}
-
-async function waitForBackpressure(socket: WebSocket): Promise<void> {
-  const bufferedAmount = (socket as unknown as { bufferedAmount?: number })
-    .bufferedAmount;
-  if (bufferedAmount && bufferedAmount > MAX_BUFFER_SIZE) {
-    logger.info`⏸️  Backpressure detected (${bufferedAmount} bytes buffered), waiting...`;
-    // Wait for buffer to drain
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  }
 }
 
 export function broadcastEvent(evt: SelectEvent) {
@@ -84,9 +70,59 @@ export function broadcastEvent(evt: SelectEvent) {
   }
 }
 
-connectToTap();
-
 Deno.serve({ port: parseInt(Deno.env.get("WS_PORT") || "2481") }, (req) => {
+  if (req.method === "POST") {
+    try {
+      assureAdminAuth(ADMIN_PASSWORD, req.headers.get("authorization")!);
+    } catch {
+      return new Response(null, { status: 401 });
+    }
+    const evt = parseTapEvent(req.body);
+    switch (evt.type) {
+      case "identity": {
+        addToBatch({
+          id: evt.id,
+          type: evt.type,
+          did: evt.did,
+          handle: evt.handle,
+          status: evt.status,
+          isActive: evt.isActive,
+          action: null,
+          rev: null,
+          collection: null,
+          rkey: null,
+          record: null,
+          cid: null,
+          live: null,
+        });
+        logger.info`New identity: ${evt.did} ${evt.handle} ${evt.status}`;
+        break;
+      }
+      case "record": {
+        addToBatch({
+          id: evt.id,
+          type: evt.type,
+          action: evt.action,
+          did: evt.did,
+          rev: evt.rev,
+          collection: evt.collection,
+          rkey: evt.rkey,
+          record: JSON.stringify(evt.record),
+          cid: evt.cid,
+          live: evt.live,
+          handle: null,
+          status: null,
+          isActive: null,
+        });
+        const uri = `at://${evt.did}/${evt.collection}/${evt.rkey}`;
+        logger.info`New record: ${uri}`;
+        break;
+      }
+    }
+
+    return new Response("");
+  }
+
   if (req.headers.get("upgrade") != "websocket") {
     return new Response(null, { status: 426 });
   }
@@ -187,18 +223,13 @@ Deno.serve({ port: parseInt(Deno.env.get("WS_PORT") || "2481") }, (req) => {
               logger.error`❌ Failed to send event at index ${totalEvents}, stopping pagination`;
               return;
             }
-
-            // Check backpressure periodically (no message delay for speed)
-            if (totalEvents % BACKPRESSURE_CHECK_INTERVAL === 0) {
-              await waitForBackpressure(socket);
-            }
           }
 
           hasMore = events.length === PAGE_SIZE;
           page++;
 
           if (hasMore && page % YIELD_EVERY_N_PAGES === 0) {
-            await new Promise((resolve) => setTimeout(resolve, 0));
+            await new Promise((resolve) => setTimeout(resolve, YIELD_DELAY_MS));
           }
         }
 
@@ -299,6 +330,10 @@ Deno.serve({ port: parseInt(Deno.env.get("WS_PORT") || "2481") }, (req) => {
   });
 
   return response;
+});
+
+globalThis.addEventListener("beforeunload", () => {
+  flushBatch();
 });
 
 const url = `ws://localhost:${Deno.env.get("WS_PORT") || 2481}`;
