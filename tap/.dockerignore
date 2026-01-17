@@ -4,3 +4,4 @@ data/
 *.db-shm
 *.db-wal
 node_modules/
+cache/
