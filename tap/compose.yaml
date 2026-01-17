@@ -1,6 +1,8 @@
 services:
   tap:
     image: ghcr.io/bluesky-social/indigo/tap:latest
+    depends_on:
+      - webhook
     restart: always
     ports:
       - "2480:2480"
@@ -15,5 +17,9 @@ services:
   webhook:
     build: .
     restart: always
+    volumes:
+      - ./tap-cache.db:/app/tap-cache.db
+      - ./tap-cache.db-shm:/app/tap-cache.db-shm
+      - ./tap-cache.db-wal:/app/tap-cache.db-wal
     ports:
       - "2481:2481"
