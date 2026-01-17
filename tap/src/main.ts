@@ -6,7 +6,7 @@ import { asc } from "drizzle-orm";
 import { omit } from "@es-toolkit/es-toolkit/compat";
 import type { SelectEvent } from "./schema/event.ts";
 
-const PAGE_SIZE = 500;
+const PAGE_SIZE = 50;
 
 interface ClientState {
   socket: WebSocket;
