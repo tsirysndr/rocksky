@@ -6,7 +6,7 @@ import type { SelectEvent } from "./schema/event.ts";
 import { assureAdminAuth, parseTapEvent } from "@atproto/tap";
 import { addToBatch, flushBatch } from "./batch.ts";
 
-const PAGE_SIZE = 500;
+const PAGE_SIZE = 100;
 const BATCH_SEND_SIZE = 50;
 const ADMIN_PASSWORD = Deno.env.get("TAP_ADMIN_PASSWORD")!;
 
