@@ -9,5 +9,11 @@ services:
     environment:
       TAP_DATABASE_URL: sqlite:///data/tap.db
       TAP_RELAY_URL: https://relay1.us-east.bsky.network
+      TAP_WEBHOOK_URL: http://webhook:2481
       TAP_SIGNAL_COLLECTION: app.rocksky.scrobble
       TAP_COLLECTION_FILTERS: app.rocksky.graph.follow,app.rocksky.*
+  webhook:
+    build: .
+    restart: always
+    ports:
+      - "2481:2481"
