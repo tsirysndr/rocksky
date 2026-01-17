@@ -14,6 +14,9 @@ use owo_colors::OwoColorize;
 use rand::Rng;
 use sqlx::{Pool, Postgres};
 
+const MAX_SPOTIFY_RETRIES: u32 = 3;
+const INITIAL_RETRY_DELAY_MS: u64 = 1000;
+
 pub async fn scrobble(
     pool: &Pool<Postgres>,
     cache: &Cache,
@@ -135,7 +138,8 @@ pub async fn scrobble(
 
     tracing::info!(query = %query, "Searching on Spotify");
 
-    let result = spotify_client.search(&query).await?;
+    let result =
+        retry_spotify_call(|| async { spotify_client.search(&query).await }, "search").await?;
 
     tracing::info!(total = %result.tracks.total, "Spotify search results");
 
@@ -186,13 +190,20 @@ pub async fn scrobble(
             tracing::info!("Spotify (track)");
             let mut track = track.clone();
 
-            if let Some(album) = spotify_client.get_album(&track.album.id).await? {
+            if let Some(album) = retry_spotify_call(
+                || async { spotify_client.get_album(&track.album.id).await },
+                "get_album",
+            )
+            .await?
+            {
                 track.album = album;
             }
 
-            if let Some(artist) = spotify_client
-                .get_artist(&track.album.artists[0].id)
-                .await?
+            if let Some(artist) = retry_spotify_call(
+                || async { spotify_client.get_artist(&track.album.artists[0].id).await },
+                "get_artist",
+            )
+            .await?
             {
                 track.album.artists[0] = artist;
             }
@@ -259,4 +270,40 @@ async fn search_musicbrainz_recording(
     }
 
     Ok(None)
+}
+
+async fn retry_spotify_call<F, Fut, T>(mut f: F, operation: &str) -> Result<T, Error>
+where
+    F: FnMut() -> Fut,
+    Fut: std::future::Future<Output = Result<T, Error>>,
+{
+    let mut last_error = None;
+
+    for attempt in 0..MAX_SPOTIFY_RETRIES {
+        match f().await {
+            Ok(result) => return Ok(result),
+            Err(e) => {
+                let is_timeout = e.to_string().contains("timed out")
+                    || e.to_string().contains("timeout")
+                    || e.to_string().contains("operation timed out");
+
+                if is_timeout && attempt < MAX_SPOTIFY_RETRIES - 1 {
+                    let delay = INITIAL_RETRY_DELAY_MS * 2_u64.pow(attempt);
+                    tracing::warn!(
+                        attempt = attempt + 1,
+                        max_attempts = MAX_SPOTIFY_RETRIES,
+                        delay_ms = delay,
+                        operation = operation,
+                        "Spotify API timeout, retrying..."
+                    );
+                    tokio::time::sleep(tokio::time::Duration::from_millis(delay)).await;
+                    last_error = Some(e);
+                } else {
+                    return Err(e);
+                }
+            }
+        }
+    }
+
+    Err(last_error.unwrap_or_else(|| Error::msg("Max retries exceeded")))
 }

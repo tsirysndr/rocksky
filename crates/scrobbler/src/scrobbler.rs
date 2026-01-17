@@ -19,6 +19,9 @@ use crate::{
     xata::user::User,
 };
 
+const MAX_SPOTIFY_RETRIES: u32 = 3;
+const INITIAL_RETRY_DELAY_MS: u64 = 1000;
+
 fn parse_batch(form: &BTreeMap<String, String>) -> Result<Vec<Scrobble>, Error> {
     let mut result = vec![];
     let mut index = 0;
@@ -203,25 +206,38 @@ pub async fn scrobble(
         let spotify_token = refresh_token(&spotify_token, &client_id, &client_secret).await?;
         let spotify_client = SpotifyClient::new(&spotify_token.access_token);
 
-        let result = spotify_client
-            .search(&format!(
-                r#"track:"{}" artist:"{}""#,
-                scrobble.track, scrobble.artist
-            ))
-            .await?;
+        let result = retry_spotify_call(
+            || async {
+                spotify_client
+                    .search(&format!(
+                        r#"track:"{}" artist:"{}""#,
+                        scrobble.track, scrobble.artist
+                    ))
+                    .await
+            },
+            "search",
+        )
+        .await?;
 
         if let Some(track) = result.tracks.items.first() {
             tracing::info!(artist = %scrobble.artist, track = %scrobble.track, "Spotify (track)");
             scrobble.album = Some(track.album.name.clone());
             let mut track = track.clone();
 
-            if let Some(album) = spotify_client.get_album(&track.album.id).await? {
+            if let Some(album) = retry_spotify_call(
+                || async { spotify_client.get_album(&track.album.id).await },
+                "get_album",
+            )
+            .await?
+            {
                 track.album = album;
             }
 
-            if let Some(artist) = spotify_client
-                .get_artist(&track.album.artists[0].id)
-                .await?
+            if let Some(artist) = retry_spotify_call(
+                || async { spotify_client.get_artist(&track.album.artists[0].id).await },
+                "get_artist",
+            )
+            .await?
             {
                 track.album.artists[0] = artist;
             }
@@ -383,12 +399,18 @@ pub async fn scrobble_v1(
     let spotify_token = refresh_token(&spotify_token, &client_id, &client_secret).await?;
     let spotify_client = SpotifyClient::new(&spotify_token.access_token);
 
-    let result = spotify_client
-        .search(&format!(
-            r#"track:"{}" artist:"{}""#,
-            scrobble.track, scrobble.artist
-        ))
-        .await?;
+    let result = retry_spotify_call(
+        || async {
+            spotify_client
+                .search(&format!(
+                    r#"track:"{}" artist:"{}""#,
+                    scrobble.track, scrobble.artist
+                ))
+                .await
+        },
+        "search",
+    )
+    .await?;
 
     if let Some(track) = result.tracks.items.first() {
         let normalize = |s: &str| -> String {
@@ -434,13 +456,20 @@ pub async fn scrobble_v1(
             scrobble.album = Some(track.album.name.clone());
             let mut track = track.clone();
 
-            if let Some(album) = spotify_client.get_album(&track.album.id).await? {
+            if let Some(album) = retry_spotify_call(
+                || async { spotify_client.get_album(&track.album.id).await },
+                "get_album",
+            )
+            .await?
+            {
                 track.album = album;
             }
 
-            if let Some(artist) = spotify_client
-                .get_artist(&track.album.artists[0].id)
-                .await?
+            if let Some(artist) = retry_spotify_call(
+                || async { spotify_client.get_artist(&track.album.artists[0].id).await },
+                "get_artist",
+            )
+            .await?
             {
                 track.album.artists[0] = artist;
             }
@@ -668,12 +697,18 @@ pub async fn scrobble_listenbrainz(
     let spotify_token = refresh_token(&spotify_token, &client_id, &client_secret).await?;
     let spotify_client = SpotifyClient::new(&spotify_token.access_token);
 
-    let result = spotify_client
-        .search(&format!(
-            r#"track:"{}" artist:"{}""#,
-            scrobble.track, scrobble.artist
-        ))
-        .await?;
+    let result = retry_spotify_call(
+        || async {
+            spotify_client
+                .search(&format!(
+                    r#"track:"{}" artist:"{}""#,
+                    scrobble.track, scrobble.artist
+                ))
+                .await
+        },
+        "search",
+    )
+    .await?;
 
     if let Some(track) = result.tracks.items.first() {
         let normalize = |s: &str| -> String {
@@ -712,13 +747,20 @@ pub async fn scrobble_listenbrainz(
             scrobble.album = Some(track.album.name.clone());
             let mut track = track.clone();
 
-            if let Some(album) = spotify_client.get_album(&track.album.id).await? {
+            if let Some(album) = retry_spotify_call(
+                || async { spotify_client.get_album(&track.album.id).await },
+                "get_album",
+            )
+            .await?
+            {
                 track.album = album;
             }
 
-            if let Some(artist) = spotify_client
-                .get_artist(&track.album.artists[0].id)
-                .await?
+            if let Some(artist) = retry_spotify_call(
+                || async { spotify_client.get_artist(&track.album.artists[0].id).await },
+                "get_artist",
+            )
+            .await?
             {
                 track.album.artists[0] = artist;
             }
@@ -784,4 +826,40 @@ async fn search_musicbrainz_recording(
     }
 
     Ok(None)
+}
+
+async fn retry_spotify_call<F, Fut, T>(mut f: F, operation: &str) -> Result<T, Error>
+where
+    F: FnMut() -> Fut,
+    Fut: std::future::Future<Output = Result<T, Error>>,
+{
+    let mut last_error = None;
+
+    for attempt in 0..MAX_SPOTIFY_RETRIES {
+        match f().await {
+            Ok(result) => return Ok(result),
+            Err(e) => {
+                let is_timeout = e.to_string().contains("timed out")
+                    || e.to_string().contains("timeout")
+                    || e.to_string().contains("operation timed out");
+
+                if is_timeout && attempt < MAX_SPOTIFY_RETRIES - 1 {
+                    let delay = INITIAL_RETRY_DELAY_MS * 2_u64.pow(attempt);
+                    tracing::warn!(
+                        attempt = attempt + 1,
+                        max_attempts = MAX_SPOTIFY_RETRIES,
+                        delay_ms = delay,
+                        operation = operation,
+                        "Spotify API timeout, retrying..."
+                    );
+                    tokio::time::sleep(tokio::time::Duration::from_millis(delay)).await;
+                    last_error = Some(e);
+                } else {
+                    return Err(e);
+                }
+            }
+        }
+    }
+
+    Err(last_error.unwrap_or_else(|| Error::msg("Max retries exceeded")))
 }

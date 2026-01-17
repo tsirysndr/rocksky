@@ -41,6 +41,8 @@ impl MusicbrainzClient {
         let redis = client.get_multiplexed_tokio_connection().await?;
         let http = reqwest::Client::builder()
             .user_agent(USER_AGENT)
+            .timeout(Duration::from_secs(30))
+            .connect_timeout(Duration::from_secs(10))
             .build()
             .context("build http client")?;
         let me = MusicbrainzClient {
