@@ -9,6 +9,8 @@ import type { SelectEvent } from "./schema/event.ts";
 const PAGE_SIZE = 500;
 const PAGE_DELAY_MS = 0;
 const YIELD_EVERY_N_PAGES = 5;
+const MAX_BUFFER_SIZE = 1024 * 1024; // 1MB buffer limit
+const BACKPRESSURE_CHECK_INTERVAL = 100; // Check every 100 events
 
 interface ClientState {
   socket: WebSocket;
@@ -17,6 +19,27 @@ interface ClientState {
 }
 
 const connectedClients = new Map<WebSocket, ClientState>();
+
+function safeSend(socket: WebSocket, message: string): boolean {
+  try {
+    if (socket.readyState === WebSocket.OPEN) {
+      socket.send(message);
+      return true;
+    }
+  } catch (error) {
+    logger.error`Failed to send message: ${error}`;
+  }
+  return false;
+}
+
+async function waitForBackpressure(socket: WebSocket): Promise<void> {
+  const bufferedAmount = (socket as any).bufferedAmount;
+  if (bufferedAmount && bufferedAmount > MAX_BUFFER_SIZE) {
+    logger.info`⏸️  Backpressure detected (${bufferedAmount} bytes buffered), waiting...`;
+    // Wait for buffer to drain
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+}
 
 export function broadcastEvent(evt: SelectEvent) {
   const message = JSON.stringify({
@@ -31,7 +54,7 @@ export function broadcastEvent(evt: SelectEvent) {
       if (state.isPaginating) {
         state.queue.push(evt);
       } else {
-        socket.send(message);
+        safeSend(socket, message);
       }
     }
   }
@@ -55,17 +78,14 @@ Deno.serve({ port: parseInt(Deno.env.get("WS_PORT") || "2481") }, (req) => {
       queue: [],
     });
 
-    try {
-      socket.send(
-        JSON.stringify({
-          type: "connected",
-          message: "Ready to stream events",
-        }),
-      );
-      logger.info`📤 Sent connection confirmation`;
-    } catch (error) {
-      logger.error`Failed to send connection confirmation: ${error}`;
-    }
+    safeSend(
+      socket,
+      JSON.stringify({
+        type: "connected",
+        message: "Ready to stream events",
+      }),
+    );
+    logger.info`📤 Sent connection confirmation`;
 
     (async () => {
       try {
@@ -100,17 +120,30 @@ Deno.serve({ port: parseInt(Deno.env.get("WS_PORT") || "2481") }, (req) => {
             logger.info`📄 Fetching page ${page}... (${totalEvents} events sent so far)`;
           }
 
-          for (const evt of events) {
-            if (socket.readyState === WebSocket.OPEN) {
-              socket.send(
-                JSON.stringify({
-                  ...omit(evt, "createdAt", "record"),
-                  ...(evt.record && {
-                    record: JSON.parse(evt.record),
-                  }),
+          for (let i = 0; i < events.length; i++) {
+            const evt = events[i];
+
+            if (socket.readyState !== WebSocket.OPEN) {
+              logger.info`⚠️  Socket closed during pagination at event ${totalEvents}`;
+              return;
+            }
+
+            const success = safeSend(
+              socket,
+              JSON.stringify({
+                ...omit(evt, "createdAt", "record"),
+                ...(evt.record && {
+                  record: JSON.parse(evt.record),
                 }),
-              );
+              }),
+            );
+
+            if (success) {
               totalEvents++;
+            }
+
+            if (totalEvents % BACKPRESSURE_CHECK_INTERVAL === 0) {
+              await waitForBackpressure(socket);
             }
           }
 
@@ -132,16 +165,17 @@ Deno.serve({ port: parseInt(Deno.env.get("WS_PORT") || "2481") }, (req) => {
             logger.info`📦 Sending ${queuedCount} queued events...`;
 
             for (const evt of clientState.queue) {
-              if (socket.readyState === WebSocket.OPEN) {
-                socket.send(
-                  JSON.stringify({
-                    ...omit(evt, "createdAt", "record"),
-                    ...(evt.record && {
-                      record: JSON.parse(evt.record),
-                    }),
+              if (socket.readyState !== WebSocket.OPEN) break;
+
+              safeSend(
+                socket,
+                JSON.stringify({
+                  ...omit(evt, "createdAt", "record"),
+                  ...(evt.record && {
+                    record: JSON.parse(evt.record),
                   }),
-                );
-              }
+                }),
+              );
             }
 
             clientState.queue = [];
@@ -152,14 +186,15 @@ Deno.serve({ port: parseInt(Deno.env.get("WS_PORT") || "2481") }, (req) => {
         }
       } catch (error) {
         logger.error`Pagination error: ${error}`;
-        if (socket.readyState === WebSocket.OPEN) {
-          socket.send(
-            JSON.stringify({
-              type: "error",
-              message: "Failed to load historical events",
-            }),
-          );
-        }
+        logger.error`Stack: ${error instanceof Error ? error.stack : ""}`;
+
+        safeSend(
+          socket,
+          JSON.stringify({
+            type: "error",
+            message: "Failed to load historical events",
+          }),
+        );
 
         const clientState = connectedClients.get(socket);
         if (clientState) {
@@ -170,18 +205,35 @@ Deno.serve({ port: parseInt(Deno.env.get("WS_PORT") || "2481") }, (req) => {
   });
 
   socket.addEventListener("message", (event) => {
-    if (event.data === "ping") {
-      socket.send("pong");
+    try {
+      if (event.data === "ping") {
+        safeSend(socket, "pong");
+      }
+    } catch (error) {
+      logger.error`Error handling message: ${error}`;
     }
   });
 
-  socket.addEventListener("close", () => {
+  socket.addEventListener("close", (event) => {
     connectedClients.delete(socket);
-    logger.info`❌ Client disconnected. Active clients: ${connectedClients.size}`;
+    logger.info`❌ Client disconnected. Code: ${event.code}, Reason: ${event.reason || "none"}, Clean: ${event.wasClean}`;
+    logger.info`   Active clients: ${connectedClients.size}`;
+
+    if (event.code === 1006) {
+      logger.error`⚠️  Abnormal closure (1006) detected - connection dropped unexpectedly`;
+      logger.error`   This usually means: backpressure, server crash, or network issue`;
+    }
   });
 
   socket.addEventListener("error", (error) => {
-    logger.error`WebSocket error: ${error}`;
+    logger.error`❌ WebSocket error occurred`;
+    logger.error`   Error: ${error}`;
+    logger.error`   ReadyState: ${socket.readyState}`;
+    const clientState = connectedClients.get(socket);
+    if (clientState) {
+      logger.error`   Was paginating: ${clientState.isPaginating}`;
+      logger.error`   Queued events: ${clientState.queue.length}`;
+    }
     connectedClients.delete(socket);
   });
 
