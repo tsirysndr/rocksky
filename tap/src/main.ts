@@ -6,7 +6,8 @@ import { asc } from "drizzle-orm";
 import { omit } from "@es-toolkit/es-toolkit/compat";
 import type { SelectEvent } from "./schema/event.ts";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 10;
+const PAGE_DELAY_MS = 1;
 
 interface ClientState {
   socket: WebSocket;
@@ -44,8 +45,8 @@ Deno.serve({ port: parseInt(Deno.env.get("WS_PORT") || "2481") }, (req) => {
 
   const { socket, response } = Deno.upgradeWebSocket(req);
 
-  socket.addEventListener("open", async () => {
-    logger.info`✅ Connected to Tap!`;
+  socket.addEventListener("open", () => {
+    logger.info`✅ Client connected! Socket state: ${socket.readyState}`;
 
     connectedClients.set(socket, {
       socket,
@@ -53,65 +54,129 @@ Deno.serve({ port: parseInt(Deno.env.get("WS_PORT") || "2481") }, (req) => {
       queue: [],
     });
 
-    let page = 0;
-    let hasMore = true;
-
-    while (hasMore) {
-      const events = await ctx.db
-        .select()
-        .from(schema.events)
-        .orderBy(asc(schema.events.createdAt))
-        .offset(page * PAGE_SIZE)
-        .limit(PAGE_SIZE)
-        .execute();
-
-      for (const evt of events) {
-        socket.send(
-          JSON.stringify({
-            ...omit(evt, "createdAt", "record"),
-            ...(evt.record && {
-              record: JSON.parse(evt.record),
-            }),
-          }),
-        );
-      }
-
-      hasMore = events.length === PAGE_SIZE;
-      page++;
+    try {
+      socket.send(
+        JSON.stringify({
+          type: "connected",
+          message: "Ready to stream events",
+        }),
+      );
+      logger.info`📤 Sent connection confirmation`;
+    } catch (error) {
+      logger.error`Failed to send connection confirmation: ${error}`;
     }
 
-    logger.info`📤 Sent all historical events (${page} pages)`;
+    (async () => {
+      try {
+        // Small delay to ensure connection is fully established
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
-    const clientState = connectedClients.get(socket);
-    if (clientState) {
-      const queuedCount = clientState.queue.length;
+        let page = 0;
+        let hasMore = true;
+        let totalEvents = 0;
 
-      if (queuedCount > 0) {
-        logger.info`📦 Sending ${queuedCount} queued events...`;
+        logger.info`📖 Starting pagination...`;
 
-        for (const evt of clientState.queue) {
+        try {
+          const testQuery = await ctx.db
+            .select()
+            .from(schema.events)
+            .limit(1)
+            .execute();
+          logger.info`✅ Database test query successful, found ${testQuery.length} sample event(s)`;
+        } catch (dbError) {
+          logger.error`❌ Database test query failed: ${dbError}`;
+          throw dbError;
+        }
+
+        while (hasMore && socket.readyState === WebSocket.OPEN) {
+          logger.info`📄 Fetching page ${page}...`;
+
+          const events = await ctx.db
+            .select()
+            .from(schema.events)
+            .orderBy(asc(schema.events.createdAt))
+            .offset(page * PAGE_SIZE)
+            .limit(PAGE_SIZE)
+            .execute();
+
+          logger.info`📄 Got ${events.length} events from page ${page}`;
+
+          for (const evt of events) {
+            if (socket.readyState === WebSocket.OPEN) {
+              socket.send(
+                JSON.stringify({
+                  ...omit(evt, "createdAt", "record"),
+                  ...(evt.record && {
+                    record: JSON.parse(evt.record),
+                  }),
+                }),
+              );
+              totalEvents++;
+            }
+          }
+
+          hasMore = events.length === PAGE_SIZE;
+          page++;
+
+          // Yield to event loop between pages
+          if (hasMore) {
+            await new Promise((resolve) => setTimeout(resolve, PAGE_DELAY_MS));
+          }
+        }
+
+        logger.info`📤 Sent all historical events: ${totalEvents} total (${page} pages)`;
+
+        const clientState = connectedClients.get(socket);
+        if (clientState && socket.readyState === WebSocket.OPEN) {
+          const queuedCount = clientState.queue.length;
+
+          if (queuedCount > 0) {
+            logger.info`📦 Sending ${queuedCount} queued events...`;
+
+            for (const evt of clientState.queue) {
+              if (socket.readyState === WebSocket.OPEN) {
+                socket.send(
+                  JSON.stringify({
+                    ...omit(evt, "createdAt", "record"),
+                    ...(evt.record && {
+                      record: JSON.parse(evt.record),
+                    }),
+                  }),
+                );
+              }
+            }
+
+            clientState.queue = [];
+          }
+
+          clientState.isPaginating = false;
+          logger.info`🔄 Now streaming real-time events...`;
+        }
+      } catch (error) {
+        logger.error`Pagination error: ${error}`;
+        if (socket.readyState === WebSocket.OPEN) {
           socket.send(
             JSON.stringify({
-              ...omit(evt, "createdAt", "record"),
-              ...(evt.record && {
-                record: JSON.parse(evt.record),
-              }),
+              type: "error",
+              message: "Failed to load historical events",
             }),
           );
         }
 
-        clientState.queue = [];
+        const clientState = connectedClients.get(socket);
+        if (clientState) {
+          clientState.isPaginating = false;
+        }
       }
-
-      clientState.isPaginating = false;
-    }
-
-    logger.info`🔄 Now streaming real-time events...`;
+    })();
   });
 
   socket.addEventListener("message", (event) => {
+    logger.info`📨 Received message: ${event.data}`;
     if (event.data === "ping") {
       socket.send("pong");
+      logger.info`📤 Sent pong`;
     }
   });
 

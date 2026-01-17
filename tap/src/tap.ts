@@ -15,17 +15,20 @@ export default function connectToTap() {
   const tap = new Tap(TAP_WS_URL);
   const indexer = new SimpleIndexer();
 
-  // Batch buffers
   let eventBatch: InsertEvent[] = [];
   let batchTimer: number | null = null;
+  let isFlushingBatch = false;
 
   async function flushBatch() {
-    if (eventBatch.length === 0) return;
+    if (eventBatch.length === 0 || isFlushingBatch) return;
 
+    isFlushingBatch = true;
     const toInsert = [...eventBatch];
     eventBatch = [];
 
     try {
+      logger.info`🔄 Flushing batch of ${toInsert.length} events...`;
+
       const results = await ctx.db
         .insert(schema.events)
         .values(toInsert)
@@ -40,6 +43,8 @@ export default function connectToTap() {
       logger.info`📝 Batch inserted ${results.length} events`;
     } catch (error) {
       logger.error`Failed to insert batch: ${error}`;
+    } finally {
+      isFlushingBatch = false;
     }
   }
 
@@ -51,10 +56,10 @@ export default function connectToTap() {
     }
 
     if (eventBatch.length >= BATCH_SIZE) {
-      flushBatch();
+      flushBatch().catch((err) => logger.error`Flush error: ${err}`);
     } else {
       batchTimer = setTimeout(() => {
-        flushBatch();
+        flushBatch().catch((err) => logger.error`Flush error: ${err}`);
         batchTimer = null;
       }, BATCH_TIMEOUT_MS);
     }
