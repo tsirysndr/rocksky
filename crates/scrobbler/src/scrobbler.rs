@@ -391,25 +391,41 @@ pub async fn scrobble_v1(
         .await?;
 
     if let Some(track) = result.tracks.items.first() {
-        let artists = track
-            .artists
-            .iter()
-            .map(|a| a.name.to_lowercase().clone())
-            .collect::<Vec<_>>()
-            .join(", ")
-            .to_lowercase();
+        let normalize = |s: &str| -> String {
+            s.to_lowercase()
+                .chars()
+                .filter_map(|c| match c {
+                    'á' | 'à' | 'ä' | 'â' | 'ã' | 'å' => Some('a'),
+                    'é' | 'è' | 'ë' | 'ê' => Some('e'),
+                    'í' | 'ì' | 'ï' | 'î' => Some('i'),
+                    'ó' | 'ò' | 'ö' | 'ô' | 'õ' => Some('o'),
+                    'ú' | 'ù' | 'ü' | 'û' => Some('u'),
+                    'ñ' => Some('n'),
+                    'ç' => Some('c'),
+                    _ => Some(c),
+                })
+                .collect()
+        };
+
+        let spotify_artists: Vec<String> =
+            track.artists.iter().map(|a| normalize(&a.name)).collect();
 
         // check if artists don't contain the scrobble artist (to avoid wrong matches)
         // scrobble artist can contain multiple artists separated by ", "
         let scrobble_artists: Vec<String> = scrobble
             .artist
             .split(", ")
-            .map(|a| a.trim().to_lowercase())
+            .map(|a| normalize(a.trim()))
             .collect();
 
-        let has_artist_match = scrobble_artists
-            .iter()
-            .any(|scrobble_artist| artists.contains(scrobble_artist));
+        // Check for matches with partial matching:
+        // 1. Check if any scrobble artist is contained in any Spotify artist
+        // 2. Check if any Spotify artist is contained in any scrobble artist
+        let has_artist_match = scrobble_artists.iter().any(|scrobble_artist| {
+            spotify_artists.iter().any(|spotify_artist| {
+                scrobble_artist.contains(spotify_artist) || spotify_artist.contains(scrobble_artist)
+            })
+        });
 
         if !has_artist_match {
             tracing::warn!(artist = %artist, track = ?track, "Artist mismatch, skipping");
@@ -660,16 +676,36 @@ pub async fn scrobble_listenbrainz(
         .await?;
 
     if let Some(track) = result.tracks.items.first() {
-        let artists = track
-            .artists
-            .iter()
-            .map(|a| a.name.to_lowercase().clone())
-            .collect::<Vec<_>>()
-            .join(", ")
-            .to_lowercase();
+        let normalize = |s: &str| -> String {
+            s.to_lowercase()
+                .chars()
+                .filter_map(|c| match c {
+                    'á' | 'à' | 'ä' | 'â' | 'ã' | 'å' => Some('a'),
+                    'é' | 'è' | 'ë' | 'ê' => Some('e'),
+                    'í' | 'ì' | 'ï' | 'î' => Some('i'),
+                    'ó' | 'ò' | 'ö' | 'ô' | 'õ' => Some('o'),
+                    'ú' | 'ù' | 'ü' | 'û' => Some('u'),
+                    'ñ' => Some('n'),
+                    'ç' => Some('c'),
+                    _ => Some(c),
+                })
+                .collect()
+        };
 
-        // check if artists don't contain the scrobble artist (to avoid wrong matches)
-        if !artists.contains(&scrobble.artist.to_lowercase()) {
+        let spotify_artists: Vec<String> =
+            track.artists.iter().map(|a| normalize(&a.name)).collect();
+
+        let scrobble_artist_normalized = normalize(&scrobble.artist);
+
+        // Check for matches with partial matching:
+        // 1. Check if scrobble artist is contained in any Spotify artist
+        // 2. Check if any Spotify artist is contained in scrobble artist
+        let has_artist_match = spotify_artists.iter().any(|spotify_artist| {
+            scrobble_artist_normalized.contains(spotify_artist)
+                || spotify_artist.contains(&scrobble_artist_normalized)
+        });
+
+        if !has_artist_match {
             tracing::warn!(artist = %artist, track = ?track, "Artist mismatch, skipping");
         } else {
             tracing::info!("Spotify (track)");
