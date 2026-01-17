@@ -70,183 +70,146 @@ export function broadcastEvent(evt: SelectEvent) {
   }
 }
 
-Deno.serve({ port: parseInt(Deno.env.get("WS_PORT") || "2481") }, (req) => {
-  if (req.method === "POST") {
-    try {
-      assureAdminAuth(ADMIN_PASSWORD, req.headers.get("authorization")!);
-    } catch {
-      logger.warn`Unauthorized access attempt ${req.headers.get("authorization")}`;
-      return new Response(null, { status: 401 });
-    }
-    const evt = parseTapEvent(req.body);
-    switch (evt.type) {
-      case "identity": {
-        addToBatch({
-          id: evt.id,
-          type: evt.type,
-          did: evt.did,
-          handle: evt.handle,
-          status: evt.status,
-          isActive: evt.isActive,
-          action: null,
-          rev: null,
-          collection: null,
-          rkey: null,
-          record: null,
-          cid: null,
-          live: null,
-        });
-        logger.info`New identity: ${evt.did} ${evt.handle} ${evt.status}`;
-        break;
-      }
-      case "record": {
-        addToBatch({
-          id: evt.id,
-          type: evt.type,
-          action: evt.action,
-          did: evt.did,
-          rev: evt.rev,
-          collection: evt.collection,
-          rkey: evt.rkey,
-          record: JSON.stringify(evt.record),
-          cid: evt.cid,
-          live: evt.live,
-          handle: null,
-          status: null,
-          isActive: null,
-        });
-        const uri = `at://${evt.did}/${evt.collection}/${evt.rkey}`;
-        logger.info`New record: ${uri}`;
-        break;
-      }
-    }
-
-    return new Response(null, { status: 200 });
-  }
-
-  if (req.headers.get("upgrade") != "websocket") {
-    return new Response(null, { status: 426 });
-  }
-
-  const { socket, response } = Deno.upgradeWebSocket(req);
-
-  const url = new URL(req.url);
-  const didsParam = url.searchParams.get("dids");
-  const dids = didsParam
-    ? didsParam
-        .split(",")
-        .map((d) => d.trim())
-        .filter((d) => d.length > 0)
-    : undefined;
-
-  socket.addEventListener("open", () => {
-    logger.info`✅ Client connected! Socket state: ${socket.readyState}`;
-    if (dids && dids.length > 0) {
-      logger.info`🔍 Filtering by DIDs: ${dids.join(", ")}`;
-    }
-
-    connectedClients.set(socket, {
-      socket,
-      isPaginating: true,
-      queue: [],
-      dids,
-    });
-
-    safeSend(
-      socket,
-      JSON.stringify({
-        type: "connected",
-        message: "Ready to stream events",
-      }),
-    );
-    logger.info`📤 Sent connection confirmation`;
-
-    (async () => {
+Deno.serve(
+  { port: parseInt(Deno.env.get("WS_PORT") || "2481") },
+  async (req) => {
+    if (req.method === "POST") {
       try {
-        let page = 0;
-        let hasMore = true;
-        let totalEvents = 0;
+        assureAdminAuth(ADMIN_PASSWORD, req.headers.get("authorization")!);
+      } catch {
+        logger.warn`Unauthorized access attempt ${req.headers.get("authorization")}`;
+        return new Response(null, { status: 401 });
+      }
+      const evt = parseTapEvent(await req.json());
+      switch (evt.type) {
+        case "identity": {
+          addToBatch({
+            id: evt.id,
+            type: evt.type,
+            did: evt.did,
+            handle: evt.handle,
+            status: evt.status,
+            isActive: evt.isActive,
+            action: null,
+            rev: null,
+            collection: null,
+            rkey: null,
+            record: null,
+            cid: null,
+            live: null,
+          });
+          logger.info`New identity: ${evt.did} ${evt.handle} ${evt.status}`;
+          break;
+        }
+        case "record": {
+          addToBatch({
+            id: evt.id,
+            type: evt.type,
+            action: evt.action,
+            did: evt.did,
+            rev: evt.rev,
+            collection: evt.collection,
+            rkey: evt.rkey,
+            record: JSON.stringify(evt.record),
+            cid: evt.cid,
+            live: evt.live,
+            handle: null,
+            status: null,
+            isActive: null,
+          });
+          const uri = `at://${evt.did}/${evt.collection}/${evt.rkey}`;
+          logger.info`New record: ${uri}`;
+          break;
+        }
+      }
 
-        logger.info`📖 Starting pagination...`;
+      return new Response(null, { status: 200 });
+    }
 
+    if (req.headers.get("upgrade") != "websocket") {
+      return new Response(null, { status: 426 });
+    }
+
+    const { socket, response } = Deno.upgradeWebSocket(req);
+
+    const url = new URL(req.url);
+    const didsParam = url.searchParams.get("dids");
+    const dids = didsParam
+      ? didsParam
+          .split(",")
+          .map((d) => d.trim())
+          .filter((d) => d.length > 0)
+      : undefined;
+
+    socket.addEventListener("open", () => {
+      logger.info`✅ Client connected! Socket state: ${socket.readyState}`;
+      if (dids && dids.length > 0) {
+        logger.info`🔍 Filtering by DIDs: ${dids.join(", ")}`;
+      }
+
+      connectedClients.set(socket, {
+        socket,
+        isPaginating: true,
+        queue: [],
+        dids,
+      });
+
+      safeSend(
+        socket,
+        JSON.stringify({
+          type: "connected",
+          message: "Ready to stream events",
+        }),
+      );
+      logger.info`📤 Sent connection confirmation`;
+
+      (async () => {
         try {
-          const testQuery = await ctx.db
-            .select()
-            .from(schema.events)
-            .limit(1)
-            .execute();
-          logger.info`✅ Database test query successful, found ${testQuery.length} sample event(s)`;
-        } catch (dbError) {
-          logger.error`❌ Database test query failed: ${dbError}`;
-          throw dbError;
-        }
+          let page = 0;
+          let hasMore = true;
+          let totalEvents = 0;
 
-        while (hasMore && socket.readyState === WebSocket.OPEN) {
-          let query = ctx.db.select().from(schema.events).$dynamic();
+          logger.info`📖 Starting pagination...`;
 
-          // Apply DID filter if specified
-          if (dids && dids.length > 0) {
-            query = query.where(inArray(schema.events.did, dids));
+          try {
+            const testQuery = await ctx.db
+              .select()
+              .from(schema.events)
+              .limit(1)
+              .execute();
+            logger.info`✅ Database test query successful, found ${testQuery.length} sample event(s)`;
+          } catch (dbError) {
+            logger.error`❌ Database test query failed: ${dbError}`;
+            throw dbError;
           }
 
-          const events = await query
-            .orderBy(asc(schema.events.createdAt))
-            .offset(page * PAGE_SIZE)
-            .limit(PAGE_SIZE)
-            .execute();
+          while (hasMore && socket.readyState === WebSocket.OPEN) {
+            let query = ctx.db.select().from(schema.events).$dynamic();
 
-          if (page % 10 === 0) {
-            logger.info`📄 Fetching page ${page}... (${totalEvents} events sent so far)`;
-          }
-
-          for (let i = 0; i < events.length; i++) {
-            const evt = events[i];
-
-            if (socket.readyState !== WebSocket.OPEN) {
-              logger.info`⚠️  Socket closed during pagination at event ${totalEvents}`;
-              return;
+            // Apply DID filter if specified
+            if (dids && dids.length > 0) {
+              query = query.where(inArray(schema.events.did, dids));
             }
 
-            const success = safeSend(
-              socket,
-              JSON.stringify({
-                ...omit(evt, "createdAt", "record"),
-                ...(evt.record && {
-                  record: JSON.parse(evt.record),
-                }),
-              }),
-              totalEvents,
-            );
+            const events = await query
+              .orderBy(asc(schema.events.createdAt))
+              .offset(page * PAGE_SIZE)
+              .limit(PAGE_SIZE)
+              .execute();
 
-            if (success) {
-              totalEvents++;
-            } else {
-              logger.error`❌ Failed to send event at index ${totalEvents}, stopping pagination`;
-              return;
+            if (page % 10 === 0) {
+              logger.info`📄 Fetching page ${page}... (${totalEvents} events sent so far)`;
             }
-          }
 
-          hasMore = events.length === PAGE_SIZE;
-          page++;
+            for (let i = 0; i < events.length; i++) {
+              const evt = events[i];
 
-          if (hasMore && page % YIELD_EVERY_N_PAGES === 0) {
-            await new Promise((resolve) => setTimeout(resolve, YIELD_DELAY_MS));
-          }
-        }
+              if (socket.readyState !== WebSocket.OPEN) {
+                logger.info`⚠️  Socket closed during pagination at event ${totalEvents}`;
+                return;
+              }
 
-        logger.info`📤 Sent all historical events: ${totalEvents} total (${page} pages)`;
-
-        const clientState = connectedClients.get(socket);
-        if (clientState && socket.readyState === WebSocket.OPEN) {
-          const queuedCount = clientState.queue.length;
-
-          if (queuedCount > 0) {
-            logger.info`📦 Sending ${queuedCount} queued events...`;
-
-            for (const evt of clientState.queue) {
-              if (socket.readyState !== WebSocket.OPEN) break;
-
-              safeSend(
+              const success = safeSend(
                 socket,
                 JSON.stringify({
                   ...omit(evt, "createdAt", "record"),
@@ -254,84 +217,126 @@ Deno.serve({ port: parseInt(Deno.env.get("WS_PORT") || "2481") }, (req) => {
                     record: JSON.parse(evt.record),
                   }),
                 }),
+                totalEvents,
               );
+
+              if (success) {
+                totalEvents++;
+              } else {
+                logger.error`❌ Failed to send event at index ${totalEvents}, stopping pagination`;
+                return;
+              }
             }
 
-            clientState.queue = [];
+            hasMore = events.length === PAGE_SIZE;
+            page++;
+
+            if (hasMore && page % YIELD_EVERY_N_PAGES === 0) {
+              await new Promise((resolve) =>
+                setTimeout(resolve, YIELD_DELAY_MS),
+              );
+            }
           }
 
-          clientState.isPaginating = false;
-          logger.info`🔄 Now streaming real-time events...`;
+          logger.info`📤 Sent all historical events: ${totalEvents} total (${page} pages)`;
+
+          const clientState = connectedClients.get(socket);
+          if (clientState && socket.readyState === WebSocket.OPEN) {
+            const queuedCount = clientState.queue.length;
+
+            if (queuedCount > 0) {
+              logger.info`📦 Sending ${queuedCount} queued events...`;
+
+              for (const evt of clientState.queue) {
+                if (socket.readyState !== WebSocket.OPEN) break;
+
+                safeSend(
+                  socket,
+                  JSON.stringify({
+                    ...omit(evt, "createdAt", "record"),
+                    ...(evt.record && {
+                      record: JSON.parse(evt.record),
+                    }),
+                  }),
+                );
+              }
+
+              clientState.queue = [];
+            }
+
+            clientState.isPaginating = false;
+            logger.info`🔄 Now streaming real-time events...`;
+          }
+        } catch (error) {
+          logger.error`Pagination error: ${error}`;
+          logger.error`Stack: ${error instanceof Error ? error.stack : ""}`;
+
+          safeSend(
+            socket,
+            JSON.stringify({
+              type: "error",
+              message: "Failed to load historical events",
+            }),
+          );
+
+          const clientState = connectedClients.get(socket);
+          if (clientState) {
+            clientState.isPaginating = false;
+          }
+        }
+      })().catch((err) => {
+        logger.error`Unhandled error in pagination loop: ${err}`;
+        logger.error`Stack: ${err instanceof Error ? err.stack : ""}`;
+      });
+    });
+
+    socket.addEventListener("message", (event) => {
+      try {
+        if (event.data === "ping") {
+          safeSend(socket, "pong");
         }
       } catch (error) {
-        logger.error`Pagination error: ${error}`;
-        logger.error`Stack: ${error instanceof Error ? error.stack : ""}`;
-
-        safeSend(
-          socket,
-          JSON.stringify({
-            type: "error",
-            message: "Failed to load historical events",
-          }),
-        );
-
-        const clientState = connectedClients.get(socket);
-        if (clientState) {
-          clientState.isPaginating = false;
-        }
+        logger.error`Error handling message: ${error}`;
       }
-    })().catch((err) => {
-      logger.error`Unhandled error in pagination loop: ${err}`;
-      logger.error`Stack: ${err instanceof Error ? err.stack : ""}`;
     });
-  });
 
-  socket.addEventListener("message", (event) => {
-    try {
-      if (event.data === "ping") {
-        safeSend(socket, "pong");
+    socket.addEventListener("close", (event) => {
+      const clientState = connectedClients.get(socket);
+      connectedClients.delete(socket);
+
+      logger.info`❌ Client disconnected. Code: ${event.code}, Reason: ${event.reason || "none"}, Clean: ${event.wasClean}`;
+      logger.info`   Active clients: ${connectedClients.size}`;
+
+      if (clientState) {
+        logger.info`   Was paginating: ${clientState.isPaginating}`;
+        logger.info`   Queued events: ${clientState.queue.length}`;
       }
-    } catch (error) {
-      logger.error`Error handling message: ${error}`;
-    }
-  });
 
-  socket.addEventListener("close", (event) => {
-    const clientState = connectedClients.get(socket);
-    connectedClients.delete(socket);
+      if (event.code === 1006) {
+        logger.error`⚠️  Abnormal closure (1006) detected - connection dropped unexpectedly`;
+        logger.error`   Possible causes:`;
+        logger.error`   - Client overwhelmed with messages (try reducing PAGE_SIZE)`;
+        logger.error`   - Network timeout or interruption`;
+        logger.error`   - Server sent messages too fast`;
+        logger.error`   - Uncaught exception in message handling`;
+      }
+    });
 
-    logger.info`❌ Client disconnected. Code: ${event.code}, Reason: ${event.reason || "none"}, Clean: ${event.wasClean}`;
-    logger.info`   Active clients: ${connectedClients.size}`;
+    socket.addEventListener("error", (error) => {
+      logger.error`❌ WebSocket error occurred`;
+      logger.error`   Error: ${error}`;
+      logger.error`   ReadyState: ${socket.readyState}`;
+      const clientState = connectedClients.get(socket);
+      if (clientState) {
+        logger.error`   Was paginating: ${clientState.isPaginating}`;
+        logger.error`   Queued events: ${clientState.queue.length}`;
+      }
+      connectedClients.delete(socket);
+    });
 
-    if (clientState) {
-      logger.info`   Was paginating: ${clientState.isPaginating}`;
-      logger.info`   Queued events: ${clientState.queue.length}`;
-    }
-
-    if (event.code === 1006) {
-      logger.error`⚠️  Abnormal closure (1006) detected - connection dropped unexpectedly`;
-      logger.error`   Possible causes:`;
-      logger.error`   - Client overwhelmed with messages (try reducing PAGE_SIZE)`;
-      logger.error`   - Network timeout or interruption`;
-      logger.error`   - Server sent messages too fast`;
-      logger.error`   - Uncaught exception in message handling`;
-    }
-  });
-
-  socket.addEventListener("error", (error) => {
-    logger.error`❌ WebSocket error occurred`;
-    logger.error`   Error: ${error}`;
-    logger.error`   ReadyState: ${socket.readyState}`;
-    const clientState = connectedClients.get(socket);
-    if (clientState) {
-      logger.error`   Was paginating: ${clientState.isPaginating}`;
-      logger.error`   Queued events: ${clientState.queue.length}`;
-    }
-    connectedClients.delete(socket);
-  });
-
-  return response;
-});
+    return response;
+  },
+);
 
 globalThis.addEventListener("beforeunload", () => {
   flushBatch();
