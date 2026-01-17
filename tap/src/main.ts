@@ -75,6 +75,7 @@ Deno.serve({ port: parseInt(Deno.env.get("WS_PORT") || "2481") }, (req) => {
     try {
       assureAdminAuth(ADMIN_PASSWORD, req.headers.get("authorization")!);
     } catch {
+      logger.warn`Unauthorized access attempt ${req.headers.get("authorization")}`;
       return new Response(null, { status: 401 });
     }
     const evt = parseTapEvent(req.body);
@@ -120,7 +121,7 @@ Deno.serve({ port: parseInt(Deno.env.get("WS_PORT") || "2481") }, (req) => {
       }
     }
 
-    return new Response("");
+    return new Response(null, { status: 200 });
   }
 
   if (req.headers.get("upgrade") != "websocket") {
