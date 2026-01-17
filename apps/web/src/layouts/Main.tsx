@@ -363,6 +363,13 @@ function Main(props: MainProps) {
                 API Docs
               </Link>
               <Link
+                href="https://docs.rocksky.app/overview-957781m0"
+                target="_blank"
+                className="mr-[10px] text-[var(--color-primary)]"
+              >
+                CLI
+              </Link>
+              <Link
                 href="https://tangled.org/@rocksky.app/rocksky"
                 target="_blank"
                 className="mr-[10px] text-[var(--color-primary)]"
