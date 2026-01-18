@@ -172,7 +172,7 @@ function Handle(props: HandleProps) {
     <>
       <StatefulPopover
         content={() => (
-          <Block className="!bg-[var(--color-background)] !text-[var(--color-text)] p-[15px] w-[380px] rounded-[6px] border-[1px] border-[var(--color-border)]">
+          <Block className="!bg-[var(--color-background)] !text-[var(--color-text)] p-[15px] w-[480px] rounded-[6px] border-[1px] border-[var(--color-border)]">
             <div className="flex flex-row items-start justify-between">
               <div className="flex flex-row items-center">
                 <Link to={link} className="no-underline">
