@@ -904,6 +904,7 @@ const getRockskyUserSongs = async (
 
   try {
     const collection = "app.rocksky.song";
+    logger.info`Extracting ${collection} records from CAR file ...`;
 
     for await (const { cid, bytes } of carReader.blocks()) {
       try {
