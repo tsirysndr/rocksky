@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import {
-  getFeedByUri,
+  getScrobbleByUri,
   getFeedGenerators,
   getFeed,
   getScrobbles,
@@ -15,10 +15,10 @@ export const useFeedQuery = (feed: string, limit = 114, cursor?: string) =>
     },
   });
 
-export const useFeedByUriQuery = (uri: string) =>
+export const useScrobbleByUriQuery = (uri: string) =>
   useQuery({
-    queryKey: ["feed", uri],
-    queryFn: () => getFeedByUri(uri),
+    queryKey: ["scrobble", uri],
+    queryFn: () => getScrobbleByUri(uri),
   });
 
 export const useFeedGeneratorsQuery = () =>

@@ -19,7 +19,7 @@ import { songAtom } from "../../atoms/song";
 import Disc from "../../components/Icons/Disc";
 import Shout from "../../components/Shout/Shout";
 import SongCover from "../../components/SongCover";
-import { useFeedByUriQuery } from "../../hooks/useFeed";
+import { useScrobbleByUriQuery } from "../../hooks/useFeed";
 import {
   useArtistAlbumsQuery,
   useArtistTracksQuery,
@@ -73,7 +73,7 @@ const Song = () => {
     uri = `at://${did}/app.rocksky.scrobble/${rkey}`;
   }
 
-  const scrobbleResult = useFeedByUriQuery(uri);
+  const scrobbleResult = useScrobbleByUriQuery(uri);
   const songResult = useSongByUriQuery(uri);
 
   const artistTracksResult = useArtistTracksQuery(

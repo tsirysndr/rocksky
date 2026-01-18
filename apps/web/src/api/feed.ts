@@ -1,6 +1,6 @@
 import { client } from ".";
 
-export const getFeedByUri = async (uri: string) => {
+export const getScrobbleByUri = async (uri: string) => {
   if (uri.includes("app.rocksky.song")) {
     return null;
   }
@@ -19,7 +19,7 @@ export const getFeedByUri = async (uri: string) => {
     albumArtist: response.data?.albumArtist,
     album: response.data?.album,
     cover: response.data?.cover,
-    tags: [],
+    tags: response.data?.tags,
     artistUri: response.data?.artistUri,
     albumUri: response.data?.albumUri,
     listeners: response.data?.listeners || 1,
