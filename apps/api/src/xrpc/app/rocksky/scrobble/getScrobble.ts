@@ -110,6 +110,8 @@ const presentation = ([
     tags: artists.genres,
     listeners,
     scrobbles: scrobblesCount,
+    createdAt: scrobbles.createdAt.toISOString(),
+    updatedAt: scrobbles.updatedAt.toISOString(),
     id: scrobbles.id,
   }));
 };
