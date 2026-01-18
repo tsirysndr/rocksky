@@ -124,7 +124,7 @@ function TopArtists(props: TopArtistsProps) {
       return;
     }
 
-    if (topArtistsRange === LAST_7_DAYS && artistsResult.data.length === 0) {
+    if (topArtistsRange === LAST_7_DAYS && artistsResult?.data?.length === 0) {
       setRange([]);
       setTopArtistsRange(ALL_TIME);
     }
