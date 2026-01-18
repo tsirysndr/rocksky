@@ -21,7 +21,8 @@
     "last.fm",
     "atproto",
     "bluesky",
-    "cli"
+    "cli",
+    "listenbrainz"
   ],
   "author": "Tsiry Sandratraina <tsiry.sndr@rocksky.app>",
   "license": "Apache-2.0",
