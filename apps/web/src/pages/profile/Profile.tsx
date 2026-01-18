@@ -61,7 +61,8 @@ function Profile(props: ProfileProps) {
   const profile = useProfileByDidQuery(did!);
   const setUser = useSetAtom(userAtom);
   const { tab } = useSearch({ strict: false });
-  const { data: artists } = useArtistsQuery(did!, 0, 100, ...getLastDays(7));
+  const [range, setRange] = useState<[Date, Date] | []>(getLastDays(7));
+  const { data: artists } = useArtistsQuery(did!, 0, 100, ...range);
   const { mutate: followAccount } = useFollowAccountMutation();
   const { mutate: unfollowAccount } = useUnfollowAccountMutation();
   const currentDid = localStorage.getItem("did");
@@ -74,6 +75,11 @@ function Profile(props: ProfileProps) {
     if (!artists) {
       return [];
     }
+
+    if (artists.length === 0) {
+      setRange([]);
+    }
+
     return Array.from(
       new Set(
         artists
