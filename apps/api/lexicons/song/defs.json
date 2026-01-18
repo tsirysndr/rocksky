@@ -71,6 +71,12 @@
           "type": "string",
           "description": "The SHA256 hash of the song."
         },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "createdAt": {
           "type": "string",
           "description": "The timestamp when the song was created.",

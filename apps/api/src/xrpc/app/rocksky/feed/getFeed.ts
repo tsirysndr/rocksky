@@ -13,6 +13,7 @@ import type { SelectUser } from "schema/users";
 import axios from "axios";
 import type { HandlerAuth } from "@atproto/xrpc-server";
 import { env } from "lib/env";
+import { SelectArtist } from "schema/artists";
 
 export default function (server: Server, ctx: Context) {
   const getFeed = (params: QueryParams, auth: HandlerAuth) =>
@@ -101,6 +102,10 @@ const hydrate = ({
         .from(tables.scrobbles)
         .leftJoin(tables.tracks, eq(tables.scrobbles.trackId, tables.tracks.id))
         .leftJoin(tables.users, eq(tables.scrobbles.userId, tables.users.id))
+        .leftJoin(
+          tables.artists,
+          eq(tables.tracks.artistUri, tables.artists.uri),
+        )
         .where(inArray(tables.scrobbles.uri, uris))
         .orderBy(desc(tables.scrobbles.timestamp))
         .execute();
@@ -169,7 +174,7 @@ const presentation = (
 ): Effect.Effect<FeedView, never> => {
   return Effect.sync(() => ({
     feed: data.scrobbles.map(
-      ({ scrobbles, tracks, users, likesCount, liked }) => ({
+      ({ scrobbles, tracks, users, likesCount, liked, artists }) => ({
         scrobble: {
           ...R.omit(["albumArt", "id", "lyrics"])(tracks),
           cover: tracks.albumArt,
@@ -178,7 +183,7 @@ const presentation = (
           userDisplayName: users.displayName,
           userAvatar: users.avatar,
           uri: scrobbles.uri,
-          tags: [],
+          tags: artists.genres,
           likesCount,
           liked,
           trackUri: tracks.uri,
@@ -196,6 +201,7 @@ type Scrobbles = {
   scrobbles: SelectScrobble;
   tracks: SelectTrack;
   users: SelectUser;
+  artists: SelectArtist;
   likesCount: number;
   liked: boolean;
 }[];

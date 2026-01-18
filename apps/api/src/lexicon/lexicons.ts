@@ -4093,6 +4093,42 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyPlaylistItem: {
+    lexicon: 1,
+    id: "app.rocksky.playlistItem",
+    defs: {
+      main: {
+        type: "record",
+        description:
+          "A playlist item represents a single entry in a playlist, containing metadata and references to media content.",
+        key: "tid",
+        record: {
+          type: "object",
+          required: ["createdAt", "track", "order", "subject"],
+          properties: {
+            subject: {
+              type: "ref",
+              ref: "lex:com.atproto.repo.strongRef",
+            },
+            createdAt: {
+              type: "string",
+              description: "The date the playlist was created.",
+              format: "datetime",
+            },
+            track: {
+              type: "ref",
+              ref: "lex:app.rocksky.song.defs#songViewBasic",
+            },
+            order: {
+              type: "integer",
+              description: "The order of the item in the playlist.",
+              minimum: 0,
+            },
+          },
+        },
+      },
+    },
+  },
   AppRockskyPlaylistRemovePlaylist: {
     lexicon: 1,
     id: "app.rocksky.playlist.removePlaylist",
@@ -5397,6 +5433,12 @@ export const schemaDict = {
             type: "string",
             description: "The SHA256 hash of the song.",
           },
+          tags: {
+            type: "array",
+            items: {
+              type: "string",
+            },
+          },
           createdAt: {
             type: "string",
             description: "The timestamp when the song was created.",
@@ -6048,6 +6090,7 @@ export const ids = {
   AppRockskyPlaylistInsertDirectory: "app.rocksky.playlist.insertDirectory",
   AppRockskyPlaylistInsertFiles: "app.rocksky.playlist.insertFiles",
   AppRockskyPlaylist: "app.rocksky.playlist",
+  AppRockskyPlaylistItem: "app.rocksky.playlistItem",
   AppRockskyPlaylistRemovePlaylist: "app.rocksky.playlist.removePlaylist",
   AppRockskyPlaylistRemoveTrack: "app.rocksky.playlist.removeTrack",
   AppRockskyPlaylistStartPlaylist: "app.rocksky.playlist.startPlaylist",

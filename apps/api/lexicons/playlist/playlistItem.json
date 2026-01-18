@@ -9,9 +9,10 @@
       "record": {
         "type": "object",
         "required": [
-          "name",
           "createdAt",
-          "track"
+          "track",
+          "order",
+          "subject"
         ],
         "properties": {
           "subject": {

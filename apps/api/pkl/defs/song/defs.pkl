@@ -72,6 +72,12 @@ defs = new Mapping<String, ObjectType> {
         type = "string"
         description = "The SHA256 hash of the song."
       }
+      ["tags"] = new Array {
+        type = "array"
+        items = new StringType {
+          type = "string"
+        }
+      }
       ["createdAt"] = new StringType {
         type = "string"
         format = "datetime"

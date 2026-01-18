@@ -10,7 +10,7 @@ defs = new Mapping<String, Record> {
     key = "tid"
     `record` {
       type = "object"
-      required = List("name", "createdAt", "track")
+      required = List("createdAt", "track", "order", "subject")
       properties {
         ["subject"] = new Ref {
           type = "ref"
