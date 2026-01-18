@@ -39,11 +39,13 @@ export async function sync() {
   logger.info`  DID: ${did}`;
   logger.info`  Handle: ${handle}`;
 
+  const carReader = await downloadCarFile(agent);
+
   const [artists, albums, songs, scrobbles] = await Promise.all([
-    getRockskyUserArtists(agent),
-    getRockskyUserAlbums(agent),
-    getRockskyUserSongs(agent),
-    getRockskyUserScrobbles(agent),
+    getRockskyUserArtists(agent, carReader),
+    getRockskyUserAlbums(agent, carReader),
+    getRockskyUserSongs(agent, carReader),
+    getRockskyUserScrobbles(agent, carReader),
   ]);
 
   logger.info`  Artists: ${artists.length}`;
@@ -880,7 +882,20 @@ const onNewScrobble = async (
   );
 };
 
-const getRockskyUserSongs = async (agent: Agent): Promise<Songs> => {
+const downloadCarFile = async (agent: Agent) => {
+  logger.info(`Fetching repository CAR file ...`);
+
+  const repoRes = await agent.com.atproto.sync.getRepo({
+    did: agent.assertDid,
+  });
+
+  return CarReader.fromBytes(new Uint8Array(repoRes.data));
+};
+
+const getRockskyUserSongs = async (
+  agent: Agent,
+  carReader: CarReader,
+): Promise<Songs> => {
   const results: {
     value: Song.Record;
     uri: string;
@@ -888,13 +903,6 @@ const getRockskyUserSongs = async (agent: Agent): Promise<Songs> => {
   }[] = [];
 
   try {
-    logger.info(`Fetching repository CAR file for songs...`);
-
-    const repoRes = await agent.com.atproto.sync.getRepo({
-      did: agent.assertDid,
-    });
-
-    const carReader = await CarReader.fromBytes(new Uint8Array(repoRes.data));
     const collection = "app.rocksky.song";
 
     for await (const { cid, bytes } of carReader.blocks()) {
@@ -932,7 +940,10 @@ const getRockskyUserSongs = async (agent: Agent): Promise<Songs> => {
   return results;
 };
 
-const getRockskyUserAlbums = async (agent: Agent): Promise<Albums> => {
+const getRockskyUserAlbums = async (
+  agent: Agent,
+  carReader: CarReader,
+): Promise<Albums> => {
   const results: {
     value: Album.Record;
     uri: string;
@@ -940,16 +951,8 @@ const getRockskyUserAlbums = async (agent: Agent): Promise<Albums> => {
   }[] = [];
 
   try {
-    logger.info(`Fetching repository CAR file for albums...`);
-
-    // Use getRepo to fetch the entire repository as a CAR file
-    const repoRes = await agent.com.atproto.sync.getRepo({
-      did: agent.assertDid,
-    });
-
-    // Parse the CAR file
-    const carReader = await CarReader.fromBytes(new Uint8Array(repoRes.data));
     const collection = "app.rocksky.album";
+    logger.info`Extracting ${collection} records from CAR file ...`;
 
     for await (const { cid, bytes } of carReader.blocks()) {
       try {
@@ -984,7 +987,10 @@ const getRockskyUserAlbums = async (agent: Agent): Promise<Albums> => {
   return results;
 };
 
-const getRockskyUserArtists = async (agent: Agent): Promise<Artists> => {
+const getRockskyUserArtists = async (
+  agent: Agent,
+  carReader: CarReader,
+): Promise<Artists> => {
   const results: {
     value: Artist.Record;
     uri: string;
@@ -992,14 +998,8 @@ const getRockskyUserArtists = async (agent: Agent): Promise<Artists> => {
   }[] = [];
 
   try {
-    logger.info(`Fetching repository CAR file for artists...`);
-
-    const repoRes = await agent.com.atproto.sync.getRepo({
-      did: agent.assertDid,
-    });
-
-    const carReader = await CarReader.fromBytes(new Uint8Array(repoRes.data));
     const collection = "app.rocksky.artist";
+    logger.info`Extracting ${collection} records from CAR file ...`;
 
     for await (const { cid, bytes } of carReader.blocks()) {
       try {
@@ -1034,7 +1034,10 @@ const getRockskyUserArtists = async (agent: Agent): Promise<Artists> => {
   return results;
 };
 
-const getRockskyUserScrobbles = async (agent: Agent): Promise<Scrobbles> => {
+const getRockskyUserScrobbles = async (
+  agent: Agent,
+  carReader: CarReader,
+): Promise<Scrobbles> => {
   const results: {
     value: Scrobble.Record;
     uri: string;
@@ -1042,14 +1045,8 @@ const getRockskyUserScrobbles = async (agent: Agent): Promise<Scrobbles> => {
   }[] = [];
 
   try {
-    logger.info(`Fetching repository CAR file for scrobbles...`);
-
-    const repoRes = await agent.com.atproto.sync.getRepo({
-      did: agent.assertDid,
-    });
-
-    const carReader = await CarReader.fromBytes(new Uint8Array(repoRes.data));
     const collection = "app.rocksky.scrobble";
+    logger.info`Extracting ${collection} records from CAR file ...`;
 
     for await (const { cid, bytes } of carReader.blocks()) {
       try {
