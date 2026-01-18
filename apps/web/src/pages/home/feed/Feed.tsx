@@ -204,6 +204,20 @@ function Feed() {
                           withLikeButton
                         />
                       </Link>
+
+                      {(song?.tags || []).length > 0 && (
+                        <div className="mb-[10px] flex flex-wrap gap-x-[10px] gap-y-[4px]">
+                          {(song?.tags || []).map((genre: string) => (
+                            <span
+                              className="text-[var(--color-genre)] text-[13px]"
+                              style={{ fontFamily: "RockfordSansRegular" }}
+                            >
+                              # {genre}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
                       <div className="flex">
                         <div className="mr-[8px]">
                           <Avatar
