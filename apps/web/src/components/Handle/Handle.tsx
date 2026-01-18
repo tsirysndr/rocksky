@@ -4,7 +4,7 @@ import { Block } from "baseui/block";
 import { StatefulPopover, TRIGGER_TYPE } from "baseui/popover";
 import { LabelMedium, LabelSmall } from "baseui/typography";
 import { useAtom } from "jotai";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { profilesAtom } from "../../atoms/profiles";
 import { statsAtom } from "../../atoms/stats";
 import {
@@ -22,6 +22,8 @@ import {
   useFollowersQuery,
   useUnfollowAccountMutation,
 } from "../../hooks/useGraph";
+import { getLastDays } from "../../lib/date";
+import { useArtistsQuery } from "../../hooks/useLibrary";
 
 export type HandleProps = {
   link: string;
@@ -38,12 +40,33 @@ function Handle(props: HandleProps) {
   const [stats, setStats] = useAtom(statsAtom);
   const { mutate: followAccount } = useFollowAccountMutation();
   const { mutate: unfollowAccount } = useUnfollowAccountMutation();
+  const [range, setRange] = useState<[Date, Date] | []>(getLastDays(7));
+  const { data: artists } = useArtistsQuery(did, 0, 100, ...range);
   const currentDid = localStorage.getItem("did");
   const { data, isLoading } = useFollowersQuery(
     profile.data?.did,
     1,
     currentDid ? [currentDid] : undefined,
   );
+
+  const tags = useMemo(() => {
+    if (!artists) {
+      return [];
+    }
+
+    if (artists.length === 0) {
+      setRange([]);
+    }
+
+    return Array.from(
+      new Set(
+        artists
+          .filter((x) => x.tags)
+          .map((x) => x.tags)
+          .flat(),
+      ),
+    ).slice(0, 10);
+  }, [artists]);
 
   const onFollow = () => {
     if (!localStorage.getItem("token")) {
@@ -179,6 +202,7 @@ function Handle(props: HandleProps) {
                   </a>
                 </div>
               </div>
+
               {(profile.data?.did !== localStorage.getItem("did") ||
                 !localStorage.getItem("did")) && (
                 <div className="ml-auto mt-[10px]">
@@ -234,6 +258,19 @@ function Handle(props: HandleProps) {
               )}
             </div>
 
+            {tags.length > 0 && (
+              <div className="mt-[5px] flex flex-wrap gap-y-[2px]">
+                {tags.map((genre) => (
+                  <span
+                    className="mr-[15px] text-[var(--color-genre)] text-[13px] whitespace-nowrap"
+                    style={{ fontFamily: "RockfordSansRegular" }}
+                  >
+                    # {genre}
+                  </span>
+                ))}
+              </div>
+            )}
+
             {stats[did] && <Stats stats={stats[did]} mb={1} />}
 
             <NowPlaying did={did} />
@@ -242,6 +279,13 @@ function Handle(props: HandleProps) {
         triggerType={TRIGGER_TYPE.hover}
         autoFocus={false}
         focusLock={false}
+        overrides={{
+          Body: {
+            style: {
+              zIndex: 60,
+            },
+          },
+        }}
       >
         <Link to={link} className="no-underline">
           <LabelMedium className="!text-[var(--color-primary)] !overflow-hidden !text-ellipsis !max-w-[220px] !text-[14px]">
