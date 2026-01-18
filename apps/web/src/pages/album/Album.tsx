@@ -65,6 +65,7 @@ const Album = () => {
     scrobbles: number;
     artistUri?: string;
     label?: string;
+    tags?: string[];
     tracks: {
       id: string;
       trackNumber: number;
@@ -95,6 +96,7 @@ const Album = () => {
         uri: data.uri,
         listeners: data.uniqueListeners,
         scrobbles: data.playCount,
+        tags: data.tags,
         tracks: data.tracks,
         releaseDate: data.releaseDate
           ? dayjs(data.releaseDate).format("MMMM D, YYYY")
@@ -193,6 +195,16 @@ const Album = () => {
                     View on PDSls
                   </a>
                 </div>
+              </div>
+              <div className="mt-[10px]">
+                {(album?.tags || []).map((genre) => (
+                  <span
+                    className="mr-[15px] text-[var(--color-genre)] text-[13px]"
+                    style={{ fontFamily: "RockfordSansRegular" }}
+                  >
+                    # {genre}
+                  </span>
+                ))}
               </div>
             </div>
           </Group>

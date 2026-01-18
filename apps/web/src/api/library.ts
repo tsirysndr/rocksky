@@ -15,7 +15,7 @@ export const getSongByUri = async (uri: string) => {
     albumArtist: response.data?.albumArtist,
     album: response.data?.album,
     cover: response.data?.albumArt,
-    tags: [],
+    tags: response.data?.tags,
     artistUri: response.data?.artistUri,
     albumUri: response.data?.albumUri,
     listeners: response.data?.uniqueListeners || 1,

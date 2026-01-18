@@ -5,7 +5,6 @@ import {
   useParams,
   useRouter,
 } from "@tanstack/react-router";
-import { KIND, Tag } from "baseui/tag";
 import {
   HeadingMedium,
   HeadingXSmall,
@@ -318,14 +317,18 @@ const Song = () => {
               </div>
             </Group>
 
-            {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              song?.tags.map((tag: any) => (
-                <Tag closeable={false} kind={KIND.purple}>
-                  {tag}
-                </Tag>
-              ))
-            }
+            {(song?.tags || []).length > 0 && (
+              <div>
+                {(song?.tags || []).map((genre) => (
+                  <span
+                    className="mr-[15px] text-[var(--color-genre)] text-[13px]"
+                    style={{ fontFamily: "RockfordSansRegular" }}
+                  >
+                    # {genre}
+                  </span>
+                ))}
+              </div>
+            )}
 
             {song?.lyrics && (
               <>
