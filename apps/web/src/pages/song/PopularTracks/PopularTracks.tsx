@@ -160,7 +160,7 @@ function PopularTracks(props: PopularTracksProps) {
           )}
         </TableBuilderColumn>
         <TableBuilderColumn header="Scrobbles">
-          {(row: Row) => <div>{row.scrobbles}</div>}
+          {(row: Row) => <div>{row.scrobbles > 0 ? row.scrobbles : ""}</div>}
         </TableBuilderColumn>
       </TableBuilder>
     </div>
