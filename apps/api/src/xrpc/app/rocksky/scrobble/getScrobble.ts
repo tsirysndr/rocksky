@@ -11,6 +11,7 @@ import type { SelectAlbum } from "schema/albums";
 import type { SelectScrobble } from "schema/scrobbles";
 import type { SelectTrack } from "schema/tracks";
 import type { SelectUser } from "schema/users";
+import type { SelectArtist } from "schema/artists";
 
 export default function (server: Server, ctx: Context) {
   const getScrobble = (params) =>
@@ -51,6 +52,10 @@ const retrieve = ({
         .leftJoin(tables.tracks, eq(tables.scrobbles.trackId, tables.tracks.id))
         .leftJoin(tables.users, eq(tables.scrobbles.userId, tables.users.id))
         .leftJoin(tables.albums, eq(tables.scrobbles.albumId, tables.albums.id))
+        .leftJoin(
+          tables.artists,
+          eq(tables.scrobbles.artistId, tables.artists.id),
+        )
         .where(eq(tables.scrobbles.uri, params.uri))
         .execute()
         .then((rows) => rows[0]);
@@ -88,7 +93,7 @@ const retrieve = ({
 };
 
 const presentation = ([
-  { scrobbles, tracks, users, albums },
+  { scrobbles, tracks, users, albums, artists },
   listeners,
   scrobblesCount,
 ]: [Scrobble | undefined, number, number]): Effect.Effect<
@@ -102,7 +107,7 @@ const presentation = ([
     date: scrobbles.timestamp.toISOString(),
     user: users.handle,
     uri: scrobbles.uri,
-    tags: [],
+    tags: artists.genres,
     listeners,
     scrobbles: scrobblesCount,
     id: scrobbles.id,
@@ -114,4 +119,5 @@ type Scrobble = {
   tracks: SelectTrack;
   users: SelectUser;
   albums: SelectAlbum;
+  artists: SelectArtist;
 };

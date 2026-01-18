@@ -68,6 +68,7 @@ export interface AlbumViewDetailed {
   playCount?: number;
   /** The number of unique listeners who have played the album. */
   uniqueListeners?: number;
+  tags?: string[];
   tracks?: AppRockskySongDefsSongViewBasic.Main[];
   [k: string]: unknown;
 }

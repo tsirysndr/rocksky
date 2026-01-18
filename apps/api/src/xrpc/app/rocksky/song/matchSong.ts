@@ -246,7 +246,7 @@ const retrySpotifyCall = async <T>(
         errorMessage.includes("ETIMEDOUT");
 
       if (isTimeout && attempt < MAX_SPOTIFY_RETRIES - 1) {
-        const delay = INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt);
+        const delay = INITIAL_RETRY_DELAY_MS * 2 ** attempt;
         consola.warn(
           `Spotify API timeout, retrying... attempt=${attempt + 1}, max_attempts=${MAX_SPOTIFY_RETRIES}, delay_ms=${delay}, operation=${operation}`,
         );

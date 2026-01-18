@@ -1436,6 +1436,12 @@ export const schemaDict = {
               "The number of unique listeners who have played the album.",
             minimum: 0,
           },
+          tags: {
+            type: "array",
+            items: {
+              type: "string",
+            },
+          },
           tracks: {
             type: "array",
             items: {
@@ -5467,6 +5473,12 @@ export const schemaDict = {
           sha256: {
             type: "string",
             description: "The SHA256 hash of the song.",
+          },
+          tags: {
+            type: "array",
+            items: {
+              type: "string",
+            },
           },
           createdAt: {
             type: "string",

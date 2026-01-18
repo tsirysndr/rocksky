@@ -85,6 +85,7 @@ export interface SongViewDetailed {
   artistUri?: string;
   /** The SHA256 hash of the song. */
   sha256?: string;
+  tags?: string[];
   /** The timestamp when the song was created. */
   createdAt?: string;
   [k: string]: unknown;

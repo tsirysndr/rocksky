@@ -7,6 +7,7 @@ import type { SongViewDetailed } from "lexicon/types/app/rocksky/song/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/song/getSong";
 import tables from "schema";
 import type { SelectTrack } from "schema/tracks";
+import type { SelectArtist } from "schema/artists";
 
 export default function (server: Server, ctx: Context) {
   const getSong = (params) =>
@@ -35,12 +36,16 @@ export default function (server: Server, ctx: Context) {
 const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
   return Effect.tryPromise({
     try: async () => {
-      const track = await ctx.db
+      const { tracks: track, artists: artist } = await ctx.db
         .select()
         .from(tables.userTracks)
         .leftJoin(
           tables.tracks,
           eq(tables.userTracks.trackId, tables.tracks.id),
+        )
+        .leftJoin(
+          tables.artists,
+          eq(tables.tracks.albumArtist, tables.artists.name),
         )
         .where(
           or(
@@ -49,9 +54,10 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
           ),
         )
         .execute()
-        .then(([row]) => row?.tracks);
+        .then(([row]) => row);
       return Promise.all([
         Promise.resolve(track),
+        Promise.resolve(artist),
         ctx.db
           .select({
             count: count(),
@@ -72,13 +78,15 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
   });
 };
 
-const presentation = ([track, uniqueListeners, playCount]: [
+const presentation = ([track, artist, uniqueListeners, playCount]: [
   SelectTrack,
+  SelectArtist,
   number,
   number,
 ]): Effect.Effect<SongViewDetailed, never> => {
   return Effect.sync(() => ({
     ...track,
+    tags: artist.genres,
     playCount,
     uniqueListeners,
     createdAt: track.createdAt.toISOString(),

@@ -10,6 +10,7 @@ import * as R from "ramda";
 import tables from "schema";
 import type { SelectAlbum } from "schema/albums";
 import type { SelectTrack } from "schema/tracks";
+import type { SelectArtist } from "schema/artists";
 
 export default function (server: Server, ctx: Context) {
   const getAlbum = (params) =>
@@ -38,13 +39,14 @@ export default function (server: Server, ctx: Context) {
 const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
   return Effect.tryPromise({
     try: async () => {
-      const album = await ctx.db
+      const { albums: album, artists: artist } = await ctx.db
         .select()
         .from(tables.userAlbums)
         .leftJoin(
           tables.albums,
           eq(tables.userAlbums.albumId, tables.albums.id),
         )
+        .leftJoin(tables.artists, eq(tables.albums.artist, tables.artists.name))
         .where(
           or(
             eq(tables.userAlbums.uri, params.uri),
@@ -52,9 +54,10 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
           ),
         )
         .execute()
-        .then((rows) => rows[0]?.albums);
+        .then((rows) => rows[0]);
       return Promise.all([
         Promise.resolve(album),
+        Promise.resolve(artist),
         ctx.db
           .select()
           .from(tables.albumTracks)
@@ -98,14 +101,16 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
   });
 };
 
-const presentation = ([album, tracks, uniqueListeners, playCount]: [
+const presentation = ([album, artist, tracks, uniqueListeners, playCount]: [
   SelectAlbum,
+  SelectArtist,
   SelectTrack[],
   number,
   number,
 ]): Effect.Effect<AlbumViewDetailed, never> => {
   return Effect.sync(() => ({
     ...album,
+    tags: artist.genres,
     tracks,
     playCount,
     uniqueListeners,

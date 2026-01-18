@@ -1,4 +1,4 @@
-amends  "../../schema/lexicon.pkl"
+amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.song.defs"
@@ -147,6 +147,12 @@ defs = new Mapping<String, ObjectType> {
       ["sha256"] = new StringType {
         type = "string"
         description = "The SHA256 hash of the song."
+      }
+      ["tags"] = new Array {
+        type = "array"
+        items = new StringType {
+          type = "string"
+        }
       }
       ["createdAt"] = new StringType {
         type = "string"
