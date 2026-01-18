@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import _ from "lodash";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { nowPlayingAtom } from "../../atoms/nowpaying";
@@ -9,8 +9,12 @@ import useLike from "../../hooks/useLike";
 import useSpotify from "../../hooks/useSpotify";
 import StickyPlayer from "./StrickyPlayer";
 import { consola } from "consola";
+import { useQueryClient } from "@tanstack/react-query";
+import { feedGeneratorUriAtom } from "../../atoms/feed";
 
 function StickyPlayerWithData() {
+  const queryClient = useQueryClient();
+  const feedUri = useAtomValue(feedGeneratorUriAtom);
   const [liked, setLiked] = useState<Record<string, boolean>>({});
   const [nowPlaying, setNowPlaying] = useAtom(nowPlayingAtom);
   const progressInterval = useRef<number | null>(null);
@@ -25,7 +29,7 @@ function StickyPlayerWithData() {
   const playerRef = useRef(player);
   const likedRef = useRef(liked);
 
-  const onLike = (uri: string) => {
+  const onLike = async (uri: string) => {
     setLiked({
       ...liked,
       [uri]: true,
@@ -39,6 +43,10 @@ function StickyPlayerWithData() {
         ...prev,
         liked: true,
       };
+    });
+
+    await queryClient.invalidateQueries({
+      queryKey: ["infiniteFeed", feedUri],
     });
   };
 

@@ -4,6 +4,9 @@ import InteractionBar from "./InteractionBar";
 import useLike from "../../hooks/useLike";
 import SignInModal from "../SignInModal";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAtomValue } from "jotai";
+import { feedGeneratorUriAtom } from "../../atoms/feed";
 
 const Cover = styled.img<{ size?: number }>`
   border-radius: 8px;
@@ -64,6 +67,8 @@ export type SongCoverProps = {
 };
 
 function SongCover(props: SongCoverProps) {
+  const queryClient = useQueryClient();
+  const feedUri = useAtomValue(feedGeneratorUriAtom);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const [liked, setLiked] = useState(props.liked);
   const { like, unlike } = useLike();
@@ -88,6 +93,10 @@ function SongCover(props: SongCoverProps) {
       }
       await like(uri);
     }
+
+    await queryClient.invalidateQueries({
+      queryKey: ["infiniteFeed", feedUri],
+    });
   };
   return (
     <CoverWrapper onClick={(e) => e.stopPropagation()}>
