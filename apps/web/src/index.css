@@ -91,6 +91,7 @@ body {
   --color-button-text: #fff;
   --color-skeleton-background: #f3f3f3;
   --color-skeleton-foreground: #ecebeb;
+  --color-genre: #3f03fb;
 }
 
 .dark {
@@ -113,6 +114,7 @@ body {
   --color-button-text: #000;
   --color-skeleton-background: #221538;
   --color-skeleton-foreground: #2b1a4c;
+  --color-genre: #00f1f3;
 }
 
 ::placeholder {

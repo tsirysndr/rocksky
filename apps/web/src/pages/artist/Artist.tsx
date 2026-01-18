@@ -24,7 +24,6 @@ const Group = styled.div`
   display: flex;
   flex-direction: row;
   margin-top: 20px;
-  margin-bottom: 50px;
 `;
 
 const Artist = () => {
@@ -80,7 +79,7 @@ const Artist = () => {
       listeners: artistResult.data.uniqueListeners,
       scrobbles: artistResult.data.playCount,
       picture: artistResult.data.picture,
-      tags: artistResult.data.tags,
+      tags: artistResult.data.genres,
       uri: artistResult.data.uri,
       spotifyLink: artistResult.data.spotifyLink,
     });
@@ -130,83 +129,102 @@ const Artist = () => {
     artistResult.isLoading ||
     artistTracksResult.isLoading ||
     artistAlbumsResult.isLoading;
+
   return (
     <Main>
       <div className="pb-[100px] pt-[50px]">
-        <Group>
-          <div className="mr-[20px]">
-            {artist?.picture && !loading && (
-              <Avatar name={artist?.name} src={artist?.picture} size="150px" />
-            )}
-            {!artist?.picture && !loading && (
-              <div className="w-[150px] h-[150px] rounded-[80px] bg-[rgba(243, 243, 243, 0.725)] flex items-center justify-center">
-                <div
-                  style={{
-                    height: 60,
-                    width: 60,
-                  }}
+        <div className="mb-[50px]">
+          <Group>
+            <div className="mr-[20px]">
+              {artist?.picture && !loading && (
+                <Avatar
+                  name={artist?.name}
+                  src={artist?.picture}
+                  size="150px"
+                />
+              )}
+              {!artist?.picture && !loading && (
+                <div className="w-[150px] h-[150px] rounded-[80px] bg-[rgba(243, 243, 243, 0.725)] flex items-center justify-center">
+                  <div
+                    style={{
+                      height: 60,
+                      width: 60,
+                    }}
+                  >
+                    <ArtistIcon color="rgba(66, 87, 108, 0.65)" />
+                  </div>
+                </div>
+              )}
+            </div>
+            {artist && !loading && (
+              <div style={{ flex: 1 }}>
+                <HeadingMedium
+                  marginTop={"20px"}
+                  marginBottom={0}
+                  className="!text-[var(--color-text)]"
                 >
-                  <ArtistIcon color="rgba(66, 87, 108, 0.65)" />
+                  {artist?.name}
+                </HeadingMedium>
+                <div className="mt-[20px] flex flex-row">
+                  <div className="mr-[20px]">
+                    <LabelMedium
+                      margin={0}
+                      className="!text-[var(--color-text-muted)]"
+                    >
+                      Listeners
+                    </LabelMedium>
+                    <HeadingXSmall
+                      margin={0}
+                      className="!text-[var(--color-text)]"
+                    >
+                      {numeral(artist?.listeners).format("0,0")}
+                    </HeadingXSmall>
+                  </div>
+                  <div>
+                    <LabelMedium
+                      margin={0}
+                      className="!text-[var(--color-text-muted)]"
+                    >
+                      Scrobbles
+                    </LabelMedium>
+                    <HeadingXSmall
+                      margin={0}
+                      className="!text-[var(--color-text)]"
+                    >
+                      {numeral(artist?.scrobbles).format("0,0")}
+                    </HeadingXSmall>
+                  </div>
+                  <div className="flex items-center justify-end flex-1 mr-[10px]">
+                    <a
+                      href={`https://pdsls.dev/at/${uri.replace("at://", "")}`}
+                      target="_blank"
+                      className="text-[var(--color-text)] no-underline bg-[var(--color-default-button)] rounded-[10px] p-[16px] pl-[25px] pr-[25px]"
+                    >
+                      <ExternalLink
+                        size={24}
+                        className="mr-[10px] text-[var(--color-text)]"
+                      />
+                      View on PDSls
+                    </a>
+                  </div>
                 </div>
               </div>
             )}
-          </div>
-          {artist && !loading && (
-            <div style={{ flex: 1 }}>
-              <HeadingMedium
-                marginTop={"20px"}
-                marginBottom={0}
-                className="!text-[var(--color-text)]"
-              >
-                {artist?.name}
-              </HeadingMedium>
-              <div className="mt-[20px] flex flex-row">
-                <div className="mr-[20px]">
-                  <LabelMedium
-                    margin={0}
-                    className="!text-[var(--color-text-muted)]"
-                  >
-                    Listeners
-                  </LabelMedium>
-                  <HeadingXSmall
-                    margin={0}
-                    className="!text-[var(--color-text)]"
-                  >
-                    {numeral(artist?.listeners).format("0,0")}
-                  </HeadingXSmall>
-                </div>
-                <div>
-                  <LabelMedium
-                    margin={0}
-                    className="!text-[var(--color-text-muted)]"
-                  >
-                    Scrobbles
-                  </LabelMedium>
-                  <HeadingXSmall
-                    margin={0}
-                    className="!text-[var(--color-text)]"
-                  >
-                    {numeral(artist?.scrobbles).format("0,0")}
-                  </HeadingXSmall>
-                </div>
-                <div className="flex items-center justify-end flex-1 mr-[10px]">
-                  <a
-                    href={`https://pdsls.dev/at/${uri.replace("at://", "")}`}
-                    target="_blank"
-                    className="text-[var(--color-text)] no-underline bg-[var(--color-default-button)] rounded-[10px] p-[16px] pl-[25px] pr-[25px]"
-                  >
-                    <ExternalLink
-                      size={24}
-                      className="mr-[10px] text-[var(--color-text)]"
-                    />
-                    View on PDSls
-                  </a>
-                </div>
-              </div>
+          </Group>
+
+          {artist && (
+            <div className="mt-[30px]">
+              {(artist?.tags || []).map((genre) => (
+                <span
+                  className="mr-[15px] text-[var(--color-genre)] text-[13px]"
+                  style={{ fontFamily: "RockfordSansRegular" }}
+                >
+                  # {genre}
+                </span>
+              ))}
             </div>
           )}
-        </Group>
-
+        </div>
         <PopularSongs topTracks={topTracks} />
         <Albums topAlbums={topAlbums} />
         <ArtistListeners listeners={artistListenersResult.data} />
