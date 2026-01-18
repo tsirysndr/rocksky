@@ -7,7 +7,7 @@ import { HeadingMedium, LabelLarge } from "baseui/typography";
 import dayjs from "dayjs";
 import { useAtom, useSetAtom } from "jotai";
 import _ from "lodash";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { profilesAtom } from "../../atoms/profiles";
 import { userAtom } from "../../atoms/user";
 import Shout from "../../components/Shout/Shout";
@@ -31,6 +31,8 @@ import Followers from "./followers";
 import { activeTabAtom } from "../../atoms/tab";
 import Circles from "./circles";
 import TopTrack from "./toptrack";
+import { useArtistsQuery } from "../../hooks/useLibrary";
+import { getLastDays } from "../../lib/date";
 
 const Group = styled.div`
   display: flex;
@@ -59,6 +61,7 @@ function Profile(props: ProfileProps) {
   const profile = useProfileByDidQuery(did!);
   const setUser = useSetAtom(userAtom);
   const { tab } = useSearch({ strict: false });
+  const { data: artists } = useArtistsQuery(did!, 0, 100, ...getLastDays(7));
   const { mutate: followAccount } = useFollowAccountMutation();
   const { mutate: unfollowAccount } = useUnfollowAccountMutation();
   const currentDid = localStorage.getItem("did");
@@ -67,6 +70,16 @@ function Profile(props: ProfileProps) {
     1,
     currentDid ? [currentDid] : undefined,
   );
+  const tags = useMemo(() => {
+    if (!artists) {
+      return [];
+    }
+    return artists
+      .filter((x) => x.tags)
+      .map((x) => x.tags)
+      .flat()
+      .slice(0, 20);
+  }, [artists]);
 
   const onFollow = () => {
     if (!localStorage.getItem("token")) {
@@ -281,6 +294,19 @@ function Profile(props: ProfileProps) {
               </>
             )}
           </Group>
+          {tags.length > 0 && (
+            <div className="mt-[30px] flex flex-wrap">
+              {tags.map((genre) => (
+                <span
+                  className="mr-[15px] mb-[5px] text-[var(--color-genre)] text-[13px] whitespace-nowrap"
+                  style={{ fontFamily: "RockfordSansRegular" }}
+                >
+                  # {genre}
+                </span>
+              ))}
+            </div>
+          )}
+
           <div className="mt-[20px] flex justify-end">
             <TopTrack />
           </div>
