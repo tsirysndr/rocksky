@@ -35,6 +35,12 @@
           "type": "integer",
           "description": "The number of unique listeners who have played the artist.",
           "minimum": 0
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
@@ -71,6 +77,12 @@
           "type": "integer",
           "description": "The number of unique listeners who have played the artist.",
           "minimum": 0
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },

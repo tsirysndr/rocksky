@@ -1,4 +1,4 @@
-amends  "../../schema/lexicon.pkl"
+amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.artist.defs"
@@ -44,6 +44,12 @@ defs = new Mapping<String, ObjectType> {
         minimum = 0
       }
 
+      ["tags"] = new Array {
+        type = "array"
+        items = new StringType {
+          type = "string"
+        }
+      }
     }
   }
 
@@ -88,6 +94,12 @@ defs = new Mapping<String, ObjectType> {
         minimum = 0
       }
 
+      ["tags"] = new Array {
+        type = "array"
+        items = new StringType {
+          type = "string"
+        }
+      }
     }
   }
 
@@ -110,7 +122,6 @@ defs = new Mapping<String, ObjectType> {
         description = "The number of times the song has been played."
         minimum = 0
       }
-
     }
   }
 
@@ -158,7 +169,6 @@ defs = new Mapping<String, ObjectType> {
         description = "The rank of the listener among all listeners of the artist."
         minimum = 1
       }
-
     }
   }
 

@@ -21,6 +21,7 @@ export interface ArtistViewBasic {
   playCount?: number;
   /** The number of unique listeners who have played the artist. */
   uniqueListeners?: number;
+  tags?: string[];
   [k: string]: unknown;
 }
 
@@ -51,6 +52,7 @@ export interface ArtistViewDetailed {
   playCount?: number;
   /** The number of unique listeners who have played the artist. */
   uniqueListeners?: number;
+  tags?: string[];
   [k: string]: unknown;
 }
 

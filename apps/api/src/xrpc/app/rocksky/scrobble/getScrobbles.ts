@@ -10,7 +10,7 @@ import tables from "schema";
 import type { SelectScrobble } from "schema/scrobbles";
 import type { SelectTrack } from "schema/tracks";
 import type { SelectUser } from "schema/users";
-import { SelectArtist } from "schema/artists";
+import type { SelectArtist } from "schema/artists";
 
 export default function (server: Server, ctx: Context) {
   const getScrobbles = (params: QueryParams) =>

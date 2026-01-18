@@ -13,7 +13,7 @@ import type { SelectUser } from "schema/users";
 import axios from "axios";
 import type { HandlerAuth } from "@atproto/xrpc-server";
 import { env } from "lib/env";
-import { SelectArtist } from "schema/artists";
+import type { SelectArtist } from "schema/artists";
 
 export default function (server: Server, ctx: Context) {
   const getFeed = (params: QueryParams, auth: HandlerAuth) =>

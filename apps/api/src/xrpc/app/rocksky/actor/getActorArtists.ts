@@ -5,6 +5,9 @@ import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/actor/getActorArtists";
 import type { ArtistViewBasic } from "lexicon/types/app/rocksky/artist/defs";
 import { deepCamelCaseKeys } from "lib";
+import { inArray } from "drizzle-orm";
+import tables from "schema";
+import { indexBy, prop } from "ramda";
 
 export default function (server: Server, ctx: Context) {
   const getActorArtists = (params: QueryParams) =>
@@ -38,16 +41,33 @@ const retrieve = ({
   ctx: Context;
 }): Effect.Effect<{ data: Artist[] }, Error> => {
   return Effect.tryPromise({
-    try: () =>
-      ctx.analytics.post("library.getTopArtists", {
-        user_did: params.did,
-        pagination: {
-          skip: params.offset || 0,
-          take: params.limit || 10,
+    try: async () => {
+      const response = await ctx.analytics.post<Artist[]>(
+        "library.getTopArtists",
+        {
+          user_did: params.did,
+          pagination: {
+            skip: params.offset || 0,
+            take: params.limit || 10,
+          },
+          start_date: params.startDate,
+          end_date: params.endDate,
         },
-        start_date: params.startDate,
-        end_date: params.endDate,
-      }),
+      );
+      const ids = response.data.map((x) => x.id);
+      const artists = await ctx.db
+        .select()
+        .from(tables.artists)
+        .where(inArray(tables.artists.id, ids))
+        .execute();
+      const indexedArtists = indexBy(prop("id"), artists);
+      return {
+        data: response.data.map((x) => ({
+          ...x,
+          tags: indexedArtists[x.id]?.genres,
+        })),
+      };
+    },
     catch: (error) => new Error(`Failed to retrieve artists: ${error}`),
   });
 };
@@ -68,4 +88,5 @@ type Artist = {
   sha256: string;
   unique_listeners: number;
   uri: string;
+  tags?: string[];
 };

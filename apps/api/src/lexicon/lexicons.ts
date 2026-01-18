@@ -1835,6 +1835,12 @@ export const schemaDict = {
               "The number of unique listeners who have played the artist.",
             minimum: 0,
           },
+          tags: {
+            type: "array",
+            items: {
+              type: "string",
+            },
+          },
         },
       },
       artistViewDetailed: {
@@ -1871,6 +1877,12 @@ export const schemaDict = {
             description:
               "The number of unique listeners who have played the artist.",
             minimum: 0,
+          },
+          tags: {
+            type: "array",
+            items: {
+              type: "string",
+            },
           },
         },
       },
