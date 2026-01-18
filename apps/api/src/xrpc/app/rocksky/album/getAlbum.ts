@@ -46,7 +46,10 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
           tables.albums,
           eq(tables.userAlbums.albumId, tables.albums.id),
         )
-        .leftJoin(tables.artists, eq(tables.albums.artist, tables.artists.name))
+        .leftJoin(
+          tables.artists,
+          eq(tables.albums.artistUri, tables.artists.uri),
+        )
         .where(
           or(
             eq(tables.userAlbums.uri, params.uri),

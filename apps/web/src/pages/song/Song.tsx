@@ -200,7 +200,7 @@ const Song = () => {
 
   return (
     <Main>
-      <div className="pb-[100px] pt-[100px]">
+      <div className="pb-[100px] pt-[50px]">
         {loading && (
           <ContentLoader
             backgroundColor="var(--color-skeleton-background)"
