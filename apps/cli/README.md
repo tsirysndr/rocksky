@@ -4,7 +4,7 @@
 
 📚 **[View Full Documentation](https://docs.rocksky.app)**
 
-![Rocksky CLI Preview](./preview.png)
+![Rocksky CLI Preview](https://raw.githubusercontent.com/tsirysndr/rocksky/refs/heads/main/apps/cli/preview.png)
 
 ## Features
 - 🔐 Authenticate with your Rocksky account using OAuth
