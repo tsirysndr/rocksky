@@ -10,6 +10,7 @@ import tables from "schema";
 import type { SelectScrobble } from "schema/scrobbles";
 import type { SelectTrack } from "schema/tracks";
 import type { SelectUser } from "schema/users";
+import { SelectArtist } from "schema/artists";
 
 export default function (server: Server, ctx: Context) {
   const getScrobbles = (params: QueryParams) =>
@@ -83,7 +84,8 @@ const fetchScrobbles = async (
     .select()
     .from(tables.scrobbles)
     .leftJoin(tables.tracks, eq(tables.scrobbles.trackId, tables.tracks.id))
-    .leftJoin(tables.users, eq(tables.scrobbles.userId, tables.users.id));
+    .leftJoin(tables.users, eq(tables.scrobbles.userId, tables.users.id))
+    .leftJoin(tables.artists, eq(tables.scrobbles.artistId, tables.artists.id));
 
   const query = filterDids
     ? baseQuery.where(inArray(tables.users.did, filterDids))
@@ -137,20 +139,22 @@ const presentation = (
   data: Scrobbles,
 ): Effect.Effect<{ scrobbles: ScrobbleViewBasic[] }, never> => {
   return Effect.sync(() => ({
-    scrobbles: data.map(({ scrobbles, tracks, users, liked, likesCount }) => ({
-      ...R.omit(["albumArt", "id", "lyrics"])(tracks),
-      cover: tracks.albumArt,
-      date: scrobbles.timestamp.toISOString(),
-      user: users.handle,
-      userDisplayName: users.displayName,
-      userAvatar: users.avatar,
-      uri: scrobbles.uri,
-      tags: [],
-      id: scrobbles.id,
-      trackUri: tracks.uri,
-      likesCount,
-      liked,
-    })),
+    scrobbles: data.map(
+      ({ scrobbles, tracks, users, artists, liked, likesCount }) => ({
+        ...R.omit(["albumArt", "id", "lyrics"])(tracks),
+        cover: tracks.albumArt,
+        date: scrobbles.timestamp.toISOString(),
+        user: users.handle,
+        userDisplayName: users.displayName,
+        userAvatar: users.avatar,
+        uri: scrobbles.uri,
+        tags: artists?.genres,
+        id: scrobbles.id,
+        trackUri: tracks.uri,
+        likesCount,
+        liked,
+      }),
+    ),
   }));
 };
 
@@ -158,6 +162,7 @@ type Scrobbles = {
   scrobbles: SelectScrobble;
   tracks: SelectTrack;
   users: SelectUser;
+  artists: SelectArtist;
   liked: boolean;
   likesCount: number;
 }[];
