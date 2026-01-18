@@ -295,7 +295,7 @@ function Profile(props: ProfileProps) {
             )}
           </Group>
           {tags.length > 0 && (
-            <div className="mt-[30px] flex flex-wrap">
+            <div className="mt-[30px] mb-[35px] flex flex-wrap">
               {tags.map((genre) => (
                 <span
                   className="mr-[15px] mb-[5px] text-[var(--color-genre)] text-[13px] whitespace-nowrap"

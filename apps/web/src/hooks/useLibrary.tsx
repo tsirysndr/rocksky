@@ -45,8 +45,7 @@ export const useArtistsQuery = (
     queryFn: () => getArtists(did, offset, limit, startDate, endDate),
     enabled: !!did,
     select: (data) =>
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      data?.artists.map((x: any) => ({
+      data?.artists.map((x) => ({
         ...x,
         scrobbles: x.playCount,
       })),

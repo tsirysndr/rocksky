@@ -1,4 +1,5 @@
 import { client } from ".";
+import { Artist } from "../types/artist";
 
 export const getSongByUri = async (uri: string) => {
   if (uri.includes("app.rocksky.scrobble")) {
@@ -77,15 +78,18 @@ export const getArtists = async (
   startDate?: Date,
   endDate?: Date,
 ) => {
-  const response = await client.get("/xrpc/app.rocksky.actor.getActorArtists", {
-    params: {
-      did,
-      limit,
-      offset,
-      startDate: startDate?.toISOString(),
-      endDate: endDate?.toISOString(),
+  const response = await client.get<{ artists: Artist[] }>(
+    "/xrpc/app.rocksky.actor.getActorArtists",
+    {
+      params: {
+        did,
+        limit,
+        offset,
+        startDate: startDate?.toISOString(),
+        endDate: endDate?.toISOString(),
+      },
     },
-  });
+  );
   return response.data;
 };
 
