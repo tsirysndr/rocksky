@@ -74,11 +74,14 @@ function Profile(props: ProfileProps) {
     if (!artists) {
       return [];
     }
-    return artists
-      .filter((x) => x.tags)
-      .map((x) => x.tags)
-      .flat()
-      .slice(0, 20);
+    return Array.from(
+      new Set(
+        artists
+          .filter((x) => x.tags)
+          .map((x) => x.tags)
+          .flat(),
+      ),
+    ).slice(0, 20);
   }, [artists]);
 
   const onFollow = () => {
