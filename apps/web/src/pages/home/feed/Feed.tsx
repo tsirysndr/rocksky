@@ -21,6 +21,7 @@ import {
   useScrobbleInfiniteQuery,
 } from "../../../hooks/useFeed";
 import FeedGenerators from "./FeedGenerators";
+import { consola } from "consola";
 
 dayjs.extend(relativeTime);
 
@@ -90,7 +91,7 @@ function Feed() {
         }
         ws.close();
       }
-      console.log(">> WebSocket connection closed");
+      consola.info(">> WebSocket connection closed");
     };
   }, [queryClient, feedUri]);
 

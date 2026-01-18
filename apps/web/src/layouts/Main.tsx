@@ -17,6 +17,7 @@ import Navbar from "./Navbar";
 import Search from "./Search";
 import SpotifyLogin from "./SpotifyLogin";
 import { IconEye, IconEyeOff, IconLock } from "@tabler/icons-react";
+import { consola } from "consola";
 
 const Container = styled.div`
   display: flex;
@@ -97,7 +98,7 @@ function Main(props: MainProps) {
             window.location.href = "/";
           }
         } catch (e) {
-          console.error(e);
+          consola.error(e);
         }
       };
       fetchToken();

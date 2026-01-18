@@ -47,6 +47,7 @@
     "@vitest/ui": "^3.0.4",
     "axios": "^1.7.9",
     "baseui": "15.0.0",
+    "consola": "^3.4.2",
     "copy-to-clipboard": "^3.3.3",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",

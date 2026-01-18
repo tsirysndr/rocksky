@@ -8,6 +8,7 @@ import { API_URL } from "../../consts";
 import useLike from "../../hooks/useLike";
 import useSpotify from "../../hooks/useSpotify";
 import StickyPlayer from "./StrickyPlayer";
+import { consola } from "consola";
 
 function StickyPlayerWithData() {
   const [liked, setLiked] = useState<Record<string, boolean>>({});
@@ -330,7 +331,7 @@ function StickyPlayerWithData() {
         }
       };
 
-      console.log(">> WebSocket connection opened");
+      consola.info(">> WebSocket connection opened");
     };
 
     return () => {
@@ -340,7 +341,7 @@ function StickyPlayerWithData() {
         }
         ws.close();
       }
-      console.log(">> WebSocket connection closed");
+      consola.log(">> WebSocket connection closed");
     };
   }, []);
 

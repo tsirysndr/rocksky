@@ -2,6 +2,7 @@ import { Folder2, MusicNoteBeamed } from "@styled-icons/bootstrap";
 import { EllipsisHorizontal } from "@styled-icons/ionicons-sharp";
 import { NestedMenus, StatefulMenu } from "baseui/menu";
 import { StatefulPopover } from "baseui/popover";
+import consola from "consola";
 
 export type ContextMenuProps = {
   file: {
@@ -65,7 +66,7 @@ function ContextMenu(props: ContextMenuProps) {
                 },
               ]}
               onItemSelect={({ item }) => {
-                console.log(`Selected item: ${item.label}`);
+                consola.log(`Selected item: ${item.label}`);
                 close();
               }}
               overrides={{

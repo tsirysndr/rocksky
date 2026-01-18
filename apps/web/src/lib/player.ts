@@ -1,4 +1,5 @@
 import init, { AudioDecoder } from "../pkg/raichu";
+import consola from "consola";
 
 class AudioPlayer {
   private audioContext: AudioContext | null = null;
@@ -33,7 +34,7 @@ class AudioPlayer {
       }
     }
 
-    console.log(">> Audio Loaded Successfully");
+    consola.info(">> Audio Loaded Successfully");
   }
 
   play(offset = 0) {

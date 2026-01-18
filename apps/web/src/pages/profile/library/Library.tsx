@@ -7,6 +7,7 @@ import RecentTracks from "../overview/recenttracks";
 import TopArtists from "../overview/topartists";
 import TopTracks from "../overview/toptracks";
 import Albums from "./albums";
+import consola from "consola";
 
 export type LibraryProps = {
   activeKey?: string;
@@ -17,7 +18,7 @@ function Library(props: LibraryProps) {
     _.get(props, "activeKey", "0"),
   );
   const { tab } = useSearch({ strict: false });
-  console.log("tab", tab);
+  consola.info("tab", tab);
 
   useEffect(() => {
     if (!tab) {

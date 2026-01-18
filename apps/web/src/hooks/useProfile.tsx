@@ -10,6 +10,7 @@ import {
 } from "../api/profile";
 import { profileAtom } from "../atoms/profile";
 import { API_URL } from "../consts";
+import consola from "consola";
 
 export const useProfileByDidQuery = (did: string) =>
   useQuery({
@@ -110,7 +111,7 @@ function useProfile(token?: string | null) {
       (error && localStorage.getItem("token"))
     ) {
       if (data === "Unauthorized") {
-        console.log(">> Unauthorized");
+        consola.log(">> Unauthorized");
         localStorage.removeItem("token");
       }
     }
@@ -125,7 +126,7 @@ function useProfile(token?: string | null) {
     (error && localStorage.getItem("token"))
   ) {
     if (data === "Unauthorized" && localStorage.getItem("token")) {
-      console.log(">> error", error, ">> data", data); // localStorage.clear();
+      consola.log(">> error", error, ">> data", data); // localStorage.clear();
       window.location.href = "/";
     }
     return {

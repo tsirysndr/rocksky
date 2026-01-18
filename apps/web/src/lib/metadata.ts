@@ -1,3 +1,4 @@
+import consola from "consola";
 import init, { extract_audio_metadata } from "../pkg/raichu";
 
 export class Metadata {
@@ -11,7 +12,7 @@ export class Metadata {
 
     await init(); // Initialize WASM
     this.metadata = extract_audio_metadata(uint8Array);
-    console.log(">> Metadata Loaded Successfully");
+    consola.log(">> Metadata Loaded Successfully");
   }
 
   get_metadata() {

@@ -11,6 +11,7 @@ import { useFilesQuery } from "../../hooks/useDropbox";
 import Main from "../../layouts/Main";
 import { File } from "../../types/file";
 import { AudioFile, Directory } from "./styles";
+import consola from "consola";
 
 const columnHelper = createColumnHelper<File>();
 
@@ -22,13 +23,13 @@ const Dropbox = (props: DropboxProps) => {
   const { data, isLoading } = useFilesQuery(props.fileId);
 
   const playFile = async (id: string) => {
-    console.log(">> Playing file:", id);
+    consola.log(">> Playing file:", id);
     /*
     const { link } = await getTemporaryLink(id);
-    console.log(">> Playing file:", link);
+    consola.log(">> Playing file:", link);
     const m = new Metadata();
     await m.load(link);
-    console.log(">> Metadata:", m.get_metadata());
+    consola.log(">> Metadata:", m.get_metadata());
     */
   };
 
