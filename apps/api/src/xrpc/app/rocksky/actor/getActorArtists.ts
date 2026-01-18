@@ -7,7 +7,7 @@ import type { ArtistViewBasic } from "lexicon/types/app/rocksky/artist/defs";
 import { deepCamelCaseKeys } from "lib";
 import { inArray } from "drizzle-orm";
 import tables from "schema";
-import { indexBy, prop } from "ramda";
+import { indexBy, prop, omit } from "ramda";
 
 export default function (server: Server, ctx: Context) {
   const getActorArtists = (params: QueryParams) =>
@@ -63,7 +63,7 @@ const retrieve = ({
       const indexedArtists = indexBy(prop("id"), artists);
       return {
         data: response.data.map((x) => ({
-          ...x,
+          ...omit(["genres"], x),
           tags: indexedArtists[x.id]?.genres,
         })),
       };
@@ -88,5 +88,5 @@ type Artist = {
   sha256: string;
   unique_listeners: number;
   uri: string;
-  tags?: string[];
+  genres?: string[];
 };
