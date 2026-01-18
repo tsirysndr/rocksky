@@ -183,7 +183,7 @@ const presentation = (
           userDisplayName: users.displayName,
           userAvatar: users.avatar,
           uri: scrobbles.uri,
-          tags: artists.genres,
+          tags: artists?.genres,
           likesCount,
           liked,
           trackUri: tracks.uri,
