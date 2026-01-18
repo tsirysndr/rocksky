@@ -2,6 +2,10 @@
 
 🎧 The official command-line interface for [Rocksky](https://rocksky.app) — a modern, decentralized music tracking and discovery platform built on [AT Protocol](https://atproto.com).
 
+![Rocksky CLI Preview](./preview.png)
+
+📚 **[View Full Documentation](https://docs.rocksky.app)**
+
 ## Features
 - 🔐 Authenticate with your Rocksky account using OAuth
 - 🎵 View your currently playing track
@@ -11,6 +15,7 @@
 - 🤖 MCP Server
 
 ## Table of Contents
+- [Documentation](#documentation)
 - [Installation](#installation)
 - [Run in development](#run-in-development)
 - [Usage](#usage)
@@ -24,6 +29,10 @@
   - [artists](#artists)
   - [albums](#albums)
   - [tracks](#tracks)
+
+## Documentation
+
+For comprehensive guides, API references, and tutorials, visit the official documentation at **[docs.rocksky.app](https://docs.rocksky.app)**.
 
 ## Installation
 
