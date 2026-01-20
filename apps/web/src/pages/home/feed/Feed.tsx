@@ -188,7 +188,7 @@ function Feed() {
                     <FlexGridItem {...itemProps} key={song.id}>
                       <Link
                         to={
-                          `/${song.uri?.split("at://")[1]?.split("/")[0] || ""}/scrobble/${song.uri?.split("/").pop() || ""}` as string
+                          `/${song.uri?.split("at://")[1].replace("app.rocksky.", "")}` as string
                         }
                         className="no-underline text-[var(--color-text-primary)]"
                       >
