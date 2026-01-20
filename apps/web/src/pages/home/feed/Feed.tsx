@@ -1,6 +1,5 @@
 import styled from "@emotion/styled";
 import { useQueryClient } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 import { Avatar } from "baseui/avatar";
 import type { BlockProps } from "baseui/block";
 import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
@@ -186,12 +185,8 @@ function Feed() {
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   allSongs.map((song: any) => (
                     <FlexGridItem {...itemProps} key={song.id}>
-                      <Link
-                        to="/$did/scrobble/$rkey"
-                        params={{
-                          did: song.uri?.split("at://")[1]?.split("/")[0] || "",
-                          rkey: song.uri?.split("/").pop() || "",
-                        }}
+                      <a
+                        href={`/${song.uri?.split("at://")[1]?.split("/")[0] || ""}/scrobble/${song.uri?.split("/").pop() || ""}`}
                         className="no-underline text-[var(--color-text-primary)]"
                       >
                         <SongCover
@@ -203,7 +198,7 @@ function Feed() {
                           likesCount={song.likesCount}
                           withLikeButton
                         />
-                      </Link>
+                      </a>
 
                       {(song?.tags || []).length > 0 && (
                         <div className="mb-[10px] flex flex-wrap gap-x-[10px] gap-y-[4px]">
