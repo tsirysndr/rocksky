@@ -43,8 +43,8 @@ const retrieve = ({
         pagination: {
           skip: params.offset || 0,
           take: params.limit || 100,
-          genre: params.genre,
         },
+        genre: params.genre,
       }),
     catch: (error) => new Error(`Failed to retrieve albums: ${error}`),
   });
