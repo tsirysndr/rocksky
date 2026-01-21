@@ -113,7 +113,8 @@ pub struct AlbumId {
     pub xata_id: String,
     pub xata_updatedat: DateTime<Utc>,
     pub xata_version: i32,
-    pub year: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub year: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub apple_music_link: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
