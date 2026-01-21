@@ -57,6 +57,7 @@ pub struct Track {
 pub struct GetTracksParams {
     pub user_did: Option<String>,
     pub pagination: Option<Pagination>,
+    pub genre: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]

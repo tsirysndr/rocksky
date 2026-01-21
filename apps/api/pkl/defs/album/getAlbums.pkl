@@ -1,4 +1,4 @@
-amends  "../../schema/lexicon.pkl"
+amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.album.getAlbums"
@@ -17,6 +17,10 @@ defs = new Mapping<String, Query> {
           type = "integer"
           description = "The offset for pagination"
           minimum = 0
+        }
+        ["genre"] = new StringType {
+          type = "string"
+          description = "The genre to filter artists by"
         }
       }
     }

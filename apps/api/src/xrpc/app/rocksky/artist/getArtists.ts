@@ -48,6 +48,7 @@ const retrieve = ({
           take: params.limit || 100,
         },
         names: params.names?.split(","),
+        genre: params.genre,
       });
       return { data: response.data, ctx };
     },

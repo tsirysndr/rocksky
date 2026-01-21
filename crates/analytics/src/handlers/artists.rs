@@ -27,6 +27,8 @@ pub async fn get_artists(
     let limit = pagination.take.unwrap_or(20);
     let did = params.user_did;
     let names = params.names;
+    let genre = params.genre;
+    tracing::info!(limit, offset, user_did = ?did, genre = ?genre, "Get artists");
 
     let conn = conn.lock().unwrap();
 
@@ -36,6 +38,11 @@ pub async fn get_artists(
             // Both did and names provided
             (Some(d), Some(n)) if !n.is_empty() => {
                 let placeholders = vec!["?"; n.len()].join(", ");
+                let genre_filter = if genre.is_some() {
+                    " AND list_contains(a.genres, ?)"
+                } else {
+                    ""
+                };
                 let query = format!(
                     r#"
                     SELECT a.*,
@@ -46,17 +53,20 @@ pub async fn get_artists(
                     LEFT JOIN users u ON ua.user_id = u.id
                     LEFT JOIN scrobbles s ON s.artist_id = a.id
                     WHERE (u.did = ? OR u.handle = ?)
-                      AND a.name IN ({})
+                      AND a.name IN ({}){}
                     GROUP BY a.*
                     ORDER BY play_count DESC
                     LIMIT ? OFFSET ?
                     "#,
-                    placeholders
+                    placeholders, genre_filter
                 );
                 let mut params: Vec<Box<dyn duckdb::ToSql>> =
                     vec![Box::new(d.clone()), Box::new(d.clone())];
                 for name in n {
                     params.push(Box::new(name.clone()));
+                }
+                if let Some(g) = &genre {
+                    params.push(Box::new(g.clone()));
                 }
                 params.push(Box::new(limit));
                 params.push(Box::new(offset));
@@ -64,7 +74,13 @@ pub async fn get_artists(
             }
             // Only did provided
             (Some(d), _) => {
-                let query = r#"
+                let genre_filter = if genre.is_some() {
+                    " AND list_contains(a.genres, ?)"
+                } else {
+                    ""
+                };
+                let query = format!(
+                    r#"
                     SELECT a.*,
                         COUNT(*) AS play_count,
                         COUNT(DISTINCT s.user_id) AS unique_listeners
@@ -72,25 +88,30 @@ pub async fn get_artists(
                     LEFT JOIN artists a ON ua.artist_id = a.id
                     LEFT JOIN users u ON ua.user_id = u.id
                     LEFT JOIN scrobbles s ON s.artist_id = a.id
-                    WHERE (u.did = ? OR u.handle = ?) AND a.name != 'Various Artists'
+                    WHERE (u.did = ? OR u.handle = ?) AND a.name != 'Various Artists'{}
                     GROUP BY a.*
                     ORDER BY play_count DESC
                     LIMIT ? OFFSET ?
-                "#
-                .to_string();
-                (
-                    query,
-                    vec![
-                        Box::new(d.clone()),
-                        Box::new(d.clone()),
-                        Box::new(limit),
-                        Box::new(offset),
-                    ],
-                )
+                    "#,
+                    genre_filter
+                );
+                let mut params: Vec<Box<dyn duckdb::ToSql>> =
+                    vec![Box::new(d.clone()), Box::new(d.clone())];
+                if let Some(g) = &genre {
+                    params.push(Box::new(g.clone()));
+                }
+                params.push(Box::new(limit));
+                params.push(Box::new(offset));
+                (query, params)
             }
             // Only names provided
             (None, Some(n)) if !n.is_empty() => {
                 let placeholders = vec!["?"; n.len()].join(", ");
+                let genre_filter = if genre.is_some() {
+                    " AND list_contains(a.genres, ?)"
+                } else {
+                    ""
+                };
                 let query = format!(
                     r#"
                     SELECT a.*,
@@ -98,16 +119,19 @@ pub async fn get_artists(
                         COUNT(DISTINCT s.user_id) AS unique_listeners
                      FROM artists a
                      LEFT JOIN scrobbles s ON s.artist_id = a.id
-                     WHERE a.name IN ({})
+                     WHERE a.name IN ({}){}
                      GROUP BY a.*
                      ORDER BY play_count DESC
                      LIMIT ? OFFSET ?
                     "#,
-                    placeholders
+                    placeholders, genre_filter
                 );
                 let mut params: Vec<Box<dyn duckdb::ToSql>> = vec![];
                 for name in n {
                     params.push(Box::new(name.clone()));
+                }
+                if let Some(g) = &genre {
+                    params.push(Box::new(g.clone()));
                 }
                 params.push(Box::new(limit));
                 params.push(Box::new(offset));
@@ -115,19 +139,32 @@ pub async fn get_artists(
             }
             // No filters
             (None, _) => {
-                let query = r#"
+                let genre_filter = if genre.is_some() {
+                    " AND list_contains(a.genres, ?)"
+                } else {
+                    ""
+                };
+                let query = format!(
+                    r#"
                     SELECT a.*,
                         COUNT(*) AS play_count,
                         COUNT(DISTINCT s.user_id) AS unique_listeners
                      FROM artists a
                      LEFT JOIN scrobbles s ON s.artist_id = a.id
-                     WHERE a.name != 'Various Artists'
+                     WHERE a.name != 'Various Artists'{}
                      GROUP BY a.*
                      ORDER BY play_count DESC
                      LIMIT ? OFFSET ?
-                "#
-                .to_string();
-                (query, vec![Box::new(limit), Box::new(offset)])
+                    "#,
+                    genre_filter
+                );
+                let mut params: Vec<Box<dyn duckdb::ToSql>> = vec![];
+                if let Some(g) = &genre {
+                    params.push(Box::new(g.clone()));
+                }
+                params.push(Box::new(limit));
+                params.push(Box::new(offset));
+                (query, params)
             }
         };
 

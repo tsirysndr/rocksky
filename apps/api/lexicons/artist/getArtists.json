@@ -21,6 +21,10 @@
           "names": {
             "type": "string",
             "description": "The names of the artists to return"
+          },
+          "genre": {
+            "type": "string",
+            "description": "The genre to filter artists by"
           }
         }
       },

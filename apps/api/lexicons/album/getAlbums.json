@@ -17,6 +17,10 @@
             "type": "integer",
             "description": "The offset for pagination",
             "minimum": 0
+          },
+          "genre": {
+            "type": "string",
+            "description": "The genre to filter artists by"
           }
         }
       },

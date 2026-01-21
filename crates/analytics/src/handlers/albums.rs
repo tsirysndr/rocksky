@@ -22,12 +22,20 @@ pub async fn get_albums(
     let offset = pagination.skip.unwrap_or(0);
     let limit = pagination.take.unwrap_or(20);
     let did = params.user_did;
-    tracing::info!(limit, offset, user_did = ?did, "Get albums");
+    let genre = params.genre;
+    tracing::info!(limit, offset, user_did = ?did, genre = ?genre, "Get albums");
 
     let conn = conn.lock().unwrap();
-    let mut stmt = match did {
-        Some(_) => conn.prepare(
-            r#"
+
+    match did {
+        Some(did) => {
+            let genre_filter = if genre.is_some() {
+                " AND list_contains(ar.genres, ?)"
+            } else {
+                ""
+            };
+            let query = format!(
+                r#"
         SELECT a.*,
           COUNT(*) AS play_count,
           COUNT(DISTINCT s.user_id) AS unique_listeners
@@ -35,53 +43,73 @@ pub async fn get_albums(
         LEFT JOIN albums a ON ua.album_id = a.id
         LEFT JOIN users u ON ua.user_id = u.id
         LEFT JOIN scrobbles s ON s.album_id = a.id
-        WHERE u.did = ? OR u.handle = ?
+        LEFT JOIN artists ar ON a.artist_uri = ar.uri
+        WHERE (u.did = ? OR u.handle = ?){}
         GROUP BY a.*
-        ORDER BY play_count DESC OFFSET ? LIMIT ?;
+        ORDER BY play_count DESC LIMIT ? OFFSET ?;
       "#,
-        )?,
-        None => conn.prepare(
-            "SELECT a.*,
-        COUNT(*) AS play_count,
-        COUNT(DISTINCT s.user_id) AS unique_listeners
-       FROM albums a
-       LEFT JOIN scrobbles s ON s.album_id = a.id
-       GROUP BY a.*
-       ORDER BY play_count DESC OFFSET ? LIMIT ?",
-        )?,
-    };
+                genre_filter
+            );
 
-    match did {
-        Some(did) => {
-            let albums_iter = stmt.query_map(
-                [&did, &did, &limit.to_string(), &offset.to_string()],
-                |row| {
-                    Ok(Album {
-                        id: row.get(0)?,
-                        title: row.get(1)?,
-                        artist: row.get(2)?,
-                        release_date: row.get(3)?,
-                        album_art: row.get(4)?,
-                        year: row.get(5)?,
-                        spotify_link: row.get(6)?,
-                        tidal_link: row.get(7)?,
-                        youtube_link: row.get(8)?,
-                        apple_music_link: row.get(9)?,
-                        sha256: row.get(10)?,
-                        uri: row.get(11)?,
-                        artist_uri: row.get(12)?,
-                        play_count: Some(row.get(13)?),
-                        unique_listeners: Some(row.get(14)?),
-                        ..Default::default()
-                    })
-                },
-            )?;
+            let mut stmt = conn.prepare(&query)?;
+            let params: Vec<&dyn duckdb::ToSql> = if let Some(g) = &genre {
+                vec![&did, &did, g, &limit, &offset]
+            } else {
+                vec![&did, &did, &limit, &offset]
+            };
+
+            let albums_iter = stmt.query_map(duckdb::params_from_iter(params), |row| {
+                Ok(Album {
+                    id: row.get(0)?,
+                    title: row.get(1)?,
+                    artist: row.get(2)?,
+                    release_date: row.get(3)?,
+                    album_art: row.get(4)?,
+                    year: row.get(5)?,
+                    spotify_link: row.get(6)?,
+                    tidal_link: row.get(7)?,
+                    youtube_link: row.get(8)?,
+                    apple_music_link: row.get(9)?,
+                    sha256: row.get(10)?,
+                    uri: row.get(11)?,
+                    artist_uri: row.get(12)?,
+                    play_count: Some(row.get(13)?),
+                    unique_listeners: Some(row.get(14)?),
+                    ..Default::default()
+                })
+            })?;
 
             let albums: Result<Vec<_>, _> = albums_iter.collect();
             Ok(HttpResponse::Ok().json(web::Json(albums?)))
         }
         None => {
-            let albums_iter = stmt.query_map([limit, offset], |row| {
+            let genre_filter = if genre.is_some() {
+                " WHERE list_contains(ar.genres, ?)"
+            } else {
+                ""
+            };
+            let query = format!(
+                r#"
+        SELECT a.*,
+        COUNT(*) AS play_count,
+        COUNT(DISTINCT s.user_id) AS unique_listeners
+       FROM albums a
+       LEFT JOIN scrobbles s ON s.album_id = a.id
+       LEFT JOIN artists ar ON a.artist_uri = ar.uri{}
+       GROUP BY a.*
+       ORDER BY play_count DESC LIMIT ? OFFSET ?
+       "#,
+                genre_filter
+            );
+
+            let mut stmt = conn.prepare(&query)?;
+            let params: Vec<&dyn duckdb::ToSql> = if let Some(g) = &genre {
+                vec![g, &limit, &offset]
+            } else {
+                vec![&limit, &offset]
+            };
+
+            let albums_iter = stmt.query_map(duckdb::params_from_iter(params), |row| {
                 Ok(Album {
                     id: row.get(0)?,
                     title: row.get(1)?,

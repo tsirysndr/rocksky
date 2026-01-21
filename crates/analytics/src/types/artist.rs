@@ -63,6 +63,7 @@ pub struct GetArtistsParams {
     pub user_did: Option<String>,
     pub pagination: Option<Pagination>,
     pub names: Option<Vec<String>>,
+    pub genre: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]

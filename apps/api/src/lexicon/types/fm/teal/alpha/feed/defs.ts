@@ -1,67 +1,67 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import { type ValidationResult, BlobRef } from "@atproto/lexicon";
-import { lexicons } from "../../../../../lexicons";
-import { isObj, hasProp } from "../../../../../util";
-import { CID } from "multiformats/cid";
+import { type ValidationResult, BlobRef } from '@atproto/lexicon'
+import { lexicons } from '../../../../../lexicons'
+import { isObj, hasProp } from '../../../../../util'
+import { CID } from 'multiformats/cid'
 
 export interface PlayView {
   /** The name of the track */
-  trackName: string;
+  trackName: string
   /** The Musicbrainz ID of the track */
-  trackMbId?: string;
+  trackMbId?: string
   /** The Musicbrainz recording ID of the track */
-  recordingMbId?: string;
+  recordingMbId?: string
   /** The length of the track in seconds */
-  duration?: number;
+  duration?: number
   /** Array of artists in order of original appearance. */
-  artists: Artist[];
+  artists: Artist[]
   /** The name of the release/album */
-  releaseName?: string;
+  releaseName?: string
   /** The Musicbrainz release ID */
-  releaseMbId?: string;
+  releaseMbId?: string
   /** The ISRC code associated with the recording */
-  isrc?: string;
+  isrc?: string
   /** The URL associated with this track */
-  originUrl?: string;
+  originUrl?: string
   /** The base domain of the music service. e.g. music.apple.com, tidal.com, spotify.com. Defaults to 'local' if not provided. */
-  musicServiceBaseDomain?: string;
+  musicServiceBaseDomain?: string
   /** A user-agent style string specifying the user agent. e.g. tealtracker/0.0.1b (Linux; Android 13; SM-A715F). Defaults to 'manual/unknown' if not provided. */
-  submissionClientAgent?: string;
+  submissionClientAgent?: string
   /** The unix timestamp of when the track was played */
-  playedTime?: string;
-  [k: string]: unknown;
+  playedTime?: string
+  [k: string]: unknown
 }
 
 export function isPlayView(v: unknown): v is PlayView {
   return (
     isObj(v) &&
-    hasProp(v, "$type") &&
-    v.$type === "fm.teal.alpha.feed.defs#playView"
-  );
+    hasProp(v, '$type') &&
+    v.$type === 'fm.teal.alpha.feed.defs#playView'
+  )
 }
 
 export function validatePlayView(v: unknown): ValidationResult {
-  return lexicons.validate("fm.teal.alpha.feed.defs#playView", v);
+  return lexicons.validate('fm.teal.alpha.feed.defs#playView', v)
 }
 
 export interface Artist {
   /** The name of the artist */
-  artistName: string;
+  artistName: string
   /** The Musicbrainz ID of the artist */
-  artistMbId?: string;
-  [k: string]: unknown;
+  artistMbId?: string
+  [k: string]: unknown
 }
 
 export function isArtist(v: unknown): v is Artist {
   return (
     isObj(v) &&
-    hasProp(v, "$type") &&
-    v.$type === "fm.teal.alpha.feed.defs#artist"
-  );
+    hasProp(v, '$type') &&
+    v.$type === 'fm.teal.alpha.feed.defs#artist'
+  )
 }
 
 export function validateArtist(v: unknown): ValidationResult {
-  return lexicons.validate("fm.teal.alpha.feed.defs#artist", v);
+  return lexicons.validate('fm.teal.alpha.feed.defs#artist', v)
 }

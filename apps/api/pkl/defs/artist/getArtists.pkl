@@ -1,4 +1,4 @@
-amends  "../../schema/lexicon.pkl"
+amends "../../schema/lexicon.pkl"
 
 lexicon = 1
 id = "app.rocksky.artist.getArtists"
@@ -21,6 +21,10 @@ defs = new Mapping<String, Query> {
         ["names"] = new StringType {
           type = "string"
           description = "The names of the artists to return"
+        }
+        ["genre"] = new StringType {
+          type = "string"
+          description = "The genre to filter artists by"
         }
       }
     }

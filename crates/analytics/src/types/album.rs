@@ -36,6 +36,7 @@ pub struct Album {
 pub struct GetAlbumsParams {
     pub user_did: Option<String>,
     pub pagination: Option<Pagination>,
+    pub genre: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]

@@ -1,41 +1,41 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import type { ValidationResult, BlobRef } from "@atproto/lexicon";
-import { lexicons } from "../../../lexicons";
-import { isObj, hasProp } from "../../../util";
-import { CID } from "multiformats/cid";
+import type { ValidationResult, BlobRef } from '@atproto/lexicon'
+import { lexicons } from '../../../lexicons'
+import { isObj, hasProp } from '../../../util'
+import { CID } from 'multiformats/cid'
 
 export interface Record {
   /** The name of the artist. */
-  name: string;
+  name: string
   /** The biography of the artist. */
-  bio?: string;
+  bio?: string
   /** The picture of the artist. */
-  picture?: BlobRef;
+  picture?: BlobRef
   /** The URL of the picture of the artist. */
-  pictureUrl?: string;
+  pictureUrl?: string
   /** The tags of the artist. */
-  tags?: string[];
+  tags?: string[]
   /** The birth date of the artist. */
-  born?: string;
+  born?: string
   /** The death date of the artist. */
-  died?: string;
+  died?: string
   /** The birth place of the artist. */
-  bornIn?: string;
+  bornIn?: string
   /** The date when the artist was created. */
-  createdAt: string;
-  [k: string]: unknown;
+  createdAt: string
+  [k: string]: unknown
 }
 
 export function isRecord(v: unknown): v is Record {
   return (
     isObj(v) &&
-    hasProp(v, "$type") &&
-    (v.$type === "app.rocksky.artist#main" || v.$type === "app.rocksky.artist")
-  );
+    hasProp(v, '$type') &&
+    (v.$type === 'app.rocksky.artist#main' || v.$type === 'app.rocksky.artist')
+  )
 }
 
 export function validateRecord(v: unknown): ValidationResult {
-  return lexicons.validate("app.rocksky.artist#main", v);
+  return lexicons.validate('app.rocksky.artist#main', v)
 }
