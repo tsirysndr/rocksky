@@ -7,7 +7,7 @@ import type { QueryParams } from "lexicon/types/app/rocksky/album/getAlbums";
 import { deepCamelCaseKeys } from "lib";
 
 export default function (server: Server, ctx: Context) {
-  const getAlbums = (params) =>
+  const getAlbums = (params: QueryParams) =>
     pipe(
       { params, ctx },
       retrieve,

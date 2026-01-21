@@ -11,7 +11,7 @@ import tables from "schema";
 import type { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
-  const play = (params, auth: HandlerAuth) =>
+  const play = (params: QueryParams, auth: HandlerAuth) =>
     pipe(
       { params, ctx, did: auth.credentials?.did },
       withUser,

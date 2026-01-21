@@ -9,7 +9,7 @@ import tables from "schema";
 import type { SelectArtist } from "schema/artists";
 
 export default function (server: Server, ctx: Context) {
-  const getArtist = (params) =>
+  const getArtist = (params: QueryParams) =>
     pipe(
       { params, ctx },
       retrieve,

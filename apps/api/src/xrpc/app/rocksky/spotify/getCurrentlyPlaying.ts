@@ -11,7 +11,7 @@ import type { SelectSpotifyAccount } from "schema/spotify-accounts";
 import type { SelectUser } from "schema/users";
 
 export default function (server: Server, ctx: Context) {
-  const getCurrentlyPlaying = (params, auth: HandlerAuth) =>
+  const getCurrentlyPlaying = (params: QueryParams, auth: HandlerAuth) =>
     pipe(
       { params, ctx, did: auth.credentials?.did },
       withUser,

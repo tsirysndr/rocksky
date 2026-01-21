@@ -13,7 +13,7 @@ import type { SelectTrack } from "schema/tracks";
 import type { SelectArtist } from "schema/artists";
 
 export default function (server: Server, ctx: Context) {
-  const getAlbum = (params) =>
+  const getAlbum = (params: QueryParams) =>
     pipe(
       { params, ctx },
       retrieve,

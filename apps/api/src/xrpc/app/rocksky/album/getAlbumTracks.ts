@@ -10,7 +10,7 @@ import * as R from "ramda";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
-  const getAlbumTracks = (params) =>
+  const getAlbumTracks = (params: QueryParams) =>
     pipe(
       { params, ctx },
       retrieve,

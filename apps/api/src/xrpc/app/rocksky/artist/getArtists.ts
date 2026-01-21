@@ -9,7 +9,7 @@ import tables from "schema";
 import { inArray } from "drizzle-orm";
 
 export default function (server: Server, ctx: Context) {
-  const getArtists = (params) =>
+  const getArtists = (params: QueryParams) =>
     pipe(
       { params, ctx },
       retrieve,

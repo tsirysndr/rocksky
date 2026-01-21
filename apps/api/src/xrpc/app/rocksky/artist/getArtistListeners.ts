@@ -6,7 +6,7 @@ import type { ListenerViewBasic } from "lexicon/types/app/rocksky/artist/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/artist/getArtistListeners";
 
 export default function (server: Server, ctx: Context) {
-  const getArtistListeners = (params) =>
+  const getArtistListeners = (params: QueryParams) =>
     pipe(
       { params, ctx },
       retrieve,
