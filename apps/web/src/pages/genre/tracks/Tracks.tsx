@@ -1,7 +1,9 @@
 import { Link, useParams } from "@tanstack/react-router";
-import { useTracksByGenreQuery } from "../../../hooks/useLibrary";
+import { useTracksByGenreInfiniteQuery } from "../../../hooks/useLibrary";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import numeral from "numeral";
+import { useEffect, useRef } from "react";
+import { LabelSmall } from "baseui/typography";
 
 type Row = {
   id: string;
@@ -18,13 +20,37 @@ type Row = {
 
 function Tracks() {
   const { id: genre } = useParams({ strict: false });
-  const { data, isLoading } = useTracksByGenreQuery(genre!, 0, 20);
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
+    useTracksByGenreInfiniteQuery(genre!, 20);
+
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    if (!loadMoreRef.current || !hasNextPage || isFetchingNextPage) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    observer.observe(loadMoreRef.current);
+
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const allTracks = data?.pages.flatMap((page) => page.tracks) ?? [];
+
   return (
     <>
       {!isLoading && (
         <>
           <TableBuilder
-            data={data?.map((x, index) => ({
+            data={allTracks.map((x, index) => ({
               id: x.id,
               title: x.title,
               artist: x.artist,
@@ -157,6 +183,17 @@ function Tracks() {
               )}
             </TableBuilderColumn>
           </TableBuilder>
+
+          {/* Infinite scroll trigger */}
+          <div ref={loadMoreRef} className="h-[20px] w-full" />
+
+          {isFetchingNextPage && (
+            <div className="text-center py-4">
+              <LabelSmall className="!text-[var(--color-text)]">
+                Loading more...
+              </LabelSmall>
+            </div>
+          )}
         </>
       )}
     </>

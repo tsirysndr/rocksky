@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import {
   getAlbum,
   getAlbums,
@@ -156,4 +156,68 @@ export const useArtistsByGenreQuery = (genre: string, offset = 0, limit = 20) =>
         ...x,
         scrobbles: x.playCount,
       })),
+  });
+
+export const useAlbumsByGenreInfiniteQuery = (genre: string, limit = 20) =>
+  useInfiniteQuery({
+    queryKey: ["infiniteAlbums", genre],
+    queryFn: async ({ pageParam = 0 }) => {
+      const data = await getAlbumsByGenre(genre, pageParam * limit, limit);
+      return {
+        albums: data?.albums.map((x) => ({
+          ...x,
+          scrobbles: x.playCount,
+        })),
+        nextOffset: pageParam + 1,
+      };
+    },
+    getNextPageParam: (lastPage) => {
+      if (!lastPage.albums || lastPage.albums.length < limit) return undefined;
+      return lastPage.nextOffset;
+    },
+    enabled: !!genre,
+    initialPageParam: 0,
+  });
+
+export const useArtistsByGenreInfiniteQuery = (genre: string, limit = 20) =>
+  useInfiniteQuery({
+    queryKey: ["infiniteArtists", genre],
+    queryFn: async ({ pageParam = 0 }) => {
+      const data = await getArtistsByGenre(genre, pageParam * limit, limit);
+      return {
+        artists: data?.artists.map((x) => ({
+          ...x,
+          scrobbles: x.playCount,
+        })),
+        nextOffset: pageParam + 1,
+      };
+    },
+    getNextPageParam: (lastPage) => {
+      if (!lastPage.artists || lastPage.artists.length < limit)
+        return undefined;
+      return lastPage.nextOffset;
+    },
+    enabled: !!genre,
+    initialPageParam: 0,
+  });
+
+export const useTracksByGenreInfiniteQuery = (genre: string, limit = 20) =>
+  useInfiniteQuery({
+    queryKey: ["infiniteTracks", genre],
+    queryFn: async ({ pageParam = 0 }) => {
+      const data = await getTracksByGenre(genre, pageParam * limit, limit);
+      return {
+        tracks: data?.tracks.map((x: any) => ({
+          ...x,
+          scrobbles: x.playCount,
+        })),
+        nextOffset: pageParam + 1,
+      };
+    },
+    getNextPageParam: (lastPage) => {
+      if (!lastPage.tracks || lastPage.tracks.length < limit) return undefined;
+      return lastPage.nextOffset;
+    },
+    enabled: !!genre,
+    initialPageParam: 0,
   });
