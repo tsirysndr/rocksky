@@ -2,7 +2,7 @@ import styled from "@emotion/styled";
 import { Link as DefaultLink, useParams } from "@tanstack/react-router";
 import { BlockProps } from "baseui/block";
 import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
-import { HeadingSmall, LabelMedium, LabelSmall } from "baseui/typography";
+import { HeadingSmall, LabelSmall } from "baseui/typography";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect, useState } from "react";
 import { topAlbumsAtom } from "../../../../atoms/topAlbums";
