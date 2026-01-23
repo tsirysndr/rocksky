@@ -5,6 +5,7 @@ import { BlockProps } from "baseui/block";
 import numeral from "numeral";
 import { useEffect, useRef } from "react";
 import { LabelSmall } from "baseui/typography";
+import ArtistIcon from "../../../components/Icons/Artist";
 
 const itemProps: BlockProps = {
   display: "flex",
@@ -58,12 +59,26 @@ function Artists() {
                     }
                     className="text-initial"
                   >
-                    <img
-                      src={artist.picture}
-                      alt={artist.name}
-                      className="w-[200px] h-[200px] rounded-full mb-[20px]"
-                      key={artist.id}
-                    />
+                    {artist.picture && (
+                      <img
+                        src={artist.picture}
+                        alt={artist.name}
+                        className="w-[200px] h-[200px] rounded-full mb-[20px]"
+                        key={artist.id}
+                      />
+                    )}
+                    {!artist.picture && (
+                      <div className="w-[200px] h-[200px] rounded-[80px] bg-[rgba(243, 243, 243, 0.725)] flex items-center justify-center">
+                        <div
+                          style={{
+                            height: 60,
+                            width: 60,
+                          }}
+                        >
+                          <ArtistIcon color="rgba(66, 87, 108, 0.65)" />
+                        </div>
+                      </div>
+                    )}
                   </Link>
                   <Link
                     to={
