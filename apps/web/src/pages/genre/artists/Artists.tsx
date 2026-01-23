@@ -68,7 +68,7 @@ function Artists() {
                       />
                     )}
                     {!artist.picture && (
-                      <div className="w-[200px] h-[200px] rounded-[80px] bg-[rgba(243, 243, 243, 0.725)] flex items-center justify-center">
+                      <div className="w-[200px] h-[200px] rounded-[80px] bg-[rgba(243, 243, 243, 0.725)] flex items-center justify-center mb-[20px]">
                         <div
                           style={{
                             height: 60,
