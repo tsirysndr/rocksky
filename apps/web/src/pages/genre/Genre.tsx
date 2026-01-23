@@ -13,7 +13,7 @@ export default function Genre() {
   const [activeKey, setActiveKey] = useState<React.Key>("0");
   return (
     <Main>
-      <div className="mt-[60px]">
+      <div className="mt-[60px] mb-[100px]">
         <HeadingMedium
           marginTop="0px"
           marginBottom={"35px"}
