@@ -2,14 +2,17 @@ import { useQuery } from "@tanstack/react-query";
 import {
   getAlbum,
   getAlbums,
+  getAlbumsByGenre,
   getArtist,
   getArtistAlbums,
   getArtistListeners,
   getArtists,
+  getArtistsByGenre,
   getArtistTracks,
   getLovedTracks,
   getSongByUri,
   getTracks,
+  getTracksByGenre,
 } from "../api/library";
 
 export const useSongByUriQuery = (uri: string) =>
@@ -116,4 +119,41 @@ export const useArtistListenersQuery = (uri: string, limit = 10) =>
     queryFn: () => getArtistListeners(uri, limit),
     enabled: !!uri,
     select: (data) => data.listeners,
+  });
+
+export const useTracksByGenreQuery = (genre: string, offset = 0, limit = 20) =>
+  useQuery({
+    queryKey: ["tracks", genre, offset, limit],
+    queryFn: () => getTracksByGenre(genre, offset, limit),
+    enabled: !!genre,
+    select: (data) =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data?.tracks.map((x: any) => ({
+        ...x,
+        scrobbles: x.playCount,
+      })),
+  });
+
+export const useAlbumsByGenreQuery = (genre: string, offset = 0, limit = 20) =>
+  useQuery({
+    queryKey: ["albums", genre, offset, limit],
+    queryFn: () => getAlbumsByGenre(genre, offset, limit),
+    enabled: !!genre,
+    select: (data) =>
+      data?.albums.map((x) => ({
+        ...x,
+        scrobbles: x.playCount,
+      })),
+  });
+
+export const useArtistsByGenreQuery = (genre: string, offset = 0, limit = 20) =>
+  useQuery({
+    queryKey: ["artists", genre, offset, limit],
+    queryFn: () => getArtistsByGenre(genre, offset, limit),
+    enabled: !!genre,
+    select: (data) =>
+      data?.artists.map((x) => ({
+        ...x,
+        scrobbles: x.playCount,
+      })),
   });

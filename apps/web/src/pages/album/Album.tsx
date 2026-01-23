@@ -198,12 +198,13 @@ const Album = () => {
               </div>
               <div className="mt-[10px]">
                 {(album?.tags || []).map((genre) => (
-                  <span
-                    className="mr-[15px] text-[var(--color-genre)] text-[13px]"
+                  <Link
+                    to={`/genre/${genre}` as string}
+                    className="mr-[15px] !text-[var(--color-genre)] text-[13px] !no-underline"
                     style={{ fontFamily: "RockfordSansRegular" }}
                   >
                     # {genre}
-                  </span>
+                  </Link>
                 ))}
               </div>
             </div>

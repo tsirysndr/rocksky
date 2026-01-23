@@ -33,6 +33,7 @@ import Circles from "./circles";
 import TopTrack from "./toptrack";
 import { useArtistsQuery } from "../../hooks/useLibrary";
 import { getLastDays } from "../../lib/date";
+import { Link } from "@tanstack/react-router";
 
 const Group = styled.div`
   display: flex;
@@ -306,12 +307,13 @@ function Profile(props: ProfileProps) {
           {tags.length > 0 && (
             <div className="mt-[30px] mb-[35px] flex flex-wrap">
               {tags.map((genre) => (
-                <span
-                  className="mr-[15px] mb-[5px] text-[var(--color-genre)] text-[13px] whitespace-nowrap"
+                <Link
+                  to={`/genre/${genre}` as string}
+                  className="mr-[15px] mb-[5px] text-[var(--color-genre)] text-[13px] whitespace-nowrap no-underline"
                   style={{ fontFamily: "RockfordSansRegular" }}
                 >
                   # {genre}
-                </span>
+                </Link>
               ))}
             </div>
           )}

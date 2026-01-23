@@ -1,5 +1,7 @@
 import { client } from ".";
+import { Album } from "../types/album";
 import { Artist } from "../types/artist";
+import { Track } from "../types/track";
 
 export const getSongByUri = async (uri: string) => {
   if (uri.includes("app.rocksky.scrobble")) {
@@ -159,6 +161,60 @@ export const getArtistListeners = async (uri: string, limit: number) => {
   const response = await client.get(
     "/xrpc/app.rocksky.artist.getArtistListeners",
     { params: { uri, limit } },
+  );
+  return response.data;
+};
+
+export const getAlbumsByGenre = async (
+  genre: string,
+  offset = 0,
+  limit = 20,
+) => {
+  const response = await client.get<{ albums: Album[] }>(
+    "/xrpc/app.rocksky.album.getAlbums",
+    {
+      params: {
+        genre,
+        limit,
+        offset,
+      },
+    },
+  );
+  return response.data;
+};
+
+export const getArtistsByGenre = async (
+  genre: string,
+  offset = 0,
+  limit = 20,
+) => {
+  const response = await client.get<{ artists: Artist[] }>(
+    "/xrpc/app.rocksky.artist.getArtists",
+    {
+      params: {
+        genre,
+        limit,
+        offset,
+      },
+    },
+  );
+  return response.data;
+};
+
+export const getTracksByGenre = async (
+  genre: string,
+  offset = 0,
+  limit = 20,
+) => {
+  const response = await client.get<{ tracks: Track[] }>(
+    "/xrpc/app.rocksky.song.getSongs",
+    {
+      params: {
+        genre,
+        limit,
+        offset,
+      },
+    },
   );
   return response.data;
 };

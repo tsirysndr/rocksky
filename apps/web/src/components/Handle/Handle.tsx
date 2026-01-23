@@ -261,12 +261,13 @@ function Handle(props: HandleProps) {
             {tags.length > 0 && (
               <div className="mt-[5px] flex flex-wrap gap-y-[2px]">
                 {tags.map((genre) => (
-                  <span
-                    className="mr-[15px] text-[var(--color-genre)] text-[13px] whitespace-nowrap"
+                  <Link
+                    to={`/genre/${genre}` as string}
+                    className="mr-[15px] text-[var(--color-genre)] text-[13px] whitespace-nowrap no-underline"
                     style={{ fontFamily: "RockfordSansRegular" }}
                   >
                     # {genre}
-                  </span>
+                  </Link>
                 ))}
               </div>
             )}

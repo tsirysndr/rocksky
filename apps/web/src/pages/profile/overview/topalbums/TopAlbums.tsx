@@ -144,23 +144,23 @@ function TopAlbums() {
                 <Link
                   to={`/${album.uri?.split("at://")[1].replace("app.rocksky.", "")}`}
                 >
-                  <LabelMedium className="!text-[var(--color-text)]">
+                  <b className="!text-[var(--color-text)] text-[15px]">
                     {album.title}
-                  </LabelMedium>
+                  </b>
                 </Link>
                 {album.artistUri && (
                   <Link
                     to={`/${album.artistUri.split("at://")[1].replace("app.rocksky.", "")}`}
                   >
-                    <LabelSmall className="!text-[var(--color-text-muted)]">
+                    <span className="!text-[var(--color-text)]  text-[14px]">
                       {album.artist}
-                    </LabelSmall>
+                    </span>
                   </Link>
                 )}
                 {!album.artistUri && (
-                  <LabelSmall className="!text-[var(--color-text-muted)]">
+                  <span className="!text-[var(--color-text)]  text-[14px]">
                     {album.artist}
-                  </LabelSmall>
+                  </span>
                 )}
                 <LabelSmall className="!text-[var(--color-text-muted)]">
                   {album.scrobbles} plays

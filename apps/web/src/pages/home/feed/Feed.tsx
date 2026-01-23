@@ -206,12 +206,13 @@ function Feed() {
                       {(song?.tags || []).length > 0 && (
                         <div className="mb-[10px] flex flex-wrap gap-x-[10px] gap-y-[4px]">
                           {(song?.tags || []).map((genre: string) => (
-                            <span
-                              className="text-[var(--color-genre)] text-[13px]"
+                            <Link
+                              to={`/genre/${genre}` as string}
+                              className="text-[var(--color-genre)] text-[13px] no-underline"
                               style={{ fontFamily: "RockfordSansRegular" }}
                             >
                               # {genre}
-                            </span>
+                            </Link>
                           ))}
                         </div>
                       )}

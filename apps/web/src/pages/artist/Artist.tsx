@@ -1,6 +1,6 @@
 import styled from "@emotion/styled";
 import { ExternalLink } from "@styled-icons/evaicons-solid";
-import { useParams } from "@tanstack/react-router";
+import { Link, useParams } from "@tanstack/react-router";
 import { Avatar } from "baseui/avatar";
 import { HeadingMedium, HeadingXSmall, LabelMedium } from "baseui/typography";
 import { useAtomValue, useSetAtom } from "jotai";
@@ -215,12 +215,13 @@ const Artist = () => {
           {artist && (
             <div className="mt-[30px]">
               {(artist?.tags || []).map((genre) => (
-                <span
-                  className="mr-[15px] text-[var(--color-genre)] text-[13px]"
+                <Link
+                  to={`/genre/${genre}` as string}
+                  className="mr-[15px] text-[var(--color-genre)] text-[13px] no-underline"
                   style={{ fontFamily: "RockfordSansRegular" }}
                 >
                   # {genre}
-                </span>
+                </Link>
               ))}
             </div>
           )}

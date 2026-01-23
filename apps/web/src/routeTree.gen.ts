@@ -16,6 +16,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as GoogledriveIndexRouteImport } from './routes/googledrive/index'
 import { Route as DropboxIndexRouteImport } from './routes/dropbox/index'
 import { Route as GoogledriveIdRouteImport } from './routes/googledrive/$id'
+import { Route as GenreIdRouteImport } from './routes/genre/$id'
 import { Route as DropboxIdRouteImport } from './routes/dropbox/$id'
 import { Route as ProfileDidIndexRouteImport } from './routes/profile/$did/index'
 import { Route as ProfileDidTracksRouteImport } from './routes/profile/$did/tracks'
@@ -65,6 +66,11 @@ const DropboxIndexRoute = DropboxIndexRouteImport.update({
 const GoogledriveIdRoute = GoogledriveIdRouteImport.update({
   id: '/googledrive/$id',
   path: '/googledrive/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GenreIdRoute = GenreIdRouteImport.update({
+  id: '/genre/$id',
+  path: '/genre/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DropboxIdRoute = DropboxIdRouteImport.update({
@@ -149,6 +155,7 @@ export interface FileRoutesByFullPath {
   '/loading': typeof LoadingRoute
   '/scrobble': typeof ScrobbleRoute
   '/dropbox/$id': typeof DropboxIdRoute
+  '/genre/$id': typeof GenreIdRoute
   '/googledrive/$id': typeof GoogledriveIdRoute
   '/dropbox': typeof DropboxIndexRoute
   '/googledrive': typeof GoogledriveIndexRoute
@@ -173,6 +180,7 @@ export interface FileRoutesByTo {
   '/loading': typeof LoadingRoute
   '/scrobble': typeof ScrobbleRoute
   '/dropbox/$id': typeof DropboxIdRoute
+  '/genre/$id': typeof GenreIdRoute
   '/googledrive/$id': typeof GoogledriveIdRoute
   '/dropbox': typeof DropboxIndexRoute
   '/googledrive': typeof GoogledriveIndexRoute
@@ -198,6 +206,7 @@ export interface FileRoutesById {
   '/loading': typeof LoadingRoute
   '/scrobble': typeof ScrobbleRoute
   '/dropbox/$id': typeof DropboxIdRoute
+  '/genre/$id': typeof GenreIdRoute
   '/googledrive/$id': typeof GoogledriveIdRoute
   '/dropbox/': typeof DropboxIndexRoute
   '/googledrive/': typeof GoogledriveIndexRoute
@@ -224,6 +233,7 @@ export interface FileRouteTypes {
     | '/loading'
     | '/scrobble'
     | '/dropbox/$id'
+    | '/genre/$id'
     | '/googledrive/$id'
     | '/dropbox'
     | '/googledrive'
@@ -248,6 +258,7 @@ export interface FileRouteTypes {
     | '/loading'
     | '/scrobble'
     | '/dropbox/$id'
+    | '/genre/$id'
     | '/googledrive/$id'
     | '/dropbox'
     | '/googledrive'
@@ -272,6 +283,7 @@ export interface FileRouteTypes {
     | '/loading'
     | '/scrobble'
     | '/dropbox/$id'
+    | '/genre/$id'
     | '/googledrive/$id'
     | '/dropbox/'
     | '/googledrive/'
@@ -297,6 +309,7 @@ export interface RootRouteChildren {
   LoadingRoute: typeof LoadingRoute
   ScrobbleRoute: typeof ScrobbleRoute
   DropboxIdRoute: typeof DropboxIdRoute
+  GenreIdRoute: typeof GenreIdRoute
   GoogledriveIdRoute: typeof GoogledriveIdRoute
   DropboxIndexRoute: typeof DropboxIndexRoute
   GoogledriveIndexRoute: typeof GoogledriveIndexRoute
@@ -365,6 +378,13 @@ declare module '@tanstack/react-router' {
       path: '/googledrive/$id'
       fullPath: '/googledrive/$id'
       preLoaderRoute: typeof GoogledriveIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/genre/$id': {
+      id: '/genre/$id'
+      path: '/genre/$id'
+      fullPath: '/genre/$id'
+      preLoaderRoute: typeof GenreIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dropbox/$id': {
@@ -481,6 +501,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoadingRoute: LoadingRoute,
   ScrobbleRoute: ScrobbleRoute,
   DropboxIdRoute: DropboxIdRoute,
+  GenreIdRoute: GenreIdRoute,
   GoogledriveIdRoute: GoogledriveIdRoute,
   DropboxIndexRoute: DropboxIndexRoute,
   GoogledriveIndexRoute: GoogledriveIndexRoute,
