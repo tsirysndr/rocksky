@@ -1,75 +1,75 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import type { ValidationResult, BlobRef } from '@atproto/lexicon'
-import { lexicons } from '../../../lexicons'
-import { isObj, hasProp } from '../../../util'
-import { CID } from 'multiformats/cid'
-import type * as AppRockskyArtistDefs from './artist/defs'
+import type { ValidationResult, BlobRef } from "@atproto/lexicon";
+import { lexicons } from "../../../lexicons";
+import { isObj, hasProp } from "../../../util";
+import { CID } from "multiformats/cid";
+import type * as AppRockskyArtistDefs from "./artist/defs";
 
 export interface Record {
   /** The title of the song. */
-  title: string
+  title: string;
   /** The artist of the song. */
-  artist: string
+  artist: string;
   /** The artists of the song with MusicBrainz IDs. */
-  artists?: AppRockskyArtistDefs.ArtistMbid[]
+  artists?: AppRockskyArtistDefs.ArtistMbid[];
   /** The album artist of the song. */
-  albumArtist: string
+  albumArtist: string;
   /** The album of the song. */
-  album: string
+  album: string;
   /** The duration of the song in seconds. */
-  duration: number
+  duration: number;
   /** The track number of the song in the album. */
-  trackNumber?: number
+  trackNumber?: number;
   /** The disc number of the song in the album. */
-  discNumber?: number
+  discNumber?: number;
   /** The release date of the song. */
-  releaseDate?: string
+  releaseDate?: string;
   /** The year the song was released. */
-  year?: number
+  year?: number;
   /** The genre of the song. */
-  genre?: string
+  genre?: string;
   /** The tags of the song. */
-  tags?: string[]
+  tags?: string[];
   /** The composer of the song. */
-  composer?: string
+  composer?: string;
   /** The lyrics of the song. */
-  lyrics?: string
+  lyrics?: string;
   /** The copyright message of the song. */
-  copyrightMessage?: string
+  copyrightMessage?: string;
   /** Informations about the song */
-  wiki?: string
+  wiki?: string;
   /** The album art of the song. */
-  albumArt?: BlobRef
+  albumArt?: BlobRef;
   /** The URL of the album art of the song. */
-  albumArtUrl?: string
+  albumArtUrl?: string;
   /** The YouTube link of the song. */
-  youtubeLink?: string
+  youtubeLink?: string;
   /** The Spotify link of the song. */
-  spotifyLink?: string
+  spotifyLink?: string;
   /** The Tidal link of the song. */
-  tidalLink?: string
+  tidalLink?: string;
   /** The Apple Music link of the song. */
-  appleMusicLink?: string
+  appleMusicLink?: string;
   /** The date when the song was created. */
-  createdAt: string
+  createdAt: string;
   /** The MusicBrainz ID of the song. */
-  mbid?: string
+  mbid?: string;
   /** The label of the song. */
-  label?: string
-  [k: string]: unknown
+  label?: string;
+  [k: string]: unknown;
 }
 
 export function isRecord(v: unknown): v is Record {
   return (
     isObj(v) &&
-    hasProp(v, '$type') &&
-    (v.$type === 'app.rocksky.scrobble#main' ||
-      v.$type === 'app.rocksky.scrobble')
-  )
+    hasProp(v, "$type") &&
+    (v.$type === "app.rocksky.scrobble#main" ||
+      v.$type === "app.rocksky.scrobble")
+  );
 }
 
 export function validateRecord(v: unknown): ValidationResult {
-  return lexicons.validate('app.rocksky.scrobble#main', v)
+  return lexicons.validate("app.rocksky.scrobble#main", v);
 }

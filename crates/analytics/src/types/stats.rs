@@ -12,6 +12,7 @@ pub struct GetStatsParams {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GetScrobblesPerDayParams {
     pub user_did: Option<String>,
+    pub genre: Option<String>,
     pub start: Option<String>,
     pub end: Option<String>,
 }
@@ -23,6 +24,7 @@ impl Default for GetScrobblesPerDayParams {
 
         GetScrobblesPerDayParams {
             user_did: None,
+            genre: None,
             start: Some(date_30_days_ago.to_string()),
             end: Some(current_date.to_string()),
         }

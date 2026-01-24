@@ -1,56 +1,56 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import type express from 'express'
-import { ValidationResult, BlobRef } from '@atproto/lexicon'
-import { lexicons } from '../../../../lexicons'
-import { isObj, hasProp } from '../../../../util'
-import { CID } from 'multiformats/cid'
-import type { HandlerAuth, HandlerPipeThrough } from '@atproto/xrpc-server'
-import type * as AppRockskyArtistDefs from '../artist/defs'
+import type express from "express";
+import { ValidationResult, BlobRef } from "@atproto/lexicon";
+import { lexicons } from "../../../../lexicons";
+import { isObj, hasProp } from "../../../../util";
+import { CID } from "multiformats/cid";
+import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
+import type * as AppRockskyArtistDefs from "../artist/defs";
 
 export interface QueryParams {
   /** The DID or handle of the actor */
-  did: string
+  did: string;
   /** The maximum number of albums to return */
-  limit?: number
+  limit?: number;
   /** The offset for pagination */
-  offset?: number
+  offset?: number;
   /** The start date to filter albums from (ISO 8601 format) */
-  startDate?: string
+  startDate?: string;
   /** The end date to filter albums to (ISO 8601 format) */
-  endDate?: string
+  endDate?: string;
 }
 
-export type InputSchema = undefined
+export type InputSchema = undefined;
 
 export interface OutputSchema {
-  artists?: AppRockskyArtistDefs.ArtistViewBasic[]
-  [k: string]: unknown
+  artists?: AppRockskyArtistDefs.ArtistViewBasic[];
+  [k: string]: unknown;
 }
 
-export type HandlerInput = undefined
+export type HandlerInput = undefined;
 
 export interface HandlerSuccess {
-  encoding: 'application/json'
-  body: OutputSchema
-  headers?: { [key: string]: string }
+  encoding: "application/json";
+  body: OutputSchema;
+  headers?: { [key: string]: string };
 }
 
 export interface HandlerError {
-  status: number
-  message?: string
+  status: number;
+  message?: string;
 }
 
-export type HandlerOutput = HandlerError | HandlerSuccess | HandlerPipeThrough
+export type HandlerOutput = HandlerError | HandlerSuccess | HandlerPipeThrough;
 export type HandlerReqCtx<HA extends HandlerAuth = never> = {
-  auth: HA
-  params: QueryParams
-  input: HandlerInput
-  req: express.Request
-  res: express.Response
-  resetRouteRateLimits: () => Promise<void>
-}
+  auth: HA;
+  params: QueryParams;
+  input: HandlerInput;
+  req: express.Request;
+  res: express.Response;
+  resetRouteRateLimits: () => Promise<void>;
+};
 export type Handler<HA extends HandlerAuth = never> = (
   ctx: HandlerReqCtx<HA>,
-) => Promise<HandlerOutput> | HandlerOutput
+) => Promise<HandlerOutput> | HandlerOutput;

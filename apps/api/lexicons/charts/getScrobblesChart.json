@@ -27,6 +27,10 @@
             "type": "string",
             "description": "The URI of the track to filter by",
             "format": "at-uri"
+          },
+          "genre": {
+            "type": "string",
+            "description": "The genre to filter by"
           }
         }
       },

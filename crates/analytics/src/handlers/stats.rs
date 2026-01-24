@@ -122,11 +122,12 @@ pub async fn get_scrobbles_per_day(
         .end
         .unwrap_or(GetScrobblesPerDayParams::default().end.unwrap());
     let did = params.user_did;
+    let genre = params.genre;
     tracing::info!(start = %start, end = %end, user_did = ?did, "Get scrobbles per day");
 
     let conn = conn.lock().unwrap();
-    match did {
-        Some(did) => {
+    match (did, genre) {
+        (Some(did), None) => {
             let mut stmt = conn.prepare(
                 r#"
             SELECT
@@ -153,7 +154,33 @@ pub async fn get_scrobbles_per_day(
             let scrobbles: Result<Vec<_>, _> = scrobbles.collect();
             Ok(HttpResponse::Ok().json(scrobbles?))
         }
-        None => {
+        (None, Some(genre)) => {
+            let mut stmt = conn.prepare(
+                r#"
+            SELECT
+                date_trunc('day', created_at) AS date,
+                COUNT(DISTINCT s.created_at) AS count
+            FROM
+                scrobbles s
+            LEFT JOIN users u ON s.user_id = u.id
+            LEFT JOIN artists a ON s.artist_id = a.id
+            WHERE list_contains(a.genres, ?) AND created_at BETWEEN ? AND ?
+            GROUP BY
+                date_trunc('day', created_at)
+            ORDER BY
+                date;
+            "#,
+            )?;
+            let scrobbles = stmt.query_map([&genre, &start, &end], |row| {
+                Ok(ScrobblesPerDay {
+                    date: row.get(0)?,
+                    count: row.get(1)?,
+                })
+            })?;
+            let scrobbles: Result<Vec<_>, _> = scrobbles.collect();
+            Ok(HttpResponse::Ok().json(scrobbles?))
+        }
+        _ => {
             let mut stmt = conn.prepare(
                 r#"
             SELECT

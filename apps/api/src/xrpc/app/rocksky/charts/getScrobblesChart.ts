@@ -86,6 +86,11 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
               track_id: songuri,
             }),
         ),
+        Match.when({ genre: (genre) => !!genre }, ({ genre }) =>
+          ctx.analytics.post("library.getScrobblesPerDay", {
+            genre,
+          }),
+        ),
         Match.orElse(() =>
           ctx.analytics.post("library.getScrobblesPerDay", {}),
         ),

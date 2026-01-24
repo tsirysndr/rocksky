@@ -1,49 +1,51 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import type express from 'express'
-import { ValidationResult, BlobRef } from '@atproto/lexicon'
-import { lexicons } from '../../../../lexicons'
-import { isObj, hasProp } from '../../../../util'
-import { CID } from 'multiformats/cid'
-import type { HandlerAuth, HandlerPipeThrough } from '@atproto/xrpc-server'
-import type * as AppRockskyChartsDefs from './defs'
+import type express from "express";
+import { ValidationResult, BlobRef } from "@atproto/lexicon";
+import { lexicons } from "../../../../lexicons";
+import { isObj, hasProp } from "../../../../util";
+import { CID } from "multiformats/cid";
+import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
+import type * as AppRockskyChartsDefs from "./defs";
 
 export interface QueryParams {
   /** The DID or handle of the actor */
-  did?: string
+  did?: string;
   /** The URI of the artist to filter by */
-  artisturi?: string
+  artisturi?: string;
   /** The URI of the album to filter by */
-  albumuri?: string
+  albumuri?: string;
   /** The URI of the track to filter by */
-  songuri?: string
+  songuri?: string;
+  /** The genre to filter by */
+  genre?: string;
 }
 
-export type InputSchema = undefined
-export type OutputSchema = AppRockskyChartsDefs.ChartsView
-export type HandlerInput = undefined
+export type InputSchema = undefined;
+export type OutputSchema = AppRockskyChartsDefs.ChartsView;
+export type HandlerInput = undefined;
 
 export interface HandlerSuccess {
-  encoding: 'application/json'
-  body: OutputSchema
-  headers?: { [key: string]: string }
+  encoding: "application/json";
+  body: OutputSchema;
+  headers?: { [key: string]: string };
 }
 
 export interface HandlerError {
-  status: number
-  message?: string
+  status: number;
+  message?: string;
 }
 
-export type HandlerOutput = HandlerError | HandlerSuccess | HandlerPipeThrough
+export type HandlerOutput = HandlerError | HandlerSuccess | HandlerPipeThrough;
 export type HandlerReqCtx<HA extends HandlerAuth = never> = {
-  auth: HA
-  params: QueryParams
-  input: HandlerInput
-  req: express.Request
-  res: express.Response
-  resetRouteRateLimits: () => Promise<void>
-}
+  auth: HA;
+  params: QueryParams;
+  input: HandlerInput;
+  req: express.Request;
+  res: express.Response;
+  resetRouteRateLimits: () => Promise<void>;
+};
 export type Handler<HA extends HandlerAuth = never> = (
   ctx: HandlerReqCtx<HA>,
-) => Promise<HandlerOutput> | HandlerOutput
+) => Promise<HandlerOutput> | HandlerOutput;

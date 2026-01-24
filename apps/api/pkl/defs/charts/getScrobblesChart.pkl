@@ -27,6 +27,10 @@ defs = new Mapping<String, Query> {
           description = "The URI of the track to filter by"
           format = "at-uri"
         }
+
+        ["genre"] = new StringType {
+          description = "The genre to filter by"
+        }
       }
     }
     output {
