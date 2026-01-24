@@ -4,7 +4,7 @@ import dayjs from "dayjs";
 import numeral from "numeral";
 import { useEffect, useState } from "react";
 import { Area, AreaChart, Tooltip, TooltipProps, XAxis } from "recharts";
-import useChart from "../../hooks/useChart";
+import useChart, { useGenreChartQuery } from "../../hooks/useChart";
 
 const CustomTooltip = ({
   active,
@@ -42,13 +42,18 @@ function ScrobblesAreaChart() {
       location: { pathname },
     },
   } = useRouter();
-  const { did, rkey } = useParams({ strict: false });
+  const { did, rkey, id: genre } = useParams({ strict: false });
   const [data, setData] = useState<
     {
       date: string;
       count: number;
     }[]
   >([]);
+  const { data: genreCharts } = useGenreChartQuery(genre!);
+
+  useEffect(() => {
+    setData(genreCharts);
+  }, [genreCharts]);
 
   useEffect(() => {
     const fetchScrobblesChart = async () => {

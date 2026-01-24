@@ -1,17 +1,17 @@
 export type Track = {
   id: string;
   uri: string;
-  unique_listeners: number;
-  play_count: number;
+  uniqueListeners: number;
+  playCount: number;
   title: string;
   artist: string;
-  artist_uri: string;
+  artistUri: string;
   album: string;
-  album_uri: string;
-  album_art: string;
-  album_artist: string;
-  copyright_message: string;
-  disc_number: number;
+  albumUri: string;
+  albumArt: string;
+  albumArtist: string;
+  copyrightMessage: string;
+  discNumber: number;
   duration: number;
   sha256: string;
   track_number: number;

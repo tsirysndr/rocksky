@@ -44,3 +44,13 @@ export const getProfileChart = async (did: string) => {
   }
   return response.data;
 };
+
+export const getGenreChart = async (genre: string) => {
+  const response = await axios.get(
+    `${API_URL}/xrpc/app.rocksky.charts.getScrobblesChart?genre=${genre}`,
+  );
+  if (response.status !== 200) {
+    return [];
+  }
+  return response.data;
+};

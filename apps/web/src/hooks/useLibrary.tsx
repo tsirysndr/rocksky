@@ -207,7 +207,7 @@ export const useTracksByGenreInfiniteQuery = (genre: string, limit = 20) =>
     queryFn: async ({ pageParam = 0 }) => {
       const data = await getTracksByGenre(genre, pageParam * limit, limit);
       return {
-        tracks: data?.tracks.map((x: any) => ({
+        tracks: data?.tracks.map((x) => ({
           ...x,
           scrobbles: x.playCount,
         })),

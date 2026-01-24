@@ -4,6 +4,7 @@ import { client } from "../api";
 import {
   getAlbumChart,
   getArtistChart,
+  getGenreChart,
   getProfileChart,
   getSongChart,
 } from "../api/charts";
@@ -41,6 +42,13 @@ export const useProfileChartQuery = (did: string) =>
   useQuery({
     queryKey: ["profileChart", did],
     queryFn: () => getProfileChart(did),
+    select: (data) => data.scrobbles || [],
+  });
+
+export const useGenreChartQuery = (genre: string) =>
+  useQuery({
+    queryKey: ["genreChart", genre],
+    queryFn: () => getGenreChart(genre),
     select: (data) => data.scrobbles || [],
   });
 
