@@ -1,7 +1,7 @@
 import type { Context } from "context";
 import { consola } from "consola";
-import { count, desc, eq, sql, and, gte, lte } from "drizzle-orm";
-import { Effect, pipe, Cache, Duration } from "effect";
+import { count, desc, sql, and, gte, lte, inArray } from "drizzle-orm";
+import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { SongViewBasic } from "lexicon/types/app/rocksky/song/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/charts/getTopTracks";
@@ -9,23 +9,13 @@ import { deepCamelCaseKeys } from "lib";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
-  const getTopTracksCache = Cache.make({
-    capacity: 100,
-    timeToLive: Duration.minutes(5),
-    lookup: (params: QueryParams) =>
-      pipe(
-        { params, ctx },
-        retrieve,
-        Effect.flatMap(presentation),
-        Effect.retry({ times: 3 }),
-        Effect.timeout("120 seconds"),
-      ),
-  });
-
   const getTopTracks = (params: QueryParams) =>
     pipe(
-      getTopTracksCache,
-      Effect.flatMap((cache) => cache.get(params)),
+      { params, ctx },
+      retrieve,
+      Effect.flatMap(presentation),
+      Effect.retry({ times: 3 }),
+      Effect.timeout("120 seconds"),
       Effect.catchAll((err) => {
         consola.error(err);
         return Effect.succeed({ tracks: [] });
@@ -80,6 +70,7 @@ const retrieve = ({
         .offset(offset);
 
       const topTracksData = await topTracksQuery.execute();
+      consola.info(`Found ${topTracksData.length} top tracks`);
 
       if (topTracksData.length === 0) {
         return { data: [] };
@@ -88,6 +79,7 @@ const retrieve = ({
       const trackIds = topTracksData
         .map((t) => t.trackId)
         .filter((id): id is string => id !== null);
+      consola.info(`Extracted ${trackIds.length} track IDs`);
 
       const tracks = await ctx.db
         .select({
@@ -108,8 +100,9 @@ const retrieve = ({
           createdAt: tables.tracks.createdAt,
         })
         .from(tables.tracks)
-        .where(sql`${tables.tracks.id} = ANY(${trackIds})`)
+        .where(inArray(tables.tracks.id, trackIds))
         .execute();
+      consola.info(`Retrieved ${tracks.length} track details`);
 
       const trackMap = new Map(tracks.map((track) => [track.id, track]));
 
@@ -124,12 +117,15 @@ const retrieve = ({
         .from(tables.scrobbles)
         .where(
           and(
-            sql`${tables.scrobbles.trackId} = ANY(${trackIds})`,
+            inArray(tables.scrobbles.trackId, trackIds),
             dateConditions.length > 0 ? and(...dateConditions) : undefined,
           ),
         )
         .groupBy(tables.scrobbles.trackId)
         .execute();
+      consola.info(
+        `Calculated unique listeners for ${uniqueListenersQuery.length} tracks`,
+      );
 
       const listenersMap = new Map(
         uniqueListenersQuery.map((item) => [
@@ -164,6 +160,7 @@ const retrieve = ({
           };
         })
         .filter((item): item is TopTrack => item !== null);
+      consola.info(`Returning ${result.length} top tracks with complete data`);
 
       return { data: result };
     },

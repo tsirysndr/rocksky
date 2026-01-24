@@ -1,7 +1,7 @@
 import type { Context } from "context";
 import { consola } from "consola";
-import { count, desc, sql, and, gte, lte } from "drizzle-orm";
-import { Effect, pipe, Cache, Duration } from "effect";
+import { count, desc, sql, and, gte, lte, inArray } from "drizzle-orm";
+import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ArtistViewBasic } from "lexicon/types/app/rocksky/artist/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/charts/getTopArtists";
@@ -9,23 +9,13 @@ import { deepCamelCaseKeys } from "lib";
 import tables from "schema";
 
 export default function (server: Server, ctx: Context) {
-  const getTopArtistsCache = Cache.make({
-    capacity: 100,
-    timeToLive: Duration.minutes(5),
-    lookup: (params: QueryParams) =>
-      pipe(
-        { params, ctx },
-        retrieve,
-        Effect.flatMap(presentation),
-        Effect.retry({ times: 3 }),
-        Effect.timeout("120 seconds"),
-      ),
-  });
-
   const getTopArtists = (params: QueryParams) =>
     pipe(
-      getTopArtistsCache,
-      Effect.flatMap((cache) => cache.get(params)),
+      { params, ctx },
+      retrieve,
+      Effect.flatMap(presentation),
+      Effect.retry({ times: 3 }),
+      Effect.timeout("120 seconds"),
       Effect.catchAll((err) => {
         consola.error(err);
         return Effect.succeed({ artists: [] });
@@ -80,6 +70,7 @@ const retrieve = ({
         .offset(offset);
 
       const topArtistsData = await topArtistsQuery.execute();
+      consola.info(`Found ${topArtistsData.length} top artists`);
 
       if (topArtistsData.length === 0) {
         return { data: [] };
@@ -88,6 +79,7 @@ const retrieve = ({
       const artistIds = topArtistsData
         .map((a) => a.artistId)
         .filter((id): id is string => id !== null);
+      consola.info(`Extracted ${artistIds.length} artist IDs`);
 
       const artists = await ctx.db
         .select({
@@ -99,8 +91,9 @@ const retrieve = ({
           genres: tables.artists.genres,
         })
         .from(tables.artists)
-        .where(sql`${tables.artists.id} = ANY(${artistIds})`)
+        .where(inArray(tables.artists.id, artistIds))
         .execute();
+      consola.info(`Retrieved ${artists.length} artist details`);
 
       const artistMap = new Map(artists.map((artist) => [artist.id, artist]));
 
@@ -115,12 +108,15 @@ const retrieve = ({
         .from(tables.scrobbles)
         .where(
           and(
-            sql`${tables.scrobbles.artistId} = ANY(${artistIds})`,
+            inArray(tables.scrobbles.artistId, artistIds),
             dateConditions.length > 0 ? and(...dateConditions) : undefined,
           ),
         )
         .groupBy(tables.scrobbles.artistId)
         .execute();
+      consola.info(
+        `Calculated unique listeners for ${uniqueListenersQuery.length} artists`,
+      );
 
       const listenersMap = new Map(
         uniqueListenersQuery.map((item) => [
@@ -146,6 +142,7 @@ const retrieve = ({
           };
         })
         .filter((item): item is TopArtist => item !== null);
+      consola.info(`Returning ${result.length} top artists with complete data`);
 
       return { data: result };
     },
