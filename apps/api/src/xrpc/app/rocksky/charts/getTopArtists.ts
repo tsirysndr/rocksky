@@ -1,6 +1,6 @@
 import type { Context } from "context";
 import { consola } from "consola";
-import { count, desc, sql, and, gte, lte, inArray } from "drizzle-orm";
+import { count, desc, sql, and, gte, lte, inArray, ne } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ArtistViewBasic } from "lexicon/types/app/rocksky/artist/defs";
@@ -63,7 +63,15 @@ const retrieve = ({
           scrobbles: count(tables.scrobbles.id).as("scrobbles"),
         })
         .from(tables.scrobbles)
-        .where(dateConditions.length > 0 ? and(...dateConditions) : undefined)
+        .leftJoin(
+          tables.artists,
+          sql`${tables.scrobbles.artistId} = ${tables.artists.id}`,
+        )
+        .where(
+          dateConditions.length > 0
+            ? and(...dateConditions, ne(tables.artists.name, "Various Artists"))
+            : ne(tables.artists.name, "Various Artists"),
+        )
         .groupBy(tables.scrobbles.artistId)
         .orderBy(desc(sql`count(${tables.scrobbles.id})`))
         .limit(limit)
