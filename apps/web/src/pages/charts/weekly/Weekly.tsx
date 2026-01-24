@@ -1,6 +1,5 @@
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import { useTopArtistsQuery } from "../../../hooks/useLibrary";
-import { Link } from "@tanstack/react-router";
 import Artist from "../../../components/Icons/Artist";
 import { getLastDays } from "../../../lib/date";
 import dayjs from "dayjs";
@@ -53,7 +52,7 @@ function Weekly() {
             style: {
               backgroundColor: "var(--color-background) !important",
               color: "var(--color-text) !important",
-              opacity: "90%",
+              opacity: "85%",
             },
           },
           TableBodyRow: {
@@ -76,7 +75,7 @@ function Weekly() {
           },
         }}
       >
-        <TableBuilderColumn header="Artist">
+        <TableBuilderColumn header="ARTIST">
           {(row: ArtistRow) => (
             <div className="flex flex-row items-center">
               <div>
@@ -84,12 +83,9 @@ function Weekly() {
                   {row.index + 1}
                 </div>
               </div>
-              <Link
-                to="/$did/artist/$rkey"
-                params={{
-                  did: row.uri?.split("at://")[1]?.split("/")[0] || "",
-                  rkey: row.uri?.split("/").pop() || "",
-                }}
+              <a
+                href={`/${row.uri?.split("at://")[1]?.replace("app.rocksky.", "")}`}
+                className="no-underline !text-[var(--color-text)]"
               >
                 {!!row.picture && (
                   <img
@@ -106,30 +102,26 @@ function Weekly() {
                     </div>
                   </div>
                 )}
-              </Link>
+              </a>
               <div>
-                <Link
-                  to="/$did/artist/$rkey"
-                  params={{
-                    did: row.uri?.split("at://")[1]?.split("/")[0] || "",
-                    rkey: row.uri?.split("/").pop() || "",
-                  }}
+                <a
+                  href={`/${row.uri?.split("at://")[1]?.replace("app.rocksky.", "")}`}
                   className="no-underline !text-[var(--color-text)]"
                 >
                   {row.name}
-                </Link>
+                </a>
               </div>
             </div>
           )}
         </TableBuilderColumn>
-        <TableBuilderColumn header="Listeners">
+        <TableBuilderColumn header="LISTENERS">
           {(row: ArtistRow) => (
             <div className="flex flex-row items-center">
-              {numeral(row.uniqueListeners).format("0.0")}
+              {numeral(row.uniqueListeners).format("0,0")}
             </div>
           )}
         </TableBuilderColumn>
-        <TableBuilderColumn header="Scrobbles">
+        <TableBuilderColumn header="SCROBBLES">
           {(row: ArtistRow) => (
             <div className="flex flex-row items-center">
               {numeral(row.scrobbles).format("0,0")}
