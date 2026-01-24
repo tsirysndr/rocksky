@@ -256,3 +256,33 @@ export const useTopArtistsQuery = (
         scrobbles: x.playCount,
       })),
   });
+
+export const useTopArtistsInfiniteQuery = (
+  limit = 20,
+  startDate?: Date,
+  endDate?: Date,
+) =>
+  useInfiniteQuery({
+    queryKey: ["infiniteTopArtists", limit, startDate, endDate],
+    queryFn: async ({ pageParam = 0 }) => {
+      const data = await getTopArtists(
+        pageParam * limit,
+        limit,
+        startDate,
+        endDate,
+      );
+      return {
+        artists: data?.artists.map((x) => ({
+          ...x,
+          scrobbles: x.playCount,
+        })),
+        nextOffset: pageParam + 1,
+      };
+    },
+    getNextPageParam: (lastPage) => {
+      if (!lastPage.artists || lastPage.artists.length < limit)
+        return undefined;
+      return lastPage.nextOffset;
+    },
+    initialPageParam: 0,
+  });
