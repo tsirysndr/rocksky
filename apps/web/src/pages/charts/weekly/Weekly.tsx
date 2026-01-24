@@ -3,6 +3,8 @@ import { useTopArtistsQuery } from "../../../hooks/useLibrary";
 import { Link } from "@tanstack/react-router";
 import Artist from "../../../components/Icons/Artist";
 import { getLastDays } from "../../../lib/date";
+import dayjs from "dayjs";
+import numeral from "numeral";
 
 type ArtistRow = {
   id: string;
@@ -10,32 +12,48 @@ type ArtistRow = {
   picture: string;
   uri: string;
   scrobbles: number;
+  uniqueListeners: number;
   index: number;
 };
 
 function Weekly() {
   const { data: artists } = useTopArtistsQuery(0, 20, ...getLastDays(7));
+  const end = dayjs();
+  const start = end.subtract(7, "day");
+  const range = `${start.format("DD MMM YYYY")} — ${end.format("DD MMM YYYY")}`;
+
   return (
     <>
+      <div className="mt-[15px] mb-[25px]">
+        <strong>{range}</strong>
+      </div>
       <TableBuilder
         data={artists?.map((x, index) => ({
-          id: x.id,
-          name: x.name,
-          picture: x.picture,
-          uri: x.uri,
-          scrobbles: x.scrobbles,
+          ...x,
           index,
         }))}
         divider="clean"
         overrides={{
-          TableHeadRow: {
-            style: {
-              display: "none",
-            },
-          },
           TableBodyCell: {
             style: {
               verticalAlign: "middle",
+            },
+          },
+          TableHead: {
+            style: {
+              backgroundColor: "var(--color-background) !important",
+            },
+          },
+          TableHeadRow: {
+            style: {
+              backgroundColor: "var(--color-background) !important",
+            },
+          },
+          TableHeadCell: {
+            style: {
+              backgroundColor: "var(--color-background) !important",
+              color: "var(--color-text) !important",
+              opacity: "90%",
             },
           },
           TableBodyRow: {
@@ -58,7 +76,7 @@ function Weekly() {
           },
         }}
       >
-        <TableBuilderColumn header="Name">
+        <TableBuilderColumn header="Artist">
           {(row: ArtistRow) => (
             <div className="flex flex-row items-center">
               <div>
@@ -101,6 +119,20 @@ function Weekly() {
                   {row.name}
                 </Link>
               </div>
+            </div>
+          )}
+        </TableBuilderColumn>
+        <TableBuilderColumn header="Listeners">
+          {(row: ArtistRow) => (
+            <div className="flex flex-row items-center">
+              {numeral(row.uniqueListeners).format("0.0")}
+            </div>
+          )}
+        </TableBuilderColumn>
+        <TableBuilderColumn header="Scrobbles">
+          {(row: ArtistRow) => (
+            <div className="flex flex-row items-center">
+              {numeral(row.scrobbles).format("0,0")}
             </div>
           )}
         </TableBuilderColumn>

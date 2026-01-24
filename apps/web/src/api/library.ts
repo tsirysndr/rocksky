@@ -226,7 +226,7 @@ export const getTopArtists = async (
   endDate?: Date,
 ) => {
   const response = await client.get<{ artists: Artist[] }>(
-    "/xrpc/app.rocksky.artist.getArtists",
+    "/xrpc/app.rocksky.charts.getTopArtists",
     {
       params: {
         limit,
@@ -246,7 +246,7 @@ export const getTopTracks = async (
   endDate?: Date,
 ) => {
   const response = await client.get<{ tracks: Track[] }>(
-    "/xrpc/app.rocksky.song.getSongs",
+    "/xrpc/app.rocksky.charts.getTopTracks",
     {
       params: {
         limit,
