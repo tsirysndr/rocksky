@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ScrobbleRouteImport } from './routes/scrobble'
 import { Route as LoadingRouteImport } from './routes/loading'
+import { Route as ChartsRouteImport } from './routes/charts'
 import { Route as ApikeysRouteImport } from './routes/apikeys'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GoogledriveIndexRouteImport } from './routes/googledrive/index'
@@ -41,6 +42,11 @@ const ScrobbleRoute = ScrobbleRouteImport.update({
 const LoadingRoute = LoadingRouteImport.update({
   id: '/loading',
   path: '/loading',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChartsRoute = ChartsRouteImport.update({
+  id: '/charts',
+  path: '/charts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApikeysRoute = ApikeysRouteImport.update({
@@ -152,6 +158,7 @@ const DidAlbumRkeyRoute = DidAlbumRkeyRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/apikeys': typeof ApikeysRoute
+  '/charts': typeof ChartsRoute
   '/loading': typeof LoadingRoute
   '/scrobble': typeof ScrobbleRoute
   '/dropbox/$id': typeof DropboxIdRoute
@@ -177,6 +184,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/apikeys': typeof ApikeysRoute
+  '/charts': typeof ChartsRoute
   '/loading': typeof LoadingRoute
   '/scrobble': typeof ScrobbleRoute
   '/dropbox/$id': typeof DropboxIdRoute
@@ -203,6 +211,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/apikeys': typeof ApikeysRoute
+  '/charts': typeof ChartsRoute
   '/loading': typeof LoadingRoute
   '/scrobble': typeof ScrobbleRoute
   '/dropbox/$id': typeof DropboxIdRoute
@@ -230,6 +239,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/apikeys'
+    | '/charts'
     | '/loading'
     | '/scrobble'
     | '/dropbox/$id'
@@ -255,6 +265,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/apikeys'
+    | '/charts'
     | '/loading'
     | '/scrobble'
     | '/dropbox/$id'
@@ -280,6 +291,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/apikeys'
+    | '/charts'
     | '/loading'
     | '/scrobble'
     | '/dropbox/$id'
@@ -306,6 +318,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApikeysRoute: typeof ApikeysRoute
+  ChartsRoute: typeof ChartsRoute
   LoadingRoute: typeof LoadingRoute
   ScrobbleRoute: typeof ScrobbleRoute
   DropboxIdRoute: typeof DropboxIdRoute
@@ -343,6 +356,13 @@ declare module '@tanstack/react-router' {
       path: '/loading'
       fullPath: '/loading'
       preLoaderRoute: typeof LoadingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/charts': {
+      id: '/charts'
+      path: '/charts'
+      fullPath: '/charts'
+      preLoaderRoute: typeof ChartsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/apikeys': {
@@ -498,6 +518,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApikeysRoute: ApikeysRoute,
+  ChartsRoute: ChartsRoute,
   LoadingRoute: LoadingRoute,
   ScrobbleRoute: ScrobbleRoute,
   DropboxIdRoute: DropboxIdRoute,

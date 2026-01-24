@@ -218,3 +218,43 @@ export const getTracksByGenre = async (
   );
   return response.data;
 };
+
+export const getTopArtists = async (
+  offset = 0,
+  limit = 20,
+  startDate?: Date,
+  endDate?: Date,
+) => {
+  const response = await client.get<{ artists: Artist[] }>(
+    "/xrpc/app.rocksky.artist.getArtists",
+    {
+      params: {
+        limit,
+        offset,
+        startDate: startDate?.toISOString(),
+        endDate: endDate?.toISOString(),
+      },
+    },
+  );
+  return response.data;
+};
+
+export const getTopTracks = async (
+  offset = 0,
+  limit = 20,
+  startDate?: Date,
+  endDate?: Date,
+) => {
+  const response = await client.get<{ tracks: Track[] }>(
+    "/xrpc/app.rocksky.song.getSongs",
+    {
+      params: {
+        limit,
+        offset,
+        startDate: startDate?.toISOString(),
+        endDate: endDate?.toISOString(),
+      },
+    },
+  );
+  return response.data;
+};

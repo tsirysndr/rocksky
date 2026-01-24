@@ -36,6 +36,8 @@ import type * as AppRockskyArtistGetArtistListeners from "./types/app/rocksky/ar
 import type * as AppRockskyArtistGetArtists from "./types/app/rocksky/artist/getArtists";
 import type * as AppRockskyArtistGetArtistTracks from "./types/app/rocksky/artist/getArtistTracks";
 import type * as AppRockskyChartsGetScrobblesChart from "./types/app/rocksky/charts/getScrobblesChart";
+import type * as AppRockskyChartsGetTopArtists from "./types/app/rocksky/charts/getTopArtists";
+import type * as AppRockskyChartsGetTopTracks from "./types/app/rocksky/charts/getTopTracks";
 import type * as AppRockskyDropboxDownloadFile from "./types/app/rocksky/dropbox/downloadFile";
 import type * as AppRockskyDropboxGetFiles from "./types/app/rocksky/dropbox/getFiles";
 import type * as AppRockskyDropboxGetMetadata from "./types/app/rocksky/dropbox/getMetadata";
@@ -555,6 +557,28 @@ export class AppRockskyChartsNS {
     >,
   ) {
     const nsid = "app.rocksky.charts.getScrobblesChart"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  getTopArtists<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyChartsGetTopArtists.Handler<ExtractAuth<AV>>,
+      AppRockskyChartsGetTopArtists.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.charts.getTopArtists"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  getTopTracks<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyChartsGetTopTracks.Handler<ExtractAuth<AV>>,
+      AppRockskyChartsGetTopTracks.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.charts.getTopTracks"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 }

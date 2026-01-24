@@ -44,6 +44,27 @@ export const Code = styled.div`
   border-radius: 5px;
 `;
 
+const AnimatedLink = styled.span`
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: -6px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background-color: var(--color-text);
+    transition: width 0.3s ease;
+  }
+
+  &:hover::after {
+    width: 100%;
+  }
+`;
+
 function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [{ darkMode }, setTheme] = useAtom(themeAtom);
@@ -111,6 +132,18 @@ function Navbar() {
           <h2 className="text-[var(--color-primary)] text-[26px] font-bold">
             Rocksky
           </h2>
+        </Link>
+      </div>
+      <div className="flex-1"></div>
+      <div>
+        <Link
+          to="/charts"
+          className="text-[var(--color-text)] text-[16px] opacity-90 hover:opacity-100"
+          style={{ textDecoration: "none" }}
+        >
+          <AnimatedLink>
+            <b>Charts</b>
+          </AnimatedLink>
         </Link>
       </div>
 
@@ -297,13 +330,7 @@ function Navbar() {
             </div>
           )}
         >
-          <button
-            style={{
-              border: "none",
-              backgroundColor: "transparent",
-              cursor: "pointer",
-            }}
-          >
+          <button className="ml-[15px] border-none bg-transparent cursor-pointer">
             <Avatar
               src={profile.avatar}
               name={profile.displayName}

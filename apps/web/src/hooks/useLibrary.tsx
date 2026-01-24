@@ -11,6 +11,8 @@ import {
   getArtistTracks,
   getLovedTracks,
   getSongByUri,
+  getTopArtists,
+  getTopTracks,
   getTracks,
   getTracksByGenre,
 } from "../api/library";
@@ -220,4 +222,37 @@ export const useTracksByGenreInfiniteQuery = (genre: string, limit = 20) =>
     },
     enabled: !!genre,
     initialPageParam: 0,
+  });
+
+export const useTopTracksQuery = (
+  offset = 0,
+  limit = 20,
+  startDate?: Date,
+  endDate?: Date,
+) =>
+  useQuery({
+    queryKey: ["top-tracks", offset, limit, startDate, endDate],
+    queryFn: () => getTopTracks(offset, limit, startDate, endDate),
+    select: (data) =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data?.tracks.map((x) => ({
+        ...x,
+        scrobbles: x.playCount,
+      })),
+  });
+
+export const useTopArtistsQuery = (
+  offset = 0,
+  limit = 20,
+  startDate?: Date,
+  endDate?: Date,
+) =>
+  useQuery({
+    queryKey: ["top-artists", offset, limit, startDate, endDate],
+    queryFn: () => getTopArtists(offset, limit, startDate, endDate),
+    select: (data) =>
+      data?.artists.map((x) => ({
+        ...x,
+        scrobbles: x.playCount,
+      })),
   });

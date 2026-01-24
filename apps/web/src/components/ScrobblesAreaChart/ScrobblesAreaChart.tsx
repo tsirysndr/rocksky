@@ -57,7 +57,7 @@ function ScrobblesAreaChart() {
 
   useEffect(() => {
     const fetchScrobblesChart = async () => {
-      if (pathname === "/") {
+      if (pathname === "/" || pathname === "/charts") {
         return;
       }
 
@@ -105,6 +105,7 @@ function ScrobblesAreaChart() {
 
   const chartData =
     pathname === "/" ||
+    pathname === "/charts" ||
     pathname.startsWith("/dropbox") ||
     (pathname.startsWith("/googledrive") && getScrobblesChart().length > 0)
       ? getScrobblesChart()

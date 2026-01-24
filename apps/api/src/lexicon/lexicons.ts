@@ -2246,6 +2246,109 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyChartsGetTopArtists: {
+    lexicon: 1,
+    id: "app.rocksky.charts.getTopArtists",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get top artists",
+        parameters: {
+          type: "params",
+          properties: {
+            limit: {
+              type: "integer",
+              description: "The maximum number of artists to return",
+              minimum: 1,
+            },
+            offset: {
+              type: "integer",
+              description: "The offset for pagination",
+              minimum: 0,
+            },
+            startDate: {
+              type: "string",
+              description:
+                "The start date to filter artists from (ISO 8601 format)",
+              format: "datetime",
+            },
+            endDate: {
+              type: "string",
+              description:
+                "The end date to filter artists to (ISO 8601 format)",
+              format: "datetime",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {
+              artists: {
+                type: "array",
+                items: {
+                  type: "ref",
+                  ref: "lex:app.rocksky.artist.defs#artistViewBasic",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyChartsGetTopTracks: {
+    lexicon: 1,
+    id: "app.rocksky.charts.getTopTracks",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get top tracks",
+        parameters: {
+          type: "params",
+          properties: {
+            limit: {
+              type: "integer",
+              description: "The maximum number of tracks to return",
+              minimum: 1,
+            },
+            offset: {
+              type: "integer",
+              description: "The offset for pagination",
+              minimum: 0,
+            },
+            startDate: {
+              type: "string",
+              description:
+                "The start date to filter tracks from (ISO 8601 format)",
+              format: "datetime",
+            },
+            endDate: {
+              type: "string",
+              description: "The end date to filter tracks to (ISO 8601 format)",
+              format: "datetime",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {
+              tracks: {
+                type: "array",
+                items: {
+                  type: "ref",
+                  ref: "lex:app.rocksky.song.defs#songViewBasic",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
   AppRockskyDropboxDefs: {
     lexicon: 1,
     id: "app.rocksky.dropbox.defs",
@@ -6069,6 +6172,8 @@ export const ids = {
   AppRockskyArtistGetArtistTracks: "app.rocksky.artist.getArtistTracks",
   AppRockskyChartsDefs: "app.rocksky.charts.defs",
   AppRockskyChartsGetScrobblesChart: "app.rocksky.charts.getScrobblesChart",
+  AppRockskyChartsGetTopArtists: "app.rocksky.charts.getTopArtists",
+  AppRockskyChartsGetTopTracks: "app.rocksky.charts.getTopTracks",
   AppRockskyDropboxDefs: "app.rocksky.dropbox.defs",
   AppRockskyDropboxDownloadFile: "app.rocksky.dropbox.downloadFile",
   AppRockskyDropboxGetFiles: "app.rocksky.dropbox.getFiles",

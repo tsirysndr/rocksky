@@ -83,6 +83,8 @@ import unfollowAccount from "./app/rocksky/graph/unfollowAccount";
 import getActorNeighbours from "./app/rocksky/actor/getActorNeighbours";
 import getActorCompatibility from "./app/rocksky/actor/getActorCompatibility";
 import matchSong from "./app/rocksky/song/matchSong";
+import getTopArtists from "./app/rocksky/charts/getTopArtists";
+import getTopTracks from "./app/rocksky/charts/getTopTracks";
 
 export default function (server: Server, ctx: Context) {
   // app.rocksky
@@ -169,6 +171,8 @@ export default function (server: Server, ctx: Context) {
   getActorNeighbours(server, ctx);
   getActorCompatibility(server, ctx);
   matchSong(server, ctx);
+  getTopArtists(server, ctx);
+  getTopTracks(server, ctx);
 
   return server;
 }
