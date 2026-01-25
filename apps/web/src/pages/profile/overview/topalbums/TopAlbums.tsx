@@ -21,6 +21,7 @@ import {
   LAST_DAYS_LABELS,
 } from "../../../../consts";
 import LastDaysMenu from "../../../../components/LastDaysMenu";
+import ContentLoader from "react-content-loader";
 
 const itemProps: BlockProps = {
   display: "flex",
@@ -121,12 +122,41 @@ function TopAlbums() {
           </button>
         </LastDaysMenu>
       </div>
-      {!topAlbums.length && (
+      {albumsResult.isLoading && (
+        <FlexGrid
+          flexGridColumnCount={[1, 2, 3]}
+          flexGridColumnGap="scale800"
+          flexGridRowGap="scale800"
+        >
+          {/* Generate 12 skeleton items (4 rows x 3 columns) */}
+          {[...Array(12)].map((_, index) => (
+            <FlexGridItem {...itemProps} key={index}>
+              <ContentLoader
+                width={230}
+                height={300}
+                viewBox="0 0 230 300"
+                backgroundColor="var(--color-skeleton-background)"
+                foregroundColor="var(--color-skeleton-foreground)"
+              >
+                {/* Square for album art */}
+                <rect x="0" y="0" rx="4" ry="4" width="230" height="230" />
+                {/* Album title */}
+                <rect x="0" y="245" rx="3" ry="3" width="180" height="15" />
+                {/* Artist name */}
+                <rect x="0" y="270" rx="3" ry="3" width="140" height="12" />
+                {/* Play count */}
+                <rect x="0" y="290" rx="3" ry="3" width="100" height="10" />
+              </ContentLoader>
+            </FlexGridItem>
+          ))}
+        </FlexGrid>
+      )}
+      {!albumsResult.isLoading && !topAlbums.length && (
         <div className="text-[var(--color-text-muted)] text-[14px]">
           @{user?.handle} has not listened to any albums yet.
         </div>
       )}
-      {topAlbums.length > 0 && (
+      {!albumsResult.isLoading && topAlbums.length > 0 && (
         <FlexGrid
           flexGridColumnCount={[1, 2, 3]}
           flexGridColumnGap="scale800"

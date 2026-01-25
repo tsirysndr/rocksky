@@ -16,6 +16,7 @@ import {
   useRecentTracksByDidQuery,
 } from "../../../../hooks/useProfile";
 import styles from "./styles";
+import ContentLoader from "react-content-loader";
 
 const Link = styled(DefaultLink)`
   color: inherit;
@@ -149,102 +150,150 @@ function RecentTracks(props: RecentTracksProps) {
         </Group>
       )}
 
-      <TableBuilder
-        data={recentTracks.map((x) => ({
-          id: x.id,
-          albumArt: x.albumArt,
-          title: x.title,
-          artist: x.artist,
-          date: x.date,
-          uri: x.uri,
-          albumUri: x.albumUri,
-          artistUri: x.artistUri,
-          albumArtist: x.albumArtist,
-        }))}
-        emptyMessage={`@${user?.handle} has not listened to any tracks yet.`}
-        divider="clean"
-        overrides={{
-          TableHeadRow: {
-            style: {
-              display: "none",
-              backgroundColor: "var(--color-background) !important",
-            },
-          },
-          TableBodyCell: {
-            style: {
-              verticalAlign: "center",
-            },
-          },
-          TableBodyRow: {
-            style: {
-              backgroundColor: "var(--color-background)",
-              ":hover": {
-                backgroundColor: "var(--color-menu-hover)",
+      {recentTracksResult.isLoading && (
+        <ContentLoader
+          width="100%"
+          height={500}
+          viewBox="0 0 700 500"
+          backgroundColor="var(--color-skeleton-background)"
+          foregroundColor="var(--color-skeleton-foreground)"
+        >
+          {/* Row 1 */}
+          <rect x="0" y="5" rx="4" ry="4" width="60" height="60" />
+          <rect x="80" y="15" rx="3" ry="3" width="220" height="15" />
+          <rect x="350" y="15" rx="3" ry="3" width="150" height="15" />
+          <rect x="550" y="15" rx="3" ry="3" width="120" height="12" />
+
+          {/* Row 2 */}
+          <rect x="0" y="85" rx="4" ry="4" width="60" height="60" />
+          <rect x="80" y="95" rx="3" ry="3" width="220" height="15" />
+          <rect x="350" y="95" rx="3" ry="3" width="150" height="15" />
+          <rect x="550" y="95" rx="3" ry="3" width="120" height="12" />
+
+          {/* Row 3 */}
+          <rect x="0" y="165" rx="4" ry="4" width="60" height="60" />
+          <rect x="80" y="175" rx="3" ry="3" width="220" height="15" />
+          <rect x="350" y="175" rx="3" ry="3" width="150" height="15" />
+          <rect x="550" y="175" rx="3" ry="3" width="120" height="12" />
+
+          {/* Row 4 */}
+          <rect x="0" y="245" rx="4" ry="4" width="60" height="60" />
+          <rect x="80" y="255" rx="3" ry="3" width="220" height="15" />
+          <rect x="350" y="255" rx="3" ry="3" width="150" height="15" />
+          <rect x="550" y="255" rx="3" ry="3" width="120" height="12" />
+
+          {/* Row 5 */}
+          <rect x="0" y="325" rx="4" ry="4" width="60" height="60" />
+          <rect x="80" y="335" rx="3" ry="3" width="220" height="15" />
+          <rect x="350" y="335" rx="3" ry="3" width="150" height="15" />
+          <rect x="550" y="335" rx="3" ry="3" width="120" height="12" />
+
+          {/* Row 6 */}
+          <rect x="0" y="405" rx="4" ry="4" width="60" height="60" />
+          <rect x="80" y="415" rx="3" ry="3" width="220" height="15" />
+          <rect x="350" y="415" rx="3" ry="3" width="150" height="15" />
+          <rect x="550" y="415" rx="3" ry="3" width="120" height="12" />
+        </ContentLoader>
+      )}
+
+      {!recentTracksResult.isLoading && (
+        <TableBuilder
+          data={recentTracks.map((x) => ({
+            id: x.id,
+            albumArt: x.albumArt,
+            title: x.title,
+            artist: x.artist,
+            date: x.date,
+            uri: x.uri,
+            albumUri: x.albumUri,
+            artistUri: x.artistUri,
+            albumArtist: x.albumArtist,
+          }))}
+          emptyMessage={`@${user?.handle} has not listened to any tracks yet.`}
+          divider="clean"
+          overrides={{
+            TableHeadRow: {
+              style: {
+                display: "none",
+                backgroundColor: "var(--color-background) !important",
               },
             },
-          },
-          TableEmptyMessage: {
-            style: {
-              backgroundColor: "var(--color-background)",
+            TableBodyCell: {
+              style: {
+                verticalAlign: "center",
+              },
             },
-          },
-          Table: {
-            style: {
-              backgroundColor: "var(--color-background)",
+            TableBodyRow: {
+              style: {
+                backgroundColor: "var(--color-background)",
+                ":hover": {
+                  backgroundColor: "var(--color-menu-hover)",
+                },
+              },
             },
-          },
-        }}
-      >
-        <TableBuilderColumn header="Title">
-          {(row: Row) => (
-            <div className="flex flex-row items-center">
-              <Link
-                to={`/${row.albumUri?.split("at://")[1].replace("app.rocksky.", "")}`}
-              >
-                <img
-                  src={row.albumArt}
-                  alt={row.title}
-                  className="w-[60px] mr-[20px] rounded-[5px]"
-                  key={row.id}
-                />
-              </Link>
-              <div>
+            TableEmptyMessage: {
+              style: {
+                backgroundColor: "var(--color-background)",
+              },
+            },
+            Table: {
+              style: {
+                backgroundColor: "var(--color-background)",
+              },
+            },
+          }}
+        >
+          <TableBuilderColumn header="Title">
+            {(row: Row) => (
+              <div className="flex flex-row items-center">
                 <Link
-                  to={`/${row.uri?.split("at://")[1].replace("app.rocksky.", "")}`}
-                  className="!text-[var(--color-text)]"
+                  to={`/${row.albumUri?.split("at://")[1].replace("app.rocksky.", "")}`}
                 >
-                  {row.title}
+                  <img
+                    src={row.albumArt}
+                    alt={row.title}
+                    className="w-[60px] mr-[20px] rounded-[5px]"
+                    key={row.id}
+                  />
                 </Link>
+                <div>
+                  <Link
+                    to={`/${row.uri?.split("at://")[1].replace("app.rocksky.", "")}`}
+                    className="!text-[var(--color-text)]"
+                  >
+                    {row.title}
+                  </Link>
+                </div>
               </div>
-            </div>
-          )}
-        </TableBuilderColumn>
-        <TableBuilderColumn header="Artist">
-          {(row: Row) => (
-            <Link
-              to={`/${row.artistUri?.split("at://")[1].replace("app.rocksky.", "")}`}
-              style={{ fontFamily: "RockfordSansLight" }}
-              className="!text-[var(--color-text)]"
-            >
-              {row.albumArtist}
-            </Link>
-          )}
-        </TableBuilderColumn>
-        <TableBuilderColumn header="Date">
-          {(row: Row) => (
-            <StatefulTooltip
-              content={dayjs(row.date).format("MMMM D, YYYY [at] HH:mm A")}
-              returnFocus
-              autoFocus
-            >
-              <div className="w-[120px] text-[var(--color-text-muted)]">
-                {dayjs(row.date).fromNow()}
-              </div>
-            </StatefulTooltip>
-          )}
-        </TableBuilderColumn>
-      </TableBuilder>
-      {props.showPagination && (
+            )}
+          </TableBuilderColumn>
+          <TableBuilderColumn header="Artist">
+            {(row: Row) => (
+              <Link
+                to={`/${row.artistUri?.split("at://")[1].replace("app.rocksky.", "")}`}
+                style={{ fontFamily: "RockfordSansLight" }}
+                className="!text-[var(--color-text)]"
+              >
+                {row.albumArtist}
+              </Link>
+            )}
+          </TableBuilderColumn>
+          <TableBuilderColumn header="Date">
+            {(row: Row) => (
+              <StatefulTooltip
+                content={dayjs(row.date).format("MMMM D, YYYY [at] HH:mm A")}
+                returnFocus
+                autoFocus
+              >
+                <div className="w-[120px] text-[var(--color-text-muted)]">
+                  {dayjs(row.date).fromNow()}
+                </div>
+              </StatefulTooltip>
+            )}
+          </TableBuilderColumn>
+        </TableBuilder>
+      )}
+      {props.showPagination && !recentTracksResult.isLoading && (
         <Pagination
           numPages={pages}
           currentPage={currentPage}

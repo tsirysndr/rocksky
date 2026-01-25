@@ -17,6 +17,7 @@ import styles from "./styles";
 import { IconChevronDown } from "@tabler/icons-react";
 import { getLastDays } from "../../../../lib/date";
 import LastDaysMenu from "../../../../components/LastDaysMenu";
+import ContentLoader from "react-content-loader";
 import {
   ALL_TIME,
   LAST_180_DAYS,
@@ -174,122 +175,170 @@ function TopArtists(props: TopArtistsProps) {
         </Group>
       )}
 
-      <TableBuilder
-        data={topArtists.map((x, index) => ({
-          id: x.id,
-          name: x.name,
-          picture: x.picture,
-          uri: x.uri,
-          scrobbles: x.scrobbles,
-          index,
-        }))}
-        emptyMessage={`@${user?.handle} has not listened to any artists yet.`}
-        divider="clean"
-        overrides={{
-          TableHeadRow: {
-            style: {
-              display: "none",
-            },
-          },
-          TableBodyCell: {
-            style: {
-              verticalAlign: "middle",
-            },
-          },
-          TableBodyRow: {
-            style: {
-              backgroundColor: "var(--color-background)",
-              ":hover": {
-                backgroundColor: "var(--color-menu-hover)",
+      {artistsResult.isLoading && (
+        <ContentLoader
+          width="100%"
+          height={500}
+          viewBox="0 0 700 500"
+          backgroundColor="var(--color-skeleton-background)"
+          foregroundColor="var(--color-skeleton-foreground)"
+        >
+          {/* Row 1 */}
+          <rect x="0" y="20" rx="3" ry="3" width="30" height="15" />
+          <circle cx="80" cy="30" r="30" />
+          <rect x="130" y="20" rx="3" ry="3" width="200" height="15" />
+          <rect x="500" y="20" rx="3" ry="3" width="150" height="15" />
+
+          {/* Row 2 */}
+          <rect x="0" y="100" rx="3" ry="3" width="30" height="15" />
+          <circle cx="80" cy="110" r="30" />
+          <rect x="130" y="100" rx="3" ry="3" width="200" height="15" />
+          <rect x="500" y="100" rx="3" ry="3" width="150" height="15" />
+
+          {/* Row 3 */}
+          <rect x="0" y="180" rx="3" ry="3" width="30" height="15" />
+          <circle cx="80" cy="190" r="30" />
+          <rect x="130" y="180" rx="3" ry="3" width="200" height="15" />
+          <rect x="500" y="180" rx="3" ry="3" width="150" height="15" />
+
+          {/* Row 4 */}
+          <rect x="0" y="260" rx="3" ry="3" width="30" height="15" />
+          <circle cx="80" cy="270" r="30" />
+          <rect x="130" y="260" rx="3" ry="3" width="200" height="15" />
+          <rect x="500" y="260" rx="3" ry="3" width="150" height="15" />
+
+          {/* Row 5 */}
+          <rect x="0" y="340" rx="3" ry="3" width="30" height="15" />
+          <circle cx="80" cy="350" r="30" />
+          <rect x="130" y="340" rx="3" ry="3" width="200" height="15" />
+          <rect x="500" y="340" rx="3" ry="3" width="150" height="15" />
+
+          {/* Row 6 */}
+          <rect x="0" y="420" rx="3" ry="3" width="30" height="15" />
+          <circle cx="80" cy="430" r="30" />
+          <rect x="130" y="420" rx="3" ry="3" width="200" height="15" />
+          <rect x="500" y="420" rx="3" ry="3" width="150" height="15" />
+        </ContentLoader>
+      )}
+
+      {!artistsResult.isLoading && (
+        <TableBuilder
+          data={topArtists.map((x, index) => ({
+            id: x.id,
+            name: x.name,
+            picture: x.picture,
+            uri: x.uri,
+            scrobbles: x.scrobbles,
+            index,
+          }))}
+          emptyMessage={`@${user?.handle} has not listened to any artists yet.`}
+          divider="clean"
+          overrides={{
+            TableHeadRow: {
+              style: {
+                display: "none",
               },
             },
-          },
-          TableEmptyMessage: {
-            style: {
-              backgroundColor: "var(--color-background)",
+            TableBodyCell: {
+              style: {
+                verticalAlign: "middle",
+              },
             },
-          },
-          Table: {
-            style: {
-              backgroundColor: "var(--color-background)",
+            TableBodyRow: {
+              style: {
+                backgroundColor: "var(--color-background)",
+                ":hover": {
+                  backgroundColor: "var(--color-menu-hover)",
+                },
+              },
             },
-          },
-        }}
-      >
-        <TableBuilderColumn header="Name">
-          {(row: Row) => (
-            <div className="flex flex-row items-center">
-              <div>
-                <div className="mr-[20px] text-[var(--color-text)]">
-                  {props.showPagination
-                    ? (currentPage - 1) * props.size! + row.index + 1
-                    : row.index + 1}
-                </div>
-              </div>
-              <Link
-                to="/$did/artist/$rkey"
-                params={{
-                  did: row.uri?.split("at://")[1]?.split("/")[0] || "",
-                  rkey: row.uri?.split("/").pop() || "",
-                }}
-              >
-                {!!row.picture && (
-                  <img
-                    src={row.picture}
-                    alt={row.name}
-                    className="w-[60px] h-[60px] rounded-full mr-[20px]"
-                    key={row.id}
-                  />
-                )}
-                {!row.picture && (
-                  <div className="w-[60px] h-[60px] rounded-full bg-[rgba(243, 243, 243, 0.725)] flex justify-center items-center mr-[20px]">
-                    <div className="h-[30px] w-[30px]">
-                      <Artist color="rgba(66, 87, 108, 0.65)" />
-                    </div>
+            TableEmptyMessage: {
+              style: {
+                backgroundColor: "var(--color-background)",
+              },
+            },
+            Table: {
+              style: {
+                backgroundColor: "var(--color-background)",
+              },
+            },
+          }}
+        >
+          <TableBuilderColumn header="Name">
+            {(row: Row) => (
+              <div className="flex flex-row items-center">
+                <div>
+                  <div className="mr-[20px] text-[var(--color-text)]">
+                    {props.showPagination
+                      ? (currentPage - 1) * props.size! + row.index + 1
+                      : row.index + 1}
                   </div>
-                )}
-              </Link>
-              <div>
+                </div>
                 <Link
                   to="/$did/artist/$rkey"
                   params={{
                     did: row.uri?.split("at://")[1]?.split("/")[0] || "",
                     rkey: row.uri?.split("/").pop() || "",
                   }}
-                  className="no-underline !text-[var(--color-text)]"
                 >
-                  {row.name}
+                  {!!row.picture && (
+                    <img
+                      src={row.picture}
+                      alt={row.name}
+                      className="w-[60px] h-[60px] rounded-full mr-[20px]"
+                      key={row.id}
+                    />
+                  )}
+                  {!row.picture && (
+                    <div className="w-[60px] h-[60px] rounded-full bg-[rgba(243, 243, 243, 0.725)] flex justify-center items-center mr-[20px]">
+                      <div className="h-[30px] w-[30px]">
+                        <Artist color="rgba(66, 87, 108, 0.65)" />
+                      </div>
+                    </div>
+                  )}
                 </Link>
+                <div>
+                  <Link
+                    to="/$did/artist/$rkey"
+                    params={{
+                      did: row.uri?.split("at://")[1]?.split("/")[0] || "",
+                      rkey: row.uri?.split("/").pop() || "",
+                    }}
+                    className="no-underline !text-[var(--color-text)]"
+                  >
+                    {row.name}
+                  </Link>
+                </div>
               </div>
-            </div>
-          )}
-        </TableBuilderColumn>
-        <TableBuilderColumn header="Scrobbles">
-          {(row: Row, index?: number) => (
-            <div className="relative w-[250px] mt-[-20px]">
-              <div
-                className={`absolute w-full top-[10px] left-[10px] z-[1] ${
-                  darkMode && (row.scrobbles / maxScrobbles) * 100 < 10
-                    ? "!text-[#fff]"
-                    : "!text-[#000]"
-                }`}
-              >
-                {numeral(row.scrobbles).format("0,0")}{" "}
-                {index == 0 && " scrobbles"}
+            )}
+          </TableBuilderColumn>
+          <TableBuilderColumn header="Scrobbles">
+            {(row: Row, index?: number) => (
+              <div className="relative w-[250px] mt-[-20px]">
+                <div
+                  className={`absolute w-full top-[10px] left-[10px] z-[1] ${
+                    darkMode && (row.scrobbles / maxScrobbles) * 100 < 10
+                      ? "!text-[#fff]"
+                      : "!text-[#000]"
+                  }`}
+                >
+                  {numeral(row.scrobbles).format("0,0")}{" "}
+                  {index == 0 && " scrobbles"}
+                </div>
+                <span
+                  style={{
+                    position: "absolute",
+                    height: 40,
+                    width: `${(row.scrobbles / maxScrobbles) * 100}%`,
+                    backgroundColor: "var(--color-bar)",
+                  }}
+                ></span>
               </div>
-              <span
-                style={{
-                  position: "absolute",
-                  height: 40,
-                  width: `${(row.scrobbles / maxScrobbles) * 100}%`,
-                  backgroundColor: "var(--color-bar)",
-                }}
-              ></span>
-            </div>
-          )}
-        </TableBuilderColumn>
-      </TableBuilder>
-      {showPagination && (
+            )}
+          </TableBuilderColumn>
+        </TableBuilder>
+      )}
+      {showPagination && !artistsResult.isLoading && (
         <Pagination
           numPages={pages}
           currentPage={currentPage}
