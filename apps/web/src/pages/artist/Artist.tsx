@@ -19,6 +19,7 @@ import Main from "../../layouts/Main";
 import Albums from "./Albums";
 import ArtistListeners from "./ArtistListeners";
 import PopularSongs from "./PopularSongs";
+import ContentLoader from "react-content-loader";
 
 const Group = styled.div`
   display: flex;
@@ -134,83 +135,109 @@ const Artist = () => {
     <Main>
       <div className="pb-[100px] pt-[50px]">
         <div className="mb-[50px]">
-          <Group>
-            <div className="mr-[20px]">
-              {artist?.picture && !loading && (
-                <Avatar
-                  name={artist?.name}
-                  src={artist?.picture}
-                  size="150px"
-                />
-              )}
-              {!artist?.picture && !loading && (
-                <div className="w-[150px] h-[150px] rounded-[80px] bg-[rgba(243, 243, 243, 0.725)] flex items-center justify-center">
-                  <div
-                    style={{
-                      height: 60,
-                      width: 60,
-                    }}
-                  >
-                    <ArtistIcon color="rgba(66, 87, 108, 0.65)" />
+          {loading && (
+            <ContentLoader
+              width="100%"
+              height={200}
+              viewBox="0 0 800 200"
+              backgroundColor="var(--color-skeleton-background)"
+              foregroundColor="var(--color-skeleton-foreground)"
+            >
+              {/* Avatar circle */}
+              <circle cx="75" cy="75" r="75" />
+              {/* Artist name */}
+              <rect x="180" y="40" rx="4" ry="4" width="300" height="24" />
+              {/* Listeners label */}
+              <rect x="180" y="90" rx="3" ry="3" width="80" height="12" />
+              {/* Listeners count */}
+              <rect x="180" y="110" rx="3" ry="3" width="100" height="20" />
+              {/* Scrobbles label */}
+              <rect x="300" y="90" rx="3" ry="3" width="80" height="12" />
+              {/* Scrobbles count */}
+              <rect x="300" y="110" rx="3" ry="3" width="100" height="20" />
+              {/* View on PDSls button */}
+              <rect x="620" y="100" rx="8" ry="8" width="180" height="48" />
+            </ContentLoader>
+          )}
+          {!loading && (
+            <Group>
+              <div className="mr-[20px]">
+                {artist?.picture && (
+                  <Avatar
+                    name={artist?.name}
+                    src={artist?.picture}
+                    size="150px"
+                  />
+                )}
+                {!artist?.picture && (
+                  <div className="w-[150px] h-[150px] rounded-[80px] bg-[rgba(243, 243, 243, 0.725)] flex items-center justify-center">
+                    <div
+                      style={{
+                        height: 60,
+                        width: 60,
+                      }}
+                    >
+                      <ArtistIcon color="rgba(66, 87, 108, 0.65)" />
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-            {artist && !loading && (
-              <div style={{ flex: 1 }}>
-                <HeadingMedium
-                  marginTop={"20px"}
-                  marginBottom={0}
-                  className="!text-[var(--color-text)]"
-                >
-                  {artist?.name}
-                </HeadingMedium>
-                <div className="mt-[20px] flex flex-row">
-                  <div className="mr-[20px]">
-                    <LabelMedium
-                      margin={0}
-                      className="!text-[var(--color-text-muted)]"
-                    >
-                      Listeners
-                    </LabelMedium>
-                    <HeadingXSmall
-                      margin={0}
-                      className="!text-[var(--color-text)]"
-                    >
-                      {numeral(artist?.listeners).format("0,0")}
-                    </HeadingXSmall>
-                  </div>
-                  <div>
-                    <LabelMedium
-                      margin={0}
-                      className="!text-[var(--color-text-muted)]"
-                    >
-                      Scrobbles
-                    </LabelMedium>
-                    <HeadingXSmall
-                      margin={0}
-                      className="!text-[var(--color-text)]"
-                    >
-                      {numeral(artist?.scrobbles).format("0,0")}
-                    </HeadingXSmall>
-                  </div>
-                  <div className="flex items-center justify-end flex-1 mr-[10px]">
-                    <a
-                      href={`https://pdsls.dev/at/${uri.replace("at://", "")}`}
-                      target="_blank"
-                      className="text-[var(--color-text)] no-underline bg-[var(--color-default-button)] rounded-[10px] p-[16px] pl-[25px] pr-[25px]"
-                    >
-                      <ExternalLink
-                        size={24}
-                        className="mr-[10px] text-[var(--color-text)]"
-                      />
-                      View on PDSls
-                    </a>
-                  </div>
-                </div>
+                )}
               </div>
-            )}
-          </Group>
+              {artist && (
+                <div style={{ flex: 1 }}>
+                  <HeadingMedium
+                    marginTop={"20px"}
+                    marginBottom={0}
+                    className="!text-[var(--color-text)]"
+                  >
+                    {artist?.name}
+                  </HeadingMedium>
+                  <div className="mt-[20px] flex flex-row">
+                    <div className="mr-[20px]">
+                      <LabelMedium
+                        margin={0}
+                        className="!text-[var(--color-text-muted)]"
+                      >
+                        Listeners
+                      </LabelMedium>
+                      <HeadingXSmall
+                        margin={0}
+                        className="!text-[var(--color-text)]"
+                      >
+                        {numeral(artist?.listeners).format("0,0")}
+                      </HeadingXSmall>
+                    </div>
+                    <div>
+                      <LabelMedium
+                        margin={0}
+                        className="!text-[var(--color-text-muted)]"
+                      >
+                        Scrobbles
+                      </LabelMedium>
+                      <HeadingXSmall
+                        margin={0}
+                        className="!text-[var(--color-text)]"
+                      >
+                        {numeral(artist?.scrobbles).format("0,0")}
+                      </HeadingXSmall>
+                    </div>
+                    <div className="flex items-center justify-end flex-1 mr-[10px]">
+                      <a
+                        href={`https://pdsls.dev/at/${uri.replace("at://", "")}`}
+                        target="_blank"
+                        className="text-[var(--color-text)] no-underline bg-[var(--color-default-button)] rounded-[10px] p-[16px] pl-[25px] pr-[25px]"
+                      >
+                        <ExternalLink
+                          size={24}
+                          className="mr-[10px] text-[var(--color-text)]"
+                        />
+                        View on PDSls
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </Group>
+          )}
 
           {artist && (
             <div className="mt-[30px]">
@@ -226,7 +253,10 @@ const Artist = () => {
             </div>
           )}
         </div>
-        <PopularSongs topTracks={topTracks} />
+        <PopularSongs
+          topTracks={topTracks}
+          isLoading={artistTracksResult.isLoading}
+        />
         <Albums topAlbums={topAlbums} />
         <ArtistListeners listeners={artistListenersResult.data} />
         <Shout type="artist" />
