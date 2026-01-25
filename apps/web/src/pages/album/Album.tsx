@@ -112,20 +112,73 @@ const Album = () => {
     <Main>
       <div className="pb-[100px] pt-[50px]">
         {!album && (
-          <ContentLoader
-            backgroundColor="var(--color-skeleton-background)"
-            foregroundColor="var(--color-skeleton-foreground)"
-            viewBox="100 0 850 700"
-            height={520}
-            width={700}
-          >
-            <rect x="400" y="21" rx="10" ry="10" width="694" height="20" />
-            <rect x="400" y="61" rx="10" ry="10" width="80" height="20" />
-            <rect x="500" y="-46" rx="3" ry="3" width="350" height="6" />
-            <rect x="471" y="-45" rx="3" ry="3" width="380" height="6" />
-            <rect x="484" y="-45" rx="3" ry="3" width="201" height="6" />
-            <rect x="10" y="21" rx="8" ry="8" width="360" height="300" />
-          </ContentLoader>
+          <div className="mt-[-50px]">
+            <ContentLoader
+              width="100%"
+              height={600}
+              viewBox="0 0 900 600"
+              backgroundColor="var(--color-skeleton-background)"
+              foregroundColor="var(--color-skeleton-foreground)"
+            >
+              {/* Album cover */}
+              <rect x="0" y="20" rx="8" ry="8" width="240" height="240" />
+
+              {/* Album title */}
+              <rect x="270" y="20" rx="4" ry="4" width="350" height="28" />
+
+              {/* Artist name */}
+              <rect x="270" y="65" rx="3" ry="3" width="220" height="20" />
+
+              {/* Listeners label */}
+              <rect x="270" y="120" rx="3" ry="3" width="80" height="12" />
+              {/* Listeners count */}
+              <rect x="270" y="140" rx="3" ry="3" width="100" height="18" />
+
+              {/* Scrobbles label */}
+              <rect x="390" y="120" rx="3" ry="3" width="80" height="12" />
+              {/* Scrobbles count */}
+              <rect x="390" y="140" rx="3" ry="3" width="100" height="18" />
+
+              {/* View on PDSls button */}
+              <rect x="700" y="125" rx="8" ry="8" width="180" height="48" />
+
+              {/* Genre tags */}
+              <rect x="270" y="185" rx="3" ry="3" width="60" height="14" />
+              <rect x="340" y="185" rx="3" ry="3" width="70" height="14" />
+              <rect x="420" y="185" rx="3" ry="3" width="55" height="14" />
+
+              {/* Track list rows */}
+              {/* Row 1 */}
+              <rect x="0" y="300" rx="3" ry="3" width="30" height="15" />
+              <rect x="50" y="300" rx="3" ry="3" width="500" height="15" />
+              <rect x="800" y="300" rx="3" ry="3" width="60" height="15" />
+
+              {/* Row 2 */}
+              <rect x="0" y="350" rx="3" ry="3" width="30" height="15" />
+              <rect x="50" y="350" rx="3" ry="3" width="500" height="15" />
+              <rect x="800" y="350" rx="3" ry="3" width="60" height="15" />
+
+              {/* Row 3 */}
+              <rect x="0" y="400" rx="3" ry="3" width="30" height="15" />
+              <rect x="50" y="400" rx="3" ry="3" width="500" height="15" />
+              <rect x="800" y="400" rx="3" ry="3" width="60" height="15" />
+
+              {/* Row 4 */}
+              <rect x="0" y="450" rx="3" ry="3" width="30" height="15" />
+              <rect x="50" y="450" rx="3" ry="3" width="500" height="15" />
+              <rect x="800" y="450" rx="3" ry="3" width="60" height="15" />
+
+              {/* Row 5 */}
+              <rect x="0" y="500" rx="3" ry="3" width="30" height="15" />
+              <rect x="50" y="500" rx="3" ry="3" width="500" height="15" />
+              <rect x="800" y="500" rx="3" ry="3" width="60" height="15" />
+
+              {/* Row 6 */}
+              <rect x="0" y="550" rx="3" ry="3" width="30" height="15" />
+              <rect x="50" y="550" rx="3" ry="3" width="500" height="15" />
+              <rect x="800" y="550" rx="3" ry="3" width="60" height="15" />
+            </ContentLoader>
+          </div>
         )}
         {album && (
           <Group>
