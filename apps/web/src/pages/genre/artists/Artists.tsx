@@ -6,6 +6,7 @@ import numeral from "numeral";
 import { useEffect, useRef } from "react";
 import { LabelSmall } from "baseui/typography";
 import ArtistIcon from "../../../components/Icons/Artist";
+import ContentLoader from "react-content-loader";
 
 const itemProps: BlockProps = {
   display: "flex",
@@ -42,6 +43,34 @@ function Artists() {
 
   return (
     <>
+      {isLoading && (
+        <FlexGrid
+          flexGridColumnCount={[1, 2, 3]}
+          flexGridColumnGap="scale800"
+          flexGridRowGap="scale1000"
+          className="mt-[50px]"
+        >
+          {/* Generate 9 skeleton items (3x3 grid) */}
+          {[...Array(9)].map((_, index) => (
+            <FlexGridItem {...itemProps} key={index}>
+              <ContentLoader
+                width={200}
+                height={250}
+                viewBox="0 0 200 250"
+                backgroundColor="var(--color-skeleton-background)"
+                foregroundColor="var(--color-skeleton-foreground)"
+              >
+                {/* Circle for artist avatar */}
+                <circle cx="100" cy="100" r="100" />
+                {/* Artist name */}
+                <rect x="50" y="220" rx="3" ry="3" width="100" height="12" />
+                {/* Play count */}
+                <rect x="60" y="240" rx="3" ry="3" width="80" height="10" />
+              </ContentLoader>
+            </FlexGridItem>
+          ))}
+        </FlexGrid>
+      )}
       {!isLoading && (
         <>
           <FlexGrid

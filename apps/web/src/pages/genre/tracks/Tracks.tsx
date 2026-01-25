@@ -4,6 +4,7 @@ import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import numeral from "numeral";
 import { useEffect, useRef } from "react";
 import { LabelSmall } from "baseui/typography";
+import ContentLoader from "react-content-loader";
 
 type Row = {
   id: string;
@@ -47,6 +48,59 @@ function Tracks() {
 
   return (
     <>
+      {isLoading && (
+        <div className="ml-[-150px] mt-[20px]">
+          <ContentLoader
+            width="100%"
+            height={500}
+            viewBox="0 0 600 500"
+            backgroundColor="var(--color-skeleton-background)"
+            foregroundColor="var(--color-skeleton-foreground)"
+          >
+            {/* Row 1 */}
+            <rect x="0" y="10" rx="3" ry="3" width="30" height="15" />
+            <rect x="50" y="5" rx="4" ry="4" width="60" height="60" />
+            <rect x="130" y="15" rx="3" ry="3" width="200" height="15" />
+            <rect x="130" y="40" rx="3" ry="3" width="150" height="12" />
+            <rect x="500" y="20" rx="3" ry="3" width="80" height="15" />
+
+            {/* Row 2 */}
+            <rect x="0" y="90" rx="3" ry="3" width="30" height="15" />
+            <rect x="50" y="85" rx="4" ry="4" width="60" height="60" />
+            <rect x="130" y="95" rx="3" ry="3" width="200" height="15" />
+            <rect x="130" y="120" rx="3" ry="3" width="150" height="12" />
+            <rect x="500" y="100" rx="3" ry="3" width="80" height="15" />
+
+            {/* Row 3 */}
+            <rect x="0" y="170" rx="3" ry="3" width="30" height="15" />
+            <rect x="50" y="165" rx="4" ry="4" width="60" height="60" />
+            <rect x="130" y="175" rx="3" ry="3" width="200" height="15" />
+            <rect x="130" y="200" rx="3" ry="3" width="150" height="12" />
+            <rect x="500" y="180" rx="3" ry="3" width="80" height="15" />
+
+            {/* Row 4 */}
+            <rect x="0" y="250" rx="3" ry="3" width="30" height="15" />
+            <rect x="50" y="245" rx="4" ry="4" width="60" height="60" />
+            <rect x="130" y="255" rx="3" ry="3" width="200" height="15" />
+            <rect x="130" y="280" rx="3" ry="3" width="150" height="12" />
+            <rect x="500" y="260" rx="3" ry="3" width="80" height="15" />
+
+            {/* Row 5 */}
+            <rect x="0" y="330" rx="3" ry="3" width="30" height="15" />
+            <rect x="50" y="325" rx="4" ry="4" width="60" height="60" />
+            <rect x="130" y="335" rx="3" ry="3" width="200" height="15" />
+            <rect x="130" y="360" rx="3" ry="3" width="150" height="12" />
+            <rect x="500" y="340" rx="3" ry="3" width="80" height="15" />
+
+            {/* Row 6 */}
+            <rect x="0" y="410" rx="3" ry="3" width="30" height="15" />
+            <rect x="50" y="405" rx="4" ry="4" width="60" height="60" />
+            <rect x="130" y="415" rx="3" ry="3" width="200" height="15" />
+            <rect x="130" y="440" rx="3" ry="3" width="150" height="12" />
+            <rect x="500" y="420" rx="3" ry="3" width="80" height="15" />
+          </ContentLoader>
+        </div>
+      )}
       {!isLoading && (
         <>
           <TableBuilder

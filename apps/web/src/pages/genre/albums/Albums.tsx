@@ -6,6 +6,7 @@ import numeral from "numeral";
 import dayjs from "dayjs";
 import { useEffect, useRef } from "react";
 import { LabelSmall } from "baseui/typography";
+import ContentLoader from "react-content-loader";
 
 const itemProps: BlockProps = {
   display: "flex",
@@ -42,6 +43,39 @@ function Albums() {
 
   return (
     <>
+      {isLoading && (
+        <FlexGrid
+          flexGridColumnCount={[1, 2, 3]}
+          flexGridColumnGap="scale800"
+          flexGridRowGap="scale1000"
+          className="mt-[50px]"
+        >
+          {/* Generate 12 skeleton items (4 rows x 3 columns) */}
+          {[...Array(12)].map((_, index) => (
+            <FlexGridItem {...itemProps} key={index}>
+              <ContentLoader
+                width={230}
+                height={330}
+                viewBox="0 0 230 330"
+                backgroundColor="var(--color-skeleton-background)"
+                foregroundColor="var(--color-skeleton-foreground)"
+              >
+                {/* Square for album art */}
+                <rect x="0" y="0" rx="4" ry="4" width="230" height="230" />
+                {/* Album title - 2 lines */}
+                <rect x="0" y="250" rx="3" ry="3" width="200" height="12" />
+                <rect x="0" y="268" rx="3" ry="3" width="150" height="12" />
+                {/* Artist name */}
+                <rect x="0" y="290" rx="3" ry="3" width="120" height="10" />
+                {/* Play count */}
+                <rect x="0" y="308" rx="3" ry="3" width="100" height="10" />
+                {/* Release date */}
+                <rect x="0" y="323" rx="3" ry="3" width="130" height="10" />
+              </ContentLoader>
+            </FlexGridItem>
+          ))}
+        </FlexGrid>
+      )}
       {!isLoading && (
         <>
           <FlexGrid
