@@ -34,6 +34,7 @@ import TopTrack from "./toptrack";
 import { useArtistsQuery } from "../../hooks/useLibrary";
 import { getLastDays } from "../../lib/date";
 import { Link } from "@tanstack/react-router";
+import ContentLoader from "react-content-loader";
 
 const Group = styled.div`
   display: flex;
@@ -204,106 +205,132 @@ function Profile(props: ProfileProps) {
     <Main>
       <div className="pb-[100px] pt-[75px]">
         <div className="mb-[50px]">
-          <Group>
-            <ProfileInfo>
-              <div className="mr-[20px]">
-                <Avatar
-                  name={profiles[did]?.displayName}
-                  src={profiles[did]?.avatar}
-                  size="150px"
-                />
-              </div>
-              <div style={{ marginTop: profiles[did]?.displayName ? 10 : 30 }}>
-                <HeadingMedium
-                  marginTop="0px"
-                  marginBottom={0}
-                  className="!text-[var(--color-text)]"
-                >
-                  {profiles[did]?.displayName}
-                </HeadingMedium>
-                <LabelLarge>
-                  <a
-                    href={`https://bsky.app/profile/${profiles[did]?.handle}`}
-                    className="no-underline text-[var(--color-primary)]"
-                    target="_blank"
-                  >
-                    @{profiles[did]?.handle}
-                  </a>
-                  <span className="text-[var(--color-text-muted)] text-[15px]">
-                    {" "}
-                    • scrobbling since{" "}
-                    {dayjs(profiles[did]?.createdAt).format("DD MMM YYYY")}
-                  </span>
-                </LabelLarge>
-                <div className="flex-1 mt-[30px] mr-[10px]">
-                  <a
-                    href={`https://pdsls.dev/at/${profiles[did]?.did}`}
-                    target="_blank"
-                    className="no-underline text-[var(--color-text)] bg-[var(--color-default-button)] p-[16px] rounded-[10px] pl-[25px] pr-[25px]"
-                  >
-                    <ExternalLink size={24} style={{ marginRight: 10 }} />
-                    View on PDSls
-                  </a>
+          {profile.isLoading && (
+            <ContentLoader
+              width="100%"
+              height={200}
+              viewBox="0 0 800 200"
+              backgroundColor="var(--color-skeleton-background)"
+              foregroundColor="var(--color-skeleton-foreground)"
+            >
+              {/* Avatar circle */}
+              <circle cx="75" cy="75" r="75" />
+              {/* Display name */}
+              <rect x="180" y="30" rx="4" ry="4" width="250" height="24" />
+              {/* Handle */}
+              <rect x="180" y="70" rx="3" ry="3" width="180" height="16" />
+              {/* Scrobbling since text */}
+              <rect x="370" y="70" rx="3" ry="3" width="200" height="16" />
+              {/* View on PDSls button */}
+              <rect x="180" y="120" rx="8" ry="8" width="180" height="48" />
+              {/* Follow button */}
+              <rect x="680" y="30" rx="20" ry="20" width="120" height="40" />
+            </ContentLoader>
+          )}
+          {!profile.isLoading && (
+            <Group>
+              <ProfileInfo>
+                <div className="mr-[20px]">
+                  <Avatar
+                    name={profiles[did]?.displayName}
+                    src={profiles[did]?.avatar}
+                    size="150px"
+                  />
                 </div>
-              </div>
-            </ProfileInfo>
-            {(profile.data?.did !== localStorage.getItem("did") ||
-              !localStorage.getItem("did")) && (
-              <>
-                {!follows.has(profile.data?.did || "") && !isLoading && (
-                  <Button
-                    shape="pill"
-                    size="compact"
-                    startEnhancer={<IconPlus size={18} />}
-                    onClick={onFollow}
-                    overrides={{
-                      BaseButton: {
-                        style: {
-                          marginTop: "12px",
-                          minWidth: "120px",
-                          backgroundColor: "#ff2876",
-                          ":hover": {
+                <div
+                  style={{ marginTop: profiles[did]?.displayName ? 10 : 30 }}
+                >
+                  <HeadingMedium
+                    marginTop="0px"
+                    marginBottom={0}
+                    className="!text-[var(--color-text)]"
+                  >
+                    {profiles[did]?.displayName}
+                  </HeadingMedium>
+                  <LabelLarge>
+                    <a
+                      href={`https://bsky.app/profile/${profiles[did]?.handle}`}
+                      className="no-underline text-[var(--color-primary)]"
+                      target="_blank"
+                    >
+                      @{profiles[did]?.handle}
+                    </a>
+                    <span className="text-[var(--color-text-muted)] text-[15px]">
+                      {" "}
+                      • scrobbling since{" "}
+                      {dayjs(profiles[did]?.createdAt).format("DD MMM YYYY")}
+                    </span>
+                  </LabelLarge>
+                  <div className="flex-1 mt-[30px] mr-[10px]">
+                    <a
+                      href={`https://pdsls.dev/at/${profiles[did]?.did}`}
+                      target="_blank"
+                      className="no-underline text-[var(--color-text)] bg-[var(--color-default-button)] p-[16px] rounded-[10px] pl-[25px] pr-[25px]"
+                    >
+                      <ExternalLink size={24} style={{ marginRight: 10 }} />
+                      View on PDSls
+                    </a>
+                  </div>
+                </div>
+              </ProfileInfo>
+              {(profile.data?.did !== localStorage.getItem("did") ||
+                !localStorage.getItem("did")) && (
+                <>
+                  {!follows.has(profile.data?.did || "") && !isLoading && (
+                    <Button
+                      shape="pill"
+                      size="compact"
+                      startEnhancer={<IconPlus size={18} />}
+                      onClick={onFollow}
+                      overrides={{
+                        BaseButton: {
+                          style: {
+                            marginTop: "12px",
+                            minWidth: "120px",
                             backgroundColor: "#ff2876",
-                          },
-                          ":focus": {
-                            backgroundColor: "#ff2876",
+                            ":hover": {
+                              backgroundColor: "#ff2876",
+                            },
+                            ":focus": {
+                              backgroundColor: "#ff2876",
+                            },
                           },
                         },
-                      },
-                    }}
-                  >
-                    Follow
-                  </Button>
-                )}
-                {follows.has(profile.data?.did || "") && !isLoading && (
-                  <Button
-                    shape="pill"
-                    size="compact"
-                    startEnhancer={<IconCheck size={18} />}
-                    onClick={onUnfollow}
-                    overrides={{
-                      BaseButton: {
-                        style: {
-                          marginTop: "12px",
-                          minWidth: "120px",
-                          backgroundColor: "var(--color-default-button)",
-                          color: "var(--color-text)",
-                          ":hover": {
+                      }}
+                    >
+                      Follow
+                    </Button>
+                  )}
+                  {follows.has(profile.data?.did || "") && !isLoading && (
+                    <Button
+                      shape="pill"
+                      size="compact"
+                      startEnhancer={<IconCheck size={18} />}
+                      onClick={onUnfollow}
+                      overrides={{
+                        BaseButton: {
+                          style: {
+                            marginTop: "12px",
+                            minWidth: "120px",
                             backgroundColor: "var(--color-default-button)",
-                          },
-                          ":focus": {
-                            backgroundColor: "var(--color-default-button)",
+                            color: "var(--color-text)",
+                            ":hover": {
+                              backgroundColor: "var(--color-default-button)",
+                            },
+                            ":focus": {
+                              backgroundColor: "var(--color-default-button)",
+                            },
                           },
                         },
-                      },
-                    }}
-                  >
-                    Following
-                  </Button>
-                )}
-              </>
-            )}
-          </Group>
+                      }}
+                    >
+                      Following
+                    </Button>
+                  )}
+                </>
+              )}
+            </Group>
+          )}
           {tags.length > 0 && (
             <div className="mt-[30px] mb-[35px] flex flex-wrap">
               {tags.map((genre) => (
