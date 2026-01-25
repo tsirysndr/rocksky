@@ -12,6 +12,7 @@ import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import { useNowPlayingsQuery } from "../../../hooks/useNowPlaying";
 import styles, { getModalStyles } from "./styles";
 import _ from "lodash";
+import ContentLoader from "react-content-loader";
 
 dayjs.extend(relativeTime);
 dayjs.extend(utc);
@@ -237,6 +238,50 @@ function NowPlayings() {
           scrollbar-width: none;
         }
       `}</style>
+
+      {isLoading && (
+        <div className="flex overflow-x-hidden">
+          <ContentLoader
+            width="100%"
+            height={100}
+            viewBox="0 0 800 100"
+            backgroundColor="var(--color-skeleton-background)"
+            foregroundColor="var(--color-skeleton-foreground)"
+          >
+            {/* Story 1 */}
+            <circle cx="40" cy="40" r="32" />
+            <rect x="16" y="85" rx="3" ry="3" width="48" height="10" />
+
+            {/* Story 2 */}
+            <circle cx="140" cy="40" r="32" />
+            <rect x="116" y="85" rx="3" ry="3" width="48" height="10" />
+
+            {/* Story 3 */}
+            <circle cx="240" cy="40" r="32" />
+            <rect x="216" y="85" rx="3" ry="3" width="48" height="10" />
+
+            {/* Story 4 */}
+            <circle cx="340" cy="40" r="32" />
+            <rect x="316" y="85" rx="3" ry="3" width="48" height="10" />
+
+            {/* Story 5 */}
+            <circle cx="440" cy="40" r="32" />
+            <rect x="416" y="85" rx="3" ry="3" width="48" height="10" />
+
+            {/* Story 6 */}
+            <circle cx="540" cy="40" r="32" />
+            <rect x="516" y="85" rx="3" ry="3" width="48" height="10" />
+
+            {/* Story 7 */}
+            <circle cx="640" cy="40" r="32" />
+            <rect x="616" y="85" rx="3" ry="3" width="48" height="10" />
+
+            {/* Story 8 */}
+            <circle cx="740" cy="40" r="32" />
+            <rect x="716" y="85" rx="3" ry="3" width="48" height="10" />
+          </ContentLoader>
+        </div>
+      )}
 
       {!isLoading && (
         <>
