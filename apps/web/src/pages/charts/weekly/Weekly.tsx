@@ -6,6 +6,7 @@ import dayjs from "dayjs";
 import numeral from "numeral";
 import { useEffect, useRef } from "react";
 import { LabelSmall } from "baseui/typography";
+import ContentLoader from "react-content-loader";
 
 type ArtistRow = {
   id: string;
@@ -52,6 +53,62 @@ function Weekly() {
       <div className="mt-[15px] mb-[25px]">
         <strong>{range}</strong>
       </div>
+      {isLoading && (
+        <ContentLoader
+          width="100%"
+          height={500}
+          viewBox="0 -10 800 500"
+          backgroundColor="var(--color-skeleton-background)"
+          foregroundColor="var(--color-skeleton-foreground)"
+        >
+          {/* Header Row */}
+          <rect x="0" y="0" rx="3" ry="3" width="100" height="15" />
+          <rect x="600" y="0" rx="3" ry="3" width="100" height="15" />
+          <rect x="750" y="0" rx="3" ry="3" width="100" height="15" />
+
+          {/* Row 1 */}
+          <rect x="0" y="60" rx="3" ry="3" width="30" height="15" />
+          <circle cx="80" cy="70" r="30" />
+          <rect x="130" y="60" rx="3" ry="3" width="250" height="15" />
+          <rect x="600" y="60" rx="3" ry="3" width="80" height="15" />
+          <rect x="750" y="60" rx="3" ry="3" width="80" height="15" />
+
+          {/* Row 2 */}
+          <rect x="0" y="140" rx="3" ry="3" width="30" height="15" />
+          <circle cx="80" cy="150" r="30" />
+          <rect x="130" y="140" rx="3" ry="3" width="250" height="15" />
+          <rect x="600" y="140" rx="3" ry="3" width="80" height="15" />
+          <rect x="750" y="140" rx="3" ry="3" width="80" height="15" />
+
+          {/* Row 3 */}
+          <rect x="0" y="220" rx="3" ry="3" width="30" height="15" />
+          <circle cx="80" cy="230" r="30" />
+          <rect x="130" y="220" rx="3" ry="3" width="250" height="15" />
+          <rect x="600" y="220" rx="3" ry="3" width="80" height="15" />
+          <rect x="750" y="220" rx="3" ry="3" width="80" height="15" />
+
+          {/* Row 4 */}
+          <rect x="0" y="300" rx="3" ry="3" width="30" height="15" />
+          <circle cx="80" cy="310" r="30" />
+          <rect x="130" y="300" rx="3" ry="3" width="250" height="15" />
+          <rect x="600" y="300" rx="3" ry="3" width="80" height="15" />
+          <rect x="750" y="300" rx="3" ry="3" width="80" height="15" />
+
+          {/* Row 5 */}
+          <rect x="0" y="380" rx="3" ry="3" width="30" height="15" />
+          <circle cx="80" cy="390" r="30" />
+          <rect x="130" y="380" rx="3" ry="3" width="250" height="15" />
+          <rect x="600" y="380" rx="3" ry="3" width="80" height="15" />
+          <rect x="750" y="380" rx="3" ry="3" width="80" height="15" />
+
+          {/* Row 6 */}
+          <rect x="0" y="460" rx="3" ry="3" width="30" height="15" />
+          <circle cx="80" cy="470" r="30" />
+          <rect x="130" y="460" rx="3" ry="3" width="250" height="15" />
+          <rect x="600" y="460" rx="3" ry="3" width="80" height="15" />
+          <rect x="750" y="460" rx="3" ry="3" width="80" height="15" />
+        </ContentLoader>
+      )}
       {!isLoading && (
         <>
           <TableBuilder
