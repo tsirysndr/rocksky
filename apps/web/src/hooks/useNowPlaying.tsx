@@ -22,7 +22,7 @@ export const useNowPlayingsQuery = () =>
     queryFn: () =>
       client.get<{ nowPlayings: NowPlayings }>(
         "/xrpc/app.rocksky.feed.getNowPlayings",
-        { params: { size: 47 } },
+        { params: { size: 100 } },
       ),
     select: (res) => res.data.nowPlayings || [],
   });
