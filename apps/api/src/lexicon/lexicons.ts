@@ -2617,6 +2617,75 @@ export const schemaDict = {
           },
         },
       },
+      storyView: {
+        type: "object",
+        properties: {
+          album: {
+            type: "string",
+          },
+          albumArt: {
+            type: "string",
+            format: "uri",
+          },
+          albumArtist: {
+            type: "string",
+          },
+          albumUri: {
+            type: "string",
+            format: "at-uri",
+          },
+          artist: {
+            type: "string",
+          },
+          artistUri: {
+            type: "string",
+            format: "at-uri",
+          },
+          avatar: {
+            type: "string",
+            format: "uri",
+          },
+          createdAt: {
+            type: "string",
+          },
+          did: {
+            type: "string",
+            format: "at-identifier",
+          },
+          handle: {
+            type: "string",
+          },
+          id: {
+            type: "string",
+          },
+          title: {
+            type: "string",
+          },
+          trackId: {
+            type: "string",
+          },
+          trackUri: {
+            type: "string",
+            format: "at-uri",
+          },
+          uri: {
+            type: "string",
+            format: "at-uri",
+          },
+        },
+      },
+      storiesView: {
+        type: "object",
+        properties: {
+          stories: {
+            type: "array",
+            items: {
+              type: "ref",
+              ref: "lex:app.rocksky.feed.defs#storyView",
+            },
+          },
+        },
+      },
       feedGeneratorsView: {
         type: "object",
         properties: {
@@ -2970,7 +3039,7 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "ref",
-            ref: "lex:app.rocksky.feed.defs#nowPlayingsView",
+            ref: "lex:app.rocksky.feed.defs#storiesView",
           },
         },
       },

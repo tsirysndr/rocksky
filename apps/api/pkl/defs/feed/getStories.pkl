@@ -20,7 +20,7 @@ defs = new Mapping<String, Query> {
       encoding = "application/json"
       schema = new Ref {
         type = "ref"
-        ref = "app.rocksky.feed.defs#nowPlayingsView"
+        ref = "app.rocksky.feed.defs#storiesView"
       }
     }
   }

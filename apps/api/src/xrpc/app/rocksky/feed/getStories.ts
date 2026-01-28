@@ -3,7 +3,7 @@ import { consola } from "consola";
 import { desc, eq, sql } from "drizzle-orm";
 import { Cache, Duration, Effect, pipe } from "effect";
 import type { Server } from "lexicon";
-import type { NowPlayingView } from "lexicon/types/app/rocksky/feed/defs";
+import type { StoriesView } from "lexicon/types/app/rocksky/feed/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/feed/getStories";
 import albums from "schema/albums";
 import artists from "schema/artists";
@@ -97,9 +97,9 @@ const presentation = ({
   data,
 }: {
   data: NowPlayingRecord[];
-}): Effect.Effect<{ nowPlayings: NowPlayingView[] }, never> => {
+}): Effect.Effect<StoriesView, never> => {
   return Effect.sync(() => ({
-    nowPlayings: data.map((record) => ({
+    stories: data.map((record) => ({
       album: record.album,
       albumArt: record.albumArt,
       albumArtist: record.albumArtist,

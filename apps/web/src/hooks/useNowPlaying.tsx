@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { client } from "../api";
 
-export type NowPlayings = {
+export type Stories = {
   id: string;
   title: string;
   artist: string;
@@ -16,13 +16,12 @@ export type NowPlayings = {
   trackUri: string;
 }[];
 
-export const useNowPlayingsQuery = () =>
+export const useStoriesQuery = () =>
   useQuery({
-    queryKey: ["now-playings"],
+    queryKey: ["stories"],
     queryFn: () =>
-      client.get<{ nowPlayings: NowPlayings }>(
-        "/xrpc/app.rocksky.feed.getNowPlayings",
-        { params: { size: 100 } },
-      ),
-    select: (res) => res.data.nowPlayings || [],
+      client.get<{ stories: Stories }>("/xrpc/app.rocksky.feed.getStories", {
+        params: { size: 100 },
+      }),
+    select: (res) => res.data.stories || [],
   });

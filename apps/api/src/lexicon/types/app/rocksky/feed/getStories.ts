@@ -15,7 +15,7 @@ export interface QueryParams {
 }
 
 export type InputSchema = undefined;
-export type OutputSchema = AppRockskyFeedDefs.NowPlayingsView;
+export type OutputSchema = AppRockskyFeedDefs.StoriesView;
 export type HandlerInput = undefined;
 
 export interface HandlerSuccess {

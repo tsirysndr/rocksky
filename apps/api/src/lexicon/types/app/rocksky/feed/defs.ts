@@ -88,6 +88,54 @@ export function validateNowPlayingsView(v: unknown): ValidationResult {
   return lexicons.validate("app.rocksky.feed.defs#nowPlayingsView", v);
 }
 
+export interface StoryView {
+  album?: string;
+  albumArt?: string;
+  albumArtist?: string;
+  albumUri?: string;
+  artist?: string;
+  artistUri?: string;
+  avatar?: string;
+  createdAt?: string;
+  did?: string;
+  handle?: string;
+  id?: string;
+  title?: string;
+  trackId?: string;
+  trackUri?: string;
+  uri?: string;
+  [k: string]: unknown;
+}
+
+export function isStoryView(v: unknown): v is StoryView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.feed.defs#storyView"
+  );
+}
+
+export function validateStoryView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.feed.defs#storyView", v);
+}
+
+export interface StoriesView {
+  stories?: StoryView[];
+  [k: string]: unknown;
+}
+
+export function isStoriesView(v: unknown): v is StoriesView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.feed.defs#storiesView"
+  );
+}
+
+export function validateStoriesView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.feed.defs#storiesView", v);
+}
+
 export interface FeedGeneratorsView {
   feeds?: FeedGeneratorView[];
   [k: string]: unknown;
