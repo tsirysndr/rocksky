@@ -39,6 +39,9 @@ app.get("/login", async (c) => {
     if (cli) {
       ctx.kv.set(`cli:${handle}`, "1");
     }
+    if (prompt) {
+      url.searchParams.delete("login_hint");
+    }
     return c.redirect(url.toString());
   } catch (e) {
     c.status(500);

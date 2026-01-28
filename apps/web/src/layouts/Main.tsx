@@ -109,7 +109,7 @@ function Main(props: MainProps) {
   useProfile(token || localStorage.getItem("token"));
 
   const onLogin = async (prompt?: string) => {
-    if (!handle.trim()) {
+    if (!handle.trim() && !prompt) {
       return;
     }
 
