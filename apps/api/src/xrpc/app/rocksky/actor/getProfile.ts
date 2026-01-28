@@ -3,7 +3,7 @@ import { consola } from "consola";
 import type { OutputSchema } from "@atproto/api/dist/client/types/com/atproto/repo/getRecord";
 import type { HandlerAuth } from "@atproto/xrpc-server";
 import type { Context } from "context";
-import { eq } from "drizzle-orm";
+import { eq, NotNull } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ProfileViewDetailed } from "lexicon/types/app/rocksky/actor/defs";
@@ -302,10 +302,12 @@ const refreshProfile = ([
             .update(tables.users)
             .set({
               handle,
-              avatar: _.get(profile, "profileRecord")
-                ? `https://cdn.bsky.app/img/avatar/plain/${profile.did}/${_.get(profile, "profileRecord.value.avatar.ref", "").toString()}@jpeg`
-                : null,
-              displayName: _.get(profile, "profileRecord.value.displayName"),
+              avatar: `https://cdn.bsky.app/img/avatar/plain/${profile.did}/${_.get(profile, "profileRecord.value.avatar.ref", "").toString()}@jpeg`,
+              displayName: _.get(
+                profile,
+                "profileRecord.value.displayName",
+                "",
+              ),
               updatedAt: new Date(),
             })
             .where(eq(tables.users.id, profile.user.id))
@@ -317,10 +319,12 @@ const refreshProfile = ([
                 xata_id: profile.user.id,
                 did: profile.user.did,
                 handle,
-                display_name: _.get(profile, "profileRecord.value.displayName"),
-                avatar: _.get(profile, "profileRecord")
-                  ? `https://cdn.bsky.app/img/avatar/plain/${profile.did}/${_.get(profile, "profileRecord.value.avatar.ref", "").toString()}@jpeg`
-                  : undefined,
+                display_name: _.get(
+                  profile,
+                  "profileRecord.value.displayName",
+                  "",
+                ),
+                avatar: `https://cdn.bsky.app/img/avatar/plain/${profile.did}/${_.get(profile, "profileRecord.value.avatar.ref", "").toString()}@jpeg`,
                 xata_createdat: profile.user.createdAt.toISOString(),
                 xata_updatedat: new Date().toISOString(),
                 xata_version: (profile.user.xataVersion || 1) + 1,
