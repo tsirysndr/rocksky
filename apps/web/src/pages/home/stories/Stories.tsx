@@ -9,7 +9,7 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import utc from "dayjs/plugin/utc";
 import { useEffect, useState, useRef } from "react";
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
-import { useNowPlayingsQuery } from "../../../hooks/useNowPlaying";
+import { useStoriesQuery } from "../../../hooks/useStories";
 import styles, { getModalStyles } from "./styles";
 import _ from "lodash";
 import ContentLoader from "react-content-loader";
@@ -88,13 +88,13 @@ const Link = styled(DefaultLink)`
   text-decoration: none;
 `;
 
-function NowPlayings() {
+function Stories() {
   const [isOpen, setIsOpen] = useState(false);
-  const { data: rawNowPlayings, isLoading } = useNowPlayingsQuery();
+  const { data: rawStories, isLoading } = useStoriesQuery();
 
   // Deduplicate by trackId + did (user) + createdAt to ensure truly unique entries
-  const nowPlayings = _.uniqBy(
-    rawNowPlayings || [],
+  const stories = _.uniqBy(
+    rawStories || [],
     (item) => `${item.trackId}-${item.did}-${item.createdAt}`,
   );
 
@@ -121,13 +121,13 @@ function NowPlayings() {
 
   const onNext = () => {
     const nextIndex = currentIndex + 1;
-    if (nextIndex >= nowPlayings!.length) {
+    if (nextIndex >= stories!.length) {
       setIsOpen(false);
       return;
     }
 
     setCurrentIndex(nextIndex);
-    setCurrentlyPlaying(nowPlayings![nextIndex]);
+    setCurrentlyPlaying(stories![nextIndex]);
     setProgress(0);
   };
 
@@ -140,7 +140,7 @@ function NowPlayings() {
     }
 
     setCurrentIndex(prevIndex);
-    setCurrentlyPlaying(nowPlayings![prevIndex]);
+    setCurrentlyPlaying(stories![prevIndex]);
     setProgress(0);
   };
 
@@ -189,7 +189,7 @@ function NowPlayings() {
 
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [nowPlayings]);
+  }, [stories]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -210,22 +210,22 @@ function NowPlayings() {
   }, [isOpen]);
 
   useEffect(() => {
-    if (!nowPlayings) {
+    if (!stories) {
       return;
     }
 
     if (progress >= 100) {
       setProgress(0);
-      const nextIndex = (currentIndex + 1) % nowPlayings.length;
+      const nextIndex = (currentIndex + 1) % stories.length;
       setCurrentIndex(nextIndex);
-      setCurrentlyPlaying(nowPlayings[nextIndex]);
+      setCurrentlyPlaying(stories[nextIndex]);
 
       if (nextIndex === 0) {
         setIsOpen(false);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [progress, nowPlayings]);
+  }, [progress, stories]);
 
   return (
     <Container>
@@ -331,7 +331,7 @@ function NowPlayings() {
                 className="flex overflow-x-auto no-scrollbar h-full"
                 style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
               >
-                {nowPlayings.map((item, index) => (
+                {stories.map((item, index) => (
                   <StoryContainer
                     key={`${item.id}-${item.did}-${item.createdAt}`}
                     onClick={() => {
@@ -434,7 +434,7 @@ function NowPlayings() {
                   )}
                 </div>
                 <div className="flex items-center h-[500px] w-[50px]">
-                  {currentIndex < (nowPlayings || []).length - 1 && (
+                  {currentIndex < (stories || []).length - 1 && (
                     <div className="cursor-pointer" onClick={onNext}>
                       <ChevronRight
                         size={50}
@@ -461,4 +461,4 @@ function NowPlayings() {
   );
 }
 
-export default NowPlayings;
+export default Stories;

@@ -80,7 +80,7 @@ function Feed() {
       await queryClient.invalidateQueries({
         queryKey: ["infiniteFeed", feedUri],
       });
-      await queryClient.invalidateQueries({ queryKey: ["now-playings"] });
+      await queryClient.invalidateQueries({ queryKey: ["stories"] });
       // await queryClient.invalidateQueries({ queryKey: ["scrobblesChart"] });
     };
 
