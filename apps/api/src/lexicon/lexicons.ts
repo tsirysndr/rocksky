@@ -2949,6 +2949,33 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyFeedGetStories: {
+    lexicon: 1,
+    id: "app.rocksky.feed.getStories",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get all currently playing tracks by users",
+        parameters: {
+          type: "params",
+          properties: {
+            size: {
+              type: "integer",
+              description: "The maximum number of stories to return.",
+              minimum: 1,
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "ref",
+            ref: "lex:app.rocksky.feed.defs#nowPlayingsView",
+          },
+        },
+      },
+    },
+  },
   AppRockskyFeedSearch: {
     lexicon: 1,
     id: "app.rocksky.feed.search",
@@ -6187,6 +6214,7 @@ export const ids = {
   AppRockskyFeedGetFeedGenerators: "app.rocksky.feed.getFeedGenerators",
   AppRockskyFeedGetFeedSkeleton: "app.rocksky.feed.getFeedSkeleton",
   AppRockskyFeedGetNowPlayings: "app.rocksky.feed.getNowPlayings",
+  AppRockskyFeedGetStories: "app.rocksky.feed.getStories",
   AppRockskyFeedSearch: "app.rocksky.feed.search",
   AppRockskyGoogledriveDefs: "app.rocksky.googledrive.defs",
   AppRockskyGoogledriveDownloadFile: "app.rocksky.googledrive.downloadFile",

@@ -48,6 +48,7 @@ import type * as AppRockskyFeedGetFeedGenerator from "./types/app/rocksky/feed/g
 import type * as AppRockskyFeedGetFeedGenerators from "./types/app/rocksky/feed/getFeedGenerators";
 import type * as AppRockskyFeedGetFeedSkeleton from "./types/app/rocksky/feed/getFeedSkeleton";
 import type * as AppRockskyFeedGetNowPlayings from "./types/app/rocksky/feed/getNowPlayings";
+import type * as AppRockskyFeedGetStories from "./types/app/rocksky/feed/getStories";
 import type * as AppRockskyFeedSearch from "./types/app/rocksky/feed/search";
 import type * as AppRockskyGoogledriveDownloadFile from "./types/app/rocksky/googledrive/downloadFile";
 import type * as AppRockskyGoogledriveGetFile from "./types/app/rocksky/googledrive/getFile";
@@ -705,6 +706,17 @@ export class AppRockskyFeedNS {
     >,
   ) {
     const nsid = "app.rocksky.feed.getNowPlayings"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  getStories<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyFeedGetStories.Handler<ExtractAuth<AV>>,
+      AppRockskyFeedGetStories.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.feed.getStories"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 
