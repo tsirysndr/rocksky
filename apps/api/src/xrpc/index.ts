@@ -85,6 +85,7 @@ import getActorCompatibility from "./app/rocksky/actor/getActorCompatibility";
 import matchSong from "./app/rocksky/song/matchSong";
 import getTopArtists from "./app/rocksky/charts/getTopArtists";
 import getTopTracks from "./app/rocksky/charts/getTopTracks";
+import getStories from "./app/rocksky/feed/getStories";
 
 export default function (server: Server, ctx: Context) {
   // app.rocksky
@@ -173,6 +174,7 @@ export default function (server: Server, ctx: Context) {
   matchSong(server, ctx);
   getTopArtists(server, ctx);
   getTopTracks(server, ctx);
+  getStories(server, ctx);
 
   return server;
 }
