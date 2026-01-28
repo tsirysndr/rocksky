@@ -18,6 +18,25 @@ import Search from "./Search";
 import SpotifyLogin from "./SpotifyLogin";
 import { IconEye, IconEyeOff, IconLock } from "@tabler/icons-react";
 import { consola } from "consola";
+import {
+  CompositeDidDocumentResolver,
+  CompositeHandleResolver,
+  DohJsonHandleResolver,
+  LocalActorResolver,
+  PlcDidDocumentResolver,
+  WebDidDocumentResolver,
+  WellKnownHandleResolver,
+} from "@atcute/identity-resolver";
+import {
+  configureOAuth,
+  // createAuthorizationUrl,
+} from "@atcute/oauth-browser-client";
+
+const DOH_RESOLVER = "https://mozilla.cloudflare-dns.com/dns-query";
+const PUBLIC_URL: string =
+  import.meta.env.VITE_PUBLIC_URL || "http://localhost:8000";
+const REDIRECT_URI = `${PUBLIC_URL}/oauth/callback`;
+const scope = "atproto transition:generic";
 
 const Container = styled.div`
   display: flex;
@@ -67,6 +86,37 @@ function Main(props: MainProps) {
   const [token, setToken] = useState<string | null>(null);
   const { did, cli } = useSearch({ strict: false });
   const [passwordLogin, setPasswordLogin] = useState(false);
+
+  useEffect(() => {
+    const clientId = PUBLIC_URL.startsWith("http://localhost")
+      ? `http://localhost` +
+        `?redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+        `&scope=${encodeURIComponent(scope)}`
+      : `${PUBLIC_URL}/oauth-client-metadata.json`;
+
+    const handleResolver = new CompositeHandleResolver({
+      methods: {
+        dns: new DohJsonHandleResolver({ dohUrl: DOH_RESOLVER }),
+        http: new WellKnownHandleResolver(),
+      },
+    });
+
+    configureOAuth({
+      metadata: {
+        client_id: clientId,
+        redirect_uri: REDIRECT_URI,
+      },
+      identityResolver: new LocalActorResolver({
+        handleResolver: handleResolver,
+        didDocumentResolver: new CompositeDidDocumentResolver({
+          methods: {
+            plc: new PlcDidDocumentResolver(),
+            web: new WebDidDocumentResolver(),
+          },
+        }),
+      }),
+    });
+  }, []);
 
   useEffect(() => {
     if (did && did !== "null") {
@@ -161,6 +211,16 @@ function Main(props: MainProps) {
 
     window.location.href = `https://rocksky.pages.dev/loading?handle=${handle}`;
   };
+
+  /*const onCreateAccount = async () => {
+    const authUrl = await createAuthorizationUrl({
+      target: { type: "pds", serviceUrl: "https://selfhosted.social" },
+      // @ts-expect-error - new stuff
+      prompt: "create",
+      scope,
+    });
+    window.location.assign(authUrl);
+  };*/
 
   return (
     <Container
@@ -325,6 +385,15 @@ function Main(props: MainProps) {
                 </LabelMedium>
                 <div className="text-center text-[var(--color-text-muted)] ">
                   You can create one at{" "}
+                  {/*
+                    <span
+                    onClick={onCreateAccount}
+                    className="no-underline cursor-pointer !text-[var(--color-primary)]"
+                  >
+                    selfhosted.social
+                  </span>
+                  ,{" "}
+                  */}
                   <a
                     href="https://bsky.app"
                     className="no-underline cursor-pointer !text-[var(--color-primary)]"

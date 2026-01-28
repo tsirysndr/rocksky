@@ -165,7 +165,7 @@ const retrieveProfile = ({
   user,
 }: WithUser): Effect.Effect<
   [
-    Profile,
+    Profile | {},
     string,
     SelectSpotifyAccount,
     SelectSpotifyToken,
@@ -176,19 +176,24 @@ const retrieveProfile = ({
 > => {
   return Effect.tryPromise({
     try: async () => {
+      let record = {};
+      try {
+        const { data } = await agent.com.atproto.repo.getRecord({
+          repo: did,
+          collection: "app.bsky.actor.profile",
+          rkey: "self",
+        });
+        record = data;
+      } catch (error) {
+        consola.error("Failed to retrieve profile record:", error);
+      }
       return Promise.all([
-        agent.com.atproto.repo
-          .getRecord({
-            repo: did,
-            collection: "app.bsky.actor.profile",
-            rkey: "self",
-          })
-          .then(({ data }) => ({
-            profileRecord: data,
-            ctx,
-            did,
-            user,
-          })),
+        Promise.resolve({
+          profileRecord: record,
+          ctx,
+          did,
+          user,
+        }),
         ctx.resolver.resolveDidToHandle(did),
         ctx.db
           .select()
@@ -297,7 +302,9 @@ const refreshProfile = ([
             .update(tables.users)
             .set({
               handle,
-              avatar: `https://cdn.bsky.app/img/avatar/plain/${profile.did}/${_.get(profile, "profileRecord.value.avatar.ref", "").toString()}@jpeg`,
+              avatar: _.get(profile, "profileRecord")
+                ? `https://cdn.bsky.app/img/avatar/plain/${profile.did}/${_.get(profile, "profileRecord.value.avatar.ref", "").toString()}@jpeg`
+                : null,
               displayName: _.get(profile, "profileRecord.value.displayName"),
               updatedAt: new Date(),
             })
@@ -311,7 +318,9 @@ const refreshProfile = ([
                 did: profile.user.did,
                 handle,
                 display_name: _.get(profile, "profileRecord.value.displayName"),
-                avatar: `https://cdn.bsky.app/img/avatar/plain/${profile.did}/${_.get(profile, "profileRecord.value.avatar.ref", "").toString()}@jpeg`,
+                avatar: _.get(profile, "profileRecord")
+                  ? `https://cdn.bsky.app/img/avatar/plain/${profile.did}/${_.get(profile, "profileRecord.value.avatar.ref", "").toString()}@jpeg`
+                  : undefined,
                 xata_createdat: profile.user.createdAt.toISOString(),
                 xata_updatedat: new Date().toISOString(),
                 xata_version: (profile.user.xataVersion || 1) + 1,
