@@ -16,8 +16,6 @@
     "format": "biome format src"
   },
   "dependencies": {
-    "@atcute/identity-resolver": "^1.2.2",
-    "@atcute/oauth-browser-client": "^2.0.3",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@hookform/resolvers": "^4.0.0",

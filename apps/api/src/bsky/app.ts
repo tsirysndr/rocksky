@@ -22,15 +22,20 @@ const app = new Hono();
 
 app.get("/login", async (c) => {
   requestCounter.add(1, { method: "GET", route: "/login" });
-  const { handle, cli } = c.req.query();
-  if (typeof handle !== "string" || !isValidHandle(handle)) {
+  const { handle, cli, prompt } = c.req.query();
+  if ((typeof handle !== "string" || !isValidHandle(handle)) && !prompt) {
     c.status(400);
     return c.text("Invalid handle");
   }
   try {
-    const url = await ctx.oauthClient.authorize(handle, {
-      scope: "atproto transition:generic",
-    });
+    const url = await ctx.oauthClient.authorize(
+      prompt ? "tsiry.selfhosted.social" : handle,
+      {
+        scope: "atproto transition:generic",
+        // @ts-ignore: allow custom prompt param
+        prompt,
+      },
+    );
     if (cli) {
       ctx.kv.set(`cli:${handle}`, "1");
     }
