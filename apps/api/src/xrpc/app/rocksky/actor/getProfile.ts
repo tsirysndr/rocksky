@@ -265,7 +265,7 @@ const refreshProfile = ([
             did: profile.did,
             handle,
             avatar: `https://cdn.bsky.app/img/avatar/plain/${profile.did}/${_.get(profile, "profileRecord.value.avatar.ref", "").toString()}@jpeg`,
-            displayName: _.get(profile, "profileRecord.value.displayName"),
+            displayName: _.get(profile, "profileRecord.value.displayName", ""),
           })
           .execute();
         const users = await profile.ctx.db
