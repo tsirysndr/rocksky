@@ -24,7 +24,6 @@ import downloadFileFromDropbox from "./app/rocksky/dropbox/downloadFile";
 import getFilesFromDropbox from "./app/rocksky/dropbox/getFiles";
 import getMetadataFromDropbox from "./app/rocksky/dropbox/getMetadata";
 import getTemporaryLinkFromDropbox from "./app/rocksky/dropbox/getTemporaryLink";
-import getNowPlayings from "./app/rocksky/feed/getNowPlayings";
 import search from "./app/rocksky/feed/search";
 import downloadFileFromGoogleDrive from "./app/rocksky/googledrive/downloadFile";
 import getFileFromGoogleDrive from "./app/rocksky/googledrive/getFile";
@@ -113,7 +112,6 @@ export default function (server: Server, ctx: Context) {
   getFilesFromDropbox(server, ctx);
   getMetadataFromDropbox(server, ctx);
   getTemporaryLinkFromDropbox(server, ctx);
-  getNowPlayings(server, ctx);
   search(server, ctx);
   downloadFileFromGoogleDrive(server, ctx);
   getFilesFromGoogleDrive(server, ctx);

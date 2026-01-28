@@ -26,7 +26,7 @@ export default function (server: Server, ctx: Context) {
       ),
   });
 
-  const getNowPlayings = (params) =>
+  const getStories = (params: QueryParams) =>
     pipe(
       storiesCache,
       Effect.flatMap((cache) => cache.get(params)),
@@ -37,7 +37,7 @@ export default function (server: Server, ctx: Context) {
     );
   server.app.rocksky.feed.getStories({
     handler: async ({ params }) => {
-      const result = await Effect.runPromise(getNowPlayings(params));
+      const result = await Effect.runPromise(getStories(params));
       return {
         encoding: "application/json",
         body: result,

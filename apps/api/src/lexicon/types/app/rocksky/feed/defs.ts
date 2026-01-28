@@ -40,54 +40,6 @@ export function validateSearchResultsView(v: unknown): ValidationResult {
   return lexicons.validate("app.rocksky.feed.defs#searchResultsView", v);
 }
 
-export interface NowPlayingView {
-  album?: string;
-  albumArt?: string;
-  albumArtist?: string;
-  albumUri?: string;
-  artist?: string;
-  artistUri?: string;
-  avatar?: string;
-  createdAt?: string;
-  did?: string;
-  handle?: string;
-  id?: string;
-  title?: string;
-  trackId?: string;
-  trackUri?: string;
-  uri?: string;
-  [k: string]: unknown;
-}
-
-export function isNowPlayingView(v: unknown): v is NowPlayingView {
-  return (
-    isObj(v) &&
-    hasProp(v, "$type") &&
-    v.$type === "app.rocksky.feed.defs#nowPlayingView"
-  );
-}
-
-export function validateNowPlayingView(v: unknown): ValidationResult {
-  return lexicons.validate("app.rocksky.feed.defs#nowPlayingView", v);
-}
-
-export interface NowPlayingsView {
-  nowPlayings?: NowPlayingView[];
-  [k: string]: unknown;
-}
-
-export function isNowPlayingsView(v: unknown): v is NowPlayingsView {
-  return (
-    isObj(v) &&
-    hasProp(v, "$type") &&
-    v.$type === "app.rocksky.feed.defs#nowPlayingsView"
-  );
-}
-
-export function validateNowPlayingsView(v: unknown): ValidationResult {
-  return lexicons.validate("app.rocksky.feed.defs#nowPlayingsView", v);
-}
-
 export interface StoryView {
   album?: string;
   albumArt?: string;
