@@ -4,13 +4,16 @@ import { useEffect } from "react";
 import { API_URL } from "../../consts";
 
 function Loading() {
-  const { handle } = useSearch({ strict: false });
+  const { handle, prompt } = useSearch({ strict: false });
 
   useEffect(() => {
+    if (prompt) {
+      window.location.href = `${API_URL}/login?prompt=${prompt}`;
+    }
     if (handle) {
       window.location.href = `${API_URL}/login?handle=${handle}`;
     }
-  }, [handle]);
+  }, [handle, prompt]);
 
   return (
     <div className="flex justify-center items-center h-screen bg-[#fff] fixed top-0 left-0 w-full">

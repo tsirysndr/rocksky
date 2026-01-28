@@ -4,7 +4,8 @@ import z from "zod";
 import LoadingPage from "../pages/loading";
 
 const validateSearch = z.object({
-  handle: z.string(),
+  handle: z.string().optional(),
+  prompt: z.string().optional(),
 });
 
 export const Route = createFileRoute("/loading")({

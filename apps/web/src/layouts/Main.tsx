@@ -162,12 +162,12 @@ function Main(props: MainProps) {
     }
 
     window.location.href = prompt
-      ? `https://rocksky.pages.dev/loading?handle=${handle}&prompt=${prompt}`
+      ? `https://rocksky.pages.dev/loading?prompt=${prompt}`
       : `https://rocksky.pages.dev/loading?handle=${handle}`;
   };
 
   const onCreateAccount = async () => {
-    await onLogin("create_account");
+    await onLogin("create");
   };
 
   return (
