@@ -118,7 +118,6 @@ app.get("/oauth/callback", async (c) => {
   let did: string, cli: string;
 
   try {
-    params.set("state", "");
     const { session } = await ctx.oauthClient.callback(params);
     did = session.did;
     const handle = await ctx.resolver.resolveDidToHandle(did);
