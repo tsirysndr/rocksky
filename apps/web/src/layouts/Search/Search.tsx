@@ -13,6 +13,7 @@ import Artist from "../../components/Icons/Artist";
 import Disc from "../../components/Icons/Disc";
 import Track from "../../components/Icons/Track";
 import { useSearchMutation } from "../../hooks/useSearch";
+import { IconUser } from "@tabler/icons-react";
 
 const Link = styled(DefaultLink)`
   color: initial;
@@ -84,12 +85,19 @@ function Search() {
                         {item._federation.indexUid === "users" && (
                           <Link to={`/profile/${item.handle}`} key={item.id}>
                             <div className="flex flex-row mb-[10px]">
-                              <img
-                                key={item.did}
-                                src={item.avatar}
-                                alt={item.displayName}
-                                className="w-[50px] h-[50px] mr-[12px] rounded-full"
-                              />
+                              {!item.avatar?.endsWith("/@jpeg") && (
+                                <img
+                                  key={item.did}
+                                  src={item.avatar}
+                                  alt={item.displayName}
+                                  className="w-[50px] h-[50px] mr-[12px] rounded-full"
+                                />
+                              )}
+                              {item.avatar?.endsWith("/@jpeg") && (
+                                <div className="w-[50px] h-[50px] rounded-full bg-[var(--color-avatar-background)] flex items-center justify-center mr-[12px]">
+                                  <IconUser size={25} color="#fff" />
+                                </div>
+                              )}
                               <div>
                                 <div className="overflow-hidden">
                                   <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[var(--color-text)]">

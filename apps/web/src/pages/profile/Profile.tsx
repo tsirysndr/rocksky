@@ -18,7 +18,7 @@ import LovedTracks from "./lovedtracks";
 import Overview from "./overview";
 import Playlists from "./playlists";
 import { Button } from "baseui/button";
-import { IconPlus, IconCheck } from "@tabler/icons-react";
+import { IconPlus, IconCheck, IconUser } from "@tabler/icons-react";
 import { followsAtom } from "../../atoms/follows";
 import SignInModal from "../../components/SignInModal";
 import {
@@ -231,11 +231,18 @@ function Profile(props: ProfileProps) {
             <Group>
               <ProfileInfo>
                 <div className="mr-[20px]">
-                  <Avatar
-                    name={profiles[did]?.displayName}
-                    src={profiles[did]?.avatar}
-                    size="150px"
-                  />
+                  {!profiles[did]?.avatar?.endsWith("/@jpeg") && (
+                    <Avatar
+                      name={profiles[did]?.displayName}
+                      src={profiles[did]?.avatar}
+                      size="150px"
+                    />
+                  )}
+                  {profiles[did]?.avatar?.endsWith("/@jpeg") && (
+                    <div className="w-[150px] h-[150px] rounded-full bg-[var(--color-avatar-background)] flex items-center justify-center">
+                      <IconUser size={80} color="#fff" />
+                    </div>
+                  )}
                 </div>
                 <div
                   style={{ marginTop: profiles[did]?.displayName ? 10 : 30 }}

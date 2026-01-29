@@ -8,7 +8,11 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import utc from "dayjs/plugin/utc";
 import { useEffect, useState, useRef } from "react";
-import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
+import {
+  IconChevronLeft,
+  IconChevronRight,
+  IconUser,
+} from "@tabler/icons-react";
 import { useStoriesQuery } from "../../../hooks/useStories";
 import styles, { getModalStyles } from "./styles";
 import _ from "lodash";
@@ -340,7 +344,14 @@ function Stories() {
                       setIsOpen(true);
                     }}
                   >
-                    <Story src={item.avatar} />
+                    {!item.avatar?.endsWith("/@jpeg") && (
+                      <Story src={item.avatar} />
+                    )}
+                    {item.avatar?.endsWith("/@jpeg") && (
+                      <div className="w-[64px] h-[64px] rounded-full bg-[var(--color-avatar-background)] flex items-center justify-center mr-[12px]">
+                        <IconUser size={24} color="#fff" />
+                      </div>
+                    )}
                     <StatefulTooltip
                       content={item.handle}
                       returnFocus
@@ -384,7 +395,14 @@ function Stories() {
               </div>
               <div className="flex flex-row items-center">
                 <Link to={`/profile/${currentlyPlaying?.handle}`}>
-                  <Avatar src={currentlyPlaying?.avatar} />
+                  {!currentlyPlaying?.avatar?.endsWith("/@jpeg") && (
+                    <Avatar src={currentlyPlaying?.avatar} />
+                  )}
+                  {currentlyPlaying?.avatar?.endsWith("/@jpeg") && (
+                    <div className="w-[48px] h-[48px] rounded-full bg-[var(--color-avatar-background)] flex items-center justify-center mr-[12px]">
+                      <IconUser size={24} color="#fff" />
+                    </div>
+                  )}
                 </Link>
                 <Link to={`/profile/${currentlyPlaying?.handle}`}>
                   <div className="text-[#fff] no-underline text-[15px]">
