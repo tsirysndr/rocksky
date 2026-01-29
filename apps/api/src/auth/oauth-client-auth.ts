@@ -1,10 +1,10 @@
-import {
+import type {
   ClientMetadata,
   Keyset,
   OAuthAuthorizationServerMetadata,
 } from "@atproto/oauth-client-node";
 
-import { ClientAuthMethod } from "@atproto/oauth-client/dist/oauth-client-auth";
+import type { ClientAuthMethod } from "@atproto/oauth-client/dist/oauth-client-auth";
 
 export const FALLBACK_ALG = "ES256";
 

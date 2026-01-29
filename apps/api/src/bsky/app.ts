@@ -33,7 +33,7 @@ app.get("/login", async (c) => {
       prompt ? "tsiry.selfhosted.social" : handle,
       {
         scope: SCOPES.join(" "),
-        // @ts-ignore: allow custom prompt param
+        // @ts-expect-error: allow custom prompt param
         prompt,
       },
     );

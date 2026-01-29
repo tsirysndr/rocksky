@@ -1,5 +1,5 @@
 import { JoseKey } from "@atproto/jwk-jose";
-import { type RuntimeLock } from "@atproto/oauth-client-node";
+import type { RuntimeLock } from "@atproto/oauth-client-node";
 import Redis from "ioredis";
 import Redlock from "redlock";
 import type { Database } from "../db";

@@ -1,8 +1,8 @@
 import {
-  AuthorizeOptions,
+  type AuthorizeOptions,
   NodeOAuthClient,
-  NodeOAuthClientOptions,
-  OAuthAuthorizationRequestParameters,
+  type NodeOAuthClientOptions,
+  type OAuthAuthorizationRequestParameters,
 } from "@atproto/oauth-client-node";
 import { FALLBACK_ALG, negotiateClientAuthMethod } from "./oauth-client-auth";
 
