@@ -1,6 +1,7 @@
 {
   "tasks": {
-    "cron": "deno run cron.ts"
+    "cron": "deno run cron.ts",
+    "local-proxy": "deno run -A local-proxy.ts"
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@1",

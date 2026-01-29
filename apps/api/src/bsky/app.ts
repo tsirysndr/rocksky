@@ -17,6 +17,7 @@ import googleDriveAccounts from "schema/google-drive-accounts";
 import spotifyAccounts from "schema/spotify-accounts";
 import spotifyTokens from "schema/spotify-tokens";
 import users from "schema/users";
+import { SCOPES } from "auth/client";
 
 const app = new Hono();
 
@@ -31,8 +32,8 @@ app.get("/login", async (c) => {
     const url = await ctx.oauthClient.authorize(
       prompt ? "tsiry.selfhosted.social" : handle,
       {
-        scope: "atproto transition:generic",
-        // @ts-ignore: allow custom prompt param
+        scope: SCOPES.join(" "),
+        // @ts-expect-error: allow custom prompt param
         prompt,
       },
     );
@@ -103,7 +104,7 @@ app.post("/login", async (c) => {
     }
 
     const url = await ctx.oauthClient.authorize(handle, {
-      scope: "atproto transition:generic",
+      scope: SCOPES.join(" "),
     });
 
     if (cli) {
@@ -320,5 +321,42 @@ app.get("/token", async (c) => {
 
   return c.json({ token });
 });
+
+app.get("/oauth-client-metadata.json", (c) =>
+  c.json(ctx.oauthClient.clientMetadata),
+);
+
+app.get("/jwks.json", (c) =>
+  c.json({
+    keys: [
+      {
+        kty: "EC",
+        use: "sig",
+        alg: "ES256",
+        kid: "2dfa3fd9-57b3-4738-ac27-9e6dadec13b7",
+        crv: "P-256",
+        x: "V_00KDnoEPsNqbt0y2Ke8v27Mv9WP70JylDUD5rvIek",
+        y: "HAyjaQeA2DU6wjZO0ggTadUS6ij1rmiYTxzmWeBKfRc",
+      },
+      {
+        kty: "EC",
+        use: "sig",
+        alg: "ES256",
+        kid: "5e816ff2-6bff-4177-b1c0-67ad3cd3e7cd",
+        crv: "P-256",
+        x: "YwEY5NsoYQVB_G7xPYMl9sUtxRbcPFNffnZcTS5nbPQ",
+        y: "5n5mybPvISyYAnRv1Ii1geqKfXv2GA8p9Xemwx2a8CM",
+      },
+      {
+        kty: "EC",
+        use: "sig",
+        kid: "a1067a48-a54a-43a0-9758-4d55b51fdd8b",
+        crv: "P-256",
+        x: "yq17Nd2DGcjP1i9I0NN3RBmgSbLQUZOtG6ec5GaqzmU",
+        y: "ieIU9mcfaZwAW5b3WgJkIRgddymG_ckcZ0n1XjbEIvc",
+      },
+    ],
+  }),
+);
 
 export default app;
