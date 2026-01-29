@@ -348,8 +348,10 @@ function Stories() {
                       <Story src={item.avatar} />
                     )}
                     {item.avatar?.endsWith("/@jpeg") && (
-                      <div className="w-[64px] h-[64px] rounded-full bg-[var(--color-avatar-background)] flex items-center justify-center mr-[12px]">
-                        <IconUser size={24} color="#fff" />
+                      <div className="w-[64px] h-[64px] rounded-full border-2 border-[rgb(255,40,118)] p-[2px]">
+                        <div className="w-[64px] h-[64px] rounded-full bg-[var(--color-avatar-background)] flex items-center justify-center mr-[12px]">
+                          <IconUser size={32} color="#fff" />
+                        </div>
                       </div>
                     )}
                     <StatefulTooltip
