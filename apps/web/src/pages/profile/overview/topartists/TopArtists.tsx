@@ -290,9 +290,9 @@ function TopArtists(props: TopArtistsProps) {
                     />
                   )}
                   {!row.picture && (
-                    <div className="w-[60px] h-[60px] rounded-full bg-[rgba(243, 243, 243, 0.725)] flex justify-center items-center mr-[20px]">
+                    <div className="w-[60px] h-[60px] rounded-full bg-[#00f1f3] flex justify-center items-center mr-[20px]">
                       <div className="h-[30px] w-[30px]">
-                        <Artist color="rgba(66, 87, 108, 0.65)" />
+                        <Artist color="#020618" />
                       </div>
                     </div>
                   )}
