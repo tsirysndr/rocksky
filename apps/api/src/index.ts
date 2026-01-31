@@ -38,6 +38,7 @@ import spotify from "./spotify/app";
 import "./tracing";
 import usersApp from "./users/app";
 import webscrobbler from "./webscrobbler/app";
+import opengraph from "./opengraph/app";
 
 dns.setDefaultResultOrder("ipv4first");
 
@@ -81,6 +82,8 @@ app.route("/dropbox", dropbox);
 app.route("/googledrive", googledrive);
 
 app.route("/apikeys", apikeys);
+
+app.route("/public/og", opengraph);
 
 app.get("/ws", upgradeWebSocket(handleWebsocket));
 

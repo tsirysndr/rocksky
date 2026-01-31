@@ -11,6 +11,8 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
+import { fetchOgData, HeadMeta, isHtmlResponse, StripMeta } from './html-rewriter';
+
 const metadata = {
 	redirect_uris: ['https://rocksky.app/oauth/callback'],
 	response_types: ['code'],
@@ -116,12 +118,45 @@ export default {
 			const mobileUrl = new URL(request.url);
 			mobileUrl.host = 'm.rocksky.app';
 			mobileUrl.hostname = 'm.rocksky.app';
-			return fetch(mobileUrl, request);
+			const htmlRes = await fetch(mobileUrl, request);
+			if (!htmlRes.ok || !isHtmlResponse(htmlRes)) {
+				return htmlRes;
+			}
+
+			const og = await fetchOgData(url, request);
+			if (!og) return htmlRes;
+			const headers = new Headers(htmlRes.headers);
+			headers.set('cache-control', 'public, max-age=300');
+
+			const rewritten = new HTMLRewriter()
+				.on('meta[property^="og:"]', new StripMeta())
+				.on('meta[name^="twitter:"]', new StripMeta())
+				.on('head', new HeadMeta(og))
+				.transform(htmlRes);
+
+			return new Response(rewritten.body, { status: htmlRes.status, headers });
 		}
 
 		const proxyUrl = new URL(request.url);
 		proxyUrl.host = 'rocksky.pages.dev';
 		proxyUrl.hostname = 'rocksky.pages.dev';
-		return fetch(proxyUrl, request) as any;
+		const htmlRes = await fetch(proxyUrl, request);
+		if (!htmlRes.ok || !isHtmlResponse(htmlRes)) {
+			return htmlRes;
+		}
+
+		const og = await fetchOgData(url, request);
+		if (!og) return htmlRes;
+
+		const headers = new Headers(htmlRes.headers);
+		headers.set('cache-control', 'public, max-age=300');
+
+		const rewritten = new HTMLRewriter()
+			.on('meta[property^="og:"]', new StripMeta())
+			.on('meta[name^="twitter:"]', new StripMeta())
+			.on('head', new HeadMeta(og))
+			.transform(htmlRes);
+
+		return new Response(rewritten.body, { status: htmlRes.status, headers });
 	},
 } satisfies ExportedHandler<Env>;
