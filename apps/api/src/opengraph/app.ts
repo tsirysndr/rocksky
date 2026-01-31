@@ -74,6 +74,10 @@ app.get("/", async (c) => {
         .execute()
         .then(([row]) => row);
 
+      if (!record) {
+        return c.text("OG Service: record not found.", 404);
+      }
+
       return c.json({
         title: `Scrobble: ${record.tracks.title} by ${record.artists.name}`,
         description: `A listening activity (scrobble) - ${record.tracks.title} - ${record.artists.name} by @${record.users.handle} on Rocksky.`,
