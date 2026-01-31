@@ -5,7 +5,7 @@ import albums, { SelectAlbum } from "schema/albums";
 import artists, { SelectArtist } from "schema/artists";
 import tracks, { SelectTrack } from "schema/tracks";
 import scrobbles from "schema/scrobbles";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 
 const app = new Hono();
 
@@ -22,7 +22,7 @@ app.get("/", async (c) => {
     const user = await ctx.db
       .select()
       .from(users)
-      .where(eq(users.handle, handle))
+      .where(or(eq(users.handle, handle), eq(users.did, handle)))
       .limit(1)
       .execute()
       .then(([row]) => row);
