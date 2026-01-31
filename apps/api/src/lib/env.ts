@@ -6,7 +6,6 @@ dotenv.config();
 export const env = cleanEnv(process.env, {
   NODE_ENV: str({
     default: "development",
-    devDefault: "development",
     choices: ["development", "production", "test"],
   }),
   HOST: host({ default: "localhost" }),
