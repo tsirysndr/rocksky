@@ -90,9 +90,6 @@
     "apps/app-proxy": {
       "name": "@rocksky/app-proxy",
       "version": "0.0.0",
-      "dependencies": {
-        "axios": "^1.8.4",
-      },
       "devDependencies": {
         "@cloudflare/vitest-pool-workers": "^0.6.4",
         "@cloudflare/workers-types": "^4.20250129.0",

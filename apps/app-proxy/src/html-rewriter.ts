@@ -37,14 +37,13 @@ export async function fetchOgData(url: URL, request: Request): Promise<OgData | 
 	const api = new URL('https://api.rocksky.app/public/og');
 	api.searchParams.set('path', url.pathname);
 
-	const res = await fetch(api.toString(), {
-		headers: {
-			accept: 'application/json',
-			'accept-language': request.headers.get('accept-language') ?? 'en',
-		},
-	});
+	const res = await fetch(api.toString());
 
-	if (!res.ok) return null;
+	if (!res.ok) {
+		console.log(res.statusText);
+		console.log(await res.text());
+		return null;
+	}
 
 	const og = (await res.json<OgData>()) as OgData;
 	og.url ??= url.toString();
