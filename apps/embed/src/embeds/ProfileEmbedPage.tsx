@@ -32,13 +32,14 @@ export function ProfileEmbedPage(props: ProfileEmbedPageProps) {
       >
         <div className="absolute top-[0] right-[0] m-[20px] flex flex-row items-center ">
           <img
-            className="max-h-[22px] max-w-[22px] mr-[8px] "
+            className="max-h-[18px] max-w-[18px] mr-[8px] "
             src="/public/logo.png"
           />
-          <span className="text-[20px]">Rocksky</span>
+          <span className="text-[15px]">Rocksky</span>
         </div>
       </a>
-      <div className="flex flex-row items-center mb-[20px] w-full">
+
+      <div className="flex flex-row items-center mt-[10px] mb-[20px] w-full">
         <a href={`https://rocksky.app/profile/${props.handle}`} target="_blank">
           <img
             className="max-h-[100px] max-w-[100px] rounded-full mr-[25px]"

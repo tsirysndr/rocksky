@@ -1,16 +1,11 @@
-export type Track = {
+export type Album = {
   id: string;
   title: string;
   artist: string;
-  albumArtist: string;
   albumArt: string;
-  trackNumber: number;
-  duration: number;
-  discNumber: number;
+  year: number | null;
   uri: string;
   artistUri: string;
-  albumUri: string;
-  album: string;
   playCount: number;
   uniqueListeners: number;
 };

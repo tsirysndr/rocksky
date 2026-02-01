@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+@plugin "flyonui";
+@plugin "@iconify/tailwind4";
+
+@import "../node_modules/flyonui/variants.css";
+@source "../node_modules/flyonui/dist/index.js";
+
 @font-face {
   font-family: "RockfordSansLight";
   src: url("/public/fonts/RockfordSans-Light.otf") format("opentype");
@@ -69,6 +75,7 @@
   --font-rockford-light: "RockfordSansLight";
   --color-text-muted: #42576ca6;
   --color-genre: #3f03fb;
+  --color-avatar-background: #f4f0ff;
 }
 
 .dark {

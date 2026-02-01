@@ -1,5 +1,9 @@
 export type Artist = {
   id: string;
   name: string;
-  tags: string[];
+  playCount: number;
+  uniqueListeners: number;
+  picture: string | null;
+  uri: string;
+  tags: string[] | null;
 };

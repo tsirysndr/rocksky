@@ -15,6 +15,10 @@ import getProfile from "./xrpc/getProfile";
 import getProfileStats from "./xrpc/getStats";
 import getTopGenres from "./xrpc/getTopGenres";
 import getTopTrack from "./xrpc/getTopTrack";
+import getTopArtists from "./xrpc/getTopArtists";
+import getTopAlbums from "./xrpc/getTopAlbums";
+import getTopTracks from "./xrpc/getTopTracks";
+import getRecentScrobbles from "./xrpc/getRecentScrobbles";
 
 const app = new Hono();
 
@@ -22,16 +26,41 @@ app.use("/public/*", serveStatic({ root: "./" }));
 
 app.use(renderer);
 
-app.get("/embed/u/:handle/top/artists", (c) => {
-  return c.render(<TopArtistsEmbedPage />);
+app.get("/embed/u/:handle/top/artists", async (c) => {
+  const handle = c.req.param("handle");
+  const [{ profile, ok: profileOk }, { topArtists, ok: artistsOk }] =
+    await Promise.all([getProfile(handle), getTopArtists(handle)]);
+
+  if (!profileOk || !artistsOk) {
+    return c.text("Profile not found", 404);
+  }
+
+  return c.render(
+    <TopArtistsEmbedPage profile={profile} artists={topArtists} />,
+  );
 });
 
-app.get("/embed/u/:handle/top/albums", (c) => {
-  return c.render(<TopAlbumsEmbedPage />);
+app.get("/embed/u/:handle/top/albums", async (c) => {
+  const handle = c.req.param("handle");
+  const [{ profile, ok: profileOk }, { topAlbums, ok: albumsOk }] =
+    await Promise.all([getProfile(handle), getTopAlbums(handle)]);
+  if (!profileOk || !albumsOk) {
+    return c.text("Profile not found", 404);
+  }
+
+  return c.render(<TopAlbumsEmbedPage profile={profile} albums={topAlbums} />);
 });
 
-app.get("/embed/u/:handle/top/tracks", (c) => {
-  return c.render(<TopTracksEmbedPage />);
+app.get("/embed/u/:handle/top/tracks", async (c) => {
+  const handle = c.req.param("handle");
+  const [{ profile, ok: profileOk }, { topTracks, ok: tracksOk }] =
+    await Promise.all([getProfile(handle), getTopTracks(handle)]);
+
+  if (!profileOk || !tracksOk) {
+    return c.text("Profile not found", 404);
+  }
+
+  return c.render(<TopTracksEmbedPage profile={profile} tracks={topTracks} />);
 });
 
 app.get("/embed/song/:id", (c) => {
@@ -88,8 +117,18 @@ app.get("/embed/u/:handle/now", (c) => {
   return c.render(<NowPlayingEmbedPage />);
 });
 
-app.get("/embed/u/:handle/recent", (c) => {
-  return c.render(<RecentScrobblesEmbedPage />);
+app.get("/embed/u/:handle/recent", async (c) => {
+  const handle = c.req.param("handle");
+  const [{ profile, ok: profileOk }, { scrobbles, ok: scrobblesOk }] =
+    await Promise.all([getProfile(handle), getRecentScrobbles(handle)]);
+
+  if (!profileOk || !scrobblesOk) {
+    return c.text("Profile not found", 404);
+  }
+
+  return c.render(
+    <RecentScrobblesEmbedPage profile={profile} scrobbles={scrobbles} />,
+  );
 });
 
 app.get("/embed/u/:handle/summary", (c) => {
@@ -101,7 +140,7 @@ app.get("/", (c) => {
     <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
       <div className="bg-white p-8 rounded-lg shadow-2xl">
         <h1 className="text-4xl font-bold text-gray-800 mb-4">
-          Hello from Hono + React!
+          Embed a Rocksky Scrobble
         </h1>
         <p className="text-gray-600">
           This is server-side rendered with Tailwind CSS
