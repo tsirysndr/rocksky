@@ -25,6 +25,7 @@
     "@iconify-json/tabler": "^1.2.26",
     "@iconify/tailwind4": "^1.2.1",
     "@logtape/logtape": "^2.0.2",
+    "chalk": "^5.6.2",
     "dayjs": "^1.11.19",
     "flyonui": "^2.4.1",
     "hono": "^4.11.7",

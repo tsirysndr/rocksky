@@ -19,6 +19,7 @@ import getTopArtists from "./xrpc/getTopArtists";
 import getTopAlbums from "./xrpc/getTopAlbums";
 import getTopTracks from "./xrpc/getTopTracks";
 import getRecentScrobbles from "./xrpc/getRecentScrobbles";
+import chalk from "chalk";
 
 const app = new Hono();
 
@@ -150,4 +151,24 @@ app.get("/", (c) => {
   );
 });
 
-export default app;
+console.log(
+  chalk.greenBright(`
+    ______          __             __
+   / ____/___ ___  / /_  ___  ____/ /
+  / __/ / __ \`__ \\/ __ \\/ _ \\/ __  /
+ / /___/ / / / / / /_/ /  __/ /_/ /
+/_____/_/ /_/ /_/_.___/\\___/\\__,_/
+`),
+);
+
+const port = process.env.EMBED_PORT ? Number(process.env.EMBED_PORT) : 4001;
+console.log(
+  chalk.blueBright(
+    "🚀  Server is running!" + chalk.whiteBright(` http://localhost:${port}`),
+  ),
+);
+
+export default {
+  port,
+  fetch: app.fetch,
+};
