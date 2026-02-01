@@ -1909,6 +1909,9 @@
 .\!rounded-full {
   border-radius: calc(infinity * 1px) !important;
 }
+.rounded-\[5px\] {
+  border-radius: 5px;
+}
 .rounded-box {
   border-radius: var(--radius-box);
 }
@@ -2443,6 +2446,9 @@
 }
 .opacity-0 {
   opacity: 0%;
+}
+.opacity-60 {
+  opacity: 60%;
 }
 .opacity-100 {
   opacity: 100%;
