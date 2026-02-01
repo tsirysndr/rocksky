@@ -1,0 +1,246 @@
+/*! tailwindcss v4.1.18 | MIT License | https://tailwindcss.com */
+@layer properties;
+.absolute {
+  position: absolute;
+}
+.top-\[0\] {
+  top: 0;
+}
+.right-\[0\] {
+  right: 0;
+}
+.m-\[0px\] {
+  margin: 0px;
+}
+.m-\[20px\] {
+  margin: 20px;
+}
+.mr-\[5px\] {
+  margin-right: 5px;
+}
+.mr-\[8px\] {
+  margin-right: 8px;
+}
+.mr-\[10px\] {
+  margin-right: 10px;
+}
+.mr-\[20px\] {
+  margin-right: 20px;
+}
+.mr-\[25px\] {
+  margin-right: 25px;
+}
+.mb-\[20px\] {
+  margin-bottom: 20px;
+}
+.mb-\[25px\] {
+  margin-bottom: 25px;
+}
+.flex {
+  display: flex;
+}
+.max-h-\[20px\] {
+  max-height: 20px;
+}
+.max-h-\[22px\] {
+  max-height: 22px;
+}
+.max-h-\[24px\] {
+  max-height: 24px;
+}
+.max-h-\[25px\] {
+  max-height: 25px;
+}
+.max-h-\[30px\] {
+  max-height: 30px;
+}
+.max-h-\[70px\] {
+  max-height: 70px;
+}
+.max-h-\[100px\] {
+  max-height: 100px;
+}
+.min-h-screen {
+  min-height: 100vh;
+}
+.w-full {
+  width: 100%;
+}
+.max-w-\[20px\] {
+  max-width: 20px;
+}
+.max-w-\[22px\] {
+  max-width: 22px;
+}
+.max-w-\[24px\] {
+  max-width: 24px;
+}
+.max-w-\[25px\] {
+  max-width: 25px;
+}
+.max-w-\[30px\] {
+  max-width: 30px;
+}
+.max-w-\[70px\] {
+  max-width: 70px;
+}
+.max-w-\[100px\] {
+  max-width: 100px;
+}
+.flex-col {
+  flex-direction: column;
+}
+.flex-row {
+  flex-direction: row;
+}
+.items-center {
+  align-items: center;
+}
+.items-end {
+  align-items: flex-end;
+}
+.justify-center {
+  justify-content: center;
+}
+.justify-end {
+  justify-content: flex-end;
+}
+.rounded-full {
+  border-radius: calc(infinity * 1px);
+}
+.border-r-2 {
+  border-right-style: var(--tw-border-style);
+  border-right-width: 2px;
+}
+.border-r-4 {
+  border-right-style: var(--tw-border-style);
+  border-right-width: 4px;
+}
+.bg-gradient-to-br {
+  --tw-gradient-position: to bottom right in oklab;
+  background-image: linear-gradient(var(--tw-gradient-stops));
+}
+.p-\[15px\] {
+  padding: 15px;
+}
+.pr-\[15px\] {
+  padding-right: 15px;
+}
+.font-rockford-light {
+  font-family: var(--font-rockford-light);
+}
+.text-\[12px\] {
+  font-size: 12px;
+}
+.text-\[13px\] {
+  font-size: 13px;
+}
+.text-\[14px\] {
+  font-size: 14px;
+}
+.text-\[18px\] {
+  font-size: 18px;
+}
+.text-\[20px\] {
+  font-size: 20px;
+}
+.text-\[24px\] {
+  font-size: 24px;
+}
+.text-\[var\(--color-genre\)\] {
+  color: var(--color-genre);
+}
+.text-\[var\(--color-text-muted\)\] {
+  color: var(--color-text-muted);
+}
+.text-inherit {
+  color: inherit;
+}
+.no-underline {
+  text-decoration-line: none;
+}
+.hover\:underline {
+  &:hover {
+    @media (hover: hover) {
+      text-decoration-line: underline;
+    }
+  }
+}
+@font-face {
+  font-family: "RockfordSansLight";
+  src: url("/public/fonts/RockfordSans-Light.otf") format("opentype");
+  font-weight: 300;
+  font-style: normal;
+}
+@font-face {
+  font-family: "RockfordSansRegular";
+  src: url("/public/fonts/RockfordSans-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: "RockfordSansRegularItalic";
+  src: url("/public/fonts/RockfordSans-RegularItalic.otf") format("opentype");
+  font-weight: 400;
+  font-style: italic;
+}
+@font-face {
+  font-family: "RockfordSansMedium";
+  src: url("/public/fonts/RockfordSans-Medium.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: "RockfordSansBold";
+  src: url("/public/fonts/RockfordSans-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+}
+@font-face {
+  font-family: "RockfordSansBoldItalic";
+  src: url("/public/fonts/RockfordSans-BoldItalic.otf") format("opentype");
+  font-weight: 700;
+  font-style: italic;
+}
+@font-face {
+  font-family: "RockfordSansExtraBold";
+  src: url("/public/fonts/RockfordSans-ExtraBold.otf") format("opentype");
+  font-weight: 800;
+  font-style: normal;
+}
+@font-face {
+  font-family: "RockfordSansRegular";
+  src: url("/public/fonts/RockfordSans-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: "RockfordSansBold";
+  src: url("/public/fonts/RockfordSans-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+}
+:root, :host {
+  --font-rockford-light: "RockfordSansLight";
+  --color-text-muted: #42576ca6;
+  --color-genre: #3f03fb;
+}
+.dark {
+  --color-text-muted: rgb(191 174 195 / 65%) !important;
+  --color-genre: #3f03fb;
+}
+body {
+  font-family: "RockfordSansRegular";
+}
+@property --tw-border-style {
+  syntax: "*";
+  inherits: false;
+  initial-value: solid;
+}
+@layer properties {
+  @supports ((-webkit-hyphens: none) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color:rgb(from red r g b)))) {
+    *, ::before, ::after, ::backdrop {
+      --tw-border-style: solid;
+    }
+  }
+}

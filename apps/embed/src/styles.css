@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: "RockfordSansLight";
+  src: url("/public/fonts/RockfordSans-Light.otf") format("opentype");
+  font-weight: 300;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "RockfordSansRegular";
+  src: url("/public/fonts/RockfordSans-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "RockfordSansRegularItalic";
+  src: url("/public/fonts/RockfordSans-RegularItalic.otf") format("opentype");
+  font-weight: 400;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "RockfordSansMedium";
+  src: url("/public/fonts/RockfordSans-Medium.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "RockfordSansBold";
+  src: url("/public/fonts/RockfordSans-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "RockfordSansBoldItalic";
+  src: url("/public/fonts/RockfordSans-BoldItalic.otf") format("opentype");
+  font-weight: 700;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "RockfordSansExtraBold";
+  src: url("/public/fonts/RockfordSans-ExtraBold.otf") format("opentype");
+  font-weight: 800;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "RockfordSansRegular";
+  src: url("/public/fonts/RockfordSans-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "RockfordSansBold";
+  src: url("/public/fonts/RockfordSans-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+}
+
+@theme {
+  --font-rockford-light: "RockfordSansLight";
+  --color-text-muted: #42576ca6;
+  --color-genre: #3f03fb;
+}
+
+.dark {
+  --color-text-muted: rgb(191 174 195 / 65%) !important;
+  --color-genre: #3f03fb;
+}
+
+body {
+  font-family: "RockfordSansRegular";
+}
