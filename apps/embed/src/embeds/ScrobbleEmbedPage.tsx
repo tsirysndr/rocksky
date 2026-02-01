@@ -18,7 +18,7 @@ export function ScrobbleEmbedPage(props: ScrobbleEmbedPageProps) {
           target="_blank"
         >
           <img
-            className="max-h-[250px] max-w-[250px] rounded-[8px] mb-[5px]"
+            className="max-h-[280px] max-w-[280px] rounded-[10px] mb-[5px]"
             src={props.scrobble.cover}
           />
         </a>

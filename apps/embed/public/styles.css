@@ -1772,6 +1772,9 @@
 .max-h-\[250px\] {
   max-height: 250px;
 }
+.max-h-\[280px\] {
+  max-height: 280px;
+}
 .min-h-screen {
   min-height: 100vh;
 }
@@ -1850,6 +1853,9 @@
 }
 .max-w-\[250px\] {
   max-width: 250px;
+}
+.max-w-\[280px\] {
+  max-width: 280px;
 }
 .max-w-full {
   max-width: 100%;
@@ -1953,6 +1959,9 @@
 }
 .rounded-\[8px\] {
   border-radius: 8px;
+}
+.rounded-\[10px\] {
+  border-radius: 10px;
 }
 .rounded-box {
   border-radius: var(--radius-box);
