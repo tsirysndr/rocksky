@@ -41,7 +41,7 @@ export function TopTracksEmbedPage(props: TopTracksEmbedPageProps) {
                       <div>
                         <div>{track.title}</div>
                         <a
-                          href={`https://rocksky.app/${track.artistUri.split("at://")[1]?.replace("app.rocksky.", "")}`}
+                          href={`https://rocksky.app/${track.artistUri?.split("at://")[1]?.replace("app.rocksky.", "")}`}
                           target="_blank"
                           className="no-underline text-inherit"
                         >
