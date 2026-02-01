@@ -2,6 +2,7 @@ import { v4 } from "uuid";
 import Header from "../components/Header";
 import type { Profile } from "../types/profile";
 import type { Track } from "../types/track";
+import dayjs from "dayjs";
 
 export type TopTracksEmbedPageProps = {
   profile: Profile;
@@ -9,11 +10,15 @@ export type TopTracksEmbedPageProps = {
 };
 
 export function TopTracksEmbedPage(props: TopTracksEmbedPageProps) {
+  const end = dayjs();
+  const start = end.subtract(7, "day");
+  const range = `${start.format("DD MMM YYYY")} — ${end.format("DD MMM YYYY")}`;
+
   return (
     <div className="p-[15px]">
       <Header profile={props.profile} />
       <h2 className="m-[0px]">Top Tracks</h2>
-
+      <div className="text-[14px] mt-[3px] mb-[20px]">{range}</div>
       <div className="w-full overflow-x-auto">
         <table className="table-borderless table">
           <tbody>

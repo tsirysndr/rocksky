@@ -2,6 +2,7 @@ import { v4 } from "uuid";
 import Header from "../components/Header";
 import type { Album } from "../types/album";
 import type { Profile } from "../types/profile";
+import dayjs from "dayjs";
 
 export type TopAlbumEmbedPageProps = {
   profile: Profile;
@@ -9,10 +10,15 @@ export type TopAlbumEmbedPageProps = {
 };
 
 export function TopAlbumsEmbedPage(props: TopAlbumEmbedPageProps) {
+  const end = dayjs();
+  const start = end.subtract(7, "day");
+  const range = `${start.format("DD MMM YYYY")} — ${end.format("DD MMM YYYY")}`;
+
   return (
     <div className="p-[15px]">
       <Header profile={props.profile} />
       <h2 className="m-[0px]">Top Albums</h2>
+      <div className="text-[14px] mt-[3px] mb-[20px]">{range}</div>
 
       <div className="w-full overflow-x-auto">
         <table className="table-borderless table">

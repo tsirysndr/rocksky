@@ -15,7 +15,7 @@ export type RecentScrobblesEmbedPageProps = {
 export function RecentScrobblesEmbedPage(props: RecentScrobblesEmbedPageProps) {
   return (
     <div className="p-[15px]">
-      <Header profile={props.profile} withoutRange />
+      <Header profile={props.profile} />
       <h2 className="m-[0px]">Recent Listens</h2>
 
       <div className="w-full overflow-x-auto">

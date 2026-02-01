@@ -23,6 +23,7 @@ import chalk from "chalk";
 import { logger } from "hono/logger";
 import { ScrobbleEmbedPage } from "./embeds/ScrobbleEmbedPage";
 import getScrobble from "./xrpc/getScrobble";
+import { Embed } from "./embeds/Embed";
 
 const app = new Hono();
 
@@ -154,23 +155,7 @@ app.get("/embed/:did/scrobble/:rkey", async (c) => {
 });
 
 app.get("/", (c) => {
-  return c.render(
-    <div className="min-h-screen  w-1/3 flex items-center justify-center m-auto">
-      <div className="w-full">
-        <h1 className="text-4xl font-bold text-gray-800 mb-4 text-center">
-          Embed a Rocksky Scrobble
-        </h1>
-        <div>
-          <input
-            type="text"
-            className="input w-full"
-            aria-label="input"
-            placeholder="https://rocksky.app/did:plc:7vdlgi2bflelz7mmuxoqjfcr/scrobble/3mdt3zncfoc23"
-          />
-        </div>
-      </div>
-    </div>,
-  );
+  return c.render(<Embed />);
 });
 
 console.log(

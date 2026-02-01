@@ -11,10 +11,15 @@ export type TopArtistsEmbedPageProps = {
 };
 
 export function TopArtistsEmbedPage(props: TopArtistsEmbedPageProps) {
+  const end = dayjs();
+  const start = end.subtract(7, "day");
+  const range = `${start.format("DD MMM YYYY")} — ${end.format("DD MMM YYYY")}`;
+
   return (
     <div className="p-[15px]">
       <Header profile={props.profile} />
-      <h2 className="m-[0px] mb-[15px]">Top Artists</h2>
+      <h2 className="m-[0px]">Top Artists</h2>
+      <div className="text-[14px] mt-[3px] mb-[20px]">{range}</div>
 
       <div className="w-full overflow-x-auto">
         <table className="table-borderless table">
