@@ -20,11 +20,12 @@ import getTopAlbums from "./xrpc/getTopAlbums";
 import getTopTracks from "./xrpc/getTopTracks";
 import getRecentScrobbles from "./xrpc/getRecentScrobbles";
 import chalk from "chalk";
+import { logger } from "hono/logger";
 
 const app = new Hono();
 
+app.use(logger());
 app.use("/public/*", serveStatic({ root: "./" }));
-
 app.use(renderer);
 
 app.get("/embed/u/:handle/top/artists", async (c) => {
