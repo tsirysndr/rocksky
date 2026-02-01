@@ -5,6 +5,7 @@ export type Scrobble = {
   artist: string;
   albumArtist: string;
   albumArt: string;
+  cover?: string;
   album: string;
   handle: string;
   did: string;
@@ -13,4 +14,5 @@ export type Scrobble = {
   artistUri: string;
   albumUri: string;
   createdAt: string;
+  date: string;
 };

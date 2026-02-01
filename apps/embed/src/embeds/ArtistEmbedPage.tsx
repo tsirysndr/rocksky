@@ -1,3 +1,3 @@
 export function ArtistEmbedPage() {
-  return <></>;
+  return <>Artist</>;
 }

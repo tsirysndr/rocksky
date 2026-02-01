@@ -1,3 +1,3 @@
 export function NowPlayingEmbedPage() {
-  return <></>;
+  return <>Now Playing</>;
 }

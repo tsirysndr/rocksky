@@ -1,3 +1,3 @@
 export function SongEmbedPage() {
-  return <></>;
+  return <>Song</>;
 }

@@ -21,6 +21,8 @@ import getTopTracks from "./xrpc/getTopTracks";
 import getRecentScrobbles from "./xrpc/getRecentScrobbles";
 import chalk from "chalk";
 import { logger } from "hono/logger";
+import { ScrobbleEmbedPage } from "./embeds/ScrobbleEmbedPage";
+import getScrobble from "./xrpc/getScrobble";
 
 const app = new Hono();
 
@@ -65,15 +67,15 @@ app.get("/embed/u/:handle/top/tracks", async (c) => {
   return c.render(<TopTracksEmbedPage profile={profile} tracks={topTracks} />);
 });
 
-app.get("/embed/song/:id", (c) => {
+app.get("/embed/:did/song/:rkey", (c) => {
   return c.render(<SongEmbedPage />);
 });
 
-app.get("/embed/artist/:id", (c) => {
+app.get("/embed/:did/artist/:rkey", (c) => {
   return c.render(<ArtistEmbedPage />);
 });
 
-app.get("/embed/album/:id", (c) => {
+app.get("/embed/:did/album/:rkey", (c) => {
   return c.render(<AlbumEmbedPage />);
 });
 
@@ -137,16 +139,35 @@ app.get("/embed/u/:handle/summary", (c) => {
   return c.render(<SummaryEmbedPage />);
 });
 
+app.get("/embed/:did/scrobble/:rkey", async (c) => {
+  const did = c.req.param("did");
+  const rkey = c.req.param("rkey");
+  const uri = `at://${did}/app.rocksky.scrobble/${rkey}`;
+  const [{ profile, ok: profileOk }, { scrobble, ok: scrobbleOk }] =
+    await Promise.all([getProfile(did), getScrobble(uri)]);
+
+  if (!scrobbleOk || !profileOk || !scrobble) {
+    return c.text("Scrobble not found", 404);
+  }
+
+  return c.render(<ScrobbleEmbedPage profile={profile} scrobble={scrobble} />);
+});
+
 app.get("/", (c) => {
   return c.render(
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-      <div className="bg-white p-8 rounded-lg shadow-2xl">
-        <h1 className="text-4xl font-bold text-gray-800 mb-4">
+    <div className="min-h-screen  w-1/3 flex items-center justify-center m-auto">
+      <div className="w-full">
+        <h1 className="text-4xl font-bold text-gray-800 mb-4 text-center">
           Embed a Rocksky Scrobble
         </h1>
-        <p className="text-gray-600">
-          This is server-side rendered with Tailwind CSS
-        </p>
+        <div>
+          <input
+            type="text"
+            className="input w-full"
+            aria-label="input"
+            placeholder="https://rocksky.app/did:plc:7vdlgi2bflelz7mmuxoqjfcr/scrobble/3mdt3zncfoc23"
+          />
+        </div>
       </div>
     </div>,
   );
