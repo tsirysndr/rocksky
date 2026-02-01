@@ -3,6 +3,7 @@ import type { Profile } from "../../types/profile";
 
 export type HeaderProps = {
   profile: Profile;
+  withoutRange?: boolean;
 };
 
 function Header(props: HeaderProps) {
@@ -30,8 +31,12 @@ function Header(props: HeaderProps) {
           >
             <div className="text-[14px] mt-[-6px]">@{props.profile.handle}</div>
           </a>
-          <span className="text-[14px] mt-[-3px] ml-[5px] mr-[5px]">|</span>
-          <span className="text-[13px] mt-[-3px]">{range}</span>
+          {!props.withoutRange && (
+            <>
+              <span className="text-[14px] mt-[-3px] ml-[5px] mr-[5px]">|</span>
+              <span className="text-[13px] mt-[-3px]">{range}</span>
+            </>
+          )}
         </div>
 
         <a
