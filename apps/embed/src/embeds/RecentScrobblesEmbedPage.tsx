@@ -16,14 +16,14 @@ export function RecentScrobblesEmbedPage(props: RecentScrobblesEmbedPageProps) {
   return (
     <div className="p-[15px]">
       <Header profile={props.profile} />
-      <h2 className="m-[0px]">Recent Listens</h2>
+      <h2 className="m-[0px] mb-[10px]">Recent Listens</h2>
 
       <div className="w-full overflow-x-auto">
         <table className="table-borderless table">
           <tbody>
             {props.scrobbles.map((scrobble, index) => (
               <tr key={v4()}>
-                <td>
+                <td className="pl-[0px] pr-[0px]">
                   <div className="flex flex-row items-center">
                     <a
                       href={`https://rocksky.app/${scrobble.uri?.split("at://")[1]?.replace("app.rocksky.", "")}`}

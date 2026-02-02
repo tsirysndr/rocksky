@@ -1485,6 +1485,9 @@
 .mb-\[5px\] {
   margin-bottom: 5px;
 }
+.mb-\[10px\] {
+  margin-bottom: 10px;
+}
 .mb-\[15px\] {
   margin-bottom: 15px;
 }
@@ -2363,8 +2366,14 @@
 .p-\[15px\] {
   padding: 15px;
 }
+.pr-\[0px\] {
+  padding-right: 0px;
+}
 .pr-\[15px\] {
   padding-right: 15px;
+}
+.pl-\[0px\] {
+  padding-left: 0px;
 }
 .text-center {
   text-align: center;

@@ -26,9 +26,9 @@ export function TopArtistsEmbedPage(props: TopArtistsEmbedPageProps) {
           <tbody>
             {props.artists.map((artist, index) => (
               <tr key={v4()}>
-                <td>
+                <td className="pl-[0px] pr-[0px]">
                   <div className="flex flex-row items-center">
-                    <div className="mr-[20px] min-w-[30px]">{index + 1}</div>
+                    <div className="mr-[10px] min-w-[30px]">{index + 1}</div>
                     <a
                       href={`https://rocksky.app/${artist.uri?.split("at://")[1]?.replace("app.rocksky.", "")}`}
                       target="_blank"
