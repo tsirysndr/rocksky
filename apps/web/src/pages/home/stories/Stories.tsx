@@ -17,6 +17,7 @@ import { useStoriesQuery } from "../../../hooks/useStories";
 import styles, { getModalStyles } from "./styles";
 import _ from "lodash";
 import ContentLoader from "react-content-loader";
+import { v4 } from "uuid";
 
 dayjs.extend(relativeTime);
 dayjs.extend(utc);
@@ -337,17 +338,17 @@ function Stories() {
               >
                 {stories.map((item, index) => (
                   <StoryContainer
-                    key={`${item.id}-${item.did}-${item.createdAt}`}
+                    key={v4()}
                     onClick={() => {
                       setCurrentlyPlaying(item);
                       setCurrentIndex(index);
                       setIsOpen(true);
                     }}
                   >
-                    {!item.avatar?.endsWith("/@jpeg") && (
+                    {item.avatar && !item.avatar.endsWith("/@jpeg") && (
                       <Story src={item.avatar} />
                     )}
-                    {item.avatar?.endsWith("/@jpeg") && (
+                    {item.avatar && item.avatar.endsWith("/@jpeg") && (
                       <div className="w-[64px] h-[64px] rounded-full border-2 border-[rgb(255,40,118)] p-[2px]">
                         <div className="w-[64px] h-[64px] rounded-full bg-[var(--color-avatar-background)] flex items-center justify-center mr-[12px]">
                           <IconUser size={32} color="#fff" />
@@ -397,14 +398,16 @@ function Stories() {
               </div>
               <div className="flex flex-row items-center">
                 <Link to={`/profile/${currentlyPlaying?.handle}`}>
-                  {!currentlyPlaying?.avatar?.endsWith("/@jpeg") && (
-                    <Avatar src={currentlyPlaying?.avatar} />
-                  )}
-                  {currentlyPlaying?.avatar?.endsWith("/@jpeg") && (
-                    <div className="w-[48px] h-[48px] rounded-full bg-[var(--color-avatar-background)] flex items-center justify-center mr-[12px]">
-                      <IconUser size={24} color="#fff" />
-                    </div>
-                  )}
+                  {currentlyPlaying?.avatar &&
+                    !currentlyPlaying?.avatar?.endsWith("/@jpeg") && (
+                      <Avatar src={currentlyPlaying?.avatar} />
+                    )}
+                  {currentlyPlaying?.avatar &&
+                    currentlyPlaying.avatar.endsWith("/@jpeg") && (
+                      <div className="w-[48px] h-[48px] rounded-full bg-[var(--color-avatar-background)] flex items-center justify-center mr-[12px]">
+                        <IconUser size={24} color="#fff" />
+                      </div>
+                    )}
                 </Link>
                 <Link to={`/profile/${currentlyPlaying?.handle}`}>
                   <div className="text-[#fff] no-underline text-[15px]">
