@@ -104,8 +104,10 @@ function Search() {
                                     {item.displayName}
                                   </div>
                                 </div>
-                                <div className="text-[var(--color-text-muted)] text-[14px]">
-                                  @{item.handle}
+                                <div className="overflow-hidden">
+                                  <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[var(--color-text-muted)] text-[14px]">
+                                    @{item.handle}
+                                  </div>
                                 </div>
                               </div>
                             </div>
