@@ -84,7 +84,7 @@ function Search() {
                       <>
                         {item._federation.indexUid === "users" && (
                           <Link to={`/profile/${item.handle}`} key={item.id}>
-                            <div className="flex flex-row mb-[10px]">
+                            <div className="flex flex-row mb-[10px] mt-[10px]">
                               {!item.avatar?.endsWith("/@jpeg") && (
                                 <img
                                   key={item.did}
@@ -94,11 +94,11 @@ function Search() {
                                 />
                               )}
                               {item.avatar?.endsWith("/@jpeg") && (
-                                <div className="w-[50px] h-[50px] rounded-full bg-[var(--color-avatar-background)] flex items-center justify-center mr-[12px]">
+                                <div className="min-w-[50px] min-h-[50px] rounded-full bg-[var(--color-avatar-background)] flex items-center justify-center mr-[12px] flex-shrink-0">
                                   <IconUser size={25} color="#fff" />
                                 </div>
                               )}
-                              <div>
+                              <div className="overflow-hidden">
                                 <div className="overflow-hidden">
                                   <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[var(--color-text)]">
                                     {item.displayName}
