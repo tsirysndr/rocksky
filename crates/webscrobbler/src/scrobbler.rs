@@ -138,8 +138,17 @@ pub async fn scrobble(
 
     tracing::info!(query = %query, "Searching on Spotify");
 
-    let result =
-        retry_spotify_call(|| async { spotify_client.search(&query).await }, "search").await?;
+    let result = retry_spotify_call(
+        || async {
+            tokio::time::timeout(
+                std::time::Duration::from_secs(5),
+                spotify_client.search(&query),
+            )
+            .await?
+        },
+        "search",
+    )
+    .await?;
 
     tracing::info!(total = %result.tracks.total, "Spotify search results");
 
