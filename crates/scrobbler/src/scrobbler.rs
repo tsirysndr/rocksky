@@ -208,12 +208,14 @@ pub async fn scrobble(
 
         let result = retry_spotify_call(
             || async {
-                spotify_client
-                    .search(&format!(
+                tokio::time::timeout(
+                    std::time::Duration::from_secs(5),
+                    spotify_client.search(&format!(
                         r#"track:"{}" artist:"{}""#,
                         scrobble.track, scrobble.artist
-                    ))
-                    .await
+                    )),
+                )
+                .await?
             },
             "search",
         )
