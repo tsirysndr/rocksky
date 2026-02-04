@@ -17,7 +17,7 @@ import { useStoriesQuery } from "../../../hooks/useStories";
 import styles, { getModalStyles } from "./styles";
 import _ from "lodash";
 import ContentLoader from "react-content-loader";
-import { v4 } from "uuid";
+import { LazyLoadImage } from "react-lazy-load-image-component";
 
 dayjs.extend(relativeTime);
 dayjs.extend(utc);
@@ -26,7 +26,7 @@ const Container = styled.div`
   margin-bottom: 50px;
 `;
 
-const Story = styled.img`
+const Story = styled(LazyLoadImage)`
   height: 64px;
   width: 64px;
   border-radius: 36px;
@@ -338,7 +338,7 @@ function Stories() {
               >
                 {stories.map((item, index) => (
                   <StoryContainer
-                    key={v4()}
+                    key={`${item.id}-${item.did}-${item.createdAt}`}
                     onClick={() => {
                       setCurrentlyPlaying(item);
                       setCurrentIndex(index);
@@ -346,7 +346,7 @@ function Stories() {
                     }}
                   >
                     {item.avatar && !item.avatar.endsWith("/@jpeg") && (
-                      <Story src={item.avatar} />
+                      <Story src={item.avatar} effect="blur" />
                     )}
                     {item.avatar && item.avatar.endsWith("/@jpeg") && (
                       <div className="w-[64px] h-[64px] rounded-full border-2 border-[rgb(255,40,118)] p-[2px]">
