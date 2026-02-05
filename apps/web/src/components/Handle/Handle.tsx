@@ -176,14 +176,14 @@ function Handle(props: HandleProps) {
             <div className="flex flex-row items-start justify-between">
               <div className="flex flex-row items-center">
                 <Link to={link} className="no-underline">
-                  {!profiles[did]?.avatar.endsWith("/@jpeg") && (
+                  {!profiles[did]?.avatar?.endsWith("/@jpeg") && (
                     <Avatar
                       src={profiles[did]?.avatar}
                       name={profiles[did]?.displayName}
                       size={"60px"}
                     />
                   )}
-                  {profiles[did]?.avatar.endsWith("/@jpeg") && (
+                  {profiles[did]?.avatar?.endsWith("/@jpeg") && (
                     <div className="w-[60px] h-[60px] rounded-full bg-[var(--color-avatar-background)] flex items-center justify-center">
                       <IconUser size={30} color="#fff" />
                     </div>

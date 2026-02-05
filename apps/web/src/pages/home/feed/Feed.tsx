@@ -220,14 +220,14 @@ function Feed() {
 
                       <div className="flex">
                         <div className="mr-[8px]">
-                          {!song.userAvatar.endsWith("/@jpeg") && (
+                          {!song.userAvatar?.endsWith("/@jpeg") && (
                             <Avatar
                               src={song.userAvatar}
                               name={song.userDisplayName}
                               size={"20px"}
                             />
                           )}
-                          {song.userAvatar.endsWith("/@jpeg") && (
+                          {song.userAvatar?.endsWith("/@jpeg") && (
                             <div className="w-[20px] h-[20px] rounded-full bg-[var(--color-avatar-background)] flex items-center justify-center">
                               <IconUser size={10} color="#fff" />
                             </div>
