@@ -86,7 +86,7 @@ const presentation = ([track, artist, uniqueListeners, playCount]: [
 ]): Effect.Effect<SongViewDetailed, never> => {
   return Effect.sync(() => ({
     ...track,
-    tags: artist.genres,
+    tags: artist?.genres || [],
     playCount,
     uniqueListeners,
     createdAt: track.createdAt.toISOString(),
