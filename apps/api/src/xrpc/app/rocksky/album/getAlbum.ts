@@ -113,7 +113,7 @@ const presentation = ([album, artist, tracks, uniqueListeners, playCount]: [
 ]): Effect.Effect<AlbumViewDetailed, never> => {
   return Effect.sync(() => ({
     ...album,
-    tags: artist.genres,
+    tags: artist?.genres || [],
     tracks,
     playCount,
     uniqueListeners,
