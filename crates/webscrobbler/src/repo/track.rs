@@ -12,7 +12,7 @@ pub async fn get_track(
         r#"
     SELECT * FROM tracks
     WHERE LOWER(title) = LOWER($1)
-    AND (LOWER(artist) = LOWER($2) OR LOWER(album_artist) = LOWER($2))
+    AND (LOWER(artist) = LOWER($2) OR LOWER(album_artist) = LOWER($2)) AND LOWER(album_artist) != 'various artists'
     "#,
     )
     .bind(title)
