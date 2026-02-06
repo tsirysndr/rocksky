@@ -129,7 +129,7 @@ const presentation = ([
     date: scrobbles.timestamp.toISOString(),
     user: users.handle,
     uri: scrobbles.uri,
-    tags: artists.genres,
+    tags: artists?.genres || [],
     listeners,
     scrobbles: scrobblesCount,
     createdAt: scrobbles.createdAt.toISOString(),
