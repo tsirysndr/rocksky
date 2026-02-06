@@ -27,6 +27,7 @@ export const getSongByUri = async (uri: string) => {
     spotifyLink: response.data?.spotifyLink,
     composer: response.data?.composer,
     uri: response.data?.uri,
+    artists: response.data?.artists,
   };
 };
 

@@ -29,6 +29,7 @@ import Main from "../../layouts/Main";
 import Credits from "./Credits";
 import PopularAlbums from "./PopularAlbums";
 import PopularTracks from "./PopularTracks";
+import * as R from "ramda";
 
 const Group = styled.div`
   display: flex;
@@ -198,6 +199,8 @@ const Song = () => {
     artistTracksResult.isLoading ||
     artistAlbumResult.isLoading;
 
+  const artists = R.indexBy(R.prop("name"), song?.artists || []);
+
   return (
     <Main>
       <div className="pb-[100px] pt-[50px]">
@@ -250,23 +253,37 @@ const Song = () => {
                 <HeadingMedium margin={0} className="!text-[var(--color-text)]">
                   {song?.title}
                 </HeadingMedium>
-                {song?.artistUri && (
-                  <Link
-                    to={`/${song.artistUri.split("at://")[1].replace("app.rocksky.", "")}`}
-                  >
-                    <LabelLarge
-                      margin={0}
-                      className="!text-[var(--color-text)]"
-                    >
-                      {song?.albumArtist}
-                    </LabelLarge>
-                  </Link>
-                )}
-                {!song?.artistUri && (
-                  <LabelLarge margin={0} className="!text-[var(--color-text)]">
-                    {song?.albumArtist}
-                  </LabelLarge>
-                )}
+                {song?.artist
+                  .split(",")
+                  .map((name) => name.trim())
+                  .filter((name) => name !== "")
+                  .map((name, index, array) => (
+                    <span key={index}>
+                      <div className="inline-block">
+                        {artists[name]?.uri ? (
+                          <Link
+                            to={`/${artists[name]?.uri?.split("at://")[1].replace("app.rocksky.", "")}`}
+                          >
+                            <LabelLarge
+                              margin={0}
+                              className="!text-[var(--color-text)]"
+                            >
+                              {name}
+                            </LabelLarge>
+                          </Link>
+                        ) : (
+                          <LabelLarge
+                            margin={0}
+                            className="!text-[var(--color-text)]"
+                          >
+                            {name}
+                          </LabelLarge>
+                        )}
+                      </div>
+                      {index < array.length - 1 && ", "}
+                    </span>
+                  ))}
+
                 <div className="mt-[20px] flex flex-row">
                   <div
                     style={{

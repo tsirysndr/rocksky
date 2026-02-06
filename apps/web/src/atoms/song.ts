@@ -2,6 +2,13 @@ import { atom } from "jotai";
 
 export const songAtom = atom<{
   title: string;
+  artist: string;
+  artists: {
+    id: string;
+    name: string;
+    picture?: string;
+    uri?: string;
+  }[];
   albumArtist: string;
   cover: string;
   listeners: number;
