@@ -398,18 +398,19 @@ const Song = () => {
                 }
               />
             }
-            {song?.artistUri && (
-              <>
-                <PopularTracks
-                  topTracks={topTracks}
-                  artist={song.albumArtist}
-                />
-                <PopularAlbums
-                  topAlbums={topAlbums}
-                  artist={song.albumArtist}
-                />
-              </>
-            )}
+            {song?.artistUri &&
+              song?.albumArtist?.toLowerCase() !== "various artists" && (
+                <>
+                  <PopularTracks
+                    topTracks={topTracks}
+                    artist={song.albumArtist}
+                  />
+                  <PopularAlbums
+                    topAlbums={topAlbums}
+                    artist={song.albumArtist}
+                  />
+                </>
+              )}
 
             <Shout type="song" />
           </>
