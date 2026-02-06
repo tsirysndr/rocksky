@@ -76,7 +76,7 @@ const retrieve = ({
 
       return Promise.all([
         Promise.resolve(scrobble),
-        Promise.resolve(artists),
+        Promise.resolve(artists.filter((x) => x !== undefined)),
         // count the number of listeners
         ctx.db
           .select({
