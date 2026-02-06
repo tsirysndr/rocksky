@@ -163,6 +163,13 @@
           "type": "string",
           "description": "The timestamp when the song was created.",
           "format": "datetime"
+        },
+        "artists": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.artist.defs#artistViewBasic"
+          }
         }
       }
     }

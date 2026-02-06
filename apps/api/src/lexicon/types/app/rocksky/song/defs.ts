@@ -5,6 +5,7 @@ import { type ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
+import type * as AppRockskyArtistDefs from "../artist/defs";
 
 export interface SongViewBasic {
   /** The unique identifier of the song. */
@@ -89,6 +90,7 @@ export interface SongViewDetailed {
   tags?: string[];
   /** The timestamp when the song was created. */
   createdAt?: string;
+  artists?: AppRockskyArtistDefs.ArtistViewBasic[];
   [k: string]: unknown;
 }
 

@@ -5,6 +5,7 @@ import { type ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
+import type * as AppRockskyArtistDefs from "../artist/defs";
 
 export interface ScrobbleViewBasic {
   /** The unique identifier of the scrobble. */
@@ -77,6 +78,7 @@ export interface ScrobbleViewDetailed {
   listeners?: number;
   /** The number of scrobbles for this song */
   scrobbles?: number;
+  artists?: AppRockskyArtistDefs.ArtistViewBasic[];
   [k: string]: unknown;
 }
 

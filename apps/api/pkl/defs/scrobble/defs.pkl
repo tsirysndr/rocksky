@@ -153,6 +153,13 @@ defs = new Mapping<String, ObjectType> {
         type = "integer"
         description = "The number of scrobbles for this song"
       }
+
+      ["artists"] = new Array {
+        type = "array"
+        items = new Ref {
+          ref = "app.rocksky.artist.defs#artistViewBasic"
+        }
+      }
     }
   }
 }

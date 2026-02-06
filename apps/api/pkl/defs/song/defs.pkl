@@ -165,6 +165,12 @@ defs = new Mapping<String, ObjectType> {
         format = "datetime"
         description = "The timestamp when the song was created."
       }
+      ["artists"] = new Array {
+        type = "array"
+        items = new Ref {
+          ref = "app.rocksky.artist.defs#artistViewBasic"
+        }
+      }
     }
   }
 }

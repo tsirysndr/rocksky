@@ -14,7 +14,7 @@ import type { SelectUser } from "schema/users";
 import type { SelectArtist } from "schema/artists";
 
 export default function (server: Server, ctx: Context) {
-  const getScrobble = (params) =>
+  const getScrobble = (params: QueryParams) =>
     pipe(
       { params, ctx },
       retrieve,
@@ -43,7 +43,10 @@ const retrieve = ({
 }: {
   params: QueryParams;
   ctx: Context;
-}): Effect.Effect<[Scrobble | undefined, number, number], Error> => {
+}): Effect.Effect<
+  [Scrobble | undefined, SelectArtist[], number, number],
+  Error
+> => {
   return Effect.tryPromise({
     try: async () => {
       const scrobble = await ctx.db
@@ -59,8 +62,21 @@ const retrieve = ({
         .where(eq(tables.scrobbles.uri, params.uri))
         .execute()
         .then((rows) => rows[0]);
+
+      const artists = await Promise.all(
+        scrobble.tracks.artist.split(",").map((name) =>
+          ctx.db
+            .select()
+            .from(tables.artists)
+            .where(eq(tables.artists.name, name.trim()))
+            .execute()
+            .then(([row]) => row),
+        ),
+      );
+
       return Promise.all([
         Promise.resolve(scrobble),
+        Promise.resolve(artists),
         // count the number of listeners
         ctx.db
           .select({
@@ -94,14 +110,20 @@ const retrieve = ({
 
 const presentation = ([
   { scrobbles, tracks, users, albums, artists },
+  trackArtists,
   listeners,
   scrobblesCount,
-]: [Scrobble | undefined, number, number]): Effect.Effect<
+]: [Scrobble | undefined, SelectArtist[], number, number]): Effect.Effect<
   ScrobbleViewDetailed,
   never
 > => {
   return Effect.sync(() => ({
     ...R.omit(["albumArt", "id", "albumUri"], tracks),
+    artists: trackArtists.map((item) => ({
+      ...item,
+      createdAt: item.createdAt.toISOString(),
+      updatedAt: item.updatedAt.toISOString(),
+    })),
     albumUri: albums.uri,
     cover: tracks.albumArt,
     date: scrobbles.timestamp.toISOString(),

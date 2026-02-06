@@ -1,9 +1,9 @@
 import { Hono } from "hono";
 import { ctx } from "context";
 import users from "schema/users";
-import albums, { SelectAlbum } from "schema/albums";
-import artists, { SelectArtist } from "schema/artists";
-import tracks, { SelectTrack } from "schema/tracks";
+import albums, { type SelectAlbum } from "schema/albums";
+import artists, { type SelectArtist } from "schema/artists";
+import tracks, { type SelectTrack } from "schema/tracks";
 import scrobbles from "schema/scrobbles";
 import { eq, or } from "drizzle-orm";
 
@@ -99,9 +99,9 @@ app.get("/", async (c) => {
       return c.text("OG Service: record not found.", 404);
     }
 
-    let title = undefined;
-    let description = undefined;
-    let image = undefined;
+    let title;
+    let description;
+    let image;
     const url = `https://rocksky.app/${did}/${kind}/${rkey}`;
 
     if (kind === "album") {

@@ -4716,6 +4716,13 @@ export const schemaDict = {
             type: "integer",
             description: "The number of scrobbles for this song",
           },
+          artists: {
+            type: "array",
+            items: {
+              type: "ref",
+              ref: "lex:app.rocksky.artist.defs#artistViewBasic",
+            },
+          },
         },
       },
     },
@@ -5652,6 +5659,13 @@ export const schemaDict = {
             type: "string",
             description: "The timestamp when the song was created.",
             format: "datetime",
+          },
+          artists: {
+            type: "array",
+            items: {
+              type: "ref",
+              ref: "lex:app.rocksky.artist.defs#artistViewBasic",
+            },
           },
         },
       },

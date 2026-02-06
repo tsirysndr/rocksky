@@ -55,9 +55,22 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
         )
         .execute()
         .then(([row]) => row);
+
+      const artists = await Promise.all(
+        track.artist.split(",").map((name) =>
+          ctx.db
+            .select()
+            .from(tables.artists)
+            .where(eq(tables.artists.name, name.trim()))
+            .execute()
+            .then(([row]) => row),
+        ),
+      );
+
       return Promise.all([
         Promise.resolve(track),
         Promise.resolve(artist),
+        Promise.resolve(artists),
         ctx.db
           .select({
             count: count(),
@@ -78,15 +91,21 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
   });
 };
 
-const presentation = ([track, artist, uniqueListeners, playCount]: [
+const presentation = ([track, artist, artists, uniqueListeners, playCount]: [
   SelectTrack,
   SelectArtist,
+  SelectArtist[],
   number,
   number,
 ]): Effect.Effect<SongViewDetailed, never> => {
   return Effect.sync(() => ({
     ...track,
     tags: artist?.genres || [],
+    artists: artists.map((item) => ({
+      ...item,
+      createdAt: item.createdAt.toISOString(),
+      updatedAt: item.updatedAt.toISOString(),
+    })),
     playCount,
     uniqueListeners,
     createdAt: track.createdAt.toISOString(),

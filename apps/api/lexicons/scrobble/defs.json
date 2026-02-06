@@ -130,6 +130,13 @@
         "scrobbles": {
           "type": "integer",
           "description": "The number of scrobbles for this song"
+        },
+        "artists": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.artist.defs#artistViewBasic"
+          }
         }
       }
     }
