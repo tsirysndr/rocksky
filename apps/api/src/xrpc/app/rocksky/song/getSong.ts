@@ -70,7 +70,7 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
       return Promise.all([
         Promise.resolve(track),
         Promise.resolve(artist),
-        Promise.resolve(artists),
+        Promise.resolve(artists.filter((x) => x !== undefined)),
         ctx.db
           .select({
             count: count(),
