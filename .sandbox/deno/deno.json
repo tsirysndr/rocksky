@@ -1,0 +1,11 @@
+{
+  "tasks": {
+    "dev": "deno run --watch main.ts"
+  },
+  "imports": {
+    "@deno/sandbox": "jsr:@deno/sandbox@^0.10.1",
+    "@std/assert": "jsr:@std/assert@1",
+    "chalk": "npm:chalk@^5.6.2",
+    "consola": "npm:consola@^3.4.2"
+  }
+}

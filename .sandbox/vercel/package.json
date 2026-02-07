@@ -1,0 +1,17 @@
+{
+  "name": "vercel",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@vercel/sandbox": "^1.4.1",
+    "chalk": "^5.6.2",
+    "consola": "^3.4.2"
+  }
+}
