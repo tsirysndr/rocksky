@@ -21,7 +21,8 @@ import { API_URL } from "../../consts";
 import { useProfileStatsByDidQuery } from "../../hooks/useProfile";
 import LogoDark from "../../assets/rocksky-logo-dark.png";
 import LogoLight from "../../assets/rocksky-logo-light.png";
-import { IconUser } from "@tabler/icons-react";
+import { IconUser, IconMenu2, IconX } from "@tabler/icons-react";
+import { displayDrawerAtom } from "../../atoms/drawer";
 
 const Container = styled.div`
   position: fixed;
@@ -35,7 +36,18 @@ const Container = styled.div`
 
   @media (max-width: 1152px) {
     width: 100%;
+    max-width: 770px;
     padding: 0 20px;
+  }
+`;
+
+export const Menu = styled.div`
+  @media (max-width: 1152px) {
+    display: block;
+  }
+
+  @media (min-width: 1153px) {
+    display: none;
   }
 `;
 
@@ -69,6 +81,7 @@ const AnimatedLink = styled.span`
 `;
 
 function Navbar() {
+  const [displayDrawer, setDisplayDrawer] = useAtom(displayDrawerAtom);
   const [isOpen, setIsOpen] = useState(false);
   const [{ darkMode }, setTheme] = useAtom(themeAtom);
   const setProfile = useSetAtom(profileAtom);
@@ -155,6 +168,27 @@ function Navbar() {
           </AnimatedLink>
         </Link>
       </div>
+      <Menu>
+        <button
+          onClick={() => setDisplayDrawer(!displayDrawer)}
+          className="bg-[initial] border-none cursor-pointer"
+        >
+          {!displayDrawer && (
+            <IconMenu2
+              size={24}
+              color="var(--color-text)"
+              className="ml-[20px] mt-[4px]"
+            />
+          )}
+          {displayDrawer && (
+            <IconX
+              size={24}
+              color="var(--color-text)"
+              className="ml-[20px] mt-[4px]"
+            />
+          )}
+        </button>
+      </Menu>
 
       {profile && jwt && (
         <StatefulPopover

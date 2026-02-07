@@ -1,9 +1,6 @@
 import styled from "@emotion/styled";
 import { useSearch } from "@tanstack/react-router";
-import { Button } from "baseui/button";
-import { Input } from "baseui/input";
 import { PLACEMENT, ToasterContainer } from "baseui/toast";
-import { LabelMedium } from "baseui/typography";
 import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
 import { profileAtom } from "../atoms/profile";
@@ -12,12 +9,11 @@ import StickyPlayer from "../components/StickyPlayer";
 import { API_URL } from "../consts";
 import useProfile from "../hooks/useProfile";
 import CloudDrive from "./CloudDrive";
-import ExternalLinks from "./ExternalLinks";
 import Navbar from "./Navbar";
 import Search from "./Search";
 import SpotifyLogin from "./SpotifyLogin";
-import { IconEye, IconEyeOff, IconLock } from "@tabler/icons-react";
 import { consola } from "consola";
+import { displayDrawerAtom } from "../atoms/drawer";
 
 const Container = styled.div`
   display: flex;
@@ -41,14 +37,13 @@ const RightPane = styled.div`
   }
 `;
 
-const Link = styled.a`
-  text-decoration: none;
-  cursor: pointer;
-  display: block;
-  font-size: 13px;
+const Drawer = styled.div`
+  @media (max-width: 1152px) {
+    display: block;
+  }
 
-  &:hover {
-    text-decoration: underline;
+  @media (min-width: 1153px) {
+    display: none;
   }
 `;
 
@@ -57,8 +52,13 @@ export type MainProps = {
   withRightPane?: boolean;
 };
 
+import LoginForm from "./LoginForm";
+import ExternalLinks from "./ExternalLinks";
+import Links from "./Links";
+
 function Main(props: MainProps) {
   const { children } = props;
+  const displayDrawer = useAtomValue(displayDrawerAtom);
   const withRightPane = props.withRightPane ?? true;
   const [handle, setHandle] = useState("");
   const [password, setPassword] = useState("");
@@ -186,15 +186,38 @@ function Main(props: MainProps) {
           },
         }}
       />
+      <Navbar />
+
       <Flex style={{ width: withRightPane ? "770px" : "1090px" }}>
-        <Navbar />
-        <div
-          style={{
-            position: "relative",
-          }}
-        >
-          {children}
-        </div>
+        {!displayDrawer && <div className="relative">{children}</div>}
+        {displayDrawer && (
+          <Drawer>
+            <div className="fixed top-[100px] h-[calc(100vh-100px)] w-[calc(100%-100px)] bg-white p-[20px] overflow-y-auto pt-[0px]">
+              {jwt && profile && (
+                <div className="mb-[30px]">
+                  <Search />
+                </div>
+              )}
+              {jwt && profile && !profile.spotifyConnected && <SpotifyLogin />}
+              {jwt && profile && <CloudDrive />}
+              {!jwt && (
+                <div className="mt-[40px] max-w-[770px]">
+                  <LoginForm
+                    handle={handle}
+                    setHandle={setHandle}
+                    password={password}
+                    setPassword={setPassword}
+                    passwordLogin={passwordLogin}
+                    setPasswordLogin={setPasswordLogin}
+                    onLogin={onLogin}
+                    onCreateAccount={onCreateAccount}
+                  />
+                </div>
+              )}
+              <ExternalLinks />
+            </div>
+          </Drawer>
+        )}
       </Flex>
       {withRightPane && (
         <RightPane className="relative w-[300px]">
@@ -206,149 +229,16 @@ function Main(props: MainProps) {
             {jwt && profile && <CloudDrive />}
             {!jwt && (
               <div className="mt-[40px]">
-                <div className="mb-[20px]">
-                  <div className="flex flex-row mb-[15px]">
-                    <LabelMedium className="!text-[var(--color-text)] flex-1">
-                      Handle
-                    </LabelMedium>
-                    <LabelMedium
-                      className="!text-[var(--color-primary)] cursor-pointer"
-                      onClick={() => setPasswordLogin(!passwordLogin)}
-                    >
-                      {passwordLogin ? "OAuth Login" : "Password Login"}
-                    </LabelMedium>
-                  </div>
-                  <Input
-                    name="handle"
-                    startEnhancer={
-                      <div className="text-[var(--color-text-muted)] bg-[var(--color-input-background)]">
-                        @
-                      </div>
-                    }
-                    placeholder="<username>.bsky.social"
-                    value={handle}
-                    onChange={(e) => setHandle(e.target.value)}
-                    overrides={{
-                      Root: {
-                        style: {
-                          backgroundColor: "var(--color-input-background)",
-                          borderColor: "var(--color-input-background)",
-                        },
-                      },
-                      StartEnhancer: {
-                        style: {
-                          backgroundColor: "var(--color-input-background)",
-                        },
-                      },
-                      InputContainer: {
-                        style: {
-                          backgroundColor: "var(--color-input-background)",
-                        },
-                      },
-                      Input: {
-                        style: {
-                          color: "var(--color-text)",
-                          caretColor: "var(--color-text)",
-                        },
-                      },
-                    }}
-                  />
-                  {passwordLogin && (
-                    <Input
-                      name="password"
-                      startEnhancer={
-                        <div className="text-[var(--color-text-muted)] bg-[var(--color-input-background)]">
-                          <IconLock size={19} className="mt-[8px]" />
-                        </div>
-                      }
-                      type="password"
-                      placeholder="Password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      overrides={{
-                        Root: {
-                          style: {
-                            backgroundColor: "var(--color-input-background)",
-                            borderColor: "var(--color-input-background)",
-                            marginTop: "1rem",
-                          },
-                        },
-                        StartEnhancer: {
-                          style: {
-                            backgroundColor: "var(--color-input-background)",
-                          },
-                        },
-                        InputContainer: {
-                          style: {
-                            backgroundColor: "var(--color-input-background)",
-                          },
-                        },
-                        Input: {
-                          style: {
-                            color: "var(--color-text)",
-                            caretColor: "var(--color-text)",
-                          },
-                        },
-                        MaskToggleHideIcon: {
-                          component: () => (
-                            <IconEyeOff
-                              className="text-[var(--color-text-muted)]"
-                              size={20}
-                            />
-                          ),
-                        },
-                        MaskToggleShowIcon: {
-                          component: () => (
-                            <IconEye
-                              className="text-[var(--color-text-muted)]"
-                              size={20}
-                            />
-                          ),
-                        },
-                      }}
-                    />
-                  )}
-                </div>
-                <Button
-                  onClick={() => onLogin()}
-                  overrides={{
-                    BaseButton: {
-                      style: {
-                        width: "100%",
-                        backgroundColor: "var(--color-primary)",
-                        ":hover": {
-                          backgroundColor: "var(--color-primary)",
-                        },
-                        ":focus": {
-                          backgroundColor: "var(--color-primary)",
-                        },
-                      },
-                    },
-                  }}
-                >
-                  Sign In
-                </Button>
-                <LabelMedium className="text-center mt-[20px] !text-[var(--color-text-muted)]">
-                  Don't have an atproto handle yet?
-                </LabelMedium>
-                <div className="text-center text-[var(--color-text-muted)] ">
-                  You can create one at{" "}
-                  <span
-                    onClick={onCreateAccount}
-                    className="no-underline cursor-pointer !text-[var(--color-primary)]"
-                  >
-                    selfhosted.social
-                  </span>
-                  ,{" "}
-                  <a
-                    href="https://bsky.app"
-                    className="no-underline cursor-pointer !text-[var(--color-primary)]"
-                    target="_blank"
-                  >
-                    Bluesky
-                  </a>{" "}
-                  or any other AT Protocol service.
-                </div>
+                <LoginForm
+                  handle={handle}
+                  setHandle={setHandle}
+                  password={password}
+                  setPassword={setPassword}
+                  passwordLogin={passwordLogin}
+                  setPasswordLogin={setPasswordLogin}
+                  onLogin={onLogin}
+                  onCreateAccount={onCreateAccount}
+                />
               </div>
             )}
 
@@ -356,50 +246,7 @@ function Main(props: MainProps) {
               <ScrobblesAreaChart />
             </div>
             <ExternalLinks />
-            <div className="inline-flex mt-[40px]">
-              <Link
-                href="https://docs.rocksky.app/introduction-918639m0"
-                target="_blank"
-                className="mr-[10px] text-[var(--color-primary)]"
-              >
-                About
-              </Link>
-              <Link
-                href="https://docs.rocksky.app/faq-918661m0"
-                target="_blank"
-                className="mr-[10px] text-[var(--color-primary)]"
-              >
-                FAQ
-              </Link>
-              <Link
-                href="https://doc.rocksky.app/"
-                target="_blank"
-                className="mr-[10px] text-[var(--color-primary)]"
-              >
-                API Docs
-              </Link>
-              <Link
-                href="https://docs.rocksky.app/overview-957781m0"
-                target="_blank"
-                className="mr-[10px] text-[var(--color-primary)]"
-              >
-                CLI
-              </Link>
-              <Link
-                href="https://tangled.org/@rocksky.app/rocksky"
-                target="_blank"
-                className="mr-[10px] text-[var(--color-primary)]"
-              >
-                Source
-              </Link>
-              <Link
-                href="https://discord.gg/EVcBy2fVa3"
-                target="_blank"
-                className="mr-[10px] text-[var(--color-primary)]"
-              >
-                Discord
-              </Link>
-            </div>
+            <Links />
           </div>
         </RightPane>
       )}
