@@ -1,4 +1,5 @@
 import { getSandbox } from "@cloudflare/sandbox";
+import consola from "consola";
 
 export { Sandbox } from "@cloudflare/sandbox";
 
@@ -11,12 +12,32 @@ export default {
 
     // Execute a shell command
     if (url.pathname === "/run") {
-      const result = await sandbox.exec('echo "2 + 3 = $((2 + 3))"');
+      const HOME = "/root";
+      await sandbox.exec("mkdir -p $HOME/.ssh");
+      await sandbox.writeFile(`${HOME}/.ssh/id_rsa`, env.SSH_PRIVATE_KEY);
+      await sandbox.writeFile(`${HOME}/.ssh/id_rsa.pub`, env.SSH_PUBLIC_KEY);
+      await sandbox.exec("chmod 600 $HOME/.ssh/id_rsa");
+      await sandbox.exec(
+        "ssh-keyscan -t rsa tangled.org >> $HOME/.ssh/known_hosts",
+      );
+      await sandbox.exec("git config --global user.name 'Cloudflare Sandbox'");
+      await sandbox.exec(
+        "git config --global user.email 'tsiry.sndr@rocksky.app'",
+      );
+      consola.info("SSH keys uploaded to sandbox.");
+
+      consola.info("Sandbox environment configured for Git operations.");
+      consola.info("Cloning repository...");
+      const clone = await sandbox.exec(
+        "git clone git@tangled.org:rocksky.app/rocksky rocksky -b main",
+      );
+      consola.log(clone.stdout);
+      const ls = await sandbox.exec("ls -la rocksky");
       return Response.json({
-        output: result.stdout,
-        error: result.stderr,
-        exitCode: result.exitCode,
-        success: result.success,
+        output: ls.stdout,
+        error: ls.stderr,
+        exitCode: ls.exitCode,
+        success: ls.success,
       });
     }
 
@@ -28,6 +49,8 @@ export default {
         content: file.content,
       });
     }
+
+    sandbox.destroy();
 
     return new Response("Try /run or /file");
   },
