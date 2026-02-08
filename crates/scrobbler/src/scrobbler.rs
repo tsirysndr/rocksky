@@ -579,11 +579,11 @@ pub async fn scrobble_listenbrainz(
         return Ok(());
     }
 
-    // set cache for 5 seconds to avoid duplicate scrobbles
+    // set cache for 60 seconds to avoid duplicate scrobbles
     cache.setex(
         &format!("listenbrainz:cache:{}:{}:{}", artist, track, did),
         "1",
-        5,
+        30, // 30 seconds
     )?;
 
     let spofity_tokens = repo::spotify_token::get_spotify_tokens(pool, 100).await?;
