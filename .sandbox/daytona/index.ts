@@ -12,6 +12,7 @@ async function main() {
   const sandbox = await daytona.create({
     language: "typescript",
     envVars: { NODE_ENV: "development" },
+    snapshot: "daytona-openclaw-small",
   });
 
   const HOME = "/home/daytona";
@@ -57,6 +58,7 @@ async function main() {
   consola.log(response.result);
 
   await sandbox.stop();
+  await sandbox.delete();
 }
 
 main().catch(console.error);
