@@ -2,7 +2,17 @@ import { Sandbox } from "@vercel/sandbox";
 import consola from "consola";
 import chalk from "chalk";
 
-const sandbox = await Sandbox.create();
+const sandbox = await Sandbox.create(
+  process.env.SNAPSHOT_ID
+    ? {
+        source: {
+          type: "snapshot",
+          snapshotId: process.env.SNAPSHOT_ID,
+        },
+      }
+    : undefined,
+);
+
 consola.info(
   "Vercel Sandbox created with ID:",
   chalk.greenBright(sandbox.sandboxId),
@@ -25,11 +35,16 @@ await sandbox.writeFiles([
 
 consola.info("SSH keys uploaded to sandbox.");
 
-consola.info("Installing openclaw...");
+await sandbox.runCommand({
+  cmd: "which",
+  args: ["openclaw"],
+  stdout: process.stdout,
+  stderr: process.stderr,
+});
 
 await sandbox.runCommand({
-  cmd: "sh",
-  args: ["-c", "curl -fsSL https://openclaw.ai/install.sh | bash || true"],
+  cmd: "which",
+  args: ["claude"],
   stdout: process.stdout,
   stderr: process.stderr,
 });
@@ -88,8 +103,7 @@ await sandbox.runCommand({
 });
 
 try {
-  // await sandbox.snapshot();
-  // await sandbox.stop();
+  await sandbox.stop();
 } catch (e) {
   consola.error("Error stopping Vercel Sandbox:", e);
 }
