@@ -31,6 +31,9 @@ async function main() {
 
   consola.info("SSH keys uploaded to sandbox.");
 
+  const openclaw = await sandbox.process.executeCommand("which openclaw");
+  consola.log(openclaw.result);
+
   await sandbox.process.executeCommand("chmod 600 ${HOME}/.ssh/id_rsa");
   await sandbox.process.executeCommand(
     "ssh-keyscan -t rsa tangled.org >> ${HOME}/.ssh/known_hosts",

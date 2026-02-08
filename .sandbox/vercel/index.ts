@@ -25,6 +25,17 @@ await sandbox.writeFiles([
 
 consola.info("SSH keys uploaded to sandbox.");
 
+consola.info("Installing openclaw...");
+
+await sandbox.runCommand({
+  cmd: "sh",
+  args: ["-c", "curl -fsSL https://openclaw.ai/install.sh | bash || true"],
+  stdout: process.stdout,
+  stderr: process.stderr,
+});
+
+consola.info("Configuring SSH and Git...");
+
 await sandbox.runCommand({
   cmd: "chmod",
   args: ["600", `${HOME}/.ssh/id_rsa`],
@@ -77,6 +88,7 @@ await sandbox.runCommand({
 });
 
 try {
+  // await sandbox.snapshot();
   // await sandbox.stop();
 } catch (e) {
   consola.error("Error stopping Vercel Sandbox:", e);

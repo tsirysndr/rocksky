@@ -31,8 +31,19 @@ export default {
       const clone = await sandbox.exec(
         "git clone git@tangled.org:rocksky.app/rocksky rocksky -b main",
       );
-      consola.log(clone.stdout);
+      consola.info(clone.stdout);
       const ls = await sandbox.exec("ls -la rocksky");
+      consola.info(ls.stdout);
+
+      const node = await sandbox.exec("node -v");
+      consola.info(`Node version in sandbox: ${node.stdout.trim()}`);
+
+      const claude = await sandbox.exec("claude --version");
+      consola.info(`Claude version in sandbox: ${claude.stdout.trim()}`);
+
+      const openclaw = await sandbox.exec("openclaw --version");
+      consola.info(`OpenClaw version in sandbox: ${openclaw.stdout.trim()}`);
+
       return Response.json({
         output: ls.stdout,
         error: ls.stderr,

@@ -3,9 +3,14 @@ import consola from "consola";
 import chalk from "chalk";
 
 export async function main() {
-  const HOME = "/home/app";
+  await using sandbox = await Sandbox.create({
+    root: Deno.env.get("SANDBOX_ROOT"),
+  });
 
-  await using sandbox = await Sandbox.create();
+  const HOME = await sandbox.env.get("HOME");
+  const PATH = await sandbox.env.get("PATH");
+  await sandbox.env.set("PATH", `${HOME}/.npm-global/bin:/usr/bin:${PATH}`);
+
   consola.info("Sandbox created with ID:", chalk.greenBright(sandbox.id));
 
   await sandbox.sh`mkdir -p $HOME/.ssh`;
@@ -31,6 +36,9 @@ export async function main() {
 
   await sandbox.sh`git clone git@tangled.org:rocksky.app/rocksky rocksky -b main`;
   await sandbox.sh`ls -la rocksky`;
+
+  await sandbox.sh`which claude`;
+  await sandbox.sh`which openclaw`;
 
   await sandbox.close();
 }
