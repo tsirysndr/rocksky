@@ -1,7 +1,9 @@
-import { getSandbox } from "@cloudflare/sandbox";
+import { getSandbox, Sandbox } from "@cloudflare/sandbox";
 import consola from "consola";
 
 export { Sandbox } from "@cloudflare/sandbox";
+
+const HOME = "/root";
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -12,7 +14,7 @@ export default {
 
     // Execute a shell command
     if (url.pathname === "/run") {
-      const HOME = "/root";
+      await setupOpenClaw(sandbox);
       await sandbox.exec("mkdir -p $HOME/.ssh");
       await sandbox.writeFile(`${HOME}/.ssh/id_rsa`, env.SSH_PRIVATE_KEY);
       await sandbox.writeFile(`${HOME}/.ssh/id_rsa.pub`, env.SSH_PUBLIC_KEY);
@@ -66,3 +68,31 @@ export default {
     return new Response("Try /run or /file");
   },
 };
+
+async function setupOpenClaw(sandbox: Sandbox) {
+  consola.info(`Setting up OpenClaw in sandbox...`);
+  await sandbox.exec("mkdir -p $HOME/.openclaw/agents/main/agent");
+  await sandbox.writeFile(
+    `${HOME}/.openclaw/openclaw.json`,
+    process.env.OPENCLAW_CONFIG!.replace("OPENCLAW_WORKSPACE", `${HOME}/clawd`),
+  );
+  await sandbox.writeFile(
+    `${HOME}/.openclaw/agents/main/agent/auth-profiles.json`,
+    process.env.OPENCLAW_AUTH_PROFILES!,
+  );
+
+  consola.info("OpenClaw configuration files written.");
+
+  const start = await sandbox.exec(
+    'pm2 start "openclaw gateway" --name "openclaw-gateway"',
+  );
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+  const status = await sandbox.exec("openclaw gateway status");
+
+  consola.info(start.stdout);
+  consola.info(start.stderr);
+  consola.info(status.stdout);
+  consola.info(status.stderr);
+
+  consola.info(`Sandbox setup complete.`);
+}

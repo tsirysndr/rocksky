@@ -1,6 +1,9 @@
-import { Daytona } from "@daytonaio/sdk";
+import { Daytona, Sandbox } from "@daytonaio/sdk";
 import chalk from "chalk";
 import consola from "consola";
+
+const HOME = "/home/daytona";
+const OPENCLAW_GATEWAY_PORT = 18789;
 
 async function main() {
   // Initialize the SDK (uses environment variables by default)
@@ -11,13 +14,21 @@ async function main() {
   // Create a new sandbox
   const sandbox = await daytona.create({
     language: "typescript",
-    envVars: { NODE_ENV: "development" },
-    snapshot: "daytona-openclaw-small",
+    snapshot: "daytona-openclaw-medium",
   });
-
-  const HOME = "/home/daytona";
-
   consola.info("Sandbox created with ID:", chalk.greenBright(sandbox.id));
+
+  consola.info("Installing PM2 in sandbox...");
+  const pm2 = await sandbox.process.executeCommand("npm install -g pm2");
+  consola.log(pm2.result);
+  await setupOpenClaw(sandbox);
+
+  process.on("SIGINT", async () => {
+    consola.info("Received SIGINT, shutting down sandbox...");
+    await sandbox.stop();
+    await sandbox.delete();
+    process.exit(0);
+  });
 
   await Promise.all([
     sandbox.fs.uploadFile(
@@ -56,9 +67,52 @@ async function main() {
 
   const response = await sandbox.process.executeCommand("ls -la rocksky");
   consola.log(response.result);
-
-  await sandbox.stop();
-  await sandbox.delete();
 }
 
-main().catch(console.error);
+async function setupOpenClaw(sandbox: Sandbox) {
+  consola.info(`Setting up OpenClaw in sandbox...`);
+  await sandbox.process.executeCommand(
+    "mkdir -p $HOME/.openclaw/agents/main/agent",
+  );
+  await sandbox.fs.uploadFile(
+    Buffer.from(
+      process.env.OPENCLAW_CONFIG!.replace(
+        "OPENCLAW_WORKSPACE",
+        `${HOME}/clawd`,
+      ),
+      "utf-8",
+    ),
+    `${HOME}/.openclaw/openclaw.json`,
+  );
+  await sandbox.fs.uploadFile(
+    Buffer.from(process.env.OPENCLAW_AUTH_PROFILES!, "utf-8"),
+    `${HOME}/.openclaw/agents/main/agent/auth-profiles.json`,
+  );
+
+  consola.info("OpenClaw configuration files written.");
+
+  const start = await sandbox.process.executeCommand(
+    'pm2 start "openclaw gateway" --name openclaw-gateway',
+  );
+  consola.info(start.result);
+
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+
+  const status = await sandbox.process.executeCommand(
+    "openclaw gateway status",
+  );
+  consola.info(status.result);
+
+  const signedUrl = await sandbox.getSignedPreviewUrl(
+    OPENCLAW_GATEWAY_PORT,
+    3600,
+  );
+
+  consola.info(
+    `OpenClaw Gateway is available at: ${chalk.greenBright(signedUrl.url)}`,
+  );
+}
+
+main().catch(consola.error);
+
+await new Promise(() => {});

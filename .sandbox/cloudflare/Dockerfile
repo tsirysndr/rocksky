@@ -10,12 +10,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN curl -fsSL https://openclaw.ai/install.sh | bash || true
 
-RUN npm install -g @anthropic-ai/claude-code
+RUN npm install -g @anthropic-ai/claude-code pm2
 
 WORKDIR /workspace
 
 # Required during local development to access exposed ports
 EXPOSE 8080
 EXPOSE 3000
+EXPOSE 18789
 
 ENTRYPOINT ["/sandbox"]
