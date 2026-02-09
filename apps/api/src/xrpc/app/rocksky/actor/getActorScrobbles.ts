@@ -55,7 +55,12 @@ const presentation = ({
 }: {
   data: Scrobble[];
 }): Effect.Effect<{ scrobbles: ScrobbleViewBasic[] }, never> => {
-  return Effect.sync(() => ({ scrobbles: deepCamelCaseKeys(data) }));
+  return Effect.sync(() => ({
+    scrobbles: deepCamelCaseKeys(data).map((x: ScrobbleViewBasic) => ({
+      ...x,
+      createdAt: `${x.createdAt}Z`,
+    })),
+  }));
 };
 
 type Scrobble = {

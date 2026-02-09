@@ -57,7 +57,12 @@ const presentation = ({
 }: {
   data: Track[];
 }): Effect.Effect<{ tracks: SongViewBasic[] }, never> => {
-  return Effect.sync(() => ({ tracks: deepCamelCaseKeys(data) }));
+  return Effect.sync(() => ({
+    tracks: deepCamelCaseKeys(data).map((x: SongViewBasic) => ({
+      ...x,
+      createdAt: `${x.createdAt}Z`,
+    })),
+  }));
 };
 
 type Track = {
