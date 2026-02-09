@@ -114,13 +114,13 @@ async function publishStatus(
     recordingMbId: track.trackMBID,
     submissionClientAgent: SUBMISSION_CLIENT_AGENT,
   };
-  const nowSec = new Date(Date.now()).toISOString();
-  const expirySec = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes from now
+  const time = new Date().toISOString();
+  const expiry = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes from now
   const record: Status.Record = {
     $type: "fm.teal.alpha.actor.status",
     item,
-    time: String(nowSec),
-    expiry: String(expirySec),
+    time,
+    expiry,
   };
   const swapRecord = await getStatusSwapRecord(agent);
   const res = await agent.com.atproto.repo.putRecord({
