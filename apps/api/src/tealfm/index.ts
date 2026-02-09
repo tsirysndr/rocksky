@@ -114,8 +114,8 @@ async function publishStatus(
     recordingMbId: track.trackMBID,
     submissionClientAgent: SUBMISSION_CLIENT_AGENT,
   };
-  const nowSec = Math.floor(Date.now() / 1000);
-  const expirySec = nowSec + 10 * 60; // 10 minutes from now
+  const nowSec = new Date(Date.now()).toISOString();
+  const expirySec = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes from now
   const record: Status.Record = {
     $type: "fm.teal.alpha.actor.status",
     item,
