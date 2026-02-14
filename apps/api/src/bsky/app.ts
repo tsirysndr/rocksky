@@ -241,7 +241,7 @@ app.get("/profile", async (c) => {
       Buffer.from(JSON.stringify(deepSnakeCaseKeys(user))),
     );
 
-    await ctx.kv.set("lastUser", lastUser[0].id);
+    ctx.kv.set("lastUser", lastUser[0].id);
   }
 
   const [spotifyUser, spotifyToken, googledrive, dropbox] = await Promise.all([
