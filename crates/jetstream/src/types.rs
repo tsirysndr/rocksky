@@ -15,8 +15,8 @@ pub struct Commit {
     pub operation: String,
     pub collection: String,
     pub rkey: String,
-    pub record: Value,
-    pub cid: String,
+    pub record: Option<Value>,
+    pub cid: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]

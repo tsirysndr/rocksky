@@ -56,7 +56,7 @@ pub async fn save_scrobble(
             if commit.collection == SCROBBLE_NSID {
                 let mut tx = pool.begin().await?;
                 let scrobble_record: ScrobbleRecord =
-                    serde_json::from_value(commit.record.clone())?;
+                    serde_json::from_value(commit.record.unwrap().clone())?;
 
                 let album_id = save_album(&mut tx, scrobble_record.clone()).await?;
                 let artist_id = save_artist(&mut tx, scrobble_record.clone()).await?;
