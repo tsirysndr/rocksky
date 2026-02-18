@@ -233,6 +233,23 @@ pub async fn save_scrobble(
                 publish_user(&nc, &pool, &subject_user_id).await?;
             }
         }
+        "delete" => {
+            if commit.collection == SCROBBLE_NSID {
+                let uri = format!("at://{}/app.rocksky.scrobble/{}", did, commit.rkey);
+                match delete_scrobble(&pool, &uri).await {
+                    Ok(_) => {
+                        nc.publish("rocksky.delete.scrobble", uri.into()).await?;
+                        nc.flush().await?;
+                        tracing::info!(operation = %commit.operation, collection = %commit.collection, "Scrobble deleted");
+                    }
+                    Err(e) => {
+                        tracing::error!(error = %e, operation = %commit.operation, collection = %commit.collection, "Failed to delete scrobble");
+                    }
+                }
+            } else {
+                tracing::warn!(operation = %commit.operation, collection = %commit.collection, "Delete operation not implemented for this collection");
+            }
+        }
         _ => {
             tracing::warn!(operation = %commit.operation, "Unsupported operation");
         }
@@ -1178,5 +1195,13 @@ pub async fn save_follow(
     .bind(uri)
     .execute(&mut **tx)
     .await?;
+    Ok(())
+}
+
+pub async fn delete_scrobble(pool: &Pool<Postgres>, uri: &str) -> Result<(), Error> {
+    sqlx::query("DELETE FROM scrobbles WHERE uri = $1")
+        .bind(uri)
+        .execute(pool)
+        .await?;
     Ok(())
 }

@@ -3,7 +3,7 @@ import { consola } from "consola";
 import type { OutputSchema } from "@atproto/api/dist/client/types/com/atproto/repo/getRecord";
 import type { HandlerAuth } from "@atproto/xrpc-server";
 import type { Context } from "context";
-import { eq, NotNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ProfileViewDetailed } from "lexicon/types/app/rocksky/actor/defs";

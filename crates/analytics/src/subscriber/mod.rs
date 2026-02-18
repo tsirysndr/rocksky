@@ -24,6 +24,7 @@ pub async fn subscribe(conn: Arc<Mutex<Connection>>) -> Result<(), Error> {
     on_like(nc.clone(), conn.clone());
     on_unlike(nc.clone(), conn.clone());
     on_new_user(nc.clone(), conn.clone());
+    on_delete_scrobble(nc, conn.clone());
 
     Ok(())
 }
@@ -190,6 +191,31 @@ pub fn on_new_user(nc: Arc<Mutex<Client>>, conn: Arc<Mutex<Connection>>) {
                         tracing::error!("Error parsing payload: {}", e);
                         tracing::debug!("{}", data);
                     }
+                }
+            }
+
+            Ok::<(), Error>(())
+        })?;
+
+        Ok::<(), Error>(())
+    });
+}
+
+pub fn on_delete_scrobble(nc: Arc<Mutex<Client>>, conn: Arc<Mutex<Connection>>) {
+    thread::spawn(move || {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        let conn = conn.clone();
+        let nc = nc.clone();
+        rt.block_on(async {
+            let nc = nc.lock().unwrap();
+            let mut sub = nc.subscribe("rocksky.delete.scrobble".to_string()).await?;
+            drop(nc);
+
+            while let Some(msg) = sub.next().await {
+                let uri = String::from_utf8(msg.payload.to_vec()).unwrap();
+                match delete_scrobble(conn.clone(), &uri).await {
+                    Ok(_) => tracing::info!(uri = %uri.cyan(), "Scrobble deleted successfully"),
+                    Err(e) => tracing::error!("Error deleting scrobble: {}", e),
                 }
             }
 
@@ -776,6 +802,18 @@ pub async fn save_user(conn: Arc<Mutex<Connection>>, payload: UserPayload) -> Re
                 tracing::error!("[users] error: {}", e);
                 return Err(e.into());
             }
+        }
+    }
+    Ok(())
+}
+
+pub async fn delete_scrobble(conn: Arc<Mutex<Connection>>, uri: &str) -> Result<(), Error> {
+    let conn = conn.lock().unwrap();
+    match conn.execute("DELETE FROM scrobbles WHERE uri = ?", params![uri]) {
+        Ok(_) => (),
+        Err(e) => {
+            tracing::error!("[scrobbles] error: {}", e);
+            return Err(e.into());
         }
     }
     Ok(())
