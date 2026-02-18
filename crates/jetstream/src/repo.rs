@@ -53,10 +53,10 @@ pub async fn save_scrobble(
 
     match commit.operation.as_str() {
         "create" => {
+            let record = commit.record.unwrap();
             if commit.collection == SCROBBLE_NSID {
                 let mut tx = pool.begin().await?;
-                let scrobble_record: ScrobbleRecord =
-                    serde_json::from_value(commit.record.unwrap().clone())?;
+                let scrobble_record: ScrobbleRecord = serde_json::from_value(record.clone())?;
 
                 let album_id = save_album(&mut tx, scrobble_record.clone()).await?;
                 let artist_id = save_artist(&mut tx, scrobble_record.clone()).await?;
@@ -169,7 +169,7 @@ pub async fn save_scrobble(
                 let user_id = save_user(&mut tx, did).await?;
                 let uri = format!("at://{}/app.rocksky.artist/{}", did, commit.rkey);
 
-                let artist_record: ArtistRecord = serde_json::from_value(commit.record.clone())?;
+                let artist_record: ArtistRecord = serde_json::from_value(record.clone())?;
                 save_user_artist(&mut tx, &user_id, artist_record.clone(), &uri).await?;
                 update_artist_uri(&mut tx, &user_id, artist_record, &uri).await?;
 
@@ -182,7 +182,7 @@ pub async fn save_scrobble(
                 let user_id = save_user(&mut tx, did).await?;
                 let uri = format!("at://{}/app.rocksky.album/{}", did, commit.rkey);
 
-                let album_record: AlbumRecord = serde_json::from_value(commit.record.clone())?;
+                let album_record: AlbumRecord = serde_json::from_value(record.clone())?;
                 save_user_album(&mut tx, &user_id, album_record.clone(), &uri).await?;
                 update_album_uri(&mut tx, &user_id, album_record, &uri).await?;
 
@@ -196,7 +196,7 @@ pub async fn save_scrobble(
                 let user_id = save_user(&mut tx, did).await?;
                 let uri = format!("at://{}/app.rocksky.song/{}", did, commit.rkey);
 
-                let song_record: SongRecord = serde_json::from_value(commit.record.clone())?;
+                let song_record: SongRecord = serde_json::from_value(record.clone())?;
                 save_user_track(&mut tx, &user_id, song_record.clone(), &uri).await?;
                 update_track_uri(&mut tx, &user_id, song_record, &uri).await?;
 
@@ -211,7 +211,7 @@ pub async fn save_scrobble(
                 let uri = format!("at://{}/app.rocksky.feed.generator/{}", did, commit.rkey);
 
                 let feed_generator_record: FeedGeneratorRecord =
-                    serde_json::from_value(commit.record.clone())?;
+                    serde_json::from_value(record.clone())?;
                 save_feed_generator(&mut tx, &user_id, feed_generator_record, &uri).await?;
 
                 tx.commit().await?;
@@ -224,7 +224,7 @@ pub async fn save_scrobble(
                 let user_id = save_user(&mut tx, did).await?;
                 let uri = format!("at://{}/app.rocksky.graph.follow/{}", did, commit.rkey);
 
-                let follow_record: FollowRecord = serde_json::from_value(commit.record)?;
+                let follow_record: FollowRecord = serde_json::from_value(record.clone())?;
                 let subject_user_id = save_user(&mut tx, &follow_record.subject).await?;
                 save_follow(&mut tx, did, follow_record, &uri).await?;
 
