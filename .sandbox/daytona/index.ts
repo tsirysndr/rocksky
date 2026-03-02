@@ -111,6 +111,9 @@ async function setupOpenClaw(sandbox: Sandbox) {
   consola.info(
     `OpenClaw Gateway is available at: ${chalk.greenBright(signedUrl.url)}`,
   );
+
+  console.log(await sandbox.createSshAccess());
+  
 }
 
 main().catch(consola.error);
