@@ -45,7 +45,14 @@ pub async fn post_embeds(
         content: String::new(),
         embeds,
     };
-    let res = http.post(discord_webhook_url).json(&body).send().await?;
+    let res = http.post(discord_webhook_url).json(&body).send().await;
+    if let Err(e) = &res {
+        tracing::error!(error = %e, "Failed to post to Discord webhook");
+        return Ok(());
+    }
+
+    let res = res.unwrap();
+
     if !res.status().is_success() {
         let text = res.text().await.unwrap_or_default();
         tracing::error!(error = %text, "Failed to post to Discord webhook");
