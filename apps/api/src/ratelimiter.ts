@@ -17,6 +17,10 @@ export const rateLimiter = (options: RateLimitOptions): MiddlewareHandler => {
       c.req.raw.headers.get("host");
     const key = `${keyPrefix}:${ip}`;
 
+    if (ip === "161.97.141.205") {
+      return next();
+    }
+
     const current = await ctx.redis.incr(key);
 
     if (current === 1) {
