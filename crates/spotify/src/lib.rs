@@ -30,7 +30,8 @@ pub mod rocksky;
 pub mod token;
 pub mod types;
 
-pub const BASE_URL: &str = "https://api.spotify.com/v1";
+// pub const BASE_URL: &str = "https://api.spotify.com/v1";
+pub const BASE_URL: &str = "https://spotify-api.rocksky.app/v1";
 
 pub async fn run() -> Result<(), Error> {
     let cache = Cache::new()?;
@@ -997,7 +998,6 @@ pub async fn watch_currently_playing(
                             Err(_) => tracing::error!("Failed to delete cache entry"),
                         };
 
-                        /*
                         thread::spawn(move || {
                             let rt = tokio::runtime::Runtime::new().unwrap();
                             match rt.block_on(async {
@@ -1038,7 +1038,6 @@ pub async fn watch_currently_playing(
                                 }
                             }
                         });
-                        */
                     }
                 }
             }

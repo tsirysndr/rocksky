@@ -2,7 +2,7 @@ use super::types::{Album, Artist, SearchResponse};
 use anyhow::Error;
 use std::time::Duration;
 
-pub const BASE_URL: &str = "https://api.spotify.com/v1";
+pub const BASE_URL: &str = "https://spotify-api.rocksky.app/v1";
 
 pub struct SpotifyClient {
     token: String,
