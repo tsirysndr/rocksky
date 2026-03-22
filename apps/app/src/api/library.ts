@@ -1,24 +1,33 @@
-import axios from "axios";
-import { API_URL } from "../consts";
+import { client } from ".";
+import { Album } from "../types/album";
+import { Artist } from "../types/artist";
+import { Track } from "../types/track";
 
 export const getSongByUri = async (uri: string) => {
-  const response = await axios.get(`${API_URL}/users/${uri}`);
+  if (uri.includes("app.rocksky.scrobble")) {
+    return null;
+  }
+
+  const response = await client.get("/xrpc/app.rocksky.song.getSong", {
+    params: { uri },
+  });
   return {
     id: response.data?.id,
     title: response.data?.title,
     artist: response.data?.artist,
-    albumArtist: response.data?.album_artist,
+    albumArtist: response.data?.albumArtist,
     album: response.data?.album,
-    cover: response.data?.album_art,
-    tags: [],
-    artistUri: response.data?.artist_uri,
-    albumUri: response.data?.album_uri,
-    listeners: response.data?.listeners || 1,
-    scrobbles: response.data?.scrobbles || 1,
+    cover: response.data?.albumArt,
+    tags: response.data?.tags,
+    artistUri: response.data?.artistUri,
+    albumUri: response.data?.albumUri,
+    listeners: response.data?.uniqueListeners || 1,
+    scrobbles: response.data?.playCount || 1,
     lyrics: response.data?.lyrics,
-    spotifyLink: response.data?.spotify_link,
+    spotifyLink: response.data?.spotifyLink,
     composer: response.data?.composer,
     uri: response.data?.uri,
+    artists: response.data?.artists,
   };
 };
 
@@ -30,18 +39,19 @@ export const getArtistTracks = async (
     id: string;
     title: string;
     artist: string;
-    album_artist: string;
-    album_art: string;
+    albumArtist: string;
+    albumArt: string;
     uri: string;
-    play_count: number;
-    album_uri?: string;
-    artist_uri?: string;
+    playCount: number;
+    albumUri?: string;
+    artistUri?: string;
   }[]
 > => {
-  const response = await axios.get(
-    `${API_URL}/users/${uri}/tracks?size=${limit}`,
+  const response = await client.get(
+    "/xrpc/app.rocksky.artist.getArtistTracks",
+    { params: { uri, limit } },
   );
-  return response.data;
+  return response.data.tracks;
 };
 
 export const getArtistAlbums = async (
@@ -52,61 +62,200 @@ export const getArtistAlbums = async (
     id: string;
     title: string;
     artist: string;
-    album_art: string;
-    artist_uri: string;
+    albumArt: string;
+    artistUri: string;
     uri: string;
   }[]
 > => {
-  const response = await axios.get(
-    `${API_URL}/users/${uri}/albums?size=${limit}`,
+  const response = await client.get(
+    "/xrpc/app.rocksky.artist.getArtistAlbums",
+    { params: { uri, limit } },
+  );
+  return response.data.albums;
+};
+
+export const getArtists = async (
+  did: string,
+  offset = 0,
+  limit = 30,
+  startDate?: Date,
+  endDate?: Date,
+) => {
+  const response = await client.get<{ artists: Artist[] }>(
+    "/xrpc/app.rocksky.actor.getActorArtists",
+    {
+      params: {
+        did,
+        limit,
+        offset,
+        startDate: startDate?.toISOString(),
+        endDate: endDate?.toISOString(),
+      },
+    },
   );
   return response.data;
 };
 
-export const getArtists = async (did: string, offset = 0, limit = 30) => {
-  const response = await axios.get(
-    `${API_URL}/users/${did}/artists?size=${limit}&offset=${offset}`,
-  );
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return response.data.map((x: any) => ({ ...x, scrobbles: x.play_count }));
+export const getAlbums = async (
+  did: string,
+  offset = 0,
+  limit = 12,
+  startDate?: Date,
+  endDate?: Date,
+) => {
+  const response = await client.get("/xrpc/app.rocksky.actor.getActorAlbums", {
+    params: {
+      did,
+      limit,
+      offset,
+      startDate: startDate?.toISOString(),
+      endDate: endDate?.toISOString(),
+    },
+  });
+  return response.data;
 };
 
-export const getAlbums = async (did: string, offset = 0, limit = 12) => {
-  const response = await axios.get(
-    `${API_URL}/users/${did}/albums?size=${limit}&offset=${offset}`,
-  );
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return response.data.map((x: any) => ({
-    ...x,
-    scrobbles: x.play_count,
-  }));
-};
-
-export const getTracks = async (did: string, offset = 0, limit = 20) => {
-  const response = await axios.get(
-    `${API_URL}/users/${did}/tracks?size=${limit}&offset=${offset}`,
-  );
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return response.data.map((x: any) => ({ ...x, scrobbles: x.play_count }));
+export const getTracks = async (
+  did: string,
+  offset = 0,
+  limit = 20,
+  startDate?: Date,
+  endDate?: Date,
+) => {
+  const response = await client.get("/xrpc/app.rocksky.actor.getActorSongs", {
+    params: {
+      did,
+      limit,
+      offset,
+      startDate: startDate?.toISOString(),
+      endDate: endDate?.toISOString(),
+    },
+  });
+  return response.data;
 };
 
 export const getLovedTracks = async (did: string, offset = 0, limit = 20) => {
-  const response = await axios.get(
-    `${API_URL}/users/${did}/likes?size=${limit}&offset=${offset}`,
+  const response = await client.get(
+    "/xrpc/app.rocksky.actor.getActorLovedSongs",
+    {
+      params: { did, limit, offset },
+    },
   );
-  return response.data;
+  return response.data.tracks;
 };
 
 export const getAlbum = async (did: string, rkey: string) => {
-  const response = await axios.get(
-    `${API_URL}/users/${did}/app.rocksky.album/${rkey}`,
-  );
+  const response = await client.get("/xrpc/app.rocksky.album.getAlbum", {
+    params: { uri: `at://${did}/app.rocksky.album/${rkey}` },
+  });
   return response.data;
 };
 
 export const getArtist = async (did: string, rkey: string) => {
-  const response = await axios.get(
-    `${API_URL}/users/${did}/app.rocksky.artist/${rkey}`,
+  const response = await client.get("/xrpc/app.rocksky.artist.getArtist", {
+    params: { uri: `at://${did}/app.rocksky.artist/${rkey}` },
+  });
+  return response.data;
+};
+
+export const getArtistListeners = async (uri: string, limit: number) => {
+  const response = await client.get(
+    "/xrpc/app.rocksky.artist.getArtistListeners",
+    { params: { uri, limit } },
+  );
+  return response.data;
+};
+
+export const getAlbumsByGenre = async (
+  genre: string,
+  offset = 0,
+  limit = 20,
+) => {
+  const response = await client.get<{ albums: Album[] }>(
+    "/xrpc/app.rocksky.album.getAlbums",
+    {
+      params: {
+        genre,
+        limit,
+        offset,
+      },
+    },
+  );
+  return response.data;
+};
+
+export const getArtistsByGenre = async (
+  genre: string,
+  offset = 0,
+  limit = 20,
+) => {
+  const response = await client.get<{ artists: Artist[] }>(
+    "/xrpc/app.rocksky.artist.getArtists",
+    {
+      params: {
+        genre,
+        limit,
+        offset,
+      },
+    },
+  );
+  return response.data;
+};
+
+export const getTracksByGenre = async (
+  genre: string,
+  offset = 0,
+  limit = 20,
+) => {
+  const response = await client.get<{ tracks: Track[] }>(
+    "/xrpc/app.rocksky.song.getSongs",
+    {
+      params: {
+        genre,
+        limit,
+        offset,
+      },
+    },
+  );
+  return response.data;
+};
+
+export const getTopArtists = async (
+  offset = 0,
+  limit = 20,
+  startDate?: Date,
+  endDate?: Date,
+) => {
+  const response = await client.get<{ artists: Artist[] }>(
+    "/xrpc/app.rocksky.charts.getTopArtists",
+    {
+      params: {
+        limit,
+        offset,
+        startDate: startDate?.toISOString(),
+        endDate: endDate?.toISOString(),
+      },
+    },
+  );
+  return response.data;
+};
+
+export const getTopTracks = async (
+  offset = 0,
+  limit = 20,
+  startDate?: Date,
+  endDate?: Date,
+) => {
+  const response = await client.get<{ tracks: Track[] }>(
+    "/xrpc/app.rocksky.charts.getTopTracks",
+    {
+      params: {
+        limit,
+        offset,
+        startDate: startDate?.toISOString(),
+        endDate: endDate?.toISOString(),
+      },
+    },
   );
   return response.data;
 };

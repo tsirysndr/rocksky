@@ -26,9 +26,9 @@ const AvatarWithData = () => {
       {!isLoading && data && (
         <Avatar
           avatar={data.avatar}
-          name={data.display_name}
+          name={data.displayName}
           handle={`@${data.handle}`}
-          scrobblingSince={dayjs(data.xata_createdat).format("DD MMM YYYY")}
+          scrobblingSince={dayjs(data.createdAt).format("DD MMM YYYY")}
           did={data.did}
           onOpenBlueskyProfile={(handle: string) => {
             Linking.openURL(

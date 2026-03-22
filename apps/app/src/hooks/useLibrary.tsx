@@ -45,8 +45,9 @@ export const useArtistsInfiniteQuery = (did: string, limit = 30) =>
     queryKey: ["infiniteArtists", did],
     queryFn: async ({ pageParam = 0 }) => {
       const data = await getArtists(did, pageParam * limit, limit);
+      const artists = data.artists ?? data;
       return {
-        artists: data,
+        artists,
         nextOffset: pageParam + 1,
       };
     },
@@ -57,7 +58,7 @@ export const useArtistsInfiniteQuery = (did: string, limit = 30) =>
     initialPageParam: 0,
     placeholderData: (prev) => prev,
     refetchOnMount: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 
 export const useAlbumsQuery = (did: string, offset = 0, limit = 12) =>
@@ -73,8 +74,9 @@ export const useAlbumsInfiniteQuery = (did: string, limit = 12) =>
     queryKey: ["infiniteAlbums", did],
     queryFn: async ({ pageParam = 0 }) => {
       const data = await getAlbums(did, pageParam * limit, limit);
+      const albums = data.albums ?? data;
       return {
-        albums: data,
+        albums,
         nextOffset: pageParam + 1,
       };
     },
@@ -85,7 +87,7 @@ export const useAlbumsInfiniteQuery = (did: string, limit = 12) =>
     initialPageParam: 0,
     placeholderData: (prev) => prev,
     refetchOnMount: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 
 export const useTracksQuery = (did: string, offset = 0, limit = 20) =>
@@ -101,20 +103,20 @@ export const useInfiniteTracksQuery = (did: string, limit = 20) =>
     queryKey: ["infiniteTracks", did],
     queryFn: async ({ pageParam = 0 }) => {
       const data = await getTracks(did, pageParam * limit, limit);
+      const tracks = data.tracks ?? data;
       return {
-        tracks: data,
+        tracks,
         nextOffset: pageParam + 1,
       };
     },
     getNextPageParam: (lastPage) => {
-      // If we got fewer items than requested, we're at the end
       return lastPage.tracks.length < limit ? undefined : lastPage.nextOffset;
     },
     enabled: !!did,
     initialPageParam: 0,
     placeholderData: (prev) => prev,
     refetchOnMount: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 
 export const useLovedTracksQuery = (did: string, offset = 0, limit = 20) =>

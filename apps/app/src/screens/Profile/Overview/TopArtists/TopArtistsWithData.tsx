@@ -11,17 +11,16 @@ const TopArtistsWithData = () => {
   const did = useAtomValue(didAtom);
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { data } = useArtistsQuery(did!);
+  const artists = data?.artists ?? (Array.isArray(data) ? data : []);
   return (
     <TopArtists
-      artists={
-        data?.map((artist: any, index: number) => ({
-          id: artist.id,
-          rank: index + 1,
-          name: artist.name,
-          image: artist.picture,
-          uri: artist.uri,
-        })) ?? []
-      }
+      artists={artists.map((artist: any, index: number) => ({
+        id: artist.id,
+        rank: index + 1,
+        name: artist.name,
+        image: artist.picture,
+        uri: artist.uri,
+      }))}
       onSeeAll={() => {
         navigation.navigate("UserLibrary", { handle, tab: 1 });
       }}

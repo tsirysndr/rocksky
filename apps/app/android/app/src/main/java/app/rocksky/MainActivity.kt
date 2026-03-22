@@ -1,4 +1,4 @@
-package com.anonymous.rocksky
+package app.rocksky
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

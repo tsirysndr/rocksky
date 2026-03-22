@@ -9,6 +9,9 @@ module.exports = {
   newArchEnabled: true,
   extra: {
     storybookEnabled: process.env.STORYBOOK_ENABLED,
+    eas: {
+      projectId: "b11aecfd-7217-4707-b0a8-6ad121c51bd4"
+    }
   },
   ios: {
     supportsTablet: true,
@@ -19,7 +22,7 @@ module.exports = {
       backgroundColor: "#ffffff",
     },
     edgeToEdgeEnabled: true,
-    package: "com.anonymous.rocksky",
+    package: "app.rocksky",
   },
   web: {
     bundler: "metro",
