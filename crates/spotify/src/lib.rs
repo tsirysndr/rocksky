@@ -997,6 +997,7 @@ pub async fn watch_currently_playing(
                             Err(_) => tracing::error!("Failed to delete cache entry"),
                         };
 
+                        /*
                         thread::spawn(move || {
                             let rt = tokio::runtime::Runtime::new().unwrap();
                             match rt.block_on(async {
@@ -1037,6 +1038,7 @@ pub async fn watch_currently_playing(
                                 }
                             }
                         });
+                        */
                     }
                 }
             }
