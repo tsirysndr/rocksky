@@ -5,7 +5,7 @@
 
 A decentralized music tracking and discovery platform built on AT Protocol 🎵 , see [Rocksky](https://rocksky.app).
 
-[![Open in Pocketenv](https://pocketenv.io/open-in-pocketenv.svg)](https://pocketenv.io/new?repo=tangled:rocksky.app/rocksky)
+<a href="https://pocketenv.io/new?repo=tangled:rocksky.app/rocksky" target="_blank"><img src="https://pocketenv.io/open-in-pocketenv.svg" alt="Open in Pocketenv" /></a>
 
 ![Preview](./.github/assets/preview.png)
 
