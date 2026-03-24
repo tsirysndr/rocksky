@@ -124,13 +124,19 @@ const withAgent = ({
 }: WithServiceEndpoint): Effect.Effect<WithAgent, Error> =>
   Effect.tryPromise({
     try: async () => {
+      let agent: Agent | AtpAgent | undefined;
+      try {
+        agent = serviceEndpoint
+          ? new AtpAgent({ service: serviceEndpoint })
+          : await createAgent(ctx.oauthClient, did);
+      } catch (error) {
+        consola.error("Failed to create agent:", error);
+      }
       return {
         ctx,
         did,
         params,
-        agent: serviceEndpoint
-          ? new AtpAgent({ service: serviceEndpoint })
-          : await createAgent(ctx.oauthClient, did),
+        agent,
       };
     },
     catch: (error) => new Error(`Failed to create agent: ${error}`),
@@ -182,12 +188,14 @@ const retrieveProfile = ({
     try: async () => {
       let record = {};
       try {
-        const { data } = await agent.com.atproto.repo.getRecord({
-          repo: did,
-          collection: "app.bsky.actor.profile",
-          rkey: "self",
-        });
-        record = data;
+        if (agent) {
+          const { data } = await agent.com.atproto.repo.getRecord({
+            repo: did,
+            collection: "app.bsky.actor.profile",
+            rkey: "self",
+          });
+          record = data;
+        }
       } catch (error) {
         consola.error("Failed to retrieve profile record:", error);
       }
@@ -416,7 +424,7 @@ type WithAgent = {
   ctx: Context;
   did?: string;
   params: QueryParams;
-  agent: Agent | AtpAgent;
+  agent?: Agent | AtpAgent;
 };
 
 type WithUser = {
