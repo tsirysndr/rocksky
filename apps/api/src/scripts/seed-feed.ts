@@ -30,7 +30,7 @@ async function getFeeds(agent: Agent, limit: number = 100) {
 
 let userDid = args[0];
 
-if (!userDid.startsWith("did:plc:")) {
+if (!userDid.startsWith("did:plc:") && !userDid.startsWith("did:web:")) {
   userDid = await ctx.baseIdResolver.handle.resolve(userDid);
 }
 

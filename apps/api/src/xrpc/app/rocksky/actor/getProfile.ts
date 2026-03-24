@@ -62,7 +62,11 @@ const resolveHandleToDid = ({
 > => {
   return Effect.tryPromise({
     try: async () => {
-      if (!params.did?.startsWith("did:plc:") && !!params.did) {
+      if (
+        !params.did?.startsWith("did:plc:") &&
+        !params.did?.startsWith("did:web:") &&
+        !!params.did
+      ) {
         return {
           did: await ctx.baseIdResolver.handle.resolve(params.did),
           ctx,

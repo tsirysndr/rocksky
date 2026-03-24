@@ -15,7 +15,7 @@ if (args.length === 0) {
 
 let did = args[0];
 
-if (!did.startsWith("did:plc:")) {
+if (!did.startsWith("did:plc:") && !did.startsWith("did:web:")) {
   did = await ctx.baseIdResolver.handle.resolve(did);
 }
 
