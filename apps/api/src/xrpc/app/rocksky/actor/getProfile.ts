@@ -97,14 +97,33 @@ const withServiceEndpoint = ({
   return Effect.tryPromise({
     try: async () => {
       if (params.did) {
-        return fetch(`https://plc.directory/${params.did}`)
-          .then((res) => res.json())
-          .then((data) => ({
-            did,
-            serviceEndpoint: _.get(data, "service.0.serviceEndpoint"),
-            ctx,
-            params,
-          }));
+        if (params.did.startsWith("did:plc:")) {
+          return fetch(`https://plc.directory/${params.did}`)
+            .then((res) => res.json())
+            .then((data) => ({
+              did,
+              serviceEndpoint: _.get(data, "service.0.serviceEndpoint"),
+              ctx,
+              params,
+            }));
+        }
+
+        if (params.did.startsWith("did:web:")) {
+          return fetch(
+            `https://${params.did.split("did:web:")[1]}/.well-known/did.json`,
+          )
+            .then((res) => res.json())
+            .then((data) => ({
+              did,
+              serviceEndpoint: _.get(data, "service.0.serviceEndpoint"),
+              ctx,
+              params,
+            }));
+        }
+
+        consola.warn(
+          `Unsupported DID method for ${params.did}, skipping service endpoint resolution.`,
+        );
       }
       return {
         did,
