@@ -346,6 +346,7 @@ async function insertSongs(songs: Record[]) {
               userId: user.id,
               trackId: newTrack.id,
               uri: song.uri,
+              scrobbles: 1,
             })
             .onConflictDoNothing()
             .returning()
@@ -426,6 +427,7 @@ async function insertArtists(artists: Record[]) {
           userId: user.id,
           artistId: newArtist.id,
           uri: artist.uri,
+          scrobbles: 1,
         })
         .onConflictDoNothing()
         .execute();
@@ -493,6 +495,7 @@ async function insertAlbums(albums: Record[]) {
             userId: user.id,
             albumId: newAlbum.id,
             uri: album.uri,
+            scrobbles: 1,
           })
           .onConflictDoNothing()
           .execute(),
