@@ -195,7 +195,17 @@ async function insertScrobbles(scrobbles: Record[]) {
           [newScrobble] = await ctx.db
             .select()
             .from(schema.scrobbles)
-            .where(eq(schema.scrobbles.uri, scrobble.uri))
+            .where(
+              or(
+                and(
+                  eq(schema.scrobbles.userId, user.id),
+                  eq(schema.scrobbles.trackId, track.id),
+                  eq(schema.scrobbles.artistId, artist.id),
+                  eq(schema.scrobbles.timestamp, new Date(value.createdAt)),
+                ),
+                eq(schema.scrobbles.uri, scrobble.uri),
+              ),
+            )
             .limit(1)
             .execute();
         }
@@ -222,10 +232,7 @@ async function insertScrobbles(scrobbles: Record[]) {
         }
         await publishScrobble(ctx, newScrobble.id);
       } catch (err) {
-        consola.error(
-          `Failed to sync scrobble ${chalk.cyan(newScrobble.id)}:`,
-          err,
-        );
+        consola.error(`Failed to sync scrobble:`, err);
       }
     }),
   );
@@ -351,6 +358,14 @@ async function insertSongs(songs: Record[]) {
             })
             .onConflictDoNothing()
             .execute(),
+          ctx.db
+            .insert(schema.artistTracks)
+            .values({
+              artistId: artist.id,
+              trackId: newTrack.id,
+            })
+            .onConflictDoNothing()
+            .execute(),
         ]);
       } catch (error) {
         const metadata = `${value.title} - ${value.artist} - ${value.album}`;
@@ -430,6 +445,13 @@ async function insertAlbums(albums: Record[]) {
         .update(`${value.title} - ${value.artist}`.toLowerCase())
         .digest("hex");
 
+      const [artist] = await ctx.db
+        .select()
+        .from(schema.artists)
+        .where(eq(schema.artists.name, value.artist))
+        .limit(1)
+        .execute();
+
       let [newAlbum] = await ctx.db
         .insert(schema.albums)
         .values({
@@ -437,11 +459,20 @@ async function insertAlbums(albums: Record[]) {
           artist: value.artist,
           uri: album.uri,
           albumArt: value.albumArtUrl,
+          artistUri: artist.uri,
           sha256,
           year: value.year,
           releaseDate: value.releaseDate,
         })
-        .onConflictDoNothing()
+        .onConflictDoUpdate({
+          target: schema.albums.sha256,
+          set: {
+            albumArt: value.albumArtUrl,
+            artistUri: artist.uri,
+            year: value.year,
+            releaseDate: value.releaseDate,
+          },
+        })
         .returning()
         .execute();
 
@@ -454,13 +485,6 @@ async function insertAlbums(albums: Record[]) {
           .execute();
         newAlbum = existingAlbum;
       }
-
-      const [artist] = await ctx.db
-        .select()
-        .from(schema.artists)
-        .where(eq(schema.artists.name, value.artist))
-        .limit(1)
-        .execute();
 
       await Promise.all([
         ctx.db
