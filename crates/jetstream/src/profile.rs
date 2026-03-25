@@ -4,8 +4,19 @@ use crate::types::{Profile, ProfileResponse};
 
 pub async fn did_to_profile(did: &str) -> Result<Profile, Error> {
     let client = reqwest::Client::new();
+    let mut url = format!("https://plc.directory/{}", did);
+
+    if did.starts_with("did:web:") {
+        let domain = did
+            .trim_start_matches("did:web:")
+            .split(':')
+            .next()
+            .unwrap_or("");
+        url = format!("https://{}/.well-known/did.json", domain);
+    }
+
     let response = client
-        .get(format!("https://plc.directory/{}", did))
+        .get(url)
         .header("Accept", "application/json")
         .send()
         .await?
@@ -59,16 +70,6 @@ mod tests {
             .map(|s| s == "tsiry-sandratraina.com")
             .unwrap_or(false));
 
-        let did = "did:plc:fgvx5xqinqoqgpfhito5er3s";
-        let profile = did_to_profile(did).await?;
-
-        assert_eq!(profile.r#type, "app.bsky.actor.profile");
-        assert!(profile
-            .display_name
-            .map(|s| s.starts_with("Lixtrix"))
-            .unwrap_or(false));
-        assert!(profile.handle.map(|s| s == "lixtrix.art").unwrap_or(false));
-
         let did = "did:plc:d5jvs7uo4z6lw63zzreukgt4";
         let profile = did_to_profile(did).await?;
         assert_eq!(profile.r#type, "app.bsky.actor.profile");
@@ -76,6 +77,16 @@ mod tests {
         let did = "did:plc:gwxwdfmun3aqaiu5mx7nnyof";
         let profile = did_to_profile(did).await?;
         assert_eq!(profile.r#type, "app.bsky.actor.profile");
+
+        let did = "did:web:jb.waf.moe";
+        let profile = did_to_profile(did).await?;
+
+        assert_eq!(profile.r#type, "app.bsky.actor.profile");
+        assert!(profile
+            .display_name
+            .map(|s| s.starts_with("jb"))
+            .unwrap_or(false));
+        assert!(profile.handle.map(|s| s == "jbc.lol").unwrap_or(false));
 
         Ok(())
     }

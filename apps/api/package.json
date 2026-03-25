@@ -16,6 +16,7 @@
     "genres": "tsx ./src/scripts/genres.ts",
     "spotify": "tsx ./src/scripts/spotify.ts",
     "exp": "tsx ./src/scripts/exp.ts",
+    "collections": "tsx ./src/scripts/collections.ts",
     "pkl:eval": "pkl eval -f json",
     "pkl:gen": "tsx ./scripts/pkl.ts",
     "dev:xrpc": "tsx --watch ./src/server.ts",
