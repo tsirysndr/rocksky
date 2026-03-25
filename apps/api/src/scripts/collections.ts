@@ -175,7 +175,7 @@ async function insertScrobbles(scrobbles: Record[]) {
           .limit(1)
           .execute(),
       ]);
-      let [newScroble] = await ctx.db
+      let [newScrobble] = await ctx.db
         .insert(schema.scrobbles)
         .values({
           albumId: album.id,
@@ -191,18 +191,26 @@ async function insertScrobbles(scrobbles: Record[]) {
         .execute();
 
       try {
-        if (!newScroble) {
-          [newScroble] = await ctx.db
+        if (!newScrobble) {
+          [newScrobble] = await ctx.db
             .select()
             .from(schema.scrobbles)
             .where(eq(schema.scrobbles.uri, scrobble.uri))
             .limit(1)
             .execute();
         }
-        await publishScrobble(ctx, newScroble.id);
+        if (!newScrobble) {
+          consola.warn(
+            `Scrobble not found after conflict for ${chalk.cyan(value.title)} ${chalk.yellow(
+              scrobble.uri,
+            )} — skipping publish`,
+          );
+          return;
+        }
+        await publishScrobble(ctx, newScrobble.id);
       } catch (err) {
         consola.error(
-          `Failed to sync scrobble ${chalk.cyan(newScroble.id)}:`,
+          `Failed to sync scrobble ${chalk.cyan(newScrobble.id)}:`,
           err,
         );
       }
