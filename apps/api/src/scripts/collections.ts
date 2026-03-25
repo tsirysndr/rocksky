@@ -205,6 +205,19 @@ async function insertScrobbles(scrobbles: Record[]) {
               scrobble.uri,
             )} — skipping publish`,
           );
+          await ctx.db
+            .insert(schema.scrobbles)
+            .values({
+              albumId: album.id,
+              trackId: track.id,
+              artistId: artist.id,
+              uri: scrobble.uri,
+              userId: user.id,
+              timestamp: new Date(value.createdAt),
+              createdAt: new Date(value.createdAt),
+            })
+            .returning()
+            .execute();
           return;
         }
         await publishScrobble(ctx, newScrobble.id);
