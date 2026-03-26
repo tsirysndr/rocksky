@@ -348,7 +348,12 @@ async function insertSongs(songs: Record[]) {
               uri: song.uri,
               scrobbles: 1,
             })
-            .onConflictDoNothing()
+            .onConflictDoUpdate({
+              target: [schema.userTracks.userId, schema.userTracks.trackId],
+              set: {
+                scrobbles: 1,
+              },
+            })
             .returning()
             .execute(),
           ctx.db
@@ -430,7 +435,7 @@ async function insertArtists(artists: Record[]) {
           scrobbles: 1,
         })
         .onConflictDoUpdate({
-          target: schema.userArtists.uri,
+          target: [schema.userArtists.userId, schema.userArtists.artistId],
           set: {
             scrobbles: 1,
           },
@@ -502,7 +507,12 @@ async function insertAlbums(albums: Record[]) {
             uri: album.uri,
             scrobbles: 1,
           })
-          .onConflictDoNothing()
+          .onConflictDoUpdate({
+            target: [schema.userAlbums.userId, schema.userAlbums.albumId],
+            set: {
+              scrobbles: 1,
+            },
+          })
           .execute(),
         ctx.db
           .insert(schema.artistAlbums)
