@@ -429,7 +429,12 @@ async function insertArtists(artists: Record[]) {
           uri: artist.uri,
           scrobbles: 1,
         })
-        .onConflictDoNothing()
+        .onConflictDoUpdate({
+          target: schema.userArtists.uri,
+          set: {
+            scrobbles: 1,
+          },
+        })
         .execute();
     }),
   );
