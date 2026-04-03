@@ -16,6 +16,7 @@ pub mod xata;
 
 use std::{env, sync::Arc, time::Duration};
 
+use actix_cors::Cors;
 use actix_limitation::{Limiter, RateLimiter};
 use actix_session::SessionExt;
 use actix_web::{
@@ -79,8 +80,10 @@ pub async fn run() -> Result<(), Error> {
     let mb_client = Arc::new(mb_client);
 
     HttpServer::new(move || {
+        let cors = Cors::permissive();
         App::new()
             .wrap(RateLimiter::default())
+            .wrap(cors)
             .app_data(limiter.clone())
             .app_data(Data::new(conn.clone()))
             .app_data(Data::new(cache.clone()))

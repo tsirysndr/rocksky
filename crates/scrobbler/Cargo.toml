@@ -42,6 +42,7 @@ actix-session = "0.10.1"
 tokio-stream = { version = "0.1.17", features = ["full"] }
 tracing = "0.1.41"
 nanoid = "0.4.0"
+actix-cors = "0.7.1"
 
 [dev-dependencies]
 serial_test = "3.0.0"
