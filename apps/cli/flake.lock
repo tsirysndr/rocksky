@@ -20,11 +20,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1757267858,
-        "narHash": "sha256-/z39zFFV+AHT/XU5CKZfDxkdZtpR8VPoA8V26rswLDA=",
+        "lastModified": 1768649915,
+        "narHash": "sha256-jc21hKogFnxU7KXSVTRmxC7u5D4RHwm9BAvDf5/Z1Uo=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "967ae1c4225295bf529f865c1afe7e19f7261037",
+        "rev": "3e3f3c7f9977dc123c23ee21e8085ed63daf8c37",
         "type": "github"
       },
       "original": {
@@ -34,30 +34,10 @@
         "type": "github"
       }
     },
-    "rocksky-cli": {
-      "inputs": {
-        "flake-utils": [
-          "flake-utils"
-        ],
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "path": "./apps/cli",
-        "type": "path"
-      },
-      "original": {
-        "path": "./apps/cli",
-        "type": "path"
-      },
-      "parent": []
-    },
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
-        "nixpkgs": "nixpkgs",
-        "rocksky-cli": "rocksky-cli"
+        "nixpkgs": "nixpkgs"
       }
     },
     "systems": {

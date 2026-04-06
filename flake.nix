@@ -4,41 +4,55 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/release-25.05";
     flake-utils.url = "github:numtide/flake-utils";
+
+    rocksky-cli.url = "path:./apps/cli";
+    rocksky-cli.inputs.nixpkgs.follows = "nixpkgs";
+    rocksky-cli.inputs.flake-utils.follows = "flake-utils";
   };
 
   outputs = {
     self,
     nixpkgs,
     flake-utils,
+    rocksky-cli,
   }:
-    flake-utils.lib.eachDefaultSystem
-    (system: let
-      pkgs = import nixpkgs {
-        inherit system;
-      };
-    in {
-      devShells.default = pkgs.mkShell {
-         buildInputs = [
-          pkgs.cargo
-          pkgs.rustc
-          pkgs.rustfmt
-          pkgs.rustPackages.clippy
-          pkgs.bun
-          pkgs.nodejs
-          pkgs.duckdb
-          pkgs.turbo
-          pkgs.git
-          pkgs.wasm-pack
-          pkgs.gcc
-          pkgs.gnumake
-          pkgs.pkg-config
-          pkgs.readline
-          pkgs.flex
-          pkgs.bison
-          pkgs.binutils
-          pkgs.glibc.dev
-          pkgs.clang
-         ];
-       };
-    });
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = import nixpkgs {
+          inherit system;
+        };
+
+        lib = pkgs.lib;
+      in {
+        devShells.default = pkgs.mkShell {
+          buildInputs =
+            [
+              pkgs.cargo
+              pkgs.rustc
+              pkgs.rustfmt
+              pkgs.rustPackages.clippy
+              pkgs.bun
+              pkgs.nodejs
+              pkgs.duckdb
+              pkgs.turbo
+              pkgs.git
+              pkgs.wasm-pack
+              pkgs.gcc
+              pkgs.gnumake
+              pkgs.pkg-config
+              pkgs.readline
+              pkgs.flex
+              pkgs.bison
+              pkgs.binutils
+              pkgs.clang
+              rocksky-cli.packages.${system}.default
+            ]
+            ++ lib.optionals pkgs.stdenv.isLinux [
+              pkgs.glibc.dev
+            ]
+            ++ lib.optionals pkgs.stdenv.isDarwin [
+              pkgs.libiconv
+            ];
+        };
+      });
 }
