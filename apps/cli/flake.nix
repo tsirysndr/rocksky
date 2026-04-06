@@ -21,6 +21,8 @@
           npmConfigHook = pkgs.importNpmLock.npmConfigHook;
 
           nodejs = pkgs.nodejs_22;
+
+          meta.mainProgram = "rocksky";
         };
       in {
         packages.default = rocksky-cli;
