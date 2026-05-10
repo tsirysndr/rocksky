@@ -23,7 +23,8 @@ pub async fn get_scrobbles(
 
     let conn = conn.lock().unwrap();
     let mut stmt = match did {
-        Some(_) => conn.prepare(r#"
+        Some(_) => conn.prepare(
+            r#"
             SELECT
                 s.id,
                 t.id as track_id,
@@ -45,12 +46,13 @@ pub async fn get_scrobbles(
             LEFT JOIN tracks t ON s.track_id = t.id
             LEFT JOIN users u ON s.user_id = u.id
             WHERE u.did = ? OR u.handle = ?
-            GROUP BY s.id, s.created_at, t.id, t.title, t.artist, t.album_artist, t.album, t.album_art, s.uri, t.uri, u.handle, u.did, a.uri, al.uri, s.created_at
             ORDER BY s.created_at DESC
             OFFSET ?
             LIMIT ?;
-        "#)?,
-        None => conn.prepare(r#"
+        "#,
+        )?,
+        None => conn.prepare(
+            r#"
             SELECT
                 s.id,
                 t.id as track_id,
@@ -71,11 +73,11 @@ pub async fn get_scrobbles(
             LEFT JOIN albums al ON s.album_id = al.id
             LEFT JOIN tracks t ON s.track_id = t.id
             LEFT JOIN users u ON s.user_id = u.id
-            GROUP BY s.id, s.created_at, t.id, t.title, t.artist, t.album_artist, t.album, t.album_art, s.uri, t.uri, u.handle, u.did, a.uri, al.uri, s.created_at
             ORDER BY s.created_at DESC
             OFFSET ?
             LIMIT ?;
-        "#)?,
+        "#,
+        )?,
     };
     match did {
         Some(did) => {

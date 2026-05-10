@@ -183,6 +183,28 @@ pub async fn create_tables(conn: &Connection) -> Result<(), Error> {
   ",
     )?;
 
+    conn.execute_batch(
+        "
+        CREATE INDEX IF NOT EXISTS idx_scrobbles_user_id   ON scrobbles(user_id);
+        CREATE INDEX IF NOT EXISTS idx_scrobbles_artist_id  ON scrobbles(artist_id);
+        CREATE INDEX IF NOT EXISTS idx_scrobbles_album_id   ON scrobbles(album_id);
+        CREATE INDEX IF NOT EXISTS idx_scrobbles_track_id   ON scrobbles(track_id);
+        CREATE INDEX IF NOT EXISTS idx_scrobbles_created_at ON scrobbles(created_at);
+        CREATE INDEX IF NOT EXISTS idx_users_did    ON users(did);
+        CREATE INDEX IF NOT EXISTS idx_users_handle ON users(handle);
+        CREATE INDEX IF NOT EXISTS idx_artist_tracks_artist_id ON artist_tracks(artist_id);
+        CREATE INDEX IF NOT EXISTS idx_artist_tracks_track_id  ON artist_tracks(track_id);
+        CREATE INDEX IF NOT EXISTS idx_artist_albums_artist_id ON artist_albums(artist_id);
+        CREATE INDEX IF NOT EXISTS idx_artist_albums_album_id  ON artist_albums(album_id);
+        CREATE INDEX IF NOT EXISTS idx_album_tracks_album_id   ON album_tracks(album_id);
+        CREATE INDEX IF NOT EXISTS idx_album_tracks_track_id   ON album_tracks(track_id);
+        CREATE INDEX IF NOT EXISTS idx_user_artists_user_id    ON user_artists(user_id);
+        CREATE INDEX IF NOT EXISTS idx_user_albums_user_id     ON user_albums(user_id);
+        CREATE INDEX IF NOT EXISTS idx_user_tracks_user_id     ON user_tracks(user_id);
+        CREATE INDEX IF NOT EXISTS idx_loved_tracks_user_id    ON loved_tracks(user_id);
+        ",
+    )?;
+
     match conn.execute("ALTER TABLE artists ADD COLUMN genres VARCHAR[]", []) {
         Ok(_) => tracing::info!("Added genres column to artists table"),
         Err(e) => tracing::warn!("Could not add genres column to artists table: {}", e),
