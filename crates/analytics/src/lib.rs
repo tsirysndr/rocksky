@@ -23,13 +23,23 @@ pub async fn serve() -> Result<(), Error> {
 
     create_tables(&conn).await?;
 
-    let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&env::var("XATA_POSTGRES_URL")?)
-        .await?;
-
     let conn = Arc::new(Mutex::new(conn));
-    update_artist_genres(conn.clone(), &pool).await?;
+
+    // Run Postgres-dependent initialization in the background so the HTTP
+    // server can bind immediately — handlers only need DuckDB.
+    if let Ok(url) = env::var("XATA_POSTGRES_URL") {
+        let conn = conn.clone();
+        tokio::spawn(async move {
+            match PgPoolOptions::new().max_connections(5).connect(&url).await {
+                Ok(pool) => {
+                    if let Err(e) = update_artist_genres(conn, &pool).await {
+                        tracing::error!("update_artist_genres failed: {}", e);
+                    }
+                }
+                Err(e) => tracing::error!("Postgres connection failed: {}", e),
+            }
+        });
+    }
 
     export_parquets(conn.clone());
     cmd::serve::serve(conn).await?;
