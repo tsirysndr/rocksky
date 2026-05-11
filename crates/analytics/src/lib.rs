@@ -27,7 +27,7 @@ pub async fn serve() -> Result<(), Error> {
 
     // Run Postgres-dependent initialization in the background so the HTTP
     // server can bind immediately — handlers only need DuckDB.
-    if let Ok(url) = env::var("XATA_POSTGRES_URL") {
+    /*if let Ok(url) = env::var("XATA_POSTGRES_URL") {
         let conn = conn.clone();
         tokio::spawn(async move {
             match PgPoolOptions::new().max_connections(5).connect(&url).await {
@@ -39,7 +39,7 @@ pub async fn serve() -> Result<(), Error> {
                 Err(e) => tracing::error!("Postgres connection failed: {}", e),
             }
         });
-    }
+    }*/
 
     export_parquets(conn.clone());
     cmd::serve::serve(conn).await?;
