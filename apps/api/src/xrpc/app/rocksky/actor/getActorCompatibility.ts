@@ -1,6 +1,6 @@
 import type { Context } from "context";
 import { consola } from "consola";
-import { desc, eq, inArray, or } from "drizzle-orm";
+import { count, desc, eq, inArray, or } from "drizzle-orm";
 import { Cache, Duration, Effect, pipe } from "effect";
 import type { HandlerAuth } from "@atproto/xrpc-server";
 import type { Server } from "lexicon";
@@ -75,20 +75,31 @@ const retrieve = ({
       if (!user1) throw new Error("User1 not found");
       if (!user2) throw new Error("User2 not found");
 
-      const [user1Artists, user2Artists] = await Promise.all([
+      const [rawUser1Artists, rawUser2Artists] = await Promise.all([
         ctx.db
-          .select({ artistId: tables.userArtists.artistId, scrobbles: tables.userArtists.scrobbles })
-          .from(tables.userArtists)
-          .where(eq(tables.userArtists.userId, user1.id))
-          .orderBy(desc(tables.userArtists.scrobbles))
+          .select({
+            artistId: tables.scrobbles.artistId,
+            scrobbles: count(tables.scrobbles.id),
+          })
+          .from(tables.scrobbles)
+          .where(eq(tables.scrobbles.userId, user1.id))
+          .groupBy(tables.scrobbles.artistId)
+          .orderBy(desc(count(tables.scrobbles.id)))
           .execute(),
         ctx.db
-          .select({ artistId: tables.userArtists.artistId, scrobbles: tables.userArtists.scrobbles })
-          .from(tables.userArtists)
-          .where(eq(tables.userArtists.userId, user2.id))
-          .orderBy(desc(tables.userArtists.scrobbles))
+          .select({
+            artistId: tables.scrobbles.artistId,
+            scrobbles: count(tables.scrobbles.id),
+          })
+          .from(tables.scrobbles)
+          .where(eq(tables.scrobbles.userId, user2.id))
+          .groupBy(tables.scrobbles.artistId)
+          .orderBy(desc(count(tables.scrobbles.id)))
           .execute(),
       ]);
+
+      const user1Artists = rawUser1Artists.filter((a): a is { artistId: string; scrobbles: number } => a.artistId !== null);
+      const user2Artists = rawUser2Artists.filter((a): a is { artistId: string; scrobbles: number } => a.artistId !== null);
 
       const user1Map = new Map(user1Artists.map((a, i) => [a.artistId, i + 1]));
       const user2Map = new Map(user2Artists.map((a, i) => [a.artistId, i + 1]));

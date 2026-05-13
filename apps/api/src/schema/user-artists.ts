@@ -1,5 +1,5 @@
 import { type InferInsertModel, type InferSelectModel, sql } from "drizzle-orm";
-import { integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import artists from "./artists";
 import users from "./users";
 
@@ -16,7 +16,10 @@ const userArtists = pgTable("user_artists", {
   xataVersion: integer("xata_version"),
   scrobbles: integer("scrobbles"),
   uri: text("uri").unique().notNull(),
-});
+}, (t) => [
+  index("user_artists_user_id_idx").on(t.userId),
+  index("user_artists_artist_id_idx").on(t.artistId),
+]);
 
 export type SelectUserArtist = InferSelectModel<typeof userArtists>;
 export type InsertUserArtist = InferInsertModel<typeof userArtists>;

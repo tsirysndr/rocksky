@@ -1,5 +1,5 @@
 import { type InferInsertModel, type InferSelectModel, sql } from "drizzle-orm";
-import { integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 const tracks = pgTable("tracks", {
   id: text("xata_id").primaryKey().default(sql`xata_id()`),
@@ -28,7 +28,9 @@ const tracks = pgTable("tracks", {
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
   updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
   xataVersion: integer("xata_version"),
-});
+}, (t) => [
+  index("tracks_genre_idx").on(t.genre),
+]);
 
 export type SelectTrack = InferSelectModel<typeof tracks>;
 export type InsertTrack = InferInsertModel<typeof tracks>;

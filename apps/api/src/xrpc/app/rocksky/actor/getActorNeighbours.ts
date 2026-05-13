@@ -61,9 +61,10 @@ const retrieve = ({
       if (!user) throw new Error("User not found");
 
       const targetArtistRows = await ctx.db
-        .select({ artistId: tables.userArtists.artistId })
-        .from(tables.userArtists)
-        .where(eq(tables.userArtists.userId, user.id))
+        .select({ artistId: tables.scrobbles.artistId })
+        .from(tables.scrobbles)
+        .where(eq(tables.scrobbles.userId, user.id))
+        .groupBy(tables.scrobbles.artistId)
         .execute();
 
       if (targetArtistRows.length === 0) return { data: [] };
@@ -72,18 +73,18 @@ const retrieve = ({
 
       const neighbourRows = await ctx.db
         .select({
-          userId: tables.userArtists.userId,
-          sharedArtistsCount: sql<number>`count(distinct ${tables.userArtists.artistId})`,
+          userId: tables.scrobbles.userId,
+          sharedArtistsCount: sql<number>`count(distinct ${tables.scrobbles.artistId})`,
         })
-        .from(tables.userArtists)
+        .from(tables.scrobbles)
         .where(
           and(
-            inArray(tables.userArtists.artistId, targetArtistIds),
-            ne(tables.userArtists.userId, user.id),
+            inArray(tables.scrobbles.artistId, targetArtistIds),
+            ne(tables.scrobbles.userId, user.id),
           ),
         )
-        .groupBy(tables.userArtists.userId)
-        .orderBy(desc(sql`count(distinct ${tables.userArtists.artistId})`))
+        .groupBy(tables.scrobbles.userId)
+        .orderBy(desc(sql`count(distinct ${tables.scrobbles.artistId})`))
         .limit(50)
         .execute();
 
@@ -105,11 +106,12 @@ const retrieve = ({
           .execute(),
         ctx.db
           .select({
-            userId: tables.userArtists.userId,
-            artistId: tables.userArtists.artistId,
+            userId: tables.scrobbles.userId,
+            artistId: tables.scrobbles.artistId,
           })
-          .from(tables.userArtists)
-          .where(inArray(tables.userArtists.userId, neighbourUserIds))
+          .from(tables.scrobbles)
+          .where(inArray(tables.scrobbles.userId, neighbourUserIds))
+          .groupBy(tables.scrobbles.userId, tables.scrobbles.artistId)
           .execute(),
       ]);
 

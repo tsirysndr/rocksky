@@ -1,5 +1,5 @@
 import { type InferInsertModel, type InferSelectModel, sql } from "drizzle-orm";
-import { integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import albums from "./albums";
 import artists from "./artists";
 import tracks from "./tracks";
@@ -16,7 +16,13 @@ const scrobbles = pgTable("scrobbles", {
   updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
   xataVersion: integer("xata_version"),
   timestamp: timestamp("timestamp").defaultNow().notNull(),
-});
+}, (t) => [
+  index("scrobbles_user_id_timestamp_idx").on(t.userId, t.timestamp),
+  index("scrobbles_artist_id_idx").on(t.artistId),
+  index("scrobbles_album_id_idx").on(t.albumId),
+  index("scrobbles_track_id_idx").on(t.trackId),
+  index("scrobbles_timestamp_idx").on(t.timestamp),
+]);
 
 export type SelectScrobble = InferSelectModel<typeof scrobbles>;
 export type InsertScrobble = InferInsertModel<typeof scrobbles>;
