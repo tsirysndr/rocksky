@@ -69,15 +69,15 @@ const retrieve = ({
               EXISTS (
                 SELECT 1
                 FROM ${tables.shoutLikes}
-                WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.xata_id
-                  AND ${tables.shoutLikes}.user_id = ${user.id}
+                WHERE ${tables.shoutLikes.shoutId} = ${tables.shouts.id}
+                  AND ${tables.shoutLikes.userId} = ${user.id}
               )`.as("liked"),
                 reported: sql<boolean>`
               EXISTS (
                 SELECT 1
                 FROM ${tables.shoutReports}
-                WHERE ${tables.shoutReports}.shout_id = ${tables.shouts}.xata_id
-                  AND ${tables.shoutReports}.user_id = ${user.id}
+                WHERE ${tables.shoutReports.shoutId} = ${tables.shouts.id}
+                  AND ${tables.shoutReports.userId} = ${user.id}
               )`.as("reported"),
               }
             : {

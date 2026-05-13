@@ -81,8 +81,8 @@ const retrieve = ({
             EXISTS (
               SELECT 1
               FROM ${tables.shoutLikes}
-              WHERE ${tables.shoutLikes}.shout_id = ${tables.shouts}.xata_id
-                AND ${tables.shoutLikes}.user_id = ${user.id}
+              WHERE ${tables.shoutLikes.shoutId} = ${tables.shouts.id}
+                AND ${tables.shoutLikes.userId} = ${user.id}
             )`.as("liked"),
               }
             : {

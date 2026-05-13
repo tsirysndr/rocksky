@@ -1,7 +1,7 @@
 import type { Context } from "context";
 import { consola } from "consola";
-import { eq } from "drizzle-orm";
-import { Effect, Match, pipe, Cache, Duration } from "effect";
+import { count, eq, or, sql } from "drizzle-orm";
+import { Cache, Duration, Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ChartsView } from "lexicon/types/app/rocksky/charts/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/charts/getScrobblesChart";
@@ -21,7 +21,7 @@ export default function (server: Server, ctx: Context) {
       ),
   });
 
-  const getScrobblesChart = (params) =>
+  const getScrobblesChart = (params: QueryParams) =>
     pipe(
       getScrobblesCache,
       Effect.flatMap((cache) => cache.get(params)),
@@ -30,6 +30,7 @@ export default function (server: Server, ctx: Context) {
         return Effect.succeed({ scrobbles: [] });
       }),
     );
+
   server.app.rocksky.charts.getScrobblesChart({
     handler: async ({ params }) => {
       const result = await Effect.runPromise(getScrobblesChart(params));
@@ -41,69 +42,115 @@ export default function (server: Server, ctx: Context) {
   });
 }
 
-const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
+const scrobblesPerDay = (ctx: Context, condition: any) =>
+  ctx.db
+    .select({
+      date: sql<string>`DATE(${tables.scrobbles.timestamp})`,
+      count: count(tables.scrobbles.id),
+    })
+    .from(tables.scrobbles)
+    .where(condition)
+    .groupBy(sql`DATE(${tables.scrobbles.timestamp})`)
+    .orderBy(sql`DATE(${tables.scrobbles.timestamp})`)
+    .execute();
+
+const retrieve = ({
+  params,
+  ctx,
+}: {
+  params: QueryParams;
+  ctx: Context;
+}): Effect.Effect<{ data: Array<{ date: string; count: number }> }, Error> => {
   return Effect.tryPromise({
     try: async () => {
-      const match = Match.type<QueryParams>().pipe(
-        Match.when({ did: (did) => !!did }, ({ did }) =>
-          ctx.analytics.post("library.getScrobblesPerDay", {
-            user_did: did,
-          }),
-        ),
-        Match.when({ artisturi: (uri) => !!uri }, ({ artisturi }) =>
-          ctx.analytics.post("library.getArtistScrobbles", {
-            artist_id: artisturi,
-          }),
-        ),
-        Match.when({ albumuri: (uri) => !!uri }, ({ albumuri }) =>
-          ctx.analytics.post("library.getAlbumScrobbles", {
-            album_id: albumuri,
-          }),
-        ),
-        Match.when(
-          { songuri: (uri) => !!uri && uri.includes("app.rocksky.scrobble") },
-          ({ songuri }) =>
-            ctx.db
-              .select()
-              .from(tables.scrobbles)
-              .leftJoin(
-                tables.tracks,
-                eq(tables.scrobbles.trackId, tables.tracks.id),
-              )
-              .where(eq(tables.scrobbles.uri, songuri))
-              .execute()
-              .then(([row]) => row?.tracks?.uri)
-              .then((uri) =>
-                ctx.analytics.post("library.getTrackScrobbles", {
-                  track_id: uri,
-                }),
-              ),
-        ),
-        Match.when(
-          { songuri: (uri) => !!uri && !uri.includes("app.rocksky.scrobble") },
-          ({ songuri }) =>
-            ctx.analytics.post("library.getTrackScrobbles", {
-              track_id: songuri,
-            }),
-        ),
-        Match.when({ genre: (genre) => !!genre }, ({ genre }) =>
-          ctx.analytics.post("library.getScrobblesPerDay", {
-            genre,
-          }),
-        ),
-        Match.orElse(() =>
-          ctx.analytics.post("library.getScrobblesPerDay", {}),
-        ),
-      );
+      if (params.did) {
+        const user = await ctx.db
+          .select({ id: tables.users.id })
+          .from(tables.users)
+          .where(or(eq(tables.users.did, params.did), eq(tables.users.handle, params.did)))
+          .execute()
+          .then((rows) => rows[0]);
+        if (!user) return { data: [] };
+        const data = await scrobblesPerDay(ctx, eq(tables.scrobbles.userId, user.id));
+        return { data };
+      }
 
-      return match(params);
+      if (params.artisturi) {
+        const artist = await ctx.db
+          .select({ id: tables.artists.id })
+          .from(tables.artists)
+          .where(eq(tables.artists.uri, params.artisturi))
+          .execute()
+          .then((rows) => rows[0]);
+        if (!artist) return { data: [] };
+        const data = await scrobblesPerDay(ctx, eq(tables.scrobbles.artistId, artist.id));
+        return { data };
+      }
+
+      if (params.albumuri) {
+        const album = await ctx.db
+          .select({ id: tables.albums.id })
+          .from(tables.albums)
+          .where(eq(tables.albums.uri, params.albumuri))
+          .execute()
+          .then((rows) => rows[0]);
+        if (!album) return { data: [] };
+        const data = await scrobblesPerDay(ctx, eq(tables.scrobbles.albumId, album.id));
+        return { data };
+      }
+
+      if (params.songuri) {
+        let trackId: string | null | undefined;
+
+        if (params.songuri.includes("app.rocksky.scrobble")) {
+          trackId = await ctx.db
+            .select({ trackId: tables.scrobbles.trackId })
+            .from(tables.scrobbles)
+            .where(eq(tables.scrobbles.uri, params.songuri))
+            .execute()
+            .then((rows) => rows[0]?.trackId);
+        } else {
+          trackId = await ctx.db
+            .select({ id: tables.tracks.id })
+            .from(tables.tracks)
+            .where(eq(tables.tracks.uri, params.songuri))
+            .execute()
+            .then((rows) => rows[0]?.id);
+        }
+
+        if (!trackId) return { data: [] };
+        const data = await scrobblesPerDay(ctx, eq(tables.scrobbles.trackId, trackId));
+        return { data };
+      }
+
+      if (params.genre) {
+        const data = await ctx.db
+          .select({
+            date: sql<string>`DATE(${tables.scrobbles.timestamp})`,
+            count: count(tables.scrobbles.id),
+          })
+          .from(tables.scrobbles)
+          .innerJoin(tables.tracks, eq(tables.scrobbles.trackId, tables.tracks.id))
+          .where(eq(tables.tracks.genre, params.genre))
+          .groupBy(sql`DATE(${tables.scrobbles.timestamp})`)
+          .orderBy(sql`DATE(${tables.scrobbles.timestamp})`)
+          .execute();
+        return { data };
+      }
+
+      const data = await scrobblesPerDay(ctx, undefined);
+      return { data };
     },
     catch: (error) => new Error(`Failed to retrieve scrobbles chart: ${error}`),
   });
 };
 
-const presentation = ({ data }): Effect.Effect<ChartsView, never> => {
+const presentation = ({
+  data,
+}: {
+  data: Array<{ date: string; count: number }>;
+}): Effect.Effect<ChartsView, never> => {
   return Effect.sync(() => ({
-    scrobbles: data,
+    scrobbles: data.map((row) => ({ date: row.date, count: Number(row.count) })),
   }));
 };

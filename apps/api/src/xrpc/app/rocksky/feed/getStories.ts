@@ -79,7 +79,7 @@ const retrieve = ({
         .leftJoin(tracks, eq(scrobbles.trackId, tracks.id))
         .leftJoin(users, eq(scrobbles.userId, users.id))
         .where(
-          sql`scrobbles.xata_id IN (
+          sql`${scrobbles.id} IN (
             SELECT DISTINCT ON (inner_s.user_id) inner_s.xata_id
             FROM scrobbles inner_s
             ORDER BY inner_s.user_id, inner_s.timestamp DESC, inner_s.xata_id DESC
