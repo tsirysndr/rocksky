@@ -1,211 +1,176 @@
-import styled from "@emotion/styled";
-import { KIND, Tag } from "baseui/tag";
-import {
-  HeadingMedium,
-  HeadingXSmall,
-  LabelLarge,
-  LabelMedium,
-} from "baseui/typography";
-import { useAtomValue, useSetAtom } from "jotai";
-import numeral from "numeral";
-import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import ContentLoader from "react-content-loader";
-import { Link as DefaultLink, useParams } from "react-router";
-import { songAtom } from "../../atoms/song";
-import Disc from "../../components/Icons/Disc";
-import Shout from "../../components/Shout/Shout";
-import SongCover from "../../components/SongCover";
-import useFeed from "../../hooks/useFeed";
-import useLibrary from "../../hooks/useLibrary";
+import numeral from "numeral";
+import { useSongByUriQuery } from "../../hooks/useLibrary";
+import { useScrobbleByUriQuery } from "../../hooks/useScrobble";
 import Main from "../../layouts/Main";
 
-const Group = styled.div`
-  display: flex;
-  flex-direction: row;
-  margin-top: 20px;
-`;
-
-const Link = styled(DefaultLink)`
-  text-decoration: none;
-  color: #000;
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
-const Song = () => {
+export default function Song() {
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
-  const { getFeedByUri } = useFeed();
-  const { getSongByUri } = useLibrary();
-  const song = useAtomValue(songAtom);
-  const setSong = useSetAtom(songAtom);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    const getSong = async () => {
-      setLoading(true);
-      // if path contains app.rocksky.scrobble, get the song
-      if (window.location.pathname.includes("app.rocksky.scrobble")) {
-        const data = await getFeedByUri(`${did}/app.rocksky.scrobble/${rkey}`);
-        setSong(data);
-      }
+  const isScrobble = window.location.pathname.split("/")[2] === "scrobble";
 
-      // if path contains app.rocksky.track, get the song
-      if (window.location.pathname.includes("app.rocksky.song")) {
-        const data = await getSongByUri(`${did}/app.rocksky.song/${rkey}`);
-        setSong(data);
-      }
-      setLoading(false);
-    };
-    getSong();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [did, rkey]);
+  const scrobbleUri = `at://${did}/app.rocksky.scrobble/${rkey}`;
+  const songUri = `at://${did}/app.rocksky.song/${rkey}`;
+
+  const { data: scrobble, isLoading: scrobbleLoading } = useScrobbleByUriQuery(
+    isScrobble ? scrobbleUri : "",
+  );
+  const { data: songData, isLoading: songLoading } = useSongByUriQuery(
+    !isScrobble ? songUri : "",
+  );
+
+  const song = isScrobble ? scrobble : songData;
+  const isLoading = isScrobble ? scrobbleLoading : songLoading;
+
+  const albumHref = song?.albumUri
+    ? `/${song.albumUri.split("at://")[1].replace("app.rocksky.", "")}`
+    : null;
+  const artistHref = song?.artistUri
+    ? `/${song.artistUri.split("at://")[1].replace("app.rocksky.", "")}`
+    : null;
 
   return (
     <Main>
-      <div style={{ paddingBottom: 100, paddingTop: 50, maxWidth: "90vw" }}>
-        {loading && (
-          <ContentLoader viewBox="0 0 520 160" height={160} width={400}>
-            <rect x="220" y="21" rx="10" ry="10" width="294" height="20" />
-            <rect x="221" y="61" rx="10" ry="10" width="185" height="20" />
-            <rect x="304" y="-46" rx="3" ry="3" width="350" height="6" />
-            <rect x="371" y="-45" rx="3" ry="3" width="380" height="6" />
-            <rect x="484" y="-45" rx="3" ry="3" width="201" height="6" />
-            <rect x="48" y="21" rx="8" ry="8" width="150" height="150" />
+      <div className="px-4 pb-6 pt-4">
+        {isLoading && (
+          <ContentLoader
+            width="100%"
+            height={300}
+            viewBox="0 0 400 300"
+            backgroundColor="var(--color-skeleton-background)"
+            foregroundColor="var(--color-skeleton-foreground)"
+          >
+            <rect x="100" y="0" rx="16" ry="16" width="200" height="200" />
+            <rect x="50" y="220" rx="4" ry="4" width="300" height="20" />
+            <rect x="80" y="252" rx="4" ry="4" width="240" height="14" />
+            <rect x="100" y="278" rx="4" ry="4" width="80" height="12" />
           </ContentLoader>
         )}
-        {!loading && song && (
+
+        {!isLoading && song && (
           <>
-            <Group>
-              {song?.albumUri && (
-                <Link to={`/${song.albumUri.split("at://")[1]}`}>
-                  {song.cover && <SongCover cover={song?.cover} size={150} />}
-                  {!song.cover && (
+            {/* Album art */}
+            <div className="flex justify-center mb-6">
+              {albumHref ? (
+                <Link to={albumHref} className="no-underline block">
+                  {song.cover ? (
+                    <img
+                      src={song.cover}
+                      alt={song.title}
+                      className="w-56 h-56 rounded-2xl shadow-2xl object-cover"
+                    />
+                  ) : (
                     <div
-                      style={{
-                        width: 150,
-                        height: 150,
-                        marginRight: 12,
-                        borderRadius: 8,
-                        backgroundColor: "rgba(243, 243, 243, 0.725)",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                      }}
+                      className="w-56 h-56 rounded-2xl flex items-center justify-center"
+                      style={{ backgroundColor: "var(--color-surface-2)" }}
                     >
-                      <div
-                        style={{
-                          height: 90,
-                          width: 90,
-                        }}
-                      >
-                        <Disc color="rgba(66, 87, 108, 0.65)" />
-                      </div>
+                      <span className="text-7xl opacity-20">♪</span>
                     </div>
                   )}
                 </Link>
-              )}
-              {!song?.albumUri && (
-                <>
-                  {song.cover && <SongCover cover={song?.cover} size={150} />}
-                  {!song.cover && (
-                    <div
-                      style={{
-                        width: 150,
-                        height: 150,
-                        marginRight: 12,
-                        borderRadius: 8,
-                        backgroundColor: "rgba(243, 243, 243, 0.725)",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                      }}
-                    >
-                      <div
-                        style={{
-                          height: 90,
-                          width: 90,
-                        }}
-                      >
-                        <Disc color="rgba(66, 87, 108, 0.65)" />
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-              <div style={{ marginLeft: 20 }}>
-                <HeadingMedium margin={0}>{song?.title}</HeadingMedium>
-                {song?.artistUri && (
-                  <Link to={`/${song.artistUri.split("at://")[1]}`}>
-                    <LabelLarge margin={0}>{song?.albumArtist}</LabelLarge>
-                  </Link>
-                )}
-                {!song?.artistUri && (
-                  <LabelLarge margin={0}>{song?.albumArtist}</LabelLarge>
-                )}
-                <div
-                  style={{
-                    marginTop: 20,
-                    display: "flex",
-                    flexDirection: "row",
-                  }}
-                >
-                  <div
-                    style={{
-                      marginRight: 20,
-                    }}
-                  >
-                    <LabelMedium margin={0} color="rgba(36, 49, 61, 0.65)">
-                      Listeners
-                    </LabelMedium>
-                    <HeadingXSmall margin={0}>
-                      {numeral(song?.listeners).format("0,0")}
-                    </HeadingXSmall>
-                  </div>
-                  <div>
-                    <LabelMedium margin={0} color="rgba(36, 49, 61, 0.65)">
-                      Scrobbles
-                    </LabelMedium>
-                    <HeadingXSmall margin={0}>
-                      {numeral(song?.scrobbles).format("0,0")}
-                    </HeadingXSmall>
-                  </div>
+              ) : song.cover ? (
+                <img src={song.cover} alt={song.title} className="w-56 h-56 rounded-2xl shadow-2xl object-cover" />
+              ) : (
+                <div className="w-56 h-56 rounded-2xl flex items-center justify-center" style={{ backgroundColor: "var(--color-surface-2)" }}>
+                  <span className="text-7xl opacity-20">♪</span>
                 </div>
-              </div>
-            </Group>
-            {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              song?.tags.map((tag: any) => (
-                <Tag closeable={false} kind={KIND.purple}>
-                  {tag}
-                </Tag>
-              ))
-            }
+              )}
+            </div>
 
-            {song?.lyrics && (
-              <>
-                <HeadingXSmall marginTop={"20px"} marginBottom={"0px"}>
-                  Lyrics
-                </HeadingXSmall>
-                <div style={{ marginTop: 10 }}>
-                  <p
-                    style={{
-                      whiteSpace: "pre-line",
-                      lineHeight: "2",
-                      fontSize: "20px",
-                    }}
+            {/* Title & artist */}
+            <div className="text-center mb-6">
+              <h1 className="text-2xl font-bold m-0 mb-2" style={{ color: "var(--color-text)" }}>
+                {song.title}
+              </h1>
+              {artistHref ? (
+                <Link to={artistHref} className="text-base no-underline font-medium" style={{ color: "var(--color-primary)" }}>
+                  {song.albumArtist || song.artist}
+                </Link>
+              ) : (
+                <p className="text-base m-0 font-medium" style={{ color: "var(--color-text-muted)" }}>
+                  {song.albumArtist || song.artist}
+                </p>
+              )}
+              {albumHref && song.album && (
+                <Link to={albumHref} className="text-sm no-underline block mt-1" style={{ color: "var(--color-text-muted)" }}>
+                  {song.album}
+                </Link>
+              )}
+            </div>
+
+            {/* Stats */}
+            <div
+              className="flex justify-center gap-10 py-4 mb-6 rounded-2xl"
+              style={{ backgroundColor: "var(--color-surface-2)" }}
+            >
+              <div className="text-center">
+                <p className="font-bold text-lg m-0" style={{ color: "var(--color-text)" }}>
+                  {numeral(song.listeners).format("0,0")}
+                </p>
+                <p className="text-xs m-0" style={{ color: "var(--color-text-muted)" }}>Listeners</p>
+              </div>
+              <div className="text-center">
+                <p className="font-bold text-lg m-0" style={{ color: "var(--color-text)" }}>
+                  {numeral(song.scrobbles).format("0,0")}
+                </p>
+                <p className="text-xs m-0" style={{ color: "var(--color-text-muted)" }}>Scrobbles</p>
+              </div>
+            </div>
+
+            {/* Tags */}
+            {song.tags && song.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-6">
+                {song.tags.map((tag: string) => (
+                  <Link
+                    key={tag}
+                    to={`/genre/${tag}`}
+                    className="text-xs px-3 py-1 rounded-full no-underline"
+                    style={{ backgroundColor: "var(--color-surface-2)", color: "var(--color-genre)" }}
                   >
-                    {song.lyrics.replace(/\[\d{2}:\d{2}\.\d{2}\]\s*/g, "")}
-                  </p>
-                </div>
-              </>
+                    #{tag}
+                  </Link>
+                ))}
+              </div>
             )}
 
-            <Shout type="song" />
+            {/* Links */}
+            {song.spotifyLink && (
+              <div className="mb-6">
+                <a
+                  href={song.spotifyLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 py-3 rounded-2xl no-underline font-semibold text-sm"
+                  style={{ backgroundColor: "#1DB954", color: "#fff" }}
+                >
+                  Listen on Spotify ↗
+                </a>
+              </div>
+            )}
+
+            {/* Lyrics */}
+            {song.lyrics && (
+              <div className="mb-6">
+                <h3 className="font-semibold text-base mb-3" style={{ color: "var(--color-text)" }}>Lyrics</h3>
+                <p
+                  className="text-sm leading-8 m-0"
+                  style={{ color: "var(--color-text-muted)", whiteSpace: "pre-line" }}
+                >
+                  {song.lyrics.replace(/\[\d{2}:\d{2}\.\d{2}\]\s*/g, "")}
+                </p>
+              </div>
+            )}
           </>
+        )}
+
+        {!isLoading && !song && (
+          <div className="flex flex-col items-center py-20 text-center">
+            <span className="text-6xl mb-4 opacity-20">♪</span>
+            <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>Song not found</p>
+          </div>
         )}
       </div>
     </Main>
   );
-};
-
-export default Song;
+}

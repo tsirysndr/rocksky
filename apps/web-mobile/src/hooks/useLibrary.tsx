@@ -1,120 +1,97 @@
-import axios from "axios";
-import { API_URL } from "../consts";
+import { useQuery } from "@tanstack/react-query";
+import {
+  getAlbum,
+  getAlbums,
+  getArtist,
+  getArtistAlbums,
+  getArtistListeners,
+  getArtists,
+  getArtistTracks,
+  getLovedTracks,
+  getSongByUri,
+  getTracks,
+  getTopArtists,
+  getTopTracks,
+} from "../api/library";
 
-function useLibrary() {
-  const getSongByUri = async (uri: string) => {
-    const response = await axios.get(`${API_URL}/users/${uri}`);
-    return {
-      id: response.data?.xata_id,
-      title: response.data?.title,
-      artist: response.data?.artist,
-      albumArtist: response.data?.album_artist,
-      album: response.data?.album,
-      cover: response.data?.album_art,
-      tags: [],
-      artistUri: response.data?.artist_uri,
-      albumUri: response.data?.album_uri,
-      listeners: response.data?.listeners || 1,
-      scrobbles: response.data?.scrobbles || 1,
-      lyrics: response.data?.lyrics,
-      spotifyLink: response.data?.spotify_link,
-    };
-  };
+export const useSongByUriQuery = (uri: string) =>
+  useQuery({
+    queryKey: ["song", uri],
+    queryFn: () => getSongByUri(uri),
+    enabled: !!uri,
+  });
 
-  const getArtistTracks = async (
-    uri: string,
-    limit = 10
-  ): Promise<
-    {
-      xata_id: string;
-      title: string;
-      artist: string;
-      album_artist: string;
-      album_art: string;
-      uri: string;
-      scrobbles: number;
-      album_uri?: string;
-      artist_uri?: string;
-    }[]
-  > => {
-    const response = await axios.get(
-      `${API_URL}/users/${uri}/tracks?size=${limit}`
-    );
-    return response.data;
-  };
+export const useAlbumQuery = (did: string, rkey: string) =>
+  useQuery({
+    queryKey: ["album", did, rkey],
+    queryFn: () => getAlbum(did, rkey),
+    enabled: !!did && !!rkey,
+  });
 
-  const getArtistAlbums = async (
-    uri: string,
-    limit = 10
-  ): Promise<
-    {
-      xata_id: string;
-      title: string;
-      artist: string;
-      album_art: string;
-      artist_uri: string;
-      uri: string;
-    }[]
-  > => {
-    const response = await axios.get(
-      `${API_URL}/users/${uri}/albums?size=${limit}`
-    );
-    return response.data;
-  };
+export const useArtistQuery = (did: string, rkey: string) =>
+  useQuery({
+    queryKey: ["artist", did, rkey],
+    queryFn: () => getArtist(did, rkey),
+    enabled: !!did && !!rkey,
+  });
 
-  const getArtists = async (did: string, offset = 0, limit = 30) => {
-    const response = await axios.get(
-      `${API_URL}/users/${did}/artists?size=${limit}&offset=${offset}`
-    );
-    return response.data;
-  };
+export const useArtistTracksQuery = (uri: string, limit = 10) =>
+  useQuery({
+    queryKey: ["artist-tracks", uri, limit],
+    queryFn: () => getArtistTracks(uri, limit),
+    enabled: !!uri,
+  });
 
-  const getAlbums = async (did: string, offset = 0, limit = 12) => {
-    const response = await axios.get(
-      `${API_URL}/users/${did}/albums?size=${limit}&offset=${offset}`
-    );
-    return response.data;
-  };
+export const useArtistAlbumsQuery = (uri: string, limit = 10) =>
+  useQuery({
+    queryKey: ["artist-albums", uri, limit],
+    queryFn: () => getArtistAlbums(uri, limit),
+    enabled: !!uri,
+  });
 
-  const getTracks = async (did: string, offset = 0, limit = 20) => {
-    const response = await axios.get(
-      `${API_URL}/users/${did}/tracks?size=${limit}&offset=${offset}`
-    );
-    return response.data;
-  };
+export const useArtistListenersQuery = (uri: string, limit: number) =>
+  useQuery({
+    queryKey: ["artist-listeners", uri, limit],
+    queryFn: () => getArtistListeners(uri, limit),
+    enabled: !!uri,
+  });
 
-  const getLovedTracks = async (did: string, offset = 0, limit = 20) => {
-    const response = await axios.get(
-      `${API_URL}/users/${did}/likes?size=${limit}&offset=${offset}`
-    );
-    return response.data;
-  };
+export const useArtistsQuery = (did: string, offset = 0, limit = 30) =>
+  useQuery({
+    queryKey: ["artists", did, offset, limit],
+    queryFn: () => getArtists(did, offset, limit),
+    enabled: !!did,
+  });
 
-  const getAlbum = async (did: string, rkey: string) => {
-    const response = await axios.get(
-      `${API_URL}/users/${did}/app.rocksky.album/${rkey}`
-    );
-    return response.data;
-  };
+export const useAlbumsQuery = (did: string, offset = 0, limit = 12) =>
+  useQuery({
+    queryKey: ["albums", did, offset, limit],
+    queryFn: () => getAlbums(did, offset, limit),
+    enabled: !!did,
+  });
 
-  const getArtist = async (did: string, rkey: string) => {
-    const response = await axios.get(
-      `${API_URL}/users/${did}/app.rocksky.artist/${rkey}`
-    );
-    return response.data;
-  };
+export const useTracksQuery = (did: string, offset = 0, limit = 20) =>
+  useQuery({
+    queryKey: ["tracks", did, offset, limit],
+    queryFn: () => getTracks(did, offset, limit),
+    enabled: !!did,
+  });
 
-  return {
-    getSongByUri,
-    getArtists,
-    getAlbums,
-    getTracks,
-    getLovedTracks,
-    getAlbum,
-    getArtist,
-    getArtistTracks,
-    getArtistAlbums,
-  };
-}
+export const useLovedTracksQuery = (did: string, offset = 0, limit = 20) =>
+  useQuery({
+    queryKey: ["loved-tracks", did, offset, limit],
+    queryFn: () => getLovedTracks(did, offset, limit),
+    enabled: !!did,
+  });
 
-export default useLibrary;
+export const useTopArtistsQuery = (offset = 0, limit = 20) =>
+  useQuery({
+    queryKey: ["top-artists", offset, limit],
+    queryFn: () => getTopArtists(offset, limit),
+  });
+
+export const useTopTracksQuery = (offset = 0, limit = 20) =>
+  useQuery({
+    queryKey: ["top-tracks", offset, limit],
+    queryFn: () => getTopTracks(offset, limit),
+  });

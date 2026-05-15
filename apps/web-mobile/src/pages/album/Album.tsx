@@ -1,447 +1,143 @@
-import styled from "@emotion/styled";
-import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
-import {
-  HeadingMedium,
-  LabelLarge,
-  LabelMedium,
-  LabelXSmall,
-} from "baseui/typography";
-import dayjs from "dayjs";
-import numeral from "numeral";
-import { useEffect, useState } from "react";
+import { useParams, Link } from "react-router-dom";
 import ContentLoader from "react-content-loader";
-import { Link as DefaultLink, useParams } from "react-router";
-import Disc from "../../components/Icons/Disc";
-import Shout from "../../components/Shout/Shout";
-import SongCover from "../../components/SongCover";
-import { useTimeFormat } from "../../hooks/useFormat";
-import useLibrary from "../../hooks/useLibrary";
+import numeral from "numeral";
+import dayjs from "dayjs";
 import Main from "../../layouts/Main";
+import { useAlbumQuery } from "../../hooks/useLibrary";
 
-const Group = styled.div`
-  display: flex;
-  flex-direction: row;
-  margin-top: 20px;
-`;
+function formatDuration(ms: number) {
+  if (!ms) return "";
+  const m = Math.floor(ms / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
 
-const Link = styled(DefaultLink)`
-  color: inherit;
-  text-decoration: none;
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
-type Row = {
-  id: string;
-  title: string;
-  artist: string;
-  albumArtist: string;
-  albumArt: string;
-  albumUri: string;
-  artistUri: string;
-  scrobbleUri: string;
-  duration: number;
-  trackNumber: number;
-  uri: string;
-};
-
-const Album = () => {
-  const { formatTime } = useTimeFormat();
+export default function Album() {
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
-  const { getAlbum } = useLibrary();
-  const [disc, setDisc] = useState(1);
-  const [album, setAlbum] = useState<{
-    id: string;
-    albumArt?: string;
-    artist: string;
-    title: string;
-    year: number;
-    uri: string;
-    releaseDate: string;
-    listeners: number;
-    scrobbles: number;
-    artistUri?: string;
-    label?: string;
-    tracks: {
-      xata_id: string;
-      track_number: number;
-      album: string;
-      album_art: string;
-      album_artist: string;
-      title: string;
-      artist: string;
-      xata_created: string;
-      uri: string;
-      album_uri: string;
-      artist_uri: string;
-      duration: number;
-      disc_number: number;
-    }[];
-  } | null>(null);
+  const { data: album, isLoading } = useAlbumQuery(did!, rkey!);
 
-  useEffect(() => {
-    if (!did || !rkey) {
-      return;
-    }
-    const fetchAlbum = async () => {
-      const data = await getAlbum(did, rkey);
-      setAlbum({
-        id: data.xata_id,
-        albumArt: data.album_art,
-        artistUri: data.artist_uri,
-        artist: data.artist,
-        title: data.title,
-        year: data.year,
-        uri: data.uri,
-        listeners: data.listeners,
-        scrobbles: data.scrobbles,
-        tracks: data.tracks,
-        releaseDate: data.release_date
-          ? dayjs(data.release_date).format("MMMM D, YYYY")
-          : data.year.toString(),
-        label: data.tracks[0].copyright_message || data.tracks[0].label,
-      });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setDisc(Math.max(...data.tracks.map((track: any) => track.disc_number)));
-    };
-    fetchAlbum();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [did, rkey]);
+  const artistHref = album?.artistUri
+    ? `/${album.artistUri.split("at://")[1].replace("app.rocksky.", "")}`
+    : null;
 
   return (
     <Main>
-      <div style={{ paddingBottom: 100, paddingTop: 50, maxWidth: "90vw" }}>
-        {!album && (
-          <ContentLoader viewBox="100 0 850 700" height={520} width={600}>
-            <rect x="400" y="21" rx="10" ry="10" width="694" height="20" />
-            <rect x="400" y="61" rx="10" ry="10" width="80" height="20" />
-            <rect x="500" y="-46" rx="3" ry="3" width="350" height="6" />
-            <rect x="471" y="-45" rx="3" ry="3" width="380" height="6" />
-            <rect x="484" y="-45" rx="3" ry="3" width="201" height="6" />
-            <rect x="10" y="21" rx="8" ry="8" width="360" height="300" />
+      <div className="pb-6">
+        {isLoading && (
+          <ContentLoader
+            width="100%"
+            height={300}
+            viewBox="0 0 400 300"
+            backgroundColor="var(--color-skeleton-background)"
+            foregroundColor="var(--color-skeleton-foreground)"
+          >
+            <rect x="100" y="20" rx="16" ry="16" width="200" height="200" />
+            <rect x="80" y="240" rx="4" ry="4" width="240" height="18" />
+            <rect x="120" y="270" rx="4" ry="4" width="160" height="13" />
           </ContentLoader>
         )}
-        {album && (
-          <Group>
-            {album.albumArt && <SongCover cover={album.albumArt!} size={150} />}
-            {!album.albumArt && (
-              <div
-                style={{
-                  width: 150,
-                  height: 150,
-                  marginRight: 12,
-                  borderRadius: 8,
-                  backgroundColor: "rgba(243, 243, 243, 0.725)",
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
-                <div
-                  style={{
-                    height: 130,
-                    width: 130,
-                  }}
-                >
-                  <Disc color="rgba(66, 87, 108, 0.65)" />
-                </div>
+
+        {!isLoading && album && (
+          <>
+            {/* Album art + info */}
+            <div className="flex flex-col items-center pt-6 pb-5 px-4" style={{ borderBottom: "1px solid var(--color-border)" }}>
+              <div className="w-52 h-52 rounded-2xl overflow-hidden shadow-2xl mb-5" style={{ backgroundColor: "var(--color-surface-2)" }}>
+                {album.albumArt ? (
+                  <img src={album.albumArt} alt={album.title} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <span className="text-7xl opacity-20">💿</span>
+                  </div>
+                )}
               </div>
-            )}
-            <div style={{ marginLeft: 20 }}>
-              <HeadingMedium margin={0}>{album.title}</HeadingMedium>
-              {album.artistUri && (
-                <Link to={`/${album.artistUri.split("at://")[1]}`}>
-                  <LabelLarge margin={0}>{album.artist}</LabelLarge>
+
+              <h1 className="text-2xl font-bold text-center m-0 mb-2" style={{ color: "var(--color-text)" }}>
+                {album.title}
+              </h1>
+
+              {artistHref ? (
+                <Link to={artistHref} className="text-base no-underline font-medium mb-1" style={{ color: "var(--color-primary)" }}>
+                  {album.artist}
                 </Link>
+              ) : (
+                <p className="text-base m-0 mb-1 font-medium" style={{ color: "var(--color-text-muted)" }}>{album.artist}</p>
               )}
-              {!album.artistUri && (
-                <LabelLarge margin={0}>{album.artist}</LabelLarge>
+
+              {album.releaseDate && (
+                <p className="text-sm m-0 mb-4" style={{ color: "var(--color-text-muted)" }}>
+                  {dayjs(album.releaseDate).format("YYYY")}
+                </p>
               )}
-              <div
-                style={{ marginTop: 20, display: "flex", flexDirection: "row" }}
-              >
-                <div
-                  style={{
-                    marginRight: 20,
-                  }}
-                >
-                  <LabelMedium margin={0} color="rgba(36, 49, 61, 0.65)">
-                    Listeners
-                  </LabelMedium>
-                  <LabelLarge margin={0}>
-                    {numeral(album.listeners).format("0,0")}
-                  </LabelLarge>
+
+              <div className="flex gap-8">
+                <div className="text-center">
+                  <p className="font-bold text-base m-0" style={{ color: "var(--color-text)" }}>
+                    {numeral(album.uniqueListeners || album.listeners).format("0,0")}
+                  </p>
+                  <p className="text-xs m-0" style={{ color: "var(--color-text-muted)" }}>Listeners</p>
                 </div>
-                <div>
-                  <LabelMedium margin={0} color="rgba(36, 49, 61, 0.65)">
-                    Scrobbles
-                  </LabelMedium>
-                  <LabelLarge margin={0}>
-                    {numeral(album.scrobbles || 1).format("0,0")}
-                  </LabelLarge>
+                <div className="text-center">
+                  <p className="font-bold text-base m-0" style={{ color: "var(--color-text)" }}>
+                    {numeral(album.playCount || album.scrobbles).format("0,0")}
+                  </p>
+                  <p className="text-xs m-0" style={{ color: "var(--color-text-muted)" }}>Scrobbles</p>
                 </div>
               </div>
-            </div>
-          </Group>
-        )}
 
-        <div style={{ marginTop: 20 }}>
-          {disc < 2 && (
-            <TableBuilder
-              data={album?.tracks.map((x) => ({
-                id: x.xata_id,
-                trackNumber: x.track_number,
-                albumArt: x.album_art,
-                title: x.title,
-                artist: x.artist,
-                uri: x.uri,
-                albumUri: album?.uri,
-                artistUri: x.artist_uri,
-                albumArtist: x.album_artist,
-                duration: x.duration,
-                discNumber: x.disc_number,
-              }))}
-              emptyMessage="You haven't listened to any music yet."
-              divider="clean"
-              overrides={{
-                TableHeadRow: {
-                  style: {
-                    display: "none",
-                  },
-                },
-                TableBodyCell: {
-                  style: {
-                    verticalAlign: "center",
-                  },
-                },
-              }}
-            >
-              <TableBuilderColumn
-                header="Track"
-                overrides={{
-                  TableBodyCell: {
-                    style: {
-                      width: "50px",
-                      verticalAlign: "center",
-                    },
-                  },
-                }}
-              >
-                {(row: Row) => (
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "row",
-                      alignItems: "center",
-                      flex: 1,
-                    }}
-                  >
-                    {row.trackNumber}
-                  </div>
-                )}
-              </TableBuilderColumn>
-              <TableBuilderColumn
-                header="Title"
-                overrides={{
-                  TableBodyCell: {
-                    style: {
-                      width: "100%",
-                    },
-                  },
-                }}
-              >
-                {(row: Row) => (
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "row",
-                      alignItems: "center",
-                    }}
-                  >
-                    <div>
-                      <div>
-                        {row.uri && (
-                          <Link to={`/${row.uri.split("at://")[1]}`}>
-                            {row.title}
-                          </Link>
-                        )}
-                        {!row.uri && <div>{row.title}</div>}
-                      </div>
-                      <div>
-                        {row.artistUri && (
-                          <Link
-                            to={`/${row.artistUri.split("at://")[1]}`}
-                            style={{
-                              fontFamily: "RockfordSansLight",
-                              color: "rgba(36, 49, 61, 0.65)",
-                            }}
-                          >
-                            {row.albumArtist}
-                          </Link>
-                        )}
-                        {!row.artistUri && (
-                          <div
-                            style={{
-                              fontFamily: "RockfordSansLight",
-                              color: "rgba(36, 49, 61, 0.65)",
-                            }}
-                          >
-                            {row.albumArtist}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </TableBuilderColumn>
-              <TableBuilderColumn header="Duration">
-                {(row: Row) => <div>{formatTime(row.duration)}</div>}
-              </TableBuilderColumn>
-            </TableBuilder>
-          )}
-          {disc > 1 && (
-            <div>
-              {[...Array(disc)].map((_, i) => (
-                <div style={{ marginBottom: 20 }}>
-                  <LabelLarge>Volume {i + 1}</LabelLarge>
-                  <TableBuilder
-                    data={album?.tracks
-                      .filter((x) => x.disc_number == i + 1)
-                      .map((x) => ({
-                        id: x.xata_id,
-                        trackNumber: x.track_number,
-                        albumArt: x.album_art,
-                        title: x.title,
-                        artist: x.artist,
-                        uri: x.uri,
-                        albumUri: album?.uri,
-                        artistUri: x.artist_uri,
-                        albumArtist: x.album_artist,
-                        duration: x.duration,
-                        discNumber: x.disc_number,
-                      }))}
-                    emptyMessage="You haven't listened to any music yet."
-                    divider="clean"
-                    overrides={{
-                      TableHeadRow: {
-                        style: {
-                          display: "none",
-                        },
-                      },
-                      TableBodyCell: {
-                        style: {
-                          verticalAlign: "center",
-                        },
-                      },
-                    }}
-                  >
-                    <TableBuilderColumn
-                      header="Track"
-                      overrides={{
-                        TableBodyCell: {
-                          style: {
-                            width: "50px",
-                            verticalAlign: "center",
-                          },
-                        },
-                      }}
+              {album.tags && album.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-3 justify-center">
+                  {album.tags.slice(0, 5).map((tag: string) => (
+                    <Link
+                      key={tag}
+                      to={`/genre/${tag}`}
+                      className="text-xs px-3 py-1 rounded-full no-underline"
+                      style={{ backgroundColor: "var(--color-surface-2)", color: "var(--color-genre)" }}
                     >
-                      {(row: Row) => (
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "row",
-                            alignItems: "center",
-                            flex: 1,
-                          }}
-                        >
-                          {row.trackNumber}
-                        </div>
-                      )}
-                    </TableBuilderColumn>
-                    <TableBuilderColumn
-                      header="Title"
-                      overrides={{
-                        TableBodyCell: {
-                          style: {
-                            width: "100%",
-                          },
-                        },
-                      }}
-                    >
-                      {(row: Row) => (
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "row",
-                            alignItems: "center",
-                            flex: 1,
-                            width: "100%",
-                          }}
-                        >
-                          <div>
-                            <div>
-                              {row.uri && (
-                                <Link to={`/${row.uri.split("at://")[1]}`}>
-                                  {row.title}
-                                </Link>
-                              )}
-                              {!row.uri && <div>{row.title}</div>}
-                            </div>
-                            <div>
-                              {row.artistUri && (
-                                <Link
-                                  to={`/${row.artistUri.split("at://")[1]}`}
-                                  style={{
-                                    fontFamily: "RockfordSansLight",
-                                    color: "rgba(36, 49, 61, 0.65)",
-                                  }}
-                                >
-                                  {row.albumArtist}
-                                </Link>
-                              )}
-                              {!row.artistUri && (
-                                <div
-                                  style={{
-                                    fontFamily: "RockfordSansLight",
-                                    color: "rgba(36, 49, 61, 0.65)",
-                                  }}
-                                >
-                                  {row.albumArtist}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </TableBuilderColumn>
-                    <TableBuilderColumn header="Duration">
-                      {(row: Row) => (
-                        <div style={{ width: 80 }}>
-                          {formatTime(row.duration)}
-                        </div>
-                      )}
-                    </TableBuilderColumn>
-                  </TableBuilder>
+                      #{tag}
+                    </Link>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
-          )}
 
-          <div style={{ marginTop: 20 }}>
-            <LabelMedium margin={0} color="rgba(36, 49, 61, 0.65)">
-              {album?.releaseDate}
-            </LabelMedium>
-            <LabelXSmall margin={0} color={"rgba(36, 49, 61, 0.65)"}>
-              {album?.label}
-            </LabelXSmall>
-          </div>
-        </div>
-        <Shout type="album" />
+            {/* Track listing */}
+            <div className="px-4 pt-3">
+              <h3 className="font-semibold text-base mb-2" style={{ color: "var(--color-text)" }}>Tracks</h3>
+              {(album.tracks || []).map((track: Record<string, unknown>, i: number) => {
+                const uri = track.uri as string;
+                const href = uri ? `/${uri.split("at://")[1].replace("app.rocksky.", "")}` : null;
+                return (
+                  <div key={String(track.id || i)} className="flex items-center gap-3 py-2.5 border-b" style={{ borderColor: "var(--color-border)" }}>
+                    <span className="text-sm w-7 text-center opacity-40 shrink-0" style={{ color: "var(--color-text)" }}>
+                      {(track.trackNumber as number) || i + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      {href ? (
+                        <Link to={href} className="no-underline font-medium text-sm truncate block" style={{ color: "var(--color-text)" }}>
+                          {track.title as string}
+                        </Link>
+                      ) : (
+                        <p className="font-medium text-sm truncate m-0" style={{ color: "var(--color-text)" }}>{track.title as string}</p>
+                      )}
+                      {!!(track.artist as string) && (
+                        <p className="text-xs m-0 truncate" style={{ color: "var(--color-text-muted)" }}>{track.artist as string}</p>
+                      )}
+                    </div>
+                    {!!(track.duration as number) && (
+                      <span className="text-xs shrink-0" style={{ color: "var(--color-text-muted)" }}>
+                        {formatDuration(track.duration as number)}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+              {(!album.tracks || album.tracks.length === 0) && (
+                <p className="text-sm text-center py-8" style={{ color: "var(--color-text-muted)" }}>No tracks found</p>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </Main>
   );
-};
-
-export default Album;
+}

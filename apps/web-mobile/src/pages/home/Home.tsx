@@ -1,12 +1,10 @@
 import Main from "../../layouts/Main";
-import Feed from "./feed";
+import Feed from "./feed/Feed";
 
-const Home = () => {
+export default function Home() {
   return (
     <Main>
       <Feed />
     </Main>
   );
-};
-
-export default Home;
+}

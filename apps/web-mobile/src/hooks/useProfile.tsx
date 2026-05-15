@@ -1,56 +1,61 @@
-import axios from "axios";
+import { useQuery } from "@tanstack/react-query";
 import { useSetAtom } from "jotai";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import {
+  getActorNeighbours,
+  getProfileByDid,
+  getProfileStatsByDid,
+  getRecentTracksByDid,
+} from "../api/profile";
 import { profileAtom } from "../atoms/profile";
 import { API_URL } from "../consts";
-import { Scrobble } from "../types/scrobble";
+
+export const useProfileByDidQuery = (did: string) =>
+  useQuery({
+    queryKey: ["profile", did],
+    queryFn: () => getProfileByDid(did),
+    enabled: !!did,
+  });
+
+export const useProfileStatsByDidQuery = (did: string | undefined) =>
+  useQuery({
+    queryKey: ["profile", "stats", did],
+    queryFn: () => getProfileStatsByDid(did!),
+    enabled: !!did,
+  });
+
+export const useRecentTracksByDidQuery = (
+  did: string,
+  offset = 0,
+  size = 10,
+) =>
+  useQuery({
+    queryKey: ["profile", "recent-tracks", did, offset, size],
+    queryFn: () => getRecentTracksByDid(did, offset, size),
+    enabled: !!did,
+  });
+
+export const useActorNeighboursQuery = (did: string) =>
+  useQuery({
+    queryKey: ["profile", "neighbours", did],
+    queryFn: () => getActorNeighbours(did),
+    enabled: !!did,
+  });
 
 function useProfile(token?: string | null) {
   const setProfile = useSetAtom(profileAtom);
-  const navigate = useNavigate();
   const [data, setData] = useState<string | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const isLoading = !data && !error;
 
-  const getProfileByDid = async (did: string) => {
-    try {
-      const response = await axios.get(`${API_URL}/users/${did}`);
-      return response.data;
-    } catch {
-      navigate("/");
-      return null;
-    }
-  };
-
-  const getProfileStatsByDid = async (did: string) => {
-    const response = await axios.get(`${API_URL}/users/${did}/stats`);
-    return response.data;
-  };
-
-  const getRecentTracksByDid = async (
-    did: string,
-    offset = 0,
-    size = 10
-  ): Promise<Scrobble[]> => {
-    const response = await axios.get<Scrobble[]>(
-      `${API_URL}/users/${did}/scrobbles?size=${size}&offset=${offset}`
-    );
-    return response.data;
-  };
-
   useEffect(() => {
-    if (!token) {
-      return;
-    }
-
+    if (!token) return;
     const fetchProfile = async () => {
       try {
-        const response = await fetch(`${API_URL}/profile`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }).then((res) => res.text());
+        const response = await fetch(
+          `${API_URL}/xrpc/app.rocksky.actor.getProfile`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        ).then((res) => res.text());
         setData(response);
         setError(null);
       } catch (e) {
@@ -62,64 +67,30 @@ function useProfile(token?: string | null) {
   }, [token]);
 
   useEffect(() => {
-    if (data !== "Unauthorized" && data !== "Internal Server Error" && data) {
+    if (data && data !== "Unauthorized" && data !== "Internal Server Error") {
       const profile = JSON.parse(data);
+      if (Object.keys(profile).length === 0) {
+        localStorage.removeItem("token");
+        window.location.href = "/";
+        return;
+      }
       setProfile({
-        avatar: `https://cdn.bsky.app/img/avatar/plain/${localStorage.getItem(
-          "did"
-        )}/${profile.avatar.ref["$link"]}@jpeg`,
+        avatar: profile.avatar,
         displayName: profile.displayName,
         handle: profile.handle,
-        spotifyUser: {
-          isBeta: profile.spotifyUser?.is_beta_user,
-        },
+        spotifyUser: { isBeta: profile.spotifyUser?.isBetaUser },
         spotifyConnected: profile.spotifyConnected,
         did: profile.did,
       });
     }
-
-    if (
-      !data ||
-      data === "Unauthorized" ||
-      data === "Internal Server Error" ||
-      (error && localStorage.getItem("token"))
-    ) {
-      if (data === "Unauthorized") {
-        localStorage.removeItem("token");
-      }
+    if (data === "Unauthorized") {
+      localStorage.removeItem("token");
+      window.location.href = "/";
     }
-
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
-  if (
-    !data ||
-    data === "Unauthorized" ||
-    data === "Internal Server Error" ||
-    (error && localStorage.getItem("token"))
-  ) {
-    if (data === "Unauthorized" && localStorage.getItem("token")) {
-      localStorage.clear();
-      window.location.href = "/";
-    }
-    return {
-      data: null,
-      error,
-      isLoading,
-      getProfileByDid,
-      getProfileStatsByDid,
-      getRecentTracksByDid,
-    };
-  }
-
-  return {
-    data: JSON.parse(data),
-    error,
-    isLoading,
-    getProfileByDid,
-    getProfileStatsByDid,
-    getRecentTracksByDid,
-  };
+  return { data: data && data !== "Unauthorized" && data !== "Internal Server Error" ? JSON.parse(data) : null, error, isLoading };
 }
 
 export default useProfile;

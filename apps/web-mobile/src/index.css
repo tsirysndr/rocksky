@@ -1,46 +1,102 @@
+@import "tailwindcss";
+
 @font-face {
-  font-family: 'RockfordSansLight';
-  src: local('RockfordSansLight'), url(./assets/fonts/RockfordSans-Light.otf) format('opentype');
+  font-family: "RockfordSansLight";
+  src: local("RockfordSansLight"),
+    url(./assets/fonts/RockfordSans-Light.otf) format("opentype");
 }
 
 @font-face {
-  font-family: 'RockfordSansRegular';
-  src: local('RockfordSans'), url(./assets/fonts/RockfordSans-Regular.otf) format('opentype');
+  font-family: "RockfordSansRegular";
+  src: local("RockfordSans"),
+    url(./assets/fonts/RockfordSans-Regular.otf) format("opentype");
 }
 
 @font-face {
-  font-family: 'RockfordSansMedium';
-  src: local('RockfordSans'), url(./assets/fonts/RockfordSans-Medium.otf) format('opentype');
+  font-family: "RockfordSansMedium";
+  src: local("RockfordSans"),
+    url(./assets/fonts/RockfordSans-Medium.otf) format("opentype");
 }
 
 @font-face {
-  font-family: 'RockfordSansBold';
+  font-family: "RockfordSansBold";
   font-weight: 900;
-  src: local('RockfordSans'), url(./assets/fonts/RockfordSans-Bold.otf) format('opentype');
+  src: local("RockfordSans"),
+    url(./assets/fonts/RockfordSans-Bold.otf) format("opentype");
 }
 
 @font-face {
-  font-family: 'RockfordSansExtraBold';
-  font-weight: 900;
-  src: local('RockfordSans'), url(./assets/fonts/RockfordSans-ExtraBold.otf) format('opentype');
+  font-family: "UberMove";
+  src: local("RockfordSans"),
+    url(./assets/fonts/RockfordSans-Light.otf) format("opentype");
 }
 
 @font-face {
-  font-family: 'UberMove';
-  src: local('RockfordSans'), url(./assets/fonts/RockfordSans-Light.otf) format('opentype');
+  font-family: "UberMoveText";
+  src: local("RockfordSans"),
+    url(./assets/fonts/RockfordSans-Regular.otf) format("opentype");
 }
 
-@font-face {
-  font-family: 'UberMoveText';
-  src: local('RockfordSans'), url(./assets/fonts/RockfordSans-Regular.otf) format('opentype');
+/* Always dark */
+:root {
+  --color-background: #130825;
+  --color-text: oklch(95.07% 0.028 338.58);
+  --color-primary: #ff2876;
+  --color-text-muted: rgb(191 174 195 / 65%);
+  --color-border: #310e64;
+  --color-input-background: #221538;
+  --color-placeholder: #ffffffb4;
+  --color-clear-input: #ffffff;
+  --color-menu-hover: #1f0d3c;
+  --color-default-button: rgba(255, 255, 255, 0.06);
+  --color-purple: oklch(0.5478 0.201 296.07);
+  --color-blue: oklch(0.789 0.154 211.53);
+  --color-pink: oklch(0.6372 0.229 346.83);
+  --color-bar: rgb(255, 129, 175);
+  --color-play-button: var(--color-primary);
+  --color-toggle-track: #341b5c;
+  --color-button-text: #000;
+  --color-skeleton-background: #221538;
+  --color-skeleton-foreground: #2b1a4c;
+  --color-genre: #00f1f3;
+  --color-avatar-background: #8d2dffed;
+  --color-surface: #1a0f35;
+  --color-surface-2: #221538;
+  --color-surface-3: #2b1a4c;
+  --nav-height: 56px;
+  --player-height: 72px;
 }
 
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
 body {
   margin: 0;
-  font-family: RockfordSansLight, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+  padding: 0;
+  font-family: RockfordSansLight, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  overflow-y: hidden;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  overscroll-behavior: none;
+}
+
+::placeholder {
+  color: var(--color-text-muted) !important;
+}
+
+button {
+  font-family: RockfordSansMedium, sans-serif;
+}
+
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+a {
+  color: inherit;
 }

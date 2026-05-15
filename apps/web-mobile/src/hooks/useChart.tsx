@@ -1,66 +1,46 @@
+import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import useSWR from "swr";
 import { API_URL } from "../consts";
 
-function useChart() {
-  const fetcher = (path: string) =>
-    fetch(`${API_URL}${path}`, {
-      method: "GET",
-    }).then((res) => res.json());
+const chartFetcher = (url: string) =>
+  axios.get(url).then((r) => (r.status === 200 ? r.data : []));
 
-  const { data: scrobblesChart } = useSWR("/public/scrobbleschart", fetcher);
+export const useSongChartQuery = (uri: string) =>
+  useQuery({
+    queryKey: ["chart", "song", uri],
+    queryFn: () =>
+      chartFetcher(
+        `${API_URL}/xrpc/app.rocksky.charts.getScrobblesChart?songuri=${uri}`,
+      ),
+    enabled: !!uri,
+  });
 
-  const getScrobblesChart = () => {
-    return scrobblesChart || [];
-  };
+export const useArtistChartQuery = (uri: string) =>
+  useQuery({
+    queryKey: ["chart", "artist", uri],
+    queryFn: () =>
+      chartFetcher(
+        `${API_URL}/xrpc/app.rocksky.charts.getScrobblesChart?artisturi=${uri}`,
+      ),
+    enabled: !!uri,
+  });
 
-  const getSongChart = async (uri: string) => {
-    const response = await axios.get(
-      `${API_URL}/public/scrobbleschart?songuri=${uri}`
-    );
-    if (response.status !== 200) {
-      return [];
-    }
-    return response.data;
-  };
+export const useAlbumChartQuery = (uri: string) =>
+  useQuery({
+    queryKey: ["chart", "album", uri],
+    queryFn: () =>
+      chartFetcher(
+        `${API_URL}/xrpc/app.rocksky.charts.getScrobblesChart?albumuri=${uri}`,
+      ),
+    enabled: !!uri,
+  });
 
-  const getArtistChart = async (uri: string) => {
-    const response = await axios.get(
-      `${API_URL}/public/scrobbleschart?artisturi=${uri}`
-    );
-    if (response.status !== 200) {
-      return [];
-    }
-    return response.data;
-  };
-
-  const getAlbumChart = async (uri: string) => {
-    const response = await axios.get(
-      `${API_URL}/public/scrobbleschart?albumuri=${uri}`
-    );
-    if (response.status !== 200) {
-      return [];
-    }
-    return response.data;
-  };
-
-  const getProfileChart = async (did: string) => {
-    const response = await axios.get(
-      `${API_URL}/public/scrobbleschart?did=${did}`
-    );
-    if (response.status !== 200) {
-      return [];
-    }
-    return response.data;
-  };
-
-  return {
-    getScrobblesChart,
-    getSongChart,
-    getArtistChart,
-    getAlbumChart,
-    getProfileChart,
-  };
-}
-
-export default useChart;
+export const useProfileChartQuery = (did: string) =>
+  useQuery({
+    queryKey: ["chart", "profile", did],
+    queryFn: () =>
+      chartFetcher(
+        `${API_URL}/xrpc/app.rocksky.charts.getScrobblesChart?did=${did}`,
+      ),
+    enabled: !!did,
+  });
