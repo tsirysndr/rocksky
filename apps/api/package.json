@@ -9,7 +9,7 @@
     "dev": "concurrently 'tsx --watch ./src/index.ts' 'tsx --watch ./src/server.ts'",
     "tsx:index": "tsx src/index.ts",
     "prod": "node --enable-source-maps dist/index.js",
-    "build": "bun build src/index.ts --outdir ./dist --target node --minify --sourcemap=external --external better-sqlite3 && bun build src/server.ts --outdir ./dist --target node --minify --sourcemap=external --external better-sqlite3",
+    "build": "bun build src/index.ts --outdir ./dist --target node --sourcemap=inline --external better-sqlite3 && bun build src/server.ts --outdir ./dist --target node --sourcemap=inline --external better-sqlite3",
     "sync": "tsx ./src/scripts/sync.ts",
     "meili:sync": "tsx ./src/scripts/meili.ts",
     "sync:library": "tsx ./src/scripts/sync-library.ts",
