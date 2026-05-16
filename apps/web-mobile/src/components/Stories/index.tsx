@@ -89,7 +89,15 @@ function StoryModal({
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col"
-      style={{ backgroundColor: "#000" }}
+      style={{
+        backgroundColor: "#000",
+        backgroundImage: current?.albumArt
+          ? `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url(${current.albumArt})`
+          : "none",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}
     >
       {/* Progress bar */}
       <div className="flex gap-1 px-3 pt-3 pb-2">
