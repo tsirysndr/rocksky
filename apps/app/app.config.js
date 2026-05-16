@@ -48,6 +48,7 @@ module.exports = {
         backgroundColor: "#130825",
       },
     ],
+    ["@sentry/react-native", { uploadSourceMaps: false }],
     "expo-font",
     "expo-web-browser",
     "react-native-edge-to-edge"
