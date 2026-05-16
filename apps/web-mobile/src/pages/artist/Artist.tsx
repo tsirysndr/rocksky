@@ -8,6 +8,7 @@ import {
   useArtistQuery,
   useArtistTracksQuery,
 } from "../../hooks/useLibrary";
+import ShareOnBluesky from "../../components/ShareOnBluesky";
 
 export default function Artist() {
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
@@ -88,6 +89,12 @@ export default function Artist() {
                   ))}
                 </div>
               )}
+
+              <div className="mt-4 w-full px-4">
+                <ShareOnBluesky
+                  text={`Listening to ${artist.name} on Rocksky 🎵\n${window.location.href}`}
+                />
+              </div>
             </div>
 
             {/* Tabs */}

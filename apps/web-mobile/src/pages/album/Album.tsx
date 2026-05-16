@@ -4,6 +4,7 @@ import numeral from "numeral";
 import dayjs from "dayjs";
 import Main from "../../layouts/Main";
 import { useAlbumQuery } from "../../hooks/useLibrary";
+import ShareOnBluesky from "../../components/ShareOnBluesky";
 
 function formatDuration(ms: number) {
   if (!ms) return "";
@@ -98,42 +99,72 @@ export default function Album() {
                   ))}
                 </div>
               )}
+
+              <div className="mt-4 w-full px-4">
+                <ShareOnBluesky
+                  text={`${album.title} by ${album.artist} on Rocksky 🎵\n${window.location.href}`}
+                />
+              </div>
             </div>
 
             {/* Track listing */}
             <div className="px-4 pt-3">
               <h3 className="font-semibold text-base mb-2" style={{ color: "var(--color-text)" }}>Tracks</h3>
-              {(album.tracks || []).map((track: Record<string, unknown>, i: number) => {
-                const uri = track.uri as string;
-                const href = uri ? `/${uri.split("at://")[1].replace("app.rocksky.", "")}` : null;
-                return (
-                  <div key={String(track.id || i)} className="flex items-center gap-3 py-2.5 border-b" style={{ borderColor: "var(--color-border)" }}>
-                    <span className="text-sm w-7 text-center opacity-40 shrink-0" style={{ color: "var(--color-text)" }}>
-                      {(track.trackNumber as number) || i + 1}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      {href ? (
-                        <Link to={href} className="no-underline font-medium text-sm truncate block" style={{ color: "var(--color-text)" }}>
-                          {track.title as string}
-                        </Link>
-                      ) : (
-                        <p className="font-medium text-sm truncate m-0" style={{ color: "var(--color-text)" }}>{track.title as string}</p>
-                      )}
-                      {!!(track.artist as string) && (
-                        <p className="text-xs m-0 truncate" style={{ color: "var(--color-text-muted)" }}>{track.artist as string}</p>
-                      )}
-                    </div>
-                    {!!(track.duration as number) && (
-                      <span className="text-xs shrink-0" style={{ color: "var(--color-text-muted)" }}>
-                        {formatDuration(track.duration as number)}
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
               {(!album.tracks || album.tracks.length === 0) && (
                 <p className="text-sm text-center py-8" style={{ color: "var(--color-text-muted)" }}>No tracks found</p>
               )}
+              {(album.tracks || []).length > 0 && (() => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const tracks = album.tracks as any[];
+                const maxDisc = Math.max(...tracks.map((t) => t.discNumber || 1));
+                const multiDisc = maxDisc > 1;
+
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                function TrackRow({ track, i }: { track: any; i: number }) {
+                  const uri = track.uri as string;
+                  const href = uri ? `/${uri.split("at://")[1].replace("app.rocksky.", "")}` : null;
+                  return (
+                    <div key={String(track.id || i)} className="flex items-center gap-3 py-2.5 border-b" style={{ borderColor: "var(--color-border)" }}>
+                      <span className="text-sm w-7 text-center opacity-40 shrink-0" style={{ color: "var(--color-text)" }}>
+                        {track.trackNumber || i + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        {href ? (
+                          <Link to={href} className="no-underline font-medium text-sm truncate block" style={{ color: "var(--color-text)" }}>
+                            {track.title}
+                          </Link>
+                        ) : (
+                          <p className="font-medium text-sm truncate m-0" style={{ color: "var(--color-text)" }}>{track.title}</p>
+                        )}
+                        {!!(track.artist || track.albumArtist) && (
+                          <p className="text-xs m-0 truncate" style={{ color: "var(--color-text-muted)" }}>{track.artist || track.albumArtist}</p>
+                        )}
+                      </div>
+                      {!!track.duration && (
+                        <span className="text-xs shrink-0" style={{ color: "var(--color-text-muted)" }}>
+                          {formatDuration(track.duration)}
+                        </span>
+                      )}
+                    </div>
+                  );
+                }
+
+                if (!multiDisc) {
+                  return tracks.map((track, i) => <TrackRow key={String(track.id || i)} track={track} i={i} />);
+                }
+
+                return Array.from({ length: maxDisc }, (_, di) => {
+                  const discTracks = tracks.filter((t) => (t.discNumber || 1) === di + 1);
+                  return (
+                    <div key={di} className="mb-4">
+                      <p className="font-semibold text-sm mt-3 mb-1" style={{ color: "var(--color-text-muted)" }}>
+                        Disc {di + 1}
+                      </p>
+                      {discTracks.map((track, i) => <TrackRow key={String(track.id || i)} track={track} i={i} />)}
+                    </div>
+                  );
+                });
+              })()}
             </div>
           </>
         )}

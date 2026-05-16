@@ -34,6 +34,7 @@ import {
   useTracksQuery,
   useLovedTracksQuery,
 } from "../../hooks/useLibrary";
+import ShareOnBluesky from "../../components/ShareOnBluesky";
 
 dayjs.extend(relativeTime);
 
@@ -166,7 +167,7 @@ function OverviewTab({ did }: { did: string }) {
 
   const artistList = Array.isArray(artists) ? artists : (artists as Record<string, unknown[]>)?.artists ?? [];
   const albumList = Array.isArray(albums) ? albums : (albums as Record<string, unknown[]>)?.albums ?? [];
-  const trackList = Array.isArray(tracks) ? tracks : (tracks as Record<string, unknown[]>)?.songs ?? [];
+  const trackList = Array.isArray(tracks) ? tracks : (tracks as Record<string, unknown[]>)?.tracks ?? [];
 
   return (
     <div>
@@ -314,23 +315,65 @@ function OverviewTab({ did }: { did: string }) {
 // ─── library ──────────────────────────────────────────────────────────────────
 
 const LIBRARY_TABS = ["Scrobbles", "Artists", "Albums", "Tracks"];
+const SCROBBLE_PAGE = 30;
+const ARTIST_PAGE = 50;
+const ALBUM_PAGE = 50;
+const TRACK_PAGE = 50;
+
+function Pager({ page, totalPages, onPrev, onNext }: {
+  page: number;
+  totalPages: number;
+  onPrev: () => void;
+  onNext: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between pt-4 pb-2">
+      <button
+        onClick={onPrev}
+        disabled={page === 1}
+        className="px-4 py-2 text-sm rounded-full border-none cursor-pointer disabled:opacity-30"
+        style={{ backgroundColor: "var(--color-surface-2)", color: "var(--color-text)" }}
+      >
+        ← Prev
+      </button>
+      <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+        Page {page}{totalPages > 1 ? ` / ${totalPages}` : ""}
+      </span>
+      <button
+        onClick={onNext}
+        disabled={page >= totalPages}
+        className="px-4 py-2 text-sm rounded-full border-none cursor-pointer disabled:opacity-30"
+        style={{ backgroundColor: "var(--color-surface-2)", color: "var(--color-text)" }}
+      >
+        Next →
+      </button>
+    </div>
+  );
+}
 
 function LibraryTab({ did }: { did: string }) {
   const [sub, setSub] = useState(0);
-  const PAGE = 30;
-  const [page, setPage] = useState(1);
+  const [scrobblePage, setScrobblePage] = useState(1);
+  const [artistPage, setArtistPage] = useState(1);
+  const [albumPage, setAlbumPage] = useState(1);
+  const [trackPage, setTrackPage] = useState(1);
 
-  const { data: scrobbles } = useRecentTracksByDidQuery(did, (page - 1) * PAGE, PAGE);
-  const { data: artists } = useArtistsQuery(did, (page - 1) * PAGE, PAGE);
-  const { data: albums } = useAlbumsQuery(did, (page - 1) * PAGE, PAGE);
-  const { data: tracks } = useTracksQuery(did, (page - 1) * PAGE, PAGE);
+  const { data: stats } = useProfileStatsByDidQuery(did);
 
-  useEffect(() => { setPage(1); }, [sub]);
+  const { data: scrobbles } = useRecentTracksByDidQuery(did, (scrobblePage - 1) * SCROBBLE_PAGE, SCROBBLE_PAGE);
+  const { data: artists } = useArtistsQuery(did, (artistPage - 1) * ARTIST_PAGE, ARTIST_PAGE);
+  const { data: albums } = useAlbumsQuery(did, (albumPage - 1) * ALBUM_PAGE, ALBUM_PAGE);
+  const { data: tracks } = useTracksQuery(did, (trackPage - 1) * TRACK_PAGE, TRACK_PAGE);
 
-  const artistList = Array.isArray(artists) ? artists : (artists as Record<string, unknown[]>)?.artists ?? [];
-  const albumList = Array.isArray(albums) ? albums : (albums as Record<string, unknown[]>)?.albums ?? [];
-  const trackList = Array.isArray(tracks) ? tracks : (tracks as Record<string, unknown[]>)?.songs ?? [];
+  const artistList: unknown[] = Array.isArray(artists) ? artists : [];
+  const albumList: unknown[] = Array.isArray(albums) ? albums : [];
+  const trackList: unknown[] = Array.isArray(tracks) ? tracks : [];
   const scrobbleList: Record<string, unknown>[] = scrobbles || [];
+
+  const scrobbleTotalPages = stats?.scrobbles ? Math.ceil(stats.scrobbles / SCROBBLE_PAGE) : Math.max(1, Math.ceil(scrobbleList.length / SCROBBLE_PAGE) + (scrobbleList.length >= SCROBBLE_PAGE ? 1 : 0));
+  const artistTotalPages = stats?.artists ? Math.ceil(stats.artists / ARTIST_PAGE) : Math.max(1, artistList.length >= ARTIST_PAGE ? artistPage + 1 : artistPage);
+  const albumTotalPages = stats?.albums ? Math.ceil(stats.albums / ALBUM_PAGE) : Math.max(1, albumList.length >= ALBUM_PAGE ? albumPage + 1 : albumPage);
+  const trackTotalPages = trackList.length >= TRACK_PAGE ? trackPage + 1 : Math.max(1, trackPage);
 
   return (
     <div>
@@ -382,6 +425,7 @@ function LibraryTab({ did }: { did: string }) {
             );
           })}
           {scrobbleList.length === 0 && <p className="text-sm text-center py-8" style={{ color: "var(--color-text-muted)" }}>No scrobbles yet</p>}
+          <Pager page={scrobblePage} totalPages={scrobbleTotalPages} onPrev={() => setScrobblePage((p) => Math.max(1, p - 1))} onNext={() => setScrobblePage((p) => p + 1)} />
         </div>
       )}
 
@@ -393,7 +437,7 @@ function LibraryTab({ did }: { did: string }) {
             const href = toPath(a.uri);
             return (
               <div key={a.id || a.uri || i} className="flex items-center gap-3 py-2.5 border-b" style={{ borderColor: "var(--color-border)" }}>
-                <span className="text-xs w-6 text-center opacity-40 shrink-0" style={{ color: "var(--color-text)" }}>{(page - 1) * PAGE + i + 1}</span>
+                <span className="text-xs w-6 text-center opacity-40 shrink-0" style={{ color: "var(--color-text)" }}>{(artistPage - 1) * ARTIST_PAGE + i + 1}</span>
                 <div className="w-10 h-10 rounded-full overflow-hidden shrink-0" style={{ backgroundColor: "var(--color-surface-2)" }}>
                   {(a.picture || a.photo) ? <img src={a.picture || a.photo} alt={a.name} className="w-full h-full object-cover" /> : (
                     <div className="w-full h-full flex items-center justify-center"><span className="opacity-20">♬</span></div>
@@ -411,40 +455,44 @@ function LibraryTab({ did }: { did: string }) {
             );
           })}
           {artistList.length === 0 && <p className="text-sm text-center py-8" style={{ color: "var(--color-text-muted)" }}>No artists yet</p>}
+          <Pager page={artistPage} totalPages={artistTotalPages} onPrev={() => setArtistPage((p) => Math.max(1, p - 1))} onNext={() => setArtistPage((p) => p + 1)} />
         </div>
       )}
 
       {/* Albums */}
       {sub === 2 && (
-        <div className="grid grid-cols-3 gap-2">
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {albumList.map((a: any, i: number) => {
-            const href = toPath(a.uri);
-            const art = a.albumArt || a.album_art;
-            return (
-              <div key={a.id || a.uri || i}>
-                {href ? (
-                  <Link to={href} className="no-underline block">
-                    <div className="aspect-square rounded-xl overflow-hidden mb-1" style={{ backgroundColor: "var(--color-surface-2)" }}>
-                      {art ? <img src={art} alt={a.title} className="w-full h-full object-cover" /> : (
+        <div>
+          <div className="grid grid-cols-3 gap-2">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            {albumList.map((a: any, i: number) => {
+              const href = toPath(a.uri);
+              const art = a.albumArt || a.album_art;
+              return (
+                <div key={a.id || a.uri || i}>
+                  {href ? (
+                    <Link to={href} className="no-underline block">
+                      <div className="aspect-square rounded-xl overflow-hidden mb-1" style={{ backgroundColor: "var(--color-surface-2)" }}>
+                        {art ? <img src={art} alt={a.title} className="w-full h-full object-cover" /> : (
+                          <div className="w-full h-full flex items-center justify-center"><span className="text-xl opacity-20">💿</span></div>
+                        )}
+                      </div>
+                      <p className="text-[11px] m-0 truncate font-medium" style={{ color: "var(--color-text)" }}>{a.title}</p>
+                      <p className="text-[10px] m-0 truncate" style={{ color: "var(--color-text-muted)" }}>{numeral(a.playCount || a.scrobbles).format("0,0")} plays</p>
+                    </Link>
+                  ) : (
+                    <>
+                      <div className="aspect-square rounded-xl overflow-hidden mb-1" style={{ backgroundColor: "var(--color-surface-2)" }}>
                         <div className="w-full h-full flex items-center justify-center"><span className="text-xl opacity-20">💿</span></div>
-                      )}
-                    </div>
-                    <p className="text-[11px] m-0 truncate font-medium" style={{ color: "var(--color-text)" }}>{a.title}</p>
-                    <p className="text-[10px] m-0 truncate" style={{ color: "var(--color-text-muted)" }}>{numeral(a.playCount || a.scrobbles).format("0,0")} plays</p>
-                  </Link>
-                ) : (
-                  <>
-                    <div className="aspect-square rounded-xl overflow-hidden mb-1" style={{ backgroundColor: "var(--color-surface-2)" }}>
-                      <div className="w-full h-full flex items-center justify-center"><span className="text-xl opacity-20">💿</span></div>
-                    </div>
-                    <p className="text-[11px] m-0 truncate font-medium" style={{ color: "var(--color-text)" }}>{a.title}</p>
-                  </>
-                )}
-              </div>
-            );
-          })}
-          {albumList.length === 0 && <p className="text-sm text-center py-8 col-span-3" style={{ color: "var(--color-text-muted)" }}>No albums yet</p>}
+                      </div>
+                      <p className="text-[11px] m-0 truncate font-medium" style={{ color: "var(--color-text)" }}>{a.title}</p>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {albumList.length === 0 && <p className="text-sm text-center py-8" style={{ color: "var(--color-text-muted)" }}>No albums yet</p>}
+          <Pager page={albumPage} totalPages={albumTotalPages} onPrev={() => setAlbumPage((p) => Math.max(1, p - 1))} onNext={() => setAlbumPage((p) => p + 1)} />
         </div>
       )}
 
@@ -457,7 +505,7 @@ function LibraryTab({ did }: { did: string }) {
             const art = t.albumArt || t.album_art;
             return (
               <div key={t.id || t.uri || i} className="flex items-center gap-3 py-2.5 border-b" style={{ borderColor: "var(--color-border)" }}>
-                <span className="text-xs w-6 text-center opacity-40 shrink-0" style={{ color: "var(--color-text)" }}>{(page - 1) * PAGE + i + 1}</span>
+                <span className="text-xs w-6 text-center opacity-40 shrink-0" style={{ color: "var(--color-text)" }}>{(trackPage - 1) * TRACK_PAGE + i + 1}</span>
                 <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0" style={{ backgroundColor: "var(--color-surface-2)" }}>
                   {art ? <img src={art} alt={t.title} className="w-full h-full object-cover" /> : (
                     <div className="w-full h-full flex items-center justify-center"><span className="opacity-20">♪</span></div>
@@ -476,29 +524,9 @@ function LibraryTab({ did }: { did: string }) {
             );
           })}
           {trackList.length === 0 && <p className="text-sm text-center py-8" style={{ color: "var(--color-text-muted)" }}>No tracks yet</p>}
+          <Pager page={trackPage} totalPages={trackTotalPages} onPrev={() => setTrackPage((p) => Math.max(1, p - 1))} onNext={() => setTrackPage((p) => p + 1)} />
         </div>
       )}
-
-      {/* Pagination */}
-      <div className="flex items-center justify-between pt-4 pb-2">
-        <button
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-          disabled={page === 1}
-          className="px-4 py-2 text-sm rounded-full border-none cursor-pointer disabled:opacity-30"
-          style={{ backgroundColor: "var(--color-surface-2)", color: "var(--color-text)" }}
-        >
-          ← Prev
-        </button>
-        <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>Page {page}</span>
-        <button
-          onClick={() => setPage((p) => p + 1)}
-          disabled={(sub === 0 ? scrobbleList : sub === 1 ? artistList : sub === 2 ? albumList : trackList).length < PAGE}
-          className="px-4 py-2 text-sm rounded-full border-none cursor-pointer disabled:opacity-30"
-          style={{ backgroundColor: "var(--color-surface-2)", color: "var(--color-text)" }}
-        >
-          Next →
-        </button>
-      </div>
     </div>
   );
 }
@@ -846,6 +874,10 @@ export default function Profile() {
                 <a href={`https://pdsls.dev/at/${profile?.did}`} target="_blank" rel="noopener noreferrer" className="flex items-center px-5 py-2 rounded-full no-underline font-medium text-sm" style={{ backgroundColor: "var(--color-surface-2)", color: "var(--color-text)" }}>
                   PDSls ↗
                 </a>
+                <ShareOnBluesky
+                  variant="pill"
+                  text={`Check out ${profile?.displayName || profile?.handle}'s music taste on Rocksky 🎵\n${window.location.href}`}
+                />
               </div>
             </>
           )}

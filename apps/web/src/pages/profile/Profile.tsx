@@ -35,6 +35,7 @@ import { useArtistsQuery } from "../../hooks/useLibrary";
 import { getLastDays } from "../../lib/date";
 import { Link } from "@tanstack/react-router";
 import ContentLoader from "react-content-loader";
+import ShareOnBluesky from "../../components/ShareOnBluesky";
 
 const Group = styled.div`
   display: flex;
@@ -268,7 +269,7 @@ function Profile(props: ProfileProps) {
                       {dayjs(profiles[did]?.createdAt).format("DD MMM YYYY")}
                     </span>
                   </LabelLarge>
-                  <div className="flex-1 mt-[30px] mr-[10px]">
+                  <div className="flex items-center gap-[10px] mt-[30px] mr-[10px]">
                     <a
                       href={`https://pdsls.dev/at/${profiles[did]?.did}`}
                       target="_blank"
@@ -277,6 +278,9 @@ function Profile(props: ProfileProps) {
                       <ExternalLink size={24} style={{ marginRight: 10 }} />
                       View on PDSls
                     </a>
+                    <ShareOnBluesky
+                      text={`Check out ${profiles[did]?.displayName || profiles[did]?.handle}'s music taste on Rocksky 🎵\n${window.location.href}`}
+                    />
                   </div>
                 </div>
               </ProfileInfo>

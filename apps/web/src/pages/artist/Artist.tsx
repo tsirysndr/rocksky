@@ -20,6 +20,7 @@ import Albums from "./Albums";
 import ArtistListeners from "./ArtistListeners";
 import PopularSongs from "./PopularSongs";
 import ContentLoader from "react-content-loader";
+import ShareOnBluesky from "../../components/ShareOnBluesky";
 
 const Group = styled.div`
   display: flex;
@@ -232,6 +233,9 @@ const Artist = () => {
                         />
                         View on PDSls
                       </a>
+                      <ShareOnBluesky
+                        text={`Listening to ${artist?.name} on Rocksky 🎵\n${window.location.href}`}
+                      />
                     </div>
                   </div>
                 </div>

@@ -5,6 +5,7 @@ import numeral from "numeral";
 import { useSongByUriQuery } from "../../hooks/useLibrary";
 import { useScrobbleByUriQuery } from "../../hooks/useScrobble";
 import Main from "../../layouts/Main";
+import ShareOnBluesky from "../../components/ShareOnBluesky";
 
 export default function Song() {
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
@@ -135,8 +136,11 @@ export default function Song() {
             )}
 
             {/* Links */}
-            {song.spotifyLink && (
-              <div className="mb-6">
+            <div className="mb-6 flex flex-col gap-3">
+              <ShareOnBluesky
+                text={`${isScrobble ? "Just scrobbled" : "Listening to"} ${song.title} by ${song.albumArtist || song.artist} on Rocksky 🎵\n${window.location.href}`}
+              />
+              {song.spotifyLink && (
                 <a
                   href={song.spotifyLink}
                   target="_blank"
@@ -146,8 +150,8 @@ export default function Song() {
                 >
                   Listen on Spotify ↗
                 </a>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Lyrics */}
             {song.lyrics && (

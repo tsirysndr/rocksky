@@ -12,6 +12,7 @@ import dayjs from "dayjs";
 import numeral from "numeral";
 import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
+import ShareOnBluesky from "../../components/ShareOnBluesky";
 import Disc from "../../components/Icons/Disc";
 import Shout from "../../components/Shout/Shout";
 import SongCover from "../../components/SongCover";
@@ -247,6 +248,9 @@ const Album = () => {
                     />
                     View on PDSls
                   </a>
+                  <ShareOnBluesky
+                    text={`${album?.title} by ${album?.artist} on Rocksky 🎵\n${window.location.href}`}
+                  />
                 </div>
               </div>
               <div className="mt-[10px]">

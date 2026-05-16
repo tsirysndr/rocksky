@@ -15,6 +15,7 @@ import { useAtomValue, useSetAtom } from "jotai";
 import numeral from "numeral";
 import { useEffect, useState } from "react";
 import ContentLoader from "react-content-loader";
+import ShareOnBluesky from "../../components/ShareOnBluesky";
 import { songAtom } from "../../atoms/song";
 import Disc from "../../components/Icons/Disc";
 import Shout from "../../components/Shout/Shout";
@@ -329,6 +330,9 @@ const Song = () => {
                       />
                       View on PDSls
                     </a>
+                    <ShareOnBluesky
+                      text={`${pathname.includes("/scrobble/") ? "Just scrobbled" : "Listening to"} ${song?.title} by ${song?.albumArtist || song?.artist} on Rocksky 🎵\n${window.location.href}`}
+                    />
                   </div>
                 </div>
               </div>
