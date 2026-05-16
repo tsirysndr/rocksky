@@ -62,6 +62,7 @@
     "react-hook-form": "^7.56.4",
     "react-i18next": "^15.5.1",
     "react-native": "0.81.5",
+    "react-native-edge-to-edge": "^1.8.1",
     "react-native-gesture-handler": "~2.28.0",
     "react-native-pager-view": "6.9.1",
     "react-native-reanimated": "~4.1.1",

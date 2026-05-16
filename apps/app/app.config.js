@@ -50,7 +50,8 @@ module.exports = {
     ],
     "@sentry/react-native",
     "expo-font",
-    "expo-web-browser"
+    "expo-web-browser",
+    "react-native-edge-to-edge"
   ],
   experiments: {
     typedRoutes: true,
