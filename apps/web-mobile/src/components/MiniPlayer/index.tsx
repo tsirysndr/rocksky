@@ -22,8 +22,9 @@ export default function MiniPlayer() {
   const { like, unlike } = useLike();
   const { play, pause, next } = useSpotify();
   const socketRef = useRef<WebSocket | null>(null);
-  const heartbeatInterval = useRef<number | null>(null);
+  const heartbeatRef = useRef<number | null>(null);
   const progressInterval = useRef<number | null>(null);
+  const lastFetchedRef = useRef(0);
   const nowPlayingRef = useRef(nowPlaying);
   const playerRef = useRef(player);
   const [liked, setLiked] = useState<Record<string, boolean>>({});
@@ -53,6 +54,7 @@ export default function MiniPlayer() {
               : data.liked,
         });
         setPlayer("spotify");
+        lastFetchedRef.current = Date.now();
       } else if (playerRef.current === "spotify") {
         setNowPlaying(null);
         setPlayer(null);
@@ -73,14 +75,20 @@ export default function MiniPlayer() {
     progressInterval.current = window.setInterval(() => {
       setNowPlaying((prev) => {
         if (!prev || !prev.isPlaying) return prev;
-        if (prev.progress >= prev.duration) return prev;
+        if (prev.progress >= prev.duration) {
+          if (playerRef.current === "spotify") {
+            setTimeout(fetchCurrentlyPlaying, 2000);
+          }
+          return prev;
+        }
         return { ...prev, progress: prev.progress + 100 };
       });
     }, 100);
     return () => {
       if (progressInterval.current) clearInterval(progressInterval.current);
     };
-  }, [setNowPlaying]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Spotify polling
   useEffect(() => {
@@ -88,32 +96,38 @@ export default function MiniPlayer() {
     fetchCurrentlyPlaying();
     const id = window.setInterval(fetchCurrentlyPlaying, 15000);
     return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // WebSocket for Rockbox
+  // WebSocket for Rockbox — use same clientName as web app
   useEffect(() => {
     if (!localStorage.getItem("token")) return;
-    const wsUrl = (import.meta.env.VITE_API_URL || "http://localhost:8000")
-      .replace("https", "wss")
-      .replace("http", "ws");
+    const wsUrl = API_URL.replace("https", "wss").replace("http", "ws");
     const ws = new WebSocket(`${wsUrl}/ws`);
     socketRef.current = ws;
 
     ws.onopen = () => {
       ws.send(JSON.stringify({
         type: "register",
-        clientName: "rocksky-mobile",
+        clientName: "rocksky",
         token: localStorage.getItem("token"),
       }));
-      heartbeatInterval.current = window.setInterval(() => {
+
+      heartbeatRef.current = window.setInterval(() => {
         ws.send(JSON.stringify({ type: "heartbeat", token: localStorage.getItem("token") }));
       }, 3000);
 
       ws.onmessage = (event) => {
         if (playerRef.current !== "rockbox" && playerRef.current !== null) return;
+
         const msg = JSON.parse(event.data);
+
         if (msg.type === "message" && msg.data?.type === "track") {
+          // Skip if we just fetched Spotify data very recently
+          if (lastFetchedRef.current && Date.now() - lastFetchedRef.current < 3000) return;
+          // Only update if there's actual track data
+          if (!msg.data.title && !msg.data.artist && !msg.data.album_artist) return;
+
           setNowPlaying({
             ...(nowPlayingRef.current ?? {}),
             title: msg.data.title,
@@ -130,9 +144,11 @@ export default function MiniPlayer() {
               likedRef.current[msg.data.song_uri] !== undefined
                 ? likedRef.current[msg.data.song_uri]
                 : msg.data.liked,
-          } as typeof nowPlaying extends null ? never : NonNullable<typeof nowPlaying>);
+          } as NonNullable<typeof nowPlaying>);
           setPlayer("rockbox");
+          lastFetchedRef.current = Date.now();
         }
+
         if (msg.data?.status === 0) setNowPlaying(null);
         if (msg.data?.status === 1 && nowPlayingRef.current)
           setNowPlaying({ ...nowPlayingRef.current, isPlaying: true });
@@ -142,10 +158,11 @@ export default function MiniPlayer() {
     };
 
     return () => {
-      if (heartbeatInterval.current) clearInterval(heartbeatInterval.current);
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
       ws.close();
     };
-  }, [setNowPlaying, setPlayer]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const onLike = () => {
     if (!nowPlaying) return;
@@ -191,7 +208,7 @@ export default function MiniPlayer() {
       : 0;
 
   const songPath = nowPlaying.songUri
-    ? `/${nowPlaying.songUri.split("at://")[1].replace("app.rocksky.", "")}`
+    ? `/${nowPlaying.songUri.split("at://")[1]?.replace("app.rocksky.", "")}`
     : null;
 
   return (
@@ -212,14 +229,21 @@ export default function MiniPlayer() {
         />
       </div>
 
-      <div className="flex items-center h-[68px] px-4 gap-3">
+      <div className="flex items-center h-[calc(var(--player-height)-2px)] px-4 gap-3">
         {/* Album art */}
-        {nowPlaying.albumArt && (
+        {nowPlaying.albumArt ? (
           <img
             src={nowPlaying.albumArt}
             alt="album"
             className="w-12 h-12 rounded-lg object-cover shrink-0"
           />
+        ) : (
+          <div
+            className="w-12 h-12 rounded-lg shrink-0 flex items-center justify-center"
+            style={{ backgroundColor: "var(--color-surface-2)" }}
+          >
+            <span className="text-xl opacity-30">♪</span>
+          </div>
         )}
 
         {/* Track info */}

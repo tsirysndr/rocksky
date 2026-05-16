@@ -4,9 +4,7 @@ import {
   IconSearch,
   IconUser,
 } from "@tabler/icons-react";
-import { useAtomValue } from "jotai";
 import { Link, useLocation } from "react-router-dom";
-import { nowPlayingAtom } from "../../atoms/nowpaying";
 
 const tabs = [
   { to: "/", icon: IconHome, label: "Home" },
@@ -17,7 +15,6 @@ const tabs = [
 
 export default function BottomNav() {
   const location = useLocation();
-  const nowPlaying = useAtomValue(nowPlayingAtom);
 
   return (
     <nav
@@ -28,7 +25,6 @@ export default function BottomNav() {
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
     >
-      {nowPlaying && <div style={{ height: "var(--player-height)" }} />}
       <div className="flex h-14">
         {tabs.map(({ to, icon: Icon, label }) => {
           const active =
