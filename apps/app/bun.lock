@@ -10,7 +10,7 @@
         "@hookform/resolvers": "^5.0.1",
         "@ipld/dag-cbor": "^9.2.2",
         "@react-native-async-storage/async-storage": "2.2.0",
-        "@react-native-menu/menu": "^1.2.3",
+        "@react-native-menu/menu": "2.0.0",
         "@react-navigation/bottom-tabs": "^7.3.10",
         "@react-navigation/drawer": "^7.3.9",
         "@react-navigation/elements": "^2.3.8",
@@ -570,7 +570,7 @@
 
     "@react-native-community/slider": ["@react-native-community/slider@4.5.6", "", {}, "sha512-UhLPFeqx0YfPLrEz8ffT3uqAyXWu6iqFjohNsbp4cOU7hnJwg2RXtDnYHoHMr7MOkZDVdlLMdrSrAuzY6KGqrg=="],
 
-    "@react-native-menu/menu": ["@react-native-menu/menu@1.2.3", "", { "peerDependencies": { "react": "*", "react-native": "*" } }, "sha512-sEfiVIivsa0lSelFm9Wbm/RAi+XoEHc75GGhjwvSrj9KSCVvNNXwr9F8l42e1t/lzYvVYzmkYxLG6VKxrDYJiw=="],
+    "@react-native-menu/menu": ["@react-native-menu/menu@2.0.0", "", { "peerDependencies": { "react": "*", "react-native": "*" } }, "sha512-hb8Mirw6aKPGONhgo52IiNpwHtISVrgCT3rMdFX1qS7eOFNzOcQh8d2UDnaH5zVpxN+QuvWtaaiRMGFpIjzdtA=="],
 
     "@react-native/assets-registry": ["@react-native/assets-registry@0.81.5", "", {}, "sha512-705B6x/5Kxm1RKRvSv0ADYWm5JOnoiQ1ufW7h8uu2E6G9Of/eE6hP/Ivw3U5jI16ERqZxiKQwk34VJbB0niX9w=="],
 
