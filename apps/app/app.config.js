@@ -23,6 +23,7 @@ module.exports = {
     },
     edgeToEdgeEnabled: true,
     package: "app.rocksky",
+    versionCode: 2,
   },
   web: {
     bundler: "metro",
