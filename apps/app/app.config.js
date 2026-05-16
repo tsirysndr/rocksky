@@ -31,6 +31,13 @@ module.exports = {
     favicon: "./assets/images/favicon.png",
   },
   plugins: [
+    ["expo-build-properties", {
+      android: {
+        packagingOptions: {
+          jniLibs: { useLegacyPackaging: false },
+        },
+      },
+    }],
     "expo-router",
     [
       "expo-splash-screen",
