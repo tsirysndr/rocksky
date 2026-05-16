@@ -1,157 +1,178 @@
-import Album from "@/src/components/Album";
-import Artist from "@/src/components/Artist";
-import ScrollToTopButton from "@/src/components/ScrollToTopButton";
-import Song from "@/src/components/Song";
-import StickyPlayer from "@/src/components/StickyPlayer";
-import useScrollToTop from "@/src/hooks/useScrollToTop";
-import { useNowPlayingContext } from "@/src/providers/NowPlayingProvider";
-import { FC } from "react";
+import Feather from "@expo/vector-icons/Feather";
+import { colors } from "@/src/theme";
+import { useSearchQuery } from "@/src/hooks/useSearch";
+import { RootStackParamList } from "@/src/Navigation";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  TextInput,
+  TouchableOpacity,
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import SearchInput from "./SearchInput";
+import { Text } from "@/src/components/Text";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-export type SearchProps = {
-  onSubmit: (query: string) => void;
-  results: {
-    record: any;
-    table: string;
-  }[];
-  isLoading?: boolean;
-  onPressAlbum: (uri: string) => void;
-  onPressArtist: (uri: string) => void;
-  onPressTrack: (uri: string) => void;
-  onPressUser: (handle: string) => void;
+type ResultItem = {
+  id: string;
+  title?: string;
+  name?: string;
+  display_name?: string;
+  artist?: string;
+  albumArt?: string;
+  picture?: string;
+  avatar?: string;
+  uri?: string;
+  did?: string;
+  handle?: string;
+  _federation?: { indexUid: string };
+  [key: string]: any;
 };
 
-const Search: FC<SearchProps> = (props) => {
-  const {
-    results,
-    onSubmit,
-    isLoading,
-    onPressAlbum,
-    onPressArtist,
-    onPressTrack,
-    onPressUser,
-  } = props;
-  const { scrollToTop, isVisible, fadeAnim, handleScroll, scrollViewRef } =
-    useScrollToTop();
-  const nowPlaying = useNowPlayingContext();
-  const bottomButtonPosition = nowPlaying ? 80 : 20;
+function SearchResultRow({ item, onPress }: { item: ResultItem; onPress: () => void }) {
+  const table = item._federation?.indexUid ?? "tracks";
+  const isRound = table === "artists" || table === "users";
+  const cover = item.albumArt || item.picture || item.avatar;
+  const title = item.display_name || item.title || item.name;
+  const subtitle =
+    table === "users" ? `@${item.handle}` :
+    table === "artists" ? item.artist ?? "Artist" :
+    table === "albums" ? item.artist ?? "Album" :
+    item.artist ?? "Track";
+  const typeLabel =
+    table === "users" ? "user" :
+    table === "artists" ? "artist" :
+    table === "albums" ? "album" : "track";
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-      <KeyboardAvoidingView
-        className="flex-1"
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <View className="w-full h-full bg-black">
-          <SearchInput
-            className="mt-[50px] ml-[15px] mr-[15px]"
-            onSubmit={onSubmit}
-          />
-          {isLoading && (
-            <View className="w-fullitems-center">
-              <ActivityIndicator
-                size="large"
-                color="#bdbaba"
-                className="mt-[50px]"
-              />
-            </View>
-          )}
-          {!isLoading && (
-            <ScrollView
-              ref={scrollViewRef}
-              onScroll={handleScroll}
-              className="w-full mt-[10px] pl-[15px] pr-[15px]"
-              showsVerticalScrollIndicator={false}
-              removeClippedSubviews={true}
-              keyboardShouldPersistTaps="handled"
-            >
-              {results.map(({ record, table }, index) => {
-                switch (table) {
-                  case "tracks":
-                    return (
-                      <Song
-                        key={index}
-                        image={record.album_art}
-                        title={record.title}
-                        artist={record.artist}
-                        size={60}
-                        className="mt-[10px]"
-                        onPress={() => onPressTrack(record.uri)}
-                        onPressAlbum={() => onPressTrack(record.uri)}
-                        did=""
-                        albumUri={record.album_uri}
-                      />
-                    );
-                  case "albums":
-                    return (
-                      <Album
-                        key={index}
-                        image={record.album_art}
-                        title={record.title}
-                        artist={record.artist}
-                        size={60}
-                        className="mt-[10px]"
-                        onPress={() => onPressAlbum(record.uri)}
-                        did=""
-                        row
-                      />
-                    );
-                  case "artists":
-                    return (
-                      <Artist
-                        key={index}
-                        image={record.picture}
-                        name={record.name}
-                        size={60}
-                        className="mt-[10px]"
-                        onPress={() => onPressArtist(record.uri)}
-                        did=""
-                        row
-                      />
-                    );
-                  case "users":
-                    return (
-                      <Artist
-                        key={index}
-                        image={record.avatar}
-                        name={record.display_name}
-                        size={60}
-                        className="mt-[10px]"
-                        onPress={() => onPressUser(record.handle)}
-                        did={record.did}
-                        row
-                      />
-                    );
-                  default:
-                    break;
-                }
-              })}
-            </ScrollView>
-          )}
-          {isVisible && (
-            <ScrollToTopButton
-              fadeAnim={fadeAnim}
-              bottom={bottomButtonPosition}
-              onPress={scrollToTop}
-            />
-          )}
-
-          <View className="w-full absolute bottom-0 bg-black">
-            <StickyPlayer />
+    <TouchableOpacity
+      onPress={onPress}
+      style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12 }}
+    >
+      <View style={{ width: 48, height: 48, borderRadius: isRound ? 24 : 8, overflow: "hidden", backgroundColor: colors.surface2 }}>
+        {cover ? (
+          <Image source={{ uri: cover }} style={{ width: 48, height: 48 }} />
+        ) : (
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ fontSize: 18, opacity: 0.2 }}>{isRound ? "♬" : "♪"}</Text>
           </View>
-        </View>
-      </KeyboardAvoidingView>
-    </TouchableWithoutFeedback>
+        )}
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: "600", color: colors.text }}>{title}</Text>
+        {subtitle ? (
+          <Text numberOfLines={1} style={{ fontSize: 11, color: colors.textMuted }}>{subtitle}</Text>
+        ) : null}
+      </View>
+      <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 20, backgroundColor: colors.surface2 }}>
+        <Text style={{ fontSize: 10, color: colors.textMuted }}>{typeLabel}</Text>
+      </View>
+    </TouchableOpacity>
   );
-};
+}
 
-export default Search;
+export default function Search() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setDebouncedQuery(query), 300);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [query]);
+
+  const { data, isLoading } = useSearchQuery(debouncedQuery);
+  const results: ResultItem[] = data?.hits || [];
+
+  const handlePressItem = (item: ResultItem) => {
+    const table = item._federation?.indexUid ?? "tracks";
+    if (table === "tracks" && item.uri) navigation.navigate("SongDetails", { uri: item.uri });
+    else if (table === "albums" && item.uri) navigation.navigate("AlbumDetails", { uri: item.uri });
+    else if (table === "artists" && item.uri) navigation.navigate("ArtistDetails", { uri: item.uri });
+    else if (table === "users" && item.did) navigation.navigate("UserProfile", { did: item.did });
+  };
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <View style={{ flex: 1 }}>
+            {/* Header */}
+            <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12 }}>
+              <Text style={{ fontSize: 22, fontWeight: "800", color: colors.text, marginBottom: 12 }}>Search</Text>
+
+              {/* Search bar */}
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 16, backgroundColor: colors.surface2 }}>
+                <Feather name="search" size={16} color={colors.textMuted} />
+                <TextInput
+                  style={{ flex: 1, fontSize: 15, color: colors.text, fontFamily: "RockfordSansRegular" }}
+                  placeholder="Songs, artists, albums..."
+                  placeholderTextColor={colors.textMuted}
+                  value={query}
+                  onChangeText={setQuery}
+                  returnKeyType="search"
+                  autoCorrect={false}
+                  autoCapitalize="none"
+                />
+                {query.length > 0 && (
+                  <TouchableOpacity onPress={() => { setQuery(""); setDebouncedQuery(""); }}>
+                    <Feather name="x" size={16} color={colors.textMuted} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+
+            {/* Loading */}
+            {isLoading && (
+              <View style={{ alignItems: "center", paddingVertical: 48 }}>
+                <ActivityIndicator size="large" color={colors.primary} />
+              </View>
+            )}
+
+            {/* Empty state */}
+            {!isLoading && !debouncedQuery && (
+              <View style={{ alignItems: "center", paddingVertical: 64, paddingHorizontal: 32 }}>
+                <Text style={{ fontSize: 48, opacity: 0.2, marginBottom: 12 }}>🎵</Text>
+                <Text style={{ fontSize: 13, color: colors.textMuted, textAlign: "center" }}>Search for songs, artists, and albums</Text>
+              </View>
+            )}
+
+            {/* No results */}
+            {!isLoading && debouncedQuery && results.length === 0 && (
+              <View style={{ alignItems: "center", paddingVertical: 64, paddingHorizontal: 32 }}>
+                <Feather name="search" size={48} color={colors.textMuted} style={{ opacity: 0.2, marginBottom: 12 }} />
+                <Text style={{ fontSize: 13, color: colors.textMuted, textAlign: "center" }}>No results for "{debouncedQuery}"</Text>
+              </View>
+            )}
+
+            {/* Results */}
+            {!isLoading && results.length > 0 && (
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}
+              >
+                {results.map((item, i) => (
+                  <SearchResultRow
+                    key={item.uri || item.id || i}
+                    item={item}
+                    onPress={() => handlePressItem(item)}
+                  />
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}

@@ -1,8 +1,10 @@
-import { useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { search } from "../api/search";
-import { SearchResponse } from "../types/search";
 
-export const useSearchMutation = () =>
-  useMutation<SearchResponse, Error, string>({
-    mutationFn: (query: string) => search(query),
+export const useSearchQuery = (query: string) =>
+  useQuery({
+    queryKey: ["search", query],
+    queryFn: () => search(query),
+    enabled: query.trim().length > 0,
+    staleTime: 30_000,
   });

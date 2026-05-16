@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAtom } from "jotai";
 import _ from "lodash";
 import { useEffect, useRef } from "react";
-import { nowPlayingAtom, progressAtom } from "../atoms/nowplaying";
+import { nowPlayingAtom, playbackLockedUntilAtom, playerAtom, progressAtom } from "../atoms/nowplaying";
 import { API_URL } from "../consts";
 
 export type NowPlayings = {
@@ -35,7 +35,12 @@ export const useNowPlaying = (did: string) => {
   const progressInterval = useRef<number | null>(null);
   const [progress, setProgress] = useAtom(progressAtom);
   const [nowPlaying, setNowPlaying] = useAtom(nowPlayingAtom);
+  const [, setPlayer] = useAtom(playerAtom);
+  const [lockedUntil] = useAtom(playbackLockedUntilAtom);
+  const lockedUntilRef = useRef(lockedUntil);
   const nowPlayingRef = useRef(nowPlaying);
+
+  useEffect(() => { lockedUntilRef.current = lockedUntil; }, [lockedUntil]);
   const progressRef = useRef(progress);
 
   const nowPlayingResult = useQuery({
@@ -63,17 +68,19 @@ export const useNowPlaying = (did: string) => {
       nowPlayingResult.data &&
       Object.keys(nowPlayingResult.data).length
     ) {
-      setNowPlaying({
+      const locked = Date.now() < lockedUntilRef.current;
+      setNowPlaying((prev) => ({
         title: nowPlayingResult.data.title,
         artist:
           nowPlayingResult.data.album_artist || nowPlayingResult.data.artist,
         cover: nowPlayingResult.data.album_art,
         duration: nowPlayingResult.data.length,
         progress: nowPlayingResult.data.elapsed,
-        isPlaying: nowPlayingResult.data.is_playing,
+        isPlaying: locked && prev ? prev.isPlaying : nowPlayingResult.data.is_playing,
         liked: nowPlayingResult.data.liked,
         uri: nowPlayingResult.data.songUri,
-      });
+      }));
+      setPlayer("rockbox");
       setProgress(nowPlayingResult.data.elapsed);
       progressRef.current = nowPlayingResult.data.elapsed;
       return;
@@ -81,6 +88,7 @@ export const useNowPlaying = (did: string) => {
 
     if (!nowPlayingResult.isLoading && !nowPlayingResult.data) {
       setNowPlaying(null);
+      setPlayer(null);
       return;
     }
 
@@ -92,7 +100,8 @@ export const useNowPlaying = (did: string) => {
       return;
     }
 
-    setNowPlaying({
+    const locked = Date.now() < lockedUntilRef.current;
+    setNowPlaying((prev) => ({
       title: nowPlayingSpotifyResult.data.item.name,
       artist: nowPlayingSpotifyResult.data.item.artists
         .map((artist: { name: string }) => artist.name)
@@ -100,10 +109,11 @@ export const useNowPlaying = (did: string) => {
       cover: _.get(nowPlayingSpotifyResult.data, "item.album.images.0.url"),
       duration: nowPlayingSpotifyResult.data.item.duration_ms,
       progress: nowPlayingSpotifyResult.data.progress_ms,
-      isPlaying: nowPlayingSpotifyResult.data.is_playing,
+      isPlaying: locked && prev ? prev.isPlaying : nowPlayingSpotifyResult.data.is_playing,
       liked: nowPlayingSpotifyResult.data.liked,
       uri: nowPlayingSpotifyResult.data.songUri,
-    });
+    }));
+    setPlayer("spotify");
     setProgress(nowPlayingSpotifyResult.data.progress_ms);
     progressRef.current = nowPlayingSpotifyResult.data.progress_ms;
   }, [

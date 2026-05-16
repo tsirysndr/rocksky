@@ -1,3 +1,1 @@
-import Stories from "./StoriesWithData";
-
-export default Stories;
+export { default } from "./Stories";

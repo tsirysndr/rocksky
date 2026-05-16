@@ -1,12 +1,9 @@
-import { client } from ".";
-import { SearchResponse } from "../types/search";
+import axios from "axios";
+import { API_URL } from "../consts";
 
-export const search = async (query: string) => {
-  const response = await client.get<SearchResponse>(
-    "/xrpc/app.rocksky.feed.search",
-    {
-      params: { query, size: 100 },
-    },
-  );
+export const search = async (query: string): Promise<{ hits: any[] }> => {
+  const response = await axios.get(`${API_URL}/xrpc/app.rocksky.feed.search`, {
+    params: { query, size: 100 },
+  });
   return response.data;
 };

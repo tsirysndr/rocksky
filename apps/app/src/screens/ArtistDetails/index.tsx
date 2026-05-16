@@ -1,3 +1,1 @@
-import ArtistDetails from "./ArtistDetailsWithData";
-
-export default ArtistDetails;
+export { default } from "./ArtistDetails";

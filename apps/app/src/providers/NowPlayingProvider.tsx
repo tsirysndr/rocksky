@@ -1,7 +1,6 @@
 import { useNowPlaying } from "@/src/hooks/useNowPlaying";
+import { storage } from "@/src/storage";
 import { createContext, useContext, useMemo, type ReactNode } from "react";
-
-const did = "did:plc:7vdlgi2bflelz7mmuxoqjfcr";
 
 const NowPlayingContext = createContext<
   ReturnType<typeof useNowPlaying>["nowPlaying"] | null
@@ -10,6 +9,7 @@ const ProgressContext =
   createContext<ReturnType<typeof useNowPlaying>["progress"]>(0);
 
 export const NowPlayingProvider = ({ children }: { children: ReactNode }) => {
+  const did = storage.getDid() || "";
   const { nowPlaying, progress } = useNowPlaying(did);
 
   const memoizedNowPlaying = useMemo(

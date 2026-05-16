@@ -1,181 +1,197 @@
-import ArtistIcon from "@/src/components/Icons/Artist";
-import Song from "@/src/components/Song";
-import StickyPlayer from "@/src/components/StickyPlayer";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { colors } from "@/src/theme";
+import { useArtistAlbumsQuery, useArtistQuery, useArtistTracksQuery } from "@/src/hooks/useLibrary";
+import { RootStackParamList } from "@/src/Navigation";
+import { RouteProp, useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import numeral from "numeral";
-import { FC } from "react";
-import { Image, Pressable, ScrollView, Text, View } from "react-native";
-import TopAlbums from "../Profile/Overview/TopAlbums/TopAlbums";
+import { useState } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  Linking,
+  ScrollView,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Text } from "@/src/components/Text";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-export type SongDetailsProps = {
-  artist: {
-    id: string;
-    name: string;
-    picture: string;
-    listeners: number;
-    scrobbles: number;
-    uri: string;
-  };
-  tracks: {
-    id: string;
-    title: string;
-    artist: string;
-    albumArtist: string;
-    cover: string;
-    uri: string;
-    albumUri: string;
-  }[];
-  albums: {
-    id: string;
-    title: string;
-    artist: string;
-    cover: string;
-    uri: string;
-  }[];
-  onViewOnPDSls: (did: string) => void;
-  onPressAlbum: (uri: string) => void;
-  onPressTrack: (uri: string) => void;
-};
+type Props = { route?: RouteProp<RootStackParamList, "ArtistDetails"> };
 
-const ArtistDetails: FC<SongDetailsProps> = (props) => {
-  const { artist, tracks, albums, onPressTrack, onPressAlbum } = props;
+function parseUri(uri: string) {
+  const parts = uri.replace("at://", "").split("/");
+  return { did: parts[0], rkey: parts[parts.length - 1] };
+}
+
+export default function ArtistDetails({ route }: Props) {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const uri = route?.params?.uri || "";
+  const { did, rkey } = parseUri(uri);
+  const [tab, setTab] = useState<"tracks" | "albums">("tracks");
+
+  const { data: artist, isLoading } = useArtistQuery(did, rkey);
+  const { data: tracks } = useArtistTracksQuery(artist?.uri || "", 10);
+  const { data: albums } = useArtistAlbumsQuery(artist?.uri || "", 10);
+
   return (
-    <View className="w-full h-full bg-black pt-[50px]">
-      <ScrollView
-        className="h-[99%] w-full pl-[15px] pr-[15px]"
-        showsVerticalScrollIndicator={false}
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={{ paddingHorizontal: 16, paddingVertical: 12 }}
       >
-        <View className="items-center justify-start">
-          {artist.picture && (
-            <>
-              <Image
-                source={{
-                  uri: artist.picture,
-                }}
-                style={{
-                  width: 200,
-                  height: 200,
-                  borderRadius: 100,
-                }}
-              />
-              <Text className="font-rockford-medium text-[#fff] mt-[10px] text-center text-[20px]">
+        <Text style={{ color: colors.primary, fontSize: 15 }}>← Back</Text>
+      </TouchableOpacity>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+        {isLoading && (
+          <View style={{ alignItems: "center", paddingVertical: 60 }}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        )}
+
+        {!isLoading && artist && (
+          <>
+            {/* Hero */}
+            <View style={{ alignItems: "center", paddingTop: 16, paddingBottom: 20, paddingHorizontal: 16 }}>
+              <View style={{ width: 144, height: 144, borderRadius: 72, overflow: "hidden", backgroundColor: colors.surface2, marginBottom: 16 }}>
+                {artist.picture ? (
+                  <Image source={{ uri: artist.picture }} style={{ width: 144, height: 144 }} />
+                ) : (
+                  <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+                    <Text style={{ fontSize: 56, opacity: 0.2 }}>♬</Text>
+                  </View>
+                )}
+              </View>
+
+              <Text style={{ fontSize: 22, fontWeight: "800", color: colors.text, textAlign: "center", marginBottom: 16 }}>
                 {artist.name}
               </Text>
-            </>
-          )}
-          {!artist.picture && (
-            <>
-              <View
-                style={{
-                  width: 200,
-                  height: 200,
-                  borderRadius: 100,
-                  backgroundColor: "#a0a0a02b",
-                  justifyContent: "center",
-                  alignItems: "center",
+
+              <View style={{ flexDirection: "row", gap: 40, marginBottom: 16 }}>
+                <View style={{ alignItems: "center" }}>
+                  <Text style={{ fontSize: 18, fontWeight: "700", color: colors.text }}>
+                    {numeral(artist.uniqueListeners || artist.listeners).format("0,0")}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: colors.textMuted }}>Listeners</Text>
+                </View>
+                <View style={{ alignItems: "center" }}>
+                  <Text style={{ fontSize: 18, fontWeight: "700", color: colors.text }}>
+                    {numeral(artist.playCount || artist.scrobbles).format("0,0")}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: colors.textMuted }}>Scrobbles</Text>
+                </View>
+              </View>
+
+              {/* Genre tags */}
+              {artist.tags && artist.tags.length > 0 && (
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center", marginBottom: 16 }}>
+                  {(artist.tags as string[]).slice(0, 5).map((tag) => (
+                    <View key={tag} style={{ paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20, backgroundColor: colors.surface2 }}>
+                      <Text style={{ fontSize: 12, color: colors.genre }}>#{tag}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {/* Share on Bluesky */}
+              <TouchableOpacity
+                onPress={() => {
+                  const link = `https://rocksky.app/${did}/artist/${rkey}`;
+                  const text = `Listening to ${artist.name} on Rocksky 🎵\n${link}`;
+                  Linking.openURL(`https://bsky.app/intent/compose?text=${encodeURIComponent(text)}`);
                 }}
+                style={{ width: "100%", paddingVertical: 14, borderRadius: 14, backgroundColor: colors.surface2, alignItems: "center" }}
               >
-                <ArtistIcon
-                  size={24}
-                  width={90}
-                  height={90}
-                  color="#a0a0a0d8"
-                />
+                <Text style={{ color: colors.text, fontSize: 14, fontWeight: "600" }}>Share on Bluesky</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Tabs */}
+            <View style={{ flexDirection: "row" }}>
+              {(["tracks", "albums"] as const).map((t) => (
+                <TouchableOpacity
+                  key={t}
+                  onPress={() => setTab(t)}
+                  style={{ flex: 1, paddingVertical: 12, alignItems: "center", borderBottomWidth: 2, borderBottomColor: tab === t ? colors.primary : "transparent" }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: "600", color: tab === t ? colors.primary : colors.textMuted }}>
+                    {t === "tracks" ? "Popular Songs" : "Albums"}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Track list */}
+            {tab === "tracks" && (
+              <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
+                {(!tracks || tracks.length === 0) && (
+                  <Text style={{ fontSize: 13, color: colors.textMuted, textAlign: "center", paddingVertical: 32 }}>No tracks found</Text>
+                )}
+                {(tracks as any[] || []).map((track: any, i: number) => (
+                  <TouchableOpacity
+                    key={track.id || i}
+                    onPress={() => track.uri && navigation.navigate("SongDetails", { uri: track.uri })}
+                    style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12 }}
+                  >
+                    <Text style={{ width: 20, textAlign: "center", fontSize: 11, opacity: 0.4, color: colors.text }}>{i + 1}</Text>
+                    <View style={{ width: 40, height: 40, borderRadius: 6, overflow: "hidden", backgroundColor: colors.surface2 }}>
+                      {(track.albumArt || track.album_art || track.cover) ? (
+                        <Image source={{ uri: track.albumArt || track.album_art || track.cover }} style={{ width: 40, height: 40 }} />
+                      ) : (
+                        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+                          <Text style={{ opacity: 0.2 }}>♪</Text>
+                        </View>
+                      )}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: "500", color: colors.text }}>{track.title}</Text>
+                    </View>
+                    <Text style={{ fontSize: 11, color: colors.textMuted }}>
+                      {numeral(track.playCount || track.scrobbles).format("0,0")}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
-              <Text className="font-rockford-medium text-[#fff] mt-[10px] text-center text-[20px]">
-                {artist.name}
-              </Text>
-            </>
-          )}
-        </View>
+            )}
 
-        <View className="flex-row">
-          <View className="mr-[20px]">
-            <Text className="font-rockford-regular text-[#A0A0A0] text-[14px] mt-[10px] ">
-              Listeners
-            </Text>
-            <Text className="font-rockford-regular text-white text-[18px]">
-              {numeral(artist.listeners).format("0,0")}
-            </Text>
-          </View>
-          <View className="flex-1">
-            <Text className="font-rockford-regular text-[#A0A0A0] text-[14px] mt-[10px] ">
-              Scrobbles
-            </Text>
-            <Text className="font-rockford-regular text-white text-[18px]">
-              {numeral(artist.scrobbles).format("0,0")}
-            </Text>
-          </View>
-          <View>
-            <Pressable onPress={() => props.onViewOnPDSls(props.artist.uri)}>
-              <View className="h-[40px] flex-row items-center justify-center mt-[10px]">
-                <Text className="font-rockford-regular text-white text-[14px]  mr-[10px]">
-                  View on PDSls
-                </Text>
-                <FontAwesome name="external-link" size={18} color="white" />
+            {/* Album grid */}
+            {tab === "albums" && (
+              <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+                {(!albums || albums.length === 0) && (
+                  <Text style={{ fontSize: 13, color: colors.textMuted, textAlign: "center", paddingVertical: 32 }}>No albums found</Text>
+                )}
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
+                  {(albums as any[] || []).map((album: any, i: number) => (
+                    <TouchableOpacity
+                      key={album.id || album.uri || i}
+                      style={{ width: "47%" }}
+                      onPress={() => album.uri && navigation.navigate("AlbumDetails", { uri: album.uri })}
+                    >
+                      <View style={{ aspectRatio: 1, borderRadius: 10, overflow: "hidden", backgroundColor: colors.surface2, marginBottom: 4 }}>
+                        {(album.albumArt || album.album_art) ? (
+                          <Image source={{ uri: album.albumArt || album.album_art }} style={{ width: "100%", height: "100%" }} />
+                        ) : (
+                          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+                            <Text style={{ fontSize: 32, opacity: 0.2 }}>💿</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text numberOfLines={1} style={{ fontSize: 12, fontWeight: "600", color: colors.text }}>{album.title}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
-            </Pressable>
+            )}
+          </>
+        )}
+
+        {!isLoading && !artist && (
+          <View style={{ alignItems: "center", paddingVertical: 80 }}>
+            <Text style={{ fontSize: 40, opacity: 0.2, marginBottom: 12 }}>♬</Text>
+            <Text style={{ fontSize: 13, color: colors.textMuted }}>Artist not found</Text>
           </View>
-        </View>
-
-        <View>
-          <Text className="font-rockford-regular text-white text-[14px] mt-[35px] ">
-            Popular Tracks by
-          </Text>
-          <Text className="font-rockford-medium text-white text-[18px] mt-[-5px] ">
-            {artist.name}
-          </Text>
-        </View>
-
-        <View className="mt-[15px]">
-          {tracks.map((track, index) => (
-            <Song
-              key={index}
-              title={track.title}
-              artist={track.artist}
-              image={track.cover}
-              onPress={() => onPressTrack(track.uri)}
-              onOpenProfile={() => {}}
-              onPressAlbum={() => onPressAlbum(track.albumUri)}
-              withoutAlbumCover={false}
-              size={60}
-              className="mb-[15px]"
-              did=""
-              albumUri=""
-            />
-          ))}
-        </View>
-
-        <View className="mt-[25px] mb-[100px]">
-          <Text className="font-rockford-regular text-white text-[14px]">
-            Popular Albums by
-          </Text>
-          <Text className="font-rockford-medium text-white text-[18px] mt-[-5px] ">
-            {artist.name}
-          </Text>
-
-          <TopAlbums
-            albums={
-              albums?.map((album: any) => ({
-                id: album.id,
-                artist: album.artist,
-                title: album.title,
-                image: album.cover,
-                uri: album.uri,
-              })) ?? []
-            }
-            onSeeAll={() => {}}
-            onPressAlbum={(uri) => onPressAlbum(uri)}
-            withoutSeeAll
-            withoutTitle
-          />
-        </View>
+        )}
       </ScrollView>
-      <View className="w-full absolute bottom-0 bg-black">
-        <StickyPlayer />
-      </View>
-    </View>
+    </SafeAreaView>
   );
-};
-
-export default ArtistDetails;
+}

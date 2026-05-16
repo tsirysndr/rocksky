@@ -8,6 +8,8 @@ import {
   getArtistTracks,
   getLovedTracks,
   getSongByUri,
+  getTopArtists,
+  getTopTracks,
   getTracks,
 } from "../api/library";
 
@@ -139,4 +141,16 @@ export const useArtistQuery = (did: string, rkey: string) =>
     queryKey: ["artist", did, rkey],
     queryFn: () => getArtist(did, rkey),
     enabled: !!did && !!rkey,
+  });
+
+export const useTopTracksQuery = (offset = 0, limit = 50) =>
+  useQuery({
+    queryKey: ["topTracks", offset, limit],
+    queryFn: () => getTopTracks(offset, limit),
+  });
+
+export const useTopArtistsQuery = (offset = 0, limit = 50) =>
+  useQuery({
+    queryKey: ["topArtists", offset, limit],
+    queryFn: () => getTopArtists(offset, limit),
   });

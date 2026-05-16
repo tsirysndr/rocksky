@@ -17,6 +17,11 @@ function SignInModal({ isOpen, onClose }: SignInModalProps) {
     window.location.href = `https://rocksky.pages.dev/loading?handle=${handle}`;
   };
 
+  const onCreateAccount = () => {
+    onClose();
+    window.location.href = "https://rocksky.pages.dev/loading?prompt=create";
+  };
+
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") onLogin();
     if (e.key === "Escape") onClose();
@@ -57,7 +62,7 @@ function SignInModal({ isOpen, onClose }: SignInModalProps) {
 
         {/* Handle input */}
         <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--color-text-muted)" }}>
-          Bluesky handle
+          Handle
         </label>
         <div
           className="flex items-center rounded-xl overflow-hidden mb-4"
@@ -87,7 +92,16 @@ function SignInModal({ isOpen, onClose }: SignInModalProps) {
 
         {/* Sign up link */}
         <p className="text-xs text-center m-0" style={{ color: "var(--color-text-muted)" }}>
-          Don't have an account?{" "}
+          Don't have an atproto handle yet?{" "}
+          You can create one at{" "}
+          <span
+            onClick={onCreateAccount}
+            className="no-underline font-semibold cursor-pointer"
+            style={{ color: "var(--color-primary)" }}
+          >
+            selfhosted.social
+          </span>
+          ,{" "}
           <a
             href="https://bsky.app"
             target="_blank"
@@ -95,8 +109,9 @@ function SignInModal({ isOpen, onClose }: SignInModalProps) {
             className="no-underline font-semibold"
             style={{ color: "var(--color-primary)" }}
           >
-            Sign up for Bluesky
+            Bluesky
           </a>
+          {" "}or any other AT Protocol service.
         </p>
       </div>
     </div>

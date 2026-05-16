@@ -1,3 +1,4 @@
+import { storage } from "../storage";
 import { client } from ".";
 
 export const getFollows = async (
@@ -9,7 +10,6 @@ export const getFollows = async (
   const response = await client.get("/xrpc/app.rocksky.graph.getFollows", {
     params: { actor, limit: limit > 0 ? limit : 1, dids, cursor },
   });
-
   return response.data;
 };
 
@@ -20,11 +20,8 @@ export const getKnownFollowers = async (
 ) => {
   const response = await client.get(
     "/xrpc/app.rocksky.graph.getKnownFollowers",
-    {
-      params: { actor, limit: limit > 0 ? limit : 1, cursor },
-    },
+    { params: { actor, limit: limit > 0 ? limit : 1, cursor } },
   );
-
   return response.data;
 };
 
@@ -37,7 +34,6 @@ export const getFollowers = async (
   const response = await client.get("/xrpc/app.rocksky.graph.getFollowers", {
     params: { actor, limit: limit > 0 ? limit : 1, dids, cursor },
   });
-
   return response.data;
 };
 
@@ -47,12 +43,9 @@ export const followAccount = async (account: string) => {
     undefined,
     {
       params: { account },
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
+      headers: { Authorization: `Bearer ${storage.getToken()}` },
     },
   );
-
   return response.data;
 };
 
@@ -62,11 +55,8 @@ export const unfollowAccount = async (account: string) => {
     undefined,
     {
       params: { account },
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
+      headers: { Authorization: `Bearer ${storage.getToken()}` },
     },
   );
-
   return response.data;
 };

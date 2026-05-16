@@ -1,5 +1,6 @@
 import axios from "axios";
 import { API_URL } from "../consts";
+import { storage } from "../storage";
 
 export const like = async (uri: string) => {
   const response = await axios.post(
@@ -8,7 +9,7 @@ export const like = async (uri: string) => {
     {
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        Authorization: `Bearer ${storage.getToken()}`,
       },
     },
   );
@@ -18,11 +19,7 @@ export const like = async (uri: string) => {
 export const unlike = async (uri: string) => {
   const response = await axios.delete(
     `${API_URL}/users/${uri.replace("at://", "")}/likes`,
-    {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    },
+    { headers: { Authorization: `Bearer ${storage.getToken()}` } },
   );
   return response.data;
 };

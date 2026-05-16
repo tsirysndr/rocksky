@@ -1,3 +1,4 @@
+import { storage } from "../storage";
 import { client } from ".";
 
 export const getScrobbleByUri = async (uri: string) => {
@@ -101,9 +102,7 @@ export const getFeed = async (uri: string, limit?: number, cursor?: string) => {
       cursor,
     },
     headers: {
-      Authorization: localStorage.getItem("token")
-        ? `Bearer ${localStorage.getItem("token")}`
-        : undefined,
+      Authorization: storage.getToken() ? `Bearer ${storage.getToken()}` : undefined,
     },
   });
 
@@ -165,9 +164,7 @@ export const getScrobbles = async (
       limit,
     },
     headers: {
-      Authorization: localStorage.getItem("token")
-        ? `Bearer ${localStorage.getItem("token")}`
-        : undefined,
+      Authorization: storage.getToken() ? `Bearer ${storage.getToken()}` : undefined,
     },
   });
 

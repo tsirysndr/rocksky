@@ -19,7 +19,7 @@ module.exports = {
   android: {
     adaptiveIcon: {
       foregroundImage: "./assets/images/adaptive-icon.png",
-      backgroundColor: "#ffffff",
+      backgroundColor: "#130825",
     },
     edgeToEdgeEnabled: true,
     package: "app.rocksky",
@@ -37,7 +37,7 @@ module.exports = {
         image: "./assets/images/splash-icon.png",
         imageWidth: 200,
         resizeMode: "contain",
-        backgroundColor: "#ffffff",
+        backgroundColor: "#130825",
       },
     ],
   ],

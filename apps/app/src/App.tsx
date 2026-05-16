@@ -3,54 +3,65 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Constants from "expo-constants";
 import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
-import { useSetAtom } from "jotai";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { didAtom } from "./atoms/did";
-import { handleAtom } from "./atoms/handle";
+import { useEffect, useState } from "react";
+import { View } from "react-native";
+import { storage } from "./storage";
+import { colors } from "./theme";
 import { RootStack } from "./Navigation";
+import SignIn from "./screens/SignIn";
 import { NowPlayingProvider } from "./providers/NowPlayingProvider";
+import { useCurrentUserProfile } from "./hooks/useProfile";
 
 const queryClient = new QueryClient();
 
+function AppInner() {
+  const [isReady, setIsReady] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const token = storage.getToken();
+
+  useCurrentUserProfile(token);
+
+  useEffect(() => {
+    storage.load().then(({ token }) => {
+      setIsLoggedIn(!!token);
+      setIsReady(true);
+    });
+  }, []);
+
+  if (!isReady) {
+    return <View style={{ flex: 1, backgroundColor: colors.background }} />;
+  }
+
+  if (!isLoggedIn) {
+    return (
+      <SignIn
+        onSuccess={() => setIsLoggedIn(true)}
+      />
+    );
+  }
+
+  return (
+    <NowPlayingProvider>
+      <NavigationContainer>
+        <RootStack />
+      </NavigationContainer>
+    </NowPlayingProvider>
+  );
+}
+
 const App = () => {
-  const setDid = useSetAtom(didAtom);
-  const setHandle = useSetAtom(handleAtom);
   useFonts({
     RockfordSansRegular: require("../assets/fonts/RockfordSans-Regular.otf"),
     RockfordSansMedium: require("../assets/fonts/RockfordSans-Medium.otf"),
     RockfordSansBold: require("../assets/fonts/RockfordSans-Bold.otf"),
   });
 
-  const getActiveRouteName = (state: any) => {
-    if (!state || !state.routes) return null;
-
-    const route = state.routes[state.index];
-
-    // Dive into nested navigators
-    if (route.state) {
-      return getActiveRouteName(route.state);
-    }
-
-    return route.name;
-  };
-
   return (
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
-        <NowPlayingProvider>
-          <StatusBar style="auto" />
-          <NavigationContainer
-            onStateChange={(state) => {
-              const currentTab = getActiveRouteName(state);
-              if (currentTab === "Profile" || currentTab === "Library") {
-                setDid("did:plc:7vdlgi2bflelz7mmuxoqjfcr");
-                setHandle(undefined);
-              }
-            }}
-          >
-            <RootStack />
-          </NavigationContainer>
-        </NowPlayingProvider>
+        <StatusBar style="light" />
+        <AppInner />
       </SafeAreaProvider>
     </QueryClientProvider>
   );

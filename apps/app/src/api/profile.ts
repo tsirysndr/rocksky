@@ -1,3 +1,4 @@
+import { storage } from "../storage";
 import { client } from ".";
 import { Compatibility } from "../types/compatibility";
 import { Neighbour } from "../types/neighbour";
@@ -51,7 +52,7 @@ export const getActorCompatibility = async (did: string) => {
     {
       params: { did },
       headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        Authorization: `Bearer ${storage.getToken()}`,
       },
     },
   );

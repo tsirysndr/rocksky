@@ -1,3 +1,1 @@
-import SongDetails from "./SongDetailsWithData";
-
-export default SongDetails;
+export { default } from "./SongDetails";

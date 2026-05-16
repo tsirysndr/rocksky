@@ -1,174 +1,203 @@
-import Song from "@/src/components/Song";
-import StickyPlayer from "@/src/components/StickyPlayer";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { colors } from "@/src/theme";
+import { useAlbumQuery } from "@/src/hooks/useLibrary";
+import { RootStackParamList } from "@/src/Navigation";
+import { RouteProp, useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import dayjs from "dayjs";
 import numeral from "numeral";
-import { FC, useEffect, useState } from "react";
-import { Image, Pressable, ScrollView, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  Linking,
+  ScrollView,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Text } from "@/src/components/Text";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-export type AlbumDetailsProps = {
-  album: {
-    albumArt: string;
-    title: string;
-    artist: string;
-    artistUri: string;
-    uri: string;
-    year: number;
-    releaseDate: string;
-    label: string;
-    scrobbles: number;
-    listeners: number;
-    tracks: {
-      id: string;
-      title: string;
-      artist: string;
-      artistUri: string;
-      trackNumber: number;
-      discNumber: number;
-      uri: string;
-    }[];
-  };
-  onPressArtist: (artistDid: string) => void;
-  onPressTrack: (trackDid: string) => void;
-  onViewOnPDSls: (did: string) => void;
-  className?: string;
-};
+type Props = { route?: RouteProp<RootStackParamList, "AlbumDetails"> };
 
-const AlbumDetails: FC<AlbumDetailsProps> = (props) => {
-  const { album, className } = props;
-  const [disc, setDisc] = useState(1);
+function parseUri(uri: string) {
+  const parts = uri.replace("at://", "").split("/");
+  return { did: parts[0], rkey: parts[parts.length - 1] };
+}
 
-  useEffect(() => {
-    setDisc(Math.max(...album.tracks.map((track) => track.discNumber)));
-  }, [album.tracks]);
+function formatDuration(ms: number) {
+  if (!ms) return "";
+  const m = Math.floor(ms / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+export default function AlbumDetails({ route }: Props) {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const uri = route?.params?.uri || "";
+  const { did, rkey } = parseUri(uri);
+
+  const { data: album, isLoading } = useAlbumQuery(did, rkey);
+
+  const tracks = (album?.tracks as any[]) || [];
+  const maxDisc = tracks.length > 0 ? Math.max(...tracks.map((t: any) => t.discNumber || 1)) : 1;
+  const multiDisc = maxDisc > 1;
+
+  function TrackRow({ track, i }: { track: any; i: number }) {
+    return (
+      <TouchableOpacity
+        onPress={() => track.uri && navigation.navigate("SongDetails", { uri: track.uri })}
+        style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10 }}
+      >
+        <Text style={{ width: 28, textAlign: "center", fontSize: 11, opacity: 0.4, color: colors.text }}>
+          {track.trackNumber || i + 1}
+        </Text>
+        <View style={{ flex: 1 }}>
+          <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: "500", color: colors.text }}>{track.title}</Text>
+          {!!(track.artist || track.albumArtist) && (
+            <Text numberOfLines={1} style={{ fontSize: 11, color: colors.textMuted }}>{track.artist || track.albumArtist}</Text>
+          )}
+        </View>
+        {!!track.duration && (
+          <Text style={{ fontSize: 11, color: colors.textMuted }}>{formatDuration(track.duration)}</Text>
+        )}
+      </TouchableOpacity>
+    );
+  }
 
   return (
-    <View className="h-full w-full bg-black pt-[50px]">
-      <ScrollView
-        className={`pl-[15px] pr-[15px] ${className}`}
-        showsVerticalScrollIndicator={false}
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={{ paddingHorizontal: 16, paddingVertical: 12 }}
       >
-        <View className="items-center justify-start">
-          <Image
-            source={{
-              uri: album.albumArt,
-            }}
-            style={{
-              width: 200,
-              height: 200,
-            }}
-          />
-          <Text
-            className="font-rockford-medium text-[#fff] mt-[10px] text-center"
-            style={{ fontSize: 18 }}
-          >
-            {album.title}
-          </Text>
-          <Pressable onPress={() => props.onPressArtist(album.artistUri)}>
-            <Text className="font-rockford-medium text-[#A0A0A0] text-[14px] mt-[5px] text-center">
-              {album.artist}
-            </Text>
-          </Pressable>
-          <Text className="font-rockford-regular text-[#A0A0A0] text-[12px] mt-[5px] text-center">
-            {album.year}
-          </Text>
-        </View>
-        <View>
-          <View className="flex-row">
-            <View className="mr-[20px]">
-              <Text className="font-rockford-regular text-[#A0A0A0] text-[14px] mt-[10px] ">
-                Listeners
-              </Text>
-              <Text className="font-rockford-regular text-white text-[18px]">
-                {numeral(album.listeners).format("0,0")}
-              </Text>
-            </View>
-            <View className="flex-1">
-              <Text className="font-rockford-regular text-[#A0A0A0] text-[14px] mt-[10px] ">
-                Scrobbles
-              </Text>
-              <Text className="font-rockford-regular text-white text-[18px]">
-                {numeral(album.scrobbles).format("0,0")}
-              </Text>
-            </View>
-            <View>
-              <Pressable onPress={() => props.onViewOnPDSls(album.uri)}>
-                <View className="h-[40px] flex-row items-center justify-center mt-[10px]">
-                  <Text className="font-rockford-regular text-white text-[14px]  mr-[10px]">
-                    View on PDSls
-                  </Text>
-                  <FontAwesome name="external-link" size={18} color="white" />
-                </View>
-              </Pressable>
-            </View>
-          </View>
-        </View>
+        <Text style={{ color: colors.primary, fontSize: 15 }}>← Back</Text>
+      </TouchableOpacity>
 
-        {disc < 2 && (
-          <View className="mt-[20px]">
-            {album.tracks.map((track) => (
-              <Song
-                key={track.id}
-                rank={track.trackNumber}
-                title={track.title}
-                artist={track.artist}
-                size={60}
-                className="mt-[10px]"
-                onPress={() => props.onPressTrack(track.uri)}
-                onPressAlbum={() => {}}
-                did={track.uri}
-                withoutAlbumCover
-                albumUri=""
-              />
-            ))}
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+        {isLoading && (
+          <View style={{ alignItems: "center", paddingVertical: 60 }}>
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
         )}
-        {disc > 1 && (
-          <View className="mt-[15px]">
-            {Array.from({ length: disc }, (_, index) => (
-              <View key={index} className="mt-[15px]">
-                <Text className="font-rockford-medium text-white text-[16px] mt-[5px]">
-                  Volume {index + 1}
-                </Text>
-                {album.tracks
-                  .filter((track) => track.discNumber === index + 1)
-                  .map((track) => (
-                    <Song
-                      key={track.id}
-                      rank={track.trackNumber}
-                      title={track.title}
-                      artist={track.artist}
-                      size={60}
-                      className="mt-[10px]"
-                      onPress={() => props.onPressTrack(track.id)}
-                      onPressAlbum={() => {}}
-                      did={track.id}
-                      withoutAlbumCover
-                      albumUri=""
-                    />
-                  ))}
+
+        {!isLoading && album && (
+          <>
+            {/* Album art + info */}
+            <View style={{ alignItems: "center", paddingTop: 16, paddingBottom: 20, paddingHorizontal: 16 }}>
+              <View style={{ width: 208, height: 208, borderRadius: 16, overflow: "hidden", backgroundColor: colors.surface2, marginBottom: 20 }}>
+                {album.albumArt ? (
+                  <Image source={{ uri: album.albumArt }} style={{ width: 208, height: 208 }} />
+                ) : (
+                  <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+                    <Text style={{ fontSize: 64, opacity: 0.2 }}>💿</Text>
+                  </View>
+                )}
               </View>
-            ))}
+
+              <Text style={{ fontSize: 22, fontWeight: "800", color: colors.text, textAlign: "center", marginBottom: 8 }}>
+                {album.title}
+              </Text>
+
+              <TouchableOpacity onPress={() => album.artistUri && navigation.navigate("ArtistDetails", { uri: album.artistUri })}>
+                <Text style={{ fontSize: 15, fontWeight: "600", color: colors.primary, marginBottom: 4 }}>
+                  {album.artist}
+                </Text>
+              </TouchableOpacity>
+
+              {album.releaseDate && (
+                <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 16 }}>
+                  {dayjs(album.releaseDate).format("YYYY")}
+                </Text>
+              )}
+
+              <View style={{ flexDirection: "row", gap: 40, marginBottom: 16 }}>
+                <View style={{ alignItems: "center" }}>
+                  <Text style={{ fontSize: 18, fontWeight: "700", color: colors.text }}>
+                    {numeral(album.uniqueListeners || album.listeners).format("0,0")}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: colors.textMuted }}>Listeners</Text>
+                </View>
+                <View style={{ alignItems: "center" }}>
+                  <Text style={{ fontSize: 18, fontWeight: "700", color: colors.text }}>
+                    {numeral(album.playCount || album.scrobbles).format("0,0")}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: colors.textMuted }}>Scrobbles</Text>
+                </View>
+              </View>
+
+              {/* Genre tags */}
+              {album.tags && album.tags.length > 0 && (
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center", marginBottom: 16 }}>
+                  {(album.tags as string[]).slice(0, 5).map((tag) => (
+                    <View key={tag} style={{ paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20, backgroundColor: colors.surface2 }}>
+                      <Text style={{ fontSize: 12, color: colors.genre }}>#{tag}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {/* Share on Bluesky */}
+              <TouchableOpacity
+                onPress={() => {
+                  const link = `https://rocksky.app/${did}/album/${rkey}`;
+                  const text = `${album.title} by ${album.artist} on Rocksky 🎵\n${link}`;
+                  Linking.openURL(`https://bsky.app/intent/compose?text=${encodeURIComponent(text)}`);
+                }}
+                style={{ width: "100%", paddingVertical: 14, borderRadius: 14, backgroundColor: colors.surface2, alignItems: "center" }}
+              >
+                <Text style={{ color: colors.text, fontSize: 14, fontWeight: "600" }}>Share on Bluesky</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Track listing */}
+            <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: colors.text, marginBottom: 8 }}>Tracks</Text>
+
+              {tracks.length === 0 && (
+                <Text style={{ fontSize: 13, color: colors.textMuted, textAlign: "center", paddingVertical: 32 }}>No tracks found</Text>
+              )}
+
+              {!multiDisc && tracks.map((track: any, i: number) => (
+                <TrackRow key={track.id || i} track={track} i={i} />
+              ))}
+
+              {multiDisc && Array.from({ length: maxDisc }, (_, di) => {
+                const discTracks = tracks.filter((t: any) => (t.discNumber || 1) === di + 1);
+                return (
+                  <View key={di} style={{ marginBottom: 16 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "600", color: colors.textMuted, marginTop: 12, marginBottom: 4 }}>
+                      Disc {di + 1}
+                    </Text>
+                    {discTracks.map((track: any, i: number) => (
+                      <TrackRow key={track.id || i} track={track} i={i} />
+                    ))}
+                  </View>
+                );
+              })}
+
+              {/* Release info */}
+              {(album.releaseDate || album.label) && (
+                <View style={{ marginTop: 20 }}>
+                  {album.releaseDate && (
+                    <Text style={{ fontSize: 12, color: colors.textMuted }}>
+                      {dayjs(album.releaseDate).format("MMMM D, YYYY")}
+                    </Text>
+                  )}
+                  {album.label && (
+                    <Text style={{ fontSize: 12, color: colors.textMuted }}>{album.label}</Text>
+                  )}
+                </View>
+              )}
+            </View>
+          </>
+        )}
+
+        {!isLoading && !album && (
+          <View style={{ alignItems: "center", paddingVertical: 80 }}>
+            <Text style={{ fontSize: 40, opacity: 0.2, marginBottom: 12 }}>💿</Text>
+            <Text style={{ fontSize: 13, color: colors.textMuted }}>Album not found</Text>
           </View>
         )}
-        <View>
-          <Text className="font-rockford-regular text-[#A0A0A0] text-[12px] mt-[20px] ">
-            {album.releaseDate
-              ? dayjs(album.releaseDate).format("MMMM D, YYYY")
-              : album.year}
-          </Text>
-          <Text className="font-rockford-regular text-[#A0A0A0] text-[12px]">
-            {album.label}
-          </Text>
-        </View>
-        <View className="h-[80px]" />
       </ScrollView>
-
-      <View className="w-full absolute bottom-0 bg-black">
-        <StickyPlayer />
-      </View>
-    </View>
+    </SafeAreaView>
   );
-};
-
-export default AlbumDetails;
+}

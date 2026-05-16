@@ -1,39 +1,49 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { getScrobbleByUri, getFeed, getScrobbles } from "../api/feed";
-import { client } from "../api";
+import { getFeed, getFeedGenerators, getScrobbles, getScrobbleByUri } from "../api/feed";
 
-export const useFeedQuery = (size = 114) =>
+export const useFeedGeneratorsQuery = () =>
   useQuery({
-    queryKey: ["feed"],
-    queryFn: () =>
-      client
-        .get(`/xrpc/app.rocksky.scrobble.getScrobbles`, {
-          params: { limit: size },
-        })
-        .then((res) => res.data),
-    refetchInterval: 5000,
-    placeholderData: (prev) => prev,
+    queryKey: ["feedGenerators"],
+    queryFn: getFeedGenerators,
   });
 
-export const useFeedInfiniteQuery = (size = 20) =>
+export const useFeedInfiniteQuery = (feed: string, limit = 20) =>
   useInfiniteQuery({
-    queryKey: ["infiniteFeed"],
-    queryFn: async ({ pageParam = 0 }) => {
-      const data = await client
-        .get(`/xrpc/app.rocksky.scrobble.getScrobbles`, {
-          params: { limit: size, offset: pageParam * size },
-        })
-        .then((res) => res.data);
+    queryKey: ["infiniteFeed", feed],
+    queryFn: async ({ pageParam }) => {
+      const data = await getFeed(feed, limit, pageParam as string | undefined);
+      return { feed: data.songs, nextCursor: data.cursor };
+    },
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    initialPageParam: undefined as string | undefined,
+    enabled: !!feed,
+  });
+
+export const useScrobbleInfiniteQuery = (
+  did: string,
+  following = false,
+  limit = 20,
+) =>
+  useInfiniteQuery({
+    queryKey: ["infiniteScrobbles", did, following],
+    queryFn: async ({ pageParam }) => {
+      const data = await getScrobbles(
+        did,
+        following,
+        pageParam as number,
+        limit,
+      );
       return {
-        feed: data.scrobbles ?? data,
-        nextOffset: pageParam + 1,
+        scrobbles: data.scrobbles,
+        nextOffset:
+          data.scrobbles.length === limit
+            ? (pageParam as number) + limit
+            : undefined,
       };
     },
-    getNextPageParam: (lastPage) => {
-      return lastPage.feed.length < size ? undefined : lastPage.nextOffset;
-    },
+    getNextPageParam: (lastPage) => lastPage.nextOffset,
     initialPageParam: 0,
-    refetchOnMount: false,
+    enabled: !!did,
   });
 
 export const useScrobbleByUriQuery = (uri: string) =>
@@ -45,27 +55,3 @@ export const useScrobbleByUriQuery = (uri: string) =>
 
 /** @deprecated Use useScrobbleByUriQuery instead */
 export const useFeedByUriQuery = useScrobbleByUriQuery;
-
-export const useFeedGeneratorQuery = (
-  uri: string,
-  limit?: number,
-  cursor?: string,
-) =>
-  useQuery({
-    queryKey: ["feedGenerator", uri, limit, cursor],
-    queryFn: () => getFeed(uri, limit, cursor),
-    enabled: !!uri,
-  });
-
-export const useScrobblesQuery = (
-  did: string,
-  following = false,
-  offset = 0,
-  limit = 50,
-) =>
-  useQuery({
-    queryKey: ["scrobbles", did, following, offset, limit],
-    queryFn: () => getScrobbles(did, following, offset, limit),
-    enabled: !!did,
-    placeholderData: (prev) => prev,
-  });

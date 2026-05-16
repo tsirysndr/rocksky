@@ -1,0 +1,15 @@
+export const colors = {
+  background: '#130825',
+  primary: '#ff2876',
+  text: '#f0e8f5',
+  textMuted: 'rgba(191, 174, 195, 0.65)',
+  border: '#310e64',
+  inputBackground: '#221538',
+  surface: '#1a0f35',
+  surface2: '#221538',
+  surface3: '#2b1a4c',
+  avatarBackground: '#8d2dff',
+  genre: '#00f1f3',
+  skeletonBackground: '#221538',
+  skeletonForeground: '#2b1a4c',
+};
