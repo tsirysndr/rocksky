@@ -8,7 +8,6 @@ import ScrobblesAreaChart from "../components/ScrobblesAreaChart";
 import StickyPlayer from "../components/StickyPlayer";
 import { API_URL } from "../consts";
 import useProfile from "../hooks/useProfile";
-import CloudDrive from "./CloudDrive";
 import Navbar from "./Navbar";
 import Search from "./Search";
 import SpotifyLogin from "./SpotifyLogin";
@@ -199,7 +198,7 @@ function Main(props: MainProps) {
                 </div>
               )}
               {jwt && profile && !profile.spotifyConnected && <SpotifyLogin />}
-              {jwt && profile && <CloudDrive />}
+              {/* {jwt && profile && <CloudDrive />} */}
               {!jwt && (
                 <div className="mt-[40px] max-w-[770px]">
                   <LoginForm
@@ -226,7 +225,7 @@ function Main(props: MainProps) {
               <Search />
             </div>
             {jwt && profile && !profile.spotifyConnected && <SpotifyLogin />}
-            {jwt && profile && <CloudDrive />}
+            {/* {jwt && profile && <CloudDrive />} */}
             {!jwt && (
               <div className="mt-[40px]">
                 <LoginForm
