@@ -48,6 +48,9 @@ module.exports = {
         backgroundColor: "#130825",
       },
     ],
+    "@sentry/react-native",
+    "expo-font",
+    "expo-web-browser"
   ],
   experiments: {
     typedRoutes: true,
