@@ -2,6 +2,7 @@ import { useParams } from "react-router-dom";
 import { Link } from "react-router-dom";
 import ContentLoader from "react-content-loader";
 import numeral from "numeral";
+import { IconBrandSpotify } from "@tabler/icons-react";
 import { useSongByUriQuery } from "../../hooks/useLibrary";
 import { useScrobbleByUriQuery } from "../../hooks/useScrobble";
 import Main from "../../layouts/Main";
@@ -148,7 +149,8 @@ export default function Song() {
                   className="flex items-center justify-center gap-2 py-3 rounded-2xl no-underline font-semibold text-sm"
                   style={{ backgroundColor: "#1DB954", color: "#fff" }}
                 >
-                  Listen on Spotify ↗
+                  <IconBrandSpotify size={18} />
+                  Listen on Spotify
                 </a>
               )}
             </div>
