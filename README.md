@@ -55,7 +55,6 @@ A decentralized music tracking and discovery platform built on AT Protocol 🎵 
 - Turbo
 - Docker
 - Wasm Pack https://github.com/drager/wasm-pack
-- DuckDB https://duckdb.org/docs/installation `1.2.0`
 - Spotify `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` from setup in [Spotify developer dashboard](https://developer.spotify.com/documentation/web-api/tutorials/getting-started)
 
 ## 🚀 Getting Started
@@ -97,23 +96,19 @@ A decentralized music tracking and discovery platform built on AT Protocol 🎵 
    bun run db:pgpull
    ```
 
-8. Start Analytics API:
-   ```bash
-   bun run dev:analytics
-   ```
-9. Start jetstream:
+8. Start jetstream:
    ```bash
    bun run dev:jetstream
    ```
-10. Start musicbrainz:
+9. Start musicbrainz:
    ```bash
    bun run mb
    ```
-11. Start feeds:
+10. Start feeds:
    ```bash
    bun run feeds
    ```
-12. Start the development server:
+11. Start the development server:
    ```bash
    turbo dev --filter=@rocksky/api --filter=@rocksky/web
    ```
