@@ -64,10 +64,11 @@ const TracksWithData: FC<TracksWithDataProps> = (props) => {
       isFetchingMore={isFetchingNextPage}
       onRefresh={async () => {
         setRefreshing(true);
-        setTimeout(() => {
+        try {
+          await refetch();
+        } finally {
           setRefreshing(false);
-        }, 1000);
-        await refetch();
+        }
       }}
       refreshing={refreshing}
       className={`${nowPlaying ? "mb-[200px]" : "mb-[150px]"}`}

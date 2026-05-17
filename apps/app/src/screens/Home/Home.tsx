@@ -175,17 +175,16 @@ export default function Home() {
   const followingFeed = useAtomValue(followingFeedAtom);
   const did = storage.getDid() || "";
   const flatListRef = useRef<FlatList>(null);
-  const scrollY = useRef(0);
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const [showTop, setShowTop] = useState(false);
+  const isButtonVisible = useRef(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const onScroll = useCallback((e: any) => {
     const y = e.nativeEvent.contentOffset.y;
-    const wasVisible = scrollY.current > 300;
+    const wasVisible = isButtonVisible.current;
     const isVisible = y > 300;
-    scrollY.current = y;
     if (isVisible !== wasVisible) {
-      setShowTop(isVisible);
+      isButtonVisible.current = isVisible;
       Animated.timing(fadeAnim, {
         toValue: isVisible ? 1 : 0,
         duration: 200,
@@ -194,11 +193,24 @@ export default function Home() {
     }
   }, [fadeAnim]);
 
-  const { data: feedData, isLoading: feedLoading, fetchNextPage: fetchFeed, hasNextPage: hasFeed, isFetchingNextPage: fetchingFeed } =
+  const { data: feedData, isLoading: feedLoading, fetchNextPage: fetchFeed, hasNextPage: hasFeed, isFetchingNextPage: fetchingFeed, refetch: refetchFeed } =
     useFeedInfiniteQuery(feedUri, 20);
 
-  const { data: scrobbleData, isLoading: scrobbleLoading, fetchNextPage: fetchScrobble, hasNextPage: hasScrobble, isFetchingNextPage: fetchingScrobble } =
+  const { data: scrobbleData, isLoading: scrobbleLoading, fetchNextPage: fetchScrobble, hasNextPage: hasScrobble, isFetchingNextPage: fetchingScrobble, refetch: refetchScrobble } =
     useScrobbleInfiniteQuery(did, true, 20);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      if (followingFeed) {
+        await refetchScrobble();
+      } else {
+        await refetchFeed();
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  }, [followingFeed, refetchFeed, refetchScrobble]);
 
   const songs = followingFeed
     ? scrobbleData?.pages.flatMap((p) => p.scrobbles) || []
@@ -279,37 +291,38 @@ export default function Home() {
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 0 }}
+        onRefresh={onRefresh}
+        refreshing={refreshing}
       />
 
-      {showTop && (
-        <Animated.View
+      <Animated.View
+        pointerEvents={refreshing ? "none" : "box-none"}
+        style={{
+          position: "absolute",
+          bottom: 24,
+          right: 20,
+          opacity: fadeAnim,
+        }}
+      >
+        <TouchableOpacity
+          onPress={() => flatListRef.current?.scrollToOffset({ offset: 0, animated: true })}
           style={{
-            position: "absolute",
-            bottom: 24,
-            right: 20,
-            opacity: fadeAnim,
+            width: 54,
+            height: 54,
+            borderRadius: 27,
+            backgroundColor: colors.primary,
+            alignItems: "center",
+            justifyContent: "center",
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.35,
+            shadowRadius: 6,
+            elevation: 8,
           }}
         >
-          <TouchableOpacity
-            onPress={() => flatListRef.current?.scrollToOffset({ offset: 0, animated: true })}
-            style={{
-              width: 54,
-              height: 54,
-              borderRadius: 27,
-              backgroundColor: colors.primary,
-              alignItems: "center",
-              justifyContent: "center",
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.35,
-              shadowRadius: 6,
-              elevation: 8,
-            }}
-          >
-            <Feather name="arrow-up" size={26} color="#fff" />
-          </TouchableOpacity>
-        </Animated.View>
-      )}
+          <Feather name="arrow-up" size={26} color="#fff" />
+        </TouchableOpacity>
+      </Animated.View>
     </SafeAreaView>
   );
 }

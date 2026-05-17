@@ -36,6 +36,7 @@ import {
   Alert,
   FlatList,
   Linking,
+  RefreshControl,
   ScrollView,
   TouchableOpacity,
   View,
@@ -138,17 +139,30 @@ function UserCard({ user, navigation }: { user: any; navigation: NativeStackNavi
 // ─── Overview tab ─────────────────────────────────────────────────────────────
 
 function OverviewTab({ did, navigation }: { did: string; navigation: NativeStackNavigationProp<RootStackParamList> }) {
-  const { data: recentTracks } = useRecentTracksByDidQuery(did, 0, 20);
-  const { data: artists } = useArtistsQuery(did, 0, 5);
-  const { data: albums } = useAlbumsQuery(did, 0, 6);
-  const { data: tracks } = useTracksQuery(did, 0, 10);
+  const [refreshing, setRefreshing] = useState(false);
+  const { data: recentTracks, refetch: refetchRecent } = useRecentTracksByDidQuery(did, 0, 20);
+  const { data: artists, refetch: refetchArtists } = useArtistsQuery(did, 0, 5);
+  const { data: albums, refetch: refetchAlbums } = useAlbumsQuery(did, 0, 6);
+  const { data: tracks, refetch: refetchTracks } = useTracksQuery(did, 0, 10);
 
   const artistList = Array.isArray(artists) ? artists : (artists as any)?.artists ?? [];
   const albumList = Array.isArray(albums) ? albums : (albums as any)?.albums ?? [];
   const trackList = Array.isArray(tracks) ? tracks : (tracks as any)?.tracks ?? [];
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([refetchRecent(), refetchArtists(), refetchAlbums(), refetchTracks()]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   return (
-    <ScrollView showsVerticalScrollIndicator={false}>
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+    >
       {/* Recent Listens */}
       <Text style={{ fontSize: 11, fontWeight: "700", color: colors.textMuted, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8, marginTop: 16 }}>
         Recent Listens
