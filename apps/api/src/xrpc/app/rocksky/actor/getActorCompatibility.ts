@@ -1,6 +1,6 @@
 import type { Context } from "context";
 import { consola } from "consola";
-import { count, desc, eq, inArray, or } from "drizzle-orm";
+import { and, count, desc, eq, inArray, ne, or } from "drizzle-orm";
 import { Cache, Duration, Effect, pipe } from "effect";
 import type { HandlerAuth } from "@atproto/xrpc-server";
 import type { Server } from "lexicon";
@@ -82,7 +82,8 @@ const retrieve = ({
             scrobbles: count(tables.scrobbles.id),
           })
           .from(tables.scrobbles)
-          .where(eq(tables.scrobbles.userId, user1.id))
+          .innerJoin(tables.artists, eq(tables.scrobbles.artistId, tables.artists.id))
+          .where(and(eq(tables.scrobbles.userId, user1.id), ne(tables.artists.name, "Various Artists")))
           .groupBy(tables.scrobbles.artistId)
           .orderBy(desc(count(tables.scrobbles.id)))
           .execute(),
@@ -92,7 +93,8 @@ const retrieve = ({
             scrobbles: count(tables.scrobbles.id),
           })
           .from(tables.scrobbles)
-          .where(eq(tables.scrobbles.userId, user2.id))
+          .innerJoin(tables.artists, eq(tables.scrobbles.artistId, tables.artists.id))
+          .where(and(eq(tables.scrobbles.userId, user2.id), ne(tables.artists.name, "Various Artists")))
           .groupBy(tables.scrobbles.artistId)
           .orderBy(desc(count(tables.scrobbles.id)))
           .execute(),
