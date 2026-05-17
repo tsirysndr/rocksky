@@ -1,6 +1,6 @@
 import type { Context } from "context";
 import { consola } from "consola";
-import { and, count, desc, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, lte, ne, or, sql } from "drizzle-orm";
 import { Cache, Duration, Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { QueryParams } from "lexicon/types/app/rocksky/actor/getActorArtists";
@@ -78,8 +78,9 @@ const retrieve = ({
           play_count: count(tables.scrobbles.id).as("play_count"),
         })
         .from(tables.scrobbles)
+        .innerJoin(tables.artists, eq(tables.scrobbles.artistId, tables.artists.id))
         .where(
-          and(eq(tables.scrobbles.userId, user.id), ...(dateConditions.length > 0 ? dateConditions : [])),
+          and(eq(tables.scrobbles.userId, user.id), ne(tables.artists.name, "Various Artists"), ...(dateConditions.length > 0 ? dateConditions : [])),
         )
         .groupBy(tables.scrobbles.artistId)
         .orderBy(desc(sql`count(${tables.scrobbles.id})`))
