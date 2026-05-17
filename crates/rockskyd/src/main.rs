@@ -9,12 +9,6 @@ fn cli() -> Command {
         .version(env!("CARGO_PKG_VERSION"))
         .about("Rocksky Daemon Service")
         .subcommand(
-            Command::new("analytics")
-                .about("Analytics related commands")
-                .subcommand(Command::new("sync").about("Sync data from Xata to DuckDB"))
-                .subcommand(Command::new("serve").about("Serve the Rocksky Analytics API")),
-        )
-        .subcommand(
             Command::new("dropbox")
                 .about("Dropbox related commands")
                 .subcommand(Command::new("scan").about("Scan Dropbox Music Folder"))
@@ -56,11 +50,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = cli().get_matches();
 
     match args.subcommand() {
-        Some(("analytics", sub_m)) => match sub_m.subcommand() {
-            Some(("sync", _)) => cmd::analytics::sync().await?,
-            Some(("serve", _)) => cmd::analytics::serve().await?,
-            _ => println!("Unknown analytics command"),
-        },
         Some(("dropbox", sub_m)) => match sub_m.subcommand() {
             Some(("scan", _)) => cmd::dropbox::scan().await?,
             Some(("serve", _)) => cmd::dropbox::serve().await?,
