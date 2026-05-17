@@ -1,127 +1,131 @@
-# Rocksky
+# Rocksky 
 
 [![ci](https://github.com/tsirysndr/rocksky/actions/workflows/ci.yml/badge.svg)](https://github.com/tsirysndr/rocksky/actions/workflows/ci.yml)
 [![discord](https://img.shields.io/discord/1103720908104929321?label=discord&logo=discord&color=5865F2)](https://discord.gg/EVcBy2fVa3)
 
-A decentralized music tracking and discovery platform built on AT Protocol 🎵 , see [Rocksky](https://rocksky.app).
+**A decentralized, open-source Last.fm alternative built on the AT Protocol (Bluesky).**
 
-<a href="https://pocketenv.io/new?repo=tangled:rocksky.app/rocksky" target="_blank"><img src="https://pocketenv.io/open-in-pocketenv.svg" alt="Open in Pocketenv" /></a>
+Rocksky automatically tracks ("scrobbles") the music you listen to from Spotify, Jellyfin, Navidrome, browsers, Android, and more — then publishes it to your decentralized identity. Own your listening history, see what friends are playing in real time, get rich stats, and discover new music — all without a central company controlling your data.
+
+**[rocksky.app](https://rocksky.app)** • **[Docs](https://docs.rocksky.app)** • **[Discord](https://discord.gg/EVcBy2fVa3)**
 
 ![Preview](./.github/assets/preview.png)
 
+## ✨ Key Features
 
-## ✨ Features
-
-### 🎵 Scrobbling APIs
-- **Last.fm Compatible API** – drop-in replacement for Last.fm scrobblers
-- **ListenBrainz Compatible API** – works with clients that support ListenBrainz
+### 🎵 Scrobbling
+- **Last.fm Compatible API** – Works with almost any existing Last.fm scrobbler
+- **ListenBrainz Compatible API** – Broad client support
 
 ### 🕒 Playback & History
+- Recently Played Timeline
+- **Stories View** – See what others are listening to live
+- Daily/weekly stats and visualizations
 
-- **Recently Played Timeline** – browse your listening history
-- **Stories View** – see what other users are playing in real time
-- **Stats** – visualize scrobbles per day
+### 📊 Insights
+- Top Artists, Tracks, and Albums
+- Personalized charts
+- Shoutbox & Likes for community interaction
 
-### 📊 User Insights
-
-- **Top Artists, Tracks, and Albums** – personalized charts of your listening habits
-- **Shoutbox & Likes** – interact with other listeners and share reactions
-
-### 🌐 Client Integrations
-- **Spotify** – detect now playing tracks and scrobble directly from Spotify
-- **Jellyfin** – track plays from your media server
-- **Pano Scrobbler** – Android/Linux/Windows support
-- **WebScrobbler** – scrobble directly from your browser
+### 🌐 Integrations
+- **Spotify** – Direct "now playing" detection
+- **Jellyfin** – Media server scrobbling
+- **Pano Scrobbler** (Android/Linux/Windows)
+- **WebScrobbler** (browser)
+- More coming soon
 
 ### 🔍 Search
-- **Search Engine** – fast search powered by MeiliSearch
+- Blazing-fast search powered by MeiliSearch
 
-## 🚧 Coming Soon / Roadmap
-- **Webhooks** - subscribe to scrobble events and integrate with Discord or your own apps
-- **Personalized Feeds** – discover music through community-driven feed algorithms
-- **Last.fm → Rocksky** Mirroring (Future Scrobbles) – automatically mirror new scrobbles from Last.fm into Rocksky
-- **Rocksky Connect** – remote playback across devices (similar to Spotify Connect)
-- **Multi-Source Libraries** – browse and scrobble from Google Drive, Dropbox, S3, FTP, and more
-- **Stream & Scrobble Your Own Music** – upload your library and play directly on Rocksky
-- **Extensions** – customize and extend Rocksky with your own logic
-- **Crossfade & Equalizer Settings Sync** – carry your playback preferences across devices
+## 🚧 Roadmap
 
-## 📦 Prerequisites
+- Webhooks (Discord, custom integrations)
+- Personalized discovery feeds
+- Automatic Last.fm mirroring (future scrobbles)
+- Rocksky Connect (remote playback across devices)
+- Multi-source library support (S3, Google Drive, etc.)
+- Built-in streaming + self-uploaded music
+- Extensions system
+- Cross-device settings sync
 
-- Node.js (v22 or later)
-- Deno
-- Rust
-- Go
-- Turbo
-- Docker
-- Wasm Pack https://github.com/drager/wasm-pack
-- Spotify `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` from setup in [Spotify developer dashboard](https://developer.spotify.com/documentation/web-api/tutorials/getting-started)
+## Quick Start (for users)
 
-## 🚀 Getting Started
+1. Go to **[rocksky.app](https://rocksky.app)** and sign in with your Bluesky account
+2. Connect your music apps (Spotify, Jellyfin, etc.)
+3. Start scrobbling — your data stays under your control
 
-1. Clone the repository:
-   ```bash
-   git clone git@tangled.sh:rocksky.app/rocksky
-   cd rocksky
-   ```
-2. Install dependencies:
-   ```bash
-   npm install -g turbo
-   bun install
-   bun run build:raichu
-   ```
-3. Set up the environment variables:
-   ```bash
-   cp apps/api/.env.example apps/api/.env
-   cp apps/web/.env.example apps/web/.env
-   cp apps/feeds/.env.example apps/feeds/.env
-   cp .env.example .env
-   # Edit the .env files to add your configurations
-   ```
-4. Start the Docker containers:
-   ```bash
-   docker compose up
-   ```
-5. Run the database migrations:
-   ```bash
-   turbo db:migrate --filter=@rocksky/api
-   ```
-6. Setup Spotify App:
-   ```bash
-   # don't forget to set SPOTIFY_ENCRYPTION_KEY and SPOTIFY_ENCRYPTION_IV environment variables
-   bun run spotify <client_id> <client_secret>
-   ```
-7. Populate database (Optional):
-   ```bash
-   bun run db:pgpull
-   ```
+**Self-hosting** and advanced usage instructions are below.
 
-8. Start jetstream:
-   ```bash
-   bun run dev:jetstream
-   ```
-9. Start musicbrainz:
-   ```bash
-   bun run mb
-   ```
-10. Start feeds:
-   ```bash
-   bun run feeds
-   ```
-11. Start the development server:
-   ```bash
-   turbo dev --filter=@rocksky/api --filter=@rocksky/web
-   ```
+## 🚀 Self-Hosting / Development
 
-## 📚 Documentation
-[View the full documentation](https://docs.rocksky.app)
+### Prerequisites
+- Node.js (v22+)
+- Bun
+- Docker + Docker Compose
+- Rust (for some crates)
+- Deno, Go, Turbo, Wasm Pack (see full docs)
 
-## ✍️ Feedback
-This repository is the central place to collect feedback and issues related to [Rocksky](https://rocksky.app).
+### Getting Started
 
-Please [**open an issue**](https://tangled.org/@rocksky.app/rocksky/issues/new) if you want to leave feedback. Feel free to also join our [**Discord server**](https://discord.gg/EVcBy2fVa3)
+```bash
+# 1. Clone the repo
+git clone https://github.com/tsirysndr/rocksky.git
+cd rocksky
 
-## 🤝 Contributing
-We would love to hear your feedback or suggestions. The best way to reach us is on [Discord](https://discord.gg/EVcBy2fVa3).
+# 2. Install dependencies
+npm install -g turbo
+bun install
+bun run build:raichu
 
-We also welcome pull requests into this repo. See [CONTRIBUTING.md](CONTRIBUTING.md)  for information on setting up this repo locally.
+# 3. Environment variables
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env
+cp apps/feeds/.env.example apps/feeds/.env
+cp .env.example .env
+# Edit the .env files as needed
+```
+
+```bash
+# 4. Start services
+docker compose up -d
+
+# 5. Database migrations
+turbo db:migrate --filter=@rocksky/api
+
+# 6. Spotify integration (optional but recommended)
+# Set SPOTIFY_ENCRYPTION_KEY and SPOTIFY_ENCRYPTION_IV first
+bun run spotify <your_client_id> <your_client_secret>
+```
+
+Then run the dev servers:
+
+```bash
+bun run dev:jetstream
+bun run mb
+bun run feeds
+turbo dev --filter=@rocksky/api --filter=@rocksky/web
+```
+
+## Comparison
+
+| Feature                 | Last.fm       | ListenBrainz     | **Rocksky**              |
+|-------------------------|---------------|------------------|--------------------------|
+| Open Source             | No            | Yes              | Yes                      |
+| Decentralized Identity  | No            | No               | Yes (AT Protocol)        |
+| Social Feed             | Limited       | Basic            | Real-time Stories        |
+| Data Ownership          | Last.fm       | You (export)     | You (on your PDS)        |
+| Last.fm Compatibility   | —             | Partial          | Strong                   |
+
+## Feedback & Contributing
+
+This repo is the central place for issues and discussions.
+
+- Join the **[Discord](https://discord.gg/EVcBy2fVa3)**
+- Open issues on [Tangled](https://tangled.org/@rocksky.app/rocksky/issues/new)
+- See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup
+
+---
+
+**Made with ❤️ for music lovers who want control over their data.**
+
+[rocksky.app](https://rocksky.app) • [Docs](https://docs.rocksky.app)
