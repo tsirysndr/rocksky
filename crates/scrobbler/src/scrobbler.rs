@@ -681,8 +681,10 @@ pub async fn scrobble_listenbrainz(
     // this is a simple way to do it, but we can improve it later
     // by using a more sophisticated algorithm
     // or by using a token pool
-    let mut rng = rand::rng();
-    let random_index = rng.random_range(0..spofity_tokens.len());
+    let random_index = {
+        let mut rng = rand::rng();
+        rng.random_range(0..spofity_tokens.len())
+    };
     let spotify_token = &spofity_tokens[random_index];
 
     let client_id = spotify_token.spotify_app_id.clone();

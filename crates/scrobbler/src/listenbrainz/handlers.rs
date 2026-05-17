@@ -18,7 +18,7 @@ use crate::{
         types::SubmitListensRequest,
     },
     musicbrainz::client::MusicbrainzClient,
-    read_payload, repo,
+    repo,
 };
 use tokio_stream::StreamExt;
 
@@ -57,19 +57,35 @@ pub async fn handle_submit_listens(
         return Ok(HttpResponse::Unauthorized().finish());
     }
 
+    let is_kodi = req
+        .headers()
+        .get("User-Agent")
+        .and_then(|v| v.to_str().ok())
+        .map(|ua| ua.to_lowercase().contains("kodi"))
+        .unwrap_or(false);
+
     let pool = data.get_ref();
-    validate_bearer_token(pool, token)
-        .await
-        .map_err(|e| actix_web::error::ErrorUnauthorized(format!("Invalid token: {}", e)))?;
+    validate_bearer_token(pool, token).await.map_err(|e| {
+        let msg = e.to_string();
+        if msg.contains("pool timed out") {
+            actix_web::error::ErrorServiceUnavailable(msg)
+        } else {
+            actix_web::error::ErrorUnauthorized(format!("Invalid token: {}", msg))
+        }
+    })?;
 
     let payload = read_payload!(payload);
     let body = String::from_utf8_lossy(&payload);
-    let req = serde_json::from_str::<SubmitListensRequest>(&body)
+    let mut req = serde_json::from_str::<SubmitListensRequest>(&body)
         .map_err(|e| {
             tracing::error!(body = %body, error = %e, "Error parsing request body");
             e
         })
         .map_err(actix_web::error::ErrorBadRequest)?;
+
+    if is_kodi && req.listen_type == "playing_now" {
+        req.listen_type = "single".to_string();
+    }
 
     let mb_client = mb_client.get_ref();
     submit_listens(req, cache.get_ref(), data.get_ref(), &mb_client, token)
