@@ -14,25 +14,34 @@ const DECAY_LAMBDA = 0.02 as const;
 const NEIGHBOUR_LIMIT = 20;
 const RESULT_LIMIT = 50;
 
+const cacheKey = (params: QueryParams) =>
+  `${params.did}|${params.limit ?? RESULT_LIMIT}`;
+
 export default function (server: Server, ctx: Context) {
   const cache = Cache.make({
     capacity: 200,
     timeToLive: Duration.minutes(5),
-    lookup: (params: QueryParams) =>
-      pipe(
+    lookup: (key: string) => {
+      const sep = key.lastIndexOf("|");
+      const params: QueryParams = {
+        did: key.slice(0, sep),
+        limit: Number(key.slice(sep + 1)),
+      };
+      return pipe(
         { params, ctx },
         retrieve,
         Effect.flatMap(hydrate),
         Effect.flatMap(presentation),
         Effect.retry({ times: 3 }),
         Effect.timeout("30 seconds"),
-      ),
+      );
+    },
   });
 
   const getAlbumRecommendations = (params: QueryParams) =>
     pipe(
       cache,
-      Effect.flatMap((c) => c.get(params)),
+      Effect.flatMap((c) => c.get(cacheKey(params))),
       Effect.catchAll((err) => {
         consola.error("getAlbumRecommendations error:", err);
         return Effect.succeed({ albums: [] });
@@ -71,16 +80,33 @@ const retrieve = ({
 
       const limit = Math.min(params.limit ?? RESULT_LIMIT, 100);
 
-      // Albums the user has already heard
-      const heardAlbumRows = await ctx.db
-        .select({ albumId: tables.scrobbles.albumId })
-        .from(tables.scrobbles)
-        .where(eq(tables.scrobbles.userId, user.id))
-        .groupBy(tables.scrobbles.albumId);
+      // Albums the user has already heard.
+      // scrobbles.albumId is nullable, so also collect album URIs via the
+      // scrobbled tracks' albumUri field to cover the missing-albumId case.
+      const [heardAlbumRows, heardAlbumUriRows] = await Promise.all([
+        ctx.db
+          .select({ albumId: tables.scrobbles.albumId })
+          .from(tables.scrobbles)
+          .where(eq(tables.scrobbles.userId, user.id))
+          .groupBy(tables.scrobbles.albumId),
+        ctx.db
+          .select({ albumUri: tables.tracks.albumUri })
+          .from(tables.scrobbles)
+          .innerJoin(
+            tables.tracks,
+            eq(tables.scrobbles.trackId, tables.tracks.id),
+          )
+          .where(eq(tables.scrobbles.userId, user.id))
+          .groupBy(tables.tracks.albumUri),
+      ]);
 
       const heardAlbumIds = heardAlbumRows
         .map((r) => r.albumId)
         .filter((id): id is string => id !== null);
+
+      const heardAlbumUris = heardAlbumUriRows
+        .map((r) => r.albumUri)
+        .filter((u): u is string => u !== null);
 
       // Artists the user knows, with their scrobble counts as familiarity score
       const userArtistRows = await ctx.db
@@ -98,17 +124,40 @@ const retrieve = ({
         userArtistRows.map((r) => [r.artistId, r.scrobbles ?? 0]),
       );
 
-      // Build the user's genre profile from their listened artists
-      const userGenres = new Set<string>(
+      // Build genre profile from scrobbled artists AND liked tracks' artists
+      const lovedTrackIds = await ctx.db
+        .select({ trackId: tables.lovedTracks.trackId })
+        .from(tables.lovedTracks)
+        .where(eq(tables.lovedTracks.userId, user.id))
+        .then((rows) =>
+          rows.map((r) => r.trackId).filter((id): id is string => id !== null),
+        );
+
+      const [scrobbledArtistGenres, likedTrackGenres] = await Promise.all([
         heardArtistIds.length > 0
-          ? (
-              await ctx.db
-                .select({ genres: tables.artists.genres })
-                .from(tables.artists)
-                .where(inArray(tables.artists.id, heardArtistIds))
-            ).flatMap((r) => r.genres ?? [])
-          : [],
-      );
+          ? ctx.db
+              .select({ genres: tables.artists.genres })
+              .from(tables.artists)
+              .where(inArray(tables.artists.id, heardArtistIds))
+              .then((rows) => rows.flatMap((r) => r.genres ?? []))
+          : Promise.resolve([] as string[]),
+        lovedTrackIds.length > 0
+          ? ctx.db
+              .select({ genres: tables.artists.genres })
+              .from(tables.tracks)
+              .leftJoin(
+                tables.artists,
+                eq(tables.tracks.artistUri, tables.artists.uri),
+              )
+              .where(inArray(tables.tracks.id, lovedTrackIds.slice(0, 200)))
+              .then((rows) => rows.flatMap((r) => r.genres ?? []))
+          : Promise.resolve([] as string[]),
+      ]);
+
+      const userGenres = new Set<string>([
+        ...scrobbledArtistGenres,
+        ...likedTrackGenres,
+      ]);
 
       // Pool A — albums from known artists not yet heard
       // Resolve artist IDs → URIs to join against albums.artistUri
@@ -132,6 +181,8 @@ const retrieve = ({
           : [];
 
       const knownArtistUris = knownArtistData.map((r) => r.uri);
+      // Map artist URI → artist ID so Pool A can look up familiarity scores correctly
+      const uriToKnownArtistId = new Map(knownArtistData.map((r) => [r.uri, r.id]));
 
       const poolA: Candidate[] =
         knownArtistUris.length > 0
@@ -147,17 +198,16 @@ const retrieve = ({
                   heardAlbumIds.length > 0
                     ? notInArray(tables.albums.id, heardAlbumIds)
                     : undefined,
+                  heardAlbumUris.length > 0
+                    ? notInArray(tables.albums.uri, heardAlbumUris)
+                    : undefined,
                 ),
               )
               .limit(200)
               .then((rows) =>
                 rows.flatMap((row): Candidate[] => {
                   if (!row.artistUri) return [];
-                  const artistId = userArtistRows.find(
-                    (a) =>
-                      knownArtistUris[heardArtistIds.indexOf(a.artistId)] ===
-                      row.artistUri,
-                  )?.artistId;
+                  const artistId = uriToKnownArtistId.get(row.artistUri);
                   const score = artistId
                     ? (artistFamiliarityMap.get(artistId) ?? 1)
                     : 1;
@@ -275,6 +325,8 @@ const retrieve = ({
                       r.name?.toLowerCase() !== "various artists" &&
                       (userGenres.size === 0 ||
                         (r.genres ?? []).some((g) => userGenres.has(g))),
+                    // When userGenres is empty (no genre profile yet), allow all.
+                    // When non-empty, strictly require genre overlap.
                   ),
                 );
 
@@ -295,6 +347,9 @@ const retrieve = ({
                     ),
                     heardAlbumIds.length > 0
                       ? notInArray(tables.albums.id, heardAlbumIds)
+                      : undefined,
+                    heardAlbumUris.length > 0
+                      ? notInArray(tables.albums.uri, heardAlbumUris)
                       : undefined,
                   ),
                 )

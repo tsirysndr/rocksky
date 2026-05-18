@@ -15,25 +15,34 @@ const NEIGHBOUR_LIMIT = 20;
 const RESULT_LIMIT = 50;
 const SERENDIPITY_RATIO = 0.15;
 
+const cacheKey = (params: QueryParams) =>
+  `${params.did}|${params.limit ?? RESULT_LIMIT}`;
+
 export default function (server: Server, ctx: Context) {
   const cache = Cache.make({
     capacity: 200,
     timeToLive: Duration.minutes(5),
-    lookup: (params: QueryParams) =>
-      pipe(
+    lookup: (key: string) => {
+      const sep = key.lastIndexOf("|");
+      const params: QueryParams = {
+        did: key.slice(0, sep),
+        limit: Number(key.slice(sep + 1)),
+      };
+      return pipe(
         { params, ctx },
         retrieve,
         Effect.flatMap(hydrate),
         Effect.flatMap(presentation),
         Effect.retry({ times: 3 }),
         Effect.timeout("30 seconds"),
-      ),
+      );
+    },
   });
 
   const getArtistRecommendations = (params: QueryParams) =>
     pipe(
       cache,
-      Effect.flatMap((c) => c.get(params)),
+      Effect.flatMap((c) => c.get(cacheKey(params))),
       Effect.catchAll((err) => {
         consola.error("getArtistRecommendations error:", err);
         return Effect.succeed({ artists: [] });
@@ -87,15 +96,38 @@ const retrieve = ({
         return { candidates: [], userGenres: new Set(), ctx };
       }
 
-      // Build the user's genre profile from their listened artists
-      const userGenres = new Set<string>(
-        (
-          await ctx.db
-            .select({ genres: tables.artists.genres })
-            .from(tables.artists)
-            .where(inArray(tables.artists.id, heardArtistIds))
-        ).flatMap((r) => r.genres ?? []),
-      );
+      // Build genre profile from scrobbled artists AND liked tracks' artists
+      const lovedTrackIds = await ctx.db
+        .select({ trackId: tables.lovedTracks.trackId })
+        .from(tables.lovedTracks)
+        .where(eq(tables.lovedTracks.userId, user.id))
+        .then((rows) =>
+          rows.map((r) => r.trackId).filter((id): id is string => id !== null),
+        );
+
+      const [scrobbledArtistGenres, likedTrackGenres] = await Promise.all([
+        ctx.db
+          .select({ genres: tables.artists.genres })
+          .from(tables.artists)
+          .where(inArray(tables.artists.id, heardArtistIds))
+          .then((rows) => rows.flatMap((r) => r.genres ?? [])),
+        lovedTrackIds.length > 0
+          ? ctx.db
+              .select({ genres: tables.artists.genres })
+              .from(tables.tracks)
+              .leftJoin(
+                tables.artists,
+                eq(tables.tracks.artistUri, tables.artists.uri),
+              )
+              .where(inArray(tables.tracks.id, lovedTrackIds.slice(0, 200)))
+              .then((rows) => rows.flatMap((r) => r.genres ?? []))
+          : Promise.resolve([] as string[]),
+      ]);
+
+      const userGenres = new Set<string>([
+        ...scrobbledArtistGenres,
+        ...likedTrackGenres,
+      ]);
 
       // Top neighbours by shared-artist overlap
       const neighbours = await ctx.db
@@ -246,14 +278,12 @@ const hydrate = ({
         // Drop Various Artists compilations
         .filter((item) => item.name?.toLowerCase() !== "various artists");
 
-      // Enforce genre similarity: drop artists with no genre overlap with user taste.
-      // Artists with no genre tags are kept to avoid over-filtering.
+      // Strict genre filter using artists.genres only (authoritative source).
       const genreFiltered =
         userGenres.size > 0
-          ? items.filter((item) => {
-              const genres = item.genres ?? [];
-              return genres.length === 0 || genres.some((g) => userGenres.has(g));
-            })
+          ? items.filter((item) =>
+              (item.genres ?? []).some((g) => userGenres.has(g)),
+            )
           : items;
 
       return { items: genreFiltered };

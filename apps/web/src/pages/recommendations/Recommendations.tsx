@@ -185,12 +185,16 @@ function Recommendations() {
   const [activeKey, setActiveKey] = useState<React.Key>("0");
 
   const did = profile?.did;
-  const { data: tracks, isLoading: tracksLoading } =
+  const { data: tracks, isLoading: tracksLoading, isFetching: tracksFetching } =
     useTrackRecommendationsQuery(did);
-  const { data: artists, isLoading: artistsLoading } =
+  const { data: artists, isLoading: artistsLoading, isFetching: artistsFetching } =
     useArtistRecommendationsQuery(did);
-  const { data: albums, isLoading: albumsLoading } =
+  const { data: albums, isLoading: albumsLoading, isFetching: albumsFetching } =
     useAlbumRecommendationsQuery(did);
+
+  const showTracksSkeleton = tracksLoading || (tracksFetching && !tracks?.length);
+  const showArtistsSkeleton = artistsLoading || (artistsFetching && !artists?.length);
+  const showAlbumsSkeleton = albumsLoading || (albumsFetching && !albums?.length);
 
   const trackRows: TrackRow[] = (tracks ?? []).map((item, index) => ({
     ...item,
@@ -227,7 +231,7 @@ function Recommendations() {
         >
           {/* ── Tracks ── */}
           <Tab title="Tracks" overrides={{ Tab: { style: TAB_STYLE } }}>
-            {tracksLoading ? (
+            {showTracksSkeleton ? (
               <TrackSkeleton />
             ) : (
               <TableBuilder
@@ -301,7 +305,7 @@ function Recommendations() {
 
           {/* ── Artists ── */}
           <Tab title="Artists" overrides={{ Tab: { style: TAB_STYLE } }}>
-            {artistsLoading ? (
+            {showArtistsSkeleton ? (
               <ArtistSkeleton />
             ) : (
               <TableBuilder
@@ -365,7 +369,7 @@ function Recommendations() {
 
           {/* ── Albums ── */}
           <Tab title="Albums" overrides={{ Tab: { style: TAB_STYLE } }}>
-            {albumsLoading ? (
+            {showAlbumsSkeleton ? (
               <TrackSkeleton />
             ) : (
               <TableBuilder

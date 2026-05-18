@@ -311,11 +311,11 @@ export default function Recommendations() {
   const [tab, setTab] = useState<"tracks" | "artists" | "albums">("tracks");
 
   const did = profile?.did;
-  const { data: tracks, isLoading: tracksLoading } =
+  const { data: tracks, isLoading: tracksLoading, isFetching: tracksFetching } =
     useTrackRecommendationsQuery(did);
-  const { data: artists, isLoading: artistsLoading } =
+  const { data: artists, isLoading: artistsLoading, isFetching: artistsFetching } =
     useArtistRecommendationsQuery(did);
-  const { data: albums, isLoading: albumsLoading } =
+  const { data: albums, isLoading: albumsLoading, isFetching: albumsFetching } =
     useAlbumRecommendationsQuery(did);
 
   if (!profile || !jwt) {
@@ -338,10 +338,10 @@ export default function Recommendations() {
 
   const loading =
     tab === "tracks"
-      ? tracksLoading
+      ? tracksLoading || (tracksFetching && !tracks?.length)
       : tab === "artists"
-        ? artistsLoading
-        : albumsLoading;
+        ? artistsLoading || (artistsFetching && !artists?.length)
+        : albumsLoading || (albumsFetching && !albums?.length);
 
   const items =
     tab === "tracks"
