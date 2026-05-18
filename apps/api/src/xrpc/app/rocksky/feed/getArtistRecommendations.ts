@@ -268,6 +268,9 @@ const retrieve = ({
         });
 
       // Supplement with genre-matched artists from DB when the neighbour pool is thin.
+      // Fetch a large pool (20× needed) because SQL NOT IN only covers 2000 heard
+      // artists and the JS heardArtistSet filter eliminates the rest — the effective
+      // yield ratio is low for heavy listeners.
       const neededMain = mainCount - mainCandidates.length;
       if (neededMain > 0 && userGenres.size > 0) {
         const genreCondition = or(
@@ -283,12 +286,12 @@ const retrieve = ({
               genreCondition,
               sql`lower(${tables.artists.name}) != 'various artists'`,
               heardArtistIds.length > 0
-                ? notInArray(tables.artists.id, heardArtistIds.slice(0, 500))
+                ? notInArray(tables.artists.id, heardArtistIds.slice(0, 2000))
                 : undefined,
             ),
           )
           .orderBy(sql`random()`)
-          .limit(neededMain * 5)
+          .limit(Math.max(neededMain * 20, 300))
           .then((rows) =>
             rows
               .filter(
@@ -333,12 +336,12 @@ const retrieve = ({
               genreCondition,
               sql`lower(${tables.artists.name}) != 'various artists'`,
               heardArtistIds.length > 0
-                ? notInArray(tables.artists.id, heardArtistIds.slice(0, 500))
+                ? notInArray(tables.artists.id, heardArtistIds.slice(0, 2000))
                 : undefined,
             ),
           )
           .orderBy(sql`random()`)
-          .limit(neededSerendipity * 5)
+          .limit(Math.max(neededSerendipity * 20, 100))
           .then((rows) =>
             rows
               .filter(
