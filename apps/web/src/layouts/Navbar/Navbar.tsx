@@ -157,7 +157,7 @@ function Navbar() {
         </Link>
       </div>
       <div className="flex-1"></div>
-      {profile && jwt && profile.did === "did:plc:7vdlgi2bflelz7mmuxoqjfcr" && (
+      {profile && jwt && (
         <div className="mr-[20px]">
           <Link
             to="/recommendations"
