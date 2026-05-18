@@ -2,7 +2,9 @@ import Feather from "@expo/vector-icons/Feather";
 import MaterialIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { BottomTabBar, createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { useAtomValue } from "jotai";
 import { View } from "react-native";
+import { profileAtom } from "./atoms/profile";
 import { colors } from "./theme";
 import MiniPlayer from "./components/MiniPlayer";
 import AlbumDetails from "./screens/AlbumDetails";
@@ -10,6 +12,7 @@ import ArtistDetails from "./screens/ArtistDetails";
 import Charts from "./screens/Charts";
 import Home from "./screens/Home";
 import Profile from "./screens/Profile";
+import Recommendations from "./screens/Recommendations";
 import Search from "./screens/Search";
 import SongDetails from "./screens/SongDetails";
 import Story from "./screens/Story";
@@ -18,6 +21,7 @@ const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 const HomeStack = createNativeStackNavigator();
 const ChartsStack = createNativeStackNavigator();
+const RecommendationsStack = createNativeStackNavigator();
 const ProfileStack = createNativeStackNavigator();
 const SearchStack = createNativeStackNavigator();
 
@@ -76,6 +80,24 @@ function ProfileStackScreen() {
   );
 }
 
+function RecommendationsStackScreen() {
+  return (
+    <RecommendationsStack.Navigator
+      screenOptions={{
+        contentStyle: { backgroundColor: colors.background },
+        headerShown: false,
+        animation: "default",
+      }}
+    >
+      <RecommendationsStack.Screen name="Recommendations" component={Recommendations} />
+      <RecommendationsStack.Screen name="AlbumDetails" component={AlbumDetails} />
+      <RecommendationsStack.Screen name="ArtistDetails" component={ArtistDetails} />
+      <RecommendationsStack.Screen name="SongDetails" component={SongDetails} />
+      <RecommendationsStack.Screen name="UserProfile" component={Profile} />
+    </RecommendationsStack.Navigator>
+  );
+}
+
 function SearchStackScreen() {
   return (
     <SearchStack.Navigator
@@ -111,6 +133,8 @@ function CustomTabBar(props: any) {
 }
 
 function HomeTabs() {
+  const profile = useAtomValue(profileAtom);
+
   return (
     <Tab.Navigator
       tabBar={(props) => <CustomTabBar {...props} />}
@@ -135,6 +159,8 @@ function HomeTabs() {
           switch (route.name) {
             case "HomeTab":
               return <MaterialIcons name="home-variant-outline" size={24} color={color} />;
+            case "RecommendationsTab":
+              return <MaterialIcons name="star-shooting-outline" size={24} color={color} />;
             case "ChartsTab":
               return <MaterialIcons name="chart-bar" size={24} color={color} />;
             case "SearchTab":
@@ -144,17 +170,14 @@ function HomeTabs() {
           }
         },
         tabBarLabel: ({ color }) => {
-          const labels: Record<string, string> = {
-            HomeTab: "Home",
-            ChartsTab: "Charts",
-            SearchTab: "Search",
-            ProfileTab: "Profile",
-          };
           return null; // Use default label from tabBarLabel below
         },
       })}
     >
       <Tab.Screen name="HomeTab" component={HomeStackScreen} options={{ tabBarLabel: "Home" }} />
+      {!!profile && (
+        <Tab.Screen name="RecommendationsTab" component={RecommendationsStackScreen} options={{ tabBarLabel: "For You" }} />
+      )}
       <Tab.Screen name="ChartsTab" component={ChartsStackScreen} options={{ tabBarLabel: "Charts" }} />
       <Tab.Screen name="SearchTab" component={SearchStackScreen} options={{ tabBarLabel: "Search" }} />
       <Tab.Screen name="ProfileTab" component={ProfileStackScreen} options={{ tabBarLabel: "Profile" }} />
@@ -179,6 +202,7 @@ export type RootStackParamList = {
   Home: undefined;
   HomeTabs: undefined;
   Charts: undefined;
+  Recommendations: undefined;
   AlbumDetails: { uri: string };
   ArtistDetails: { uri: string };
   SongDetails: { uri: string };

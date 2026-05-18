@@ -5,6 +5,7 @@ import Charts from "./pages/charts";
 import HomePage from "./pages/home";
 import Me from "./pages/me";
 import ProfilePage from "./pages/profile";
+import Recommendations from "./pages/recommendations";
 import Search from "./pages/search";
 import SongPage from "./pages/song";
 
@@ -14,6 +15,7 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/charts" element={<Charts />} />
+        <Route path="/recommendations" element={<Recommendations />} />
         <Route path="/search" element={<Search />} />
         <Route path="/me" element={<Me />} />
         <Route path="/:did/scrobble/:rkey" element={<SongPage />} />

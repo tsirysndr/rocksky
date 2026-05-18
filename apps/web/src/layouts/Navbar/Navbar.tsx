@@ -157,6 +157,19 @@ function Navbar() {
         </Link>
       </div>
       <div className="flex-1"></div>
+      {profile && jwt && profile.did === "did:plc:7vdlgi2bflelz7mmuxoqjfcr" && (
+        <div className="mr-[20px]">
+          <Link
+            to="/recommendations"
+            className="text-[var(--color-text)] text-[16px] opacity-90 hover:opacity-100"
+            style={{ textDecoration: "none" }}
+          >
+            <AnimatedLink>
+              <b>Recommendations</b>
+            </AnimatedLink>
+          </Link>
+        </div>
+      )}
       <div>
         <Link
           to="/charts"
