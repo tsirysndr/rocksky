@@ -2,19 +2,35 @@ import {
   IconChartBar,
   IconHome,
   IconSearch,
+  IconSparkles,
   IconUser,
 } from "@tabler/icons-react";
+import { useAtomValue } from "jotai";
 import { Link, useLocation } from "react-router-dom";
-
-const tabs = [
-  { to: "/", icon: IconHome, label: "Home" },
-  { to: "/charts", icon: IconChartBar, label: "Charts" },
-  { to: "/search", icon: IconSearch, label: "Search" },
-  { to: "/me", icon: IconUser, label: "Profile" },
-];
+import { profileAtom } from "../../atoms/profile";
 
 export default function BottomNav() {
   const location = useLocation();
+  const profile = useAtomValue(profileAtom);
+  const jwt = localStorage.getItem("token");
+
+  const baseTabs = [
+    { to: "/", icon: IconHome, label: "Home" },
+    { to: "/charts", icon: IconChartBar, label: "Charts" },
+    { to: "/search", icon: IconSearch, label: "Search" },
+    { to: "/me", icon: IconUser, label: "Profile" },
+  ];
+
+  const tabs =
+    profile && jwt
+      ? [
+          baseTabs[0],
+          { to: "/recommendations", icon: IconSparkles, label: "For You" },
+          baseTabs[1],
+          baseTabs[2],
+          baseTabs[3],
+        ]
+      : baseTabs;
 
   return (
     <nav

@@ -1,0 +1,32 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.feed.getAlbumRecommendations"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get personalised album recommendations for a user"
+    parameters {
+      type = "params"
+      required = List("did")
+      properties {
+        ["did"] = new StringType {
+          type = "string"
+          description = "DID or handle of the user to recommend for."
+        }
+        ["limit"] = new IntegerType {
+          type = "integer"
+          minimum = 1
+          maximum = 100
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new Ref {
+        type = "ref"
+        ref = "app.rocksky.feed.defs#recommendedAlbumsView"
+      }
+    }
+  }
+}

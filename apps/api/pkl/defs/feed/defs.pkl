@@ -177,4 +177,169 @@ defs = new Mapping<String, ObjectType> {
       }
     }
   }
+
+  ["recommendationView"] = new ObjectType {
+    type = "object"
+    properties {
+      ["title"] = new StringType {
+        type = "string"
+      }
+      ["artist"] = new StringType {
+        type = "string"
+      }
+      ["album"] = new StringType {
+        type = "string"
+      }
+      ["albumArt"] = new StringType {
+        type = "string"
+        format = "uri"
+      }
+      ["trackUri"] = new StringType {
+        type = "string"
+        format = "at-uri"
+      }
+      ["artistUri"] = new StringType {
+        type = "string"
+        format = "at-uri"
+      }
+      ["albumUri"] = new StringType {
+        type = "string"
+        format = "at-uri"
+      }
+      ["genres"] = new Array {
+        type = "array"
+        items = new StringType {
+          type = "string"
+        }
+      }
+      ["recommendationScore"] = new IntegerType {
+        type = "integer"
+      }
+      ["source"] = new StringType {
+        type = "string"
+        description = "neighbour | social | serendipity"
+      }
+      ["likesCount"] = new IntegerType {
+        type = "integer"
+      }
+    }
+  }
+
+  ["recommendationsView"] = new ObjectType {
+    type = "object"
+    properties {
+      ["recommendations"] = new Array {
+        type = "array"
+        items = new Ref {
+          type = "ref"
+          ref = "app.rocksky.feed.defs#recommendationView"
+        }
+      }
+      ["cursor"] = new StringType {
+        type = "string"
+      }
+    }
+  }
+
+  ["recommendedArtistView"] = new ObjectType {
+    type = "object"
+    properties {
+      ["id"] = new StringType {
+        type = "string"
+      }
+      ["uri"] = new StringType {
+        type = "string"
+        format = "at-uri"
+      }
+      ["name"] = new StringType {
+        type = "string"
+      }
+      ["picture"] = new StringType {
+        type = "string"
+        format = "uri"
+      }
+      ["genres"] = new Array {
+        type = "array"
+        items = new StringType {
+          type = "string"
+        }
+      }
+      ["recommendationScore"] = new IntegerType {
+        type = "integer"
+      }
+      ["source"] = new StringType {
+        type = "string"
+        description = "neighbour | social | serendipity"
+      }
+    }
+  }
+
+  ["recommendedArtistsView"] = new ObjectType {
+    type = "object"
+    properties {
+      ["artists"] = new Array {
+        type = "array"
+        items = new Ref {
+          type = "ref"
+          ref = "app.rocksky.feed.defs#recommendedArtistView"
+        }
+      }
+      ["cursor"] = new StringType {
+        type = "string"
+      }
+    }
+  }
+
+  ["recommendedAlbumView"] = new ObjectType {
+    type = "object"
+    properties {
+      ["id"] = new StringType {
+        type = "string"
+      }
+      ["uri"] = new StringType {
+        type = "string"
+        format = "at-uri"
+      }
+      ["title"] = new StringType {
+        type = "string"
+      }
+      ["artist"] = new StringType {
+        type = "string"
+      }
+      ["artistUri"] = new StringType {
+        type = "string"
+        format = "at-uri"
+      }
+      ["year"] = new IntegerType {
+        type = "integer"
+      }
+      ["albumArt"] = new StringType {
+        type = "string"
+        format = "uri"
+      }
+      ["recommendationScore"] = new IntegerType {
+        type = "integer"
+      }
+      ["source"] = new StringType {
+        type = "string"
+        description = "known-artist | new-artist | serendipity"
+      }
+    }
+  }
+
+  ["recommendedAlbumsView"] = new ObjectType {
+    type = "object"
+    properties {
+      ["albums"] = new Array {
+        type = "array"
+        items = new Ref {
+          type = "ref"
+          ref = "app.rocksky.feed.defs#recommendedAlbumView"
+        }
+      }
+      ["cursor"] = new StringType {
+        type = "string"
+      }
+    }
+  }
 }

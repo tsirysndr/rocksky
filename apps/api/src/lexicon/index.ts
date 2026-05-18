@@ -43,10 +43,13 @@ import type * as AppRockskyDropboxGetFiles from "./types/app/rocksky/dropbox/get
 import type * as AppRockskyDropboxGetMetadata from "./types/app/rocksky/dropbox/getMetadata";
 import type * as AppRockskyDropboxGetTemporaryLink from "./types/app/rocksky/dropbox/getTemporaryLink";
 import type * as AppRockskyFeedDescribeFeedGenerator from "./types/app/rocksky/feed/describeFeedGenerator";
+import type * as AppRockskyFeedGetAlbumRecommendations from "./types/app/rocksky/feed/getAlbumRecommendations";
+import type * as AppRockskyFeedGetArtistRecommendations from "./types/app/rocksky/feed/getArtistRecommendations";
 import type * as AppRockskyFeedGetFeed from "./types/app/rocksky/feed/getFeed";
 import type * as AppRockskyFeedGetFeedGenerator from "./types/app/rocksky/feed/getFeedGenerator";
 import type * as AppRockskyFeedGetFeedGenerators from "./types/app/rocksky/feed/getFeedGenerators";
 import type * as AppRockskyFeedGetFeedSkeleton from "./types/app/rocksky/feed/getFeedSkeleton";
+import type * as AppRockskyFeedGetRecommendations from "./types/app/rocksky/feed/getRecommendations";
 import type * as AppRockskyFeedGetStories from "./types/app/rocksky/feed/getStories";
 import type * as AppRockskyFeedSearch from "./types/app/rocksky/feed/search";
 import type * as AppRockskyGoogledriveDownloadFile from "./types/app/rocksky/googledrive/downloadFile";
@@ -653,6 +656,28 @@ export class AppRockskyFeedNS {
     return this._server.xrpc.method(nsid, cfg);
   }
 
+  getAlbumRecommendations<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyFeedGetAlbumRecommendations.Handler<ExtractAuth<AV>>,
+      AppRockskyFeedGetAlbumRecommendations.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.feed.getAlbumRecommendations"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  getArtistRecommendations<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyFeedGetArtistRecommendations.Handler<ExtractAuth<AV>>,
+      AppRockskyFeedGetArtistRecommendations.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.feed.getArtistRecommendations"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
   getFeed<AV extends AuthVerifier>(
     cfg: ConfigOf<
       AV,
@@ -694,6 +719,17 @@ export class AppRockskyFeedNS {
     >,
   ) {
     const nsid = "app.rocksky.feed.getFeedSkeleton"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  getRecommendations<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyFeedGetRecommendations.Handler<ExtractAuth<AV>>,
+      AppRockskyFeedGetRecommendations.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.feed.getRecommendations"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 
