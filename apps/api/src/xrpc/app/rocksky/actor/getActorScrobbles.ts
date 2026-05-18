@@ -62,9 +62,17 @@ const retrieve = ({
           created_at: tables.scrobbles.createdAt,
         })
         .from(tables.scrobbles)
-        .innerJoin(tables.tracks, eq(tables.scrobbles.trackId, tables.tracks.id))
+        .innerJoin(
+          tables.tracks,
+          eq(tables.scrobbles.trackId, tables.tracks.id),
+        )
         .innerJoin(tables.users, eq(tables.scrobbles.userId, tables.users.id))
-        .where(or(eq(tables.users.did, params.did), eq(tables.users.handle, params.did)))
+        .where(
+          or(
+            eq(tables.users.did, params.did),
+            eq(tables.users.handle, params.did),
+          ),
+        )
         .orderBy(desc(tables.scrobbles.timestamp))
         .limit(limit)
         .offset(offset)

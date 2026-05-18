@@ -20,6 +20,10 @@ export interface QueryParams {
   songuri?: string;
   /** The genre to filter by */
   genre?: string;
+  /** Start date (ISO 8601). Defaults to 6 months ago. */
+  from?: string;
+  /** End date (ISO 8601). Defaults to today. */
+  to?: string;
 }
 
 export type InputSchema = undefined;

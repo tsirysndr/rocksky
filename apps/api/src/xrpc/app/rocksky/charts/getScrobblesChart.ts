@@ -1,6 +1,6 @@
 import type { Context } from "context";
 import { consola } from "consola";
-import { count, eq, or, sql } from "drizzle-orm";
+import { and, between, count, eq, or, sql } from "drizzle-orm";
 import { Cache, Duration, Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ChartsView } from "lexicon/types/app/rocksky/charts/defs";
@@ -42,14 +42,36 @@ export default function (server: Server, ctx: Context) {
   });
 }
 
-const scrobblesPerDay = (ctx: Context, condition: any) =>
+const defaultDateRange = (params: QueryParams) => {
+  const to = params.to ?? new Date().toISOString().slice(0, 10);
+  const from =
+    params.from ??
+    (() => {
+      const d = new Date();
+      d.setMonth(d.getMonth() - 6);
+      return d.toISOString().slice(0, 10);
+    })();
+  return { from, to };
+};
+
+const scrobblesPerDay = (
+  ctx: Context,
+  condition: any,
+  from: string,
+  to: string,
+) =>
   ctx.db
     .select({
       date: sql<string>`DATE(${tables.scrobbles.timestamp})`,
       count: count(tables.scrobbles.id),
     })
     .from(tables.scrobbles)
-    .where(condition)
+    .where(
+      and(
+        condition,
+        between(sql`DATE(${tables.scrobbles.timestamp})`, from, to),
+      ),
+    )
     .groupBy(sql`DATE(${tables.scrobbles.timestamp})`)
     .orderBy(sql`DATE(${tables.scrobbles.timestamp})`)
     .execute();
@@ -63,15 +85,27 @@ const retrieve = ({
 }): Effect.Effect<{ data: Array<{ date: string; count: number }> }, Error> => {
   return Effect.tryPromise({
     try: async () => {
+      const { from, to } = defaultDateRange(params);
+
       if (params.did) {
         const user = await ctx.db
           .select({ id: tables.users.id })
           .from(tables.users)
-          .where(or(eq(tables.users.did, params.did), eq(tables.users.handle, params.did)))
+          .where(
+            or(
+              eq(tables.users.did, params.did),
+              eq(tables.users.handle, params.did),
+            ),
+          )
           .execute()
           .then((rows) => rows[0]);
         if (!user) return { data: [] };
-        const data = await scrobblesPerDay(ctx, eq(tables.scrobbles.userId, user.id));
+        const data = await scrobblesPerDay(
+          ctx,
+          eq(tables.scrobbles.userId, user.id),
+          from,
+          to,
+        );
         return { data };
       }
 
@@ -83,7 +117,12 @@ const retrieve = ({
           .execute()
           .then((rows) => rows[0]);
         if (!artist) return { data: [] };
-        const data = await scrobblesPerDay(ctx, eq(tables.scrobbles.artistId, artist.id));
+        const data = await scrobblesPerDay(
+          ctx,
+          eq(tables.scrobbles.artistId, artist.id),
+          from,
+          to,
+        );
         return { data };
       }
 
@@ -95,7 +134,12 @@ const retrieve = ({
           .execute()
           .then((rows) => rows[0]);
         if (!album) return { data: [] };
-        const data = await scrobblesPerDay(ctx, eq(tables.scrobbles.albumId, album.id));
+        const data = await scrobblesPerDay(
+          ctx,
+          eq(tables.scrobbles.albumId, album.id),
+          from,
+          to,
+        );
         return { data };
       }
 
@@ -119,7 +163,12 @@ const retrieve = ({
         }
 
         if (!trackId) return { data: [] };
-        const data = await scrobblesPerDay(ctx, eq(tables.scrobbles.trackId, trackId));
+        const data = await scrobblesPerDay(
+          ctx,
+          eq(tables.scrobbles.trackId, trackId),
+          from,
+          to,
+        );
         return { data };
       }
 
@@ -130,15 +179,23 @@ const retrieve = ({
             count: count(tables.scrobbles.id),
           })
           .from(tables.scrobbles)
-          .innerJoin(tables.tracks, eq(tables.scrobbles.trackId, tables.tracks.id))
-          .where(eq(tables.tracks.genre, params.genre))
+          .innerJoin(
+            tables.tracks,
+            eq(tables.scrobbles.trackId, tables.tracks.id),
+          )
+          .where(
+            and(
+              eq(tables.tracks.genre, params.genre),
+              between(sql`DATE(${tables.scrobbles.timestamp})`, from, to),
+            ),
+          )
           .groupBy(sql`DATE(${tables.scrobbles.timestamp})`)
           .orderBy(sql`DATE(${tables.scrobbles.timestamp})`)
           .execute();
         return { data };
       }
 
-      const data = await scrobblesPerDay(ctx, undefined);
+      const data = await scrobblesPerDay(ctx, undefined, from, to);
       return { data };
     },
     catch: (error) => new Error(`Failed to retrieve scrobbles chart: ${error}`),
@@ -151,6 +208,9 @@ const presentation = ({
   data: Array<{ date: string; count: number }>;
 }): Effect.Effect<ChartsView, never> => {
   return Effect.sync(() => ({
-    scrobbles: data.map((row) => ({ date: row.date, count: Number(row.count) })),
+    scrobbles: data.map((row) => ({
+      date: row.date,
+      count: Number(row.count),
+    })),
   }));
 };

@@ -69,7 +69,9 @@ const retrieve = ({
 
       if (topAlbumsQuery.length === 0) return { data: [] };
 
-      const albumIds = topAlbumsQuery.map((a) => a.albumId).filter((id): id is string => id !== null);
+      const albumIds = topAlbumsQuery
+        .map((a) => a.albumId)
+        .filter((id): id is string => id !== null);
 
       const [albums, uniqueListenersRows] = await Promise.all([
         ctx.db
@@ -99,8 +101,12 @@ const retrieve = ({
       ]);
 
       const albumMap = new Map(albums.map((a) => [a.id, a]));
-      const listenersMap = new Map(uniqueListenersRows.map((r) => [r.albumId, Number(r.unique_listeners)]));
-      const playCountMap = new Map(topAlbumsQuery.map((r) => [r.albumId, Number(r.play_count)]));
+      const listenersMap = new Map(
+        uniqueListenersRows.map((r) => [r.albumId, Number(r.unique_listeners)]),
+      );
+      const playCountMap = new Map(
+        topAlbumsQuery.map((r) => [r.albumId, Number(r.play_count)]),
+      );
 
       const data: Album[] = topAlbumsQuery
         .map((item) => {

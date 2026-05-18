@@ -54,7 +54,12 @@ const retrieve = ({
       const user = await ctx.db
         .select({ id: tables.users.id })
         .from(tables.users)
-        .where(or(eq(tables.users.did, params.did), eq(tables.users.handle, params.did)))
+        .where(
+          or(
+            eq(tables.users.did, params.did),
+            eq(tables.users.handle, params.did),
+          ),
+        )
         .execute()
         .then((rows) => rows[0]);
 
@@ -69,7 +74,9 @@ const retrieve = ({
 
       if (targetArtistRows.length === 0) return { data: [] };
 
-      const targetArtistIds = targetArtistRows.map((r) => r.artistId).filter((id): id is string => id !== null);
+      const targetArtistIds = targetArtistRows
+        .map((r) => r.artistId)
+        .filter((id): id is string => id !== null);
 
       const neighbourRows = await ctx.db
         .select({
@@ -90,7 +97,9 @@ const retrieve = ({
 
       if (neighbourRows.length === 0) return { data: [] };
 
-      const neighbourUserIds = neighbourRows.map((r) => r.userId).filter((id): id is string => id !== null);
+      const neighbourUserIds = neighbourRows
+        .map((r) => r.userId)
+        .filter((id): id is string => id !== null);
 
       const [neighbourUsers, allNeighbourArtists] = await Promise.all([
         ctx.db
@@ -157,8 +166,14 @@ const retrieve = ({
           const u = userMap.get(n.userId);
           if (!u) return null;
           const shared = sharedByUser.get(n.userId) ?? [];
-          const topShared = shared.slice(0, 5).map((id) => artistDetailMap.get(id)).filter(Boolean);
-          const similarityScore = targetArtistIds.length > 0 ? shared.length / targetArtistIds.length : 0;
+          const topShared = shared
+            .slice(0, 5)
+            .map((id) => artistDetailMap.get(id))
+            .filter(Boolean);
+          const similarityScore =
+            targetArtistIds.length > 0
+              ? shared.length / targetArtistIds.length
+              : 0;
           return {
             id: u.id,
             userId: u.id,
@@ -203,5 +218,10 @@ type Neighbour = {
   sharedArtistsCount: number;
   similarityScore: number;
   topSharedArtistNames: string[];
-  topSharedArtistsDetails: { id: string; name: string; picture: string | null; uri: string | null }[];
+  topSharedArtistsDetails: {
+    id: string;
+    name: string;
+    picture: string | null;
+    uri: string | null;
+  }[];
 };

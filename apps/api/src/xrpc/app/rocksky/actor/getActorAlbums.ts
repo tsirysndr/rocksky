@@ -59,7 +59,12 @@ const retrieve = ({
       const user = await ctx.db
         .select({ id: tables.users.id })
         .from(tables.users)
-        .where(or(eq(tables.users.did, params.did), eq(tables.users.handle, params.did)))
+        .where(
+          or(
+            eq(tables.users.did, params.did),
+            eq(tables.users.handle, params.did),
+          ),
+        )
         .execute()
         .then((rows) => rows[0]);
 
@@ -67,10 +72,14 @@ const retrieve = ({
 
       const dateConditions = [];
       if (params.startDate) {
-        dateConditions.push(gte(tables.scrobbles.timestamp, new Date(params.startDate)));
+        dateConditions.push(
+          gte(tables.scrobbles.timestamp, new Date(params.startDate)),
+        );
       }
       if (params.endDate) {
-        dateConditions.push(lte(tables.scrobbles.timestamp, new Date(params.endDate)));
+        dateConditions.push(
+          lte(tables.scrobbles.timestamp, new Date(params.endDate)),
+        );
       }
 
       const topAlbumsQuery = await ctx.db
@@ -80,7 +89,10 @@ const retrieve = ({
         })
         .from(tables.scrobbles)
         .where(
-          and(eq(tables.scrobbles.userId, user.id), ...(dateConditions.length > 0 ? dateConditions : [])),
+          and(
+            eq(tables.scrobbles.userId, user.id),
+            ...(dateConditions.length > 0 ? dateConditions : []),
+          ),
         )
         .groupBy(tables.scrobbles.albumId)
         .orderBy(desc(sql`count(${tables.scrobbles.id})`))
@@ -90,7 +102,9 @@ const retrieve = ({
 
       if (topAlbumsQuery.length === 0) return { data: [] };
 
-      const albumIds = topAlbumsQuery.map((a) => a.albumId).filter((id): id is string => id !== null);
+      const albumIds = topAlbumsQuery
+        .map((a) => a.albumId)
+        .filter((id): id is string => id !== null);
 
       const [albums, uniqueListenersRows] = await Promise.all([
         ctx.db
@@ -125,8 +139,12 @@ const retrieve = ({
       ]);
 
       const albumMap = new Map(albums.map((a) => [a.id, a]));
-      const listenersMap = new Map(uniqueListenersRows.map((r) => [r.albumId, Number(r.unique_listeners)]));
-      const playCountMap = new Map(topAlbumsQuery.map((r) => [r.albumId, Number(r.play_count)]));
+      const listenersMap = new Map(
+        uniqueListenersRows.map((r) => [r.albumId, Number(r.unique_listeners)]),
+      );
+      const playCountMap = new Map(
+        topAlbumsQuery.map((r) => [r.albumId, Number(r.play_count)]),
+      );
 
       const data: Album[] = topAlbumsQuery
         .map((item) => {

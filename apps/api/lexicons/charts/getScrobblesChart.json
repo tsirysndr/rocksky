@@ -31,6 +31,14 @@
           "genre": {
             "type": "string",
             "description": "The genre to filter by"
+          },
+          "from": {
+            "type": "string",
+            "description": "Start date (ISO 8601). Defaults to 6 months ago."
+          },
+          "to": {
+            "type": "string",
+            "description": "End date (ISO 8601). Defaults to today."
           }
         }
       },

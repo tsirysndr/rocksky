@@ -1,13 +1,13 @@
 import { AtpAgent } from "@atproto/api";
-import { Record } from "@atproto/api/dist/client/types/com/atproto/repo/listRecords";
+import type { Record } from "@atproto/api/dist/client/types/com/atproto/repo/listRecords";
 import { consola } from "consola";
 import { ctx } from "context";
 import extractPdsFromDid from "lib/extractPdsFromDid";
 import chalk from "chalk";
-import * as Song from "lexicon/types/app/rocksky/song";
-import * as Artist from "lexicon/types/app/rocksky/artist";
-import * as Album from "lexicon/types/app/rocksky/album";
-import * as Scrobble from "lexicon/types/app/rocksky/scrobble";
+import type * as Song from "lexicon/types/app/rocksky/song";
+import type * as Artist from "lexicon/types/app/rocksky/artist";
+import type * as Album from "lexicon/types/app/rocksky/album";
+import type * as Scrobble from "lexicon/types/app/rocksky/scrobble";
 import schema from "schema";
 import { and, eq, or } from "drizzle-orm";
 import { createHash } from "node:crypto";
@@ -47,7 +47,7 @@ async function getAtpAgent(did: string): Promise<AtpAgent> {
 
 async function getScrobbleRecords(agent: AtpAgent, did: string) {
   const records = [];
-  let cursor: string | undefined = undefined;
+  let cursor: string | undefined;
 
   do {
     const res = await agent.com.atproto.repo.listRecords({
@@ -68,7 +68,7 @@ async function getScrobbleRecords(agent: AtpAgent, did: string) {
 
 async function getSongRecords(agent: AtpAgent, did: string) {
   const records = [];
-  let cursor: string | undefined = undefined;
+  let cursor: string | undefined;
 
   do {
     const res = await agent.com.atproto.repo.listRecords({
@@ -89,7 +89,7 @@ async function getSongRecords(agent: AtpAgent, did: string) {
 
 async function getArtistRecords(agent: AtpAgent, did: string) {
   const records = [];
-  let cursor: string | undefined = undefined;
+  let cursor: string | undefined;
 
   do {
     const res = await agent.com.atproto.repo.listRecords({
@@ -110,7 +110,7 @@ async function getArtistRecords(agent: AtpAgent, did: string) {
 
 async function getAlbumRecords(agent: AtpAgent, did: string) {
   const records = [];
-  let cursor: string | undefined = undefined;
+  let cursor: string | undefined;
 
   do {
     const res = await agent.com.atproto.repo.listRecords({

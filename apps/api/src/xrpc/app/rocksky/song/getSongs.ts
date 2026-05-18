@@ -61,7 +61,10 @@ const retrieve = ({
           play_count: count(tables.scrobbles.id).as("play_count"),
         })
         .from(tables.scrobbles)
-        .innerJoin(tables.tracks, eq(tables.scrobbles.trackId, tables.tracks.id))
+        .innerJoin(
+          tables.tracks,
+          eq(tables.scrobbles.trackId, tables.tracks.id),
+        )
         .where(params.genre ? eq(tables.tracks.genre, params.genre) : undefined)
         .groupBy(tables.scrobbles.trackId)
         .orderBy(desc(sql`count(${tables.scrobbles.id})`))
@@ -71,7 +74,9 @@ const retrieve = ({
 
       if (topTracksQuery.length === 0) return { data: [] };
 
-      const trackIds = topTracksQuery.map((t) => t.trackId).filter((id): id is string => id !== null);
+      const trackIds = topTracksQuery
+        .map((t) => t.trackId)
+        .filter((id): id is string => id !== null);
 
       const [tracks, uniqueListenersRows] = await Promise.all([
         ctx.db
@@ -107,8 +112,12 @@ const retrieve = ({
       ]);
 
       const trackMap = new Map(tracks.map((t) => [t.id, t]));
-      const listenersMap = new Map(uniqueListenersRows.map((r) => [r.trackId, Number(r.unique_listeners)]));
-      const playCountMap = new Map(topTracksQuery.map((r) => [r.trackId, Number(r.play_count)]));
+      const listenersMap = new Map(
+        uniqueListenersRows.map((r) => [r.trackId, Number(r.unique_listeners)]),
+      );
+      const playCountMap = new Map(
+        topTracksQuery.map((r) => [r.trackId, Number(r.play_count)]),
+      );
 
       const data: Track[] = topTracksQuery
         .map((item) => {

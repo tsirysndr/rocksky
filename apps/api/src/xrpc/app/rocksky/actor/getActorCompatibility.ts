@@ -12,7 +12,13 @@ export default function (server: Server, ctx: Context) {
   const cache = Cache.make({
     capacity: 200,
     timeToLive: Duration.minutes(5),
-    lookup: ({ params, did }: { params: QueryParams; did: string | undefined }) =>
+    lookup: ({
+      params,
+      did,
+    }: {
+      params: QueryParams;
+      did: string | undefined;
+    }) =>
       pipe(
         { params, ctx, did },
         retrieve,
@@ -35,7 +41,9 @@ export default function (server: Server, ctx: Context) {
   server.app.rocksky.actor.getActorCompatibility({
     auth: ctx.authVerifier,
     handler: async ({ params, auth }) => {
-      const result = await Effect.runPromise(getActorCompatibility(params, auth));
+      const result = await Effect.runPromise(
+        getActorCompatibility(params, auth),
+      );
       return {
         encoding: "application/json",
         body: result,
@@ -67,7 +75,12 @@ const retrieve = ({
         ctx.db
           .select({ id: tables.users.id })
           .from(tables.users)
-          .where(or(eq(tables.users.did, params.did), eq(tables.users.handle, params.did)))
+          .where(
+            or(
+              eq(tables.users.did, params.did),
+              eq(tables.users.handle, params.did),
+            ),
+          )
           .execute()
           .then((rows) => rows[0]),
       ]);
@@ -82,8 +95,16 @@ const retrieve = ({
             scrobbles: count(tables.scrobbles.id),
           })
           .from(tables.scrobbles)
-          .innerJoin(tables.artists, eq(tables.scrobbles.artistId, tables.artists.id))
-          .where(and(eq(tables.scrobbles.userId, user1.id), ne(tables.artists.name, "Various Artists")))
+          .innerJoin(
+            tables.artists,
+            eq(tables.scrobbles.artistId, tables.artists.id),
+          )
+          .where(
+            and(
+              eq(tables.scrobbles.userId, user1.id),
+              ne(tables.artists.name, "Various Artists"),
+            ),
+          )
           .groupBy(tables.scrobbles.artistId)
           .orderBy(desc(count(tables.scrobbles.id)))
           .execute(),
@@ -93,15 +114,29 @@ const retrieve = ({
             scrobbles: count(tables.scrobbles.id),
           })
           .from(tables.scrobbles)
-          .innerJoin(tables.artists, eq(tables.scrobbles.artistId, tables.artists.id))
-          .where(and(eq(tables.scrobbles.userId, user2.id), ne(tables.artists.name, "Various Artists")))
+          .innerJoin(
+            tables.artists,
+            eq(tables.scrobbles.artistId, tables.artists.id),
+          )
+          .where(
+            and(
+              eq(tables.scrobbles.userId, user2.id),
+              ne(tables.artists.name, "Various Artists"),
+            ),
+          )
           .groupBy(tables.scrobbles.artistId)
           .orderBy(desc(count(tables.scrobbles.id)))
           .execute(),
       ]);
 
-      const user1Artists = rawUser1Artists.filter((a): a is { artistId: string; scrobbles: number } => a.artistId !== null);
-      const user2Artists = rawUser2Artists.filter((a): a is { artistId: string; scrobbles: number } => a.artistId !== null);
+      const user1Artists = rawUser1Artists.filter(
+        (a): a is { artistId: string; scrobbles: number } =>
+          a.artistId !== null,
+      );
+      const user2Artists = rawUser2Artists.filter(
+        (a): a is { artistId: string; scrobbles: number } =>
+          a.artistId !== null,
+      );
 
       const user1Map = new Map(user1Artists.map((a, i) => [a.artistId, i + 1]));
       const user2Map = new Map(user2Artists.map((a, i) => [a.artistId, i + 1]));
@@ -115,8 +150,12 @@ const retrieve = ({
       const user1Count = user1Artists.length;
       const user2Count = user2Artists.length;
       const unionCount = user1Count + user2Count - sharedCount;
-      const compatibilityPercentage = unionCount > 0 ? (sharedCount / unionCount) * 100 : 0;
-      const compatibilityLevel = Math.min(10, Math.round(compatibilityPercentage / 10));
+      const compatibilityPercentage =
+        unionCount > 0 ? (sharedCount / unionCount) * 100 : 0;
+      const compatibilityLevel = Math.min(
+        10,
+        Math.round(compatibilityPercentage / 10),
+      );
 
       const topSharedIds = sharedArtistIds.slice(0, 20);
 
@@ -165,7 +204,9 @@ const retrieve = ({
   });
 };
 
-const presentation = (data: Compatibility): Effect.Effect<{ compatibility: CompatibilityViewBasic }, never> => {
+const presentation = (
+  data: Compatibility,
+): Effect.Effect<{ compatibility: CompatibilityViewBasic }, never> => {
   return Effect.sync(() => ({
     compatibility: {
       compatibilityLevel: data.compatibility_level,

@@ -58,7 +58,12 @@ const retrieve = ({
       const user = await ctx.db
         .select({ id: tables.users.id })
         .from(tables.users)
-        .where(or(eq(tables.users.did, params.did), eq(tables.users.handle, params.did)))
+        .where(
+          or(
+            eq(tables.users.did, params.did),
+            eq(tables.users.handle, params.did),
+          ),
+        )
         .execute()
         .then((rows) => rows[0]);
 
@@ -66,10 +71,14 @@ const retrieve = ({
 
       const dateConditions = [];
       if (params.startDate) {
-        dateConditions.push(gte(tables.scrobbles.timestamp, new Date(params.startDate)));
+        dateConditions.push(
+          gte(tables.scrobbles.timestamp, new Date(params.startDate)),
+        );
       }
       if (params.endDate) {
-        dateConditions.push(lte(tables.scrobbles.timestamp, new Date(params.endDate)));
+        dateConditions.push(
+          lte(tables.scrobbles.timestamp, new Date(params.endDate)),
+        );
       }
 
       const topTracksQuery = await ctx.db
@@ -79,7 +88,10 @@ const retrieve = ({
         })
         .from(tables.scrobbles)
         .where(
-          and(eq(tables.scrobbles.userId, user.id), ...(dateConditions.length > 0 ? dateConditions : [])),
+          and(
+            eq(tables.scrobbles.userId, user.id),
+            ...(dateConditions.length > 0 ? dateConditions : []),
+          ),
         )
         .groupBy(tables.scrobbles.trackId)
         .orderBy(desc(sql`count(${tables.scrobbles.id})`))
@@ -89,7 +101,9 @@ const retrieve = ({
 
       if (topTracksQuery.length === 0) return { data: [] };
 
-      const trackIds = topTracksQuery.map((t) => t.trackId).filter((id): id is string => id !== null);
+      const trackIds = topTracksQuery
+        .map((t) => t.trackId)
+        .filter((id): id is string => id !== null);
 
       const [tracks, uniqueListenersRows] = await Promise.all([
         ctx.db
@@ -130,8 +144,12 @@ const retrieve = ({
       ]);
 
       const trackMap = new Map(tracks.map((t) => [t.id, t]));
-      const listenersMap = new Map(uniqueListenersRows.map((r) => [r.trackId, Number(r.unique_listeners)]));
-      const playCountMap = new Map(topTracksQuery.map((r) => [r.trackId, Number(r.play_count)]));
+      const listenersMap = new Map(
+        uniqueListenersRows.map((r) => [r.trackId, Number(r.unique_listeners)]),
+      );
+      const playCountMap = new Map(
+        topTracksQuery.map((r) => [r.trackId, Number(r.play_count)]),
+      );
 
       const data: Track[] = topTracksQuery
         .map((item) => {

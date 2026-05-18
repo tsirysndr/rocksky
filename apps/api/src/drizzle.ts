@@ -11,7 +11,10 @@ const pool = new pg.Pool({
 });
 
 pool.on("error", (err) => {
-  consola.error("Idle pg client error (connection terminated by server):", err.message);
+  consola.error(
+    "Idle pg client error (connection terminated by server):",
+    err.message,
+  );
 });
 
 const db = drizzle(pool);

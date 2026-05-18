@@ -74,7 +74,9 @@ const retrieve = ({
 
       if (artistTrackRows.length === 0) return { data: [] };
 
-      const trackIds = artistTrackRows.map((r) => r.trackId).filter((id): id is string => id !== null);
+      const trackIds = artistTrackRows
+        .map((r) => r.trackId)
+        .filter((id): id is string => id !== null);
 
       const [tracks, scrobbleCounts, uniqueListenersRows] = await Promise.all([
         ctx.db
@@ -119,8 +121,12 @@ const retrieve = ({
       ]);
 
       const trackMap = new Map(tracks.map((t) => [t.id, t]));
-      const playCountMap = new Map(scrobbleCounts.map((r) => [r.trackId, Number(r.play_count)]));
-      const listenersMap = new Map(uniqueListenersRows.map((r) => [r.trackId, Number(r.unique_listeners)]));
+      const playCountMap = new Map(
+        scrobbleCounts.map((r) => [r.trackId, Number(r.play_count)]),
+      );
+      const listenersMap = new Map(
+        uniqueListenersRows.map((r) => [r.trackId, Number(r.unique_listeners)]),
+      );
 
       const data: Track[] = trackIds
         .map((id) => {

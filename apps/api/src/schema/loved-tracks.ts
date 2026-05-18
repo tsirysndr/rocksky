@@ -3,19 +3,21 @@ import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import tracks from "./tracks";
 import users from "./users";
 
-const lovedTracks = pgTable("loved_tracks", {
-  id: text("xata_id").primaryKey().default(sql`xata_id()`),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id),
-  trackId: text("track_id")
-    .notNull()
-    .references(() => tracks.id),
-  uri: text("uri").unique(),
-  createdAt: timestamp("xata_createdat").defaultNow().notNull(),
-}, (t) => [
-  index("loved_tracks_track_id_idx").on(t.trackId),
-]);
+const lovedTracks = pgTable(
+  "loved_tracks",
+  {
+    id: text("xata_id").primaryKey().default(sql`xata_id()`),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    trackId: text("track_id")
+      .notNull()
+      .references(() => tracks.id),
+    uri: text("uri").unique(),
+    createdAt: timestamp("xata_createdat").defaultNow().notNull(),
+  },
+  (t) => [index("loved_tracks_track_id_idx").on(t.trackId)],
+);
 
 export type SelectLovedTrack = InferSelectModel<typeof lovedTracks>;
 export type InsertLovedTrack = InferInsertModel<typeof lovedTracks>;

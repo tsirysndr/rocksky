@@ -54,14 +54,19 @@ const retrieve = ({
     try: async () => {
       const limit = params.limit ?? 100;
       const offset = params.offset ?? 0;
-      const names = params.names?.split(",").map((n) => n.trim()).filter(Boolean);
+      const names = params.names
+        ?.split(",")
+        .map((n) => n.trim())
+        .filter(Boolean);
 
       const filters = [];
       if (names && names.length > 0) {
         filters.push(inArray(tables.artists.name, names));
       }
       if (params.genre) {
-        filters.push(sql`${tables.artists.genres} @> ARRAY[${params.genre}]::text[]`);
+        filters.push(
+          sql`${tables.artists.genres} @> ARRAY[${params.genre}]::text[]`,
+        );
       }
 
       let artistIds: string[];
@@ -87,7 +92,9 @@ const retrieve = ({
           .limit(limit)
           .offset(offset)
           .execute();
-        artistIds = topArtists.map((a) => a.artistId).filter((id): id is string => id !== null);
+        artistIds = topArtists
+          .map((a) => a.artistId)
+          .filter((id): id is string => id !== null);
       }
 
       if (artistIds.length === 0) return { data: [] };
@@ -125,8 +132,15 @@ const retrieve = ({
           .execute(),
       ]);
 
-      const playCountMap = new Map(scrobbleCounts.map((r) => [r.artistId, Number(r.play_count)]));
-      const listenersMap = new Map(uniqueListenersRows.map((r) => [r.artistId, Number(r.unique_listeners)]));
+      const playCountMap = new Map(
+        scrobbleCounts.map((r) => [r.artistId, Number(r.play_count)]),
+      );
+      const listenersMap = new Map(
+        uniqueListenersRows.map((r) => [
+          r.artistId,
+          Number(r.unique_listeners),
+        ]),
+      );
 
       const data: Artist[] = artists.map((artist) => ({
         id: artist.id,

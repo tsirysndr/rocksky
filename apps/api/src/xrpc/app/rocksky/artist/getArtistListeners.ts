@@ -78,7 +78,9 @@ const retrieve = ({
 
       if (listenersQuery.length === 0) return { data: [] };
 
-      const userIds = listenersQuery.map((r) => r.userId).filter((id): id is string => id !== null);
+      const userIds = listenersQuery
+        .map((r) => r.userId)
+        .filter((id): id is string => id !== null);
 
       const [users, trackPlays] = await Promise.all([
         ctx.db
@@ -100,21 +102,41 @@ const retrieve = ({
             plays: count(tables.scrobbles.id),
           })
           .from(tables.scrobbles)
-          .innerJoin(tables.tracks, eq(tables.scrobbles.trackId, tables.tracks.id))
-          .where(and(eq(tables.scrobbles.artistId, artist.id), inArray(tables.scrobbles.userId, userIds)))
-          .groupBy(tables.scrobbles.userId, tables.tracks.id, tables.tracks.title, tables.tracks.uri)
+          .innerJoin(
+            tables.tracks,
+            eq(tables.scrobbles.trackId, tables.tracks.id),
+          )
+          .where(
+            and(
+              eq(tables.scrobbles.artistId, artist.id),
+              inArray(tables.scrobbles.userId, userIds),
+            ),
+          )
+          .groupBy(
+            tables.scrobbles.userId,
+            tables.tracks.id,
+            tables.tracks.title,
+            tables.tracks.uri,
+          )
           .execute(),
       ]);
 
       const userMap = new Map(users.map((u) => [u.id, u]));
 
-      const mostPlayedByUser = new Map<string, { title: string; uri: string | null; plays: number }>();
+      const mostPlayedByUser = new Map<
+        string,
+        { title: string; uri: string | null; plays: number }
+      >();
       for (const row of trackPlays) {
         if (!row.userId) continue;
         const cur = mostPlayedByUser.get(row.userId);
         const plays = Number(row.plays);
         if (!cur || plays > cur.plays) {
-          mostPlayedByUser.set(row.userId, { title: row.title, uri: row.uri, plays });
+          mostPlayedByUser.set(row.userId, {
+            title: row.title,
+            uri: row.uri,
+            plays,
+          });
         }
       }
 
@@ -142,7 +164,8 @@ const retrieve = ({
 
       return { data };
     },
-    catch: (error) => new Error(`Failed to retrieve artist's listeners: ${error}`),
+    catch: (error) =>
+      new Error(`Failed to retrieve artist's listeners: ${error}`),
   });
 };
 

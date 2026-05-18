@@ -34,7 +34,15 @@ const retrieve = ({
   params: QueryParams;
   ctx: Context;
 }): Effect.Effect<
-  { data: { scrobbles: number; artists: number; loved_tracks: number; albums: number; tracks: number } },
+  {
+    data: {
+      scrobbles: number;
+      artists: number;
+      loved_tracks: number;
+      albums: number;
+      tracks: number;
+    };
+  },
   Error
 > => {
   return Effect.tryPromise({
@@ -42,37 +50,61 @@ const retrieve = ({
       const user = await ctx.db
         .select({ id: tables.users.id })
         .from(tables.users)
-        .where(or(eq(tables.users.did, params.did), eq(tables.users.handle, params.did)))
+        .where(
+          or(
+            eq(tables.users.did, params.did),
+            eq(tables.users.handle, params.did),
+          ),
+        )
         .execute()
         .then((rows) => rows[0]);
 
       if (!user) {
-        return { data: { scrobbles: 0, artists: 0, loved_tracks: 0, albums: 0, tracks: 0 } };
+        return {
+          data: {
+            scrobbles: 0,
+            artists: 0,
+            loved_tracks: 0,
+            albums: 0,
+            tracks: 0,
+          },
+        };
       }
 
-      const [scrobblesRow, artistsRow, lovedRow, albumsRow, tracksRow] = await Promise.all([
-        ctx.db.select({ n: count() }).from(tables.scrobbles).where(eq(tables.scrobbles.userId, user.id)).execute(),
-        ctx.db
-          .select({ n: sql<number>`count(distinct ${tables.scrobbles.artistId})` })
-          .from(tables.scrobbles)
-          .where(eq(tables.scrobbles.userId, user.id))
-          .execute(),
-        ctx.db
-          .select({ n: count() })
-          .from(tables.lovedTracks)
-          .where(eq(tables.lovedTracks.userId, user.id))
-          .execute(),
-        ctx.db
-          .select({ n: sql<number>`count(distinct ${tables.scrobbles.albumId})` })
-          .from(tables.scrobbles)
-          .where(eq(tables.scrobbles.userId, user.id))
-          .execute(),
-        ctx.db
-          .select({ n: sql<number>`count(distinct ${tables.scrobbles.trackId})` })
-          .from(tables.scrobbles)
-          .where(eq(tables.scrobbles.userId, user.id))
-          .execute(),
-      ]);
+      const [scrobblesRow, artistsRow, lovedRow, albumsRow, tracksRow] =
+        await Promise.all([
+          ctx.db
+            .select({ n: count() })
+            .from(tables.scrobbles)
+            .where(eq(tables.scrobbles.userId, user.id))
+            .execute(),
+          ctx.db
+            .select({
+              n: sql<number>`count(distinct ${tables.scrobbles.artistId})`,
+            })
+            .from(tables.scrobbles)
+            .where(eq(tables.scrobbles.userId, user.id))
+            .execute(),
+          ctx.db
+            .select({ n: count() })
+            .from(tables.lovedTracks)
+            .where(eq(tables.lovedTracks.userId, user.id))
+            .execute(),
+          ctx.db
+            .select({
+              n: sql<number>`count(distinct ${tables.scrobbles.albumId})`,
+            })
+            .from(tables.scrobbles)
+            .where(eq(tables.scrobbles.userId, user.id))
+            .execute(),
+          ctx.db
+            .select({
+              n: sql<number>`count(distinct ${tables.scrobbles.trackId})`,
+            })
+            .from(tables.scrobbles)
+            .where(eq(tables.scrobbles.userId, user.id))
+            .execute(),
+        ]);
 
       return {
         data: {
@@ -91,7 +123,13 @@ const retrieve = ({
 const presentation = ({
   data,
 }: {
-  data: { scrobbles: number; artists: number; loved_tracks: number; albums: number; tracks: number };
+  data: {
+    scrobbles: number;
+    artists: number;
+    loved_tracks: number;
+    albums: number;
+    tracks: number;
+  };
 }): Effect.Effect<StatsView, never> => {
   return Effect.sync(() => ({
     scrobbles: data.scrobbles,

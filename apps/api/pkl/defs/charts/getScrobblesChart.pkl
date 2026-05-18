@@ -31,6 +31,14 @@ defs = new Mapping<String, Query> {
         ["genre"] = new StringType {
           description = "The genre to filter by"
         }
+
+        ["from"] = new StringType {
+          description = "Start date (ISO 8601). Defaults to 6 months ago."
+        }
+
+        ["to"] = new StringType {
+          description = "End date (ISO 8601). Defaults to today."
+        }
       }
     }
     output {
