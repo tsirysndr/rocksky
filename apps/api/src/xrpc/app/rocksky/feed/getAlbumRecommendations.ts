@@ -193,21 +193,21 @@ const retrieve = ({
                 .select({
                   artistId: tables.scrobbles.artistId,
                   neighbourUserId: tables.scrobbles.userId,
-                  playScore: sql<number>`sum(exp(-${DECAY_LAMBDA} * extract(epoch from (now() - ${tables.scrobbles.timestamp})) / 86400))`,
+                  playScore: sql<number>`sum(exp(-0.02 * extract(epoch from (now() - ${tables.scrobbles.timestamp})) / 86400))`,
                 })
                 .from(tables.scrobbles)
                 .where(
                   and(
                     inArray(tables.scrobbles.userId, neighbourIds),
                     heardArtistIds.length > 0
-                      ? notInArray(tables.scrobbles.artistId, heardArtistIds)
+                      ? notInArray(tables.scrobbles.artistId, heardArtistIds.slice(0, 500))
                       : undefined,
                   ),
                 )
                 .groupBy(tables.scrobbles.artistId, tables.scrobbles.userId)
                 .orderBy(
                   desc(
-                    sql`sum(exp(-${DECAY_LAMBDA} * extract(epoch from (now() - ${tables.scrobbles.timestamp})) / 86400))`,
+                    sql`sum(exp(-0.02 * extract(epoch from (now() - ${tables.scrobbles.timestamp})) / 86400))`,
                   ),
                 )
                 .limit(50);
