@@ -226,3 +226,95 @@ export function isRecommendationsView(v: unknown): v is RecommendationsView {
 export function validateRecommendationsView(v: unknown): ValidationResult {
   return lexicons.validate("app.rocksky.feed.defs#recommendationsView", v);
 }
+
+export interface RecommendedArtistView {
+  id?: string;
+  uri?: string;
+  name?: string;
+  picture?: string;
+  genres?: string[];
+  recommendationScore?: number;
+  /** neighbour | social | serendipity */
+  source?: string;
+  [k: string]: unknown;
+}
+
+export function isRecommendedArtistView(
+  v: unknown,
+): v is RecommendedArtistView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.feed.defs#recommendedArtistView"
+  );
+}
+
+export function validateRecommendedArtistView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.feed.defs#recommendedArtistView", v);
+}
+
+export interface RecommendedArtistsView {
+  artists?: RecommendedArtistView[];
+  cursor?: string;
+  [k: string]: unknown;
+}
+
+export function isRecommendedArtistsView(
+  v: unknown,
+): v is RecommendedArtistsView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.feed.defs#recommendedArtistsView"
+  );
+}
+
+export function validateRecommendedArtistsView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.feed.defs#recommendedArtistsView", v);
+}
+
+export interface RecommendedAlbumView {
+  id?: string;
+  uri?: string;
+  title?: string;
+  artist?: string;
+  artistUri?: string;
+  year?: number;
+  albumArt?: string;
+  recommendationScore?: number;
+  /** known-artist | new-artist | serendipity */
+  source?: string;
+  [k: string]: unknown;
+}
+
+export function isRecommendedAlbumView(v: unknown): v is RecommendedAlbumView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.feed.defs#recommendedAlbumView"
+  );
+}
+
+export function validateRecommendedAlbumView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.feed.defs#recommendedAlbumView", v);
+}
+
+export interface RecommendedAlbumsView {
+  albums?: RecommendedAlbumView[];
+  cursor?: string;
+  [k: string]: unknown;
+}
+
+export function isRecommendedAlbumsView(
+  v: unknown,
+): v is RecommendedAlbumsView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.feed.defs#recommendedAlbumsView"
+  );
+}
+
+export function validateRecommendedAlbumsView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.feed.defs#recommendedAlbumsView", v);
+}

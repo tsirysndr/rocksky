@@ -2759,6 +2759,104 @@ export const schemaDict = {
           },
         },
       },
+      recommendedArtistView: {
+        type: "object",
+        properties: {
+          id: {
+            type: "string",
+          },
+          uri: {
+            type: "string",
+            format: "at-uri",
+          },
+          name: {
+            type: "string",
+          },
+          picture: {
+            type: "string",
+            format: "uri",
+          },
+          genres: {
+            type: "array",
+            items: {
+              type: "string",
+            },
+          },
+          recommendationScore: {
+            type: "integer",
+          },
+          source: {
+            type: "string",
+            description: "neighbour | social | serendipity",
+          },
+        },
+      },
+      recommendedArtistsView: {
+        type: "object",
+        properties: {
+          artists: {
+            type: "array",
+            items: {
+              type: "ref",
+              ref: "lex:app.rocksky.feed.defs#recommendedArtistView",
+            },
+          },
+          cursor: {
+            type: "string",
+          },
+        },
+      },
+      recommendedAlbumView: {
+        type: "object",
+        properties: {
+          id: {
+            type: "string",
+          },
+          uri: {
+            type: "string",
+            format: "at-uri",
+          },
+          title: {
+            type: "string",
+          },
+          artist: {
+            type: "string",
+          },
+          artistUri: {
+            type: "string",
+            format: "at-uri",
+          },
+          year: {
+            type: "integer",
+          },
+          albumArt: {
+            type: "string",
+            format: "uri",
+          },
+          recommendationScore: {
+            type: "integer",
+          },
+          source: {
+            type: "string",
+            description: "known-artist | new-artist | serendipity",
+          },
+        },
+      },
+      recommendedAlbumsView: {
+        type: "object",
+        properties: {
+          albums: {
+            type: "array",
+            items: {
+              type: "ref",
+              ref: "lex:app.rocksky.feed.defs#recommendedAlbumView",
+            },
+          },
+          cursor: {
+            type: "string",
+          },
+        },
+      },
     },
   },
   AppRockskyFeedDescribeFeedGenerator: {
@@ -2833,6 +2931,70 @@ export const schemaDict = {
               type: "string",
               format: "datetime",
             },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyFeedGetAlbumRecommendations: {
+    lexicon: 1,
+    id: "app.rocksky.feed.getAlbumRecommendations",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get personalised album recommendations for a user",
+        parameters: {
+          type: "params",
+          required: ["did"],
+          properties: {
+            did: {
+              type: "string",
+              description: "DID or handle of the user to recommend for.",
+            },
+            limit: {
+              type: "integer",
+              maximum: 100,
+              minimum: 1,
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "ref",
+            ref: "lex:app.rocksky.feed.defs#recommendedAlbumsView",
+          },
+        },
+      },
+    },
+  },
+  AppRockskyFeedGetArtistRecommendations: {
+    lexicon: 1,
+    id: "app.rocksky.feed.getArtistRecommendations",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get personalised artist recommendations for a user",
+        parameters: {
+          type: "params",
+          required: ["did"],
+          properties: {
+            did: {
+              type: "string",
+              description: "DID or handle of the user to recommend for.",
+            },
+            limit: {
+              type: "integer",
+              maximum: 100,
+              minimum: 1,
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "ref",
+            ref: "lex:app.rocksky.feed.defs#recommendedArtistsView",
           },
         },
       },
@@ -6296,6 +6458,10 @@ export const ids = {
   AppRockskyFeedDefs: "app.rocksky.feed.defs",
   AppRockskyFeedDescribeFeedGenerator: "app.rocksky.feed.describeFeedGenerator",
   AppRockskyFeedGenerator: "app.rocksky.feed.generator",
+  AppRockskyFeedGetAlbumRecommendations:
+    "app.rocksky.feed.getAlbumRecommendations",
+  AppRockskyFeedGetArtistRecommendations:
+    "app.rocksky.feed.getArtistRecommendations",
   AppRockskyFeedGetFeed: "app.rocksky.feed.getFeed",
   AppRockskyFeedGetFeedGenerator: "app.rocksky.feed.getFeedGenerator",
   AppRockskyFeedGetFeedGenerators: "app.rocksky.feed.getFeedGenerators",

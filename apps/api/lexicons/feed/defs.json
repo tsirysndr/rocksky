@@ -234,6 +234,104 @@
           "type": "string"
         }
       }
+    },
+    "recommendedArtistView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "uri": {
+          "type": "string",
+          "format": "at-uri"
+        },
+        "name": {
+          "type": "string"
+        },
+        "picture": {
+          "type": "string",
+          "format": "uri"
+        },
+        "genres": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "recommendationScore": {
+          "type": "integer"
+        },
+        "source": {
+          "type": "string",
+          "description": "neighbour | social | serendipity"
+        }
+      }
+    },
+    "recommendedArtistsView": {
+      "type": "object",
+      "properties": {
+        "artists": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.feed.defs#recommendedArtistView"
+          }
+        },
+        "cursor": {
+          "type": "string"
+        }
+      }
+    },
+    "recommendedAlbumView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "uri": {
+          "type": "string",
+          "format": "at-uri"
+        },
+        "title": {
+          "type": "string"
+        },
+        "artist": {
+          "type": "string"
+        },
+        "artistUri": {
+          "type": "string",
+          "format": "at-uri"
+        },
+        "year": {
+          "type": "integer"
+        },
+        "albumArt": {
+          "type": "string",
+          "format": "uri"
+        },
+        "recommendationScore": {
+          "type": "integer"
+        },
+        "source": {
+          "type": "string",
+          "description": "known-artist | new-artist | serendipity"
+        }
+      }
+    },
+    "recommendedAlbumsView": {
+      "type": "object",
+      "properties": {
+        "albums": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.feed.defs#recommendedAlbumView"
+          }
+        },
+        "cursor": {
+          "type": "string"
+        }
+      }
     }
   }
 }
