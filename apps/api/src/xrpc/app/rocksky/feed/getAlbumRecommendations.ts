@@ -133,14 +133,16 @@ const retrieve = ({
           rows.map((r) => r.trackId).filter((id): id is string => id !== null),
         );
 
-      const [scrobbledArtistGenres, likedTrackGenres] = await Promise.all([
+      // Scrobble-weighted genre profile — reuses artistFamiliarityMap for weights.
+      // Genres below 5 % of total listening are excluded so incidentally-heard
+      // genres don't pollute the profile.
+      const [artistGenreRows, likedArtistGenres] = await Promise.all([
         heardArtistIds.length > 0
           ? ctx.db
-              .select({ genres: tables.artists.genres })
+              .select({ id: tables.artists.id, genres: tables.artists.genres })
               .from(tables.artists)
               .where(inArray(tables.artists.id, heardArtistIds))
-              .then((rows) => rows.flatMap((r) => r.genres ?? []))
-          : Promise.resolve([] as string[]),
+          : Promise.resolve([] as { id: string; genres: string[] | null }[]),
         lovedTrackIds.length > 0
           ? ctx.db
               .select({ genres: tables.artists.genres })
@@ -154,10 +156,26 @@ const retrieve = ({
           : Promise.resolve([] as string[]),
       ]);
 
-      const userGenres = new Set<string>([
-        ...scrobbledArtistGenres,
-        ...likedTrackGenres,
-      ]);
+      const genreWeights = new Map<string, number>();
+      for (const { id, genres } of artistGenreRows) {
+        const w = Number(artistFamiliarityMap.get(id) ?? 1);
+        for (const genre of genres ?? []) {
+          genreWeights.set(genre, (genreWeights.get(genre) ?? 0) + w);
+        }
+      }
+      for (const genre of likedArtistGenres) {
+        genreWeights.set(genre, (genreWeights.get(genre) ?? 0) + 50);
+      }
+
+      const totalGenreWeight =
+        [...genreWeights.values()].reduce((a, b) => a + b, 0) || 1;
+      const userGenres = new Set<string>(
+        [...genreWeights.entries()]
+          .sort(([, a], [, b]) => b - a)
+          .filter(([, w]) => w / totalGenreWeight >= 0.05)
+          .slice(0, 10)
+          .map(([g]) => g),
+      );
 
       // Pool A — albums from known artists not yet heard
       // Resolve artist IDs → URIs to join against albums.artistUri

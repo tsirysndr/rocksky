@@ -83,14 +83,20 @@ const retrieve = ({
       const serendipityCount = Math.ceil(limit * SERENDIPITY_RATIO);
       const mainCount = limit - serendipityCount;
 
-      // Artists the user has already heard
+      // Artists the user has already heard (with scrobble counts for genre weighting)
       const heardRows = await ctx.db
-        .select({ artistId: tables.userArtists.artistId })
+        .select({
+          artistId: tables.userArtists.artistId,
+          scrobbles: tables.userArtists.scrobbles,
+        })
         .from(tables.userArtists)
         .where(eq(tables.userArtists.userId, user.id));
 
       const heardArtistIds = heardRows.map((r) => r.artistId);
       const heardArtistSet = new Set(heardArtistIds);
+      const artistFamiliarityMap = new Map(
+        heardRows.map((r) => [r.artistId, r.scrobbles ?? 1]),
+      );
 
       if (heardArtistIds.length === 0) {
         return { candidates: [], userGenres: new Set(), ctx };
@@ -105,12 +111,14 @@ const retrieve = ({
           rows.map((r) => r.trackId).filter((id): id is string => id !== null),
         );
 
-      const [scrobbledArtistGenres, likedTrackGenres] = await Promise.all([
+      // Scrobble-weighted genre profile — reuses the already-fetched
+      // heardArtistIds / artistFamiliarityMap; genres below 5 % of total
+      // listening are excluded so incidentally-heard genres don't pollute it.
+      const [artistGenreRows, likedArtistGenres] = await Promise.all([
         ctx.db
-          .select({ genres: tables.artists.genres })
+          .select({ id: tables.artists.id, genres: tables.artists.genres })
           .from(tables.artists)
-          .where(inArray(tables.artists.id, heardArtistIds))
-          .then((rows) => rows.flatMap((r) => r.genres ?? [])),
+          .where(inArray(tables.artists.id, heardArtistIds)),
         lovedTrackIds.length > 0
           ? ctx.db
               .select({ genres: tables.artists.genres })
@@ -124,10 +132,26 @@ const retrieve = ({
           : Promise.resolve([] as string[]),
       ]);
 
-      const userGenres = new Set<string>([
-        ...scrobbledArtistGenres,
-        ...likedTrackGenres,
-      ]);
+      const genreWeights = new Map<string, number>();
+      for (const { id, genres } of artistGenreRows) {
+        const w = Number(artistFamiliarityMap.get(id) ?? 1);
+        for (const genre of genres ?? []) {
+          genreWeights.set(genre, (genreWeights.get(genre) ?? 0) + w);
+        }
+      }
+      for (const genre of likedArtistGenres) {
+        genreWeights.set(genre, (genreWeights.get(genre) ?? 0) + 50);
+      }
+
+      const totalGenreWeight =
+        [...genreWeights.values()].reduce((a, b) => a + b, 0) || 1;
+      const userGenres = new Set<string>(
+        [...genreWeights.entries()]
+          .sort(([, a], [, b]) => b - a)
+          .filter(([, w]) => w / totalGenreWeight >= 0.05)
+          .slice(0, 10)
+          .map(([g]) => g),
+      );
 
       // Top neighbours by shared-artist overlap
       const neighbours = await ctx.db

@@ -61,11 +61,15 @@ const retrieve = ({
         .select({
           trackId: tables.scrobbles.trackId,
           scrobbles: count(tables.scrobbles.id).as("scrobbles"),
+          uniqueListeners:
+            sql<number>`count(DISTINCT ${tables.scrobbles.userId})`.as(
+              "unique_listeners",
+            ),
         })
         .from(tables.scrobbles)
         .where(dateConditions.length > 0 ? and(...dateConditions) : undefined)
         .groupBy(tables.scrobbles.trackId)
-        .orderBy(desc(sql`count(${tables.scrobbles.id})`))
+        .orderBy(desc(sql`count(DISTINCT ${tables.scrobbles.userId})`))
         .limit(limit)
         .offset(offset);
 
@@ -106,29 +110,8 @@ const retrieve = ({
 
       const trackMap = new Map(tracks.map((track) => [track.id, track]));
 
-      const uniqueListenersQuery = await ctx.db
-        .select({
-          trackId: tables.scrobbles.trackId,
-          uniqueListeners:
-            sql<number>`count(DISTINCT ${tables.scrobbles.userId})`.as(
-              "unique_listeners",
-            ),
-        })
-        .from(tables.scrobbles)
-        .where(
-          and(
-            inArray(tables.scrobbles.trackId, trackIds),
-            dateConditions.length > 0 ? and(...dateConditions) : undefined,
-          ),
-        )
-        .groupBy(tables.scrobbles.trackId)
-        .execute();
-      consola.info(
-        `Calculated unique listeners for ${uniqueListenersQuery.length} tracks`,
-      );
-
       const listenersMap = new Map(
-        uniqueListenersQuery.map((item) => [
+        topTracksData.map((item) => [
           item.trackId,
           Number(item.uniqueListeners),
         ]),

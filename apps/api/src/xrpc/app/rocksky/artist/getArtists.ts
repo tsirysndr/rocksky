@@ -88,7 +88,7 @@ const retrieve = ({
           })
           .from(tables.scrobbles)
           .groupBy(tables.scrobbles.artistId)
-          .orderBy(desc(sql`count(${tables.scrobbles.id})`))
+          .orderBy(desc(sql`count(DISTINCT ${tables.scrobbles.userId})`))
           .limit(limit)
           .offset(offset)
           .execute();

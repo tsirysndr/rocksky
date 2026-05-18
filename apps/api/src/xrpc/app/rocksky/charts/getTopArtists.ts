@@ -61,6 +61,10 @@ const retrieve = ({
         .select({
           artistId: tables.scrobbles.artistId,
           scrobbles: count(tables.scrobbles.id).as("scrobbles"),
+          uniqueListeners:
+            sql<number>`count(DISTINCT ${tables.scrobbles.userId})`.as(
+              "unique_listeners",
+            ),
         })
         .from(tables.scrobbles)
         .leftJoin(
@@ -73,7 +77,7 @@ const retrieve = ({
             : ne(tables.artists.name, "Various Artists"),
         )
         .groupBy(tables.scrobbles.artistId)
-        .orderBy(desc(sql`count(${tables.scrobbles.id})`))
+        .orderBy(desc(sql`count(DISTINCT ${tables.scrobbles.userId})`))
         .limit(limit)
         .offset(offset);
 
@@ -105,29 +109,8 @@ const retrieve = ({
 
       const artistMap = new Map(artists.map((artist) => [artist.id, artist]));
 
-      const uniqueListenersQuery = await ctx.db
-        .select({
-          artistId: tables.scrobbles.artistId,
-          uniqueListeners:
-            sql<number>`count(DISTINCT ${tables.scrobbles.userId})`.as(
-              "unique_listeners",
-            ),
-        })
-        .from(tables.scrobbles)
-        .where(
-          and(
-            inArray(tables.scrobbles.artistId, artistIds),
-            dateConditions.length > 0 ? and(...dateConditions) : undefined,
-          ),
-        )
-        .groupBy(tables.scrobbles.artistId)
-        .execute();
-      consola.info(
-        `Calculated unique listeners for ${uniqueListenersQuery.length} artists`,
-      );
-
       const listenersMap = new Map(
-        uniqueListenersQuery.map((item) => [
+        topArtistsData.map((item) => [
           item.artistId,
           Number(item.uniqueListeners),
         ]),

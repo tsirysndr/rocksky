@@ -59,6 +59,7 @@ const retrieve = ({
         .select({
           trackId: tables.scrobbles.trackId,
           play_count: count(tables.scrobbles.id).as("play_count"),
+          unique_listeners: sql<number>`count(DISTINCT ${tables.scrobbles.userId})`.as("unique_listeners"),
         })
         .from(tables.scrobbles)
         .innerJoin(
@@ -67,7 +68,7 @@ const retrieve = ({
         )
         .where(params.genre ? eq(tables.tracks.genre, params.genre) : undefined)
         .groupBy(tables.scrobbles.trackId)
-        .orderBy(desc(sql`count(${tables.scrobbles.id})`))
+        .orderBy(desc(sql`count(DISTINCT ${tables.scrobbles.userId})`))
         .limit(limit)
         .offset(offset)
         .execute();
@@ -78,42 +79,31 @@ const retrieve = ({
         .map((t) => t.trackId)
         .filter((id): id is string => id !== null);
 
-      const [tracks, uniqueListenersRows] = await Promise.all([
-        ctx.db
-          .select({
-            id: tables.tracks.id,
-            title: tables.tracks.title,
-            artist: tables.tracks.artist,
-            albumArtist: tables.tracks.albumArtist,
-            albumArt: tables.tracks.albumArt,
-            album: tables.tracks.album,
-            uri: tables.tracks.uri,
-            albumUri: tables.tracks.albumUri,
-            artistUri: tables.tracks.artistUri,
-            sha256: tables.tracks.sha256,
-            trackNumber: tables.tracks.trackNumber,
-            discNumber: tables.tracks.discNumber,
-            duration: tables.tracks.duration,
-            copyrightMessage: tables.tracks.copyrightMessage,
-            createdAt: tables.tracks.createdAt,
-          })
-          .from(tables.tracks)
-          .where(inArray(tables.tracks.id, trackIds))
-          .execute(),
-        ctx.db
-          .select({
-            trackId: tables.scrobbles.trackId,
-            unique_listeners: sql<number>`count(distinct ${tables.scrobbles.userId})`,
-          })
-          .from(tables.scrobbles)
-          .where(inArray(tables.scrobbles.trackId, trackIds))
-          .groupBy(tables.scrobbles.trackId)
-          .execute(),
-      ]);
+      const tracks = await ctx.db
+        .select({
+          id: tables.tracks.id,
+          title: tables.tracks.title,
+          artist: tables.tracks.artist,
+          albumArtist: tables.tracks.albumArtist,
+          albumArt: tables.tracks.albumArt,
+          album: tables.tracks.album,
+          uri: tables.tracks.uri,
+          albumUri: tables.tracks.albumUri,
+          artistUri: tables.tracks.artistUri,
+          sha256: tables.tracks.sha256,
+          trackNumber: tables.tracks.trackNumber,
+          discNumber: tables.tracks.discNumber,
+          duration: tables.tracks.duration,
+          copyrightMessage: tables.tracks.copyrightMessage,
+          createdAt: tables.tracks.createdAt,
+        })
+        .from(tables.tracks)
+        .where(inArray(tables.tracks.id, trackIds))
+        .execute();
 
       const trackMap = new Map(tracks.map((t) => [t.id, t]));
       const listenersMap = new Map(
-        uniqueListenersRows.map((r) => [r.trackId, Number(r.unique_listeners)]),
+        topTracksQuery.map((r) => [r.trackId, Number(r.unique_listeners)]),
       );
       const playCountMap = new Map(
         topTracksQuery.map((r) => [r.trackId, Number(r.play_count)]),
