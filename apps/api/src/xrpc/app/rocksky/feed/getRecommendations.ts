@@ -11,7 +11,7 @@ import type { QueryParams } from "lexicon/types/app/rocksky/feed/getRecommendati
 import tables from "schema";
 
 const DECAY_LAMBDA = 0.02 as const;
-const NEIGHBOUR_LIMIT = 20;
+const NEIGHBOUR_LIMIT = 50;
 const RESULT_LIMIT = 50;
 const SERENDIPITY_RATIO = 0.15;
 
@@ -122,7 +122,7 @@ const retrieve = ({
             sql<number>`sum(exp(-0.02 * extract(epoch from (now() - ${tables.scrobbles.timestamp})) / 86400))`,
           ),
         )
-        .limit(100);
+        .limit(200);
 
       const artistIds = artistProfile
         .map((r) => r.artistId)
@@ -235,7 +235,7 @@ const retrieve = ({
             sql`sum(exp(-0.02 * extract(epoch from (now() - ${tables.scrobbles.timestamp})) / 86400))`,
           ),
         )
-        .limit(200);
+        .limit(500);
 
       // Score = similarity × decayed_play_count × loved_boost
       const scoreMap = new Map<string, number>();
@@ -288,7 +288,7 @@ const retrieve = ({
         )
         .groupBy(tables.scrobbles.artistId)
         .orderBy(desc(sql`count(*)`))
-        .limit(50)
+        .limit(150)
         .then((rows) =>
           rows.map((r) => r.artistId).filter((id): id is string => id !== null),
         );

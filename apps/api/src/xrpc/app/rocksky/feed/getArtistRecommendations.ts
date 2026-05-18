@@ -11,7 +11,7 @@ import type { QueryParams } from "lexicon/types/app/rocksky/feed/getArtistRecomm
 import tables from "schema";
 
 const DECAY_LAMBDA = 0.02 as const;
-const NEIGHBOUR_LIMIT = 20;
+const NEIGHBOUR_LIMIT = 50;
 const RESULT_LIMIT = 50;
 const SERENDIPITY_RATIO = 0.15;
 
@@ -188,7 +188,7 @@ const retrieve = ({
             sql`sum(exp(-0.02 * extract(epoch from (now() - ${tables.scrobbles.timestamp})) / 86400))`,
           ),
         )
-        .limit(200);
+        .limit(500);
 
       // Score = similarity × decayed_play_count
       const scoreMap = new Map<string, number>();
@@ -202,6 +202,34 @@ const retrieve = ({
         const existing = scoreMap.get(row.artistId) ?? 0;
         if (score > existing) {
           scoreMap.set(row.artistId, score);
+        }
+      }
+
+      // Genre-filter the score pool BEFORE candidate selection so source labels
+      // ("neighbour", "serendipity") are only ever assigned to genre-appropriate
+      // artists. The hydrate filter is a secondary safety net.
+      if (userGenres.size > 0 && scoreMap.size > 0) {
+        const artistGenreData = await ctx.db
+          .select({
+            id: tables.artists.id,
+            name: tables.artists.name,
+            genres: tables.artists.genres,
+          })
+          .from(tables.artists)
+          .where(inArray(tables.artists.id, [...scoreMap.keys()]));
+
+        const genreOkIds = new Set(
+          artistGenreData
+            .filter(
+              (r) =>
+                r.name?.toLowerCase() !== "various artists" &&
+                (r.genres ?? []).some((g) => userGenres.has(g)),
+            )
+            .map((r) => r.id),
+        );
+
+        for (const artistId of [...scoreMap.keys()]) {
+          if (!genreOkIds.has(artistId)) scoreMap.delete(artistId);
         }
       }
 

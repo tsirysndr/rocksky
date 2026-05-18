@@ -11,7 +11,7 @@ import type { QueryParams } from "lexicon/types/app/rocksky/feed/getAlbumRecomme
 import tables from "schema";
 
 const DECAY_LAMBDA = 0.02 as const;
-const NEIGHBOUR_LIMIT = 20;
+const NEIGHBOUR_LIMIT = 50;
 const RESULT_LIMIT = 50;
 
 const cacheKey = (params: QueryParams) =>
@@ -117,7 +117,7 @@ const retrieve = ({
         .from(tables.userArtists)
         .where(eq(tables.userArtists.userId, user.id))
         .orderBy(desc(tables.userArtists.scrobbles))
-        .limit(100);
+        .limit(200);
 
       const heardArtistIds = userArtistRows.map((r) => r.artistId);
       const artistFamiliarityMap = new Map(
@@ -203,7 +203,7 @@ const retrieve = ({
                     : undefined,
                 ),
               )
-              .limit(200)
+              .limit(500)
               .then((rows) =>
                 rows.flatMap((row): Candidate[] => {
                   if (!row.artistUri) return [];
@@ -285,7 +285,7 @@ const retrieve = ({
                     sql`sum(exp(-0.02 * extract(epoch from (now() - ${tables.scrobbles.timestamp})) / 86400))`,
                   ),
                 )
-                .limit(50);
+                .limit(150);
 
               // Score each new artist
               const artistScoreMap = new Map<string, number>();
@@ -353,7 +353,7 @@ const retrieve = ({
                       : undefined,
                   ),
                 )
-                .limit(200);
+                .limit(500);
 
               const uriToArtistId = new Map(
                 newArtistUris.map((a) => [a.uri, a.id]),
