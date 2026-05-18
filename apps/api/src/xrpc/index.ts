@@ -85,6 +85,7 @@ import matchSong from "./app/rocksky/song/matchSong";
 import getTopArtists from "./app/rocksky/charts/getTopArtists";
 import getTopTracks from "./app/rocksky/charts/getTopTracks";
 import getStories from "./app/rocksky/feed/getStories";
+import getRecommendations from "./app/rocksky/feed/getRecommendations";
 
 export default function (server: Server, ctx: Context) {
   // app.rocksky
@@ -173,6 +174,7 @@ export default function (server: Server, ctx: Context) {
   getTopArtists(server, ctx);
   getTopTracks(server, ctx);
   getStories(server, ctx);
+  getRecommendations(server, ctx);
 
   return server;
 }

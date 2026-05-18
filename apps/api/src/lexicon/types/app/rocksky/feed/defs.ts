@@ -180,3 +180,49 @@ export function isFeedView(v: unknown): v is FeedView {
 export function validateFeedView(v: unknown): ValidationResult {
   return lexicons.validate("app.rocksky.feed.defs#feedView", v);
 }
+
+export interface RecommendationView {
+  title?: string;
+  artist?: string;
+  album?: string;
+  albumArt?: string;
+  trackUri?: string;
+  artistUri?: string;
+  albumUri?: string;
+  genres?: string[];
+  recommendationScore?: number;
+  /** neighbour | social | serendipity */
+  source?: string;
+  likesCount?: number;
+  [k: string]: unknown;
+}
+
+export function isRecommendationView(v: unknown): v is RecommendationView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.feed.defs#recommendationView"
+  );
+}
+
+export function validateRecommendationView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.feed.defs#recommendationView", v);
+}
+
+export interface RecommendationsView {
+  recommendations?: RecommendationView[];
+  cursor?: string;
+  [k: string]: unknown;
+}
+
+export function isRecommendationsView(v: unknown): v is RecommendationsView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.feed.defs#recommendationsView"
+  );
+}
+
+export function validateRecommendationsView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.feed.defs#recommendationsView", v);
+}

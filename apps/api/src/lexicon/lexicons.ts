@@ -2234,6 +2234,14 @@ export const schemaDict = {
               type: "string",
               description: "The genre to filter by",
             },
+            from: {
+              type: "string",
+              description: "Start date (ISO 8601). Defaults to 6 months ago.",
+            },
+            to: {
+              type: "string",
+              description: "End date (ISO 8601). Defaults to today.",
+            },
           },
         },
         output: {
@@ -2690,6 +2698,67 @@ export const schemaDict = {
           },
         },
       },
+      recommendationView: {
+        type: "object",
+        properties: {
+          title: {
+            type: "string",
+          },
+          artist: {
+            type: "string",
+          },
+          album: {
+            type: "string",
+          },
+          albumArt: {
+            type: "string",
+            format: "uri",
+          },
+          trackUri: {
+            type: "string",
+            format: "at-uri",
+          },
+          artistUri: {
+            type: "string",
+            format: "at-uri",
+          },
+          albumUri: {
+            type: "string",
+            format: "at-uri",
+          },
+          genres: {
+            type: "array",
+            items: {
+              type: "string",
+            },
+          },
+          recommendationScore: {
+            type: "integer",
+          },
+          source: {
+            type: "string",
+            description: "neighbour | social | serendipity",
+          },
+          likesCount: {
+            type: "integer",
+          },
+        },
+      },
+      recommendationsView: {
+        type: "object",
+        properties: {
+          recommendations: {
+            type: "array",
+            items: {
+              type: "ref",
+              ref: "lex:app.rocksky.feed.defs#recommendationView",
+            },
+          },
+          cursor: {
+            type: "string",
+          },
+        },
+      },
     },
   },
   AppRockskyFeedDescribeFeedGenerator: {
@@ -2916,6 +2985,38 @@ export const schemaDict = {
                   "The pagination cursor for the next set of results.",
               },
             },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyFeedGetRecommendations: {
+    lexicon: 1,
+    id: "app.rocksky.feed.getRecommendations",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get personalised track recommendations for a user",
+        parameters: {
+          type: "params",
+          required: ["did"],
+          properties: {
+            did: {
+              type: "string",
+              description: "DID or handle of the user to recommend for.",
+            },
+            limit: {
+              type: "integer",
+              maximum: 100,
+              minimum: 1,
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "ref",
+            ref: "lex:app.rocksky.feed.defs#recommendationsView",
           },
         },
       },
@@ -6199,6 +6300,7 @@ export const ids = {
   AppRockskyFeedGetFeedGenerator: "app.rocksky.feed.getFeedGenerator",
   AppRockskyFeedGetFeedGenerators: "app.rocksky.feed.getFeedGenerators",
   AppRockskyFeedGetFeedSkeleton: "app.rocksky.feed.getFeedSkeleton",
+  AppRockskyFeedGetRecommendations: "app.rocksky.feed.getRecommendations",
   AppRockskyFeedGetStories: "app.rocksky.feed.getStories",
   AppRockskyFeedSearch: "app.rocksky.feed.search",
   AppRockskyGoogledriveDefs: "app.rocksky.googledrive.defs",

@@ -47,6 +47,7 @@ import type * as AppRockskyFeedGetFeed from "./types/app/rocksky/feed/getFeed";
 import type * as AppRockskyFeedGetFeedGenerator from "./types/app/rocksky/feed/getFeedGenerator";
 import type * as AppRockskyFeedGetFeedGenerators from "./types/app/rocksky/feed/getFeedGenerators";
 import type * as AppRockskyFeedGetFeedSkeleton from "./types/app/rocksky/feed/getFeedSkeleton";
+import type * as AppRockskyFeedGetRecommendations from "./types/app/rocksky/feed/getRecommendations";
 import type * as AppRockskyFeedGetStories from "./types/app/rocksky/feed/getStories";
 import type * as AppRockskyFeedSearch from "./types/app/rocksky/feed/search";
 import type * as AppRockskyGoogledriveDownloadFile from "./types/app/rocksky/googledrive/downloadFile";
@@ -694,6 +695,17 @@ export class AppRockskyFeedNS {
     >,
   ) {
     const nsid = "app.rocksky.feed.getFeedSkeleton"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  getRecommendations<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyFeedGetRecommendations.Handler<ExtractAuth<AV>>,
+      AppRockskyFeedGetRecommendations.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.feed.getRecommendations"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 

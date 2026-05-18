@@ -173,6 +173,67 @@
           "description": "The pagination cursor for the next set of results."
         }
       }
+    },
+    "recommendationView": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "artist": {
+          "type": "string"
+        },
+        "album": {
+          "type": "string"
+        },
+        "albumArt": {
+          "type": "string",
+          "format": "uri"
+        },
+        "trackUri": {
+          "type": "string",
+          "format": "at-uri"
+        },
+        "artistUri": {
+          "type": "string",
+          "format": "at-uri"
+        },
+        "albumUri": {
+          "type": "string",
+          "format": "at-uri"
+        },
+        "genres": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "recommendationScore": {
+          "type": "integer"
+        },
+        "source": {
+          "type": "string",
+          "description": "neighbour | social | serendipity"
+        },
+        "likesCount": {
+          "type": "integer"
+        }
+      }
+    },
+    "recommendationsView": {
+      "type": "object",
+      "properties": {
+        "recommendations": {
+          "type": "array",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.feed.defs#recommendationView"
+          }
+        },
+        "cursor": {
+          "type": "string"
+        }
+      }
     }
   }
 }
