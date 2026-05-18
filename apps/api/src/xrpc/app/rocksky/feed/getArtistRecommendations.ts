@@ -259,7 +259,7 @@ const retrieve = ({
 
       const alreadyReturned = new Set<string>();
 
-      const mainCandidates = [...scoreMap.entries()]
+      let mainCandidates: Candidate[] = [...scoreMap.entries()]
         .sort(([, a], [, b]) => b - a)
         .slice(0, mainCount)
         .map(([artistId, score]) => {
@@ -267,8 +267,46 @@ const retrieve = ({
           return { artistId, score, source: "neighbour" as const };
         });
 
+      // Supplement with genre-matched artists from DB when the neighbour pool is thin.
+      const neededMain = mainCount - mainCandidates.length;
+      if (neededMain > 0 && userGenres.size > 0) {
+        const genreCondition = or(
+          ...[...userGenres].map(
+            (g) => sql`${tables.artists.genres} @> ARRAY[${g}]::text[]`,
+          ),
+        );
+        const supplemental = await ctx.db
+          .select({ id: tables.artists.id })
+          .from(tables.artists)
+          .where(
+            and(
+              genreCondition,
+              sql`lower(${tables.artists.name}) != 'various artists'`,
+              heardArtistIds.length > 0
+                ? notInArray(tables.artists.id, heardArtistIds.slice(0, 500))
+                : undefined,
+            ),
+          )
+          .orderBy(sql`random()`)
+          .limit(neededMain * 5)
+          .then((rows) =>
+            rows
+              .filter(
+                (r) => !alreadyReturned.has(r.id) && !heardArtistSet.has(r.id),
+              )
+              .slice(0, neededMain)
+              .map((r) => ({
+                artistId: r.id,
+                score: 0,
+                source: "serendipity" as const,
+              })),
+          );
+        for (const c of supplemental) alreadyReturned.add(c.artistId);
+        mainCandidates = [...mainCandidates, ...supplemental];
+      }
+
       // Serendipity: lower-scored candidates from the tail of the scored pool
-      const serendipityCandidates = [...scoreMap.entries()]
+      let serendipityCandidates: Candidate[] = [...scoreMap.entries()]
         .sort(([, a], [, b]) => b - a)
         .slice(mainCount, mainCount + serendipityCount * 3)
         .filter(([id]) => !alreadyReturned.has(id))
@@ -278,6 +316,46 @@ const retrieve = ({
           score,
           source: "serendipity" as const,
         }));
+
+      // Supplement serendipity from DB if scoreMap tail is insufficient.
+      const neededSerendipity = serendipityCount - serendipityCandidates.length;
+      if (neededSerendipity > 0 && userGenres.size > 0) {
+        const genreCondition = or(
+          ...[...userGenres].map(
+            (g) => sql`${tables.artists.genres} @> ARRAY[${g}]::text[]`,
+          ),
+        );
+        const supplementalSerendipity = await ctx.db
+          .select({ id: tables.artists.id })
+          .from(tables.artists)
+          .where(
+            and(
+              genreCondition,
+              sql`lower(${tables.artists.name}) != 'various artists'`,
+              heardArtistIds.length > 0
+                ? notInArray(tables.artists.id, heardArtistIds.slice(0, 500))
+                : undefined,
+            ),
+          )
+          .orderBy(sql`random()`)
+          .limit(neededSerendipity * 5)
+          .then((rows) =>
+            rows
+              .filter(
+                (r) => !alreadyReturned.has(r.id) && !heardArtistSet.has(r.id),
+              )
+              .slice(0, neededSerendipity)
+              .map((r) => ({
+                artistId: r.id,
+                score: 0,
+                source: "serendipity" as const,
+              })),
+          );
+        serendipityCandidates = [
+          ...serendipityCandidates,
+          ...supplementalSerendipity,
+        ];
+      }
 
       return {
         candidates: [...mainCandidates, ...serendipityCandidates],

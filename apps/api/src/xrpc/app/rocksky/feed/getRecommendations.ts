@@ -293,7 +293,38 @@ const retrieve = ({
         sourceMap.set(l.trackId, "social");
       }
 
-      const mainCandidates = [...scoreMap.entries()]
+      // Genre-filter the score pool BEFORE candidate selection so mainCandidates
+      // are always genre-appropriate (hydrate filter then acts as safety net only).
+      if (userGenres.size > 0 && scoreMap.size > 0) {
+        const trackArtistData = await ctx.db
+          .select({
+            id: tables.tracks.id,
+            artist: tables.tracks.artist,
+            genres: tables.artists.genres,
+          })
+          .from(tables.tracks)
+          .leftJoin(
+            tables.artists,
+            eq(tables.tracks.artistUri, tables.artists.uri),
+          )
+          .where(inArray(tables.tracks.id, [...scoreMap.keys()]));
+
+        const genreOkIds = new Set(
+          trackArtistData
+            .filter(
+              (r) =>
+                r.artist?.toLowerCase() !== "various artists" &&
+                (r.genres ?? []).some((g) => userGenres.has(g)),
+            )
+            .map((r) => r.id),
+        );
+
+        for (const trackId of [...scoreMap.keys()]) {
+          if (!genreOkIds.has(trackId)) scoreMap.delete(trackId);
+        }
+      }
+
+      let mainCandidates: Candidate[] = [...scoreMap.entries()]
         .sort(([, a], [, b]) => b - a)
         .slice(0, mainCount)
         .map(([trackId, score]) => ({
@@ -301,6 +332,47 @@ const retrieve = ({
           score,
           source: sourceMap.get(trackId) ?? ("neighbour" as const),
         }));
+
+      // Supplement with genre-matched tracks from the full DB when the neighbour
+      // pool is too thin after genre filtering.
+      const neededMain = mainCount - mainCandidates.length;
+      if (neededMain > 0 && userGenres.size > 0) {
+        const alreadyPickedIds = new Set(mainCandidates.map((c) => c.trackId));
+        const genreCondition = or(
+          ...[...userGenres].map(
+            (g) => sql`${tables.artists.genres} @> ARRAY[${g}]::text[]`,
+          ),
+        );
+        const supplemental = await ctx.db
+          .select({ id: tables.tracks.id })
+          .from(tables.tracks)
+          .innerJoin(
+            tables.artists,
+            eq(tables.tracks.artistUri, tables.artists.uri),
+          )
+          .where(
+            and(
+              genreCondition,
+              sql`lower(${tables.artists.name}) != 'various artists'`,
+              excludedIds.length > 0
+                ? notInArray(tables.tracks.id, excludedIds.slice(0, 500))
+                : undefined,
+            ),
+          )
+          .orderBy(sql`random()`)
+          .limit(neededMain * 5)
+          .then((rows) =>
+            rows
+              .filter((r) => !alreadyPickedIds.has(r.id) && !heardSet.has(r.id))
+              .slice(0, neededMain)
+              .map((r) => ({
+                trackId: r.id,
+                score: 0,
+                source: "serendipity" as const,
+              })),
+          );
+        mainCandidates = [...mainCandidates, ...supplemental];
+      }
 
       // Serendipity pool: tracks from artists the user hasn't heard,
       // discovered through neighbour artists (1-hop expansion from user's taste)
@@ -476,7 +548,27 @@ const hydrate = ({
             )
           : items;
 
-      return { items: genreFiltered };
+      // One track per artist: keep the highest-scored track per artist URI so
+      // the list is diverse. Tracks without an artistUri are each their own group.
+      const seenArtists = new Set<string>();
+      const deduped: typeof genreFiltered = [];
+      const overflow: typeof genreFiltered = [];
+      for (const item of genreFiltered.sort((a, b) => b.score - a.score)) {
+        const key = item.artistUri ?? item.id;
+        if (!seenArtists.has(key)) {
+          seenArtists.add(key);
+          deduped.push(item);
+        } else {
+          overflow.push(item);
+        }
+      }
+      // Fill remaining slots with runner-up tracks (different artist already represented)
+      const dedupedResult = [...deduped, ...overflow].slice(
+        0,
+        genreFiltered.length,
+      );
+
+      return { items: dedupedResult };
     },
     catch: (err) => new Error(`hydrate failed: ${err}`),
   });
