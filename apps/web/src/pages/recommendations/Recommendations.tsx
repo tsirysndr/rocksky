@@ -1,7 +1,9 @@
 import ContentLoader from "react-content-loader";
-import { Link } from "@tanstack/react-router";
+import styled from "@emotion/styled";
+import { Link as DefaultLink } from "@tanstack/react-router";
 import { HeadingMedium } from "baseui/typography";
 import { Tab, Tabs } from "baseui/tabs-motion";
+import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import { useAtomValue } from "jotai";
 import { useState } from "react";
 import { profileAtom } from "../../atoms/profile";
@@ -17,14 +19,41 @@ import type {
   TrackRecommendation,
 } from "../../api/recommendations";
 
+const Link = styled(DefaultLink)`
+  color: inherit;
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
+const TABLE_OVERRIDES = {
+  TableHeadRow: { style: { display: "none" } },
+  TableBodyCell: { style: { verticalAlign: "middle" } },
+  TableBodyRow: {
+    style: {
+      backgroundColor: "var(--color-background)",
+      ":hover": { backgroundColor: "var(--color-menu-hover)" },
+    },
+  },
+  TableEmptyMessage: { style: { backgroundColor: "var(--color-background)" } },
+  Table: { style: { backgroundColor: "var(--color-background)" } },
+};
+
 function sourceLabel(source?: string): { text: string; color: string } {
   switch (source) {
     case "neighbour":
     case "known-artist":
-      return { text: source === "neighbour" ? "Neighbour pick" : "Known artist", color: "#16a34a" };
+      return {
+        text: source === "neighbour" ? "Neighbour pick" : "Known artist",
+        color: "#16a34a",
+      };
     case "new-artist":
     case "social":
-      return { text: source === "new-artist" ? "New artist" : "Social", color: "#2563eb" };
+      return {
+        text: source === "new-artist" ? "New artist" : "Social",
+        color: "#2563eb",
+      };
     case "serendipity":
       return { text: "Serendipity", color: "#7c3aed" };
     default:
@@ -36,7 +65,7 @@ function SourceBadge({ source }: { source?: string }) {
   const { text, color } = sourceLabel(source);
   return (
     <span
-      className="text-[11px] font-semibold px-[7px] py-[2px] rounded-full"
+      className="text-[11px] font-semibold px-[7px] py-[2px] rounded-full whitespace-nowrap"
       style={{ backgroundColor: `${color}22`, color }}
     >
       {text}
@@ -44,166 +73,99 @@ function SourceBadge({ source }: { source?: string }) {
   );
 }
 
-function ListSkeleton() {
+function TrackSkeleton() {
   return (
-    <div>
-      {Array.from({ length: 8 }).map((_, i) => (
-        <ContentLoader
-          key={i}
-          width="100%"
-          height={70}
-          viewBox="0 0 700 70"
-          backgroundColor="var(--color-skeleton-background)"
-          foregroundColor="var(--color-skeleton-foreground)"
-        >
-          <rect x="0" y="13" rx="6" ry="6" width="44" height="44" />
-          <rect x="60" y="16" rx="4" ry="4" width="240" height="14" />
-          <rect x="60" y="38" rx="4" ry="4" width="160" height="11" />
-          <rect x="560" y="22" rx="10" ry="10" width="100" height="18" />
-        </ContentLoader>
-      ))}
-    </div>
+    <ContentLoader
+      width="100%"
+      height={480}
+      viewBox="0 0 700 480"
+      backgroundColor="var(--color-skeleton-background)"
+      foregroundColor="var(--color-skeleton-foreground)"
+    >
+      <rect x="0" y="32" rx="3" ry="3" width="25" height="14" />
+      <rect x="40" y="10" rx="4" ry="4" width="60" height="60" />
+      <rect x="120" y="20" rx="3" ry="3" width="220" height="14" />
+      <rect x="120" y="44" rx="3" ry="3" width="150" height="11" />
+      <rect x="560" y="26" rx="10" ry="10" width="110" height="20" />
+
+      <rect x="0" y="112" rx="3" ry="3" width="25" height="14" />
+      <rect x="40" y="90" rx="4" ry="4" width="60" height="60" />
+      <rect x="120" y="100" rx="3" ry="3" width="220" height="14" />
+      <rect x="120" y="124" rx="3" ry="3" width="150" height="11" />
+      <rect x="560" y="106" rx="10" ry="10" width="110" height="20" />
+
+      <rect x="0" y="192" rx="3" ry="3" width="25" height="14" />
+      <rect x="40" y="170" rx="4" ry="4" width="60" height="60" />
+      <rect x="120" y="180" rx="3" ry="3" width="220" height="14" />
+      <rect x="120" y="204" rx="3" ry="3" width="150" height="11" />
+      <rect x="560" y="186" rx="10" ry="10" width="110" height="20" />
+
+      <rect x="0" y="272" rx="3" ry="3" width="25" height="14" />
+      <rect x="40" y="250" rx="4" ry="4" width="60" height="60" />
+      <rect x="120" y="260" rx="3" ry="3" width="220" height="14" />
+      <rect x="120" y="284" rx="3" ry="3" width="150" height="11" />
+      <rect x="560" y="266" rx="10" ry="10" width="110" height="20" />
+
+      <rect x="0" y="352" rx="3" ry="3" width="25" height="14" />
+      <rect x="40" y="330" rx="4" ry="4" width="60" height="60" />
+      <rect x="120" y="340" rx="3" ry="3" width="220" height="14" />
+      <rect x="120" y="364" rx="3" ry="3" width="150" height="11" />
+      <rect x="560" y="346" rx="10" ry="10" width="110" height="20" />
+
+      <rect x="0" y="432" rx="3" ry="3" width="25" height="14" />
+      <rect x="40" y="410" rx="4" ry="4" width="60" height="60" />
+      <rect x="120" y="420" rx="3" ry="3" width="220" height="14" />
+      <rect x="120" y="444" rx="3" ry="3" width="150" height="11" />
+      <rect x="560" y="426" rx="10" ry="10" width="110" height="20" />
+    </ContentLoader>
   );
 }
 
-function TrackRow({ item }: { item: TrackRecommendation }) {
-  const href = item.trackUri
-    ? `/${item.trackUri.split("at://")[1]?.replace("app.rocksky.", "")}`
-    : null;
-  const artistHref = item.artistUri
-    ? `/${item.artistUri.split("at://")[1]?.replace("app.rocksky.", "")}`
-    : null;
-
+function ArtistSkeleton() {
   return (
-    <div
-      className="flex items-center gap-3 py-3 border-b"
-      style={{ borderColor: "var(--color-border)" }}
+    <ContentLoader
+      width="100%"
+      height={480}
+      viewBox="0 0 700 480"
+      backgroundColor="var(--color-skeleton-background)"
+      foregroundColor="var(--color-skeleton-foreground)"
     >
-      <div
-        className="w-11 h-11 rounded-lg overflow-hidden shrink-0 flex items-center justify-center"
-        style={{ backgroundColor: "var(--color-menu-hover)" }}
-      >
-        {item.albumArt ? (
-          <img src={item.albumArt} alt={item.title} className="w-full h-full object-cover" />
-        ) : (
-          <span className="text-xl opacity-20">♪</span>
-        )}
-      </div>
-      <div className="flex-1 min-w-0">
-        {href ? (
-          <Link to={href as any} className="no-underline block font-semibold text-[14px] truncate !text-[var(--color-text)]">
-            {item.title}
-          </Link>
-        ) : (
-          <p className="font-semibold text-[14px] truncate m-0" style={{ color: "var(--color-text)" }}>{item.title}</p>
-        )}
-        <div className="flex items-center gap-1">
-          {artistHref ? (
-            <Link to={artistHref as any} className="no-underline text-[12px] truncate !text-[var(--color-text-muted)]">
-              {item.artist}
-            </Link>
-          ) : (
-            <span className="text-[12px] truncate" style={{ color: "var(--color-text-muted)" }}>{item.artist}</span>
-          )}
-          {item.album && (
-            <span className="text-[12px]" style={{ color: "var(--color-text-muted)" }}>
-              — {item.album}
-            </span>
-          )}
-        </div>
-      </div>
-      <SourceBadge source={item.source} />
-    </div>
-  );
-}
+      <rect x="0" y="32" rx="3" ry="3" width="25" height="14" />
+      <circle cx="70" cy="40" r="30" />
+      <rect x="120" y="27" rx="3" ry="3" width="200" height="14" />
+      <rect x="120" y="49" rx="3" ry="3" width="130" height="11" />
+      <rect x="560" y="26" rx="10" ry="10" width="110" height="20" />
 
-function ArtistRow({ item }: { item: ArtistRecommendation }) {
-  const href = item.uri
-    ? `/${item.uri.split("at://")[1]?.replace("app.rocksky.", "")}`
-    : null;
+      <rect x="0" y="112" rx="3" ry="3" width="25" height="14" />
+      <circle cx="70" cy="120" r="30" />
+      <rect x="120" y="107" rx="3" ry="3" width="200" height="14" />
+      <rect x="120" y="129" rx="3" ry="3" width="130" height="11" />
+      <rect x="560" y="106" rx="10" ry="10" width="110" height="20" />
 
-  return (
-    <div
-      className="flex items-center gap-3 py-3 border-b"
-      style={{ borderColor: "var(--color-border)" }}
-    >
-      <div
-        className="w-11 h-11 rounded-full overflow-hidden shrink-0 flex items-center justify-center"
-        style={{ backgroundColor: "var(--color-menu-hover)" }}
-      >
-        {item.picture ? (
-          <img src={item.picture} alt={item.name} className="w-full h-full object-cover" />
-        ) : (
-          <span className="text-xl opacity-20">♬</span>
-        )}
-      </div>
-      <div className="flex-1 min-w-0">
-        {href ? (
-          <Link to={href as any} className="no-underline font-semibold text-[14px] truncate block !text-[var(--color-text)]">
-            {item.name}
-          </Link>
-        ) : (
-          <p className="font-semibold text-[14px] truncate m-0" style={{ color: "var(--color-text)" }}>{item.name}</p>
-        )}
-        {item.genres && item.genres.length > 0 && (
-          <p className="text-[12px] truncate m-0" style={{ color: "var(--color-text-muted)" }}>
-            {item.genres.slice(0, 3).join(", ")}
-          </p>
-        )}
-      </div>
-      <SourceBadge source={item.source} />
-    </div>
-  );
-}
+      <rect x="0" y="192" rx="3" ry="3" width="25" height="14" />
+      <circle cx="70" cy="200" r="30" />
+      <rect x="120" y="187" rx="3" ry="3" width="200" height="14" />
+      <rect x="120" y="209" rx="3" ry="3" width="130" height="11" />
+      <rect x="560" y="186" rx="10" ry="10" width="110" height="20" />
 
-function AlbumRow({ item }: { item: AlbumRecommendation }) {
-  const href = item.uri
-    ? `/${item.uri.split("at://")[1]?.replace("app.rocksky.", "")}`
-    : null;
-  const artistHref = item.artistUri
-    ? `/${item.artistUri.split("at://")[1]?.replace("app.rocksky.", "")}`
-    : null;
+      <rect x="0" y="272" rx="3" ry="3" width="25" height="14" />
+      <circle cx="70" cy="280" r="30" />
+      <rect x="120" y="267" rx="3" ry="3" width="200" height="14" />
+      <rect x="120" y="289" rx="3" ry="3" width="130" height="11" />
+      <rect x="560" y="266" rx="10" ry="10" width="110" height="20" />
 
-  return (
-    <div
-      className="flex items-center gap-3 py-3 border-b"
-      style={{ borderColor: "var(--color-border)" }}
-    >
-      <div
-        className="w-11 h-11 rounded-lg overflow-hidden shrink-0 flex items-center justify-center"
-        style={{ backgroundColor: "var(--color-menu-hover)" }}
-      >
-        {item.albumArt ? (
-          <img src={item.albumArt} alt={item.title} className="w-full h-full object-cover" />
-        ) : (
-          <span className="text-xl opacity-20">💿</span>
-        )}
-      </div>
-      <div className="flex-1 min-w-0">
-        {href ? (
-          <Link to={href as any} className="no-underline font-semibold text-[14px] truncate block !text-[var(--color-text)]">
-            {item.title}
-          </Link>
-        ) : (
-          <p className="font-semibold text-[14px] truncate m-0" style={{ color: "var(--color-text)" }}>{item.title}</p>
-        )}
-        <div className="flex items-center gap-1">
-          {artistHref ? (
-            <Link to={artistHref as any} className="no-underline text-[12px] !text-[var(--color-text-muted)]">
-              {item.artist}
-            </Link>
-          ) : (
-            <span className="text-[12px]" style={{ color: "var(--color-text-muted)" }}>{item.artist}</span>
-          )}
-          {item.year && (
-            <span className="text-[12px]" style={{ color: "var(--color-text-muted)" }}>
-              · {item.year}
-            </span>
-          )}
-        </div>
-      </div>
-      <SourceBadge source={item.source} />
-    </div>
+      <rect x="0" y="352" rx="3" ry="3" width="25" height="14" />
+      <circle cx="70" cy="360" r="30" />
+      <rect x="120" y="347" rx="3" ry="3" width="200" height="14" />
+      <rect x="120" y="369" rx="3" ry="3" width="130" height="11" />
+      <rect x="560" y="346" rx="10" ry="10" width="110" height="20" />
+
+      <rect x="0" y="432" rx="3" ry="3" width="25" height="14" />
+      <circle cx="70" cy="440" r="30" />
+      <rect x="120" y="427" rx="3" ry="3" width="200" height="14" />
+      <rect x="120" y="449" rx="3" ry="3" width="130" height="11" />
+      <rect x="560" y="426" rx="10" ry="10" width="110" height="20" />
+    </ContentLoader>
   );
 }
 
@@ -212,14 +174,36 @@ const TAB_STYLE = {
   backgroundColor: "var(--color-background) !important",
 };
 
+type TrackRow = TrackRecommendation & { index: number };
+type ArtistRow = ArtistRecommendation & { index: number };
+type AlbumRow = AlbumRecommendation & { index: number };
+
+const EMPTY_MSG = "Scrobble more tracks to unlock personalised recommendations.";
+
 function Recommendations() {
   const profile = useAtomValue(profileAtom);
   const [activeKey, setActiveKey] = useState<React.Key>("0");
 
   const did = profile?.did;
-  const { data: tracks, isLoading: tracksLoading } = useTrackRecommendationsQuery(did);
-  const { data: artists, isLoading: artistsLoading } = useArtistRecommendationsQuery(did);
-  const { data: albums, isLoading: albumsLoading } = useAlbumRecommendationsQuery(did);
+  const { data: tracks, isLoading: tracksLoading } =
+    useTrackRecommendationsQuery(did);
+  const { data: artists, isLoading: artistsLoading } =
+    useArtistRecommendationsQuery(did);
+  const { data: albums, isLoading: albumsLoading } =
+    useAlbumRecommendationsQuery(did);
+
+  const trackRows: TrackRow[] = (tracks ?? []).map((item, index) => ({
+    ...item,
+    index,
+  }));
+  const artistRows: ArtistRow[] = (artists ?? []).map((item, index) => ({
+    ...item,
+    index,
+  }));
+  const albumRows: AlbumRow[] = (albums ?? []).map((item, index) => ({
+    ...item,
+    index,
+  }));
 
   return (
     <Main>
@@ -241,63 +225,224 @@ function Recommendations() {
           }}
           activateOnFocus
         >
-          <Tab
-            title="Tracks"
-            overrides={{ Tab: { style: TAB_STYLE } }}
-          >
+          {/* ── Tracks ── */}
+          <Tab title="Tracks" overrides={{ Tab: { style: TAB_STYLE } }}>
             {tracksLoading ? (
-              <ListSkeleton />
+              <TrackSkeleton />
             ) : (
-              <div className="mt-[10px]">
-                {(tracks ?? []).map((item, i) => (
-                  <TrackRow key={item.trackUri ?? i} item={item} />
-                ))}
-                {(tracks ?? []).length === 0 && (
-                  <p className="text-[var(--color-text-muted)]">
-                    Scrobble more tracks to unlock personalised recommendations.
-                  </p>
-                )}
-              </div>
+              <TableBuilder
+                data={trackRows}
+                emptyMessage={EMPTY_MSG}
+                divider="clean"
+                overrides={TABLE_OVERRIDES}
+              >
+                <TableBuilderColumn header="Track">
+                  {(row: TrackRow) => {
+                    const href = row.trackUri
+                      ? `/${row.trackUri.split("at://")[1]?.replace("app.rocksky.", "")}`
+                      : null;
+                    const artistHref = row.artistUri
+                      ? `/${row.artistUri.split("at://")[1]?.replace("app.rocksky.", "")}`
+                      : null;
+                    return (
+                      <div className="flex flex-row items-center">
+                        <div className="mr-[20px] text-[var(--color-text)]">
+                          {row.index + 1}
+                        </div>
+                        {row.albumArt ? (
+                          <img
+                            src={row.albumArt}
+                            alt={row.title}
+                            className="w-[60px] h-[60px] mr-[20px] rounded-[5px]"
+                          />
+                        ) : (
+                          <div className="w-[60px] h-[60px] rounded-[5px] mr-[20px] flex items-center justify-center bg-[var(--color-menu-hover)]">
+                            <span className="text-xl opacity-20">♪</span>
+                          </div>
+                        )}
+                        <div className="flex flex-col">
+                          {href ? (
+                            <Link
+                              to={href as any}
+                              className="!text-[var(--color-text)]"
+                            >
+                              {row.title}
+                            </Link>
+                          ) : (
+                            <span style={{ color: "var(--color-text)" }}>
+                              {row.title}
+                            </span>
+                          )}
+                          {artistHref ? (
+                            <Link
+                              to={artistHref as any}
+                              className="!text-[var(--color-text-muted)]"
+                            >
+                              {row.artist}
+                            </Link>
+                          ) : (
+                            <span
+                              style={{ color: "var(--color-text-muted)" }}
+                            >
+                              {row.artist}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }}
+                </TableBuilderColumn>
+                <TableBuilderColumn header="Source">
+                  {(row: TrackRow) => <SourceBadge source={row.source} />}
+                </TableBuilderColumn>
+              </TableBuilder>
             )}
           </Tab>
 
-          <Tab
-            title="Artists"
-            overrides={{ Tab: { style: TAB_STYLE } }}
-          >
+          {/* ── Artists ── */}
+          <Tab title="Artists" overrides={{ Tab: { style: TAB_STYLE } }}>
             {artistsLoading ? (
-              <ListSkeleton />
+              <ArtistSkeleton />
             ) : (
-              <div className="mt-[10px]">
-                {(artists ?? []).map((item, i) => (
-                  <ArtistRow key={item.id ?? i} item={item} />
-                ))}
-                {(artists ?? []).length === 0 && (
-                  <p className="text-[var(--color-text-muted)]">
-                    Scrobble more tracks to unlock personalised recommendations.
-                  </p>
-                )}
-              </div>
+              <TableBuilder
+                data={artistRows}
+                emptyMessage={EMPTY_MSG}
+                divider="clean"
+                overrides={TABLE_OVERRIDES}
+              >
+                <TableBuilderColumn header="Artist">
+                  {(row: ArtistRow) => {
+                    const href = row.uri
+                      ? `/${row.uri.split("at://")[1]?.replace("app.rocksky.", "")}`
+                      : null;
+                    return (
+                      <div className="flex flex-row items-center">
+                        <div className="mr-[20px] text-[var(--color-text)]">
+                          {row.index + 1}
+                        </div>
+                        {row.picture ? (
+                          <img
+                            src={row.picture}
+                            alt={row.name}
+                            className="w-[60px] h-[60px] rounded-full mr-[20px]"
+                          />
+                        ) : (
+                          <div className="w-[60px] h-[60px] rounded-full mr-[20px] flex items-center justify-center bg-[var(--color-menu-hover)]">
+                            <span className="text-xl opacity-20">♬</span>
+                          </div>
+                        )}
+                        <div className="flex flex-col">
+                          {href ? (
+                            <Link
+                              to={href as any}
+                              className="!text-[var(--color-text)]"
+                            >
+                              {row.name}
+                            </Link>
+                          ) : (
+                            <span style={{ color: "var(--color-text)" }}>
+                              {row.name}
+                            </span>
+                          )}
+                          {row.genres && row.genres.length > 0 && (
+                            <span
+                              style={{ color: "var(--color-text-muted)" }}
+                            >
+                              {row.genres.slice(0, 3).join(", ")}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }}
+                </TableBuilderColumn>
+                <TableBuilderColumn header="Source">
+                  {(row: ArtistRow) => <SourceBadge source={row.source} />}
+                </TableBuilderColumn>
+              </TableBuilder>
             )}
           </Tab>
 
-          <Tab
-            title="Albums"
-            overrides={{ Tab: { style: TAB_STYLE } }}
-          >
+          {/* ── Albums ── */}
+          <Tab title="Albums" overrides={{ Tab: { style: TAB_STYLE } }}>
             {albumsLoading ? (
-              <ListSkeleton />
+              <TrackSkeleton />
             ) : (
-              <div className="mt-[10px]">
-                {(albums ?? []).map((item, i) => (
-                  <AlbumRow key={item.id ?? i} item={item} />
-                ))}
-                {(albums ?? []).length === 0 && (
-                  <p className="text-[var(--color-text-muted)]">
-                    Scrobble more tracks to unlock personalised recommendations.
-                  </p>
-                )}
-              </div>
+              <TableBuilder
+                data={albumRows}
+                emptyMessage={EMPTY_MSG}
+                divider="clean"
+                overrides={TABLE_OVERRIDES}
+              >
+                <TableBuilderColumn header="Album">
+                  {(row: AlbumRow) => {
+                    const href = row.uri
+                      ? `/${row.uri.split("at://")[1]?.replace("app.rocksky.", "")}`
+                      : null;
+                    const artistHref = row.artistUri
+                      ? `/${row.artistUri.split("at://")[1]?.replace("app.rocksky.", "")}`
+                      : null;
+                    return (
+                      <div className="flex flex-row items-center">
+                        <div className="mr-[20px] text-[var(--color-text)]">
+                          {row.index + 1}
+                        </div>
+                        {row.albumArt ? (
+                          <img
+                            src={row.albumArt}
+                            alt={row.title}
+                            className="w-[60px] h-[60px] mr-[20px] rounded-[5px]"
+                          />
+                        ) : (
+                          <div className="w-[60px] h-[60px] rounded-[5px] mr-[20px] flex items-center justify-center bg-[var(--color-menu-hover)]">
+                            <span className="text-xl opacity-20">💿</span>
+                          </div>
+                        )}
+                        <div className="flex flex-col">
+                          {href ? (
+                            <Link
+                              to={href as any}
+                              className="!text-[var(--color-text)]"
+                            >
+                              {row.title}
+                            </Link>
+                          ) : (
+                            <span style={{ color: "var(--color-text)" }}>
+                              {row.title}
+                            </span>
+                          )}
+                          <div className="flex items-center gap-[6px]">
+                            {artistHref ? (
+                              <Link
+                                to={artistHref as any}
+                                className="!text-[var(--color-text-muted)]"
+                              >
+                                {row.artist}
+                              </Link>
+                            ) : (
+                              <span
+                                style={{ color: "var(--color-text-muted)" }}
+                              >
+                                {row.artist}
+                              </span>
+                            )}
+                            {row.year && (
+                              <span
+                                style={{ color: "var(--color-text-muted)" }}
+                              >
+                                · {row.year}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }}
+                </TableBuilderColumn>
+                <TableBuilderColumn header="Source">
+                  {(row: AlbumRow) => <SourceBadge source={row.source} />}
+                </TableBuilderColumn>
+              </TableBuilder>
             )}
           </Tab>
         </Tabs>

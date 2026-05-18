@@ -98,18 +98,40 @@ const retrieve = ({
         userArtistRows.map((r) => [r.artistId, r.scrobbles ?? 0]),
       );
 
+      // Build the user's genre profile from their listened artists
+      const userGenres = new Set<string>(
+        heardArtistIds.length > 0
+          ? (
+              await ctx.db
+                .select({ genres: tables.artists.genres })
+                .from(tables.artists)
+                .where(inArray(tables.artists.id, heardArtistIds))
+            ).flatMap((r) => r.genres ?? [])
+          : [],
+      );
+
       // Pool A — albums from known artists not yet heard
       // Resolve artist IDs → URIs to join against albums.artistUri
-      const knownArtistUris =
+      const knownArtistData =
         heardArtistIds.length > 0
           ? await ctx.db
-              .select({ uri: tables.artists.uri })
+              .select({
+                id: tables.artists.id,
+                uri: tables.artists.uri,
+                name: tables.artists.name,
+              })
               .from(tables.artists)
               .where(inArray(tables.artists.id, heardArtistIds))
               .then((rows) =>
-                rows.map((r) => r.uri).filter((u): u is string => u !== null),
+                rows.filter(
+                  (r): r is { id: string; uri: string; name: string | null } =>
+                    r.uri !== null &&
+                    r.name?.toLowerCase() !== "various artists",
+                ),
               )
           : [];
+
+      const knownArtistUris = knownArtistData.map((r) => r.uri);
 
       const poolA: Candidate[] =
         knownArtistUris.length > 0
@@ -189,7 +211,7 @@ const retrieve = ({
         neighbourIds.length > 0
           ? await (async () => {
               // Neighbour artists the user hasn't heard
-              const newArtistIds = await ctx.db
+              const newArtistRows = await ctx.db
                 .select({
                   artistId: tables.scrobbles.artistId,
                   neighbourUserId: tables.scrobbles.userId,
@@ -200,7 +222,10 @@ const retrieve = ({
                   and(
                     inArray(tables.scrobbles.userId, neighbourIds),
                     heardArtistIds.length > 0
-                      ? notInArray(tables.scrobbles.artistId, heardArtistIds.slice(0, 500))
+                      ? notInArray(
+                          tables.scrobbles.artistId,
+                          heardArtistIds.slice(0, 500),
+                        )
                       : undefined,
                   ),
                 )
@@ -214,8 +239,10 @@ const retrieve = ({
 
               // Score each new artist
               const artistScoreMap = new Map<string, number>();
-              for (const row of newArtistIds) {
+              const heardArtistSet = new Set(heardArtistIds);
+              for (const row of newArtistRows) {
                 if (!row.artistId || !row.neighbourUserId) continue;
+                if (heardArtistSet.has(row.artistId)) continue;
                 const similarity = similarityMap.get(row.neighbourUserId) ?? 0;
                 const score = similarity * Number(row.playScore);
                 const existing = artistScoreMap.get(row.artistId) ?? 0;
@@ -226,20 +253,34 @@ const retrieve = ({
 
               const newArtistIdList = [...artistScoreMap.keys()];
 
-              // Resolve to URIs
+              // Resolve to URIs + genres, filtering by user genre profile and Various Artists
               const newArtistUris = await ctx.db
-                .select({ id: tables.artists.id, uri: tables.artists.uri })
+                .select({
+                  id: tables.artists.id,
+                  uri: tables.artists.uri,
+                  name: tables.artists.name,
+                  genres: tables.artists.genres,
+                })
                 .from(tables.artists)
                 .where(inArray(tables.artists.id, newArtistIdList))
                 .then((rows) =>
                   rows.filter(
-                    (r): r is { id: string; uri: string } => r.uri !== null,
+                    (r): r is {
+                      id: string;
+                      uri: string;
+                      name: string | null;
+                      genres: string[] | null;
+                    } =>
+                      r.uri !== null &&
+                      r.name?.toLowerCase() !== "various artists" &&
+                      (userGenres.size === 0 ||
+                        (r.genres ?? []).some((g) => userGenres.has(g))),
                   ),
                 );
 
               if (newArtistUris.length === 0) return [];
 
-              // Albums by those new artists
+              // Albums by those genre-matching new artists
               const albums = await ctx.db
                 .select({
                   id: tables.albums.id,
@@ -290,13 +331,14 @@ const retrieve = ({
         })
         .slice(0, limit);
 
-      return { candidates, ctx };
+      return { candidates, userGenres, ctx };
     },
     catch: (err) => new Error(`retrieve failed: ${err}`),
   });
 
 const hydrate = ({
   candidates,
+  userGenres,
   ctx,
 }: RetrieveResult): Effect.Effect<HydrateResult, Error> =>
   Effect.tryPromise({
@@ -330,7 +372,9 @@ const hydrate = ({
           if (!album || !candidate) return null;
           return { ...album, score: candidate.score, source: candidate.source };
         })
-        .filter((item): item is NonNullable<typeof item> => item !== null);
+        .filter((item): item is NonNullable<typeof item> => item !== null)
+        // Drop Various Artists compilations
+        .filter((item) => item.artist?.toLowerCase() !== "various artists");
 
       return { items };
     },
@@ -364,6 +408,7 @@ type Candidate = {
 
 type RetrieveResult = {
   candidates: Candidate[];
+  userGenres: Set<string>;
   ctx: Context;
 };
 

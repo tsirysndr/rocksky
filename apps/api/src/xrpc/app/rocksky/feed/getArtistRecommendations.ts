@@ -81,6 +81,21 @@ const retrieve = ({
         .where(eq(tables.userArtists.userId, user.id));
 
       const heardArtistIds = heardRows.map((r) => r.artistId);
+      const heardArtistSet = new Set(heardArtistIds);
+
+      if (heardArtistIds.length === 0) {
+        return { candidates: [], userGenres: new Set(), ctx };
+      }
+
+      // Build the user's genre profile from their listened artists
+      const userGenres = new Set<string>(
+        (
+          await ctx.db
+            .select({ genres: tables.artists.genres })
+            .from(tables.artists)
+            .where(inArray(tables.artists.id, heardArtistIds))
+        ).flatMap((r) => r.genres ?? []),
+      );
 
       // Top neighbours by shared-artist overlap
       const neighbours = await ctx.db
@@ -91,9 +106,7 @@ const retrieve = ({
         .from(tables.scrobbles)
         .where(
           and(
-            heardArtistIds.length > 0
-              ? inArray(tables.scrobbles.artistId, heardArtistIds)
-              : undefined,
+            inArray(tables.scrobbles.artistId, heardArtistIds),
             ne(tables.scrobbles.userId, user.id),
           ),
         )
@@ -115,7 +128,7 @@ const retrieve = ({
       );
 
       if (neighbourIds.length === 0) {
-        return { candidates: [], ctx };
+        return { candidates: [], userGenres, ctx };
       }
 
       // Artists scrobbled by neighbours but not yet heard by the user
@@ -130,7 +143,10 @@ const retrieve = ({
           and(
             inArray(tables.scrobbles.userId, neighbourIds),
             heardArtistIds.length > 0
-              ? notInArray(tables.scrobbles.artistId, heardArtistIds.slice(0, 500))
+              ? notInArray(
+                  tables.scrobbles.artistId,
+                  heardArtistIds.slice(0, 500),
+                )
               : undefined,
           ),
         )
@@ -147,6 +163,8 @@ const retrieve = ({
 
       for (const row of neighbourArtists) {
         if (!row.artistId || !row.neighbourUserId) continue;
+        // Belt-and-suspenders: JS check catches artists beyond the SQL slice cap
+        if (heardArtistSet.has(row.artistId)) continue;
         const similarity = similarityMap.get(row.neighbourUserId) ?? 0;
         const score = similarity * Number(row.playScore);
         const existing = scoreMap.get(row.artistId) ?? 0;
@@ -166,7 +184,6 @@ const retrieve = ({
         });
 
       // Serendipity: lower-scored candidates from the tail of the scored pool
-      // — real discoveries from more distant neighbours
       const serendipityCandidates = [...scoreMap.entries()]
         .sort(([, a], [, b]) => b - a)
         .slice(mainCount, mainCount + serendipityCount * 3)
@@ -180,6 +197,7 @@ const retrieve = ({
 
       return {
         candidates: [...mainCandidates, ...serendipityCandidates],
+        userGenres,
         ctx,
       };
     },
@@ -188,6 +206,7 @@ const retrieve = ({
 
 const hydrate = ({
   candidates,
+  userGenres,
   ctx,
 }: RetrieveResult): Effect.Effect<HydrateResult, Error> =>
   Effect.tryPromise({
@@ -223,9 +242,21 @@ const hydrate = ({
             source: candidate.source,
           };
         })
-        .filter((item): item is NonNullable<typeof item> => item !== null);
+        .filter((item): item is NonNullable<typeof item> => item !== null)
+        // Drop Various Artists compilations
+        .filter((item) => item.name?.toLowerCase() !== "various artists");
 
-      return { items };
+      // Enforce genre similarity: drop artists with no genre overlap with user taste.
+      // Artists with no genre tags are kept to avoid over-filtering.
+      const genreFiltered =
+        userGenres.size > 0
+          ? items.filter((item) => {
+              const genres = item.genres ?? [];
+              return genres.length === 0 || genres.some((g) => userGenres.has(g));
+            })
+          : items;
+
+      return { items: genreFiltered };
     },
     catch: (err) => new Error(`hydrate failed: ${err}`),
   });
@@ -255,6 +286,7 @@ type Candidate = {
 
 type RetrieveResult = {
   candidates: Candidate[];
+  userGenres: Set<string>;
   ctx: Context;
 };
 
