@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ScrobbleRouteImport } from './routes/scrobble'
+import { Route as RecommendationsRouteImport } from './routes/recommendations'
 import { Route as LoadingRouteImport } from './routes/loading'
 import { Route as ChartsRouteImport } from './routes/charts'
 import { Route as ApikeysRouteImport } from './routes/apikeys'
@@ -37,6 +38,11 @@ import { Route as DidAlbumRkeyRouteImport } from './routes/$did.album.$rkey'
 const ScrobbleRoute = ScrobbleRouteImport.update({
   id: '/scrobble',
   path: '/scrobble',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecommendationsRoute = RecommendationsRouteImport.update({
+  id: '/recommendations',
+  path: '/recommendations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoadingRoute = LoadingRouteImport.update({
@@ -160,6 +166,7 @@ export interface FileRoutesByFullPath {
   '/apikeys': typeof ApikeysRoute
   '/charts': typeof ChartsRoute
   '/loading': typeof LoadingRoute
+  '/recommendations': typeof RecommendationsRoute
   '/scrobble': typeof ScrobbleRoute
   '/dropbox/$id': typeof DropboxIdRoute
   '/genre/$id': typeof GenreIdRoute
@@ -186,6 +193,7 @@ export interface FileRoutesByTo {
   '/apikeys': typeof ApikeysRoute
   '/charts': typeof ChartsRoute
   '/loading': typeof LoadingRoute
+  '/recommendations': typeof RecommendationsRoute
   '/scrobble': typeof ScrobbleRoute
   '/dropbox/$id': typeof DropboxIdRoute
   '/genre/$id': typeof GenreIdRoute
@@ -213,6 +221,7 @@ export interface FileRoutesById {
   '/apikeys': typeof ApikeysRoute
   '/charts': typeof ChartsRoute
   '/loading': typeof LoadingRoute
+  '/recommendations': typeof RecommendationsRoute
   '/scrobble': typeof ScrobbleRoute
   '/dropbox/$id': typeof DropboxIdRoute
   '/genre/$id': typeof GenreIdRoute
@@ -241,6 +250,7 @@ export interface FileRouteTypes {
     | '/apikeys'
     | '/charts'
     | '/loading'
+    | '/recommendations'
     | '/scrobble'
     | '/dropbox/$id'
     | '/genre/$id'
@@ -267,6 +277,7 @@ export interface FileRouteTypes {
     | '/apikeys'
     | '/charts'
     | '/loading'
+    | '/recommendations'
     | '/scrobble'
     | '/dropbox/$id'
     | '/genre/$id'
@@ -293,6 +304,7 @@ export interface FileRouteTypes {
     | '/apikeys'
     | '/charts'
     | '/loading'
+    | '/recommendations'
     | '/scrobble'
     | '/dropbox/$id'
     | '/genre/$id'
@@ -320,6 +332,7 @@ export interface RootRouteChildren {
   ApikeysRoute: typeof ApikeysRoute
   ChartsRoute: typeof ChartsRoute
   LoadingRoute: typeof LoadingRoute
+  RecommendationsRoute: typeof RecommendationsRoute
   ScrobbleRoute: typeof ScrobbleRoute
   DropboxIdRoute: typeof DropboxIdRoute
   GenreIdRoute: typeof GenreIdRoute
@@ -349,6 +362,13 @@ declare module '@tanstack/react-router' {
       path: '/scrobble'
       fullPath: '/scrobble'
       preLoaderRoute: typeof ScrobbleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/recommendations': {
+      id: '/recommendations'
+      path: '/recommendations'
+      fullPath: '/recommendations'
+      preLoaderRoute: typeof RecommendationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/loading': {
@@ -520,6 +540,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApikeysRoute: ApikeysRoute,
   ChartsRoute: ChartsRoute,
   LoadingRoute: LoadingRoute,
+  RecommendationsRoute: RecommendationsRoute,
   ScrobbleRoute: ScrobbleRoute,
   DropboxIdRoute: DropboxIdRoute,
   GenreIdRoute: GenreIdRoute,
