@@ -1,6 +1,6 @@
 import type { Context } from "context";
 import { consola } from "consola";
-import { asc, count, eq, or } from "drizzle-orm";
+import { asc, count, eq } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { AlbumViewDetailed } from "lexicon/types/app/rocksky/album/defs";
@@ -41,21 +41,12 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
     try: async () => {
       const { albums: album, artists: artist } = await ctx.db
         .select()
-        .from(tables.userAlbums)
-        .leftJoin(
-          tables.albums,
-          eq(tables.userAlbums.albumId, tables.albums.id),
-        )
+        .from(tables.albums)
         .leftJoin(
           tables.artists,
           eq(tables.albums.artistUri, tables.artists.uri),
         )
-        .where(
-          or(
-            eq(tables.userAlbums.uri, params.uri),
-            eq(tables.albums.uri, params.uri),
-          ),
-        )
+        .where(eq(tables.albums.uri, params.uri))
         .execute()
         .then((rows) => rows[0]);
       return Promise.all([
