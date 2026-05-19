@@ -1,5 +1,6 @@
 import { followsAtom } from "@/src/atoms/follows";
 import { profileAtom } from "@/src/atoms/profile";
+import FloatingShoutBar from "@/src/components/FloatingShoutBar";
 import { colors } from "@/src/theme";
 import {
   useFollowAccountMutation,
@@ -826,6 +827,11 @@ export default function Profile({ route }: { route?: ProfileRoute }) {
       <View style={{ flex: 1, paddingHorizontal: hasScrollContent ? 0 : 16 }}>
         {renderTabContent()}
       </View>
+      <FloatingShoutBar
+        uri={`at://${did}`}
+        type="profile"
+        title={profileData?.displayName}
+      />
     </SafeAreaView>
   );
 }

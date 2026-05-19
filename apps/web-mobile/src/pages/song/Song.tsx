@@ -7,6 +7,7 @@ import { useSongByUriQuery } from "../../hooks/useLibrary";
 import { useScrobbleByUriQuery } from "../../hooks/useScrobble";
 import Main from "../../layouts/Main";
 import ShareOnBluesky from "../../components/ShareOnBluesky";
+import FloatingShoutBar from "../../components/FloatingShoutBar";
 
 export default function Song() {
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
@@ -32,9 +33,12 @@ export default function Song() {
     ? `/${song.artistUri.split("at://")[1].replace("app.rocksky.", "")}`
     : null;
 
+  const shoutUri = isScrobble ? scrobbleUri : songUri;
+  const shoutTitle = song?.title;
+
   return (
     <Main>
-      <div className="px-4 pb-6 pt-4">
+      <div className="px-4 pt-4" style={{ paddingBottom: "calc(24px + 56px + env(safe-area-inset-bottom))" }}>
         {isLoading && (
           <ContentLoader
             width="100%"
@@ -177,6 +181,7 @@ export default function Song() {
           </div>
         )}
       </div>
+      <FloatingShoutBar uri={shoutUri} type={isScrobble ? "scrobble" : "song"} title={shoutTitle} />
     </Main>
   );
 }

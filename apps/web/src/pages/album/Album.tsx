@@ -183,9 +183,9 @@ const Album = () => {
         )}
         {album && (
           <Group>
-            {album.albumArt && <SongCover cover={album.albumArt!} />}
+            {album.albumArt && <SongCover cover={album.albumArt!} size={165} />}
             {!album.albumArt && (
-              <div className="w-[240px] h-[240px] mr-[12px] rounded-[8px] bg-[rgba(243, 243, 243, 0.725)] flex justify-center items-center">
+              <div className="w-[165px] h-[165px] mr-[12px] rounded-[8px] bg-[rgba(243, 243, 243, 0.725)] flex justify-center items-center">
                 <div className="w-[130px] h-[130px]">
                   <Disc color="rgba(66, 87, 108, 0.65)" />
                 </div>

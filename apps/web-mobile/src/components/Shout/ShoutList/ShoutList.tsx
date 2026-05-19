@@ -7,19 +7,27 @@ import useShout from "../../../hooks/useShout";
 import Shout from "./Shout";
 import "./styles.css";
 
-function ShoutList() {
+function ShoutList({ uri: uriProp }: { uri?: string } = {}) {
   const shouts = useAtomValue(shoutsAtom);
   const setShouts = useSetAtom(shoutsAtom);
   const { pathname } = useLocation();
   const { getShouts } = useShout();
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
 
+  const shoutKey = uriProp || pathname;
+
   useEffect(() => {
     fetchShouts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [getShouts, pathname, did, rkey]);
+  }, [getShouts, shoutKey, did, rkey]);
 
   const fetchShouts = async () => {
+    if (uriProp) {
+      const data = await getShouts(uriProp);
+      setShouts({ ...shouts, [uriProp]: processShouts(data) });
+      return;
+    }
+
     let uri = `at://${did}`;
 
     if (pathname.startsWith("/profile")) {
@@ -95,8 +103,8 @@ function ShoutList() {
   };
 
   return (
-    <div style={{ marginTop: 50 }}>
-      {(shouts[pathname] || []).map((shout) => renderShout(shout))}
+    <div className="mt-[50px]">
+      {(shouts[shoutKey] || []).map((shout) => renderShout(shout))}
     </div>
   );
 }

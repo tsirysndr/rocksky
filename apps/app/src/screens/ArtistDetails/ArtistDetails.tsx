@@ -1,5 +1,6 @@
 import { colors } from "@/src/theme";
 import { useArtistAlbumsQuery, useArtistQuery, useArtistTracksQuery } from "@/src/hooks/useLibrary";
+import FloatingShoutBar from "@/src/components/FloatingShoutBar";
 import { RootStackParamList } from "@/src/Navigation";
 import { RouteProp, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -42,7 +43,7 @@ export default function ArtistDetails({ route }: Props) {
         <Text style={{ color: colors.primary, fontSize: 15 }}>← Back</Text>
       </TouchableOpacity>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 96 }}>
         {isLoading && (
           <View style={{ alignItems: "center", paddingVertical: 60 }}>
             <ActivityIndicator size="large" color={colors.primary} />
@@ -192,6 +193,7 @@ export default function ArtistDetails({ route }: Props) {
           </View>
         )}
       </ScrollView>
+      <FloatingShoutBar uri={uri} type="artist" title={artist?.name} />
     </SafeAreaView>
   );
 }

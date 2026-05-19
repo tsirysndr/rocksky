@@ -1,11 +1,3 @@
-import {
-  Modal,
-  ModalBody,
-  ModalButton,
-  ModalFooter,
-  ModalHeader,
-} from "baseui/modal";
-import { Spinner } from "baseui/spinner";
 import { useState } from "react";
 import useShout from "../../../../../hooks/useShout";
 
@@ -16,68 +8,51 @@ interface DeleteShoutModalProps {
   refetch: () => Promise<void>;
 }
 
-function DeleteShoutModal(props: DeleteShoutModalProps) {
-  const { isOpen, onClose } = props;
+function DeleteShoutModal({ isOpen, onClose, shoutUri, refetch }: DeleteShoutModalProps) {
   const { deleteShout } = useShout();
   const [loading, setLoading] = useState(false);
 
+  if (!isOpen) return null;
+
   const onDelete = async () => {
     setLoading(true);
-    await deleteShout(props.shoutUri);
+    await deleteShout(shoutUri);
     setLoading(false);
     onClose();
-    await props.refetch();
+    await refetch();
   };
 
   return (
-    <>
-      <Modal
-        size={"auto"}
-        onClose={onClose}
-        isOpen={isOpen}
-        overrides={{
-          Root: {
-            style: {
-              zIndex: 1,
-            },
-          },
-          Close: {
-            style: {
-              display: "none",
-            },
-          },
-        }}
+    <div className="fixed inset-0 z-50 flex items-end" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/70" />
+      <div
+        className="relative w-full rounded-t-[20px] bg-[var(--color-surface)] px-5 pb-9 pt-6"
+        onClick={(e) => e.stopPropagation()}
       >
-        <ModalHeader
-          style={{
-            margin: 16,
-            display: "flex",
-            justifyContent: "space-between",
-          }}
-        >
-          Delete Shout
-        </ModalHeader>
-        <ModalBody>
-          <p style={{ fontSize: 16 }}>
-            Are you sure you want to delete this shout? Any replies to this
-            shout will also be deleted.
-          </p>
-        </ModalBody>
-        <ModalFooter style={{ justifyContent: "flex-end", display: "flex" }}>
-          {!loading && (
-            <>
-              <ModalButton kind="tertiary" onClick={onClose} shape="pill">
-                Cancel
-              </ModalButton>
-              <ModalButton onClick={onDelete} shape={"pill"}>
-                Delete
-              </ModalButton>
-            </>
-          )}
-          {loading && <Spinner $size={25} $color="rgb(255, 40, 118)" />}
-        </ModalFooter>
-      </Modal>
-    </>
+        <div className="mx-auto mb-5 h-1 w-9 rounded-full bg-[var(--color-border)]" />
+        <h3 className="mb-2 text-lg font-bold text-[var(--color-text)]">
+          Delete shout?
+        </h3>
+        <p className="mb-6 text-sm leading-relaxed text-[var(--color-text-muted)]">
+          This will permanently delete the shout and all replies.
+        </p>
+        <div className="flex flex-col gap-2.5">
+          <button
+            onClick={onDelete}
+            disabled={loading}
+            className={`w-full rounded-[14px] border-none py-[13px] text-[15px] font-bold text-white bg-[var(--color-primary)] ${loading ? "cursor-default opacity-70" : "cursor-pointer"}`}
+          >
+            {loading ? "Deleting..." : "Delete"}
+          </button>
+          <button
+            onClick={onClose}
+            className="w-full cursor-pointer rounded-[14px] border border-[var(--color-border)] bg-[var(--color-surface-2)] py-[13px] text-[15px] font-semibold text-[var(--color-text)]"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

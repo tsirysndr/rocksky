@@ -1,6 +1,9 @@
 import { feedAtom, feedGeneratorUriAtom, feedUrisAtom, followingFeedAtom } from "@/src/atoms/feed";
 import { colors } from "@/src/theme";
 import { useFeedGeneratorsQuery, useFeedInfiniteQuery, useScrobbleInfiniteQuery } from "@/src/hooks/useFeed";
+import useLike from "@/src/hooks/useLike";
+import Heart from "@/src/components/Icons/Heart";
+import HeartOutline from "@/src/components/Icons/HeartOutline";
 import { RootStackParamList } from "@/src/Navigation";
 import { storage } from "@/src/storage";
 import { NavigationProp, useNavigation } from "@react-navigation/native";
@@ -111,6 +114,24 @@ function SongCard({ item, onPress, onPressProfile }: {
   onPress: (uri: string) => void;
   onPressProfile: (did: string) => void;
 }) {
+  const [liked, setLiked] = useState(!!item.liked);
+  const [likesCount, setLikesCount] = useState((item.likesCount as number) || 0);
+  const { like, unlike } = useLike();
+
+  const handleLike = (e: any) => {
+    e.stopPropagation?.();
+    if (!storage.getToken()) return;
+    if (liked) {
+      setLiked(false);
+      setLikesCount((c) => Math.max(0, c - 1));
+      unlike(item.uri);
+    } else {
+      setLiked(true);
+      setLikesCount((c) => c + 1);
+      like(item.uri);
+    }
+  };
+
   return (
     <TouchableOpacity
       style={{ width: CARD_SIZE, marginBottom: 16 }}
@@ -132,6 +153,36 @@ function SongCard({ item, onPress, onPressProfile }: {
             <Text style={{ fontSize: 32, opacity: 0.2 }}>♪</Text>
           </View>
         )}
+        {/* Heart overlay */}
+        <View
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 56,
+            paddingHorizontal: 8,
+            paddingBottom: 8,
+            justifyContent: "flex-end",
+          }}
+          pointerEvents="box-none"
+        >
+          <TouchableOpacity
+            onPress={handleLike}
+            style={{ flexDirection: "row", alignItems: "center", gap: 3 }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            {liked
+              ? <Heart size={18} color={colors.primary} />
+              : <HeartOutline size={18} color="rgba(255,255,255,0.85)" />
+            }
+            {likesCount > 0 && (
+              <Text style={{ fontSize: 11, color: liked ? colors.primary : "rgba(255,255,255,0.85)" }}>
+                {likesCount}
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
       <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: "600", color: colors.text, marginBottom: 2 }}>
         {item.title}

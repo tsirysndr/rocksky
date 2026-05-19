@@ -1,6 +1,7 @@
 import { colors } from "@/src/theme";
 import { useFeedByUriQuery, useScrobbleByUriQuery } from "@/src/hooks/useFeed";
 import { useArtistAlbumsQuery, useArtistTracksQuery, useSongByUriQuery } from "@/src/hooks/useLibrary";
+import FloatingShoutBar from "@/src/components/FloatingShoutBar";
 import { RootStackParamList } from "@/src/Navigation";
 import { RouteProp, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -48,7 +49,7 @@ export default function SongDetails({ route }: Props) {
         <Text style={{ color: colors.primary, fontSize: 15 }}>← Back</Text>
       </TouchableOpacity>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 96 }}>
         {isLoading && (
           <View style={{ alignItems: "center", paddingVertical: 60 }}>
             <ActivityIndicator size="large" color={colors.primary} />
@@ -221,6 +222,11 @@ export default function SongDetails({ route }: Props) {
           </View>
         )}
       </ScrollView>
+      <FloatingShoutBar
+        uri={uri}
+        type={isScrobble ? "scrobble" : "song"}
+        title={song?.title}
+      />
     </SafeAreaView>
   );
 }

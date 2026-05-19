@@ -1,51 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import styled from "@emotion/styled";
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Modal,
-  ModalBody,
-  ModalButton,
-  ModalFooter,
-  ModalHeader,
-} from "baseui/modal";
-import { Spinner } from "baseui/spinner";
-import { Textarea } from "baseui/textarea";
-import { LabelMedium } from "baseui/typography";
 import { useAtomValue, useSetAtom } from "jotai";
-import { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { Link as DefaultLink, useParams } from "react-router";
-import z from "zod";
+import { useRef, useState } from "react";
+import { Link, useParams } from "react-router";
 import { profileAtom } from "../../../../../atoms/profile";
 import { shoutsAtom } from "../../../../../atoms/shouts";
 import useShout from "../../../../../hooks/useShout";
-
-const ShoutSchema = z.object({
-  message: z.string().min(1).max(1000),
-});
-
-const Link = styled(DefaultLink)`
-  color: inherit;
-  text-decoration: none;
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
-const Header = styled.div`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const Message = styled.p`
-  font-family: RockfordSansLight;
-  margin-top: 3px;
-  margin-bottom: 0px;
-  width: 450px;
-  font-size: 15px;
-`;
 
 interface ReplyModalProps {
   isOpen: boolean;
@@ -61,71 +20,23 @@ interface ReplyModalProps {
   };
 }
 
-function ReplyModal(props: ReplyModalProps) {
-  const { isOpen, close, shout } = props;
+function ReplyModal({ isOpen, close, shout }: ReplyModalProps) {
   const { reply, getShouts } = useShout();
   const profile = useAtomValue(profileAtom);
   const shouts = useAtomValue(shoutsAtom);
   const setShouts = useSetAtom(shoutsAtom);
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const { control, handleSubmit, reset, watch } = useForm<
-    z.infer<typeof ShoutSchema>
-  >({
-    mode: "onChange",
-    resolver: zodResolver(ShoutSchema),
-    defaultValues: {
-      message: "",
-    },
-  });
+  if (!isOpen) return null;
 
-  const onClose = () => {
-    reset();
-    close();
-  };
-
-  const onReply = async ({ message }: z.infer<typeof ShoutSchema>) => {
-    setLoading(true);
-    await reply(shout.uri, message);
-    setLoading(false);
-    reset();
-    close();
-
-    let uri = "";
-
-    if (location.pathname.startsWith("/profile")) {
-      uri = `at://${did}`;
-    }
-
-    if (location.pathname.includes("app.rocksky.scrobble")) {
-      uri = `at://${did}/app.rocksky.scrobble/${rkey}`;
-    }
-
-    if (location.pathname.includes("app.rocksky.song")) {
-      uri = `at://${did}/app.rocksky.song/${rkey}`;
-    }
-
-    if (location.pathname.includes("app.rocksky.album")) {
-      uri = `at://${did}/app.rocksky.album/${rkey}`;
-    }
-
-    if (location.pathname.includes("app.rocksky.artist")) {
-      uri = `at://${did}/app.rocksky.artist/${rkey}`;
-    }
-
-    const data = await getShouts(uri);
-    setShouts({
-      ...shouts,
-      [location.pathname]: processShouts(data),
-    });
-  };
-
-  const processShouts = (data: any) => {
-    const mapShouts = (parentId: string | null) => {
-      return data
-        .filter((x: any) => x.shouts.parent === parentId)
-        .map((x: any) => ({
+  const processShouts = (data: any[]) => {
+    const mapShouts = (parentId: string | null): any[] =>
+      data
+        .filter((x) => x.shouts.parent === parentId)
+        .map((x) => ({
           id: x.shouts.id,
           uri: x.shouts.uri,
           message: x.shouts.content,
@@ -141,136 +52,94 @@ function ReplyModal(props: ReplyModalProps) {
           },
           replies: mapShouts(x.shouts.id).reverse(),
         }));
-    };
-
     return mapShouts(null);
   };
 
-  return (
-    <Modal
-      size={"auto"}
-      onClose={onClose}
-      isOpen={isOpen}
-      overrides={{
-        Root: {
-          style: {
-            zIndex: 1,
-          },
-        },
-        Close: {
-          style: {
-            display: "none",
-          },
-        },
-      }}
-    >
-      <ModalHeader
-        style={{
-          margin: 16,
-          display: "flex",
-          justifyContent: "space-between",
-        }}
-      >
-        <ModalButton kind="tertiary" onClick={close} shape="pill">
-          Cancel
-        </ModalButton>
-        {!loading && (
-          <ModalButton
-            onClick={handleSubmit(onReply)}
-            shape={"pill"}
-            disabled={
-              watch("message").length === 0 || watch("message").length > 1000
-            }
-          >
-            Reply
-          </ModalButton>
-        )}
-        {loading && (
-          <Spinner
-            $size={22}
-            $color="rgb(255, 40, 118)"
-            style={{
-              margin: 10,
-            }}
-          />
-        )}
-      </ModalHeader>
-      <ModalBody>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "row",
-          }}
-        >
-          <Link to={`/profile/${shout.user.handle}`} onClick={close}>
-            <img
-              src={shout.user.avatar}
-              style={{
-                width: 50,
-                height: 50,
-                borderRadius: 25,
-              }}
-            />
-          </Link>
+  const onReply = async () => {
+    if (!message.trim() || loading) return;
+    setLoading(true);
+    await reply(shout.uri, message);
 
-          <div style={{ marginLeft: 20, width: "100%" }}>
-            <Header>
-              <div>
-                <Link to={`/profile/${shout.user.handle}`} onClick={close}>
-                  <LabelMedium>{shout.user.displayName}</LabelMedium>
-                </Link>
-              </div>
-            </Header>
-            <Message>{shout.message}</Message>
+    let uri = "";
+    if (location.pathname.startsWith("/profile")) uri = `at://${did}`;
+    else if (location.pathname.includes("app.rocksky.scrobble")) uri = `at://${did}/app.rocksky.scrobble/${rkey}`;
+    else if (location.pathname.includes("app.rocksky.song")) uri = `at://${did}/app.rocksky.song/${rkey}`;
+    else if (location.pathname.includes("app.rocksky.album")) uri = `at://${did}/app.rocksky.album/${rkey}`;
+    else if (location.pathname.includes("app.rocksky.artist")) uri = `at://${did}/app.rocksky.artist/${rkey}`;
+
+    if (uri) {
+      const data = await getShouts(uri);
+      setShouts({ ...shouts, [location.pathname]: processShouts(data) });
+    }
+
+    setLoading(false);
+    setMessage("");
+    close();
+  };
+
+  const canReply = message.trim() && !loading;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end" onClick={close}>
+      <div className="absolute inset-0 bg-black/70" />
+      <div
+        className="relative w-full rounded-t-[20px] bg-[var(--color-surface)] px-4 pb-8 pt-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="mb-4 flex items-center justify-between">
+          <button
+            onClick={close}
+            className="border-none bg-transparent p-0 text-sm cursor-pointer text-[var(--color-text-muted)]"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onReply}
+            disabled={!canReply}
+            className={`rounded-full border-none px-[18px] py-1.5 text-sm font-semibold ${canReply ? "cursor-pointer bg-[var(--color-primary)] text-white" : "cursor-default bg-[var(--color-surface-2)] text-[var(--color-text-muted)]"}`}
+          >
+            {loading ? "Posting..." : "Reply"}
+          </button>
+        </div>
+
+        {/* Original shout */}
+        <div className="mb-4 flex gap-2.5 border-b border-[var(--color-border)] pb-4">
+          {shout.user.avatar && (
+            <Link to={`/profile/${shout.user.handle}`} onClick={close} className="shrink-0 no-underline">
+              <img src={shout.user.avatar} className="block h-9 w-9 rounded-full" />
+            </Link>
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="mb-[3px] text-[13px] font-semibold text-[var(--color-text)]">
+              {shout.user.displayName}
+            </p>
+            <p className="m-0 text-[13px] leading-snug text-[var(--color-text-muted)]">
+              {shout.message}
+            </p>
           </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "row", marginTop: 20 }}>
-          <img
-            src={profile?.avatar}
-            style={{
-              width: 50,
-              height: 50,
-              borderRadius: 25,
-            }}
-          />
-          <Controller
-            name="message"
-            control={control}
-            render={({ field }) => (
-              <Textarea
-                resize="vertical"
-                overrides={{
-                  Root: {
-                    style: {
-                      border: "none",
-                    },
-                  },
-                  InputContainer: {
-                    style: {
-                      border: "none",
-                      backgroundColor: "#fff",
-                    },
-                  },
-                  Input: {
-                    style: {
-                      width: "450px",
-                      border: "none",
-                      backgroundColor: "#fff",
-                    },
-                  },
-                }}
-                autoFocus
-                maxLength={1000}
-                placeholder="Write your reply"
-                {...field}
-              />
-            )}
+        {/* Reply input */}
+        <div className="flex gap-2.5">
+          {profile?.avatar && (
+            <img src={profile.avatar} className="h-9 w-9 shrink-0 rounded-full" />
+          )}
+          <textarea
+            ref={textareaRef}
+            autoFocus
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Write your reply..."
+            maxLength={1000}
+            className="min-h-[80px] flex-1 resize-none border-none bg-transparent font-[inherit] text-sm leading-relaxed outline-none text-[var(--color-text)]"
           />
         </div>
-      </ModalBody>
-      <ModalFooter></ModalFooter>
-    </Modal>
+        <div className="mt-1 text-right text-[11px] text-[var(--color-text-muted)]">
+          {message.length}/1000
+        </div>
+      </div>
+    </div>
   );
 }
 

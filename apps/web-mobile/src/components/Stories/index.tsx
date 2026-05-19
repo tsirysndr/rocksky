@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { IconChevronLeft, IconChevronRight, IconUser, IconX } from "@tabler/icons-react";
+import type { TouchEvent } from "react";
 import { Link } from "react-router-dom";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -54,7 +55,26 @@ function StoryModal({
 }) {
   const [index, setIndex] = useState(startIndex);
   const [progress, setProgress] = useState(0);
+  const touchStartY = useRef<number | null>(null);
   const current = stories[index];
+
+  const goNext = () => {
+    const next = index + 1;
+    if (next >= stories.length) { onClose(); return; }
+    setIndex(next);
+  };
+  const goPrev = () => setIndex((i) => Math.max(0, i - 1));
+
+  const handleTouchStart = (e: TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+  };
+  const handleTouchEnd = (e: TouchEvent) => {
+    if (touchStartY.current === null) return;
+    const delta = touchStartY.current - e.changedTouches[0].clientY;
+    touchStartY.current = null;
+    if (Math.abs(delta) < 50) return;
+    if (delta > 0) goNext(); else goPrev();
+  };
 
   useEffect(() => {
     setProgress(0);
@@ -64,15 +84,10 @@ function StoryModal({
     const id = window.setInterval(() => {
       setProgress((p) => {
         if (p >= 100) {
-          const next = index + 1;
-          if (next >= stories.length) {
-            onClose();
-            return 0;
-          }
-          setIndex(next);
+          goNext();
           return 0;
         }
-        return p + 1;
+        return p + 2;
       });
     }, 100);
     return () => clearInterval(id);
@@ -89,6 +104,8 @@ function StoryModal({
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
       style={{
         backgroundColor: "#000",
         backgroundImage: current?.albumArt
@@ -99,16 +116,13 @@ function StoryModal({
         backgroundRepeat: "no-repeat",
       }}
     >
-      {/* Progress bar */}
+      {/* Progress bars — one segment per story */}
       <div className="flex gap-1 px-3 pt-3 pb-2">
         {stories.map((_, i) => (
-          <div key={i} className="flex-1 h-0.5 rounded-full overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.3)" }}>
+          <div key={i} className="flex-1 h-0.5 rounded-full overflow-hidden bg-white/30">
             <div
-              className="h-full rounded-full transition-none"
-              style={{
-                width: i < index ? "100%" : i === index ? `${progress}%` : "0%",
-                backgroundColor: "#fff",
-              }}
+              className="h-full bg-white transition-none"
+              style={{ width: i < index ? "100%" : i === index ? `${progress}%` : "0%" }}
             />
           </div>
         ))}
@@ -130,6 +144,9 @@ function StoryModal({
           <span className="text-xs flex-shrink-0" style={{ color: "rgba(255,255,255,0.6)" }}>
             {dayjs.utc(current?.createdAt).local().fromNow()}
           </span>
+          <span className="text-xs flex-shrink-0 tabular-nums" style={{ color: "rgba(255,255,255,0.5)" }}>
+            {index + 1}/{stories.length}
+          </span>
         </Link>
         <button
           onClick={onClose}
@@ -142,19 +159,9 @@ function StoryModal({
       {/* Album art */}
       <div className="flex-1 flex items-center justify-center px-4 relative">
         {/* Prev tap zone */}
-        <div
-          className="absolute left-0 top-0 bottom-0 w-1/3 z-10"
-          onClick={() => setIndex((i) => Math.max(0, i - 1))}
-        />
+        <div className="absolute left-0 top-0 bottom-0 w-1/3 z-10" onClick={goPrev} />
         {/* Next tap zone */}
-        <div
-          className="absolute right-0 top-0 bottom-0 w-1/3 z-10"
-          onClick={() => {
-            const next = index + 1;
-            if (next >= stories.length) { onClose(); return; }
-            setIndex(next);
-          }}
-        />
+        <div className="absolute right-0 top-0 bottom-0 w-1/3 z-10" onClick={goNext} />
         {trackPath ? (
           <Link to={trackPath} onClick={onClose} className="block no-underline">
             <img
@@ -190,28 +197,6 @@ function StoryModal({
         ) : (
           <p className="text-base m-0" style={{ color: "rgba(255,255,255,0.6)" }}>{current?.artist}</p>
         )}
-
-        {/* Prev/Next chevrons */}
-        <div className="flex justify-center gap-8 mt-6">
-          <button
-            onClick={() => setIndex((i) => Math.max(0, i - 1))}
-            disabled={index === 0}
-            className="border-none bg-transparent cursor-pointer p-2 disabled:opacity-30"
-          >
-            <IconChevronLeft size={28} color="#fff" />
-          </button>
-          <button
-            onClick={() => {
-              const next = index + 1;
-              if (next >= stories.length) { onClose(); return; }
-              setIndex(next);
-            }}
-            disabled={index >= stories.length - 1}
-            className="border-none bg-transparent cursor-pointer p-2 disabled:opacity-30"
-          >
-            <IconChevronRight size={28} color="#fff" />
-          </button>
-        </div>
       </div>
     </div>
   );

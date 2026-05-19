@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { useAtomValue } from "jotai";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import ContentLoader from "react-content-loader";
 import { Link } from "react-router-dom";
 import { feedGeneratorUriAtom, followingFeedAtom } from "../../../atoms/feed";
@@ -15,6 +15,10 @@ import {
 import { WS_URL } from "../../../consts";
 import FeedGenerators from "../../../components/FeedGenerators";
 import Stories from "../../../components/Stories";
+import Heart from "../../../components/Icons/Heart";
+import HeartOutline from "../../../components/Icons/HeartOutline";
+import useLike from "../../../hooks/useLike";
+import SignInModal from "../../../components/SignInModal";
 
 dayjs.extend(relativeTime);
 
@@ -28,34 +32,90 @@ function SongCard({ song }: { song: Record<string, unknown> }) {
   const userAvatar = song.userAvatar as string;
   const date = song.date as string;
   const tags = (song.tags as string[]) || [];
+  const [liked, setLiked] = useState(!!song.liked);
+  const [likesCount, setLikesCount] = useState((song.likesCount as number) || 0);
+  const [isSignInOpen, setIsSignInOpen] = useState(false);
+  const { like, unlike } = useLike();
 
   const href = songUri
     ? `/${songUri.split("at://")[1].replace("app.rocksky.", "")}`
     : null;
+
+  const handleLike = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!localStorage.getItem("token")) {
+      setIsSignInOpen(true);
+      return;
+    }
+    if (liked) {
+      setLiked(false);
+      setLikesCount((c) => Math.max(0, c - 1));
+      unlike(songUri);
+    } else {
+      setLiked(true);
+      setLikesCount((c) => c + 1);
+      like(songUri);
+    }
+  };
+
+  const coverContent = cover ? (
+    <img src={cover} alt={title} className="w-full h-full object-cover" />
+  ) : (
+    <div className="w-full h-full flex items-center justify-center">
+      <span className="text-5xl opacity-20">♪</span>
+    </div>
+  );
+
+  const heartOverlay = (
+    <div
+      className="absolute bottom-0 left-0 right-0 flex items-end p-2"
+      style={{
+        height: "60px",
+        background: "linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 100%)",
+        pointerEvents: "none",
+      }}
+    >
+      <button
+        onClick={handleLike}
+        style={{
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          padding: 0,
+          display: "flex",
+          alignItems: "center",
+          gap: "3px",
+          pointerEvents: "all",
+        }}
+      >
+        {liked ? <Heart color="#fff" size={18} /> : <HeartOutline color="#fff" size={18} />}
+        {likesCount > 0 && (
+          <span style={{ color: "#fff", fontSize: "11px", lineHeight: 1 }}>{likesCount}</span>
+        )}
+      </button>
+    </div>
+  );
 
   return (
     <div className="flex flex-col">
       {href ? (
         <Link to={href} className="no-underline block">
           <div
-            className="w-full aspect-square rounded-xl overflow-hidden mb-2"
+            className="relative w-full aspect-square rounded-xl overflow-hidden mb-2"
             style={{ backgroundColor: "var(--color-surface-2)" }}
           >
-            {cover ? (
-              <img src={cover} alt={title} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <span className="text-5xl opacity-20">♪</span>
-              </div>
-            )}
+            {coverContent}
+            {heartOverlay}
           </div>
           <p className="font-semibold text-sm m-0 mb-0.5 truncate" style={{ color: "var(--color-text)" }}>{title}</p>
           <p className="text-xs m-0 truncate" style={{ color: "var(--color-text-muted)" }}>{artist}</p>
         </Link>
       ) : (
         <>
-          <div className="w-full aspect-square rounded-xl overflow-hidden mb-2" style={{ backgroundColor: "var(--color-surface-2)" }}>
-            <div className="w-full h-full flex items-center justify-center"><span className="text-5xl opacity-20">♪</span></div>
+          <div className="relative w-full aspect-square rounded-xl overflow-hidden mb-2" style={{ backgroundColor: "var(--color-surface-2)" }}>
+            {coverContent}
+            {heartOverlay}
           </div>
           <p className="font-semibold text-sm m-0 mb-0.5 truncate" style={{ color: "var(--color-text)" }}>{title}</p>
           <p className="text-xs m-0 truncate" style={{ color: "var(--color-text-muted)" }}>{artist}</p>
@@ -87,6 +147,7 @@ function SongCard({ song }: { song: Record<string, unknown> }) {
           · {dayjs(date).fromNow()}
         </span>
       </div>
+      <SignInModal isOpen={isSignInOpen} onClose={() => setIsSignInOpen(false)} />
     </div>
   );
 }

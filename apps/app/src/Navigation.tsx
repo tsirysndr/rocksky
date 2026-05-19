@@ -14,6 +14,7 @@ import Home from "./screens/Home";
 import Profile from "./screens/Profile";
 import Recommendations from "./screens/Recommendations";
 import Search from "./screens/Search";
+import ShoutEditor from "./screens/ShoutEditor";
 import SongDetails from "./screens/SongDetails";
 import Story from "./screens/Story";
 
@@ -40,6 +41,7 @@ function HomeStackScreen() {
       <HomeStack.Screen name="SongDetails" component={SongDetails} />
       <HomeStack.Screen name="UserProfile" component={Profile} />
       <HomeStack.Screen name="Story" component={Story} />
+      <HomeStack.Screen name="ShoutEditor" component={ShoutEditor} />
     </HomeStack.Navigator>
   );
 }
@@ -58,6 +60,7 @@ function ChartsStackScreen() {
       <ChartsStack.Screen name="ArtistDetails" component={ArtistDetails} />
       <ChartsStack.Screen name="SongDetails" component={SongDetails} />
       <ChartsStack.Screen name="UserProfile" component={Profile} />
+      <ChartsStack.Screen name="ShoutEditor" component={ShoutEditor} />
     </ChartsStack.Navigator>
   );
 }
@@ -76,6 +79,7 @@ function ProfileStackScreen() {
       <ProfileStack.Screen name="ArtistDetails" component={ArtistDetails} />
       <ProfileStack.Screen name="SongDetails" component={SongDetails} />
       <ProfileStack.Screen name="UserProfile" component={Profile} />
+      <ProfileStack.Screen name="ShoutEditor" component={ShoutEditor} />
     </ProfileStack.Navigator>
   );
 }
@@ -94,6 +98,7 @@ function RecommendationsStackScreen() {
       <RecommendationsStack.Screen name="ArtistDetails" component={ArtistDetails} />
       <RecommendationsStack.Screen name="SongDetails" component={SongDetails} />
       <RecommendationsStack.Screen name="UserProfile" component={Profile} />
+      <RecommendationsStack.Screen name="ShoutEditor" component={ShoutEditor} />
     </RecommendationsStack.Navigator>
   );
 }
@@ -112,6 +117,7 @@ function SearchStackScreen() {
       <SearchStack.Screen name="ArtistDetails" component={ArtistDetails} />
       <SearchStack.Screen name="SongDetails" component={SongDetails} />
       <SearchStack.Screen name="UserProfile" component={Profile} />
+      <SearchStack.Screen name="ShoutEditor" component={ShoutEditor} />
     </SearchStack.Navigator>
   );
 }
@@ -210,4 +216,5 @@ export type RootStackParamList = {
   UserProfile: { did: string };
   Story: { index: number };
   Search: undefined;
+  ShoutEditor: { uri: string; type: "song" | "album" | "artist" | "profile" | "scrobble"; title?: string };
 };

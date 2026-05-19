@@ -9,6 +9,7 @@ import {
   useArtistTracksQuery,
 } from "../../hooks/useLibrary";
 import ShareOnBluesky from "../../components/ShareOnBluesky";
+import FloatingShoutBar from "../../components/FloatingShoutBar";
 
 export default function Artist() {
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
@@ -24,9 +25,11 @@ export default function Artist() {
     10,
   );
 
+  const artistUri = artist?.uri || `at://${did}/app.rocksky.artist/${rkey}`;
+
   return (
     <Main>
-      <div className="pb-6">
+      <div style={{ paddingBottom: "calc(24px + 56px + env(safe-area-inset-bottom))" }}>
         {isLoading && (
           <ContentLoader
             width="100%"
@@ -193,6 +196,7 @@ export default function Artist() {
           </>
         )}
       </div>
+      <FloatingShoutBar uri={artistUri} type="artist" title={artist?.name} />
     </Main>
   );
 }

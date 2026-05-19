@@ -35,6 +35,7 @@ import {
   useLovedTracksQuery,
 } from "../../hooks/useLibrary";
 import ShareOnBluesky from "../../components/ShareOnBluesky";
+import FloatingShoutBar from "../../components/FloatingShoutBar";
 
 dayjs.extend(relativeTime);
 
@@ -901,7 +902,7 @@ export default function Profile() {
         </div>
 
         {/* Tab content */}
-        <div className="px-4 pt-4">
+        <div className="px-4 pt-4" style={{ paddingBottom: "calc(24px + 56px + env(safe-area-inset-bottom))" }}>
           {(() => {
             const resolvedDid = profile?.did || did!;
             return (
@@ -917,6 +918,11 @@ export default function Profile() {
           })()}
         </div>
       </div>
+      <FloatingShoutBar
+        uri={`at://${profile?.did || did}`}
+        type="profile"
+        title={profile?.displayName}
+      />
     </Main>
   );
 }

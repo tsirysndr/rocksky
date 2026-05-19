@@ -1,74 +1,16 @@
-import styled from "@emotion/styled";
-import { Ellipsis } from "@styled-icons/fa-solid";
-import { ArrowReplyDown } from "@styled-icons/fluentui-system-filled";
-import { ListItem } from "baseui/list";
-import { NestedMenus, StatefulMenu } from "baseui/menu";
-import { PLACEMENT, StatefulPopover } from "baseui/popover";
-import { StatefulTooltip } from "baseui/tooltip";
-import { LabelMedium } from "baseui/typography";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import dayjs from "dayjs";
 import { useAtomValue } from "jotai";
 import { useState } from "react";
-import { Link as DefaultLink } from "react-router";
+import { Link } from "react-router";
 import { profileAtom } from "../../../../atoms/profile";
-import useLike from "../../../../hooks/useLike";
-import useShout from "../../../../hooks/useShout";
+import Heart from "../../../Icons/Heart";
 import HeartOutline from "../../../Icons/HeartOutline";
 import SignInModal from "../../../SignInModal";
+import useLike from "../../../../hooks/useLike";
+import useShout from "../../../../hooks/useShout";
 import DeleteShoutModal from "./DeleteShoutModal";
 import ReplyModal from "./ReplyModal";
-
-const Link = styled(DefaultLink)`
-  color: inherit;
-  text-decoration: none;
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
-const Header = styled.div`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const Message = styled.p`
-  font-family: RockfordSansLight;
-  margin-top: 3px;
-  margin-bottom: 0px;
-`;
-
-const ReplyLabel = styled.span`
-  color: inherit;
-  margin-left: 5px;
-`;
-
-const ReplyButton = styled.div`
-  color: rgba(66, 87, 108, 0.65);
-`;
-
-const LikeButton = styled.div`
-  color: rgba(66, 87, 108, 0.65);
-  margin-left: 10px;
-`;
-
-const Actions = styled.div`
-  display: flex;
-  flex-direction: row;
-  margin-top: 10px;
-  cursor: pointer;
-  align-items: center;
-`;
-
-const Undo = styled.span`
-  color: rgb(255, 40, 118);
-  cursor: pointer;
-
-  &:hover {
-    text-decoration: underline;
-  }
-`;
 
 interface ShoutProps {
   shout: {
@@ -88,57 +30,45 @@ interface ShoutProps {
   refetch: () => Promise<void>;
 }
 
-function Shout(props: ShoutProps) {
-  const { shout, refetch } = props;
-  const [isOpen, setIsOpen] = useState(false);
+function Shout({ shout, refetch }: ShoutProps) {
+  const [isReplyOpen, setIsReplyOpen] = useState(false);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const { like, unlike } = useLike();
   const [liked, setLiked] = useState(shout.liked);
   const [likes, setLikes] = useState(shout.likes);
   const profile = useAtomValue(profileAtom);
   const { reportShout, cancelReport } = useShout();
 
-  const onReply = () => {
+  const requireAuth = (cb: () => void) => {
     if (!localStorage.getItem("token")) {
       setIsSignInOpen(true);
       return;
     }
-    setIsOpen(true);
+    cb();
   };
 
   const onLike = async () => {
-    if (!localStorage.getItem("token")) {
-      setIsSignInOpen(true);
-      return;
-    }
-
-    if (liked) {
-      setLiked(false);
-      setLikes(likes - 1);
-      await onUnlike();
+    requireAuth(async () => {
+      if (liked) {
+        setLiked(false);
+        setLikes((n) => n - 1);
+        await unlike(shout.uri);
+      } else {
+        setLiked(true);
+        setLikes((n) => n + 1);
+        await like(shout.uri);
+      }
       await refetch();
-      return;
-    }
-
-    setLiked(true);
-    setLikes(likes + 1);
-    await like(shout.uri);
-    await refetch();
-  };
-
-  const onUnlike = async () => {
-    await unlike(shout.uri);
+    });
   };
 
   const onReport = async () => {
-    if (!localStorage.getItem("token")) {
-      setIsSignInOpen(true);
-      return;
-    }
-
-    await reportShout(shout.uri);
-    await refetch();
+    requireAuth(async () => {
+      await reportShout(shout.uri);
+      await refetch();
+    });
   };
 
   const onCancelReport = async () => {
@@ -146,188 +76,120 @@ function Shout(props: ShoutProps) {
     await refetch();
   };
 
-  return (
-    <div style={{ marginBottom: 40 }}>
-      <ListItem
-        overrides={{
-          Root: {
-            style: {
-              display: "flex",
-              alignItems: "start",
-            },
-          },
-        }}
-        artwork={
-          !shout.reported
-            ? () => (
-                <div>
-                  <Link to={`/profile/${shout.user.handle}`}>
-                    <img
-                      src={shout.user.avatar}
-                      style={{
-                        width: 65,
-                        height: 65,
-                        borderRadius: 35,
-                      }}
-                    />
-                  </Link>
-                </div>
-              )
-            : undefined
-        }
-      >
-        {shout.reported && (
-          <span>
-            You have reported this message.{" "}
-            <Undo onClick={onCancelReport}>Undo</Undo>
-          </span>
-        )}
-        {!shout.reported && (
-          <div style={{ marginLeft: 20, width: "100%" }}>
-            <Header>
-              <div>
-                <Link to={`/profile/${shout.user.handle}`}>
-                  <LabelMedium>{shout.user.displayName}</LabelMedium>
-                </Link>
-              </div>
-              <div>
-                <StatefulTooltip
-                  content={dayjs(shout.date).format(
-                    "MMMM D, YYYY [at] HH:mm A"
-                  )}
-                  returnFocus
-                  autoFocus
-                >
-                  <LabelMedium
-                    style={{
-                      color: "rgba(66, 87, 108, 0.65)",
-                      fontSize: "14px",
-                    }}
-                  >
-                    {dayjs(shout.date).fromNow()}
-                  </LabelMedium>
-                </StatefulTooltip>
-              </div>
-            </Header>
-            <Message>{shout.message}</Message>
+  const isOwn = profile?.did === shout.user.did;
 
-            <Actions>
-              <ReplyButton onClick={onReply}>
-                <ArrowReplyDown size={28} style={{ color: "inherit" }} />
-                <ReplyLabel>Reply</ReplyLabel>
-              </ReplyButton>
-              <LikeButton onClick={onLike}>
-                {!liked && <HeartOutline color="rgba(66, 87, 108, 0.65)" />}
-                {liked && <HeartOutline color="#ff2876" />}
-              </LikeButton>
-              {likes > 0 && (
-                <span
-                  style={{
-                    color: liked ? "#ff2876" : "rgba(66, 87, 108, 0.65)",
-                    marginLeft: 5,
-                    marginTop: -5,
-                  }}
-                >
-                  {likes}
-                </span>
-              )}
-              <div
-                style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}
-              >
-                <StatefulPopover
-                  placement={PLACEMENT.bottomRight}
-                  overrides={{
-                    Body: {
-                      style: {
-                        zIndex: 2,
-                        boxShadow: "none",
-                      },
-                    },
-                  }}
-                  content={({ close }) => (
-                    <div>
-                      <NestedMenus>
-                        <StatefulMenu
-                          items={
-                            profile?.did === shout.user.did
-                              ? [
-                                  {
-                                    id: "delete",
-                                    label: <LabelMedium>Delete</LabelMedium>,
-                                  },
-                                  {
-                                    id: "report",
-                                    label: (
-                                      <LabelMedium>
-                                        Report this shout
-                                      </LabelMedium>
-                                    ),
-                                  },
-                                ]
-                              : [
-                                  {
-                                    id: "report",
-                                    label: (
-                                      <LabelMedium>
-                                        Report this shout
-                                      </LabelMedium>
-                                    ),
-                                  },
-                                ]
-                          }
-                          onItemSelect={({ item }) => {
-                            switch (item.id) {
-                              case "delete":
-                                setIsDeleteOpen(true);
-                                break;
-                              case "report":
-                                onReport();
-                                break;
-                              default:
-                                break;
-                            }
-                            close();
-                          }}
-                          overrides={{
-                            List: { style: { width: "200px" } },
-                          }}
-                        />
-                      </NestedMenus>
-                    </div>
-                  )}
-                >
-                  <button
-                    style={{
-                      border: "none",
-                      cursor: "pointer",
-                      background: "none",
-                    }}
-                  >
-                    <Ellipsis
-                      size={20}
-                      style={{
-                        color: "rgba(66, 87, 108, 0.65)",
-                        marginTop: -7,
-                      }}
-                    />
-                  </button>
-                </StatefulPopover>
-              </div>
-            </Actions>
+  if (shout.reported) {
+    return (
+      <div className="py-3 text-sm text-[var(--color-text-muted)]">
+        You have reported this message.{" "}
+        <span onClick={onCancelReport} className="cursor-pointer text-[var(--color-primary)]">
+          Undo
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-1 flex gap-3 pb-5">
+      {/* Avatar */}
+      <Link to={`/profile/${shout.user.handle}`} className="shrink-0 no-underline">
+        {shout.user.avatar ? (
+          <img src={shout.user.avatar} className="block h-11 w-11 rounded-full" />
+        ) : (
+          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--color-avatar-background)]">
+            <span className="text-lg text-white">♪</span>
           </div>
         )}
-      </ListItem>
-      <ReplyModal
-        isOpen={isOpen}
-        close={() => {
-          setIsOpen(false);
-        }}
-        shout={shout}
-      />
-      <SignInModal
-        isOpen={isSignInOpen}
-        onClose={() => setIsSignInOpen(false)}
-      />
+      </Link>
+
+      {/* Body */}
+      <div className="min-w-0 flex-1">
+        {/* Header row */}
+        <div className="mb-[3px] flex items-baseline justify-between">
+          <Link
+            to={`/profile/${shout.user.handle}`}
+            className="text-sm font-semibold no-underline text-[var(--color-text)]"
+          >
+            {shout.user.displayName}
+          </Link>
+          <span
+            title={dayjs(shout.date).format("MMMM D, YYYY [at] HH:mm")}
+            className="ml-2 shrink-0 text-xs text-[var(--color-text-muted)]"
+          >
+            {dayjs(shout.date).fromNow()}
+          </span>
+        </div>
+
+        {/* Message */}
+        <p className="mb-2.5 mt-0 text-sm leading-[1.55] text-[var(--color-text)]">
+          {shout.message}
+        </p>
+
+        {/* Actions */}
+        <div className="flex items-center gap-4">
+          {/* Reply */}
+          <button
+            onClick={() => requireAuth(() => setIsReplyOpen(true))}
+            className="flex cursor-pointer items-center gap-1 border-none bg-transparent p-0 text-[13px] text-[var(--color-text-muted)]"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 17 4 12 9 7" />
+              <path d="M20 18v-2a4 4 0 0 0-4-4H4" />
+            </svg>
+            Reply
+          </button>
+
+          {/* Like */}
+          <button
+            onClick={onLike}
+            className="flex cursor-pointer items-center gap-1 border-none bg-transparent p-0"
+          >
+            {liked
+              ? <Heart size={15} color="var(--color-primary)" />
+              : <HeartOutline size={15} color="var(--color-text-muted)" />
+            }
+            {likes > 0 && (
+              <span className={`text-xs ${liked ? "text-[var(--color-primary)]" : "text-[var(--color-text-muted)]"}`}>
+                {likes}
+              </span>
+            )}
+          </button>
+
+          {/* Options menu */}
+          <div className="relative flex flex-1 justify-end">
+            <button
+              onClick={() => setMenuOpen((v) => !v)}
+              className="cursor-pointer border-none bg-transparent px-1 text-[var(--color-text-muted)]"
+            >
+              •••
+            </button>
+            {menuOpen && (
+              <>
+                <div className="fixed inset-0 z-[30]" onClick={() => setMenuOpen(false)} />
+                <div className="absolute right-0 top-full z-[31] min-w-[140px] overflow-hidden rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_4px_16px_rgba(0,0,0,0.5)]">
+                  {isOwn && (
+                    <button
+                      onClick={() => { setMenuOpen(false); setIsDeleteOpen(true); }}
+                      className="block w-full cursor-pointer border-none bg-transparent px-3.5 py-2.5 text-left text-sm text-[var(--color-primary)]"
+                    >
+                      Delete
+                    </button>
+                  )}
+                  <button
+                    onClick={() => { setMenuOpen(false); onReport(); }}
+                    className="block w-full cursor-pointer border-none bg-transparent px-3.5 py-2.5 text-left text-sm text-[var(--color-text-muted)]"
+                  >
+                    Report
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <ReplyModal isOpen={isReplyOpen} close={() => setIsReplyOpen(false)} shout={shout} />
+      <SignInModal isOpen={isSignInOpen} onClose={() => setIsSignInOpen(false)} />
       <DeleteShoutModal
         isOpen={isDeleteOpen}
         onClose={() => setIsDeleteOpen(false)}

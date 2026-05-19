@@ -5,6 +5,7 @@ import dayjs from "dayjs";
 import Main from "../../layouts/Main";
 import { useAlbumQuery } from "../../hooks/useLibrary";
 import ShareOnBluesky from "../../components/ShareOnBluesky";
+import FloatingShoutBar from "../../components/FloatingShoutBar";
 
 function formatDuration(ms: number) {
   if (!ms) return "";
@@ -21,9 +22,11 @@ export default function Album() {
     ? `/${album.artistUri.split("at://")[1].replace("app.rocksky.", "")}`
     : null;
 
+  const albumUri = `at://${did}/app.rocksky.album/${rkey}`;
+
   return (
     <Main>
-      <div className="pb-6">
+      <div style={{ paddingBottom: "calc(24px + 56px + env(safe-area-inset-bottom))" }}>
         {isLoading && (
           <ContentLoader
             width="100%"
@@ -169,6 +172,7 @@ export default function Album() {
           </>
         )}
       </div>
+      <FloatingShoutBar uri={albumUri} type="album" title={album?.title} />
     </Main>
   );
 }

@@ -8,6 +8,7 @@ import ProfilePage from "./pages/profile";
 import Recommendations from "./pages/recommendations";
 import Search from "./pages/search";
 import SongPage from "./pages/song";
+import ShoutEditor from "./pages/shout-editor";
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
         <Route path="/:did/artist/:rkey" element={<ArtistPage />} />
         <Route path="/:did/album/:rkey" element={<AlbumPage />} />
         <Route path="/profile/:did" element={<ProfilePage />} />
+        <Route path="/shout-editor" element={<ShoutEditor />} />
       </Routes>
     </BrowserRouter>
   );
