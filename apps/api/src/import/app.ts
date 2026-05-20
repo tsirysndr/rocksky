@@ -3,7 +3,7 @@ import { ctx } from "context";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import utc from "dayjs/plugin/utc";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import jwt from "jsonwebtoken";
@@ -11,6 +11,7 @@ import { createAgent } from "lib/agent";
 import { env } from "lib/env";
 import { scrobbleTrack } from "nowplaying/nowplaying.service";
 import importJobs from "schema/import-jobs";
+import scrobbles from "schema/scrobbles";
 import users from "schema/users";
 import type { Track } from "types/track";
 
@@ -209,6 +210,48 @@ async function runImport(
       })
       .where(eq(importJobs.id, jobId));
     return;
+  }
+
+  // Bulk pre-filter: skip tracks whose timestamp already exists in the DB for this user.
+  // This avoids running the full scrobbleTrack pipeline (ATProto writes + 30s polling) for duplicates.
+  const user = await ctx.db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.did, userDid))
+    .limit(1)
+    .then((rows) => rows[0]);
+
+  if (user) {
+    const validTimestamps = tracks.map((t) => t.timestamp ?? 0).filter((t) => t > 0);
+    if (validTimestamps.length > 0) {
+      const minTs = new Date(Math.min(...validTimestamps) * 1000);
+      const maxTs = new Date(Math.max(...validTimestamps) * 1000);
+
+      const existing = await ctx.db
+        .select({ timestamp: scrobbles.timestamp })
+        .from(scrobbles)
+        .where(
+          and(
+            eq(scrobbles.userId, user.id),
+            gte(scrobbles.timestamp, minTs),
+            lte(scrobbles.timestamp, maxTs),
+          ),
+        )
+        .execute();
+
+      const existingSet = new Set(existing.map((r) => Math.floor(r.timestamp.getTime() / 1000)));
+      const before = tracks.length;
+      tracks = tracks.filter((t) => !existingSet.has(t.timestamp ?? 0));
+      const skipped = before - tracks.length;
+
+      if (skipped > 0) {
+        consola.info(`[import] Pre-filtered ${skipped} already-imported scrobbles, ${tracks.length} remaining`);
+        await ctx.db
+          .update(importJobs)
+          .set({ total: tracks.length, updatedAt: new Date() })
+          .where(eq(importJobs.id, jobId));
+      }
+    }
   }
 
   let processed = 0;

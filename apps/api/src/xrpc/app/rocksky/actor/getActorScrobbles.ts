@@ -60,6 +60,7 @@ const retrieve = ({
           artist_uri: tables.tracks.artistUri,
           album_uri: tables.tracks.albumUri,
           created_at: tables.scrobbles.timestamp,
+          timestamp: tables.scrobbles.timestamp,
         })
         .from(tables.scrobbles)
         .innerJoin(
@@ -82,6 +83,7 @@ const retrieve = ({
         data: rows.map((r) => ({
           ...r,
           created_at: r.created_at.toISOString().replace(/Z$/, ""),
+          timestamp: r.timestamp.toISOString(),
         })),
       };
     },
@@ -110,7 +112,7 @@ const presentation = ({
       trackUri: x.track_uri,
       artistUri: x.artist_uri,
       albumUri: x.album_uri,
-      createdAt: `${x.created_at}Z`,
+      createdAt: x.timestamp,
     })),
   }));
 };
