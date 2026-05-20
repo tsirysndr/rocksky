@@ -1,6 +1,6 @@
 import { API_URL } from "../consts";
 
-export type ImportJobStatus = "pending" | "running" | "completed" | "failed";
+export type ImportJobStatus = "pending" | "running" | "completed" | "failed" | "cancelled";
 
 export type ImportJob = {
   id: string;
@@ -49,6 +49,13 @@ export async function getImportStatus(): Promise<ImportJob | null> {
   });
   if (!res.ok) return null;
   return res.json();
+}
+
+export async function cancelImport(): Promise<void> {
+  await fetch(`${API_URL}/import/cancel`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
 }
 
 export async function getImportJobs(size = 20, offset = 0): Promise<ImportJob[]> {

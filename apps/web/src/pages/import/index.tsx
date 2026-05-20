@@ -1,10 +1,9 @@
-import { useAtomValue } from "jotai";
 import { useEffect, useRef, useState } from "react";
-import { profileAtom } from "../../atoms/profile";
 import Main from "../../layouts/Main";
 import { useNavigate } from "@tanstack/react-router";
 import {
   type ImportJob,
+  cancelImport,
   getImportJobs,
   getImportStatus,
   uploadImportFile,
@@ -27,11 +26,12 @@ function ProgressBar({ value, max }: { value: number; max: number }) {
 }
 
 function StatusBadge({ status }: { status: ImportJob["status"] }) {
-  const map = {
-    pending: { label: "Pending", color: "text-yellow-500" },
-    running: { label: "Running", color: "text-blue-400" },
-    completed: { label: "Completed", color: "text-green-500" },
-    failed: { label: "Failed", color: "text-red-500" },
+  const map: Record<ImportJob["status"], { label: string; color: string }> = {
+    pending:   { label: "Pending",   color: "text-yellow-500" },
+    running:   { label: "Running",   color: "text-blue-400"   },
+    completed: { label: "Completed", color: "text-green-500"  },
+    failed:    { label: "Failed",    color: "text-red-500"    },
+    cancelled: { label: "Cancelled", color: "text-[var(--color-text-muted)]" },
   };
   const { label, color } = map[status] ?? map.failed;
   return <span className={`font-semibold ${color}`}>{label}</span>;
@@ -115,7 +115,7 @@ function UploadCard({
   );
 }
 
-function ActiveJobCard({ job }: { job: ImportJob }) {
+function ActiveJobCard({ job, onCancel }: { job: ImportJob; onCancel: () => void }) {
   const pct = job.total > 0 ? Math.round((job.processed / job.total) * 100) : 0;
   const errors: string[] = job.errors ? JSON.parse(job.errors) : [];
 
@@ -129,14 +129,24 @@ function ActiveJobCard({ job }: { job: ImportJob }) {
           {job.status === "completed" && (
             <IconCheck size={18} className="text-green-500" />
           )}
-          {job.status === "failed" && (
+          {(job.status === "failed" || job.status === "cancelled") && (
             <IconX size={18} className="text-red-500" />
           )}
           <LabelMedium className="!text-[var(--color-text)] font-semibold">
             {job.type === "lastfm" ? "Last.fm" : "Spotify"} Import
           </LabelMedium>
         </div>
-        <StatusBadge status={job.status} />
+        <div className="flex items-center gap-3">
+          {job.status === "running" && (
+            <button
+              onClick={onCancel}
+              className="text-sm text-red-400 hover:text-red-300 underline cursor-pointer bg-transparent border-none"
+            >
+              Cancel
+            </button>
+          )}
+          <StatusBadge status={job.status} />
+        </div>
       </div>
 
       <div className="flex justify-between text-sm text-[var(--color-text-muted)] mb-1">
@@ -222,7 +232,6 @@ function JobHistoryTable({ jobs }: { jobs: ImportJob[] }) {
 }
 
 export default function ImportPage() {
-  const profile = useAtomValue(profileAtom);
   const navigate = useNavigate();
   const [activeJob, setActiveJob] = useState<ImportJob | null>(null);
   const [jobs, setJobs] = useState<ImportJob[]>([]);
@@ -266,7 +275,7 @@ export default function ImportPage() {
           ? prev.map((j) => (j.id === job.id ? job : j))
           : [job, ...prev],
       );
-      if (job.status === "completed" || job.status === "failed") {
+      if (job.status === "completed" || job.status === "failed" || job.status === "cancelled") {
         es.close();
         esRef.current = null;
       }
@@ -283,6 +292,10 @@ export default function ImportPage() {
     };
   }, [activeJob?.status, jwt]);
 
+  const handleCancel = async () => {
+    await cancelImport();
+  };
+
   const handleUpload = async (file: File, type: "lastfm" | "spotify") => {
     setError(null);
     setUploading(true);
@@ -298,6 +311,7 @@ export default function ImportPage() {
   };
 
   const isRunning = activeJob?.status === "running" || activeJob?.status === "pending" || uploading;
+  const showJobCard = activeJob && activeJob.status !== "pending";
 
   return (
     <Main withRightPane={false}>
@@ -319,8 +333,8 @@ export default function ImportPage() {
           </div>
         )}
 
-        {activeJob && (activeJob.status === "running" || activeJob.status === "completed" || activeJob.status === "failed") && (
-          <ActiveJobCard job={activeJob} />
+        {showJobCard && (
+          <ActiveJobCard job={activeJob} onCancel={handleCancel} />
         )}
 
         <UploadCard

@@ -19,6 +19,9 @@ dayjs.extend(utc);
 
 const app = new Hono();
 
+// In-process cancellation signals — checked inside the runImport loop
+const cancelledJobs = new Set<string>();
+
 function getBearerDid(bearer: string): string {
   const payload = jwt.verify(bearer, env.JWT_SECRET, {
     ignoreExpiration: true,
@@ -211,6 +214,16 @@ async function runImport(
         .where(eq(importJobs.id, jobId));
     }
 
+    if (cancelledJobs.has(jobId)) {
+      cancelledJobs.delete(jobId);
+      await ctx.db
+        .update(importJobs)
+        .set({ status: "cancelled", processed, failed, updatedAt: new Date() })
+        .where(eq(importJobs.id, jobId));
+      consola.info(`[import] Job ${jobId} cancelled after ${processed} scrobbles`);
+      return;
+    }
+
     // Small delay to avoid hammering ATProto PDS
     await new Promise((r) => setTimeout(r, 200));
   }
@@ -364,6 +377,30 @@ app.get("/jobs", async (c) => {
   return c.json(jobs);
 });
 
+app.post("/cancel", async (c) => {
+  const user = await getAuthedUser(c);
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const job = await ctx.db
+    .select()
+    .from(importJobs)
+    .where(eq(importJobs.userId, user.id))
+    .orderBy(desc(importJobs.createdAt))
+    .limit(1)
+    .then((rows) => rows[0]);
+
+  if (!job || job.status !== "running") {
+    c.status(400);
+    return c.json({ error: "No running import to cancel" });
+  }
+
+  cancelledJobs.add(job.id);
+  return c.json({ ok: true });
+});
+
 app.get("/events", async (c) => {
   const token = c.req.query("token");
   if (!token || token === "null") {
@@ -412,7 +449,7 @@ app.get("/events", async (c) => {
         data: JSON.stringify(job ?? null),
       });
 
-      if (!job || job.status === "completed" || job.status === "failed") {
+      if (!job || job.status === "completed" || job.status === "failed" || job.status === "cancelled") {
         break;
       }
 

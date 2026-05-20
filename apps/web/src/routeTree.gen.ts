@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ScrobbleRouteImport } from './routes/scrobble'
 import { Route as RecommendationsRouteImport } from './routes/recommendations'
 import { Route as LoadingRouteImport } from './routes/loading'
+import { Route as ImportRouteImport } from './routes/import'
 import { Route as ChartsRouteImport } from './routes/charts'
 import { Route as ApikeysRouteImport } from './routes/apikeys'
 import { Route as IndexRouteImport } from './routes/index'
@@ -48,6 +49,11 @@ const RecommendationsRoute = RecommendationsRouteImport.update({
 const LoadingRoute = LoadingRouteImport.update({
   id: '/loading',
   path: '/loading',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ImportRoute = ImportRouteImport.update({
+  id: '/import',
+  path: '/import',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChartsRoute = ChartsRouteImport.update({
@@ -165,6 +171,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/apikeys': typeof ApikeysRoute
   '/charts': typeof ChartsRoute
+  '/import': typeof ImportRoute
   '/loading': typeof LoadingRoute
   '/recommendations': typeof RecommendationsRoute
   '/scrobble': typeof ScrobbleRoute
@@ -192,6 +199,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/apikeys': typeof ApikeysRoute
   '/charts': typeof ChartsRoute
+  '/import': typeof ImportRoute
   '/loading': typeof LoadingRoute
   '/recommendations': typeof RecommendationsRoute
   '/scrobble': typeof ScrobbleRoute
@@ -220,6 +228,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/apikeys': typeof ApikeysRoute
   '/charts': typeof ChartsRoute
+  '/import': typeof ImportRoute
   '/loading': typeof LoadingRoute
   '/recommendations': typeof RecommendationsRoute
   '/scrobble': typeof ScrobbleRoute
@@ -249,6 +258,7 @@ export interface FileRouteTypes {
     | '/'
     | '/apikeys'
     | '/charts'
+    | '/import'
     | '/loading'
     | '/recommendations'
     | '/scrobble'
@@ -276,6 +286,7 @@ export interface FileRouteTypes {
     | '/'
     | '/apikeys'
     | '/charts'
+    | '/import'
     | '/loading'
     | '/recommendations'
     | '/scrobble'
@@ -303,6 +314,7 @@ export interface FileRouteTypes {
     | '/'
     | '/apikeys'
     | '/charts'
+    | '/import'
     | '/loading'
     | '/recommendations'
     | '/scrobble'
@@ -331,6 +343,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApikeysRoute: typeof ApikeysRoute
   ChartsRoute: typeof ChartsRoute
+  ImportRoute: typeof ImportRoute
   LoadingRoute: typeof LoadingRoute
   RecommendationsRoute: typeof RecommendationsRoute
   ScrobbleRoute: typeof ScrobbleRoute
@@ -376,6 +389,13 @@ declare module '@tanstack/react-router' {
       path: '/loading'
       fullPath: '/loading'
       preLoaderRoute: typeof LoadingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/import': {
+      id: '/import'
+      path: '/import'
+      fullPath: '/import'
+      preLoaderRoute: typeof ImportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/charts': {
@@ -539,6 +559,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApikeysRoute: ApikeysRoute,
   ChartsRoute: ChartsRoute,
+  ImportRoute: ImportRoute,
   LoadingRoute: LoadingRoute,
   RecommendationsRoute: RecommendationsRoute,
   ScrobbleRoute: ScrobbleRoute,
