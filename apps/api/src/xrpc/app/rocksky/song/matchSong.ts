@@ -45,46 +45,56 @@ export default function (server: Server, ctx: Context) {
 const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
   return Effect.tryPromise({
     try: async () => {
-      const record = await ctx.db
-        .select()
-        .from(tables.tracks)
-        .leftJoin(
-          tables.albumTracks,
-          eq(tables.albumTracks.trackId, tables.tracks.id),
-        )
-        .leftJoin(
-          tables.albums,
-          eq(tables.albumTracks.albumId, tables.albums.id),
-        )
-        .leftJoin(
-          tables.artistAlbums,
-          eq(tables.artistAlbums.albumId, tables.albums.id),
-        )
-        .leftJoin(
-          tables.artists,
-          eq(tables.artistAlbums.artistId, tables.artists.id),
-        )
-        .where(
-          or(
-            and(
-              sql`LOWER(${tables.tracks.title}) = LOWER(${params.title})`,
-              sql`LOWER(${tables.tracks.artist}) = LOWER(${params.artist})`,
-            ),
-            and(
-              sql`LOWER(${tables.tracks.title}) = LOWER(${params.title})`,
-              sql`LOWER(${tables.tracks.albumArtist}) = LOWER(${params.artist})`,
-            ),
-          ),
-        )
-        .execute()
-        .then(([row]) => row);
+      const queryRecord = (whereCondition: Parameters<typeof ctx.db.select>[0] extends undefined ? never : ReturnType<typeof or>) =>
+        ctx.db
+          .select()
+          .from(tables.tracks)
+          .leftJoin(
+            tables.albumTracks,
+            eq(tables.albumTracks.trackId, tables.tracks.id),
+          )
+          .leftJoin(
+            tables.albums,
+            eq(tables.albumTracks.albumId, tables.albums.id),
+          )
+          .leftJoin(
+            tables.artistAlbums,
+            eq(tables.artistAlbums.albumId, tables.albums.id),
+          )
+          .leftJoin(
+            tables.artists,
+            eq(tables.artistAlbums.artistId, tables.artists.id),
+          )
+          .where(whereCondition)
+          .execute()
+          .then(([row]) => row);
+
+      const byTitleArtist = or(
+        and(
+          sql`LOWER(${tables.tracks.title}) = LOWER(${params.title})`,
+          sql`LOWER(${tables.tracks.artist}) = LOWER(${params.artist})`,
+        ),
+        and(
+          sql`LOWER(${tables.tracks.title}) = LOWER(${params.title})`,
+          sql`LOWER(${tables.tracks.albumArtist}) = LOWER(${params.artist})`,
+        ),
+      );
+
+      let record = params.mbId
+        ? await queryRecord(eq(tables.tracks.mbId, params.mbId))
+        : null;
+
+      if (!record) {
+        record = await queryRecord(byTitleArtist);
+      }
 
       let track = record?.tracks;
 
       let releaseDate = null,
         year = null,
         artistPicture = null,
-        genres = null;
+        genres = null,
+        mbArtists: MusicBrainzArtist[] | null = null;
 
       const spotifyTrack = await searchOnSpotify(
         ctx,
@@ -93,7 +103,50 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
       );
 
       if (!record) {
-        if (spotifyTrack) {
+        if (params.mbId) {
+          try {
+            const { data: mbData } = await ctx.musicbrainz.get<MusicbrainzTrack>(
+              `/recording/${params.mbId}`,
+            );
+            if (mbData?.trackMBID) {
+              track = {
+                id: "",
+                title: mbData.name,
+                artist: mbData.artist.map((a) => a.name).join(", "),
+                albumArtist: mbData.artist[0]?.name ?? null,
+                albumArt: spotifyTrack?.album.images[0]?.url ?? null,
+                album: mbData.album,
+                trackNumber: null,
+                duration: 0,
+                mbId: mbData.trackMBID,
+                genre: null,
+                youtubeLink: null,
+                spotifyLink: spotifyTrack?.external_urls.spotify ?? null,
+                appleMusicLink: null,
+                tidalLink: null,
+                sha256: null,
+                discNumber: null,
+                lyrics: null,
+                composer: null,
+                label: null,
+                copyrightMessage: null,
+                uri: null,
+                albumUri: null,
+                artistUri: null,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                xataVersion: 0,
+              };
+              mbArtists = mbData.artist?.map((a) => ({ mbid: a.mbid, name: a.name })) ?? null;
+              artistPicture = spotifyTrack?.artists[0]?.images?.[0]?.url ?? null;
+              genres = spotifyTrack?.artists[0]?.genres ?? null;
+            }
+          } catch (error) {
+            consola.error("Error fetching MusicBrainz recording by mbId:", error);
+          }
+        }
+
+        if (!track && spotifyTrack) {
           track = {
             id: "",
             title: spotifyTrack.name,
@@ -149,8 +202,11 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
         }
       }
 
-      const mbTrack = await searchOnMusicBrainz(ctx, track, params.mbId);
-      track.mbId = mbTrack.mbId;
+      if (!track?.mbId) {
+        const mbTrack = await searchOnMusicBrainz(ctx, track, params.mbId);
+        track.mbId = mbTrack.mbId;
+        mbArtists = mbTrack.artists;
+      }
 
       return Promise.all([
         Promise.resolve(track),
@@ -172,7 +228,7 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
         Promise.resolve(year),
         Promise.resolve(artistPicture),
         Promise.resolve(genres),
-        Promise.resolve(mbTrack.artists),
+        Promise.resolve(mbArtists),
       ]);
     },
     catch: (error) => new Error(`Failed to retrieve artist: ${error}`),
