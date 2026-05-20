@@ -22,6 +22,7 @@ import { trackSchema } from "types/track";
 import handleWebsocket from "websocket/handler";
 import apikeys from "./apikeys/app";
 import bsky from "./bsky/app";
+import importApp from "./import/app";
 import dropbox from "./dropbox/app";
 import googledrive from "./googledrive/app";
 import { env } from "./lib/env";
@@ -82,6 +83,8 @@ app.route("/dropbox", dropbox);
 app.route("/googledrive", googledrive);
 
 app.route("/apikeys", apikeys);
+
+app.route("/import", importApp);
 
 app.route("/public/og", opengraph);
 

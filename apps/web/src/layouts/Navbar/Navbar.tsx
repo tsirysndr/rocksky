@@ -285,6 +285,18 @@ function Navbar() {
                         </LabelMedium>
                       ),
                     },
+                    ...(profile?.did === "did:plc:7vdlgi2bflelz7mmuxoqjfcr"
+                      ? [
+                          {
+                            id: "import-history",
+                            label: (
+                              <LabelMedium className="!text-[var(--color-text)]">
+                                Import History
+                              </LabelMedium>
+                            ),
+                          },
+                        ]
+                      : []),
                     {
                       id: "webscrobbler",
                       label: (
@@ -349,6 +361,11 @@ function Navbar() {
                       case "api-applications":
                         navigate({
                           to: "/apikeys",
+                        });
+                        break;
+                      case "import-history":
+                        navigate({
+                          to: "/import",
                         });
                         break;
                       case "signout":
