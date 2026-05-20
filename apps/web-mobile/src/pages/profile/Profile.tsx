@@ -36,6 +36,8 @@ import {
 } from "../../hooks/useLibrary";
 import ShareOnBluesky from "../../components/ShareOnBluesky";
 import FloatingShoutBar from "../../components/FloatingShoutBar";
+import { ALL_TIME, LAST_7_DAYS, RANGE_LABELS, RANGE_OPTIONS } from "../../consts";
+import { getLastDays } from "../../lib/date";
 
 dayjs.extend(relativeTime);
 
@@ -158,19 +160,105 @@ function InfiniteUserList({ pages, fetchNextPage, hasNextPage, isFetchingNextPag
   );
 }
 
+// ─── time range sheet ─────────────────────────────────────────────────────────
+
+function TimeRangeSheet({ open, selected, onSelect, onClose }: {
+  open: boolean;
+  selected: string;
+  onSelect: (id: string) => void;
+  onClose: () => void;
+}) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50" onClick={onClose}>
+      <div className="absolute inset-0" style={{ backgroundColor: "rgba(0,0,0,0.5)" }} />
+      <div
+        className="absolute bottom-0 left-0 right-0 rounded-t-2xl px-4 pt-3 pb-10"
+        style={{ backgroundColor: "var(--color-background)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ backgroundColor: "var(--color-border)" }} />
+        <h3 className="text-sm font-semibold mb-2 px-1" style={{ color: "var(--color-text)" }}>Time Range</h3>
+        {RANGE_OPTIONS.map((opt) => (
+          <button
+            key={opt.id}
+            onClick={() => { onSelect(opt.id); onClose(); }}
+            className="w-full text-left px-3 py-3 rounded-xl text-sm flex items-center justify-between border-none cursor-pointer"
+            style={{
+              backgroundColor: selected === opt.id ? "var(--color-surface-2)" : "transparent",
+              color: selected === opt.id ? "var(--color-primary)" : "var(--color-text)",
+            }}
+          >
+            {opt.label}
+            {selected === opt.id && <span style={{ color: "var(--color-primary)" }}>✓</span>}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function rangeToDateParams(rangeKey: string): [Date, Date] | [] {
+  const opt = RANGE_OPTIONS.find((o) => o.id === rangeKey);
+  if (!opt || opt.days === null) return [];
+  return getLastDays(opt.days);
+}
+
 // ─── overview ─────────────────────────────────────────────────────────────────
 
 function OverviewTab({ did }: { did: string }) {
-  const { data: recentTracks } = useRecentTracksByDidQuery(did, 0, 20);
-  const { data: artists } = useArtistsQuery(did, 0, 5);
-  const { data: albums } = useAlbumsQuery(did, 0, 6);
-  const { data: tracks } = useTracksQuery(did, 0, 10);
+  const [rangeKey, setRangeKey] = useState(LAST_7_DAYS);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
-  const artistList = Array.isArray(artists) ? artists : (artists as Record<string, unknown[]>)?.artists ?? [];
-  const albumList = Array.isArray(albums) ? albums : (albums as Record<string, unknown[]>)?.albums ?? [];
-  const trackList = Array.isArray(tracks) ? tracks : (tracks as Record<string, unknown[]>)?.tracks ?? [];
+  const dateParams = rangeToDateParams(rangeKey);
+  const [startDate, endDate] = dateParams as [Date | undefined, Date | undefined];
+
+  const { data: recentTracks } = useRecentTracksByDidQuery(did, 0, 20);
+  const { data: artists } = useArtistsQuery(did, 0, 5, startDate, endDate);
+  const { data: albums } = useAlbumsQuery(did, 0, 6, startDate, endDate);
+  const { data: tracks } = useTracksQuery(did, 0, 10, startDate, endDate);
+
+  // Fallback to all-time when 7-day default yields no results
+  const { data: allArtists } = useArtistsQuery(did, 0, 5);
+  const { data: allAlbums } = useAlbumsQuery(did, 0, 6);
+  const { data: allTracks } = useTracksQuery(did, 0, 10);
+
+  const isDefault7Days = rangeKey === LAST_7_DAYS;
+
+  const rawArtists = Array.isArray(artists) ? artists : [];
+  const rawAlbums = Array.isArray(albums) ? albums : [];
+  const rawTracks = Array.isArray(tracks) ? tracks : [];
+
+  const allArtistList = Array.isArray(allArtists) ? allArtists : [];
+  const allAlbumList = Array.isArray(allAlbums) ? allAlbums : [];
+  const allTrackList = Array.isArray(allTracks) ? allTracks : [];
+
+  // Auto-switch to all-time if 7-day default has no data
+  useEffect(() => {
+    if (
+      isDefault7Days &&
+      rawArtists.length === 0 &&
+      rawAlbums.length === 0 &&
+      rawTracks.length === 0 &&
+      (allArtistList.length > 0 || allAlbumList.length > 0 || allTrackList.length > 0)
+    ) {
+      setRangeKey(ALL_TIME);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDefault7Days, rawArtists.length, rawAlbums.length, rawTracks.length, allArtistList.length, allAlbumList.length, allTrackList.length]);
+
+  const artistList = rawArtists;
+  const albumList = rawAlbums;
+  const trackList = rawTracks;
 
   return (
+    <>
+    <TimeRangeSheet
+      open={sheetOpen}
+      selected={rangeKey}
+      onSelect={setRangeKey}
+      onClose={() => setSheetOpen(false)}
+    />
     <div>
       {/* Recent Listens */}
       <section className="mb-6">
@@ -206,6 +294,19 @@ function OverviewTab({ did }: { did: string }) {
           );
         })}
       </section>
+
+      {/* Time range selector */}
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>Top Charts</span>
+        <button
+          onClick={() => setSheetOpen(true)}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border-none cursor-pointer"
+          style={{ backgroundColor: "var(--color-surface-2)", color: "var(--color-text)" }}
+        >
+          {RANGE_LABELS[rangeKey]}
+          <span className="opacity-50">▾</span>
+        </button>
+      </div>
 
       {/* Top Artists */}
       {artistList.length > 0 && (
@@ -310,6 +411,7 @@ function OverviewTab({ did }: { did: string }) {
         </section>
       )}
     </div>
+    </>
   );
 }
 
@@ -746,6 +848,60 @@ function LovedTracksTab({ did }: { did: string }) {
   );
 }
 
+// ─── top track badge ─────────────────────────────────────────────────────────
+
+function TopTrackBadge({ did }: { did: string }) {
+  const [start7d, end7d] = getLastDays(7);
+  const { data: tracks7d, isLoading: loading7d } = useTracksQuery(did, 0, 1, start7d, end7d);
+  const { data: tracksAll, isLoading: loadingAll } = useTracksQuery(did, 0, 1);
+
+  const isLoading = loading7d || loadingAll;
+  const list7d = Array.isArray(tracks7d) ? tracks7d : [];
+  const listAll = Array.isArray(tracksAll) ? tracksAll : [];
+  const track = list7d[0] ?? listAll[0];
+
+  if (isLoading || !track) return null;
+
+  const trackHref = toPath(track.uri);
+  const artistHref = toPath(track.artistUri);
+  const albumHref = toPath(track.albumUri);
+  const art = track.albumArt || track.album_art;
+  const artist = track.albumArtist || track.artist || track.album_artist;
+
+  return (
+    <div className="flex items-center gap-3 p-3 rounded-xl" style={{ backgroundColor: "var(--color-surface-2)" }}>
+      {albumHref ? (
+        <Link to={albumHref} className="no-underline shrink-0">
+          <div className="w-12 h-12 rounded-lg overflow-hidden" style={{ backgroundColor: "var(--color-surface-3, var(--color-surface-2))" }}>
+            {art ? <img src={art} alt={track.title} className="w-full h-full object-cover" /> : (
+              <div className="w-full h-full flex items-center justify-center"><span className="opacity-20">♪</span></div>
+            )}
+          </div>
+        </Link>
+      ) : (
+        <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0" style={{ backgroundColor: "var(--color-surface-3, var(--color-surface-2))" }}>
+          {art ? <img src={art} alt={track.title} className="w-full h-full object-cover" /> : (
+            <div className="w-full h-full flex items-center justify-center"><span className="opacity-20">♪</span></div>
+          )}
+        </div>
+      )}
+      <div className="flex-1 min-w-0">
+        <span className="text-[10px] font-bold uppercase tracking-wide block mb-0.5" style={{ color: "var(--color-text-muted)" }}>Top Track</span>
+        {trackHref ? (
+          <Link to={trackHref} className="no-underline font-semibold text-sm truncate block" style={{ color: "var(--color-text)" }}>{track.title}</Link>
+        ) : (
+          <p className="font-semibold text-sm truncate m-0" style={{ color: "var(--color-text)" }}>{track.title}</p>
+        )}
+        {artistHref ? (
+          <Link to={artistHref} className="no-underline text-xs truncate block" style={{ color: "var(--color-text-muted)" }}>{artist}</Link>
+        ) : (
+          <p className="text-xs truncate m-0" style={{ color: "var(--color-text-muted)" }}>{artist}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── skeleton ─────────────────────────────────────────────────────────────────
 
 function ProfileSkeleton() {
@@ -859,6 +1015,13 @@ export default function Profile() {
                   </div>
                 ))}
               </div>
+
+              {/* Top Track */}
+              {profile?.did && (
+                <div className="mb-4">
+                  <TopTrackBadge did={profile.did} />
+                </div>
+              )}
 
               {/* Actions */}
               <div className="flex gap-2">

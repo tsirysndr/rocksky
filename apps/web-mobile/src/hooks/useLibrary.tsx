@@ -56,28 +56,28 @@ export const useArtistListenersQuery = (uri: string, limit: number) =>
     enabled: !!uri,
   });
 
-export const useArtistsQuery = (did: string, offset = 0, limit = 30) =>
+export const useArtistsQuery = (did: string, offset = 0, limit = 30, startDate?: Date, endDate?: Date) =>
   useQuery({
-    queryKey: ["artists", did, offset, limit],
-    queryFn: () => getArtists(did, offset, limit),
+    queryKey: ["artists", did, offset, limit, startDate, endDate],
+    queryFn: () => getArtists(did, offset, limit, startDate, endDate),
     enabled: !!did,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     select: (data: any) => data?.artists?.map((x: any) => ({ ...x, scrobbles: x.playCount })),
   });
 
-export const useAlbumsQuery = (did: string, offset = 0, limit = 12) =>
+export const useAlbumsQuery = (did: string, offset = 0, limit = 12, startDate?: Date, endDate?: Date) =>
   useQuery({
-    queryKey: ["albums", did, offset, limit],
-    queryFn: () => getAlbums(did, offset, limit),
+    queryKey: ["albums", did, offset, limit, startDate, endDate],
+    queryFn: () => getAlbums(did, offset, limit, startDate, endDate),
     enabled: !!did,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     select: (data: any) => data?.albums?.map((x: any) => ({ ...x, scrobbles: x.playCount })),
   });
 
-export const useTracksQuery = (did: string, offset = 0, limit = 20) =>
+export const useTracksQuery = (did: string, offset = 0, limit = 20, startDate?: Date, endDate?: Date) =>
   useQuery({
-    queryKey: ["tracks", did, offset, limit],
-    queryFn: () => getTracks(did, offset, limit),
+    queryKey: ["tracks", did, offset, limit, startDate, endDate],
+    queryFn: () => getTracks(did, offset, limit, startDate, endDate),
     enabled: !!did,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     select: (data: any) => data?.tracks?.map((x: any) => ({ ...x, scrobbles: x.playCount })),
