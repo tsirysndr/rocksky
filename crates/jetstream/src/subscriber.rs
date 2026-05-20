@@ -42,7 +42,7 @@ impl ScrobbleSubscriber {
             .test_before_acquire(true)
             .connect(&db_url)
             .await?;
-        let pool = Arc::new(Mutex::new(pool));
+        let pool = Arc::new(pool);
 
         let addr = env::var("NATS_URL").unwrap_or_else(|_| "nats://localhost:4222".to_string());
         let nc = Arc::new(async_nats::connect(&addr).await?);
@@ -70,7 +70,7 @@ impl ScrobbleSubscriber {
 
 fn handle_message(
     state: Arc<Mutex<AppState>>,
-    pool: Arc<Mutex<sqlx::PgPool>>,
+    pool: Arc<sqlx::PgPool>,
     nc: Arc<async_nats::Client>,
     msg: Message,
 ) -> Result<(), Error> {

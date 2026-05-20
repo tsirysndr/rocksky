@@ -30,7 +30,7 @@ use crate::{
 
 pub async fn save_scrobble(
     state: Arc<Mutex<AppState>>,
-    pool: Arc<Mutex<Pool<Postgres>>>,
+    pool: Arc<Pool<Postgres>>,
     nc: Arc<async_nats::Client>,
     did: &str,
     commit: Commit,
@@ -49,14 +49,14 @@ pub async fn save_scrobble(
         return Ok(());
     }
 
-    let pool = pool.lock().await;
-
     match commit.operation.as_str() {
         "create" => {
             let record = commit.record.unwrap();
             if commit.collection == SCROBBLE_NSID {
-                let mut tx = pool.begin().await?;
                 let scrobble_record: ScrobbleRecord = serde_json::from_value(record.clone())?;
+                let user_id = save_user(&*pool, did).await?;
+
+                let mut tx = pool.begin().await?;
 
                 let album_id = save_album(&mut tx, scrobble_record.clone()).await?;
                 let artist_id = save_artist(&mut tx, scrobble_record.clone()).await?;
@@ -67,8 +67,6 @@ pub async fn save_scrobble(
                 save_artist_album(&mut tx, &artist_id, &album_id).await?;
 
                 let uri = format!("at://{}/app.rocksky.scrobble/{}", did, commit.rkey);
-
-                let user_id = save_user(&mut tx, did).await?;
 
                 tracing::info!(title = %scrobble_record.title.magenta(), artist = %scrobble_record.artist.magenta(), album = %scrobble_record.album.magenta(), "Saving scrobble");
 
@@ -164,12 +162,11 @@ pub async fn save_scrobble(
             }
 
             if commit.collection == ARTIST_NSID {
+                let artist_record: ArtistRecord = serde_json::from_value(record.clone())?;
+                let user_id = save_user(&*pool, did).await?;
                 let mut tx = pool.begin().await?;
-
-                let user_id = save_user(&mut tx, did).await?;
                 let uri = format!("at://{}/app.rocksky.artist/{}", did, commit.rkey);
 
-                let artist_record: ArtistRecord = serde_json::from_value(record.clone())?;
                 save_user_artist(&mut tx, &user_id, artist_record.clone(), &uri).await?;
                 update_artist_uri(&mut tx, &user_id, artist_record, &uri).await?;
 
@@ -178,11 +175,11 @@ pub async fn save_scrobble(
             }
 
             if commit.collection == ALBUM_NSID {
+                let album_record: AlbumRecord = serde_json::from_value(record.clone())?;
+                let user_id = save_user(&*pool, did).await?;
                 let mut tx = pool.begin().await?;
-                let user_id = save_user(&mut tx, did).await?;
                 let uri = format!("at://{}/app.rocksky.album/{}", did, commit.rkey);
 
-                let album_record: AlbumRecord = serde_json::from_value(record.clone())?;
                 save_user_album(&mut tx, &user_id, album_record.clone(), &uri).await?;
                 update_album_uri(&mut tx, &user_id, album_record, &uri).await?;
 
@@ -191,12 +188,11 @@ pub async fn save_scrobble(
             }
 
             if commit.collection == SONG_NSID {
+                let song_record: SongRecord = serde_json::from_value(record.clone())?;
+                let user_id = save_user(&*pool, did).await?;
                 let mut tx = pool.begin().await?;
-
-                let user_id = save_user(&mut tx, did).await?;
                 let uri = format!("at://{}/app.rocksky.song/{}", did, commit.rkey);
 
-                let song_record: SongRecord = serde_json::from_value(record.clone())?;
                 save_user_track(&mut tx, &user_id, song_record.clone(), &uri).await?;
                 update_track_uri(&mut tx, &user_id, song_record, &uri).await?;
 
@@ -205,13 +201,12 @@ pub async fn save_scrobble(
             }
 
             if commit.collection == FEED_GENERATOR_NSID {
-                let mut tx = pool.begin().await?;
-
-                let user_id = save_user(&mut tx, did).await?;
-                let uri = format!("at://{}/app.rocksky.feed.generator/{}", did, commit.rkey);
-
                 let feed_generator_record: FeedGeneratorRecord =
                     serde_json::from_value(record.clone())?;
+                let user_id = save_user(&*pool, did).await?;
+                let mut tx = pool.begin().await?;
+                let uri = format!("at://{}/app.rocksky.feed.generator/{}", did, commit.rkey);
+
                 save_feed_generator(&mut tx, &user_id, feed_generator_record, &uri).await?;
 
                 tx.commit().await?;
@@ -219,13 +214,12 @@ pub async fn save_scrobble(
             }
 
             if commit.collection == FOLLOW_NSID {
+                let follow_record: FollowRecord = serde_json::from_value(record.clone())?;
+                let user_id = save_user(&*pool, did).await?;
+                let subject_user_id = save_user(&*pool, &follow_record.subject).await?;
                 let mut tx = pool.begin().await?;
-
-                let user_id = save_user(&mut tx, did).await?;
                 let uri = format!("at://{}/app.rocksky.graph.follow/{}", did, commit.rkey);
 
-                let follow_record: FollowRecord = serde_json::from_value(record.clone())?;
-                let subject_user_id = save_user(&mut tx, &follow_record.subject).await?;
                 save_follow(&mut tx, did, follow_record, &uri).await?;
 
                 tx.commit().await?;
@@ -257,45 +251,44 @@ pub async fn save_scrobble(
     Ok(())
 }
 
-pub async fn save_user(
-    tx: &mut sqlx::Transaction<'_, Postgres>,
-    did: &str,
-) -> Result<String, Error> {
-    let profile = did_to_profile(did).await?;
-
-    // Check if the user exists in the database
-    let mut users: Vec<User> = sqlx::query_as("SELECT * FROM users WHERE did = $1")
-        .bind(did)
-        .fetch_all(&mut **tx)
-        .await?;
-
-    // If the user does not exist, create a new user
-    if users.is_empty() {
-        let avatar = profile.avatar.map(|blob| {
-            format!(
-                "https://cdn.bsky.app/img/avatar/plain/{}/{}@{}",
-                did,
-                blob.r#ref.link,
-                blob.mime_type.split('/').last().unwrap_or("jpeg")
-            )
-        });
-        sqlx::query(
-            "INSERT INTO users (display_name, did, handle, avatar) VALUES ($1, $2, $3, $4)",
-        )
-        .bind(profile.display_name)
-        .bind(did)
-        .bind(profile.handle)
-        .bind(avatar)
-        .execute(&mut **tx)
-        .await?;
-
-        users = sqlx::query_as("SELECT * FROM users WHERE did = $1")
+pub async fn save_user(pool: &Pool<Postgres>, did: &str) -> Result<String, Error> {
+    if let Some(id) =
+        sqlx::query_scalar::<_, String>("SELECT xata_id FROM users WHERE did = $1")
             .bind(did)
-            .fetch_all(&mut **tx)
-            .await?;
+            .fetch_optional(pool)
+            .await?
+    {
+        return Ok(id);
     }
 
-    Ok(users[0].xata_id.clone())
+    let profile = did_to_profile(did).await?;
+
+    let avatar = profile.avatar.map(|blob| {
+        format!(
+            "https://cdn.bsky.app/img/avatar/plain/{}/{}@{}",
+            did,
+            blob.r#ref.link,
+            blob.mime_type.split('/').last().unwrap_or("jpeg")
+        )
+    });
+
+    sqlx::query(
+        "INSERT INTO users (display_name, did, handle, avatar)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (did) DO NOTHING",
+    )
+    .bind(profile.display_name)
+    .bind(did)
+    .bind(profile.handle)
+    .bind(avatar)
+    .execute(pool)
+    .await?;
+
+    sqlx::query_scalar::<_, String>("SELECT xata_id FROM users WHERE did = $1")
+        .bind(did)
+        .fetch_one(pool)
+        .await
+        .map_err(Into::into)
 }
 
 pub async fn publish_user(
