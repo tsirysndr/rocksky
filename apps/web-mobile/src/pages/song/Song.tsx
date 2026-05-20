@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import ContentLoader from "react-content-loader";
 import numeral from "numeral";
 import { IconBrandSpotify } from "@tabler/icons-react";
-import { useSongByUriQuery } from "../../hooks/useLibrary";
+import { useArtistAlbumsQuery, useArtistTracksQuery, useSongByUriQuery } from "../../hooks/useLibrary";
 import { useScrobbleByUriQuery } from "../../hooks/useScrobble";
 import Main from "../../layouts/Main";
 import ShareOnBluesky from "../../components/ShareOnBluesky";
@@ -25,6 +25,9 @@ export default function Song() {
 
   const song = isScrobble ? scrobble : songData;
   const isLoading = isScrobble ? scrobbleLoading : songLoading;
+
+  const { data: tracks } = useArtistTracksQuery(song?.artistUri || "", 8);
+  const { data: albums } = useArtistAlbumsQuery(song?.artistUri || "", 6);
 
   const albumHref = song?.albumUri
     ? `/${song.albumUri.split("at://")[1].replace("app.rocksky.", "")}`
@@ -169,6 +172,83 @@ export default function Song() {
                 >
                   {song.lyrics.replace(/\[\d{2}:\d{2}\.\d{2}\]\s*/g, "")}
                 </p>
+              </div>
+            )}
+
+            {/* Popular Tracks by Artist */}
+            {tracks && tracks.length > 0 && (
+              <div className="mb-6">
+                {artistHref ? (
+                  <Link to={artistHref} className="no-underline block mb-3">
+                    <p className="text-sm m-0" style={{ color: "var(--color-text-muted)" }}>Popular Tracks by</p>
+                    <p className="text-lg font-bold m-0" style={{ color: "var(--color-text)" }}>{song.albumArtist || song.artist}</p>
+                  </Link>
+                ) : (
+                  <div className="mb-3">
+                    <p className="text-sm m-0" style={{ color: "var(--color-text-muted)" }}>Popular Tracks by</p>
+                    <p className="text-lg font-bold m-0" style={{ color: "var(--color-text)" }}>{song.albumArtist || song.artist}</p>
+                  </div>
+                )}
+                {(tracks as any[]).map((track: any, i: number) => {
+                  const trackUri = track.uri as string;
+                  const trackHref = trackUri ? `/${trackUri.split("at://")[1].replace("app.rocksky.", "")}` : null;
+                  return (
+                    <div key={track.id || i} className="flex items-center gap-3 py-2">
+                      <span className="text-xs w-5 text-center opacity-40" style={{ color: "var(--color-text)" }}>{i + 1}</span>
+                      <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0" style={{ backgroundColor: "var(--color-surface-2)" }}>
+                        {(track.albumArt || track.album_art) ? (
+                          <img src={track.albumArt || track.album_art} alt={track.title} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center"><span className="opacity-20">♪</span></div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        {trackHref ? (
+                          <Link to={trackHref} className="no-underline font-medium text-sm truncate block" style={{ color: "var(--color-text)" }}>{track.title}</Link>
+                        ) : (
+                          <p className="font-medium text-sm truncate m-0" style={{ color: "var(--color-text)" }}>{track.title}</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Popular Albums by Artist */}
+            {albums && albums.length > 0 && (
+              <div className="mb-6">
+                <p className="text-sm m-0" style={{ color: "var(--color-text-muted)" }}>Popular Albums by</p>
+                <p className="text-lg font-bold mb-3" style={{ color: "var(--color-text)" }}>{song.albumArtist || song.artist}</p>
+                <div className="grid grid-cols-2 gap-3">
+                  {(albums as any[]).map((album: any) => {
+                    const albumUri = album.uri as string;
+                    const albumItemHref = albumUri ? `/${albumUri.split("at://")[1].replace("app.rocksky.", "")}` : null;
+                    return albumItemHref ? (
+                      <Link key={album.id || album.uri} to={albumItemHref} className="no-underline block">
+                        <div className="aspect-square rounded-xl overflow-hidden mb-2" style={{ backgroundColor: "var(--color-surface-2)" }}>
+                          {(album.albumArt || album.album_art) ? (
+                            <img src={album.albumArt || album.album_art} alt={album.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center"><span className="text-4xl opacity-20">💿</span></div>
+                          )}
+                        </div>
+                        <p className="font-semibold text-sm m-0 truncate" style={{ color: "var(--color-text)" }}>{album.title}</p>
+                      </Link>
+                    ) : (
+                      <div key={album.id || album.uri}>
+                        <div className="aspect-square rounded-xl overflow-hidden mb-2" style={{ backgroundColor: "var(--color-surface-2)" }}>
+                          {(album.albumArt || album.album_art) ? (
+                            <img src={album.albumArt || album.album_art} alt={album.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center"><span className="text-4xl opacity-20">💿</span></div>
+                          )}
+                        </div>
+                        <p className="font-semibold text-sm m-0 truncate" style={{ color: "var(--color-text)" }}>{album.title}</p>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </>
