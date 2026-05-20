@@ -228,6 +228,24 @@ async function runImport(
 
     // Batch progress updates every 5 tracks to reduce DB writes
     if ((processed + failed) % 5 === 0 || processed + failed === tracks.length) {
+      // Check DB-level cancellation (works across multiple server instances)
+      const currentStatus = await ctx.db
+        .select({ status: importJobs.status })
+        .from(importJobs)
+        .where(eq(importJobs.id, jobId))
+        .limit(1)
+        .then((rows) => rows[0]?.status);
+
+      if (currentStatus === "cancelled" || cancelledJobs.has(jobId)) {
+        cancelledJobs.delete(jobId);
+        await ctx.db
+          .update(importJobs)
+          .set({ processed, failed, updatedAt: new Date() })
+          .where(eq(importJobs.id, jobId));
+        consola.info(`[import] Job ${jobId} cancelled after ${processed} scrobbles`);
+        return;
+      }
+
       await ctx.db
         .update(importJobs)
         .set({
@@ -237,16 +255,6 @@ async function runImport(
           updatedAt: new Date(),
         })
         .where(eq(importJobs.id, jobId));
-    }
-
-    if (cancelledJobs.has(jobId)) {
-      cancelledJobs.delete(jobId);
-      await ctx.db
-        .update(importJobs)
-        .set({ status: "cancelled", processed, failed, updatedAt: new Date() })
-        .where(eq(importJobs.id, jobId));
-      consola.info(`[import] Job ${jobId} cancelled after ${processed} scrobbles`);
-      return;
     }
 
     // Small delay to avoid hammering ATProto PDS
@@ -422,6 +430,14 @@ app.post("/cancel", async (c) => {
     return c.json({ error: "No running import to cancel" });
   }
 
+  // Immediately write "cancelled" to DB so the SSE reflects it within 1 s,
+  // regardless of which server instance is running the import loop.
+  await ctx.db
+    .update(importJobs)
+    .set({ status: "cancelled", updatedAt: new Date() })
+    .where(eq(importJobs.id, job.id));
+
+  // Also signal the in-process loop for fast exit (same-instance case).
   cancelledJobs.add(job.id);
   return c.json({ ok: true });
 });

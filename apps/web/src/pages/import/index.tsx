@@ -74,7 +74,7 @@ function UploadCard({
   };
 
   return (
-    <div className="border border-[var(--color-border)] rounded-xl p-6 mb-6">
+    <div className="rounded-xl p-8 mb-6">
       <div className="flex items-center gap-3 mb-1">
         <HeadingMedium className="!text-[var(--color-text)] !mb-0">{title}</HeadingMedium>
       </div>
@@ -128,7 +128,7 @@ function ActiveJobCard({ job, onCancel }: { job: ImportJob; onCancel: () => void
   const errors: string[] = job.errors ? JSON.parse(job.errors) : [];
 
   return (
-    <div className="border border-[var(--color-border)] rounded-xl p-6 mb-6">
+    <div className="rounded-xl p-8 mb-6">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           {job.status === "running" && (
@@ -148,7 +148,7 @@ function ActiveJobCard({ job, onCancel }: { job: ImportJob; onCancel: () => void
           {job.status === "running" && (
             <button
               onClick={onCancel}
-              className="text-sm text-red-400 hover:text-red-300 underline cursor-pointer bg-transparent border-none"
+              className="text-sm font-semibold text-red-500 hover:text-red-400 cursor-pointer bg-transparent border-none px-3 py-1 rounded-md border border-red-500/40 hover:border-red-400/60 transition-colors"
             >
               Cancel
             </button>
@@ -204,29 +204,29 @@ function JobHistoryTable({ jobs }: { jobs: ImportJob[] }) {
         <IconHistory size={18} className="text-[var(--color-text-muted)]" />
         <LabelMedium className="!text-[var(--color-text)] font-semibold">Import History</LabelMedium>
       </div>
-      <div className="border border-[var(--color-border)] rounded-xl overflow-hidden">
+      <div className="rounded-xl overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[var(--color-border)] bg-[var(--color-background)]">
-              <th className="text-left px-4 py-3 text-[var(--color-text-muted)] font-medium">Type</th>
-              <th className="text-left px-4 py-3 text-[var(--color-text-muted)] font-medium">Status</th>
-              <th className="text-left px-4 py-3 text-[var(--color-text-muted)] font-medium">Progress</th>
-              <th className="text-left px-4 py-3 text-[var(--color-text-muted)] font-medium">Date</th>
+            <tr className="bg-[var(--color-background)]">
+              <th className="text-left px-6 py-4 text-[var(--color-text-muted)] font-medium">Type</th>
+              <th className="text-left px-6 py-4 text-[var(--color-text-muted)] font-medium">Status</th>
+              <th className="text-left px-6 py-4 text-[var(--color-text-muted)] font-medium">Progress</th>
+              <th className="text-left px-6 py-4 text-[var(--color-text-muted)] font-medium">Date</th>
             </tr>
           </thead>
           <tbody>
             {jobs.map((job) => (
               <tr
                 key={job.id}
-                className="border-b last:border-0 border-[var(--color-border)] bg-[var(--color-background)] hover:bg-[var(--color-menu-hover)] transition-colors"
+                className="bg-[var(--color-background)] hover:bg-[var(--color-menu-hover)] transition-colors"
               >
-                <td className="px-4 py-3 text-[var(--color-text)]">
+                <td className="px-6 py-4 text-[var(--color-text)]">
                   {job.type === "lastfm" ? "Last.fm" : "Spotify"}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-6 py-4">
                   <StatusBadge status={job.status} />
                 </td>
-                <td className="px-4 py-3 text-[var(--color-text-muted)]">
+                <td className="px-6 py-4 text-[var(--color-text-muted)]">
                   {job.processed.toLocaleString()} / {job.total.toLocaleString()}
                   {job.failed > 0 && (
                     <span className="text-red-400 ml-1">({job.failed} failed)</span>
@@ -308,8 +308,34 @@ export default function ImportPage() {
     };
   }, [activeJob?.status, jwt, sseRetry]);
 
+  // Polling fallback — kicks in when SSE is not connected so progress always updates
+  useEffect(() => {
+    if (activeJob?.status !== "running" && activeJob?.status !== "pending") return;
+
+    const interval = setInterval(async () => {
+      if (esRef.current) return; // SSE is active, skip poll
+      const status = await getImportStatus();
+      if (!status) return;
+      setActiveJob(status);
+      setJobs((prev) =>
+        prev.some((j) => j.id === status.id)
+          ? prev.map((j) => (j.id === status.id ? status : j))
+          : [status, ...prev],
+      );
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [activeJob?.status]);
+
   const handleCancel = async () => {
-    await cancelImport();
+    // Optimistic update so the button disappears immediately
+    setActiveJob((prev) => prev ? { ...prev, status: "cancelled" } : prev);
+    try {
+      await cancelImport();
+    } catch {
+      // Revert if the API call failed
+      setActiveJob((prev) => prev ? { ...prev, status: "running" } : prev);
+    }
   };
 
   const handleUpload = async (file: File, type: "lastfm" | "spotify") => {
