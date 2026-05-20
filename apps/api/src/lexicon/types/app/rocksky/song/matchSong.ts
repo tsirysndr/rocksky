@@ -14,6 +14,8 @@ export interface QueryParams {
   title: string;
   /** The artist of the song to retrieve */
   artist: string;
+  /** Optional MusicBrainz track ID (MBID) for direct metadata lookup */
+  mbId?: string;
 }
 
 export type InputSchema = undefined;

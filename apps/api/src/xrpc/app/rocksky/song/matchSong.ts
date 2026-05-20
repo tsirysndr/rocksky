@@ -86,12 +86,13 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
         artistPicture = null,
         genres = null;
 
+      const spotifyTrack = await searchOnSpotify(
+        ctx,
+        params.title,
+        params.artist,
+      );
+
       if (!record) {
-        const spotifyTrack = await searchOnSpotify(
-          ctx,
-          params.title,
-          params.artist,
-        );
         if (spotifyTrack) {
           track = {
             id: "",
@@ -142,9 +143,13 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
         genres = record.artists.genres;
         releaseDate = record.albums.releaseDate;
         year = record.albums.year;
+
+        if (!track?.albumArt && spotifyTrack) {
+          track.albumArt = spotifyTrack.album.images[0]?.url || null;
+        }
       }
 
-      const mbTrack = await searchOnMusicBrainz(ctx, track);
+      const mbTrack = await searchOnMusicBrainz(ctx, track, params.mbId);
       track.mbId = mbTrack.mbId;
 
       return Promise.all([
@@ -420,28 +425,42 @@ const searchOnSpotify = async (
   return track;
 };
 
-const searchOnMusicBrainz = async (ctx: Context, track: SelectTrack) => {
+const searchOnMusicBrainz = async (
+  ctx: Context,
+  track: SelectTrack,
+  inputMbId?: string,
+) => {
   let mbTrack;
   try {
-    const { data } = await ctx.musicbrainz.post<MusicbrainzTrack>("/hydrate", {
-      artist: track.artist
-        .replaceAll(";", ",")
-        .split(",")
-        .map((a) => ({ name: a.trim() })),
-      name: track.title,
-      album: track.album,
-    });
-    mbTrack = data;
-
-    if (!mbTrack?.trackMBID) {
-      const response = await ctx.musicbrainz.post<MusicbrainzTrack>(
+    if (inputMbId) {
+      const { data } = await ctx.musicbrainz.get<MusicbrainzTrack>(
+        `/recording/${inputMbId}`,
+      );
+      mbTrack = data;
+    } else {
+      const { data } = await ctx.musicbrainz.post<MusicbrainzTrack>(
         "/hydrate",
         {
-          artist: track.artist.split(",").map((a) => ({ name: a.trim() })),
+          artist: track.artist
+            .replaceAll(";", ",")
+            .split(",")
+            .map((a) => ({ name: a.trim() })),
           name: track.title,
+          album: track.album,
         },
       );
-      mbTrack = response.data;
+      mbTrack = data;
+
+      if (!mbTrack?.trackMBID) {
+        const response = await ctx.musicbrainz.post<MusicbrainzTrack>(
+          "/hydrate",
+          {
+            artist: track.artist.split(",").map((a) => ({ name: a.trim() })),
+            name: track.title,
+          },
+        );
+        mbTrack = response.data;
+      }
     }
 
     const mbId = mbTrack?.trackMBID;
