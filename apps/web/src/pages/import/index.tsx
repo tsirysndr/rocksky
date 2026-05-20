@@ -205,7 +205,7 @@ function JobHistoryTable({ jobs }: { jobs: ImportJob[] }) {
         <LabelMedium className="!text-[var(--color-text)] font-semibold">Import History</LabelMedium>
       </div>
       <div className="rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm text-[var(--color-text)]">
           <thead>
             <tr className="bg-[var(--color-background)]">
               <th className="text-left px-6 py-4 text-[var(--color-text-muted)] font-medium">Type</th>
@@ -357,7 +357,7 @@ export default function ImportPage() {
 
   return (
     <Main withRightPane={false}>
-      <div className="mt-[70px] mb-[150px] px-4 md:px-0">
+      <div className="mt-[70px] mb-[150px] px-4 md:px-0 text-[var(--color-text)]">
         <HeadingMedium
           marginTop="0px"
           marginBottom="8px"

@@ -10,6 +10,8 @@ import * as Artist from "lexicon/types/app/rocksky/artist";
 import * as Scrobble from "lexicon/types/app/rocksky/scrobble";
 import * as Song from "lexicon/types/app/rocksky/song";
 import { deepSnakeCaseKeys } from "lib";
+import { decrypt } from "lib/crypto";
+import { env } from "lib/env";
 import { createHash } from "node:crypto";
 import type { MusicbrainzTrack, Track } from "types/track";
 import albumTracks from "../schema/album-tracks";
@@ -18,6 +20,9 @@ import artistAlbums from "../schema/artist-albums";
 import artistTracks from "../schema/artist-tracks";
 import artists from "../schema/artists";
 import scrobbles from "../schema/scrobbles";
+import spotifyAccounts from "../schema/spotify-accounts";
+import spotifyApps from "../schema/spotify-apps";
+import spotifyTokens from "../schema/spotify-tokens";
 import tracks from "../schema/tracks";
 import userAlbums from "../schema/user-albums";
 import userArtists from "../schema/user-artists";
@@ -502,6 +507,54 @@ export async function publishScrobble(ctx: Context, id: string) {
   );
 }
 
+async function fetchSpotifyDuration(
+  ctx: Context,
+  title: string,
+  artist: string,
+): Promise<number | null> {
+  try {
+    const tokenRows = await ctx.db
+      .select({ token: spotifyTokens, app: spotifyApps, account: spotifyAccounts })
+      .from(spotifyTokens)
+      .leftJoin(spotifyApps, eq(spotifyApps.spotifyAppId, spotifyTokens.spotifyAppId))
+      .leftJoin(spotifyAccounts, eq(spotifyAccounts.userId, spotifyTokens.userId))
+      .where(eq(spotifyAccounts.isBetaUser, true))
+      .limit(500)
+      .execute();
+
+    if (!tokenRows.length) return null;
+
+    const row = tokenRows[Math.floor(Math.random() * tokenRows.length)];
+    if (!row.token || !row.app) return null;
+
+    const refreshToken = decrypt(row.token.refreshToken, env.SPOTIFY_ENCRYPTION_KEY);
+    const tokenRes = await fetch("https://accounts.spotify.com/api/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "refresh_token",
+        refresh_token: refreshToken,
+        client_id: row.app.spotifyAppId,
+        client_secret: decrypt(row.app.spotifySecret, env.SPOTIFY_ENCRYPTION_KEY),
+      }),
+    });
+
+    const { access_token } = (await tokenRes.json()) as { access_token: string };
+    const q = `track:"${encodeURIComponent(title)}" artist:"${encodeURIComponent(artist)}"`;
+    const searchRes = await fetch(
+      `https://api.spotify.com/v1/search?q=${q}&type=track&limit=1`,
+      { headers: { Authorization: `Bearer ${access_token}` } },
+    );
+
+    const data = (await searchRes.json()) as {
+      tracks?: { items?: { duration_ms?: number }[] };
+    };
+    return data.tracks?.items?.[0]?.duration_ms ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function scrobbleTrack(
   ctx: Context,
   track: Track,
@@ -643,6 +696,17 @@ export async function scrobbleTrack(
     }));
   } catch (error) {
     consola.error("Error fetching MusicBrainz data");
+  }
+
+  // Fill duration from DB or Spotify when the source (Last.fm CSV, Spotify basic JSON) didn't provide one
+  if (!track.duration || track.duration <= 0) {
+    if (existingTrack?.duration > 0) {
+      track.duration = existingTrack.duration;
+    } else {
+      const spotifyDuration = await fetchSpotifyDuration(ctx, track.title, track.artist);
+      if (spotifyDuration && spotifyDuration > 0) track.duration = spotifyDuration;
+    }
+    if (!track.duration || track.duration <= 0) track.duration = 1;
   }
 
   if (!existingTrack?.uri || !userTrack?.userTrack.uri?.includes(userDid)) {
