@@ -249,12 +249,18 @@ function RecentTracks(props: RecentTracksProps) {
                 <Link
                   to={`/${row.albumUri?.split("at://")[1].replace("app.rocksky.", "")}`}
                 >
-                  <img
-                    src={row.albumArt}
-                    alt={row.title}
-                    className="w-[60px] mr-[20px] rounded-[5px]"
-                    key={row.id}
-                  />
+                  {row.albumArt ? (
+                    <img
+                      src={row.albumArt}
+                      alt={row.title}
+                      className="w-[60px] h-[60px] mr-[20px] rounded-[5px] object-cover"
+                      key={row.id}
+                    />
+                  ) : (
+                    <div className="w-[60px] h-[60px] mr-[20px] rounded-[5px] bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)] text-2xl flex-shrink-0">
+                      ♪
+                    </div>
+                  )}
                 </Link>
                 <div>
                   <Link

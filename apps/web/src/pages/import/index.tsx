@@ -10,8 +10,9 @@ import {
 } from "../../api/import";
 import { API_URL } from "../../consts";
 import { HeadingMedium, LabelMedium, LabelSmall } from "baseui/typography";
+import { Spinner } from "baseui/spinner";
 import dayjs from "dayjs";
-import { IconUpload, IconCheck, IconX, IconLoader2, IconHistory } from "@tabler/icons-react";
+import { IconUpload, IconCheck, IconX, IconHistory } from "@tabler/icons-react";
 
 function ProgressBar({ value, max }: { value: number; max: number }) {
   const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
@@ -96,7 +97,7 @@ function UploadCard({
         onDrop={onDrop}
       >
         {uploading
-          ? <IconLoader2 size={28} className="mb-2 text-[var(--color-primary)] animate-spin" />
+          ? <div className="mb-2"><Spinner $color="var(--color-primary)" $size="scale800" /></div>
           : <IconUpload size={28} className="mb-2 text-[var(--color-text-muted)]" />}
         <LabelMedium className="!text-[var(--color-text)]">
           {uploading ? "Uploading file…" : isRunning ? "Import in progress…" : "Drop file here or click to browse"}
@@ -136,7 +137,7 @@ function ActiveJobCard({ job, onCancel }: { job: ImportJob; onCancel: () => void
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           {job.status === "running" && (
-            <IconLoader2 size={18} className="animate-spin text-blue-400" />
+            <Spinner $color="rgb(96, 165, 250)" $size="scale600" />
           )}
           {job.status === "completed" && (
             <IconCheck size={18} className="text-green-500" />

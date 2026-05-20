@@ -116,16 +116,14 @@ function StoryModal({
         backgroundRepeat: "no-repeat",
       }}
     >
-      {/* Progress bars — one segment per story */}
-      <div className="flex gap-1 px-3 pt-3 pb-2">
-        {stories.map((_, i) => (
-          <div key={i} className="flex-1 h-0.5 rounded-full overflow-hidden bg-white/30">
-            <div
-              className="h-full bg-white transition-none"
-              style={{ width: i < index ? "100%" : i === index ? `${progress}%` : "0%" }}
-            />
-          </div>
-        ))}
+      {/* Single progress bar for current story */}
+      <div className="px-3 pt-3 pb-2">
+        <div className="h-0.5 rounded-full overflow-hidden bg-white/30">
+          <div
+            className="h-full bg-white transition-none"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
       </div>
 
       {/* Header */}
