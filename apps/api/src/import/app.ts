@@ -200,7 +200,11 @@ async function runImport(
   if (!agent) {
     await ctx.db
       .update(importJobs)
-      .set({ status: "failed", updatedAt: new Date() })
+      .set({
+        status: "failed",
+        errors: JSON.stringify(["Authentication failed: ATProto session not found or expired. Try scrobbling a track first to refresh your session."]),
+        updatedAt: new Date(),
+      })
       .where(eq(importJobs.id, jobId));
     return;
   }

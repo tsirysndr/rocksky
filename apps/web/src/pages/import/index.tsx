@@ -113,6 +113,12 @@ function UploadCard({
           }}
         />
       </div>
+
+      {error && (
+        <div className="mt-3 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+          {error}
+        </div>
+      )}
     </div>
   );
 }
@@ -163,7 +169,12 @@ function ActiveJobCard({ job, onCancel }: { job: ImportJob; onCancel: () => void
         </LabelSmall>
       )}
 
-      {errors.length > 0 && (
+      {errors.length > 0 && job.status === "failed" && (
+        <div className="mt-3 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs space-y-1 max-h-32 overflow-y-auto">
+          {errors.map((e, i) => <div key={i}>{e}</div>)}
+        </div>
+      )}
+      {errors.length > 0 && job.status !== "failed" && (
         <details className="mt-3">
           <summary className="text-sm text-[var(--color-text-muted)] cursor-pointer">
             Show errors ({errors.length})
@@ -237,8 +248,9 @@ export default function ImportPage() {
   const navigate = useNavigate();
   const [activeJob, setActiveJob] = useState<ImportJob | null>(null);
   const [jobs, setJobs] = useState<ImportJob[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<{ lastfm: string | null; spotify: string | null }>({ lastfm: null, spotify: null });
   const [uploading, setUploading] = useState(false);
+  const [sseRetry, setSseRetry] = useState(0);
   const esRef = useRef<EventSource | null>(null);
 
   const jwt = localStorage.getItem("token");
@@ -286,27 +298,29 @@ export default function ImportPage() {
     es.onerror = () => {
       es.close();
       esRef.current = null;
+      // Reconnect after 3s so a transient network error doesn't kill progress updates
+      setTimeout(() => setSseRetry((r) => r + 1), 3000);
     };
 
     return () => {
       es.close();
       esRef.current = null;
     };
-  }, [activeJob?.status, jwt]);
+  }, [activeJob?.status, jwt, sseRetry]);
 
   const handleCancel = async () => {
     await cancelImport();
   };
 
   const handleUpload = async (file: File, type: "lastfm" | "spotify") => {
-    setError(null);
+    setErrors((prev) => ({ ...prev, [type]: null }));
     setUploading(true);
     try {
       const job = await uploadImportFile(file, type);
       setActiveJob(job);
       setJobs((prev) => [job, ...prev.filter((j) => j.id !== job.id)]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
+      setErrors((prev) => ({ ...prev, [type]: err instanceof Error ? err.message : "Upload failed" }));
     } finally {
       setUploading(false);
     }
@@ -317,7 +331,7 @@ export default function ImportPage() {
 
   return (
     <Main withRightPane={false}>
-      <div className="mt-[70px] mb-[150px]">
+      <div className="mt-[70px] mb-[150px] px-4 md:px-0">
         <HeadingMedium
           marginTop="0px"
           marginBottom="8px"
@@ -328,12 +342,6 @@ export default function ImportPage() {
         <LabelMedium className="!text-[var(--color-text-muted)] mb-8">
           Import your listening history from Last.fm or Spotify. Large imports run in the background — you can close this page and come back.
         </LabelMedium>
-
-        {error && (
-          <div className="mb-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
-            {error}
-          </div>
-        )}
 
         {showJobCard && (
           <ActiveJobCard job={activeJob} onCancel={handleCancel} />
@@ -346,6 +354,7 @@ export default function ImportPage() {
           accept=".csv,text/csv"
           activeJob={isRunning ? activeJob : null}
           onUpload={handleUpload}
+          error={errors.lastfm}
           instructions={
             <ol className="list-decimal list-inside space-y-1">
               <li>
@@ -372,6 +381,7 @@ export default function ImportPage() {
           accept=".json,application/json"
           activeJob={isRunning ? activeJob : null}
           onUpload={handleUpload}
+          error={errors.spotify}
           instructions={
             <ol className="list-decimal list-inside space-y-1">
               <li>
