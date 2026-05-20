@@ -381,6 +381,11 @@ const searchOnSpotify = async (
     }),
   });
 
+  if (!newAccessToken.ok) {
+    consola.warn(`Spotify token refresh failed (${newAccessToken.status}), skipping`);
+    return undefined;
+  }
+
   const { access_token } = (await newAccessToken.json()) as {
     access_token: string;
   };
