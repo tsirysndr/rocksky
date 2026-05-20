@@ -21,6 +21,8 @@ const app = new Hono();
 
 // In-process cancellation signals — checked inside the runImport loop
 const cancelledJobs = new Set<string>();
+// In-process current track per job — for real-time "currently processing" display
+const currentTracks = new Map<string, string>();
 
 function getBearerDid(bearer: string): string {
   const payload = jwt.verify(bearer, env.JWT_SECRET, {
@@ -214,6 +216,8 @@ async function runImport(
   const errors: string[] = [];
 
   for (const track of tracks) {
+    currentTracks.set(jobId, `${track.title} — ${track.artist}`);
+
     try {
       await scrobbleTrack(ctx, track, agent, userDid);
       processed++;
@@ -226,9 +230,19 @@ async function runImport(
       consola.warn(`[import] Failed scrobble "${track.title}": ${msg}`);
     }
 
-    // Batch progress updates every 5 tracks to reduce DB writes
-    if ((processed + failed) % 5 === 0 || processed + failed === tracks.length) {
-      // Check DB-level cancellation (works across multiple server instances)
+    // Update DB progress after every track so the frontend gets real-time updates
+    await ctx.db
+      .update(importJobs)
+      .set({
+        processed,
+        failed,
+        errors: errors.length > 0 ? JSON.stringify(errors) : null,
+        updatedAt: new Date(),
+      })
+      .where(eq(importJobs.id, jobId));
+
+    // Check DB-level cancellation every 5 tracks (cross-instance safe)
+    if ((processed + failed) % 5 === 0) {
       const currentStatus = await ctx.db
         .select({ status: importJobs.status })
         .from(importJobs)
@@ -238,28 +252,22 @@ async function runImport(
 
       if (currentStatus === "cancelled" || cancelledJobs.has(jobId)) {
         cancelledJobs.delete(jobId);
-        await ctx.db
-          .update(importJobs)
-          .set({ processed, failed, updatedAt: new Date() })
-          .where(eq(importJobs.id, jobId));
+        currentTracks.delete(jobId);
         consola.info(`[import] Job ${jobId} cancelled after ${processed} scrobbles`);
         return;
       }
-
-      await ctx.db
-        .update(importJobs)
-        .set({
-          processed,
-          failed,
-          errors: errors.length > 0 ? JSON.stringify(errors) : null,
-          updatedAt: new Date(),
-        })
-        .where(eq(importJobs.id, jobId));
+    } else if (cancelledJobs.has(jobId)) {
+      cancelledJobs.delete(jobId);
+      currentTracks.delete(jobId);
+      consola.info(`[import] Job ${jobId} cancelled after ${processed} scrobbles`);
+      return;
     }
 
     // Small delay to avoid hammering ATProto PDS
     await new Promise((r) => setTimeout(r, 200));
   }
+
+  currentTracks.delete(jobId);
 
   await ctx.db
     .update(importJobs)
@@ -386,7 +394,7 @@ app.get("/status", async (c) => {
     .limit(1)
     .then((rows) => rows[0]);
 
-  return c.json(job || null);
+  return c.json(job ? { ...job, currentTrack: currentTracks.get(job.id) ?? null } : null);
 });
 
 app.get("/jobs", async (c) => {
@@ -487,7 +495,9 @@ app.get("/events", async (c) => {
 
       await stream.writeSSE({
         event: "progress",
-        data: JSON.stringify(job ?? null),
+        data: JSON.stringify(
+          job ? { ...job, currentTrack: currentTracks.get(job.id) ?? null } : null,
+        ),
       });
 
       if (!job || job.status === "completed" || job.status === "failed" || job.status === "cancelled") {

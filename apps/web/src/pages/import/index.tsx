@@ -148,7 +148,7 @@ function ActiveJobCard({ job, onCancel }: { job: ImportJob; onCancel: () => void
           {job.status === "running" && (
             <button
               onClick={onCancel}
-              className="text-sm font-semibold text-red-500 hover:text-red-400 cursor-pointer bg-transparent border-none px-3 py-1 rounded-md border border-red-500/40 hover:border-red-400/60 transition-colors"
+              className="text-sm font-semibold !text-red-500 hover:!text-red-400 cursor-pointer bg-transparent px-3 py-1 rounded-md border border-red-500/40 hover:border-red-400/60 transition-colors"
             >
               Cancel
             </button>
@@ -162,6 +162,11 @@ function ActiveJobCard({ job, onCancel }: { job: ImportJob; onCancel: () => void
         <span>{pct}%</span>
       </div>
       <ProgressBar value={job.processed} max={job.total} />
+      {job.status === "running" && job.currentTrack && (
+        <LabelSmall className="!text-[var(--color-text-muted)] mt-2 truncate">
+          ▶ {job.currentTrack}
+        </LabelSmall>
+      )}
 
       {job.failed > 0 && (
         <LabelSmall className="!text-red-400 mt-2">

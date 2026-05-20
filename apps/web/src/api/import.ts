@@ -11,6 +11,7 @@ export type ImportJob = {
   processed: number;
   failed: number;
   errors: string | null;
+  currentTrack: string | null;
   createdAt: string;
   updatedAt: string;
 };
