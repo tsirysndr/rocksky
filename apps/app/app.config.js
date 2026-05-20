@@ -5,7 +5,7 @@ module.exports = {
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: "rocksky",
-  userInterfaceStyle: "automatic",
+  userInterfaceStyle: "dark",
   newArchEnabled: true,
   extra: {
     storybookEnabled: process.env.STORYBOOK_ENABLED,
@@ -21,7 +21,6 @@ module.exports = {
       foregroundImage: "./assets/images/adaptive-icon.png",
       backgroundColor: "#130825",
     },
-    edgeToEdgeEnabled: true,
     package: "app.rocksky",
     versionCode: 2,
   },
