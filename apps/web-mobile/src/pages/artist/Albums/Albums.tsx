@@ -24,7 +24,7 @@ interface AlbumsProps {
     id: string;
     title: string;
     artist: string;
-    album_art: string;
+    album_art?: string | null;
     artist_uri: string;
     uri: string;
   }[];

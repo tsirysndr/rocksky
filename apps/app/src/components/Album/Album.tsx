@@ -27,16 +27,30 @@ const Album: FC<AlbumProps> = (props) => {
             {rank}
           </Text>
         )}
-        <Image
-          source={{
-            uri: image,
-          }}
-          style={{
+        {image ? (
+          <Image
+            source={{
+              uri: image,
+            }}
+            style={{
+              width: imageSize,
+              height: imageSize,
+              marginRight: row ? 15 : 0,
+            }}
+          />
+        ) : (
+          <View style={{
             width: imageSize,
             height: imageSize,
             marginRight: row ? 15 : 0,
-          }}
-        />
+            borderRadius: 8,
+            backgroundColor: '#1f0d3c',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <Text style={{ fontSize: imageSize * 0.4, color: '#aaa' }}>♪</Text>
+          </View>
+        )}
         <View
           className={` ${row ? "flex-1 justify-center" : "mt-[12px]"} max-h-[80px]`}
           style={{

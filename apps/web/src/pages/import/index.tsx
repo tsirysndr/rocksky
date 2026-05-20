@@ -44,6 +44,7 @@ function UploadCard({
   instructions,
   accept,
   activeJob,
+  uploading,
   onUpload,
   error,
 }: {
@@ -53,13 +54,14 @@ function UploadCard({
   instructions: React.ReactNode;
   accept: string;
   activeJob: ImportJob | null;
+  uploading?: boolean;
   onUpload: (file: File, type: "lastfm" | "spotify") => void;
   error?: string | null;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
-  const isRunning = activeJob?.status === "running";
+  const isRunning = activeJob?.status === "running" || !!uploading;
 
   const handleFile = (file: File) => {
     if (isRunning) return;
@@ -93,12 +95,14 @@ function UploadCard({
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
       >
-        <IconUpload size={28} className="mb-2 text-[var(--color-text-muted)]" />
+        {uploading
+          ? <IconLoader2 size={28} className="mb-2 text-[var(--color-primary)] animate-spin" />
+          : <IconUpload size={28} className="mb-2 text-[var(--color-text-muted)]" />}
         <LabelMedium className="!text-[var(--color-text)]">
-          {isRunning ? "Import in progress…" : "Drop file here or click to browse"}
+          {uploading ? "Uploading file…" : isRunning ? "Import in progress…" : "Drop file here or click to browse"}
         </LabelMedium>
         <LabelSmall className="!text-[var(--color-text-muted)] mt-1">
-          {type === "lastfm" ? "CSV file" : "JSON file"}
+          {uploading ? "Parsing and queuing scrobbles" : type === "lastfm" ? "CSV file" : "JSON file"}
         </LabelSmall>
         <input
           ref={inputRef}
@@ -384,6 +388,7 @@ export default function ImportPage() {
           description="Import your full scrobble history exported from Last.fm."
           accept=".csv,text/csv"
           activeJob={isRunning ? activeJob : null}
+          uploading={uploading}
           onUpload={handleUpload}
           error={errors.lastfm}
           instructions={
@@ -411,6 +416,7 @@ export default function ImportPage() {
           description="Import from the JSON files in your Spotify data export."
           accept=".json,application/json"
           activeJob={isRunning ? activeJob : null}
+          uploading={uploading}
           onUpload={handleUpload}
           error={errors.spotify}
           instructions={

@@ -436,10 +436,9 @@ function Stories() {
                     <Link
                       to={`/${currentlyPlaying?.trackUri.split("at://")[1].replace("app.rocksky.", "")}`}
                     >
-                      <Cover
-                        src={currentlyPlaying?.albumArt}
-                        key={currentlyPlaying?.id}
-                      />
+                      {currentlyPlaying?.albumArt
+                        ? <Cover src={currentlyPlaying.albumArt} key={currentlyPlaying?.id} />
+                        : <div style={{ width: 500, height: 500 }} className="bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)] text-6xl rounded-lg">♪</div>}
                     </Link>
                   )}
                   {currentlyPlaying?.trackUri && (
@@ -450,10 +449,9 @@ function Stories() {
                     </Link>
                   )}
                   {!currentlyPlaying?.trackUri && (
-                    <Cover
-                      src={currentlyPlaying?.albumArt}
-                      key={currentlyPlaying?.id}
-                    />
+                    currentlyPlaying?.albumArt
+                      ? <Cover src={currentlyPlaying.albumArt} key={currentlyPlaying?.id} />
+                      : <div style={{ width: 500, height: 500 }} className="bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)] text-6xl rounded-lg">♪</div>
                   )}
                 </div>
                 <div className="flex items-center h-[500px] w-[50px]">

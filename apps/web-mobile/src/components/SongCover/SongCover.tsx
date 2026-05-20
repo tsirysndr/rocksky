@@ -68,7 +68,7 @@ const CoverWrapper = styled.div`
 `;
 
 export type SongCoverProps = {
-  cover: string;
+  cover?: string | null;
   title?: string;
   artist?: string;
   size?: number;
@@ -77,9 +77,29 @@ export type SongCoverProps = {
 
 function SongCover(props: SongCoverProps) {
   const { title, artist, cover, size, maxWidth } = props;
+  const sizePx = size ?? 240;
   return (
     <CoverWrapper>
-      <Cover src={cover} size={size} maxWith={maxWidth} />
+      {cover ? (
+        <Cover src={cover} size={size} maxWith={maxWidth} />
+      ) : (
+        <div
+          style={{
+            width: maxWidth ? "100%" : sizePx,
+            height: maxWidth ? sizePx : sizePx,
+            borderRadius: maxWidth ? 0 : 8,
+            marginBottom: 10,
+            backgroundColor: "var(--color-menu-hover)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "var(--color-text-muted)",
+            fontSize: sizePx > 100 ? 48 : 24,
+          }}
+        >
+          ♪
+        </div>
+      )}
       <Metadata>
         <SongTitle>{title}</SongTitle>
         <Artist>{artist}</Artist>

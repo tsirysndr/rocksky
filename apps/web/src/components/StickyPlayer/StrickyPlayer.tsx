@@ -138,11 +138,15 @@ function StickyPlayer(props: StickyPlayerProps) {
             <Link
               to={`/${nowPlaying.albumUri.split("at://")[1].replace("app.rocksky.", "")}`}
             >
-              <Cover src={nowPlaying?.albumArt} key={nowPlaying.albumUri} />
+              {nowPlaying?.albumArt
+                ? <Cover src={nowPlaying.albumArt} key={nowPlaying.albumUri} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+                : <div className="w-[54px] h-[54px] mr-[16px] rounded-[5px] bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]">♪</div>}
             </Link>
           )}
           {!nowPlaying?.albumUri && (
-            <Cover src={nowPlaying?.albumArt} key={nowPlaying.albumUri} />
+            nowPlaying?.albumArt
+              ? <Cover src={nowPlaying.albumArt} key={nowPlaying.albumUri} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+              : <div className="w-[54px] h-[54px] mr-[16px] rounded-[5px] bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]">♪</div>
           )}
           <div className="max-w-[310px] overflow-hidden">
             <div className="max-w-[310px] text-ellipsis overflow-hidden">

@@ -48,11 +48,9 @@ function TopTrack() {
                 ?.split("at:/")[1]
                 ?.replace("app.rocksky.", "")}
             >
-              <img
-                src={(data[0] || allTimeTopTracks[0])?.albumArt}
-                alt={"Addicted"}
-                className="w-[70px] h-[70px]"
-              />
+              {(data[0] || allTimeTopTracks[0])?.albumArt
+                ? <img src={(data[0] || allTimeTopTracks[0])?.albumArt} alt="album art" className="w-[70px] h-[70px] rounded" />
+                : <div className="w-[70px] h-[70px] rounded bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]">♪</div>}
             </Link>
           </div>
         )}

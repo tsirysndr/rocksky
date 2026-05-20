@@ -190,11 +190,15 @@ function NowPlaying({ did }: NowPlayingProps) {
               <Link
                 to={`/${nowPlaying[did]?.albumUri?.split("at://")[1].replace("app.rocksky.", "")}`}
               >
-                <Cover src={nowPlaying[did]?.albumArt} />
+                {nowPlaying[did]?.albumArt
+                  ? <Cover src={nowPlaying[did]?.albumArt} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+                  : <div className="w-[54px] h-[54px] mr-[16px] rounded-[5px] bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]">♪</div>}
               </Link>
             )}
             {!nowPlaying[did]?.albumUri && (
-              <Cover src={nowPlaying[did]?.albumArt} />
+              nowPlaying[did]?.albumArt
+                ? <Cover src={nowPlaying[did]?.albumArt} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+                : <div className="w-[54px] h-[54px] mr-[16px] rounded-[5px] bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]">♪</div>
             )}
             <div className="max-w-[316px] overflow-hidden">
               <div className="max-w-[316px] overflow-hidden truncate">

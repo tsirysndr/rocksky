@@ -31,12 +31,27 @@ const StickyPlayer: FC<StickyPlayerProps> = (props) => {
           <View
             className={`flex-row items-center ml-[8px] mr-[8px] ${className}`}
           >
-            <Image
-              source={{
-                uri: song.cover,
-              }}
-              className="w-[50px] h-[50px] mr-[15px] mt-[6px]"
-            />
+            {song.cover ? (
+              <Image
+                source={{
+                  uri: song.cover,
+                }}
+                className="w-[50px] h-[50px] mr-[15px] mt-[6px]"
+              />
+            ) : (
+              <View style={{
+                width: 50,
+                height: 50,
+                marginRight: 15,
+                marginTop: 6,
+                borderRadius: 8,
+                backgroundColor: '#1f0d3c',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Text style={{ fontSize: 20, color: '#aaa' }}>♪</Text>
+              </View>
+            )}
             <View className="flex-1">
               <Text
                 className="font-rockford-regular text-white"

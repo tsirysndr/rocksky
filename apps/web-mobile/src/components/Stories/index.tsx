@@ -164,20 +164,36 @@ function StoryModal({
         <div className="absolute right-0 top-0 bottom-0 w-1/3 z-10" onClick={goNext} />
         {trackPath ? (
           <Link to={trackPath} onClick={onClose} className="block no-underline">
-            <img
-              src={current?.albumArt}
-              alt={current?.title}
-              className="rounded-2xl shadow-2xl object-cover"
-              style={{ maxWidth: "min(80vw, 380px)", maxHeight: "55vh", width: "100%", height: "auto" }}
-            />
+            {current?.albumArt ? (
+              <img
+                src={current.albumArt}
+                alt={current?.title}
+                className="rounded-2xl shadow-2xl object-cover"
+                style={{ maxWidth: "min(80vw, 380px)", maxHeight: "55vh", width: "100%", height: "auto" }}
+              />
+            ) : (
+              <div
+                className="rounded-2xl flex items-center justify-center"
+                style={{ width: "min(80vw, 380px)", height: "55vh", backgroundColor: "var(--color-menu-hover)", color: "var(--color-text-muted)", fontSize: 80 }}
+              >
+                ♪
+              </div>
+            )}
           </Link>
-        ) : (
+        ) : current?.albumArt ? (
           <img
-            src={current?.albumArt}
+            src={current.albumArt}
             alt={current?.title}
             className="rounded-2xl shadow-2xl object-cover"
             style={{ maxWidth: "min(80vw, 380px)", maxHeight: "55vh", width: "100%", height: "auto" }}
           />
+        ) : (
+          <div
+            className="rounded-2xl flex items-center justify-center"
+            style={{ width: "min(80vw, 380px)", height: "55vh", backgroundColor: "var(--color-menu-hover)", color: "var(--color-text-muted)", fontSize: 80 }}
+          >
+            ♪
+          </div>
         )}
       </div>
 

@@ -93,12 +93,9 @@ function Albums() {
                     }
                     className="text-initial"
                   >
-                    <img
-                      src={album.albumArt}
-                      alt={album.title}
-                      className="w-[230px] h-[230px]  mb-[20px]"
-                      key={album.id}
-                    />
+                    {album.albumArt
+                      ? <img src={album.albumArt} alt={album.title} className="w-[230px] h-[230px] mb-[20px]" key={album.id} />
+                      : <div className="w-[230px] h-[230px] mb-[20px] rounded-lg bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)] text-5xl">♪</div>}
                   </Link>
                   <Link
                     to={

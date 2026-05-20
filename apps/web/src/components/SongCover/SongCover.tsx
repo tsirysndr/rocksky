@@ -56,7 +56,7 @@ const CoverWrapper = styled.div`
 `;
 
 export type SongCoverProps = {
-  cover: string;
+  cover?: string | null;
   uri?: string;
   title?: string;
   artist?: string;
@@ -108,7 +108,15 @@ function SongCover(props: SongCoverProps) {
             onLike={handleLike}
           />
         )}
-        <Cover src={cover} size={size} />
+        {cover ? (
+          <Cover src={cover} size={size} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; (e.target as HTMLImageElement).nextElementSibling?.removeAttribute("style"); }} />
+        ) : null}
+        <div
+          style={{ display: cover ? "none" : "flex", width: size ?? 240, height: size ?? 240 }}
+          className="rounded-[8px] bg-[var(--color-menu-hover)] items-center justify-center text-[var(--color-text-muted)] text-4xl"
+        >
+          ♪
+        </div>
       </div>
       <div className="mb-[13px] mt-[10px]">
         <SongTitle className="!text-[var(--color-text-primary)]">

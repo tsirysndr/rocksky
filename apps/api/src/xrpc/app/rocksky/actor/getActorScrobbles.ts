@@ -59,7 +59,7 @@ const retrieve = ({
           track_uri: tables.tracks.uri,
           artist_uri: tables.tracks.artistUri,
           album_uri: tables.tracks.albumUri,
-          created_at: tables.scrobbles.createdAt,
+          created_at: tables.scrobbles.timestamp,
         })
         .from(tables.scrobbles)
         .innerJoin(
