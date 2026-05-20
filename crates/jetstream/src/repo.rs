@@ -252,11 +252,10 @@ pub async fn save_scrobble(
 }
 
 pub async fn save_user(pool: &Pool<Postgres>, did: &str) -> Result<String, Error> {
-    if let Some(id) =
-        sqlx::query_scalar::<_, String>("SELECT xata_id FROM users WHERE did = $1")
-            .bind(did)
-            .fetch_optional(pool)
-            .await?
+    if let Some(id) = sqlx::query_scalar::<_, String>("SELECT xata_id FROM users WHERE did = $1")
+        .bind(did)
+        .fetch_optional(pool)
+        .await?
     {
         return Ok(id);
     }
