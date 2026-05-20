@@ -415,7 +415,10 @@ const searchOnSpotify = async (
         headers: {
           Authorization: `Bearer ${access_token}`,
         },
-      }).then((res) => res.json<SearchResponse>()),
+      }).then((res) => {
+        if (!res.ok) throw new Error(`Spotify search failed: ${res.status}`);
+        return res.json<SearchResponse>();
+      }),
     "search",
   );
 
@@ -467,7 +470,10 @@ const searchOnSpotify = async (
           headers: {
             Authorization: `Bearer ${access_token}`,
           },
-        }).then((res) => res.json<Album>()),
+        }).then((res) => {
+          if (!res.ok) throw new Error(`Spotify get_album failed: ${res.status}`);
+          return res.json<Album>();
+        }),
       "get_album",
     );
 
@@ -480,7 +486,10 @@ const searchOnSpotify = async (
           headers: {
             Authorization: `Bearer ${access_token}`,
           },
-        }).then((res) => res.json<Artist>()),
+        }).then((res) => {
+          if (!res.ok) throw new Error(`Spotify get_artist failed: ${res.status}`);
+          return res.json<Artist>();
+        }),
       "get_artist",
     );
 
