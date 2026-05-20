@@ -202,10 +202,14 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
         }
       }
 
-      if (!track?.mbId) {
-        const mbTrack = await searchOnMusicBrainz(ctx, track, params.mbId);
-        track.mbId = mbTrack.mbId;
-        mbArtists = mbTrack.artists;
+      if (track && !track.mbId) {
+        try {
+          const mbTrack = await searchOnMusicBrainz(ctx, track, params.mbId);
+          track.mbId = mbTrack.mbId;
+          mbArtists = mbTrack.artists;
+        } catch (error) {
+          consola.error("Error fetching MusicBrainz data, continuing:", error);
+        }
       }
 
       return Promise.all([

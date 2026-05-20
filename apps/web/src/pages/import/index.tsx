@@ -14,7 +14,6 @@ import dayjs from "dayjs";
 import {
   IconCheck,
   IconX,
-  IconHistory,
   IconFileTypeCsv,
   IconBraces,
   IconMusic,
@@ -63,7 +62,6 @@ function ActiveJobCard({ job, onCancel }: { job: ImportJob; onCancel: () => void
       <div className="px-10 py-8">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
-            {job.status === "running" && <Spinner $color="rgb(96,165,250)" $size="scale600" />}
             {job.status === "completed" && (
               <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center">
                 <IconCheck size={14} className="text-green-500" />
@@ -75,7 +73,7 @@ function ActiveJobCard({ job, onCancel }: { job: ImportJob; onCancel: () => void
               </div>
             )}
             <span
-              className="text-[var(--color-text)] font-semibold text-base ml-4"
+              className="text-[var(--color-text)] font-semibold text-base"
               style={{ fontFamily: "RockfordSansMedium" }}
             >
               {isLastFm ? "Last.fm" : "Spotify"} Import
@@ -369,10 +367,9 @@ function ImportHistory({ jobs }: { jobs: ImportJob[] }) {
 
   return (
     <div className="mt-10">
-      <div className="flex items-center gap-3 mb-4">
-        <IconHistory size={18} className="text-[var(--color-text-muted)]" />
+      <div className="mb-4">
         <h2
-          className="text-xs font-semibold text-[var(--color-text-muted)] tracking-widest ml-4"
+          className="text-xs font-semibold text-[var(--color-text-muted)] tracking-widest"
           style={{ fontFamily: "RockfordSansMedium" }}
         >
           Import History
