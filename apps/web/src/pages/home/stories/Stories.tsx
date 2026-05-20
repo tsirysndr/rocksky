@@ -12,6 +12,7 @@ import {
   IconChevronLeft,
   IconChevronRight,
   IconUser,
+  IconMusic,
 } from "@tabler/icons-react";
 import { useStoriesQuery } from "../../../hooks/useStories";
 import styles, { getModalStyles } from "./styles";
@@ -438,7 +439,7 @@ function Stories() {
                     >
                       {currentlyPlaying?.albumArt
                         ? <Cover src={currentlyPlaying.albumArt} key={currentlyPlaying?.id} />
-                        : <div style={{ width: 500, height: 500 }} className="bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)] text-6xl rounded-lg">♪</div>}
+                        : <div style={{ width: 500, height: 500 }} className="bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)] rounded-lg"><IconMusic size={60} /></div>}
                     </Link>
                   )}
                   {currentlyPlaying?.trackUri && (
@@ -451,7 +452,7 @@ function Stories() {
                   {!currentlyPlaying?.trackUri && (
                     currentlyPlaying?.albumArt
                       ? <Cover src={currentlyPlaying.albumArt} key={currentlyPlaying?.id} />
-                      : <div style={{ width: 500, height: 500 }} className="bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)] text-6xl rounded-lg">♪</div>
+                      : <div style={{ width: 500, height: 500 }} className="bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)] rounded-lg"><IconMusic size={60} /></div>
                   )}
                 </div>
                 <div className="flex items-center h-[500px] w-[50px]">

@@ -555,42 +555,52 @@ async function fetchSpotifyDuration(
   }
 }
 
+export type ImportCache = {
+  artistOps: Map<string, Promise<string | null>>;
+  albumOps: Map<string, Promise<string | null>>;
+};
+
 export async function scrobbleTrack(
   ctx: Context,
   track: Track,
   agent: Agent,
   userDid: string,
+  skipDupCheck?: boolean,
+  importCache?: ImportCache,
 ): Promise<void> {
   // check if scrobble already exists (user did + timestamp)
-  const scrobbleTime = dayjs.unix(track.timestamp || dayjs().unix());
-  const existingScrobble = await ctx.db
-    .select({
-      scrobble: scrobbles,
-      user: users,
-      track: tracks,
-    })
-    .from(scrobbles)
-    .innerJoin(users, eq(scrobbles.userId, users.id))
-    .innerJoin(tracks, eq(scrobbles.trackId, tracks.id))
-    .where(
-      and(
-        eq(users.did, userDid),
-        eq(tracks.title, track.title),
-        eq(tracks.artist, track.artist),
-        gte(scrobbles.timestamp, scrobbleTime.subtract(60, "seconds").toDate()),
-        lte(scrobbles.timestamp, scrobbleTime.add(60, "seconds").toDate()),
-      ),
-    )
-    .limit(1)
-    .then((rows) => rows[0]);
+  // skipDupCheck=true when called from runImport — the bulk pre-filter already handled dedup
+  if (!skipDupCheck) {
+    const scrobbleTime = dayjs.unix(track.timestamp || dayjs().unix());
+    const existingScrobble = await ctx.db
+      .select({
+        scrobble: scrobbles,
+        user: users,
+        track: tracks,
+      })
+      .from(scrobbles)
+      .innerJoin(users, eq(scrobbles.userId, users.id))
+      .innerJoin(tracks, eq(scrobbles.trackId, tracks.id))
+      .where(
+        and(
+          eq(users.did, userDid),
+          eq(tracks.title, track.title),
+          eq(tracks.artist, track.artist),
+          gte(scrobbles.timestamp, scrobbleTime.subtract(60, "seconds").toDate()),
+          lte(scrobbles.timestamp, scrobbleTime.add(60, "seconds").toDate()),
+        ),
+      )
+      .limit(1)
+      .then((rows) => rows[0]);
 
-  if (existingScrobble) {
-    consola.info(
-      `Scrobble already exists for ${chalk.cyan(track.title)} at ${chalk.cyan(
-        scrobbleTime.format("YYYY-MM-DD HH:mm:ss"),
-      )}`,
-    );
-    return;
+    if (existingScrobble) {
+      consola.info(
+        `Scrobble already exists for ${chalk.cyan(track.title)} at ${chalk.cyan(
+          scrobbleTime.format("YYYY-MM-DD HH:mm:ss"),
+        )}`,
+      );
+      return;
+    }
   }
 
   let existingTrack = await ctx.db
@@ -795,7 +805,15 @@ export async function scrobbleTrack(
     .then((rows) => rows[0]);
 
   if (!existingArtist?.uri || !userArtist?.userArtist.uri?.includes(userDid)) {
-    await putArtistRecord(track, agent);
+    if (importCache) {
+      const artistSha = createHash("sha256").update(track.albumArtist.toLowerCase()).digest("hex");
+      if (!importCache.artistOps.has(artistSha)) {
+        importCache.artistOps.set(artistSha, putArtistRecord(track, agent));
+      }
+      await importCache.artistOps.get(artistSha);
+    } else {
+      await putArtistRecord(track, agent);
+    }
   }
 
   const userAlbum = await ctx.db
@@ -812,7 +830,15 @@ export async function scrobbleTrack(
     .then((rows) => rows[0]);
 
   if (!existingAlbum?.uri || !userAlbum?.userAlbum.uri?.includes(userDid)) {
-    await putAlbumRecord(track, agent);
+    if (importCache) {
+      const albumSha = createHash("sha256").update(`${track.album} - ${track.albumArtist}`.toLowerCase()).digest("hex");
+      if (!importCache.albumOps.has(albumSha)) {
+        importCache.albumOps.set(albumSha, putAlbumRecord(track, agent));
+      }
+      await importCache.albumOps.get(albumSha);
+    } else {
+      await putAlbumRecord(track, agent);
+    }
   }
 
   tries = 0;

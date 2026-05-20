@@ -9,7 +9,7 @@ import { streamSSE } from "hono/streaming";
 import jwt from "jsonwebtoken";
 import { createAgent } from "lib/agent";
 import { env } from "lib/env";
-import { scrobbleTrack } from "nowplaying/nowplaying.service";
+import { type ImportCache, scrobbleTrack } from "nowplaying/nowplaying.service";
 import importJobs from "schema/import-jobs";
 import scrobbles from "schema/scrobbles";
 import users from "schema/users";
@@ -258,22 +258,49 @@ async function runImport(
   let failed = 0;
   const errors: string[] = [];
 
-  for (const track of tracks) {
-    currentTracks.set(jobId, `${track.title} — ${track.artist}`);
+  // Shared cache per import job — prevents duplicate ATProto artist/album writes
+  // across concurrent tracks in the same batch
+  const importCache: ImportCache = {
+    artistOps: new Map(),
+    albumOps: new Map(),
+  };
 
-    try {
-      await scrobbleTrack(ctx, track, agent, userDid);
-      processed++;
-    } catch (err) {
-      failed++;
-      const msg = err instanceof Error ? err.message : String(err);
-      if (errors.length < 50) {
-        errors.push(`${track.title} - ${track.artist}: ${msg}`);
-      }
-      consola.warn(`[import] Failed scrobble "${track.title}": ${msg}`);
+  // Process tracks in parallel batches to saturate ATProto/DB I/O while
+  // keeping PDS pressure reasonable. MusicBrainz is already rate-limited at
+  // 1 RPS inside the webscrobbler service, so concurrent calls just queue there.
+  const CONCURRENCY = 3;
+
+  for (let i = 0; i < tracks.length; i += CONCURRENCY) {
+    if (cancelledJobs.has(jobId)) {
+      cancelledJobs.delete(jobId);
+      currentTracks.delete(jobId);
+      consola.info(`[import] Job ${jobId} cancelled after ${processed} scrobbles`);
+      return;
     }
 
-    // Update DB progress after every track so the frontend gets real-time updates
+    const batch = tracks.slice(i, i + CONCURRENCY);
+    // Show first track of batch as current track
+    currentTracks.set(jobId, `${batch[0].title} — ${batch[0].artist}`);
+
+    const results = await Promise.allSettled(
+      batch.map((track) => scrobbleTrack(ctx, track, agent, userDid, true, importCache)),
+    );
+
+    for (let j = 0; j < results.length; j++) {
+      const result = results[j];
+      if (result.status === "fulfilled") {
+        processed++;
+      } else {
+        failed++;
+        const msg = result.reason instanceof Error ? result.reason.message : String(result.reason);
+        if (errors.length < 50) {
+          errors.push(`${batch[j].title} - ${batch[j].artist}: ${msg}`);
+        }
+        consola.warn(`[import] Failed scrobble "${batch[j].title}": ${msg}`);
+      }
+    }
+
+    // Update DB progress after each batch
     await ctx.db
       .update(importJobs)
       .set({
@@ -284,8 +311,8 @@ async function runImport(
       })
       .where(eq(importJobs.id, jobId));
 
-    // Check DB-level cancellation every 5 tracks (cross-instance safe)
-    if ((processed + failed) % 5 === 0) {
+    // Check DB-level cancellation roughly every ~15 tracks (cross-instance safe)
+    if (Math.floor(i / CONCURRENCY) % 5 === 0) {
       const currentStatus = await ctx.db
         .select({ status: importJobs.status })
         .from(importJobs)
@@ -299,15 +326,12 @@ async function runImport(
         consola.info(`[import] Job ${jobId} cancelled after ${processed} scrobbles`);
         return;
       }
-    } else if (cancelledJobs.has(jobId)) {
-      cancelledJobs.delete(jobId);
-      currentTracks.delete(jobId);
-      consola.info(`[import] Job ${jobId} cancelled after ${processed} scrobbles`);
-      return;
     }
 
-    // Small delay to avoid hammering ATProto PDS
-    await new Promise((r) => setTimeout(r, 200));
+    // Brief pause between batches to avoid hammering the ATProto PDS
+    if (i + CONCURRENCY < tracks.length) {
+      await new Promise((r) => setTimeout(r, 300));
+    }
   }
 
   currentTracks.delete(jobId);

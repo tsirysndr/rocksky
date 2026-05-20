@@ -1,5 +1,6 @@
 import styled from "@emotion/styled";
 import { Link as DefaultLink } from "@tanstack/react-router";
+import { IconMusic } from "@tabler/icons-react";
 import axios from "axios";
 import { ProgressBar } from "baseui/progress-bar";
 import { LabelXSmall } from "baseui/typography";
@@ -192,13 +193,13 @@ function NowPlaying({ did }: NowPlayingProps) {
               >
                 {nowPlaying[did]?.albumArt
                   ? <Cover src={nowPlaying[did]?.albumArt} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
-                  : <div className="w-[54px] h-[54px] mr-[16px] rounded-[5px] bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]">♪</div>}
+                  : <div className="w-[54px] h-[54px] mr-[16px] rounded-[5px] bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]"><IconMusic size={20} /></div>}
               </Link>
             )}
             {!nowPlaying[did]?.albumUri && (
               nowPlaying[did]?.albumArt
                 ? <Cover src={nowPlaying[did]?.albumArt} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
-                : <div className="w-[54px] h-[54px] mr-[16px] rounded-[5px] bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]">♪</div>
+                : <div className="w-[54px] h-[54px] mr-[16px] rounded-[5px] bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]"><IconMusic size={20} /></div>
             )}
             <div className="max-w-[316px] overflow-hidden">
               <div className="max-w-[316px] overflow-hidden truncate">

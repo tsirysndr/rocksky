@@ -1,5 +1,6 @@
 import ContentLoader from "react-content-loader";
 import styled from "@emotion/styled";
+import { IconMusic } from "@tabler/icons-react";
 import { Link as DefaultLink } from "@tanstack/react-router";
 import { HeadingMedium } from "baseui/typography";
 import { Tab, Tabs } from "baseui/tabs-motion";
@@ -261,7 +262,7 @@ function Recommendations() {
                           />
                         ) : (
                           <div className="w-[60px] h-[60px] rounded-[5px] mr-[20px] flex items-center justify-center bg-[var(--color-menu-hover)]">
-                            <span className="text-xl opacity-20">♪</span>
+                            <IconMusic size={20} className="opacity-20" />
                           </div>
                         )}
                         <div className="flex flex-col">

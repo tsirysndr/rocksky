@@ -1,4 +1,5 @@
 import { Link, useParams } from "@tanstack/react-router";
+import { IconMusic } from "@tabler/icons-react";
 import { useAlbumsByGenreInfiniteQuery } from "../../../hooks/useLibrary";
 import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
 import { BlockProps } from "baseui/block";
@@ -95,7 +96,7 @@ function Albums() {
                   >
                     {album.albumArt
                       ? <img src={album.albumArt} alt={album.title} className="w-[230px] h-[230px] mb-[20px]" key={album.id} />
-                      : <div className="w-[230px] h-[230px] mb-[20px] rounded-lg bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)] text-5xl">♪</div>}
+                      : <div className="w-[230px] h-[230px] mb-[20px] rounded-lg bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]"><IconMusic size={48} /></div>}
                   </Link>
                   <Link
                     to={

@@ -1,5 +1,6 @@
 import { css } from "@emotion/react";
 import styled from "@emotion/styled";
+import { IconMusic } from "@tabler/icons-react";
 import InteractionBar from "./InteractionBar";
 import useLike from "../../hooks/useLike";
 import SignInModal from "../SignInModal";
@@ -115,7 +116,7 @@ function SongCover(props: SongCoverProps) {
           style={{ display: cover ? "none" : "flex", width: size ?? 240, height: size ?? 240 }}
           className="rounded-[8px] bg-[var(--color-menu-hover)] items-center justify-center text-[var(--color-text-muted)] text-4xl"
         >
-          ♪
+          <IconMusic size={32} />
         </div>
       </div>
       <div className="mb-[13px] mt-[10px]">

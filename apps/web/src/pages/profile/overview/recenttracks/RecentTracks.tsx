@@ -17,6 +17,7 @@ import {
 } from "../../../../hooks/useProfile";
 import styles from "./styles";
 import ContentLoader from "react-content-loader";
+import { IconMusic } from "@tabler/icons-react";
 
 const Link = styled(DefaultLink)`
   color: inherit;
@@ -257,8 +258,8 @@ function RecentTracks(props: RecentTracksProps) {
                       key={row.id}
                     />
                   ) : (
-                    <div className="w-[60px] h-[60px] mr-[20px] rounded-[5px] bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)] text-2xl flex-shrink-0">
-                      ♪
+                    <div className="w-[60px] h-[60px] mr-[20px] rounded-[5px] bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)] flex-shrink-0">
+                      <IconMusic size={22} />
                     </div>
                   )}
                 </Link>

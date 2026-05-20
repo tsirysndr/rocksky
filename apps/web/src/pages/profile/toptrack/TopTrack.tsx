@@ -1,4 +1,5 @@
 import { Link, useParams } from "@tanstack/react-router";
+import { IconMusic } from "@tabler/icons-react";
 import { useTracksQuery } from "../../../hooks/useLibrary";
 import { getLastDays } from "../../../lib/date";
 
@@ -50,7 +51,7 @@ function TopTrack() {
             >
               {(data[0] || allTimeTopTracks[0])?.albumArt
                 ? <img src={(data[0] || allTimeTopTracks[0])?.albumArt} alt="album art" className="w-[70px] h-[70px] rounded" />
-                : <div className="w-[70px] h-[70px] rounded bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]">♪</div>}
+                : <div className="w-[70px] h-[70px] rounded bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]"><IconMusic size={24} /></div>}
             </Link>
           </div>
         )}
