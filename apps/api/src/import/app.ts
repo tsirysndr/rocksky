@@ -72,22 +72,42 @@ function parseCSVLine(line: string): string[] {
 }
 
 function parseLastfmCsv(text: string): Track[] {
+  // Actual Last.fm export columns:
+  // uts, utc_time, artist, artist_mbid, album, album_mbid, track, track_mbid
   const lines = text.replace(/^﻿/, "").split("\n");
   const tracks: Track[] = [];
 
-  for (let i = 1; i < lines.length; i++) {
+  // Find header row to determine column indices (defensive against future changes)
+  let headerIdx = 0;
+  let colUts = 0, colArtist = 2, colAlbum = 4, colTrack = 6, colTrackMbid = 7;
+
+  const firstLine = parseCSVLine(lines[0].trim());
+  if (firstLine[0]?.toLowerCase() === "uts") {
+    headerIdx = 1;
+    colUts      = firstLine.indexOf("uts");
+    colArtist   = firstLine.indexOf("artist");
+    colAlbum    = firstLine.indexOf("album");
+    colTrack    = firstLine.indexOf("track");
+    colTrackMbid = firstLine.indexOf("track_mbid");
+  }
+
+  for (let i = headerIdx; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
 
     const fields = parseCSVLine(line);
-    if (fields.length < 4) continue;
+    if (fields.length < 7) continue;
 
-    const [artist, album, title, timestampStr] = fields;
+    const uts   = fields[colUts];
+    const artist = fields[colArtist];
+    const album  = fields[colAlbum];
+    const title  = fields[colTrack];
+    const mbId   = colTrackMbid >= 0 ? fields[colTrackMbid] : undefined;
+
     if (!artist || !title) continue;
 
-    // Last.fm export timestamp: "DD MMM YYYY HH:mm"
-    const ts = dayjs.utc(timestampStr, "DD MMM YYYY HH:mm");
-    if (!ts.isValid()) continue;
+    const timestamp = parseInt(uts, 10);
+    if (!timestamp || Number.isNaN(timestamp)) continue;
 
     tracks.push({
       title,
@@ -95,7 +115,8 @@ function parseLastfmCsv(text: string): Track[] {
       albumArtist: artist,
       album: album || "Unknown Album",
       duration: 0,
-      timestamp: ts.unix(),
+      timestamp,
+      mbId: mbId || undefined,
     });
   }
 

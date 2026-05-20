@@ -45,6 +45,7 @@ function UploadCard({
   accept,
   activeJob,
   onUpload,
+  error,
 }: {
   type: "lastfm" | "spotify";
   title: string;
@@ -53,6 +54,7 @@ function UploadCard({
   accept: string;
   activeJob: ImportJob | null;
   onUpload: (file: File, type: "lastfm" | "spotify") => void;
+  error?: string | null;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -349,17 +351,16 @@ export default function ImportPage() {
               <li>
                 Go to{" "}
                 <a
-                  href="https://www.last.fm/user/_/library"
+                  href="https://lastfm.ghan.nl/export/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[var(--color-primary)] underline"
                 >
-                  last.fm/user/YOUR_USERNAME/library
+                  lastfm.ghan.nl/export
                 </a>
               </li>
-              <li>Scroll to the bottom and click <strong>Export your library</strong></li>
+              <li>Enter your Last.fm username and export your scrobbles</li>
               <li>Upload the downloaded <code className="bg-[var(--color-border)] px-1 rounded">.csv</code> file here</li>
-              <li className="text-[var(--color-text-muted)]">Format: <code className="bg-[var(--color-border)] px-1 rounded">Artist,Album,Track,Timestamp</code></li>
             </ol>
           }
         />
