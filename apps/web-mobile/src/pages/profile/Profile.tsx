@@ -9,7 +9,7 @@ import ContentLoader from "react-content-loader";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { useAtom } from "jotai";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import numeral from "numeral";
 import { followsAtom } from "../../atoms/follows";
@@ -935,6 +935,16 @@ export default function Profile() {
   const { data: profile, isLoading } = useProfileByDidQuery(did!);
   const { data: stats } = useProfileStatsByDidQuery(did);
 
+  const [genreRange, setGenreRange] = useState<[Date, Date] | []>(getLastDays(7));
+  const { data: genreArtists } = useArtistsQuery(did!, 0, 100, ...(genreRange as [Date, Date]));
+  const genres = useMemo(() => {
+    if (!genreArtists) return [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const list = Array.isArray(genreArtists) ? (genreArtists as any[]) : [];
+    if (list.length === 0) setGenreRange([]);
+    return Array.from(new Set(list.filter((x) => x.tags).flatMap((x) => x.tags))).slice(0, 20) as string[];
+  }, [genreArtists]);
+
   // Init follow status for this profile
   const { data: followersCheckData } = useFollowersQuery(
     profile?.did,
@@ -1016,15 +1026,8 @@ export default function Profile() {
                 ))}
               </div>
 
-              {/* Top Track */}
-              {profile?.did && (
-                <div className="mb-4">
-                  <TopTrackBadge did={profile.did} />
-                </div>
-              )}
-
               {/* Actions */}
-              <div className="flex gap-2">
+              <div className="flex gap-2 mb-4">
                 {!isOwnProfile && !isFollowing && (
                   <button onClick={onFollow} className="flex items-center gap-1.5 px-5 py-2 rounded-full border-none cursor-pointer font-semibold text-sm" style={{ backgroundColor: "var(--color-primary)", color: "#fff" }}>
                     <IconPlus size={15} /> Follow
@@ -1043,6 +1046,22 @@ export default function Profile() {
                   text={`Check out ${profile?.displayName || profile?.handle}'s music taste on Rocksky 🎵\n${window.location.href}`}
                 />
               </div>
+
+              {/* Genres */}
+              {genres.length > 0 && (
+                <div className="flex flex-wrap gap-x-3 gap-y-1.5 mb-4">
+                  {genres.map((genre) => (
+                    <span key={genre} className="text-xs" style={{ color: "var(--color-genre, var(--color-primary))", fontFamily: "RockfordSansRegular, sans-serif" }}>
+                      # {genre}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Top Track */}
+              {profile?.did && (
+                <TopTrackBadge did={profile.did} />
+              )}
             </>
           )}
         </div>
