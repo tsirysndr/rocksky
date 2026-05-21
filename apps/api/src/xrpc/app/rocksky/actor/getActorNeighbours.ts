@@ -1,6 +1,6 @@
 import type { Context } from "context";
 import { consola } from "consola";
-import { and, desc, eq, inArray, ne, notILike, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, ne, not, or, sql } from "drizzle-orm";
 import { Cache, Duration, Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { NeighbourViewBasic } from "lexicon/types/app/rocksky/actor/defs";
@@ -75,7 +75,7 @@ const retrieve = ({
         .where(
           and(
             eq(tables.scrobbles.userId, user.id),
-            notILike(tables.artists.name, "Various Artists"),
+            not(ilike(tables.artists.name, "Various Artists")),
           ),
         )
         .groupBy(tables.scrobbles.artistId)
