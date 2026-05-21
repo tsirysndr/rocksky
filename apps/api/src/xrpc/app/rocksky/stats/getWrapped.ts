@@ -171,15 +171,18 @@ const retrieve = ({
         // Top genres from artist genres array (unnested)
         ctx.db.execute(
           sql`
-            SELECT unnest(${tables.artists.genres}) AS genre, COUNT(${tables.scrobbles.id}) AS genre_count
-            FROM ${tables.scrobbles}
-            INNER JOIN ${tables.artists} ON ${tables.artists.id} = ${tables.scrobbles.artistId}
-            WHERE ${tables.scrobbles.userId} = ${user.id}
-              AND ${tables.scrobbles.timestamp} >= ${startDate.toISOString()}
-              AND ${tables.scrobbles.timestamp} < ${endDate.toISOString()}
-              AND ${tables.artists.name} != 'Various Artists'
+            SELECT genre, COUNT(*) AS genre_count
+            FROM (
+              SELECT unnest(${tables.artists.genres}) AS genre
+              FROM ${tables.scrobbles}
+              INNER JOIN ${tables.artists} ON ${tables.artists.id} = ${tables.scrobbles.artistId}
+              WHERE ${tables.scrobbles.userId} = ${user.id}
+                AND ${tables.scrobbles.timestamp} >= ${startDate.toISOString()}
+                AND ${tables.scrobbles.timestamp} < ${endDate.toISOString()}
+                AND ${tables.artists.name} != 'Various Artists'
+            ) expanded
+            WHERE genre IS NOT NULL AND genre != ''
             GROUP BY genre
-            HAVING genre IS NOT NULL AND genre != ''
             ORDER BY genre_count DESC
             LIMIT 5
           `,

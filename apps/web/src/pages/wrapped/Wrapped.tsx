@@ -13,7 +13,7 @@ import { toPng } from "html-to-image";
 import { profileAtom } from "../../atoms/profile";
 import { useWrappedQuery } from "../../hooks/useWrapped";
 import Main from "../../layouts/Main";
-import type { WrappedArtist, WrappedTrack, WrappedAlbum } from "../../api/wrapped";
+import type { WrappedArtist, WrappedTrack } from "../../api/wrapped";
 import { IconDownload, IconMusic, IconUser, IconCalendar, IconClock, IconFlame, IconSparkles, IconMicrophone2 } from "@tabler/icons-react";
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -167,7 +167,7 @@ function ShareCard({
   topArtists,
   topTracks,
 }: {
-  cardRef: React.RefObject<HTMLDivElement | null>;
+  cardRef: React.RefObject<HTMLDivElement>;
   year: number;
   handle: string;
   displayName: string;
@@ -331,7 +331,7 @@ export default function WrappedPage() {
   const profile = useAtomValue(profileAtom);
   const [year, setYear] = useState(CURRENT_YEAR);
   const [downloading, setDownloading] = useState(false);
-  const shareCardRef = useRef<HTMLDivElement>(null);
+  const shareCardRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
 
   const { data, isLoading } = useWrappedQuery(profile?.did, year);
 
