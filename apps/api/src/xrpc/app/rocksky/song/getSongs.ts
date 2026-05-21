@@ -66,7 +66,11 @@ const retrieve = ({
           tables.tracks,
           eq(tables.scrobbles.trackId, tables.tracks.id),
         )
-        .where(params.genre ? eq(tables.tracks.genre, params.genre) : undefined)
+        .leftJoin(
+          tables.artists,
+          eq(tables.tracks.albumArtist, tables.artists.name),
+        )
+        .where(params.genre ? sql`${tables.artists.genres} @> ARRAY[${params.genre}]::text[]` : undefined)
         .groupBy(tables.scrobbles.trackId)
         .orderBy(desc(sql`count(DISTINCT ${tables.scrobbles.userId})`))
         .limit(limit)
