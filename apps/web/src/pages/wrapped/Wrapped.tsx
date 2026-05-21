@@ -167,7 +167,7 @@ function ShareCard({
   topArtists,
   topTracks,
 }: {
-  cardRef: React.RefObject<HTMLDivElement>;
+  cardRef?: React.RefObject<HTMLDivElement>;
   year: number;
   handle: string;
   displayName: string;
@@ -219,7 +219,7 @@ function ShareCard({
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             {avatar && !avatar.endsWith("/@jpeg") && (
-              <img src={avatar} style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }} />
+              <img crossOrigin="anonymous" src={avatar} style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }} />
             )}
             <div>
               <p style={{ color: "#fff", fontSize: 14, fontWeight: 700, margin: 0 }}>{displayName}</p>
@@ -398,7 +398,7 @@ export default function WrappedPage() {
       `}</style>
 
       <div
-        className="mt-[60px] mb-[120px] mx-auto"
+        className="mt-[60px] mb-[120px] mx-auto px-4 sm:px-6"
         style={{ maxWidth: 900, fontFamily: "'Space Grotesk', sans-serif" }}
       >
         {/* ── Page header ── */}
@@ -829,11 +829,10 @@ export default function WrappedPage() {
               </p>
 
               <div className="flex flex-col items-center gap-6">
-                {/* Card preview */}
-                <div className="overflow-hidden rounded-2xl" style={{ maxWidth: 360, width: "100%" }}>
-                  <div style={{ transform: "scale(0.6)", transformOrigin: "top center", height: 360 }}>
+                {/* Card preview — visual only, no ref, inside CSS scale */}
+                <div className="overflow-hidden rounded-2xl" style={{ maxWidth: 360, width: "100%", height: 360 }}>
+                  <div style={{ transform: "scale(0.6)", transformOrigin: "top left", width: 600, height: 600 }}>
                     <ShareCard
-                      cardRef={shareCardRef}
                       year={year}
                       handle={profile.handle}
                       displayName={profile.displayName || profile.handle}
@@ -863,6 +862,21 @@ export default function WrappedPage() {
                   {downloading ? "Generating…" : "Download Card"}
                 </button>
               </div>
+            </div>
+
+            {/* Off-screen full-size card — used only for html-to-image capture */}
+            <div style={{ position: "fixed", left: "-9999px", top: 0, pointerEvents: "none", zIndex: -1 }}>
+              <ShareCard
+                cardRef={shareCardRef}
+                year={year}
+                handle={profile.handle}
+                displayName={profile.displayName || profile.handle}
+                avatar={profile.avatar}
+                totalScrobbles={data.totalScrobbles}
+                totalListeningTimeMinutes={data.totalListeningTimeMinutes}
+                topArtists={data.topArtists}
+                topTracks={data.topTracks}
+              />
             </div>
           </>
         )}

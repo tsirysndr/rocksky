@@ -367,7 +367,7 @@ const retrieve = ({
         year,
         totalScrobbles: Number(totalScrobblesRow[0]?.n ?? 0),
         totalListeningTimeMinutes: Math.floor(
-          Number(totalTimeRow[0]?.total ?? 0) / 60,
+          Number(totalTimeRow[0]?.total ?? 0) / 60_000,
         ),
         topTracks: topTrackIds
           .map((item) => {
