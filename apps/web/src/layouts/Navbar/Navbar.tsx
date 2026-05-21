@@ -170,6 +170,17 @@ function Navbar() {
           </Link>
         </div>
       )}
+      <div className="mr-[20px]">
+        <Link
+          to="/wrapped"
+          className="text-[var(--color-text)] text-[16px] opacity-90 hover:opacity-100"
+          style={{ textDecoration: "none" }}
+        >
+          <AnimatedLink>
+            <b>Wrapped</b>
+          </AnimatedLink>
+        </Link>
+      </div>
       <div>
         <Link
           to="/charts"

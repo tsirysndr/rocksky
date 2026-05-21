@@ -215,7 +215,7 @@ function ShareCard({
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
-            <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", margin: 0, fontFamily: "'Syne', sans-serif" }}>
+            <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", margin: 0, fontFamily: "'Syne', sans-serif", whiteSpace: "nowrap" }}>
               Rocksky Wrapped
             </p>
             <p style={{ color: "#fff", fontSize: 40, fontWeight: 900, margin: 0, lineHeight: 1.1 }}>
