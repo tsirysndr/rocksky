@@ -71,6 +71,7 @@ import spotifyPlay from "./app/rocksky/spotify/play";
 import spotifyPrevious from "./app/rocksky/spotify/previous";
 import spotifySeek from "./app/rocksky/spotify/seek";
 import getStats from "./app/rocksky/stats/getStats";
+import getWrapped from "./app/rocksky/stats/getWrapped";
 import getFeedGenerators from "./app/rocksky/feed/getFeedGenerators";
 import getFeedGenerator from "./app/rocksky/feed/getFeedGenerator";
 import getFeed from "./app/rocksky/feed/getFeed";
@@ -152,6 +153,7 @@ export default function (server: Server, ctx: Context) {
   spotifySeek(server, ctx);
   spotifyPlay(server, ctx);
   getStats(server, ctx);
+  getWrapped(server, ctx);
   createSong(server, ctx);
   addItemsToQueue(server, ctx);
   getPlaybackQueue(server, ctx);

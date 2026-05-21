@@ -69,7 +69,11 @@ export default function (server: Server, ctx: Context) {
 const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
   return Effect.tryPromise({
     try: async () => {
-      const queryRecord = (whereCondition: Parameters<typeof ctx.db.select>[0] extends undefined ? never : ReturnType<typeof or>) =>
+      const queryRecord = (
+        whereCondition: Parameters<typeof ctx.db.select>[0] extends undefined
+          ? never
+          : ReturnType<typeof or>,
+      ) =>
         ctx.db
           .select()
           .from(tables.tracks)
@@ -129,9 +133,10 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
       if (!record) {
         if (params.mbId) {
           try {
-            const { data: mbData } = await ctx.musicbrainz.get<MusicbrainzTrack>(
-              `/recording/${params.mbId}`,
-            );
+            const { data: mbData } =
+              await ctx.musicbrainz.get<MusicbrainzTrack>(
+                `/recording/${params.mbId}`,
+              );
             if (mbData?.trackMBID) {
               track = {
                 id: "",
@@ -161,12 +166,18 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
                 updatedAt: new Date(),
                 xataVersion: 0,
               };
-              mbArtists = mbData.artist?.map((a) => ({ mbid: a.mbid, name: a.name })) ?? null;
-              artistPicture = spotifyTrack?.artists[0]?.images?.[0]?.url ?? null;
+              mbArtists =
+                mbData.artist?.map((a) => ({ mbid: a.mbid, name: a.name })) ??
+                null;
+              artistPicture =
+                spotifyTrack?.artists[0]?.images?.[0]?.url ?? null;
               genres = spotifyTrack?.artists[0]?.genres ?? null;
             }
           } catch (error) {
-            consola.error("Error fetching MusicBrainz recording by mbId:", error);
+            consola.error(
+              "Error fetching MusicBrainz recording by mbId:",
+              error,
+            );
           }
         }
 
@@ -406,7 +417,9 @@ const searchOnSpotify = async (
   });
 
   if (!newAccessToken.ok) {
-    consola.warn(`Spotify token refresh failed (${newAccessToken.status}), skipping`);
+    consola.warn(
+      `Spotify token refresh failed (${newAccessToken.status}), skipping`,
+    );
     return undefined;
   }
 
@@ -495,7 +508,8 @@ const searchOnSpotify = async (
             Authorization: `Bearer ${access_token}`,
           },
         }).then((res) => {
-          if (!res.ok) throw new Error(`Spotify get_album failed: ${res.status}`);
+          if (!res.ok)
+            throw new Error(`Spotify get_album failed: ${res.status}`);
           return res.json<Album>();
         }),
       "get_album",
@@ -511,7 +525,8 @@ const searchOnSpotify = async (
             Authorization: `Bearer ${access_token}`,
           },
         }).then((res) => {
-          if (!res.ok) throw new Error(`Spotify get_artist failed: ${res.status}`);
+          if (!res.ok)
+            throw new Error(`Spotify get_artist failed: ${res.status}`);
           return res.json<Artist>();
         }),
       "get_artist",

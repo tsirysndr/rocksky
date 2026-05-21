@@ -14,6 +14,7 @@ import { Route as RecommendationsRouteImport } from './routes/recommendations'
 import { Route as LoadingRouteImport } from './routes/loading'
 import { Route as ImportRouteImport } from './routes/import'
 import { Route as ChartsRouteImport } from './routes/charts'
+import { Route as WrappedRouteImport } from './routes/wrapped'
 import { Route as ApikeysRouteImport } from './routes/apikeys'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GoogledriveIndexRouteImport } from './routes/googledrive/index'
@@ -59,6 +60,11 @@ const ImportRoute = ImportRouteImport.update({
 const ChartsRoute = ChartsRouteImport.update({
   id: '/charts',
   path: '/charts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WrappedRoute = WrappedRouteImport.update({
+  id: '/wrapped',
+  path: '/wrapped',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApikeysRoute = ApikeysRouteImport.update({
@@ -171,6 +177,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/apikeys': typeof ApikeysRoute
   '/charts': typeof ChartsRoute
+  '/wrapped': typeof WrappedRoute
   '/import': typeof ImportRoute
   '/loading': typeof LoadingRoute
   '/recommendations': typeof RecommendationsRoute
@@ -199,6 +206,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/apikeys': typeof ApikeysRoute
   '/charts': typeof ChartsRoute
+  '/wrapped': typeof WrappedRoute
   '/import': typeof ImportRoute
   '/loading': typeof LoadingRoute
   '/recommendations': typeof RecommendationsRoute
@@ -228,6 +236,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/apikeys': typeof ApikeysRoute
   '/charts': typeof ChartsRoute
+  '/wrapped': typeof WrappedRoute
   '/import': typeof ImportRoute
   '/loading': typeof LoadingRoute
   '/recommendations': typeof RecommendationsRoute
@@ -262,6 +271,7 @@ export interface FileRouteTypes {
     | '/loading'
     | '/recommendations'
     | '/scrobble'
+    | '/wrapped'
     | '/dropbox/$id'
     | '/genre/$id'
     | '/googledrive/$id'
@@ -290,6 +300,7 @@ export interface FileRouteTypes {
     | '/loading'
     | '/recommendations'
     | '/scrobble'
+    | '/wrapped'
     | '/dropbox/$id'
     | '/genre/$id'
     | '/googledrive/$id'
@@ -318,6 +329,7 @@ export interface FileRouteTypes {
     | '/loading'
     | '/recommendations'
     | '/scrobble'
+    | '/wrapped'
     | '/dropbox/$id'
     | '/genre/$id'
     | '/googledrive/$id'
@@ -343,6 +355,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApikeysRoute: typeof ApikeysRoute
   ChartsRoute: typeof ChartsRoute
+  WrappedRoute: typeof WrappedRoute
   ImportRoute: typeof ImportRoute
   LoadingRoute: typeof LoadingRoute
   RecommendationsRoute: typeof RecommendationsRoute
@@ -403,6 +416,13 @@ declare module '@tanstack/react-router' {
       path: '/charts'
       fullPath: '/charts'
       preLoaderRoute: typeof ChartsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wrapped': {
+      id: '/wrapped'
+      path: '/wrapped'
+      fullPath: '/wrapped'
+      preLoaderRoute: typeof WrappedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/apikeys': {
@@ -559,6 +579,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApikeysRoute: ApikeysRoute,
   ChartsRoute: ChartsRoute,
+  WrappedRoute: WrappedRoute,
   ImportRoute: ImportRoute,
   LoadingRoute: LoadingRoute,
   RecommendationsRoute: RecommendationsRoute,

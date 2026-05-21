@@ -26,6 +26,257 @@
           "description": "The total number of unique tracks scrobbled."
         }
       }
+    },
+    "wrappedArtist": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the artist."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the artist."
+        },
+        "picture": {
+          "type": "string",
+          "description": "The picture URL of the artist."
+        },
+        "uri": {
+          "type": "string",
+          "description": "The AT-URI of the artist.",
+          "format": "at-uri"
+        },
+        "playCount": {
+          "type": "integer",
+          "description": "Number of plays in the wrapped period.",
+          "minimum": 0
+        }
+      }
+    },
+    "wrappedTrack": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the track."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the track."
+        },
+        "artist": {
+          "type": "string",
+          "description": "The artist of the track."
+        },
+        "albumArt": {
+          "type": "string",
+          "description": "The album art URL."
+        },
+        "uri": {
+          "type": "string",
+          "description": "The AT-URI of the track.",
+          "format": "at-uri"
+        },
+        "artistUri": {
+          "type": "string",
+          "description": "The AT-URI of the artist.",
+          "format": "at-uri"
+        },
+        "albumUri": {
+          "type": "string",
+          "description": "The AT-URI of the album.",
+          "format": "at-uri"
+        },
+        "playCount": {
+          "type": "integer",
+          "description": "Number of plays in the wrapped period.",
+          "minimum": 0
+        }
+      }
+    },
+    "wrappedAlbum": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the album."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the album."
+        },
+        "artist": {
+          "type": "string",
+          "description": "The artist of the album."
+        },
+        "albumArt": {
+          "type": "string",
+          "description": "The album art URL."
+        },
+        "uri": {
+          "type": "string",
+          "description": "The AT-URI of the album.",
+          "format": "at-uri"
+        },
+        "playCount": {
+          "type": "integer",
+          "description": "Number of plays in the wrapped period.",
+          "minimum": 0
+        }
+      }
+    },
+    "wrappedGenreCount": {
+      "type": "object",
+      "properties": {
+        "genre": {
+          "type": "string",
+          "description": "The genre name."
+        },
+        "count": {
+          "type": "integer",
+          "description": "Number of scrobbles for this genre.",
+          "minimum": 0
+        }
+      }
+    },
+    "wrappedMonthCount": {
+      "type": "object",
+      "properties": {
+        "month": {
+          "type": "integer",
+          "description": "Month number (1-12).",
+          "maximum": 12,
+          "minimum": 1
+        },
+        "count": {
+          "type": "integer",
+          "description": "Number of scrobbles in this month.",
+          "minimum": 0
+        }
+      }
+    },
+    "wrappedDayCount": {
+      "type": "object",
+      "properties": {
+        "date": {
+          "type": "string",
+          "description": "The date (YYYY-MM-DD)."
+        },
+        "count": {
+          "type": "integer",
+          "description": "Number of scrobbles on this day.",
+          "minimum": 0
+        }
+      }
+    },
+    "wrappedMilestone": {
+      "type": "object",
+      "properties": {
+        "trackTitle": {
+          "type": "string",
+          "description": "The title of the track."
+        },
+        "artistName": {
+          "type": "string",
+          "description": "The name of the artist."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The timestamp of the scrobble.",
+          "format": "datetime"
+        }
+      }
+    },
+    "wrappedView": {
+      "type": "object",
+      "properties": {
+        "year": {
+          "type": "integer",
+          "description": "The year of the wrapped stats."
+        },
+        "totalScrobbles": {
+          "type": "integer",
+          "description": "Total scrobbles in the year.",
+          "minimum": 0
+        },
+        "totalListeningTimeMinutes": {
+          "type": "integer",
+          "description": "Total listening time in minutes.",
+          "minimum": 0
+        },
+        "topArtists": {
+          "type": "array",
+          "description": "Top 5 artists by play count.",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.stats.defs#wrappedArtist"
+          }
+        },
+        "topTracks": {
+          "type": "array",
+          "description": "Top 5 tracks by play count.",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.stats.defs#wrappedTrack"
+          }
+        },
+        "topAlbums": {
+          "type": "array",
+          "description": "Top 5 albums by play count.",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.stats.defs#wrappedAlbum"
+          }
+        },
+        "topGenres": {
+          "type": "array",
+          "description": "Top genres by play count.",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.stats.defs#wrappedGenreCount"
+          }
+        },
+        "scrobblesPerMonth": {
+          "type": "array",
+          "description": "Scrobble counts per month.",
+          "items": {
+            "type": "ref",
+            "ref": "app.rocksky.stats.defs#wrappedMonthCount"
+          }
+        },
+        "mostActiveDay": {
+          "type": "ref",
+          "description": "The most active day of the year.",
+          "ref": "app.rocksky.stats.defs#wrappedDayCount"
+        },
+        "mostActiveHour": {
+          "type": "integer",
+          "description": "The most active hour of the day (0-23).",
+          "maximum": 23,
+          "minimum": 0
+        },
+        "newArtistsCount": {
+          "type": "integer",
+          "description": "Number of artists heard for the first time this year.",
+          "minimum": 0
+        },
+        "longestStreak": {
+          "type": "integer",
+          "description": "Longest consecutive days streak.",
+          "minimum": 0
+        },
+        "firstScrobble": {
+          "type": "ref",
+          "description": "The first scrobble of the year.",
+          "ref": "app.rocksky.stats.defs#wrappedMilestone"
+        },
+        "lastScrobble": {
+          "type": "ref",
+          "description": "The last scrobble of the year.",
+          "ref": "app.rocksky.stats.defs#wrappedMilestone"
+        }
+      }
     }
   }
 }

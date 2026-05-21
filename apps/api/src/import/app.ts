@@ -32,7 +32,9 @@ function getBearerDid(bearer: string): string {
   return payload.did;
 }
 
-async function getAuthedUser(c: { req: { header: (k: string) => string | undefined } }) {
+async function getAuthedUser(c: {
+  req: { header: (k: string) => string | undefined };
+}) {
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
   if (!bearer || bearer === "null") return null;
   try {
@@ -82,15 +84,19 @@ function parseLastfmCsv(text: string): Track[] {
 
   // Find header row to determine column indices (defensive against future changes)
   let headerIdx = 0;
-  let colUts = 0, colArtist = 2, colAlbum = 4, colTrack = 6, colTrackMbid = 7;
+  let colUts = 0,
+    colArtist = 2,
+    colAlbum = 4,
+    colTrack = 6,
+    colTrackMbid = 7;
 
   const firstLine = parseCSVLine(lines[0].trim());
   if (firstLine[0]?.toLowerCase() === "uts") {
     headerIdx = 1;
-    colUts      = firstLine.indexOf("uts");
-    colArtist   = firstLine.indexOf("artist");
-    colAlbum    = firstLine.indexOf("album");
-    colTrack    = firstLine.indexOf("track");
+    colUts = firstLine.indexOf("uts");
+    colArtist = firstLine.indexOf("artist");
+    colAlbum = firstLine.indexOf("album");
+    colTrack = firstLine.indexOf("track");
     colTrackMbid = firstLine.indexOf("track_mbid");
   }
 
@@ -101,11 +107,11 @@ function parseLastfmCsv(text: string): Track[] {
     const fields = parseCSVLine(line);
     if (fields.length < 7) continue;
 
-    const uts   = fields[colUts];
+    const uts = fields[colUts];
     const artist = fields[colArtist];
-    const album  = fields[colAlbum];
-    const title  = fields[colTrack];
-    const mbId   = colTrackMbid >= 0 ? fields[colTrackMbid] : undefined;
+    const album = fields[colAlbum];
+    const title = fields[colTrack];
+    const mbId = colTrackMbid >= 0 ? fields[colTrackMbid] : undefined;
 
     if (!artist || !title) continue;
 
@@ -205,7 +211,9 @@ async function runImport(
       .update(importJobs)
       .set({
         status: "failed",
-        errors: JSON.stringify(["Authentication failed: ATProto session not found or expired. Try scrobbling a track first to refresh your session."]),
+        errors: JSON.stringify([
+          "Authentication failed: ATProto session not found or expired. Try scrobbling a track first to refresh your session.",
+        ]),
         updatedAt: new Date(),
       })
       .where(eq(importJobs.id, jobId));
@@ -222,7 +230,9 @@ async function runImport(
     .then((rows) => rows[0]);
 
   if (user) {
-    const validTimestamps = tracks.map((t) => t.timestamp ?? 0).filter((t) => t > 0);
+    const validTimestamps = tracks
+      .map((t) => t.timestamp ?? 0)
+      .filter((t) => t > 0);
     if (validTimestamps.length > 0) {
       const minTs = new Date(Math.min(...validTimestamps) * 1000);
       const maxTs = new Date(Math.max(...validTimestamps) * 1000);
@@ -239,13 +249,17 @@ async function runImport(
         )
         .execute();
 
-      const existingSet = new Set(existing.map((r) => Math.floor(r.timestamp.getTime() / 1000)));
+      const existingSet = new Set(
+        existing.map((r) => Math.floor(r.timestamp.getTime() / 1000)),
+      );
       const before = tracks.length;
       tracks = tracks.filter((t) => !existingSet.has(t.timestamp ?? 0));
       const skipped = before - tracks.length;
 
       if (skipped > 0) {
-        consola.info(`[import] Pre-filtered ${skipped} already-imported scrobbles, ${tracks.length} remaining`);
+        consola.info(
+          `[import] Pre-filtered ${skipped} already-imported scrobbles, ${tracks.length} remaining`,
+        );
         await ctx.db
           .update(importJobs)
           .set({ total: tracks.length, updatedAt: new Date() })
@@ -274,7 +288,9 @@ async function runImport(
     if (cancelledJobs.has(jobId)) {
       cancelledJobs.delete(jobId);
       currentTracks.delete(jobId);
-      consola.info(`[import] Job ${jobId} cancelled after ${processed} scrobbles`);
+      consola.info(
+        `[import] Job ${jobId} cancelled after ${processed} scrobbles`,
+      );
       return;
     }
 
@@ -283,7 +299,9 @@ async function runImport(
     currentTracks.set(jobId, `${batch[0].title} — ${batch[0].artist}`);
 
     const results = await Promise.allSettled(
-      batch.map((track) => scrobbleTrack(ctx, track, agent, userDid, true, importCache)),
+      batch.map((track) =>
+        scrobbleTrack(ctx, track, agent, userDid, true, importCache),
+      ),
     );
 
     for (let j = 0; j < results.length; j++) {
@@ -292,7 +310,10 @@ async function runImport(
         processed++;
       } else {
         failed++;
-        const msg = result.reason instanceof Error ? result.reason.message : String(result.reason);
+        const msg =
+          result.reason instanceof Error
+            ? result.reason.message
+            : String(result.reason);
         if (errors.length < 50) {
           errors.push(`${batch[j].title} - ${batch[j].artist}: ${msg}`);
         }
@@ -323,7 +344,9 @@ async function runImport(
       if (currentStatus === "cancelled" || cancelledJobs.has(jobId)) {
         cancelledJobs.delete(jobId);
         currentTracks.delete(jobId);
-        consola.info(`[import] Job ${jobId} cancelled after ${processed} scrobbles`);
+        consola.info(
+          `[import] Job ${jobId} cancelled after ${processed} scrobbles`,
+        );
         return;
       }
     }
@@ -410,7 +433,11 @@ app.post("/upload", async (c) => {
     }
   } catch (err) {
     c.status(400);
-    return c.json({ error: "Failed to parse file: " + (err instanceof Error ? err.message : String(err)) });
+    return c.json({
+      error:
+        "Failed to parse file: " +
+        (err instanceof Error ? err.message : String(err)),
+    });
   }
 
   if (tracks.length === 0) {
@@ -461,7 +488,9 @@ app.get("/status", async (c) => {
     .limit(1)
     .then((rows) => rows[0]);
 
-  return c.json(job ? { ...job, currentTrack: currentTracks.get(job.id) ?? null } : null);
+  return c.json(
+    job ? { ...job, currentTrack: currentTracks.get(job.id) ?? null } : null,
+  );
 });
 
 app.get("/jobs", async (c) => {
@@ -563,11 +592,18 @@ app.get("/events", async (c) => {
       await stream.writeSSE({
         event: "progress",
         data: JSON.stringify(
-          job ? { ...job, currentTrack: currentTracks.get(job.id) ?? null } : null,
+          job
+            ? { ...job, currentTrack: currentTracks.get(job.id) ?? null }
+            : null,
         ),
       });
 
-      if (!job || job.status === "completed" || job.status === "failed" || job.status === "cancelled") {
+      if (
+        !job ||
+        job.status === "completed" ||
+        job.status === "failed" ||
+        job.status === "cancelled"
+      ) {
         break;
       }
 

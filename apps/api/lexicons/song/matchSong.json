@@ -19,10 +19,6 @@
           "artist": {
             "type": "string",
             "description": "The artist of the song to retrieve"
-          },
-          "mbId": {
-            "type": "string",
-            "description": "Optional MusicBrainz track ID (MBID) for direct metadata lookup"
           }
         }
       },

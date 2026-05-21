@@ -7,17 +7,17 @@ import { lexicons } from "../../../../lexicons";
 import { isObj, hasProp } from "../../../../util";
 import { CID } from "multiformats/cid";
 import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
-import type * as AppRockskySongDefs from "./defs";
+import type * as AppRockskyStatsDefs from "./defs";
 
 export interface QueryParams {
-  /** The title of the song to retrieve */
-  title: string;
-  /** The artist of the song to retrieve */
-  artist: string;
+  /** The DID or handle of the user */
+  did: string;
+  /** The year to get wrapped stats for (defaults to current year) */
+  year?: number;
 }
 
 export type InputSchema = undefined;
-export type OutputSchema = AppRockskySongDefs.SongViewDetailed;
+export type OutputSchema = AppRockskyStatsDefs.WrappedView;
 export type HandlerInput = undefined;
 
 export interface HandlerSuccess {

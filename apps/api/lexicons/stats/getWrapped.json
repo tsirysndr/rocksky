@@ -1,0 +1,35 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.stats.getWrapped",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get a user's year-in-review Wrapped stats",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "did"
+        ],
+        "properties": {
+          "did": {
+            "type": "string",
+            "description": "The DID or handle of the user",
+            "format": "at-identifier"
+          },
+          "year": {
+            "type": "integer",
+            "description": "The year to get wrapped stats for (defaults to current year)",
+            "minimum": 2000
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "ref",
+          "ref": "app.rocksky.stats.defs#wrappedView"
+        }
+      }
+    }
+  }
+}

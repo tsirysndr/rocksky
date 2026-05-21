@@ -514,10 +514,20 @@ async function fetchSpotifyDuration(
 ): Promise<number | null> {
   try {
     const tokenRows = await ctx.db
-      .select({ token: spotifyTokens, app: spotifyApps, account: spotifyAccounts })
+      .select({
+        token: spotifyTokens,
+        app: spotifyApps,
+        account: spotifyAccounts,
+      })
       .from(spotifyTokens)
-      .leftJoin(spotifyApps, eq(spotifyApps.spotifyAppId, spotifyTokens.spotifyAppId))
-      .leftJoin(spotifyAccounts, eq(spotifyAccounts.userId, spotifyTokens.userId))
+      .leftJoin(
+        spotifyApps,
+        eq(spotifyApps.spotifyAppId, spotifyTokens.spotifyAppId),
+      )
+      .leftJoin(
+        spotifyAccounts,
+        eq(spotifyAccounts.userId, spotifyTokens.userId),
+      )
       .where(eq(spotifyAccounts.isBetaUser, true))
       .limit(500)
       .execute();
@@ -527,7 +537,10 @@ async function fetchSpotifyDuration(
     const row = tokenRows[Math.floor(Math.random() * tokenRows.length)];
     if (!row.token || !row.app) return null;
 
-    const refreshToken = decrypt(row.token.refreshToken, env.SPOTIFY_ENCRYPTION_KEY);
+    const refreshToken = decrypt(
+      row.token.refreshToken,
+      env.SPOTIFY_ENCRYPTION_KEY,
+    );
     const tokenRes = await fetch("https://accounts.spotify.com/api/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -535,11 +548,16 @@ async function fetchSpotifyDuration(
         grant_type: "refresh_token",
         refresh_token: refreshToken,
         client_id: row.app.spotifyAppId,
-        client_secret: decrypt(row.app.spotifySecret, env.SPOTIFY_ENCRYPTION_KEY),
+        client_secret: decrypt(
+          row.app.spotifySecret,
+          env.SPOTIFY_ENCRYPTION_KEY,
+        ),
       }),
     });
 
-    const { access_token } = (await tokenRes.json()) as { access_token: string };
+    const { access_token } = (await tokenRes.json()) as {
+      access_token: string;
+    };
     const q = `track:"${encodeURIComponent(title)}" artist:"${encodeURIComponent(artist)}"`;
     const searchRes = await fetch(
       `https://api.spotify.com/v1/search?q=${q}&type=track&limit=1`,
@@ -586,7 +604,10 @@ export async function scrobbleTrack(
           eq(users.did, userDid),
           eq(tracks.title, track.title),
           eq(tracks.artist, track.artist),
-          gte(scrobbles.timestamp, scrobbleTime.subtract(60, "seconds").toDate()),
+          gte(
+            scrobbles.timestamp,
+            scrobbleTime.subtract(60, "seconds").toDate(),
+          ),
           lte(scrobbles.timestamp, scrobbleTime.add(60, "seconds").toDate()),
         ),
       )
@@ -713,8 +734,13 @@ export async function scrobbleTrack(
     if (existingTrack?.duration > 0) {
       track.duration = existingTrack.duration;
     } else {
-      const spotifyDuration = await fetchSpotifyDuration(ctx, track.title, track.artist);
-      if (spotifyDuration && spotifyDuration > 0) track.duration = spotifyDuration;
+      const spotifyDuration = await fetchSpotifyDuration(
+        ctx,
+        track.title,
+        track.artist,
+      );
+      if (spotifyDuration && spotifyDuration > 0)
+        track.duration = spotifyDuration;
     }
     if (!track.duration || track.duration <= 0) track.duration = 1;
   }
@@ -806,7 +832,9 @@ export async function scrobbleTrack(
 
   if (!existingArtist?.uri || !userArtist?.userArtist.uri?.includes(userDid)) {
     if (importCache) {
-      const artistSha = createHash("sha256").update(track.albumArtist.toLowerCase()).digest("hex");
+      const artistSha = createHash("sha256")
+        .update(track.albumArtist.toLowerCase())
+        .digest("hex");
       if (!importCache.artistOps.has(artistSha)) {
         importCache.artistOps.set(artistSha, putArtistRecord(track, agent));
       }
@@ -831,7 +859,9 @@ export async function scrobbleTrack(
 
   if (!existingAlbum?.uri || !userAlbum?.userAlbum.uri?.includes(userDid)) {
     if (importCache) {
-      const albumSha = createHash("sha256").update(`${track.album} - ${track.albumArtist}`.toLowerCase()).digest("hex");
+      const albumSha = createHash("sha256")
+        .update(`${track.album} - ${track.albumArtist}`.toLowerCase())
+        .digest("hex");
       if (!importCache.albumOps.has(albumSha)) {
         importCache.albumOps.set(albumSha, putAlbumRecord(track, agent));
       }

@@ -200,7 +200,9 @@ const retrieve = ({
 
       const knownArtistUris = knownArtistData.map((r) => r.uri);
       // Map artist URI → artist ID so Pool A can look up familiarity scores correctly
-      const uriToKnownArtistId = new Map(knownArtistData.map((r) => [r.uri, r.id]));
+      const uriToKnownArtistId = new Map(
+        knownArtistData.map((r) => [r.uri, r.id]),
+      );
 
       const poolA: Candidate[] =
         knownArtistUris.length > 0
@@ -333,7 +335,9 @@ const retrieve = ({
                 .where(inArray(tables.artists.id, newArtistIdList))
                 .then((rows) =>
                   rows.filter(
-                    (r): r is {
+                    (
+                      r,
+                    ): r is {
                       id: string;
                       uri: string;
                       name: string | null;

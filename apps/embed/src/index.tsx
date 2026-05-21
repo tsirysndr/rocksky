@@ -11,6 +11,7 @@ import { ProfileEmbedPage } from "./embeds/ProfileEmbedPage";
 import { NowPlayingEmbedPage } from "./embeds/NowPlayingEmbedPage";
 import { RecentScrobblesEmbedPage } from "./embeds/RecentScrobblesEmbedPage";
 import { SummaryEmbedPage } from "./embeds/SummaryEmbedPage";
+import { WrappedEmbedPage } from "./embeds/WrappedEmbedPage";
 import getProfile from "./xrpc/getProfile";
 import getProfileStats from "./xrpc/getStats";
 import getTopGenres from "./xrpc/getTopGenres";
@@ -19,6 +20,7 @@ import getTopArtists from "./xrpc/getTopArtists";
 import getTopAlbums from "./xrpc/getTopAlbums";
 import getTopTracks from "./xrpc/getTopTracks";
 import getRecentScrobbles from "./xrpc/getRecentScrobbles";
+import getWrapped from "./xrpc/getWrapped";
 import chalk from "chalk";
 import { logger } from "hono/logger";
 import { ScrobbleEmbedPage } from "./embeds/ScrobbleEmbedPage";
@@ -138,6 +140,19 @@ app.get("/embed/u/:handle/recent", async (c) => {
 
 app.get("/embed/u/:handle/summary", (c) => {
   return c.render(<SummaryEmbedPage />);
+});
+
+app.get("/embed/u/:handle/wrapped/:year", async (c) => {
+  const handle = c.req.param("handle");
+  const year = Number(c.req.param("year")) || new Date().getFullYear();
+  const [{ profile, ok: profileOk }, { wrapped, ok: wrappedOk }] =
+    await Promise.all([getProfile(handle), getWrapped(handle, year)]);
+
+  if (!profileOk || !wrappedOk || !wrapped) {
+    return c.text("Not found", 404);
+  }
+
+  return c.render(<WrappedEmbedPage profile={profile} wrapped={wrapped} />);
 });
 
 app.get("/embed/:did/scrobble/:rkey", async (c) => {

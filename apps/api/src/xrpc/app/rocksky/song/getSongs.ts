@@ -59,7 +59,10 @@ const retrieve = ({
         .select({
           trackId: tables.scrobbles.trackId,
           play_count: count(tables.scrobbles.id).as("play_count"),
-          unique_listeners: sql<number>`count(DISTINCT ${tables.scrobbles.userId})`.as("unique_listeners"),
+          unique_listeners:
+            sql<number>`count(DISTINCT ${tables.scrobbles.userId})`.as(
+              "unique_listeners",
+            ),
         })
         .from(tables.scrobbles)
         .innerJoin(
@@ -70,7 +73,11 @@ const retrieve = ({
           tables.artists,
           eq(tables.tracks.albumArtist, tables.artists.name),
         )
-        .where(params.genre ? sql`${tables.artists.genres} @> ARRAY[${params.genre}]::text[]` : undefined)
+        .where(
+          params.genre
+            ? sql`${tables.artists.genres} @> ARRAY[${params.genre}]::text[]`
+            : undefined,
+        )
         .groupBy(tables.scrobbles.trackId)
         .orderBy(desc(sql`count(DISTINCT ${tables.scrobbles.userId})`))
         .limit(limit)

@@ -52,6 +52,7 @@
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
     "effect": "^3.14.22",
+    "html-to-image": "^1.11.13",
     "i18next": "^24.2.2",
     "jotai": "^2.11.3",
     "jotai-effect": "^2.0.1",

@@ -106,6 +106,7 @@ import type * as AppRockskySpotifyPlay from "./types/app/rocksky/spotify/play";
 import type * as AppRockskySpotifyPrevious from "./types/app/rocksky/spotify/previous";
 import type * as AppRockskySpotifySeek from "./types/app/rocksky/spotify/seek";
 import type * as AppRockskyStatsGetStats from "./types/app/rocksky/stats/getStats";
+import type * as AppRockskyStatsGetWrapped from "./types/app/rocksky/stats/getWrapped";
 
 export function createServer(options?: XrpcOptions): Server {
   return new Server(options);
@@ -1426,6 +1427,17 @@ export class AppRockskyStatsNS {
     >,
   ) {
     const nsid = "app.rocksky.stats.getStats"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  getWrapped<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyStatsGetWrapped.Handler<ExtractAuth<AV>>,
+      AppRockskyStatsGetWrapped.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.stats.getWrapped"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 }
