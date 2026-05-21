@@ -18,6 +18,13 @@ import type {
 } from "./types";
 import type { MusicbrainzTrack } from "types/track";
 
+const MATCH_SONG_CACHE_TTL_SECONDS = 24 * 60 * 60; // 24 hours
+
+const getCacheKey = (params: QueryParams): string => {
+  if (params.mbId) return `matchSong:mbId:${params.mbId}`;
+  return `matchSong:${params.title.toLowerCase()}:${params.artist.toLowerCase()}`;
+};
+
 export default function (server: Server, ctx: Context) {
   const matchSong = (params: QueryParams) =>
     pipe(
@@ -33,7 +40,24 @@ export default function (server: Server, ctx: Context) {
     );
   server.app.rocksky.song.matchSong({
     handler: async ({ params }) => {
+      const cacheKey = getCacheKey(params);
+
+      const cached = await ctx.redis.get(cacheKey);
+      if (cached) {
+        return {
+          encoding: "application/json",
+          body: JSON.parse(cached),
+        };
+      }
+
       const result = await Effect.runPromise(matchSong(params));
+
+      if (result && Object.keys(result).length > 0) {
+        await ctx.redis.set(cacheKey, JSON.stringify(result), {
+          EX: MATCH_SONG_CACHE_TTL_SECONDS,
+        });
+      }
+
       return {
         encoding: "application/json",
         body: result,
