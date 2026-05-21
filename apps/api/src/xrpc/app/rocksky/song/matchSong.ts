@@ -96,11 +96,11 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
         genres = null,
         mbArtists: MusicBrainzArtist[] | null = null;
 
-      const spotifyTrack = await searchOnSpotify(
-        ctx,
-        params.title,
-        params.artist,
-      );
+      // Skip Spotify if record is found and album art is already present
+      const needsSpotify = !record || !track?.albumArt;
+      const spotifyTrack = needsSpotify
+        ? await searchOnSpotify(ctx, params.title, params.artist)
+        : undefined;
 
       if (!record) {
         if (params.mbId) {
