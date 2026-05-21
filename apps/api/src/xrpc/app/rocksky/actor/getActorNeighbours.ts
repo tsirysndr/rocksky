@@ -1,6 +1,6 @@
 import type { Context } from "context";
 import { consola } from "consola";
-import { and, desc, eq, inArray, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, ne, notILike, or, sql } from "drizzle-orm";
 import { Cache, Duration, Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { NeighbourViewBasic } from "lexicon/types/app/rocksky/actor/defs";
@@ -68,7 +68,16 @@ const retrieve = ({
       const targetArtistRows = await ctx.db
         .select({ artistId: tables.scrobbles.artistId })
         .from(tables.scrobbles)
-        .where(eq(tables.scrobbles.userId, user.id))
+        .innerJoin(
+          tables.artists,
+          eq(tables.scrobbles.artistId, tables.artists.id),
+        )
+        .where(
+          and(
+            eq(tables.scrobbles.userId, user.id),
+            notILike(tables.artists.name, "Various Artists"),
+          ),
+        )
         .groupBy(tables.scrobbles.artistId)
         .execute();
 
