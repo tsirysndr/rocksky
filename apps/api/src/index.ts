@@ -88,6 +88,22 @@ app.route("/import", importApp);
 
 app.route("/public/og", opengraph);
 
+// Image proxy — fetches remote images server-side to avoid browser CORS restrictions
+app.get("/proxy-image", async (c) => {
+  const url = c.req.query("url");
+  if (!url) return c.text("Missing url", 400);
+  try {
+    const upstream = await fetch(url);
+    if (!upstream.ok) return c.text("Upstream error", 502);
+    const contentType = upstream.headers.get("content-type") ?? "image/jpeg";
+    return new Response(upstream.body, {
+      headers: { "content-type": contentType },
+    });
+  } catch {
+    return c.text("Failed to fetch image", 502);
+  }
+});
+
 app.get("/ws", upgradeWebSocket(handleWebsocket));
 
 app.get("/", async (c) => {

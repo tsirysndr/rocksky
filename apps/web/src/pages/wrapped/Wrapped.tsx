@@ -15,6 +15,7 @@ import { useWrappedQuery } from "../../hooks/useWrapped";
 import Main from "../../layouts/Main";
 import type { WrappedArtist, WrappedTrack } from "../../api/wrapped";
 import { IconDownload, IconMusic, IconUser, IconCalendar, IconClock, IconFlame, IconSparkles, IconMicrophone2 } from "@tabler/icons-react";
+import { API_URL } from "../../consts";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - i);
@@ -134,19 +135,19 @@ function StatCard({
       style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
     >
       <div
-        className="w-10 h-10 rounded-xl flex items-center justify-center"
+        className="w-10 h-20 rounded-xl flex items-center justify-center"
         style={{ background: `${accent}22` }}
       >
-        <span style={{ color: accent }}>{icon}</span>
+        <span style={{ color: accent }} className="mt-[4px]">{icon}</span>
       </div>
       <div>
         <p
-          className="text-2xl font-black leading-tight"
+          className="text-2xl font-black leading-tight ms-[10px] mb-[5px]"
           style={{ fontFamily: "'Space Grotesk', sans-serif", color: "#fff" }}
         >
           {value}
         </p>
-        <p className="text-sm mt-0.5" style={{ color: "rgba(255,255,255,0.5)", fontFamily: "'Syne', sans-serif" }}>
+        <p className="text-sm ms-[10px] mt-[0px]" style={{ color: "rgba(255,255,255,0.5)", fontFamily: "'Syne', sans-serif" }}>
           {label}
         </p>
       </div>
@@ -166,6 +167,7 @@ function ShareCard({
   totalListeningTimeMinutes,
   topArtists,
   topTracks,
+  resolvedImages,
 }: {
   cardRef?: React.RefObject<HTMLDivElement>;
   year: number;
@@ -176,7 +178,10 @@ function ShareCard({
   totalListeningTimeMinutes: number;
   topArtists: WrappedArtist[];
   topTracks: WrappedTrack[];
+  resolvedImages?: Record<string, string>;
 }) {
+  const r = (url?: string) => (url && resolvedImages?.[url]) ? resolvedImages[url] : url;
+
   return (
     <div
       ref={cardRef}
@@ -219,7 +224,7 @@ function ShareCard({
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             {avatar && !avatar.endsWith("/@jpeg") && (
-              <img crossOrigin="anonymous" src={avatar} style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }} />
+              <img src={r(avatar)} style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }} />
             )}
             <div>
               <p style={{ color: "#fff", fontSize: 14, fontWeight: 700, margin: 0 }}>{displayName}</p>
@@ -268,7 +273,7 @@ function ShareCard({
                   {i + 1}
                 </span>
                 {a.picture ? (
-                  <img src={a.picture} style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                  <img src={r(a.picture)} style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
                 ) : (
                   <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.1)", flexShrink: 0 }} />
                 )}
@@ -287,7 +292,7 @@ function ShareCard({
         {topTracks[0] && (
           <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "rgba(255,255,255,0.06)", borderRadius: 14, border: "1px solid rgba(255,255,255,0.08)" }}>
             {topTracks[0].albumArt ? (
-              <img src={topTracks[0].albumArt} style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
+              <img src={r(topTracks[0].albumArt)} style={{ width: 40, height: 40, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
             ) : (
               <div style={{ width: 40, height: 40, borderRadius: 8, background: "rgba(255,255,255,0.1)", flexShrink: 0 }} />
             )}
@@ -327,10 +332,24 @@ function WrappedSkeleton() {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
+async function fetchAsBase64(url: string): Promise<string> {
+  const proxyUrl = `${API_URL}/proxy-image?url=${encodeURIComponent(url)}`;
+  const res = await fetch(proxyUrl);
+  if (!res.ok) throw new Error(`proxy-image failed: ${res.status}`);
+  const blob = await res.blob();
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 export default function WrappedPage() {
   const profile = useAtomValue(profileAtom);
   const [year, setYear] = useState(CURRENT_YEAR);
   const [downloading, setDownloading] = useState(false);
+  const [resolvedImages, setResolvedImages] = useState<Record<string, string>>({});
   const shareCardRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
 
   const { data, isLoading } = useWrappedQuery(profile?.did, year);
@@ -347,14 +366,39 @@ export default function WrappedPage() {
     document.head.appendChild(link);
   }, []);
 
+  // Pre-fetch all ShareCard images as base64 so the off-screen card has no external URLs
+  useEffect(() => {
+    if (!data && !profile?.avatar) return;
+    const urls = [
+      profile?.avatar,
+      ...data?.topArtists.slice(0, 3).map((a) => a.picture) ?? [],
+      data?.topTracks[0]?.albumArt,
+    ].filter((u): u is string => !!u && !u.endsWith("/@jpeg"));
+
+    const map: Record<string, string> = {};
+    Promise.all(
+      urls.map((url) =>
+        fetchAsBase64(url)
+          .then((b64) => { map[url] = b64; })
+          .catch(() => { /* skip on proxy failure */ }),
+      ),
+    ).then(() => setResolvedImages(map));
+  }, [data, profile?.avatar]);
+
   const handleDownload = async () => {
     if (!shareCardRef.current) return;
     setDownloading(true);
     try {
+      await document.fonts.ready;
+
       const dataUrl = await toPng(shareCardRef.current, {
         cacheBust: true,
         pixelRatio: 2,
+        skipFonts: true,
+        imagePlaceholder:
+          "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12NgAAIABQAABjE+ibYAAAAASUVORK5CYII=",
       });
+
       const link = document.createElement("a");
       link.download = `rocksky-wrapped-${year}.png`;
       link.href = dataUrl;
@@ -423,12 +467,12 @@ export default function WrappedPage() {
           </div>
 
           {/* Year selector */}
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap mb-[20px]">
             {YEARS.map((y) => (
               <button
                 key={y}
                 onClick={() => setYear(y)}
-                className="px-4 py-2 rounded-full text-sm font-bold transition-all duration-150"
+                className="px-4 py-2 me-[6px] rounded-full text-sm font-bold transition-all duration-150"
                 style={{
                   background: year === y ? "linear-gradient(135deg, #ff2876, #a855f7)" : "rgba(255,255,255,0.07)",
                   color: year === y ? "#fff" : "rgba(255,255,255,0.5)",
@@ -513,12 +557,12 @@ export default function WrappedPage() {
 
             {/* ── Top Artists ── */}
             {data.topArtists.length > 0 && (
-              <div className="wrapped-section mb-6">
+              <div className="wrapped-section mt-[50px] mb-6">
                 <SectionLabel>Top Artists</SectionLabel>
 
                 {/* #1 artist hero */}
                 <div
-                  className="rounded-3xl p-6 mb-3 relative overflow-hidden flex items-center gap-6"
+                  className="rounded-3xl p-[16px] mb-3 relative overflow-hidden flex items-center gap-6"
                   style={{
                     background: "linear-gradient(135deg, rgba(168,85,247,0.2) 0%, rgba(255,40,118,0.1) 100%)",
                     border: "1px solid rgba(168,85,247,0.25)",
@@ -535,17 +579,17 @@ export default function WrappedPage() {
                   )}
                   <div className="relative z-10 flex items-center gap-5 flex-1 min-w-0">
                     <ArtistAvatar artist={data.topArtists[0]} size={80} />
-                    <div className="min-w-0">
+                    <div className="min-w-0 ms-[14px]">
                       <span
                         className="text-xs font-bold tracking-widest uppercase"
                         style={{ color: "#a855f7", fontFamily: "'Syne', sans-serif" }}
                       >
                         #1 Artist
                       </span>
-                      <p className="text-3xl font-black text-white truncate mt-0.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                      <p className="text-3xl font-black text-white truncate m-[0px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                         {data.topArtists[0].name}
                       </p>
-                      <p style={{ color: "rgba(255,255,255,0.5)", fontFamily: "'Syne', sans-serif", fontSize: 14 }}>
+                      <p className="m-[0px]" style={{ color: "rgba(255,255,255,0.5)", fontFamily: "'Syne', sans-serif", fontSize: 14 }}>
                         {numberWithCommas(data.topArtists[0].playCount)} plays
                       </p>
                     </div>
@@ -557,17 +601,17 @@ export default function WrappedPage() {
                   {data.topArtists.slice(1).map((artist, i) => (
                     <div
                       key={artist.id}
-                      className="rounded-2xl px-5 py-3 flex items-center gap-4"
+                      className="rounded-2xl px-[10px] py-[8px] flex items-center gap-4"
                       style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
                     >
                       <span
-                        className="font-black text-base w-5 text-right flex-shrink-0"
+                        className="font-black text-base w-5 text-right flex-shrink-0 me-[8px]"
                         style={{ color: "rgba(255,255,255,0.25)" }}
                       >
                         {i + 2}
                       </span>
                       <ArtistAvatar artist={artist} size={44} />
-                      <p className="text-white font-semibold flex-1 truncate" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                      <p className="text-white font-semibold flex-1 truncate ms-[10px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                         {artist.name}
                       </p>
                       <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, flexShrink: 0, fontFamily: "'Syne', sans-serif" }}>
@@ -581,12 +625,12 @@ export default function WrappedPage() {
 
             {/* ── Top Tracks ── */}
             {data.topTracks.length > 0 && (
-              <div className="wrapped-section mb-6">
+              <div className="wrapped-section mt-[50px] mb-6">
                 <SectionLabel>Top Tracks</SectionLabel>
 
                 {/* #1 track hero */}
                 <div
-                  className="rounded-3xl p-6 mb-3 relative overflow-hidden flex items-center gap-5"
+                  className="rounded-3xl p-[15px] mb-3 relative overflow-hidden flex items-center gap-5"
                   style={{
                     background: "linear-gradient(135deg, rgba(255,40,118,0.18) 0%, rgba(168,85,247,0.1) 100%)",
                     border: "1px solid rgba(255,40,118,0.25)",
@@ -603,17 +647,17 @@ export default function WrappedPage() {
                   )}
                   <div className="relative z-10 flex items-center gap-5 flex-1 min-w-0">
                     <AlbumArt src={data.topTracks[0].albumArt} size={80} alt={data.topTracks[0].title} />
-                    <div className="min-w-0">
+                    <div className="min-w-0 ms-[15px]">
                       <span
                         className="text-xs font-bold tracking-widest uppercase"
                         style={{ color: "#ff2876", fontFamily: "'Syne', sans-serif" }}
                       >
                         #1 Track
                       </span>
-                      <p className="text-2xl font-black text-white truncate mt-0.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                      <p className="text-2xl font-black text-white truncate mt-0.5 m-[0px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                         {data.topTracks[0].title}
                       </p>
-                      <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 14, fontFamily: "'Syne', sans-serif" }}>
+                      <p className="m-[0px]" style={{ color: "rgba(255,255,255,0.55)", fontSize: 14, fontFamily: "'Syne', sans-serif" }}>
                         {data.topTracks[0].artist} · {numberWithCommas(data.topTracks[0].playCount)} plays
                       </p>
                     </div>
@@ -624,21 +668,21 @@ export default function WrappedPage() {
                   {data.topTracks.slice(1).map((track, i) => (
                     <div
                       key={track.id}
-                      className="rounded-2xl px-5 py-3 flex items-center gap-4"
+                      className="rounded-2xl px-[10px] py-[10px] flex items-center gap-4"
                       style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
                     >
                       <span
-                        className="font-black text-base w-5 text-right flex-shrink-0"
+                        className="font-black text-base w-5 text-right flex-shrink-0 me-[10px]"
                         style={{ color: "rgba(255,255,255,0.25)" }}
                       >
                         {i + 2}
                       </span>
                       <AlbumArt src={track.albumArt} size={44} alt={track.title} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-white font-semibold truncate" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                      <div className="flex-1 min-w-0 ms-[10px]">
+                        <p className="text-white font-semibold truncate m-[0px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                           {track.title}
                         </p>
-                        <p className="text-sm truncate" style={{ color: "rgba(255,255,255,0.45)" }}>
+                        <p className="text-sm truncate m-[0px]" style={{ color: "rgba(255,255,255,0.45)" }}>
                           {track.artist}
                         </p>
                       </div>
@@ -653,7 +697,7 @@ export default function WrappedPage() {
 
             {/* ── Top Albums ── */}
             {data.topAlbums.length > 0 && (
-              <div className="wrapped-section mb-6">
+              <div className="wrapped-section mt-[50px] mb-6">
                 <SectionLabel>Top Albums</SectionLabel>
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                   {data.topAlbums.map((album, i) => (
@@ -673,14 +717,14 @@ export default function WrappedPage() {
                           <IconMusic size={32} color="rgba(255,255,255,0.2)" />
                         </div>
                       )}
-                      <div className="p-3">
+                      <div className="p-[10px]">
                         <span className="text-xs font-bold" style={{ color: i === 0 ? "#ff2876" : "rgba(255,255,255,0.3)" }}>
                           #{i + 1}
                         </span>
-                        <p className="text-white text-sm font-semibold truncate mt-0.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                        <p className="text-white text-sm font-semibold truncate m-[0px] mt-0.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                           {album.title}
                         </p>
-                        <p className="text-xs truncate" style={{ color: "rgba(255,255,255,0.4)" }}>
+                        <p className="text-xs truncate m-[0px]" style={{ color: "rgba(255,255,255,0.4)" }}>
                           {album.artist}
                         </p>
                       </div>
@@ -693,7 +737,7 @@ export default function WrappedPage() {
             {/* ── Monthly Activity ── */}
             {data.scrobblesPerMonth.length > 0 && (
               <div
-                className="wrapped-section rounded-3xl p-6 sm:p-8 mb-6"
+                className="wrapped-section rounded-3xl p-[15px] sm:p-8 mt-[50px] mb-6"
                 style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
               >
                 <SectionLabel>Your {year} in Months</SectionLabel>
@@ -745,20 +789,20 @@ export default function WrappedPage() {
 
             {/* ── Top Genres ── */}
             {data.topGenres.length > 0 && (
-              <div className="wrapped-section mb-6">
+              <div className="wrapped-section mt-[50px] mb-[20px]">
                 <SectionLabel>Top Genres</SectionLabel>
                 <div className="flex flex-wrap gap-3">
                   {data.topGenres.map((g, i) => (
                     <div
                       key={g.genre}
-                      className="rounded-full px-5 py-2.5 flex items-center gap-2"
+                      className="rounded-full px-[10px] py-2.5 flex items-center gap-2 me-[10px] pb-[3px]"
                       style={{
                         background: `${GENRE_COLORS[i % GENRE_COLORS.length]}22`,
                         border: `1px solid ${GENRE_COLORS[i % GENRE_COLORS.length]}55`,
                       }}
                     >
                       <span
-                        className="font-bold"
+                        className="font-bold me-[3px]"
                         style={{ color: GENRE_COLORS[i % GENRE_COLORS.length], fontSize: 14, fontFamily: "'Space Grotesk', sans-serif" }}
                       >
                         {g.genre}
@@ -777,40 +821,44 @@ export default function WrappedPage() {
               <div className="wrapped-section grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
                 {data.firstScrobble && (
                   <div
-                    className="rounded-2xl p-5"
+                    className="rounded-2xl p-[15px]"
                     style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
                   >
                     <div className="flex items-center gap-2 mb-3">
-                      <IconSparkles size={14} color="#f59e0b" />
+                      <div className="mr-[5px]">
+                        <IconSparkles size={14} color="#f59e0b" />
+                      </div>
                       <SectionLabel>First scrobble of {year}</SectionLabel>
                     </div>
-                    <p className="text-white font-bold truncate" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                    <p className="text-white font-bold truncate" style={{ fontFamily: "'Space Grotesk', sans-serif", margin: 0 }}>
                       {data.firstScrobble.trackTitle}
                     </p>
-                    <p className="text-sm truncate mt-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>
+                    <p className="text-sm truncate mt-0.5" style={{ color: "rgba(255,255,255,0.45)", margin: 0, marginTop: 5 }}>
                       {data.firstScrobble.artistName}
                     </p>
-                    <p className="text-xs mt-2" style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'Syne', sans-serif" }}>
+                    <p className="text-xs mt-2" style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'Syne', sans-serif", margin: 0, marginTop: 5 }}>
                       {formatDate(data.firstScrobble.timestamp)}
                     </p>
                   </div>
                 )}
                 {data.lastScrobble && (
                   <div
-                    className="rounded-2xl p-5"
+                    className="rounded-2xl p-[15px]"
                     style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
                   >
                     <div className="flex items-center gap-2 mb-3">
-                      <IconSparkles size={14} color="#a855f7" />
+                      <div className="mr-[5px]">
+                       <IconSparkles size={14} color="#a855f7" />
+                      </div>
                       <SectionLabel>Last scrobble of {year}</SectionLabel>
                     </div>
-                    <p className="text-white font-bold truncate" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                    <p className="text-white font-bold truncate" style={{ fontFamily: "'Space Grotesk', sans-serif", margin: 0 }}>
                       {data.lastScrobble.trackTitle}
                     </p>
-                    <p className="text-sm truncate mt-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>
+                    <p className="text-sm truncate m-[0px]" style={{ color: "rgba(255,255,255,0.45)", margin: 0, marginTop: 5 }}>
                       {data.lastScrobble.artistName}
                     </p>
-                    <p className="text-xs mt-2" style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'Syne', sans-serif" }}>
+                    <p className="text-xs mt-2" style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'Syne', sans-serif", margin: 0, marginTop: 5 }}>
                       {formatDate(data.lastScrobble.timestamp)}
                     </p>
                   </div>
@@ -820,7 +868,7 @@ export default function WrappedPage() {
 
             {/* ── Share card ── */}
             <div
-              className="wrapped-section rounded-3xl p-6 sm:p-8"
+              className="wrapped-section rounded-3xl p-[18px] sm:p-8"
               style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
             >
               <SectionLabel>Share your Wrapped</SectionLabel>
@@ -876,6 +924,7 @@ export default function WrappedPage() {
                 totalListeningTimeMinutes={data.totalListeningTimeMinutes}
                 topArtists={data.topArtists}
                 topTracks={data.topTracks}
+                resolvedImages={resolvedImages}
               />
             </div>
           </>
