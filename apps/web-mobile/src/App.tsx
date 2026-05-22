@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import AlbumPage from "./pages/album";
+import ApiKeysPage from "./pages/apikeys";
 import ArtistPage from "./pages/artist";
 import Charts from "./pages/charts";
 import HomePage from "./pages/home";
@@ -19,6 +20,7 @@ function App() {
         <Route path="/recommendations" element={<Recommendations />} />
         <Route path="/search" element={<Search />} />
         <Route path="/me" element={<Me />} />
+        <Route path="/apikeys" element={<ApiKeysPage />} />
         <Route path="/:did/scrobble/:rkey" element={<SongPage />} />
         <Route path="/:did/song/:rkey" element={<SongPage />} />
         <Route path="/:did/artist/:rkey" element={<ArtistPage />} />

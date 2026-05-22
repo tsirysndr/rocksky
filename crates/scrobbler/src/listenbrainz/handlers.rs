@@ -98,11 +98,20 @@ pub async fn handle_submit_listens(
 
             if let Some(did) = did {
                 let meta = &listen.track_metadata;
-                let duration_ms = meta
+                let duration_ms: u64 = meta
                     .additional_info
                     .as_ref()
                     .and_then(|i| i.duration_ms)
-                    .unwrap_or(0.0) as u64;
+                    .map(|d| d as u64)
+                    .or_else(|| {
+                        // Some clients send duration in seconds via the "duration" extra field
+                        meta.additional_info
+                            .as_ref()
+                            .and_then(|i| i.extra.get("duration"))
+                            .and_then(|v| v.as_f64())
+                            .map(|s| (s * 1000.0) as u64)
+                    })
+                    .unwrap_or(0);
 
                 let recording_mb_id = meta
                     .additional_info
@@ -118,7 +127,11 @@ pub async fn handle_submit_listens(
                 });
 
                 events.emit_song_changed(&did, track).await;
-                events.schedule_song_stopped(did, duration_ms).await;
+                // Only schedule stop timer when duration is known; if unknown we
+                // rely on the next playing_now submission (or never fire).
+                if duration_ms > 0 {
+                    events.schedule_song_stopped(did, duration_ms).await;
+                }
             }
         }
     }

@@ -108,6 +108,14 @@ function Navbar() {
                   My Profile
                 </Link>
               )}
+              <Link
+                to="/apikeys"
+                className="py-3.5 px-2 no-underline font-medium text-base block"
+                style={{ color: "var(--color-text)" }}
+                onClick={() => setMenuOpen(false)}
+              >
+                API Keys
+              </Link>
               <button
                 onClick={onLogout}
                 className="py-3.5 px-2 border-none bg-transparent cursor-pointer text-base font-medium text-left w-full"

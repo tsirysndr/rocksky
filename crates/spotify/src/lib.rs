@@ -941,13 +941,9 @@ pub async fn watch_currently_playing(
             }
         };
 
-        if let Some((data, changed)) = currently_playing {
-            if data.item.is_none() {
-                println!(
-                    "{} {}",
-                    format!("[{}]", spotify_email).bright_green(),
-                    "No song playing".yellow()
-                );
+        let (data, changed) = match currently_playing {
+            None => {
+                // 204 No Content or rate-limited — nothing is playing
                 if was_playing {
                     was_playing = false;
                     let payload = serde_json::json!({ "did": did }).to_string().into_bytes();
@@ -962,6 +958,31 @@ pub async fn watch_currently_playing(
                 tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
                 continue;
             }
+            Some((data, changed)) => {
+                if data.item.is_none() {
+                    println!(
+                        "{} {}",
+                        format!("[{}]", spotify_email).bright_green(),
+                        "No song playing".yellow()
+                    );
+                    if was_playing {
+                        was_playing = false;
+                        let payload = serde_json::json!({ "did": did }).to_string().into_bytes();
+                        if let Err(e) = nc.publish("rocksky.song.stopped", payload.into()).await {
+                            println!(
+                                "{} Failed to publish song stopped event: {}",
+                                format!("[{}]", spotify_email).bright_green(),
+                                e.to_string().bright_red()
+                            );
+                        }
+                    }
+                    tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+                    continue;
+                }
+                (data, changed)
+            }
+        };
+        {
             let data_item = data.item.unwrap();
             println!(
                 "{} {} is_playing: {} changed: {}",
