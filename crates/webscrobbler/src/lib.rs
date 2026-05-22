@@ -12,12 +12,13 @@ use anyhow::Error;
 use owo_colors::OwoColorize;
 use sqlx::postgres::PgPoolOptions;
 
-use crate::{cache::Cache, consts::BANNER, musicbrainz::client::MusicbrainzClient};
+use crate::{cache::Cache, consts::BANNER, events::Events, musicbrainz::client::MusicbrainzClient};
 
 pub mod auth;
 pub mod cache;
 pub mod consts;
 pub mod crypto;
+pub mod events;
 pub mod handlers;
 pub mod musicbrainz;
 pub mod repo;
@@ -31,6 +32,10 @@ pub async fn start_server() -> Result<(), Error> {
     println!("{}", BANNER.magenta());
 
     let cache = Cache::new()?;
+
+    let nats_url = env::var("NATS_URL").unwrap_or_else(|_| "nats://localhost:4222".to_string());
+    let nc = async_nats::connect(&nats_url).await?;
+    let events = Arc::new(Events::new(nc));
 
     let pool = PgPoolOptions::new()
         .max_connections(10)
@@ -76,6 +81,7 @@ pub async fn start_server() -> Result<(), Error> {
             .app_data(Data::new(conn.clone()))
             .app_data(Data::new(cache.clone()))
             .app_data(Data::new(mb_client.clone()))
+            .app_data(Data::new(events.clone()))
             .service(handlers::index)
             .service(handlers::handle_scrobble)
     })

@@ -1,6 +1,11 @@
 use crate::{
-    cache::Cache, consts::BANNER, musicbrainz::client::MusicbrainzClient, repo,
-    scrobbler::scrobble, types::ScrobbleRequest,
+    cache::Cache,
+    consts::BANNER,
+    events::Events,
+    musicbrainz::client::MusicbrainzClient,
+    repo,
+    scrobbler::{resolve_track, scrobble},
+    types::ScrobbleRequest,
 };
 use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder};
 use owo_colors::OwoColorize;
@@ -32,6 +37,7 @@ async fn handle_scrobble(
     data: web::Data<Arc<Pool<Postgres>>>,
     cache: web::Data<Cache>,
     mb_client: web::Data<Arc<MusicbrainzClient>>,
+    events: web::Data<Arc<Events>>,
     mut payload: web::Payload,
     req: HttpRequest,
 ) -> Result<impl Responder, actix_web::Error> {
@@ -59,6 +65,49 @@ async fn handle_scrobble(
     })?;
 
     tracing::info!(params = ?params, "Parsed scrobble request");
+
+    if params.event_name == "nowplaying" {
+        let parsed = &params.data.song.parsed;
+        let duration_ms = parsed.duration.map(|d| (d as u64) * 1000).unwrap_or(0);
+        let source = params.data.song.connector.id.clone();
+
+        let pool = data.get_ref().as_ref();
+        let mb_client = mb_client.get_ref().as_ref();
+        let resolved = resolve_track(
+            pool,
+            cache.get_ref(),
+            mb_client,
+            &parsed.artist,
+            &parsed.track,
+        )
+        .await
+        .unwrap_or(None);
+
+        let track = serde_json::json!({
+            "name": resolved.as_ref().map(|t| t.title.as_str()).unwrap_or(&parsed.track),
+            "artist": resolved.as_ref().map(|t| t.artist.as_str()).unwrap_or(&parsed.artist),
+            "album": resolved.as_ref().and_then(|t| Some(t.album.as_str()))
+                .or(parsed.album.as_deref()),
+            "albumCoverUrl": resolved.as_ref().and_then(|t| t.album_art.as_deref())
+                .or(parsed.track_art.as_deref()),
+            "duration_ms": resolved.as_ref().map(|t| t.duration as u64).unwrap_or(duration_ms),
+            "recording_mb_id": resolved.as_ref().and_then(|t| t.mbid.as_deref()),
+            "source": source,
+        });
+
+        events.emit_song_changed(&user.did, track).await;
+        let effective_duration_ms = resolved
+            .as_ref()
+            .map(|t| t.duration as u64)
+            .unwrap_or(duration_ms);
+        if effective_duration_ms > 0 {
+            events
+                .schedule_song_stopped(user.did.clone(), effective_duration_ms)
+                .await;
+        }
+
+        return Ok(HttpResponse::Ok().body("Now playing event received"));
+    }
 
     if params.event_name != "scrobble" {
         tracing::info!(event_name = %params.event_name.cyan(), "Skipping non-scrobble event");

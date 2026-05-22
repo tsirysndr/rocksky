@@ -5133,6 +5133,7 @@ dependencies = [
  "actix-web",
  "aes",
  "anyhow",
+ "async-nats",
  "chrono",
  "ctr",
  "dotenv",
