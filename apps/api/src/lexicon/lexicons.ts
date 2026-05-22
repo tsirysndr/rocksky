@@ -807,6 +807,10 @@ export const schemaDict = {
               "Music service source, e.g. 'spotify' or 'listenbrainz'.",
             maxLength: 64,
           },
+          recordingMbId: {
+            type: "string",
+            description: "MusicBrainz recording ID, if available.",
+          },
         },
       },
     },

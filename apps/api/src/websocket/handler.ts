@@ -43,6 +43,7 @@ type Message = z.infer<typeof MessageSchema>;
 const devices: Record<string, WebSocket> = {};
 const deviceNames: Record<string, string> = {};
 const userDevices: Record<string, string[]> = {};
+const playingDids = new Set<string>();
 
 function handleWebsocket(c: Context) {
   return {
@@ -99,13 +100,15 @@ function handleWebsocket(c: Context) {
               );
             }
 
-            // Track metadata
+            // Track metadata — also capture duration_ms from DB (stored in ms)
+            let durationMs: number = data.duration_ms ?? data.duration ?? 0;
             if (cachedTrack) {
               const cachedData = JSON.parse(cachedTrack);
               data.album_art = cachedData.albumArt;
               data.song_uri = cachedData.uri;
               data.album_uri = cachedData.albumUri;
               data.artist_uri = cachedData.artistUri;
+              if (cachedData.duration) durationMs = cachedData.duration;
               await ctx.redis.setEx(
                 `nowplaying:${did}`,
                 3,
@@ -122,6 +125,7 @@ function handleWebsocket(c: Context) {
                 data.song_uri = track.uri;
                 data.album_uri = track.albumUri;
                 data.artist_uri = track.artistUri;
+                if (track.duration) durationMs = track.duration;
                 await Promise.all([
                   ctx.redis.setEx(
                     `track:${sha256}`,
@@ -131,6 +135,7 @@ function handleWebsocket(c: Context) {
                       uri: track.uri,
                       albumUri: track.albumUri,
                       artistUri: track.artistUri,
+                      duration: track.duration,
                       liked: data.liked,
                     }),
                   ),
@@ -150,6 +155,7 @@ function handleWebsocket(c: Context) {
               : null;
 
             if (previousSha256 !== sha256) {
+              playingDids.add(did);
               const source = deviceNames[device_id] ?? "websocket";
               ctx.nc.publish(
                 "rocksky.song.changed",
@@ -161,7 +167,7 @@ function handleWebsocket(c: Context) {
                       artist: data.artist,
                       album: data.album,
                       albumCoverUrl: data.album_art ?? undefined,
-                      duration_ms: data.duration_ms ?? data.duration,
+                      duration_ms: durationMs,
                       source,
                     },
                   }),
@@ -175,8 +181,9 @@ function handleWebsocket(c: Context) {
               `${data.status}`,
             );
 
-            // Emit song.stopped when the player explicitly reports not playing.
-            if (String(data.status) !== "1") {
+            // Emit song.stopped only once on the playing→stopped transition.
+            if (String(data.status) !== "1" && playingDids.has(did)) {
+              playingDids.delete(did);
               ctx.nc.publish(
                 "rocksky.song.stopped",
                 Buffer.from(JSON.stringify({ did })),
@@ -286,6 +293,7 @@ function handleWebsocket(c: Context) {
         userDevices[did] = userDevices[did].filter((id) => id !== deviceId);
         if (userDevices[did].length === 0) {
           delete userDevices[did];
+          playingDids.delete(did);
         }
       }
       if (deviceId && deviceNames[deviceId]) {

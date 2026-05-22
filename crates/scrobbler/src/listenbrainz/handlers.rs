@@ -104,11 +104,17 @@ pub async fn handle_submit_listens(
                     .and_then(|i| i.duration_ms)
                     .unwrap_or(0.0) as u64;
 
+                let recording_mb_id = meta
+                    .additional_info
+                    .as_ref()
+                    .and_then(|i| i.musicbrainz_track_id.as_deref());
+
                 let track = serde_json::json!({
                     "name": meta.track_name,
                     "artist": meta.artist_name,
                     "album": meta.release_name,
                     "duration_ms": duration_ms,
+                    "recording_mb_id": recording_mb_id,
                 });
 
                 events.emit_song_changed(&did, track).await;

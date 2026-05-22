@@ -158,6 +158,8 @@ export interface TrackView {
   durationMs?: number;
   /** Music service source, e.g. 'spotify' or 'listenbrainz'. */
   source?: string;
+  /** MusicBrainz recording ID, if available. */
+  recordingMbId?: string;
   [k: string]: unknown;
 }
 

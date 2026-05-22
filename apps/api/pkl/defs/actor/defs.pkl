@@ -246,6 +246,11 @@ defs = new Mapping<String, ObjectType> {
         description = "Music service source, e.g. 'spotify' or 'listenbrainz'."
         maxLength = 64
       }
+
+      ["recordingMbId"] = new StringType {
+        type = "string"
+        description = "MusicBrainz recording ID, if available."
+      }
     }
   }
 }
