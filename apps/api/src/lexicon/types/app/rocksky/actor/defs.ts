@@ -144,3 +144,31 @@ export function isArtistViewBasic(v: unknown): v is ArtistViewBasic {
 export function validateArtistViewBasic(v: unknown): ValidationResult {
   return lexicons.validate("app.rocksky.actor.defs#artistViewBasic", v);
 }
+
+export interface TrackView {
+  /** The name of the track. */
+  name: string;
+  /** The primary artist name. */
+  artist: string;
+  /** The album name. */
+  album?: string;
+  /** URL of the album cover image. */
+  albumCoverUrl?: string;
+  /** Track duration in milliseconds. */
+  durationMs?: number;
+  /** Music service source, e.g. 'spotify' or 'listenbrainz'. */
+  source?: string;
+  [k: string]: unknown;
+}
+
+export function isTrackView(v: unknown): v is TrackView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.actor.defs#trackView"
+  );
+}
+
+export function validateTrackView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.actor.defs#trackView", v);
+}

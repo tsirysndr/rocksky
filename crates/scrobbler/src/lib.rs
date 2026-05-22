@@ -1,6 +1,7 @@
 pub mod auth;
 pub mod cache;
 pub mod crypto;
+pub mod events;
 pub mod handlers;
 pub mod listenbrainz;
 pub mod musicbrainz;
@@ -25,10 +26,11 @@ use actix_web::{
     App, HttpServer,
 };
 use anyhow::Error;
+use async_nats::connect;
 use owo_colors::OwoColorize;
 use sqlx::postgres::PgPoolOptions;
 
-use crate::{cache::Cache, musicbrainz::client::MusicbrainzClient};
+use crate::{cache::Cache, events::Events, musicbrainz::client::MusicbrainzClient};
 
 pub const BANNER: &str = r#"
     ___             ___          _____                 __    __    __
@@ -79,6 +81,11 @@ pub async fn run() -> Result<(), Error> {
     let mb_client = MusicbrainzClient::new().await?;
     let mb_client = Arc::new(mb_client);
 
+    let nats_addr = env::var("NATS_URL").unwrap_or_else(|_| "nats://localhost:4222".to_string());
+    let nc = connect(&nats_addr).await?;
+    tracing::info!(url = %nats_addr.bright_green(), "Connected to NATS server @");
+    let events = Arc::new(Events::new(nc));
+
     HttpServer::new(move || {
         let cors = Cors::permissive();
         App::new()
@@ -88,6 +95,7 @@ pub async fn run() -> Result<(), Error> {
             .app_data(Data::new(conn.clone()))
             .app_data(Data::new(cache.clone()))
             .app_data(Data::new(mb_client.clone()))
+            .app_data(Data::new(events.clone()))
             .service(handlers::handle_methods)
             .service(handlers::handle_nowplaying)
             .service(handlers::handle_submission)

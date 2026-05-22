@@ -205,4 +205,47 @@ defs = new Mapping<String, ObjectType> {
       }
     }
   }
+  ["trackView"] {
+    type = "object"
+    required = List("name", "artist")
+    properties {
+      ["name"] = new StringType {
+        type = "string"
+        description = "The name of the track."
+        minLength = 1
+        maxLength = 512
+      }
+
+      ["artist"] = new StringType {
+        type = "string"
+        description = "The primary artist name."
+        minLength = 1
+        maxLength = 256
+      }
+
+      ["album"] = new StringType {
+        type = "string"
+        description = "The album name."
+        maxLength = 256
+      }
+
+      ["albumCoverUrl"] = new StringType {
+        type = "string"
+        description = "URL of the album cover image."
+        format = "uri"
+      }
+
+      ["durationMs"] = new IntegerType {
+        type = "integer"
+        description = "Track duration in milliseconds."
+        minimum = 0
+      }
+
+      ["source"] = new StringType {
+        type = "string"
+        description = "Music service source, e.g. 'spotify' or 'listenbrainz'."
+        maxLength = 64
+      }
+    }
+  }
 }

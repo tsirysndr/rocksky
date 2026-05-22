@@ -85,6 +85,7 @@ pub async fn run() -> Result<(), Error> {
                         cache.clone(),
                         client_id.clone(),
                         client_secret.clone(),
+                        nc.clone(),
                     )
                     .await
                 }) {
@@ -813,6 +814,7 @@ pub async fn watch_currently_playing(
     cache: Cache,
     client_id: String,
     client_secret: String,
+    nc: async_nats::Client,
 ) -> Result<(), Error> {
     println!(
         "{} {}",
@@ -900,6 +902,8 @@ pub async fn watch_currently_playing(
         }
     });
 
+    let mut was_playing = false;
+
     loop {
         if stop_flag.load(std::sync::atomic::Ordering::Relaxed) {
             println!(
@@ -914,6 +918,7 @@ pub async fn watch_currently_playing(
         let cache = cache.clone();
         let client_id = client_id.clone();
         let client_secret = client_secret.clone();
+        let nc = nc.clone();
 
         let currently_playing = get_currently_playing(
             cache.clone(),
@@ -943,6 +948,18 @@ pub async fn watch_currently_playing(
                     format!("[{}]", spotify_email).bright_green(),
                     "No song playing".yellow()
                 );
+                if was_playing {
+                    was_playing = false;
+                    let payload =
+                        serde_json::json!({ "did": did }).to_string().into_bytes();
+                    if let Err(e) = nc.publish("rocksky.song.stopped", payload.into()).await {
+                        println!(
+                            "{} Failed to publish song stopped event: {}",
+                            format!("[{}]", spotify_email).bright_green(),
+                            e.to_string().bright_red()
+                        );
+                    }
+                }
                 tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
                 continue;
             }
@@ -955,12 +972,39 @@ pub async fn watch_currently_playing(
                 changed
             );
 
+            was_playing = true;
+
             if changed {
                 cache.setex(
                     &format!("changed:{}:{}", spotify_email, data_item.id),
                     &data_item.duration_ms.to_string(),
                     3600 * 24,
                 )?;
+                let payload = serde_json::json!({
+                    "did": did,
+                    "track": {
+                        "id": data_item.id,
+                        "name": data_item.name,
+                        "duration_ms": data_item.duration_ms,
+                        "progress_ms": data.progress_ms,
+                        "is_playing": data.is_playing,
+                        "artists": data_item.artists.iter().map(|a| serde_json::json!({ "id": a.id, "name": a.name })).collect::<Vec<_>>(),
+                        "album": {
+                            "id": data_item.album.id,
+                            "name": data_item.album.name,
+                            "cover": data_item.album.images.first().map(|i| &i.url),
+                        }
+                    }
+                })
+                .to_string()
+                .into_bytes();
+                if let Err(e) = nc.publish("rocksky.song.changed", payload.into()).await {
+                    println!(
+                        "{} Failed to publish song changed event: {}",
+                        format!("[{}]", spotify_email).bright_green(),
+                        e.to_string().bright_red()
+                    );
+                }
             }
 
             let current_track =

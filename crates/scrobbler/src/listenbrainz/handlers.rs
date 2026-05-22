@@ -4,8 +4,9 @@ use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder};
 use sqlx::{Pool, Postgres};
 
 use crate::{
-    auth::validate_bearer_token,
+    auth::{decode_token, validate_bearer_token},
     cache::Cache,
+    events::Events,
     listenbrainz::{
         core::{
             listen_count::get_listen_count, listens::get_listens, playing_now::get_playing_now,
@@ -42,6 +43,7 @@ pub async fn handle_submit_listens(
     data: web::Data<Arc<Pool<Postgres>>>,
     cache: web::Data<Cache>,
     mb_client: web::Data<Arc<MusicbrainzClient>>,
+    events: web::Data<Arc<Events>>,
     mut payload: web::Payload,
 ) -> impl Responder {
     let token = match req.headers().get("Authorization") {
@@ -82,6 +84,38 @@ pub async fn handle_submit_listens(
             e
         })
         .map_err(actix_web::error::ErrorBadRequest)?;
+
+    if req.listen_type == "playing_now" {
+        if let Some(listen) = req.payload.first() {
+            let pool = data.get_ref();
+            let did = match decode_token(token) {
+                Ok(claims) => Some(claims.did),
+                Err(_) => match repo::user::get_user_by_apikey(pool, token).await {
+                    Ok(Some(user)) => Some(user.did),
+                    _ => None,
+                },
+            };
+
+            if let Some(did) = did {
+                let meta = &listen.track_metadata;
+                let duration_ms = meta
+                    .additional_info
+                    .as_ref()
+                    .and_then(|i| i.duration_ms)
+                    .unwrap_or(0.0) as u64;
+
+                let track = serde_json::json!({
+                    "name": meta.track_name,
+                    "artist": meta.artist_name,
+                    "album": meta.release_name,
+                    "duration_ms": duration_ms,
+                });
+
+                events.emit_song_changed(&did, track).await;
+                events.schedule_song_stopped(did, duration_ms).await;
+            }
+        }
+    }
 
     if is_kodi && req.listen_type == "playing_now" {
         req.listen_type = "single".to_string();

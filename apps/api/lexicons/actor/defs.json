@@ -179,6 +179,47 @@
           "type": "integer"
         }
       }
+    },
+    "trackView": {
+      "type": "object",
+      "required": [
+        "name",
+        "artist"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the track.",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "artist": {
+          "type": "string",
+          "description": "The primary artist name.",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "album": {
+          "type": "string",
+          "description": "The album name.",
+          "maxLength": 256
+        },
+        "albumCoverUrl": {
+          "type": "string",
+          "description": "URL of the album cover image.",
+          "format": "uri"
+        },
+        "durationMs": {
+          "type": "integer",
+          "description": "Track duration in milliseconds.",
+          "minimum": 0
+        },
+        "source": {
+          "type": "string",
+          "description": "Music service source, e.g. 'spotify' or 'listenbrainz'.",
+          "maxLength": 64
+        }
+      }
     }
   }
 }

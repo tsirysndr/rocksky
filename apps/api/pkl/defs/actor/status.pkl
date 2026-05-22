@@ -1,0 +1,34 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.actor.status"
+defs = new Mapping<String, Record> {
+  ["main"] {
+    type = "record"
+    description = "The current listening status of the actor. Only one can be active at a time (rkey: self)."
+    key = "literal:self"
+    `record` {
+      type = "object"
+      required = List("track", "startedAt")
+      properties {
+        ["track"] = new Ref {
+          type = "ref"
+          ref = "app.rocksky.actor.defs#trackView"
+          description = "The track currently being played."
+        }
+
+        ["startedAt"] = new StringType {
+          type = "string"
+          format = "datetime"
+          description = "When the track started playing."
+        }
+
+        ["expiresAt"] = new StringType {
+          type = "string"
+          format = "datetime"
+          description = "When the status expires. Defaults to startedAt plus track duration plus idle time."
+        }
+      }
+    }
+  }
+}

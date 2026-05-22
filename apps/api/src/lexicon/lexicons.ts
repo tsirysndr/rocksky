@@ -770,6 +770,45 @@ export const schemaDict = {
           },
         },
       },
+      trackView: {
+        type: "object",
+        required: ["name", "artist"],
+        properties: {
+          name: {
+            type: "string",
+            description: "The name of the track.",
+            minLength: 1,
+            maxLength: 512,
+          },
+          artist: {
+            type: "string",
+            description: "The primary artist name.",
+            minLength: 1,
+            maxLength: 256,
+          },
+          album: {
+            type: "string",
+            description: "The album name.",
+            maxLength: 256,
+          },
+          albumCoverUrl: {
+            type: "string",
+            description: "URL of the album cover image.",
+            format: "uri",
+          },
+          durationMs: {
+            type: "integer",
+            description: "Track duration in milliseconds.",
+            minimum: 0,
+          },
+          source: {
+            type: "string",
+            description:
+              "Music service source, e.g. 'spotify' or 'listenbrainz'.",
+            maxLength: 64,
+          },
+        },
+      },
     },
   },
   AppRockskyActorGetActorAlbums: {
@@ -1225,6 +1264,40 @@ export const schemaDict = {
             },
             createdAt: {
               type: "string",
+              format: "datetime",
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyActorStatus: {
+    lexicon: 1,
+    id: "app.rocksky.actor.status",
+    defs: {
+      main: {
+        type: "record",
+        description:
+          "The current listening status of the actor. Only one can be active at a time (rkey: self).",
+        key: "literal:self",
+        record: {
+          type: "object",
+          required: ["track", "startedAt"],
+          properties: {
+            track: {
+              type: "ref",
+              description: "The track currently being played.",
+              ref: "lex:app.rocksky.actor.defs#trackView",
+            },
+            startedAt: {
+              type: "string",
+              description: "When the track started playing.",
+              format: "datetime",
+            },
+            expiresAt: {
+              type: "string",
+              description:
+                "When the status expires. Defaults to startedAt plus track duration plus idle time.",
               format: "datetime",
             },
           },
@@ -6714,6 +6787,7 @@ export const ids = {
   AppRockskyActorGetActorSongs: "app.rocksky.actor.getActorSongs",
   AppRockskyActorGetProfile: "app.rocksky.actor.getProfile",
   AppBskyActorProfile: "app.bsky.actor.profile",
+  AppRockskyActorStatus: "app.rocksky.actor.status",
   AppRockskyAlbum: "app.rocksky.album",
   AppRockskyAlbumDefs: "app.rocksky.album.defs",
   AppRockskyAlbumGetAlbum: "app.rocksky.album.getAlbum",

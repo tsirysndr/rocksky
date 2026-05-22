@@ -17,6 +17,7 @@ sqlx = { version = "0.8.3", features = [
   "derive",
   "macros",
 ] }
+async-nats = "0.39.0"
 tokio = { version = "1.43.0", features = ["full"] }
 owo-colors = "4.1.0"
 dotenv = "0.15.0"
