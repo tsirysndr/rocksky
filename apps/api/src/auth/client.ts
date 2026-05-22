@@ -20,6 +20,7 @@ export const SCOPES = [
   "repo:app.rocksky.feed.generator",
   "repo:fm.teal.alpha.feed.play",
   "repo:fm.teal.alpha.actor.status",
+  "repo:app.rocksky.actor.status",
 ];
 
 export const createClient = async (db: Database) => {
