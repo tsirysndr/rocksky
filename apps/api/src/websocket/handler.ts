@@ -156,7 +156,7 @@ function handleWebsocket(c: Context) {
 
             if (previousSha256 !== sha256) {
               playingDids.add(did);
-              const source = deviceNames[device_id] ?? "websocket";
+              const source = deviceNames[ws.deviceId] ?? deviceNames[device_id] ?? "websocket";
               ctx.nc.publish(
                 "rocksky.song.changed",
                 Buffer.from(
