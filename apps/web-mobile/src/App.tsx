@@ -10,6 +10,7 @@ import Recommendations from "./pages/recommendations";
 import Search from "./pages/search";
 import SongPage from "./pages/song";
 import ShoutEditor from "./pages/shout-editor";
+import WrappedPage from "./pages/wrapped";
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/charts" element={<Charts />} />
         <Route path="/recommendations" element={<Recommendations />} />
+        <Route path="/wrapped" element={<WrappedPage />} />
         <Route path="/search" element={<Search />} />
         <Route path="/me" element={<Me />} />
         <Route path="/apikeys" element={<ApiKeysPage />} />

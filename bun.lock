@@ -244,6 +244,7 @@
         "consola": "^3.2.3",
         "copy-to-clipboard": "^3.3.3",
         "dayjs": "^1.11.13",
+        "html-to-image": "^1.11.13",
         "jotai": "^2.11.3",
         "lodash": "^4.17.21",
         "numeral": "^2.0.6",

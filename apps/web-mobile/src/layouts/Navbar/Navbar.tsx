@@ -97,7 +97,7 @@ function Navbar() {
               </div>
             </div>
 
-            <div className="flex flex-col divide-y" style={{ borderColor: "var(--color-border)" }}>
+            <div className="flex flex-col">
               {profile && (
                 <Link
                   to={`/profile/${profile.handle}`}
@@ -108,6 +108,14 @@ function Navbar() {
                   My Profile
                 </Link>
               )}
+              <Link
+                to="/wrapped"
+                className="py-3.5 px-2 no-underline font-medium text-base block"
+                style={{ color: "var(--color-text)" }}
+                onClick={() => setMenuOpen(false)}
+              >
+                Wrapped
+              </Link>
               <Link
                 to="/apikeys"
                 className="py-3.5 px-2 no-underline font-medium text-base block"
