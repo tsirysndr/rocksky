@@ -181,8 +181,8 @@ function handleWebsocket(c: Context) {
               `${data.status}`,
             );
 
-            // Emit song.stopped only once on the playing→stopped transition.
-            if (String(data.status) !== "1" && playingDids.has(did)) {
+            // Emit song.stopped only on explicit stop (status=0); ignore paused (status=2/3).
+            if (data.status === 0 && playingDids.has(did)) {
               playingDids.delete(did);
               ctx.nc.publish(
                 "rocksky.song.stopped",
