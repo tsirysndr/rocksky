@@ -950,8 +950,7 @@ pub async fn watch_currently_playing(
                 );
                 if was_playing {
                     was_playing = false;
-                    let payload =
-                        serde_json::json!({ "did": did }).to_string().into_bytes();
+                    let payload = serde_json::json!({ "did": did }).to_string().into_bytes();
                     if let Err(e) = nc.publish("rocksky.song.stopped", payload.into()).await {
                         println!(
                             "{} Failed to publish song stopped event: {}",

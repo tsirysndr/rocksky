@@ -19,7 +19,11 @@ impl Events {
         let payload = serde_json::json!({ "did": did, "track": track })
             .to_string()
             .into_bytes();
-        if let Err(e) = self.nc.publish("rocksky.song.changed", payload.into()).await {
+        if let Err(e) = self
+            .nc
+            .publish("rocksky.song.changed", payload.into())
+            .await
+        {
             tracing::error!(error = %e, "Failed to publish rocksky.song.changed");
         }
     }
