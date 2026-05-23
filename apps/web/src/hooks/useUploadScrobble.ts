@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import { submitScrobble } from "../api/scrobbles";
 import { nowPlayingAtom } from "../atoms/nowpaying";
 import { playerAtom } from "../atoms/player";
+import { queueAtom, queueIndexAtom } from "../atoms/queue";
 import { consola } from "consola";
 
 // Submit scrobble when the user has listened to at least 50% of the track
@@ -12,6 +13,8 @@ const SCROBBLE_MIN_MS = 4 * 60 * 1000; // 4 minutes cap
 export function useUploadScrobble() {
   const player = useAtomValue(playerAtom);
   const nowPlaying = useAtomValue(nowPlayingAtom);
+  const queue = useAtomValue(queueAtom);
+  const queueIndex = useAtomValue(queueIndexAtom);
 
   // sha256 of the last track for which we submitted a scrobble
   const scrobbledRef = useRef<string | null>(null);
@@ -32,7 +35,8 @@ export function useUploadScrobble() {
   useEffect(() => {
     if (player !== "upload" || !nowPlaying) return;
 
-    const { sha256, title, artist, album, albumArt, duration, progress } = nowPlaying;
+    const { sha256, title, artist, albumArt, duration, progress } = nowPlaying;
+    const album = queue[queueIndex]?.album;
 
     // Already scrobbled this track
     if (scrobbledRef.current === sha256) return;
@@ -54,5 +58,5 @@ export function useUploadScrobble() {
       // Allow retry on next render by resetting the flag
       scrobbledRef.current = null;
     });
-  }, [player, nowPlaying]);
+  }, [player, nowPlaying, queue, queueIndex]);
 }
