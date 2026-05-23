@@ -8,7 +8,7 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { useUploadTrackMutation } from "../../hooks/useUploads";
+import { uploadTrack } from "../../api/uploads";
 import Main from "../../layouts/Main";
 
 // ---------------------------------------------------------------------------
@@ -290,8 +290,6 @@ export default function UploadPage() {
       prev.map((item) => (item.id === id ? { ...item, status } : item)),
     );
 
-  const uploadMutation = useUploadTrackMutation();
-
   const processQueue = useCallback(
     async (items: QueueItem[]) => {
       setIsProcessing(true);
@@ -299,7 +297,9 @@ export default function UploadPage() {
         if (item.status.state !== "pending") continue;
         updateItem(item.id, { state: "uploading", progress: 0 });
         try {
-          const result = await uploadMutation.mutateAsync(item.file);
+          const result = await uploadTrack(item.file, (progress) => {
+            updateItem(item.id, { state: "uploading", progress });
+          });
           updateItem(item.id, {
             state: "done",
             title: result.track.title,
@@ -317,7 +317,7 @@ export default function UploadPage() {
       }
       setIsProcessing(false);
     },
-    [uploadMutation],
+    [],
   );
 
   const onDrop = useCallback((accepted: File[], rejected: any[]) => {
