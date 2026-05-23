@@ -1,0 +1,22 @@
+[Unit]
+Description=Rocksky Service
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/github/rocksky
+ExecStart=/bin/bash -ic 'exec doppler run -c prd -- turbo prod --filter=@rocksky/api --env-mode=loose'
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rocksky
+
+# Environment
+Environment=HOME=/root
+Environment=USER=root
+
+[Install]
+WantedBy=multi-user.target

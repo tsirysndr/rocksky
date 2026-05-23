@@ -1,0 +1,22 @@
+[Unit]
+Description=Rocksky XRPC Service
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/github/rocksky/apps/api
+ExecStart=/bin/bash -ic 'exec doppler run -- bun run prod:xrpc'
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rocksky-xrpc
+
+# Environment
+Environment=HOME=/root
+Environment=USER=root
+
+[Install]
+WantedBy=multi-user.target

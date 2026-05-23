@@ -1,0 +1,22 @@
+[Unit]
+Description=Rocksky WebSocket Service
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/github/rocksky/apps/ws
+ExecStart=/bin/bash -ic 'exec doppler run -- deno task start'
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rocksky-ws
+
+# Environment
+Environment=HOME=/root
+Environment=USER=root
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,22 @@
+[Unit]
+Description=Rocksky Embed Service
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/github/rocksky/apps/embed
+ExecStart=/bin/bash -ic 'exec doppler run -c prd -- bun run src/index.tsx'
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rocksky-embed
+
+# Environment
+Environment=HOME=/root
+Environment=USER=root
+
+[Install]
+WantedBy=multi-user.target

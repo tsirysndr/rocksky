@@ -1,0 +1,22 @@
+[Unit]
+Description=Rocksky Scrobbler Service
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/github/rocksky
+ExecStart=/bin/bash -ic 'exec doppler run -- ./target/release/rockskyd scrobbler'
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rocksky-scrobbler
+
+# Environment
+Environment=HOME=/root
+Environment=USER=root
+
+[Install]
+WantedBy=multi-user.target
