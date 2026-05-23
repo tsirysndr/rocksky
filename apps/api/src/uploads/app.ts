@@ -7,7 +7,7 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { consola } from "consola";
 import { ctx } from "context";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { Hono } from "hono";
 import jwt from "jsonwebtoken";
 import { createAgent } from "lib/agent";
@@ -440,7 +440,7 @@ app.get("/", async (c) => {
     .from(tables.userUploads)
     .innerJoin(tables.tracks, eq(tables.userUploads.trackId, tables.tracks.id))
     .where(eq(tables.userUploads.userId, user.id))
-    .orderBy(desc(tables.userUploads.uploadedAt))
+    .orderBy(asc(tables.tracks.title), asc(tables.tracks.artist))
     .limit(size)
     .offset(offset);
 
