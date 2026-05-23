@@ -4,6 +4,7 @@ export interface QueueTrack {
   uploadId: string;
   title: string;
   artist: string;
+  albumArtist: string;
   album: string;
   albumArt: string | null;
   duration: number;

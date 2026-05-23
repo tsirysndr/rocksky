@@ -35,7 +35,10 @@ interface SongStoppedPayload {
 async function resolveTrackInfo(
   ctx: Context,
   raw: SongChangedPayload["track"],
-): Promise<{ recordingMbId: string | undefined; albumArt: string | undefined }> {
+): Promise<{
+  recordingMbId: string | undefined;
+  albumArt: string | undefined;
+}> {
   const name = raw.name ?? "";
   const artist = raw.artists?.[0]?.name ?? raw.artist ?? "";
   const album =
@@ -45,7 +48,7 @@ async function resolveTrackInfo(
 
   // 1. Already provided in the payload (e.g. from ListenBrainz)
   let recordingMbId: string | undefined = raw.recording_mb_id;
-  let albumArt: string | undefined = undefined;
+  let albumArt: string | undefined;
 
   if (!name || !artist) return { recordingMbId, albumArt };
 

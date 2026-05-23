@@ -37,6 +37,7 @@ export function useUploadScrobble() {
 
     const { sha256, title, artist, albumArt, duration, progress } = nowPlaying;
     const album = queue[queueIndex]?.album;
+    const albumArtist = queue[queueIndex]?.albumArtist ?? artist;
 
     // Already scrobbled this track
     if (scrobbledRef.current === sha256) return;
@@ -49,9 +50,10 @@ export function useUploadScrobble() {
     submitScrobble({
       title,
       artist,
+      albumArtist,
       album,
       albumArt,
-      duration: Math.round(duration / 1000),
+      duration,
       timestamp: startedAtRef.current,
     }).catch((err) => {
       consola.warn("[scrobble] failed to submit scrobble", err);

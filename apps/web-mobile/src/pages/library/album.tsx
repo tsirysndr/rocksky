@@ -48,6 +48,7 @@ function toQueueTrack(item: UploadedTrack): QueueTrack {
     uploadId: item.upload.id,
     title: item.track.title,
     artist: item.track.artist,
+    albumArtist: item.track.albumArtist,
     album: item.track.album,
     albumArt: item.track.albumArt,
     duration: item.track.duration,

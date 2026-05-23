@@ -58,13 +58,13 @@ const PICTURE_MIME_TO_EXT: Record<string, string> = {
 // ---------------------------------------------------------------------------
 
 const MAGIC: Array<{ bytes: number[]; mime: string }> = [
-  { bytes: [0x49, 0x44, 0x33], mime: "audio/mpeg" },       // ID3 tag → MP3
-  { bytes: [0xff, 0xfb], mime: "audio/mpeg" },              // MPEG frame sync
+  { bytes: [0x49, 0x44, 0x33], mime: "audio/mpeg" }, // ID3 tag → MP3
+  { bytes: [0xff, 0xfb], mime: "audio/mpeg" }, // MPEG frame sync
   { bytes: [0xff, 0xf3], mime: "audio/mpeg" },
   { bytes: [0xff, 0xf2], mime: "audio/mpeg" },
   { bytes: [0x66, 0x4c, 0x61, 0x43], mime: "audio/flac" }, // fLaC
-  { bytes: [0x4f, 0x67, 0x67, 0x53], mime: "audio/ogg" },  // OggS
-  { bytes: [0x52, 0x49, 0x46, 0x46], mime: "audio/wav" },  // RIFF → WAV
+  { bytes: [0x4f, 0x67, 0x67, 0x53], mime: "audio/ogg" }, // OggS
+  { bytes: [0x52, 0x49, 0x46, 0x46], mime: "audio/wav" }, // RIFF → WAV
   { bytes: [0x46, 0x4f, 0x52, 0x4d], mime: "audio/aiff" }, // FORM → AIFF
 ];
 
@@ -74,8 +74,10 @@ function detectMime(buf: Buffer): string | null {
   }
   // M4A / MP4: ftyp box starts at byte 4
   if (
-    buf[4] === 0x66 && buf[5] === 0x74 &&
-    buf[6] === 0x79 && buf[7] === 0x70
+    buf[4] === 0x66 &&
+    buf[5] === 0x74 &&
+    buf[6] === 0x79 &&
+    buf[7] === 0x70
   ) {
     return "audio/mp4";
   }
@@ -212,7 +214,8 @@ app.post("/track", async (c) => {
     c.status(422);
     return c.json({
       error: "NO_TAGS",
-      message: "No audio tags found in this file. Please tag your file before uploading.",
+      message:
+        "No audio tags found in this file. Please tag your file before uploading.",
     });
   }
 
@@ -225,17 +228,22 @@ app.post("/track", async (c) => {
 
   const missing: string[] = [];
   if (!common.title?.trim()) missing.push("title");
-  else if (common.title.trim().length > 512) missing.push("title (too long, max 512 chars)");
+  else if (common.title.trim().length > 512)
+    missing.push("title (too long, max 512 chars)");
   if (!common.artist?.trim()) missing.push("artist");
-  else if (common.artist.trim().length > 256) missing.push("artist (too long, max 256 chars)");
+  else if (common.artist.trim().length > 256)
+    missing.push("artist (too long, max 256 chars)");
   if (!common.album?.trim()) missing.push("album");
-  else if (common.album.trim().length > 256) missing.push("album (too long, max 256 chars)");
+  else if (common.album.trim().length > 256)
+    missing.push("album (too long, max 256 chars)");
   if (durationMs < 1) missing.push("duration");
   if (!common.picture?.length) missing.push("album art");
 
   // albumArtist falls back to artist, but we still check its length if explicitly set
-  const albumArtistRaw = common.albumartist?.trim() || common.artist?.trim() || "";
-  if (albumArtistRaw.length > 256) missing.push("albumArtist (too long, max 256 chars)");
+  const albumArtistRaw =
+    common.albumartist?.trim() || common.artist?.trim() || "";
+  if (albumArtistRaw.length > 256)
+    missing.push("albumArtist (too long, max 256 chars)");
 
   if (missing.length > 0) {
     c.status(422);
@@ -307,7 +315,10 @@ app.post("/track", async (c) => {
       );
       albumArtUrl = `${env.CDN_URL}/${coverKey}`;
     } catch (e) {
-      consola.warn("[uploads] album art upload failed, continuing without it", e);
+      consola.warn(
+        "[uploads] album art upload failed, continuing without it",
+        e,
+      );
     }
   }
 
@@ -351,7 +362,8 @@ app.post("/track", async (c) => {
         year: common.year ?? null,
         lyrics: common.lyrics ?? null,
         copyrightMessage: common.copyright ?? null,
-        mbId: common.musicbrainz_trackid ?? common.musicbrainz_recordingid ?? null,
+        mbId:
+          common.musicbrainz_trackid ?? common.musicbrainz_recordingid ?? null,
         artists: null,
         label: common.label?.[0] ?? null,
         artistPicture: null,
@@ -518,6 +530,7 @@ app.get("/queue", async (c) => {
       uploadId: tables.userUploads.id,
       title: tables.tracks.title,
       artist: tables.tracks.artist,
+      albumArtist: tables.tracks.albumArtist,
       album: tables.tracks.album,
       albumArt: tables.tracks.albumArt,
       duration: tables.tracks.duration,
@@ -535,7 +548,20 @@ app.get("/queue", async (c) => {
   const byId = new Map(rows.map((r) => [r.uploadId, r]));
   const queue = uploadIds.flatMap((id) => {
     const r = byId.get(id);
-    return r ? [{ uploadId: r.uploadId, title: r.title, artist: r.artist, album: r.album, albumArt: r.albumArt, duration: r.duration, sha256: r.sha256 }] : [];
+    return r
+      ? [
+          {
+            uploadId: r.uploadId,
+            title: r.title,
+            artist: r.artist,
+            albumArtist: r.albumArtist,
+            album: r.album,
+            albumArt: r.albumArt,
+            duration: r.duration,
+            sha256: r.sha256,
+          },
+        ]
+      : [];
   });
 
   return c.json({ queue, currentIndex: state.currentIndex });
@@ -550,7 +576,10 @@ app.put("/queue", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const body = await c.req.json<{ uploadIds: string[]; currentIndex: number }>();
+  const body = await c.req.json<{
+    uploadIds: string[];
+    currentIndex: number;
+  }>();
   if (!Array.isArray(body.uploadIds) || typeof body.currentIndex !== "number") {
     c.status(400);
     return c.text("Invalid body");

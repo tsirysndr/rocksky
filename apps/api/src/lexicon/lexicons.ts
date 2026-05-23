@@ -4823,7 +4823,7 @@ export const schemaDict = {
               },
               duration: {
                 type: "integer",
-                description: "The duration of the track in seconds",
+                description: "The duration of the track in milliseconds",
               },
               mbId: {
                 type: "string",
@@ -5198,7 +5198,7 @@ export const schemaDict = {
             },
             duration: {
               type: "integer",
-              description: "The duration of the song in seconds.",
+              description: "The duration of the song in milliseconds.",
               minimum: 1,
             },
             trackNumber: {
@@ -6168,7 +6168,7 @@ export const schemaDict = {
             },
             duration: {
               type: "integer",
-              description: "The duration of the song in seconds.",
+              description: "The duration of the song in milliseconds.",
               minimum: 1,
             },
             trackNumber: {

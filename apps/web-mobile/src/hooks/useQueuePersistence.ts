@@ -28,6 +28,7 @@ export function useQueuePersistence() {
           uploadId: t.uploadId,
           title: t.title,
           artist: t.artist,
+          albumArtist: t.albumArtist ?? t.artist,
           album: t.album,
           albumArt: t.albumArt,
           duration: t.duration,

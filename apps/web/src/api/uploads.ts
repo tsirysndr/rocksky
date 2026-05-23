@@ -107,6 +107,7 @@ export interface PersistedQueueTrack {
   uploadId: string;
   title: string;
   artist: string;
+  albumArtist: string;
   album: string;
   albumArt: string | null;
   duration: number;

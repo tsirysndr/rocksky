@@ -129,7 +129,8 @@ export async function putSongRecord(
     composer: track.composer ? track.composer : undefined,
     lyrics: track.lyrics ? track.lyrics : undefined,
     trackNumber: track.trackNumber ?? undefined,
-    discNumber: !track.discNumber || track.discNumber === 0 ? 1 : track.discNumber,
+    discNumber:
+      !track.discNumber || track.discNumber === 0 ? 1 : track.discNumber,
     copyrightMessage: track.copyrightMessage
       ? track.copyrightMessage
       : undefined,

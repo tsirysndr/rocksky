@@ -18,7 +18,7 @@ export interface InputSchema {
   artist: string;
   /** The album of the track being scrobbled */
   album?: string;
-  /** The duration of the track in seconds */
+  /** The duration of the track in milliseconds */
   duration?: number;
   /** The MusicBrainz ID of the track, if available */
   mbId?: string;

@@ -3,8 +3,9 @@ import { client } from ".";
 export interface ScrobbleInput {
   title: string;
   artist: string;
+  albumArtist: string;
   album?: string;
-  duration?: number; // seconds
+  duration?: number; // milliseconds
   albumArt?: string;
   timestamp?: number; // ms since epoch
 }

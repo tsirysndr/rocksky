@@ -29,7 +29,7 @@ export function useQueuePersistence() {
     getQueueState()
       .then((state) => {
         if (!state.queue.length) return;
-        setQueue(state.queue);
+        setQueue(state.queue.map((t) => ({ ...t, albumArtist: t.albumArtist ?? t.artist })));
         setQueueIndex(state.currentIndex);
         setPlayer("upload");
         const track = state.queue[state.currentIndex] ?? state.queue[0];

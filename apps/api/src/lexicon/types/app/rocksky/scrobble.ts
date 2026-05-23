@@ -18,7 +18,7 @@ export interface Record {
   albumArtist: string;
   /** The album of the song. */
   album: string;
-  /** The duration of the song in seconds. */
+  /** The duration of the song in milliseconds. */
   duration: number;
   /** The track number of the song in the album. */
   trackNumber?: number;

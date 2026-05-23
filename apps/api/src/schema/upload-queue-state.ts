@@ -4,7 +4,10 @@ import users from "./users";
 
 const uploadQueueState = pgTable("upload_queue_state", {
   id: text("xata_id").primaryKey().default(sql`xata_id()`),
-  userId: text("user_id").notNull().unique().references(() => users.id),
+  userId: text("user_id")
+    .notNull()
+    .unique()
+    .references(() => users.id),
   uploadIds: text("upload_ids").notNull().default("[]"),
   currentIndex: integer("current_index").notNull().default(0),
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
