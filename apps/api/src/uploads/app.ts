@@ -231,6 +231,7 @@ app.post("/track", async (c) => {
   if (!common.album?.trim()) missing.push("album");
   else if (common.album.trim().length > 256) missing.push("album (too long, max 256 chars)");
   if (durationMs < 1) missing.push("duration");
+  if (!common.picture?.length) missing.push("album art");
 
   // albumArtist falls back to artist, but we still check its length if explicitly set
   const albumArtistRaw = common.albumartist?.trim() || common.artist?.trim() || "";

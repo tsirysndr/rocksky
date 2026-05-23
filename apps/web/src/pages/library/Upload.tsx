@@ -67,9 +67,27 @@ const PageTitle = styled.h1`
 `;
 
 const PageSubtitle = styled.p`
-  margin: 0 0 32px;
+  margin: 0 0 16px;
   font-size: 0.875rem;
   color: var(--color-text-muted);
+`;
+
+const MetaInfo = styled.div`
+  margin: 0 0 32px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--color-menu-hover);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+`;
+
+const MetaLink = styled.a`
+  color: var(--color-primary);
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
 `;
 
 const DropZone = styled.div<{ active: boolean }>`
@@ -334,9 +352,24 @@ export default function UploadPage() {
       <Page>
         <PageTitle>Upload Music</PageTitle>
         <PageSubtitle>
-          Files are private — only you can see and play them. Title, artist, and
-          album tags are required.
+          Files are private — only you can see and play them.
         </PageSubtitle>
+
+        <MetaInfo>
+          <strong style={{ color: "var(--color-text)" }}>Required metadata</strong>
+          {" — "}Title · Artist · Album · Album artist · Duration · Album art
+          <div style={{ marginTop: 10 }}>
+            Need to tag your files?{" "}
+            <MetaLink
+              href="https://picard.musicbrainz.org"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              MusicBrainz Picard
+            </MetaLink>{" "}
+            is a free, open-source tagger that auto-fills metadata from the MusicBrainz database.
+          </div>
+        </MetaInfo>
 
         <DropZone active={isDragActive} {...getRootProps()}>
           <input {...getInputProps()} />
