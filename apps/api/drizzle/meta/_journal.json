@@ -36,6 +36,13 @@
       "when": 1747699200000,
       "tag": "0005_import_jobs",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1779511801748,
+      "tag": "0005_square_pixie",
+      "breakpoints": true
     }
   ]
 }

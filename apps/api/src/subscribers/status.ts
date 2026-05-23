@@ -32,13 +32,10 @@ interface SongStoppedPayload {
   did: string;
 }
 
-async function resolveRecordingMbId(
+async function resolveTrackInfo(
   ctx: Context,
   raw: SongChangedPayload["track"],
-): Promise<string | undefined> {
-  // 1. Already provided in the payload (e.g. from ListenBrainz)
-  if (raw.recording_mb_id) return raw.recording_mb_id;
-
+): Promise<{ recordingMbId: string | undefined; albumArt: string | undefined }> {
   const name = raw.name ?? "";
   const artist = raw.artists?.[0]?.name ?? raw.artist ?? "";
   const album =
@@ -46,21 +43,28 @@ async function resolveRecordingMbId(
     raw.album_name ??
     "";
 
-  if (!name || !artist) return undefined;
+  // 1. Already provided in the payload (e.g. from ListenBrainz)
+  let recordingMbId: string | undefined = raw.recording_mb_id;
+  let albumArt: string | undefined = undefined;
 
-  // 2. Look up by sha256 in the local DB
+  if (!name || !artist) return { recordingMbId, albumArt };
+
+  // 2. Look up by sha256 in the local DB — fetch both mbId and albumArt
   const sha256 = createHash("sha256")
     .update(`${name} - ${artist} - ${album}`.toLowerCase())
     .digest("hex");
 
   const [track] = await ctx.db
-    .select({ mbId: tracks.mbId })
+    .select({ mbId: tracks.mbId, albumArt: tracks.albumArt })
     .from(tracks)
     .where(eq(tracks.sha256, sha256))
     .limit(1)
     .execute();
 
-  if (track?.mbId) return track.mbId;
+  if (!recordingMbId && track?.mbId) recordingMbId = track.mbId;
+  if (track?.albumArt) albumArt = track.albumArt;
+
+  if (recordingMbId) return { recordingMbId, albumArt };
 
   // 3. Fall back to MusicBrainz /hydrate
   try {
@@ -75,16 +79,17 @@ async function resolveRecordingMbId(
       body,
     );
 
-    return data?.trackMBID ?? undefined;
+    return { recordingMbId: data?.trackMBID ?? undefined, albumArt };
   } catch (err) {
     consola.warn("[status] MusicBrainz hydrate failed:", err);
-    return undefined;
+    return { recordingMbId, albumArt };
   }
 }
 
 function normalizeTrack(
   raw: SongChangedPayload["track"],
   recordingMbId: string | undefined,
+  dbAlbumArt?: string,
 ): TrackView {
   // Spotify emits: name, artists[], album.{name,cover}, duration_ms
   // ListenBrainz/websocket emits: name, artist, album (string), duration_ms, albumCoverUrl
@@ -95,7 +100,8 @@ function normalizeTrack(
     raw.album_name;
   const albumCoverUrl =
     (typeof raw.album === "object" ? raw.album?.cover : undefined) ??
-    raw.albumCoverUrl;
+    raw.albumCoverUrl ??
+    dbAlbumArt;
   const durationMs = raw.duration_ms ?? 0;
   const source = raw.source ?? (raw.artists ? "spotify" : "listenbrainz");
 
@@ -135,9 +141,9 @@ export function onSongChanged(ctx: Context) {
         const payload = jc.decode(m.data) as SongChangedPayload;
         const { did, track: rawTrack } = payload;
 
-        const [agent, recordingMbId] = await Promise.all([
+        const [agent, { recordingMbId, albumArt }] = await Promise.all([
           createAgent(ctx.oauthClient, did),
-          resolveRecordingMbId(ctx, rawTrack),
+          resolveTrackInfo(ctx, rawTrack),
         ]);
 
         if (!agent) {
@@ -145,7 +151,7 @@ export function onSongChanged(ctx: Context) {
           continue;
         }
 
-        const track = normalizeTrack(rawTrack, recordingMbId);
+        const track = normalizeTrack(rawTrack, recordingMbId, albumArt);
         const startedAt = new Date().toISOString();
         const expiresAt = track.durationMs
           ? new Date(Date.now() + track.durationMs).toISOString()

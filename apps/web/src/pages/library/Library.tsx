@@ -8,6 +8,7 @@ import {
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import ContentLoader from "react-content-loader";
 import type { UploadedTrack } from "../../api/uploads";
 import {
   useDeleteUploadMutation,
@@ -226,6 +227,42 @@ const Muted = styled.p`
 `;
 
 // ---------------------------------------------------------------------------
+// Skeleton
+// ---------------------------------------------------------------------------
+
+function TrackRowSkeleton() {
+  return (
+    <ContentLoader
+      width="100%"
+      height={62}
+      viewBox="0 0 600 62"
+      backgroundColor="var(--color-skeleton-background)"
+      foregroundColor="var(--color-skeleton-foreground)"
+      style={{ display: "block" }}
+    >
+      {/* Artwork box */}
+      <rect x="12" y="11" rx="8" ry="8" width="40" height="40" />
+      {/* Title */}
+      <rect x="64" y="14" rx="4" ry="4" width="180" height="14" />
+      {/* Meta */}
+      <rect x="64" y="36" rx="3" ry="3" width="120" height="11" />
+      {/* Duration */}
+      <rect x="536" y="23" rx="3" ry="3" width="40" height="14" />
+    </ContentLoader>
+  );
+}
+
+function LibrarySkeleton() {
+  return (
+    <div>
+      {Array.from({ length: 8 }).map((_, i) => (
+        <TrackRowSkeleton key={i} />
+      ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -237,7 +274,7 @@ function formatDuration(seconds: number) {
 
 function TrackPlayer({ uploadId }: { uploadId: string }) {
   const { data, isLoading } = useStreamUrlQuery(uploadId);
-  if (isLoading) return <Muted>Loading…</Muted>;
+  if (isLoading) return null;
   if (!data?.url) return null;
   return (
     <audio
@@ -277,7 +314,7 @@ export default function Library() {
           </UploadButton>
         </Header>
 
-        {isLoading && <Muted>Loading…</Muted>}
+        {isLoading && <LibrarySkeleton />}
 
         {!isLoading && uploads.length === 0 && (
           <EmptyState>
