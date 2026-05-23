@@ -16,6 +16,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { feedGeneratorUriAtom } from "../../atoms/feed";
 import { getStreamUrl } from "../../api/uploads";
 import { useQueuePersistence } from "../../hooks/useQueuePersistence";
+import { useUploadScrobble } from "../../hooks/useUploadScrobble";
 
 // ---------------------------------------------------------------------------
 // Queue Panel
@@ -140,6 +141,7 @@ const QueueTrackMeta = styled.p`
 
 function StickyPlayerWithData() {
   useQueuePersistence();
+  useUploadScrobble();
   const queryClient = useQueryClient();
   const feedUri = useAtomValue(feedGeneratorUriAtom);
   const [liked, setLiked] = useState<Record<string, boolean>>({});
