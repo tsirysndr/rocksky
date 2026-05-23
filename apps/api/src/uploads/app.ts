@@ -217,10 +217,24 @@ app.post("/track", async (c) => {
   }
 
   // --- Completeness check ---
+  // Validates all fields required by the app.rocksky.song ATProto lexicon:
+  //   required: [title, artist, album, albumArtist, duration, createdAt]
+  //   albumArtist falls back to artist; createdAt is server-set.
+  //   Constraints: title ≤ 512, artist/albumArtist/album ≤ 256, duration ≥ 1.
+  const durationMs = format.duration ? Math.round(format.duration * 1000) : 0;
+
   const missing: string[] = [];
   if (!common.title?.trim()) missing.push("title");
+  else if (common.title.trim().length > 512) missing.push("title (too long, max 512 chars)");
   if (!common.artist?.trim()) missing.push("artist");
+  else if (common.artist.trim().length > 256) missing.push("artist (too long, max 256 chars)");
   if (!common.album?.trim()) missing.push("album");
+  else if (common.album.trim().length > 256) missing.push("album (too long, max 256 chars)");
+  if (durationMs < 1) missing.push("duration");
+
+  // albumArtist falls back to artist, but we still check its length if explicitly set
+  const albumArtistRaw = common.albumartist?.trim() || common.artist?.trim() || "";
+  if (albumArtistRaw.length > 256) missing.push("albumArtist (too long, max 256 chars)");
 
   if (missing.length > 0) {
     c.status(422);
@@ -295,9 +309,6 @@ app.post("/track", async (c) => {
       consola.warn("[uploads] album art upload failed, continuing without it", e);
     }
   }
-
-  // --- Duration in milliseconds (matches symphonia output in Rust crates) ---
-  const durationMs = format.duration ? Math.round(format.duration * 1000) : 0;
 
   // --- Disc number: default to 1 when 0 or missing (matches Rust crate) ---
   const discNumber = (() => {
