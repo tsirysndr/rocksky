@@ -4,21 +4,34 @@ import {
   IconPlayerPauseFilled,
   IconPlayerPlayFilled,
   IconPlayerSkipForwardFilled,
+  IconPlayerSkipBackFilled,
 } from "@tabler/icons-react";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { nowPlayingAtom } from "../../atoms/nowpaying";
 import { playerAtom } from "../../atoms/player";
+import { playerScreenOpenAtom } from "../../atoms/playerScreen";
+import { queueAtom, queueIndexAtom } from "../../atoms/queue";
 import useLike from "../../hooks/useLike";
 import useSpotify from "../../hooks/useSpotify";
+import { useQueuePersistence } from "../../hooks/useQueuePersistence";
+import { useUploadScrobble } from "../../hooks/useUploadScrobble";
+import { getStreamUrl } from "../../api/uploads";
+import PlayerScreen from "../PlayerScreen";
 import axios from "axios";
 import { API_URL } from "../../consts";
 import _ from "lodash";
 
 export default function MiniPlayer() {
+  useQueuePersistence();
+  useUploadScrobble();
+  const setPlayerScreenOpen = useSetAtom(playerScreenOpenAtom);
+
   const [nowPlaying, setNowPlaying] = useAtom(nowPlayingAtom);
   const [player, setPlayer] = useAtom(playerAtom);
+  const queue = useAtomValue(queueAtom);
+  const [queueIndex, setQueueIndex] = useAtom(queueIndexAtom);
   const { like, unlike } = useLike();
   const { play, pause, next } = useSpotify();
   const socketRef = useRef<WebSocket | null>(null);
@@ -27,11 +40,16 @@ export default function MiniPlayer() {
   const lastFetchedRef = useRef(0);
   const nowPlayingRef = useRef(nowPlaying);
   const playerRef = useRef(player);
+  const queueRef = useRef(queue);
+  const queueIndexRef = useRef(queueIndex);
   const [liked, setLiked] = useState<Record<string, boolean>>({});
   const likedRef = useRef(liked);
 
+  // Hidden audio element for upload player
+  const audioRef = useRef<HTMLAudioElement>(null);
+
   const fetchCurrentlyPlaying = useCallback(async () => {
-    if (playerRef.current === "rockbox") return;
+    if (playerRef.current === "rockbox" || playerRef.current === "upload") return;
     try {
       const { data } = await axios.get(`${API_URL}/spotify/currently-playing`, {
         headers: { authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -68,25 +86,85 @@ export default function MiniPlayer() {
     nowPlayingRef.current = nowPlaying;
     playerRef.current = player;
     likedRef.current = liked;
-  }, [nowPlaying, player, liked]);
+    queueRef.current = queue;
+    queueIndexRef.current = queueIndex;
+  }, [nowPlaying, player, liked, queue, queueIndex]);
 
-  // Progress ticker
+  // Load and play audio when upload track changes
+  useEffect(() => {
+    if (player !== "upload") return;
+    const track = queue[queueIndex];
+    if (!track) return;
+    getStreamUrl(track.uploadId).then(({ url }) => {
+      const audio = audioRef.current;
+      if (!audio) return;
+      audio.src = url;
+      audio.play().catch(() => {});
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [player, queueIndex]);
+
+  // Audio event listeners for upload player
+  useEffect(() => {
+    if (player !== "upload") return;
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const onTimeUpdate = () => {
+      setNowPlaying((prev) =>
+        prev ? { ...prev, progress: Math.floor(audio.currentTime * 1000) } : prev,
+      );
+    };
+    const onPlay = () => setNowPlaying((prev) => prev ? { ...prev, isPlaying: true } : prev);
+    const onPause = () => setNowPlaying((prev) => prev ? { ...prev, isPlaying: false } : prev);
+    const onEnded = () => {
+      const nextIdx = queueIndexRef.current + 1;
+      const nextTrack = queueRef.current[nextIdx];
+      if (nextTrack) {
+        setQueueIndex(nextIdx);
+        setNowPlaying({
+          title: nextTrack.title,
+          artist: nextTrack.artist,
+          artistUri: "",
+          songUri: "",
+          albumUri: "",
+          duration: nextTrack.duration,
+          progress: 0,
+          albumArt: nextTrack.albumArt ?? undefined,
+          isPlaying: true,
+          sha256: nextTrack.sha256,
+          liked: false,
+        });
+      }
+    };
+
+    audio.addEventListener("timeupdate", onTimeUpdate);
+    audio.addEventListener("play", onPlay);
+    audio.addEventListener("pause", onPause);
+    audio.addEventListener("ended", onEnded);
+    return () => {
+      audio.removeEventListener("timeupdate", onTimeUpdate);
+      audio.removeEventListener("play", onPlay);
+      audio.removeEventListener("pause", onPause);
+      audio.removeEventListener("ended", onEnded);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [player]);
+
+  // Progress ticker (Spotify / Rockbox)
   useEffect(() => {
     progressInterval.current = window.setInterval(() => {
       setNowPlaying((prev) => {
         if (!prev || !prev.isPlaying) return prev;
+        if (playerRef.current === "upload") return prev;
         if (prev.progress >= prev.duration) {
-          if (playerRef.current === "spotify") {
-            setTimeout(fetchCurrentlyPlaying, 2000);
-          }
+          if (playerRef.current === "spotify") setTimeout(fetchCurrentlyPlaying, 2000);
           return prev;
         }
         return { ...prev, progress: prev.progress + 100 };
       });
     }, 100);
-    return () => {
-      if (progressInterval.current) clearInterval(progressInterval.current);
-    };
+    return () => { if (progressInterval.current) clearInterval(progressInterval.current); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -99,7 +177,7 @@ export default function MiniPlayer() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // WebSocket for Rockbox — use same clientName as web app
+  // WebSocket for Rockbox
   useEffect(() => {
     if (!localStorage.getItem("token")) return;
     const wsUrl = API_URL.replace("https", "wss").replace("http", "ws");
@@ -119,15 +197,11 @@ export default function MiniPlayer() {
 
       ws.onmessage = (event) => {
         if (playerRef.current !== "rockbox" && playerRef.current !== null) return;
-
         const msg = JSON.parse(event.data);
 
         if (msg.type === "message" && msg.data?.type === "track") {
-          // Skip if we just fetched Spotify data very recently
           if (lastFetchedRef.current && Date.now() - lastFetchedRef.current < 3000) return;
-          // Only update if there's actual track data
           if (!msg.data.title && !msg.data.artist && !msg.data.album_artist) return;
-
           setNowPlaying({
             ...(nowPlayingRef.current ?? {}),
             title: msg.data.title,
@@ -179,6 +253,12 @@ export default function MiniPlayer() {
 
   const onPlayPause = () => {
     if (!nowPlaying) return;
+    if (player === "upload") {
+      const audio = audioRef.current;
+      if (!audio) return;
+      nowPlaying.isPlaying ? audio.pause() : audio.play().catch(() => {});
+      return;
+    }
     if (player === "rockbox" && socketRef.current) {
       socketRef.current.send(JSON.stringify({
         type: "command",
@@ -191,6 +271,26 @@ export default function MiniPlayer() {
   };
 
   const onNext = () => {
+    if (player === "upload") {
+      const nextIdx = queueIndexRef.current + 1;
+      const nextTrack = queueRef.current[nextIdx];
+      if (!nextTrack) return;
+      setQueueIndex(nextIdx);
+      setNowPlaying({
+        title: nextTrack.title,
+        artist: nextTrack.artist,
+        artistUri: "",
+        songUri: "",
+        albumUri: "",
+        duration: nextTrack.duration,
+        progress: 0,
+        albumArt: nextTrack.albumArt ?? undefined,
+        isPlaying: true,
+        sha256: nextTrack.sha256,
+        liked: false,
+      });
+      return;
+    }
     if (player === "rockbox" && socketRef.current) {
       socketRef.current.send(JSON.stringify({
         type: "command", action: "next", token: localStorage.getItem("token"),
@@ -200,7 +300,53 @@ export default function MiniPlayer() {
     next();
   };
 
-  if (!nowPlaying) return null;
+  const onPrevious = () => {
+    if (player !== "upload") return;
+    const audio = audioRef.current;
+    if (audio && audio.currentTime > 3) {
+      audio.currentTime = 0;
+      setNowPlaying((prev) => prev ? { ...prev, progress: 0 } : prev);
+      return;
+    }
+    const prevIdx = queueIndexRef.current - 1;
+    const prevTrack = queueRef.current[prevIdx];
+    if (!prevTrack) return;
+    setQueueIndex(prevIdx);
+    setNowPlaying({
+      title: prevTrack.title,
+      artist: prevTrack.artist,
+      artistUri: "",
+      songUri: "",
+      albumUri: "",
+      duration: prevTrack.duration,
+      progress: 0,
+      albumArt: prevTrack.albumArt ?? undefined,
+      isPlaying: true,
+      sha256: prevTrack.sha256,
+      liked: false,
+    });
+  };
+
+  const onSelectQueueIndex = useCallback((idx: number) => {
+    const track = queueRef.current[idx];
+    if (!track) return;
+    setQueueIndex(idx);
+    setNowPlaying({
+      title: track.title,
+      artist: track.artist,
+      artistUri: "",
+      songUri: "",
+      albumUri: "",
+      duration: track.duration,
+      progress: 0,
+      albumArt: track.albumArt ?? undefined,
+      isPlaying: true,
+      sha256: track.sha256,
+      liked: false,
+    });
+  }, [setQueueIndex, setNowPlaying]);
+
+  if (!nowPlaying) return <audio ref={audioRef} style={{ display: "none" }} />;
 
   const progress =
     nowPlaying.duration > 0
@@ -212,93 +358,116 @@ export default function MiniPlayer() {
     : null;
 
   return (
-    <div
-      className="fixed left-0 right-0 z-30"
-      style={{
-        bottom: `calc(56px + env(safe-area-inset-bottom))`,
-        backgroundColor: "var(--color-surface)",
-        borderTop: "1px solid var(--color-border)",
-        height: "var(--player-height)",
-      }}
-    >
-      {/* Progress bar */}
-      <div className="h-0.5 w-full" style={{ backgroundColor: "var(--color-border)" }}>
-        <div
-          className="h-full transition-all duration-100"
-          style={{ width: `${progress}%`, backgroundColor: "var(--color-primary)" }}
-        />
-      </div>
-
-      <div className="flex items-center h-[calc(var(--player-height)-2px)] px-4 gap-3">
-        {/* Album art */}
-        {nowPlaying.albumArt ? (
-          <img
-            src={nowPlaying.albumArt}
-            alt="album"
-            className="w-12 h-12 rounded-lg object-cover shrink-0"
-          />
-        ) : (
+    <>
+      <audio ref={audioRef} style={{ display: "none" }} />
+      <PlayerScreen
+        audioRef={audioRef}
+        onPlayPause={onPlayPause}
+        onNext={onNext}
+        onPrevious={onPrevious}
+        onSelectQueueIndex={onSelectQueueIndex}
+      />
+      <div
+        className="fixed left-0 right-0 z-30"
+        style={{
+          bottom: `calc(56px + env(safe-area-inset-bottom))`,
+          backgroundColor: "var(--color-surface)",
+          borderTop: "1px solid var(--color-border)",
+          height: "var(--player-height)",
+        }}
+      >
+        {/* Progress bar */}
+        <div className="h-0.5 w-full" style={{ backgroundColor: "var(--color-border)" }}>
           <div
-            className="w-12 h-12 rounded-lg shrink-0 flex items-center justify-center"
-            style={{ backgroundColor: "var(--color-surface-2)" }}
-          >
-            <span className="text-xl opacity-30">♪</span>
-          </div>
-        )}
-
-        {/* Track info */}
-        <div className="flex-1 min-w-0">
-          {songPath ? (
-            <Link
-              to={songPath}
-              className="block font-semibold text-sm truncate no-underline"
-              style={{ color: "var(--color-text)" }}
-            >
-              {nowPlaying.title}
-            </Link>
-          ) : (
-            <p className="font-semibold text-sm truncate m-0" style={{ color: "var(--color-text)" }}>
-              {nowPlaying.title}
-            </p>
-          )}
-          <p className="text-xs truncate m-0" style={{ color: "var(--color-text-muted)" }}>
-            {nowPlaying.artist}
-          </p>
+            className="h-full transition-all duration-100"
+            style={{ width: `${progress}%`, backgroundColor: "var(--color-primary)" }}
+          />
         </div>
 
-        {/* Controls */}
-        <div className="flex items-center gap-3 shrink-0">
-          <button
-            onClick={nowPlaying.liked ? onDislike : onLike}
-            className="p-1 border-none bg-transparent cursor-pointer"
-          >
-            {nowPlaying.liked ? (
-              <IconHeartFilled size={20} color="var(--color-primary)" />
-            ) : (
-              <IconHeart size={20} color="var(--color-text-muted)" />
-            )}
-          </button>
+        <div
+          className="flex items-center h-[calc(var(--player-height)-2px)] px-4 gap-3"
+          onClick={() => { if (player === "upload") setPlayerScreenOpen(true); }}
+          style={{ cursor: player === "upload" ? "pointer" : "default" }}
+        >
+          {/* Album art */}
+          {nowPlaying.albumArt ? (
+            <img
+              src={nowPlaying.albumArt}
+              alt="album"
+              className="w-12 h-12 rounded-lg object-cover shrink-0"
+            />
+          ) : (
+            <div
+              className="w-12 h-12 rounded-lg shrink-0 flex items-center justify-center"
+              style={{ backgroundColor: "var(--color-surface-2)" }}
+            >
+              <span className="text-xl opacity-30">♪</span>
+            </div>
+          )}
 
-          <button
-            onClick={onPlayPause}
-            className="w-10 h-10 rounded-full flex items-center justify-center border-none cursor-pointer"
-            style={{ backgroundColor: "var(--color-primary)" }}
-          >
-            {nowPlaying.isPlaying ? (
-              <IconPlayerPauseFilled size={18} color="#fff" />
+          {/* Track info */}
+          <div className="flex-1 min-w-0">
+            {songPath && player !== "upload" ? (
+              <Link
+                to={songPath}
+                className="block font-semibold text-sm truncate no-underline"
+                style={{ color: "var(--color-text)" }}
+              >
+                {nowPlaying.title}
+              </Link>
             ) : (
-              <IconPlayerPlayFilled size={18} color="#fff" />
+              <p className="font-semibold text-sm truncate m-0" style={{ color: "var(--color-text)" }}>
+                {nowPlaying.title}
+              </p>
             )}
-          </button>
+            <p className="text-xs truncate m-0" style={{ color: "var(--color-text-muted)" }}>
+              {nowPlaying.artist}
+            </p>
+          </div>
 
-          <button
-            onClick={onNext}
-            className="p-1 border-none bg-transparent cursor-pointer"
-          >
-            <IconPlayerSkipForwardFilled size={20} color="var(--color-text-muted)" />
-          </button>
+          {/* Controls */}
+          <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+            {player === "upload" ? (
+              <button
+                onClick={onPrevious}
+                className="p-1 border-none bg-transparent cursor-pointer"
+              >
+                <IconPlayerSkipBackFilled size={20} color="var(--color-text-muted)" />
+              </button>
+            ) : (
+              <button
+                onClick={nowPlaying.liked ? onDislike : onLike}
+                className="p-1 border-none bg-transparent cursor-pointer"
+              >
+                {nowPlaying.liked ? (
+                  <IconHeartFilled size={20} color="var(--color-primary)" />
+                ) : (
+                  <IconHeart size={20} color="var(--color-text-muted)" />
+                )}
+              </button>
+            )}
+
+            <button
+              onClick={onPlayPause}
+              className="w-10 h-10 rounded-full flex items-center justify-center border-none cursor-pointer"
+              style={{ backgroundColor: "var(--color-primary)" }}
+            >
+              {nowPlaying.isPlaying ? (
+                <IconPlayerPauseFilled size={18} color="#fff" />
+              ) : (
+                <IconPlayerPlayFilled size={18} color="#fff" />
+              )}
+            </button>
+
+            <button
+              onClick={onNext}
+              className="p-1 border-none bg-transparent cursor-pointer"
+            >
+              <IconPlayerSkipForwardFilled size={20} color="var(--color-text-muted)" />
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

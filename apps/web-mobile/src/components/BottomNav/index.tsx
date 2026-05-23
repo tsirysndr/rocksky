@@ -4,6 +4,7 @@ import {
   IconSearch,
   IconSparkles,
   IconUser,
+  IconVinyl,
 } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
 import { Link, useLocation } from "react-router-dom";
@@ -18,6 +19,7 @@ export default function BottomNav() {
     { to: "/", icon: IconHome, label: "Home" },
     { to: "/charts", icon: IconChartBar, label: "Charts" },
     { to: "/search", icon: IconSearch, label: "Search" },
+    { to: "/library", icon: IconVinyl, label: "Library" },
     { to: "/me", icon: IconUser, label: "Profile" },
   ];
 
@@ -29,6 +31,7 @@ export default function BottomNav() {
           baseTabs[1],
           baseTabs[2],
           baseTabs[3],
+          baseTabs[4],
         ]
       : baseTabs;
 
