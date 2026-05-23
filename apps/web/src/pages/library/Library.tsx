@@ -150,6 +150,15 @@ const TrackRow = styled.div<{ active: boolean }>`
   }
 `;
 
+const TrackNum = styled.span`
+  width: 28px;
+  text-align: right;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+`;
+
 const ArtworkBox = styled.div`
   width: 40px;
   height: 40px;
@@ -493,9 +502,10 @@ function TrackRowSkeleton() {
       foregroundColor="var(--color-skeleton-foreground)"
       style={{ display: "block" }}
     >
-      <rect x="12" y="11" rx="8" ry="8" width="40" height="40" />
-      <rect x="64" y="14" rx="4" ry="4" width="180" height="14" />
-      <rect x="64" y="36" rx="3" ry="3" width="120" height="11" />
+      <rect x="8" y="24" rx="3" ry="3" width="20" height="14" />
+      <rect x="44" y="11" rx="8" ry="8" width="40" height="40" />
+      <rect x="96" y="14" rx="4" ry="4" width="180" height="14" />
+      <rect x="96" y="36" rx="3" ry="3" width="120" height="11" />
       <rect x="536" y="23" rx="3" ry="3" width="40" height="14" />
     </ContentLoader>
   );
@@ -848,12 +858,13 @@ export default function Library() {
 
             {allTracks.length > 0 && (
               <TrackList>
-                {allTracks.map((item) => (
+                {allTracks.map((item, idx) => (
                   <TrackRow
                     key={item.upload.id}
                     active={false}
                     onClick={() => handleTrackClick(item)}
                   >
+                    <TrackNum>{idx + 1}</TrackNum>
                     <ArtworkBox>
                       {item.track.albumArt ? (
                         <>
