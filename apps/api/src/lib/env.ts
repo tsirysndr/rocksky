@@ -42,4 +42,9 @@ export const env = cleanEnv(process.env, {
   MEILISEARCH_URL: str({ default: "http://localhost:7700" }),
   MEILISEARCH_API_KEY: str({}),
   DISABLED_TEALFM: str({ default: "" }),
+  S3_ENDPOINT: str({}),
+  S3_REGION: str({ default: "auto" }),
+  S3_ACCESS_KEY_ID: str({}),
+  S3_SECRET_ACCESS_KEY: str({}),
+  S3_BUCKET_NAME: str({ default: "rocksky-library" }),
 });

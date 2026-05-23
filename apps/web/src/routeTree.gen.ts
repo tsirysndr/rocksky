@@ -17,8 +17,10 @@ import { Route as ImportRouteImport } from './routes/import'
 import { Route as ChartsRouteImport } from './routes/charts'
 import { Route as ApikeysRouteImport } from './routes/apikeys'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LibraryIndexRouteImport } from './routes/library/index'
 import { Route as GoogledriveIndexRouteImport } from './routes/googledrive/index'
 import { Route as DropboxIndexRouteImport } from './routes/dropbox/index'
+import { Route as LibraryUploadRouteImport } from './routes/library/upload'
 import { Route as GoogledriveIdRouteImport } from './routes/googledrive/$id'
 import { Route as GenreIdRouteImport } from './routes/genre/$id'
 import { Route as DropboxIdRouteImport } from './routes/dropbox/$id'
@@ -77,6 +79,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LibraryIndexRoute = LibraryIndexRouteImport.update({
+  id: '/library/',
+  path: '/library/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GoogledriveIndexRoute = GoogledriveIndexRouteImport.update({
   id: '/googledrive/',
   path: '/googledrive/',
@@ -85,6 +92,11 @@ const GoogledriveIndexRoute = GoogledriveIndexRouteImport.update({
 const DropboxIndexRoute = DropboxIndexRouteImport.update({
   id: '/dropbox/',
   path: '/dropbox/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LibraryUploadRoute = LibraryUploadRouteImport.update({
+  id: '/library/upload',
+  path: '/library/upload',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GoogledriveIdRoute = GoogledriveIdRouteImport.update({
@@ -185,8 +197,10 @@ export interface FileRoutesByFullPath {
   '/dropbox/$id': typeof DropboxIdRoute
   '/genre/$id': typeof GenreIdRoute
   '/googledrive/$id': typeof GoogledriveIdRoute
+  '/library/upload': typeof LibraryUploadRoute
   '/dropbox': typeof DropboxIndexRoute
   '/googledrive': typeof GoogledriveIndexRoute
+  '/library': typeof LibraryIndexRoute
   '/$did/album/$rkey': typeof DidAlbumRkeyRoute
   '/$did/artist/$rkey': typeof DidArtistRkeyRoute
   '/$did/playlist/$rkey': typeof DidPlaylistRkeyRoute
@@ -214,8 +228,10 @@ export interface FileRoutesByTo {
   '/dropbox/$id': typeof DropboxIdRoute
   '/genre/$id': typeof GenreIdRoute
   '/googledrive/$id': typeof GoogledriveIdRoute
+  '/library/upload': typeof LibraryUploadRoute
   '/dropbox': typeof DropboxIndexRoute
   '/googledrive': typeof GoogledriveIndexRoute
+  '/library': typeof LibraryIndexRoute
   '/$did/album/$rkey': typeof DidAlbumRkeyRoute
   '/$did/artist/$rkey': typeof DidArtistRkeyRoute
   '/$did/playlist/$rkey': typeof DidPlaylistRkeyRoute
@@ -244,8 +260,10 @@ export interface FileRoutesById {
   '/dropbox/$id': typeof DropboxIdRoute
   '/genre/$id': typeof GenreIdRoute
   '/googledrive/$id': typeof GoogledriveIdRoute
+  '/library/upload': typeof LibraryUploadRoute
   '/dropbox/': typeof DropboxIndexRoute
   '/googledrive/': typeof GoogledriveIndexRoute
+  '/library/': typeof LibraryIndexRoute
   '/$did/album/$rkey': typeof DidAlbumRkeyRoute
   '/$did/artist/$rkey': typeof DidArtistRkeyRoute
   '/$did/playlist/$rkey': typeof DidPlaylistRkeyRoute
@@ -275,8 +293,10 @@ export interface FileRouteTypes {
     | '/dropbox/$id'
     | '/genre/$id'
     | '/googledrive/$id'
+    | '/library/upload'
     | '/dropbox'
     | '/googledrive'
+    | '/library'
     | '/$did/album/$rkey'
     | '/$did/artist/$rkey'
     | '/$did/playlist/$rkey'
@@ -304,8 +324,10 @@ export interface FileRouteTypes {
     | '/dropbox/$id'
     | '/genre/$id'
     | '/googledrive/$id'
+    | '/library/upload'
     | '/dropbox'
     | '/googledrive'
+    | '/library'
     | '/$did/album/$rkey'
     | '/$did/artist/$rkey'
     | '/$did/playlist/$rkey'
@@ -333,8 +355,10 @@ export interface FileRouteTypes {
     | '/dropbox/$id'
     | '/genre/$id'
     | '/googledrive/$id'
+    | '/library/upload'
     | '/dropbox/'
     | '/googledrive/'
+    | '/library/'
     | '/$did/album/$rkey'
     | '/$did/artist/$rkey'
     | '/$did/playlist/$rkey'
@@ -363,8 +387,10 @@ export interface RootRouteChildren {
   DropboxIdRoute: typeof DropboxIdRoute
   GenreIdRoute: typeof GenreIdRoute
   GoogledriveIdRoute: typeof GoogledriveIdRoute
+  LibraryUploadRoute: typeof LibraryUploadRoute
   DropboxIndexRoute: typeof DropboxIndexRoute
   GoogledriveIndexRoute: typeof GoogledriveIndexRoute
+  LibraryIndexRoute: typeof LibraryIndexRoute
   DidAlbumRkeyRoute: typeof DidAlbumRkeyRoute
   DidArtistRkeyRoute: typeof DidArtistRkeyRoute
   DidPlaylistRkeyRoute: typeof DidPlaylistRkeyRoute
@@ -439,6 +465,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/library/': {
+      id: '/library/'
+      path: '/library'
+      fullPath: '/library'
+      preLoaderRoute: typeof LibraryIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/googledrive/': {
       id: '/googledrive/'
       path: '/googledrive'
@@ -451,6 +484,13 @@ declare module '@tanstack/react-router' {
       path: '/dropbox'
       fullPath: '/dropbox'
       preLoaderRoute: typeof DropboxIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/library/upload': {
+      id: '/library/upload'
+      path: '/library/upload'
+      fullPath: '/library/upload'
+      preLoaderRoute: typeof LibraryUploadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/googledrive/$id': {
@@ -587,8 +627,10 @@ const rootRouteChildren: RootRouteChildren = {
   DropboxIdRoute: DropboxIdRoute,
   GenreIdRoute: GenreIdRoute,
   GoogledriveIdRoute: GoogledriveIdRoute,
+  LibraryUploadRoute: LibraryUploadRoute,
   DropboxIndexRoute: DropboxIndexRoute,
   GoogledriveIndexRoute: GoogledriveIndexRoute,
+  LibraryIndexRoute: LibraryIndexRoute,
   DidAlbumRkeyRoute: DidAlbumRkeyRoute,
   DidArtistRkeyRoute: DidArtistRkeyRoute,
   DidPlaylistRkeyRoute: DidPlaylistRkeyRoute,

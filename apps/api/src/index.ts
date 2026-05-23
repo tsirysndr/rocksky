@@ -22,6 +22,7 @@ import { trackSchema } from "types/track";
 import handleWebsocket from "websocket/handler";
 import apikeys from "./apikeys/app";
 import bsky from "./bsky/app";
+import uploadsApp from "./uploads/app";
 import importApp from "./import/app";
 import dropbox from "./dropbox/app";
 import googledrive from "./googledrive/app";
@@ -617,6 +618,8 @@ app.get("/albums/:sha256/tracks", async (c) => {
 
   return c.json(albumTracksData.map((item) => item.track));
 });
+
+app.route("/uploads", uploadsApp);
 
 app.route("/users", usersApp);
 
