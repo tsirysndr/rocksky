@@ -229,21 +229,6 @@ const MenuBtn = styled.button`
   }
 `;
 
-const DropdownMenu = styled.div`
-  position: absolute;
-  right: 0;
-  top: calc(100% + 4px);
-  z-index: 200;
-  background: var(--color-background);
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.16);
-  min-width: 180px;
-  padding: 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-`;
 
 const MenuItem = styled.button`
   text-align: left;
@@ -840,7 +825,7 @@ export default function Library() {
 
         <Tabs
           activeKey={activeKey}
-          onChange={({ activeKey }) => setActiveKey(activeKey)}
+          onChange={({ activeKey }) => setActiveKey(activeKey as string | number)}
           overrides={tabsOverrides}
           activateOnFocus
         >

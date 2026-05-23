@@ -371,7 +371,7 @@ export default function UploadPage() {
           </div>
         </MetaInfo>
 
-        <DropZone active={isDragActive} {...getRootProps()}>
+        <DropZone {...getRootProps()} active={isDragActive}>
           <input {...getInputProps()} />
           <DropIconBox>
             <IconCloudUpload

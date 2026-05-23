@@ -35,7 +35,7 @@ export function DropdownPortal({
   children: React.ReactNode;
 }) {
   const [pos, setPos] = useState<Pos | null>(null);
-  const internalRef = useRef<HTMLDivElement>(null);
+  const internalRef = useRef<HTMLDivElement | null>(null);
 
   // Merge external menuRef with internal measurement ref
   const setRefs = useCallback(

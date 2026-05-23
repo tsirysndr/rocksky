@@ -1,7 +1,7 @@
 import styled from "@emotion/styled";
 import { IconGripVertical, IconMusic, IconX } from "@tabler/icons-react";
 import axios from "axios";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import _ from "lodash";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { nowPlayingAtom } from "../../atoms/nowpaying";
@@ -157,7 +157,7 @@ function StickyPlayerWithData() {
   const likedRef = useRef(liked);
 
   // Upload player state
-  const [queue, setQueue] = useAtom(queueAtom);
+  const queue = useAtomValue(queueAtom);
   const [queueIndex, setQueueIndex] = useAtom(queueIndexAtom);
   const [queuePanelOpen, setQueuePanelOpen] = useAtom(queuePanelOpenAtom);
   const audioRef = useRef<HTMLAudioElement>(null);

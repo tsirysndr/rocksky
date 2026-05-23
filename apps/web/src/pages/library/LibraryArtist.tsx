@@ -17,12 +17,6 @@ import type { QueueTrack } from "../../atoms/queue";
 import Main from "../../layouts/Main";
 import { DropdownPortal } from "../../components/DropdownPortal";
 
-function parseAtUri(uri: string | null | undefined) {
-  if (!uri) return null;
-  const m = uri.match(/^at:\/\/([^/]+)\/[^/]+\/([^/]+)$/);
-  return m ? { did: m[1], rkey: m[2] } : null;
-}
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -323,21 +317,6 @@ const MenuHeaderArtist = styled.p`
   text-overflow: ellipsis;
 `;
 
-const DropdownMenu = styled.div`
-  position: absolute;
-  right: 0;
-  top: calc(100% + 4px);
-  z-index: 200;
-  background: var(--color-background);
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.16);
-  min-width: 160px;
-  padding: 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-`;
 
 const MenuItem = styled.button`
   text-align: left;
