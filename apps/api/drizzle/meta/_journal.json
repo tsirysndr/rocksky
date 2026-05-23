@@ -43,6 +43,13 @@
       "when": 1779511801748,
       "tag": "0005_square_pixie",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1779570501440,
+      "tag": "0006_funny_johnny_blaze",
+      "breakpoints": true
     }
   ]
 }

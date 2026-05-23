@@ -27,6 +27,8 @@ export interface UploadedTrack {
     genre: string | null;
     trackNumber: number | null;
     sha256: string;
+    artistUri: string | null;
+    albumUri: string | null;
   };
 }
 
@@ -96,4 +98,36 @@ export const deleteUpload = async (uploadId: string): Promise<void> => {
   await axios.delete(`${API_URL}/uploads/${uploadId}`, {
     headers: headers(),
   });
+};
+
+export interface PersistedQueueTrack {
+  uploadId: string;
+  title: string;
+  artist: string;
+  album: string;
+  albumArt: string | null;
+  duration: number;
+  sha256: string;
+}
+
+export const getQueueState = async (): Promise<{
+  queue: PersistedQueueTrack[];
+  currentIndex: number;
+}> => {
+  const response = await axios.get<{ queue: PersistedQueueTrack[]; currentIndex: number }>(
+    `${API_URL}/uploads/queue`,
+    { headers: headers() },
+  );
+  return response.data;
+};
+
+export const saveQueueState = async (
+  uploadIds: string[],
+  currentIndex: number,
+): Promise<void> => {
+  await axios.put(
+    `${API_URL}/uploads/queue`,
+    { uploadIds, currentIndex },
+    { headers: headers() },
+  );
 };

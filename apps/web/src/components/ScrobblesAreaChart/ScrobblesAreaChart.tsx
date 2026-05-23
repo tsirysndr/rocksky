@@ -107,8 +107,7 @@ function ScrobblesAreaChart() {
     pathname === "/" ||
     pathname === "/charts" ||
     pathname === "/recommendations" ||
-    pathname === "/library" ||
-    pathname === "/library/upload" ||
+    pathname.startsWith("/library") ||
     pathname.startsWith("/dropbox") ||
     (pathname.startsWith("/googledrive") && getScrobblesChart().length > 0)
       ? getScrobblesChart()

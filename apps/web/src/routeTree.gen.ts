@@ -38,6 +38,8 @@ import { Route as DidScrobbleRkeyRouteImport } from './routes/$did.scrobble.$rke
 import { Route as DidPlaylistRkeyRouteImport } from './routes/$did.playlist.$rkey'
 import { Route as DidArtistRkeyRouteImport } from './routes/$did.artist.$rkey'
 import { Route as DidAlbumRkeyRouteImport } from './routes/$did.album.$rkey'
+import { Route as LibraryDidArtistRkeyRouteImport } from './routes/library/$did/artist/$rkey'
+import { Route as LibraryDidAlbumRkeyRouteImport } from './routes/library/$did/album/$rkey'
 
 const WrappedRoute = WrappedRouteImport.update({
   id: '/wrapped',
@@ -184,6 +186,16 @@ const DidAlbumRkeyRoute = DidAlbumRkeyRouteImport.update({
   path: '/$did/album/$rkey',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LibraryDidArtistRkeyRoute = LibraryDidArtistRkeyRouteImport.update({
+  id: '/library/$did/artist/$rkey',
+  path: '/library/$did/artist/$rkey',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LibraryDidAlbumRkeyRoute = LibraryDidAlbumRkeyRouteImport.update({
+  id: '/library/$did/album/$rkey',
+  path: '/library/$did/album/$rkey',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -215,6 +227,8 @@ export interface FileRoutesByFullPath {
   '/profile/$did/tags': typeof ProfileDidTagsRoute
   '/profile/$did/tracks': typeof ProfileDidTracksRoute
   '/profile/$did': typeof ProfileDidIndexRoute
+  '/library/$did/album/$rkey': typeof LibraryDidAlbumRkeyRoute
+  '/library/$did/artist/$rkey': typeof LibraryDidArtistRkeyRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -246,6 +260,8 @@ export interface FileRoutesByTo {
   '/profile/$did/tags': typeof ProfileDidTagsRoute
   '/profile/$did/tracks': typeof ProfileDidTracksRoute
   '/profile/$did': typeof ProfileDidIndexRoute
+  '/library/$did/album/$rkey': typeof LibraryDidAlbumRkeyRoute
+  '/library/$did/artist/$rkey': typeof LibraryDidArtistRkeyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -278,6 +294,8 @@ export interface FileRoutesById {
   '/profile/$did/tags': typeof ProfileDidTagsRoute
   '/profile/$did/tracks': typeof ProfileDidTracksRoute
   '/profile/$did/': typeof ProfileDidIndexRoute
+  '/library/$did/album/$rkey': typeof LibraryDidAlbumRkeyRoute
+  '/library/$did/artist/$rkey': typeof LibraryDidArtistRkeyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -311,6 +329,8 @@ export interface FileRouteTypes {
     | '/profile/$did/tags'
     | '/profile/$did/tracks'
     | '/profile/$did'
+    | '/library/$did/album/$rkey'
+    | '/library/$did/artist/$rkey'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -342,6 +362,8 @@ export interface FileRouteTypes {
     | '/profile/$did/tags'
     | '/profile/$did/tracks'
     | '/profile/$did'
+    | '/library/$did/album/$rkey'
+    | '/library/$did/artist/$rkey'
   id:
     | '__root__'
     | '/'
@@ -373,6 +395,8 @@ export interface FileRouteTypes {
     | '/profile/$did/tags'
     | '/profile/$did/tracks'
     | '/profile/$did/'
+    | '/library/$did/album/$rkey'
+    | '/library/$did/artist/$rkey'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -405,6 +429,8 @@ export interface RootRouteChildren {
   ProfileDidTagsRoute: typeof ProfileDidTagsRoute
   ProfileDidTracksRoute: typeof ProfileDidTracksRoute
   ProfileDidIndexRoute: typeof ProfileDidIndexRoute
+  LibraryDidAlbumRkeyRoute: typeof LibraryDidAlbumRkeyRoute
+  LibraryDidArtistRkeyRoute: typeof LibraryDidArtistRkeyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -612,6 +638,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DidAlbumRkeyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/library/$did/artist/$rkey': {
+      id: '/library/$did/artist/$rkey'
+      path: '/library/$did/artist/$rkey'
+      fullPath: '/library/$did/artist/$rkey'
+      preLoaderRoute: typeof LibraryDidArtistRkeyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/library/$did/album/$rkey': {
+      id: '/library/$did/album/$rkey'
+      path: '/library/$did/album/$rkey'
+      fullPath: '/library/$did/album/$rkey'
+      preLoaderRoute: typeof LibraryDidAlbumRkeyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -645,6 +685,8 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileDidTagsRoute: ProfileDidTagsRoute,
   ProfileDidTracksRoute: ProfileDidTracksRoute,
   ProfileDidIndexRoute: ProfileDidIndexRoute,
+  LibraryDidAlbumRkeyRoute: LibraryDidAlbumRkeyRoute,
+  LibraryDidArtistRkeyRoute: LibraryDidArtistRkeyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -95,6 +95,8 @@ export type StickyPlayerProps = {
   onLike: (id: string) => void;
   onDislike: (id: string) => void;
   isPlaying: boolean;
+  showQueueButton?: boolean;
+  queuePanelOpen?: boolean;
 };
 
 function StickyPlayer(props: StickyPlayerProps) {
@@ -111,6 +113,8 @@ function StickyPlayer(props: StickyPlayerProps) {
     onLike,
     onDislike,
     isPlaying,
+    showQueueButton,
+    queuePanelOpen,
   } = props;
   const progressbarRef = useRef<HTMLDivElement>(null);
   const { formatTime } = useTimeFormat();
@@ -270,7 +274,12 @@ function StickyPlayer(props: StickyPlayerProps) {
             <Button onClick={onEqualizer} disabled>
               <Equalizer />
             </Button>
-            <Button onClick={onPlaylist} disabled>
+            <Button
+              onClick={onPlaylist}
+              disabled={!showQueueButton}
+              style={queuePanelOpen ? { background: "color-mix(in srgb, var(--color-primary) 15%, transparent)" } : {}}
+              className="!bg-[var(--color-background)] !text-[var(--color-text)]"
+            >
               <Playlist />
             </Button>
           </RightActions>

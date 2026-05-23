@@ -47,4 +47,5 @@ export const env = cleanEnv(process.env, {
   S3_ACCESS_KEY_ID: str({}),
   S3_SECRET_ACCESS_KEY: str({}),
   S3_BUCKET_NAME: str({ default: "rocksky-library" }),
+  S3_COVERS_BUCKET_NAME: str({ default: "rocksky" }),
 });

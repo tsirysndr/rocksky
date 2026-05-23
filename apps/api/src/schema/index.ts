@@ -34,6 +34,7 @@ import userArtists from "./user-artists";
 import userPlaylists from "./user-playlists";
 import userTracks from "./user-tracks";
 import userUploads from "./user-uploads";
+import uploadQueueState from "./upload-queue-state";
 import users from "./users";
 import webscrobblers from "./webscrobblers";
 
@@ -56,6 +57,7 @@ export default {
   userArtists,
   userTracks,
   userUploads,
+  uploadQueueState,
   albumTracks,
   userPlaylists,
   lovedTracks,

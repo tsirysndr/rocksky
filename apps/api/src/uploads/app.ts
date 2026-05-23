@@ -7,7 +7,7 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { consola } from "consola";
 import { ctx } from "context";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { Hono } from "hono";
 import jwt from "jsonwebtoken";
 import { createAgent } from "lib/agent";
@@ -299,13 +299,13 @@ app.post("/track", async (c) => {
       const s3 = makeS3Client();
       await s3.send(
         new PutObjectCommand({
-          Bucket: env.S3_BUCKET_NAME,
+          Bucket: env.S3_COVERS_BUCKET_NAME,
           Key: coverKey,
           Body: picture.data,
           ContentType: picture.format,
         }),
       );
-      albumArtUrl = `${env.S3_ENDPOINT}/${env.S3_BUCKET_NAME}/${coverKey}`;
+      albumArtUrl = `${env.S3_ENDPOINT}/${env.S3_COVERS_BUCKET_NAME}/${coverKey}`;
     } catch (e) {
       consola.warn("[uploads] album art upload failed, continuing without it", e);
     }
@@ -480,6 +480,93 @@ app.get("/:id/stream", async (c) => {
   );
 
   return c.json({ url, expiresIn: 3600 });
+});
+
+// GET /uploads/queue ---------------------------------------------------------
+// Returns the persisted upload player queue for the authenticated user.
+app.get("/queue", async (c) => {
+  const user = await resolveUser(c.req.header("authorization"));
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const state = await ctx.db
+    .select()
+    .from(tables.uploadQueueState)
+    .where(eq(tables.uploadQueueState.userId, user.id))
+    .limit(1)
+    .then((rows) => rows[0] ?? null);
+
+  if (!state) {
+    return c.json({ queue: [], currentIndex: 0 });
+  }
+
+  const uploadIds: string[] = JSON.parse(state.uploadIds);
+  if (uploadIds.length === 0) {
+    return c.json({ queue: [], currentIndex: 0 });
+  }
+
+  const rows = await ctx.db
+    .select({
+      uploadId: tables.userUploads.id,
+      title: tables.tracks.title,
+      artist: tables.tracks.artist,
+      album: tables.tracks.album,
+      albumArt: tables.tracks.albumArt,
+      duration: tables.tracks.duration,
+      sha256: tables.tracks.sha256,
+    })
+    .from(tables.userUploads)
+    .innerJoin(tables.tracks, eq(tables.userUploads.trackId, tables.tracks.id))
+    .where(
+      and(
+        inArray(tables.userUploads.id, uploadIds),
+        eq(tables.userUploads.userId, user.id),
+      ),
+    );
+
+  const byId = new Map(rows.map((r) => [r.uploadId, r]));
+  const queue = uploadIds.flatMap((id) => {
+    const r = byId.get(id);
+    return r ? [{ uploadId: r.uploadId, title: r.title, artist: r.artist, album: r.album, albumArt: r.albumArt, duration: r.duration, sha256: r.sha256 }] : [];
+  });
+
+  return c.json({ queue, currentIndex: state.currentIndex });
+});
+
+// PUT /uploads/queue ---------------------------------------------------------
+// Persists the current upload player queue for the authenticated user.
+app.put("/queue", async (c) => {
+  const user = await resolveUser(c.req.header("authorization"));
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const body = await c.req.json<{ uploadIds: string[]; currentIndex: number }>();
+  if (!Array.isArray(body.uploadIds) || typeof body.currentIndex !== "number") {
+    c.status(400);
+    return c.text("Invalid body");
+  }
+
+  await ctx.db
+    .insert(tables.uploadQueueState)
+    .values({
+      userId: user.id,
+      uploadIds: JSON.stringify(body.uploadIds),
+      currentIndex: body.currentIndex,
+    })
+    .onConflictDoUpdate({
+      target: tables.uploadQueueState.userId,
+      set: {
+        uploadIds: JSON.stringify(body.uploadIds),
+        currentIndex: body.currentIndex,
+        updatedAt: new Date(),
+      },
+    });
+
+  return c.json({ status: "ok" });
 });
 
 // DELETE /uploads/:id --------------------------------------------------------

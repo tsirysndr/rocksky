@@ -1,13 +1,15 @@
 import { atom } from "jotai";
 
-export const queueAtom = atom<
-  {
-    id: string;
-    artist: string;
-    album: string;
-    title: string;
-    albumArt?: string;
-    url: string;
-    duration: number;
-  }[]
->([]);
+export interface QueueTrack {
+  uploadId: string;
+  title: string;
+  artist: string;
+  album: string;
+  albumArt: string | null;
+  duration: number;
+  sha256: string;
+}
+
+export const queueAtom = atom<QueueTrack[]>([]);
+export const queueIndexAtom = atom<number>(0);
+export const queuePanelOpenAtom = atom<boolean>(false);
