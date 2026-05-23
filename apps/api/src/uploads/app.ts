@@ -10,10 +10,12 @@ import { ctx } from "context";
 import { and, desc, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import jwt from "jsonwebtoken";
+import { createAgent } from "lib/agent";
 import { env } from "lib/env";
 import { parseBuffer } from "music-metadata";
 import { createHash } from "node:crypto";
 import tables from "schema";
+import { saveTrack } from "tracks/tracks.service";
 
 // ---------------------------------------------------------------------------
 // Allowed audio MIME types
@@ -43,6 +45,14 @@ const MIME_TO_EXT: Record<string, string> = {
   "audio/x-aiff": "aiff",
 };
 
+const PICTURE_MIME_TO_EXT: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/gif": "gif",
+  "image/bmp": "bmp",
+  "image/tiff": "tiff",
+};
+
 // ---------------------------------------------------------------------------
 // Magic-byte signatures for format detection (don't trust Content-Type)
 // ---------------------------------------------------------------------------
@@ -56,23 +66,46 @@ const MAGIC: Array<{ bytes: number[]; mime: string }> = [
   { bytes: [0x4f, 0x67, 0x67, 0x53], mime: "audio/ogg" },  // OggS
   { bytes: [0x52, 0x49, 0x46, 0x46], mime: "audio/wav" },  // RIFF → WAV
   { bytes: [0x46, 0x4f, 0x52, 0x4d], mime: "audio/aiff" }, // FORM → AIFF
-  // M4A / MP4 — ftyp box at offset 4
 ];
 
 function detectMime(buf: Buffer): string | null {
   for (const sig of MAGIC) {
     if (sig.bytes.every((b, i) => buf[i] === b)) return sig.mime;
   }
-  // M4A: bytes 4-7 are "ftyp"
+  // M4A / MP4: ftyp box starts at byte 4
   if (
-    buf[4] === 0x66 &&
-    buf[5] === 0x74 &&
-    buf[6] === 0x79 &&
-    buf[7] === 0x70
+    buf[4] === 0x66 && buf[5] === 0x74 &&
+    buf[6] === 0x79 && buf[7] === 0x70
   ) {
     return "audio/mp4";
   }
   return null;
+}
+
+// ---------------------------------------------------------------------------
+// SHA-256 — computed from metadata, matching the Dropbox/Google Drive crates:
+//   sha256("{title} - {artist} - {album}".to_lowercase())
+// This ensures the same track is deduplicated across all ingestion sources.
+// ---------------------------------------------------------------------------
+
+function metaSha256(title: string, artist: string, album: string): string {
+  return createHash("sha256")
+    .update(`${title} - ${artist} - ${album}`.toLowerCase())
+    .digest("hex");
+}
+
+// Content hash — used only for the R2 storage key so different files with
+// the same metadata don't overwrite each other in the bucket.
+function contentSha256(buf: Buffer): string {
+  return createHash("sha256").update(buf).digest("hex");
+}
+
+// Album art cover filename: MD5 of "{albumArtist} - {album}".toLowerCase()
+// Matches the Rust crate convention so covers aren't duplicated.
+function coverMd5(albumArtist: string, album: string): string {
+  return createHash("md5")
+    .update(`${albumArtist} - ${album}`.toLowerCase())
+    .digest("hex");
 }
 
 // ---------------------------------------------------------------------------
@@ -91,7 +124,7 @@ function makeS3Client(): S3Client {
 }
 
 // ---------------------------------------------------------------------------
-// Auth helper — resolves JWT → user row (DRY across handlers)
+// Auth helper — resolves JWT → user row
 // ---------------------------------------------------------------------------
 
 async function resolveUser(authHeader: string | undefined | null) {
@@ -115,16 +148,17 @@ async function resolveUser(authHeader: string | undefined | null) {
 const app = new Hono();
 
 // POST /uploads/track --------------------------------------------------------
-// Accepts multipart/form-data with a single "file" field.
 // Pipeline:
 //   1. JWT auth
 //   2. Magic-byte MIME check → reject non-audio
-//   3. music-metadata parse
-//   4. Completeness check (title + artist + album required)
-//   5. SHA-256 dedup
-//   6. Upsert track row
-//   7. PUT to S3-compatible storage
-//   8. Insert user_uploads record
+//   3. music-metadata parse (no primary tag → reject)
+//   4. Completeness check: title + artist + album required
+//   5. Meta-SHA256 dedup (matches Dropbox/Google Drive crate logic)
+//   6. Duplicate-per-user check by trackId
+//   7. Album art extraction + upload to covers/
+//   8. Upsert track row (duration in ms, discNumber defaults to 1)
+//   9. PUT audio file to music/ using content-SHA256 storage key
+//  10. Insert user_uploads record
 app.post("/track", async (c) => {
   const user = await resolveUser(c.req.header("authorization"));
   if (!user) {
@@ -148,14 +182,13 @@ app.post("/track", async (c) => {
 
   const buf = Buffer.from(await file.arrayBuffer());
 
-  // --- Format validation (magic bytes) ---
+  // --- Format validation (magic bytes, not Content-Type) ---
   const mime = detectMime(buf);
   if (!mime || !ALLOWED_MIME_TYPES.has(mime)) {
     c.status(400);
     return c.json({
       error: "INVALID_FORMAT",
-      message:
-        "Only audio files are accepted (MP3, FLAC, M4A, OGG, WAV, AIFF)",
+      message: "Only audio files are accepted (MP3, FLAC, M4A, OGG, WAV, AIFF)",
     });
   }
 
@@ -174,6 +207,15 @@ app.post("/track", async (c) => {
 
   const { common, format } = metadata;
 
+  // No primary tag block at all → reject (mirrors lofty primary_tag check)
+  if (!common.title && !common.artist && !common.album) {
+    c.status(422);
+    return c.json({
+      error: "NO_TAGS",
+      message: "No audio tags found in this file. Please tag your file before uploading.",
+    });
+  }
+
   // --- Completeness check ---
   const missing: string[] = [];
   if (!common.title?.trim()) missing.push("title");
@@ -189,10 +231,15 @@ app.post("/track", async (c) => {
     });
   }
 
-  // --- Dedup by SHA-256 ---
-  const sha256 = createHash("sha256").update(buf).digest("hex");
+  const title = common.title!.trim();
+  const artist = common.artist!.trim();
+  const album = common.album!.trim();
+  const albumArtist = common.albumartist?.trim() || artist;
+
+  // --- Content SHA-256: used for upload dedup and R2 storage key ---
+  const fileHash = contentSha256(buf);
   const ext = MIME_TO_EXT[mime] ?? "bin";
-  const storageKey = `music/${user.id}/${sha256}.${ext}`;
+  const storageKey = `music/${user.id}/${fileHash}.${ext}`;
 
   const existingUpload = await ctx.db
     .select()
@@ -210,40 +257,119 @@ app.post("/track", async (c) => {
     c.status(409);
     return c.json({
       error: "DUPLICATE_FILE",
-      message: "This file is already in your library",
+      message: "This exact file is already in your library",
       uploadId: existingUpload.id,
     });
   }
 
-  // --- Upsert track (global dedup by sha256) ---
-  let track = await ctx.db
+  // --- Metadata SHA-256: global track dedup across all ingestion sources ---
+  const sha256 = metaSha256(title, artist, album);
+
+  const existingTrack = await ctx.db
     .select()
     .from(tables.tracks)
     .where(eq(tables.tracks.sha256, sha256))
     .limit(1)
     .then((rows) => rows[0] ?? null);
 
-  if (!track) {
-    const duration = format.duration ? Math.round(format.duration) : 0;
-    [track] = await ctx.db
-      .insert(tables.tracks)
-      .values({
-        title: common.title!.trim(),
-        artist: common.artist!.trim(),
-        albumArtist: common.albumartist?.trim() || common.artist!.trim(),
-        album: common.album!.trim(),
-        trackNumber: common.track?.no ?? null,
-        discNumber: common.disk?.no ?? null,
-        duration,
-        genre: common.genre?.[0] ?? null,
-        composer: common.composer?.[0] ?? null,
-        sha256,
-        uri: `at://did:rocksky:local/${sha256}`,
-      })
-      .returning();
+  // Track already exists — skip saveTrack (no new ATProto record needed)
+
+  // --- Album art: extract embedded picture, upload to covers/ ---
+  let albumArtUrl: string | null = null;
+  const picture = common.picture?.[0];
+  if (picture && PICTURE_MIME_TO_EXT[picture.format]) {
+    try {
+      const ext = PICTURE_MIME_TO_EXT[picture.format];
+      const coverKey = `covers/${coverMd5(albumArtist, album)}.${ext}`;
+      const s3 = makeS3Client();
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: env.S3_BUCKET_NAME,
+          Key: coverKey,
+          Body: picture.data,
+          ContentType: picture.format,
+        }),
+      );
+      albumArtUrl = `${env.S3_ENDPOINT}/${env.S3_BUCKET_NAME}/${coverKey}`;
+    } catch (e) {
+      consola.warn("[uploads] album art upload failed, continuing without it", e);
+    }
   }
 
-  // --- Upload to storage ---
+  // --- Duration in milliseconds (matches symphonia output in Rust crates) ---
+  const durationMs = format.duration ? Math.round(format.duration * 1000) : 0;
+
+  // --- Disc number: default to 1 when 0 or missing (matches Rust crate) ---
+  const discNumber = (() => {
+    const d = common.disk?.no;
+    if (!d || d === 0) return 1;
+    return d;
+  })();
+
+  // --- Release date: only store if it contains "-" (excludes year-only) ---
+  const releaseDate = (() => {
+    const d = common.date?.toString() ?? common.originaldate?.toString();
+    return d?.includes("-") ? d : null;
+  })();
+
+  // --- Publish ATProto record + upsert track (proper at:// URI via agent) ---
+  // This mirrors what the Dropbox/Google Drive crates do: POST to /tracks,
+  // which calls saveTrack → putSongRecord → real at://{did}/app.rocksky.song/{rkey}
+  if (!existingTrack) {
+    const agent = await createAgent(ctx.oauthClient, user.did);
+    if (!agent) {
+      c.status(401);
+      return c.text("Unauthorized");
+    }
+    await saveTrack(
+      ctx,
+      {
+        title,
+        artist,
+        album,
+        albumArtist,
+        duration: durationMs,
+        trackNumber: common.track?.no ?? null,
+        discNumber,
+        genre: common.genre?.[0] ?? null,
+        genres: common.genre ?? null,
+        composer: common.composer?.[0] ?? null,
+        albumArt: albumArtUrl,
+        releaseDate: releaseDate ? new Date(releaseDate) : null,
+        year: common.year ?? null,
+        lyrics: common.lyrics ?? null,
+        copyrightMessage: common.copyright ?? null,
+        mbId: common.musicbrainz_trackid ?? common.musicbrainz_recordingid ?? null,
+        artists: null,
+        label: common.label?.[0] ?? null,
+        artistPicture: null,
+        spotifyLink: null,
+        lastfmLink: null,
+        youtubeLink: null,
+        tidalLink: null,
+        appleMusicLink: null,
+        deezerLink: null,
+        timestamp: null,
+      },
+      agent,
+    );
+
+    // Respect ATProto PDS rate limits — mirrors the 3-second sleep the
+    // Dropbox/Google Drive crates use after creating a new track record.
+    // The frontend processes files sequentially so this delay is applied
+    // per-file, effectively throttling bulk uploads to ~1 track per 3s.
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+  }
+
+  // After saveTrack the track row is guaranteed to exist — look it up by sha256
+  const track = await ctx.db
+    .select()
+    .from(tables.tracks)
+    .where(eq(tables.tracks.sha256, sha256))
+    .limit(1)
+    .then((rows) => rows[0]);
+
+  // --- Upload audio file to storage ---
   const s3 = makeS3Client();
   await s3.send(
     new PutObjectCommand({
@@ -287,7 +413,6 @@ app.post("/track", async (c) => {
 });
 
 // GET /uploads ---------------------------------------------------------------
-// Returns the authenticated user's uploaded tracks (paginated).
 app.get("/", async (c) => {
   const user = await resolveUser(c.req.header("authorization"));
   if (!user) {
@@ -311,8 +436,6 @@ app.get("/", async (c) => {
 });
 
 // GET /uploads/:id/stream ----------------------------------------------------
-// Returns a short-lived presigned URL for streaming the audio file.
-// The <audio> element can use it directly with range-request support.
 app.get("/:id/stream", async (c) => {
   const user = await resolveUser(c.req.header("authorization"));
   if (!user) {
@@ -340,10 +463,7 @@ app.get("/:id/stream", async (c) => {
   const s3 = makeS3Client();
   const url = await getSignedUrl(
     s3,
-    new GetObjectCommand({
-      Bucket: env.S3_BUCKET_NAME,
-      Key: upload.r2Key,
-    }),
+    new GetObjectCommand({ Bucket: env.S3_BUCKET_NAME, Key: upload.r2Key }),
     { expiresIn: 3600 },
   );
 
@@ -351,7 +471,6 @@ app.get("/:id/stream", async (c) => {
 });
 
 // DELETE /uploads/:id --------------------------------------------------------
-// Deletes the file from storage and removes the DB record. Owner-only.
 app.delete("/:id", async (c) => {
   const user = await resolveUser(c.req.header("authorization"));
   if (!user) {
@@ -378,10 +497,7 @@ app.delete("/:id", async (c) => {
 
   const s3 = makeS3Client();
   await s3.send(
-    new DeleteObjectCommand({
-      Bucket: env.S3_BUCKET_NAME,
-      Key: upload.r2Key,
-    }),
+    new DeleteObjectCommand({ Bucket: env.S3_BUCKET_NAME, Key: upload.r2Key }),
   );
 
   await ctx.db

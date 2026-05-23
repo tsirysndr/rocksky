@@ -266,9 +266,10 @@ function LibrarySkeleton() {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatDuration(seconds: number) {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
+function formatDuration(ms: number) {
+  const totalSeconds = Math.floor(ms / 1000);
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
