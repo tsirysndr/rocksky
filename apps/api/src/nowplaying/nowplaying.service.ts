@@ -125,18 +125,18 @@ export async function putSongRecord(
       ? track.releaseDate.toISOString()
       : undefined,
     year: track.year === null ? undefined : track.year,
-    albumArtUrl: track.albumArt,
+    albumArtUrl: track.albumArt ?? undefined,
     composer: track.composer ? track.composer : undefined,
     lyrics: track.lyrics ? track.lyrics : undefined,
-    trackNumber: track.trackNumber,
-    discNumber: track.discNumber === 0 ? 1 : track.discNumber,
+    trackNumber: track.trackNumber ?? undefined,
+    discNumber: !track.discNumber || track.discNumber === 0 ? 1 : track.discNumber,
     copyrightMessage: track.copyrightMessage
       ? track.copyrightMessage
       : undefined,
     createdAt: new Date().toISOString(),
     spotifyLink: track.spotifyLink ? track.spotifyLink : undefined,
     tags: track.genres || [],
-    mbid: track.mbId,
+    mbid: track.mbId ?? undefined,
   };
 
   if (!Song.validateRecord(record).success) {

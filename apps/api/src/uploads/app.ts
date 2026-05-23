@@ -305,7 +305,7 @@ app.post("/track", async (c) => {
           ContentType: picture.format,
         }),
       );
-      albumArtUrl = `${env.S3_ENDPOINT}/${env.S3_COVERS_BUCKET_NAME}/${coverKey}`;
+      albumArtUrl = `${env.CDN_URL}/${coverKey}`;
     } catch (e) {
       consola.warn("[uploads] album art upload failed, continuing without it", e);
     }
