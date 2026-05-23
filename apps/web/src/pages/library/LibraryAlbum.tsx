@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import styled from "@emotion/styled";
 import {
   IconArrowLeft,
@@ -19,6 +20,22 @@ import { DropdownPortal } from "../../components/DropdownPortal";
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+function formatReleaseDate(raw: string | null | undefined, year: number | null | undefined): string | null {
+  if (raw) {
+    const parts = raw.split("-");
+    if (parts.length === 3) {
+      const d = dayjs(raw);
+      if (d.isValid()) return d.format("D MMMM YYYY");
+    }
+    if (parts.length === 2) {
+      const d = dayjs(`${raw}-01`);
+      if (d.isValid()) return d.format("MMMM YYYY");
+    }
+  }
+  if (year) return String(year);
+  return null;
+}
 
 function formatDuration(ms: number) {
   const totalSeconds = Math.floor(ms / 1000);
@@ -240,6 +257,42 @@ const MenuDivider = styled.div`
   margin: 2px 0;
 `;
 
+const CopyrightText = styled.p`
+  margin: 0;
+  font-size: 0.725rem;
+  color: var(--color-text-muted);
+  opacity: 0.7;
+`;
+
+const AlbumReleaseDate = styled.p`
+  margin: 0 0 6px;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+`;
+
+const shimmer = `
+  @keyframes shimmer {
+    0% { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+  }
+`;
+
+const SkeletonBox = styled.div<{ w?: string; h?: string; radius?: string }>`
+  ${shimmer}
+  width: ${({ w }) => w ?? "100%"};
+  height: ${({ h }) => h ?? "16px"};
+  border-radius: ${({ radius }) => radius ?? "8px"};
+  background: linear-gradient(
+    90deg,
+    var(--color-menu-hover) 25%,
+    color-mix(in srgb, var(--color-menu-hover) 60%, var(--color-text-muted) 10%) 50%,
+    var(--color-menu-hover) 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+  flex-shrink: 0;
+`;
+
 const MenuHeader = styled.div`
   display: flex;
   align-items: center;
@@ -323,6 +376,8 @@ export default function LibraryAlbum() {
   const album = tracks[0]?.track.album ?? "";
   const albumArtist = tracks[0]?.track.albumArtist ?? "";
   const totalDuration = tracks.reduce((sum, t) => sum + t.track.duration, 0);
+  const releaseDate = formatReleaseDate(tracks[0]?.albumReleaseDate, tracks[0]?.albumYear);
+  const copyrightMessage = tracks[0]?.track.copyrightMessage ?? null;
 
   const handlePlay = useCallback(() => {
     playNow(tracks.map(toQueueTrack));
@@ -342,7 +397,38 @@ export default function LibraryAlbum() {
     [tracks, playNow],
   );
 
-  if (isLoading) return <Main><Page><BackBtn onClick={() => navigate({ to: "/library" })}><IconArrowLeft size={16} /> Back</BackBtn></Page></Main>;
+  if (isLoading) return (
+    <Main>
+      <Page>
+        <BackBtn onClick={() => navigate({ to: "/library" })}>
+          <IconArrowLeft size={16} /> Library
+        </BackBtn>
+        <AlbumHeader>
+          <SkeletonBox w="160px" h="160px" radius="16px" />
+          <AlbumMeta>
+            <SkeletonBox w="220px" h="28px" radius="8px" style={{ marginBottom: 10 }} />
+            <SkeletonBox w="140px" h="18px" radius="6px" style={{ marginBottom: 8 }} />
+            <SkeletonBox w="100px" h="14px" radius="6px" style={{ marginBottom: 16 }} />
+            <div style={{ display: "flex", gap: 12 }}>
+              <SkeletonBox w="90px" h="38px" radius="999px" />
+              <SkeletonBox w="80px" h="38px" radius="999px" />
+            </div>
+          </AlbumMeta>
+        </AlbumHeader>
+        <TrackList>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px" }}>
+              <SkeletonBox w="24px" h="14px" radius="4px" />
+              <div style={{ flex: 1 }}>
+                <SkeletonBox w={`${60 + (i % 3) * 15}%`} h="14px" radius="6px" />
+              </div>
+              <SkeletonBox w="32px" h="14px" radius="4px" />
+            </div>
+          ))}
+        </TrackList>
+      </Page>
+    </Main>
+  );
 
   return (
     <Main>
@@ -429,6 +515,13 @@ export default function LibraryAlbum() {
             </TrackRow>
           ))}
         </TrackList>
+
+        {(releaseDate || copyrightMessage) && (
+          <div style={{ marginTop: 32 }}>
+            {releaseDate && <AlbumReleaseDate>{releaseDate}</AlbumReleaseDate>}
+            {copyrightMessage && <CopyrightText>{copyrightMessage}</CopyrightText>}
+          </div>
+        )}
       </Page>
     </Main>
   );

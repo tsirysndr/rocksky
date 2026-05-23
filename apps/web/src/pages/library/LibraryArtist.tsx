@@ -331,6 +331,29 @@ const MenuItem = styled.button`
   &:hover { background: var(--color-menu-hover); }
 `;
 
+const shimmer = `
+  @keyframes shimmer {
+    0% { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+  }
+`;
+
+const SkeletonBox = styled.div<{ w?: string; h?: string; radius?: string }>`
+  ${shimmer}
+  width: ${({ w }) => w ?? "100%"};
+  height: ${({ h }) => h ?? "16px"};
+  border-radius: ${({ radius }) => radius ?? "8px"};
+  background: linear-gradient(
+    90deg,
+    var(--color-menu-hover) 25%,
+    color-mix(in srgb, var(--color-menu-hover) 60%, var(--color-text-muted) 10%) 50%,
+    var(--color-menu-hover) 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+  flex-shrink: 0;
+`;
+
 // ---------------------------------------------------------------------------
 // TrackContextMenu
 // ---------------------------------------------------------------------------
@@ -458,7 +481,49 @@ export default function LibraryArtist() {
     [tracks, playNow],
   );
 
-  if (isLoading) return <Main><Page><BackBtn onClick={() => navigate({ to: "/library" })}><IconArrowLeft size={16} /> Back</BackBtn></Page></Main>;
+  if (isLoading) return (
+    <Main>
+      <Page>
+        <BackBtn onClick={() => navigate({ to: "/library" })}>
+          <IconArrowLeft size={16} /> Library
+        </BackBtn>
+        <ArtistHeader>
+          <SkeletonBox w="120px" h="120px" radius="50%" />
+          <ArtistMeta>
+            <SkeletonBox w="200px" h="28px" radius="8px" style={{ marginBottom: 10 }} />
+            <SkeletonBox w="120px" h="14px" radius="6px" style={{ marginBottom: 16 }} />
+            <div style={{ display: "flex", gap: 12 }}>
+              <SkeletonBox w="90px" h="38px" radius="999px" />
+              <SkeletonBox w="80px" h="38px" radius="999px" />
+            </div>
+          </ArtistMeta>
+        </ArtistHeader>
+        <SkeletonBox w="80px" h="18px" radius="6px" style={{ marginBottom: 16 }} />
+        <AlbumGrid>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i}>
+              <SkeletonBox w="100%" h="0" radius="10px" style={{ paddingBottom: "100%", marginBottom: 8 }} />
+              <SkeletonBox w="80%" h="13px" radius="5px" style={{ marginBottom: 4 }} />
+              <SkeletonBox w="50%" h="11px" radius="5px" />
+            </div>
+          ))}
+        </AlbumGrid>
+        <SkeletonBox w="60px" h="18px" radius="6px" style={{ marginBottom: 16 }} />
+        <TrackList>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px" }}>
+              <SkeletonBox w="36px" h="36px" radius="6px" />
+              <div style={{ flex: 1 }}>
+                <SkeletonBox w={`${55 + (i % 3) * 15}%`} h="14px" radius="6px" style={{ marginBottom: 4 }} />
+                <SkeletonBox w="40%" h="11px" radius="5px" />
+              </div>
+              <SkeletonBox w="32px" h="14px" radius="4px" />
+            </div>
+          ))}
+        </TrackList>
+      </Page>
+    </Main>
+  );
 
   return (
     <Main>

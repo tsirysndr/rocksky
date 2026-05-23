@@ -29,7 +29,10 @@ export interface UploadedTrack {
     sha256: string;
     artistUri: string | null;
     albumUri: string | null;
+    copyrightMessage: string | null;
   };
+  albumReleaseDate: string | null;
+  albumYear: number | null;
 }
 
 export interface UploadResult {

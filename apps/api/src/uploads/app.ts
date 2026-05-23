@@ -436,9 +436,15 @@ app.get("/", async (c) => {
   const offset = +c.req.query("offset") || 0;
 
   const uploads = await ctx.db
-    .select({ upload: tables.userUploads, track: tables.tracks })
+    .select({
+      upload: tables.userUploads,
+      track: tables.tracks,
+      albumReleaseDate: tables.albums.releaseDate,
+      albumYear: tables.albums.year,
+    })
     .from(tables.userUploads)
     .innerJoin(tables.tracks, eq(tables.userUploads.trackId, tables.tracks.id))
+    .leftJoin(tables.albums, eq(tables.albums.uri, tables.tracks.albumUri))
     .where(eq(tables.userUploads.userId, user.id))
     .orderBy(asc(tables.tracks.title), asc(tables.tracks.artist))
     .limit(size)
