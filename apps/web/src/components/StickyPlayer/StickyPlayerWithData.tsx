@@ -1,5 +1,4 @@
 import styled from "@emotion/styled";
-import { IconGripVertical, IconMusic, IconX } from "@tabler/icons-react";
 import axios from "axios";
 import { useAtom, useAtomValue } from "jotai";
 import _ from "lodash";
@@ -7,10 +6,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { nowPlayingAtom } from "../../atoms/nowpaying";
 import { playerAtom } from "../../atoms/player";
 import { queueAtom, queueIndexAtom, queuePanelOpenAtom } from "../../atoms/queue";
+import { fullscreenPlayerAtom } from "../../atoms/fullscreenPlayer";
+import { profileAtom } from "../../atoms/profile";
 import { API_URL } from "../../consts";
 import useLike from "../../hooks/useLike";
 import useSpotify from "../../hooks/useSpotify";
 import StickyPlayer from "./StrickyPlayer";
+import FullscreenPlayer from "../FullscreenPlayer/FullscreenPlayer";
+import { QueuePanel } from "../QueuePanel/QueuePanel";
 import { consola } from "consola";
 import { useQueryClient } from "@tanstack/react-query";
 import { feedGeneratorUriAtom } from "../../atoms/feed";
@@ -25,114 +28,49 @@ import { useUploadScrobble } from "../../hooks/useUploadScrobble";
 const QueueOverlay = styled.div`
   position: fixed;
   inset: 0;
-  z-index: 99;
+  z-index: 101;
 `;
 
-const QueuePanel = styled.div`
+const PlayerSelectorOverlay = styled.div`
   position: fixed;
-  bottom: 128px;
-  right: 24px;
-  width: 340px;
-  max-height: 480px;
+  inset: 0;
+  z-index: 200;
+`;
+
+const PlayerSelectorPopup = styled.div`
+  position: fixed;
   background: var(--color-background);
   border: 1px solid var(--color-border);
-  border-radius: 16px;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.18);
-  z-index: 100;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-`;
-
-const QueueHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 16px 12px;
-  border-bottom: 1px solid var(--color-menu-hover);
-  flex-shrink: 0;
-`;
-
-const QueueTitle = styled.p`
-  margin: 0;
-  font-size: 0.875rem;
-  font-family: RockfordSansMedium;
-  color: var(--color-text);
-`;
-
-const QueueCount = styled.span`
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  margin-left: 6px;
-`;
-
-const CloseBtn = styled.button`
-  padding: 4px;
-  border: none;
-  background: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  border-radius: 6px;
-  display: flex;
-  &:hover { background: var(--color-menu-hover); }
-`;
-
-const QueueList = styled.div`
-  overflow-y: auto;
-  flex: 1;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  z-index: 201;
   padding: 8px 0;
+  min-width: 180px;
+  transform: translateX(-50%);
 `;
 
-const QueueRow = styled.div<{ active: boolean }>`
+const PlayerSelectorItem = styled.button<{ active: boolean }>`
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 14px;
-  cursor: pointer;
-  background: ${({ active }) =>
-    active ? "color-mix(in srgb, var(--color-primary) 8%, transparent)" : "transparent"};
-  &:hover {
-    background: ${({ active }) =>
-      active
-        ? "color-mix(in srgb, var(--color-primary) 8%, transparent)"
-        : "var(--color-menu-hover)"};
-  }
-`;
-
-const QueueArt = styled.div`
-  width: 36px;
-  height: 36px;
-  border-radius: 6px;
-  background: var(--color-menu-hover);
-  flex-shrink: 0;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const QueueTrackInfo = styled.div`
-  flex: 1;
-  min-width: 0;
-`;
-
-const QueueTrackTitle = styled.p<{ active: boolean }>`
-  margin: 0;
-  font-size: 0.8125rem;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: ${({ active }) => active ? "color-mix(in srgb, var(--color-primary) 10%, transparent)" : "transparent"};
+  color: ${({ active }) => active ? "var(--color-primary)" : "var(--color-text)"};
+  font-size: 0.875rem;
   font-family: RockfordSansMedium;
-  color: ${({ active }) => (active ? "var(--color-primary)" : "var(--color-text)")};
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  cursor: pointer;
+  text-align: left;
+  &:hover { background: var(--color-menu-hover); }
 `;
 
-const QueueTrackMeta = styled.p`
-  margin: 0;
-  font-size: 0.725rem;
-  color: var(--color-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+const PlayerDot = styled.span<{ active: boolean }>`
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: ${({ active }) => active ? "var(--color-primary)" : "var(--color-text-muted)"};
 `;
 
 // ---------------------------------------------------------------------------
@@ -157,11 +95,18 @@ function StickyPlayerWithData() {
   const nowPlayingRef = useRef(nowPlaying);
   const playerRef = useRef(player);
   const likedRef = useRef(liked);
+  const profile = useAtomValue(profileAtom);
 
   // Upload player state
-  const queue = useAtomValue(queueAtom);
+  const [queue, setQueue] = useAtom(queueAtom);
   const [queueIndex, setQueueIndex] = useAtom(queueIndexAtom);
   const [queuePanelOpen, setQueuePanelOpen] = useAtom(queuePanelOpenAtom);
+  const [fullscreenOpen, setFullscreenOpen] = useAtom(fullscreenPlayerAtom);
+
+  // Player selector
+  const [playerSelectorOpen, setPlayerSelectorOpen] = useState(false);
+  const [rockboxAvailable, setRockboxAvailable] = useState(false);
+  const speakerRef = useRef<HTMLButtonElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const queueRef = useRef(queue);
   const queueIndexRef = useRef(queueIndex);
@@ -341,11 +286,16 @@ function StickyPlayerWithData() {
   };
 
   const fetchCurrentlyPlaying = useCallback(async () => {
-    if (player === "rockbox" || player === "upload") return;
+    // Use ref to avoid stale closure — always read current player value
+    const currentPlayer = playerRef.current;
+    // Don't disturb an active non-spotify player
+    if (currentPlayer === "rockbox" || currentPlayer === "upload") return;
     const { data } = await axios.get(`${API_URL}/spotify/currently-playing`, {
       headers: { authorization: `Bearer ${localStorage.getItem("token")}` },
     });
     if (data.item) {
+      // Only update if no player is active or spotify is already active
+      if (playerRef.current !== null && playerRef.current !== "spotify") return;
       setNowPlaying({
         title: data.item.name,
         artist: data.item.artists[0].name,
@@ -361,11 +311,11 @@ function StickyPlayerWithData() {
       });
       setPlayer("spotify");
     } else {
-      if (player === "spotify") { setNowPlaying(null); setPlayer(null); }
+      if (playerRef.current === "spotify") { setNowPlaying(null); setPlayer(null); }
     }
     lastFetchedRef.current = Date.now();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setNowPlaying, player]);
+  }, [setNowPlaying]);
 
   const startProgressTracking = useCallback(() => {
     if (progressInterval.current) clearInterval(progressInterval.current);
@@ -419,9 +369,12 @@ function StickyPlayerWithData() {
       }, 3000);
 
       ws.onmessage = (event) => {
-        if (playerRef.current !== "rockbox" && playerRef.current !== null) return;
         const msg = JSON.parse(event.data);
         if (msg.type === "message" && msg.data?.type === "track") {
+          // Mark rockbox as available regardless of active player
+          setRockboxAvailable(true);
+          // Don't disturb an active non-rockbox player
+          if (playerRef.current !== null && playerRef.current !== "rockbox") return;
           if (lastFetchedRef.current && Date.now() - lastFetchedRef.current < 3000) return;
           if (nowPlayingRef.current !== null && nowPlayingRef.current.isPlaying === undefined) return;
           setNowPlaying({
@@ -441,6 +394,8 @@ function StickyPlayerWithData() {
           setPlayer("rockbox");
           lastFetchedRef.current = Date.now();
         }
+        // Status messages only apply if rockbox is the active player
+        if (playerRef.current !== "rockbox") return;
         if (msg.data?.status === 0) setNowPlaying(null);
         if (msg.data?.status === 1 && nowPlayingRef.current) setNowPlaying({ ...nowPlayingRef.current, isPlaying: true });
         if ((msg.data?.status === 2 || msg.data?.status === 3) && nowPlayingRef.current) setNowPlaying({ ...nowPlayingRef.current, isPlaying: false });
@@ -482,57 +437,115 @@ function StickyPlayerWithData() {
       {queuePanelOpen && player === "upload" && (
         <>
           <QueueOverlay onClick={() => setQueuePanelOpen(false)} />
-          <QueuePanel>
-            <QueueHeader>
-              <div>
-                <QueueTitle style={{ display: "inline" }}>Queue</QueueTitle>
-                <QueueCount>{queue.length} track{queue.length !== 1 ? "s" : ""}</QueueCount>
-              </div>
-              <CloseBtn onClick={() => setQueuePanelOpen(false)}>
-                <IconX size={16} />
-              </CloseBtn>
-            </QueueHeader>
-            <QueueList>
-              {queue.map((track, idx) => (
-                <QueueRow
-                  key={`${track.uploadId}-${idx}`}
-                  active={idx === queueIndex}
-                  onClick={() => {
-                    if (idx === queueIndex) return;
-                    setQueueIndex(idx);
-                    setNowPlaying({
-                      title: track.title,
-                      artist: track.artist,
-                      artistUri: "",
-                      songUri: track.songUri ?? "",
-                      albumUri: "",
-                      duration: track.duration,
-                      progress: 0,
-                      albumArt: track.albumArt ?? undefined,
-                      isPlaying: true,
-                      sha256: track.sha256,
-                      liked: false,
-                    });
-                  }}
-                >
-                  <QueueArt>
-                    {track.albumArt ? (
-                      <img src={track.albumArt} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    ) : (
-                      <IconMusic size={14} color="var(--color-text-muted)" />
-                    )}
-                  </QueueArt>
-                  <QueueTrackInfo>
-                    <QueueTrackTitle active={idx === queueIndex}>{track.title}</QueueTrackTitle>
-                    <QueueTrackMeta>{track.artist} — {track.album}</QueueTrackMeta>
-                  </QueueTrackInfo>
-                  <IconGripVertical size={14} color="var(--color-text-muted)" style={{ flexShrink: 0 }} />
-                </QueueRow>
-              ))}
-            </QueueList>
-          </QueuePanel>
+          <QueuePanel
+            queue={queue}
+            queueIndex={queueIndex}
+            onClose={() => setQueuePanelOpen(false)}
+            onPlayIndex={(idx) => {
+              setQueueIndex(idx);
+              const track = queue[idx];
+              if (!track) return;
+              setNowPlaying({
+                title: track.title,
+                artist: track.artist,
+                artistUri: "",
+                songUri: track.songUri ?? "",
+                albumUri: "",
+                duration: track.duration,
+                progress: 0,
+                albumArt: track.albumArt ?? undefined,
+                isPlaying: true,
+                sha256: track.sha256,
+                liked: false,
+              });
+            }}
+            onRemove={(idx) => {
+              const newQueue = queue.filter((_, i) => i !== idx);
+              setQueue(newQueue);
+              if (idx < queueIndex) {
+                setQueueIndex(queueIndex - 1);
+              } else if (idx === queueIndex) {
+                const next = newQueue[queueIndex] ?? newQueue[queueIndex - 1];
+                if (next) {
+                  setNowPlaying({
+                    title: next.title,
+                    artist: next.artist,
+                    artistUri: "",
+                    songUri: next.songUri ?? "",
+                    albumUri: "",
+                    duration: next.duration,
+                    progress: 0,
+                    albumArt: next.albumArt ?? undefined,
+                    isPlaying: true,
+                    sha256: next.sha256,
+                    liked: false,
+                  });
+                  setQueueIndex(Math.min(queueIndex, newQueue.length - 1));
+                }
+              }
+            }}
+            onReorder={(newQueue) => setQueue(newQueue)}
+          />
         </>
       )}
+
+      {fullscreenOpen && (
+        <FullscreenPlayer
+          nowPlaying={nowPlaying}
+          onPlay={onPlay}
+          onPause={onPause}
+          onPrevious={onPrevious}
+          onNext={onNext}
+          onSeek={onSeek}
+          isPlaying={nowPlaying.isPlaying}
+          onLike={onLike}
+          onDislike={onDislike}
+          showQueueButton={player === "upload"}
+          queuePanelOpen={queuePanelOpen}
+          onPlaylist={() => setQueuePanelOpen((o) => !o)}
+          onClose={() => setFullscreenOpen(false)}
+        />
+      )}
+
+      {playerSelectorOpen && (() => {
+        const rect = speakerRef.current?.getBoundingClientRect();
+        const left = rect ? rect.left + rect.width / 2 : 100;
+        const bottom = rect ? window.innerHeight - rect.top + 8 : 140;
+        return (
+        <>
+          <PlayerSelectorOverlay onClick={() => setPlayerSelectorOpen(false)} />
+          <PlayerSelectorPopup style={{ left, bottom }}>
+            {profile?.spotifyConnected && (
+              <PlayerSelectorItem
+                active={player === "spotify"}
+                onClick={() => { setPlayer("spotify"); fetchCurrentlyPlaying(); setPlayerSelectorOpen(false); }}
+              >
+                <PlayerDot active={player === "spotify"} />
+                Spotify
+              </PlayerSelectorItem>
+            )}
+            {rockboxAvailable && (
+              <PlayerSelectorItem
+                active={player === "rockbox"}
+                onClick={() => { setPlayer("rockbox"); setPlayerSelectorOpen(false); }}
+              >
+                <PlayerDot active={player === "rockbox"} />
+                Rockbox
+              </PlayerSelectorItem>
+            )}
+            {queue.length > 0 && (
+              <PlayerSelectorItem
+                active={player === "upload"}
+                onClick={() => { setPlayer("upload"); setPlayerSelectorOpen(false); }}
+              >
+                <PlayerDot active={player === "upload"} />
+                My Library
+              </PlayerSelectorItem>
+            )}
+          </PlayerSelectorPopup>
+        </>
+        );
+      })()}
 
       <StickyPlayer
         nowPlaying={nowPlaying}
@@ -540,7 +553,8 @@ function StickyPlayerWithData() {
         onPause={onPause}
         onPrevious={onPrevious}
         onNext={onNext}
-        onSpeaker={() => {}}
+        onSpeaker={() => setPlayerSelectorOpen((o) => !o)}
+        speakerRef={speakerRef}
         onEqualizer={() => {}}
         onPlaylist={() => setQueuePanelOpen((o) => !o)}
         onSeek={onSeek}
@@ -549,6 +563,8 @@ function StickyPlayerWithData() {
         onDislike={onDislike}
         showQueueButton={player === "upload"}
         queuePanelOpen={queuePanelOpen}
+        fullscreenOpen={fullscreenOpen}
+        onOpenFullscreen={() => setFullscreenOpen(true)}
       />
     </>
   );

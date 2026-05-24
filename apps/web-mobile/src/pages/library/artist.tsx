@@ -35,6 +35,7 @@ function toQueueTrack(item: UploadedTrack): QueueTrack {
     albumArt: item.track.albumArt,
     duration: item.track.duration,
     sha256: item.track.sha256,
+    songUri: item.track.uri ?? "",
   };
 }
 

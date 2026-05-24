@@ -55,6 +55,17 @@ export const Button = styled.button<{ disabled?: boolean }>`
   cursor: pointer;
   border: none;
   background-color: transparent;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+
+  &:active {
+    background-color: transparent;
+  }
+
+  &:focus-visible {
+    outline: none;
+  }
+
   ${(props) =>
     props.disabled &&
     css`

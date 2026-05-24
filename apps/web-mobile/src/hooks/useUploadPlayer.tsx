@@ -9,7 +9,7 @@ function toNowPlaying(track: QueueTrack) {
     title: track.title,
     artist: track.artist,
     artistUri: "",
-    songUri: "",
+    songUri: track.songUri ?? "",
     albumUri: "",
     duration: track.duration,
     progress: 0,

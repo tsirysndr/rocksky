@@ -1,9 +1,9 @@
 import styled from "@emotion/styled";
 import { Link as DefaultLink } from "@tanstack/react-router";
-import { IconMusic } from "@tabler/icons-react";
+import { IconMaximize, IconMusic } from "@tabler/icons-react";
 import { ProgressBar } from "baseui/progress-bar";
 import { LabelSmall } from "baseui/typography";
-import { useRef } from "react";
+import { useRef, type RefObject } from "react";
 import { useTimeFormat } from "../../hooks/useFormat";
 import Equalizer from "../Icons/Equalizer";
 import Heart from "../Icons/Heart";
@@ -27,40 +27,78 @@ import {
   styles,
 } from "./styles";
 
-const Container = styled.div`
-  position: fixed;
-  bottom: 0;
-  z-index: 1;
-  align-items: center;
-  display: flex;
-  height: 128px;
+const Container = styled.div<{ embedded?: boolean }>`
+  ${({ embedded }) => embedded ? `
+    width: 100%;
+  ` : `
+    position: fixed;
+    bottom: 0;
+    z-index: 1;
+    align-items: center;
+    display: flex;
+    height: 128px;
+  `}
 `;
 
-const MiniPlayerWrapper = styled.div`
-  padding: 24px;
+const MiniPlayerWrapper = styled.div<{ embedded?: boolean }>`
+  padding: ${({ embedded }) => embedded ? "0 0 24px 0" : "24px"};
+  width: ${({ embedded }) => embedded ? "100%" : "auto"};
+  display: ${({ embedded }) => embedded ? "flex" : "block"};
+  justify-content: ${({ embedded }) => embedded ? "center" : "initial"};
 `;
 
-const MiniPlayer = styled.div`
-  background-color: white;
-  width: 1120px;
+const MiniPlayer = styled.div<{ embedded?: boolean }>`
+  ${({ embedded }) => embedded ? `
+    background: rgba(19, 8, 37, 0.25);
+    backdrop-filter: blur(12px);
+    width: 90%;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  ` : `
+    background-color: white;
+    width: 1120px;
+    box-shadow: 0px 0px 24px rgba(19, 19, 19, 0.08);
+    border-radius: 16px;
+    @media (max-width: 1120px) {
+      width: 100vw;
+    }
+  `}
   height: 80px;
   padding: 16px;
-  border-radius: 16px;
-  box-shadow: 0px 0px 24px rgba(19, 19, 19, 0.08);
   display: flex;
   flex-direction: row;
   align-items: center;
-
-  @media (max-width: 1120px) {
-    width: 100vw;
-  }
 `;
 
 const Cover = styled.img`
   width: 54px;
   height: 54px;
-  margin-right: 16px;
   border-radius: 5px;
+`;
+
+const CoverWrapper = styled.div`
+  position: relative;
+  width: 54px;
+  height: 54px;
+  margin-right: 16px;
+  flex-shrink: 0;
+  cursor: pointer;
+
+  &:hover .fullscreen-icon {
+    opacity: 1;
+  }
+`;
+
+const FullscreenOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s ease;
 `;
 
 const Link = styled(DefaultLink)`
@@ -89,6 +127,7 @@ export type StickyPlayerProps = {
   onPrevious: () => void;
   onNext: () => void;
   onSpeaker: () => void;
+  speakerRef?: RefObject<HTMLButtonElement>;
   onEqualizer: () => void;
   onPlaylist: () => void;
   onSeek: (position: number) => void;
@@ -97,6 +136,9 @@ export type StickyPlayerProps = {
   isPlaying: boolean;
   showQueueButton?: boolean;
   queuePanelOpen?: boolean;
+  fullscreenOpen?: boolean;
+  onOpenFullscreen?: () => void;
+  embedded?: boolean;
 };
 
 function StickyPlayer(props: StickyPlayerProps) {
@@ -107,6 +149,7 @@ function StickyPlayer(props: StickyPlayerProps) {
     onPrevious,
     onNext,
     onSpeaker,
+    speakerRef,
     onEqualizer,
     onPlaylist,
     onSeek,
@@ -114,7 +157,9 @@ function StickyPlayer(props: StickyPlayerProps) {
     onDislike,
     isPlaying,
     showQueueButton,
-    queuePanelOpen,
+    fullscreenOpen,
+    onOpenFullscreen,
+    embedded,
   } = props;
   const progressbarRef = useRef<HTMLDivElement>(null);
   const { formatTime } = useTimeFormat();
@@ -136,22 +181,26 @@ function StickyPlayer(props: StickyPlayerProps) {
   }
 
   return (
-    <Container>
-      <MiniPlayerWrapper>
-        <MiniPlayer className="!bg-[var(--color-background)]">
-          {nowPlaying?.albumUri && (
-            <Link
-              to={`/${nowPlaying.albumUri.split("at://")[1].replace("app.rocksky.", "")}`}
-            >
-              {nowPlaying?.albumArt
-                ? <Cover src={nowPlaying.albumArt} key={nowPlaying.albumUri} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
-                : <div className="w-[54px] h-[54px] mr-[16px] rounded-[5px] bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]"><IconMusic size={20} /></div>}
-            </Link>
-          )}
-          {!nowPlaying?.albumUri && (
-            nowPlaying?.albumArt
-              ? <Cover src={nowPlaying.albumArt} key={nowPlaying.albumUri} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
-              : <div className="w-[54px] h-[54px] mr-[16px] rounded-[5px] bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]"><IconMusic size={20} /></div>
+    <Container embedded={embedded}>
+      <MiniPlayerWrapper embedded={embedded}>
+        <MiniPlayer embedded={embedded} className={embedded ? "" : "!bg-[var(--color-background)]"}>
+          {!fullscreenOpen && (
+            <CoverWrapper onClick={onOpenFullscreen}>
+              {nowPlaying?.albumUri ? (
+                <Link to={`/${nowPlaying.albumUri.split("at://")[1].replace("app.rocksky.", "")}`} onClick={(e) => e.stopPropagation()}>
+                  {nowPlaying?.albumArt
+                    ? <Cover src={nowPlaying.albumArt} key={nowPlaying.albumUri} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+                    : <div className="w-[54px] h-[54px] rounded-[5px] bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]"><IconMusic size={20} /></div>}
+                </Link>
+              ) : (
+                nowPlaying?.albumArt
+                  ? <Cover src={nowPlaying.albumArt} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+                  : <div className="w-[54px] h-[54px] rounded-[5px] bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]"><IconMusic size={20} /></div>
+              )}
+              <FullscreenOverlay className="fullscreen-icon">
+                <IconMaximize size={20} color="#fff" />
+              </FullscreenOverlay>
+            </CoverWrapper>
           )}
           <div className="max-w-[310px] overflow-hidden">
             <div className="max-w-[310px] text-ellipsis overflow-hidden">
@@ -214,34 +263,34 @@ function StickyPlayer(props: StickyPlayerProps) {
               }}
             >
               {nowPlaying?.liked && <Heart color="var(--color-primary)" />}
-              {!nowPlaying?.liked && <HeartOutline color="var(--color-text)" />}
+              {!nowPlaying?.liked && <HeartOutline color={embedded ? "#fff" : "var(--color-text)"} />}
             </LikeButton>
           </div>
           <div className="ml-[16px]">
             <div className="h-[45px] min-w-[43px]"></div>
-            <LabelSmall className="!text-[var(--color-text)] min-w-[43px]">
+            <LabelSmall style={{ color: embedded ? "rgba(255,255,255,0.8)" : undefined }} className={embedded ? "min-w-[43px]" : "!text-[var(--color-text)] min-w-[43px]"}>
               {formatTime(nowPlaying?.progress || 0)}
             </LabelSmall>
           </div>
           <MainWrapper>
             <Controls>
-              <PreviousButton onClick={onPrevious}>
-                <Previous color="var(--color-text)" />
+              <PreviousButton onClick={onPrevious} style={{ backgroundColor: "transparent" }}>
+                <Previous color={embedded ? "#fff" : "var(--color-text)"} />
               </PreviousButton>
               {!isPlaying && (
                 <PlayButton onClick={onPlay}>
                   <div className="mt-[5px] mr-[3px]">
-                    <Play color="var(--color-text)" small />
+                    <Play color={embedded ? "#fff" : "var(--color-text)"} small />
                   </div>
                 </PlayButton>
               )}
               {isPlaying && (
                 <PlayButton onClick={onPause}>
-                  <Pause color="var(--color-text)" small />
+                  <Pause color={embedded ? "#fff" : "var(--color-text)"} small />
                 </PlayButton>
               )}
-              <NextButton onClick={onNext}>
-                <Next color="var(--color-text)" />
+              <NextButton onClick={onNext} style={{ backgroundColor: "transparent" }}>
+                <Next color={embedded ? "#fff" : "var(--color-text)"} />
               </NextButton>
             </Controls>
             <div>
@@ -259,26 +308,28 @@ function StickyPlayer(props: StickyPlayerProps) {
           </MainWrapper>
           <div className="mr-[16px]">
             <div className="h-[45px]"></div>
-            <LabelSmall className="!text-[var(--color-text)]">
+            <LabelSmall style={{ color: embedded ? "rgba(255,255,255,0.8)" : undefined }} className={embedded ? "" : "!text-[var(--color-text)]"}>
               {formatTime(nowPlaying?.duration || 0)}
             </LabelSmall>
           </div>
           <RightActions>
             <Button
+              ref={speakerRef}
               onClick={onSpeaker}
-              disabled
-              className="!bg-[var(--color-background)] !text-[var(--color-text)]"
+              style={{ backgroundColor: "transparent", color: embedded ? "#fff" : "var(--color-text)" }}
             >
               <Speaker />
             </Button>
-            <Button onClick={onEqualizer} disabled>
+            <Button onClick={onEqualizer} disabled style={{ backgroundColor: "transparent" }}>
               <Equalizer />
             </Button>
             <Button
               onClick={onPlaylist}
               disabled={!showQueueButton}
-              style={queuePanelOpen ? { background: "color-mix(in srgb, var(--color-primary) 15%, transparent)" } : {}}
-              className="!bg-[var(--color-background)] !text-[var(--color-text)]"
+              style={{
+                backgroundColor: "transparent",
+                color: embedded ? "#fff" : "var(--color-text)",
+              }}
             >
               <Playlist />
             </Button>

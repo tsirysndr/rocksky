@@ -33,6 +33,7 @@ export function useQueuePersistence() {
           albumArt: t.albumArt,
           duration: t.duration,
           sha256: t.sha256,
+          songUri: t.songUri ?? "",
         }));
         const idx = Math.min(currentIndex, tracks.length - 1);
         setQueue(tracks);
@@ -42,7 +43,7 @@ export function useQueuePersistence() {
           title: track.title,
           artist: track.artist,
           artistUri: "",
-          songUri: "",
+          songUri: track.songUri ?? "",
           albumUri: "",
           duration: track.duration,
           progress: 0,

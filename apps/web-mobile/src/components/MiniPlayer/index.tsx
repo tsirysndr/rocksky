@@ -5,8 +5,11 @@ import {
   IconPlayerPlayFilled,
   IconPlayerSkipForwardFilled,
   IconPlayerSkipBackFilled,
+  IconDeviceSpeaker,
+  IconMusic,
+  IconX,
 } from "@tabler/icons-react";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { nowPlayingAtom } from "../../atoms/nowpaying";
@@ -23,6 +26,89 @@ import axios from "axios";
 import { API_URL } from "../../consts";
 import _ from "lodash";
 
+// ---------------------------------------------------------------------------
+// Source selector bottom sheet
+// ---------------------------------------------------------------------------
+
+function SourceSheet({
+  open,
+  onClose,
+  player,
+  rockboxAvailable,
+  queueLength,
+  onSelect,
+}: {
+  open: boolean;
+  onClose: () => void;
+  player: string | null;
+  rockboxAvailable: boolean;
+  queueLength: number;
+  onSelect: (src: "spotify" | "rockbox" | "upload") => void;
+}) {
+  if (!open) return null;
+  return (
+    <>
+      <div
+        className="fixed inset-0 z-40"
+        style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+        onClick={onClose}
+      />
+      <div
+        className="fixed left-0 right-0 bottom-0 z-50 rounded-t-2xl"
+        style={{ backgroundColor: "var(--color-surface)", borderTop: "1px solid var(--color-border)" }}
+      >
+        <div className="flex justify-center pt-2 pb-1">
+          <div className="w-10 h-1 rounded-full" style={{ backgroundColor: "var(--color-border)" }} />
+        </div>
+        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: "1px solid var(--color-border)" }}>
+          <p className="m-0 text-sm font-semibold" style={{ color: "var(--color-text)" }}>Select Source</p>
+          <button onClick={onClose} className="p-1.5 border-none bg-transparent cursor-pointer rounded-lg" style={{ color: "var(--color-text-muted)" }}>
+            <IconX size={18} />
+          </button>
+        </div>
+        {rockboxAvailable && (
+          <SourceItem label="Rockbox" active={player === "rockbox"} onClick={() => { onSelect("rockbox"); onClose(); }} />
+        )}
+        {queueLength > 0 && (
+          <SourceItem label="My Library" active={player === "upload"} onClick={() => { onSelect("upload"); onClose(); }} />
+        )}
+        <SourceItem label="Spotify" active={player === "spotify"} onClick={() => { onSelect("spotify"); onClose(); }} />
+        <button
+          onClick={onClose}
+          className="w-full py-4 text-center border-none bg-transparent cursor-pointer text-sm font-semibold"
+          style={{ color: "var(--color-text-muted)", borderTop: "1px solid var(--color-border)" }}
+        >
+          Cancel
+        </button>
+      </div>
+    </>
+  );
+}
+
+function SourceItem({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full flex items-center gap-3 px-5 py-4 border-none bg-transparent cursor-pointer text-left"
+      style={{
+        backgroundColor: active ? "color-mix(in srgb, var(--color-primary) 8%, transparent)" : "transparent",
+        color: active ? "var(--color-primary)" : "var(--color-text)",
+        borderBottom: "1px solid var(--color-border)",
+      }}
+    >
+      <div
+        className="w-2 h-2 rounded-full shrink-0"
+        style={{ backgroundColor: active ? "var(--color-primary)" : "var(--color-text-muted)" }}
+      />
+      <span className="text-sm font-semibold">{label}</span>
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// MiniPlayer
+// ---------------------------------------------------------------------------
+
 export default function MiniPlayer() {
   useQueuePersistence();
   useUploadScrobble();
@@ -30,7 +116,7 @@ export default function MiniPlayer() {
 
   const [nowPlaying, setNowPlaying] = useAtom(nowPlayingAtom);
   const [player, setPlayer] = useAtom(playerAtom);
-  const queue = useAtomValue(queueAtom);
+  const [queue, setQueue] = useAtom(queueAtom);
   const [queueIndex, setQueueIndex] = useAtom(queueIndexAtom);
   const { like, unlike } = useLike();
   const { play, pause, next } = useSpotify();
@@ -44,16 +130,30 @@ export default function MiniPlayer() {
   const queueIndexRef = useRef(queueIndex);
   const [liked, setLiked] = useState<Record<string, boolean>>({});
   const likedRef = useRef(liked);
+  const [rockboxAvailable, setRockboxAvailable] = useState(false);
+  const [sourceSheetOpen, setSourceSheetOpen] = useState(false);
 
   // Hidden audio element for upload player
   const audioRef = useRef<HTMLAudioElement>(null);
 
+  // Keep refs in sync
+  useEffect(() => {
+    nowPlayingRef.current = nowPlaying;
+    playerRef.current = player;
+    likedRef.current = liked;
+    queueRef.current = queue;
+    queueIndexRef.current = queueIndex;
+  }, [nowPlaying, player, liked, queue, queueIndex]);
+
   const fetchCurrentlyPlaying = useCallback(async () => {
+    // Use ref to avoid stale closure — always read current player value
     if (playerRef.current === "rockbox" || playerRef.current === "upload") return;
     try {
       const { data } = await axios.get(`${API_URL}/spotify/currently-playing`, {
         headers: { authorization: `Bearer ${localStorage.getItem("token")}` },
       });
+      // Guard: player may have changed while awaiting
+      if (playerRef.current !== null && playerRef.current !== "spotify") return;
       if (data.item) {
         setNowPlaying({
           title: data.item.name,
@@ -80,15 +180,8 @@ export default function MiniPlayer() {
     } catch {
       // no spotify session
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setNowPlaying, setPlayer]);
-
-  useEffect(() => {
-    nowPlayingRef.current = nowPlaying;
-    playerRef.current = player;
-    likedRef.current = liked;
-    queueRef.current = queue;
-    queueIndexRef.current = queueIndex;
-  }, [nowPlaying, player, liked, queue, queueIndex]);
 
   // Load and play audio when upload track changes
   useEffect(() => {
@@ -126,7 +219,7 @@ export default function MiniPlayer() {
           title: nextTrack.title,
           artist: nextTrack.artist,
           artistUri: "",
-          songUri: "",
+          songUri: nextTrack.songUri ?? "",
           albumUri: "",
           duration: nextTrack.duration,
           progress: 0,
@@ -196,10 +289,13 @@ export default function MiniPlayer() {
       }, 3000);
 
       ws.onmessage = (event) => {
-        if (playerRef.current !== "rockbox" && playerRef.current !== null) return;
         const msg = JSON.parse(event.data);
 
         if (msg.type === "message" && msg.data?.type === "track") {
+          // Mark rockbox as available regardless of active player
+          setRockboxAvailable(true);
+          // Don't disturb an active non-rockbox player
+          if (playerRef.current !== null && playerRef.current !== "rockbox") return;
           if (lastFetchedRef.current && Date.now() - lastFetchedRef.current < 3000) return;
           if (!msg.data.title && !msg.data.artist && !msg.data.album_artist) return;
           setNowPlaying({
@@ -223,6 +319,8 @@ export default function MiniPlayer() {
           lastFetchedRef.current = Date.now();
         }
 
+        // Status messages only apply if rockbox is the active player
+        if (playerRef.current !== "rockbox") return;
         if (msg.data?.status === 0) setNowPlaying(null);
         if (msg.data?.status === 1 && nowPlayingRef.current)
           setNowPlaying({ ...nowPlayingRef.current, isPlaying: true });
@@ -280,7 +378,7 @@ export default function MiniPlayer() {
         title: nextTrack.title,
         artist: nextTrack.artist,
         artistUri: "",
-        songUri: "",
+        songUri: nextTrack.songUri ?? "",
         albumUri: "",
         duration: nextTrack.duration,
         progress: 0,
@@ -316,7 +414,7 @@ export default function MiniPlayer() {
       title: prevTrack.title,
       artist: prevTrack.artist,
       artistUri: "",
-      songUri: "",
+      songUri: prevTrack.songUri ?? "",
       albumUri: "",
       duration: prevTrack.duration,
       progress: 0,
@@ -335,7 +433,7 @@ export default function MiniPlayer() {
       title: track.title,
       artist: track.artist,
       artistUri: "",
-      songUri: "",
+      songUri: track.songUri ?? "",
       albumUri: "",
       duration: track.duration,
       progress: 0,
@@ -345,6 +443,35 @@ export default function MiniPlayer() {
       liked: false,
     });
   }, [setQueueIndex, setNowPlaying]);
+
+  const onRemoveFromQueue = useCallback((idx: number) => {
+    setQueue((prev) => {
+      const next = prev.filter((_, i) => i !== idx);
+      const currentIdx = queueIndexRef.current;
+      if (idx < currentIdx) {
+        setQueueIndex(currentIdx - 1);
+      } else if (idx === currentIdx) {
+        const nextTrack = next[currentIdx] ?? next[currentIdx - 1];
+        if (nextTrack) {
+          setNowPlaying({
+            title: nextTrack.title,
+            artist: nextTrack.artist,
+            artistUri: "",
+            songUri: nextTrack.songUri ?? "",
+            albumUri: "",
+            duration: nextTrack.duration,
+            progress: 0,
+            albumArt: nextTrack.albumArt ?? undefined,
+            isPlaying: true,
+            sha256: nextTrack.sha256,
+            liked: false,
+          });
+          setQueueIndex(Math.min(currentIdx, next.length - 1));
+        }
+      }
+      return next;
+    });
+  }, [setQueue, setQueueIndex, setNowPlaying]);
 
   // Media Session API — keeps Android/iOS lock-screen / notification in sync
   useEffect(() => {
@@ -378,16 +505,35 @@ export default function MiniPlayer() {
     ? `/${nowPlaying.songUri.split("at://")[1]?.replace("app.rocksky.", "")}`
     : null;
 
+  const showSourceBtn = rockboxAvailable || queue.length > 0;
+
   return (
     <>
       <audio ref={audioRef} style={{ display: "none" }} />
+
       <PlayerScreen
         audioRef={audioRef}
         onPlayPause={onPlayPause}
         onNext={onNext}
         onPrevious={onPrevious}
         onSelectQueueIndex={onSelectQueueIndex}
+        onRemoveFromQueue={onRemoveFromQueue}
+        queue={queue}
+        queueIndex={queueIndex}
       />
+
+      <SourceSheet
+        open={sourceSheetOpen}
+        onClose={() => setSourceSheetOpen(false)}
+        player={player}
+        rockboxAvailable={rockboxAvailable}
+        queueLength={queue.length}
+        onSelect={(src) => {
+          setPlayer(src);
+          if (src === "spotify") fetchCurrentlyPlaying();
+        }}
+      />
+
       <div
         className="fixed left-0 right-0 z-30"
         style={{
@@ -422,7 +568,7 @@ export default function MiniPlayer() {
               className="w-12 h-12 rounded-lg shrink-0 flex items-center justify-center"
               style={{ backgroundColor: "var(--color-surface-2)" }}
             >
-              <span className="text-xl opacity-30">♪</span>
+              <IconMusic size={20} color="var(--color-text-muted)" strokeWidth={1.5} />
             </div>
           )}
 
@@ -447,7 +593,17 @@ export default function MiniPlayer() {
           </div>
 
           {/* Controls */}
-          <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+            {/* Source selector — shown when multiple sources are available */}
+            {showSourceBtn && (
+              <button
+                onClick={() => setSourceSheetOpen(true)}
+                className="p-1.5 border-none bg-transparent cursor-pointer rounded-lg"
+              >
+                <IconDeviceSpeaker size={18} color={player !== null ? "var(--color-primary)" : "var(--color-text-muted)"} />
+              </button>
+            )}
+
             {player === "upload" ? (
               <button
                 onClick={onPrevious}

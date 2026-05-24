@@ -9,6 +9,7 @@ export interface QueueTrack {
   albumArt: string | null;
   duration: number;
   sha256: string;
+  songUri: string;
 }
 
 export const queueAtom = atom<QueueTrack[]>([]);

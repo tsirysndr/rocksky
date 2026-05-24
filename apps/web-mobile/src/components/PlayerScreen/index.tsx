@@ -13,7 +13,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { nowPlayingAtom } from "../../atoms/nowpaying";
 import { playerAtom } from "../../atoms/player";
 import { playerScreenOpenAtom } from "../../atoms/playerScreen";
-import { queueAtom, queueIndexAtom } from "../../atoms/queue";
+import type { QueueTrack } from "../../atoms/queue";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -25,8 +25,10 @@ function formatTime(ms: number) {
 }
 
 // ---------------------------------------------------------------------------
-// Queue panel
+// Queue panel — two tabs: Play Queue / History
 // ---------------------------------------------------------------------------
+
+type QueueTab = "queue" | "history";
 
 function QueuePanel({
   open,
@@ -34,13 +36,21 @@ function QueuePanel({
   queue,
   currentIndex,
   onSelectIndex,
+  onRemove,
 }: {
   open: boolean;
   onClose: () => void;
-  queue: ReturnType<typeof useAtomValue<typeof queueAtom>>;
+  queue: QueueTrack[];
   currentIndex: number;
   onSelectIndex: (i: number) => void;
+  onRemove: (i: number) => void;
 }) {
+  const [tab, setTab] = useState<QueueTab>("queue");
+
+  const upNext = queue.slice(currentIndex + 1);
+  const history = queue.slice(0, currentIndex);
+  const nowPlayingTrack = queue[currentIndex];
+
   return (
     <>
       {/* Backdrop */}
@@ -58,7 +68,7 @@ function QueuePanel({
         style={{
           backgroundColor: "var(--color-surface)",
           borderTop: "1px solid var(--color-border)",
-          maxHeight: "70vh",
+          height: "70vh",
           transform: open ? "translateY(0)" : "translateY(100%)",
         }}
       >
@@ -67,14 +77,36 @@ function QueuePanel({
           <div className="w-10 h-1 rounded-full" style={{ backgroundColor: "var(--color-border)" }} />
         </div>
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 shrink-0" style={{ borderBottom: "1px solid var(--color-border)" }}>
-          <p className="m-0 text-sm font-semibold" style={{ color: "var(--color-text)" }}>
-            Queue <span className="font-normal" style={{ color: "var(--color-text-muted)" }}>({queue.length})</span>
-          </p>
+        {/* Tabs + counter + close */}
+        <div className="flex items-center px-2 shrink-0" style={{ borderBottom: "1px solid var(--color-border)" }}>
+          <button
+            onClick={() => setTab("queue")}
+            className="px-3 py-3 border-none bg-transparent cursor-pointer text-sm font-semibold"
+            style={{
+              color: tab === "queue" ? "var(--color-text)" : "var(--color-text-muted)",
+              borderBottom: tab === "queue" ? "2px solid var(--color-primary)" : "2px solid transparent",
+            }}
+          >
+            Play Queue
+          </button>
+          <button
+            onClick={() => setTab("history")}
+            className="px-3 py-3 border-none bg-transparent cursor-pointer text-sm font-semibold"
+            style={{
+              color: tab === "history" ? "var(--color-text)" : "var(--color-text-muted)",
+              borderBottom: tab === "history" ? "2px solid var(--color-primary)" : "2px solid transparent",
+            }}
+          >
+            History
+          </button>
+          {tab === "queue" && queue.length > 0 && (
+            <span className="text-xs ml-1 flex-1" style={{ color: "var(--color-text-muted)" }}>
+              {currentIndex + 1}/{queue.length}
+            </span>
+          )}
           <button
             onClick={onClose}
-            className="p-1.5 border-none bg-transparent cursor-pointer rounded-lg"
+            className="p-2 ml-auto border-none bg-transparent cursor-pointer rounded-lg"
             style={{ color: "var(--color-text-muted)" }}
           >
             <IconX size={18} />
@@ -83,51 +115,142 @@ function QueuePanel({
 
         {/* Track list */}
         <div className="overflow-y-auto flex-1">
-          {queue.map((track, idx) => {
-            const isActive = idx === currentIndex;
-            return (
-              <div
-                key={`${track.uploadId}-${idx}`}
-                className="flex items-center gap-3 px-5 py-3 cursor-pointer active:opacity-70"
-                style={{
-                  backgroundColor: isActive ? "color-mix(in srgb, var(--color-primary) 8%, transparent)" : "transparent",
-                  borderBottom: "1px solid var(--color-border)",
-                }}
-                onClick={() => onSelectIndex(idx)}
-              >
-                <div
-                  className="w-10 h-10 rounded-lg shrink-0 overflow-hidden flex items-center justify-center"
-                  style={{ backgroundColor: "var(--color-menu-hover)" }}
-                >
-                  {track.albumArt ? (
-                    <img src={track.albumArt} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <IconMusic size={16} color="var(--color-text-muted)" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p
-                    className="text-sm font-semibold truncate m-0"
-                    style={{ color: isActive ? "var(--color-primary)" : "var(--color-text)" }}
-                  >
-                    {track.title}
+          {tab === "queue" && (
+            <>
+              {/* Now Playing */}
+              {nowPlayingTrack && (
+                <>
+                  <p className="px-4 pt-3 pb-1 m-0 text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>
+                    Now Playing
                   </p>
-                  <p className="text-xs truncate m-0" style={{ color: "var(--color-text-muted)" }}>
-                    {track.artist} — {track.album}
-                  </p>
-                </div>
-                {isActive && (
-                  <div
-                    className="w-1.5 h-1.5 rounded-full shrink-0"
-                    style={{ backgroundColor: "var(--color-primary)" }}
+                  <QueueRow
+                    track={nowPlayingTrack}
+                    isActive
+                    showRemove={false}
+                    onClick={() => {}}
+                    onRemove={() => {}}
                   />
-                )}
-              </div>
-            );
-          })}
+                </>
+              )}
+
+              {/* Up Next */}
+              {upNext.length > 0 && (
+                <>
+                  <p className="px-4 pt-3 pb-1 m-0 text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>
+                    Up Next
+                  </p>
+                  {upNext.map((track, i) => {
+                    const absoluteIdx = currentIndex + 1 + i;
+                    return (
+                      <QueueRow
+                        key={`${track.uploadId}-${absoluteIdx}`}
+                        track={track}
+                        isActive={false}
+                        showRemove
+                        onClick={() => onSelectIndex(absoluteIdx)}
+                        onRemove={() => onRemove(absoluteIdx)}
+                      />
+                    );
+                  })}
+                </>
+              )}
+
+              {!nowPlayingTrack && upNext.length === 0 && (
+                <p className="text-center text-sm py-10 m-0" style={{ color: "var(--color-text-muted)" }}>
+                  Queue is empty
+                </p>
+              )}
+            </>
+          )}
+
+          {tab === "history" && (
+            <>
+              {history.length === 0 ? (
+                <p className="text-center text-sm py-10 m-0" style={{ color: "var(--color-text-muted)" }}>
+                  No history yet
+                </p>
+              ) : (
+                [...history].reverse().map((track, i) => {
+                  const absoluteIdx = currentIndex - 1 - i;
+                  return (
+                    <QueueRow
+                      key={`${track.uploadId}-${absoluteIdx}`}
+                      track={track}
+                      isActive={false}
+                      showRemove={false}
+                      onClick={() => { onSelectIndex(absoluteIdx); onClose(); }}
+                      onRemove={() => {}}
+                    />
+                  );
+                })
+              )}
+            </>
+          )}
         </div>
       </div>
     </>
+  );
+}
+
+function QueueRow({
+  track,
+  isActive,
+  showRemove,
+  onClick,
+  onRemove,
+}: {
+  track: QueueTrack;
+  isActive: boolean;
+  showRemove: boolean;
+  onClick: () => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div
+      className="flex items-center gap-3 px-4 py-3 cursor-pointer active:opacity-70"
+      style={{
+        backgroundColor: isActive ? "color-mix(in srgb, var(--color-primary) 8%, transparent)" : "transparent",
+        borderBottom: "1px solid var(--color-border)",
+      }}
+      onClick={onClick}
+    >
+      <div
+        className="w-10 h-10 rounded-lg shrink-0 overflow-hidden flex items-center justify-center"
+        style={{ backgroundColor: "var(--color-menu-hover)" }}
+      >
+        {track.albumArt ? (
+          <img src={track.albumArt} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <IconMusic size={16} color="var(--color-text-muted)" />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p
+          className="text-sm font-semibold truncate m-0"
+          style={{ color: isActive ? "var(--color-primary)" : "var(--color-text)" }}
+        >
+          {track.title}
+        </p>
+        <p className="text-xs truncate m-0" style={{ color: "var(--color-text-muted)" }}>
+          {track.artist}{track.album ? ` — ${track.album}` : ""}
+        </p>
+      </div>
+      {isActive && (
+        <div
+          className="w-1.5 h-1.5 rounded-full shrink-0"
+          style={{ backgroundColor: "var(--color-primary)" }}
+        />
+      )}
+      {showRemove && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          className="p-1.5 border-none bg-transparent cursor-pointer rounded-lg shrink-0"
+          style={{ color: "var(--color-text-muted)" }}
+        >
+          <IconX size={14} />
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -141,6 +264,9 @@ interface PlayerScreenProps {
   onNext: () => void;
   onPrevious: () => void;
   onSelectQueueIndex: (i: number) => void;
+  onRemoveFromQueue: (i: number) => void;
+  queue: QueueTrack[];
+  queueIndex: number;
 }
 
 export default function PlayerScreen({
@@ -149,12 +275,13 @@ export default function PlayerScreen({
   onNext,
   onPrevious,
   onSelectQueueIndex,
+  onRemoveFromQueue,
+  queue,
+  queueIndex,
 }: PlayerScreenProps) {
   const [open, setOpen] = useAtom(playerScreenOpenAtom);
   const nowPlaying = useAtomValue(nowPlayingAtom);
   const player = useAtomValue(playerAtom);
-  const queue = useAtomValue(queueAtom);
-  const queueIndex = useAtomValue(queueIndexAtom);
   const [queueOpen, setQueueOpen] = useState(false);
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekValue, setSeekValue] = useState(0);
@@ -259,7 +386,7 @@ export default function PlayerScreen({
         </div>
 
         {/* Track info + controls */}
-        <div className="shrink-0 px-6 pb-4" style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom))" }}>
+        <div className="shrink-0 px-6" style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom))" }}>
           {/* Title + artist */}
           <div className="mb-5">
             <p
@@ -358,6 +485,7 @@ export default function PlayerScreen({
           onSelectQueueIndex(i);
           setQueueOpen(false);
         }}
+        onRemove={onRemoveFromQueue}
       />
     </div>
   );
