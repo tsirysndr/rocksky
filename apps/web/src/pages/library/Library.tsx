@@ -4,9 +4,11 @@ import {
   IconDots,
   IconMusic,
   IconPlayerPlay,
+  IconSearch,
   IconUpload,
   IconUser,
   IconVinyl,
+  IconX,
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
 import { Tab, Tabs } from "baseui/tabs-motion";
@@ -54,6 +56,11 @@ function toQueueTrack(item: UploadedTrack): QueueTrack {
     duration: item.track.duration,
     sha256: item.track.sha256,
     songUri: item.track.uri ?? "",
+    trackNumber: item.track.trackNumber,
+    copyrightMessage: item.track.copyrightMessage,
+    genre: item.track.genre,
+    releaseDate: item.albumReleaseDate,
+    year: item.albumYear,
   };
 }
 
@@ -94,6 +101,60 @@ const UploadButton = styled.button`
   cursor: pointer;
   &:hover {
     background: color-mix(in srgb, var(--color-primary) 15%, transparent);
+  }
+`;
+
+const SearchWrap = styled.div`
+  position: relative;
+  margin-bottom: 16px;
+`;
+
+const SearchIcon = styled.span`
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+`;
+
+const SearchInput = styled.input`
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 36px;
+  border-radius: 12px;
+  border: 1.5px solid transparent;
+  background: var(--color-menu-hover);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  font-family: RockfordSansMedium;
+  outline: none;
+  &::placeholder {
+    color: var(--color-text-muted);
+  }
+  &:focus {
+    border-color: var(--color-primary);
+  }
+`;
+
+const ClearBtn = styled.button`
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 4px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  border-radius: 6px;
+  &:hover {
+    color: var(--color-text);
+    background: color-mix(in srgb, var(--color-text-muted) 15%, transparent);
   }
 `;
 
@@ -752,13 +813,24 @@ export default function Library() {
   const [openAlbumMenuKey, setOpenAlbumMenuKey] = useState<string | null>(null);
   const [albumMenuAnchor, setAlbumMenuAnchor] = useState<HTMLElement | null>(null);
 
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const trimmed = searchInput.trim();
+    const timer = setTimeout(() => {
+      setSearchQuery(trimmed || undefined);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   const {
     data,
     isLoading,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteUploadsQuery();
+  } = useInfiniteUploadsQuery(searchQuery);
 
   const allTracks: UploadedTrack[] = useMemo(
     () => data?.pages.flat() ?? [],
@@ -843,6 +915,23 @@ export default function Library() {
           </UploadButton>
         </Header>
 
+        <SearchWrap>
+          <SearchIcon>
+            <IconSearch size={15} />
+          </SearchIcon>
+          <SearchInput
+            type="text"
+            placeholder="Search your library…"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
+          {searchInput && (
+            <ClearBtn onClick={() => setSearchInput("")}>
+              <IconX size={14} />
+            </ClearBtn>
+          )}
+        </SearchWrap>
+
         <Tabs
           activeKey={activeKey}
           onChange={({ activeKey }) => setActiveKey(activeKey as string | number)}
@@ -855,14 +944,23 @@ export default function Library() {
             {!isLoading && allTracks.length === 0 && (
               <EmptyState>
                 <IconVinyl size={48} color="var(--color-text-muted)" />
-                <div style={{ textAlign: "center" }}>
-                  <EmptyTitle>Your library is empty</EmptyTitle>
-                  <EmptySubtitle>Upload your music files to start listening</EmptySubtitle>
-                </div>
-                <PrimaryButton onClick={() => navigate({ to: "/library/upload" })}>
-                  <IconUpload size={15} />
-                  Upload your first track
-                </PrimaryButton>
+                {searchQuery ? (
+                  <div style={{ textAlign: "center" }}>
+                    <EmptyTitle>No results for "{searchQuery}"</EmptyTitle>
+                    <EmptySubtitle>Try a different search term</EmptySubtitle>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ textAlign: "center" }}>
+                      <EmptyTitle>Your library is empty</EmptyTitle>
+                      <EmptySubtitle>Upload your music files to start listening</EmptySubtitle>
+                    </div>
+                    <PrimaryButton onClick={() => navigate({ to: "/library/upload" })}>
+                      <IconUpload size={15} />
+                      Upload your first track
+                    </PrimaryButton>
+                  </>
+                )}
               </EmptyState>
             )}
 

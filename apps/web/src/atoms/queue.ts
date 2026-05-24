@@ -10,6 +10,11 @@ export interface QueueTrack {
   duration: number;
   sha256: string;
   songUri: string;
+  trackNumber?: number | null;
+  copyrightMessage?: string | null;
+  genre?: string | null;
+  releaseDate?: string | null;
+  year?: number | null;
 }
 
 export const queueAtom = atom<QueueTrack[]>([]);

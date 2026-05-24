@@ -7,7 +7,7 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { consola } from "consola";
 import { ctx } from "context";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import jwt from "jsonwebtoken";
 import { createAgent } from "lib/agent";
@@ -446,6 +446,18 @@ app.get("/", async (c) => {
 
   const size = Math.min(+c.req.query("size") || 50, 200);
   const offset = +c.req.query("offset") || 0;
+  const q = c.req.query("q")?.trim() || undefined;
+
+  const whereClause = q
+    ? and(
+        eq(tables.userUploads.userId, user.id),
+        sql`tracks.search_vector @@ websearch_to_tsquery('simple', ${q})`,
+      )
+    : eq(tables.userUploads.userId, user.id);
+
+  const orderByClause = q
+    ? [sql`ts_rank(tracks.search_vector, websearch_to_tsquery('simple', ${q})) DESC`]
+    : [asc(tables.tracks.title), asc(tables.tracks.artist)];
 
   const uploads = await ctx.db
     .select({
@@ -457,8 +469,8 @@ app.get("/", async (c) => {
     .from(tables.userUploads)
     .innerJoin(tables.tracks, eq(tables.userUploads.trackId, tables.tracks.id))
     .leftJoin(tables.albums, eq(tables.albums.uri, tables.tracks.albumUri))
-    .where(eq(tables.userUploads.userId, user.id))
-    .orderBy(asc(tables.tracks.title), asc(tables.tracks.artist))
+    .where(whereClause)
+    .orderBy(...orderByClause)
     .limit(size)
     .offset(offset);
 

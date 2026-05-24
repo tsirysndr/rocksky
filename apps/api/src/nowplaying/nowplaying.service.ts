@@ -986,6 +986,25 @@ export async function scrobbleTrack(
     tealfm.publishPlayingNow(agent, mbTrack, Math.floor(track.duration / 1000));
   }
 
+  // Enrich track with metadata from the DB that the client may not have sent
+  // (e.g. web upload player only sends title/artist/album/duration/albumArt)
+  if (existingTrack) {
+    if (track.trackNumber == null) track.trackNumber = existingTrack.trackNumber;
+    if (track.discNumber == null) track.discNumber = existingTrack.discNumber;
+    if (!track.composer) track.composer = existingTrack.composer;
+    if (!track.lyrics) track.lyrics = existingTrack.lyrics;
+    if (!track.copyrightMessage) track.copyrightMessage = existingTrack.copyrightMessage;
+    if (!track.mbId) track.mbId = existingTrack.mbId;
+    if (!track.genres?.length && existingTrack.genre)
+      track.genres = [existingTrack.genre];
+    if (!track.spotifyLink) track.spotifyLink = existingTrack.spotifyLink;
+  }
+  if (existingAlbum) {
+    if (track.year == null) track.year = existingAlbum.year;
+    if (!track.releaseDate && existingAlbum.releaseDate)
+      track.releaseDate = new Date(existingAlbum.releaseDate);
+  }
+
   const scrobbleUri = await putScrobbleRecord(track, agent);
 
   // loop while scrobble is null, try 30 times, sleep 1 second between tries

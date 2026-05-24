@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { UploadedTrack } from "../api/uploads";
 import {
   deleteUpload,
@@ -33,15 +33,16 @@ export const useStreamUrlQuery = (uploadId: string | null) =>
     staleTime: 50 * 60 * 1000, // refresh before 1h presigned URL expires
   });
 
-export const useInfiniteUploadsQuery = () =>
+export const useInfiniteUploadsQuery = (q?: string) =>
   useInfiniteQuery({
-    queryKey: ["uploads", "infinite"],
-    queryFn: ({ pageParam }: { pageParam: number }) => getUploads(pageParam, 50),
+    queryKey: ["uploads", "infinite", q],
+    queryFn: ({ pageParam }: { pageParam: number }) => getUploads(pageParam, 50, q),
     initialPageParam: 0,
     getNextPageParam: (lastPage: UploadedTrack[], allPages: UploadedTrack[][]) => {
       if (lastPage.length < 50) return undefined;
       return allPages.flat().length;
     },
+    placeholderData: keepPreviousData,
   });
 
 export const useDeleteUploadMutation = () => {

@@ -55,6 +55,11 @@ export function useUploadScrobble() {
       albumArt,
       duration,
       timestamp: Math.floor(startedAtRef.current / 1000),
+      trackNumber: queue[queueIndex]?.trackNumber,
+      copyrightMessage: queue[queueIndex]?.copyrightMessage,
+      genres: queue[queueIndex]?.genre ? [queue[queueIndex].genre!] : undefined,
+      releaseDate: queue[queueIndex]?.releaseDate,
+      year: queue[queueIndex]?.year,
     }).catch((err) => {
       consola.warn("[scrobble] failed to submit scrobble", err);
       // Allow retry on next render by resetting the flag

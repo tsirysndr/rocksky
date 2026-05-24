@@ -8,6 +8,11 @@ export interface ScrobbleInput {
   duration?: number; // milliseconds
   albumArt?: string;
   timestamp?: number; // unix timestamp in seconds
+  trackNumber?: number | null;
+  copyrightMessage?: string | null;
+  genres?: string[] | null;
+  releaseDate?: string | null;
+  year?: number | null;
 }
 
 export const submitScrobble = async (input: ScrobbleInput): Promise<void> => {

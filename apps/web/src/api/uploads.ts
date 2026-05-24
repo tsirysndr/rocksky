@@ -80,10 +80,10 @@ export const uploadTrack = async (
   return response.data;
 };
 
-export const getUploads = async (offset = 0, size = 50) => {
+export const getUploads = async (offset = 0, size = 50, q?: string) => {
   const response = await axios.get<UploadedTrack[]>(`${API_URL}/uploads`, {
     headers: headers(),
-    params: { offset, size },
+    params: { offset, size, ...(q ? { q } : {}) },
   });
   return response.data;
 };
@@ -138,6 +138,11 @@ export interface PersistedQueueTrack {
   duration: number;
   sha256: string;
   songUri: string;
+  trackNumber?: number | null;
+  copyrightMessage?: string | null;
+  genre?: string | null;
+  releaseDate?: string | null;
+  year?: number | null;
 }
 
 export const getQueueState = async (): Promise<{

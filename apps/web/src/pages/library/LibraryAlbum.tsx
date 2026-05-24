@@ -63,6 +63,11 @@ function toQueueTrack(item: UploadedTrack): QueueTrack {
     duration: item.track.duration,
     sha256: item.track.sha256,
     songUri: item.track.uri ?? "",
+    trackNumber: item.track.trackNumber,
+    copyrightMessage: item.track.copyrightMessage,
+    genre: item.track.genre,
+    releaseDate: item.albumReleaseDate,
+    year: item.albumYear,
   };
 }
 
