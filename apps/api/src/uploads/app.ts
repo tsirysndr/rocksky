@@ -447,17 +447,28 @@ app.get("/", async (c) => {
   const size = Math.min(+c.req.query("size") || 50, 200);
   const offset = +c.req.query("offset") || 0;
   const q = c.req.query("q")?.trim() || undefined;
+  const albumUri = c.req.query("albumUri")?.trim() || undefined;
+  const albumArtist = c.req.query("albumArtist")?.trim() || undefined;
+  const albumName = c.req.query("albumName")?.trim() || undefined;
+
+  const baseWhere = eq(tables.userUploads.userId, user.id);
+  const albumFilter = albumUri
+    ? eq(tables.tracks.albumUri, albumUri)
+    : albumArtist && albumName
+      ? and(eq(tables.tracks.albumArtist, albumArtist), eq(tables.tracks.album, albumName))
+      : undefined;
 
   const whereClause = q
-    ? and(
-        eq(tables.userUploads.userId, user.id),
-        sql`tracks.search_vector @@ websearch_to_tsquery('simple', ${q})`,
-      )
-    : eq(tables.userUploads.userId, user.id);
+    ? and(baseWhere, sql`tracks.search_vector @@ websearch_to_tsquery('simple', ${q})`)
+    : albumFilter
+      ? and(baseWhere, albumFilter)
+      : baseWhere;
 
   const orderByClause = q
     ? [sql`ts_rank(tracks.search_vector, websearch_to_tsquery('simple', ${q})) DESC`]
-    : [asc(tables.tracks.title), asc(tables.tracks.artist)];
+    : albumFilter
+      ? [asc(tables.tracks.trackNumber), asc(tables.tracks.title), asc(tables.tracks.artist)]
+      : [asc(tables.tracks.title), asc(tables.tracks.artist)];
 
   const uploads = await ctx.db
     .select({

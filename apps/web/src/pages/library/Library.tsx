@@ -14,6 +14,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Tab, Tabs } from "baseui/tabs-motion";
 import { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import ContentLoader from "react-content-loader";
+import { getAlbumTracks } from "../../api/uploads";
 import type { UploadedTrack } from "../../api/uploads";
 import {
   useInfiniteUploadsQuery,
@@ -737,12 +738,11 @@ interface AlbumInfo {
 
 interface AlbumContextMenuProps {
   alb: AlbumInfo;
-  albumTracks: QueueTrack[];
   anchorEl: HTMLElement | null;
   onClose: () => void;
 }
 
-function AlbumContextMenu({ alb, albumTracks, anchorEl, onClose }: AlbumContextMenuProps) {
+function AlbumContextMenu({ alb, anchorEl, onClose }: AlbumContextMenuProps) {
   const navigate = useNavigate();
   const { playNow, playNextAll, playLastAll } = useUploadPlayer();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -755,7 +755,14 @@ function AlbumContextMenu({ alb, albumTracks, anchorEl, onClose }: AlbumContextM
     return () => document.removeEventListener("mousedown", handler);
   }, [onClose]);
 
-  const shuffled = () => [...albumTracks].sort(() => Math.random() - 0.5);
+  const fetchTracks = async () => {
+    const tracks = await getAlbumTracks(
+      alb.albumUri ?? undefined,
+      alb.albumUri ? undefined : alb.albumArtist,
+      alb.albumUri ? undefined : alb.album,
+    );
+    return tracks.map(toQueueTrack);
+  };
 
   return (
     <DropdownPortal anchorEl={anchorEl} menuRef={menuRef}>
@@ -773,16 +780,16 @@ function AlbumContextMenu({ alb, albumTracks, anchorEl, onClose }: AlbumContextM
         </MenuHeaderInfo>
       </MenuHeader>
       <MenuDivider />
-      <MenuItem onClick={(e) => { e.stopPropagation(); playNow(albumTracks); onClose(); }}>
+      <MenuItem onClick={async (e) => { e.stopPropagation(); playNow(await fetchTracks()); onClose(); }}>
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconPlayerPlay size={14} /> Play</span>
       </MenuItem>
-      <MenuItem onClick={(e) => { e.stopPropagation(); playNow(shuffled()); onClose(); }}>
+      <MenuItem onClick={async (e) => { e.stopPropagation(); const t = await fetchTracks(); playNow([...t].sort(() => Math.random() - 0.5)); onClose(); }}>
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconArrowsShuffle size={14} /> Play shuffled</span>
       </MenuItem>
       <MenuDivider />
-      <MenuItem onClick={(e) => { e.stopPropagation(); playNextAll(albumTracks); onClose(); }}>Play next</MenuItem>
-      <MenuItem onClick={(e) => { e.stopPropagation(); playLastAll(albumTracks); onClose(); }}>Play last</MenuItem>
-      <MenuItem onClick={(e) => { e.stopPropagation(); playLastAll(shuffled()); onClose(); }}>Add shuffled</MenuItem>
+      <MenuItem onClick={async (e) => { e.stopPropagation(); playNextAll(await fetchTracks()); onClose(); }}>Play next</MenuItem>
+      <MenuItem onClick={async (e) => { e.stopPropagation(); playLastAll(await fetchTracks()); onClose(); }}>Play last</MenuItem>
+      <MenuItem onClick={async (e) => { e.stopPropagation(); const t = await fetchTracks(); playLastAll([...t].sort(() => Math.random() - 0.5)); onClose(); }}>Add shuffled</MenuItem>
       {alb.artistUri && parseAtUri(alb.artistUri) && (
         <>
           <MenuDivider />
@@ -1051,13 +1058,11 @@ export default function Library() {
                 {albums.map((alb) => {
                   const key = albumKey(alb.albumArtist, alb.album);
                   const albParsed = parseAtUri(alb.albumUri);
-                  const albumTracks = allTracks
-                    .filter((t) =>
-                      alb.albumUri
-                        ? t.track.albumUri === alb.albumUri
-                        : t.track.albumArtist === alb.albumArtist && t.track.album === alb.album,
-                    )
-                    .map(toQueueTrack);
+                  const fetchAlbTracks = () => getAlbumTracks(
+                    alb.albumUri ?? undefined,
+                    alb.albumUri ? undefined : alb.albumArtist,
+                    alb.albumUri ? undefined : alb.album,
+                  ).then((tracks) => tracks.map(toQueueTrack));
                   return (
                     <AlbumCard
                       key={key}
@@ -1084,9 +1089,9 @@ export default function Library() {
                         </AlbumArtWrap>
                         <AlbumActionsOverlay className="album-actions">
                           <AlbumFloatBtn
-                            onClick={(e) => {
+                            onClick={async (e) => {
                               e.stopPropagation();
-                              playNow(albumTracks);
+                              playNow(await fetchAlbTracks());
                             }}
                           >
                             <IconPlayerPlay size={16} fill="#fff" />
@@ -1109,7 +1114,6 @@ export default function Library() {
                             {openAlbumMenuKey === key && (
                               <AlbumContextMenu
                                 alb={alb}
-                                albumTracks={albumTracks}
                                 anchorEl={albumMenuAnchor}
                                 onClose={() => { setOpenAlbumMenuKey(null); setAlbumMenuAnchor(null); }}
                               />

@@ -3,6 +3,7 @@ import axios from "axios";
 import { useAtom, useAtomValue } from "jotai";
 import _ from "lodash";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { nowPlayingAtom } from "../../atoms/nowpaying";
 import { playerAtom } from "../../atoms/player";
 import { queueAtom, queueIndexAtom, queuePanelOpenAtom } from "../../atoms/queue";
@@ -62,7 +63,7 @@ const QueueOverlay = styled.div`
 const PlayerSelectorOverlay = styled.div`
   position: fixed;
   inset: 0;
-  z-index: 200;
+  z-index: 9000;
 `;
 
 const PlayerSelectorPopup = styled.div`
@@ -71,7 +72,7 @@ const PlayerSelectorPopup = styled.div`
   border: 1px solid var(--color-border);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
-  z-index: 201;
+  z-index: 9001;
   padding: 8px 0;
   min-width: 180px;
   transform: translateX(-50%);
@@ -623,7 +624,7 @@ function StickyPlayerWithData() {
         const rect = speakerRef.current?.getBoundingClientRect();
         const left = rect ? rect.left + rect.width / 2 : 100;
         const bottom = rect ? window.innerHeight - rect.top + 8 : 140;
-        return (
+        return createPortal(
         <>
           <PlayerSelectorOverlay onClick={() => setPlayerSelectorOpen(false)} />
           <PlayerSelectorPopup style={{ left, bottom }}>
@@ -676,8 +677,7 @@ function StickyPlayerWithData() {
               </PlayerSelectorItem>
             )}
           </PlayerSelectorPopup>
-        </>
-        );
+        </>, document.body);
       })()}
 
       <StickyPlayer

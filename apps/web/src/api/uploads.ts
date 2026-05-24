@@ -80,12 +80,43 @@ export const uploadTrack = async (
   return response.data;
 };
 
-export const getUploads = async (offset = 0, size = 50, q?: string) => {
+export const getUploads = async (
+  offset = 0,
+  size = 50,
+  q?: string,
+  albumUri?: string,
+  albumArtist?: string,
+  albumName?: string,
+) => {
   const response = await axios.get<UploadedTrack[]>(`${API_URL}/uploads`, {
     headers: headers(),
-    params: { offset, size, ...(q ? { q } : {}) },
+    params: {
+      offset,
+      size,
+      ...(q ? { q } : {}),
+      ...(albumUri ? { albumUri } : {}),
+      ...(albumArtist ? { albumArtist } : {}),
+      ...(albumName ? { albumName } : {}),
+    },
   });
   return response.data;
+};
+
+export const getAlbumTracks = async (
+  albumUri?: string,
+  albumArtist?: string,
+  albumName?: string,
+): Promise<UploadedTrack[]> => {
+  const all: UploadedTrack[] = [];
+  let offset = 0;
+  const size = 200;
+  while (true) {
+    const page = await getUploads(offset, size, undefined, albumUri, albumArtist, albumName);
+    all.push(...page);
+    if (page.length < size) break;
+    offset += size;
+  }
+  return all;
 };
 
 const STREAM_TOKEN_KEY = "stream_token";
