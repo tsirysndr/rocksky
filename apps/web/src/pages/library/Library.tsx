@@ -107,6 +107,14 @@ const tabOverrides = {
       backgroundColor: "var(--color-background) !important",
     },
   },
+  TabPanel: {
+    style: {
+      paddingTop: "16px",
+      paddingBottom: "0",
+      paddingLeft: "0",
+      paddingRight: "0",
+    },
+  },
 };
 
 const tabsOverrides = {
@@ -128,7 +136,7 @@ const TrackRow = styled.div<{ active: boolean }>`
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
+  padding: 10px 0;
   border-radius: 12px;
   cursor: pointer;
   position: relative;

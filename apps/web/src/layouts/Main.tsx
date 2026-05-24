@@ -1,8 +1,9 @@
 import styled from "@emotion/styled";
-import { useSearch } from "@tanstack/react-router";
+import { Link, useSearch } from "@tanstack/react-router";
 import { PLACEMENT, ToasterContainer } from "baseui/toast";
 import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
+import { IconDisc } from "@tabler/icons-react";
 import { profileAtom } from "../atoms/profile";
 import ScrobblesAreaChart from "../components/ScrobblesAreaChart";
 import StickyPlayer from "../components/StickyPlayer";
@@ -224,6 +225,17 @@ function Main(props: MainProps) {
             <div className="mb-[30px]">
               <Search />
             </div>
+            {jwt && profile && (
+              <div className="mb-[20px]">
+                <Link
+                  to="/library"
+                  className="flex items-center text-[var(--color-text)] text-[15px] font-bold no-underline opacity-80 hover:opacity-100"
+                >
+                  <IconDisc size={18} style={{ marginRight: "6px" }} />
+                  My Library
+                </Link>
+              </div>
+            )}
             {jwt && profile && !profile.spotifyConnected && <SpotifyLogin />}
             {/* {jwt && profile && <CloudDrive />} */}
             {!jwt && (
