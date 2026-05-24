@@ -50,6 +50,7 @@
     "@tanstack/zod-adapter": "^1.125.4",
     "@types/numeral": "^2.0.5",
     "@vitest/ui": "^3.0.4",
+    "audio-decode": "^3.10.1",
     "axios": "^1.7.9",
     "baseui": "15.0.0",
     "consola": "^3.4.2",

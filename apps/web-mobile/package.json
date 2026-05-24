@@ -22,6 +22,7 @@
     "@tabler/icons-react": "^3.31.0",
     "@tanstack/react-query": "^5.76.0",
     "@types/numeral": "^2.0.5",
+    "audio-decode": "^3.10.1",
     "axios": "^1.7.9",
     "baseui": "15.0.0",
     "consola": "^3.2.3",
