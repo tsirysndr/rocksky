@@ -21,11 +21,40 @@ import useLike from "../../hooks/useLike";
 import useSpotify from "../../hooks/useSpotify";
 import { useQueuePersistence } from "../../hooks/useQueuePersistence";
 import { useUploadScrobble } from "../../hooks/useUploadScrobble";
-import { getStreamUrl } from "../../api/uploads";
+import { getStreamUrl, ensureStreamToken } from "../../api/uploads";
 import PlayerScreen from "../PlayerScreen";
 import axios from "axios";
 import { API_URL } from "../../consts";
 import _ from "lodash";
+
+// ---------------------------------------------------------------------------
+// Rockbox WASM singleton (one instance per page lifetime)
+// ---------------------------------------------------------------------------
+let _rbPlayer: any = null;
+let _rbInitPromise: Promise<any> | null = null;
+
+// In dev, WASM files are served from the same origin (public/) to avoid cross-origin issues.
+// In production they're served from the CDN (rocksky.app).
+const ROCKBOX_BASE = import.meta.env.DEV ? "" : "https://rocksky.app";
+
+async function getRockboxPlayer(): Promise<any> {
+  if (_rbPlayer) return _rbPlayer;
+  if (_rbInitPromise) return _rbInitPromise;
+  _rbInitPromise = (async () => {
+    const { RockboxPlayer } = await import(/* @vite-ignore */ `${ROCKBOX_BASE}/rockbox.js`);
+    const p = new RockboxPlayer({
+      wasmUrl: `${ROCKBOX_BASE}/rockboxd.js`,
+      workletUrl: `${ROCKBOX_BASE}/rockbox-audio-worklet.js`,
+    });
+    await p.init("/config", "/music");
+    _rbPlayer = p;
+    return p;
+  })();
+  return _rbInitPromise;
+}
+
+/** True when SharedArrayBuffer (required by Rockbox WASM) is available. */
+const ROCKBOX_ENABLED = typeof crossOriginIsolated !== "undefined" && crossOriginIsolated;
 
 // ---------------------------------------------------------------------------
 // Source selector bottom sheet
@@ -138,8 +167,19 @@ export default function MiniPlayer() {
   const shuffleRef = useRef(shuffle);
   const repeatModeRef = useRef(repeatMode);
 
-  // Hidden audio element for upload player
+  // Rockbox WASM refs
+  const rbPlayerRef = useRef<any>(null);
+  const rbNextOurIdxRef = useRef(-1);
+  const rbLastPlaylistIdxRef = useRef(-1);
+  const rbAdvancedRef = useRef(false);
+  const rbListenersSetRef = useRef(false);
+
+  // HTML5 audio fallback (used when page is not cross-origin isolated)
   const audioRef = useRef<HTMLAudioElement>(null);
+
+  // Prevent autoplay on initial page load (queue restored from storage)
+  const hasMountedRef = useRef(false);
+  const [playTrigger, setPlayTrigger] = useState(0);
 
   // Keep refs in sync
   useEffect(() => {
@@ -153,7 +193,6 @@ export default function MiniPlayer() {
   }, [nowPlaying, player, liked, queue, queueIndex, shuffle, repeatMode]);
 
   const fetchCurrentlyPlaying = useCallback(async () => {
-    // Use ref to avoid stale closure — always read current player value
     if (playerRef.current === "rockbox" || playerRef.current === "upload") return;
     try {
       const { data } = await axios.get(`${API_URL}/spotify/currently-playing`, {
@@ -190,68 +229,55 @@ export default function MiniPlayer() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setNowPlaying, setPlayer]);
 
-  // Load and play audio when upload track changes
+  // Stop upload audio when switching to another player
   useEffect(() => {
-    if (player !== "upload") return;
-    const track = queue[queueIndex];
-    if (!track) return;
-    getStreamUrl(track.uploadId).then(({ url }) => {
+    if (player === "upload") return;
+    if (ROCKBOX_ENABLED) {
+      const p = rbPlayerRef.current;
+      if (p) p.stop();
+    } else {
       const audio = audioRef.current;
-      if (!audio) return;
-      audio.src = url;
-      if (nowPlayingRef.current?.isPlaying) audio.play().catch(() => {});
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [player, queueIndex]);
+      if (audio) { audio.pause(); audio.src = ""; }
+    }
+  }, [player]);
 
-  // Audio event listeners for upload player
+  // Rockbox: sync repeat mode (WASM path only)
   useEffect(() => {
-    if (player !== "upload") return;
+    if (!ROCKBOX_ENABLED || player !== "upload") return;
+    const p = rbPlayerRef.current;
+    if (!p) return;
+    p.setRepeat(repeatMode === "one" ? 2 : 0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [repeatMode]);
+
+  // HTML5 audio event listeners (fallback when crossOriginIsolated is false)
+  useEffect(() => {
+    if (player !== "upload" || ROCKBOX_ENABLED) return;
     const audio = audioRef.current;
     if (!audio) return;
 
-    const onTimeUpdate = () => {
-      setNowPlaying((prev) =>
-        prev ? { ...prev, progress: Math.floor(audio.currentTime * 1000) } : prev,
-      );
-    };
+    const onTimeUpdate = () => setNowPlaying((prev) => prev ? { ...prev, progress: Math.floor(audio.currentTime * 1000) } : prev);
     const onPlay = () => setNowPlaying((prev) => prev ? { ...prev, isPlaying: true } : prev);
     const onPause = () => setNowPlaying((prev) => prev ? { ...prev, isPlaying: false } : prev);
     const onEnded = () => {
       const q = queueRef.current;
       const cur = queueIndexRef.current;
       if (repeatModeRef.current === "one") {
-        audio.currentTime = 0;
-        audio.play().catch(() => {});
+        audio.currentTime = 0; audio.play().catch(() => {});
         setNowPlaying((prev) => prev ? { ...prev, progress: 0, isPlaying: true } : prev);
         return;
       }
       let nextIdx: number;
       if (shuffleRef.current && q.length > 1) {
         do { nextIdx = Math.floor(Math.random() * q.length); } while (nextIdx === cur);
-      } else {
-        nextIdx = cur + 1;
-      }
+      } else { nextIdx = cur + 1; }
       const nextTrack = q[nextIdx] ?? (repeatModeRef.current === "all" ? q[0] : null);
       const resolvedIdx = q[nextIdx] ? nextIdx : (repeatModeRef.current === "all" ? 0 : -1);
       if (nextTrack && resolvedIdx >= 0) {
         setQueueIndex(resolvedIdx);
-        setNowPlaying({
-          title: nextTrack.title,
-          artist: nextTrack.artist,
-          artistUri: "",
-          songUri: nextTrack.songUri ?? "",
-          albumUri: "",
-          duration: nextTrack.duration,
-          progress: 0,
-          albumArt: nextTrack.albumArt ?? undefined,
-          isPlaying: true,
-          sha256: nextTrack.sha256,
-          liked: false,
-        });
+        setNowPlaying({ title: nextTrack.title, artist: nextTrack.artist, artistUri: "", songUri: nextTrack.songUri ?? "", albumUri: "", duration: nextTrack.duration, progress: 0, albumArt: nextTrack.albumArt ?? undefined, isPlaying: true, sha256: nextTrack.sha256, liked: false });
       }
     };
-
     audio.addEventListener("timeupdate", onTimeUpdate);
     audio.addEventListener("play", onPlay);
     audio.addEventListener("pause", onPause);
@@ -265,12 +291,187 @@ export default function MiniPlayer() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [player]);
 
-  // Progress ticker (Spotify / Rockbox)
+  // Load and play current track (user-initiated navigation)
+  useEffect(() => {
+    if (player !== "upload") return;
+    const track = queue[queueIndex];
+    if (!track) return;
+
+    // On initial page load (atoms restored from storage), show track info without playing.
+    if (!hasMountedRef.current) {
+      setNowPlaying({ title: track.title, artist: track.artist, artistUri: "", songUri: track.songUri ?? "", albumUri: "", duration: track.duration, progress: 0, albumArt: track.albumArt ?? undefined, isPlaying: false, sha256: track.sha256, liked: false });
+      return;
+    }
+
+    // HTML5 fallback path
+    if (!ROCKBOX_ENABLED) {
+      console.info("[upload] HTML5 audio fallback — page not cross-origin isolated");
+      if (rbAdvancedRef.current) { rbAdvancedRef.current = false; return; }
+      let cancelled = false;
+      ensureStreamToken().then(() => {
+        if (cancelled) return;
+        const audio = audioRef.current;
+        if (!audio) return;
+        audio.src = getStreamUrl(track.uploadId);
+        audio.play().catch(() => {});
+        setNowPlaying({ title: track.title, artist: track.artist, artistUri: "", songUri: track.songUri ?? "", albumUri: "", duration: track.duration, progress: 0, albumArt: track.albumArt ?? undefined, isPlaying: true, sha256: track.sha256, liked: false });
+      });
+      return () => { cancelled = true; };
+    }
+
+    // Rockbox auto-advanced — just clear the flag, don't re-play
+    if (rbAdvancedRef.current) {
+      rbAdvancedRef.current = false;
+      return;
+    }
+
+    let cancelled = false;
+
+    const run = async () => {
+      await ensureStreamToken();
+      const p = await getRockboxPlayer();
+      if (cancelled) return;
+      rbPlayerRef.current = p;
+
+      // Register Rockbox event listeners exactly once per player instance
+      if (!rbListenersSetRef.current) {
+        rbListenersSetRef.current = true;
+
+        p.on("progress", ({ elapsed_ms, duration_ms, status }: { elapsed_ms: number; duration_ms: number; status: number }) => {
+          if (playerRef.current !== "upload") return;
+          if (status === 0) return;
+          setNowPlaying((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              progress: elapsed_ms,
+              duration: duration_ms > 0 ? duration_ms : prev.duration,
+              isPlaying: status === 1,
+            };
+          });
+        });
+
+        p.on("status", ({ status }: { status: number }) => {
+          if (playerRef.current !== "upload") return;
+          if (status === 2) {
+            setNowPlaying((prev) => (prev ? { ...prev, isPlaying: false } : prev));
+          }
+        });
+
+        p.on("playlist", ({ index }: { index: number }) => {
+          if (playerRef.current !== "upload") return;
+          if (index <= rbLastPlaylistIdxRef.current) return;
+          rbLastPlaylistIdxRef.current = index;
+
+          const nextOurIdx = rbNextOurIdxRef.current;
+          if (nextOurIdx < 0) return;
+
+          rbAdvancedRef.current = true;
+          setQueueIndex(nextOurIdx);
+
+          const advancedTrack = queueRef.current[nextOurIdx];
+          if (advancedTrack) {
+            setNowPlaying({
+              title: advancedTrack.title,
+              artist: advancedTrack.artist,
+              artistUri: "",
+              songUri: advancedTrack.songUri ?? "",
+              albumUri: "",
+              duration: advancedTrack.duration,
+              progress: 0,
+              albumArt: advancedTrack.albumArt ?? undefined,
+              isPlaying: true,
+              sha256: advancedTrack.sha256,
+              liked: false,
+            });
+          }
+
+          // Compute and enqueue next lookahead
+          const q = queueRef.current;
+          const cur = nextOurIdx;
+          const repeat = repeatModeRef.current;
+          const shuffled = shuffleRef.current;
+          let newNextIdx: number;
+          if (repeat === "one") {
+            newNextIdx = cur;
+          } else if (shuffled && q.length > 1) {
+            do { newNextIdx = Math.floor(Math.random() * q.length); } while (newNextIdx === cur);
+          } else {
+            newNextIdx = cur + 1;
+            if (newNextIdx >= q.length) newNextIdx = repeat === "all" ? 0 : -1;
+          }
+          rbNextOurIdxRef.current = newNextIdx;
+          if (newNextIdx >= 0) {
+            const lookaheadTrack = q[newNextIdx];
+            if (lookaheadTrack && playerRef.current === "upload") {
+              p.enqueueUrl(getStreamUrl(lookaheadTrack.uploadId));
+            }
+          }
+        });
+      }
+
+      // Apply repeat mode
+      p.setRepeat(repeatModeRef.current === "one" ? 2 : 0);
+
+      // Reset playlist tracking for fresh playUrl() call
+      rbLastPlaylistIdxRef.current = -1;
+
+      if (cancelled) return;
+      p.playUrl(getStreamUrl(track.uploadId));
+      p.resumeAudio().catch(() => {});
+
+      setNowPlaying({
+        title: track.title,
+        artist: track.artist,
+        artistUri: "",
+        songUri: track.songUri ?? "",
+        albumUri: "",
+        duration: track.duration,
+        progress: 0,
+        albumArt: track.albumArt ?? undefined,
+        isPlaying: true,
+        sha256: track.sha256,
+        liked: false,
+      });
+
+      // Preload next track for gapless transition
+      const q = queue;
+      const cur = queueIndex;
+      const repeat = repeatModeRef.current;
+      const shuffled = shuffleRef.current;
+      let nextIdx: number;
+      if (repeat === "one") {
+        nextIdx = cur;
+      } else if (shuffled && q.length > 1) {
+        do { nextIdx = Math.floor(Math.random() * q.length); } while (nextIdx === cur);
+      } else {
+        nextIdx = cur + 1;
+        if (nextIdx >= q.length) nextIdx = repeat === "all" ? 0 : -1;
+      }
+      rbNextOurIdxRef.current = nextIdx;
+      if (nextIdx >= 0) {
+        const nextTrack = q[nextIdx];
+        if (nextTrack && !cancelled && playerRef.current === "upload") {
+          p.enqueueUrl(getStreamUrl(nextTrack.uploadId));
+        }
+      }
+    };
+
+    run().catch(console.error);
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [player, queueIndex, playTrigger]);
+
+  // Mark mount complete — MUST be declared after the play effect so it runs after on initial mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { hasMountedRef.current = true; }, []);
+
+  // Progress ticker (Spotify / Rockbox device)
   useEffect(() => {
     progressInterval.current = window.setInterval(() => {
       setNowPlaying((prev) => {
         if (!prev || !prev.isPlaying) return prev;
-        if (playerRef.current === "upload") return prev;
+        if (playerRef.current === "upload") return prev; // Rockbox provides its own ticks
         if (prev.progress >= prev.duration) {
           if (playerRef.current === "spotify") setTimeout(fetchCurrentlyPlaying, 2000);
           return prev;
@@ -291,7 +492,7 @@ export default function MiniPlayer() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // WebSocket for Rockbox
+  // WebSocket for Rockbox device
   useEffect(() => {
     if (!localStorage.getItem("token")) return;
     const wsUrl = API_URL.replace("https", "wss").replace("http", "ws");
@@ -313,9 +514,7 @@ export default function MiniPlayer() {
         const msg = JSON.parse(event.data);
 
         if (msg.type === "message" && msg.data?.type === "track") {
-          // Mark rockbox as available regardless of active player
           setRockboxAvailable(true);
-          // Don't disturb an active non-rockbox player
           if (playerRef.current !== null && playerRef.current !== "rockbox") return;
           if (lastFetchedRef.current && Date.now() - lastFetchedRef.current < 3000) return;
           if (!msg.data.title && !msg.data.artist && !msg.data.album_artist) return;
@@ -340,7 +539,6 @@ export default function MiniPlayer() {
           lastFetchedRef.current = Date.now();
         }
 
-        // Status messages only apply if rockbox is the active player
         if (playerRef.current !== "rockbox") return;
         if (msg.data?.status === 0) setNowPlaying(null);
         if (msg.data?.status === 1 && nowPlayingRef.current)
@@ -373,9 +571,30 @@ export default function MiniPlayer() {
   const onPlayPause = () => {
     if (!nowPlaying) return;
     if (player === "upload") {
-      const audio = audioRef.current;
-      if (!audio) return;
-      nowPlaying.isPlaying ? audio.pause() : audio.play().catch(() => {});
+      if (ROCKBOX_ENABLED) {
+        const p = rbPlayerRef.current;
+        if (p) {
+          if (nowPlaying.isPlaying) { p.pause(); } else { p.resumeAudio().catch(() => {}); p.play(); }
+        } else {
+          // First play after page load — trigger the play effect to init + load + play
+          hasMountedRef.current = true;
+          setPlayTrigger((t) => t + 1);
+        }
+      } else {
+        const audio = audioRef.current;
+        if (!audio) return;
+        if (nowPlaying.isPlaying) {
+          audio.pause();
+        } else if (!audio.src) {
+          // First play after page load — load URL then play
+          const track = queueRef.current[queueIndexRef.current];
+          if (!track) return;
+          audio.src = getStreamUrl(track.uploadId);
+          audio.play().catch(() => {});
+        } else {
+          audio.play().catch(() => {});
+        }
+      }
       return;
     }
     if (player === "rockbox" && socketRef.current) {
@@ -429,11 +648,20 @@ export default function MiniPlayer() {
 
   const onPrevious = () => {
     if (player !== "upload") return;
-    const audio = audioRef.current;
-    if (audio && audio.currentTime > 3) {
-      audio.currentTime = 0;
-      setNowPlaying((prev) => prev ? { ...prev, progress: 0 } : prev);
-      return;
+    if (ROCKBOX_ENABLED) {
+      const p = rbPlayerRef.current;
+      if (p && (nowPlayingRef.current?.progress ?? 0) > 3000) {
+        p.seek(0);
+        setNowPlaying((prev) => prev ? { ...prev, progress: 0 } : prev);
+        return;
+      }
+    } else {
+      const audio = audioRef.current;
+      if (audio && audio.currentTime > 3) {
+        audio.currentTime = 0;
+        setNowPlaying((prev) => prev ? { ...prev, progress: 0 } : prev);
+        return;
+      }
     }
     const prevIdx = queueIndexRef.current - 1;
     const prevTrack = queueRef.current[prevIdx];
@@ -453,6 +681,17 @@ export default function MiniPlayer() {
       liked: false,
     });
   };
+
+  const onSeek = useCallback((positionMs: number) => {
+    if (ROCKBOX_ENABLED) {
+      const p = rbPlayerRef.current;
+      if (p) p.seek(positionMs);
+    } else {
+      const audio = audioRef.current;
+      if (audio) audio.currentTime = positionMs / 1000;
+    }
+    setNowPlaying((prev) => prev ? { ...prev, progress: positionMs } : prev);
+  }, [setNowPlaying]);
 
   const onSelectQueueIndex = useCallback((idx: number) => {
     const track = queueRef.current[idx];
@@ -513,17 +752,27 @@ export default function MiniPlayer() {
         : [],
     });
     navigator.mediaSession.setActionHandler("play", () => {
-      audioRef.current?.play().catch(() => {});
+      if (ROCKBOX_ENABLED) {
+        const p = rbPlayerRef.current;
+        if (p) { p.resumeAudio().catch(() => {}); p.play(); }
+      } else {
+        audioRef.current?.play().catch(() => {});
+      }
     });
     navigator.mediaSession.setActionHandler("pause", () => {
-      audioRef.current?.pause();
+      if (ROCKBOX_ENABLED) {
+        const p = rbPlayerRef.current;
+        if (p) p.pause();
+      } else {
+        audioRef.current?.pause();
+      }
     });
     navigator.mediaSession.setActionHandler("previoustrack", onPrevious);
     navigator.mediaSession.setActionHandler("nexttrack", onNext);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nowPlaying?.title, nowPlaying?.artist, nowPlaying?.albumArt]);
 
-  if (!nowPlaying) return <audio ref={audioRef} style={{ display: "none" }} />;
+  if (!nowPlaying) return !ROCKBOX_ENABLED ? <audio ref={audioRef} style={{ display: "none" }} /> : null;
 
   const progress =
     nowPlaying.duration > 0
@@ -538,10 +787,11 @@ export default function MiniPlayer() {
 
   return (
     <>
-      <audio ref={audioRef} style={{ display: "none" }} />
+      {/* HTML5 audio fallback element (only mounted when crossOriginIsolated is false) */}
+      {!ROCKBOX_ENABLED && <audio ref={audioRef} style={{ display: "none" }} />}
 
       <PlayerScreen
-        audioRef={audioRef}
+        onSeek={onSeek}
         onPlayPause={onPlayPause}
         onNext={onNext}
         onPrevious={onPrevious}
@@ -627,7 +877,7 @@ export default function MiniPlayer() {
 
           {/* Controls */}
           <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-            {/* Source selector — shown when multiple sources are available */}
+            {/* Source selector */}
             {showSourceBtn && (
               <button
                 onClick={() => setSourceSheetOpen(true)}

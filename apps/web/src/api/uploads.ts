@@ -88,14 +88,38 @@ export const getUploads = async (offset = 0, size = 50) => {
   return response.data;
 };
 
-export const getStreamUrl = async (
-  uploadId: string,
-): Promise<{ url: string; expiresIn: number }> => {
-  const response = await axios.get<{ url: string; expiresIn: number }>(
-    `${API_URL}/uploads/${uploadId}/stream`,
-    { headers: headers() },
-  );
-  return response.data;
+const STREAM_TOKEN_KEY = "stream_token";
+const STREAM_TOKEN_EXP_KEY = "stream_token_exp";
+let _refreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+export const ensureStreamToken = async (): Promise<void> => {
+  const exp = parseInt(localStorage.getItem(STREAM_TOKEN_EXP_KEY) ?? "0", 10);
+  if (Date.now() < exp - 5 * 60 * 1000) return; // valid for >5 min, nothing to do
+
+  if (_refreshTimer) { clearTimeout(_refreshTimer); _refreshTimer = null; }
+
+  try {
+    const response = await axios.get<{ token: string; expiresIn: number }>(
+      `${API_URL}/uploads/stream-token`,
+      { headers: headers() },
+    );
+    const newExp = Date.now() + response.data.expiresIn * 1000;
+    localStorage.setItem(STREAM_TOKEN_KEY, response.data.token);
+    localStorage.setItem(STREAM_TOKEN_EXP_KEY, String(newExp));
+    // Schedule next refresh 5 min before the new token expires
+    const refreshIn = Math.max(0, newExp - Date.now() - 5 * 60 * 1000);
+    _refreshTimer = setTimeout(ensureStreamToken, refreshIn);
+  } catch {
+    // Retry in 1 minute; fall back to main token in getStreamUrl until then
+    _refreshTimer = setTimeout(ensureStreamToken, 60 * 1000);
+  }
+};
+
+export const getStreamUrl = (uploadId: string): string => {
+  const streamToken = localStorage.getItem(STREAM_TOKEN_KEY);
+  const exp = parseInt(localStorage.getItem(STREAM_TOKEN_EXP_KEY) ?? "0", 10);
+  const token = (streamToken && Date.now() < exp) ? streamToken : localStorage.getItem("token");
+  return `${API_URL}/uploads/${uploadId}/stream?token=${token}`;
 };
 
 export const deleteUpload = async (uploadId: string): Promise<void> => {

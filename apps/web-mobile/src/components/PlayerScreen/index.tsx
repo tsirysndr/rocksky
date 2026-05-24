@@ -263,7 +263,7 @@ function QueueRow({
 // ---------------------------------------------------------------------------
 
 interface PlayerScreenProps {
-  audioRef: React.RefObject<HTMLAudioElement | null>;
+  onSeek: (positionMs: number) => void;
   onPlayPause: () => void;
   onNext: () => void;
   onPrevious: () => void;
@@ -278,7 +278,7 @@ interface PlayerScreenProps {
 }
 
 export default function PlayerScreen({
-  audioRef,
+  onSeek,
   onPlayPause,
   onNext,
   onPrevious,
@@ -319,10 +319,8 @@ export default function PlayerScreen({
 
   const handleSeekCommit = useCallback((value: number) => {
     setIsSeeking(false);
-    if (audioRef.current) {
-      audioRef.current.currentTime = value / 1000;
-    }
-  }, [audioRef]);
+    onSeek(value);
+  }, [onSeek]);
 
   if (!open || !nowPlaying || player !== "upload") return null;
 

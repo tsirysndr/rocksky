@@ -465,9 +465,47 @@ app.get("/", async (c) => {
   return c.json(uploads);
 });
 
-// GET /uploads/:id/stream ----------------------------------------------------
-app.get("/:id/stream", async (c) => {
+// GET /uploads/stream-token --------------------------------------------------
+// Issues a short-lived opaque token (random hex, stored in Redis with 1 h TTL)
+// for use as ?token= in stream URLs.  WASM audio can't set HTTP headers so we
+// use this instead of the full user JWT.
+app.get("/stream-token", async (c) => {
   const user = await resolveUser(c.req.header("authorization"));
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+  const token = Array.from(crypto.getRandomValues(new Uint8Array(20)))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  const ttl = 3600;
+  await ctx.redis.setEx(`stream:${token}`, ttl, user.id);
+  return c.json({ token, expiresIn: ttl });
+});
+
+// GET /uploads/:id/stream ----------------------------------------------------
+// Streams audio through the API so the internal R2 URL is never exposed.
+// Auth: Bearer header or ?token= query param (opaque stream token from /stream-token).
+// Handles Range requests for seeking.
+app.get("/:id/stream", async (c) => {
+  // Resolve the user from the opaque stream token in ?token= or the full JWT in Bearer
+  let user: Awaited<ReturnType<typeof resolveUser>> = null;
+
+  const tokenParam = c.req.query("token");
+  if (tokenParam) {
+    const userId = await ctx.redis.get(`stream:${tokenParam}`);
+    if (userId) {
+      user = await ctx.db
+        .select()
+        .from(tables.users)
+        .where(eq(tables.users.id, userId))
+        .limit(1)
+        .then((rows) => rows[0] ?? null);
+    }
+  } else {
+    user = await resolveUser(c.req.header("authorization"));
+  }
+
   if (!user) {
     c.status(401);
     return c.text("Unauthorized");
@@ -491,13 +529,35 @@ app.get("/:id/stream", async (c) => {
   }
 
   const s3 = makeS3Client();
-  const url = await getSignedUrl(
-    s3,
-    new GetObjectCommand({ Bucket: env.S3_BUCKET_NAME, Key: upload.r2Key }),
-    { expiresIn: 3600 },
+  const rangeHeader = c.req.header("range");
+
+  const s3Res = await s3.send(
+    new GetObjectCommand({
+      Bucket: env.S3_BUCKET_NAME,
+      Key: upload.r2Key,
+      ...(rangeHeader ? { Range: rangeHeader } : {}),
+    }),
   );
 
-  return c.json({ url, expiresIn: 3600 });
+  if (!s3Res.Body) {
+    c.status(500);
+    return c.text("Stream unavailable");
+  }
+
+  const status = rangeHeader ? 206 : 200;
+  const headers: Record<string, string> = {
+    "Content-Type": upload.mimeType || s3Res.ContentType || "audio/mpeg",
+    "Accept-Ranges": "bytes",
+    "Cache-Control": "private, max-age=3600",
+  };
+  if (s3Res.ContentLength !== undefined) {
+    headers["Content-Length"] = String(s3Res.ContentLength);
+  }
+  if (rangeHeader && s3Res.ContentRange) {
+    headers["Content-Range"] = s3Res.ContentRange;
+  }
+
+  return new Response(s3Res.Body.transformToWebStream(), { status, headers });
 });
 
 // GET /uploads/queue ---------------------------------------------------------
