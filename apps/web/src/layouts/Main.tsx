@@ -232,7 +232,7 @@ function Main(props: MainProps) {
                   className="flex items-center text-[var(--color-text)] text-[15px] font-bold no-underline opacity-80 hover:opacity-100"
                 >
                   <IconDisc size={18} style={{ marginRight: "6px" }} />
-                  My Library
+                  My Library (experimental)
                 </Link>
               </div>
             )}
