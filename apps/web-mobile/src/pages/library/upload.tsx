@@ -5,9 +5,10 @@ import {
   IconX,
 } from "@tabler/icons-react";
 import { useCallback, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { uploadTrack } from "../../api/uploads";
 import Main from "../../layouts/Main";
+import SignInModal from "../../components/SignInModal/SignInModal";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -37,6 +38,9 @@ function formatBytes(bytes: number) {
 // ---------------------------------------------------------------------------
 
 export default function UploadPage() {
+  const navigate = useNavigate();
+  const isAuthenticated = !!localStorage.getItem("token");
+
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -86,6 +90,14 @@ export default function UploadPage() {
   const pendingItems = queue.filter((i) => i.status.state === "pending");
   const doneCount = queue.filter((i) => i.status.state === "done").length;
   const errorCount = queue.filter((i) => i.status.state === "error").length;
+
+  if (!isAuthenticated) {
+    return (
+      <Main>
+        <SignInModal isOpen onClose={() => navigate("/library")} />
+      </Main>
+    );
+  }
 
   return (
     <Main>

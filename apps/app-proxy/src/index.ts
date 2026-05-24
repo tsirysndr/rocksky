@@ -72,7 +72,7 @@ export default {
 			const assetRes = await fetch(assetUrl);
 			const headers = new Headers(assetRes.headers);
 			headers.set('Cross-Origin-Opener-Policy', 'same-origin');
-			headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
+			headers.set('Cross-Origin-Embedder-Policy', 'credentialless');
 			headers.set('Access-Control-Allow-Origin', '*');
 			if (url.pathname.endsWith('.wasm')) {
 				headers.set('Content-Type', 'application/wasm');
@@ -143,7 +143,7 @@ export default {
 			const headers = new Headers(htmlRes.headers);
 			headers.set('cache-control', 'public, max-age=300');
 			headers.set('Cross-Origin-Opener-Policy', 'same-origin');
-			headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
+			headers.set('Cross-Origin-Embedder-Policy', 'credentialless');
 
 			const rewritten = new HTMLRewriter()
 				.on('meta[property^="og:"]', new StripMeta())
@@ -168,7 +168,7 @@ export default {
 		const headers = new Headers(htmlRes.headers);
 		headers.set('cache-control', 'public, max-age=300');
 		headers.set('Cross-Origin-Opener-Policy', 'same-origin');
-		headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
+		headers.set('Cross-Origin-Embedder-Policy', 'credentialless');
 
 		const rewritten = new HTMLRewriter()
 			.on('meta[property^="og:"]', new StripMeta())
