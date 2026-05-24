@@ -7,7 +7,7 @@ export interface ScrobbleInput {
   album?: string;
   duration?: number; // milliseconds
   albumArt?: string;
-  timestamp?: number; // ms since epoch
+  timestamp?: number; // unix timestamp in seconds
 }
 
 export const submitScrobble = async (input: ScrobbleInput): Promise<void> => {

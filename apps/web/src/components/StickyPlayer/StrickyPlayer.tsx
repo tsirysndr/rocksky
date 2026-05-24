@@ -34,9 +34,12 @@ const Container = styled.div<{ embedded?: boolean }>`
   ` : `
     position: fixed;
     bottom: 0;
+    left: 0;
+    right: 0;
     z-index: 1;
-    align-items: center;
     display: flex;
+    align-items: center;
+    justify-content: center;
     height: 128px;
   `}
 `;
@@ -52,9 +55,12 @@ const MiniPlayer = styled.div<{ embedded?: boolean }>`
   ${({ embedded }) => embedded ? `
     background: rgba(19, 8, 37, 0.25);
     backdrop-filter: blur(12px);
-    width: 90%;
+    width: 1120px;
     border-radius: 16px;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+    @media (max-width: 1120px) {
+      width: 100vw;
+    }
   ` : `
     background-color: white;
     width: 1120px;
@@ -69,6 +75,7 @@ const MiniPlayer = styled.div<{ embedded?: boolean }>`
   display: flex;
   flex-direction: row;
   align-items: center;
+  color: var(--color-text);
 `;
 
 const Cover = styled.img`
@@ -350,7 +357,7 @@ function StickyPlayer(props: StickyPlayerProps) {
             >
               <Speaker />
             </Button>
-            <Button onClick={onEqualizer} disabled style={{ backgroundColor: "transparent" }}>
+            <Button onClick={onEqualizer} disabled={!isUploadPlayer} style={{ backgroundColor: "transparent", color: isUploadPlayer ? "var(--color-text)" : undefined }}>
               <Equalizer />
             </Button>
             <Button

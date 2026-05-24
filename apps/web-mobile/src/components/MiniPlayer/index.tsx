@@ -8,6 +8,7 @@ import {
   IconDeviceSpeaker,
   IconMusic,
   IconX,
+  IconAdjustmentsHorizontal,
 } from "@tabler/icons-react";
 import { useAtom, useSetAtom } from "jotai";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -22,6 +23,8 @@ import useSpotify from "../../hooks/useSpotify";
 import { useQueuePersistence } from "../../hooks/useQueuePersistence";
 import { useUploadScrobble } from "../../hooks/useUploadScrobble";
 import { getStreamUrl, ensureStreamToken } from "../../api/uploads";
+import { useRockboxDSP } from "../../hooks/useRockboxDSP";
+import EqualizerSheet from "../EqualizerSheet";
 import PlayerScreen from "../PlayerScreen";
 import axios from "axios";
 import { API_URL } from "../../consts";
@@ -138,7 +141,6 @@ function SourceItem({ label, active, onClick }: { label: string; active: boolean
 
 export default function MiniPlayer() {
   useQueuePersistence();
-  useUploadScrobble();
   const setPlayerScreenOpen = useSetAtom(playerScreenOpenAtom);
 
   const [nowPlaying, setNowPlaying] = useAtom(nowPlayingAtom);
@@ -159,6 +161,7 @@ export default function MiniPlayer() {
   const likedRef = useRef(liked);
   const [rockboxAvailable, setRockboxAvailable] = useState(false);
   const [sourceSheetOpen, setSourceSheetOpen] = useState(false);
+  const [eqSheetOpen, setEqSheetOpen] = useState(false);
   const [shuffle, setShuffle] = useAtom(shuffleAtom);
   const [repeatMode, setRepeatMode] = useAtom(repeatModeAtom);
   const shuffleRef = useRef(shuffle);
@@ -166,6 +169,9 @@ export default function MiniPlayer() {
 
   // Hidden audio element for upload player
   const audioRef = useRef<HTMLAudioElement>(null);
+
+  useRockboxDSP(audioRef);
+  useUploadScrobble(audioRef);
   const audioBlobUrlRef = useRef<string | null>(null);
 
   // Keep refs in sync
@@ -602,7 +608,7 @@ export default function MiniPlayer() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nowPlaying?.title, nowPlaying?.artist, nowPlaying?.albumArt]);
 
-  if (!nowPlaying) return <audio ref={audioRef} style={{ display: "none" }} />;
+  if (!nowPlaying) return <audio ref={audioRef} crossOrigin="anonymous" style={{ display: "none" }} />;
 
   const progress =
     nowPlaying.duration > 0
@@ -617,7 +623,9 @@ export default function MiniPlayer() {
 
   return (
     <>
-      <audio ref={audioRef} style={{ display: "none" }} />
+      <audio ref={audioRef} crossOrigin="anonymous" style={{ display: "none" }} />
+
+      <EqualizerSheet open={eqSheetOpen} onClose={() => setEqSheetOpen(false)} />
 
       <PlayerScreen
         onSeek={onSeek}
@@ -626,6 +634,7 @@ export default function MiniPlayer() {
         onPrevious={onPrevious}
         onSelectQueueIndex={onSelectQueueIndex}
         onRemoveFromQueue={onRemoveFromQueue}
+        onEqualizer={() => setEqSheetOpen(true)}
         queue={queue}
         queueIndex={queueIndex}
         shuffle={shuffle}
@@ -641,6 +650,24 @@ export default function MiniPlayer() {
         rockboxAvailable={rockboxAvailable}
         queueLength={queue.length}
         onSelect={(src) => {
+          if (src === "upload" && player !== "upload") {
+            const track = queue[queueIndex];
+            if (track) {
+              setNowPlaying({
+                title: track.title,
+                artist: track.artist,
+                artistUri: "",
+                songUri: track.songUri ?? "",
+                albumUri: "",
+                duration: track.duration,
+                progress: 0,
+                albumArt: track.albumArt ?? undefined,
+                isPlaying: false,
+                sha256: track.sha256,
+                liked: false,
+              });
+            }
+          }
           setPlayer(src);
           if (src === "spotify") fetchCurrentlyPlaying();
         }}
@@ -712,6 +739,14 @@ export default function MiniPlayer() {
                 className="p-1.5 border-none bg-transparent cursor-pointer rounded-lg"
               >
                 <IconDeviceSpeaker size={18} color={player !== null ? "var(--color-primary)" : "var(--color-text-muted)"} />
+              </button>
+            )}
+            {player === "upload" && (
+              <button
+                onClick={() => setEqSheetOpen(true)}
+                className="p-1.5 border-none bg-transparent cursor-pointer rounded-lg"
+              >
+                <IconAdjustmentsHorizontal size={18} color="var(--color-text-muted)" />
               </button>
             )}
 

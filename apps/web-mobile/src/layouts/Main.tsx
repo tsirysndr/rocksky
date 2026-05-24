@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { nowPlayingAtom } from "../atoms/nowpaying";
 import BottomNav from "../components/BottomNav";
-import MiniPlayer from "../components/MiniPlayer";
 import { API_URL } from "../consts";
 import useProfile from "../hooks/useProfile";
 import Navbar from "./Navbar";
@@ -49,7 +48,6 @@ function Main({ children }: { children: React.ReactNode }) {
       <main style={{ paddingTop: "56px", paddingBottom: bottomPad }}>
         {children}
       </main>
-      <MiniPlayer />
       <BottomNav />
     </div>
   );

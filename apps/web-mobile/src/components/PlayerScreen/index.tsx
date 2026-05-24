@@ -1,4 +1,5 @@
 import {
+  IconAdjustmentsHorizontal,
   IconArrowsShuffle,
   IconChevronDown,
   IconMusic,
@@ -269,6 +270,7 @@ interface PlayerScreenProps {
   onPrevious: () => void;
   onSelectQueueIndex: (i: number) => void;
   onRemoveFromQueue: (i: number) => void;
+  onEqualizer: () => void;
   queue: QueueTrack[];
   queueIndex: number;
   shuffle: boolean;
@@ -284,6 +286,7 @@ export default function PlayerScreen({
   onPrevious,
   onSelectQueueIndex,
   onRemoveFromQueue,
+  onEqualizer,
   queue,
   queueIndex,
   shuffle,
@@ -361,16 +364,25 @@ export default function PlayerScreen({
             Now Playing
           </p>
 
-          <button
-            onClick={() => setQueueOpen((o) => !o)}
-            className="p-2 border-none cursor-pointer rounded-full"
-            style={{
-              color: queueOpen ? "var(--color-primary)" : "var(--color-text-muted)",
-              backgroundColor: queueOpen ? "color-mix(in srgb, var(--color-primary) 15%, transparent)" : "rgba(255,255,255,0.08)",
-            }}
-          >
-            <IconPlaylist size={22} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onEqualizer}
+              className="p-2 border-none cursor-pointer rounded-full"
+              style={{ color: "var(--color-text-muted)", backgroundColor: "rgba(255,255,255,0.08)" }}
+            >
+              <IconAdjustmentsHorizontal size={22} />
+            </button>
+            <button
+              onClick={() => setQueueOpen((o) => !o)}
+              className="p-2 border-none cursor-pointer rounded-full"
+              style={{
+                color: queueOpen ? "var(--color-primary)" : "var(--color-text-muted)",
+                backgroundColor: queueOpen ? "color-mix(in srgb, var(--color-primary) 15%, transparent)" : "rgba(255,255,255,0.08)",
+              }}
+            >
+              <IconPlaylist size={22} />
+            </button>
+          </div>
         </div>
 
         {/* Album art */}

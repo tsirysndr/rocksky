@@ -188,9 +188,11 @@ function Feed() {
                   allSongs.map((song: any) => (
                     <FlexGridItem {...itemProps} key={song.id}>
                       <Link
-                        to={
-                          `/${song.uri?.split("at://")[1].replace("app.rocksky.", "")}` as string
-                        }
+                        to="/$did/scrobble/$rkey"
+                        params={{
+                          did: song.uri?.split("at://")[1]?.split("/")[0] ?? "",
+                          rkey: song.uri?.split("at://")[1]?.split("/")[2] ?? "",
+                        }}
                         className="no-underline text-[var(--color-text-primary)]"
                       >
                         <SongCover

@@ -21,6 +21,8 @@ import { feedGeneratorUriAtom } from "../../atoms/feed";
 import { getStreamUrl, ensureStreamToken } from "../../api/uploads";
 import { useQueuePersistence } from "../../hooks/useQueuePersistence";
 import { useUploadScrobble } from "../../hooks/useUploadScrobble";
+import { useRockboxDSP } from "../../hooks/useRockboxDSP";
+import EqualizerModal from "../EqualizerModal/EqualizerModal";
 
 // Encode decoded PCM samples to a 16-bit WAV blob for HTML5 audio playback.
 function pcmToWavBlob(channelData: Float32Array[], sampleRate: number): Blob {
@@ -138,8 +140,11 @@ function StickyPlayerWithData() {
   // Player selector
   const [playerSelectorOpen, setPlayerSelectorOpen] = useState(false);
   const [rockboxAvailable, setRockboxAvailable] = useState(false);
+  const [equalizerOpen, setEqualizerOpen] = useState(false);
   const speakerRef = useRef<HTMLButtonElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+
+  useRockboxDSP(audioRef);
   const audioBlobUrlRef = useRef<string | null>(null);
   const queueRef = useRef(queue);
   const queueIndexRef = useRef(queueIndex);
@@ -529,7 +534,10 @@ function StickyPlayerWithData() {
   return (
     <>
       {/* Hidden audio element for upload player */}
-      <audio ref={audioRef} style={{ display: "none" }} />
+      <audio ref={audioRef} crossOrigin="anonymous" style={{ display: "none" }} />
+
+      {/* Equalizer modal */}
+      {equalizerOpen && <EqualizerModal onClose={() => setEqualizerOpen(false)} />}
 
       {/* Queue panel */}
       {queuePanelOpen && player === "upload" && (
@@ -595,6 +603,7 @@ function StickyPlayerWithData() {
           onPrevious={onPrevious}
           onNext={onNext}
           onSeek={onSeek}
+          onEqualizer={player === "upload" ? () => setEqualizerOpen(true) : () => {}}
           isPlaying={nowPlaying.isPlaying}
           onLike={onLike}
           onDislike={onDislike}
@@ -639,10 +648,31 @@ function StickyPlayerWithData() {
             {queue.length > 0 && (
               <PlayerSelectorItem
                 active={player === "upload"}
-                onClick={() => { setPlayer("upload"); setPlayerSelectorOpen(false); }}
+                onClick={() => {
+                  if (player !== "upload") {
+                    const track = queue[queueIndex];
+                    if (track) {
+                      setNowPlaying({
+                        title: track.title,
+                        artist: track.artist,
+                        artistUri: "",
+                        songUri: track.songUri ?? "",
+                        albumUri: "",
+                        duration: track.duration,
+                        progress: 0,
+                        albumArt: track.albumArt ?? undefined,
+                        isPlaying: false,
+                        sha256: track.sha256,
+                        liked: false,
+                      });
+                    }
+                  }
+                  setPlayer("upload");
+                  setPlayerSelectorOpen(false);
+                }}
               >
                 <PlayerDot active={player === "upload"} />
-                My Library
+                This web browser
               </PlayerSelectorItem>
             )}
           </PlayerSelectorPopup>
@@ -658,7 +688,7 @@ function StickyPlayerWithData() {
         onNext={onNext}
         onSpeaker={() => setPlayerSelectorOpen((o) => !o)}
         speakerRef={speakerRef}
-        onEqualizer={() => {}}
+        onEqualizer={player === "upload" ? () => setEqualizerOpen(true) : () => {}}
         onPlaylist={() => setQueuePanelOpen((o) => !o)}
         onSeek={onSeek}
         isPlaying={nowPlaying.isPlaying}

@@ -100,7 +100,7 @@ function SongCover(props: SongCoverProps) {
     });
   };
   return (
-    <CoverWrapper onClick={(e) => e.stopPropagation()}>
+    <CoverWrapper>
       <div className={`relative h-[100%] w-[92%]`}>
         {withLikeButton && (
           <InteractionBar

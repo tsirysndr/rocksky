@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 import { IconDisc } from "@tabler/icons-react";
 import { profileAtom } from "../atoms/profile";
 import ScrobblesAreaChart from "../components/ScrobblesAreaChart";
-import StickyPlayer from "../components/StickyPlayer";
 import { API_URL } from "../consts";
 import useProfile from "../hooks/useProfile";
 import Navbar from "./Navbar";
@@ -261,7 +260,6 @@ function Main(props: MainProps) {
           </div>
         </RightPane>
       )}
-      <StickyPlayer />
     </Container>
   );
 }

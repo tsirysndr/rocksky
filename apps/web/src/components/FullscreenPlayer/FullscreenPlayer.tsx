@@ -3,7 +3,7 @@ import { IconMusic, IconX } from "@tabler/icons-react";
 import type { StickyPlayerProps } from "../StickyPlayer/StrickyPlayer";
 import StickyPlayer from "../StickyPlayer/StrickyPlayer";
 
-const Overlay = styled.div<{ bgImage?: string }>`
+const Overlay = styled.div`
   position: fixed;
   inset: 0;
   z-index: 100;
@@ -13,21 +13,7 @@ const Overlay = styled.div<{ bgImage?: string }>`
   justify-content: center;
   gap: 32px;
   overflow: hidden;
-
-  &::before {
-    content: "";
-    position: absolute;
-    inset: -40px;
-    background: ${({ bgImage }) =>
-      bgImage ? `url(${bgImage}) center/cover no-repeat` : "#111"};
-    filter: blur(40px) brightness(0.4);
-    z-index: 0;
-  }
-
-  & > * {
-    position: relative;
-    z-index: 1;
-  }
+  background: linear-gradient(160deg, #130825 0%, #1c0a38 28%, #2d0860 55%, #4800a8 80%, #6200d4 100%);
 `;
 
 const CloseButton = styled.button`
@@ -88,7 +74,7 @@ const BottomBar = styled.div`
   z-index: 2;
 `;
 
-type FullscreenPlayerProps = Omit<StickyPlayerProps, "onSpeaker" | "onEqualizer" | "onPlaylist" | "embedded" | "fullscreenOpen" | "onOpenFullscreen"> & {
+type FullscreenPlayerProps = Omit<StickyPlayerProps, "onSpeaker" | "onPlaylist" | "embedded" | "fullscreenOpen" | "onOpenFullscreen"> & {
   onClose: () => void;
   onPlaylist: () => void;
 };
@@ -100,6 +86,7 @@ function FullscreenPlayer({
   onPrevious,
   onNext,
   onSeek,
+  onEqualizer,
   onLike,
   onDislike,
   isPlaying,
@@ -116,7 +103,7 @@ function FullscreenPlayer({
   if (!nowPlaying) return null;
 
   return (
-    <Overlay bgImage={nowPlaying.albumArt}>
+    <Overlay>
       <CloseButton onClick={onClose}>
         <IconX size={28} />
       </CloseButton>
@@ -142,7 +129,7 @@ function FullscreenPlayer({
           onPrevious={onPrevious}
           onNext={onNext}
           onSpeaker={() => {}}
-          onEqualizer={() => {}}
+          onEqualizer={onEqualizer ?? (() => {})}
           onPlaylist={onPlaylist}
           onSeek={onSeek}
           isPlaying={isPlaying}

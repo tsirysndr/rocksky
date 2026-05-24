@@ -1,4 +1,5 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import MiniPlayer from "./components/MiniPlayer";
 import AlbumPage from "./pages/album";
 import ApiKeysPage from "./pages/apikeys";
 import ArtistPage from "./pages/artist";
@@ -38,6 +39,7 @@ function App() {
         <Route path="/profile/:did" element={<ProfilePage />} />
         <Route path="/shout-editor" element={<ShoutEditor />} />
       </Routes>
+      <MiniPlayer />
     </BrowserRouter>
   );
 }
