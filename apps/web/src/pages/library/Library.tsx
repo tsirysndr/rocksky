@@ -53,6 +53,7 @@ function toQueueTrack(item: UploadedTrack): QueueTrack {
     albumArt: item.track.albumArt,
     duration: item.track.duration,
     sha256: item.track.sha256,
+    songUri: item.track.uri ?? "",
   };
 }
 
@@ -136,7 +137,7 @@ const TrackRow = styled.div<{ active: boolean }>`
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 0;
+  padding: 10px 12px 10px 0;
   border-radius: 12px;
   cursor: pointer;
   position: relative;

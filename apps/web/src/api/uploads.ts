@@ -27,6 +27,7 @@ export interface UploadedTrack {
     genre: string | null;
     trackNumber: number | null;
     sha256: string;
+    uri: string | null;
     artistUri: string | null;
     albumUri: string | null;
     copyrightMessage: string | null;
@@ -112,6 +113,7 @@ export interface PersistedQueueTrack {
   albumArt: string | null;
   duration: number;
   sha256: string;
+  songUri: string;
 }
 
 export const getQueueState = async (): Promise<{

@@ -535,6 +535,7 @@ app.get("/queue", async (c) => {
       albumArt: tables.tracks.albumArt,
       duration: tables.tracks.duration,
       sha256: tables.tracks.sha256,
+      songUri: tables.tracks.uri,
     })
     .from(tables.userUploads)
     .innerJoin(tables.tracks, eq(tables.userUploads.trackId, tables.tracks.id))
@@ -559,6 +560,7 @@ app.get("/queue", async (c) => {
             albumArt: r.albumArt,
             duration: r.duration,
             sha256: r.sha256,
+            songUri: r.songUri ?? "",
           },
         ]
       : [];
