@@ -54,7 +54,7 @@ export interface InputSchema {
   youtubeLink?: string;
   /** The Deezer link for the track, if available */
   deezerLink?: string;
-  /** The timestamp of the scrobble in milliseconds since epoch */
+  /** The timestamp of the scrobble in seconds since epoch (Unix timestamp) */
   timestamp?: number;
   [k: string]: unknown;
 }

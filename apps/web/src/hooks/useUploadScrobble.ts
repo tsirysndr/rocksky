@@ -54,7 +54,7 @@ export function useUploadScrobble() {
       album,
       albumArt,
       duration,
-      timestamp: startedAtRef.current,
+      timestamp: Math.floor(startedAtRef.current / 1000),
     }).catch((err) => {
       consola.warn("[scrobble] failed to submit scrobble", err);
       // Allow retry on next render by resetting the flag

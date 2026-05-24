@@ -106,7 +106,7 @@ defs = new Mapping<String, Procedure> {
           }
           ["timestamp"] = new IntegerType {
             type = "integer"
-            description = "The timestamp of the scrobble in milliseconds since epoch"
+            description = "The timestamp of the scrobble in seconds since epoch (Unix timestamp)"
           }
         }
       }

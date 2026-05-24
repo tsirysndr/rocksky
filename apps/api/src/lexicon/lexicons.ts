@@ -4907,7 +4907,7 @@ export const schemaDict = {
               timestamp: {
                 type: "integer",
                 description:
-                  "The timestamp of the scrobble in milliseconds since epoch",
+                  "The timestamp of the scrobble in seconds since epoch (Unix timestamp)",
               },
             },
           },
