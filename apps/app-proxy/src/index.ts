@@ -60,10 +60,35 @@ const jwks = {
 	],
 };
 
+const ALLOWED_ORIGINS = new Set(['https://m.rocksky.app', 'https://rocksky.app']);
+
+function corsHeaders(origin: string | null): Record<string, string> {
+	const allowed = origin && ALLOWED_ORIGINS.has(origin) ? origin : 'https://m.rocksky.app';
+	return {
+		'Access-Control-Allow-Origin': allowed,
+		'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+		'Access-Control-Allow-Headers': 'Content-Type, Authorization, Range',
+		'Access-Control-Expose-Headers': 'Content-Range, Content-Length, Accept-Ranges',
+		'Access-Control-Max-Age': '86400',
+	};
+}
+
+function withCors(response: Response, origin: string | null): Response {
+	const headers = new Headers(response.headers);
+	for (const [k, v] of Object.entries(corsHeaders(origin))) headers.set(k, v);
+	return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
+
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
 		const url = new URL(request.url);
+		const origin = request.headers.get('Origin');
 		let redirectToApi = false;
+
+		// Handle CORS preflight
+		if (request.method === 'OPTIONS') {
+			return new Response(null, { status: 204, headers: corsHeaders(origin) });
+		}
 
 		// Serve Rockbox WASM assets from R2 with COOP/COEP headers required for SharedArrayBuffer
 		if (url.pathname.toLowerCase().includes('rockbox')) {
@@ -112,7 +137,8 @@ export default {
 			url.pathname.startsWith('/dropbox/join') ||
 			url.pathname.startsWith('/googledrive/join') ||
 			url.pathname.startsWith('/search') ||
-			url.pathname.startsWith('/public/scrobbles')
+			url.pathname.startsWith('/public/scrobbles') ||
+			url.pathname.startsWith('/uploads')
 		) {
 			redirectToApi = true;
 		}
@@ -121,7 +147,8 @@ export default {
 			const proxyUrl = new URL(request.url);
 			proxyUrl.host = 'api.rocksky.app';
 			proxyUrl.hostname = 'api.rocksky.app';
-			return fetch(proxyUrl, request) as any;
+			const apiRes = await fetch(proxyUrl, request);
+			return withCors(apiRes, origin);
 		}
 
 		// check header if from mobile device, android or ios
@@ -135,7 +162,7 @@ export default {
 			mobileUrl.hostname = 'm.rocksky.app';
 			const htmlRes = await fetch(mobileUrl, request);
 			if (!htmlRes.ok || !isHtmlResponse(htmlRes)) {
-				return htmlRes;
+				return withCors(htmlRes, origin);
 			}
 
 			const og = await fetchOgData(url, request);
@@ -159,7 +186,7 @@ export default {
 		proxyUrl.hostname = 'rocksky.pages.dev';
 		const htmlRes = await fetch(proxyUrl, request);
 		if (!htmlRes.ok || !isHtmlResponse(htmlRes)) {
-			return htmlRes;
+			return withCors(htmlRes, origin);
 		}
 
 		const og = await fetchOgData(url, request);

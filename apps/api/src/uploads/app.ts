@@ -487,6 +487,18 @@ app.get("/stream-token", async (c) => {
 // Streams audio through the API so the internal R2 URL is never exposed.
 // Auth: Bearer header or ?token= query param (opaque stream token from /stream-token).
 // Handles Range requests for seeking.
+app.options("/:id/stream", (c) => {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Range, Authorization",
+      "Access-Control-Expose-Headers": "Content-Range, Content-Length, Accept-Ranges",
+      "Access-Control-Max-Age": "86400",
+    },
+  });
+});
 app.get("/:id/stream", async (c) => {
   // Resolve the user from the opaque stream token in ?token= or the full JWT in Bearer
   let user: Awaited<ReturnType<typeof resolveUser>> = null;
@@ -549,6 +561,9 @@ app.get("/:id/stream", async (c) => {
     "Content-Type": upload.mimeType || s3Res.ContentType || "audio/mpeg",
     "Accept-Ranges": "bytes",
     "Cache-Control": "private, max-age=3600",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Range, Authorization",
+    "Access-Control-Expose-Headers": "Content-Range, Content-Length, Accept-Ranges",
   };
   if (s3Res.ContentLength !== undefined) {
     headers["Content-Length"] = String(s3Res.ContentLength);

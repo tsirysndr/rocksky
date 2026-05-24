@@ -33,9 +33,8 @@ import _ from "lodash";
 let _rbPlayer: any = null;
 let _rbInitPromise: Promise<any> | null = null;
 
-// In dev, WASM files are served from the same origin (public/) to avoid cross-origin issues.
-// In production they're served from the CDN (rocksky.app).
-const ROCKBOX_BASE = import.meta.env.DEV ? "" : "https://rocksky.app";
+// WASM assets live in public/ and are served from the same origin in all environments.
+const ROCKBOX_BASE = "";
 
 async function getRockboxPlayer(): Promise<any> {
   if (_rbPlayer) return _rbPlayer;

@@ -1,3 +1,4 @@
 /*
   Cross-Origin-Opener-Policy: same-origin
   Cross-Origin-Embedder-Policy: credentialless
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-eval' blob:; worker-src 'self' blob:; connect-src *; img-src * data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data: https:; media-src * blob:; object-src 'none';
