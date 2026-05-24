@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import { useAtomValue } from "jotai";
 import { useEffect, useRef } from "react";
 import { submitScrobble } from "../api/scrobbles";
@@ -55,11 +56,13 @@ export function useUploadScrobble() {
       albumArt,
       duration,
       timestamp: Math.floor(startedAtRef.current / 1000),
-      trackNumber: queue[queueIndex]?.trackNumber,
-      copyrightMessage: queue[queueIndex]?.copyrightMessage,
+      trackNumber: queue[queueIndex]?.trackNumber ?? undefined,
+      copyrightMessage: queue[queueIndex]?.copyrightMessage ?? undefined,
       genres: queue[queueIndex]?.genre ? [queue[queueIndex].genre!] : undefined,
-      releaseDate: queue[queueIndex]?.releaseDate,
-      year: queue[queueIndex]?.year,
+      releaseDate: queue[queueIndex]?.releaseDate
+        ? dayjs(queue[queueIndex].releaseDate).format("YYYY-MM-DD")
+        : undefined,
+      year: queue[queueIndex]?.year ?? undefined,
     }).catch((err) => {
       consola.warn("[scrobble] failed to submit scrobble", err);
       // Allow retry on next render by resetting the flag
