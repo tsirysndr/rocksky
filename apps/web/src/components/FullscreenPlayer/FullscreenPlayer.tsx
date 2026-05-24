@@ -107,6 +107,11 @@ function FullscreenPlayer({
   queuePanelOpen,
   onPlaylist,
   onClose,
+  isUploadPlayer,
+  shuffle,
+  repeatMode,
+  onShuffle,
+  onRepeat,
 }: FullscreenPlayerProps) {
   if (!nowPlaying) return null;
 
@@ -145,6 +150,11 @@ function FullscreenPlayer({
           onDislike={onDislike}
           showQueueButton={showQueueButton}
           queuePanelOpen={queuePanelOpen}
+          isUploadPlayer={isUploadPlayer}
+          shuffle={shuffle}
+          repeatMode={repeatMode}
+          onShuffle={onShuffle}
+          onRepeat={onRepeat}
           embedded
           fullscreenOpen
         />

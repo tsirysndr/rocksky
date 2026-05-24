@@ -65,6 +65,21 @@ export default {
 		const url = new URL(request.url);
 		let redirectToApi = false;
 
+		// Serve Rockbox WASM assets from R2 with COOP/COEP headers required for SharedArrayBuffer
+		if (url.pathname.toLowerCase().includes('rockbox')) {
+			const baseUrl = (env as any).ROCKBOX_ASSETS_URL as string;
+			const assetUrl = `${baseUrl.replace(/\/$/, '')}${url.pathname}`;
+			const assetRes = await fetch(assetUrl);
+			const headers = new Headers(assetRes.headers);
+			headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+			headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
+			headers.set('Access-Control-Allow-Origin', '*');
+			if (url.pathname.endsWith('.wasm')) {
+				headers.set('Content-Type', 'application/wasm');
+			}
+			return new Response(assetRes.body, { status: assetRes.status, headers });
+		}
+
 		const API_ROUTES = ['/login', '/profile', '/token', '/now-playing', '/ws', '/oauth-client-metadata.json', '/jwks.json'];
 
 		console.log('Request URL:', url.pathname, url.pathname === '/client-metadata.json');
@@ -127,6 +142,8 @@ export default {
 			if (!og) return htmlRes;
 			const headers = new Headers(htmlRes.headers);
 			headers.set('cache-control', 'public, max-age=300');
+			headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+			headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
 
 			const rewritten = new HTMLRewriter()
 				.on('meta[property^="og:"]', new StripMeta())
@@ -150,6 +167,8 @@ export default {
 
 		const headers = new Headers(htmlRes.headers);
 		headers.set('cache-control', 'public, max-age=300');
+		headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+		headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
 
 		const rewritten = new HTMLRewriter()
 			.on('meta[property^="og:"]', new StripMeta())

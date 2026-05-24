@@ -1,6 +1,7 @@
 import styled from "@emotion/styled";
 import { Link as DefaultLink } from "@tanstack/react-router";
-import { IconMaximize, IconMusic } from "@tabler/icons-react";
+import { IconArrowsShuffle, IconMaximize, IconMusic, IconRepeat, IconRepeatOnce } from "@tabler/icons-react";
+import type { RepeatMode } from "../../atoms/playback";
 import { ProgressBar } from "baseui/progress-bar";
 import { LabelSmall } from "baseui/typography";
 import { useRef, type RefObject } from "react";
@@ -139,6 +140,11 @@ export type StickyPlayerProps = {
   fullscreenOpen?: boolean;
   onOpenFullscreen?: () => void;
   embedded?: boolean;
+  isUploadPlayer?: boolean;
+  shuffle?: boolean;
+  repeatMode?: RepeatMode;
+  onShuffle?: () => void;
+  onRepeat?: () => void;
 };
 
 function StickyPlayer(props: StickyPlayerProps) {
@@ -160,6 +166,11 @@ function StickyPlayer(props: StickyPlayerProps) {
     fullscreenOpen,
     onOpenFullscreen,
     embedded,
+    isUploadPlayer,
+    shuffle,
+    repeatMode,
+    onShuffle,
+    onRepeat,
   } = props;
   const progressbarRef = useRef<HTMLDivElement>(null);
   const { formatTime } = useTimeFormat();
@@ -274,6 +285,14 @@ function StickyPlayer(props: StickyPlayerProps) {
           </div>
           <MainWrapper>
             <Controls>
+              {isUploadPlayer && (
+                <button
+                  onClick={onShuffle}
+                  style={{ background: "transparent", border: "none", cursor: "pointer", width: 36, display: "flex", alignItems: "center", justifyContent: "center" }}
+                >
+                  <IconArrowsShuffle size={16} color={shuffle ? "var(--color-primary)" : (embedded ? "rgba(255,255,255,0.5)" : "var(--color-text-muted)")} />
+                </button>
+              )}
               <PreviousButton onClick={onPrevious} style={{ backgroundColor: "transparent" }}>
                 <Previous color={embedded ? "#fff" : "var(--color-text)"} />
               </PreviousButton>
@@ -292,6 +311,17 @@ function StickyPlayer(props: StickyPlayerProps) {
               <NextButton onClick={onNext} style={{ backgroundColor: "transparent" }}>
                 <Next color={embedded ? "#fff" : "var(--color-text)"} />
               </NextButton>
+              {isUploadPlayer && (
+                <button
+                  onClick={onRepeat}
+                  style={{ background: "transparent", border: "none", cursor: "pointer", width: 36, display: "flex", alignItems: "center", justifyContent: "center" }}
+                >
+                  {repeatMode === "one"
+                    ? <IconRepeatOnce size={16} color="var(--color-primary)" />
+                    : <IconRepeat size={16} color={repeatMode === "all" ? "var(--color-primary)" : (embedded ? "rgba(255,255,255,0.5)" : "var(--color-text-muted)")} />
+                  }
+                </button>
+              )}
             </Controls>
             <div>
               <ProgressbarContainer ref={progressbarRef} onClick={handleSeek}>

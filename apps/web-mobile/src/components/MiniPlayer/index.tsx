@@ -16,6 +16,7 @@ import { nowPlayingAtom } from "../../atoms/nowpaying";
 import { playerAtom } from "../../atoms/player";
 import { playerScreenOpenAtom } from "../../atoms/playerScreen";
 import { queueAtom, queueIndexAtom } from "../../atoms/queue";
+import { shuffleAtom, repeatModeAtom, type RepeatMode } from "../../atoms/playback";
 import useLike from "../../hooks/useLike";
 import useSpotify from "../../hooks/useSpotify";
 import { useQueuePersistence } from "../../hooks/useQueuePersistence";
@@ -132,6 +133,10 @@ export default function MiniPlayer() {
   const likedRef = useRef(liked);
   const [rockboxAvailable, setRockboxAvailable] = useState(false);
   const [sourceSheetOpen, setSourceSheetOpen] = useState(false);
+  const [shuffle, setShuffle] = useAtom(shuffleAtom);
+  const [repeatMode, setRepeatMode] = useAtom(repeatModeAtom);
+  const shuffleRef = useRef(shuffle);
+  const repeatModeRef = useRef(repeatMode);
 
   // Hidden audio element for upload player
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -143,7 +148,9 @@ export default function MiniPlayer() {
     likedRef.current = liked;
     queueRef.current = queue;
     queueIndexRef.current = queueIndex;
-  }, [nowPlaying, player, liked, queue, queueIndex]);
+    shuffleRef.current = shuffle;
+    repeatModeRef.current = repeatMode;
+  }, [nowPlaying, player, liked, queue, queueIndex, shuffle, repeatMode]);
 
   const fetchCurrentlyPlaying = useCallback(async () => {
     // Use ref to avoid stale closure — always read current player value
@@ -211,10 +218,24 @@ export default function MiniPlayer() {
     const onPlay = () => setNowPlaying((prev) => prev ? { ...prev, isPlaying: true } : prev);
     const onPause = () => setNowPlaying((prev) => prev ? { ...prev, isPlaying: false } : prev);
     const onEnded = () => {
-      const nextIdx = queueIndexRef.current + 1;
-      const nextTrack = queueRef.current[nextIdx];
-      if (nextTrack) {
-        setQueueIndex(nextIdx);
+      const q = queueRef.current;
+      const cur = queueIndexRef.current;
+      if (repeatModeRef.current === "one") {
+        audio.currentTime = 0;
+        audio.play().catch(() => {});
+        setNowPlaying((prev) => prev ? { ...prev, progress: 0, isPlaying: true } : prev);
+        return;
+      }
+      let nextIdx: number;
+      if (shuffleRef.current && q.length > 1) {
+        do { nextIdx = Math.floor(Math.random() * q.length); } while (nextIdx === cur);
+      } else {
+        nextIdx = cur + 1;
+      }
+      const nextTrack = q[nextIdx] ?? (repeatModeRef.current === "all" ? q[0] : null);
+      const resolvedIdx = q[nextIdx] ? nextIdx : (repeatModeRef.current === "all" ? 0 : -1);
+      if (nextTrack && resolvedIdx >= 0) {
+        setQueueIndex(resolvedIdx);
         setNowPlaying({
           title: nextTrack.title,
           artist: nextTrack.artist,
@@ -370,10 +391,18 @@ export default function MiniPlayer() {
 
   const onNext = () => {
     if (player === "upload") {
-      const nextIdx = queueIndexRef.current + 1;
-      const nextTrack = queueRef.current[nextIdx];
-      if (!nextTrack) return;
-      setQueueIndex(nextIdx);
+      const q = queueRef.current;
+      const cur = queueIndexRef.current;
+      let nextIdx: number;
+      if (shuffleRef.current && q.length > 1) {
+        do { nextIdx = Math.floor(Math.random() * q.length); } while (nextIdx === cur);
+      } else {
+        nextIdx = cur + 1;
+      }
+      const nextTrack = q[nextIdx] ?? (repeatModeRef.current === "all" ? q[0] : null);
+      const resolvedIdx = q[nextIdx] ? nextIdx : (repeatModeRef.current === "all" ? 0 : -1);
+      if (!nextTrack || resolvedIdx < 0) return;
+      setQueueIndex(resolvedIdx);
       setNowPlaying({
         title: nextTrack.title,
         artist: nextTrack.artist,
@@ -520,6 +549,10 @@ export default function MiniPlayer() {
         onRemoveFromQueue={onRemoveFromQueue}
         queue={queue}
         queueIndex={queueIndex}
+        shuffle={shuffle}
+        repeatMode={repeatMode}
+        onShuffle={() => setShuffle((s) => !s)}
+        onRepeat={() => setRepeatMode((r: RepeatMode) => r === "off" ? "all" : r === "all" ? "one" : "off")}
       />
 
       <SourceSheet

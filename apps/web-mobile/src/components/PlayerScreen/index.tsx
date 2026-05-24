@@ -1,4 +1,5 @@
 import {
+  IconArrowsShuffle,
   IconChevronDown,
   IconMusic,
   IconPlayerPauseFilled,
@@ -6,6 +7,8 @@ import {
   IconPlayerSkipBackFilled,
   IconPlayerSkipForwardFilled,
   IconPlaylist,
+  IconRepeat,
+  IconRepeatOnce,
   IconX,
 } from "@tabler/icons-react";
 import { useAtom, useAtomValue } from "jotai";
@@ -14,6 +17,7 @@ import { nowPlayingAtom } from "../../atoms/nowpaying";
 import { playerAtom } from "../../atoms/player";
 import { playerScreenOpenAtom } from "../../atoms/playerScreen";
 import type { QueueTrack } from "../../atoms/queue";
+import type { RepeatMode } from "../../atoms/playback";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -267,6 +271,10 @@ interface PlayerScreenProps {
   onRemoveFromQueue: (i: number) => void;
   queue: QueueTrack[];
   queueIndex: number;
+  shuffle: boolean;
+  repeatMode: RepeatMode;
+  onShuffle: () => void;
+  onRepeat: () => void;
 }
 
 export default function PlayerScreen({
@@ -278,6 +286,10 @@ export default function PlayerScreen({
   onRemoveFromQueue,
   queue,
   queueIndex,
+  shuffle,
+  repeatMode,
+  onShuffle,
+  onRepeat,
 }: PlayerScreenProps) {
   const [open, setOpen] = useAtom(playerScreenOpenAtom);
   const nowPlaying = useAtomValue(nowPlayingAtom);
@@ -438,7 +450,14 @@ export default function PlayerScreen({
           </div>
 
           {/* Controls */}
-          <div className="flex items-center justify-between px-4">
+          <div className="flex items-center justify-between px-2">
+            <button
+              onClick={onShuffle}
+              className="p-3 border-none bg-transparent cursor-pointer"
+            >
+              <IconArrowsShuffle size={22} color={shuffle ? "var(--color-primary)" : "var(--color-text-muted)"} />
+            </button>
+
             <button
               onClick={onPrevious}
               className="p-3 border-none bg-transparent cursor-pointer"
@@ -449,7 +468,7 @@ export default function PlayerScreen({
 
             <button
               onClick={onPlayPause}
-              className="w-18 h-18 rounded-full border-none flex items-center justify-center cursor-pointer"
+              className="rounded-full border-none flex items-center justify-center cursor-pointer"
               style={{
                 width: 72,
                 height: 72,
@@ -470,6 +489,16 @@ export default function PlayerScreen({
               style={{ color: "var(--color-text)" }}
             >
               <IconPlayerSkipForwardFilled size={32} />
+            </button>
+
+            <button
+              onClick={onRepeat}
+              className="p-3 border-none bg-transparent cursor-pointer"
+            >
+              {repeatMode === "one"
+                ? <IconRepeatOnce size={22} color="var(--color-primary)" />
+                : <IconRepeat size={22} color={repeatMode === "all" ? "var(--color-primary)" : "var(--color-text-muted)"} />
+              }
             </button>
           </div>
         </div>

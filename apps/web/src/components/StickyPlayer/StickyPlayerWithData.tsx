@@ -8,6 +8,7 @@ import { playerAtom } from "../../atoms/player";
 import { queueAtom, queueIndexAtom, queuePanelOpenAtom } from "../../atoms/queue";
 import { fullscreenPlayerAtom } from "../../atoms/fullscreenPlayer";
 import { profileAtom } from "../../atoms/profile";
+import { shuffleAtom, repeatModeAtom, type RepeatMode } from "../../atoms/playback";
 import { API_URL } from "../../consts";
 import useLike from "../../hooks/useLike";
 import useSpotify from "../../hooks/useSpotify";
@@ -102,6 +103,12 @@ function StickyPlayerWithData() {
   const [queueIndex, setQueueIndex] = useAtom(queueIndexAtom);
   const [queuePanelOpen, setQueuePanelOpen] = useAtom(queuePanelOpenAtom);
   const [fullscreenOpen, setFullscreenOpen] = useAtom(fullscreenPlayerAtom);
+  const [shuffle, setShuffle] = useAtom(shuffleAtom);
+  const [repeatMode, setRepeatMode] = useAtom(repeatModeAtom);
+  const shuffleRef = useRef(shuffle);
+  const repeatModeRef = useRef(repeatMode);
+  useEffect(() => { shuffleRef.current = shuffle; }, [shuffle]);
+  useEffect(() => { repeatModeRef.current = repeatMode; }, [repeatMode]);
 
   // Player selector
   const [playerSelectorOpen, setPlayerSelectorOpen] = useState(false);
@@ -145,10 +152,26 @@ function StickyPlayerWithData() {
     const onPause = () =>
       setNowPlaying((prev) => (prev ? { ...prev, isPlaying: false } : prev));
     const onEnded = () => {
-      const nextIdx = queueIndexRef.current + 1;
-      const nextTrack = queueRef.current[nextIdx];
-      if (nextTrack) {
-        setQueueIndex(nextIdx);
+      const q = queueRef.current;
+      const cur = queueIndexRef.current;
+      // Repeat one — restart current track
+      if (repeatModeRef.current === "one") {
+        audio.currentTime = 0;
+        audio.play().catch(() => {});
+        setNowPlaying((prev) => prev ? { ...prev, progress: 0, isPlaying: true } : prev);
+        return;
+      }
+      // Determine next index
+      let nextIdx: number;
+      if (shuffleRef.current && q.length > 1) {
+        do { nextIdx = Math.floor(Math.random() * q.length); } while (nextIdx === cur);
+      } else {
+        nextIdx = cur + 1;
+      }
+      const nextTrack = q[nextIdx] ?? (repeatModeRef.current === "all" ? q[0] : null);
+      const resolvedIdx = q[nextIdx] ? nextIdx : (repeatModeRef.current === "all" ? 0 : -1);
+      if (nextTrack && resolvedIdx >= 0) {
+        setQueueIndex(resolvedIdx);
         setNowPlaying({
           title: nextTrack.title,
           artist: nextTrack.artist,
@@ -211,10 +234,18 @@ function StickyPlayerWithData() {
 
   const onNext = () => {
     if (player === "upload") {
-      const nextIdx = queueIndexRef.current + 1;
-      const nextTrack = queueRef.current[nextIdx];
-      if (!nextTrack) return;
-      setQueueIndex(nextIdx);
+      const q = queueRef.current;
+      const cur = queueIndexRef.current;
+      let nextIdx: number;
+      if (shuffleRef.current && q.length > 1) {
+        do { nextIdx = Math.floor(Math.random() * q.length); } while (nextIdx === cur);
+      } else {
+        nextIdx = cur + 1;
+      }
+      const nextTrack = q[nextIdx] ?? (repeatModeRef.current === "all" ? q[0] : null);
+      const resolvedIdx = q[nextIdx] ? nextIdx : (repeatModeRef.current === "all" ? 0 : -1);
+      if (!nextTrack || resolvedIdx < 0) return;
+      setQueueIndex(resolvedIdx);
       setNowPlaying({
         title: nextTrack.title,
         artist: nextTrack.artist,
@@ -504,6 +535,11 @@ function StickyPlayerWithData() {
           queuePanelOpen={queuePanelOpen}
           onPlaylist={() => setQueuePanelOpen((o) => !o)}
           onClose={() => setFullscreenOpen(false)}
+          isUploadPlayer={player === "upload"}
+          shuffle={shuffle}
+          repeatMode={repeatMode}
+          onShuffle={() => setShuffle((s) => !s)}
+          onRepeat={() => setRepeatMode((r: RepeatMode) => r === "off" ? "all" : r === "all" ? "one" : "off")}
         />
       )}
 
@@ -565,6 +601,11 @@ function StickyPlayerWithData() {
         queuePanelOpen={queuePanelOpen}
         fullscreenOpen={fullscreenOpen}
         onOpenFullscreen={() => setFullscreenOpen(true)}
+        isUploadPlayer={player === "upload"}
+        shuffle={shuffle}
+        repeatMode={repeatMode}
+        onShuffle={() => setShuffle((s) => !s)}
+        onRepeat={() => setRepeatMode((r: RepeatMode) => r === "off" ? "all" : r === "all" ? "one" : "off")}
       />
     </>
   );
