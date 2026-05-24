@@ -99,7 +99,7 @@ export default function MiniPlayer() {
       const audio = audioRef.current;
       if (!audio) return;
       audio.src = url;
-      audio.play().catch(() => {});
+      if (nowPlayingRef.current?.isPlaying) audio.play().catch(() => {});
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [player, queueIndex]);
@@ -345,6 +345,27 @@ export default function MiniPlayer() {
       liked: false,
     });
   }, [setQueueIndex, setNowPlaying]);
+
+  // Media Session API — keeps Android/iOS lock-screen / notification in sync
+  useEffect(() => {
+    if (!("mediaSession" in navigator) || !nowPlaying) return;
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: nowPlaying.title,
+      artist: nowPlaying.artist,
+      artwork: nowPlaying.albumArt
+        ? [{ src: nowPlaying.albumArt, sizes: "512x512" }]
+        : [],
+    });
+    navigator.mediaSession.setActionHandler("play", () => {
+      audioRef.current?.play().catch(() => {});
+    });
+    navigator.mediaSession.setActionHandler("pause", () => {
+      audioRef.current?.pause();
+    });
+    navigator.mediaSession.setActionHandler("previoustrack", onPrevious);
+    navigator.mediaSession.setActionHandler("nexttrack", onNext);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nowPlaying?.title, nowPlaying?.artist, nowPlaying?.albumArt]);
 
   if (!nowPlaying) return <audio ref={audioRef} style={{ display: "none" }} />;
 

@@ -179,7 +179,7 @@ function StickyPlayerWithData() {
       const audio = audioRef.current;
       if (!audio) return;
       audio.src = url;
-      audio.play().catch(() => {});
+      if (nowPlayingRef.current?.isPlaying) audio.play().catch(() => {});
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [player, queueIndex]);
@@ -453,6 +453,23 @@ function StickyPlayerWithData() {
       consola.log(">> WebSocket connection closed");
     };
   }, []);
+
+  // Media Session API — keeps lock-screen / OS media notification in sync
+  useEffect(() => {
+    if (!("mediaSession" in navigator) || !nowPlaying) return;
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: nowPlaying.title,
+      artist: nowPlaying.artist,
+      artwork: nowPlaying.albumArt
+        ? [{ src: nowPlaying.albumArt, sizes: "512x512" }]
+        : [],
+    });
+    navigator.mediaSession.setActionHandler("play", onPlay);
+    navigator.mediaSession.setActionHandler("pause", onPause);
+    navigator.mediaSession.setActionHandler("previoustrack", onPrevious);
+    navigator.mediaSession.setActionHandler("nexttrack", onNext);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nowPlaying?.title, nowPlaying?.artist, nowPlaying?.albumArt]);
 
   if (!nowPlaying) return <></>;
 
