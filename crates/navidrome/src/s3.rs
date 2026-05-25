@@ -19,7 +19,7 @@ pub async fn presign_get(r2_key: &str, expires_secs: u32) -> Result<String, Erro
         None,
     )?;
 
-    let bucket_name = env::var("S3_BUCKET").map_err(|_| Error::msg("S3_BUCKET is not set"))?;
+    let bucket_name = env::var("S3_BUCKET").unwrap_or_else(|_| "rocksky-library".to_string());
 
     let bucket = Bucket::new(&bucket_name, region, credentials)?.with_path_style();
 
