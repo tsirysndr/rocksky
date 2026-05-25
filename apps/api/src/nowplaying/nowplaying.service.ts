@@ -195,7 +195,7 @@ async function putScrobbleRecord(
       : new Date().toISOString(),
     spotifyLink: track.spotifyLink ? track.spotifyLink : undefined,
     tags: track.genres || [],
-    mbid: track.mbId,
+    mbid: track.mbId ?? undefined,
   };
 
   if (!Scrobble.validateRecord(record).success) {
