@@ -29,6 +29,29 @@ fn generate_token(did: &str) -> Result<String, Error> {
     .map_err(Into::into)
 }
 
+/// Payload sent to the XRPC createScrobble endpoint.
+/// Fields are skipped when None so the server never receives JSON null values.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ScrobblePayload {
+    title: String,
+    artist: String,
+    album: String,
+    album_artist: String,
+    duration: i32,
+    timestamp: i64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    album_art: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    track_number: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    disc_number: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    mb_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    genres: Option<Vec<String>>,
+}
+
 pub async fn post_now_playing(did: String, track: TrackWithUpload, timestamp_unix: i64) {
     let token = match generate_token(&did) {
         Ok(t) => t,
@@ -44,21 +67,19 @@ pub async fn post_now_playing(did: String, track: TrackWithUpload, timestamp_uni
     let api_base =
         env::var("ROCKSKY_API_URL").unwrap_or_else(|_| "https://api.rocksky.app".to_string());
 
-    let genres: Option<Vec<String>> = track.genre.as_ref().map(|g| vec![g.clone()]);
-
-    let payload = serde_json::json!({
-        "title": track.title,
-        "artist": track.artist,
-        "album": track.album,
-        "albumArtist": track.album_artist,
-        "duration": track.duration,
-        "albumArt": track.album_art,
-        "trackNumber": track.track_number,
-        "discNumber": track.disc_number,
-        "mbId": track.mb_id,
-        "timestamp": timestamp_unix,
-        "genres": genres,
-    });
+    let payload = ScrobblePayload {
+        title: track.title.clone(),
+        artist: track.artist.clone(),
+        album: track.album.clone(),
+        album_artist: track.album_artist.clone(),
+        duration: track.duration,
+        timestamp: timestamp_unix,
+        album_art: track.album_art.clone(),
+        track_number: track.track_number,
+        disc_number: track.disc_number,
+        mb_id: track.mb_id.clone(),
+        genres: track.genre.as_ref().map(|g| vec![g.clone()]),
+    };
 
     let url = format!("{}/xrpc/app.rocksky.scrobble.createScrobble", api_base);
     tracing::info!(
