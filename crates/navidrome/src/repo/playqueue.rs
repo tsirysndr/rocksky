@@ -33,17 +33,23 @@ pub async fn get_play_queue(
     pool: &Pool<Postgres>,
     user_id: &str,
 ) -> Result<Option<PlayQueue>, Error> {
-    let row: Option<(String, Vec<String>, Option<String>, i64, DateTime<Utc>, String)> =
-        sqlx::query_as(
-            r#"
+    let row: Option<(
+        String,
+        Vec<String>,
+        Option<String>,
+        i64,
+        DateTime<Utc>,
+        String,
+    )> = sqlx::query_as(
+        r#"
             SELECT user_id, track_ids, current_track_id, position_ms, changed_at, changed_by
             FROM navidrome_play_queues
             WHERE user_id = $1
             "#,
-        )
-        .bind(user_id)
-        .fetch_optional(pool)
-        .await?;
+    )
+    .bind(user_id)
+    .fetch_optional(pool)
+    .await?;
 
     Ok(row.map(
         |(user_id, track_ids, current_track_id, position_ms, changed_at, changed_by)| PlayQueue {

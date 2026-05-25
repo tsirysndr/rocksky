@@ -3,7 +3,6 @@ use sqlx::{Pool, Postgres};
 
 use crate::xata::album::AlbumWithStats;
 
-
 pub async fn get_albums_by_artist(
     pool: &Pool<Postgres>,
     artist_id: &str,
@@ -153,11 +152,11 @@ pub async fn get_album_list(
     );
 
     let mut q = sqlx::query_as::<_, AlbumWithStats>(&sql)
-        .bind(user_id)  // $1
-        .bind(count)    // $2
-        .bind(offset);  // $3
+        .bind(user_id) // $1
+        .bind(count) // $2
+        .bind(offset); // $3
     if list_type == "byGenre" {
-        q = q.bind(genre.unwrap_or(""));  // $4
+        q = q.bind(genre.unwrap_or("")); // $4
     }
     let rows: Vec<AlbumWithStats> = q.fetch_all(pool).await?;
 

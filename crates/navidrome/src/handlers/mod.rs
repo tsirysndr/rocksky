@@ -163,9 +163,7 @@ async fn dispatch(
             directory::handle_get_music_directory(&format, user_id, id, pool).await
         }
         "getPlayQueue" => playqueue::handle_get_play_queue(&format, user_id, pool).await,
-        "savePlayQueue" => {
-            playqueue::handle_save_play_queue(&format, user_id, pool, &params).await
-        }
+        "savePlayQueue" => playqueue::handle_save_play_queue(&format, user_id, pool, &params).await,
         "getPlaylists" => playlists::handle_get_playlists(&format, user_id, pool).await,
         "getPlaylist" => {
             let id = match params.get("id") {
