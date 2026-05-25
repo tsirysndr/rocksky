@@ -140,9 +140,11 @@ export function onSongChanged(ctx: Context) {
   const sub = ctx.nc.subscribe("rocksky.song.changed");
   (async () => {
     for await (const m of sub) {
+      let did = "(unknown)";
       try {
         const payload = jc.decode(m.data) as SongChangedPayload;
-        const { did, track: rawTrack } = payload;
+        did = payload.did;
+        const { track: rawTrack } = payload;
 
         const [agent, { recordingMbId, albumArt }] = await Promise.all([
           createAgent(ctx.oauthClient, did),
@@ -180,8 +182,10 @@ export function onSongChanged(ctx: Context) {
         consola.info(
           `[status] Updated status for ${did}: ${track.artist} – ${track.name}${recordingMbId ? ` (${recordingMbId})` : ""}`,
         );
-      } catch (err) {
-        consola.error("[status] Error handling song.changed:", err);
+      } catch (err: any) {
+        const status = err?.status ?? err?.response?.status ?? err?.error?.status;
+        const message = err?.message ?? err?.error?.message ?? String(err);
+        consola.error(`[status] Error handling song.changed for ${did} — HTTP ${status ?? "?"}: ${message}`);
       }
     }
   })();
@@ -191,8 +195,9 @@ export function onSongStopped(ctx: Context) {
   const sub = ctx.nc.subscribe("rocksky.song.stopped");
   (async () => {
     for await (const m of sub) {
+      let did = "(unknown)";
       try {
-        const { did } = jc.decode(m.data) as SongStoppedPayload;
+        ({ did } = jc.decode(m.data) as SongStoppedPayload);
 
         const agent = await createAgent(ctx.oauthClient, did);
         if (!agent) {
@@ -208,9 +213,10 @@ export function onSongStopped(ctx: Context) {
 
         consola.info(`[status] Cleared status for ${did}`);
       } catch (err: any) {
-        const status = err?.response?.status ?? err?.status;
-        if (status === 400 || status === 404) return; // already gone
-        consola.error("[status] Error handling song.stopped:", err);
+        const status = err?.status ?? err?.response?.status ?? err?.error?.status;
+        if (status === 400 || status === 404) continue; // already gone, not an error
+        const message = err?.message ?? err?.error?.message ?? String(err);
+        consola.error(`[status] Error handling song.stopped for ${did} — HTTP ${status ?? "?"}: ${message}`);
       }
     }
   })();
