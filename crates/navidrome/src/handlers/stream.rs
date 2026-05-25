@@ -19,14 +19,9 @@ pub async fn handle(
         }
     };
 
-    match s3::presign_get(&track.r2_key, 3600).await {
-        Ok(url) => HttpResponse::TemporaryRedirect()
-            .append_header(("Location", url))
-            .append_header(("Cache-Control", "no-cache"))
-            .finish(),
-        Err(e) => {
-            tracing::error!("presign error: {}", e);
-            response::err(format, 0, "Failed to generate stream URL")
-        }
-    }
+    let url = s3::public_url(&track.r2_key);
+    HttpResponse::TemporaryRedirect()
+        .append_header(("Location", url))
+        .append_header(("Cache-Control", "no-cache"))
+        .finish()
 }

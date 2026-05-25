@@ -2,6 +2,13 @@ use anyhow::Error;
 use s3::{creds::Credentials, region::Region, Bucket};
 use std::env;
 
+pub fn public_url(r2_key: &str) -> String {
+    let base = env::var("S3_PUBLIC_URL")
+        .unwrap_or_else(|_| "https://files.rocksky.app".to_string());
+    let key = r2_key.trim_start_matches('/');
+    format!("{}/{}", base.trim_end_matches('/'), key)
+}
+
 pub async fn presign_get(r2_key: &str, expires_secs: u32) -> Result<String, Error> {
     let region = Region::Custom {
         region: env::var("S3_REGION").unwrap_or_else(|_| "auto".to_string()),
