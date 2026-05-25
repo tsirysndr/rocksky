@@ -109,6 +109,7 @@ pub async fn handle_get_album_list2(
     user_id: &str,
     pool: &Arc<Pool<Postgres>>,
     params: &std::collections::HashMap<String, String>,
+    method: &str,
 ) -> HttpResponse {
     let list_type = params.get("type").map(|s| s.as_str()).unwrap_or("newest");
     let count: i64 = params
@@ -124,9 +125,14 @@ pub async fn handle_get_album_list2(
     let to_year: Option<i32> = params.get("toYear").and_then(|s| s.parse().ok());
     let genre = params.get("genre").map(|s| s.as_str());
 
+    // Use the correct response key — classic Subsonic uses "albumList", OpenSubsonic uses "albumList2"
+    let key = if method == "getAlbumList" { "albumList" } else { "albumList2" };
+
     // "starred" albums not supported — return empty
     if list_type == "starred" {
-        return response::ok(format, json!({ "albumList2": { "album": [] } }));
+        let mut obj = serde_json::Map::new();
+        obj.insert(key.to_string(), json!({ "album": [] }));
+        return response::ok(format, Value::Object(obj));
     }
 
     match repo::album::get_album_list(
@@ -136,7 +142,9 @@ pub async fn handle_get_album_list2(
     {
         Ok(albums) => {
             let list: Vec<Value> = albums.iter().map(|a| album_to_json(a, None)).collect();
-            response::ok(format, json!({ "albumList2": { "album": list } }))
+            let mut obj = serde_json::Map::new();
+            obj.insert(key.to_string(), json!({ "album": list }));
+            response::ok(format, Value::Object(obj))
         }
         Err(e) => {
             tracing::error!("getAlbumList2 error: {}", e);

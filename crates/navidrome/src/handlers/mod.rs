@@ -112,7 +112,7 @@ async fn dispatch(
             scrobble::handle_update_now_playing(&format, user_id, pool, &params).await
         }
         "getAlbumList2" | "getAlbumList" => {
-            albums::handle_get_album_list2(&format, user_id, pool, &params).await
+            albums::handle_get_album_list2(&format, user_id, pool, &params, method).await
         }
         "getRandomSongs" => songs::handle_get_random_songs(&format, user_id, pool, &params).await,
         "star" => star::handle_star(&format, user_id, pool, &params).await,
@@ -217,7 +217,8 @@ pub async fn handle_post(
     path: web::Path<String>,
     pool: web::Data<Arc<Pool<Postgres>>>,
     ts_data: web::Data<Arc<Option<TypesenseClient>>>,
-    form: web::Form<HashMap<String, String>>,
+    query: web::Query<HashMap<String, String>>,
+    body: web::Bytes,
 ) -> HttpResponse {
     let method = path.into_inner();
     let method = method.trim_end_matches(".view").to_string();
@@ -226,6 +227,19 @@ pub async fn handle_post(
         .get("Range")
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string());
+
+    // Seed from query string, then overlay form body (body takes precedence).
+    // Classic Subsonic clients send params in the URL query string on POST
+    // requests; OpenSubsonic / newer clients use the form body.
+    let mut params = query.into_inner();
+    if let Ok(body_str) = std::str::from_utf8(&body) {
+        if let Ok(form_params) =
+            serde_urlencoded::from_str::<HashMap<String, String>>(body_str)
+        {
+            params.extend(form_params);
+        }
+    }
+
     let ts = ts_data.get_ref().as_ref().as_ref();
-    dispatch(&method, form.into_inner(), pool.get_ref(), range, ts).await
+    dispatch(&method, params, pool.get_ref(), range, ts).await
 }

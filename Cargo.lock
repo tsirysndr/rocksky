@@ -5008,6 +5008,7 @@ dependencies = [
  "rust-s3",
  "serde",
  "serde_json",
+ "serde_urlencoded",
  "sqlx",
  "tokio",
  "tracing",
