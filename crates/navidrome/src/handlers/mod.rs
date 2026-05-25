@@ -233,9 +233,7 @@ pub async fn handle_post(
     // requests; OpenSubsonic / newer clients use the form body.
     let mut params = query.into_inner();
     if let Ok(body_str) = std::str::from_utf8(&body) {
-        if let Ok(form_params) =
-            serde_urlencoded::from_str::<HashMap<String, String>>(body_str)
-        {
+        if let Ok(form_params) = serde_urlencoded::from_str::<HashMap<String, String>>(body_str) {
             params.extend(form_params);
         }
     }

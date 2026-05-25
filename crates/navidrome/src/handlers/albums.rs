@@ -126,7 +126,11 @@ pub async fn handle_get_album_list2(
     let genre = params.get("genre").map(|s| s.as_str());
 
     // Use the correct response key — classic Subsonic uses "albumList", OpenSubsonic uses "albumList2"
-    let key = if method == "getAlbumList" { "albumList" } else { "albumList2" };
+    let key = if method == "getAlbumList" {
+        "albumList"
+    } else {
+        "albumList2"
+    };
 
     // "starred" albums not supported — return empty
     if list_type == "starred" {
