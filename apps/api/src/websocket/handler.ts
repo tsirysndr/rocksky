@@ -72,13 +72,10 @@ function handleWebsocket(c: Context) {
               )
               .digest("hex");
 
-            // Read previous now-playing alongside track/like caches so we
-            // can detect a track change before overwriting the key.
-            const [cachedTrack, cachedLikes, previousNowPlaying] =
+            const [cachedTrack, cachedLikes] =
               await Promise.all([
                 ctx.redis.get(`track:${sha256}`),
                 ctx.redis.get(`likes:${did}:${sha256}`),
-                ctx.redis.get(`nowplaying:${did}`),
               ]);
 
             // Like status
@@ -148,13 +145,16 @@ function handleWebsocket(c: Context) {
               }
             }
 
-            // Emit song.changed only when the track actually differs from
-            // the previous one (different sha256 or no previous state).
-            const previousSha256 = previousNowPlaying
-              ? JSON.parse(previousNowPlaying).sha256
-              : null;
+            // Emit song.changed only when the track actually differs.
+            // Use a dedicated long-lived key so the check survives the 3s
+            // TTL of nowplaying:${did} (which expires on player silence/gaps).
+            const lastSongKey = `lastsong:${did}`;
+            const lastSongSha256 = await ctx.redis.get(lastSongKey);
+            if (lastSongSha256 !== sha256) {
+              await ctx.redis.setEx(lastSongKey, 86400, sha256); // 24h TTL
+            }
 
-            if (previousSha256 !== sha256) {
+            if (lastSongSha256 !== sha256) {
               playingDids.add(did);
               const source =
                 deviceNames[ws.deviceId] ??
@@ -187,6 +187,7 @@ function handleWebsocket(c: Context) {
             // Emit song.stopped only on explicit stop (status=0); ignore paused (status=2/3).
             if (data.status === 0 && playingDids.has(did)) {
               playingDids.delete(did);
+              await ctx.redis.del(`lastsong:${did}`);
               ctx.nc.publish(
                 "rocksky.song.stopped",
                 Buffer.from(JSON.stringify({ did })),
