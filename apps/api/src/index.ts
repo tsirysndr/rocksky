@@ -1,6 +1,7 @@
 import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { trace } from "@opentelemetry/api";
+import chalk from "chalk";
 import { consola } from "consola";
 import { ctx } from "context";
 import { and, desc, eq, isNotNull, or } from "drizzle-orm";
@@ -137,19 +138,25 @@ app.post("/now-playing", async (c) => {
   }
 
   const body = await c.req.json();
+  consola.debug(`[now-playing] received payload for ${chalk.cyan(did)}:`, JSON.stringify(body));
+
   const parsed = trackSchema.safeParse(body);
 
   if (parsed.error) {
+    consola.warn(`[now-playing] validation failed for ${chalk.cyan(did)}:`, parsed.error.flatten());
     c.status(400);
     return c.text("Invalid track data: " + parsed.error.message);
   }
   const track = parsed.data;
+  consola.debug(`[now-playing] validation passed for ${chalk.cyan(did)} — title="${track.title}" artist="${track.artist}" duration=${track.duration} timestamp=${track.timestamp}`);
 
   const agent = await createAgent(ctx.oauthClient, did);
   if (!agent) {
+    consola.warn(`[now-playing] no agent for ${chalk.cyan(did)}, returning 401`);
     c.status(401);
     return c.text("Unauthorized");
   }
+  consola.debug(`[now-playing] agent created for ${chalk.cyan(did)}, calling scrobbleTrack`);
 
   await scrobbleTrack(ctx, track, agent, user.did);
 

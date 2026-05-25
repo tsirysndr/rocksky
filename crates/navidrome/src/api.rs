@@ -46,12 +46,15 @@ pub async fn post_now_playing(did: String, track: TrackWithUpload, timestamp_uni
 
     let genres: Option<Vec<String>> = track.genre.as_ref().map(|g| vec![g.clone()]);
 
+    // duration in DB is stored in seconds; the /now-playing API expects milliseconds
+    let duration_ms = track.duration * 1000;
+
     let payload = serde_json::json!({
         "title": track.title,
         "artist": track.artist,
         "album": track.album,
         "albumArtist": track.album_artist,
-        "duration": track.duration,
+        "duration": duration_ms,
         "albumArt": track.album_art,
         "trackNumber": track.track_number,
         "discNumber": track.disc_number,
@@ -60,16 +63,24 @@ pub async fn post_now_playing(did: String, track: TrackWithUpload, timestamp_uni
         "genres": genres,
     });
 
+    let url = format!("{}/now-playing", api_base);
+    tracing::debug!(
+        did = %did,
+        url = %url,
+        payload = %serde_json::to_string(&payload).unwrap_or_default(),
+        "posting scrobble to API"
+    );
+
     let client = reqwest::Client::new();
     match client
-        .post(format!("{}/now-playing", api_base))
+        .post(&url)
         .bearer_auth(&token)
         .json(&payload)
         .send()
         .await
     {
         Ok(r) if r.status().is_success() => {
-            tracing::info!(did = %did, title = %track.title, "scrobble published to ATProto");
+            tracing::info!(did = %did, title = %track.title, duration_ms, "scrobble published to ATProto");
         }
         Ok(r) => {
             let status = r.status();

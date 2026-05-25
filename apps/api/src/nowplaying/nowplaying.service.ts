@@ -204,9 +204,19 @@ async function putScrobbleRecord(
     throw new Error("Invalid record");
   }
 
+  let agentDid: string | undefined;
+  try {
+    agentDid = agent.assertDid;
+  } catch {
+    consola.error("putScrobbleRecord: agent has no session/DID — ATProto putRecord will fail");
+    return null;
+  }
+
+  consola.debug(`putScrobbleRecord: posting for agent DID ${chalk.cyan(agentDid)}, title="${record.title}"`);
+
   try {
     const res = await agent.com.atproto.repo.putRecord({
-      repo: agent.assertDid,
+      repo: agentDid,
       collection: "app.rocksky.scrobble",
       rkey,
       record,
