@@ -20,7 +20,7 @@ use actix_web::{get, post, web, HttpRequest, HttpResponse};
 use sqlx::{Pool, Postgres};
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{auth, response};
+use crate::{auth, response, typesense::TypesenseClient};
 
 fn get_format(params: &HashMap<String, String>) -> String {
     params
@@ -35,6 +35,7 @@ async fn dispatch(
     params: HashMap<String, String>,
     pool: &Arc<Pool<Postgres>>,
     range: Option<String>,
+    ts: Option<&TypesenseClient>,
 ) -> HttpResponse {
     let format = get_format(&params);
 
@@ -105,7 +106,9 @@ async fn dispatch(
             };
             cover_art::handle(&format, id, pool).await
         }
-        "search3" | "search2" => search::handle_search3(&format, user_id, pool, &params).await,
+        "search3" | "search2" => {
+            search::handle_search3(&format, user_id, pool, &params, ts).await
+        }
         "scrobble" => scrobble::handle_scrobble(&format, user_id, pool, &params).await,
         "updateNowPlaying" => {
             scrobble::handle_update_now_playing(&format, user_id, pool, &params).await
@@ -196,6 +199,7 @@ pub async fn handle_get(
     req: HttpRequest,
     path: web::Path<String>,
     pool: web::Data<Arc<Pool<Postgres>>>,
+    ts_data: web::Data<Arc<Option<TypesenseClient>>>,
     query: web::Query<HashMap<String, String>>,
 ) -> HttpResponse {
     let method = path.into_inner();
@@ -205,7 +209,8 @@ pub async fn handle_get(
         .get("Range")
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string());
-    dispatch(&method, query.into_inner(), pool.get_ref(), range).await
+    let ts = ts_data.get_ref().as_ref().as_ref();
+    dispatch(&method, query.into_inner(), pool.get_ref(), range, ts).await
 }
 
 #[post("/rest/{method}")]
@@ -213,6 +218,7 @@ pub async fn handle_post(
     req: HttpRequest,
     path: web::Path<String>,
     pool: web::Data<Arc<Pool<Postgres>>>,
+    ts_data: web::Data<Arc<Option<TypesenseClient>>>,
     form: web::Form<HashMap<String, String>>,
 ) -> HttpResponse {
     let method = path.into_inner();
@@ -222,5 +228,6 @@ pub async fn handle_post(
         .get("Range")
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string());
-    dispatch(&method, form.into_inner(), pool.get_ref(), range).await
+    let ts = ts_data.get_ref().as_ref().as_ref();
+    dispatch(&method, form.into_inner(), pool.get_ref(), range, ts).await
 }

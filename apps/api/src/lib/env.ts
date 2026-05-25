@@ -50,4 +50,8 @@ export const env = cleanEnv(process.env, {
   S3_COVERS_BUCKET_NAME: str({ default: "rocksky" }),
   CDN_URL: str({ default: "https://cdn.rocksky.app" }),
   MEDIA_CDN_URL: str({ default: "https://files.rocksky.app" }),
+  TYPESENSE_HOST: str({ default: "localhost" }),
+  TYPESENSE_PORT: port({ default: 8108 }),
+  TYPESENSE_PROTOCOL: str({ default: "http", choices: ["http", "https"] }),
+  TYPESENSE_API_KEY: str({}),
 });

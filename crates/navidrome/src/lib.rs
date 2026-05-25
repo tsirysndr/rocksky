@@ -4,6 +4,7 @@ pub mod handlers;
 pub mod repo;
 pub mod response;
 pub mod s3;
+pub mod typesense;
 pub mod xata;
 
 use std::{env, sync::Arc, time::Duration};
@@ -75,6 +76,13 @@ pub async fn run() -> Result<(), Error> {
 
     repo::playqueue::ensure_table(&conn).await?;
 
+    let ts = Arc::new(typesense::TypesenseClient::from_env());
+    if ts.is_some() {
+        tracing::info!("Typesense search enabled");
+    } else {
+        tracing::warn!("TYPESENSE_API_KEY not set — falling back to PostgreSQL LIKE search");
+    }
+
     let host = env::var("NAVIDROME_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
     let port = env::var("NAVIDROME_PORT")
         .unwrap_or_else(|_| "4533".to_string())
@@ -91,6 +99,7 @@ pub async fn run() -> Result<(), Error> {
         App::new()
             .wrap(cors)
             .app_data(Data::new(conn.clone()))
+            .app_data(Data::new(ts.clone()))
             .service(index)
             .service(handlers::handle_get)
             .service(handlers::handle_post)

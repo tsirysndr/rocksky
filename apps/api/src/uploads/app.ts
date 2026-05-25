@@ -16,6 +16,11 @@ import { parseBuffer } from "music-metadata";
 import { createHash } from "node:crypto";
 import tables from "schema";
 import { saveTrack } from "tracks/tracks.service";
+import {
+  indexLibraryTrack,
+  removeLibraryTrack,
+  searchLibraryTracks,
+} from "typesense/library";
 
 // ---------------------------------------------------------------------------
 // Allowed audio MIME types
@@ -423,6 +428,30 @@ app.post("/track", async (c) => {
     })
     .returning();
 
+  // Fire-and-forget Typesense indexing
+  indexLibraryTrack({
+    id: upload.id,
+    user_id: user.id,
+    track_id: track.id,
+    title: track.title,
+    artist: track.artist,
+    album: track.album,
+    album_artist: track.albumArtist ?? track.artist,
+    genre: track.genre ?? undefined,
+    composer: track.composer ?? undefined,
+    year: track.year ?? undefined,
+    duration: track.duration,
+    album_art: track.albumArt ?? undefined,
+    r2_key: storageKey,
+    mime_type: mime,
+    file_size: buf.length,
+    original_filename: file.name,
+    uploaded_at: upload.uploadedAt.getTime(),
+    mb_id: track.mbId ?? undefined,
+    track_number: track.trackNumber ?? undefined,
+    disc_number: track.discNumber ?? undefined,
+  }).catch((e) => consola.warn("[typesense] index failed:", e));
+
   return c.json({
     uploadId: upload.id,
     trackId: track.id,
@@ -451,24 +480,30 @@ app.get("/", async (c) => {
   const albumArtist = c.req.query("albumArtist")?.trim() || undefined;
   const albumName = c.req.query("albumName")?.trim() || undefined;
 
-  const baseWhere = eq(tables.userUploads.userId, user.id);
+  // Full-text search via Typesense; album/listing queries stay on Postgres.
+  if (q) {
+    const hits = await searchLibraryTracks({
+      query: q,
+      userId: user.id,
+      limit: size,
+      offset,
+    });
+    return c.json(hits);
+  }
+
   const albumFilter = albumUri
     ? eq(tables.tracks.albumUri, albumUri)
     : albumArtist && albumName
       ? and(eq(tables.tracks.albumArtist, albumArtist), eq(tables.tracks.album, albumName))
       : undefined;
 
-  const whereClause = q
-    ? and(baseWhere, sql`tracks.search_vector @@ websearch_to_tsquery('simple', ${q})`)
-    : albumFilter
-      ? and(baseWhere, albumFilter)
-      : baseWhere;
+  const whereClause = albumFilter
+    ? and(eq(tables.userUploads.userId, user.id), albumFilter)
+    : eq(tables.userUploads.userId, user.id);
 
-  const orderByClause = q
-    ? [sql`ts_rank(tracks.search_vector, websearch_to_tsquery('simple', ${q})) DESC`]
-    : albumFilter
-      ? [asc(tables.tracks.trackNumber), asc(tables.tracks.title), asc(tables.tracks.artist)]
-      : [asc(tables.tracks.title), asc(tables.tracks.artist)];
+  const orderByClause = albumFilter
+    ? [asc(tables.tracks.trackNumber), asc(tables.tracks.title), asc(tables.tracks.artist)]
+    : [asc(tables.tracks.title), asc(tables.tracks.artist)];
 
   const uploads = await ctx.db
     .select({
@@ -737,6 +772,10 @@ app.delete("/:id", async (c) => {
   await ctx.db
     .delete(tables.userUploads)
     .where(eq(tables.userUploads.id, upload.id));
+
+  removeLibraryTrack(upload.id).catch((e) =>
+    consola.warn("[typesense] remove failed:", e),
+  );
 
   return c.json({ status: "ok" });
 });

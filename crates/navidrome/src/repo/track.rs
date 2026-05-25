@@ -145,6 +145,33 @@ pub async fn search_tracks(
     Ok(rows)
 }
 
+pub async fn get_tracks_by_ids(
+    pool: &Pool<Postgres>,
+    ids: &[String],
+    user_id: &str,
+) -> Result<Vec<TrackWithUpload>, Error> {
+    if ids.is_empty() {
+        return Ok(vec![]);
+    }
+    let rows: Vec<TrackWithUpload> = sqlx::query_as(&format!(
+        r#"
+        {}
+        WHERE tracks.xata_id = ANY($1)
+          AND user_uploads.user_id = $2
+        "#,
+        TRACK_SELECT
+    ))
+    .bind(ids)
+    .bind(user_id)
+    .fetch_all(pool)
+    .await?;
+
+    // Preserve the order Typesense returned.
+    let mut map: std::collections::HashMap<String, TrackWithUpload> =
+        rows.into_iter().map(|t| (t.xata_id.clone(), t)).collect();
+    Ok(ids.iter().filter_map(|id| map.remove(id)).collect())
+}
+
 pub async fn get_album_art_by_track_id(
     pool: &Pool<Postgres>,
     track_id: &str,
