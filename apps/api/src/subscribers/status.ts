@@ -150,10 +150,38 @@ function rateLimitResetMsg(err: any): string {
   return "";
 }
 
-// Last status written to the PDS per DID.
+// Last status successfully written to the PDS per DID.
 // Value: "name:artist" for a playing track, null for stopped.
-// Used to skip PDS writes when the status hasn't actually changed.
 const lastPushedStatus = new Map<string, string | null>();
+
+// Unix ms timestamp until which PDS writes are suppressed for a given DID.
+// Set when a 429 is received; cleared automatically once the time passes.
+const rateLimitedUntil = new Map<string, number>();
+
+function isRateLimited(did: string): boolean {
+  const until = rateLimitedUntil.get(did);
+  if (!until) return false;
+  if (Date.now() >= until) {
+    rateLimitedUntil.delete(did);
+    return false;
+  }
+  return true;
+}
+
+function applyRateLimitBackoff(did: string, err: any): void {
+  const headers = err?.headers ?? err?.response?.headers ?? err?.error?.headers;
+  const reset = headers?.["ratelimit-reset"] ?? headers?.["x-ratelimit-reset"];
+  const retryAfter = headers?.["retry-after"];
+  let until: number;
+  if (reset) {
+    until = Number(reset) * 1000;
+  } else if (retryAfter) {
+    until = Date.now() + Number(retryAfter) * 1000;
+  } else {
+    until = Date.now() + 60_000; // conservative 1-minute fallback
+  }
+  rateLimitedUntil.set(did, until);
+}
 
 export function onSongChanged(ctx: Context) {
   const sub = ctx.nc.subscribe("rocksky.song.changed");
@@ -164,6 +192,11 @@ export function onSongChanged(ctx: Context) {
         const payload = jc.decode(m.data) as SongChangedPayload;
         did = payload.did;
         const { track: rawTrack } = payload;
+
+        if (isRateLimited(did)) {
+          consola.debug(`[status] song.changed skipped for ${did} — PDS rate limited until ${new Date(rateLimitedUntil.get(did)!).toISOString()}`);
+          continue;
+        }
 
         const trackKey = `${rawTrack.name ?? ""}:${rawTrack.artists?.[0]?.name ?? rawTrack.artist ?? ""}`;
         if (lastPushedStatus.get(did) === trackKey) {
@@ -211,7 +244,12 @@ export function onSongChanged(ctx: Context) {
       } catch (err: any) {
         const status = err?.status ?? err?.response?.status ?? err?.error?.status;
         const message = err?.message ?? err?.error?.message ?? String(err);
-        consola.error(`[status] Error handling song.changed for ${did} — HTTP ${status ?? "?"}: ${message}${rateLimitResetMsg(err)}`);
+        if (status === 429) {
+          applyRateLimitBackoff(did, err);
+          consola.warn(`[status] song.changed rate limited for ${did}${rateLimitResetMsg(err)}`);
+        } else {
+          consola.error(`[status] Error handling song.changed for ${did} — HTTP ${status ?? "?"}: ${message}`);
+        }
       }
     }
   })();
@@ -224,6 +262,11 @@ export function onSongStopped(ctx: Context) {
       let did = "(unknown)";
       try {
         ({ did } = jc.decode(m.data) as SongStoppedPayload);
+
+        if (isRateLimited(did)) {
+          consola.debug(`[status] song.stopped skipped for ${did} — PDS rate limited until ${new Date(rateLimitedUntil.get(did)!).toISOString()}`);
+          continue;
+        }
 
         if (lastPushedStatus.get(did) === null) {
           consola.debug(`[status] skip already-stopped status for ${did}`);
@@ -248,7 +291,12 @@ export function onSongStopped(ctx: Context) {
         const status = err?.status ?? err?.response?.status ?? err?.error?.status;
         if (status === 400 || status === 404) continue; // already gone, not an error
         const message = err?.message ?? err?.error?.message ?? String(err);
-        consola.error(`[status] Error handling song.stopped for ${did} — HTTP ${status ?? "?"}: ${message}${rateLimitResetMsg(err)}`);
+        if (status === 429) {
+          applyRateLimitBackoff(did, err);
+          consola.warn(`[status] song.stopped rate limited for ${did}${rateLimitResetMsg(err)}`);
+        } else {
+          consola.error(`[status] Error handling song.stopped for ${did} — HTTP ${status ?? "?"}: ${message}`);
+        }
       }
     }
   })();
