@@ -3,12 +3,14 @@ use sqlx::{Pool, Postgres};
 
 use crate::xata::user::UserWithApiKey;
 
-pub async fn get_user_did_by_id(pool: &Pool<Postgres>, user_id: &str) -> Result<Option<String>, Error> {
-    let row: Option<(String,)> =
-        sqlx::query_as(r#"SELECT did FROM users WHERE xata_id = $1"#)
-            .bind(user_id)
-            .fetch_optional(pool)
-            .await?;
+pub async fn get_user_did_by_id(
+    pool: &Pool<Postgres>,
+    user_id: &str,
+) -> Result<Option<String>, Error> {
+    let row: Option<(String,)> = sqlx::query_as(r#"SELECT did FROM users WHERE xata_id = $1"#)
+        .bind(user_id)
+        .fetch_optional(pool)
+        .await?;
     Ok(row.map(|(did,)| did))
 }
 

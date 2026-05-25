@@ -33,13 +33,16 @@ pub async fn post_now_playing(did: String, track: TrackWithUpload, timestamp_uni
     let token = match generate_token(&did) {
         Ok(t) => t,
         Err(e) => {
-            tracing::warn!("JWT generation failed, scrobble not published to ATProto: {}", e);
+            tracing::warn!(
+                "JWT generation failed, scrobble not published to ATProto: {}",
+                e
+            );
             return;
         }
     };
 
-    let api_base = env::var("ROCKSKY_API_URL")
-        .unwrap_or_else(|_| "https://api.rocksky.app".to_string());
+    let api_base =
+        env::var("ROCKSKY_API_URL").unwrap_or_else(|_| "https://api.rocksky.app".to_string());
 
     let genres: Option<Vec<String>> = track.genre.as_ref().map(|g| vec![g.clone()]);
 
