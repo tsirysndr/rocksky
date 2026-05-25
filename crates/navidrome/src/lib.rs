@@ -8,7 +8,7 @@ pub mod xata;
 use std::{env, sync::Arc, time::Duration};
 
 use actix_cors::Cors;
-use actix_web::{web::Data, App, HttpServer};
+use actix_web::{get, web::Data, App, HttpResponse, HttpServer};
 use anyhow::Error;
 use owo_colors::OwoColorize;
 use sqlx::postgres::PgPoolOptions;
@@ -23,6 +23,30 @@ pub const BANNER: &str = r#"
 
  Rocksky Navidrome-compatible API (Subsonic REST API v1.16.1)
 "#;
+
+pub const INFO: &str = r#"
+  Subsonic REST API v1.16.1
+  Auth : handle as username, API key as password
+  Docs : https://www.subsonic.org/pages/api.jsp
+  Base : /rest/{method}[.view]?u=<handle>&p=<apikey>&v=1.16.1&c=<client>&f=json
+
+  Endpoints
+  ─────────────────────────────────────────────
+  ping              getMusicFolders
+  getArtists        getArtist
+  getAlbum          getSong
+  stream            getCoverArt
+  search3           scrobble
+  updateNowPlaying  getAlbumList2
+  getRandomSongs    star / unstar
+"#;
+
+#[get("/")]
+async fn index() -> HttpResponse {
+    HttpResponse::Ok()
+        .content_type("text/plain; charset=utf-8")
+        .body(format!("{}{}", BANNER, INFO))
+}
 
 pub async fn run() -> Result<(), Error> {
     println!("{}", BANNER.cyan());
@@ -54,6 +78,7 @@ pub async fn run() -> Result<(), Error> {
         App::new()
             .wrap(cors)
             .app_data(Data::new(conn.clone()))
+            .service(index)
             .service(handlers::handle_get)
             .service(handlers::handle_post)
     })
