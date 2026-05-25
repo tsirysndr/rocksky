@@ -61,7 +61,7 @@ pub async fn post_now_playing(did: String, track: TrackWithUpload, timestamp_uni
     });
 
     let url = format!("{}/xrpc/app.rocksky.scrobble.createScrobble", api_base);
-    tracing::debug!(
+    tracing::info!(
         did = %did,
         url = %url,
         payload = %serde_json::to_string(&payload).unwrap_or_default(),
