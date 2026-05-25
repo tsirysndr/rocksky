@@ -38,12 +38,35 @@ pub async fn handle(format: &str, cover_id: &str, pool: &Arc<Pool<Postgres>>) ->
     } else if let Some(track_id) = cover_id.strip_prefix("tr-") {
         art_for_track(pool, track_id).await
     } else {
-        // No prefix: try as track ID, then album ID, then track→album fallback.
+        // No prefix: try track → album → artist.
         let by_track = art_for_track(pool, cover_id).await;
         if by_track.is_some() {
-            by_track
+            return match by_track {
+                Some(url) if url.starts_with("http://") || url.starts_with("https://") => {
+                    HttpResponse::TemporaryRedirect()
+                        .append_header(("Location", url))
+                        .finish()
+                }
+                Some(key) => match s3::presign_get(&key, 3600).await {
+                    Ok(url) => HttpResponse::TemporaryRedirect()
+                        .append_header(("Location", url))
+                        .finish(),
+                    Err(e) => {
+                        tracing::error!("coverArt presign error: {}", e);
+                        response::err(format, 70, "Cover art not found")
+                    }
+                },
+                None => response::err(format, 70, "Cover art not found"),
+            };
+        }
+        let by_album = repo::album::get_album_art(pool, cover_id)
+            .await
+            .ok()
+            .flatten();
+        if by_album.is_some() {
+            by_album
         } else {
-            repo::album::get_album_art(pool, cover_id)
+            repo::artist::get_picture_by_artist_id(pool, cover_id)
                 .await
                 .ok()
                 .flatten()
