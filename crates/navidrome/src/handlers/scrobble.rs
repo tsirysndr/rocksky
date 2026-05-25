@@ -23,7 +23,7 @@ pub async fn handle_scrobble(
         .unwrap_or(true);
 
     if !submission {
-        tracing::info!(user_id, song_id, "now playing update");
+        tracing::info!(user_id, song_id, "now playing update (not a submission)");
         return response::ok(format, json!({}));
     }
 
@@ -46,47 +46,29 @@ pub async fn handle_scrobble(
         }
     };
 
-    let album_id = track.album_id.clone();
-    let artist_id = track.artist_id.clone();
-
-    match repo::scrobble::create_scrobble(
-        pool,
-        user_id,
-        song_id,
-        album_id.as_deref(),
-        artist_id.as_deref(),
-        timestamp,
-    )
-    .await
-    {
-        Ok(_) => {
-            tracing::info!(user_id, song_id, "scrobble recorded");
-
-            // Fire-and-forget: publish to ATProto via the Rocksky API
-            let pool_clone = Arc::clone(pool);
-            let user_id_owned = user_id.to_string();
-            let timestamp_unix = timestamp.timestamp();
-            tokio::spawn(async move {
-                match repo::user::get_user_did_by_id(&pool_clone, &user_id_owned).await {
-                    Ok(Some(did)) => {
-                        api::post_now_playing(did, track, timestamp_unix).await;
-                    }
-                    Ok(None) => {
-                        tracing::warn!(user_id = %user_id_owned, "DID not found, skipping ATProto publish");
-                    }
-                    Err(e) => {
-                        tracing::warn!(user_id = %user_id_owned, "DID lookup error: {}", e);
-                    }
-                }
-            });
-
-            response::ok(format, json!({}))
+    // Do NOT insert into `scrobbles` directly — the API's scrobbleTrack owns
+    // the full pipeline (dedup check → ATProto records → DB write with URI).
+    // A direct insert here would be found by the duplicate check and cause
+    // scrobbleTrack to exit early, leaving uri = NULL forever.
+    let pool_clone = Arc::clone(pool);
+    let user_id_owned = user_id.to_string();
+    let timestamp_unix = timestamp.timestamp();
+    tokio::spawn(async move {
+        match repo::user::get_user_did_by_id(&pool_clone, &user_id_owned).await {
+            Ok(Some(did)) => {
+                api::post_now_playing(did, track, timestamp_unix).await;
+            }
+            Ok(None) => {
+                tracing::warn!(user_id = %user_id_owned, "DID not found, skipping ATProto publish");
+            }
+            Err(e) => {
+                tracing::warn!(user_id = %user_id_owned, "DID lookup error: {}", e);
+            }
         }
-        Err(e) => {
-            tracing::error!("scrobble error: {}", e);
-            response::err(format, 0, "Internal server error")
-        }
-    }
+    });
+
+    tracing::info!(user_id, song_id, "scrobble queued for ATProto publish");
+    response::ok(format, json!({}))
 }
 
 pub async fn handle_update_now_playing(
