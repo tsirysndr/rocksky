@@ -4998,6 +4998,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "dotenv",
+ "futures",
  "hex",
  "md5",
  "owo-colors",
