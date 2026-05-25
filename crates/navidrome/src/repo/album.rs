@@ -3,24 +3,6 @@ use sqlx::{Pool, Postgres};
 
 use crate::xata::album::AlbumWithStats;
 
-const BASE_ALBUM_QUERY: &str = r#"
-    SELECT
-        albums.xata_id,
-        albums.title,
-        albums.artist,
-        albums.year,
-        albums.album_art,
-        COUNT(DISTINCT album_tracks.track_id) AS song_count,
-        SUM(tracks.duration)::bigint AS total_duration,
-        MIN(user_uploads.uploaded_at)::timestamptz AS created_at,
-        (SELECT aa.artist_id FROM artist_albums aa WHERE aa.album_id = albums.xata_id LIMIT 1) AS artist_id
-    FROM albums
-    JOIN album_tracks ON albums.xata_id = album_tracks.album_id
-    JOIN tracks ON album_tracks.track_id = tracks.xata_id
-    JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
-    WHERE user_uploads.user_id = $1
-    GROUP BY albums.xata_id, albums.title, albums.artist, albums.year, albums.album_art
-"#;
 
 pub async fn get_albums_by_artist(
     pool: &Pool<Postgres>,
@@ -63,12 +45,31 @@ pub async fn get_album_by_id(
     album_id: &str,
     user_id: &str,
 ) -> Result<Option<AlbumWithStats>, Error> {
-    let row: Option<AlbumWithStats> =
-        sqlx::query_as(&format!("{} AND albums.xata_id = $2", BASE_ALBUM_QUERY))
-            .bind(user_id)
-            .bind(album_id)
-            .fetch_optional(pool)
-            .await?;
+    let row: Option<AlbumWithStats> = sqlx::query_as(
+        r#"
+        SELECT
+            albums.xata_id,
+            albums.title,
+            albums.artist,
+            albums.year,
+            albums.album_art,
+            COUNT(DISTINCT album_tracks.track_id) AS song_count,
+            SUM(tracks.duration)::bigint AS total_duration,
+            MIN(user_uploads.uploaded_at)::timestamptz AS created_at,
+            (SELECT aa.artist_id FROM artist_albums aa WHERE aa.album_id = albums.xata_id LIMIT 1) AS artist_id
+        FROM albums
+        JOIN album_tracks ON albums.xata_id = album_tracks.album_id
+        JOIN tracks ON album_tracks.track_id = tracks.xata_id
+        JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
+        WHERE user_uploads.user_id = $1
+          AND albums.xata_id = $2
+        GROUP BY albums.xata_id, albums.title, albums.artist, albums.year, albums.album_art
+        "#,
+    )
+    .bind(user_id)
+    .bind(album_id)
+    .fetch_optional(pool)
+    .await?;
 
     Ok(row)
 }
