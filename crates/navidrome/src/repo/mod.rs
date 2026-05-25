@@ -3,6 +3,7 @@ pub mod artist;
 pub mod genre;
 pub mod nowplaying;
 pub mod playlist;
+pub mod playqueue;
 pub mod scrobble;
 pub mod starred;
 pub mod track;

@@ -47,6 +47,7 @@ pub const INFO: &str = r#"
   getPlaylists      getPlaylist
   getSimilarSongs2  getTopSongs
   getLyrics         getInternetRadioStations
+  getPlayQueue      savePlayQueue
   star              unstar
 "#;
 
@@ -70,6 +71,8 @@ pub async fn run() -> Result<(), Error> {
         .await?;
 
     let conn = Arc::new(pool);
+
+    repo::playqueue::ensure_table(&conn).await?;
 
     let host = env::var("NAVIDROME_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
     let port = env::var("NAVIDROME_PORT")

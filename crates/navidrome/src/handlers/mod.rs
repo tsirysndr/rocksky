@@ -7,6 +7,7 @@ pub mod info;
 pub mod music_folders;
 pub mod ping;
 pub mod playlists;
+pub mod playqueue;
 pub mod scrobble;
 pub mod search;
 pub mod songs;
@@ -160,6 +161,10 @@ async fn dispatch(
                 None => return response::err(&format, 10, "Missing id parameter"),
             };
             directory::handle_get_music_directory(&format, user_id, id, pool).await
+        }
+        "getPlayQueue" => playqueue::handle_get_play_queue(&format, user_id, pool).await,
+        "savePlayQueue" => {
+            playqueue::handle_save_play_queue(&format, user_id, pool, &params).await
         }
         "getPlaylists" => playlists::handle_get_playlists(&format, user_id, pool).await,
         "getPlaylist" => {
