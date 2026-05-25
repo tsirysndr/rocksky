@@ -12,7 +12,7 @@ const BASE_ALBUM_QUERY: &str = r#"
         albums.album_art,
         COUNT(DISTINCT album_tracks.track_id) AS song_count,
         SUM(tracks.duration)::bigint AS total_duration,
-        MIN(user_uploads.uploaded_at) AS created_at,
+        MIN(user_uploads.uploaded_at)::timestamptz AS created_at,
         (SELECT aa.artist_id FROM artist_albums aa WHERE aa.album_id = albums.xata_id LIMIT 1) AS artist_id
     FROM albums
     JOIN album_tracks ON albums.xata_id = album_tracks.album_id
@@ -37,7 +37,7 @@ pub async fn get_albums_by_artist(
             albums.album_art,
             COUNT(DISTINCT album_tracks.track_id) AS song_count,
             SUM(tracks.duration)::bigint AS total_duration,
-            MIN(user_uploads.uploaded_at) AS created_at,
+            MIN(user_uploads.uploaded_at)::timestamptz AS created_at,
             $2::text AS artist_id
         FROM albums
         JOIN artist_albums ON albums.xata_id = artist_albums.album_id
@@ -134,7 +134,7 @@ pub async fn get_album_list(
             albums.album_art,
             COUNT(DISTINCT album_tracks.track_id) AS song_count,
             SUM(tracks.duration)::bigint AS total_duration,
-            MIN(user_uploads.uploaded_at) AS created_at,
+            MIN(user_uploads.uploaded_at)::timestamptz AS created_at,
             (SELECT aa.artist_id FROM artist_albums aa WHERE aa.album_id = albums.xata_id LIMIT 1) AS artist_id
         FROM albums
         JOIN album_tracks ON albums.xata_id = album_tracks.album_id
@@ -177,7 +177,7 @@ pub async fn search_albums(
             albums.album_art,
             COUNT(DISTINCT album_tracks.track_id) AS song_count,
             SUM(tracks.duration)::bigint AS total_duration,
-            MIN(user_uploads.uploaded_at) AS created_at,
+            MIN(user_uploads.uploaded_at)::timestamptz AS created_at,
             (SELECT aa.artist_id FROM artist_albums aa WHERE aa.album_id = albums.xata_id LIMIT 1) AS artist_id
         FROM albums
         JOIN album_tracks ON albums.xata_id = album_tracks.album_id
