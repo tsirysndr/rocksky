@@ -24,7 +24,7 @@ pub async fn handle_get_starred2(
                         "title": t.title,
                         "album": t.album,
                         "artist": t.artist,
-                        "duration": t.duration,
+                        "duration": t.duration / 1000,
                         "size": t.file_size,
                         "contentType": t.mime_type,
                         "suffix": suffix,

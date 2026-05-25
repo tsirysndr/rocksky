@@ -61,7 +61,7 @@ pub fn track_to_json(t: &crate::xata::track::TrackWithUpload, _user_id: &str) ->
         "title": t.title,
         "album": t.album,
         "artist": t.artist,
-        "duration": t.duration,
+        "duration": t.duration / 1000,
         "size": t.file_size,
         "contentType": t.mime_type,
         "suffix": suffix,

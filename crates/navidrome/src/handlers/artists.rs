@@ -138,7 +138,7 @@ pub async fn handle_get_artist(
                 "artist": a.artist,
                 "artistId": artist_id,
                 "songCount": a.song_count,
-                "duration": a.total_duration.unwrap_or(0),
+                "duration": a.total_duration.unwrap_or(0) / 1000,
                 "created": a.created_at.map(|d| d.to_rfc3339()).unwrap_or_default(),
             });
             if let Some(year) = a.year {

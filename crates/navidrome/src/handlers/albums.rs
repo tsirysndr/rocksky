@@ -12,7 +12,7 @@ fn album_to_json(a: &AlbumWithStats, artist_id_override: Option<&str>) -> Value 
         "title": a.title,
         "artist": a.artist,
         "songCount": a.song_count,
-        "duration": a.total_duration.unwrap_or(0),
+        "duration": a.total_duration.unwrap_or(0) / 1000,
         "created": a.created_at.map(|d| d.to_rfc3339()).unwrap_or_default(),
     });
 
@@ -69,7 +69,7 @@ pub async fn handle_get_album(
                 "title": t.title,
                 "album": t.album,
                 "artist": t.artist,
-                "duration": t.duration,
+                "duration": t.duration / 1000,
                 "size": t.file_size,
                 "contentType": t.mime_type,
                 "suffix": suffix,

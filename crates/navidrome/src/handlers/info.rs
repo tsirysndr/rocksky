@@ -65,7 +65,7 @@ pub async fn handle_get_now_playing(
                         "title": e.title,
                         "album": e.album,
                         "artist": e.artist,
-                        "duration": e.duration,
+                        "duration": e.duration / 1000,
                         "size": e.file_size,
                         "contentType": e.mime_type,
                         "suffix": suffix,

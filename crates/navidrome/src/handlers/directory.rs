@@ -111,7 +111,7 @@ pub async fn handle_get_music_directory(
                             "artist": t.artist,
                             "albumId": id,
                             "coverArt": format!("al-{}", id),
-                            "duration": t.duration,
+                            "duration": t.duration / 1000,
                             "size": t.file_size,
                             "contentType": t.mime_type,
                             "suffix": suffix,

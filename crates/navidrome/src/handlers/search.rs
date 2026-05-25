@@ -75,7 +75,7 @@ pub async fn handle_search3(
                 "title": a.title,
                 "artist": a.artist,
                 "songCount": a.song_count,
-                "duration": a.total_duration.unwrap_or(0),
+                "duration": a.total_duration.unwrap_or(0) / 1000,
                 "created": a.created_at.map(|d| d.to_rfc3339()).unwrap_or_default(),
             });
             if let Some(aid) = &a.artist_id {
