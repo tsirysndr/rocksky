@@ -16,7 +16,7 @@ pub mod starred;
 pub mod stream;
 pub mod user;
 
-use actix_web::{get, post, web, HttpResponse};
+use actix_web::{get, post, web, HttpRequest, HttpResponse};
 use sqlx::{Pool, Postgres};
 use std::{collections::HashMap, sync::Arc};
 
@@ -34,6 +34,7 @@ async fn dispatch(
     method: &str,
     params: HashMap<String, String>,
     pool: &Arc<Pool<Postgres>>,
+    range: Option<String>,
 ) -> HttpResponse {
     let format = get_format(&params);
 
@@ -95,7 +96,7 @@ async fn dispatch(
                 Some(id) => id.as_str(),
                 None => return response::err(&format, 10, "Missing id parameter"),
             };
-            stream::handle(&format, user_id, id, pool).await
+            stream::handle(&format, user_id, id, pool, range.as_deref()).await
         }
         "getCoverArt" => {
             let id = match params.get("id") {
@@ -192,22 +193,34 @@ async fn dispatch(
 
 #[get("/rest/{method}")]
 pub async fn handle_get(
+    req: HttpRequest,
     path: web::Path<String>,
     pool: web::Data<Arc<Pool<Postgres>>>,
     query: web::Query<HashMap<String, String>>,
 ) -> HttpResponse {
     let method = path.into_inner();
     let method = method.trim_end_matches(".view").to_string();
-    dispatch(&method, query.into_inner(), pool.get_ref()).await
+    let range = req
+        .headers()
+        .get("Range")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
+    dispatch(&method, query.into_inner(), pool.get_ref(), range).await
 }
 
 #[post("/rest/{method}")]
 pub async fn handle_post(
+    req: HttpRequest,
     path: web::Path<String>,
     pool: web::Data<Arc<Pool<Postgres>>>,
     form: web::Form<HashMap<String, String>>,
 ) -> HttpResponse {
     let method = path.into_inner();
     let method = method.trim_end_matches(".view").to_string();
-    dispatch(&method, form.into_inner(), pool.get_ref()).await
+    let range = req
+        .headers()
+        .get("Range")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
+    dispatch(&method, form.into_inner(), pool.get_ref(), range).await
 }
