@@ -32,13 +32,18 @@ pub const INFO: &str = r#"
 
   Endpoints
   ─────────────────────────────────────────────
-  ping              getMusicFolders
-  getArtists        getArtist
-  getAlbum          getSong
-  stream            getCoverArt
-  search3           scrobble
-  updateNowPlaying  getAlbumList2
-  getRandomSongs    star / unstar
+  ping              getLicense
+  getMusicFolders   getScanStatus
+  getUser           getArtists
+  getArtist         getAlbum
+  getSong           stream
+  getCoverArt       search3
+  scrobble          updateNowPlaying
+  getAlbumList2     getRandomSongs
+  getGenres         getSongsByGenre
+  getStarred2       getArtistInfo2
+  getAlbumInfo2     getNowPlaying
+  star              unstar
 "#;
 
 #[get("/")]

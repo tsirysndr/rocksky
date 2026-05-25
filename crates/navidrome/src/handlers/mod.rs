@@ -1,13 +1,17 @@
 pub mod albums;
 pub mod artists;
 pub mod cover_art;
+pub mod genres;
+pub mod info;
 pub mod music_folders;
 pub mod ping;
 pub mod scrobble;
 pub mod search;
 pub mod songs;
 pub mod star;
+pub mod starred;
 pub mod stream;
+pub mod user;
 
 use actix_web::{get, post, web, HttpResponse};
 use sqlx::{Pool, Postgres};
@@ -107,6 +111,30 @@ async fn dispatch(
         "getRandomSongs" => songs::handle_get_random_songs(&format, user_id, pool, &params).await,
         "star" => star::handle_star(&format, user_id, pool, &params).await,
         "unstar" => star::handle_unstar(&format, user_id, pool, &params).await,
+        "getUser" => {
+            let u = user.as_ref().unwrap();
+            user::handle_get_user(&format, u)
+        }
+        "getLicense" => user::handle_get_license(&format),
+        "getScanStatus" | "startScan" => user::handle_get_scan_status(&format, pool),
+        "getGenres" => genres::handle_get_genres(&format, user_id, pool).await,
+        "getSongsByGenre" => genres::handle_get_songs_by_genre(&format, user_id, pool, &params).await,
+        "getStarred" | "getStarred2" => starred::handle_get_starred2(&format, user_id, pool).await,
+        "getArtistInfo" | "getArtistInfo2" => {
+            let id = match params.get("id") {
+                Some(id) => id.as_str(),
+                None => return response::err(&format, 10, "Missing id parameter"),
+            };
+            info::handle_get_artist_info2(&format, id, pool).await
+        }
+        "getAlbumInfo" | "getAlbumInfo2" => {
+            let id = match params.get("id") {
+                Some(id) => id.as_str(),
+                None => return response::err(&format, 10, "Missing id parameter"),
+            };
+            info::handle_get_album_info2(&format, id, pool, &params).await
+        }
+        "getNowPlaying" => info::handle_get_now_playing(&format, user_id, pool).await,
         _ => response::err(
             &format,
             70,
