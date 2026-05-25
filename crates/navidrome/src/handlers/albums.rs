@@ -9,6 +9,7 @@ fn album_to_json(a: &AlbumWithStats, artist_id_override: Option<&str>) -> Value 
     let mut obj = json!({
         "id": a.xata_id,
         "name": a.title,
+        "title": a.title,
         "artist": a.artist,
         "songCount": a.song_count,
         "duration": a.total_duration.unwrap_or(0),
@@ -59,10 +60,12 @@ pub async fn handle_get_album(
         .iter()
         .map(|t| {
             let suffix = mime_to_suffix(&t.mime_type);
+            let path = format!("{}/{}/{}.{}", t.artist, t.album, t.title, suffix);
             let mut s = json!({
                 "id": t.xata_id,
                 "parent": album_id,
                 "isDir": false,
+                "isVideo": false,
                 "title": t.title,
                 "album": t.album,
                 "artist": t.artist,
@@ -71,7 +74,10 @@ pub async fn handle_get_album(
                 "contentType": t.mime_type,
                 "suffix": suffix,
                 "albumId": album_id,
+                "coverArt": format!("al-{}", album_id),
                 "type": "music",
+                "created": t.xata_createdat.to_rfc3339(),
+                "path": path,
             });
             if let Some(tn) = t.track_number {
                 s["track"] = json!(tn);
@@ -84,9 +90,6 @@ pub async fn handle_get_album(
             }
             if let Some(mb) = &t.mb_id {
                 s["musicBrainzId"] = json!(mb);
-            }
-            if t.album_art.is_some() {
-                s["coverArt"] = json!(format!("tr-{}", t.xata_id));
             }
             if let Some(aid) = &album.artist_id {
                 s["artistId"] = json!(aid);

@@ -53,9 +53,11 @@ pub async fn handle_get_random_songs(
 
 pub fn track_to_json(t: &crate::xata::track::TrackWithUpload, _user_id: &str) -> Value {
     let suffix = mime_to_suffix(&t.mime_type);
+    let path = format!("{}/{}/{}.{}", t.artist, t.album, t.title, suffix);
     let mut s = json!({
         "id": t.xata_id,
         "isDir": false,
+        "isVideo": false,
         "title": t.title,
         "album": t.album,
         "artist": t.artist,
@@ -65,6 +67,7 @@ pub fn track_to_json(t: &crate::xata::track::TrackWithUpload, _user_id: &str) ->
         "suffix": suffix,
         "type": "music",
         "created": t.xata_createdat.to_rfc3339(),
+        "path": path,
     });
 
     if let Some(tn) = t.track_number {
@@ -79,8 +82,16 @@ pub fn track_to_json(t: &crate::xata::track::TrackWithUpload, _user_id: &str) ->
     if let Some(mb) = &t.mb_id {
         s["musicBrainzId"] = json!(mb);
     }
-    if t.album_art.is_some() {
+
+    if let Some(album_id) = &t.album_id {
+        s["albumId"] = json!(album_id);
+        s["coverArt"] = json!(format!("al-{}", album_id));
+    } else if t.album_art.is_some() {
         s["coverArt"] = json!(format!("tr-{}", t.xata_id));
+    }
+
+    if let Some(artist_id) = &t.artist_id {
+        s["artistId"] = json!(artist_id);
     }
 
     s

@@ -52,6 +52,7 @@ pub async fn handle_get_artists(
     format: &str,
     user_id: &str,
     pool: &Arc<Pool<Postgres>>,
+    is_indexes: bool,
 ) -> HttpResponse {
     match repo::artist::get_all_artists(pool, user_id).await {
         Ok(artists) => {
@@ -75,15 +76,28 @@ pub async fn handle_get_artists(
                 })
                 .collect();
 
-            response::ok(
-                format,
-                json!({
-                    "artists": {
-                        "ignoredArticles": IGNORED_ARTICLES,
-                        "index": index
-                    }
-                }),
-            )
+            if is_indexes {
+                response::ok(
+                    format,
+                    json!({
+                        "indexes": {
+                            "lastModified": 0,
+                            "ignoredArticles": IGNORED_ARTICLES,
+                            "index": index
+                        }
+                    }),
+                )
+            } else {
+                response::ok(
+                    format,
+                    json!({
+                        "artists": {
+                            "ignoredArticles": IGNORED_ARTICLES,
+                            "index": index
+                        }
+                    }),
+                )
+            }
         }
         Err(e) => {
             tracing::error!("getArtists error: {}", e);
@@ -98,7 +112,7 @@ pub async fn handle_get_artist(
     artist_id: &str,
     pool: &Arc<Pool<Postgres>>,
 ) -> HttpResponse {
-    let artist = match repo::artist::get_artist_by_id(pool, artist_id).await {
+    let artist = match repo::artist::get_artist_by_id(pool, artist_id, user_id).await {
         Ok(Some(a)) => a,
         Ok(None) => return response::err(format, 70, "Artist not found"),
         Err(e) => {

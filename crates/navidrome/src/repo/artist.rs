@@ -33,11 +33,20 @@ pub async fn get_all_artists(
 pub async fn get_artist_by_id(
     pool: &Pool<Postgres>,
     artist_id: &str,
+    user_id: &str,
 ) -> Result<Option<ArtistRow>, Error> {
     let row: Option<ArtistRow> = sqlx::query_as(
-        r#"SELECT xata_id, name, picture, xata_createdat FROM artists WHERE xata_id = $1"#,
+        r#"
+        SELECT DISTINCT artists.xata_id, artists.name, artists.picture, artists.xata_createdat
+        FROM artists
+        JOIN artist_tracks ON artists.xata_id = artist_tracks.artist_id
+        JOIN user_uploads ON artist_tracks.track_id = user_uploads.track_id
+        WHERE artists.xata_id = $1 AND user_uploads.user_id = $2
+        LIMIT 1
+        "#,
     )
     .bind(artist_id)
+    .bind(user_id)
     .fetch_optional(pool)
     .await?;
 

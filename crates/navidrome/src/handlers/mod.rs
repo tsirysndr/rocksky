@@ -1,10 +1,12 @@
 pub mod albums;
 pub mod artists;
 pub mod cover_art;
+pub mod directory;
 pub mod genres;
 pub mod info;
 pub mod music_folders;
 pub mod ping;
+pub mod playlists;
 pub mod scrobble;
 pub mod search;
 pub mod songs;
@@ -64,7 +66,8 @@ async fn dispatch(
     match method {
         "ping" => ping::handle(&format),
         "getMusicFolders" => music_folders::handle(&format),
-        "getArtists" | "getIndexes" => artists::handle_get_artists(&format, user_id, pool).await,
+        "getArtists" => artists::handle_get_artists(&format, user_id, pool, false).await,
+        "getIndexes" => artists::handle_get_artists(&format, user_id, pool, true).await,
         "getArtist" => {
             let id = match params.get("id") {
                 Some(id) => id.as_str(),
@@ -122,21 +125,60 @@ async fn dispatch(
             genres::handle_get_songs_by_genre(&format, user_id, pool, &params).await
         }
         "getStarred" | "getStarred2" => starred::handle_get_starred2(&format, user_id, pool).await,
-        "getArtistInfo" | "getArtistInfo2" => {
+        "getArtistInfo" => {
             let id = match params.get("id") {
                 Some(id) => id.as_str(),
                 None => return response::err(&format, 10, "Missing id parameter"),
             };
-            info::handle_get_artist_info2(&format, id, pool).await
+            info::handle_get_artist_info(&format, user_id, id, pool, false).await
         }
-        "getAlbumInfo" | "getAlbumInfo2" => {
+        "getArtistInfo2" => {
             let id = match params.get("id") {
                 Some(id) => id.as_str(),
                 None => return response::err(&format, 10, "Missing id parameter"),
             };
-            info::handle_get_album_info2(&format, id, pool, &params).await
+            info::handle_get_artist_info(&format, user_id, id, pool, true).await
+        }
+        "getAlbumInfo" => {
+            let id = match params.get("id") {
+                Some(id) => id.as_str(),
+                None => return response::err(&format, 10, "Missing id parameter"),
+            };
+            info::handle_get_album_info(&format, id, pool, false, &params).await
+        }
+        "getAlbumInfo2" => {
+            let id = match params.get("id") {
+                Some(id) => id.as_str(),
+                None => return response::err(&format, 10, "Missing id parameter"),
+            };
+            info::handle_get_album_info(&format, id, pool, true, &params).await
         }
         "getNowPlaying" => info::handle_get_now_playing(&format, user_id, pool).await,
+        "getMusicDirectory" => {
+            let id = match params.get("id") {
+                Some(id) => id.as_str(),
+                None => return response::err(&format, 10, "Missing id parameter"),
+            };
+            directory::handle_get_music_directory(&format, user_id, id, pool).await
+        }
+        "getPlaylists" => playlists::handle_get_playlists(&format, user_id, pool).await,
+        "getPlaylist" => {
+            let id = match params.get("id") {
+                Some(id) => id.as_str(),
+                None => return response::err(&format, 10, "Missing id parameter"),
+            };
+            playlists::handle_get_playlist(&format, user_id, id, pool).await
+        }
+        "getSimilarSongs" | "getSimilarSongs2" => response::ok(
+            &format,
+            serde_json::json!({ "similarSongs": { "song": [] } }),
+        ),
+        "getTopSongs" => response::ok(&format, serde_json::json!({ "topSongs": { "song": [] } })),
+        "getLyrics" => response::ok(&format, serde_json::json!({ "lyrics": {} })),
+        "getInternetRadioStations" => response::ok(
+            &format,
+            serde_json::json!({ "internetRadioStations": { "internetRadioStation": [] } }),
+        ),
         _ => response::err(
             &format,
             70,

@@ -3,7 +3,7 @@ use serde_json::{json, Value};
 use sqlx::{Pool, Postgres};
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{handlers::albums::mime_to_suffix, repo, response};
+use crate::{handlers::songs::track_to_json, repo, response};
 
 pub async fn handle_get_genres(
     format: &str,
@@ -54,35 +54,7 @@ pub async fn handle_get_songs_by_genre(
 
     match repo::genre::get_songs_by_genre(pool, user_id, genre, count, offset).await {
         Ok(tracks) => {
-            let songs: Vec<Value> = tracks
-                .iter()
-                .map(|t| {
-                    let suffix = mime_to_suffix(&t.mime_type);
-                    let mut s = json!({
-                        "id": t.xata_id,
-                        "isDir": false,
-                        "title": t.title,
-                        "album": t.album,
-                        "artist": t.artist,
-                        "duration": t.duration,
-                        "size": t.file_size,
-                        "contentType": t.mime_type,
-                        "suffix": suffix,
-                        "type": "music",
-                    });
-                    if let Some(tn) = t.track_number {
-                        s["track"] = json!(tn);
-                    }
-                    if let Some(g) = &t.genre {
-                        s["genre"] = json!(g);
-                    }
-                    if t.album_art.is_some() {
-                        s["coverArt"] = json!(format!("tr-{}", t.xata_id));
-                    }
-                    s
-                })
-                .collect();
-
+            let songs: Vec<Value> = tracks.iter().map(|t| track_to_json(t, user_id)).collect();
             response::ok(format, json!({ "songsByGenre": { "song": songs } }))
         }
         Err(e) => {

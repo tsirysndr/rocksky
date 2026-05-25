@@ -68,7 +68,9 @@ pub async fn get_songs_by_genre(
             tracks.xata_createdat,
             user_uploads.r2_key,
             user_uploads.mime_type,
-            user_uploads.file_size
+            user_uploads.file_size,
+            (SELECT at2.album_id FROM album_tracks at2 WHERE at2.track_id = tracks.xata_id LIMIT 1) AS album_id,
+            (SELECT at3.artist_id FROM artist_tracks at3 WHERE at3.track_id = tracks.xata_id LIMIT 1) AS artist_id
         FROM tracks
         JOIN artist_tracks ON tracks.xata_id = artist_tracks.track_id
         JOIN artists ON artist_tracks.artist_id = artists.xata_id

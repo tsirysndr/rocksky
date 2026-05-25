@@ -35,4 +35,6 @@ pub struct TrackWithUpload {
     pub r2_key: String,
     pub mime_type: String,
     pub file_size: i32,
+    pub album_id: Option<String>,
+    pub artist_id: Option<String>,
 }

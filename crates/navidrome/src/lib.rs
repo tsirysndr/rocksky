@@ -35,14 +35,18 @@ pub const INFO: &str = r#"
   ping              getLicense
   getMusicFolders   getScanStatus
   getUser           getArtists
-  getArtist         getAlbum
-  getSong           stream
-  getCoverArt       search3
-  scrobble          updateNowPlaying
-  getAlbumList2     getRandomSongs
-  getGenres         getSongsByGenre
-  getStarred2       getArtistInfo2
-  getAlbumInfo2     getNowPlaying
+  getIndexes        getArtist
+  getAlbum          getSong
+  stream            getCoverArt
+  search3           scrobble
+  updateNowPlaying  getAlbumList2
+  getRandomSongs    getGenres
+  getSongsByGenre   getStarred2
+  getArtistInfo2    getAlbumInfo2
+  getNowPlaying     getMusicDirectory
+  getPlaylists      getPlaylist
+  getSimilarSongs2  getTopSongs
+  getLyrics         getInternetRadioStations
   star              unstar
 "#;
 
