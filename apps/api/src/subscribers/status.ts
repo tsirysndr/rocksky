@@ -136,6 +136,20 @@ async function getSwapCid(
   }
 }
 
+function rateLimitResetMsg(err: any): string {
+  const headers = err?.headers ?? err?.response?.headers ?? err?.error?.headers;
+  const reset = headers?.["ratelimit-reset"] ?? headers?.["x-ratelimit-reset"];
+  const retryAfter = headers?.["retry-after"];
+  if (reset) {
+    const resetDate = new Date(Number(reset) * 1000);
+    return ` — rate limit resets at ${resetDate.toISOString()} (in ${Math.max(0, Math.round((resetDate.getTime() - Date.now()) / 1000))}s)`;
+  }
+  if (retryAfter) {
+    return ` — retry after ${retryAfter}s`;
+  }
+  return "";
+}
+
 // Last status written to the PDS per DID.
 // Value: "name:artist" for a playing track, null for stopped.
 // Used to skip PDS writes when the status hasn't actually changed.
@@ -197,7 +211,7 @@ export function onSongChanged(ctx: Context) {
       } catch (err: any) {
         const status = err?.status ?? err?.response?.status ?? err?.error?.status;
         const message = err?.message ?? err?.error?.message ?? String(err);
-        consola.error(`[status] Error handling song.changed for ${did} — HTTP ${status ?? "?"}: ${message}`);
+        consola.error(`[status] Error handling song.changed for ${did} — HTTP ${status ?? "?"}: ${message}${rateLimitResetMsg(err)}`);
       }
     }
   })();
@@ -234,7 +248,7 @@ export function onSongStopped(ctx: Context) {
         const status = err?.status ?? err?.response?.status ?? err?.error?.status;
         if (status === 400 || status === 404) continue; // already gone, not an error
         const message = err?.message ?? err?.error?.message ?? String(err);
-        consola.error(`[status] Error handling song.stopped for ${did} — HTTP ${status ?? "?"}: ${message}`);
+        consola.error(`[status] Error handling song.stopped for ${did} — HTTP ${status ?? "?"}: ${message}${rateLimitResetMsg(err)}`);
       }
     }
   })();
