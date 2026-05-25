@@ -4990,6 +4990,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "rocksky-navidrome"
+version = "0.1.0"
+dependencies = [
+ "actix-cors",
+ "actix-web",
+ "anyhow",
+ "chrono",
+ "dotenv",
+ "hex",
+ "md5",
+ "owo-colors",
+ "quick-xml 0.37.5",
+ "reqwest",
+ "rust-s3",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "rocksky-pgpull"
 version = "0.1.0"
 dependencies = [
@@ -5165,6 +5187,7 @@ dependencies = [
  "rocksky-dropbox",
  "rocksky-googledrive",
  "rocksky-jetstream",
+ "rocksky-navidrome",
  "rocksky-pgpull",
  "rocksky-playlists",
  "rocksky-scrobbler",

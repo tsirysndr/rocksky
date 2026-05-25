@@ -21,6 +21,7 @@ fn cli() -> Command {
                 .subcommand(Command::new("serve").about("Serve Rocksky Google Drive API")),
         )
         .subcommand(Command::new("jetstream").about("Start JetStream Subscriber Service"))
+        .subcommand(Command::new("navidrome").about("Start Navidrome-compatible API (Subsonic REST API)"))
         .subcommand(Command::new("playlist").about("Playlist related commands"))
         .subcommand(Command::new("scrobbler").about("Start Scrobbler API"))
         .subcommand(Command::new("spotify").about("Start Spotify Listener Service"))
@@ -62,6 +63,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
         Some(("jetstream", _)) => {
             cmd::jetstream::start_jetstream_service().await?;
+        }
+        Some(("navidrome", _)) => {
+            cmd::navidrome::start_navidrome_service().await?;
         }
         Some(("playlist", _)) => {
             cmd::playlist::start_playlist_service().await?;

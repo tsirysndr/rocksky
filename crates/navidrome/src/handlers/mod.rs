@@ -1,0 +1,138 @@
+pub mod albums;
+pub mod artists;
+pub mod cover_art;
+pub mod music_folders;
+pub mod ping;
+pub mod scrobble;
+pub mod search;
+pub mod songs;
+pub mod star;
+pub mod stream;
+
+use actix_web::{get, post, web, HttpResponse};
+use sqlx::{Pool, Postgres};
+use std::{collections::HashMap, sync::Arc};
+
+use crate::{auth, response};
+
+fn get_format(params: &HashMap<String, String>) -> String {
+    params
+        .get("f")
+        .map(|s| s.to_lowercase())
+        .filter(|s| s == "xml" || s == "json")
+        .unwrap_or_else(|| "json".to_string())
+}
+
+async fn dispatch(
+    method: &str,
+    params: HashMap<String, String>,
+    pool: &Arc<Pool<Postgres>>,
+) -> HttpResponse {
+    let format = get_format(&params);
+
+    // Auth is required for all endpoints except ping
+    let user = if method != "ping" {
+        let username = match params.get("u") {
+            Some(u) => u.as_str(),
+            None => return response::err(&format, 10, "Missing u parameter"),
+        };
+        let password = params.get("p").map(|s| s.as_str());
+        let token = params.get("t").map(|s| s.as_str());
+        let salt = params.get("s").map(|s| s.as_str());
+
+        if password.is_none() && (token.is_none() || salt.is_none()) {
+            return response::err(&format, 10, "Missing credentials: provide p or t+s");
+        }
+
+        match auth::authenticate(pool, username, password, token, salt).await {
+            Ok(u) => Some(u),
+            Err(e) => {
+                tracing::warn!("Auth failed for '{}': {}", username, e);
+                return response::err(&format, 40, "Wrong username or password");
+            }
+        }
+    } else {
+        None
+    };
+
+    let user_id = user.as_ref().map(|u| u.xata_id.as_str()).unwrap_or("");
+
+    match method {
+        "ping" => ping::handle(&format),
+        "getMusicFolders" => music_folders::handle(&format),
+        "getArtists" | "getIndexes" => artists::handle_get_artists(&format, user_id, pool).await,
+        "getArtist" => {
+            let id = match params.get("id") {
+                Some(id) => id.as_str(),
+                None => return response::err(&format, 10, "Missing id parameter"),
+            };
+            artists::handle_get_artist(&format, user_id, id, pool).await
+        }
+        "getAlbum" => {
+            let id = match params.get("id") {
+                Some(id) => id.as_str(),
+                None => return response::err(&format, 10, "Missing id parameter"),
+            };
+            albums::handle_get_album(&format, user_id, id, pool).await
+        }
+        "getSong" => {
+            let id = match params.get("id") {
+                Some(id) => id.as_str(),
+                None => return response::err(&format, 10, "Missing id parameter"),
+            };
+            songs::handle_get_song(&format, user_id, id, pool).await
+        }
+        "stream" | "download" => {
+            let id = match params.get("id") {
+                Some(id) => id.as_str(),
+                None => return response::err(&format, 10, "Missing id parameter"),
+            };
+            stream::handle(&format, user_id, id, pool).await
+        }
+        "getCoverArt" => {
+            let id = match params.get("id") {
+                Some(id) => id.as_str(),
+                None => return response::err(&format, 10, "Missing id parameter"),
+            };
+            cover_art::handle(&format, id, pool).await
+        }
+        "search3" | "search2" => search::handle_search3(&format, user_id, pool, &params).await,
+        "scrobble" => scrobble::handle_scrobble(&format, user_id, pool, &params).await,
+        "updateNowPlaying" => {
+            scrobble::handle_update_now_playing(&format, user_id, pool, &params).await
+        }
+        "getAlbumList2" | "getAlbumList" => {
+            albums::handle_get_album_list2(&format, user_id, pool, &params).await
+        }
+        "getRandomSongs" => songs::handle_get_random_songs(&format, user_id, pool, &params).await,
+        "star" => star::handle_star(&format, user_id, pool, &params).await,
+        "unstar" => star::handle_unstar(&format, user_id, pool, &params).await,
+        _ => response::err(
+            &format,
+            70,
+            &format!("Requested method '{}' not found", method),
+        ),
+    }
+}
+
+#[get("/rest/{method}")]
+pub async fn handle_get(
+    path: web::Path<String>,
+    pool: web::Data<Arc<Pool<Postgres>>>,
+    query: web::Query<HashMap<String, String>>,
+) -> HttpResponse {
+    let method = path.into_inner();
+    let method = method.trim_end_matches(".view").to_string();
+    dispatch(&method, query.into_inner(), pool.get_ref()).await
+}
+
+#[post("/rest/{method}")]
+pub async fn handle_post(
+    path: web::Path<String>,
+    pool: web::Data<Arc<Pool<Postgres>>>,
+    form: web::Form<HashMap<String, String>>,
+) -> HttpResponse {
+    let method = path.into_inner();
+    let method = method.trim_end_matches(".view").to_string();
+    dispatch(&method, form.into_inner(), pool.get_ref()).await
+}

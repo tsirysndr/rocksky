@@ -9,9 +9,9 @@ import {
   IconVinyl,
 } from "@tabler/icons-react";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { useMemo, useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import type { UploadedTrack } from "../../api/uploads";
-import { useUploadsQuery } from "../../hooks/useUploads";
+import { useAlbumTracksQuery } from "../../hooks/useUploads";
 import { useUploadPlayer } from "../../hooks/useUploadPlayer";
 import type { QueueTrack } from "../../atoms/queue";
 import Main from "../../layouts/Main";
@@ -369,15 +369,7 @@ export default function LibraryAlbum() {
 
   const albumUri = `at://${did}/app.rocksky.album/${rkey}`;
 
-  const { data: allUploads = [], isLoading } = useUploadsQuery(0, 1000);
-
-  const tracks = useMemo(
-    () =>
-      allUploads
-        .filter((item) => item.track.albumUri === albumUri)
-        .sort((a, b) => (a.track.trackNumber ?? 0) - (b.track.trackNumber ?? 0)),
-    [allUploads, albumUri],
-  );
+  const { data: tracks = [], isLoading } = useAlbumTracksQuery(albumUri);
 
   const albumArt = tracks[0]?.track.albumArt ?? null;
   const album = tracks[0]?.track.album ?? "";

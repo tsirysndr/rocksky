@@ -1,6 +1,7 @@
 pub mod dropbox;
 pub mod googledrive;
 pub mod jetstream;
+pub mod navidrome;
 pub mod playlist;
 pub mod pull;
 pub mod scrobbler;

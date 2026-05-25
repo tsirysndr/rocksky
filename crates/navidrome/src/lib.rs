@@ -1,0 +1,65 @@
+pub mod auth;
+pub mod handlers;
+pub mod repo;
+pub mod response;
+pub mod s3;
+pub mod xata;
+
+use std::{env, sync::Arc, time::Duration};
+
+use actix_cors::Cors;
+use actix_web::{web::Data, App, HttpServer};
+use anyhow::Error;
+use owo_colors::OwoColorize;
+use sqlx::postgres::PgPoolOptions;
+
+pub const BANNER: &str = r#"
+    _   __             _     __
+   / | / /___ __   __ (_)___/ /________  ____ ___  ___
+  /  |/ / __ `/ | / // // __  // ___/ / / / __ `/ / _ \
+ / /|  / /_/ /| |/ // // /_/ // /  / /_/ / /_/ / /  __/
+/_/ |_/\__,_/ |___// / \__,_//_/   \____/\____/  \___/
+                  /___/
+
+ Rocksky Navidrome-compatible API (Subsonic REST API v1.16.1)
+"#;
+
+pub async fn run() -> Result<(), Error> {
+    println!("{}", BANNER.cyan());
+
+    let pool = PgPoolOptions::new()
+        .max_connections(10)
+        .min_connections(2)
+        .acquire_timeout(Duration::from_secs(10))
+        .idle_timeout(Duration::from_secs(300))
+        .max_lifetime(Duration::from_secs(1800))
+        .connect(&env::var("XATA_POSTGRES_URL")?)
+        .await?;
+
+    let conn = Arc::new(pool);
+
+    let host = env::var("NAVIDROME_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
+    let port = env::var("NAVIDROME_PORT")
+        .unwrap_or_else(|_| "4533".to_string())
+        .parse::<u16>()
+        .unwrap_or(4533);
+
+    tracing::info!(
+        url = %format!("http://{}:{}", host, port).bright_green(),
+        "Starting Navidrome-compatible API @"
+    );
+
+    HttpServer::new(move || {
+        let cors = Cors::permissive();
+        App::new()
+            .wrap(cors)
+            .app_data(Data::new(conn.clone()))
+            .service(handlers::handle_get)
+            .service(handlers::handle_post)
+    })
+    .bind((host, port))?
+    .run()
+    .await?;
+
+    Ok(())
+}

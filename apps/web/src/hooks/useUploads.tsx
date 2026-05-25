@@ -2,6 +2,7 @@ import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClie
 import type { UploadedTrack } from "../api/uploads";
 import {
   deleteUpload,
+  getAlbumTracks,
   getStreamUrl,
   getUploads,
   uploadTrack,
@@ -43,6 +44,13 @@ export const useInfiniteUploadsQuery = (q?: string) =>
       return allPages.flat().length;
     },
     placeholderData: keepPreviousData,
+  });
+
+export const useAlbumTracksQuery = (albumUri?: string, albumArtist?: string, albumName?: string) =>
+  useQuery({
+    queryKey: ["albumTracks", albumUri, albumArtist, albumName],
+    queryFn: () => getAlbumTracks(albumUri, albumArtist, albumName),
+    enabled: !!(albumUri || (albumArtist && albumName)),
   });
 
 export const useDeleteUploadMutation = () => {
