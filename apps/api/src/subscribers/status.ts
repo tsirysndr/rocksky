@@ -136,6 +136,11 @@ async function getSwapCid(
   }
 }
 
+// Last status written to the PDS per DID.
+// Value: "name:artist" for a playing track, null for stopped.
+// Used to skip PDS writes when the status hasn't actually changed.
+const lastPushedStatus = new Map<string, string | null>();
+
 export function onSongChanged(ctx: Context) {
   const sub = ctx.nc.subscribe("rocksky.song.changed");
   (async () => {
@@ -145,6 +150,12 @@ export function onSongChanged(ctx: Context) {
         const payload = jc.decode(m.data) as SongChangedPayload;
         did = payload.did;
         const { track: rawTrack } = payload;
+
+        const trackKey = `${rawTrack.name ?? ""}:${rawTrack.artists?.[0]?.name ?? rawTrack.artist ?? ""}`;
+        if (lastPushedStatus.get(did) === trackKey) {
+          consola.debug(`[status] skip unchanged status for ${did}: ${rawTrack.name}`);
+          continue;
+        }
 
         const [agent, { recordingMbId, albumArt }] = await Promise.all([
           createAgent(ctx.oauthClient, did),
@@ -179,6 +190,7 @@ export function onSongChanged(ctx: Context) {
           validate: false,
         });
 
+        lastPushedStatus.set(did, trackKey);
         consola.info(
           `[status] Updated status for ${did}: ${track.artist} – ${track.name}${recordingMbId ? ` (${recordingMbId})` : ""}`,
         );
@@ -199,6 +211,11 @@ export function onSongStopped(ctx: Context) {
       try {
         ({ did } = jc.decode(m.data) as SongStoppedPayload);
 
+        if (lastPushedStatus.get(did) === null) {
+          consola.debug(`[status] skip already-stopped status for ${did}`);
+          continue;
+        }
+
         const agent = await createAgent(ctx.oauthClient, did);
         if (!agent) {
           consola.warn(`[status] No agent for ${did}, skipping song.stopped`);
@@ -211,6 +228,7 @@ export function onSongStopped(ctx: Context) {
           rkey: "self",
         });
 
+        lastPushedStatus.set(did, null);
         consola.info(`[status] Cleared status for ${did}`);
       } catch (err: any) {
         const status = err?.status ?? err?.response?.status ?? err?.error?.status;
