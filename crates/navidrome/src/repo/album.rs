@@ -9,7 +9,7 @@ pub async fn get_albums_by_artist(
     artist_id: &str,
     user_id: &str,
 ) -> Result<Vec<AlbumWithStats>, Error> {
-    let rows: Vec<AlbumWithStats> = sqlx::query_as(&format!(
+    let rows: Vec<AlbumWithStats> = sqlx::query_as(
         r#"
         SELECT
             albums.xata_id,
@@ -30,8 +30,8 @@ pub async fn get_albums_by_artist(
           AND user_uploads.user_id = $1
         GROUP BY albums.xata_id, albums.title, albums.artist, albums.year, albums.album_art
         ORDER BY albums.year DESC NULLS LAST
-        "#
-    ))
+        "#,
+    )
     .bind(user_id)
     .bind(artist_id)
     .fetch_all(pool)
@@ -112,17 +112,18 @@ pub async fn get_album_list(
         String::new()
     };
 
-    let genre_filter = if list_type == "byGenre" {
-        if let Some(g) = genre {
-            format!(
-                " AND LOWER(tracks.genre) = LOWER('{}')",
-                g.replace('\'', "''")
+    // byGenre needs an extra join through artist_albums → artists to check genres array
+    let (genre_join, genre_filter) = if list_type == "byGenre" {
+        if let Some(_g) = genre {
+            (
+                "JOIN artist_albums ag ON albums.xata_id = ag.album_id JOIN artists ON ag.artist_id = artists.xata_id".to_string(),
+                format!(" AND $4::text = ANY(artists.genres)"),
             )
         } else {
-            String::new()
+            (String::new(), String::new())
         }
     } else {
-        String::new()
+        (String::new(), String::new())
     };
 
     let sql = format!(
@@ -141,21 +142,24 @@ pub async fn get_album_list(
         JOIN album_tracks ON albums.xata_id = album_tracks.album_id
         JOIN tracks ON album_tracks.track_id = tracks.xata_id
         JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
+        {}
         WHERE user_uploads.user_id = $1
         {}{}
         GROUP BY albums.xata_id, albums.title, albums.artist, albums.year, albums.album_art
         {}
         LIMIT $2 OFFSET $3
         "#,
-        year_filter, genre_filter, order_clause
+        genre_join, year_filter, genre_filter, order_clause
     );
 
-    let rows: Vec<AlbumWithStats> = sqlx::query_as(&sql)
-        .bind(user_id)
-        .bind(count)
-        .bind(offset)
-        .fetch_all(pool)
-        .await?;
+    let mut q = sqlx::query_as::<_, AlbumWithStats>(&sql)
+        .bind(user_id)  // $1
+        .bind(count)    // $2
+        .bind(offset);  // $3
+    if list_type == "byGenre" {
+        q = q.bind(genre.unwrap_or(""));  // $4
+    }
+    let rows: Vec<AlbumWithStats> = q.fetch_all(pool).await?;
 
     Ok(rows)
 }
