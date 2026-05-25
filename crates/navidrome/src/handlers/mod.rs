@@ -106,9 +106,7 @@ async fn dispatch(
             };
             cover_art::handle(&format, id, pool).await
         }
-        "search3" | "search2" => {
-            search::handle_search3(&format, user_id, pool, &params, ts).await
-        }
+        "search3" | "search2" => search::handle_search3(&format, user_id, pool, &params, ts).await,
         "scrobble" => scrobble::handle_scrobble(&format, user_id, pool, &params).await,
         "updateNowPlaying" => {
             scrobble::handle_update_now_playing(&format, user_id, pool, &params).await

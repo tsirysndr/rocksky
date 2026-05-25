@@ -28,11 +28,9 @@ pub struct SearchResponse {
 impl TypesenseClient {
     pub fn from_env() -> Option<Self> {
         let api_key = env::var("TYPESENSE_API_KEY").ok()?;
-        let host =
-            env::var("TYPESENSE_HOST").unwrap_or_else(|_| "localhost".to_string());
+        let host = env::var("TYPESENSE_HOST").unwrap_or_else(|_| "localhost".to_string());
         let port = env::var("TYPESENSE_PORT").unwrap_or_else(|_| "8108".to_string());
-        let protocol =
-            env::var("TYPESENSE_PROTOCOL").unwrap_or_else(|_| "http".to_string());
+        let protocol = env::var("TYPESENSE_PROTOCOL").unwrap_or_else(|_| "http".to_string());
         Some(Self {
             base_url: format!("{}://{}:{}", protocol, host, port),
             api_key,
