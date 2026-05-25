@@ -5000,6 +5000,7 @@ dependencies = [
  "dotenv",
  "futures",
  "hex",
+ "jsonwebtoken",
  "md5",
  "owo-colors",
  "quick-xml 0.37.5",
