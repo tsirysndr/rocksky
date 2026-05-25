@@ -118,7 +118,9 @@ async fn dispatch(
         "getLicense" => user::handle_get_license(&format),
         "getScanStatus" | "startScan" => user::handle_get_scan_status(&format, pool),
         "getGenres" => genres::handle_get_genres(&format, user_id, pool).await,
-        "getSongsByGenre" => genres::handle_get_songs_by_genre(&format, user_id, pool, &params).await,
+        "getSongsByGenre" => {
+            genres::handle_get_songs_by_genre(&format, user_id, pool, &params).await
+        }
         "getStarred" | "getStarred2" => starred::handle_get_starred2(&format, user_id, pool).await,
         "getArtistInfo" | "getArtistInfo2" => {
             let id = match params.get("id") {
