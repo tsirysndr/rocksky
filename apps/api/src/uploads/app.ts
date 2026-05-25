@@ -488,7 +488,27 @@ app.get("/", async (c) => {
       limit: size,
       offset,
     });
-    return c.json(hits);
+    if (hits.length === 0) return c.json([]);
+
+    // Enrich with full DB data so all fields (albumUri, artistUri, sha256, uri…)
+    // are present — Typesense only stores a subset for search purposes.
+    const uploadIds = hits.map((h) => h.upload.id);
+    const dbRows = await ctx.db
+      .select({
+        upload: tables.userUploads,
+        track: tables.tracks,
+        albumReleaseDate: tables.albums.releaseDate,
+        albumYear: tables.albums.year,
+      })
+      .from(tables.userUploads)
+      .innerJoin(tables.tracks, eq(tables.userUploads.trackId, tables.tracks.id))
+      .leftJoin(tables.albums, eq(tables.albums.uri, tables.tracks.albumUri))
+      .where(and(eq(tables.userUploads.userId, user.id), inArray(tables.userUploads.id, uploadIds)));
+
+    // Preserve Typesense relevance order.
+    const rowMap = new Map(dbRows.map((r) => [r.upload.id, r]));
+    const ordered = uploadIds.map((id) => rowMap.get(id)).filter(Boolean);
+    return c.json(ordered);
   }
 
   const albumFilter = albumUri
