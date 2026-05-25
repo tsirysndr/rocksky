@@ -46,15 +46,12 @@ pub async fn post_now_playing(did: String, track: TrackWithUpload, timestamp_uni
 
     let genres: Option<Vec<String>> = track.genre.as_ref().map(|g| vec![g.clone()]);
 
-    // duration in DB is stored in seconds; the /now-playing API expects milliseconds
-    let duration_ms = track.duration * 1000;
-
     let payload = serde_json::json!({
         "title": track.title,
         "artist": track.artist,
         "album": track.album,
         "albumArtist": track.album_artist,
-        "duration": duration_ms,
+        "duration": track.duration,
         "albumArt": track.album_art,
         "trackNumber": track.track_number,
         "discNumber": track.disc_number,
@@ -63,12 +60,12 @@ pub async fn post_now_playing(did: String, track: TrackWithUpload, timestamp_uni
         "genres": genres,
     });
 
-    let url = format!("{}/now-playing", api_base);
+    let url = format!("{}/xrpc/app.rocksky.scrobble.createScrobble", api_base);
     tracing::debug!(
         did = %did,
         url = %url,
         payload = %serde_json::to_string(&payload).unwrap_or_default(),
-        "posting scrobble to API"
+        "posting scrobble to XRPC"
     );
 
     let client = reqwest::Client::new();
@@ -80,15 +77,15 @@ pub async fn post_now_playing(did: String, track: TrackWithUpload, timestamp_uni
         .await
     {
         Ok(r) if r.status().is_success() => {
-            tracing::info!(did = %did, title = %track.title, duration_ms, "scrobble published to ATProto");
+            tracing::info!(did = %did, title = %track.title, duration = track.duration, "scrobble submitted via XRPC");
         }
         Ok(r) => {
             let status = r.status();
             let text = r.text().await.unwrap_or_default();
-            tracing::warn!(did = %did, %status, response = %text, "ATProto scrobble failed");
+            tracing::warn!(did = %did, %status, response = %text, "XRPC scrobble failed");
         }
         Err(e) => {
-            tracing::warn!(did = %did, "ATProto scrobble request error: {}", e);
+            tracing::warn!(did = %did, "XRPC scrobble request error: {}", e);
         }
     }
 }
