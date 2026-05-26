@@ -43,7 +43,6 @@ type Message = z.infer<typeof MessageSchema>;
 const devices: Record<string, WebSocket> = {};
 const deviceNames: Record<string, string> = {};
 const userDevices: Record<string, string[]> = {};
-const playingDids = new Set<string>();
 
 function handleWebsocket(c: Context) {
   return {
@@ -155,7 +154,6 @@ function handleWebsocket(c: Context) {
             }
 
             if (lastSongSha256 !== sha256) {
-              playingDids.add(did);
               const source =
                 deviceNames[ws.deviceId] ??
                 deviceNames[device_id] ??
@@ -185,9 +183,11 @@ function handleWebsocket(c: Context) {
             );
 
             // Emit song.stopped only on explicit stop (status=0); ignore paused (status=2/3).
-            if (data.status === 0 && playingDids.has(did)) {
-              playingDids.delete(did);
-              await ctx.redis.del(`lastsong:${did}`);
+            // Use Redis lastsong key as the canonical "is playing" check — survives server restarts.
+            const lastSongKey = `lastsong:${did}`;
+            const wasPlaying = (await ctx.redis.exists(lastSongKey)) > 0;
+            if (data.status === 0 && wasPlaying) {
+              await ctx.redis.del(lastSongKey);
               ctx.nc.publish(
                 "rocksky.song.stopped",
                 Buffer.from(JSON.stringify({ did })),
@@ -297,7 +297,6 @@ function handleWebsocket(c: Context) {
         userDevices[did] = userDevices[did].filter((id) => id !== deviceId);
         if (userDevices[did].length === 0) {
           delete userDevices[did];
-          playingDids.delete(did);
         }
       }
       if (deviceId && deviceNames[deviceId]) {
