@@ -42,17 +42,23 @@ async fn publish_song_changed(
                 }
             };
 
-        let payload = json!({
-            "did": did,
-            "track": {
-                "name": track.title,
-                "artist": track.artist,
-                "album": track.album,
-                "albumCoverUrl": track.album_art,
-                "duration_ms": (track.duration as i64) * 1000,
-                "source": "navidrome",
-            }
+        // Build the track object without null fields — the ATProto lexicon
+        // defines optional string fields as non-nullable, so JSON null would
+        // cause a 400 from the PDS. JS `undefined` is omitted from JSON but
+        // Rust `Option::None` serializes as explicit `null` via serde_json.
+        let mut track_obj = json!({
+            "name": track.title,
+            "artist": track.artist,
+            "album": track.album,
+            "duration_ms": (track.duration as i64) * 1000,
+            "source": "navidrome",
         });
+        if let Some(art) = &track.album_art {
+            track_obj["albumCoverUrl"] = serde_json::Value::String(art.clone());
+        }
+
+        let payload = json!({ "did": did, "track": track_obj });
+        tracing::info!(did = %did, payload = %payload, "publishing song.changed");
 
         match nc_clone
             .publish(
