@@ -151,8 +151,9 @@ function rateLimitResetMsg(err: any): string {
 }
 
 // Last status successfully written to the PDS per DID.
-// Value: "name:artist" for a playing track, null for stopped.
-const lastPushedStatus = new Map<string, string | null>();
+// Tracks key ("name:artist") and source so Navidrome can override a Rockbox
+// entry for the same track without being deduped.
+const lastPushedStatus = new Map<string, { key: string; source: string } | null>();
 
 // Unix ms timestamp until which PDS writes are suppressed for a given DID.
 // Set when a 429 is received; cleared automatically once the time passes.
@@ -199,9 +200,12 @@ export function onSongChanged(ctx: Context) {
         }
 
         const trackKey = `${rawTrack.name ?? ""}:${rawTrack.artists?.[0]?.name ?? rawTrack.artist ?? ""}`;
-        // Navidrome events are user-initiated track changes, not periodic heartbeats,
-        // so they bypass the lastPushedStatus dedup and always refresh the record.
-        if (rawTrack.source !== "navidrome" && lastPushedStatus.get(did) === trackKey) {
+        const source = rawTrack.source ?? (rawTrack.artists ? "spotify" : "listenbrainz");
+        const last = lastPushedStatus.get(did);
+        // Skip only when the same track was already written by the same source.
+        // A different source (e.g. Navidrome after Rockbox) is always allowed through
+        // so the active player can take ownership of the status record.
+        if (last && last.key === trackKey && last.source === source) {
           consola.debug(`[status] skip unchanged status for ${did}: ${rawTrack.name}`);
           continue;
         }
@@ -239,18 +243,14 @@ export function onSongChanged(ctx: Context) {
           validate: false,
         });
 
-        lastPushedStatus.set(did, trackKey);
+        lastPushedStatus.set(did, { key: trackKey, source });
 
-        // When Navidrome is the source, update lastsong and clear ws_lastsong
-        // so a stale status=0 from a connected Rockbox cannot fire song.stopped
-        // and delete this record immediately after it was written.
-        if (rawTrack.source === "navidrome") {
-          const sha256 = createHash("sha256")
-            .update(
-              `${track.name ?? ""} - ${track.artist ?? ""} - ${track.album ?? ""}`.toLowerCase(),
-            )
-            .digest("hex");
-          await ctx.redis.setEx(`lastsong:${did}`, 86400, sha256);
+        // When Navidrome is the source, clear ws_lastsong so a stale status=0
+        // from Rockbox cannot fire song.stopped and delete this record.
+        // Do NOT update lastsong here — Rockbox heartbeats use lastsong to dedup
+        // themselves, and changing it would make Rockbox's last-played track look
+        // "new", causing it to fire song.changed and overwrite this record.
+        if (source === "navidrome") {
           await ctx.redis.del(`ws_lastsong:${did}`);
         }
 
@@ -259,8 +259,10 @@ export function onSongChanged(ctx: Context) {
         // re-write the record rather than being silently deduplicated.
         if (track.durationMs > 0) {
           const keySnapshot = trackKey;
+          const sourceSnapshot = source;
           setTimeout(() => {
-            if (lastPushedStatus.get(did) === keySnapshot) {
+            const current = lastPushedStatus.get(did);
+            if (current && current.key === keySnapshot && current.source === sourceSnapshot) {
               lastPushedStatus.delete(did);
             }
           }, track.durationMs + 10_000);
