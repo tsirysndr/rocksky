@@ -64,8 +64,8 @@ pub async fn run() -> Result<(), Error> {
     println!("{}", BANNER.cyan());
 
     let pool = PgPoolOptions::new()
-        .max_connections(10)
-        .min_connections(2)
+        .max_connections(25)
+        .min_connections(5)
         .acquire_timeout(Duration::from_secs(10))
         .idle_timeout(Duration::from_secs(300))
         .max_lifetime(Duration::from_secs(1800))
