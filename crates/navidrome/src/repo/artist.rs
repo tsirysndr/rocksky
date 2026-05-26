@@ -18,13 +18,18 @@ pub async fn get_all_artists(
                 FROM albums alb
                 JOIN artist_albums aa  ON alb.xata_id   = aa.album_id
                 JOIN album_tracks  atr ON alb.xata_id   = atr.album_id
-                JOIN user_uploads  uu  ON atr.track_id  = uu.track_id
+                JOIN tracks        tr  ON atr.track_id  = tr.xata_id
+                                      AND tr.album       = alb.title
+                                      AND tr.album_artist = alb.artist
+                JOIN user_uploads  uu  ON tr.xata_id    = uu.track_id
                 WHERE aa.artist_id = artists.xata_id
                   AND uu.user_id   = $1
             ) AS album_count
         FROM artists
         JOIN artist_tracks ON artists.xata_id = artist_tracks.artist_id
-        JOIN user_uploads  ON artist_tracks.track_id = user_uploads.track_id
+        JOIN tracks        ON artist_tracks.track_id = tracks.xata_id
+                          AND tracks.album_artist = artists.name
+        JOIN user_uploads  ON tracks.xata_id = user_uploads.track_id
         WHERE user_uploads.user_id = $1
         GROUP BY artists.xata_id, artists.name, artists.picture
         ORDER BY artists.name ASC
@@ -47,7 +52,9 @@ pub async fn get_artist_by_id(
         SELECT DISTINCT artists.xata_id, artists.name, artists.picture, artists.xata_createdat
         FROM artists
         JOIN artist_tracks ON artists.xata_id = artist_tracks.artist_id
-        JOIN user_uploads ON artist_tracks.track_id = user_uploads.track_id
+        JOIN tracks        ON artist_tracks.track_id = tracks.xata_id
+                          AND tracks.album_artist = artists.name
+        JOIN user_uploads  ON tracks.xata_id = user_uploads.track_id
         WHERE artists.xata_id = $1 AND user_uploads.user_id = $2
         LIMIT 1
         "#,
@@ -74,11 +81,23 @@ pub async fn search_artists(
             artists.xata_id,
             artists.name,
             artists.picture,
-            COUNT(DISTINCT artist_albums.album_id) AS album_count
+            (
+                SELECT COUNT(DISTINCT alb.xata_id)
+                FROM albums alb
+                JOIN artist_albums aa  ON alb.xata_id   = aa.album_id
+                JOIN album_tracks  atr ON alb.xata_id   = atr.album_id
+                JOIN tracks        tr  ON atr.track_id  = tr.xata_id
+                                      AND tr.album       = alb.title
+                                      AND tr.album_artist = alb.artist
+                JOIN user_uploads  uu  ON tr.xata_id    = uu.track_id
+                WHERE aa.artist_id = artists.xata_id
+                  AND uu.user_id   = $1
+            ) AS album_count
         FROM artists
         JOIN artist_tracks ON artists.xata_id = artist_tracks.artist_id
-        JOIN user_uploads ON artist_tracks.track_id = user_uploads.track_id
-        LEFT JOIN artist_albums ON artists.xata_id = artist_albums.artist_id
+        JOIN tracks        ON artist_tracks.track_id = tracks.xata_id
+                          AND tracks.album_artist = artists.name
+        JOIN user_uploads  ON tracks.xata_id = user_uploads.track_id
         WHERE user_uploads.user_id = $1
           AND LOWER(artists.name) LIKE LOWER($2)
         GROUP BY artists.xata_id, artists.name, artists.picture
@@ -112,11 +131,23 @@ pub async fn get_artists_by_names(
             artists.xata_id,
             artists.name,
             artists.picture,
-            COUNT(DISTINCT artist_albums.album_id) AS album_count
+            (
+                SELECT COUNT(DISTINCT alb.xata_id)
+                FROM albums alb
+                JOIN artist_albums aa  ON alb.xata_id   = aa.album_id
+                JOIN album_tracks  atr ON alb.xata_id   = atr.album_id
+                JOIN tracks        tr  ON atr.track_id  = tr.xata_id
+                                      AND tr.album       = alb.title
+                                      AND tr.album_artist = alb.artist
+                JOIN user_uploads  uu  ON tr.xata_id    = uu.track_id
+                WHERE aa.artist_id = artists.xata_id
+                  AND uu.user_id   = $1
+            ) AS album_count
         FROM artists
         JOIN artist_tracks ON artists.xata_id = artist_tracks.artist_id
-        JOIN user_uploads ON artist_tracks.track_id = user_uploads.track_id
-        LEFT JOIN artist_albums ON artists.xata_id = artist_albums.artist_id
+        JOIN tracks        ON artist_tracks.track_id = tracks.xata_id
+                          AND tracks.album_artist = artists.name
+        JOIN user_uploads  ON tracks.xata_id = user_uploads.track_id
         WHERE user_uploads.user_id = $1
           AND artists.name = ANY($2)
         GROUP BY artists.xata_id, artists.name, artists.picture
