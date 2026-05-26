@@ -217,7 +217,15 @@ pub async fn handle_get(
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string());
     let ts = ts_data.get_ref().as_ref().as_ref();
-    dispatch(&method, query.into_inner(), pool.get_ref(), range, ts, nc_data.get_ref()).await
+    dispatch(
+        &method,
+        query.into_inner(),
+        pool.get_ref(),
+        range,
+        ts,
+        nc_data.get_ref(),
+    )
+    .await
 }
 
 #[post("/rest/{method}")]
@@ -249,5 +257,13 @@ pub async fn handle_post(
     }
 
     let ts = ts_data.get_ref().as_ref().as_ref();
-    dispatch(&method, params, pool.get_ref(), range, ts, nc_data.get_ref()).await
+    dispatch(
+        &method,
+        params,
+        pool.get_ref(),
+        range,
+        ts,
+        nc_data.get_ref(),
+    )
+    .await
 }

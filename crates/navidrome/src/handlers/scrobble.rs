@@ -29,17 +29,18 @@ async fn publish_song_changed(
             }
         };
 
-        let track = match repo::track::get_track_by_id(&pool_clone, &song_id_owned, &user_id_owned).await {
-            Ok(Some(t)) => t,
-            Ok(None) => {
-                tracing::warn!(song_id = %song_id_owned, "track not found for song.changed");
-                return;
-            }
-            Err(e) => {
-                tracing::warn!(song_id = %song_id_owned, "track lookup error: {}", e);
-                return;
-            }
-        };
+        let track =
+            match repo::track::get_track_by_id(&pool_clone, &song_id_owned, &user_id_owned).await {
+                Ok(Some(t)) => t,
+                Ok(None) => {
+                    tracing::warn!(song_id = %song_id_owned, "track not found for song.changed");
+                    return;
+                }
+                Err(e) => {
+                    tracing::warn!(song_id = %song_id_owned, "track lookup error: {}", e);
+                    return;
+                }
+            };
 
         let payload = json!({
             "did": did,
