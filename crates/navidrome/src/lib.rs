@@ -83,6 +83,12 @@ pub async fn run() -> Result<(), Error> {
         tracing::warn!("TYPESENSE_API_KEY not set — falling back to PostgreSQL LIKE search");
     }
 
+    let nats_url =
+        env::var("NATS_URL").unwrap_or_else(|_| "nats://localhost:4222".to_string());
+    let nc = async_nats::connect(&nats_url).await?;
+    let nc = Arc::new(nc);
+    tracing::info!(url = %nats_url, "Connected to NATS");
+
     let host = env::var("NAVIDROME_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
     let port = env::var("NAVIDROME_PORT")
         .unwrap_or_else(|_| "4533".to_string())
@@ -100,6 +106,7 @@ pub async fn run() -> Result<(), Error> {
             .wrap(cors)
             .app_data(Data::new(conn.clone()))
             .app_data(Data::new(ts.clone()))
+            .app_data(Data::new(nc.clone()))
             .service(index)
             .service(handlers::handle_get)
             .service(handlers::handle_post)

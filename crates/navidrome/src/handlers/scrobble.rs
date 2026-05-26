@@ -6,11 +6,72 @@ use std::{collections::HashMap, sync::Arc};
 
 use crate::{api, repo, response};
 
+async fn publish_song_changed(
+    pool: &Arc<Pool<Postgres>>,
+    nc: &Arc<async_nats::Client>,
+    user_id: &str,
+    song_id: &str,
+) {
+    let pool_clone = Arc::clone(pool);
+    let nc_clone = Arc::clone(nc);
+    let user_id_owned = user_id.to_string();
+    let song_id_owned = song_id.to_string();
+    tokio::spawn(async move {
+        let did = match repo::user::get_user_did_by_id(&pool_clone, &user_id_owned).await {
+            Ok(Some(d)) => d,
+            Ok(None) => {
+                tracing::warn!(user_id = %user_id_owned, "DID not found, skipping song.changed");
+                return;
+            }
+            Err(e) => {
+                tracing::warn!(user_id = %user_id_owned, "DID lookup error: {}", e);
+                return;
+            }
+        };
+
+        let track = match repo::track::get_track_by_id(&pool_clone, &song_id_owned, &user_id_owned).await {
+            Ok(Some(t)) => t,
+            Ok(None) => {
+                tracing::warn!(song_id = %song_id_owned, "track not found for song.changed");
+                return;
+            }
+            Err(e) => {
+                tracing::warn!(song_id = %song_id_owned, "track lookup error: {}", e);
+                return;
+            }
+        };
+
+        let payload = json!({
+            "did": did,
+            "track": {
+                "name": track.title,
+                "artist": track.artist,
+                "album": track.album,
+                "albumCoverUrl": track.album_art,
+                "duration_ms": (track.duration as i64) * 1000,
+                "source": "navidrome",
+            }
+        });
+
+        match nc_clone
+            .publish(
+                "rocksky.song.changed",
+                bytes::Bytes::from(payload.to_string()),
+            )
+            .await
+        {
+            Ok(_) => tracing::info!(did = %did, title = %track.title, "song.changed published"),
+            Err(e) => tracing::warn!(did = %did, "song.changed publish error: {}", e),
+        }
+    });
+}
+
 pub async fn handle_scrobble(
     format: &str,
     user_id: &str,
     pool: &Arc<Pool<Postgres>>,
     params: &HashMap<String, String>,
+    nc: &Arc<async_nats::Client>,
 ) -> HttpResponse {
     let song_id = match params.get("id") {
         Some(id) => id.as_str(),
@@ -23,7 +84,9 @@ pub async fn handle_scrobble(
         .unwrap_or(true);
 
     if !submission {
+        // submission=false means "track started playing now" — emit song.changed
         tracing::info!(user_id, song_id, "now playing update (not a submission)");
+        publish_song_changed(pool, nc, user_id, song_id).await;
         return response::ok(format, json!({}));
     }
 
@@ -76,6 +139,7 @@ pub async fn handle_update_now_playing(
     user_id: &str,
     pool: &Arc<Pool<Postgres>>,
     params: &HashMap<String, String>,
+    nc: &Arc<async_nats::Client>,
 ) -> HttpResponse {
     let song_id = match params.get("id") {
         Some(id) => id.as_str(),
@@ -85,6 +149,7 @@ pub async fn handle_update_now_playing(
     match repo::track::get_track_by_id(pool, song_id, user_id).await {
         Ok(Some(_)) => {
             tracing::info!(user_id, song_id, "now playing updated");
+            publish_song_changed(pool, nc, user_id, song_id).await;
             response::ok(format, json!({}))
         }
         Ok(None) => response::err(format, 70, "Song not found"),

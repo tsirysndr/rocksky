@@ -36,6 +36,7 @@ async fn dispatch(
     pool: &Arc<Pool<Postgres>>,
     range: Option<String>,
     ts: Option<&TypesenseClient>,
+    nc: &Arc<async_nats::Client>,
 ) -> HttpResponse {
     let format = get_format(&params);
 
@@ -112,9 +113,9 @@ async fn dispatch(
             cover_art::handle(&format, id, pool).await
         }
         "search3" | "search2" => search::handle_search3(&format, user_id, pool, &params, ts).await,
-        "scrobble" => scrobble::handle_scrobble(&format, user_id, pool, &params).await,
+        "scrobble" => scrobble::handle_scrobble(&format, user_id, pool, &params, nc).await,
         "updateNowPlaying" => {
-            scrobble::handle_update_now_playing(&format, user_id, pool, &params).await
+            scrobble::handle_update_now_playing(&format, user_id, pool, &params, nc).await
         }
         "getAlbumList2" | "getAlbumList" => {
             albums::handle_get_album_list2(&format, user_id, pool, &params, method).await
@@ -205,6 +206,7 @@ pub async fn handle_get(
     path: web::Path<String>,
     pool: web::Data<Arc<Pool<Postgres>>>,
     ts_data: web::Data<Arc<Option<TypesenseClient>>>,
+    nc_data: web::Data<Arc<async_nats::Client>>,
     query: web::Query<HashMap<String, String>>,
 ) -> HttpResponse {
     let method = path.into_inner();
@@ -215,7 +217,7 @@ pub async fn handle_get(
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string());
     let ts = ts_data.get_ref().as_ref().as_ref();
-    dispatch(&method, query.into_inner(), pool.get_ref(), range, ts).await
+    dispatch(&method, query.into_inner(), pool.get_ref(), range, ts, nc_data.get_ref()).await
 }
 
 #[post("/rest/{method}")]
@@ -224,6 +226,7 @@ pub async fn handle_post(
     path: web::Path<String>,
     pool: web::Data<Arc<Pool<Postgres>>>,
     ts_data: web::Data<Arc<Option<TypesenseClient>>>,
+    nc_data: web::Data<Arc<async_nats::Client>>,
     query: web::Query<HashMap<String, String>>,
     body: web::Bytes,
 ) -> HttpResponse {
@@ -246,5 +249,5 @@ pub async fn handle_post(
     }
 
     let ts = ts_data.get_ref().as_ref().as_ref();
-    dispatch(&method, params, pool.get_ref(), range, ts).await
+    dispatch(&method, params, pool.get_ref(), range, ts, nc_data.get_ref()).await
 }
