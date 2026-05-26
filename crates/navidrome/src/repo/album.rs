@@ -24,6 +24,8 @@ pub async fn get_albums_by_artist(
         JOIN artist_albums ON albums.xata_id = artist_albums.album_id
         JOIN album_tracks ON albums.xata_id = album_tracks.album_id
         JOIN tracks ON album_tracks.track_id = tracks.xata_id
+                    AND tracks.album = albums.title
+                    AND tracks.album_artist = albums.artist
         JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
         WHERE artist_albums.artist_id = $2
           AND user_uploads.user_id = $1
@@ -59,6 +61,8 @@ pub async fn get_album_by_id(
         FROM albums
         JOIN album_tracks ON albums.xata_id = album_tracks.album_id
         JOIN tracks ON album_tracks.track_id = tracks.xata_id
+                    AND tracks.album = albums.title
+                    AND tracks.album_artist = albums.artist
         JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
         WHERE user_uploads.user_id = $1
           AND albums.xata_id = $2
@@ -140,6 +144,8 @@ pub async fn get_album_list(
         FROM albums
         JOIN album_tracks ON albums.xata_id = album_tracks.album_id
         JOIN tracks ON album_tracks.track_id = tracks.xata_id
+                    AND tracks.album = albums.title
+                    AND tracks.album_artist = albums.artist
         JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
         {}
         WHERE user_uploads.user_id = $1
@@ -186,6 +192,8 @@ pub async fn search_albums(
         FROM albums
         JOIN album_tracks ON albums.xata_id = album_tracks.album_id
         JOIN tracks ON album_tracks.track_id = tracks.xata_id
+                    AND tracks.album = albums.title
+                    AND tracks.album_artist = albums.artist
         JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
         WHERE user_uploads.user_id = $1
           AND LOWER(albums.title) LIKE LOWER($2)
@@ -230,6 +238,8 @@ pub async fn get_albums_by_names(
         FROM albums
         JOIN album_tracks ON albums.xata_id = album_tracks.album_id
         JOIN tracks ON album_tracks.track_id = tracks.xata_id
+                    AND tracks.album = albums.title
+                    AND tracks.album_artist = albums.artist
         JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
         WHERE user_uploads.user_id = $1
           AND albums.title = ANY($2)

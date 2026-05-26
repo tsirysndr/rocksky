@@ -20,8 +20,17 @@ const TRACK_SELECT: &str = r#"
         user_uploads.r2_key,
         user_uploads.mime_type,
         user_uploads.file_size,
-        (SELECT at2.album_id FROM album_tracks at2 WHERE at2.track_id = tracks.xata_id LIMIT 1) AS album_id,
-        (SELECT at3.artist_id FROM artist_tracks at3 WHERE at3.track_id = tracks.xata_id LIMIT 1) AS artist_id
+        (SELECT at2.album_id FROM album_tracks at2
+         JOIN albums a ON at2.album_id = a.xata_id
+         WHERE at2.track_id = tracks.xata_id
+           AND tracks.album = a.title
+           AND tracks.album_artist = a.artist
+         LIMIT 1) AS album_id,
+        (SELECT at3.artist_id FROM artist_tracks at3
+         JOIN artists ar ON at3.artist_id = ar.xata_id
+         WHERE at3.track_id = tracks.xata_id
+           AND tracks.album_artist = ar.name
+         LIMIT 1) AS artist_id
     FROM tracks
     JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
 "#;
@@ -35,6 +44,9 @@ pub async fn get_tracks_by_album(
         r#"
         {}
         JOIN album_tracks ON tracks.xata_id = album_tracks.track_id
+        JOIN albums ON album_tracks.album_id = albums.xata_id
+                    AND tracks.album = albums.title
+                    AND tracks.album_artist = albums.artist
         WHERE album_tracks.album_id = $1
           AND user_uploads.user_id = $2
         ORDER BY tracks.disc_number ASC NULLS FIRST, tracks.track_number ASC NULLS FIRST
@@ -189,11 +201,18 @@ pub async fn get_album_id_for_track(
     pool: &Pool<Postgres>,
     track_id: &str,
 ) -> Result<Option<String>, Error> {
-    let row: Option<(String,)> =
-        sqlx::query_as(r#"SELECT album_id FROM album_tracks WHERE track_id = $1 LIMIT 1"#)
-            .bind(track_id)
-            .fetch_optional(pool)
-            .await?;
+    let row: Option<(String,)> = sqlx::query_as(
+        r#"SELECT at2.album_id FROM album_tracks at2
+           JOIN albums a ON at2.album_id = a.xata_id
+           JOIN tracks t ON at2.track_id = t.xata_id
+           WHERE at2.track_id = $1
+             AND t.album = a.title
+             AND t.album_artist = a.artist
+           LIMIT 1"#,
+    )
+    .bind(track_id)
+    .fetch_optional(pool)
+    .await?;
 
     Ok(row.map(|(id,)| id))
 }
@@ -202,11 +221,17 @@ pub async fn get_artist_id_for_track(
     pool: &Pool<Postgres>,
     track_id: &str,
 ) -> Result<Option<String>, Error> {
-    let row: Option<(String,)> =
-        sqlx::query_as(r#"SELECT artist_id FROM artist_tracks WHERE track_id = $1 LIMIT 1"#)
-            .bind(track_id)
-            .fetch_optional(pool)
-            .await?;
+    let row: Option<(String,)> = sqlx::query_as(
+        r#"SELECT at3.artist_id FROM artist_tracks at3
+           JOIN artists ar ON at3.artist_id = ar.xata_id
+           JOIN tracks t ON at3.track_id = t.xata_id
+           WHERE at3.track_id = $1
+             AND t.album_artist = ar.name
+           LIMIT 1"#,
+    )
+    .bind(track_id)
+    .fetch_optional(pool)
+    .await?;
 
     Ok(row.map(|(id,)| id))
 }
