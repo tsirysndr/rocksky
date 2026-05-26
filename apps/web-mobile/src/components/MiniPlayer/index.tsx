@@ -540,9 +540,24 @@ export default function MiniPlayer() {
   }, [setNowPlaying]);
 
   const onSelectQueueIndex = useCallback((idx: number) => {
-    const track = queueRef.current[idx];
+    const q = queueRef.current;
+    const curIdx = queueIndexRef.current;
+    const track = q[idx];
     if (!track) return;
-    setQueueIndex(idx);
+    if (idx < curIdx) {
+      // History click: splice track out and insert it just before the current
+      // track so "up next" remains the original current + everything after.
+      const newQueue = [
+        ...q.slice(0, idx),
+        ...q.slice(idx + 1, curIdx),
+        track,
+        ...q.slice(curIdx),
+      ];
+      setQueue(newQueue);
+      setQueueIndex(curIdx - 1);
+    } else {
+      setQueueIndex(idx);
+    }
     setNowPlaying({
       title: track.title,
       artist: track.artist,
@@ -556,7 +571,7 @@ export default function MiniPlayer() {
       sha256: track.sha256,
       liked: false,
     });
-  }, [setQueueIndex, setNowPlaying]);
+  }, [setQueue, setQueueIndex, setNowPlaying]);
 
   const onRemoveFromQueue = useCallback((idx: number) => {
     setQueue((prev) => {

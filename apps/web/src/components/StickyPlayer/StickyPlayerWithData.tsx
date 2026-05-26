@@ -549,9 +549,23 @@ function StickyPlayerWithData() {
             queueIndex={queueIndex}
             onClose={() => setQueuePanelOpen(false)}
             onPlayIndex={(idx) => {
-              setQueueIndex(idx);
               const track = queue[idx];
               if (!track) return;
+              if (idx < queueIndex) {
+                // History click: splice the track out of its old position and
+                // insert it immediately before the current track so "up next"
+                // stays intact (original current + up-next follow right after).
+                const newQueue = [
+                  ...queue.slice(0, idx),
+                  ...queue.slice(idx + 1, queueIndex),
+                  track,
+                  ...queue.slice(queueIndex),
+                ];
+                setQueue(newQueue);
+                setQueueIndex(queueIndex - 1);
+              } else {
+                setQueueIndex(idx);
+              }
               setNowPlaying({
                 title: track.title,
                 artist: track.artist,
