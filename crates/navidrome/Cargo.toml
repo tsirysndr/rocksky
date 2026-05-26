@@ -41,3 +41,4 @@ rust-s3 = { version = "0.35.1", features = [
 jsonwebtoken = "9.3.0"
 async-nats = "0.39"
 bytes = "1"
+sha2 = "0.10"
