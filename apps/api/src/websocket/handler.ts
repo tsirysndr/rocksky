@@ -151,6 +151,10 @@ function handleWebsocket(c: Context) {
             const lastSongSha256 = await ctx.redis.get(lastSongKey);
             if (lastSongSha256 !== sha256) {
               await ctx.redis.setEx(lastSongKey, 86400, sha256); // 24h TTL
+              // Mark this websocket as the active playback source so that
+              // a status=0 from Rockbox cannot clear a status written by
+              // a different source (e.g. Navidrome/DSub).
+              await ctx.redis.setEx(`ws_lastsong:${did}`, 86400, sha256);
             }
 
             if (lastSongSha256 !== sha256) {
@@ -182,12 +186,14 @@ function handleWebsocket(c: Context) {
               `${data.status}`,
             );
 
-            // Emit song.stopped only on explicit stop (status=0); ignore paused (status=2/3).
-            // Use Redis lastsong key as the canonical "is playing" check — survives server restarts.
-            const lastSongKey = `lastsong:${did}`;
-            const wasPlaying = (await ctx.redis.exists(lastSongKey)) > 0;
-            if (data.status === 0 && wasPlaying) {
-              await ctx.redis.del(lastSongKey);
+            // Emit song.stopped only if this websocket was the active playback
+            // source (ws_lastsong key set). This prevents Rockbox idle status=0
+            // from clearing a status that was written by Navidrome or another source.
+            const wsLastSongKey = `ws_lastsong:${did}`;
+            const wsWasPlaying = (await ctx.redis.exists(wsLastSongKey)) > 0;
+            if (data.status === 0 && wsWasPlaying) {
+              await ctx.redis.del(wsLastSongKey);
+              await ctx.redis.del(`lastsong:${did}`);
               ctx.nc.publish(
                 "rocksky.song.stopped",
                 Buffer.from(JSON.stringify({ did })),
