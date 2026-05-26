@@ -9,7 +9,10 @@ pub async fn handle_get_starred2(
     format: &str,
     user_id: &str,
     pool: &Arc<Pool<Postgres>>,
+    method: &str,
 ) -> HttpResponse {
+    let key = if method == "getStarred" { "starred" } else { "starred2" };
+
     match repo::starred::get_starred_tracks(pool, user_id).await {
         Ok(tracks) => {
             let songs: Vec<Value> = tracks
@@ -52,16 +55,12 @@ pub async fn handle_get_starred2(
                 })
                 .collect();
 
-            response::ok(
-                format,
-                json!({
-                    "starred2": {
-                        "artist": [],
-                        "album": [],
-                        "song": songs,
-                    }
-                }),
-            )
+            let mut obj = serde_json::Map::new();
+            obj.insert(
+                key.to_string(),
+                json!({ "artist": [], "album": [], "song": songs }),
+            );
+            response::ok(format, Value::Object(obj))
         }
         Err(e) => {
             tracing::error!("getStarred2 error: {}", e);

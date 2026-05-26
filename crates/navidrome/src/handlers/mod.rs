@@ -45,7 +45,9 @@ async fn dispatch(
             Some(u) => u.as_str(),
             None => return response::err(&format, 10, "Missing u parameter"),
         };
-        let password = params.get("p").map(|s| s.as_str());
+        // Treat p="" the same as missing p — some clients send an empty p
+        // alongside t+s token auth; filtering here lets token auth proceed.
+        let password = params.get("p").filter(|p| !p.is_empty()).map(|s| s.as_str());
         let token = params.get("t").map(|s| s.as_str());
         let salt = params.get("s").map(|s| s.as_str());
 
@@ -127,7 +129,9 @@ async fn dispatch(
         "getSongsByGenre" => {
             genres::handle_get_songs_by_genre(&format, user_id, pool, &params).await
         }
-        "getStarred" | "getStarred2" => starred::handle_get_starred2(&format, user_id, pool).await,
+        "getStarred" | "getStarred2" => {
+            starred::handle_get_starred2(&format, user_id, pool, method).await
+        }
         "getArtistInfo" => {
             let id = match params.get("id") {
                 Some(id) => id.as_str(),

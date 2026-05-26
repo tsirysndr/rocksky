@@ -12,10 +12,8 @@ pub async fn handle_search3(
     params: &HashMap<String, String>,
     ts: Option<&TypesenseClient>,
 ) -> HttpResponse {
-    let query = match params.get("query") {
-        Some(q) if !q.is_empty() => q.as_str(),
-        _ => return response::err(format, 10, "Missing query parameter"),
-    };
+    // Empty query is valid — clients use it to list all tracks/albums/artists
+    let query = params.get("query").map(|s| s.as_str()).unwrap_or("");
 
     let artist_count: i64 = params
         .get("artistCount")
