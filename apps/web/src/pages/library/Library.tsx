@@ -1088,14 +1088,16 @@ export default function Library() {
                           )}
                         </AlbumArtWrap>
                         <AlbumActionsOverlay className="album-actions">
-                          <AlbumFloatBtn
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              playNow(await fetchAlbTracks());
-                            }}
-                          >
-                            <IconPlayerPlay size={16} fill="#fff" />
-                          </AlbumFloatBtn>
+                          <MenuWrap>
+                            <AlbumFloatBtn
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                playNow(await fetchAlbTracks());
+                              }}
+                            >
+                              <IconPlayerPlay size={16} fill="#fff" />
+                            </AlbumFloatBtn>
+                          </MenuWrap>
                           <MenuWrap>
                             <AlbumFloatBtn
                               onClick={(e) => {
