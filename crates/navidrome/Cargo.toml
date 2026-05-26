@@ -39,5 +39,5 @@ rust-s3 = { version = "0.35.1", features = [
   "tokio-rustls-tls",
 ], default-features = false }
 jsonwebtoken = "9.3.0"
-async-nats = "0.37"
+async-nats = "0.39"
 bytes = "1"

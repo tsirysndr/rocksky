@@ -623,40 +623,6 @@ dependencies = [
 
 [[package]]
 name = "async-nats"
-version = "0.37.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd3bdd6ea595b2ea504500a3566071beb81125fc15d40a6f6bffa43575f64152"
-dependencies = [
- "base64 0.22.1",
- "bytes",
- "futures",
- "memchr",
- "nkeys",
- "nuid",
- "once_cell",
- "portable-atomic",
- "rand 0.8.5",
- "regex",
- "ring",
- "rustls-native-certs 0.7.3",
- "rustls-pemfile 2.2.0",
- "rustls-webpki 0.102.8",
- "serde",
- "serde_json",
- "serde_nanos",
- "serde_repr",
- "thiserror 1.0.69",
- "time",
- "tokio",
- "tokio-rustls 0.26.4",
- "tokio-util",
- "tracing",
- "tryhard",
- "url",
-]
-
-[[package]]
-name = "async-nats"
 version = "0.39.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a798aab0c0203b31d67d501e5ed1f3ac6c36a329899ce47fc93c3bea53f3ae89"
@@ -4942,7 +4908,7 @@ dependencies = [
  "actix-web",
  "aes",
  "anyhow",
- "async-nats 0.39.0",
+ "async-nats",
  "chrono",
  "clap",
  "ctr",
@@ -4973,7 +4939,7 @@ dependencies = [
  "actix-web",
  "aes",
  "anyhow",
- "async-nats 0.39.0",
+ "async-nats",
  "chrono",
  "clap",
  "ctr",
@@ -5003,7 +4969,7 @@ name = "rocksky-jetstream"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-nats 0.39.0",
+ "async-nats",
  "chrono",
  "dotenv",
  "futures-util",
@@ -5030,7 +4996,7 @@ dependencies = [
  "actix-cors",
  "actix-web",
  "anyhow",
- "async-nats 0.37.0",
+ "async-nats",
  "bytes",
  "chrono",
  "dotenv",
@@ -5070,7 +5036,7 @@ version = "0.1.0"
 dependencies = [
  "aes",
  "anyhow",
- "async-nats 0.39.0",
+ "async-nats",
  "chrono",
  "clap",
  "ctr",
@@ -5100,7 +5066,7 @@ dependencies = [
  "actix-web",
  "aes",
  "anyhow",
- "async-nats 0.39.0",
+ "async-nats",
  "chrono",
  "ctr",
  "dotenv",
@@ -5129,7 +5095,7 @@ version = "0.1.0"
 dependencies = [
  "aes",
  "anyhow",
- "async-nats 0.39.0",
+ "async-nats",
  "chrono",
  "ctr",
  "dotenv",
@@ -5169,7 +5135,7 @@ version = "0.1.0"
 dependencies = [
  "actix-web",
  "anyhow",
- "async-nats 0.39.0",
+ "async-nats",
  "clap",
  "dotenv",
  "owo-colors",
@@ -5194,7 +5160,7 @@ dependencies = [
  "actix-web",
  "aes",
  "anyhow",
- "async-nats 0.39.0",
+ "async-nats",
  "chrono",
  "ctr",
  "dotenv",
@@ -5491,7 +5457,6 @@ version = "0.102.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "64ca1bc8749bd4cf37b5ce386cc146580777b4e8572c7b97baf22c83f444bee9"
 dependencies = [
- "ring",
  "rustls-pki-types",
  "untrusted",
 ]
