@@ -47,7 +47,10 @@ async fn dispatch(
         };
         // Treat p="" the same as missing p — some clients send an empty p
         // alongside t+s token auth; filtering here lets token auth proceed.
-        let password = params.get("p").filter(|p| !p.is_empty()).map(|s| s.as_str());
+        let password = params
+            .get("p")
+            .filter(|p| !p.is_empty())
+            .map(|s| s.as_str());
         let token = params.get("t").map(|s| s.as_str());
         let salt = params.get("s").map(|s| s.as_str());
 

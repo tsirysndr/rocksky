@@ -11,7 +11,11 @@ pub async fn handle_get_starred2(
     pool: &Arc<Pool<Postgres>>,
     method: &str,
 ) -> HttpResponse {
-    let key = if method == "getStarred" { "starred" } else { "starred2" };
+    let key = if method == "getStarred" {
+        "starred"
+    } else {
+        "starred2"
+    };
 
     match repo::starred::get_starred_tracks(pool, user_id).await {
         Ok(tracks) => {
