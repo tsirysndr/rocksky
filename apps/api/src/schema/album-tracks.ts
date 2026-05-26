@@ -1,20 +1,27 @@
 import { type InferInsertModel, type InferSelectModel, sql } from "drizzle-orm";
-import { integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import albums from "./albums";
 import tracks from "./tracks";
 
-const albumTracks = pgTable("album_tracks", {
-  id: text("xata_id").primaryKey().default(sql`xata_id()`),
-  albumId: text("album_id")
-    .notNull()
-    .references(() => albums.id),
-  trackId: text("track_id")
-    .notNull()
-    .references(() => tracks.id),
-  createdAt: timestamp("xata_createdat").defaultNow().notNull(),
-  updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
-  xataVersion: integer("xata_version"),
-});
+const albumTracks = pgTable(
+  "album_tracks",
+  {
+    id: text("xata_id").primaryKey().default(sql`xata_id()`),
+    albumId: text("album_id")
+      .notNull()
+      .references(() => albums.id),
+    trackId: text("track_id")
+      .notNull()
+      .references(() => tracks.id),
+    createdAt: timestamp("xata_createdat").defaultNow().notNull(),
+    updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
+    xataVersion: integer("xata_version"),
+  },
+  (t) => [
+    index("album_tracks_album_id_idx").on(t.albumId),
+    index("album_tracks_track_id_idx").on(t.trackId),
+  ],
+);
 
 export type SelectAlbumTrack = InferSelectModel<typeof albumTracks>;
 export type InsertAlbumTrack = InferInsertModel<typeof albumTracks>;

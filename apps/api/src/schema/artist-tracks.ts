@@ -17,7 +17,10 @@ const artistTracks = pgTable(
     updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
     xataVersion: integer("xata_version"),
   },
-  (t) => [index("artist_tracks_artist_id_idx").on(t.artistId)],
+  (t) => [
+    index("artist_tracks_artist_id_idx").on(t.artistId),
+    index("artist_tracks_track_id_idx").on(t.trackId),
+  ],
 );
 
 export type SelectArtistTrack = InferSelectModel<typeof artistTracks>;

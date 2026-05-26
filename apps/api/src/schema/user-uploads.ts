@@ -25,6 +25,7 @@ const userUploads = pgTable(
   (t) => [
     index("user_uploads_user_id_idx").on(t.userId),
     index("user_uploads_track_id_idx").on(t.trackId),
+    index("user_uploads_user_id_track_id_idx").on(t.userId, t.trackId),
   ],
 );
 

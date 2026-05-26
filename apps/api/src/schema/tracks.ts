@@ -34,6 +34,8 @@ const tracks = pgTable(
   (t) => [
     index("tracks_genre_idx").on(t.genre),
     index("tracks_artist_uri_idx").on(t.artistUri),
+    index("tracks_album_idx").on(t.album),
+    index("tracks_album_artist_idx").on(t.albumArtist),
   ],
 );
 
