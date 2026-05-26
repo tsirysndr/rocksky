@@ -50,7 +50,7 @@ pub async fn publish_song_changed(
             "name": track.title,
             "artist": track.artist,
             "album": track.album,
-            "duration_ms": (track.duration as i64) * 1000,
+            "duration_ms": track.duration as i64,
             "source": "navidrome",
         });
         if let Some(art) = &track.album_art {
