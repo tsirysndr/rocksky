@@ -78,7 +78,13 @@ pub async fn post_like(did: String, track: TrackWithUpload) {
 
     let url = format!("{}/likes", api_base);
     let client = reqwest::Client::new();
-    match client.post(&url).bearer_auth(&token).json(&payload).send().await {
+    match client
+        .post(&url)
+        .bearer_auth(&token)
+        .json(&payload)
+        .send()
+        .await
+    {
         Ok(r) if r.status().is_success() => {
             tracing::info!(did = %did, title = %track.title, "like posted via API");
         }

@@ -41,19 +41,19 @@ pub async fn handle_star(
             }
         };
 
-        let track =
-            match repo::track::get_track_by_id(&pool_clone, &track_id_owned, &user_id_owned).await
-            {
-                Ok(Some(t)) => t,
-                Ok(None) => {
-                    tracing::warn!(track_id = %track_id_owned, "track not found for like");
-                    return;
-                }
-                Err(e) => {
-                    tracing::warn!(track_id = %track_id_owned, "track lookup error: {}", e);
-                    return;
-                }
-            };
+        let track = match repo::track::get_track_by_id(&pool_clone, &track_id_owned, &user_id_owned)
+            .await
+        {
+            Ok(Some(t)) => t,
+            Ok(None) => {
+                tracing::warn!(track_id = %track_id_owned, "track not found for like");
+                return;
+            }
+            Err(e) => {
+                tracing::warn!(track_id = %track_id_owned, "track lookup error: {}", e);
+                return;
+            }
+        };
 
         api::post_like(did, track).await;
     });
@@ -97,19 +97,19 @@ pub async fn handle_unstar(
             }
         };
 
-        let track =
-            match repo::track::get_track_by_id(&pool_clone, &track_id_owned, &user_id_owned).await
-            {
-                Ok(Some(t)) => t,
-                Ok(None) => {
-                    tracing::warn!(track_id = %track_id_owned, "track not found for unlike");
-                    return;
-                }
-                Err(e) => {
-                    tracing::warn!(track_id = %track_id_owned, "track lookup error: {}", e);
-                    return;
-                }
-            };
+        let track = match repo::track::get_track_by_id(&pool_clone, &track_id_owned, &user_id_owned)
+            .await
+        {
+            Ok(Some(t)) => t,
+            Ok(None) => {
+                tracing::warn!(track_id = %track_id_owned, "track not found for unlike");
+                return;
+            }
+            Err(e) => {
+                tracing::warn!(track_id = %track_id_owned, "track lookup error: {}", e);
+                return;
+            }
+        };
 
         let sha256 = {
             use sha2::{Digest, Sha256};
