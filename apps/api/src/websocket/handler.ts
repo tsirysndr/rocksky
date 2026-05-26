@@ -44,6 +44,11 @@ const devices: Record<string, WebSocket> = {};
 const deviceNames: Record<string, string> = {};
 const userDevices: Record<string, string[]> = {};
 
+// Pending song.stopped timers keyed by DID. song.stopped is debounced by 15s
+// so that a status=0/status=1 oscillation from a paused player doesn't create
+// a rapid PDS delete/create/delete loop.
+const pendingStop = new Map<string, ReturnType<typeof setTimeout>>();
+
 function handleWebsocket(c: Context) {
   return {
     async onMessage(event, ws) {
@@ -150,6 +155,12 @@ function handleWebsocket(c: Context) {
             const lastSongKey = `lastsong:${did}`;
             const lastSongSha256 = await ctx.redis.get(lastSongKey);
             if (lastSongSha256 !== sha256) {
+              // Cancel any pending stop — a new track started before the timer fired.
+              const pendingTimer = pendingStop.get(did);
+              if (pendingTimer) {
+                clearTimeout(pendingTimer);
+                pendingStop.delete(did);
+              }
               await ctx.redis.setEx(lastSongKey, 86400, sha256); // 24h TTL
               // Mark this websocket as the active playback source so that
               // a status=0 from Rockbox cannot clear a status written by
@@ -201,18 +212,38 @@ function handleWebsocket(c: Context) {
               // now looks "new"), creating a create/delete loop that hits PDS rate
               // limits. The stopped flag lets the heartbeat path skip those events.
               await ctx.redis.setEx(`stopped:${did}`, 86400, "1");
-              ctx.nc.publish(
-                "rocksky.song.stopped",
-                Buffer.from(JSON.stringify({ did })),
-              );
+              // Debounce: only publish song.stopped after 15s of continuous stop.
+              // A status=0/status=1 oscillation (common with paused Rockbox) would
+              // otherwise create a rapid PDS delete→create loop.
+              const existing = pendingStop.get(did);
+              if (existing) clearTimeout(existing);
+              const timer = setTimeout(() => {
+                pendingStop.delete(did);
+                ctx.nc.publish(
+                  "rocksky.song.stopped",
+                  Buffer.from(JSON.stringify({ did })),
+                );
+              }, 15_000);
+              pendingStop.set(did, timer);
             }
             if (data.status === 1) {
-              const wasStopped = await ctx.redis.get(`stopped:${did}`);
-              if (wasStopped) {
-                // Player transitioned stopped → playing; delete lastsong so the
-                // next heartbeat fires song.changed even if it's the same track.
+              const pendingTimer = pendingStop.get(did);
+              if (pendingTimer) {
+                // Cancelled before firing — song.stopped was never published so
+                // the PDS record still exists. Just clear the stopped flag;
+                // keep lastsong intact so heartbeats remain deduplicated.
+                clearTimeout(pendingTimer);
+                pendingStop.delete(did);
                 await ctx.redis.del(`stopped:${did}`);
-                await ctx.redis.del(`lastsong:${did}`);
+              } else {
+                // No pending timer — song.stopped may have already fired (player
+                // was stopped for >15s). Clear lastsong so the next heartbeat
+                // re-publishes song.changed and restores the PDS record.
+                const wasStopped = await ctx.redis.get(`stopped:${did}`);
+                if (wasStopped) {
+                  await ctx.redis.del(`stopped:${did}`);
+                  await ctx.redis.del(`lastsong:${did}`);
+                }
               }
             }
           }
