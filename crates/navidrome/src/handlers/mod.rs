@@ -98,12 +98,19 @@ async fn dispatch(
             };
             songs::handle_get_song(&format, user_id, id, pool).await
         }
-        "stream" | "download" => {
+        "stream" => {
             let id = match params.get("id") {
                 Some(id) => id.as_str(),
                 None => return response::err(&format, 10, "Missing id parameter"),
             };
-            stream::handle(&format, user_id, id, pool, range.as_deref()).await
+            stream::handle(&format, user_id, id, pool, range.as_deref(), nc, true).await
+        }
+        "download" => {
+            let id = match params.get("id") {
+                Some(id) => id.as_str(),
+                None => return response::err(&format, 10, "Missing id parameter"),
+            };
+            stream::handle(&format, user_id, id, pool, range.as_deref(), nc, false).await
         }
         "getCoverArt" => {
             let id = match params.get("id") {

@@ -6,7 +6,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use crate::{api, repo, response};
 
-async fn publish_song_changed(
+pub async fn publish_song_changed(
     pool: &Arc<Pool<Postgres>>,
     nc: &Arc<async_nats::Client>,
     user_id: &str,

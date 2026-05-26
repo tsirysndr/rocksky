@@ -199,7 +199,9 @@ export function onSongChanged(ctx: Context) {
         }
 
         const trackKey = `${rawTrack.name ?? ""}:${rawTrack.artists?.[0]?.name ?? rawTrack.artist ?? ""}`;
-        if (lastPushedStatus.get(did) === trackKey) {
+        // Navidrome events are user-initiated track changes, not periodic heartbeats,
+        // so they bypass the lastPushedStatus dedup and always refresh the record.
+        if (rawTrack.source !== "navidrome" && lastPushedStatus.get(did) === trackKey) {
           consola.debug(`[status] skip unchanged status for ${did}: ${rawTrack.name}`);
           continue;
         }
@@ -238,6 +240,32 @@ export function onSongChanged(ctx: Context) {
         });
 
         lastPushedStatus.set(did, trackKey);
+
+        // When Navidrome is the source, update lastsong and clear ws_lastsong
+        // so a stale status=0 from a connected Rockbox cannot fire song.stopped
+        // and delete this record immediately after it was written.
+        if (rawTrack.source === "navidrome") {
+          const sha256 = createHash("sha256")
+            .update(
+              `${track.name ?? ""} - ${track.artist ?? ""} - ${track.album ?? ""}`.toLowerCase(),
+            )
+            .digest("hex");
+          await ctx.redis.setEx(`lastsong:${did}`, 86400, sha256);
+          await ctx.redis.del(`ws_lastsong:${did}`);
+        }
+
+        // Auto-expire the in-memory dedup after the track duration so that a
+        // replay of the same song after ATProto record expiry (expiresAt) will
+        // re-write the record rather than being silently deduplicated.
+        if (track.durationMs > 0) {
+          const keySnapshot = trackKey;
+          setTimeout(() => {
+            if (lastPushedStatus.get(did) === keySnapshot) {
+              lastPushedStatus.delete(did);
+            }
+          }, track.durationMs + 10_000);
+        }
+
         consola.info(
           `[status] Updated status for ${did}: ${track.artist} – ${track.name}${recordingMbId ? ` (${recordingMbId})` : ""}`,
         );

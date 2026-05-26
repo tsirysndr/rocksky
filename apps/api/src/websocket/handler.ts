@@ -155,6 +155,8 @@ function handleWebsocket(c: Context) {
               // a status=0 from Rockbox cannot clear a status written by
               // a different source (e.g. Navidrome/DSub).
               await ctx.redis.setEx(`ws_lastsong:${did}`, 86400, sha256);
+              // Clear stopped flag — a genuinely new track is playing.
+              await ctx.redis.del(`stopped:${did}`);
             }
 
             if (lastSongSha256 !== sha256) {
@@ -193,11 +195,25 @@ function handleWebsocket(c: Context) {
             const wsWasPlaying = (await ctx.redis.exists(wsLastSongKey)) > 0;
             if (data.status === 0 && wsWasPlaying) {
               await ctx.redis.del(wsLastSongKey);
-              await ctx.redis.del(`lastsong:${did}`);
+              // Intentionally keep lastsong:${did}. Rockbox sends periodic track
+              // heartbeat messages even while stopped/paused, and deleting lastsong
+              // would cause those heartbeats to re-trigger song.changed (same sha256
+              // now looks "new"), creating a create/delete loop that hits PDS rate
+              // limits. The stopped flag lets the heartbeat path skip those events.
+              await ctx.redis.setEx(`stopped:${did}`, 86400, "1");
               ctx.nc.publish(
                 "rocksky.song.stopped",
                 Buffer.from(JSON.stringify({ did })),
               );
+            }
+            if (data.status === 1) {
+              const wasStopped = await ctx.redis.get(`stopped:${did}`);
+              if (wasStopped) {
+                // Player transitioned stopped → playing; delete lastsong so the
+                // next heartbeat fires song.changed even if it's the same track.
+                await ctx.redis.del(`stopped:${did}`);
+                await ctx.redis.del(`lastsong:${did}`);
+              }
             }
           }
 
