@@ -149,54 +149,55 @@ function handleWebsocket(c: Context) {
               }
             }
 
-            // Emit song.changed when the track differs, OR when the player was
-            // genuinely stopped (timer fired, ws_lastsong gone) and is now
-            // resuming the same track — status=1 is not always sent before heartbeats.
+            // Emit song.changed only when the track differs AND the player is
+            // not paused/stopped. If stopped:did is set, Rockbox sent status=0
+            // and is not actively playing — suppress all status updates so a
+            // paused Rockbox cannot overwrite a status set by Navidrome or
+            // another active source. status=1 (or a genuinely new track start)
+            // clears the flag and re-enables updates.
             const lastSongKey = `lastsong:${did}`;
             const lastSongSha256 = await ctx.redis.get(lastSongKey);
             const trackChanged = lastSongSha256 !== sha256;
-            const wsLastSongExists = trackChanged
-              ? false
-              : (await ctx.redis.exists(`ws_lastsong:${did}`)) > 0;
-            const stoppedAndResumed =
-              !trackChanged &&
-              !wsLastSongExists &&
-              !!(await ctx.redis.get(`stopped:${did}`));
 
-            if (trackChanged || stoppedAndResumed) {
-              // Cancel any pending stop — a new track started before the timer fired.
-              const pendingTimer = pendingStop.get(did);
-              if (pendingTimer) {
-                clearTimeout(pendingTimer);
-                pendingStop.delete(did);
+            if (trackChanged) {
+              const isStopped = !!(await ctx.redis.get(`stopped:${did}`));
+              if (isStopped) {
+                consola.debug(
+                  `[ws] skip song.changed for ${did}: player is stopped/paused (${data.title})`,
+                );
+              } else {
+                const pendingTimer = pendingStop.get(did);
+                if (pendingTimer) {
+                  clearTimeout(pendingTimer);
+                  pendingStop.delete(did);
+                }
+                await ctx.redis.setEx(lastSongKey, 86400, sha256); // 24h TTL
+                await ctx.redis.setEx(`ws_lastsong:${did}`, 86400, sha256);
+
+                const source =
+                  deviceNames[ws.deviceId] ??
+                  deviceNames[device_id] ??
+                  "websocket";
+                consola.info(
+                  `[ws] song.changed for ${did}: ${data.title} – ${data.artist} (source: ${source})`,
+                );
+                ctx.nc.publish(
+                  "rocksky.song.changed",
+                  Buffer.from(
+                    JSON.stringify({
+                      did,
+                      track: {
+                        name: data.title,
+                        artist: data.artist,
+                        album: data.album,
+                        albumCoverUrl: data.album_art ?? undefined,
+                        duration_ms: durationMs,
+                        source,
+                      },
+                    }),
+                  ),
+                );
               }
-              await ctx.redis.setEx(lastSongKey, 86400, sha256); // 24h TTL
-              await ctx.redis.setEx(`ws_lastsong:${did}`, 86400, sha256);
-              await ctx.redis.del(`stopped:${did}`);
-
-              const source =
-                deviceNames[ws.deviceId] ??
-                deviceNames[device_id] ??
-                "websocket";
-              consola.info(
-                `[ws] song.changed for ${did}: ${data.title} – ${data.artist} (source: ${source}, ${stoppedAndResumed ? "resume" : "new track"})`,
-              );
-              ctx.nc.publish(
-                "rocksky.song.changed",
-                Buffer.from(
-                  JSON.stringify({
-                    did,
-                    track: {
-                      name: data.title,
-                      artist: data.artist,
-                      album: data.album,
-                      albumCoverUrl: data.album_art ?? undefined,
-                      duration_ms: durationMs,
-                      source,
-                    },
-                  }),
-                ),
-              );
             } else {
               consola.debug(
                 `[ws] skip song.changed for ${did}: same track ${data.title} (sha256 match)`,
