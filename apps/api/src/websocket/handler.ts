@@ -149,21 +149,27 @@ function handleWebsocket(c: Context) {
               }
             }
 
-            // Emit song.changed only when the track differs AND the player is
-            // not paused/stopped. If stopped:did is set, Rockbox sent status=0
-            // and is not actively playing — suppress all status updates so a
-            // paused Rockbox cannot overwrite a status set by Navidrome or
-            // another active source. status=1 (or a genuinely new track start)
-            // clears the flag and re-enables updates.
+            // Emit song.changed when the track differs AND the websocket source
+            // is still active (ws_lastsong exists). ws_lastsong is the correct
+            // gate because:
+            //   - During a normal track transition Rockbox sends status=0 briefly,
+            //     but the 15s debounce hasn't fired yet so ws_lastsong is still set
+            //     → track change publishes correctly.
+            //   - After a genuine 15s stop the timer deletes ws_lastsong → suppress.
+            //   - When Navidrome takes over it clears ws_lastsong → suppress Rockbox
+            //     track changes so they can't overwrite the Navidrome status.
+            // status=1 (resume after genuine stop) restores ws_lastsong so Rockbox
+            // can reclaim the status record on the next heartbeat.
             const lastSongKey = `lastsong:${did}`;
             const lastSongSha256 = await ctx.redis.get(lastSongKey);
             const trackChanged = lastSongSha256 !== sha256;
 
             if (trackChanged) {
-              const isStopped = !!(await ctx.redis.get(`stopped:${did}`));
-              if (isStopped) {
+              const wsIsActive =
+                (await ctx.redis.exists(`ws_lastsong:${did}`)) > 0;
+              if (!wsIsActive) {
                 consola.debug(
-                  `[ws] skip song.changed for ${did}: player is stopped/paused (${data.title})`,
+                  `[ws] skip song.changed for ${did}: ws source not active (${data.title})`,
                 );
               } else {
                 const pendingTimer = pendingStop.get(did);
@@ -173,6 +179,7 @@ function handleWebsocket(c: Context) {
                 }
                 await ctx.redis.setEx(lastSongKey, 86400, sha256); // 24h TTL
                 await ctx.redis.setEx(`ws_lastsong:${did}`, 86400, sha256);
+                await ctx.redis.del(`stopped:${did}`);
 
                 const source =
                   deviceNames[ws.deviceId] ??
@@ -247,13 +254,19 @@ function handleWebsocket(c: Context) {
                 pendingStop.delete(did);
                 await ctx.redis.del(`stopped:${did}`);
               } else {
-                // No pending timer — song.stopped may have already fired (player
-                // was stopped for >15s). Clear lastsong so the next heartbeat
-                // re-publishes song.changed and restores the PDS record.
+                // No pending timer — the 15s stop timer already fired: ws_lastsong
+                // was deleted and song.stopped was published. Restore ws_lastsong
+                // (from the saved lastsong value) so the websocket source is
+                // re-activated, then delete lastsong so the next heartbeat sees a
+                // sha256 mismatch and re-publishes song.changed to restore the record.
                 const wasStopped = await ctx.redis.get(`stopped:${did}`);
                 if (wasStopped) {
+                  const savedSha = await ctx.redis.get(`lastsong:${did}`);
                   await ctx.redis.del(`stopped:${did}`);
                   await ctx.redis.del(`lastsong:${did}`);
+                  if (savedSha) {
+                    await ctx.redis.setEx(`ws_lastsong:${did}`, 86400, savedSha);
+                  }
                 }
               }
             }
