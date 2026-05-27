@@ -205,20 +205,20 @@ function handleWebsocket(c: Context) {
             const wsLastSongKey = `ws_lastsong:${did}`;
             const wsWasPlaying = (await ctx.redis.exists(wsLastSongKey)) > 0;
             if (data.status === 0 && wsWasPlaying) {
-              await ctx.redis.del(wsLastSongKey);
-              // Intentionally keep lastsong:${did}. Rockbox sends periodic track
-              // heartbeat messages even while stopped/paused, and deleting lastsong
-              // would cause those heartbeats to re-trigger song.changed (same sha256
-              // now looks "new"), creating a create/delete loop that hits PDS rate
-              // limits. The stopped flag lets the heartbeat path skip those events.
+              // Do NOT delete ws_lastsong here — only delete it when the debounce
+              // timer fires. If status=1 arrives within 15s the timer is cancelled
+              // and ws_lastsong remains intact, so future status=0 events can still
+              // gate song.stopped. Deleting it eagerly broke the gate after the
+              // first pause/resume cycle.
               await ctx.redis.setEx(`stopped:${did}`, 86400, "1");
               // Debounce: only publish song.stopped after 15s of continuous stop.
               // A status=0/status=1 oscillation (common with paused Rockbox) would
               // otherwise create a rapid PDS delete→create loop.
               const existing = pendingStop.get(did);
               if (existing) clearTimeout(existing);
-              const timer = setTimeout(() => {
+              const timer = setTimeout(async () => {
                 pendingStop.delete(did);
+                await ctx.redis.del(wsLastSongKey);
                 ctx.nc.publish(
                   "rocksky.song.stopped",
                   Buffer.from(JSON.stringify({ did })),
@@ -230,8 +230,8 @@ function handleWebsocket(c: Context) {
               const pendingTimer = pendingStop.get(did);
               if (pendingTimer) {
                 // Cancelled before firing — song.stopped was never published so
-                // the PDS record still exists. Just clear the stopped flag;
-                // keep lastsong intact so heartbeats remain deduplicated.
+                // the PDS record still exists. ws_lastsong is still set (we didn't
+                // delete it eagerly), so future status=0 events remain gated.
                 clearTimeout(pendingTimer);
                 pendingStop.delete(did);
                 await ctx.redis.del(`stopped:${did}`);
