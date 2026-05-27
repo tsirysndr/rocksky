@@ -5,6 +5,50 @@ use std::sync::Arc;
 
 use crate::{repo, response, s3};
 
+pub async fn handle_head(
+    format: &str,
+    user_id: &str,
+    song_id: &str,
+    pool: &Arc<Pool<Postgres>>,
+) -> HttpResponse {
+    let track = match repo::track::get_track_by_id(pool, song_id, user_id).await {
+        Ok(Some(t)) => t,
+        Ok(None) => return response::err(format, 70, "Song not found"),
+        Err(e) => {
+            tracing::error!("stream HEAD lookup error: {}", e);
+            return response::err(format, 0, "Internal server error");
+        }
+    };
+
+    let url = s3::public_url(&track.r2_key);
+    let client = reqwest::Client::new();
+
+    let upstream = match client.head(&url).send().await {
+        Ok(r) => r,
+        Err(e) => {
+            tracing::error!("stream HEAD fetch error: {}", e);
+            return response::err(format, 0, "Failed to fetch audio metadata");
+        }
+    };
+
+    let status = actix_web::http::StatusCode::from_u16(upstream.status().as_u16())
+        .unwrap_or(actix_web::http::StatusCode::OK);
+
+    let mut builder = HttpResponse::build(status);
+    builder.append_header(("Access-Control-Allow-Origin", "*"));
+    builder.append_header(("Accept-Ranges", "bytes"));
+
+    for header_name in &["Content-Type", "Content-Length"] {
+        if let Some(val) = upstream.headers().get(*header_name) {
+            if let Ok(s) = val.to_str() {
+                builder.append_header((*header_name, s));
+            }
+        }
+    }
+
+    builder.finish()
+}
+
 pub async fn handle(
     format: &str,
     user_id: &str,

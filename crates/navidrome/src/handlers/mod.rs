@@ -16,7 +16,7 @@ pub mod starred;
 pub mod stream;
 pub mod user;
 
-use actix_web::{get, post, web, HttpRequest, HttpResponse};
+use actix_web::{get, post, route, web, HttpRequest, HttpResponse};
 use sqlx::{Pool, Postgres};
 use std::{collections::HashMap, sync::Arc};
 
@@ -233,6 +233,53 @@ pub async fn handle_get(
         nc_data.get_ref(),
     )
     .await
+}
+
+#[route("/rest/{method}", method = "HEAD")]
+pub async fn handle_head(
+    req: HttpRequest,
+    path: web::Path<String>,
+    pool: web::Data<Arc<Pool<Postgres>>>,
+    nc_data: web::Data<Arc<async_nats::Client>>,
+    query: web::Query<HashMap<String, String>>,
+) -> HttpResponse {
+    let method = path.into_inner();
+    let method = method.trim_end_matches(".view").to_string();
+    if method != "stream" && method != "download" {
+        return HttpResponse::MethodNotAllowed().finish();
+    }
+
+    let params = query.into_inner();
+    let format = get_format(&params);
+
+    let username = match params.get("u") {
+        Some(u) => u.as_str(),
+        None => return response::err(&format, 10, "Missing u parameter"),
+    };
+    let password = params.get("p").filter(|p| !p.is_empty()).map(|s| s.as_str());
+    let token = params.get("t").map(|s| s.as_str());
+    let salt = params.get("s").map(|s| s.as_str());
+
+    if password.is_none() && (token.is_none() || salt.is_none()) {
+        return response::err(&format, 10, "Missing credentials: provide p or t+s");
+    }
+
+    let user = match auth::authenticate(pool.get_ref(), username, password, token, salt).await {
+        Ok(u) => u,
+        Err(e) => {
+            tracing::warn!("Auth failed for '{}': {}", username, e);
+            return response::err(&format, 40, "Wrong username or password");
+        }
+    };
+
+    let id = match params.get("id") {
+        Some(id) => id.as_str(),
+        None => return response::err(&format, 10, "Missing id parameter"),
+    };
+
+    let _ = req;
+    let _ = nc_data;
+    stream::handle_head(&format, &user.xata_id, id, pool.get_ref()).await
 }
 
 #[post("/rest/{method}")]

@@ -109,6 +109,7 @@ pub async fn run() -> Result<(), Error> {
             .service(index)
             .service(handlers::handle_get)
             .service(handlers::handle_post)
+            .service(handlers::handle_head)
     })
     .bind((host, port))?
     .run()
