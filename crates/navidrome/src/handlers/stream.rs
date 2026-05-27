@@ -38,10 +38,18 @@ pub async fn handle_head(
     builder.append_header(("Access-Control-Allow-Origin", "*"));
     builder.append_header(("Accept-Ranges", "bytes"));
 
-    for header_name in &["Content-Type", "Content-Length"] {
-        if let Some(val) = upstream.headers().get(*header_name) {
-            if let Ok(s) = val.to_str() {
-                builder.append_header((*header_name, s));
+    if let Some(val) = upstream.headers().get("Content-Type") {
+        if let Ok(s) = val.to_str() {
+            builder.append_header(("Content-Type", s));
+        }
+    }
+
+    // Use no_chunking to declare Content-Length without actix overriding it
+    // with the empty body size (0) when finish() is called.
+    if let Some(val) = upstream.headers().get("Content-Length") {
+        if let Ok(s) = val.to_str() {
+            if let Ok(len) = s.parse::<u64>() {
+                builder.no_chunking(len);
             }
         }
     }
