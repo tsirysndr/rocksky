@@ -256,7 +256,10 @@ pub async fn handle_head(
         Some(u) => u.as_str(),
         None => return response::err(&format, 10, "Missing u parameter"),
     };
-    let password = params.get("p").filter(|p| !p.is_empty()).map(|s| s.as_str());
+    let password = params
+        .get("p")
+        .filter(|p| !p.is_empty())
+        .map(|s| s.as_str());
     let token = params.get("t").map(|s| s.as_str());
     let salt = params.get("s").map(|s| s.as_str());
 
