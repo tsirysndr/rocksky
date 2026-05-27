@@ -56,6 +56,7 @@ pub async fn handle(
     builder.append_header(("Access-Control-Allow-Origin", "*"));
     builder.append_header(("Cache-Control", "no-cache"));
 
+    let mut content_length: Option<u64> = None;
     for header_name in &[
         "Content-Type",
         "Content-Length",
@@ -64,6 +65,9 @@ pub async fn handle(
     ] {
         if let Some(val) = upstream.headers().get(*header_name) {
             if let Ok(s) = val.to_str() {
+                if *header_name == "Content-Length" {
+                    content_length = s.parse().ok();
+                }
                 builder.append_header((*header_name, s));
             }
         }
@@ -77,5 +81,9 @@ pub async fn handle(
         })
     });
 
-    builder.streaming(stream)
+    if let Some(len) = content_length {
+        builder.body(actix_web::body::SizedStream::new(len, stream))
+    } else {
+        builder.streaming(stream)
+    }
 }
