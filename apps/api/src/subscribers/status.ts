@@ -206,7 +206,7 @@ export function onSongChanged(ctx: Context) {
         // A different source (e.g. Navidrome after Rockbox) is always allowed through
         // so the active player can take ownership of the status record.
         if (last && last.key === trackKey && last.source === source) {
-          consola.debug(`[status] skip unchanged status for ${did}: ${rawTrack.name}`);
+          consola.info(`[status] skip unchanged status for ${did}: ${rawTrack.name} (source: ${source})`);
           continue;
         }
 

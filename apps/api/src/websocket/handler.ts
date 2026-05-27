@@ -149,12 +149,21 @@ function handleWebsocket(c: Context) {
               }
             }
 
-            // Emit song.changed only when the track actually differs.
-            // Use a dedicated long-lived key so the check survives the 3s
-            // TTL of nowplaying:${did} (which expires on player silence/gaps).
+            // Emit song.changed when the track differs, OR when the player was
+            // genuinely stopped (timer fired, ws_lastsong gone) and is now
+            // resuming the same track — status=1 is not always sent before heartbeats.
             const lastSongKey = `lastsong:${did}`;
             const lastSongSha256 = await ctx.redis.get(lastSongKey);
-            if (lastSongSha256 !== sha256) {
+            const trackChanged = lastSongSha256 !== sha256;
+            const wsLastSongExists = trackChanged
+              ? false
+              : (await ctx.redis.exists(`ws_lastsong:${did}`)) > 0;
+            const stoppedAndResumed =
+              !trackChanged &&
+              !wsLastSongExists &&
+              !!(await ctx.redis.get(`stopped:${did}`));
+
+            if (trackChanged || stoppedAndResumed) {
               // Cancel any pending stop — a new track started before the timer fired.
               const pendingTimer = pendingStop.get(did);
               if (pendingTimer) {
@@ -162,19 +171,16 @@ function handleWebsocket(c: Context) {
                 pendingStop.delete(did);
               }
               await ctx.redis.setEx(lastSongKey, 86400, sha256); // 24h TTL
-              // Mark this websocket as the active playback source so that
-              // a status=0 from Rockbox cannot clear a status written by
-              // a different source (e.g. Navidrome/DSub).
               await ctx.redis.setEx(`ws_lastsong:${did}`, 86400, sha256);
-              // Clear stopped flag — a genuinely new track is playing.
               await ctx.redis.del(`stopped:${did}`);
-            }
 
-            if (lastSongSha256 !== sha256) {
               const source =
                 deviceNames[ws.deviceId] ??
                 deviceNames[device_id] ??
                 "websocket";
+              consola.info(
+                `[ws] song.changed for ${did}: ${data.title} – ${data.artist} (source: ${source}, ${stoppedAndResumed ? "resume" : "new track"})`,
+              );
               ctx.nc.publish(
                 "rocksky.song.changed",
                 Buffer.from(
@@ -190,6 +196,10 @@ function handleWebsocket(c: Context) {
                     },
                   }),
                 ),
+              );
+            } else {
+              consola.debug(
+                `[ws] skip song.changed for ${did}: same track ${data.title} (sha256 match)`,
               );
             }
           } else {
