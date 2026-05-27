@@ -410,7 +410,7 @@ app.post("/track", async (c) => {
       Metadata: {
         userId: user.id,
         trackId: track.id,
-        originalFilename: file.name,
+        originalFilename: encodeURIComponent(file.name),
       },
     }),
   );
