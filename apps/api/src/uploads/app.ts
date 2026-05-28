@@ -206,7 +206,7 @@ app.post("/track", async (c) => {
   // --- Metadata extraction ---
   let metadata: Awaited<ReturnType<typeof parseBuffer>>;
   try {
-    metadata = await parseBuffer(buf, { mimeType: mime });
+    metadata = await parseBuffer(buf, { mimeType: mime, duration: true });
   } catch (e) {
     consola.error("[uploads] metadata parse error", e);
     c.status(422);
@@ -233,7 +233,15 @@ app.post("/track", async (c) => {
   //   required: [title, artist, album, albumArtist, duration, createdAt]
   //   albumArtist falls back to artist; createdAt is server-set.
   //   Constraints: title ≤ 512, artist/albumArtist/album ≤ 256, duration ≥ 1.
-  const durationMs = format.duration ? Math.round(format.duration * 1000) : 0;
+  // music-metadata doesn't parse VBRI headers (Fraunhofer VBR) into format.duration,
+  // so fall back to the TLEN ID3 tag (stored in ms) when the stream scan yields nothing.
+  let durationMs = format.duration ? Math.round(format.duration * 1000) : 0;
+  if (durationMs < 1) {
+    const tlen = Object.values(metadata.native)
+      .flat()
+      .find((t) => t.id === "TLEN");
+    if (tlen) durationMs = parseInt(tlen.value, 10);
+  }
 
   const missing: string[] = [];
   if (!common.title?.trim()) missing.push("title");
