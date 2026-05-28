@@ -1,11 +1,11 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import type { ValidationResult, BlobRef } from "@atproto/lexicon";
+import { type ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../../lexicons";
 import { isObj, hasProp } from "../../../../../util";
 import { CID } from "multiformats/cid";
-import type * as AppBskyRichtextFacet from "../../../../app/bsky/richtext/facet";
+import * as AppBskyRichtextFacet from "../../../../app/bsky/richtext/facet";
 
 export interface Record {
   displayName?: string;
@@ -36,7 +36,7 @@ export function validateRecord(v: unknown): ValidationResult {
 }
 
 export interface FeaturedItem {
-  /** The Musicbrainz ID of the item */
+  /** The MusicBrainz ID URI of the item, formatted as mbid:<uuid> */
   mbid: string;
   /** The type of the item. Must be a valid Musicbrainz type, e.g. album, track, recording, etc. */
   type: string;

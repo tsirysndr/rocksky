@@ -9,9 +9,9 @@ import { CID } from "multiformats/cid";
 export interface PlayView {
   /** The name of the track */
   trackName: string;
-  /** The Musicbrainz ID of the track */
+  /** The MusicBrainz ID URI of the track, formatted as mbid:<uuid> */
   trackMbId?: string;
-  /** The Musicbrainz recording ID of the track */
+  /** The MusicBrainz recording ID URI of the track, formatted as mbid:<uuid> */
   recordingMbId?: string;
   /** The length of the track in seconds */
   duration?: number;
@@ -19,7 +19,7 @@ export interface PlayView {
   artists: Artist[];
   /** The name of the release/album */
   releaseName?: string;
-  /** The Musicbrainz release ID */
+  /** The MusicBrainz release ID URI, formatted as mbid:<uuid> */
   releaseMbId?: string;
   /** The ISRC code associated with the recording */
   isrc?: string;
@@ -49,7 +49,7 @@ export function validatePlayView(v: unknown): ValidationResult {
 export interface Artist {
   /** The name of the artist */
   artistName: string;
-  /** The Musicbrainz ID of the artist */
+  /** The MusicBrainz artist ID URI, formatted as mbid:<uuid> */
   artistMbId?: string;
   [k: string]: unknown;
 }

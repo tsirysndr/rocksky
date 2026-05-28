@@ -45,6 +45,10 @@ export const schemaDict = {
             type: "string",
             description: "IPLD of the banner image",
           },
+          status: {
+            type: "ref",
+            ref: "lex:fm.teal.alpha.actor.defs#statusView",
+          },
           createdAt: {
             type: "string",
             format: "datetime",
@@ -67,6 +71,27 @@ export const schemaDict = {
           avatar: {
             type: "string",
             description: "IPLD of the avatar",
+          },
+        },
+      },
+      statusView: {
+        type: "object",
+        description: "A declaration of the status of the actor.",
+        properties: {
+          time: {
+            type: "string",
+            format: "datetime",
+            description: "The unix timestamp of when the item was recorded",
+          },
+          expiry: {
+            type: "string",
+            format: "datetime",
+            description:
+              "The unix timestamp of the expiry time of the item. If unavailable, default to 10 minutes past the start time.",
+          },
+          item: {
+            type: "ref",
+            ref: "lex:fm.teal.alpha.feed.defs#playView",
           },
         },
       },
@@ -213,7 +238,9 @@ export const schemaDict = {
         properties: {
           mbid: {
             type: "string",
-            description: "The Musicbrainz ID of the item",
+            format: "uri",
+            description:
+              "The MusicBrainz ID URI of the item, formatted as mbid:<uuid>",
           },
           type: {
             type: "string",
@@ -293,13 +320,14 @@ export const schemaDict = {
             time: {
               type: "string",
               format: "datetime",
-              description: "The unix timestamp of when the item was recorded",
+              description:
+                "The RFC 3339 formatted time of when the item was recorded",
             },
             expiry: {
               type: "string",
               format: "datetime",
               description:
-                "The unix timestamp of the expiry time of the item. If unavailable, default to 10 minutes past the start time.",
+                "The RFC 3339 formatted time of the expiry time of the item. If unavailable, default to 10 minutes past the start time.",
             },
             item: {
               type: "ref",
@@ -329,11 +357,15 @@ export const schemaDict = {
           },
           trackMbId: {
             type: "string",
-            description: "The Musicbrainz ID of the track",
+            format: "uri",
+            description:
+              "The MusicBrainz ID URI of the track, formatted as mbid:<uuid>",
           },
           recordingMbId: {
             type: "string",
-            description: "The Musicbrainz recording ID of the track",
+            format: "uri",
+            description:
+              "The MusicBrainz recording ID URI of the track, formatted as mbid:<uuid>",
           },
           duration: {
             type: "integer",
@@ -355,7 +387,9 @@ export const schemaDict = {
           },
           releaseMbId: {
             type: "string",
-            description: "The Musicbrainz release ID",
+            format: "uri",
+            description:
+              "The MusicBrainz release ID URI, formatted as mbid:<uuid>",
           },
           isrc: {
             type: "string",
@@ -397,7 +431,9 @@ export const schemaDict = {
           },
           artistMbId: {
             type: "string",
-            description: "The Musicbrainz ID of the artist",
+            format: "uri",
+            description:
+              "The MusicBrainz artist ID URI, formatted as mbid:<uuid>",
           },
         },
       },
@@ -511,11 +547,15 @@ export const schemaDict = {
             },
             trackMbId: {
               type: "string",
-              description: "The Musicbrainz ID of the track",
+              format: "uri",
+              description:
+                "The MusicBrainz ID URI of the track, formatted as mbid:<uuid>",
             },
             recordingMbId: {
               type: "string",
-              description: "The Musicbrainz recording ID of the track",
+              format: "uri",
+              description:
+                "The MusicBrainz recording ID URI of the track, formatted as mbid:<uuid>",
             },
             duration: {
               type: "integer",
@@ -530,7 +570,7 @@ export const schemaDict = {
                 maxGraphemes: 2560,
               },
               description:
-                "Array of artist names in order of original appearance. Prefer using 'artists'.",
+                "DEPRECATED: USE 'artists' INSTEAD. Array of artist names in order of original appearance.",
             },
             artistMbIds: {
               type: "array",
@@ -538,7 +578,7 @@ export const schemaDict = {
                 type: "string",
               },
               description:
-                "Array of Musicbrainz artist IDs. Prefer using 'artists'.",
+                "DEPRECATED: USE 'artists' INSTEAD. Array of Musicbrainz artist IDs.",
             },
             artists: {
               type: "array",
@@ -556,7 +596,9 @@ export const schemaDict = {
             },
             releaseMbId: {
               type: "string",
-              description: "The Musicbrainz release ID",
+              format: "uri",
+              description:
+                "The MusicBrainz release ID URI, formatted as mbid:<uuid>",
             },
             isrc: {
               type: "string",
@@ -582,6 +624,20 @@ export const schemaDict = {
               type: "string",
               format: "datetime",
               description: "The unix timestamp of when the track was played",
+            },
+            trackDiscriminant: {
+              type: "string",
+              maxLength: 128,
+              maxGraphemes: 1280,
+              description:
+                "Distinguishing information for track variants (e.g. 'Acoustic Version', 'Live at Wembley', 'Radio Edit', 'Demo'). Used to differentiate between different versions of the same base track while maintaining grouping capabilities.",
+            },
+            releaseDiscriminant: {
+              type: "string",
+              maxLength: 128,
+              maxGraphemes: 1280,
+              description:
+                "Distinguishing information for release variants (e.g. 'Deluxe Edition', 'Remastered', '2023 Remaster', 'Special Edition'). Used to differentiate between different versions of the same base release while maintaining grouping capabilities.",
             },
           },
         },
