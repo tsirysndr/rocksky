@@ -1,5 +1,5 @@
-use actix_web::HttpResponse;
-use futures::StreamExt;
+use actix_web::{web::Bytes, HttpResponse};
+use futures::{stream, StreamExt};
 use sqlx::{Pool, Postgres};
 use std::sync::Arc;
 
@@ -44,12 +44,16 @@ pub async fn handle_head(
         }
     }
 
-    // Use no_chunking to declare Content-Length without actix overriding it
-    // with the empty body size (0) when finish() is called.
+    // SizedStream declares the Content-Length at the body level, which actix
+    // uses when serializing headers. finish() / no_chunking() both lose because
+    // actix overwrites Content-Length from the actual body size (0) afterwards.
     if let Some(val) = upstream.headers().get("Content-Length") {
         if let Ok(s) = val.to_str() {
             if let Ok(len) = s.parse::<u64>() {
-                builder.no_chunking(len);
+                return builder.body(actix_web::body::SizedStream::new(
+                    len,
+                    stream::empty::<Result<Bytes, std::io::Error>>(),
+                ));
             }
         }
     }
