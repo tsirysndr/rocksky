@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WrappedRouteImport } from './routes/wrapped'
+import { Route as TosRouteImport } from './routes/tos'
 import { Route as ScrobbleRouteImport } from './routes/scrobble'
 import { Route as RecommendationsRouteImport } from './routes/recommendations'
 import { Route as LoadingRouteImport } from './routes/loading'
@@ -44,6 +45,11 @@ import { Route as LibraryDidAlbumRkeyRouteImport } from './routes/library/$did/a
 const WrappedRoute = WrappedRouteImport.update({
   id: '/wrapped',
   path: '/wrapped',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TosRoute = TosRouteImport.update({
+  id: '/tos',
+  path: '/tos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ScrobbleRoute = ScrobbleRouteImport.update({
@@ -205,6 +211,7 @@ export interface FileRoutesByFullPath {
   '/loading': typeof LoadingRoute
   '/recommendations': typeof RecommendationsRoute
   '/scrobble': typeof ScrobbleRoute
+  '/tos': typeof TosRoute
   '/wrapped': typeof WrappedRoute
   '/dropbox/$id': typeof DropboxIdRoute
   '/genre/$id': typeof GenreIdRoute
@@ -238,6 +245,7 @@ export interface FileRoutesByTo {
   '/loading': typeof LoadingRoute
   '/recommendations': typeof RecommendationsRoute
   '/scrobble': typeof ScrobbleRoute
+  '/tos': typeof TosRoute
   '/wrapped': typeof WrappedRoute
   '/dropbox/$id': typeof DropboxIdRoute
   '/genre/$id': typeof GenreIdRoute
@@ -272,6 +280,7 @@ export interface FileRoutesById {
   '/loading': typeof LoadingRoute
   '/recommendations': typeof RecommendationsRoute
   '/scrobble': typeof ScrobbleRoute
+  '/tos': typeof TosRoute
   '/wrapped': typeof WrappedRoute
   '/dropbox/$id': typeof DropboxIdRoute
   '/genre/$id': typeof GenreIdRoute
@@ -307,6 +316,7 @@ export interface FileRouteTypes {
     | '/loading'
     | '/recommendations'
     | '/scrobble'
+    | '/tos'
     | '/wrapped'
     | '/dropbox/$id'
     | '/genre/$id'
@@ -340,6 +350,7 @@ export interface FileRouteTypes {
     | '/loading'
     | '/recommendations'
     | '/scrobble'
+    | '/tos'
     | '/wrapped'
     | '/dropbox/$id'
     | '/genre/$id'
@@ -373,6 +384,7 @@ export interface FileRouteTypes {
     | '/loading'
     | '/recommendations'
     | '/scrobble'
+    | '/tos'
     | '/wrapped'
     | '/dropbox/$id'
     | '/genre/$id'
@@ -407,6 +419,7 @@ export interface RootRouteChildren {
   LoadingRoute: typeof LoadingRoute
   RecommendationsRoute: typeof RecommendationsRoute
   ScrobbleRoute: typeof ScrobbleRoute
+  TosRoute: typeof TosRoute
   WrappedRoute: typeof WrappedRoute
   DropboxIdRoute: typeof DropboxIdRoute
   GenreIdRoute: typeof GenreIdRoute
@@ -440,6 +453,13 @@ declare module '@tanstack/react-router' {
       path: '/wrapped'
       fullPath: '/wrapped'
       preLoaderRoute: typeof WrappedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tos': {
+      id: '/tos'
+      path: '/tos'
+      fullPath: '/tos'
+      preLoaderRoute: typeof TosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/scrobble': {
@@ -663,6 +683,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoadingRoute: LoadingRoute,
   RecommendationsRoute: RecommendationsRoute,
   ScrobbleRoute: ScrobbleRoute,
+  TosRoute: TosRoute,
   WrappedRoute: WrappedRoute,
   DropboxIdRoute: DropboxIdRoute,
   GenreIdRoute: GenreIdRoute,

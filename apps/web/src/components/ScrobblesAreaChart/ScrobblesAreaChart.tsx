@@ -106,6 +106,7 @@ function ScrobblesAreaChart() {
   const chartData =
     pathname === "/" ||
     pathname === "/charts" ||
+    pathname === "/tos" ||
     pathname === "/recommendations" ||
     pathname.startsWith("/library") ||
     pathname.startsWith("/dropbox") ||

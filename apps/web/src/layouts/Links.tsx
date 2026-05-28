@@ -1,6 +1,18 @@
 import styled from "@emotion/styled";
+import { Link as RouterLink } from "@tanstack/react-router";
 
 const Link = styled.a`
+  text-decoration: none;
+  cursor: pointer;
+  display: block;
+  font-size: 13px;
+
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
+const InternalLink = styled(RouterLink)`
   text-decoration: none;
   cursor: pointer;
   display: block;
@@ -33,7 +45,7 @@ function Links() {
         target="_blank"
         className="mr-[10px] text-[var(--color-primary)]"
       >
-        API Docs
+        Docs
       </Link>
       <Link
         href="https://docs.rocksky.app/overview-957781m0"
@@ -56,6 +68,9 @@ function Links() {
       >
         Discord
       </Link>
+      <InternalLink to="/tos" className="mr-[10px] text-[var(--color-primary)]">
+        Terms
+      </InternalLink>
     </div>
   );
 }
