@@ -30,9 +30,17 @@ const TRACK_SELECT: &str = r#"
          JOIN artists ar ON at3.artist_id = ar.xata_id
          WHERE at3.track_id = tracks.xata_id
            AND tracks.album_artist = ar.name
-         LIMIT 1) AS artist_id
+         LIMIT 1) AS artist_id,
+        usp.xata_id AS storage_provider_id,
+        usp.endpoint AS storage_endpoint,
+        usp.region AS storage_region,
+        usp.bucket AS storage_bucket,
+        usp.access_key AS storage_access_key,
+        usp.secret_key AS storage_secret_key,
+        usp.public_url AS storage_public_url
     FROM tracks
     JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
+    LEFT JOIN user_storage_providers usp ON user_uploads.storage_provider_id = usp.xata_id
 "#;
 
 pub async fn get_tracks_by_album(

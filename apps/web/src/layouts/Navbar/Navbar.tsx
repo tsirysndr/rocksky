@@ -296,6 +296,14 @@ function Navbar() {
                         </LabelMedium>
                       ),
                     },
+                    {
+                      id: "storage",
+                      label: (
+                        <LabelMedium className="!text-[var(--color-text)]">
+                          Storage
+                        </LabelMedium>
+                      ),
+                    },
                     ...(profile?.did === "did:plc:7vdlgi2bflelz7mmuxoqjfcr"
                       ? [
                           {
@@ -370,9 +378,10 @@ function Navbar() {
                         });
                         break;
                       case "api-applications":
-                        navigate({
-                          to: "/apikeys",
-                        });
+                        navigate({ to: "/apikeys" });
+                        break;
+                      case "storage":
+                        navigate({ to: "/storage" });
                         break;
                       case "import-history":
                         navigate({

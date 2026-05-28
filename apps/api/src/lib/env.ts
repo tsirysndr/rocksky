@@ -42,6 +42,9 @@ export const env = cleanEnv(process.env, {
   MEILISEARCH_URL: str({ default: "http://localhost:7700" }),
   MEILISEARCH_API_KEY: str({}),
   DISABLED_TEALFM: str({ default: "" }),
+  STORAGE_ENCRYPTION_KEY: str({
+    devDefault: "0000000000000000000000000000000000000000000000000000000000000000",
+  }),
   S3_ENDPOINT: str({}),
   S3_REGION: str({ default: "auto" }),
   S3_ACCESS_KEY_ID: str({}),

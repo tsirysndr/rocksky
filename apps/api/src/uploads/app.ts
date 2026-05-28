@@ -8,6 +8,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { consola } from "consola";
 import { ctx } from "context";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { resolveStorageClient } from "storage/app";
 import { Hono } from "hono";
 import jwt from "jsonwebtoken";
 import { createAgent } from "lib/agent";
@@ -186,6 +187,9 @@ app.post("/track", async (c) => {
     c.status(400);
     return c.json({ error: "NO_FILE", message: "No file provided" });
   }
+
+  const storageProviderIdParam =
+    (formData.get("storage_provider_id") as string | null) || null;
 
   const buf = Buffer.from(await file.arrayBuffer());
 
@@ -398,11 +402,14 @@ app.post("/track", async (c) => {
     .limit(1)
     .then((rows) => rows[0]);
 
-  // --- Upload audio file to storage ---
-  const s3 = makeS3Client();
+  // --- Upload audio file to storage (managed or BYO) ---
+  const { client: s3, bucket, storageProviderId } = await resolveStorageClient(
+    user.id,
+    storageProviderIdParam,
+  );
   await s3.send(
     new PutObjectCommand({
-      Bucket: env.S3_BUCKET_NAME,
+      Bucket: bucket,
       Key: storageKey,
       Body: buf,
       ContentType: mime,
@@ -425,6 +432,7 @@ app.post("/track", async (c) => {
       mimeType: mime,
       fileSize: buf.length,
       originalFilename: file.name,
+      storageProviderId,
     })
     .returning();
 

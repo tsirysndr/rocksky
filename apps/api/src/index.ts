@@ -23,6 +23,7 @@ import { trackSchema } from "types/track";
 import handleWebsocket from "websocket/handler";
 import apikeys from "./apikeys/app";
 import bsky from "./bsky/app";
+import storageApp from "./storage/app";
 import uploadsApp from "./uploads/app";
 import importApp from "./import/app";
 import dropbox from "./dropbox/app";
@@ -79,6 +80,8 @@ app.use(cors());
 app.route("/", bsky);
 
 app.route("/spotify", spotify);
+
+app.route("/storage", storageApp);
 
 app.route("/dropbox", dropbox);
 

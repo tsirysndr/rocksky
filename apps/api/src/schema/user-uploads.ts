@@ -1,6 +1,7 @@
 import { type InferInsertModel, type InferSelectModel, sql } from "drizzle-orm";
 import { index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import tracks from "./tracks";
+import userStorageProviders from "./user-storage-providers";
 import users from "./users";
 
 const userUploads = pgTable(
@@ -17,6 +18,9 @@ const userUploads = pgTable(
     mimeType: text("mime_type").notNull(),
     fileSize: integer("file_size").notNull(),
     originalFilename: text("original_filename").notNull(),
+    storageProviderId: text("storage_provider_id").references(
+      () => userStorageProviders.id,
+    ),
     uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
     createdAt: timestamp("xata_createdat").defaultNow().notNull(),
     updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),

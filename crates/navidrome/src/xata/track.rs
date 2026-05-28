@@ -37,4 +37,12 @@ pub struct TrackWithUpload {
     pub file_size: i32,
     pub album_id: Option<String>,
     pub artist_id: Option<String>,
+    // BYO storage provider fields (NULL for managed Rocksky storage)
+    pub storage_provider_id: Option<String>,
+    pub storage_endpoint: Option<String>,
+    pub storage_region: Option<String>,
+    pub storage_bucket: Option<String>,
+    pub storage_access_key: Option<String>,
+    pub storage_secret_key: Option<String>,
+    pub storage_public_url: Option<String>,
 }
