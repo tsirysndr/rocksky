@@ -8,7 +8,7 @@ import { Modal, ModalBody, ModalFooter, ModalHeader } from "baseui/modal";
 import { LabelMedium, LabelSmall } from "baseui/typography";
 import { useAtomValue } from "jotai";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import {
   StorageProvider,
   createStorageProvider,
@@ -158,7 +158,7 @@ export default function StoragePage() {
   const [isOpen, setIsOpen] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
+  const { control, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
     defaultValues: { region: "auto" },
   });
 
@@ -271,44 +271,54 @@ export default function StoragePage() {
           <ModalBody>
             <div className="flex flex-col gap-3">
               <FormControl label="Label" error={errors.label?.message}>
-                <Input
-                  {...register("label", { required: "Required" })}
-                  placeholder="e.g. My Cloudflare R2"
-                  overrides={inputOverrides}
-                  error={!!errors.label}
+                <Controller
+                  name="label"
+                  control={control}
+                  rules={{ required: "Required" }}
+                  render={({ field }) => (
+                    <Input {...field} placeholder="e.g. My Cloudflare R2" overrides={inputOverrides} error={!!errors.label} />
+                  )}
                 />
               </FormControl>
               <FormControl label="S3 Endpoint" error={errors.endpoint?.message}>
-                <Input
-                  {...register("endpoint", { required: "Required" })}
-                  placeholder="https://…"
-                  overrides={inputOverrides}
-                  error={!!errors.endpoint}
+                <Controller
+                  name="endpoint"
+                  control={control}
+                  rules={{ required: "Required" }}
+                  render={({ field }) => (
+                    <Input {...field} placeholder="https://…" overrides={inputOverrides} error={!!errors.endpoint} />
+                  )}
                 />
               </FormControl>
               <div className="grid grid-cols-2 gap-3">
                 <FormControl label="Region" caption="Default: auto">
-                  <Input
-                    {...register("region")}
-                    placeholder="auto"
-                    overrides={inputOverrides}
+                  <Controller
+                    name="region"
+                    control={control}
+                    render={({ field }) => (
+                      <Input {...field} placeholder="auto" overrides={inputOverrides} />
+                    )}
                   />
                 </FormControl>
                 <FormControl label="Bucket" error={errors.bucket?.message}>
-                  <Input
-                    {...register("bucket", { required: "Required" })}
-                    placeholder="my-bucket"
-                    overrides={inputOverrides}
-                    error={!!errors.bucket}
+                  <Controller
+                    name="bucket"
+                    control={control}
+                    rules={{ required: "Required" }}
+                    render={({ field }) => (
+                      <Input {...field} placeholder="my-bucket" overrides={inputOverrides} error={!!errors.bucket} />
+                    )}
                   />
                 </FormControl>
               </div>
               <FormControl label="Access Key ID" error={errors.access_key?.message}>
-                <Input
-                  {...register("access_key", { required: "Required" })}
-                  placeholder="Access key ID"
-                  overrides={inputOverrides}
-                  error={!!errors.access_key}
+                <Controller
+                  name="access_key"
+                  control={control}
+                  rules={{ required: "Required" }}
+                  render={({ field }) => (
+                    <Input {...field} placeholder="Access key ID" overrides={inputOverrides} error={!!errors.access_key} />
+                  )}
                 />
               </FormControl>
               <FormControl
@@ -316,19 +326,25 @@ export default function StoragePage() {
                 error={errors.secret_key?.message}
                 caption="Encrypted at rest — never stored in plaintext"
               >
-                <Input
-                  {...register("secret_key", { required: "Required" })}
-                  type="password"
-                  placeholder="Secret access key"
-                  overrides={inputOverrides}
-                  error={!!errors.secret_key}
+                <Controller
+                  name="secret_key"
+                  control={control}
+                  rules={{ required: "Required" }}
+                  render={({ field }) => (
+                    <Input {...field} type="password" placeholder="Secret access key" overrides={inputOverrides} error={!!errors.secret_key} />
+                  )}
                 />
               </FormControl>
-              <FormControl label="Public CDN URL" caption="Optional — e.g. https://cdn.example.com. If set, audio streams directly from your CDN. If omitted, Rocksky generates presigned URLs.">
-                <Input
-                  {...register("public_url")}
-                  placeholder="https://cdn.example.com"
-                  overrides={inputOverrides}
+              <FormControl
+                label="Public CDN URL"
+                caption="Optional — e.g. https://cdn.example.com. If set, audio streams directly from your CDN. If omitted, Rocksky generates presigned URLs."
+              >
+                <Controller
+                  name="public_url"
+                  control={control}
+                  render={({ field }) => (
+                    <Input {...field} placeholder="https://cdn.example.com" overrides={inputOverrides} />
+                  )}
                 />
               </FormControl>
 
