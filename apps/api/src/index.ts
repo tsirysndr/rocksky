@@ -141,25 +141,37 @@ app.post("/now-playing", async (c) => {
   }
 
   const body = await c.req.json();
-  consola.debug(`[now-playing] received payload for ${chalk.cyan(did)}:`, JSON.stringify(body));
+  consola.debug(
+    `[now-playing] received payload for ${chalk.cyan(did)}:`,
+    JSON.stringify(body),
+  );
 
   const parsed = trackSchema.safeParse(body);
 
   if (parsed.error) {
-    consola.warn(`[now-playing] validation failed for ${chalk.cyan(did)}:`, parsed.error.flatten());
+    consola.warn(
+      `[now-playing] validation failed for ${chalk.cyan(did)}:`,
+      parsed.error.flatten(),
+    );
     c.status(400);
     return c.text("Invalid track data: " + parsed.error.message);
   }
   const track = parsed.data;
-  consola.debug(`[now-playing] validation passed for ${chalk.cyan(did)} — title="${track.title}" artist="${track.artist}" duration=${track.duration} timestamp=${track.timestamp}`);
+  consola.debug(
+    `[now-playing] validation passed for ${chalk.cyan(did)} — title="${track.title}" artist="${track.artist}" duration=${track.duration} timestamp=${track.timestamp}`,
+  );
 
   const agent = await createAgent(ctx.oauthClient, did);
   if (!agent) {
-    consola.warn(`[now-playing] no agent for ${chalk.cyan(did)}, returning 401`);
+    consola.warn(
+      `[now-playing] no agent for ${chalk.cyan(did)}, returning 401`,
+    );
     c.status(401);
     return c.text("Unauthorized");
   }
-  consola.debug(`[now-playing] agent created for ${chalk.cyan(did)}, calling scrobbleTrack`);
+  consola.debug(
+    `[now-playing] agent created for ${chalk.cyan(did)}, calling scrobbleTrack`,
+  );
 
   await scrobbleTrack(ctx, track, agent, user.did);
 

@@ -1,6 +1,7 @@
 import { useParams } from "react-router-dom";
 import { Link } from "react-router-dom";
 import ContentLoader from "react-content-loader";
+import dayjs from "dayjs";
 import numeral from "numeral";
 import { IconBrandSpotify } from "@tabler/icons-react";
 import { useArtistAlbumsQuery, useArtistTracksQuery, useSongByUriQuery } from "../../hooks/useLibrary";
@@ -107,6 +108,32 @@ export default function Song() {
                 </Link>
               )}
             </div>
+
+            {/* First scrobble */}
+            {song.firstScrobble && (
+              <div className="flex items-center justify-center gap-2 mb-4">
+                {song.firstScrobble.avatar && (
+                  <img
+                    src={song.firstScrobble.avatar}
+                    alt={song.firstScrobble.handle}
+                    className="w-5 h-5 rounded-full object-cover shrink-0"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                )}
+                <p className="text-xs m-0" style={{ color: "var(--color-text-muted)" }}>
+                  First scrobbled {dayjs(song.firstScrobble.timestamp).fromNow()} by{" "}
+                  <Link
+                    to={`/profile/${song.firstScrobble.handle}`}
+                    className="no-underline font-medium"
+                    style={{ color: "var(--color-primary)" }}
+                  >
+                    @{song.firstScrobble.handle}
+                  </Link>
+                </p>
+              </div>
+            )}
 
             {/* Stats */}
             <div

@@ -1,6 +1,6 @@
 import type { Context } from "context";
 import { consola } from "consola";
-import { count, eq, or } from "drizzle-orm";
+import { asc, count, eq, or } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { SongViewDetailed } from "lexicon/types/app/rocksky/song/defs";
@@ -85,18 +85,39 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
           .where(eq(tables.scrobbles.trackId, track?.id))
           .execute()
           .then((rows) => rows[0]?.count || 0),
+        ctx.db
+          .select({
+            handle: tables.users.handle,
+            avatar: tables.users.avatar,
+            timestamp: tables.scrobbles.timestamp,
+          })
+          .from(tables.scrobbles)
+          .leftJoin(tables.users, eq(tables.scrobbles.userId, tables.users.id))
+          .where(eq(tables.scrobbles.trackId, track?.id))
+          .orderBy(asc(tables.scrobbles.timestamp))
+          .limit(1)
+          .execute()
+          .then(([row]) => row ?? null),
       ]);
     },
     catch: (error) => new Error(`Failed to retrieve artist: ${error}`),
   });
 };
 
-const presentation = ([track, artist, artists, uniqueListeners, playCount]: [
+const presentation = ([
+  track,
+  artist,
+  artists,
+  uniqueListeners,
+  playCount,
+  firstScrobble,
+]: [
   SelectTrack,
   SelectArtist,
   SelectArtist[],
   number,
   number,
+  { handle: string; avatar: string; timestamp: Date } | null,
 ]): Effect.Effect<SongViewDetailed, never> => {
   return Effect.sync(() => ({
     ...track,
@@ -110,5 +131,12 @@ const presentation = ([track, artist, artists, uniqueListeners, playCount]: [
     uniqueListeners,
     createdAt: track.createdAt.toISOString(),
     updatedAt: track.updatedAt.toISOString(),
+    firstScrobble: firstScrobble
+      ? {
+          handle: firstScrobble.handle,
+          avatar: firstScrobble.avatar,
+          timestamp: firstScrobble.timestamp.toISOString(),
+        }
+      : undefined,
   }));
 };

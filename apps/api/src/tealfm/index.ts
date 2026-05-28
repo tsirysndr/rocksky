@@ -120,13 +120,9 @@ async function publishStatus(
     duration,
     playedTime: track.timestamp,
     artists: track.artist.map(toTealArtist),
-    ...(track.releaseMBID
-      ? { releaseMbId: toMbidUri(track.releaseMBID) }
-      : {}),
+    ...(track.releaseMBID ? { releaseMbId: toMbidUri(track.releaseMBID) } : {}),
     releaseName: track.album,
-    ...(track.trackMBID
-      ? { recordingMbId: toMbidUri(track.trackMBID) }
-      : {}),
+    ...(track.trackMBID ? { recordingMbId: toMbidUri(track.trackMBID) } : {}),
     submissionClientAgent: SUBMISSION_CLIENT_AGENT,
   };
   const now = new Date();

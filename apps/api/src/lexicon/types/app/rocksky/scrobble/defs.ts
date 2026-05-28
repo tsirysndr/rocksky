@@ -79,6 +79,7 @@ export interface ScrobbleViewDetailed {
   /** The number of scrobbles for this song */
   scrobbles?: number;
   artists?: AppRockskyArtistDefs.ArtistViewBasic[];
+  firstScrobble?: FirstScrobbleView;
   [k: string]: unknown;
 }
 
@@ -92,4 +93,26 @@ export function isScrobbleViewDetailed(v: unknown): v is ScrobbleViewDetailed {
 
 export function validateScrobbleViewDetailed(v: unknown): ValidationResult {
   return lexicons.validate("app.rocksky.scrobble.defs#scrobbleViewDetailed", v);
+}
+
+export interface FirstScrobbleView {
+  /** The handle of the user who first scrobbled this song. */
+  handle?: string;
+  /** The avatar URL of the user who first scrobbled this song. */
+  avatar?: string;
+  /** The timestamp of the first scrobble. */
+  timestamp?: string;
+  [k: string]: unknown;
+}
+
+export function isFirstScrobbleView(v: unknown): v is FirstScrobbleView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.scrobble.defs#firstScrobbleView"
+  );
+}
+
+export function validateFirstScrobbleView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.scrobble.defs#firstScrobbleView", v);
 }

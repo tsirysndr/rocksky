@@ -91,6 +91,7 @@ export interface SongViewDetailed {
   /** The timestamp when the song was created. */
   createdAt?: string;
   artists?: AppRockskyArtistDefs.ArtistViewBasic[];
+  firstScrobble?: FirstScrobbleView;
   [k: string]: unknown;
 }
 
@@ -104,4 +105,26 @@ export function isSongViewDetailed(v: unknown): v is SongViewDetailed {
 
 export function validateSongViewDetailed(v: unknown): ValidationResult {
   return lexicons.validate("app.rocksky.song.defs#songViewDetailed", v);
+}
+
+export interface FirstScrobbleView {
+  /** The handle of the user who first scrobbled this song. */
+  handle?: string;
+  /** The avatar URL of the user who first scrobbled this song. */
+  avatar?: string;
+  /** The timestamp of the first scrobble. */
+  timestamp?: string;
+  [k: string]: unknown;
+}
+
+export function isFirstScrobbleView(v: unknown): v is FirstScrobbleView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.song.defs#firstScrobbleView"
+  );
+}
+
+export function validateFirstScrobbleView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.song.defs#firstScrobbleView", v);
 }

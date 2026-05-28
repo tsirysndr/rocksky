@@ -76,11 +76,10 @@ function handleWebsocket(c: Context) {
               )
               .digest("hex");
 
-            const [cachedTrack, cachedLikes] =
-              await Promise.all([
-                ctx.redis.get(`track:${sha256}`),
-                ctx.redis.get(`likes:${did}:${sha256}`),
-              ]);
+            const [cachedTrack, cachedLikes] = await Promise.all([
+              ctx.redis.get(`track:${sha256}`),
+              ctx.redis.get(`likes:${did}:${sha256}`),
+            ]);
 
             // Like status
             if (cachedLikes) {
@@ -265,7 +264,11 @@ function handleWebsocket(c: Context) {
                   await ctx.redis.del(`stopped:${did}`);
                   await ctx.redis.del(`lastsong:${did}`);
                   if (savedSha) {
-                    await ctx.redis.setEx(`ws_lastsong:${did}`, 86400, savedSha);
+                    await ctx.redis.setEx(
+                      `ws_lastsong:${did}`,
+                      86400,
+                      savedSha,
+                    );
                   }
                 }
               }

@@ -153,7 +153,10 @@ function rateLimitResetMsg(err: any): string {
 // Last status successfully written to the PDS per DID.
 // Tracks key ("name:artist") and source so Navidrome can override a Rockbox
 // entry for the same track without being deduped.
-const lastPushedStatus = new Map<string, { key: string; source: string } | null>();
+const lastPushedStatus = new Map<
+  string,
+  { key: string; source: string } | null
+>();
 
 // Unix ms timestamp until which PDS writes are suppressed for a given DID.
 // Set when a 429 is received; cleared automatically once the time passes.
@@ -195,18 +198,23 @@ export function onSongChanged(ctx: Context) {
         const { track: rawTrack } = payload;
 
         if (isRateLimited(did)) {
-          consola.debug(`[status] song.changed skipped for ${did} — PDS rate limited until ${new Date(rateLimitedUntil.get(did)!).toISOString()}`);
+          consola.debug(
+            `[status] song.changed skipped for ${did} — PDS rate limited until ${new Date(rateLimitedUntil.get(did)!).toISOString()}`,
+          );
           continue;
         }
 
         const trackKey = `${rawTrack.name ?? ""}:${rawTrack.artists?.[0]?.name ?? rawTrack.artist ?? ""}`;
-        const source = rawTrack.source ?? (rawTrack.artists ? "spotify" : "listenbrainz");
+        const source =
+          rawTrack.source ?? (rawTrack.artists ? "spotify" : "listenbrainz");
         const last = lastPushedStatus.get(did);
         // Skip only when the same track was already written by the same source.
         // A different source (e.g. Navidrome after Rockbox) is always allowed through
         // so the active player can take ownership of the status record.
         if (last && last.key === trackKey && last.source === source) {
-          consola.info(`[status] skip unchanged status for ${did}: ${rawTrack.name} (source: ${source})`);
+          consola.info(
+            `[status] skip unchanged status for ${did}: ${rawTrack.name} (source: ${source})`,
+          );
           continue;
         }
 
@@ -262,7 +270,11 @@ export function onSongChanged(ctx: Context) {
           const sourceSnapshot = source;
           setTimeout(() => {
             const current = lastPushedStatus.get(did);
-            if (current && current.key === keySnapshot && current.source === sourceSnapshot) {
+            if (
+              current &&
+              current.key === keySnapshot &&
+              current.source === sourceSnapshot
+            ) {
               lastPushedStatus.delete(did);
             }
           }, track.durationMs + 10_000);
@@ -272,13 +284,18 @@ export function onSongChanged(ctx: Context) {
           `[status] Updated status for ${did}: ${track.artist} – ${track.name}${recordingMbId ? ` (${recordingMbId})` : ""}`,
         );
       } catch (err: any) {
-        const status = err?.status ?? err?.response?.status ?? err?.error?.status;
+        const status =
+          err?.status ?? err?.response?.status ?? err?.error?.status;
         const message = err?.message ?? err?.error?.message ?? String(err);
         if (status === 429) {
           applyRateLimitBackoff(did, err);
-          consola.warn(`[status] song.changed rate limited for ${did}${rateLimitResetMsg(err)}`);
+          consola.warn(
+            `[status] song.changed rate limited for ${did}${rateLimitResetMsg(err)}`,
+          );
         } else {
-          consola.error(`[status] Error handling song.changed for ${did} — HTTP ${status ?? "?"}: ${message}`);
+          consola.error(
+            `[status] Error handling song.changed for ${did} — HTTP ${status ?? "?"}: ${message}`,
+          );
         }
       }
     }
@@ -294,7 +311,9 @@ export function onSongStopped(ctx: Context) {
         ({ did } = jc.decode(m.data) as SongStoppedPayload);
 
         if (isRateLimited(did)) {
-          consola.debug(`[status] song.stopped skipped for ${did} — PDS rate limited until ${new Date(rateLimitedUntil.get(did)!).toISOString()}`);
+          consola.debug(
+            `[status] song.stopped skipped for ${did} — PDS rate limited until ${new Date(rateLimitedUntil.get(did)!).toISOString()}`,
+          );
           continue;
         }
 
@@ -318,14 +337,19 @@ export function onSongStopped(ctx: Context) {
         lastPushedStatus.set(did, null);
         consola.info(`[status] Cleared status for ${did}`);
       } catch (err: any) {
-        const status = err?.status ?? err?.response?.status ?? err?.error?.status;
+        const status =
+          err?.status ?? err?.response?.status ?? err?.error?.status;
         if (status === 400 || status === 404) continue; // already gone, not an error
         const message = err?.message ?? err?.error?.message ?? String(err);
         if (status === 429) {
           applyRateLimitBackoff(did, err);
-          consola.warn(`[status] song.stopped rate limited for ${did}${rateLimitResetMsg(err)}`);
+          consola.warn(
+            `[status] song.stopped rate limited for ${did}${rateLimitResetMsg(err)}`,
+          );
         } else {
-          consola.error(`[status] Error handling song.stopped for ${did} — HTTP ${status ?? "?"}: ${message}`);
+          consola.error(
+            `[status] Error handling song.stopped for ${did} — HTTP ${status ?? "?"}: ${message}`,
+          );
         }
       }
     }

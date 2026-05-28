@@ -5,7 +5,7 @@ import { type ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../../lexicons";
 import { isObj, hasProp } from "../../../../../util";
 import { CID } from "multiformats/cid";
-import * as AppBskyRichtextFacet from "../../../../app/bsky/richtext/facet";
+import type * as AppBskyRichtextFacet from "../../../../app/bsky/richtext/facet";
 import type * as FmTealAlphaActorProfile from "./profile";
 import type * as FmTealAlphaFeedDefs from "../feed/defs";
 

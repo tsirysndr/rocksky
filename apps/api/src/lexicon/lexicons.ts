@@ -5119,6 +5119,32 @@ export const schemaDict = {
               ref: "lex:app.rocksky.artist.defs#artistViewBasic",
             },
           },
+          firstScrobble: {
+            type: "ref",
+            description: "The first scrobble of this song on Rocksky.",
+            ref: "lex:app.rocksky.scrobble.defs#firstScrobbleView",
+          },
+        },
+      },
+      firstScrobbleView: {
+        type: "object",
+        properties: {
+          handle: {
+            type: "string",
+            description:
+              "The handle of the user who first scrobbled this song.",
+          },
+          avatar: {
+            type: "string",
+            description:
+              "The avatar URL of the user who first scrobbled this song.",
+            format: "uri",
+          },
+          timestamp: {
+            type: "string",
+            description: "The timestamp of the first scrobble.",
+            format: "datetime",
+          },
         },
       },
     },
@@ -6062,6 +6088,32 @@ export const schemaDict = {
               type: "ref",
               ref: "lex:app.rocksky.artist.defs#artistViewBasic",
             },
+          },
+          firstScrobble: {
+            type: "ref",
+            description: "The first scrobble of this song on Rocksky.",
+            ref: "lex:app.rocksky.song.defs#firstScrobbleView",
+          },
+        },
+      },
+      firstScrobbleView: {
+        type: "object",
+        properties: {
+          handle: {
+            type: "string",
+            description:
+              "The handle of the user who first scrobbled this song.",
+          },
+          avatar: {
+            type: "string",
+            description:
+              "The avatar URL of the user who first scrobbled this song.",
+            format: "uri",
+          },
+          timestamp: {
+            type: "string",
+            description: "The timestamp of the first scrobble.",
+            format: "datetime",
           },
         },
       },

@@ -48,7 +48,10 @@ async function main() {
         track: tables.tracks,
       })
       .from(tables.userUploads)
-      .innerJoin(tables.tracks, eq(tables.userUploads.trackId, tables.tracks.id))
+      .innerJoin(
+        tables.tracks,
+        eq(tables.userUploads.trackId, tables.tracks.id),
+      )
       .orderBy(tables.userUploads.uploadedAt)
       .limit(BATCH)
       .offset(offset);
@@ -110,7 +113,9 @@ async function main() {
   }
 
   consola.success(
-    chalk.green(`Import complete — ${chalk.bold(indexed)} indexed, ${chalk.bold(failed)} failed out of ${chalk.bold(total)} uploads.`),
+    chalk.green(
+      `Import complete — ${chalk.bold(indexed)} indexed, ${chalk.bold(failed)} failed out of ${chalk.bold(total)} uploads.`,
+    ),
   );
   process.exit(failed > 0 ? 1 : 0);
 }

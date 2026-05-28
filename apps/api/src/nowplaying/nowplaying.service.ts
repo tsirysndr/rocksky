@@ -208,11 +208,15 @@ async function putScrobbleRecord(
   try {
     agentDid = agent.assertDid;
   } catch {
-    consola.error("putScrobbleRecord: agent has no session/DID — ATProto putRecord will fail");
+    consola.error(
+      "putScrobbleRecord: agent has no session/DID — ATProto putRecord will fail",
+    );
     return null;
   }
 
-  consola.debug(`putScrobbleRecord: posting for agent DID ${chalk.cyan(agentDid)}, title="${record.title}"`);
+  consola.debug(
+    `putScrobbleRecord: posting for agent DID ${chalk.cyan(agentDid)}, title="${record.title}"`,
+  );
 
   try {
     const res = await agent.com.atproto.repo.putRecord({
@@ -999,11 +1003,13 @@ export async function scrobbleTrack(
   // Enrich track with metadata from the DB that the client may not have sent
   // (e.g. web upload player only sends title/artist/album/duration/albumArt)
   if (existingTrack) {
-    if (track.trackNumber == null) track.trackNumber = existingTrack.trackNumber;
+    if (track.trackNumber == null)
+      track.trackNumber = existingTrack.trackNumber;
     if (track.discNumber == null) track.discNumber = existingTrack.discNumber;
     if (!track.composer) track.composer = existingTrack.composer;
     if (!track.lyrics) track.lyrics = existingTrack.lyrics;
-    if (!track.copyrightMessage) track.copyrightMessage = existingTrack.copyrightMessage;
+    if (!track.copyrightMessage)
+      track.copyrightMessage = existingTrack.copyrightMessage;
     if (!track.mbId) track.mbId = existingTrack.mbId;
     if (!track.genres?.length && existingTrack.genre)
       track.genres = [existingTrack.genre];

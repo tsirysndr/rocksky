@@ -11,6 +11,7 @@ import {
   LabelLarge,
   LabelMedium,
 } from "baseui/typography";
+import dayjs from "dayjs";
 import { useAtomValue, useSetAtom } from "jotai";
 import numeral from "numeral";
 import { useEffect, useState } from "react";
@@ -86,6 +87,9 @@ const Song = () => {
     songResult.data?.artistUri || scrobbleResult.data?.artistUri,
     10,
   );
+
+  const firstScrobble =
+    songResult.data?.firstScrobble ?? scrobbleResult.data?.firstScrobble;
 
   const song = useAtomValue(songAtom);
   const setSong = useSetAtom(songAtom);
@@ -284,6 +288,34 @@ const Song = () => {
                       {index < array.length - 1 && ", "}
                     </span>
                   ))}
+
+                {firstScrobble && (
+                  <div className="flex items-center mt-[10px] gap-[6px]">
+                    {firstScrobble.avatar && (
+                      <img
+                        src={firstScrobble.avatar}
+                        alt={firstScrobble.handle}
+                        className="w-[20px] h-[20px] rounded-full object-cover shrink-0"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                    )}
+                    <LabelMedium
+                      margin={0}
+                      className="!text-[var(--color-text-muted)]"
+                    >
+                      First scrobbled {dayjs(firstScrobble.timestamp).fromNow()}{" "}
+                      by{" "}
+                      <Link
+                        to={`/profile/${firstScrobble.handle}` as string}
+                        className="!text-[var(--color-primary)]"
+                      >
+                        @{firstScrobble.handle}
+                      </Link>
+                    </LabelMedium>
+                  </div>
+                )}
 
                 <div className="mt-[20px] flex flex-row">
                   <div

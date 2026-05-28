@@ -160,6 +160,31 @@ defs = new Mapping<String, ObjectType> {
           ref = "app.rocksky.artist.defs#artistViewBasic"
         }
       }
+      ["firstScrobble"] = new Ref {
+        type = "ref"
+        ref = "app.rocksky.scrobble.defs#firstScrobbleView"
+        description = "The first scrobble of this song on Rocksky."
+      }
+    }
+  }
+
+  ["firstScrobbleView"] {
+    type = "object"
+    properties {
+      ["handle"] = new StringType {
+        type = "string"
+        description = "The handle of the user who first scrobbled this song."
+      }
+      ["avatar"] = new StringType {
+        type = "string"
+        format = "uri"
+        description = "The avatar URL of the user who first scrobbled this song."
+      }
+      ["timestamp"] = new StringType {
+        type = "string"
+        format = "datetime"
+        description = "The timestamp of the first scrobble."
+      }
     }
   }
 }

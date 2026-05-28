@@ -1,11 +1,11 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import { type ValidationResult, BlobRef } from "@atproto/lexicon";
+import type { ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../../lexicons";
 import { isObj, hasProp } from "../../../../../util";
 import { CID } from "multiformats/cid";
-import * as AppBskyRichtextFacet from "../../../../app/bsky/richtext/facet";
+import type * as AppBskyRichtextFacet from "../../../../app/bsky/richtext/facet";
 
 export interface Record {
   displayName?: string;

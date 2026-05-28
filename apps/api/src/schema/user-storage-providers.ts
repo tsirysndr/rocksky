@@ -21,12 +21,14 @@ const userStorageProviders = pgTable(
     updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
     xataVersion: integer("xata_version"),
   },
-  (t) => [
-    index("user_storage_providers_user_id_idx").on(t.userId),
-  ],
+  (t) => [index("user_storage_providers_user_id_idx").on(t.userId)],
 );
 
-export type SelectUserStorageProvider = InferSelectModel<typeof userStorageProviders>;
-export type InsertUserStorageProvider = InferInsertModel<typeof userStorageProviders>;
+export type SelectUserStorageProvider = InferSelectModel<
+  typeof userStorageProviders
+>;
+export type InsertUserStorageProvider = InferInsertModel<
+  typeof userStorageProviders
+>;
 
 export default userStorageProviders;

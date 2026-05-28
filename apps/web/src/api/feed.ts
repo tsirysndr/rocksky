@@ -29,6 +29,9 @@ export const getScrobbleByUri = async (uri: string) => {
     composer: response.data?.composer,
     uri: response.data?.uri,
     artists: response.data?.artists,
+    firstScrobble: response.data?.firstScrobble as
+      | { handle: string; avatar: string; timestamp: string }
+      | undefined,
   };
 };
 

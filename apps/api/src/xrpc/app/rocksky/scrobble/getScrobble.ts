@@ -1,6 +1,6 @@
 import type { Context } from "context";
 import { consola } from "consola";
-import { count, countDistinct, eq } from "drizzle-orm";
+import { asc, count, countDistinct, eq } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ScrobbleViewDetailed } from "lexicon/types/app/rocksky/scrobble/defs";
@@ -44,7 +44,13 @@ const retrieve = ({
   params: QueryParams;
   ctx: Context;
 }): Effect.Effect<
-  [Scrobble | undefined, SelectArtist[], number, number],
+  [
+    Scrobble | undefined,
+    SelectArtist[],
+    number,
+    number,
+    { handle: string; avatar: string; timestamp: Date } | null,
+  ],
   Error
 > => {
   return Effect.tryPromise({
@@ -102,6 +108,20 @@ const retrieve = ({
           .where(eq(tables.scrobbles.trackId, scrobble?.tracks.id))
           .execute()
           .then((rows) => rows[0]?.count || 0),
+        // first scrobble for this track
+        ctx.db
+          .select({
+            handle: tables.users.handle,
+            avatar: tables.users.avatar,
+            timestamp: tables.scrobbles.timestamp,
+          })
+          .from(tables.scrobbles)
+          .leftJoin(tables.users, eq(tables.scrobbles.userId, tables.users.id))
+          .where(eq(tables.scrobbles.trackId, scrobble?.tracks.id))
+          .orderBy(asc(tables.scrobbles.timestamp))
+          .limit(1)
+          .execute()
+          .then(([row]) => row ?? null),
       ]);
     },
     catch: (error) => new Error(`Failed to retrieve scrobble: ${error}`),
@@ -113,10 +133,14 @@ const presentation = ([
   trackArtists,
   listeners,
   scrobblesCount,
-]: [Scrobble | undefined, SelectArtist[], number, number]): Effect.Effect<
-  ScrobbleViewDetailed,
-  never
-> => {
+  firstScrobble,
+]: [
+  Scrobble | undefined,
+  SelectArtist[],
+  number,
+  number,
+  { handle: string; avatar: string; timestamp: Date } | null,
+]): Effect.Effect<ScrobbleViewDetailed, never> => {
   return Effect.sync(() => ({
     ...R.omit(["albumArt", "id", "albumUri"], tracks),
     artists: trackArtists.map((item) => ({
@@ -135,6 +159,13 @@ const presentation = ([
     createdAt: scrobbles.createdAt.toISOString(),
     updatedAt: scrobbles.updatedAt.toISOString(),
     id: scrobbles.id,
+    firstScrobble: firstScrobble
+      ? {
+          handle: firstScrobble.handle,
+          avatar: firstScrobble.avatar,
+          timestamp: firstScrobble.timestamp.toISOString(),
+        }
+      : undefined,
   }));
 };
 

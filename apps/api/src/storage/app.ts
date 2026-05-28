@@ -70,7 +70,8 @@ app.post("/providers", async (c) => {
   try {
     await client.send(new HeadBucketCommand({ Bucket: bucket }));
   } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : "Failed to connect to S3 bucket";
+    const message =
+      e instanceof Error ? e.message : "Failed to connect to S3 bucket";
     return c.json({ error: "CONNECTIVITY_FAILED", message }, 422);
   }
 

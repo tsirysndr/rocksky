@@ -24,8 +24,13 @@ export interface LibraryTrackDocument {
   disc_number?: number;
 }
 
-export async function indexLibraryTrack(doc: LibraryTrackDocument): Promise<void> {
-  await typesense.collections(LIBRARY_TRACKS_COLLECTION).documents().upsert(doc);
+export async function indexLibraryTrack(
+  doc: LibraryTrackDocument,
+): Promise<void> {
+  await typesense
+    .collections(LIBRARY_TRACKS_COLLECTION)
+    .documents()
+    .upsert(doc);
 }
 
 export async function removeLibraryTrack(uploadId: string): Promise<void> {

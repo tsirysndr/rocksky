@@ -403,10 +403,11 @@ app.post("/track", async (c) => {
     .then((rows) => rows[0]);
 
   // --- Upload audio file to storage (managed or BYO) ---
-  const { client: s3, bucket, storageProviderId } = await resolveStorageClient(
-    user.id,
-    storageProviderIdParam,
-  );
+  const {
+    client: s3,
+    bucket,
+    storageProviderId,
+  } = await resolveStorageClient(user.id, storageProviderIdParam);
   await s3.send(
     new PutObjectCommand({
       Bucket: bucket,
@@ -509,9 +510,17 @@ app.get("/", async (c) => {
         albumYear: tables.albums.year,
       })
       .from(tables.userUploads)
-      .innerJoin(tables.tracks, eq(tables.userUploads.trackId, tables.tracks.id))
+      .innerJoin(
+        tables.tracks,
+        eq(tables.userUploads.trackId, tables.tracks.id),
+      )
       .leftJoin(tables.albums, eq(tables.albums.uri, tables.tracks.albumUri))
-      .where(and(eq(tables.userUploads.userId, user.id), inArray(tables.userUploads.id, uploadIds)));
+      .where(
+        and(
+          eq(tables.userUploads.userId, user.id),
+          inArray(tables.userUploads.id, uploadIds),
+        ),
+      );
 
     // Preserve Typesense relevance order.
     const rowMap = new Map(dbRows.map((r) => [r.upload.id, r]));
@@ -522,7 +531,10 @@ app.get("/", async (c) => {
   const albumFilter = albumUri
     ? eq(tables.tracks.albumUri, albumUri)
     : albumArtist && albumName
-      ? and(eq(tables.tracks.albumArtist, albumArtist), eq(tables.tracks.album, albumName))
+      ? and(
+          eq(tables.tracks.albumArtist, albumArtist),
+          eq(tables.tracks.album, albumName),
+        )
       : undefined;
 
   const whereClause = albumFilter
@@ -530,7 +542,11 @@ app.get("/", async (c) => {
     : eq(tables.userUploads.userId, user.id);
 
   const orderByClause = albumFilter
-    ? [asc(tables.tracks.trackNumber), asc(tables.tracks.title), asc(tables.tracks.artist)]
+    ? [
+        asc(tables.tracks.trackNumber),
+        asc(tables.tracks.title),
+        asc(tables.tracks.artist),
+      ]
     : [asc(tables.tracks.title), asc(tables.tracks.artist)];
 
   const uploads = await ctx.db
@@ -580,7 +596,8 @@ app.options("/:id/stream", (c) => {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, OPTIONS",
       "Access-Control-Allow-Headers": "Range, Authorization",
-      "Access-Control-Expose-Headers": "Content-Range, Content-Length, Accept-Ranges",
+      "Access-Control-Expose-Headers":
+        "Content-Range, Content-Length, Accept-Ranges",
       "Access-Control-Max-Age": "86400",
     },
   });
@@ -649,7 +666,8 @@ app.get("/:id/stream", async (c) => {
     "Cache-Control": "private, max-age=3600",
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Range, Authorization",
-    "Access-Control-Expose-Headers": "Content-Range, Content-Length, Accept-Ranges",
+    "Access-Control-Expose-Headers":
+      "Content-Range, Content-Length, Accept-Ranges",
   };
   if (s3Res.ContentLength !== undefined) {
     headers["Content-Length"] = String(s3Res.ContentLength);
