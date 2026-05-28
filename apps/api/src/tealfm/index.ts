@@ -10,6 +10,19 @@ import type { MusicbrainzTrack } from "types/track";
 
 const SUBMISSION_CLIENT_AGENT = "rocksky/v0.0.1";
 
+function toMbidUri(mbid?: string | null): string | undefined {
+  if (!mbid) return undefined;
+  return mbid.startsWith("mbid:") ? mbid : `mbid:${mbid}`;
+}
+
+function toTealArtist(artist: MusicbrainzTrack["artist"][number]) {
+  const artistMbId = toMbidUri(artist.mbid);
+  return {
+    artistName: artist.name,
+    ...(artistMbId ? { artistMbId } : {}),
+  };
+}
+
 async function getRecentPlays(agent: Agent, limit = 5) {
   const res = await agent.com.atproto.repo.listRecords({
     repo: agent.assertDid,
@@ -34,12 +47,14 @@ async function publishPlayingNow(
   try {
     // wait 60 seconds to ensure the track is actually being played
     await new Promise((resolve) => setTimeout(resolve, 60000));
+    const recordingMbId = toMbidUri(track.trackMBID);
     const recentPlays = await getRecentPlays(agent, 5);
     // Check if the track was played in the last 5 plays (verify by MBID and timestamp to avoid duplicates)
     const alreadyPlayed = recentPlays.some((play) => {
       const record = Play.isRecord(play.value) ? play.value : null;
       return (
-        (record?.recordingMbId === track.trackMBID ||
+        (record?.recordingMbId === recordingMbId ||
+          record?.recordingMbId === track.trackMBID ||
           (Math.abs(record?.duration - duration) < 4 &&
             record?.trackName === track.name)) &&
         // diff in seconds less than 60 seconds
@@ -64,13 +79,12 @@ async function publishPlayingNow(
       duration,
       trackName: track.name,
       playedTime: track.timestamp,
-      artists: track.artist.map((artist) => ({
-        artistMbId: artist.mbid,
-        artistName: artist.name,
-      })),
-      releaseMbId: track.releaseMBID,
+      artists: track.artist.map(toTealArtist),
+      ...(track.releaseMBID
+        ? { releaseMbId: toMbidUri(track.releaseMBID) }
+        : {}),
       releaseName: track.album,
-      recordingMbId: track.trackMBID,
+      ...(recordingMbId ? { recordingMbId } : {}),
       submissionClientAgent: SUBMISSION_CLIENT_AGENT,
     };
 
@@ -105,22 +119,23 @@ async function publishStatus(
     trackName: track.name,
     duration,
     playedTime: track.timestamp,
-    artists: track.artist.map((artist) => ({
-      artistMbId: artist.mbid,
-      artistName: artist.name,
-    })),
-    releaseMbId: track.releaseMBID,
+    artists: track.artist.map(toTealArtist),
+    ...(track.releaseMBID
+      ? { releaseMbId: toMbidUri(track.releaseMBID) }
+      : {}),
     releaseName: track.album,
-    recordingMbId: track.trackMBID,
+    ...(track.trackMBID
+      ? { recordingMbId: toMbidUri(track.trackMBID) }
+      : {}),
     submissionClientAgent: SUBMISSION_CLIENT_AGENT,
   };
-  const time = new Date().toISOString();
-  const expiry = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes from now
+  const now = new Date();
+  const expiry = new Date(now.getTime() + 10 * 60 * 1000);
   const record: Status.Record = {
     $type: "fm.teal.alpha.actor.status",
     item,
-    time,
-    expiry,
+    time: now.toISOString(),
+    expiry: expiry.toISOString(),
   };
   const swapRecord = await getStatusSwapRecord(agent);
   const res = await agent.com.atproto.repo.putRecord({
