@@ -124,14 +124,16 @@ function Navbar() {
               >
                 API Keys
               </Link>
-              <Link
-                to="/storage"
-                className="py-3.5 px-2 no-underline font-medium text-base block"
-                style={{ color: "var(--color-text)" }}
-                onClick={() => setMenuOpen(false)}
-              >
-                Storage
-              </Link>
+              {profile?.did === "did:plc:7vdlgi2bflelz7mmuxoqjfcr" && (
+                <Link
+                  to="/storage"
+                  className="py-3.5 px-2 no-underline font-medium text-base block"
+                  style={{ color: "var(--color-text)" }}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Storage
+                </Link>
+              )}
               <button
                 onClick={onLogout}
                 className="py-3.5 px-2 border-none bg-transparent cursor-pointer text-base font-medium text-left w-full"
