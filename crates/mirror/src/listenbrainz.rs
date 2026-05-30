@@ -12,7 +12,7 @@ use reqwest::Client;
 use serde::Deserialize;
 use sqlx::{Pool, Postgres};
 use tokio_util::sync::CancellationToken;
-use tracing::{debug, error, info, warn};
+use tracing::{error, info, warn};
 
 use crate::{
     crypto,
@@ -92,7 +92,7 @@ async fn poll_once(
     username: &str,
     watermark: DateTime<Utc>,
 ) -> Result<DateTime<Utc>, Error> {
-    debug!(user_id = %row.user_id, "ListenBrainz: polling listens");
+    info!(user_id = %row.user_id, "ListenBrainz: polling listens");
 
     let url = format!("https://api.listenbrainz.org/1/user/{username}/listens");
     let mut req = http.get(&url).query(&[

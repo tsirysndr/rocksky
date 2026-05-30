@@ -23,7 +23,7 @@ use std::env;
 use tokio::sync::RwLock;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 use tokio_util::sync::CancellationToken;
-use tracing::{debug, error, info, warn};
+use tracing::{error, info, warn};
 
 use crate::{
     db, dedup, enrich::Enricher, rocksky, track::NormalizedTrack, Provider, TEALFM_PLAY_NSID,
@@ -119,7 +119,7 @@ async fn handle_event(
         return Ok(());
     }
     if commit.operation != "create" {
-        debug!(operation = %commit.operation, "Teal.fm: ignoring non-create");
+        info!(operation = %commit.operation, "Teal.fm: ignoring non-create");
         return Ok(());
     }
 

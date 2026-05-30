@@ -23,7 +23,7 @@ use reqwest::Client;
 use serde::Deserialize;
 use sqlx::{Pool, Postgres};
 use tokio::sync::Mutex;
-use tracing::{debug, info, warn};
+use tracing::{info, warn};
 
 use crate::creds::{CredentialPool, SpotifyCred};
 use crate::db;
@@ -92,7 +92,7 @@ impl Enricher {
                     artist = %track.artist,
                     "enrich: Spotify search hit"
                 ),
-                Ok(false) => debug!(
+                Ok(false) => info!(
                     title = %track.title,
                     artist = %track.artist,
                     "enrich: Spotify search miss / no creds"
@@ -108,7 +108,7 @@ impl Enricher {
                     artist = %track.artist,
                     "enrich: Last.fm getInfo hit"
                 ),
-                Ok(false) => debug!(
+                Ok(false) => info!(
                     title = %track.title,
                     artist = %track.artist,
                     "enrich: Last.fm getInfo miss / no creds"

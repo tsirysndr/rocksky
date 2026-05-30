@@ -7,7 +7,7 @@
 use anyhow::Error;
 use chrono::{DateTime, Utc};
 use sqlx::{Pool, Postgres};
-use tracing::debug;
+use tracing::info;
 
 const WINDOW_SECS: i64 = 120;
 
@@ -47,12 +47,28 @@ pub async fn already_scrobbled(
     .await?;
 
     let hit = row.is_some();
-    debug!(
-        user_id = %user_id,
-        title = %title,
-        artist = %artist,
-        hit,
-        "dedup check"
-    );
+    if hit {
+        // Always trace at info level when we skip a track — it's the most
+        // useful operational signal for confirming the mirror isn't
+        // double-scrobbling.
+        info!(
+            user_id = %user_id,
+            title = %title,
+            artist = %artist,
+            at = %at.to_rfc3339(),
+            window_secs = WINDOW_SECS,
+            "dedup: skipped — already scrobbled within window"
+        );
+    } else {
+        // …and at info level when we *accept* a track, so every dedup
+        // decision is traceable at the same log level.
+        info!(
+            user_id = %user_id,
+            title = %title,
+            artist = %artist,
+            at = %at.to_rfc3339(),
+            "dedup: accepted — no prior scrobble within window"
+        );
+    }
     Ok(hit)
 }
