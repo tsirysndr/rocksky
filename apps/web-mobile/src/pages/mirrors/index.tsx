@@ -46,6 +46,18 @@ const inputOverrides = {
   },
 };
 
+// FormControl's default Label slot inherits the BaseUI theme's text color
+// (near-black). On the dark mobile theme that renders effectively
+// invisible — force it to our --color-text token instead.
+const FORM_CONTROL_OVERRIDES = {
+  Label: {
+    style: { color: "var(--color-text)" },
+  },
+  Caption: {
+    style: { color: "var(--color-text-muted)" },
+  },
+};
+
 const PRIMARY_BUTTON_OVERRIDES = {
   BaseButton: {
     style: ({ $disabled }: { $disabled?: boolean }) => ({
@@ -368,7 +380,11 @@ function ProviderPanel({
             </p>
           )}
           <form onSubmit={handleSubmit(submitCredentials)} noValidate>
-            <FormControl label="Username" error={errors.username?.message}>
+            <FormControl
+              label="Username"
+              error={errors.username?.message}
+              overrides={FORM_CONTROL_OVERRIDES}
+            >
               <Controller
                 name="username"
                 control={control}
@@ -389,6 +405,7 @@ function ProviderPanel({
             <FormControl
               label={PROVIDER_CREDENTIAL_LABEL[source.provider]}
               error={errors.apiKey?.message}
+              overrides={FORM_CONTROL_OVERRIDES}
               caption={
                 source.hasCredentials ? (
                   <span className="flex items-center gap-[4px]">

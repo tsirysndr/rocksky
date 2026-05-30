@@ -366,6 +366,23 @@ export default function WrappedPage() {
     document.head.appendChild(link);
   }, []);
 
+  // The Wrapped UI is built around a deep-dark canvas (white text, low-opacity
+  // panels, accent gradients). On the light theme the page background flips
+  // white and the white text becomes invisible. Force the app container dark
+  // for the lifetime of this page and restore on unmount.
+  useEffect(() => {
+    const root = document.getElementById("app-container");
+    if (!root) return;
+    const prevBg = root.style.background;
+    const prevColor = root.style.color;
+    root.style.background = "#0a0a0a";
+    root.style.color = "#fff";
+    return () => {
+      root.style.background = prevBg;
+      root.style.color = prevColor;
+    };
+  }, []);
+
   // Pre-fetch all ShareCard images as base64 so the off-screen card has no external URLs
   useEffect(() => {
     if (!data && !profile?.avatar) return;

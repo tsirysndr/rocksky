@@ -555,7 +555,7 @@ export default function MirrorsPage() {
 
   return (
     <Main>
-      <div className="px-[16px] pt-[16px] pb-[96px] max-w-2xl mx-auto">
+      <div className="px-[16px] pt-[16px] pb-[200px] max-w-2xl mx-auto">
         <h2
           className="text-xl font-bold m-[0px] mt-[24px] mb-[16px]"
           style={{ color: "var(--color-text)" }}
