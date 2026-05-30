@@ -17,6 +17,7 @@ import googleDriveDirectories from "./google-drive-directories";
 import googleDrivePaths from "./google-drive-paths";
 import googleDrive from "./googledrive";
 import lovedTracks from "./loved-tracks";
+import mirrorSources from "./mirror-sources";
 import playlistTracks from "./playlist-tracks";
 import playlists from "./playlists";
 import profileShouts from "./profile-shouts";
@@ -80,4 +81,5 @@ export default {
   queueTracks,
   feeds,
   follows,
+  mirrorSources,
 };

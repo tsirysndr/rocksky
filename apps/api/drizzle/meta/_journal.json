@@ -57,6 +57,13 @@
       "when": 1779582000000,
       "tag": "0007_tracks_fts",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1780000000000,
+      "tag": "0010_mirror_sources",
+      "breakpoints": true
     }
   ]
 }

@@ -306,6 +306,14 @@ function Navbar() {
                               </LabelMedium>
                             ),
                           },
+                          {
+                            id: "mirrors",
+                            label: (
+                              <LabelMedium className="!text-[var(--color-text)]">
+                                Mirror sources
+                              </LabelMedium>
+                            ),
+                          },
                         ]
                       : []),
                     ...(profile?.did === "did:plc:7vdlgi2bflelz7mmuxoqjfcr"
@@ -386,6 +394,9 @@ function Navbar() {
                         break;
                       case "storage":
                         navigate({ to: "/storage" });
+                        break;
+                      case "mirrors":
+                        navigate({ to: "/mirrors" });
                         break;
                       case "import-history":
                         navigate({

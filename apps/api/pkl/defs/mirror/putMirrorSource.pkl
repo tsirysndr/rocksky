@@ -1,0 +1,42 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.mirror.putMirrorSource"
+defs = new Mapping<String, Procedure> {
+  ["main"] {
+    type = "procedure"
+    description = "Upsert a mirror source for the authenticated user. Toggling `enabled` notifies the mirror process over NATS so it can start/stop the per-user task without a restart."
+    input {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        required = List("provider")
+        properties {
+          ["provider"] = new StringType {
+            type = "string"
+            description = "One of: lastfm, listenbrainz, tealfm"
+          }
+          ["enabled"] = new BooleanType {
+            type = "boolean"
+            description = "Enable or disable mirroring for this provider."
+          }
+          ["externalUsername"] = new StringType {
+            type = "string"
+            description = "External username (Last.fm / ListenBrainz). Required when enabling those providers. Ignored for Teal.fm."
+          }
+          ["apiKey"] = new StringType {
+            type = "string"
+            description = "API key / token to be encrypted at rest. Omit to leave the existing key unchanged. Pass an empty string to clear it."
+          }
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new Ref {
+        type = "ref"
+        ref = "app.rocksky.mirror.defs#mirrorSourceView"
+      }
+    }
+  }
+}

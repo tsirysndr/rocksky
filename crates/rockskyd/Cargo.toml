@@ -14,6 +14,7 @@ anyhow = "1.0.96"
 rocksky-dropbox = { path = "../dropbox" }
 rocksky-googledrive = { path = "../googledrive" }
 rocksky-jetstream = { path = "../jetstream" }
+rocksky-mirror = { path = "../mirror" }
 rocksky-playlists = { path = "../playlists" }
 rocksky-scrobbler = { path = "../scrobbler" }
 rocksky-spotify = { path = "../spotify" }

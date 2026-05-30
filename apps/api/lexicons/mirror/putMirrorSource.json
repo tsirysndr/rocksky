@@ -1,0 +1,44 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.mirror.putMirrorSource",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Upsert a mirror source for the authenticated user. Toggling `enabled` notifies the mirror process over NATS so it can start/stop the per-user task without a restart.",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [
+            "provider"
+          ],
+          "properties": {
+            "provider": {
+              "type": "string",
+              "description": "One of: lastfm, listenbrainz, tealfm"
+            },
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable or disable mirroring for this provider."
+            },
+            "externalUsername": {
+              "type": "string",
+              "description": "External username (Last.fm / ListenBrainz). Required when enabling those providers. Ignored for Teal.fm."
+            },
+            "apiKey": {
+              "type": "string",
+              "description": "API key / token to be encrypted at rest. Omit to leave the existing key unchanged. Pass an empty string to clear it."
+            }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "ref",
+          "ref": "app.rocksky.mirror.defs#mirrorSourceView"
+        }
+      }
+    }
+  }
+}

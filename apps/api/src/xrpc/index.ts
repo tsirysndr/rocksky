@@ -28,6 +28,8 @@ import search from "./app/rocksky/feed/search";
 import downloadFileFromGoogleDrive from "./app/rocksky/googledrive/downloadFile";
 import getFileFromGoogleDrive from "./app/rocksky/googledrive/getFile";
 import getFilesFromGoogleDrive from "./app/rocksky/googledrive/getFiles";
+import getMirrorSources from "./app/rocksky/mirror/getMirrorSources";
+import putMirrorSource from "./app/rocksky/mirror/putMirrorSource";
 import dislikeShout from "./app/rocksky/like/dislikeShout";
 import dislikeSong from "./app/rocksky/like/dislikeSong";
 import likeShout from "./app/rocksky/like/likeShout";
@@ -181,6 +183,8 @@ export default function (server: Server, ctx: Context) {
   getRecommendations(server, ctx);
   getArtistRecommendations(server, ctx);
   getAlbumRecommendations(server, ctx);
+  getMirrorSources(server, ctx);
+  putMirrorSource(server, ctx);
 
   return server;
 }

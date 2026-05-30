@@ -1,0 +1,38 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.mirror.defs"
+defs = new Mapping<String, ObjectType> {
+  ["mirrorSourceView"] {
+    type = "object"
+    required = List("provider", "enabled", "hasCredentials")
+    properties {
+      ["provider"] = new StringType {
+        type = "string"
+        description = "One of: lastfm, listenbrainz, tealfm"
+      }
+      ["enabled"] = new BooleanType {
+        type = "boolean"
+        description = "Whether scrobbles from this source are being mirrored into Rocksky."
+      }
+      ["externalUsername"] = new StringType {
+        type = "string"
+        description = "Username on the external service (Last.fm / ListenBrainz). Null for Teal.fm."
+      }
+      ["hasCredentials"] = new BooleanType {
+        type = "boolean"
+        description = "True when an API key is stored. Last.fm/ListenBrainz only; always false for Teal.fm."
+      }
+      ["lastPolledAt"] = new StringType {
+        type = "string"
+        format = "datetime"
+        description = "The last time the mirror process successfully polled this source."
+      }
+      ["lastScrobbleSeenAt"] = new StringType {
+        type = "string"
+        format = "datetime"
+        description = "Watermark — scrobbles from the external service older than this are skipped."
+      }
+    }
+  }
+}

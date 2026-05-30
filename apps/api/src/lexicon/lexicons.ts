@@ -3976,6 +3976,125 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyMirrorDefs: {
+    lexicon: 1,
+    id: "app.rocksky.mirror.defs",
+    defs: {
+      mirrorSourceView: {
+        type: "object",
+        required: ["provider", "enabled", "hasCredentials"],
+        properties: {
+          provider: {
+            type: "string",
+            description: "One of: lastfm, listenbrainz, tealfm",
+          },
+          enabled: {
+            type: "boolean",
+            description:
+              "Whether scrobbles from this source are being mirrored into Rocksky.",
+          },
+          externalUsername: {
+            type: "string",
+            description:
+              "Username on the external service (Last.fm / ListenBrainz). Null for Teal.fm.",
+          },
+          hasCredentials: {
+            type: "boolean",
+            description:
+              "True when an API key is stored. Last.fm/ListenBrainz only; always false for Teal.fm.",
+          },
+          lastPolledAt: {
+            type: "string",
+            description:
+              "The last time the mirror process successfully polled this source.",
+            format: "datetime",
+          },
+          lastScrobbleSeenAt: {
+            type: "string",
+            description:
+              "Watermark — scrobbles from the external service older than this are skipped.",
+            format: "datetime",
+          },
+        },
+      },
+    },
+  },
+  AppRockskyMirrorGetMirrorSources: {
+    lexicon: 1,
+    id: "app.rocksky.mirror.getMirrorSources",
+    defs: {
+      main: {
+        type: "query",
+        description:
+          "Get the authenticated user's scrobble mirror sources (Last.fm, ListenBrainz, Teal.fm).",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["sources"],
+            properties: {
+              sources: {
+                type: "array",
+                items: {
+                  type: "ref",
+                  ref: "lex:app.rocksky.mirror.defs#mirrorSourceView",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyMirrorPutMirrorSource: {
+    lexicon: 1,
+    id: "app.rocksky.mirror.putMirrorSource",
+    defs: {
+      main: {
+        type: "procedure",
+        description:
+          "Upsert a mirror source for the authenticated user. Toggling `enabled` notifies the mirror process over NATS so it can start/stop the per-user task without a restart.",
+        input: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["provider"],
+            properties: {
+              provider: {
+                type: "string",
+                description: "One of: lastfm, listenbrainz, tealfm",
+              },
+              enabled: {
+                type: "boolean",
+                description: "Enable or disable mirroring for this provider.",
+              },
+              externalUsername: {
+                type: "string",
+                description:
+                  "External username (Last.fm / ListenBrainz). Required when enabling those providers. Ignored for Teal.fm.",
+              },
+              apiKey: {
+                type: "string",
+                description:
+                  "API key / token to be encrypted at rest. Omit to leave the existing key unchanged. Pass an empty string to clear it.",
+              },
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "ref",
+            ref: "lex:app.rocksky.mirror.defs#mirrorSourceView",
+          },
+        },
+      },
+    },
+  },
   AppRockskyPlayerAddDirectoryToQueue: {
     lexicon: 1,
     id: "app.rocksky.player.addDirectoryToQueue",
@@ -6957,6 +7076,9 @@ export const ids = {
   AppRockskyLike: "app.rocksky.like",
   AppRockskyLikeLikeShout: "app.rocksky.like.likeShout",
   AppRockskyLikeLikeSong: "app.rocksky.like.likeSong",
+  AppRockskyMirrorDefs: "app.rocksky.mirror.defs",
+  AppRockskyMirrorGetMirrorSources: "app.rocksky.mirror.getMirrorSources",
+  AppRockskyMirrorPutMirrorSource: "app.rocksky.mirror.putMirrorSource",
   AppRockskyPlayerAddDirectoryToQueue: "app.rocksky.player.addDirectoryToQueue",
   AppRockskyPlayerAddItemsToQueue: "app.rocksky.player.addItemsToQueue",
   AppRockskyPlayerDefs: "app.rocksky.player.defs",
