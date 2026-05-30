@@ -41,20 +41,26 @@ const retrieve = ({
 }): Effect.Effect<MirrorSourceView[], Error> =>
   Effect.tryPromise({
     try: async () => {
-      if (!did) return [];
-      const [user] = await ctx.db
-        .select({ id: tables.users.id })
-        .from(tables.users)
-        .where(eq(tables.users.did, did))
-        .limit(1);
-      if (!user) return [];
+      // Always seed with the three baseline provider cards. We overlay any
+      // existing rows on top, so the UI never has to deal with "no data" —
+      // it just sees three disabled toggles ready to be flipped.
+      const byProvider = new Map<string, typeof tables.mirrorSources.$inferSelect>();
 
-      const rows = await ctx.db
-        .select()
-        .from(tables.mirrorSources)
-        .where(eq(tables.mirrorSources.userId, user.id));
+      if (did) {
+        const [user] = await ctx.db
+          .select({ id: tables.users.id })
+          .from(tables.users)
+          .where(eq(tables.users.did, did))
+          .limit(1);
+        if (user) {
+          const rows = await ctx.db
+            .select()
+            .from(tables.mirrorSources)
+            .where(eq(tables.mirrorSources.userId, user.id));
+          for (const r of rows) byProvider.set(r.provider, r);
+        }
+      }
 
-      const byProvider = new Map(rows.map((r) => [r.provider, r]));
       return PROVIDERS.map((provider) => {
         const r = byProvider.get(provider);
         return {
