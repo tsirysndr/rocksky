@@ -8,6 +8,7 @@ import dayjs from "dayjs";
 import { useAtomValue, useSetAtom } from "jotai";
 import numeral from "numeral";
 import { useEffect, useMemo, useState } from "react";
+import ContentLoader from "react-content-loader";
 import { lovedTracksAtom } from "../../../atoms/lovedTracks";
 import { userAtom } from "../../../atoms/user";
 import { useLovedTracksQuery } from "../../../hooks/useLibrary";
@@ -27,6 +28,31 @@ type Row = {
   index: number;
   date: string;
 };
+
+function LovedTracksSkeleton({ rows = 8 }: { rows?: number }) {
+  return (
+    <ContentLoader
+      speed={1.6}
+      width="100%"
+      height={rows * 80}
+      viewBox={`0 0 700 ${rows * 80}`}
+      backgroundColor="var(--color-skeleton-background)"
+      foregroundColor="var(--color-skeleton-foreground)"
+    >
+      {Array.from({ length: rows }).map((_, i) => {
+        const y = i * 80;
+        return (
+          <g key={i}>
+            <rect x="0" y={y + 10} rx="5" ry="5" width="60" height="60" />
+            <rect x="80" y={y + 22} rx="3" ry="3" width="240" height="14" />
+            <rect x="80" y={y + 46} rx="3" ry="3" width="160" height="11" />
+            <rect x="580" y={y + 32} rx="3" ry="3" width="110" height="12" />
+          </g>
+        );
+      })}
+    </ContentLoader>
+  );
+}
 
 const Link = styled(DefaultLink)`
   color: inherit;
@@ -86,6 +112,9 @@ function LovedTracks() {
         <HeadingSmall className="!text-[var(--color-text)]">
           Loved Tracks ({numeral(profileStats.data?.lovedTracks).format("0,0")})
         </HeadingSmall>
+      )}
+      {lovedTracksResult.isLoading && lovedTracks.length === 0 && (
+        <LovedTracksSkeleton />
       )}
       <TableBuilder
         data={lovedTracks.map((x, index) => ({

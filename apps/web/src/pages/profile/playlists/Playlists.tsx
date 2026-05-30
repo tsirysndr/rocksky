@@ -5,6 +5,7 @@ import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
 import { HeadingSmall, LabelMedium, LabelSmall } from "baseui/typography";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useEffect } from "react";
+import ContentLoader from "react-content-loader";
 import { playlistsAtom } from "../../../atoms/playlists";
 import SongCover from "../../../components/SongCover";
 import { usePlaylistsQuery } from "../../../hooks/usePlaylists";
@@ -22,6 +23,23 @@ const Link = styled(DefaultLink)`
     text-decoration: underline;
   }
 `;
+
+function PlaylistCardSkeleton() {
+  return (
+    <ContentLoader
+      speed={1.6}
+      width="100%"
+      height={260}
+      viewBox="0 0 220 260"
+      backgroundColor="var(--color-skeleton-background)"
+      foregroundColor="var(--color-skeleton-foreground)"
+    >
+      <rect x="0" y="0" rx="5" ry="5" width="220" height="200" />
+      <rect x="0" y="216" rx="3" ry="3" width="160" height="14" />
+      <rect x="0" y="240" rx="3" ry="3" width="80" height="10" />
+    </ContentLoader>
+  );
+}
 
 function Playlists() {
   const { did } = useParams({ strict: false });
@@ -47,7 +65,22 @@ function Playlists() {
       <HeadingSmall className="!text-[var(--color-text)]">
         Playlists
       </HeadingSmall>
-      {playlists.length === 0 && <div>No playlists found</div>}
+      {playlistsData.isLoading && playlists.length === 0 && (
+        <FlexGrid
+          flexGridColumnCount={[1, 2, 3]}
+          flexGridColumnGap="scale800"
+          flexGridRowGap="scale800"
+        >
+          {Array.from({ length: 6 }).map((_, i) => (
+            <FlexGridItem {...itemProps} key={i}>
+              <PlaylistCardSkeleton />
+            </FlexGridItem>
+          ))}
+        </FlexGrid>
+      )}
+      {!playlistsData.isLoading && playlists.length === 0 && (
+        <div>No playlists found</div>
+      )}
       {playlists.length > 0 && (
         <FlexGrid
           flexGridColumnCount={[1, 2, 3]}

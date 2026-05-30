@@ -11,6 +11,7 @@ import { StatefulTooltip } from "baseui/tooltip";
 import { HeadingMedium } from "baseui/typography";
 import copy from "copy-to-clipboard";
 import { useState } from "react";
+import ContentLoader from "react-content-loader";
 import { Controller, useForm } from "react-hook-form";
 import z from "zod";
 import {
@@ -27,6 +28,38 @@ const schema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
 });
+
+function ApiKeysSkeleton({ rows = 4 }: { rows?: number }) {
+  return (
+    <ContentLoader
+      speed={1.6}
+      width="100%"
+      height={rows * 90 + 40}
+      viewBox={`0 0 1000 ${rows * 90 + 40}`}
+      backgroundColor="var(--color-skeleton-background)"
+      foregroundColor="var(--color-skeleton-foreground)"
+    >
+      {/* header */}
+      <rect x="0" y="0" rx="3" ry="3" width="80" height="12" />
+      <rect x="220" y="0" rx="3" ry="3" width="60" height="12" />
+      <rect x="560" y="0" rx="3" ry="3" width="100" height="12" />
+      <rect x="900" y="0" rx="3" ry="3" width="60" height="12" />
+      {Array.from({ length: rows }).map((_, i) => {
+        const y = 40 + i * 90;
+        return (
+          <g key={i}>
+            <rect x="0" y={y + 28} rx="3" ry="3" width="140" height="14" />
+            <rect x="220" y={y + 18} rx="4" ry="4" width="260" height="16" />
+            <rect x="220" y={y + 46} rx="4" ry="4" width="260" height="16" />
+            <rect x="560" y={y + 28} rx="3" ry="3" width="240" height="12" />
+            <rect x="880" y={y + 22} rx="14" ry="14" width="60" height="28" />
+            <circle cx="970" cy={y + 36} r="12" />
+          </g>
+        );
+      })}
+    </ContentLoader>
+  );
+}
 
 function ApiKeys() {
   const navigate = useNavigate();
@@ -156,6 +189,7 @@ function ApiKeys() {
             New API Key
           </Button>
         </Header>
+        {apiKeys.isLoading && !apiKeys.data && <ApiKeysSkeleton />}
         <TableBuilder
           data={apiKeys.data}
           emptyMessage="No API keys found"

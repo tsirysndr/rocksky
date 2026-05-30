@@ -15,8 +15,34 @@ import { Button } from "baseui/button";
 import { IconCheck, IconPlus } from "@tabler/icons-react";
 import SignInModal from "../../../components/SignInModal";
 import { useState, useEffect, useRef } from "react";
+import ContentLoader from "react-content-loader";
 import numeral from "numeral";
 import scrollToTop from "../../../lib/scrollToTop";
+
+function PersonRowSkeleton({ rows = 6 }: { rows?: number }) {
+  return (
+    <ContentLoader
+      speed={1.6}
+      width="100%"
+      height={rows * 80}
+      viewBox={`0 0 700 ${rows * 80}`}
+      backgroundColor="var(--color-skeleton-background)"
+      foregroundColor="var(--color-skeleton-foreground)"
+    >
+      {Array.from({ length: rows }).map((_, i) => {
+        const y = i * 80;
+        return (
+          <g key={i}>
+            <circle cx="30" cy={y + 30} r="30" />
+            <rect x="75" y={y + 14} rx="3" ry="3" width="180" height="14" />
+            <rect x="75" y={y + 38} rx="3" ry="3" width="120" height="10" />
+            <rect x="580" y={y + 18} rx="16" ry="16" width="110" height="32" />
+          </g>
+        );
+      })}
+    </ContentLoader>
+  );
+}
 
 function Follows() {
   const [, setActiveKey] = useAtom(activeTabAtom);
@@ -24,7 +50,7 @@ function Follows() {
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const { did } = useParams({ strict: false });
   const profile = useProfileByDidQuery(did!);
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useFollowsInfiniteQuery(profile.data?.did!, 20);
   const { mutate: followAccount } = useFollowAccountMutation();
   const { mutate: unfollowAccount } = useUnfollowAccountMutation();
@@ -100,6 +126,8 @@ function Follows() {
       <HeadingSmall className="!text-[var(--color-text)]">
         Following {count > 0 ? `(${numeral(count).format("0,0")})` : ""}
       </HeadingSmall>
+
+      {isLoading && <PersonRowSkeleton />}
 
       {allFollows.length === 0 && data && (
         <div className="text-center py-8">

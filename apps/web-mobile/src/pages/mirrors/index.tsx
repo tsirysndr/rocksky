@@ -13,6 +13,7 @@ import { Input } from "baseui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
+import ContentLoader from "react-content-loader";
 import { Controller, useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -154,6 +155,76 @@ function TabBar({
         );
       })}
     </div>
+  );
+}
+
+function ProviderPanelSkeleton({
+  needsCredentials,
+}: {
+  needsCredentials: boolean;
+}) {
+  return (
+    <>
+      <div
+        className="rounded-xl p-[16px] mb-[12px]"
+        style={{ backgroundColor: "var(--color-surface)" }}
+      >
+        <ContentLoader
+          speed={1.6}
+          width="100%"
+          height={56}
+          viewBox="0 0 400 56"
+          backgroundColor="var(--color-skeleton-background)"
+          foregroundColor="var(--color-skeleton-foreground)"
+        >
+          <circle cx="10" cy="14" r="10" />
+          <rect x="32" y="6" rx="3" ry="3" width="140" height="14" />
+          <rect x="32" y="28" rx="3" ry="3" width="320" height="10" />
+          <rect x="32" y="42" rx="3" ry="3" width="240" height="10" />
+        </ContentLoader>
+      </div>
+
+      {needsCredentials && (
+        <div
+          className="rounded-xl p-[16px] mb-[12px]"
+          style={{ backgroundColor: "var(--color-surface)" }}
+        >
+          <ContentLoader
+            speed={1.6}
+            width="100%"
+            height={210}
+            viewBox="0 0 400 210"
+            backgroundColor="var(--color-skeleton-background)"
+            foregroundColor="var(--color-skeleton-foreground)"
+          >
+            <rect x="0" y="0" rx="3" ry="3" width="110" height="14" />
+            <rect x="0" y="30" rx="3" ry="3" width="80" height="10" />
+            <rect x="0" y="48" rx="6" ry="6" width="400" height="40" />
+            <rect x="0" y="106" rx="3" ry="3" width="120" height="10" />
+            <rect x="0" y="124" rx="6" ry="6" width="400" height="40" />
+            <rect x="0" y="170" rx="3" ry="3" width="240" height="10" />
+          </ContentLoader>
+        </div>
+      )}
+
+      <div
+        className="rounded-xl p-[16px]"
+        style={{ backgroundColor: "var(--color-surface)" }}
+      >
+        <ContentLoader
+          speed={1.6}
+          width="100%"
+          height={44}
+          viewBox="0 0 400 44"
+          backgroundColor="var(--color-skeleton-background)"
+          foregroundColor="var(--color-skeleton-foreground)"
+        >
+          <rect x="0" y="4" rx="3" ry="3" width="120" height="12" />
+          <rect x="0" y="24" rx="3" ry="3" width="240" height="10" />
+          <rect x="350" y="10" rx="12" ry="12" width="40" height="24" />
+        </ContentLoader>
+      </div>
+    </>
   );
 }
 
@@ -465,12 +536,9 @@ export default function MirrorsPage() {
         <TabBar active={active} onChange={setActive} />
 
         {isLoading ? (
-          <p
-            className="text-sm"
-            style={{ color: "var(--color-text-muted)" }}
-          >
-            Loading…
-          </p>
+          <ProviderPanelSkeleton
+            needsCredentials={active === "lastfm" || active === "listenbrainz"}
+          />
         ) : (
           <ProviderPanel
             source={byProvider.get(active) ?? stub(active)}

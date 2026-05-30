@@ -16,9 +16,36 @@ import {
   useUnfollowAccountMutation,
 } from "../../../hooks/useGraph";
 import { useEffect, useState } from "react";
+import ContentLoader from "react-content-loader";
 import SignInModal from "../../../components/SignInModal";
 import { activeTabAtom } from "../../../atoms/tab";
 import scrollToTop from "../../../lib/scrollToTop";
+
+function CircleRowSkeleton({ rows = 5 }: { rows?: number }) {
+  return (
+    <ContentLoader
+      speed={1.6}
+      width="100%"
+      height={rows * 100}
+      viewBox={`0 0 700 ${rows * 100}`}
+      backgroundColor="var(--color-skeleton-background)"
+      foregroundColor="var(--color-skeleton-foreground)"
+    >
+      {Array.from({ length: rows }).map((_, i) => {
+        const y = i * 100;
+        return (
+          <g key={i}>
+            <circle cx="30" cy={y + 30} r="30" />
+            <rect x="75" y={y + 10} rx="3" ry="3" width="180" height="14" />
+            <rect x="75" y={y + 34} rx="3" ry="3" width="120" height="10" />
+            <rect x="75" y={y + 60} rx="3" ry="3" width="320" height="10" />
+            <rect x="580" y={y + 28} rx="16" ry="16" width="110" height="32" />
+          </g>
+        );
+      })}
+    </ContentLoader>
+  );
+}
 
 function Circles() {
   const [, setActiveKey] = useAtom(activeTabAtom);
@@ -81,6 +108,11 @@ function Circles() {
       <p>
         People on Rocksky with similar music taste to @{profile.data?.handle}
       </p>
+      {isLoading && (
+        <div className="mt-[40px]">
+          <CircleRowSkeleton />
+        </div>
+      )}
       {!isLoading && data?.neighbours.length === 0 && (
         <div className="mt-[40px] text-center py-[60px]">
           <LabelMedium className="!text-[var(--color-text-muted)]">
