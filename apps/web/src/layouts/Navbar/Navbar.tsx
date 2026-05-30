@@ -21,6 +21,7 @@ import { API_URL } from "../../consts";
 import { useProfileStatsByDidQuery } from "../../hooks/useProfile";
 import LogoDark from "../../assets/rocksky-logo-dark.png";
 import LogoLight from "../../assets/rocksky-logo-light.png";
+import WebScrobblerScreenshot from "../../assets/webscrobbler.png";
 import { IconUser, IconMenu2, IconX } from "@tabler/icons-react";
 import { displayDrawerAtom } from "../../atoms/drawer";
 
@@ -508,8 +509,12 @@ function Navbar() {
           </div>
           <div className="mt-[20px]">
             <LabelMedium className="!text-[var(--color-text)]">
-              After installing the extension, add the following URL to the
-              extension settings as a custom API URL:
+              After installing the extension, open{" "}
+              <span style={{ color: "var(--color-primary)", fontWeight: 600 }}>
+                Accounts &rsaquo; Webhook &rsaquo; API URL
+              </span>{" "}
+              in the extension settings and paste the URL below as the custom
+              API URL:
             </LabelMedium>
             <Code className="mt-[15px]">{webscrobblerWebhook}</Code>
             <StatefulTooltip
@@ -529,6 +534,14 @@ function Navbar() {
                 className="ml-[5px] cursor-pointer"
               />
             </StatefulTooltip>
+          </div>
+          <div className="mt-[20px]">
+            <img
+              src={WebScrobblerScreenshot}
+              alt="Web Scrobbler extension settings — Accounts › Webhook › API URL"
+              className="w-full rounded-[8px]"
+              style={{ border: "1px solid var(--color-border)" }}
+            />
           </div>
         </ModalBody>
       </Modal>
