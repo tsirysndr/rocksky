@@ -48,7 +48,7 @@ function Playlists() {
   const playlistsData = usePlaylistsQuery(did!);
 
   useEffect(() => {
-    if (playlistsData.isLoading || playlistsData.isError) {
+    if (playlistsData.isPending || playlistsData.isError) {
       return;
     }
 
@@ -58,14 +58,14 @@ function Playlists() {
 
     setPlaylists(playlistsData.data);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playlistsData.data, playlistsData.isLoading, playlistsData.isError, did]);
+  }, [playlistsData.data, playlistsData.isPending, playlistsData.isError, did]);
 
   return (
     <>
       <HeadingSmall className="!text-[var(--color-text)]">
         Playlists
       </HeadingSmall>
-      {playlistsData.isLoading && playlists.length === 0 && (
+      {playlistsData.isPending && playlists.length === 0 && (
         <FlexGrid
           flexGridColumnCount={[1, 2, 3]}
           flexGridColumnGap="scale800"
@@ -78,7 +78,7 @@ function Playlists() {
           ))}
         </FlexGrid>
       )}
-      {!playlistsData.isLoading && playlists.length === 0 && (
+      {!playlistsData.isPending && playlists.length === 0 && (
         <div>No playlists found</div>
       )}
       {playlists.length > 0 && (

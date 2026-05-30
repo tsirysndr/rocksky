@@ -113,9 +113,8 @@ function LovedTracks() {
           Loved Tracks ({numeral(profileStats.data?.lovedTracks).format("0,0")})
         </HeadingSmall>
       )}
-      {lovedTracksResult.isLoading && lovedTracks.length === 0 && (
-        <LovedTracksSkeleton />
-      )}
+      {(lovedTracksResult.isPending || lovedTracksResult.isFetching) &&
+        lovedTracks.length === 0 && <LovedTracksSkeleton />}
       <TableBuilder
         data={lovedTracks.map((x, index) => ({
           id: x.id,

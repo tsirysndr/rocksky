@@ -50,8 +50,14 @@ function Followers() {
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const { did } = useParams({ strict: false });
   const profile = useProfileByDidQuery(did!);
-  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useFollowersInfiniteQuery(profile.data?.did || "", 20);
+  const {
+    data,
+    isPending,
+    isFetching,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useFollowersInfiniteQuery(profile.data?.did || "", 20);
   const { mutate: followAccount } = useFollowAccountMutation();
   const { mutate: unfollowAccount } = useUnfollowAccountMutation();
 
@@ -126,7 +132,9 @@ function Followers() {
         Followers {count > 0 ? `(${numeral(count).format("0,0")})` : ""}
       </HeadingSmall>
 
-      {isLoading && <PersonRowSkeleton />}
+      {(isPending || (isFetching && allFollowers.length === 0)) && (
+        <PersonRowSkeleton />
+      )}
 
       {allFollowers.length === 0 && data && (
         <div className="text-center py-8">

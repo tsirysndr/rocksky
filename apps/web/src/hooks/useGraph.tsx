@@ -32,6 +32,9 @@ export const useFollowsInfiniteQuery = (
     queryFn: ({ pageParam }) => getFollows(actor, limit, dids, pageParam),
     getNextPageParam: (lastPage) => lastPage.cursor,
     initialPageParam: undefined as string | undefined,
+    // Don't fire with an empty actor — that would populate a "loaded" cache
+    // entry and suppress the skeleton when the real DID arrives next render.
+    enabled: !!actor,
   });
 
 export const useFollowersQuery = (
@@ -55,6 +58,7 @@ export const useFollowersInfiniteQuery = (
     queryFn: ({ pageParam }) => getFollowers(actor, limit, dids, pageParam),
     getNextPageParam: (lastPage) => lastPage.cursor,
     initialPageParam: undefined as string | undefined,
+    enabled: !!actor,
   });
 
 export const useFollowAccountMutation = () => {

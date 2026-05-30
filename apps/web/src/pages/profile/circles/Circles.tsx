@@ -53,7 +53,7 @@ function Circles() {
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const { did } = useParams({ strict: false });
   const profile = useProfileByDidQuery(did!);
-  const { data, isLoading } = useActorNeighboursQuery(did!);
+  const { data, isPending, isFetching } = useActorNeighboursQuery(did!);
   const { mutate: followAccount } = useFollowAccountMutation();
   const { mutate: unfollowAccount } = useUnfollowAccountMutation();
 
@@ -108,19 +108,20 @@ function Circles() {
       <p>
         People on Rocksky with similar music taste to @{profile.data?.handle}
       </p>
-      {isLoading && (
+      {(isPending ||
+        (isFetching && (data?.neighbours?.length ?? 0) === 0)) && (
         <div className="mt-[40px]">
           <CircleRowSkeleton />
         </div>
       )}
-      {!isLoading && data?.neighbours.length === 0 && (
+      {!isPending && !isFetching && data?.neighbours.length === 0 && (
         <div className="mt-[40px] text-center py-[60px]">
           <LabelMedium className="!text-[var(--color-text-muted)]">
             No circles found yet. Check back later!
           </LabelMedium>
         </div>
       )}
-      {!isLoading && (data?.neighbours || []).length > 0 && (
+      {!isPending && (data?.neighbours || []).length > 0 && (
         <div className="mt-[40px]">
           {data?.neighbours.map((neighbour: Neighbour) => (
             <div
