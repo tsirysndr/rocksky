@@ -24,6 +24,29 @@ import spotifyAccounts from "../schema/spotify-accounts";
 import spotifyApps from "../schema/spotify-apps";
 import spotifyTokens from "../schema/spotify-tokens";
 import tracks from "../schema/tracks";
+
+/**
+ * Build the WHERE clause used to look up an existing `tracks` row for an
+ * incoming scrobble. We hash by lowercase("title - artist - album"), but
+ * cosmetic title variations between sources (Spotify "Song (Remastered)" vs
+ * Last.fm "Song") miss the hash even though the recording is the same. When
+ * the source supplied an MBID we OR-in `mb_id = $mbid` so the recording-level
+ * identity wins.
+ */
+function trackLookupWhere(t: {
+  title?: string;
+  artist?: string;
+  album?: string;
+  mbId?: string | null;
+}) {
+  const sha = createHash("sha256")
+    .update(`${t.title} - ${t.artist} - ${t.album}`.toLowerCase())
+    .digest("hex");
+  const mbId = t.mbId?.trim();
+  return mbId
+    ? or(eq(tracks.sha256, sha), eq(tracks.mbId, mbId))
+    : eq(tracks.sha256, sha);
+}
 import userAlbums from "../schema/user-albums";
 import userArtists from "../schema/user-artists";
 import userTracks from "../schema/user-tracks";
@@ -642,16 +665,7 @@ export async function scrobbleTrack(
   let existingTrack = await ctx.db
     .select()
     .from(tracks)
-    .where(
-      eq(
-        tracks.sha256,
-        createHash("sha256")
-          .update(
-            `${track.title} - ${track.artist} - ${track.album}`.toLowerCase(),
-          )
-          .digest("hex"),
-      ),
-    )
+    .where(trackLookupWhere(track))
     .limit(1)
     .then((rows) => rows[0]);
 
@@ -784,16 +798,7 @@ export async function scrobbleTrack(
     existingTrack = await ctx.db
       .select()
       .from(tracks)
-      .where(
-        eq(
-          tracks.sha256,
-          createHash("sha256")
-            .update(
-              `${track.title} - ${track.artist} - ${track.album}`.toLowerCase(),
-            )
-            .digest("hex"),
-        ),
-      )
+      .where(trackLookupWhere(track))
       .limit(1)
       .then((rows) => rows[0]);
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -890,16 +895,7 @@ export async function scrobbleTrack(
   existingTrack = await ctx.db
     .select()
     .from(tracks)
-    .where(
-      eq(
-        tracks.sha256,
-        createHash("sha256")
-          .update(
-            `${track.title} - ${track.artist} - ${track.album}`.toLowerCase(),
-          )
-          .digest("hex"),
-      ),
-    )
+    .where(trackLookupWhere(track))
     .limit(1)
     .then((rows) => rows[0]);
 
@@ -910,16 +906,7 @@ export async function scrobbleTrack(
     existingTrack = await ctx.db
       .select()
       .from(tracks)
-      .where(
-        eq(
-          tracks.sha256,
-          createHash("sha256")
-            .update(
-              `${track.title} - ${track.artist} - ${track.album}`.toLowerCase(),
-            )
-            .digest("hex"),
-        ),
-      )
+      .where(trackLookupWhere(track))
       .limit(1)
       .then((rows) => rows[0]);
 

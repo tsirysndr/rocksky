@@ -338,10 +338,28 @@ pub async fn save_track(
         .to_lowercase(),
     );
 
-    let tracks: Vec<Track> = sqlx::query_as("SELECT * FROM tracks WHERE sha256 = $1")
+    // Fall back to MBID when the source supplied one — covers cosmetic title
+    // variations between scrobble sources that the sha256 hash would miss.
+    let mb_id_filter = scrobble_record
+        .mbid
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
+
+    let tracks: Vec<Track> = if let Some(mb_id) = mb_id_filter {
+        sqlx::query_as(
+            "SELECT * FROM tracks WHERE sha256 = $1 OR (mb_id IS NOT NULL AND mb_id = $2) LIMIT 1",
+        )
         .bind(&hash)
+        .bind(mb_id)
         .fetch_all(&mut **tx)
-        .await?;
+        .await?
+    } else {
+        sqlx::query_as("SELECT * FROM tracks WHERE sha256 = $1")
+            .bind(&hash)
+            .fetch_all(&mut **tx)
+            .await?
+    };
 
     if !tracks.is_empty() {
         return Ok(tracks[0].xata_id.clone());

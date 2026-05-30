@@ -1,7 +1,7 @@
 import type { Agent } from "@atproto/api";
 import { consola } from "consola";
 import type { Context } from "context";
-import { and, eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { deepSnakeCaseKeys } from "lib";
 import { createHash } from "node:crypto";
 import {
@@ -20,10 +20,17 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
     .update(`${track.title} - ${track.artist} - ${track.album}`.toLowerCase())
     .digest("hex");
 
+  // Fall back to MBID when the source supplied one — covers cosmetic title
+  // variations between scrobble sources that the sha256 hash would miss.
+  const mbId = track.mbId?.trim();
   const existingTrack = await ctx.db
     .select()
     .from(tracks)
-    .where(eq(tracks.sha256, trackHash))
+    .where(
+      mbId
+        ? or(eq(tracks.sha256, trackHash), eq(tracks.mbId, mbId))
+        : eq(tracks.sha256, trackHash),
+    )
     .limit(1)
     .then((results) => results[0]);
 
