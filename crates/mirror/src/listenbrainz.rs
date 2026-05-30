@@ -186,6 +186,8 @@ async fn poll_once(
             album_art: None,
             spotify_link: info.and_then(|i| i.spotify_id.clone()),
             lastfm_link: None,
+            track_number: info.and_then(|i| i.tracknumber),
+            disc_number: info.and_then(|i| i.discnumber),
         };
 
         enricher.enrich(pool, http, &mut track).await;
@@ -249,6 +251,8 @@ struct AdditionalInfo {
     duration: Option<i32>,
     spotify_id: Option<String>,
     isrc: Option<String>,
+    tracknumber: Option<i32>,
+    discnumber: Option<i32>,
 }
 
 #[derive(Debug, Deserialize)]

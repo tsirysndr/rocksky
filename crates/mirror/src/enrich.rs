@@ -198,6 +198,17 @@ impl Enricher {
                 track.isrc = Some(isrc);
             }
         }
+        // track_number / disc_number aren't in any of the three mirror sources
+        // (Last.fm getRecentTracks omits them, ListenBrainz puts them in
+        // additional_info which is unreliable, Teal.fm doesn't include them).
+        // The DB columns are nullable but downstream consumers crash on null
+        // when they decode as a non-Option, so always prefer Spotify's value.
+        if let Some(n) = item.track_number {
+            track.track_number = Some(n);
+        }
+        if let Some(n) = item.disc_number {
+            track.disc_number = Some(n);
+        }
         Ok(true)
     }
 
@@ -318,6 +329,10 @@ struct SearchTrackItem {
     external_urls: ExternalUrls,
     #[serde(default)]
     external_ids: Option<SpotifyExternalIds>,
+    #[serde(default)]
+    track_number: Option<i32>,
+    #[serde(default)]
+    disc_number: Option<i32>,
 }
 
 #[derive(Debug, Deserialize)]

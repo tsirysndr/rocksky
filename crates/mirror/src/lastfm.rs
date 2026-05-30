@@ -181,6 +181,10 @@ async fn poll_once(
             album_art: largest_image(&item.image),
             spotify_link: None,
             lastfm_link: nonempty(item.url),
+            // user.getRecentTracks doesn't expose track/disc number; the
+            // Spotify enricher fills them in.
+            track_number: None,
+            disc_number: None,
         };
 
         enricher.enrich(pool, http, &mut track).await;

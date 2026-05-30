@@ -209,6 +209,8 @@ async fn handle_event(
         album_art: None,
         spotify_link: None,
         lastfm_link: None,
+        track_number: None,
+        disc_number: None,
     };
 
     enricher.enrich(pool, http, &mut track).await;
