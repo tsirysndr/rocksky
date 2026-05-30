@@ -159,9 +159,34 @@ impl Enricher {
         };
 
         // Override — Spotify wins over Last.fm / Teal.fm / the DB cache.
-        // Cosmetic fields (album_art, spotify_link, isrc) only; we leave the
-        // dedup-affecting fields (title/artist/album/mb_id) alone so we don't
-        // change identity mid-mirror.
+        //
+        // Note: title / artist / album_artist are part of the API's sha256
+        // dedup key. We deliberately override them here AFTER our own mirror
+        // dedup pass has run (which already used the source's title/artist
+        // and the MBID), so the values we send to createScrobble line up
+        // with whatever existing Spotify-origin row the user already has.
+        if !item.name.trim().is_empty() {
+            track.title = item.name;
+        }
+        let joined_artists = item
+            .artists
+            .iter()
+            .map(|a| a.name.as_str())
+            .collect::<Vec<_>>()
+            .join(", ");
+        if !joined_artists.trim().is_empty() {
+            track.artist = joined_artists;
+        }
+        if let Some(album_artist) = item
+            .album
+            .artists
+            .first()
+            .map(|a| a.name.clone())
+            .filter(|n| !n.trim().is_empty())
+        {
+            track.album_artist = album_artist;
+        }
+
         if let Some(img) = item.album.images.into_iter().next() {
             track.album_art = Some(img.url);
         }
@@ -287,10 +312,17 @@ struct SearchTracks {
 
 #[derive(Debug, Deserialize)]
 struct SearchTrackItem {
+    name: String,
+    artists: Vec<SpotifyArtistRef>,
     album: SearchAlbum,
     external_urls: ExternalUrls,
     #[serde(default)]
     external_ids: Option<SpotifyExternalIds>,
+}
+
+#[derive(Debug, Deserialize)]
+struct SpotifyArtistRef {
+    name: String,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -301,6 +333,8 @@ struct SpotifyExternalIds {
 
 #[derive(Debug, Deserialize)]
 struct SearchAlbum {
+    #[serde(default)]
+    artists: Vec<SpotifyArtistRef>,
     images: Vec<AlbumImage>,
 }
 

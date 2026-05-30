@@ -106,7 +106,15 @@ pub async fn save_scrobble(
                 .fetch_all(&*pool)
                 .await?;
 
-                let scrobble_id = scrobbles[0].xata_id.clone();
+                let scrobble_id =
+                    scrobbles
+                        .first()
+                        .map(|s| s.xata_id.clone())
+                        .ok_or_else(|| {
+                            anyhow::anyhow!(
+                            "save_scrobble: scrobble row missing after insert (user_id={user_id})"
+                        )
+                        })?;
                 nc.publish("rocksky.scrobble.new", scrobble_id.into())
                     .await?;
                 publish_user(&nc, &pool, &user_id).await?;
@@ -363,8 +371,8 @@ pub async fn save_track(
     .fetch_all(&mut **tx)
     .await?;
 
-    if !tracks.is_empty() {
-        return Ok(tracks[0].xata_id.clone());
+    if let Some(t) = tracks.first() {
+        return Ok(t.xata_id.clone());
     }
 
     sqlx::query(
@@ -393,6 +401,7 @@ pub async fn save_track(
     ) VALUES (
       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
     )
+    ON CONFLICT (sha256) DO NOTHING
   "#,
     )
     .bind(scrobble_record.title)
@@ -423,7 +432,10 @@ pub async fn save_track(
         .fetch_all(&mut **tx)
         .await?;
 
-    Ok(tracks[0].xata_id.clone())
+    tracks
+        .first()
+        .map(|t| t.xata_id.clone())
+        .ok_or_else(|| anyhow::anyhow!("save_track: row missing after insert (sha256={hash})"))
 }
 
 pub async fn save_album(
@@ -443,9 +455,9 @@ pub async fn save_album(
         .fetch_all(&mut **tx)
         .await?;
 
-    if !albums.is_empty() {
-        tracing::info!(name = %albums[0].title.magenta(), "Album already exists");
-        return Ok(albums[0].xata_id.clone());
+    if let Some(a) = albums.first() {
+        tracing::info!(name = %a.title.magenta(), "Album already exists");
+        return Ok(a.xata_id.clone());
     }
 
     tracing::info!(name = %scrobble_record.album, "Saving new album");
@@ -466,6 +478,7 @@ pub async fn save_album(
     ) VALUES (
       $1, $2, $3, $4, $5, $6, $7, $8
     )
+    ON CONFLICT (sha256) DO NOTHING
   "#,
     )
     .bind(scrobble_record.album)
@@ -484,7 +497,10 @@ pub async fn save_album(
         .fetch_all(&mut **tx)
         .await?;
 
-    Ok(albums[0].xata_id.clone())
+    albums
+        .first()
+        .map(|a| a.xata_id.clone())
+        .ok_or_else(|| anyhow::anyhow!("save_album: row missing after insert (sha256={hash})"))
 }
 
 pub async fn save_artist(
@@ -497,9 +513,9 @@ pub async fn save_artist(
         .fetch_all(&mut **tx)
         .await?;
 
-    if !artists.is_empty() {
+    if let Some(a) = artists.first() {
         tracing::info!(name = %scrobble_record.album_artist, "Artist already exists");
-        return Ok(artists[0].xata_id.clone());
+        return Ok(a.xata_id.clone());
     }
 
     tracing::info!(name = %scrobble_record.album_artist, "Saving new artist");
@@ -517,6 +533,7 @@ pub async fn save_artist(
     ) VALUES (
       $1, $2, $3, $4, $5
     )
+    ON CONFLICT (sha256) DO NOTHING
   "#,
     )
     .bind(scrobble_record.artist)
@@ -532,7 +549,10 @@ pub async fn save_artist(
         .fetch_all(&mut **tx)
         .await?;
 
-    Ok(artists[0].xata_id.clone())
+    artists
+        .first()
+        .map(|a| a.xata_id.clone())
+        .ok_or_else(|| anyhow::anyhow!("save_artist: row missing after insert (sha256={hash})"))
 }
 
 pub async fn save_album_track(

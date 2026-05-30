@@ -1,9 +1,10 @@
 use std::{env, sync::Arc, time::Duration};
 
 use anyhow::{Context, Error};
-use futures_util::StreamExt;
+use futures_util::{FutureExt, StreamExt};
 use owo_colors::OwoColorize;
 use sqlx::postgres::PgPoolOptions;
+use std::panic::AssertUnwindSafe;
 use tokio::sync::Mutex;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
@@ -84,12 +85,36 @@ fn handle_message(
 
             tracing::info!(message = %text, "Received message");
             if let Some(commit) = message.commit {
-                match save_scrobble(state, pool, nc, &message.did, commit).await {
-                    Ok(_) => {
-                        tracing::info!(user_id = %message.did.bright_green(), "Scrobble saved successfully");
+                // Wrap in catch_unwind so a panic inside save_scrobble (e.g.
+                // an out-of-bounds index on a post-INSERT SELECT) is logged
+                // instead of silently aborting the spawned task and losing
+                // the scrobble + Discord notification.
+                let collection = commit.collection.clone();
+                let rkey = commit.rkey.clone();
+                let did = message.did.clone();
+                let outcome = AssertUnwindSafe(save_scrobble(state, pool, nc, &did, commit))
+                    .catch_unwind()
+                    .await;
+                match outcome {
+                    Ok(Ok(_)) => {
+                        tracing::info!(user_id = %did.bright_green(), %collection, %rkey, "Scrobble saved successfully");
                     }
-                    Err(e) => {
-                        tracing::error!(error = %e, "Error saving scrobble");
+                    Ok(Err(e)) => {
+                        tracing::error!(error = %e, %collection, %rkey, %did, "Error saving scrobble");
+                    }
+                    Err(panic) => {
+                        let msg = panic
+                            .downcast_ref::<String>()
+                            .cloned()
+                            .or_else(|| panic.downcast_ref::<&str>().map(|s| s.to_string()))
+                            .unwrap_or_else(|| "<non-string panic>".to_string());
+                        tracing::error!(
+                            panic = %msg,
+                            %collection,
+                            %rkey,
+                            %did,
+                            "save_scrobble PANICKED — scrobble lost"
+                        );
                     }
                 }
             }
