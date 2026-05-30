@@ -96,6 +96,39 @@ const PROVIDER_CREDENTIAL_LABEL: Record<MirrorProvider, string> = {
   tealfm: "",
 };
 
+const PROVIDER_HELP: Partial<Record<MirrorProvider, ReactNode>> = {
+  lastfm: (
+    <>
+      Don't have one yet?{" "}
+      <a
+        href="https://www.last.fm/api/account/create"
+        target="_blank"
+        rel="noreferrer"
+        className={LINK_CLASS}
+      >
+        Create a Last.fm API account
+      </a>{" "}
+      (free, instant) and paste the 32-character API key below. You can
+      ignore the "shared secret" — read-only endpoints don't need it.
+      Username is your Last.fm handle.
+    </>
+  ),
+  listenbrainz: (
+    <>
+      Grab your user token from{" "}
+      <a
+        href="https://listenbrainz.org/settings/"
+        target="_blank"
+        rel="noreferrer"
+        className={LINK_CLASS}
+      >
+        listenbrainz.org/settings
+      </a>{" "}
+      while signed in. Username is your ListenBrainz handle.
+    </>
+  ),
+};
+
 const TAB_ORDER: MirrorProvider[] = ["lastfm", "listenbrainz", "tealfm"];
 
 // When credentials are already persisted server-side, the apiKey field is
@@ -326,6 +359,14 @@ function ProviderPanel({
           >
             Credentials
           </p>
+          {PROVIDER_HELP[source.provider] && (
+            <p
+              className="text-xs m-[0px] mb-[16px]"
+              style={{ color: "var(--color-text-muted)", lineHeight: 1.5 }}
+            >
+              {PROVIDER_HELP[source.provider]}
+            </p>
+          )}
           <form onSubmit={handleSubmit(submitCredentials)} noValidate>
             <FormControl label="Username" error={errors.username?.message}>
               <Controller
