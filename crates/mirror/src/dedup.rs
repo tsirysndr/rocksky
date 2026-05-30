@@ -21,8 +21,10 @@ pub async fn already_scrobbled(
     artist: &str,
     at: DateTime<Utc>,
 ) -> Result<bool, Error> {
-    let lo = at - chrono::Duration::seconds(WINDOW_SECS);
-    let hi = at + chrono::Duration::seconds(WINDOW_SECS);
+    // `scrobbles.timestamp` is Postgres TIMESTAMP (no zone), so we must bind
+    // NaiveDateTime, not DateTime<Utc> (which sqlx encodes as TIMESTAMPTZ).
+    let lo = (at - chrono::Duration::seconds(WINDOW_SECS)).naive_utc();
+    let hi = (at + chrono::Duration::seconds(WINDOW_SECS)).naive_utc();
 
     let row: Option<(i32,)> = sqlx::query_as(
         r#"

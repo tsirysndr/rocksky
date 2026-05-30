@@ -1,7 +1,7 @@
 //! DB helpers — connecting + loading rows.
 
 use anyhow::{Context, Error};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDateTime, Utc};
 use sqlx::{postgres::PgPoolOptions, FromRow, Pool, Postgres};
 use std::{env, time::Duration};
 
@@ -21,6 +21,10 @@ pub async fn connect() -> Result<Pool<Postgres>, Error> {
 }
 
 /// Joined view of `mirror_sources` + user DID.
+///
+/// `last_scrobble_seen_at` is stored as Postgres `TIMESTAMP` (no time zone)
+/// because that's what the Drizzle schema declares, so we decode it as
+/// `NaiveDateTime` and lift to `DateTime<Utc>` at the call sites.
 #[derive(Debug, Clone, FromRow)]
 pub struct MirrorSourceRow {
     pub user_id: String,
@@ -29,7 +33,15 @@ pub struct MirrorSourceRow {
     pub enabled: bool,
     pub external_username: Option<String>,
     pub encrypted_api_key: Option<String>,
-    pub last_scrobble_seen_at: Option<DateTime<Utc>>,
+    pub last_scrobble_seen_at: Option<NaiveDateTime>,
+}
+
+impl MirrorSourceRow {
+    /// `last_scrobble_seen_at` lifted into UTC. Stored in the DB without a
+    /// time zone, but the mirror layer always treats times as UTC.
+    pub fn last_scrobble_seen_at_utc(&self) -> Option<DateTime<Utc>> {
+        self.last_scrobble_seen_at.map(|n| n.and_utc())
+    }
 }
 
 pub async fn load_enabled(
@@ -134,6 +146,9 @@ pub async fn touch_polled(
     provider: Provider,
     last_scrobble_seen_at: Option<DateTime<Utc>>,
 ) -> Result<(), Error> {
+    // The column is TIMESTAMP (no zone) — bind a NaiveDateTime so sqlx maps
+    // to the right Postgres type.
+    let naive = last_scrobble_seen_at.map(|t| t.naive_utc());
     sqlx::query(
         r#"
         UPDATE mirror_sources
@@ -145,7 +160,7 @@ pub async fn touch_polled(
     )
     .bind(user_id)
     .bind(provider.as_str())
-    .bind(last_scrobble_seen_at)
+    .bind(naive)
     .execute(pool)
     .await?;
     Ok(())

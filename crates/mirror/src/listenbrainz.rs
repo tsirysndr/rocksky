@@ -53,7 +53,7 @@ pub async fn run_user(
         "ListenBrainz: starting poll loop"
     );
 
-    let mut watermark = row.last_scrobble_seen_at.unwrap_or_else(Utc::now);
+    let mut watermark = row.last_scrobble_seen_at_utc().unwrap_or_else(Utc::now);
 
     loop {
         tokio::select! {
