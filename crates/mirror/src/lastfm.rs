@@ -138,12 +138,22 @@ async fn poll_once(
         let title = item.name.trim().to_string();
         let artist = item.artist.text.unwrap_or_default().trim().to_string();
         let album = item.album.text.unwrap_or_default().trim().to_string();
+        let mb_id = nonempty(item.mbid.clone());
 
         if title.is_empty() || artist.is_empty() {
             continue;
         }
 
-        if dedup::already_scrobbled(pool, &row.user_id, &title, &artist, at).await? {
+        if dedup::already_scrobbled(
+            pool,
+            &row.user_id,
+            &title,
+            &artist,
+            mb_id.as_deref(),
+            at,
+        )
+        .await?
+        {
             info!(
                 user_id = %row.user_id,
                 title = %title,
@@ -165,7 +175,7 @@ async fn poll_once(
             album,
             duration: 0, // user.getrecenttracks doesn't include duration
             timestamp: uts,
-            mb_id: nonempty(item.mbid),
+            mb_id,
             album_art: largest_image(&item.image),
             spotify_link: None,
             lastfm_link: nonempty(item.url),

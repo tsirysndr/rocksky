@@ -11,14 +11,23 @@ use tracing::info;
 
 const WINDOW_SECS: i64 = 120;
 
-/// Returns true when an existing scrobble matches (user, title, artist) within
-/// ±120s of `at`. Title and artist are compared case-insensitively against the
-/// denormalized columns on the `tracks` table.
+/// Returns true when an existing scrobble matches within ±120s of `at`.
+///
+/// Two match strategies, OR-ed together inside the time window:
+///   1. **Title + artist** (case-insensitive) — handles the common case where
+///      Spotify scrobbled "Bohemian Rhapsody" and Last.fm reports the same.
+///   2. **MusicBrainz recording ID** — handles cases where the *title* differs
+///      slightly between sources ("Song (Remastered)" vs. "Song", different
+///      hyphenation, feat-credit punctuation, capitalization beyond what
+///      `lower()` normalizes) but the recording is identifiably the same.
+///
+/// Pass `mb_id = None` if the upstream source didn't supply one.
 pub async fn already_scrobbled(
     pool: &Pool<Postgres>,
     user_id: &str,
     title: &str,
     artist: &str,
+    mb_id: Option<&str>,
     at: DateTime<Utc>,
 ) -> Result<bool, Error> {
     // `scrobbles.timestamp` is Postgres TIMESTAMP (no zone), so we must bind
@@ -26,15 +35,21 @@ pub async fn already_scrobbled(
     let lo = (at - chrono::Duration::seconds(WINDOW_SECS)).naive_utc();
     let hi = (at + chrono::Duration::seconds(WINDOW_SECS)).naive_utc();
 
+    // Empty mb_id strings can leak in from upstream defaulting; treat them as
+    // None so we don't accidentally match every other null-MBID row.
+    let mb_id = mb_id.filter(|s| !s.trim().is_empty());
+
     let row: Option<(i32,)> = sqlx::query_as(
         r#"
         SELECT 1
         FROM scrobbles s
         JOIN tracks t ON t.xata_id = s.track_id
         WHERE s.user_id = $1
-          AND lower(t.title) = lower($2)
-          AND lower(t.artist) = lower($3)
           AND s.timestamp BETWEEN $4 AND $5
+          AND (
+                (lower(t.title) = lower($2) AND lower(t.artist) = lower($3))
+             OR ($6::text IS NOT NULL AND t.mb_id = $6)
+          )
         LIMIT 1
         "#,
     )
@@ -43,29 +58,27 @@ pub async fn already_scrobbled(
     .bind(artist)
     .bind(lo)
     .bind(hi)
+    .bind(mb_id)
     .fetch_optional(pool)
     .await?;
 
     let hit = row.is_some();
     if hit {
-        // Always trace at info level when we skip a track — it's the most
-        // useful operational signal for confirming the mirror isn't
-        // double-scrobbling.
         info!(
             user_id = %user_id,
             title = %title,
             artist = %artist,
+            mb_id = mb_id.unwrap_or("-"),
             at = %at.to_rfc3339(),
             window_secs = WINDOW_SECS,
             "dedup: skipped — already scrobbled within window"
         );
     } else {
-        // …and at info level when we *accept* a track, so every dedup
-        // decision is traceable at the same log level.
         info!(
             user_id = %user_id,
             title = %title,
             artist = %artist,
+            mb_id = mb_id.unwrap_or("-"),
             at = %at.to_rfc3339(),
             "dedup: accepted — no prior scrobble within window"
         );

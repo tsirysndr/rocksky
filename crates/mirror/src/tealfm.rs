@@ -174,7 +174,18 @@ async fn handle_event(
         "Teal.fm: received play event"
     );
 
-    if dedup::already_scrobbled(pool, &user_id, &title, &artist, at).await? {
+    let mb_id = play.recording_mb_id.clone().map(strip_mbid_prefix);
+
+    if dedup::already_scrobbled(
+        pool,
+        &user_id,
+        &title,
+        &artist,
+        mb_id.as_deref(),
+        at,
+    )
+    .await?
+    {
         info!(
             did = %did,
             title = %title,
@@ -191,7 +202,7 @@ async fn handle_event(
         album,
         duration: play.duration.map(|d| d as i64 * 1000).unwrap_or(0),
         timestamp: at.timestamp(),
-        mb_id: play.recording_mb_id.map(strip_mbid_prefix),
+        mb_id,
         album_art: None,
         spotify_link: None,
         lastfm_link: None,

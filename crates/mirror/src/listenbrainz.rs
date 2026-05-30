@@ -137,7 +137,21 @@ async fn poll_once(
             continue;
         }
 
-        if dedup::already_scrobbled(pool, &row.user_id, &title, &artist, at).await? {
+        let mb_id = m
+            .mbid_mapping
+            .as_ref()
+            .and_then(|m| m.recording_mbid.clone());
+
+        if dedup::already_scrobbled(
+            pool,
+            &row.user_id,
+            &title,
+            &artist,
+            mb_id.as_deref(),
+            at,
+        )
+        .await?
+        {
             info!(
                 user_id = %row.user_id,
                 title = %title,
@@ -165,10 +179,7 @@ async fn poll_once(
             album,
             duration: duration_ms,
             timestamp: listen.listened_at,
-            mb_id: m
-                .mbid_mapping
-                .as_ref()
-                .and_then(|m| m.recording_mbid.clone()),
+            mb_id: mb_id.clone(),
             album_art: None,
             spotify_link: info.and_then(|i| i.spotify_id.clone()),
             lastfm_link: None,
