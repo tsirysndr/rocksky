@@ -208,10 +208,8 @@ pub async fn scrobble(
 
         // Build the Spotify query with album when the scrobble carries one —
         // narrows down which release (deluxe / single / EP) we hit.
-        let mut spotify_query = format!(
-            r#"track:"{}" artist:"{}""#,
-            scrobble.track, scrobble.artist
-        );
+        let mut spotify_query =
+            format!(r#"track:"{}" artist:"{}""#, scrobble.track, scrobble.artist);
         if let Some(album) = scrobble.album.as_deref().map(str::trim) {
             if !album.is_empty() {
                 spotify_query.push_str(&format!(r#" album:"{}""#, album));
@@ -426,10 +424,7 @@ pub async fn scrobble_v1(
     let spotify_token = refresh_token(&spotify_token, &client_id, &client_secret).await?;
     let spotify_client = SpotifyClient::new(&spotify_token.access_token);
 
-    let mut spotify_query = format!(
-        r#"track:"{}" artist:"{}""#,
-        scrobble.track, scrobble.artist
-    );
+    let mut spotify_query = format!(r#"track:"{}" artist:"{}""#, scrobble.track, scrobble.artist);
     if let Some(album) = scrobble.album.as_deref().map(str::trim) {
         if !album.is_empty() {
             spotify_query.push_str(&format!(r#" album:"{}""#, album));
@@ -742,10 +737,7 @@ pub async fn scrobble_listenbrainz(
     let spotify_token = refresh_token(&spotify_token, &client_id, &client_secret).await?;
     let spotify_client = SpotifyClient::new(&spotify_token.access_token);
 
-    let mut spotify_query = format!(
-        r#"track:"{}" artist:"{}""#,
-        scrobble.track, scrobble.artist
-    );
+    let mut spotify_query = format!(r#"track:"{}" artist:"{}""#, scrobble.track, scrobble.artist);
     if let Some(album) = scrobble.album.as_deref().map(str::trim) {
         if !album.is_empty() {
             spotify_query.push_str(&format!(r#" album:"{}""#, album));
