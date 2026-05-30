@@ -79,6 +79,7 @@ async fn handle_scrobble(
             mb_client,
             &parsed.artist,
             &parsed.track,
+            parsed.album.as_deref(),
         )
         .await
         .unwrap_or(None);

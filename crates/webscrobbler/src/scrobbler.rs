@@ -25,6 +25,7 @@ pub async fn resolve_track(
     mb_client: &MusicbrainzClient,
     artist: &str,
     track_name: &str,
+    album: Option<&str>,
 ) -> Result<Option<Track>, Error> {
     let key = format!("{} - {}", artist.to_lowercase(), track_name.to_lowercase());
 
@@ -78,7 +79,7 @@ pub async fn resolve_track(
         let spotify_token = refresh_token(&spotify_refresh, &client_id, &client_secret).await?;
         let spotify_client = SpotifyClient::new(&spotify_token.access_token);
 
-        let query = build_spotify_query(artist, track_name);
+        let query = build_spotify_query(artist, track_name, album);
         tracing::info!(query = %query, "Searching on Spotify");
 
         if let Ok(result) = retry_spotify_call(
@@ -95,7 +96,21 @@ pub async fn resolve_track(
         {
             tracing::info!(total = %result.tracks.total, "Spotify search results");
 
-            if let Some(sp_track) = result.tracks.items.first() {
+            // Spotify often returns the single release first; if we know the
+            // album, prefer the result whose album name matches.
+            let source_album = album
+                .map(|s| s.trim().to_lowercase())
+                .filter(|s| !s.is_empty());
+            let picked = match source_album {
+                Some(target) => result
+                    .tracks
+                    .items
+                    .iter()
+                    .find(|t| t.album.name.trim().to_lowercase() == target)
+                    .or_else(|| result.tracks.items.first()),
+                None => result.tracks.items.first(),
+            };
+            if let Some(sp_track) = picked {
                 let normalize = accent_normalize;
                 let spotify_artists: Vec<String> = sp_track
                     .artists
@@ -170,8 +185,18 @@ pub async fn scrobble(
 ) -> Result<(), Error> {
     let artist = scrobble.data.song.parsed.artist.clone();
     let track_name = scrobble.data.song.parsed.track.clone();
+    let album = scrobble.data.song.parsed.album.clone();
 
-    if let Some(track) = resolve_track(pool, cache, mb_client, &artist, &track_name).await? {
+    if let Some(track) = resolve_track(
+        pool,
+        cache,
+        mb_client,
+        &artist,
+        &track_name,
+        album.as_deref(),
+    )
+    .await?
+    {
         rocksky::scrobble(cache, did, track, scrobble.time).await?;
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     } else {
@@ -197,8 +222,8 @@ fn accent_normalize(s: &str) -> String {
         .collect()
 }
 
-fn build_spotify_query(artist: &str, track_name: &str) -> String {
-    if artist.contains(" x ") {
+fn build_spotify_query(artist: &str, track_name: &str, album: Option<&str>) -> String {
+    let base = if artist.contains(" x ") {
         let artists = artist
             .split(" x ")
             .map(|a| format!(r#"artist:"{}""#, a.trim()))
@@ -214,6 +239,11 @@ fn build_spotify_query(artist: &str, track_name: &str) -> String {
         format!(r#"track:"{}" {}"#, track_name, artists)
     } else {
         format!(r#"track:"{}" artist:"{}""#, track_name, artist.trim())
+    };
+
+    match album.map(str::trim).filter(|s| !s.is_empty()) {
+        Some(a) => format!(r#"{} album:"{}""#, base, a),
+        None => base,
     }
 }
 

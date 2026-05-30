@@ -144,17 +144,34 @@ impl Enricher {
             q.push_str(&format!(" album:\"{}\"", escape_quotes(&track.album)));
         }
 
+        // Fetch up to 10 results so we can pick the one whose album matches
+        // the source's album name. When the source (ListenBrainz especially)
+        // tells us the play came from "Future Nostalgia (Deluxe)", we don't
+        // want to silently pick the radio-edit single release.
         let resp: SearchResponse = http
             .get(SPOTIFY_SEARCH_URL)
             .bearer_auth(&token)
-            .query(&[("q", q.as_str()), ("type", "track"), ("limit", "1")])
+            .query(&[("q", q.as_str()), ("type", "track"), ("limit", "10")])
             .send()
             .await?
             .error_for_status()?
             .json()
             .await?;
 
-        let Some(item) = resp.tracks.items.into_iter().next() else {
+        let source_album = track.album.trim().to_lowercase();
+        let mut items = resp.tracks.items;
+        let item = if !source_album.is_empty() {
+            let idx = items
+                .iter()
+                .position(|it| it.album.name.trim().to_lowercase() == source_album);
+            match idx {
+                Some(i) => Some(items.swap_remove(i)),
+                None => items.into_iter().next(),
+            }
+        } else {
+            items.into_iter().next()
+        };
+        let Some(item) = item else {
             return Ok(false);
         };
 
@@ -348,6 +365,8 @@ struct SpotifyExternalIds {
 
 #[derive(Debug, Deserialize)]
 struct SearchAlbum {
+    #[serde(default)]
+    name: String,
     #[serde(default)]
     artists: Vec<SpotifyArtistRef>,
     images: Vec<AlbumImage>,

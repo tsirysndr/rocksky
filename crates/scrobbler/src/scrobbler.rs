@@ -206,14 +206,22 @@ pub async fn scrobble(
         let spotify_token = refresh_token(&spotify_token, &client_id, &client_secret).await?;
         let spotify_client = SpotifyClient::new(&spotify_token.access_token);
 
+        // Build the Spotify query with album when the scrobble carries one —
+        // narrows down which release (deluxe / single / EP) we hit.
+        let mut spotify_query = format!(
+            r#"track:"{}" artist:"{}""#,
+            scrobble.track, scrobble.artist
+        );
+        if let Some(album) = scrobble.album.as_deref().map(str::trim) {
+            if !album.is_empty() {
+                spotify_query.push_str(&format!(r#" album:"{}""#, album));
+            }
+        }
         let result = retry_spotify_call(
             || async {
                 tokio::time::timeout(
                     std::time::Duration::from_secs(5),
-                    spotify_client.search(&format!(
-                        r#"track:"{}" artist:"{}""#,
-                        scrobble.track, scrobble.artist
-                    )),
+                    spotify_client.search(&spotify_query),
                 )
                 .await?
             },
@@ -221,7 +229,24 @@ pub async fn scrobble(
         )
         .await?;
 
-        if let Some(track) = result.tracks.items.first() {
+        // Even with the album in the query, Spotify sometimes returns the
+        // single first; prefer the result whose album name exactly matches
+        // the scrobble's album when one was supplied.
+        let source_album = scrobble
+            .album
+            .as_deref()
+            .map(|s| s.trim().to_lowercase())
+            .filter(|s| !s.is_empty());
+        let picked = match source_album {
+            Some(target) => result
+                .tracks
+                .items
+                .iter()
+                .find(|t| t.album.name.trim().to_lowercase() == target)
+                .or_else(|| result.tracks.items.first()),
+            None => result.tracks.items.first(),
+        };
+        if let Some(track) = picked {
             tracing::info!(artist = %scrobble.artist, track = %scrobble.track, "Spotify (track)");
             scrobble.album = Some(track.album.name.clone());
             let mut track = track.clone();
@@ -401,20 +426,36 @@ pub async fn scrobble_v1(
     let spotify_token = refresh_token(&spotify_token, &client_id, &client_secret).await?;
     let spotify_client = SpotifyClient::new(&spotify_token.access_token);
 
+    let mut spotify_query = format!(
+        r#"track:"{}" artist:"{}""#,
+        scrobble.track, scrobble.artist
+    );
+    if let Some(album) = scrobble.album.as_deref().map(str::trim) {
+        if !album.is_empty() {
+            spotify_query.push_str(&format!(r#" album:"{}""#, album));
+        }
+    }
     let result = retry_spotify_call(
-        || async {
-            spotify_client
-                .search(&format!(
-                    r#"track:"{}" artist:"{}""#,
-                    scrobble.track, scrobble.artist
-                ))
-                .await
-        },
+        || async { spotify_client.search(&spotify_query).await },
         "search",
     )
     .await?;
 
-    if let Some(track) = result.tracks.items.first() {
+    let source_album = scrobble
+        .album
+        .as_deref()
+        .map(|s| s.trim().to_lowercase())
+        .filter(|s| !s.is_empty());
+    let picked = match source_album {
+        Some(target) => result
+            .tracks
+            .items
+            .iter()
+            .find(|t| t.album.name.trim().to_lowercase() == target)
+            .or_else(|| result.tracks.items.first()),
+        None => result.tracks.items.first(),
+    };
+    if let Some(track) = picked {
         let normalize = |s: &str| -> String {
             s.to_lowercase()
                 .chars()
@@ -701,20 +742,36 @@ pub async fn scrobble_listenbrainz(
     let spotify_token = refresh_token(&spotify_token, &client_id, &client_secret).await?;
     let spotify_client = SpotifyClient::new(&spotify_token.access_token);
 
+    let mut spotify_query = format!(
+        r#"track:"{}" artist:"{}""#,
+        scrobble.track, scrobble.artist
+    );
+    if let Some(album) = scrobble.album.as_deref().map(str::trim) {
+        if !album.is_empty() {
+            spotify_query.push_str(&format!(r#" album:"{}""#, album));
+        }
+    }
     let result = retry_spotify_call(
-        || async {
-            spotify_client
-                .search(&format!(
-                    r#"track:"{}" artist:"{}""#,
-                    scrobble.track, scrobble.artist
-                ))
-                .await
-        },
+        || async { spotify_client.search(&spotify_query).await },
         "search",
     )
     .await?;
 
-    if let Some(track) = result.tracks.items.first() {
+    let source_album = scrobble
+        .album
+        .as_deref()
+        .map(|s| s.trim().to_lowercase())
+        .filter(|s| !s.is_empty());
+    let picked = match source_album {
+        Some(target) => result
+            .tracks
+            .items
+            .iter()
+            .find(|t| t.album.name.trim().to_lowercase() == target)
+            .or_else(|| result.tracks.items.first()),
+        None => result.tracks.items.first(),
+    };
+    if let Some(track) = picked {
         let normalize = |s: &str| -> String {
             s.to_lowercase()
                 .chars()
