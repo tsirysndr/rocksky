@@ -40,6 +40,10 @@
               "type": "string",
               "description": "The MusicBrainz ID of the song, if available"
             },
+            "isrc": {
+              "type": "string",
+              "description": "The International Standard Recording Code (ISRC) of the song, if available"
+            },
             "albumArt": {
               "type": "string",
               "description": "The URL of the album art for the song",

@@ -271,6 +271,8 @@ const putSongRecord = (track: Track, agent: Agent) =>
       copyrightMessage: track.copyrightMessage ?? undefined,
       createdAt: new Date().toISOString(),
       spotifyLink: track.spotifyLink ?? undefined,
+      mbid: track.mbId ?? undefined,
+      isrc: track.isrc ?? undefined,
     }),
     Effect.flatMap((record) =>
       putRecord(agent, "app.rocksky.song", record, Song.validateRecord),

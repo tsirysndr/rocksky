@@ -54,7 +54,7 @@ impl Enricher {
     /// strictly best-effort and must never block a scrobble.
     pub async fn enrich(&self, pool: &Pool<Postgres>, http: &Client, track: &mut NormalizedTrack) {
         // 1. Rocksky DB lookup first.
-        if track.album_art.is_none() || track.spotify_link.is_none() {
+        if track.album_art.is_none() || track.spotify_link.is_none() || track.isrc.is_none() {
             match db::track_enrichment(pool, &track.title, &track.artist, &track.album).await {
                 Ok(Some(found)) => {
                     let mut from_db = 0;
@@ -67,6 +67,12 @@ impl Enricher {
                     if track.spotify_link.is_none() {
                         if let Some(s) = found.spotify_link {
                             track.spotify_link = Some(s);
+                            from_db += 1;
+                        }
+                    }
+                    if track.isrc.is_none() {
+                        if let Some(i) = found.isrc {
+                            track.isrc = Some(i);
                             from_db += 1;
                         }
                     }
@@ -85,7 +91,7 @@ impl Enricher {
         }
 
         // 2. Fall back to Spotify for whatever the DB couldn't fill.
-        if track.album_art.is_none() || track.spotify_link.is_none() {
+        if track.album_art.is_none() || track.spotify_link.is_none() || track.isrc.is_none() {
             match self.enrich_via_spotify(http, track).await {
                 Ok(true) => info!(
                     title = %track.title,
@@ -158,6 +164,13 @@ impl Enricher {
         }
         if track.spotify_link.is_none() {
             track.spotify_link = item.external_urls.spotify;
+        }
+        if track.isrc.is_none() {
+            if let Some(ids) = item.external_ids {
+                if let Some(isrc) = ids.isrc.filter(|s| !s.is_empty()) {
+                    track.isrc = Some(isrc);
+                }
+            }
         }
         Ok(true)
     }
@@ -275,6 +288,14 @@ struct SearchTracks {
 struct SearchTrackItem {
     album: SearchAlbum,
     external_urls: ExternalUrls,
+    #[serde(default)]
+    external_ids: Option<SpotifyExternalIds>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct SpotifyExternalIds {
+    #[serde(default)]
+    isrc: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

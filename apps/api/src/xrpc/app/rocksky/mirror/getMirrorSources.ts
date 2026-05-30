@@ -44,7 +44,10 @@ const retrieve = ({
       // Always seed with the three baseline provider cards. We overlay any
       // existing rows on top, so the UI never has to deal with "no data" —
       // it just sees three disabled toggles ready to be flipped.
-      const byProvider = new Map<string, typeof tables.mirrorSources.$inferSelect>();
+      const byProvider = new Map<
+        string,
+        typeof tables.mirrorSources.$inferSelect
+      >();
 
       if (did) {
         const [user] = await ctx.db

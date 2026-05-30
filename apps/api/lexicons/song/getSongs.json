@@ -21,6 +21,18 @@
           "genre": {
             "type": "string",
             "description": "The genre to filter artists by"
+          },
+          "mbid": {
+            "type": "string",
+            "description": "Filter songs by MusicBrainz ID"
+          },
+          "isrc": {
+            "type": "string",
+            "description": "Filter songs by International Standard Recording Code (ISRC)"
+          },
+          "spotifyId": {
+            "type": "string",
+            "description": "Filter songs by Spotify track ID (resolved internally to the Spotify track URL)"
           }
         }
       },

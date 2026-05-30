@@ -23,6 +23,8 @@ pub struct NormalizedTrack {
 
     #[serde(skip_serializing_if = "Option::is_none", rename = "mbId")]
     pub mb_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub isrc: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none", rename = "albumArt")]
     pub album_art: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none", rename = "spotifyLink")]

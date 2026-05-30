@@ -71,6 +71,14 @@
           "type": "string",
           "description": "The SHA256 hash of the song."
         },
+        "mbid": {
+          "type": "string",
+          "description": "The MusicBrainz ID of the song."
+        },
+        "isrc": {
+          "type": "string",
+          "description": "The International Standard Recording Code (ISRC) of the song."
+        },
         "tags": {
           "type": "array",
           "items": {
@@ -152,6 +160,14 @@
         "sha256": {
           "type": "string",
           "description": "The SHA256 hash of the song."
+        },
+        "mbid": {
+          "type": "string",
+          "description": "The MusicBrainz ID of the song."
+        },
+        "isrc": {
+          "type": "string",
+          "description": "The International Standard Recording Code (ISRC) of the song."
         },
         "tags": {
           "type": "array",

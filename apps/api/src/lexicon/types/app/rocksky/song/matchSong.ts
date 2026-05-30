@@ -14,6 +14,10 @@ export interface QueryParams {
   title: string;
   /** The artist of the song to retrieve */
   artist: string;
+  /** Optional MusicBrainz recording ID to anchor the match */
+  mbId?: string;
+  /** Optional International Standard Recording Code (ISRC) to anchor the match */
+  isrc?: string;
 }
 
 export type InputSchema = undefined;

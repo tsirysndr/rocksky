@@ -4,17 +4,26 @@
   "defs": {
     "main": {
       "type": "query",
-      "description": "Get a song by its uri",
+      "description": "Get a song by its uri, MusicBrainz ID, or ISRC",
       "parameters": {
         "type": "params",
-        "required": [
-          "uri"
-        ],
         "properties": {
           "uri": {
             "type": "string",
-            "description": "The unique identifier of the song to retrieve",
+            "description": "The AT-URI of the song to retrieve",
             "format": "at-uri"
+          },
+          "mbid": {
+            "type": "string",
+            "description": "The MusicBrainz ID of the song to retrieve"
+          },
+          "isrc": {
+            "type": "string",
+            "description": "The International Standard Recording Code (ISRC) of the song to retrieve"
+          },
+          "spotifyId": {
+            "type": "string",
+            "description": "The Spotify track ID of the song to retrieve (resolved internally to the Spotify track URL)"
           }
         }
       },

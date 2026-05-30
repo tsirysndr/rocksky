@@ -1,6 +1,6 @@
 import type { Context } from "context";
 import { consola } from "consola";
-import { count, desc, eq, inArray, sql } from "drizzle-orm";
+import { type SQL, count, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { Cache, Duration, Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { SongViewBasic } from "lexicon/types/app/rocksky/song/defs";
@@ -54,6 +54,76 @@ const retrieve = ({
     try: async () => {
       const limit = params.limit ?? 100;
       const offset = params.offset ?? 0;
+
+      // Direct lookup by mbid/isrc/spotifyId — short-circuits the top-tracks aggregation
+      const mbid = params.mbid?.trim();
+      const isrc = params.isrc?.trim();
+      const spotifyId = params.spotifyId?.trim();
+      if (mbid || isrc || spotifyId) {
+        const idClauses: SQL[] = [];
+        if (mbid) idClauses.push(eq(tables.tracks.mbId, mbid));
+        if (isrc) idClauses.push(eq(tables.tracks.isrc, isrc));
+        if (spotifyId) {
+          idClauses.push(
+            eq(
+              tables.tracks.spotifyLink,
+              `https://open.spotify.com/track/${spotifyId}`,
+            ),
+          );
+        }
+        const directWhere =
+          idClauses.length > 1 ? or(...idClauses) : idClauses[0];
+
+        const directTracks = await ctx.db
+          .select({
+            id: tables.tracks.id,
+            title: tables.tracks.title,
+            artist: tables.tracks.artist,
+            albumArtist: tables.tracks.albumArtist,
+            albumArt: tables.tracks.albumArt,
+            album: tables.tracks.album,
+            uri: tables.tracks.uri,
+            albumUri: tables.tracks.albumUri,
+            artistUri: tables.tracks.artistUri,
+            sha256: tables.tracks.sha256,
+            mbId: tables.tracks.mbId,
+            isrc: tables.tracks.isrc,
+            trackNumber: tables.tracks.trackNumber,
+            discNumber: tables.tracks.discNumber,
+            duration: tables.tracks.duration,
+            copyrightMessage: tables.tracks.copyrightMessage,
+            createdAt: tables.tracks.createdAt,
+          })
+          .from(tables.tracks)
+          .where(directWhere)
+          .limit(limit)
+          .offset(offset)
+          .execute();
+
+        return {
+          data: directTracks.map((track) => ({
+            id: track.id,
+            uri: track.uri,
+            title: track.title,
+            artist: track.artist,
+            artist_uri: track.artistUri,
+            album: track.album,
+            album_uri: track.albumUri,
+            album_art: track.albumArt,
+            album_artist: track.albumArtist,
+            copyright_message: track.copyrightMessage,
+            disc_number: track.discNumber,
+            duration: track.duration,
+            sha256: track.sha256,
+            mbid: track.mbId,
+            isrc: track.isrc,
+            track_number: track.trackNumber,
+            play_count: 0,
+            unique_listeners: 0,
+            created_at: track.createdAt.toISOString(),
+          })),
+        };
+      }
 
       const topTracksQuery = await ctx.db
         .select({
@@ -176,6 +246,8 @@ type Track = {
   disc_number: number | null;
   duration: number;
   sha256: string;
+  mbid?: string | null;
+  isrc?: string | null;
   track_number: number | null;
   created_at: string;
 };

@@ -22,6 +22,7 @@ const MATCH_SONG_CACHE_TTL_SECONDS = 24 * 60 * 60; // 24 hours
 
 const getCacheKey = (params: QueryParams): string => {
   if (params.mbId) return `matchSong:mbId:${params.mbId}`;
+  if (params.isrc) return `matchSong:isrc:${params.isrc}`;
   return `matchSong:${params.title.toLowerCase()}:${params.artist.toLowerCase()}`;
 };
 
@@ -112,6 +113,10 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
         ? await queryRecord(eq(tables.tracks.mbId, params.mbId))
         : null;
 
+      if (!record && params.isrc) {
+        record = await queryRecord(eq(tables.tracks.isrc, params.isrc));
+      }
+
       if (!record) {
         record = await queryRecord(byTitleArtist);
       }
@@ -148,6 +153,7 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
                 trackNumber: null,
                 duration: 0,
                 mbId: mbData.trackMBID,
+                isrc: spotifyTrack?.external_ids?.isrc ?? null,
                 genre: null,
                 youtubeLink: null,
                 spotifyLink: spotifyTrack?.external_urls.spotify ?? null,
@@ -194,6 +200,7 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
             trackNumber: spotifyTrack.track_number,
             duration: spotifyTrack.duration_ms,
             mbId: null,
+            isrc: spotifyTrack.external_ids?.isrc || null,
             genre: null,
             youtubeLink: null,
             spotifyLink: spotifyTrack.external_urls.spotify,
@@ -234,6 +241,9 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
 
         if (!track?.albumArt && spotifyTrack) {
           track.albumArt = spotifyTrack.album.images[0]?.url || null;
+        }
+        if (track && !track.isrc && spotifyTrack?.external_ids?.isrc) {
+          track.isrc = spotifyTrack.external_ids.isrc;
         }
       }
 

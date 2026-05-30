@@ -16,6 +16,7 @@ export const trackSchema = z.object({
   albumArtist: z.string().nonempty().trim(),
   duration: z.number(),
   mbId: z.string().optional().nullable(),
+  isrc: z.string().optional().nullable(),
   albumArt: z.string().optional().nullable(),
   trackNumber: z.number().optional().nullable(),
   releaseDate: z

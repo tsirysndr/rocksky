@@ -13,6 +13,7 @@ const tracks = pgTable(
     trackNumber: integer("track_number"),
     duration: integer("duration").notNull(),
     mbId: text("mb_id").unique(),
+    isrc: text("isrc"),
     youtubeLink: text("youtube_link").unique(),
     spotifyLink: text("spotify_link").unique(),
     appleMusicLink: text("apple_music_link").unique(),
@@ -36,6 +37,7 @@ const tracks = pgTable(
     index("tracks_artist_uri_idx").on(t.artistUri),
     index("tracks_album_idx").on(t.album),
     index("tracks_album_artist_idx").on(t.albumArtist),
+    index("tracks_isrc_idx").on(t.isrc),
   ],
 );
 

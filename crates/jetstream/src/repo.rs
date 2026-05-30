@@ -338,28 +338,30 @@ pub async fn save_track(
         .to_lowercase(),
     );
 
-    // Fall back to MBID when the source supplied one — covers cosmetic title
-    // variations between scrobble sources that the sha256 hash would miss.
+    // Fall back to MBID or ISRC when the source supplied one — covers cosmetic
+    // title variations between scrobble sources that the sha256 hash would miss.
     let mb_id_filter = scrobble_record
         .mbid
         .as_deref()
         .map(str::trim)
         .filter(|s| !s.is_empty());
+    let isrc_filter = scrobble_record
+        .isrc
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
 
-    let tracks: Vec<Track> = if let Some(mb_id) = mb_id_filter {
-        sqlx::query_as(
-            "SELECT * FROM tracks WHERE sha256 = $1 OR (mb_id IS NOT NULL AND mb_id = $2) LIMIT 1",
-        )
-        .bind(&hash)
-        .bind(mb_id)
-        .fetch_all(&mut **tx)
-        .await?
-    } else {
-        sqlx::query_as("SELECT * FROM tracks WHERE sha256 = $1")
-            .bind(&hash)
-            .fetch_all(&mut **tx)
-            .await?
-    };
+    let tracks: Vec<Track> = sqlx::query_as(
+        "SELECT * FROM tracks WHERE sha256 = $1 \
+         OR ($2::text IS NOT NULL AND mb_id IS NOT NULL AND mb_id = $2) \
+         OR ($3::text IS NOT NULL AND isrc IS NOT NULL AND isrc = $3) \
+         LIMIT 1",
+    )
+    .bind(&hash)
+    .bind(mb_id_filter)
+    .bind(isrc_filter)
+    .fetch_all(&mut **tx)
+    .await?;
 
     if !tracks.is_empty() {
         return Ok(tracks[0].xata_id.clone());
@@ -376,6 +378,7 @@ pub async fn save_track(
       track_number,
       duration,
       mb_id,
+      isrc,
       composer,
       lyrics,
       disc_number,
@@ -388,7 +391,7 @@ pub async fn save_track(
       youtube_link,
       label
     ) VALUES (
-      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
     )
   "#,
     )
@@ -400,6 +403,7 @@ pub async fn save_track(
     .bind(scrobble_record.track_number)
     .bind(scrobble_record.duration)
     .bind(scrobble_record.mbid)
+    .bind(scrobble_record.isrc)
     .bind(scrobble_record.composer)
     .bind(scrobble_record.lyrics)
     .bind(scrobble_record.disc_number)
@@ -846,10 +850,28 @@ pub async fn save_user_track(
         format!("{} - {} - {}", record.title, record.artist, record.album).to_lowercase(),
     );
 
-    let mut tracks: Vec<Track> = sqlx::query_as("SELECT * FROM tracks WHERE sha256 = $1")
-        .bind(&hash)
-        .fetch_all(&mut **tx)
-        .await?;
+    let mb_id_filter = record
+        .mbid
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
+    let isrc_filter = record
+        .isrc
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
+
+    let mut tracks: Vec<Track> = sqlx::query_as(
+        "SELECT * FROM tracks WHERE sha256 = $1 \
+         OR ($2::text IS NOT NULL AND mb_id IS NOT NULL AND mb_id = $2) \
+         OR ($3::text IS NOT NULL AND isrc IS NOT NULL AND isrc = $3) \
+         LIMIT 1",
+    )
+    .bind(&hash)
+    .bind(mb_id_filter)
+    .bind(isrc_filter)
+    .fetch_all(&mut **tx)
+    .await?;
 
     let track_id: &str;
 
@@ -867,6 +889,7 @@ pub async fn save_user_track(
           track_number,
           duration,
           mb_id,
+          isrc,
           composer,
           lyrics,
           disc_number,
@@ -876,7 +899,7 @@ pub async fn save_user_track(
           spotify_link,
           label
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
         )
       "#,
             )
@@ -888,6 +911,7 @@ pub async fn save_user_track(
             .bind(record.track_number)
             .bind(record.duration)
             .bind(record.mbid)
+            .bind(record.isrc)
             .bind(record.composer)
             .bind(record.lyrics)
             .bind(record.disc_number)

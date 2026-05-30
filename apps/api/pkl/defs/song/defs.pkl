@@ -72,6 +72,14 @@ defs = new Mapping<String, ObjectType> {
         type = "string"
         description = "The SHA256 hash of the song."
       }
+      ["mbid"] = new StringType {
+        type = "string"
+        description = "The MusicBrainz ID of the song."
+      }
+      ["isrc"] = new StringType {
+        type = "string"
+        description = "The International Standard Recording Code (ISRC) of the song."
+      }
       ["tags"] = new Array {
         type = "array"
         items = new StringType {
@@ -153,6 +161,14 @@ defs = new Mapping<String, ObjectType> {
       ["sha256"] = new StringType {
         type = "string"
         description = "The SHA256 hash of the song."
+      }
+      ["mbid"] = new StringType {
+        type = "string"
+        description = "The MusicBrainz ID of the song."
+      }
+      ["isrc"] = new StringType {
+        type = "string"
+        description = "The International Standard Recording Code (ISRC) of the song."
       }
       ["tags"] = new Array {
         type = "array"

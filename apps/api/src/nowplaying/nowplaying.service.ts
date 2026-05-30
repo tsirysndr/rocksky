@@ -30,22 +30,25 @@ import tracks from "../schema/tracks";
  * incoming scrobble. We hash by lowercase("title - artist - album"), but
  * cosmetic title variations between sources (Spotify "Song (Remastered)" vs
  * Last.fm "Song") miss the hash even though the recording is the same. When
- * the source supplied an MBID we OR-in `mb_id = $mbid` so the recording-level
- * identity wins.
+ * the source supplied an MBID or ISRC we OR-in `mb_id = $mbid` / `isrc = $isrc`
+ * so the recording-level identity wins.
  */
 function trackLookupWhere(t: {
   title?: string;
   artist?: string;
   album?: string;
   mbId?: string | null;
+  isrc?: string | null;
 }) {
   const sha = createHash("sha256")
     .update(`${t.title} - ${t.artist} - ${t.album}`.toLowerCase())
     .digest("hex");
   const mbId = t.mbId?.trim();
-  return mbId
-    ? or(eq(tracks.sha256, sha), eq(tracks.mbId, mbId))
-    : eq(tracks.sha256, sha);
+  const isrc = t.isrc?.trim();
+  const clauses = [eq(tracks.sha256, sha)];
+  if (mbId) clauses.push(eq(tracks.mbId, mbId));
+  if (isrc) clauses.push(eq(tracks.isrc, isrc));
+  return clauses.length > 1 ? or(...clauses) : clauses[0];
 }
 import userAlbums from "../schema/user-albums";
 import userArtists from "../schema/user-artists";
@@ -161,6 +164,7 @@ export async function putSongRecord(
     spotifyLink: track.spotifyLink ? track.spotifyLink : undefined,
     tags: track.genres || [],
     mbid: track.mbId ?? undefined,
+    isrc: track.isrc ?? undefined,
   };
 
   if (!Song.validateRecord(record).success) {
@@ -219,6 +223,7 @@ async function putScrobbleRecord(
     spotifyLink: track.spotifyLink ? track.spotifyLink : undefined,
     tags: track.genres || [],
     mbid: track.mbId ?? undefined,
+    isrc: track.isrc ?? undefined,
   };
 
   if (!Scrobble.validateRecord(record).success) {
@@ -998,6 +1003,7 @@ export async function scrobbleTrack(
     if (!track.copyrightMessage)
       track.copyrightMessage = existingTrack.copyrightMessage;
     if (!track.mbId) track.mbId = existingTrack.mbId;
+    if (!track.isrc) track.isrc = existingTrack.isrc;
     if (!track.genres?.length && existingTrack.genre)
       track.genres = [existingTrack.genre];
     if (!track.spotifyLink) track.spotifyLink = existingTrack.spotifyLink;

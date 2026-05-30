@@ -12,6 +12,7 @@ pub struct Track {
     pub track_number: i32,
     pub duration: i32,
     pub mb_id: Option<String>,
+    pub isrc: Option<String>,
     pub youtube_link: Option<String>,
     pub spotify_link: Option<String>,
     pub tidal_link: Option<String>,

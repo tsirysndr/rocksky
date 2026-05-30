@@ -74,6 +74,7 @@ pub async fn scrobble(
         Some(urls) => Some(urls.spotify),
         None => None,
       },
+      "isrc": Some(track_item.external_ids.isrc.clone()).filter(|s| !s.is_empty()),
       "label": track_item.album.label,
       "artistPicture":  match &artist {
         Some(artist) => match &artist.images {
@@ -168,6 +169,7 @@ pub async fn update_library(
             Some(urls) => Some(urls.spotify),
             None => None,
         },
+        "isrc": track.external_ids.as_ref().map(|e| e.isrc.clone()).filter(|s| !s.is_empty()),
         "label": album.label,
         "artistPicture": track.artists.first().map(|artist| match &artist.images {
           Some(images) => Some(images.first().map(|image| image.url.clone())),

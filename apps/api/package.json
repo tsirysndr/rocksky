@@ -32,7 +32,8 @@
     "feed": "tsx ./src/scripts/feed.ts",
     "dedup": "bun ./src/scripts/dedup.ts",
     "seed:feed": "tsx ./src/scripts/seed-feed.ts",
-    "likes": "tsx ./src/scripts/likes.ts"
+    "likes": "tsx ./src/scripts/likes.ts",
+    "backfill:isrc-mbid": "tsx ./src/scripts/backfill-isrc-mbid.ts"
   },
   "dependencies": {
     "@atproto/api": "^0.13.31",

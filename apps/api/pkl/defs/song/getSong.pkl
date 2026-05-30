@@ -5,13 +5,21 @@ id = "app.rocksky.song.getSong"
 defs = new Mapping<String, Query> {
   ["main"] {
     type = "query"
-    description = "Get a song by its uri"
+    description = "Get a song by its uri, MusicBrainz ID, or ISRC"
     parameters = new Params {
-      required = List("uri")
       properties {
         ["uri"] = new StringType {
-          description = "The unique identifier of the song to retrieve"
+          description = "The AT-URI of the song to retrieve"
           format = "at-uri"
+        }
+        ["mbid"] = new StringType {
+          description = "The MusicBrainz ID of the song to retrieve"
+        }
+        ["isrc"] = new StringType {
+          description = "The International Standard Recording Code (ISRC) of the song to retrieve"
+        }
+        ["spotifyId"] = new StringType {
+          description = "The Spotify track ID of the song to retrieve (resolved internally to the Spotify track URL)"
         }
       }
     }

@@ -81,6 +81,8 @@ pub struct ScrobbleRecord {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mbid: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub isrc: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub artists: Option<Vec<ArtistMbid>>,
 }
 
@@ -231,6 +233,8 @@ pub struct SongRecord {
     pub label: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mbid: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub isrc: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]

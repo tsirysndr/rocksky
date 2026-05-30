@@ -171,6 +171,12 @@ defs = new Mapping<String, Record> {
           description = "The label of the song."
           maxLength = 256
         }
+
+        ["isrc"] = new StringType {
+          type = "string"
+          description = "The International Standard Recording Code (ISRC) of the song."
+          maxLength = 32
+        }
       }
     }
   }

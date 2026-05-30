@@ -175,8 +175,19 @@ async fn handle_event(
     );
 
     let mb_id = play.recording_mb_id.clone().map(strip_mbid_prefix);
+    let isrc = play.isrc.clone();
 
-    if dedup::already_scrobbled(pool, &user_id, &title, &artist, mb_id.as_deref(), at).await? {
+    if dedup::already_scrobbled(
+        pool,
+        &user_id,
+        &title,
+        &artist,
+        mb_id.as_deref(),
+        isrc.as_deref(),
+        at,
+    )
+    .await?
+    {
         info!(
             did = %did,
             title = %title,
@@ -194,6 +205,7 @@ async fn handle_event(
         duration: play.duration.map(|d| d as i64 * 1000).unwrap_or(0),
         timestamp: at.timestamp(),
         mb_id,
+        isrc: play.isrc.clone(),
         album_art: None,
         spotify_link: None,
         lastfm_link: None,
@@ -239,6 +251,7 @@ struct PlayRecord {
     release_name: Option<String>,
     artists: Vec<PlayArtist>,
     recording_mb_id: Option<String>,
+    isrc: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

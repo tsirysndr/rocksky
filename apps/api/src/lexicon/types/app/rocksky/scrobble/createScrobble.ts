@@ -22,6 +22,8 @@ export interface InputSchema {
   duration?: number;
   /** The MusicBrainz ID of the track, if available */
   mbId?: string;
+  /** The International Standard Recording Code (ISRC) of the track, if available */
+  isrc?: string;
   /** The URL of the album art for the track */
   albumArt?: string;
   /** The track number of the track in the album */

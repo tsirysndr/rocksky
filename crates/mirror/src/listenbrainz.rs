@@ -141,9 +141,18 @@ async fn poll_once(
             .mbid_mapping
             .as_ref()
             .and_then(|m| m.recording_mbid.clone());
+        let isrc = m.additional_info.as_ref().and_then(|i| i.isrc.clone());
 
-        if dedup::already_scrobbled(pool, &row.user_id, &title, &artist, mb_id.as_deref(), at)
-            .await?
+        if dedup::already_scrobbled(
+            pool,
+            &row.user_id,
+            &title,
+            &artist,
+            mb_id.as_deref(),
+            isrc.as_deref(),
+            at,
+        )
+        .await?
         {
             info!(
                 user_id = %row.user_id,
@@ -173,6 +182,7 @@ async fn poll_once(
             duration: duration_ms,
             timestamp: listen.listened_at,
             mb_id: mb_id.clone(),
+            isrc: info.and_then(|i| i.isrc.clone()),
             album_art: None,
             spotify_link: info.and_then(|i| i.spotify_id.clone()),
             lastfm_link: None,
@@ -238,6 +248,7 @@ struct AdditionalInfo {
     duration_ms: Option<i64>,
     duration: Option<i32>,
     spotify_id: Option<String>,
+    isrc: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

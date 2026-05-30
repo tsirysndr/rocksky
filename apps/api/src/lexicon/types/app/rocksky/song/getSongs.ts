@@ -16,6 +16,12 @@ export interface QueryParams {
   offset?: number;
   /** The genre to filter artists by */
   genre?: string;
+  /** Filter songs by MusicBrainz ID */
+  mbid?: string;
+  /** Filter songs by International Standard Recording Code (ISRC) */
+  isrc?: string;
+  /** Filter songs by Spotify track ID (resolved internally to the Spotify track URL) */
+  spotifyId?: string;
 }
 
 export type InputSchema = undefined;

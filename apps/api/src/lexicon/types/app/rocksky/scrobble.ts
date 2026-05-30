@@ -58,6 +58,8 @@ export interface Record {
   mbid?: string;
   /** The label of the song. */
   label?: string;
+  /** The International Standard Recording Code (ISRC) of the song. */
+  isrc?: string;
   [k: string]: unknown;
 }
 

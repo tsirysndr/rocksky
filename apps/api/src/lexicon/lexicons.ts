@@ -5004,6 +5004,11 @@ export const schemaDict = {
                 type: "string",
                 description: "The MusicBrainz ID of the track, if available",
               },
+              isrc: {
+                type: "string",
+                description:
+                  "The International Standard Recording Code (ISRC) of the track, if available",
+              },
               albumArt: {
                 type: "string",
                 description: "The URL of the album art for the track",
@@ -5500,6 +5505,12 @@ export const schemaDict = {
               description: "The label of the song.",
               maxLength: 256,
             },
+            isrc: {
+              type: "string",
+              description:
+                "The International Standard Recording Code (ISRC) of the song.",
+              maxLength: 32,
+            },
           },
         },
       },
@@ -5992,6 +6003,11 @@ export const schemaDict = {
                 type: "string",
                 description: "The MusicBrainz ID of the song, if available",
               },
+              isrc: {
+                type: "string",
+                description:
+                  "The International Standard Recording Code (ISRC) of the song, if available",
+              },
               albumArt: {
                 type: "string",
                 description: "The URL of the album art for the song",
@@ -6107,6 +6123,15 @@ export const schemaDict = {
             type: "string",
             description: "The SHA256 hash of the song.",
           },
+          mbid: {
+            type: "string",
+            description: "The MusicBrainz ID of the song.",
+          },
+          isrc: {
+            type: "string",
+            description:
+              "The International Standard Recording Code (ISRC) of the song.",
+          },
           tags: {
             type: "array",
             items: {
@@ -6190,6 +6215,15 @@ export const schemaDict = {
             type: "string",
             description: "The SHA256 hash of the song.",
           },
+          mbid: {
+            type: "string",
+            description: "The MusicBrainz ID of the song.",
+          },
+          isrc: {
+            type: "string",
+            description:
+              "The International Standard Recording Code (ISRC) of the song.",
+          },
           tags: {
             type: "array",
             items: {
@@ -6244,15 +6278,28 @@ export const schemaDict = {
     defs: {
       main: {
         type: "query",
-        description: "Get a song by its uri",
+        description: "Get a song by its uri, MusicBrainz ID, or ISRC",
         parameters: {
           type: "params",
-          required: ["uri"],
           properties: {
             uri: {
               type: "string",
-              description: "The unique identifier of the song to retrieve",
+              description: "The AT-URI of the song to retrieve",
               format: "at-uri",
+            },
+            mbid: {
+              type: "string",
+              description: "The MusicBrainz ID of the song to retrieve",
+            },
+            isrc: {
+              type: "string",
+              description:
+                "The International Standard Recording Code (ISRC) of the song to retrieve",
+            },
+            spotifyId: {
+              type: "string",
+              description:
+                "The Spotify track ID of the song to retrieve (resolved internally to the Spotify track URL)",
             },
           },
         },
@@ -6289,6 +6336,20 @@ export const schemaDict = {
             genre: {
               type: "string",
               description: "The genre to filter artists by",
+            },
+            mbid: {
+              type: "string",
+              description: "Filter songs by MusicBrainz ID",
+            },
+            isrc: {
+              type: "string",
+              description:
+                "Filter songs by International Standard Recording Code (ISRC)",
+            },
+            spotifyId: {
+              type: "string",
+              description:
+                "Filter songs by Spotify track ID (resolved internally to the Spotify track URL)",
             },
           },
         },
@@ -6329,6 +6390,16 @@ export const schemaDict = {
             artist: {
               type: "string",
               description: "The artist of the song to retrieve",
+            },
+            mbId: {
+              type: "string",
+              description:
+                "Optional MusicBrainz recording ID to anchor the match",
+            },
+            isrc: {
+              type: "string",
+              description:
+                "Optional International Standard Recording Code (ISRC) to anchor the match",
             },
           },
         },
@@ -6496,6 +6567,12 @@ export const schemaDict = {
               type: "string",
               description: "The label of the song.",
               maxLength: 256,
+            },
+            isrc: {
+              type: "string",
+              description:
+                "The International Standard Recording Code (ISRC) of the song.",
+              maxLength: 32,
             },
           },
         },

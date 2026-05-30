@@ -1,6 +1,6 @@
 import type { Context } from "context";
 import { consola } from "consola";
-import { asc, count, eq, or } from "drizzle-orm";
+import { type SQL, asc, count, eq, or } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { SongViewDetailed } from "lexicon/types/app/rocksky/song/defs";
@@ -36,6 +36,30 @@ export default function (server: Server, ctx: Context) {
 const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
   return Effect.tryPromise({
     try: async () => {
+      const uri = params.uri?.trim();
+      const mbid = params.mbid?.trim();
+      const isrc = params.isrc?.trim();
+      const spotifyId = params.spotifyId?.trim();
+      if (!uri && !mbid && !isrc && !spotifyId) {
+        throw new Error("getSong requires one of: uri, mbid, isrc, spotifyId");
+      }
+      const clauses: SQL[] = [];
+      if (uri) {
+        clauses.push(eq(tables.userTracks.uri, uri));
+        clauses.push(eq(tables.tracks.uri, uri));
+      }
+      if (mbid) clauses.push(eq(tables.tracks.mbId, mbid));
+      if (isrc) clauses.push(eq(tables.tracks.isrc, isrc));
+      if (spotifyId) {
+        clauses.push(
+          eq(
+            tables.tracks.spotifyLink,
+            `https://open.spotify.com/track/${spotifyId}`,
+          ),
+        );
+      }
+      const where = clauses.length > 1 ? or(...clauses) : clauses[0];
+
       const { tracks: track, artists: artist } = await ctx.db
         .select()
         .from(tables.userTracks)
@@ -47,12 +71,7 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
           tables.artists,
           eq(tables.tracks.artistUri, tables.artists.uri),
         )
-        .where(
-          or(
-            eq(tables.userTracks.uri, params.uri),
-            eq(tables.tracks.uri, params.uri),
-          ),
-        )
+        .where(where)
         .execute()
         .then(([row]) => row);
 

@@ -19,6 +19,14 @@
           "artist": {
             "type": "string",
             "description": "The artist of the song to retrieve"
+          },
+          "mbId": {
+            "type": "string",
+            "description": "Optional MusicBrainz recording ID to anchor the match"
+          },
+          "isrc": {
+            "type": "string",
+            "description": "Optional International Standard Recording Code (ISRC) to anchor the match"
           }
         }
       },

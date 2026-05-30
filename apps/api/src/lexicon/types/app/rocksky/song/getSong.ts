@@ -10,8 +10,14 @@ import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
 import type * as AppRockskySongDefs from "./defs";
 
 export interface QueryParams {
-  /** The unique identifier of the song to retrieve */
-  uri: string;
+  /** The AT-URI of the song to retrieve */
+  uri?: string;
+  /** The MusicBrainz ID of the song to retrieve */
+  mbid?: string;
+  /** The International Standard Recording Code (ISRC) of the song to retrieve */
+  isrc?: string;
+  /** The Spotify track ID of the song to retrieve (resolved internally to the Spotify track URL) */
+  spotifyId?: string;
 }
 
 export type InputSchema = undefined;

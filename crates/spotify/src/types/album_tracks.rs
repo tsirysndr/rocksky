@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::currently_playing::{Artist, ExternalUrls};
+use super::currently_playing::{Artist, ExternalIds, ExternalUrls};
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct AlbumTracks {
@@ -20,6 +20,8 @@ pub struct Track {
     pub disc_number: u32,
     pub duration_ms: u32,
     pub explicit: bool,
+    #[serde(default)]
+    pub external_ids: Option<ExternalIds>,
     pub external_urls: Option<ExternalUrls>,
     pub href: String,
     pub id: String,

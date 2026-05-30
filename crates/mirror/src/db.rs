@@ -113,6 +113,7 @@ pub async fn user_id_for_did(pool: &Pool<Postgres>, did: &str) -> Result<Option<
 pub struct TrackEnrichment {
     pub album_art: Option<String>,
     pub spotify_link: Option<String>,
+    pub isrc: Option<String>,
 }
 
 pub async fn track_enrichment(
@@ -128,7 +129,7 @@ pub async fn track_enrichment(
     );
     let row: Option<TrackEnrichment> = sqlx::query_as(
         r#"
-        SELECT album_art, spotify_link
+        SELECT album_art, spotify_link, isrc
         FROM tracks
         WHERE sha256 = $1
         LIMIT 1

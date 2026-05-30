@@ -22,6 +22,18 @@ defs = new Mapping<String, Query> {
           type = "string"
           description = "The genre to filter artists by"
         }
+        ["mbid"] = new StringType {
+          type = "string"
+          description = "Filter songs by MusicBrainz ID"
+        }
+        ["isrc"] = new StringType {
+          type = "string"
+          description = "Filter songs by International Standard Recording Code (ISRC)"
+        }
+        ["spotifyId"] = new StringType {
+          type = "string"
+          description = "Filter songs by Spotify track ID (resolved internally to the Spotify track URL)"
+        }
       }
     }
     output {

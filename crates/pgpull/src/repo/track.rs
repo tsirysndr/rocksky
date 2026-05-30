@@ -42,6 +42,7 @@ pub async fn insert_track(pool: &Pool<Postgres>, track: &Track) -> Result<(), Er
             track_number,
             duration,
             mb_id,
+            isrc,
             youtube_link,
             spotify_link,
             tidal_link,
@@ -57,7 +58,7 @@ pub async fn insert_track(pool: &Pool<Postgres>, track: &Track) -> Result<(), Er
             artist_uri,
             album_uri,
             xata_createdat
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
           ON CONFLICT (sha256) DO NOTHING
          "#,
     )
@@ -70,6 +71,7 @@ pub async fn insert_track(pool: &Pool<Postgres>, track: &Track) -> Result<(), Er
     .bind(track.track_number)
     .bind(track.duration)
     .bind(&track.mb_id)
+    .bind(&track.isrc)
     .bind(&track.youtube_link)
     .bind(&track.spotify_link)
     .bind(&track.tidal_link)

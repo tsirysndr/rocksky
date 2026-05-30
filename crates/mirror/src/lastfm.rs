@@ -144,8 +144,16 @@ async fn poll_once(
             continue;
         }
 
-        if dedup::already_scrobbled(pool, &row.user_id, &title, &artist, mb_id.as_deref(), at)
-            .await?
+        if dedup::already_scrobbled(
+            pool,
+            &row.user_id,
+            &title,
+            &artist,
+            mb_id.as_deref(),
+            None,
+            at,
+        )
+        .await?
         {
             info!(
                 user_id = %row.user_id,
@@ -169,6 +177,7 @@ async fn poll_once(
             duration: 0, // user.getrecenttracks doesn't include duration
             timestamp: uts,
             mb_id,
+            isrc: None,
             album_art: largest_image(&item.image),
             spotify_link: None,
             lastfm_link: nonempty(item.url),

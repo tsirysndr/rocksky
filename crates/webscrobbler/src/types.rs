@@ -122,6 +122,8 @@ pub struct Track {
     pub album_artist: Option<String>,
     pub duration: u32,
     pub mbid: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub isrc: Option<String>,
     pub track_number: u32,
     pub release_date: Option<String>,
     pub year: Option<u32>,
@@ -148,6 +150,7 @@ impl From<xata::track::Track> for Track {
             timestamp: None,
             duration: track.duration as u32,
             mbid: track.mb_id,
+            isrc: track.isrc,
             track_number: track.track_number as u32,
             disc_number: track.disc_number as u32,
             year: None,
@@ -241,6 +244,7 @@ impl From<&spotify::types::Track> for Track {
                 .first()
                 .map(|artist| artist.name.clone()),
             duration: track.duration_ms as u32,
+            isrc: Some(track.external_ids.isrc.clone()).filter(|s| !s.is_empty()),
             album_art: track.album.images.first().map(|image| image.url.clone()),
             spotify_link: Some(track.external_urls.spotify.clone()),
             artist_picture: track.album.artists.first().and_then(|artist| {

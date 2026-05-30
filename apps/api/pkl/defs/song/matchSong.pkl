@@ -15,6 +15,12 @@ defs = new Mapping<String, Query> {
         ["artist"] = new StringType {
           description = "The artist of the song to retrieve"
         }
+        ["mbId"] = new StringType {
+          description = "Optional MusicBrainz recording ID to anchor the match"
+        }
+        ["isrc"] = new StringType {
+          description = "Optional International Standard Recording Code (ISRC) to anchor the match"
+        }
       }
     }
     output {

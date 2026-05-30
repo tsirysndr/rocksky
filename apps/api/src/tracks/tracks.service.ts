@@ -20,17 +20,17 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
     .update(`${track.title} - ${track.artist} - ${track.album}`.toLowerCase())
     .digest("hex");
 
-  // Fall back to MBID when the source supplied one — covers cosmetic title
-  // variations between scrobble sources that the sha256 hash would miss.
+  // Fall back to MBID or ISRC when the source supplied one — covers cosmetic
+  // title variations between scrobble sources that the sha256 hash would miss.
   const mbId = track.mbId?.trim();
+  const isrc = track.isrc?.trim();
+  const clauses = [eq(tracks.sha256, trackHash)];
+  if (mbId) clauses.push(eq(tracks.mbId, mbId));
+  if (isrc) clauses.push(eq(tracks.isrc, isrc));
   const existingTrack = await ctx.db
     .select()
     .from(tracks)
-    .where(
-      mbId
-        ? or(eq(tracks.sha256, trackHash), eq(tracks.mbId, mbId))
-        : eq(tracks.sha256, trackHash),
-    )
+    .where(clauses.length > 1 ? or(...clauses) : clauses[0])
     .limit(1)
     .then((results) => results[0]);
 

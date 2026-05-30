@@ -38,6 +38,10 @@ export interface SongViewBasic {
   artistUri?: string;
   /** The SHA256 hash of the song. */
   sha256?: string;
+  /** The MusicBrainz ID of the song. */
+  mbid?: string;
+  /** The International Standard Recording Code (ISRC) of the song. */
+  isrc?: string;
   tags?: string[];
   /** The timestamp when the song was created. */
   createdAt?: string;
@@ -87,6 +91,10 @@ export interface SongViewDetailed {
   artistUri?: string;
   /** The SHA256 hash of the song. */
   sha256?: string;
+  /** The MusicBrainz ID of the song. */
+  mbid?: string;
+  /** The International Standard Recording Code (ISRC) of the song. */
+  isrc?: string;
   tags?: string[];
   /** The timestamp when the song was created. */
   createdAt?: string;

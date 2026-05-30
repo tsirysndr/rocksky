@@ -32,6 +32,10 @@ defs = new Mapping<String, Procedure> {
             type = "string"
             description = "The MusicBrainz ID of the track, if available"
           }
+          ["isrc"] = new StringType {
+            type = "string"
+            description = "The International Standard Recording Code (ISRC) of the track, if available"
+          }
           ["albumArt"] = new StringType {
             type = "string"
             description = "The URL of the album art for the track"
