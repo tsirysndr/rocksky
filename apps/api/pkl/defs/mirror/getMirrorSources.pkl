@@ -1,0 +1,30 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.mirror.getMirrorSources"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get the authenticated user's scrobble mirror sources (Last.fm, ListenBrainz, Teal.fm)."
+    parameters {
+      type = "params"
+      properties {
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        required = List("sources")
+        properties = new Mapping<String, Array> {
+          ["sources"] = new Array {
+            type = "array"
+            items = new Ref {
+              ref = "app.rocksky.mirror.defs#mirrorSourceView"
+            }
+          }
+        }
+      }
+    }
+  }
+}

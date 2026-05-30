@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import MiniPlayer from "./components/MiniPlayer";
 import AlbumPage from "./pages/album";
 import ApiKeysPage from "./pages/apikeys";
+import MirrorsPage from "./pages/mirrors";
 import StoragePage from "./pages/storage";
 import ArtistPage from "./pages/artist";
 import Charts from "./pages/charts";
@@ -30,6 +31,7 @@ function App() {
         <Route path="/me" element={<Me />} />
         <Route path="/apikeys" element={<ApiKeysPage />} />
         <Route path="/storage" element={<StoragePage />} />
+        <Route path="/mirrors" element={<MirrorsPage />} />
         <Route path="/library" element={<LibraryPage />} />
         <Route path="/library/upload" element={<UploadPage />} />
         <Route path="/library/:did/album/:rkey" element={<LibraryAlbumPage />} />

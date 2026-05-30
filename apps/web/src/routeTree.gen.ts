@@ -14,6 +14,7 @@ import { Route as TosRouteImport } from './routes/tos'
 import { Route as StorageRouteImport } from './routes/storage'
 import { Route as ScrobbleRouteImport } from './routes/scrobble'
 import { Route as RecommendationsRouteImport } from './routes/recommendations'
+import { Route as MirrorsRouteImport } from './routes/mirrors'
 import { Route as LoadingRouteImport } from './routes/loading'
 import { Route as ImportRouteImport } from './routes/import'
 import { Route as ChartsRouteImport } from './routes/charts'
@@ -66,6 +67,11 @@ const ScrobbleRoute = ScrobbleRouteImport.update({
 const RecommendationsRoute = RecommendationsRouteImport.update({
   id: '/recommendations',
   path: '/recommendations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MirrorsRoute = MirrorsRouteImport.update({
+  id: '/mirrors',
+  path: '/mirrors',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoadingRoute = LoadingRouteImport.update({
@@ -215,6 +221,7 @@ export interface FileRoutesByFullPath {
   '/charts': typeof ChartsRoute
   '/import': typeof ImportRoute
   '/loading': typeof LoadingRoute
+  '/mirrors': typeof MirrorsRoute
   '/recommendations': typeof RecommendationsRoute
   '/scrobble': typeof ScrobbleRoute
   '/storage': typeof StorageRoute
@@ -250,6 +257,7 @@ export interface FileRoutesByTo {
   '/charts': typeof ChartsRoute
   '/import': typeof ImportRoute
   '/loading': typeof LoadingRoute
+  '/mirrors': typeof MirrorsRoute
   '/recommendations': typeof RecommendationsRoute
   '/scrobble': typeof ScrobbleRoute
   '/storage': typeof StorageRoute
@@ -286,6 +294,7 @@ export interface FileRoutesById {
   '/charts': typeof ChartsRoute
   '/import': typeof ImportRoute
   '/loading': typeof LoadingRoute
+  '/mirrors': typeof MirrorsRoute
   '/recommendations': typeof RecommendationsRoute
   '/scrobble': typeof ScrobbleRoute
   '/storage': typeof StorageRoute
@@ -323,6 +332,7 @@ export interface FileRouteTypes {
     | '/charts'
     | '/import'
     | '/loading'
+    | '/mirrors'
     | '/recommendations'
     | '/scrobble'
     | '/storage'
@@ -358,6 +368,7 @@ export interface FileRouteTypes {
     | '/charts'
     | '/import'
     | '/loading'
+    | '/mirrors'
     | '/recommendations'
     | '/scrobble'
     | '/storage'
@@ -393,6 +404,7 @@ export interface FileRouteTypes {
     | '/charts'
     | '/import'
     | '/loading'
+    | '/mirrors'
     | '/recommendations'
     | '/scrobble'
     | '/storage'
@@ -429,6 +441,7 @@ export interface RootRouteChildren {
   ChartsRoute: typeof ChartsRoute
   ImportRoute: typeof ImportRoute
   LoadingRoute: typeof LoadingRoute
+  MirrorsRoute: typeof MirrorsRoute
   RecommendationsRoute: typeof RecommendationsRoute
   ScrobbleRoute: typeof ScrobbleRoute
   StorageRoute: typeof StorageRoute
@@ -494,6 +507,13 @@ declare module '@tanstack/react-router' {
       path: '/recommendations'
       fullPath: '/recommendations'
       preLoaderRoute: typeof RecommendationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mirrors': {
+      id: '/mirrors'
+      path: '/mirrors'
+      fullPath: '/mirrors'
+      preLoaderRoute: typeof MirrorsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/loading': {
@@ -701,6 +721,7 @@ const rootRouteChildren: RootRouteChildren = {
   ChartsRoute: ChartsRoute,
   ImportRoute: ImportRoute,
   LoadingRoute: LoadingRoute,
+  MirrorsRoute: MirrorsRoute,
   RecommendationsRoute: RecommendationsRoute,
   ScrobbleRoute: ScrobbleRoute,
   StorageRoute: StorageRoute,

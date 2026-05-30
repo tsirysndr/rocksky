@@ -1,0 +1,42 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.mirror.defs",
+  "defs": {
+    "mirrorSourceView": {
+      "type": "object",
+      "required": [
+        "provider",
+        "enabled",
+        "hasCredentials"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "One of: lastfm, listenbrainz, tealfm"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether scrobbles from this source are being mirrored into Rocksky."
+        },
+        "externalUsername": {
+          "type": "string",
+          "description": "Username on the external service (Last.fm / ListenBrainz). Null for Teal.fm."
+        },
+        "hasCredentials": {
+          "type": "boolean",
+          "description": "True when an API key is stored. Last.fm/ListenBrainz only; always false for Teal.fm."
+        },
+        "lastPolledAt": {
+          "type": "string",
+          "description": "The last time the mirror process successfully polled this source.",
+          "format": "datetime"
+        },
+        "lastScrobbleSeenAt": {
+          "type": "string",
+          "description": "Watermark — scrobbles from the external service older than this are skipped.",
+          "format": "datetime"
+        }
+      }
+    }
+  }
+}

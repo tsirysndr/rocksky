@@ -64,6 +64,8 @@ import type * as AppRockskyLikeDislikeShout from "./types/app/rocksky/like/disli
 import type * as AppRockskyLikeDislikeSong from "./types/app/rocksky/like/dislikeSong";
 import type * as AppRockskyLikeLikeShout from "./types/app/rocksky/like/likeShout";
 import type * as AppRockskyLikeLikeSong from "./types/app/rocksky/like/likeSong";
+import type * as AppRockskyMirrorGetMirrorSources from "./types/app/rocksky/mirror/getMirrorSources";
+import type * as AppRockskyMirrorPutMirrorSource from "./types/app/rocksky/mirror/putMirrorSource";
 import type * as AppRockskyPlayerAddDirectoryToQueue from "./types/app/rocksky/player/addDirectoryToQueue";
 import type * as AppRockskyPlayerAddItemsToQueue from "./types/app/rocksky/player/addItemsToQueue";
 import type * as AppRockskyPlayerGetCurrentlyPlaying from "./types/app/rocksky/player/getCurrentlyPlaying";
@@ -253,6 +255,7 @@ export class AppRockskyNS {
   googledrive: AppRockskyGoogledriveNS;
   graph: AppRockskyGraphNS;
   like: AppRockskyLikeNS;
+  mirror: AppRockskyMirrorNS;
   player: AppRockskyPlayerNS;
   playlist: AppRockskyPlaylistNS;
   scrobble: AppRockskyScrobbleNS;
@@ -273,6 +276,7 @@ export class AppRockskyNS {
     this.googledrive = new AppRockskyGoogledriveNS(server);
     this.graph = new AppRockskyGraphNS(server);
     this.like = new AppRockskyLikeNS(server);
+    this.mirror = new AppRockskyMirrorNS(server);
     this.player = new AppRockskyPlayerNS(server);
     this.playlist = new AppRockskyPlaylistNS(server);
     this.scrobble = new AppRockskyScrobbleNS(server);
@@ -909,6 +913,36 @@ export class AppRockskyLikeNS {
     >,
   ) {
     const nsid = "app.rocksky.like.likeSong"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+}
+
+export class AppRockskyMirrorNS {
+  _server: Server;
+
+  constructor(server: Server) {
+    this._server = server;
+  }
+
+  getMirrorSources<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyMirrorGetMirrorSources.Handler<ExtractAuth<AV>>,
+      AppRockskyMirrorGetMirrorSources.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.mirror.getMirrorSources"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  putMirrorSource<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyMirrorPutMirrorSource.Handler<ExtractAuth<AV>>,
+      AppRockskyMirrorPutMirrorSource.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.mirror.putMirrorSource"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 }
