@@ -176,16 +176,7 @@ async fn handle_event(
 
     let mb_id = play.recording_mb_id.clone().map(strip_mbid_prefix);
 
-    if dedup::already_scrobbled(
-        pool,
-        &user_id,
-        &title,
-        &artist,
-        mb_id.as_deref(),
-        at,
-    )
-    .await?
-    {
+    if dedup::already_scrobbled(pool, &user_id, &title, &artist, mb_id.as_deref(), at).await? {
         info!(
             did = %did,
             title = %title,

@@ -144,15 +144,8 @@ async fn poll_once(
             continue;
         }
 
-        if dedup::already_scrobbled(
-            pool,
-            &row.user_id,
-            &title,
-            &artist,
-            mb_id.as_deref(),
-            at,
-        )
-        .await?
+        if dedup::already_scrobbled(pool, &row.user_id, &title, &artist, mb_id.as_deref(), at)
+            .await?
         {
             info!(
                 user_id = %row.user_id,
