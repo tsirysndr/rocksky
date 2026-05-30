@@ -543,11 +543,6 @@ export default function MirrorsPage() {
     return null;
   }
 
-  if (profile.did !== "did:plc:7vdlgi2bflelz7mmuxoqjfcr") {
-    navigate({ to: "/" });
-    return null;
-  }
-
   // Index for fast lookup. If the API somehow returned fewer than three rows
   // (older deployment, transient error), fall back to a disabled stub so each
   // tab still renders a usable panel.

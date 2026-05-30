@@ -531,10 +531,6 @@ export default function MirrorsPage() {
     navigate("/");
     return null;
   }
-  if (localStorage.getItem("did") !== "did:plc:7vdlgi2bflelz7mmuxoqjfcr") {
-    navigate("/");
-    return null;
-  }
 
   const byProvider = new Map(sources.map((s) => [s.provider, s]));
   const stub = (p: MirrorProvider): MirrorSourceView => ({

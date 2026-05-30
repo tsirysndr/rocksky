@@ -296,6 +296,14 @@ function Navbar() {
                         </LabelMedium>
                       ),
                     },
+                    {
+                      id: "mirrors",
+                      label: (
+                        <LabelMedium className="!text-[var(--color-text)]">
+                          Mirror sources
+                        </LabelMedium>
+                      ),
+                    },
                     ...(profile?.did === "did:plc:7vdlgi2bflelz7mmuxoqjfcr"
                       ? [
                           {
@@ -303,14 +311,6 @@ function Navbar() {
                             label: (
                               <LabelMedium className="!text-[var(--color-text)]">
                                 Storage
-                              </LabelMedium>
-                            ),
-                          },
-                          {
-                            id: "mirrors",
-                            label: (
-                              <LabelMedium className="!text-[var(--color-text)]">
-                                Mirror sources
                               </LabelMedium>
                             ),
                           },

@@ -124,25 +124,23 @@ function Navbar() {
               >
                 API Keys
               </Link>
+              <Link
+                to="/mirrors"
+                className="py-3.5 px-2 no-underline font-medium text-base block"
+                style={{ color: "var(--color-text)" }}
+                onClick={() => setMenuOpen(false)}
+              >
+                Mirror sources
+              </Link>
               {profile?.did === "did:plc:7vdlgi2bflelz7mmuxoqjfcr" && (
-                <>
-                  <Link
-                    to="/storage"
-                    className="py-3.5 px-2 no-underline font-medium text-base block"
-                    style={{ color: "var(--color-text)" }}
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    Storage
-                  </Link>
-                  <Link
-                    to="/mirrors"
-                    className="py-3.5 px-2 no-underline font-medium text-base block"
-                    style={{ color: "var(--color-text)" }}
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    Mirror sources
-                  </Link>
-                </>
+                <Link
+                  to="/storage"
+                  className="py-3.5 px-2 no-underline font-medium text-base block"
+                  style={{ color: "var(--color-text)" }}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Storage
+                </Link>
               )}
               <button
                 onClick={onLogout}
