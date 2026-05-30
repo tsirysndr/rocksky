@@ -90,21 +90,22 @@ impl Enricher {
             }
         }
 
-        // 2. Fall back to Spotify for whatever the DB couldn't fill.
-        if track.album_art.is_none() || track.spotify_link.is_none() || track.isrc.is_none() {
-            match self.enrich_via_spotify(http, track).await {
-                Ok(true) => info!(
-                    title = %track.title,
-                    artist = %track.artist,
-                    "enrich: Spotify search hit"
-                ),
-                Ok(false) => info!(
-                    title = %track.title,
-                    artist = %track.artist,
-                    "enrich: Spotify search miss / no creds"
-                ),
-                Err(e) => warn!(error = %e, "enrich: Spotify lookup failed"),
-            }
+        // 2. Spotify is the canonical metadata source — its album_art is
+        //    high-resolution and its ISRC / spotify_link uniquely identify
+        //    the recording. Always attempt the lookup and let it override
+        //    whatever Last.fm/Teal.fm/the DB cache provided.
+        match self.enrich_via_spotify(http, track).await {
+            Ok(true) => info!(
+                title = %track.title,
+                artist = %track.artist,
+                "enrich: Spotify search hit (overrode source metadata)"
+            ),
+            Ok(false) => info!(
+                title = %track.title,
+                artist = %track.artist,
+                "enrich: Spotify search miss / no creds"
+            ),
+            Err(e) => warn!(error = %e, "enrich: Spotify lookup failed"),
         }
 
         if track.lastfm_link.is_none() {
@@ -157,19 +158,19 @@ impl Enricher {
             return Ok(false);
         };
 
-        if track.album_art.is_none() {
-            if let Some(img) = item.album.images.into_iter().next() {
-                track.album_art = Some(img.url);
-            }
+        // Override — Spotify wins over Last.fm / Teal.fm / the DB cache.
+        // Cosmetic fields (album_art, spotify_link, isrc) only; we leave the
+        // dedup-affecting fields (title/artist/album/mb_id) alone so we don't
+        // change identity mid-mirror.
+        if let Some(img) = item.album.images.into_iter().next() {
+            track.album_art = Some(img.url);
         }
-        if track.spotify_link.is_none() {
-            track.spotify_link = item.external_urls.spotify;
+        if let Some(link) = item.external_urls.spotify {
+            track.spotify_link = Some(link);
         }
-        if track.isrc.is_none() {
-            if let Some(ids) = item.external_ids {
-                if let Some(isrc) = ids.isrc.filter(|s| !s.is_empty()) {
-                    track.isrc = Some(isrc);
-                }
+        if let Some(ids) = item.external_ids {
+            if let Some(isrc) = ids.isrc.filter(|s| !s.is_empty()) {
+                track.isrc = Some(isrc);
             }
         }
         Ok(true)
