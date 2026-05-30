@@ -25,7 +25,9 @@ use tokio_tungstenite::{connect_async, tungstenite::Message};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info, warn};
 
-use crate::{db, dedup, rocksky, track::NormalizedTrack, Provider, TEALFM_PLAY_NSID};
+use crate::{
+    db, dedup, enrich::Enricher, rocksky, track::NormalizedTrack, Provider, TEALFM_PLAY_NSID,
+};
 
 /// Set of DIDs currently mirroring Teal.fm — shared with the supervisor so it
 /// can add/remove members in response to NATS toggle events.
@@ -34,6 +36,7 @@ pub type EnabledDids = Arc<RwLock<HashSet<String>>>;
 pub async fn run(
     pool: Pool<Postgres>,
     http: Client,
+    enricher: Enricher,
     enabled_dids: EnabledDids,
     cancel: CancellationToken,
 ) -> Result<(), Error> {
@@ -49,7 +52,7 @@ pub async fn run(
             return Ok(());
         }
 
-        match run_once(&pool, &http, &enabled_dids, &url, &cancel).await {
+        match run_once(&pool, &http, &enricher, &enabled_dids, &url, &cancel).await {
             Ok(_) => warn!("Teal.fm: subscriber returned cleanly, reconnecting"),
             Err(e) => error!(error = %e, "Teal.fm: subscriber error"),
         }
@@ -60,6 +63,7 @@ pub async fn run(
 async fn run_once(
     pool: &Pool<Postgres>,
     http: &Client,
+    enricher: &Enricher,
     enabled_dids: &EnabledDids,
     url: &str,
     cancel: &CancellationToken,
@@ -77,7 +81,7 @@ async fn run_once(
                 };
                 match msg {
                     Ok(Message::Text(text)) => {
-                        if let Err(e) = handle_event(pool, http, enabled_dids, &text).await {
+                        if let Err(e) = handle_event(pool, http, enricher, enabled_dids, &text).await {
                             warn!(error = %e, "Teal.fm: handle_event failed");
                         }
                     }
@@ -100,6 +104,7 @@ async fn run_once(
 async fn handle_event(
     pool: &Pool<Postgres>,
     http: &Client,
+    enricher: &Enricher,
     enabled_dids: &EnabledDids,
     text: &str,
 ) -> Result<(), Error> {
@@ -179,7 +184,7 @@ async fn handle_event(
         return Ok(());
     }
 
-    let track = NormalizedTrack {
+    let mut track = NormalizedTrack {
         title,
         album_artist: artist.clone(),
         artist,
@@ -191,6 +196,8 @@ async fn handle_event(
         spotify_link: None,
         lastfm_link: None,
     };
+
+    enricher.enrich(pool, http, &mut track).await;
 
     info!(
         did = %did,

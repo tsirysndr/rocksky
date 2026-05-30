@@ -94,6 +94,40 @@ pub async fn user_id_for_did(pool: &Pool<Postgres>, did: &str) -> Result<Option<
     Ok(row.map(|(id,)| id))
 }
 
+/// Cached enrichment fields for a track already known to Rocksky. We key on
+/// the same sha256(lowercase("title - artist - album")) the API computes in
+/// `nowplaying.service.ts`, so a single point lookup hits the unique index.
+#[derive(Debug, Default, FromRow)]
+pub struct TrackEnrichment {
+    pub album_art: Option<String>,
+    pub spotify_link: Option<String>,
+}
+
+pub async fn track_enrichment(
+    pool: &Pool<Postgres>,
+    title: &str,
+    artist: &str,
+    album: &str,
+) -> Result<Option<TrackEnrichment>, Error> {
+    let sha = sha256::digest(
+        format!("{title} - {artist} - {album}")
+            .to_lowercase()
+            .as_bytes(),
+    );
+    let row: Option<TrackEnrichment> = sqlx::query_as(
+        r#"
+        SELECT album_art, spotify_link
+        FROM tracks
+        WHERE sha256 = $1
+        LIMIT 1
+        "#,
+    )
+    .bind(sha)
+    .fetch_optional(pool)
+    .await?;
+    Ok(row)
+}
+
 pub async fn touch_polled(
     pool: &Pool<Postgres>,
     user_id: &str,

@@ -5046,19 +5046,23 @@ dependencies = [
 name = "rocksky-mirror"
 version = "0.1.0"
 dependencies = [
+ "aes",
  "anyhow",
  "async-nats",
  "base64 0.22.1",
  "chrono",
+ "ctr",
  "dotenv",
  "dryoc",
  "futures-util",
  "hex",
  "jsonwebtoken",
  "owo-colors",
+ "rand 0.9.2",
  "reqwest",
  "serde",
  "serde_json",
+ "sha256",
  "sqlx",
  "tokio",
  "tokio-stream",

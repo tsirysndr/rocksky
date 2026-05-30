@@ -17,7 +17,9 @@ use tracing::{debug, error, info, warn};
 use crate::{
     crypto,
     db::{self, MirrorSourceRow},
-    dedup, rocksky,
+    dedup,
+    enrich::Enricher,
+    rocksky,
     track::NormalizedTrack,
     Provider,
 };
@@ -28,6 +30,7 @@ const RECENT_LIMIT: u32 = 50;
 pub async fn run_user(
     pool: Pool<Postgres>,
     http: Client,
+    enricher: Enricher,
     row: MirrorSourceRow,
     cancel: CancellationToken,
 ) -> Result<(), Error> {
@@ -61,7 +64,17 @@ pub async fn run_user(
             _ = tokio::time::sleep(POLL_INTERVAL) => {}
         }
 
-        match poll_once(&pool, &http, &row, token.as_deref(), &username, watermark).await {
+        match poll_once(
+            &pool,
+            &http,
+            &enricher,
+            &row,
+            token.as_deref(),
+            &username,
+            watermark,
+        )
+        .await
+        {
             Ok(new_watermark) => watermark = new_watermark,
             Err(e) => {
                 error!(user_id = %row.user_id, error = %e, "ListenBrainz: poll failed");
@@ -73,6 +86,7 @@ pub async fn run_user(
 async fn poll_once(
     pool: &Pool<Postgres>,
     http: &Client,
+    enricher: &Enricher,
     row: &MirrorSourceRow,
     token: Option<&str>,
     username: &str,
@@ -144,7 +158,7 @@ async fn poll_once(
             .or_else(|| info.and_then(|i| i.duration.map(|s| s as i64 * 1000)))
             .unwrap_or(0);
 
-        let track = NormalizedTrack {
+        let mut track = NormalizedTrack {
             title,
             album_artist: artist.clone(),
             artist,
@@ -159,6 +173,8 @@ async fn poll_once(
             spotify_link: info.and_then(|i| i.spotify_id.clone()),
             lastfm_link: None,
         };
+
+        enricher.enrich(pool, http, &mut track).await;
 
         info!(
             user_id = %row.user_id,

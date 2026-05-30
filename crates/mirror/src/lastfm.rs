@@ -17,7 +17,9 @@ use tracing::{debug, error, info, warn};
 use crate::{
     crypto,
     db::{self, MirrorSourceRow},
-    dedup, rocksky,
+    dedup,
+    enrich::Enricher,
+    rocksky,
     track::NormalizedTrack,
     Provider,
 };
@@ -29,6 +31,7 @@ const RECENT_LIMIT: u32 = 50;
 pub async fn run_user(
     pool: Pool<Postgres>,
     http: Client,
+    enricher: Enricher,
     row: MirrorSourceRow,
     cancel: CancellationToken,
 ) -> Result<(), Error> {
@@ -63,7 +66,11 @@ pub async fn run_user(
             _ = tokio::time::sleep(POLL_INTERVAL) => {}
         }
 
-        match poll_once(&pool, &http, &row, &api_key, &username, watermark).await {
+        match poll_once(
+            &pool, &http, &enricher, &row, &api_key, &username, watermark,
+        )
+        .await
+        {
             Ok(new_watermark) => watermark = new_watermark,
             Err(e) => {
                 error!(user_id = %row.user_id, error = %e, "Last.fm: poll failed");
@@ -75,6 +82,7 @@ pub async fn run_user(
 async fn poll_once(
     pool: &Pool<Postgres>,
     http: &Client,
+    enricher: &Enricher,
     row: &MirrorSourceRow,
     api_key: &str,
     username: &str,
@@ -150,7 +158,7 @@ async fn poll_once(
             continue;
         }
 
-        let track = NormalizedTrack {
+        let mut track = NormalizedTrack {
             title,
             album_artist: artist.clone(),
             artist,
@@ -162,6 +170,8 @@ async fn poll_once(
             spotify_link: None,
             lastfm_link: nonempty(item.url),
         };
+
+        enricher.enrich(pool, http, &mut track).await;
 
         info!(
             user_id = %row.user_id,

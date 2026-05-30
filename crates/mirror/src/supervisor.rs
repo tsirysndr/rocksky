@@ -17,7 +17,10 @@ use tokio::sync::RwLock;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
 
-use crate::{db, lastfm, listenbrainz, tealfm, Provider, MIRROR_NATS_TOPIC};
+use crate::{
+    creds::CredentialPool, db, enrich::Enricher, lastfm, listenbrainz, tealfm, Provider,
+    MIRROR_NATS_TOPIC,
+};
 
 type TaskMap = Arc<RwLock<HashMap<(Provider, String), CancellationToken>>>;
 
@@ -30,6 +33,12 @@ pub async fn run() -> Result<(), Error> {
 
     let tasks: TaskMap = Arc::new(RwLock::new(HashMap::new()));
     let tealfm_enabled: tealfm::EnabledDids = Arc::new(RwLock::new(HashSet::new()));
+
+    // Credential rotation pool for Spotify + Last.fm enrichment APIs.
+    let creds = CredentialPool::new();
+    creds.refresh(&pool).await;
+    creds.spawn_refresher(pool.clone());
+    let enricher = Enricher::new(creds);
 
     // Initial reconcile: bring all currently enabled (provider, user_id) rows
     // into a running state.
@@ -45,6 +54,7 @@ pub async fn run() -> Result<(), Error> {
                 provider,
                 pool.clone(),
                 http.clone(),
+                enricher.clone(),
                 row,
                 tasks.clone(),
                 tealfm_enabled.clone(),
@@ -59,10 +69,11 @@ pub async fn run() -> Result<(), Error> {
     {
         let pool = pool.clone();
         let http = http.clone();
+        let enricher = enricher.clone();
         let enabled = tealfm_enabled.clone();
         let cancel = CancellationToken::new();
         tokio::spawn(async move {
-            if let Err(e) = tealfm::run(pool, http, enabled, cancel).await {
+            if let Err(e) = tealfm::run(pool, http, enricher, enabled, cancel).await {
                 error!(error = %e, "Teal.fm: subscriber exited");
             }
         });
@@ -106,6 +117,7 @@ pub async fn run() -> Result<(), Error> {
             user_id.to_string(),
             pool.clone(),
             http.clone(),
+            enricher.clone(),
             tasks.clone(),
             tealfm_enabled.clone(),
         )
@@ -123,6 +135,7 @@ async fn reconcile(
     user_id: String,
     pool: Pool<Postgres>,
     http: Client,
+    enricher: Enricher,
     tasks: TaskMap,
     tealfm_enabled: tealfm::EnabledDids,
 ) -> Result<(), Error> {
@@ -134,7 +147,7 @@ async fn reconcile(
             // Restart-style reconcile: cancel any existing task before
             // starting a fresh one, so updated credentials are picked up.
             cancel_task(&tasks, &key).await;
-            spawn_for(provider, pool, http, r, tasks, tealfm_enabled).await;
+            spawn_for(provider, pool, http, enricher, r, tasks, tealfm_enabled).await;
         }
         _ => {
             cancel_task(&tasks, &key).await;
@@ -162,6 +175,7 @@ async fn spawn_for(
     provider: Provider,
     pool: Pool<Postgres>,
     http: Client,
+    enricher: Enricher,
     row: db::MirrorSourceRow,
     tasks: TaskMap,
     tealfm_enabled: tealfm::EnabledDids,
@@ -186,12 +200,15 @@ async fn spawn_for(
 
             let pool_c = pool.clone();
             let http_c = http.clone();
+            let enricher_c = enricher.clone();
             let user_id_c = row.user_id.clone();
             tokio::spawn(async move {
                 let result = match provider {
-                    Provider::Lastfm => lastfm::run_user(pool_c, http_c, row, cancel).await,
+                    Provider::Lastfm => {
+                        lastfm::run_user(pool_c, http_c, enricher_c, row, cancel).await
+                    }
                     Provider::Listenbrainz => {
-                        listenbrainz::run_user(pool_c, http_c, row, cancel).await
+                        listenbrainz::run_user(pool_c, http_c, enricher_c, row, cancel).await
                     }
                     Provider::Tealfm => unreachable!(),
                 };
