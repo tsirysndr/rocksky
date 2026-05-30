@@ -21,12 +21,16 @@
  *   BACKFILL_MB_DELAY      ms between MusicBrainz requests per worker (default 1100)
  *   BACKFILL_LIMIT         stop after this many rows (default: no cap)
  *   BACKFILL_ONLY          "mbid" | "isrc" | "both" — which field to fill (default both)
+ *   BACKFILL_ARTIST        substring match (ILIKE) — only tracks whose artist
+ *                          contains this. Combine with BACKFILL_ALBUM to scope
+ *                          a single release. Omit to walk all tracks.
+ *   BACKFILL_ALBUM         substring match (ILIKE) on the album column.
  */
 
 import chalk from "chalk";
 import { consola } from "consola";
 import { ctx } from "context";
-import { and, eq, isNull, or, sql } from "drizzle-orm";
+import { and, eq, ilike, isNull, or, sql } from "drizzle-orm";
 import { decrypt } from "lib/crypto";
 import { env } from "lib/env";
 import type { MusicbrainzTrack } from "types/track";
@@ -46,6 +50,9 @@ const ONLY = (process.env.BACKFILL_ONLY ?? "both").toLowerCase() as
 
 const FILL_MBID = ONLY === "both" || ONLY === "mbid";
 const FILL_ISRC = ONLY === "both" || ONLY === "isrc";
+
+const ARTIST_FILTER = process.env.BACKFILL_ARTIST?.trim() || null;
+const ALBUM_FILTER = process.env.BACKFILL_ALBUM?.trim() || null;
 
 type AppToken = {
   appId: string;
@@ -377,12 +384,21 @@ type Row = {
 };
 
 function buildWhere() {
-  return and(
+  const clauses = [
     or(
       FILL_MBID ? isNull(tables.tracks.mbId) : sql`false`,
       FILL_ISRC ? isNull(tables.tracks.isrc) : sql`false`,
     ),
-  );
+  ];
+  // Optional scope filters — let the operator backfill just one artist or one
+  // album without walking the entire catalog.
+  if (ARTIST_FILTER) {
+    clauses.push(ilike(tables.tracks.artist, `%${ARTIST_FILTER}%`));
+  }
+  if (ALBUM_FILTER) {
+    clauses.push(ilike(tables.tracks.album, `%${ALBUM_FILTER}%`));
+  }
+  return and(...clauses);
 }
 
 async function fetchPage(offset: number, pageSize: number): Promise<Row[]> {
@@ -515,8 +531,16 @@ async function worker(id: number, queue: Row[], stats: Stats): Promise<void> {
 }
 
 async function main() {
+  const scope = [
+    ARTIST_FILTER ? `artist~"${ARTIST_FILTER}"` : null,
+    ALBUM_FILTER ? `album~"${ALBUM_FILTER}"` : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
   consola.start(
-    `Backfill starting · mbid=${FILL_MBID} isrc=${FILL_ISRC} · concurrency=${CONCURRENCY} · page=${PAGE_SIZE}`,
+    `Backfill starting · mbid=${FILL_MBID} isrc=${FILL_ISRC}${
+      scope ? ` · scope=${scope}` : " · scope=all tracks"
+    } · concurrency=${CONCURRENCY} · page=${PAGE_SIZE}`,
   );
 
   if (!FILL_MBID && !FILL_ISRC) {

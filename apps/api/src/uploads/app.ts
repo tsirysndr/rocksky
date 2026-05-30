@@ -381,11 +381,16 @@ app.post("/track", async (c) => {
         copyrightMessage: common.copyright ?? null,
         mbId:
           common.musicbrainz_trackid ?? common.musicbrainz_recordingid ?? null,
+        isrc: common.isrc?.[0]?.trim() || null,
+        // Last.fm uses a canonical URL of the form
+        //   https://www.last.fm/music/{artist}/_/{track}
+        // which redirects gracefully if the exact title isn't indexed, so we
+        // can derive it from the upload's metadata without a network call.
+        lastfmLink: `https://www.last.fm/music/${encodeURIComponent(artist)}/_/${encodeURIComponent(title)}`,
         artists: null,
         label: common.label?.[0] ?? null,
         artistPicture: null,
         spotifyLink: null,
-        lastfmLink: null,
         youtubeLink: null,
         tidalLink: null,
         appleMusicLink: null,
