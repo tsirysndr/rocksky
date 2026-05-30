@@ -103,14 +103,14 @@ async fn dispatch(
                 Some(id) => id.as_str(),
                 None => return response::err(&format, 10, "Missing id parameter"),
             };
-            stream::handle(&format, user_id, id, pool, range.as_deref(), nc, true).await
+            stream::handle(&format, user_id, id, pool, range.as_deref()).await
         }
         "download" => {
             let id = match params.get("id") {
                 Some(id) => id.as_str(),
                 None => return response::err(&format, 10, "Missing id parameter"),
             };
-            stream::handle(&format, user_id, id, pool, range.as_deref(), nc, false).await
+            stream::handle(&format, user_id, id, pool, range.as_deref()).await
         }
         "getCoverArt" => {
             let id = match params.get("id") {

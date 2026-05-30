@@ -107,8 +107,6 @@ pub async fn handle(
     song_id: &str,
     pool: &Arc<Pool<Postgres>>,
     range: Option<&str>,
-    nc: &Arc<async_nats::Client>,
-    emit_status: bool,
 ) -> HttpResponse {
     let track = match repo::track::get_track_by_id(pool, song_id, user_id).await {
         Ok(Some(t)) => t,
@@ -118,17 +116,6 @@ pub async fn handle(
             return response::err(format, 0, "Internal server error");
         }
     };
-
-    // Publish song.changed when streaming starts from the beginning.
-    // Clients that don't call updateNowPlaying or scrobble?submission=false
-    // always hit this endpoint, so it's the reliable trigger for status updates.
-    if emit_status {
-        let is_start = range.map(|r| r.starts_with("bytes=0-")).unwrap_or(true);
-        if is_start {
-            tracing::info!(user_id, song_id, "stream started, publishing song.changed");
-            super::scrobble::publish_song_changed(pool, nc, user_id, song_id).await;
-        }
-    }
 
     let url = match resolve_url(&track).await {
         Ok(u) => u,
