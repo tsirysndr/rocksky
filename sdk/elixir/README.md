@@ -1,11 +1,12 @@
 # Rocksky — Elixir SDK
+[![Package Version](https://img.shields.io/hexpm/v/rocksky_ex)](https://hex.pm/packages/rocksky_ex)
 
 A pipe-friendly Elixir client for the [Rocksky](https://rocksky.app) XRPC API.
 
 ```elixir
 def deps do
   [
-    {:rocksky, "~> 0.1"}
+    {:rocksky_ex, "~> 0.1"}
   ]
 end
 ```
@@ -17,11 +18,11 @@ client = Rocksky.new(token: System.get_env("ROCKSKY_TOKEN"))
 
 {:ok, profile} =
   client
-  |> Rocksky.Actor.get_profile(did: "alice.bsky.social")
+  |> Rocksky.Actor.get_profile(did: "did:plc:7vdlgi2bflelz7mmuxoqjfcr")
 
 {:ok, %{"scrobbles" => scrobbles}} =
   client
-  |> Rocksky.Actor.get_actor_scrobbles(did: "alice.bsky.social", limit: 25)
+  |> Rocksky.Actor.get_actor_scrobbles(did: "did:plc:7vdlgi2bflelz7mmuxoqjfcr", limit: 25)
 ```
 
 The client is always the first argument so calls compose naturally with `|>`.
@@ -44,7 +45,7 @@ You can also configure the default base URL globally:
 
 ```elixir
 # config/config.exs
-config :rocksky, base_url: "https://api.rocksky.app"
+config :rocksky_ex, base_url: "https://api.rocksky.app"
 ```
 
 Derive an authenticated client from a shared base:

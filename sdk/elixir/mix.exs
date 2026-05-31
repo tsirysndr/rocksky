@@ -2,11 +2,11 @@ defmodule Rocksky.MixProject do
   use Mix.Project
 
   @version "0.1.0"
-  @source_url "https://github.com/rocksky/rocksky"
+  @source_url "https://github.com/tsirysndr/rocksky"
 
   def project do
     [
-      app: :rocksky,
+      app: :rocksky_ex,
       version: @version,
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
