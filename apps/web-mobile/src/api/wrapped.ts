@@ -32,6 +32,7 @@ export interface WrappedMilestone {
   trackTitle: string;
   artistName: string;
   timestamp: string;
+  trackUri?: string;
 }
 
 export interface WrappedData {

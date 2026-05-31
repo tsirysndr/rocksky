@@ -96,6 +96,7 @@ defs = new Mapping<String, ObjectType> {
       ["trackTitle"] = new StringType { description = "The title of the track." }
       ["artistName"] = new StringType { description = "The name of the artist." }
       ["timestamp"] = new StringType { description = "The timestamp of the scrobble." format = "datetime" }
+      ["trackUri"] = new StringType { description = "AT-URI of the track record, used to build a clickable link to the song page." format = "at-uri" }
     }
   }
 

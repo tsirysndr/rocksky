@@ -232,6 +232,7 @@ const retrieve = ({
             trackTitle: tables.tracks.title,
             artistName: tables.tracks.artist,
             timestamp: tables.scrobbles.timestamp,
+            trackUri: tables.tracks.uri,
           })
           .from(tables.scrobbles)
           .innerJoin(
@@ -249,6 +250,7 @@ const retrieve = ({
             trackTitle: tables.tracks.title,
             artistName: tables.tracks.artist,
             timestamp: tables.scrobbles.timestamp,
+            trackUri: tables.tracks.uri,
           })
           .from(tables.scrobbles)
           .innerJoin(
@@ -438,6 +440,7 @@ const retrieve = ({
               trackTitle: firstScrobbleRow[0].trackTitle,
               artistName: firstScrobbleRow[0].artistName,
               timestamp: firstScrobbleRow[0].timestamp.toISOString(),
+              trackUri: firstScrobbleRow[0].trackUri ?? undefined,
             }
           : undefined,
         lastScrobble: lastScrobbleRow[0]
@@ -445,6 +448,7 @@ const retrieve = ({
               trackTitle: lastScrobbleRow[0].trackTitle,
               artistName: lastScrobbleRow[0].artistName,
               timestamp: lastScrobbleRow[0].timestamp.toISOString(),
+              trackUri: lastScrobbleRow[0].trackUri ?? undefined,
             }
           : undefined,
         longestStreak,

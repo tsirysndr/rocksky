@@ -185,6 +185,8 @@ export interface WrappedMilestone {
   artistName?: string;
   /** The timestamp of the scrobble. */
   timestamp?: string;
+  /** AT-URI of the track record, used to build a clickable link to the song page. */
+  trackUri?: string;
   [k: string]: unknown;
 }
 

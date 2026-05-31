@@ -10,6 +10,7 @@ import {
 } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { toPng } from "html-to-image";
 import {
   Bar,
@@ -63,6 +64,37 @@ function formatDate(iso: string): string {
     day: "numeric",
     year: "numeric",
   });
+}
+
+/** at://did:plc:.../app.rocksky.song/3xyz → /did:plc:.../song/3xyz */
+function toLocalRoute(uri?: string | null): string | null {
+  if (!uri) return null;
+  const tail = uri.split("at://")[1]?.replace("app.rocksky.", "");
+  return tail ? `/${tail}` : null;
+}
+
+function MaybeLink({
+  uri,
+  children,
+  className,
+  style,
+}: {
+  uri?: string | null;
+  children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  const href = toLocalRoute(uri);
+  if (!href) return <>{children}</>;
+  return (
+    <Link
+      to={href}
+      className={className}
+      style={{ textDecoration: "none", color: "inherit", ...style }}
+    >
+      {children}
+    </Link>
+  );
 }
 
 function n(num: number): string {
@@ -390,10 +422,64 @@ export default function WrappedPage() {
         )}
 
         {profile && isLoading && (
-          <div className="space-y-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="rounded-2xl h-32 animate-pulse" style={{ background: "rgba(255,255,255,0.05)" }} />
-            ))}
+          <div className="space-y-4 animate-pulse">
+            {/* Hero stats */}
+            <div
+              className="rounded-3xl h-32"
+              style={{ background: "rgba(255,255,255,0.05)" }}
+            />
+            {/* Top Artists */}
+            <div className="space-y-2">
+              <div
+                className="h-3 w-28 rounded-full"
+                style={{ background: "rgba(255,255,255,0.08)" }}
+              />
+              <div
+                className="rounded-2xl h-20"
+                style={{ background: "rgba(255,255,255,0.05)" }}
+              />
+              {[...Array(3)].map((_, i) => (
+                <div
+                  key={i}
+                  className="rounded-xl h-12"
+                  style={{ background: "rgba(255,255,255,0.04)" }}
+                />
+              ))}
+            </div>
+            {/* Top Tracks */}
+            <div className="space-y-2">
+              <div
+                className="h-3 w-28 rounded-full"
+                style={{ background: "rgba(255,255,255,0.08)" }}
+              />
+              <div
+                className="rounded-2xl h-20"
+                style={{ background: "rgba(255,255,255,0.05)" }}
+              />
+              {[...Array(3)].map((_, i) => (
+                <div
+                  key={i}
+                  className="rounded-xl h-12"
+                  style={{ background: "rgba(255,255,255,0.04)" }}
+                />
+              ))}
+            </div>
+            {/* Top Albums (3-col) */}
+            <div className="space-y-2">
+              <div
+                className="h-3 w-28 rounded-full"
+                style={{ background: "rgba(255,255,255,0.08)" }}
+              />
+              <div className="grid grid-cols-3 gap-2">
+                {[...Array(3)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="rounded-xl aspect-square"
+                    style={{ background: "rgba(255,255,255,0.04)" }}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
@@ -447,6 +533,7 @@ export default function WrappedPage() {
                 <SectionLabel>Top Artists</SectionLabel>
 
                 {/* #1 hero */}
+                <MaybeLink uri={data.topArtists[0].uri}>
                 <div
                   className="rounded-2xl p-4 mb-2 relative overflow-hidden flex items-center gap-4"
                   style={{
@@ -482,11 +569,12 @@ export default function WrappedPage() {
                     </div>
                   </div>
                 </div>
+                </MaybeLink>
 
                 <div className="space-y-1.5">
                   {data.topArtists.slice(1).map((artist, i) => (
+                    <MaybeLink key={artist.id} uri={artist.uri}>
                     <div
-                      key={artist.id}
                       className="rounded-xl px-3 py-2.5 flex items-center gap-3"
                       style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
                     >
@@ -509,6 +597,7 @@ export default function WrappedPage() {
                         {n(artist.playCount)}
                       </p>
                     </div>
+                    </MaybeLink>
                   ))}
                 </div>
               </div>
@@ -520,6 +609,7 @@ export default function WrappedPage() {
                 <SectionLabel>Top Tracks</SectionLabel>
 
                 {/* #1 hero */}
+                <MaybeLink uri={data.topTracks[0].uri}>
                 <div
                   className="rounded-2xl p-4 mb-2 relative overflow-hidden flex items-center gap-4"
                   style={{
@@ -555,11 +645,12 @@ export default function WrappedPage() {
                     </div>
                   </div>
                 </div>
+                </MaybeLink>
 
                 <div className="space-y-1.5">
                   {data.topTracks.slice(1).map((track, i) => (
+                    <MaybeLink key={track.id} uri={track.uri}>
                     <div
-                      key={track.id}
                       className="rounded-xl px-3 py-2.5 flex items-center gap-3"
                       style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
                     >
@@ -587,6 +678,7 @@ export default function WrappedPage() {
                         {n(track.playCount)}
                       </p>
                     </div>
+                    </MaybeLink>
                   ))}
                 </div>
               </div>
@@ -598,8 +690,8 @@ export default function WrappedPage() {
                 <SectionLabel>Top Albums</SectionLabel>
                 <div className="grid grid-cols-3 gap-2">
                   {data.topAlbums.slice(0, 6).map((album, i) => (
+                    <MaybeLink key={album.id} uri={album.uri}>
                     <div
-                      key={album.id}
                       className="rounded-xl overflow-hidden"
                       style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
                     >
@@ -622,6 +714,7 @@ export default function WrappedPage() {
                         </p>
                       </div>
                     </div>
+                    </MaybeLink>
                   ))}
                 </div>
               </div>
@@ -703,38 +796,42 @@ export default function WrappedPage() {
             {(data.firstScrobble || data.lastScrobble) && (
               <div className="grid grid-cols-1 gap-3">
                 {data.firstScrobble && (
-                  <Card>
-                    <div className="flex items-center gap-2 mb-2">
-                      <IconSparkles size={13} color="#f59e0b" />
-                      <SectionLabel>First scrobble of {year}</SectionLabel>
-                    </div>
-                    <p className="text-white font-bold truncate m-0" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                      {data.firstScrobble.trackTitle}
-                    </p>
-                    <p className="text-sm truncate m-0 mt-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>
-                      {data.firstScrobble.artistName}
-                    </p>
-                    <p className="text-xs mt-1.5 m-0" style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'Syne', sans-serif" }}>
-                      {formatDate(data.firstScrobble.timestamp)}
-                    </p>
-                  </Card>
+                  <MaybeLink uri={data.firstScrobble.trackUri}>
+                    <Card>
+                      <div className="flex items-center gap-2 mb-2">
+                        <IconSparkles size={13} color="#f59e0b" />
+                        <SectionLabel>First scrobble of {year}</SectionLabel>
+                      </div>
+                      <p className="text-white font-bold truncate m-0" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                        {data.firstScrobble.trackTitle}
+                      </p>
+                      <p className="text-sm truncate m-0 mt-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>
+                        {data.firstScrobble.artistName}
+                      </p>
+                      <p className="text-xs mt-1.5 m-0" style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'Syne', sans-serif" }}>
+                        {formatDate(data.firstScrobble.timestamp)}
+                      </p>
+                    </Card>
+                  </MaybeLink>
                 )}
                 {data.lastScrobble && (
-                  <Card>
-                    <div className="flex items-center gap-2 mb-2">
-                      <IconSparkles size={13} color="#a855f7" />
-                      <SectionLabel>Last scrobble of {year}</SectionLabel>
-                    </div>
-                    <p className="text-white font-bold truncate m-0" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                      {data.lastScrobble.trackTitle}
-                    </p>
-                    <p className="text-sm truncate m-0 mt-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>
-                      {data.lastScrobble.artistName}
-                    </p>
-                    <p className="text-xs mt-1.5 m-0" style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'Syne', sans-serif" }}>
-                      {formatDate(data.lastScrobble.timestamp)}
-                    </p>
-                  </Card>
+                  <MaybeLink uri={data.lastScrobble.trackUri}>
+                    <Card>
+                      <div className="flex items-center gap-2 mb-2">
+                        <IconSparkles size={13} color="#a855f7" />
+                        <SectionLabel>Last scrobble of {year}</SectionLabel>
+                      </div>
+                      <p className="text-white font-bold truncate m-0" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                        {data.lastScrobble.trackTitle}
+                      </p>
+                      <p className="text-sm truncate m-0 mt-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>
+                        {data.lastScrobble.artistName}
+                      </p>
+                      <p className="text-xs mt-1.5 m-0" style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'Syne', sans-serif" }}>
+                        {formatDate(data.lastScrobble.timestamp)}
+                      </p>
+                    </Card>
+                  </MaybeLink>
                 )}
               </div>
             )}

@@ -6891,6 +6891,12 @@ export const schemaDict = {
             description: "The timestamp of the scrobble.",
             format: "datetime",
           },
+          trackUri: {
+            type: "string",
+            description:
+              "AT-URI of the track record, used to build a clickable link to the song page.",
+            format: "at-uri",
+          },
         },
       },
       wrappedView: {
