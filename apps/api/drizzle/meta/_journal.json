@@ -71,6 +71,13 @@
       "when": 1780300000000,
       "tag": "0011_tracks_swap_unique_mbid_to_isrc",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1780400000000,
+      "tag": "0012_tracks_drop_isrc_unique",
+      "breakpoints": true
     }
   ]
 }

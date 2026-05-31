@@ -13,7 +13,7 @@ const tracks = pgTable(
     trackNumber: integer("track_number"),
     duration: integer("duration").notNull(),
     mbId: text("mb_id"),
-    isrc: text("isrc").unique(),
+    isrc: text("isrc"),
     youtubeLink: text("youtube_link").unique(),
     spotifyLink: text("spotify_link").unique(),
     appleMusicLink: text("apple_music_link").unique(),
@@ -37,8 +37,7 @@ const tracks = pgTable(
     index("tracks_artist_uri_idx").on(t.artistUri),
     index("tracks_album_idx").on(t.album),
     index("tracks_album_artist_idx").on(t.albumArtist),
-    // isrc's standalone B-tree index is redundant with the new
-    // tracks_isrc_unique unique-index; dropped in 0011 migration.
+    index("tracks_isrc_idx").on(t.isrc),
   ],
 );
 

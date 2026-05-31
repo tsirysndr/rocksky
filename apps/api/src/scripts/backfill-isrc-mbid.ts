@@ -488,10 +488,10 @@ function pgCause(err: unknown): {
   return { code: c.code, constraint: c.constraint, detail: c.detail };
 }
 
-/** Run the UPDATE; on a UNIQUE-violation against isrc (the only UNIQUE
- *  column on tracks for these two fields — mb_id is allowed to repeat
- *  across rows since one MusicBrainz recording can map to several local
- *  tracks), retry without isrc so we still land the mb_id value.
+/** Neither mb_id nor isrc carry UNIQUE constraints anymore (dropped in
+ *  migrations 0011 and 0012), so UPDATE failures should be rare. The
+ *  pgCause helper still surfaces whatever the real error is (FK / check /
+ *  etc.) so we keep visibility if a new failure mode shows up.
  */
 async function tryUpdate(
   row: Row,
@@ -506,10 +506,6 @@ async function tryUpdate(
     return { skipped: false, applied: updates };
   } catch (err) {
     const cause = pgCause(err);
-    const isUnique = cause.code === "23505";
-    const isrcConflict =
-      isUnique && (cause.constraint?.includes("isrc") ?? true);
-
     consola.warn(
       `[db] update failed for ${chalk.dim(row.id)} (${row.title}): ${
         (err as Error).message
@@ -519,27 +515,6 @@ async function tryUpdate(
           : ""
       }`,
     );
-
-    // If isrc was the offender and we also have an mb_id, drop isrc and
-    // retry so the mb_id still lands.
-    if (isrcConflict && updates.isrc && updates.mbId) {
-      const fallback = { mbId: updates.mbId };
-      try {
-        await ctx.db
-          .update(tables.tracks)
-          .set(fallback)
-          .where(eq(tables.tracks.id, row.id))
-          .execute();
-        consola.info(
-          `[db] ${chalk.dim(row.id)} retried without isrc (already owned elsewhere) — mb_id still applied`,
-        );
-        return { skipped: false, applied: fallback };
-      } catch (e2) {
-        consola.warn(
-          `[db] mb_id-only retry also failed for ${chalk.dim(row.id)}: ${(e2 as Error).message}`,
-        );
-      }
-    }
     return { skipped: true, applied: {} };
   }
 }
