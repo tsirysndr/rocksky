@@ -185,4 +185,4 @@ file an issue.
 
 ## License
 
-MIT — see the project [LICENSE](../../LICENSE).
+[MIT](LICENSE) © Tsiry Sandratraina.

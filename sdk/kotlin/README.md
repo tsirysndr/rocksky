@@ -165,4 +165,4 @@ Java 17 is required for the toolchain. If you use [`mise`](https://mise.jdx.dev)
 
 ## License
 
-MIT
+[MIT](LICENSE) © Tsiry Sandratraina.

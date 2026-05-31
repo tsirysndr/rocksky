@@ -202,5 +202,4 @@ before deploying. The default release tag pattern is
 
 ## License
 
-[Mozilla Public License 2.0](LICENSE) — same as the rest of the Rocksky
-repository.
+[MIT](LICENSE) © Tsiry Sandratraina.

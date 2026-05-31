@@ -29,8 +29,8 @@
    [:url "https://github.com/rocksky/rocksky/tree/main/sdk/clojure"]
    [:licenses
     [:license
-     [:name "Mozilla Public License 2.0"]
-     [:url "https://www.mozilla.org/en-US/MPL/2.0/"]]]
+     [:name "MIT License"]
+     [:url "https://opensource.org/licenses/MIT"]]]
    [:developers
     [:developer
      [:name "Tsiry Sandratraina"]

@@ -215,4 +215,4 @@ network. See `test/rocksky/client_test.gleam` for the mock-send pattern.
 
 ## License
 
-MIT.
+[MIT](LICENSE) © Tsiry Sandratraina.

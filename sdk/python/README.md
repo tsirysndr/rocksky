@@ -246,4 +246,4 @@ uv run python examples/quickstart.py alice.bsky.social
 
 ## License
 
-MIT
+[MIT](LICENSE) © Tsiry Sandratraina.

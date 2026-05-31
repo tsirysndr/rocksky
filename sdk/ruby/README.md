@@ -221,4 +221,4 @@ resource by dropping a file in `lib/rocksky/resources/`, wiring it into
 
 ## License
 
-MIT.
+[MIT](LICENSE) © Tsiry Sandratraina.

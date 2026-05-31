@@ -215,4 +215,4 @@ Tests use a `URLProtocol` mock — no network access required.
 
 ## License
 
-See [LICENSE](../../LICENSE) at the repo root.
+[MIT](LICENSE) © Tsiry Sandratraina.

@@ -270,4 +270,4 @@ end)
 
 ## License
 
-MIT
+[MIT](LICENSE) © Tsiry Sandratraina.

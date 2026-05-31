@@ -225,4 +225,4 @@ cargo doc --open
 
 ## License
 
-MIT
+[MIT](LICENSE) © Tsiry Sandratraina.

@@ -276,4 +276,4 @@ bun run example:pagination
 
 ## License
 
-MIT
+[MIT](LICENSE) © Tsiry Sandratraina.
