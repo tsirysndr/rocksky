@@ -21,7 +21,7 @@ export const useStoriesQuery = () =>
     queryKey: ["stories"],
     queryFn: () =>
       client.get<{ stories: Story[] }>("/xrpc/app.rocksky.feed.getStories", {
-        params: { size: 50 },
+        params: { size: 80 },
       }),
     select: (res) => res.data.stories || [],
   });
