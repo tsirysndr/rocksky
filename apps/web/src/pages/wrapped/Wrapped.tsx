@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import { toPng } from "html-to-image";
 import { profileAtom } from "../../atoms/profile";
+import { themeAtom } from "../../atoms/theme";
 import { useWrappedQuery } from "../../hooks/useWrapped";
 import Main from "../../layouts/Main";
 import type { WrappedArtist, WrappedTrack } from "../../api/wrapped";
@@ -81,7 +82,7 @@ function ArtistAvatar({ artist, size = 64 }: { artist: WrappedArtist; size?: num
       style={{ width: size, height: size }}
       className="rounded-full bg-white/10 flex items-center justify-center flex-shrink-0"
     >
-      <IconUser size={size * 0.4} color="rgba(255,255,255,0.5)" />
+      <IconUser size={size * 0.4} color="var(--color-text-muted)" />
     </div>
   );
 }
@@ -102,7 +103,7 @@ function AlbumArt({ src, size = 56, alt = "" }: { src?: string; size?: number; a
       style={{ width: size, height: size }}
       className="rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0"
     >
-      <IconMusic size={size * 0.4} color="rgba(255,255,255,0.4)" />
+      <IconMusic size={size * 0.4} color="var(--color-text-muted)" />
     </div>
   );
 }
@@ -111,7 +112,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <p
       className="text-xs tracking-[0.25em] uppercase mb-3 font-bold"
-      style={{ color: "rgba(255,255,255,0.45)", fontFamily: "'Syne', sans-serif" }}
+      style={{ color: "var(--color-text-muted)", fontFamily: "'Syne', sans-serif" }}
     >
       {children}
     </p>
@@ -143,11 +144,11 @@ function StatCard({
       <div>
         <p
           className="text-2xl font-black leading-tight ms-[10px] mb-[5px]"
-          style={{ fontFamily: "'Space Grotesk', sans-serif", color: "#fff" }}
+          style={{ fontFamily: "'Space Grotesk', sans-serif", color: "var(--color-text)" }}
         >
           {value}
         </p>
-        <p className="text-sm ms-[10px] mt-[0px]" style={{ color: "rgba(255,255,255,0.5)", fontFamily: "'Syne', sans-serif" }}>
+        <p className="text-sm ms-[10px] mt-[0px]" style={{ color: "var(--color-text-muted)", fontFamily: "'Syne', sans-serif" }}>
           {label}
         </p>
       </div>
@@ -168,6 +169,7 @@ function ShareCard({
   topArtists,
   topTracks,
   resolvedImages,
+  darkMode,
 }: {
   cardRef?: React.RefObject<HTMLDivElement>;
   year: number;
@@ -179,8 +181,16 @@ function ShareCard({
   topArtists: WrappedArtist[];
   topTracks: WrappedTrack[];
   resolvedImages?: Record<string, string>;
+  darkMode: boolean;
 }) {
   const r = (url?: string) => (url && resolvedImages?.[url]) ? resolvedImages[url] : url;
+
+  // Brand-purple gradient on dark theme; soft pastel wash on light theme so
+  // the (now-dark) text reads against it. Glow blobs use rgba accents that
+  // already work over both palettes.
+  const cardBg = darkMode
+    ? "linear-gradient(135deg, #0d0020 0%, #1a0035 40%, #0a001a 100%)"
+    : "linear-gradient(135deg, #fef3ff 0%, #ffe1ed 40%, #f5f0ff 100%)";
 
   return (
     <div
@@ -188,7 +198,7 @@ function ShareCard({
       style={{
         width: 600,
         height: 600,
-        background: "linear-gradient(135deg, #0d0020 0%, #1a0035 40%, #0a001a 100%)",
+        background: cardBg,
         fontFamily: "'Space Grotesk', sans-serif",
         position: "relative",
         overflow: "hidden",
@@ -215,10 +225,10 @@ function ShareCard({
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
-            <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", margin: 0, fontFamily: "'Syne', sans-serif", whiteSpace: "nowrap" }}>
+            <p style={{ color: "var(--color-text-muted)", fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", margin: 0, fontFamily: "'Syne', sans-serif", whiteSpace: "nowrap" }}>
               Rocksky Wrapped
             </p>
-            <p style={{ color: "#fff", fontSize: 40, fontWeight: 900, margin: 0, lineHeight: 1.1 }}>
+            <p style={{ color: "var(--color-text)", fontSize: 40, fontWeight: 900, margin: 0, lineHeight: 1.1 }}>
               {year}
             </p>
           </div>
@@ -227,15 +237,15 @@ function ShareCard({
               <img src={r(avatar)} style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }} />
             )}
             <div>
-              <p style={{ color: "#fff", fontSize: 14, fontWeight: 700, margin: 0 }}>{displayName}</p>
-              <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, margin: 0 }}>@{handle}</p>
+              <p style={{ color: "var(--color-text)", fontSize: 14, fontWeight: 700, margin: 0 }}>{displayName}</p>
+              <p style={{ color: "var(--color-text-muted)", fontSize: 12, margin: 0 }}>@{handle}</p>
             </div>
           </div>
         </div>
 
         {/* Big stat */}
         <div style={{ textAlign: "center" }}>
-          <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 13, letterSpacing: "0.18em", textTransform: "uppercase", margin: "0 0 4px", fontFamily: "'Syne', sans-serif" }}>
+          <p style={{ color: "var(--color-text-muted)", fontSize: 13, letterSpacing: "0.18em", textTransform: "uppercase", margin: "0 0 4px", fontFamily: "'Syne', sans-serif" }}>
             Total Scrobbles
           </p>
           <p style={{
@@ -249,14 +259,14 @@ function ShareCard({
           }}>
             {numberWithCommas(totalScrobbles)}
           </p>
-          <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 14, margin: "6px 0 0", fontFamily: "'Syne', sans-serif" }}>
+          <p style={{ color: "var(--color-text-muted)", fontSize: 14, margin: "6px 0 0", fontFamily: "'Syne', sans-serif" }}>
             {formatMinutes(totalListeningTimeMinutes)} of music
           </p>
         </div>
 
         {/* Top artists */}
         <div>
-          <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, letterSpacing: "0.18em", textTransform: "uppercase", margin: "0 0 12px", fontFamily: "'Syne', sans-serif" }}>
+          <p style={{ color: "var(--color-text-muted)", fontSize: 11, letterSpacing: "0.18em", textTransform: "uppercase", margin: "0 0 12px", fontFamily: "'Syne', sans-serif" }}>
             Top Artists
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -277,10 +287,10 @@ function ShareCard({
                 ) : (
                   <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(255,255,255,0.1)", flexShrink: 0 }} />
                 )}
-                <span style={{ color: "#fff", fontSize: 14, fontWeight: 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <span style={{ color: "var(--color-text)", fontSize: 14, fontWeight: 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {a.name}
                 </span>
-                <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, flexShrink: 0 }}>
+                <span style={{ color: "var(--color-text-muted)", fontSize: 12, flexShrink: 0 }}>
                   {numberWithCommas(a.playCount)} plays
                 </span>
               </div>
@@ -297,20 +307,20 @@ function ShareCard({
               <div style={{ width: 40, height: 40, borderRadius: 8, background: "rgba(255,255,255,0.1)", flexShrink: 0 }} />
             )}
             <div style={{ flex: 1, overflow: "hidden" }}>
-              <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", margin: "0 0 2px", fontFamily: "'Syne', sans-serif" }}>Top Track</p>
-              <p style={{ color: "#fff", fontSize: 13, fontWeight: 700, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <p style={{ color: "var(--color-text-muted)", fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", margin: "0 0 2px", fontFamily: "'Syne', sans-serif" }}>Top Track</p>
+              <p style={{ color: "var(--color-text)", fontSize: 13, fontWeight: 700, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {topTracks[0].title}
               </p>
-              <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, margin: 0 }}>{topTracks[0].artist}</p>
+              <p style={{ color: "var(--color-text-muted)", fontSize: 12, margin: 0 }}>{topTracks[0].artist}</p>
             </div>
-            <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, flexShrink: 0 }}>
+            <span style={{ color: "var(--color-text-muted)", fontSize: 12, flexShrink: 0 }}>
               {numberWithCommas(topTracks[0].playCount)} plays
             </span>
           </div>
         )}
 
         {/* Footer */}
-        <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 11, margin: 0, textAlign: "center", letterSpacing: "0.1em", fontFamily: "'Syne', sans-serif" }}>
+        <p style={{ color: "var(--color-text-muted)", fontSize: 11, margin: 0, textAlign: "center", letterSpacing: "0.1em", fontFamily: "'Syne', sans-serif" }}>
           rocksky.app
         </p>
       </div>
@@ -347,6 +357,7 @@ async function fetchAsBase64(url: string): Promise<string> {
 
 export default function WrappedPage() {
   const profile = useAtomValue(profileAtom);
+  const { darkMode } = useAtomValue(themeAtom);
   const [year, setYear] = useState(CURRENT_YEAR);
   const [downloading, setDownloading] = useState(false);
   const [resolvedImages, setResolvedImages] = useState<Record<string, string>>({});
@@ -364,23 +375,6 @@ export default function WrappedPage() {
     link.href =
       "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800;900&family=Syne:wght@400;600;700;800&display=swap";
     document.head.appendChild(link);
-  }, []);
-
-  // The Wrapped UI is built around a deep-dark canvas (white text, low-opacity
-  // panels, accent gradients). On the light theme the page background flips
-  // white and the white text becomes invisible. Force the app container dark
-  // for the lifetime of this page and restore on unmount.
-  useEffect(() => {
-    const root = document.getElementById("app-container");
-    if (!root) return;
-    const prevBg = root.style.background;
-    const prevColor = root.style.color;
-    root.style.background = "#0a0a0a";
-    root.style.color = "#fff";
-    return () => {
-      root.style.background = prevBg;
-      root.style.color = prevColor;
-    };
   }, []);
 
   // Pre-fetch all ShareCard images as base64 so the off-screen card has no external URLs
@@ -467,7 +461,7 @@ export default function WrappedPage() {
           <div>
             <p
               className="text-xs tracking-[0.25em] uppercase mb-2 font-bold"
-              style={{ color: "rgba(255,255,255,0.4)", fontFamily: "'Syne', sans-serif" }}
+              style={{ color: "var(--color-text-muted)", fontFamily: "'Syne', sans-serif" }}
             >
               Rocksky
             </p>
@@ -492,7 +486,7 @@ export default function WrappedPage() {
                 className="px-4 py-2 me-[6px] rounded-full text-sm font-bold transition-all duration-150"
                 style={{
                   background: year === y ? "linear-gradient(135deg, #ff2876, #a855f7)" : "rgba(255,255,255,0.07)",
-                  color: year === y ? "#fff" : "rgba(255,255,255,0.5)",
+                  color: year === y ? "var(--color-text)" : "var(--color-text-muted)",
                   border: "1px solid",
                   borderColor: year === y ? "transparent" : "rgba(255,255,255,0.1)",
                   cursor: "pointer",
@@ -510,7 +504,7 @@ export default function WrappedPage() {
             className="wrapped-section rounded-2xl p-10 text-center"
             style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
           >
-            <p className="text-lg" style={{ color: "rgba(255,255,255,0.6)", fontFamily: "'Syne', sans-serif" }}>
+            <p className="text-lg" style={{ color: "var(--color-text-muted)", fontFamily: "'Syne', sans-serif" }}>
               Sign in to see your Wrapped
             </p>
           </div>
@@ -524,7 +518,12 @@ export default function WrappedPage() {
             <div
               className="wrapped-section rounded-3xl p-8 sm:p-10 mb-6 relative overflow-hidden"
               style={{
-                background: "linear-gradient(135deg, #1a0035 0%, #0d001f 60%, #00050f 100%)",
+                // Match the ShareCard's theme-aware gradient (deep purple on
+                // dark, soft pastel on light) so the on-page hero and the
+                // shareable card stay visually consistent.
+                background: darkMode
+                  ? "linear-gradient(135deg, #1a0035 0%, #0d001f 60%, #00050f 100%)"
+                  : "linear-gradient(135deg, #fef3ff 0%, #ffe1ed 60%, #f5f0ff 100%)",
                 border: "1px solid rgba(255,255,255,0.08)",
               }}
             >
@@ -554,7 +553,7 @@ export default function WrappedPage() {
                   >
                     {numberWithCommas(data.totalScrobbles)}
                   </p>
-                  <p style={{ color: "rgba(255,255,255,0.5)", fontFamily: "'Syne', sans-serif", fontSize: 15 }}>
+                  <p style={{ color: "var(--color-text-muted)", fontFamily: "'Syne', sans-serif", fontSize: 15 }}>
                     {formatMinutes(data.totalListeningTimeMinutes)} of music in {year}
                   </p>
                 </div>
@@ -603,10 +602,10 @@ export default function WrappedPage() {
                       >
                         #1 Artist
                       </span>
-                      <p className="text-3xl font-black text-white truncate m-[0px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                      <p className="text-3xl font-black text-[var(--color-text)] truncate m-[0px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                         {data.topArtists[0].name}
                       </p>
-                      <p className="m-[0px]" style={{ color: "rgba(255,255,255,0.5)", fontFamily: "'Syne', sans-serif", fontSize: 14 }}>
+                      <p className="m-[0px]" style={{ color: "var(--color-text-muted)", fontFamily: "'Syne', sans-serif", fontSize: 14 }}>
                         {numberWithCommas(data.topArtists[0].playCount)} plays
                       </p>
                     </div>
@@ -623,15 +622,15 @@ export default function WrappedPage() {
                     >
                       <span
                         className="font-black text-base w-5 text-right flex-shrink-0 me-[8px]"
-                        style={{ color: "rgba(255,255,255,0.25)" }}
+                        style={{ color: "var(--color-text-muted)" }}
                       >
                         {i + 2}
                       </span>
                       <ArtistAvatar artist={artist} size={44} />
-                      <p className="text-white font-semibold flex-1 truncate ms-[10px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                      <p className="text-[var(--color-text)] font-semibold flex-1 truncate ms-[10px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                         {artist.name}
                       </p>
-                      <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, flexShrink: 0, fontFamily: "'Syne', sans-serif" }}>
+                      <p style={{ color: "var(--color-text-muted)", fontSize: 13, flexShrink: 0, fontFamily: "'Syne', sans-serif" }}>
                         {numberWithCommas(artist.playCount)} plays
                       </p>
                     </div>
@@ -671,10 +670,10 @@ export default function WrappedPage() {
                       >
                         #1 Track
                       </span>
-                      <p className="text-2xl font-black text-white truncate mt-0.5 m-[0px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                      <p className="text-2xl font-black text-[var(--color-text)] truncate mt-0.5 m-[0px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                         {data.topTracks[0].title}
                       </p>
-                      <p className="m-[0px]" style={{ color: "rgba(255,255,255,0.55)", fontSize: 14, fontFamily: "'Syne', sans-serif" }}>
+                      <p className="m-[0px]" style={{ color: "var(--color-text-muted)", fontSize: 14, fontFamily: "'Syne', sans-serif" }}>
                         {data.topTracks[0].artist} · {numberWithCommas(data.topTracks[0].playCount)} plays
                       </p>
                     </div>
@@ -690,20 +689,20 @@ export default function WrappedPage() {
                     >
                       <span
                         className="font-black text-base w-5 text-right flex-shrink-0 me-[10px]"
-                        style={{ color: "rgba(255,255,255,0.25)" }}
+                        style={{ color: "var(--color-text-muted)" }}
                       >
                         {i + 2}
                       </span>
                       <AlbumArt src={track.albumArt} size={44} alt={track.title} />
                       <div className="flex-1 min-w-0 ms-[10px]">
-                        <p className="text-white font-semibold truncate m-[0px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                        <p className="text-[var(--color-text)] font-semibold truncate m-[0px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                           {track.title}
                         </p>
-                        <p className="text-sm truncate m-[0px]" style={{ color: "rgba(255,255,255,0.45)" }}>
+                        <p className="text-sm truncate m-[0px]" style={{ color: "var(--color-text-muted)" }}>
                           {track.artist}
                         </p>
                       </div>
-                      <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, flexShrink: 0, fontFamily: "'Syne', sans-serif" }}>
+                      <p style={{ color: "var(--color-text-muted)", fontSize: 13, flexShrink: 0, fontFamily: "'Syne', sans-serif" }}>
                         {numberWithCommas(track.playCount)} plays
                       </p>
                     </div>
@@ -731,17 +730,17 @@ export default function WrappedPage() {
                         />
                       ) : (
                         <div className="w-full aspect-square bg-white/5 flex items-center justify-center">
-                          <IconMusic size={32} color="rgba(255,255,255,0.2)" />
+                          <IconMusic size={32} color="var(--color-text-muted)" />
                         </div>
                       )}
                       <div className="p-[10px]">
-                        <span className="text-xs font-bold" style={{ color: i === 0 ? "#ff2876" : "rgba(255,255,255,0.3)" }}>
+                        <span className="text-xs font-bold" style={{ color: i === 0 ? "#ff2876" : "var(--color-text-muted)" }}>
                           #{i + 1}
                         </span>
-                        <p className="text-white text-sm font-semibold truncate m-[0px] mt-0.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                        <p className="text-[var(--color-text)] text-sm font-semibold truncate m-[0px] mt-0.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                           {album.title}
                         </p>
-                        <p className="text-xs truncate m-[0px]" style={{ color: "rgba(255,255,255,0.4)" }}>
+                        <p className="text-xs truncate m-[0px]" style={{ color: "var(--color-text-muted)" }}>
                           {album.artist}
                         </p>
                       </div>
@@ -762,7 +761,7 @@ export default function WrappedPage() {
                   <BarChart data={monthData} barSize={18}>
                     <XAxis
                       dataKey="label"
-                      tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 11, fontFamily: "'Syne', sans-serif" }}
+                      tick={{ fill: "var(--color-text-muted)", fontSize: 11, fontFamily: "'Syne', sans-serif" }}
                       axisLine={false}
                       tickLine={false}
                     />
@@ -773,12 +772,12 @@ export default function WrappedPage() {
                         background: "#1a0035",
                         border: "1px solid rgba(168,85,247,0.4)",
                         borderRadius: 10,
-                        color: "#fff",
+                        color: "var(--color-text)",
                         fontFamily: "'Space Grotesk', sans-serif",
                         fontSize: 13,
                       }}
-                      itemStyle={{ color: "#fff" }}
-                      labelStyle={{ color: "rgba(255,255,255,0.6)", fontFamily: "'Syne', sans-serif" }}
+                      itemStyle={{ color: "var(--color-text)" }}
+                      labelStyle={{ color: "var(--color-text-muted)", fontFamily: "'Syne', sans-serif" }}
                       formatter={(v: number) => [`${numberWithCommas(v)} plays`, ""]}
                     />
                     <Bar dataKey="count" radius={[6, 6, 0, 0]}>
@@ -824,7 +823,7 @@ export default function WrappedPage() {
                       >
                         {g.genre}
                       </span>
-                      <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, fontFamily: "'Syne', sans-serif" }}>
+                      <span style={{ color: "var(--color-text-muted)", fontSize: 12, fontFamily: "'Syne', sans-serif" }}>
                         {numberWithCommas(g.count)}
                       </span>
                     </div>
@@ -847,13 +846,13 @@ export default function WrappedPage() {
                       </div>
                       <SectionLabel>First scrobble of {year}</SectionLabel>
                     </div>
-                    <p className="text-white font-bold truncate" style={{ fontFamily: "'Space Grotesk', sans-serif", margin: 0 }}>
+                    <p className="text-[var(--color-text)] font-bold truncate" style={{ fontFamily: "'Space Grotesk', sans-serif", margin: 0 }}>
                       {data.firstScrobble.trackTitle}
                     </p>
-                    <p className="text-sm truncate mt-0.5" style={{ color: "rgba(255,255,255,0.45)", margin: 0, marginTop: 5 }}>
+                    <p className="text-sm truncate mt-0.5" style={{ color: "var(--color-text-muted)", margin: 0, marginTop: 5 }}>
                       {data.firstScrobble.artistName}
                     </p>
-                    <p className="text-xs mt-2" style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'Syne', sans-serif", margin: 0, marginTop: 5 }}>
+                    <p className="text-xs mt-2" style={{ color: "var(--color-text-muted)", fontFamily: "'Syne', sans-serif", margin: 0, marginTop: 5 }}>
                       {formatDate(data.firstScrobble.timestamp)}
                     </p>
                   </div>
@@ -869,13 +868,13 @@ export default function WrappedPage() {
                       </div>
                       <SectionLabel>Last scrobble of {year}</SectionLabel>
                     </div>
-                    <p className="text-white font-bold truncate" style={{ fontFamily: "'Space Grotesk', sans-serif", margin: 0 }}>
+                    <p className="text-[var(--color-text)] font-bold truncate" style={{ fontFamily: "'Space Grotesk', sans-serif", margin: 0 }}>
                       {data.lastScrobble.trackTitle}
                     </p>
-                    <p className="text-sm truncate m-[0px]" style={{ color: "rgba(255,255,255,0.45)", margin: 0, marginTop: 5 }}>
+                    <p className="text-sm truncate m-[0px]" style={{ color: "var(--color-text-muted)", margin: 0, marginTop: 5 }}>
                       {data.lastScrobble.artistName}
                     </p>
-                    <p className="text-xs mt-2" style={{ color: "rgba(255,255,255,0.3)", fontFamily: "'Syne', sans-serif", margin: 0, marginTop: 5 }}>
+                    <p className="text-xs mt-2" style={{ color: "var(--color-text-muted)", fontFamily: "'Syne', sans-serif", margin: 0, marginTop: 5 }}>
                       {formatDate(data.lastScrobble.timestamp)}
                     </p>
                   </div>
@@ -889,7 +888,7 @@ export default function WrappedPage() {
               style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
             >
               <SectionLabel>Share your Wrapped</SectionLabel>
-              <p className="text-sm mb-6" style={{ color: "rgba(255,255,255,0.45)", fontFamily: "'Syne', sans-serif" }}>
+              <p className="text-sm mb-6" style={{ color: "var(--color-text-muted)", fontFamily: "'Syne', sans-serif" }}>
                 Download your Wrapped card and share it anywhere.
               </p>
 
@@ -906,6 +905,7 @@ export default function WrappedPage() {
                       totalListeningTimeMinutes={data.totalListeningTimeMinutes}
                       topArtists={data.topArtists}
                       topTracks={data.topTracks}
+                      darkMode={darkMode}
                     />
                   </div>
                 </div>
@@ -913,7 +913,7 @@ export default function WrappedPage() {
                 <button
                   onClick={handleDownload}
                   disabled={downloading}
-                  className="flex items-center gap-2 px-6 py-3 rounded-full font-bold text-white transition-opacity"
+                  className="flex items-center gap-2 px-6 py-3 rounded-full font-bold text-[var(--color-text)] transition-opacity"
                   style={{
                     background: "linear-gradient(135deg, #ff2876, #a855f7)",
                     opacity: downloading ? 0.6 : 1,
@@ -942,6 +942,7 @@ export default function WrappedPage() {
                 topArtists={data.topArtists}
                 topTracks={data.topTracks}
                 resolvedImages={resolvedImages}
+                darkMode={darkMode}
               />
             </div>
           </>
