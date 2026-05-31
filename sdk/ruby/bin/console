@@ -1,0 +1,27 @@
+#!/usr/bin/env ruby
+# Development console. From the sdk/ruby directory:
+#
+#   $ bin/console
+#
+# Loads the local source tree (no install required) and drops you into IRB
+# with `client` already bound to a Rocksky::Client built from your env.
+
+require "bundler/setup"
+require "irb"
+require "rocksky"
+
+client = Rocksky.new
+
+puts <<~BANNER
+  Rocksky dev console (#{Rocksky::VERSION})
+    base_url : #{client.base_url}
+    token    : #{client.token ? "set" : "unset"}
+
+  Try:  client.actor.get_profile(did: "alice.bsky.social")
+BANNER
+
+IRB.setup(nil)
+ws = IRB::WorkSpace.new(binding)
+ws.main.instance_variable_set(:@client, client)
+ws.main.define_singleton_method(:client) { @client }
+IRB::Irb.new(ws).run(IRB.conf)

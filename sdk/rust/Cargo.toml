@@ -1,0 +1,59 @@
+[workspace]
+
+[package]
+name = "rocksky"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+authors = ["Tsiry Sandratraina <tsiry.sndr@rocksky.app>"]
+license = "MIT"
+description = "Async Rust SDK for the Rocksky XRPC API."
+repository = "https://github.com/tsirysndr/rocksky"
+homepage = "https://rocksky.app"
+documentation = "https://docs.rs/rocksky"
+readme = "README.md"
+keywords = ["rocksky", "scrobble", "atproto", "music", "xrpc"]
+categories = ["api-bindings", "asynchronous", "web-programming::http-client"]
+
+[features]
+default = ["rustls-tls"]
+rustls-tls = ["reqwest/rustls-tls"]
+native-tls = ["reqwest/native-tls"]
+
+[dependencies]
+reqwest = { version = "0.12", default-features = false, features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_with = "3.8"
+thiserror = "1.0"
+url = "2.5"
+chrono = { version = "0.4", default-features = false, features = [
+  "serde",
+  "clock",
+] }
+tokio = { version = "1.36", default-features = false, features = ["sync"] }
+
+[dev-dependencies]
+tokio = { version = "1.36", features = ["macros", "rt-multi-thread", "time"] }
+wiremock = "0.6"
+serde_json = "1.0"
+
+[[example]]
+name = "quickstart"
+path = "examples/quickstart.rs"
+
+[[example]]
+name = "scrobble"
+path = "examples/scrobble.rs"
+
+[[example]]
+name = "wrapped"
+path = "examples/wrapped.rs"
+
+[[example]]
+name = "search"
+path = "examples/search.rs"
+
+[[example]]
+name = "follow_feed"
+path = "examples/follow_feed.rs"

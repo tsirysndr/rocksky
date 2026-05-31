@@ -1,0 +1,13 @@
+.cpcache/
+.lsp/
+.clj-kondo/
+.nrepl-port
+.calva/
+target/
+classes/
+*.jar
+pom.xml
+pom.xml.asc
+.idea/
+*.iml
+.DS_Store

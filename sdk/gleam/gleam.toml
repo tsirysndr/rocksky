@@ -1,0 +1,19 @@
+name = "rocksky"
+version = "0.1.0"
+
+description = "Gleam SDK for the Rocksky XRPC API"
+licences = ["MIT"]
+repository = { type = "github", user = "rockskyapp", repo = "rocksky" }
+links = [
+  { title = "Rocksky", href = "https://rocksky.app" },
+  { title = "Lexicons", href = "https://github.com/rockskyapp/rocksky/tree/main/apps/api/lexicons" },
+]
+
+[dependencies]
+gleam_stdlib = ">= 0.71.0 and < 2.0.0"
+gleam_http = ">= 4.0.0 and < 5.0.0"
+gleam_httpc = ">= 5.0.0 and < 6.0.0"
+gleam_json = ">= 3.0.0 and < 4.0.0"
+
+[dev-dependencies]
+gleeunit = ">= 1.2.0 and < 2.0.0"

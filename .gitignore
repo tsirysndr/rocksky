@@ -12,3 +12,6 @@ rocksky-backup.sql
 *.parquet
 *.sql.gz
 *.dump
+.build/
+.swiftpm/
+Package.resolved

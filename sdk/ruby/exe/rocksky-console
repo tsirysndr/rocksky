@@ -1,0 +1,33 @@
+#!/usr/bin/env ruby
+# rocksky-console — IRB session pre-loaded with a `client` bound to your env.
+#
+#   $ ROCKSKY_TOKEN=... rocksky-console
+#   irb> client.actor.get_profile(did: "alice.bsky.social")
+#
+# Without ROCKSKY_TOKEN, the client is unauthenticated (read-only endpoints
+# still work).
+
+require "irb"
+require "rocksky"
+
+client = Rocksky.new
+
+puts <<~BANNER
+  Rocksky #{Rocksky::VERSION} — interactive console
+    base_url : #{client.base_url}
+    token    : #{client.token ? "present (set via ROCKSKY_TOKEN)" : "none — set ROCKSKY_TOKEN for auth"}
+
+  A client is bound to `client`. Try:
+    client.actor.get_profile(did: "alice.bsky.social")
+    client.charts.get_top_artists(limit: 10)
+
+BANNER
+
+IRB.setup(nil)
+IRB.conf[:USE_MULTILINE] = false if IRB.conf.key?(:USE_MULTILINE)
+
+workspace = IRB::WorkSpace.new(binding)
+workspace.main.instance_variable_set(:@client, client)
+workspace.main.define_singleton_method(:client) { @client }
+
+IRB::Irb.new(workspace).run(IRB.conf)
