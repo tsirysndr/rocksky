@@ -41,8 +41,8 @@ Or, to track a specific commit instead of a release:
 
 (def client (rs/client))                ;; defaults to https://api.rocksky.app
 
-(rs/get-profile client {:did "tsiry.rocksky.app"})
-;; => {:handle "tsiry.rocksky.app" :followersCount 42 ...}
+(rs/get-profile client {:did "did:plc:7vdlgi2bflelz7mmuxoqjfcr"})
+;; => {:handle "tsiry-sandratraina.com" :followersCount 42 ...}
 ```
 
 For authenticated endpoints, pass a bearer token:
