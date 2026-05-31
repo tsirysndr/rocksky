@@ -6,10 +6,12 @@ import Main from "../../layouts/Main";
 import {
   useArtistAlbumsQuery,
   useArtistQuery,
+  useArtistRecentListenersQuery,
   useArtistTracksQuery,
 } from "../../hooks/useLibrary";
 import ShareOnBluesky from "../../components/ShareOnBluesky";
 import FloatingShoutBar from "../../components/FloatingShoutBar";
+import RecentListeners from "../../components/RecentListeners";
 
 export default function Artist() {
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
@@ -24,6 +26,10 @@ export default function Artist() {
     artist?.uri || "",
     10,
   );
+  const {
+    data: recentListeners,
+    isLoading: recentListenersLoading,
+  } = useArtistRecentListenersQuery(artist?.uri || "");
 
   const artistUri = artist?.uri || `at://${did}/app.rocksky.artist/${rkey}`;
 
@@ -98,6 +104,14 @@ export default function Artist() {
                   text={`Listening to ${artist.name} on Rocksky 🎵\n${window.location.href}`}
                 />
               </div>
+            </div>
+
+            {/* Recent Listeners */}
+            <div className="px-4 pt-4">
+              <RecentListeners
+                listeners={recentListeners}
+                isLoading={recentListenersLoading}
+              />
             </div>
 
             {/* Tabs */}

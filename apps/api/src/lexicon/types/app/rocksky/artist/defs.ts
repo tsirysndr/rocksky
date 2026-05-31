@@ -121,6 +121,36 @@ export function validateListenerViewBasic(v: unknown): ValidationResult {
   return lexicons.validate("app.rocksky.artist.defs#listenerViewBasic", v);
 }
 
+export interface RecentListenerView {
+  /** The unique identifier of the listener. */
+  id?: string;
+  /** The DID of the listener. */
+  did?: string;
+  /** The handle of the listener. */
+  handle?: string;
+  /** The display name of the listener. */
+  displayName?: string;
+  /** The URL of the listener's avatar image. */
+  avatar?: string;
+  /** The timestamp of the listener's most recent scrobble of this artist. */
+  timestamp?: string;
+  /** The URI of the listener's most recent scrobble of this artist. */
+  scrobbleUri?: string;
+  [k: string]: unknown;
+}
+
+export function isRecentListenerView(v: unknown): v is RecentListenerView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.artist.defs#recentListenerView"
+  );
+}
+
+export function validateRecentListenerView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.artist.defs#recentListenerView", v);
+}
+
 export interface ArtistMbid {
   /** The MusicBrainz Identifier (MBID) of the artist. */
   mbid?: string;

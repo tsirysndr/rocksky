@@ -6,11 +6,13 @@ import {
   getArtist,
   getArtistAlbums,
   getArtistListeners,
+  getArtistRecentListeners,
   getArtists,
   getArtistsByGenre,
   getArtistTracks,
   getLovedTracks,
   getSongByUri,
+  getSongRecentListeners,
   getTopArtists,
   getTopTracks,
   getTracks,
@@ -119,6 +121,22 @@ export const useArtistListenersQuery = (uri: string, limit = 10) =>
   useQuery({
     queryKey: ["artistListeners", uri, limit],
     queryFn: () => getArtistListeners(uri, limit),
+    enabled: !!uri,
+    select: (data) => data.listeners,
+  });
+
+export const useArtistRecentListenersQuery = (uri: string, limit = 10) =>
+  useQuery({
+    queryKey: ["artistRecentListeners", uri, limit],
+    queryFn: () => getArtistRecentListeners(uri, limit),
+    enabled: !!uri,
+    select: (data) => data.listeners,
+  });
+
+export const useSongRecentListenersQuery = (uri: string, limit = 10) =>
+  useQuery({
+    queryKey: ["songRecentListeners", uri, limit],
+    queryFn: () => getSongRecentListeners(uri, limit),
     enabled: !!uri,
     select: (data) => data.listeners,
   });

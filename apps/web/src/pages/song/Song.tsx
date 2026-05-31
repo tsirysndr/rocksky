@@ -19,6 +19,7 @@ import ContentLoader from "react-content-loader";
 import ShareOnBluesky from "../../components/ShareOnBluesky";
 import { songAtom } from "../../atoms/song";
 import Disc from "../../components/Icons/Disc";
+import RecentListeners from "../../components/RecentListeners";
 import Shout from "../../components/Shout/Shout";
 import SongCover from "../../components/SongCover";
 import { useScrobbleByUriQuery } from "../../hooks/useFeed";
@@ -26,6 +27,7 @@ import {
   useArtistAlbumsQuery,
   useArtistTracksQuery,
   useSongByUriQuery,
+  useSongRecentListenersQuery,
 } from "../../hooks/useLibrary";
 import Main from "../../layouts/Main";
 import Credits from "./Credits";
@@ -86,6 +88,9 @@ const Song = () => {
   const artistAlbumResult = useArtistAlbumsQuery(
     songResult.data?.artistUri || scrobbleResult.data?.artistUri,
     10,
+  );
+  const songRecentListenersResult = useSongRecentListenersQuery(
+    songResult.data?.uri || scrobbleResult.data?.uri || "",
   );
 
   const firstScrobble =
@@ -434,6 +439,11 @@ const Song = () => {
                 }
               />
             }
+            <RecentListeners
+              listeners={songRecentListenersResult.data}
+              isLoading={songRecentListenersResult.isLoading}
+            />
+
             {song?.artistUri &&
               song?.albumArtist?.toLowerCase() !== "various artists" && (
                 <>

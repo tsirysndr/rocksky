@@ -194,6 +194,42 @@
         }
       }
     },
+    "recentListenerView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the listener."
+        },
+        "did": {
+          "type": "string",
+          "description": "The DID of the listener."
+        },
+        "handle": {
+          "type": "string",
+          "description": "The handle of the listener."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The display name of the listener."
+        },
+        "avatar": {
+          "type": "string",
+          "description": "The URL of the listener's avatar image.",
+          "format": "uri"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The timestamp of the listener's most recent scrobble of this song.",
+          "format": "datetime"
+        },
+        "scrobbleUri": {
+          "type": "string",
+          "description": "The URI of the listener's most recent scrobble of this song.",
+          "format": "at-uri"
+        }
+      }
+    },
     "firstScrobbleView": {
       "type": "object",
       "properties": {

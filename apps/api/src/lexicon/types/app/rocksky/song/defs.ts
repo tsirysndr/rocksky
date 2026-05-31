@@ -115,6 +115,36 @@ export function validateSongViewDetailed(v: unknown): ValidationResult {
   return lexicons.validate("app.rocksky.song.defs#songViewDetailed", v);
 }
 
+export interface RecentListenerView {
+  /** The unique identifier of the listener. */
+  id?: string;
+  /** The DID of the listener. */
+  did?: string;
+  /** The handle of the listener. */
+  handle?: string;
+  /** The display name of the listener. */
+  displayName?: string;
+  /** The URL of the listener's avatar image. */
+  avatar?: string;
+  /** The timestamp of the listener's most recent scrobble of this song. */
+  timestamp?: string;
+  /** The URI of the listener's most recent scrobble of this song. */
+  scrobbleUri?: string;
+  [k: string]: unknown;
+}
+
+export function isRecentListenerView(v: unknown): v is RecentListenerView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.song.defs#recentListenerView"
+  );
+}
+
+export function validateRecentListenerView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.song.defs#recentListenerView", v);
+}
+
 export interface FirstScrobbleView {
   /** The handle of the user who first scrobbled this song. */
   handle?: string;

@@ -1,0 +1,39 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.song.getSongRecentListeners"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get song recent listeners ordered by most recent scrobble"
+    parameters = new Params {
+      required = List("uri")
+      properties {
+        ["uri"] = new StringType {
+          description = "The URI of the song to retrieve recent listeners from"
+          format = "at-uri"
+        }
+        ["offset"] = new IntegerType {
+          description = "Number of items to skip before returning results"
+        }
+        ["limit"] = new IntegerType {
+          description = "Maximum number of results to return"
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        properties = new Mapping<String, Array> {
+          ["listeners"] = new Array {
+            type = "array"
+            items = new Ref {
+              ref = "app.rocksky.song.defs#recentListenerView"
+            }
+          }
+        }
+      }
+    }
+  }
+}

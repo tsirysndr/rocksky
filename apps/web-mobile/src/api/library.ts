@@ -129,6 +129,38 @@ export const getArtistListeners = async (uri: string, limit: number) => {
   return response.data;
 };
 
+export type RecentListener = {
+  id: string;
+  did: string;
+  handle: string;
+  displayName: string;
+  avatar: string;
+  timestamp: string;
+  scrobbleUri: string;
+};
+
+export const getArtistRecentListeners = async (
+  uri: string,
+  limit = 10,
+): Promise<{ listeners: RecentListener[] }> => {
+  const response = await client.get(
+    "/xrpc/app.rocksky.artist.getArtistRecentListeners",
+    { params: { uri, limit } },
+  );
+  return response.data;
+};
+
+export const getSongRecentListeners = async (
+  uri: string,
+  limit = 10,
+): Promise<{ listeners: RecentListener[] }> => {
+  const response = await client.get(
+    "/xrpc/app.rocksky.song.getSongRecentListeners",
+    { params: { uri, limit } },
+  );
+  return response.data;
+};
+
 export const getTopArtists = async (
   offset = 0,
   limit = 20,

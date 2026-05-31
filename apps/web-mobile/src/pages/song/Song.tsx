@@ -4,11 +4,12 @@ import ContentLoader from "react-content-loader";
 import dayjs from "dayjs";
 import numeral from "numeral";
 import { IconBrandSpotify } from "@tabler/icons-react";
-import { useArtistAlbumsQuery, useArtistTracksQuery, useSongByUriQuery } from "../../hooks/useLibrary";
+import { useArtistAlbumsQuery, useArtistTracksQuery, useSongByUriQuery, useSongRecentListenersQuery } from "../../hooks/useLibrary";
 import { useScrobbleByUriQuery } from "../../hooks/useScrobble";
 import Main from "../../layouts/Main";
 import ShareOnBluesky from "../../components/ShareOnBluesky";
 import FloatingShoutBar from "../../components/FloatingShoutBar";
+import RecentListeners from "../../components/RecentListeners";
 
 export default function Song() {
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
@@ -29,6 +30,10 @@ export default function Song() {
 
   const { data: tracks } = useArtistTracksQuery(song?.artistUri || "", 8);
   const { data: albums } = useArtistAlbumsQuery(song?.artistUri || "", 6);
+  const {
+    data: recentListeners,
+    isLoading: recentListenersLoading,
+  } = useSongRecentListenersQuery(song?.uri || "");
 
   const albumHref = song?.albumUri
     ? `/${song.albumUri.split("at://")[1].replace("app.rocksky.", "")}`
@@ -201,6 +206,12 @@ export default function Song() {
                 </p>
               </div>
             )}
+
+            {/* Recent Listeners */}
+            <RecentListeners
+              listeners={recentListeners}
+              isLoading={recentListenersLoading}
+            />
 
             {/* Popular Tracks by Artist */}
             {tracks && tracks.length > 0 && (

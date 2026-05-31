@@ -2083,6 +2083,44 @@ export const schemaDict = {
           },
         },
       },
+      recentListenerView: {
+        type: "object",
+        properties: {
+          id: {
+            type: "string",
+            description: "The unique identifier of the listener.",
+          },
+          did: {
+            type: "string",
+            description: "The DID of the listener.",
+          },
+          handle: {
+            type: "string",
+            description: "The handle of the listener.",
+          },
+          displayName: {
+            type: "string",
+            description: "The display name of the listener.",
+          },
+          avatar: {
+            type: "string",
+            description: "The URL of the listener's avatar image.",
+            format: "uri",
+          },
+          timestamp: {
+            type: "string",
+            description:
+              "The timestamp of the listener's most recent scrobble of this artist.",
+            format: "datetime",
+          },
+          scrobbleUri: {
+            type: "string",
+            description:
+              "The URI of the listener's most recent scrobble of this artist.",
+            format: "at-uri",
+          },
+        },
+      },
       artistMbid: {
         type: "object",
         properties: {
@@ -2200,6 +2238,52 @@ export const schemaDict = {
                 items: {
                   type: "ref",
                   ref: "lex:app.rocksky.artist.defs#listenerViewBasic",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyArtistGetArtistRecentListeners: {
+    lexicon: 1,
+    id: "app.rocksky.artist.getArtistRecentListeners",
+    defs: {
+      main: {
+        type: "query",
+        description:
+          "Get artist recent listeners ordered by most recent scrobble",
+        parameters: {
+          type: "params",
+          required: ["uri"],
+          properties: {
+            uri: {
+              type: "string",
+              description:
+                "The URI of the artist to retrieve recent listeners from",
+              format: "at-uri",
+            },
+            offset: {
+              type: "integer",
+              description: "Number of items to skip before returning results",
+            },
+            limit: {
+              type: "integer",
+              description: "Maximum number of results to return",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {
+              listeners: {
+                type: "array",
+                items: {
+                  type: "ref",
+                  ref: "lex:app.rocksky.artist.defs#recentListenerView",
                 },
               },
             },
@@ -6249,6 +6333,44 @@ export const schemaDict = {
           },
         },
       },
+      recentListenerView: {
+        type: "object",
+        properties: {
+          id: {
+            type: "string",
+            description: "The unique identifier of the listener.",
+          },
+          did: {
+            type: "string",
+            description: "The DID of the listener.",
+          },
+          handle: {
+            type: "string",
+            description: "The handle of the listener.",
+          },
+          displayName: {
+            type: "string",
+            description: "The display name of the listener.",
+          },
+          avatar: {
+            type: "string",
+            description: "The URL of the listener's avatar image.",
+            format: "uri",
+          },
+          timestamp: {
+            type: "string",
+            description:
+              "The timestamp of the listener's most recent scrobble of this song.",
+            format: "datetime",
+          },
+          scrobbleUri: {
+            type: "string",
+            description:
+              "The URI of the listener's most recent scrobble of this song.",
+            format: "at-uri",
+          },
+        },
+      },
       firstScrobbleView: {
         type: "object",
         properties: {
@@ -6308,6 +6430,52 @@ export const schemaDict = {
           schema: {
             type: "ref",
             ref: "lex:app.rocksky.song.defs#songViewDetailed",
+          },
+        },
+      },
+    },
+  },
+  AppRockskySongGetSongRecentListeners: {
+    lexicon: 1,
+    id: "app.rocksky.song.getSongRecentListeners",
+    defs: {
+      main: {
+        type: "query",
+        description:
+          "Get song recent listeners ordered by most recent scrobble",
+        parameters: {
+          type: "params",
+          required: ["uri"],
+          properties: {
+            uri: {
+              type: "string",
+              description:
+                "The URI of the song to retrieve recent listeners from",
+              format: "at-uri",
+            },
+            offset: {
+              type: "integer",
+              description: "Number of items to skip before returning results",
+            },
+            limit: {
+              type: "integer",
+              description: "Maximum number of results to return",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {
+              listeners: {
+                type: "array",
+                items: {
+                  type: "ref",
+                  ref: "lex:app.rocksky.song.defs#recentListenerView",
+                },
+              },
+            },
           },
         },
       },
@@ -7118,6 +7286,8 @@ export const ids = {
   AppRockskyArtistGetArtist: "app.rocksky.artist.getArtist",
   AppRockskyArtistGetArtistAlbums: "app.rocksky.artist.getArtistAlbums",
   AppRockskyArtistGetArtistListeners: "app.rocksky.artist.getArtistListeners",
+  AppRockskyArtistGetArtistRecentListeners:
+    "app.rocksky.artist.getArtistRecentListeners",
   AppRockskyArtistGetArtists: "app.rocksky.artist.getArtists",
   AppRockskyArtistGetArtistTracks: "app.rocksky.artist.getArtistTracks",
   AppRockskyChartsDefs: "app.rocksky.charts.defs",
@@ -7206,6 +7376,8 @@ export const ids = {
   AppRockskySongCreateSong: "app.rocksky.song.createSong",
   AppRockskySongDefs: "app.rocksky.song.defs",
   AppRockskySongGetSong: "app.rocksky.song.getSong",
+  AppRockskySongGetSongRecentListeners:
+    "app.rocksky.song.getSongRecentListeners",
   AppRockskySongGetSongs: "app.rocksky.song.getSongs",
   AppRockskySongMatchSong: "app.rocksky.song.matchSong",
   AppRockskySong: "app.rocksky.song",

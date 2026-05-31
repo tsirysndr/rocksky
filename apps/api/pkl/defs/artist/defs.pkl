@@ -172,6 +172,49 @@ defs = new Mapping<String, ObjectType> {
     }
   }
 
+  ["recentListenerView"] {
+    type = "object"
+    properties {
+      ["id"] = new StringType {
+        type = "string"
+        description = "The unique identifier of the listener."
+      }
+
+      ["did"] = new StringType {
+        type = "string"
+        description = "The DID of the listener."
+      }
+
+      ["handle"] = new StringType {
+        type = "string"
+        description = "The handle of the listener."
+      }
+
+      ["displayName"] = new StringType {
+        type = "string"
+        description = "The display name of the listener."
+      }
+
+      ["avatar"] = new StringType {
+        type = "string"
+        format = "uri"
+        description = "The URL of the listener's avatar image."
+      }
+
+      ["timestamp"] = new StringType {
+        type = "string"
+        format = "datetime"
+        description = "The timestamp of the listener's most recent scrobble of this artist."
+      }
+
+      ["scrobbleUri"] = new StringType {
+        type = "string"
+        format = "at-uri"
+        description = "The URI of the listener's most recent scrobble of this artist."
+      }
+    }
+  }
+
   ["artistMbid"] {
     type = "object"
     properties {

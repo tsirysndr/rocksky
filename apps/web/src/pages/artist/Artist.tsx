@@ -8,11 +8,13 @@ import numeral from "numeral";
 import { useEffect, useState } from "react";
 import { artistAtom } from "../../atoms/artist";
 import ArtistIcon from "../../components/Icons/Artist";
+import RecentListeners from "../../components/RecentListeners";
 import Shout from "../../components/Shout/Shout";
 import {
   useArtistAlbumsQuery,
   useArtistListenersQuery,
   useArtistQuery,
+  useArtistRecentListenersQuery,
   useArtistTracksQuery,
 } from "../../hooks/useLibrary";
 import Main from "../../layouts/Main";
@@ -36,6 +38,7 @@ const Artist = () => {
   const artistTracksResult = useArtistTracksQuery(uri);
   const artistAlbumsResult = useArtistAlbumsQuery(uri);
   const artistListenersResult = useArtistListenersQuery(uri);
+  const artistRecentListenersResult = useArtistRecentListenersQuery(uri);
 
   const artist = useAtomValue(artistAtom);
   const setArtist = useSetAtom(artistAtom);
@@ -257,6 +260,10 @@ const Artist = () => {
             </div>
           )}
         </div>
+        <RecentListeners
+          listeners={artistRecentListenersResult.data}
+          isLoading={artistRecentListenersResult.isLoading}
+        />
         <PopularSongs
           topTracks={topTracks}
           isLoading={artistTracksResult.isLoading}

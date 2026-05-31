@@ -33,6 +33,7 @@ import type * as AppRockskyApikeyUpdateApikey from "./types/app/rocksky/apikey/u
 import type * as AppRockskyArtistGetArtist from "./types/app/rocksky/artist/getArtist";
 import type * as AppRockskyArtistGetArtistAlbums from "./types/app/rocksky/artist/getArtistAlbums";
 import type * as AppRockskyArtistGetArtistListeners from "./types/app/rocksky/artist/getArtistListeners";
+import type * as AppRockskyArtistGetArtistRecentListeners from "./types/app/rocksky/artist/getArtistRecentListeners";
 import type * as AppRockskyArtistGetArtists from "./types/app/rocksky/artist/getArtists";
 import type * as AppRockskyArtistGetArtistTracks from "./types/app/rocksky/artist/getArtistTracks";
 import type * as AppRockskyChartsGetScrobblesChart from "./types/app/rocksky/charts/getScrobblesChart";
@@ -99,6 +100,7 @@ import type * as AppRockskyShoutReplyShout from "./types/app/rocksky/shout/reply
 import type * as AppRockskyShoutReportShout from "./types/app/rocksky/shout/reportShout";
 import type * as AppRockskySongCreateSong from "./types/app/rocksky/song/createSong";
 import type * as AppRockskySongGetSong from "./types/app/rocksky/song/getSong";
+import type * as AppRockskySongGetSongRecentListeners from "./types/app/rocksky/song/getSongRecentListeners";
 import type * as AppRockskySongGetSongs from "./types/app/rocksky/song/getSongs";
 import type * as AppRockskySongMatchSong from "./types/app/rocksky/song/matchSong";
 import type * as AppRockskySpotifyGetCurrentlyPlaying from "./types/app/rocksky/spotify/getCurrentlyPlaying";
@@ -524,6 +526,17 @@ export class AppRockskyArtistNS {
     >,
   ) {
     const nsid = "app.rocksky.artist.getArtistListeners"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  getArtistRecentListeners<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyArtistGetArtistRecentListeners.Handler<ExtractAuth<AV>>,
+      AppRockskyArtistGetArtistRecentListeners.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.artist.getArtistRecentListeners"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 
@@ -1346,6 +1359,17 @@ export class AppRockskySongNS {
     >,
   ) {
     const nsid = "app.rocksky.song.getSong"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  getSongRecentListeners<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskySongGetSongRecentListeners.Handler<ExtractAuth<AV>>,
+      AppRockskySongGetSongRecentListeners.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.song.getSongRecentListeners"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 
