@@ -462,27 +462,86 @@ async function processRow(row: Row): Promise<{ mb: boolean; isrc: boolean }> {
     return { mb: false, isrc: false };
   }
 
+  const result = await tryUpdate(row, updates);
+  if (result.skipped) {
+    return { mb: false, isrc: false };
+  }
+  consola.success(
+    `[db] ${chalk.dim(row.id)} ${label} ${
+      result.applied.mbId ? chalk.green(`mb_id=${result.applied.mbId}`) : ""
+    } ${result.applied.isrc ? chalk.green(`isrc=${result.applied.isrc}`) : ""}`.trim(),
+  );
+  return { mb: !!result.applied.mbId, isrc: !!result.applied.isrc };
+}
+
+/** Drizzle wraps pg errors and hides `.code` / `.constraint` / `.detail` behind
+ *  `err.cause`. Pull them out so logs say something useful.
+ */
+function pgCause(err: unknown): {
+  code?: string;
+  constraint?: string;
+  detail?: string;
+} {
+  const e = err as { cause?: unknown };
+  if (!e?.cause || typeof e.cause !== "object") return {};
+  const c = e.cause as { code?: string; constraint?: string; detail?: string };
+  return { code: c.code, constraint: c.constraint, detail: c.detail };
+}
+
+/** Run the UPDATE; on a UNIQUE-violation against isrc (the only UNIQUE
+ *  column on tracks for these two fields — mb_id is allowed to repeat
+ *  across rows since one MusicBrainz recording can map to several local
+ *  tracks), retry without isrc so we still land the mb_id value.
+ */
+async function tryUpdate(
+  row: Row,
+  updates: { mbId?: string; isrc?: string },
+): Promise<{ skipped: boolean; applied: { mbId?: string; isrc?: string } }> {
   try {
     await ctx.db
       .update(tables.tracks)
       .set(updates)
       .where(eq(tables.tracks.id, row.id))
       .execute();
+    return { skipped: false, applied: updates };
   } catch (err) {
-    // mb_id has a UNIQUE constraint; another track may already own this MBID.
-    // Don't blow up the worker — just skip and log.
-    consola.warn(
-      `[db] update failed for ${chalk.dim(row.id)} (${row.title}): ${(err as Error).message}`,
-    );
-    return { mb: false, isrc: false };
-  }
+    const cause = pgCause(err);
+    const isUnique = cause.code === "23505";
+    const isrcConflict =
+      isUnique && (cause.constraint?.includes("isrc") ?? true);
 
-  consola.success(
-    `[db] ${chalk.dim(row.id)} ${label} ${
-      updates.mbId ? chalk.green(`mb_id=${updates.mbId}`) : ""
-    } ${updates.isrc ? chalk.green(`isrc=${updates.isrc}`) : ""}`.trim(),
-  );
-  return { mb: !!updates.mbId, isrc: !!updates.isrc };
+    consola.warn(
+      `[db] update failed for ${chalk.dim(row.id)} (${row.title}): ${
+        (err as Error).message
+      }${
+        cause.code
+          ? ` | pg ${cause.code}${cause.constraint ? ` constraint=${cause.constraint}` : ""}${cause.detail ? ` detail=${cause.detail}` : ""}`
+          : ""
+      }`,
+    );
+
+    // If isrc was the offender and we also have an mb_id, drop isrc and
+    // retry so the mb_id still lands.
+    if (isrcConflict && updates.isrc && updates.mbId) {
+      const fallback = { mbId: updates.mbId };
+      try {
+        await ctx.db
+          .update(tables.tracks)
+          .set(fallback)
+          .where(eq(tables.tracks.id, row.id))
+          .execute();
+        consola.info(
+          `[db] ${chalk.dim(row.id)} retried without isrc (already owned elsewhere) — mb_id still applied`,
+        );
+        return { skipped: false, applied: fallback };
+      } catch (e2) {
+        consola.warn(
+          `[db] mb_id-only retry also failed for ${chalk.dim(row.id)}: ${(e2 as Error).message}`,
+        );
+      }
+    }
+    return { skipped: true, applied: {} };
+  }
 }
 
 type Stats = {
