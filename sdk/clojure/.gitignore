@@ -11,3 +11,5 @@ pom.xml.asc
 .idea/
 *.iml
 .DS_Store
+
+.rebel_readline_history

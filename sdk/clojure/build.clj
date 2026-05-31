@@ -13,20 +13,20 @@
             [deps-deploy.deps-deploy :as dd]))
 
 (def lib         'app.rocksky/sdk)
-(def version     "0.1.0")
+(def version     "0.1.0-SNAPSHOT")
 (def class-dir   "target/classes")
 (def basis       (delay (b/create-basis {:project "deps.edn"})))
 (def jar-file    (format "target/%s-%s.jar" (name lib) version))
 
 (def scm
-  {:url                 "https://github.com/rocksky/rocksky"
-   :connection          "scm:git:git://github.com/rocksky/rocksky.git"
-   :developerConnection "scm:git:ssh://git@github.com/rocksky/rocksky.git"
+  {:url                 "https://github.com/tsirysndr/rocksky"
+   :connection          "scm:git:git://github.com/tsirysndr/rocksky.git"
+   :developerConnection "scm:git:ssh://git@github.com/tsirysndr/rocksky.git"
    :tag                 (str "sdk-clojure-v" version)})
 
 (def pom-data
   [[:description "Idiomatic, pipe-friendly Clojure client for the Rocksky XRPC API."]
-   [:url "https://github.com/rocksky/rocksky/tree/main/sdk/clojure"]
+   [:url "https://github.com/tsirysndr/rocksky/tree/main/sdk/clojure"]
    [:licenses
     [:license
      [:name "MIT License"]

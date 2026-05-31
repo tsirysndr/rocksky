@@ -17,19 +17,19 @@ An idiomatic, pipe-friendly Clojure client for the
 `deps.edn`:
 
 ```clojure
-{:deps {app.rocksky/sdk {:mvn/version "0.1.0"}}}
+{:deps {app.rocksky/sdk {:mvn/version "0.1.0-SNAPSHOT"}}}
 ```
 
 Leiningen / Boot:
 
 ```clojure
-[app.rocksky/sdk "0.1.0"]
+[app.rocksky/sdk "0.1.0-SNAPSHOT"]
 ```
 
 Or, to track a specific commit instead of a release:
 
 ```clojure
-{:deps {app.rocksky/sdk {:git/url   "https://github.com/rocksky/rocksky"
+{:deps {app.rocksky/sdk {:git/url   "https://github.com/tsirysndr/rocksky"
                          :git/sha   "..."
                          :deps/root "sdk/clojure"}}}
 ```
@@ -69,9 +69,9 @@ threading expression:
 
 (-> (c/client {:base-url "https://api.rocksky.app"})
     (c/with-token (System/getenv "ROCKSKY_TOKEN"))
-    (actor/get-profile {:did "tsiry.rocksky.app"})
+    (actor/get-profile {:did "did:plc:7vdlgi2bflelz7mmuxoqjfcr"})
     :handle)
-;; => "tsiry.rocksky.app"
+;; => "tsiry-sandratraina.com"
 ```
 
 Or reshape responses inline:
