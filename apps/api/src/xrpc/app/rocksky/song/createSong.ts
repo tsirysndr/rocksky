@@ -13,7 +13,7 @@ import * as Artist from "lexicon/types/app/rocksky/artist";
 import * as Song from "lexicon/types/app/rocksky/song";
 import type { InputSchema } from "lexicon/types/app/rocksky/song/createSong";
 import type { SongViewDetailed } from "lexicon/types/app/rocksky/song/defs";
-import { deepSnakeCaseKeys } from "lib";
+import { deepSnakeCaseKeys, withFallbackAlbumArt } from "lib";
 import { createAgent } from "lib/agent";
 import { createHash } from "node:crypto";
 import tables from "schema";
@@ -243,7 +243,7 @@ const putAlbumRecord = (track: Track, agent: Agent) =>
         ? track.releaseDate.toISOString()
         : undefined,
       createdAt: new Date().toISOString(),
-      albumArtUrl: track.albumArt,
+      albumArtUrl: withFallbackAlbumArt(track.albumArt),
     }),
     Effect.flatMap((record) =>
       putRecord(agent, "app.rocksky.album", record, Album.validateRecord),
@@ -263,7 +263,7 @@ const putSongRecord = (track: Track, agent: Agent) =>
         ? track.releaseDate.toISOString()
         : undefined,
       year: track.year,
-      albumArtUrl: track.albumArt,
+      albumArtUrl: withFallbackAlbumArt(track.albumArt),
       composer: track.composer ?? undefined,
       lyrics: track.lyrics ?? undefined,
       trackNumber: track.trackNumber,

@@ -2,6 +2,7 @@ import { AtpAgent } from "@atproto/api";
 import type { Record } from "@atproto/api/dist/client/types/com/atproto/repo/listRecords";
 import { consola } from "consola";
 import { ctx } from "context";
+import { withFallbackAlbumArt } from "lib";
 import extractPdsFromDid from "lib/extractPdsFromDid";
 import chalk from "chalk";
 import type * as Song from "lexicon/types/app/rocksky/song";
@@ -294,7 +295,7 @@ async function insertSongs(songs: Record[]) {
             albumArtist: value.albumArtist,
             album: value.album,
             uri: song.uri,
-            albumArt: value.albumArtUrl,
+            albumArt: withFallbackAlbumArt(value.albumArtUrl),
             artistUri: artist.uri,
             albumUri: album.uri,
             sha256: trackSha256,
@@ -470,7 +471,7 @@ async function insertAlbums(albums: Record[]) {
           title: value.title,
           artist: value.artist,
           uri: album.uri,
-          albumArt: value.albumArtUrl,
+          albumArt: withFallbackAlbumArt(value.albumArtUrl),
           artistUri: artist.uri,
           sha256,
           year: value.year,
@@ -479,7 +480,7 @@ async function insertAlbums(albums: Record[]) {
         .onConflictDoUpdate({
           target: schema.albums.sha256,
           set: {
-            albumArt: value.albumArtUrl,
+            albumArt: withFallbackAlbumArt(value.albumArtUrl),
             artistUri: artist.uri,
             year: value.year,
             releaseDate: value.releaseDate,

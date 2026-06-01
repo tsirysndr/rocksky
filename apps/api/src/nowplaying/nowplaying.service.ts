@@ -9,7 +9,7 @@ import * as Album from "lexicon/types/app/rocksky/album";
 import * as Artist from "lexicon/types/app/rocksky/artist";
 import * as Scrobble from "lexicon/types/app/rocksky/scrobble";
 import * as Song from "lexicon/types/app/rocksky/song";
-import { deepSnakeCaseKeys } from "lib";
+import { deepSnakeCaseKeys, withFallbackAlbumArt } from "lib";
 import { decrypt } from "lib/crypto";
 import { env } from "lib/env";
 import { createHash } from "node:crypto";
@@ -107,7 +107,7 @@ export async function putAlbumRecord(
       ? track.releaseDate.toISOString()
       : undefined,
     createdAt: new Date().toISOString(),
-    albumArtUrl: track.albumArt,
+    albumArtUrl: withFallbackAlbumArt(track.albumArt),
   };
 
   if (!Album.validateRecord(record).success) {
@@ -151,7 +151,7 @@ export async function putSongRecord(
       ? track.releaseDate.toISOString()
       : undefined,
     year: track.year === null ? undefined : track.year,
-    albumArtUrl: track.albumArt ?? undefined,
+    albumArtUrl: withFallbackAlbumArt(track.albumArt),
     composer: track.composer ? track.composer : undefined,
     lyrics: track.lyrics ? track.lyrics : undefined,
     trackNumber: track.trackNumber ?? undefined,
@@ -200,7 +200,7 @@ async function putScrobbleRecord(
     $type: "app.rocksky.scrobble",
     title: track.title,
     albumArtist: track.albumArtist,
-    albumArtUrl: track.albumArt,
+    albumArtUrl: withFallbackAlbumArt(track.albumArt),
     artist: track.artist,
     artists: track.artists === null ? undefined : track.artists,
     album: track.album,

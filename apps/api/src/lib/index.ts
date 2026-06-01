@@ -1,6 +1,14 @@
 import _ from "lodash";
 import * as R from "ramda";
 
+// Canonical Last.fm "no image" placeholder. Persisted/published in place of
+// null/undefined album art so downstream consumers always see a non-null URL.
+export const DEFAULT_ALBUM_ART =
+  "https://lastfm.freetls.fastly.net/i/u/300x300/2a96cbd8b46e442fc41c2b86b821562f.png";
+
+export const withFallbackAlbumArt = (url: string | null | undefined): string =>
+  url ?? DEFAULT_ALBUM_ART;
+
 export const dedupeTracksKeepLyrics = (tracks) => {
   const trackMap = new Map();
 

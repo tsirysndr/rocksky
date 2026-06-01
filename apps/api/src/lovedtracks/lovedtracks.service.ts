@@ -3,6 +3,7 @@ import { TID } from "@atproto/common";
 import { consola } from "consola";
 import type { Context } from "context";
 import { and, desc, eq, type SQLWrapper } from "drizzle-orm";
+import { withFallbackAlbumArt } from "lib";
 import * as LikeLexicon from "lexicon/types/app/rocksky/like";
 import { validateMain } from "lexicon/types/com/atproto/repo/strongRef";
 import { createHash } from "node:crypto";
@@ -41,7 +42,7 @@ export async function likeTrack(
         title: track.title,
         artist: track.artist,
         album: track.album,
-        albumArt: track.albumArt,
+        albumArt: withFallbackAlbumArt(track.albumArt),
         albumArtist: track.albumArtist,
         trackNumber: track.trackNumber,
         duration: track.duration,
@@ -61,7 +62,7 @@ export async function likeTrack(
         title: track.title,
         artist: track.artist,
         album: track.album,
-        albumArt: track.albumArt,
+        albumArt: withFallbackAlbumArt(track.albumArt),
         albumArtist: track.albumArtist,
         trackNumber: track.trackNumber,
         duration: track.duration,
@@ -126,7 +127,7 @@ export async function likeTrack(
       .set({
         title: track.album,
         artist: track.albumArtist,
-        albumArt: track.albumArt,
+        albumArt: withFallbackAlbumArt(track.albumArt),
         year: track.year,
         releaseDate: track.releaseDate
           ? track.releaseDate.toISOString()
@@ -142,7 +143,7 @@ export async function likeTrack(
       .values({
         title: track.album,
         artist: track.albumArtist,
-        albumArt: track.albumArt,
+        albumArt: withFallbackAlbumArt(track.albumArt),
         year: track.year,
         releaseDate: track.releaseDate
           ? track.releaseDate.toISOString()

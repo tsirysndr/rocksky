@@ -3,6 +3,7 @@ import type { Context } from "context";
 import { eq } from "drizzle-orm";
 import { JSONCodec } from "nats";
 import { createHash } from "node:crypto";
+import { withFallbackAlbumArt } from "lib";
 import { createAgent } from "lib/agent";
 import type * as Status from "lexicon/types/app/rocksky/actor/status";
 import type { TrackView } from "lexicon/types/app/rocksky/actor/defs";
@@ -101,10 +102,11 @@ function normalizeTrack(
   const album =
     (typeof raw.album === "object" ? raw.album?.name : raw.album) ??
     raw.album_name;
-  const albumCoverUrl =
+  const albumCoverUrl = withFallbackAlbumArt(
     (typeof raw.album === "object" ? raw.album?.cover : undefined) ??
-    raw.albumCoverUrl ??
-    dbAlbumArt;
+      raw.albumCoverUrl ??
+      dbAlbumArt,
+  );
   const durationMs = raw.duration_ms ?? 0;
   const source = raw.source ?? (raw.artists ? "spotify" : "listenbrainz");
 
