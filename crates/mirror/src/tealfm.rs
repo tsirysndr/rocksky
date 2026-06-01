@@ -26,7 +26,11 @@ use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
 
 use crate::{
-    db, dedup, enrich::Enricher, rocksky, track::NormalizedTrack, Provider, TEALFM_PLAY_NSID,
+    db, dedup,
+    enrich::Enricher,
+    rocksky,
+    track::{normalize_text, NormalizedTrack},
+    Provider, TEALFM_PLAY_NSID,
 };
 
 /// Set of DIDs currently mirroring Teal.fm — shared with the supervisor so it
@@ -149,13 +153,13 @@ async fn handle_event(
         return Ok(());
     };
 
-    let title = play.track_name.trim().to_string();
+    let title = normalize_text(&play.track_name);
     let artist = play
         .artists
         .first()
-        .map(|a| a.artist_name.trim().to_string())
+        .map(|a| normalize_text(&a.artist_name))
         .unwrap_or_default();
-    let album = play.release_name.unwrap_or_default().trim().to_string();
+    let album = normalize_text(&play.release_name.unwrap_or_default());
     if title.is_empty() || artist.is_empty() {
         return Ok(());
     }

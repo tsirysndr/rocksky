@@ -20,7 +20,7 @@ use crate::{
     dedup,
     enrich::Enricher,
     rocksky,
-    track::NormalizedTrack,
+    track::{normalize_text, NormalizedTrack},
     Provider,
 };
 
@@ -135,9 +135,9 @@ async fn poll_once(
             continue;
         }
 
-        let title = item.name.trim().to_string();
-        let artist = item.artist.text.unwrap_or_default().trim().to_string();
-        let album = item.album.text.unwrap_or_default().trim().to_string();
+        let title = normalize_text(&item.name);
+        let artist = normalize_text(&item.artist.text.unwrap_or_default());
+        let album = normalize_text(&item.album.text.unwrap_or_default());
         let mb_id = nonempty(item.mbid.clone());
 
         if title.is_empty() || artist.is_empty() {

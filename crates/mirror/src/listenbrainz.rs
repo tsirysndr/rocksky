@@ -20,7 +20,7 @@ use crate::{
     dedup,
     enrich::Enricher,
     rocksky,
-    track::NormalizedTrack,
+    track::{normalize_text, NormalizedTrack},
     Provider,
 };
 
@@ -125,14 +125,9 @@ async fn poll_once(
         }
 
         let m = &listen.track_metadata;
-        let title = m.track_name.trim().to_string();
-        let artist = m.artist_name.trim().to_string();
-        let album = m
-            .release_name
-            .clone()
-            .unwrap_or_default()
-            .trim()
-            .to_string();
+        let title = normalize_text(&m.track_name);
+        let artist = normalize_text(&m.artist_name);
+        let album = normalize_text(&m.release_name.clone().unwrap_or_default());
         if title.is_empty() || artist.is_empty() {
             continue;
         }

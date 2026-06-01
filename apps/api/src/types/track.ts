@@ -1,19 +1,29 @@
 import z from "zod";
 
+// Replace the curly right single quotation mark (U+2019, `’`) with the ASCII
+// apostrophe (U+0027, `'`) so artists like "Guns N’ Roses" and "Guns N' Roses"
+// collapse to a single canonical form. Mirrors `normalize_text` in
+// crates/mirror/src/track.rs.
+const canonicalText = z
+  .string()
+  .nonempty()
+  .trim()
+  .transform((s) => s.replace(/’/g, "'"));
+
 export const trackSchema = z.object({
-  title: z.string().nonempty().trim(),
-  artist: z.string().nonempty().trim(),
+  title: canonicalText,
+  artist: canonicalText,
   artists: z
     .array(
       z.object({
         mbid: z.string().optional().nullable(),
-        name: z.string().nonempty().trim(),
+        name: canonicalText,
       }),
     )
     .optional()
     .nullable(),
-  album: z.string().nonempty().trim(),
-  albumArtist: z.string().nonempty().trim(),
+  album: canonicalText,
+  albumArtist: canonicalText,
   duration: z.number(),
   mbId: z.string().optional().nullable(),
   isrc: z.string().optional().nullable(),

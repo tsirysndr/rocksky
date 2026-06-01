@@ -42,3 +42,24 @@ impl NormalizedTrack {
         DateTime::from_timestamp(self.timestamp, 0).unwrap_or_else(Utc::now)
     }
 }
+
+/// Trim and canonicalize a free-text field from an upstream provider.
+///
+/// Replaces the curly right single quotation mark (U+2019, `’`) with the
+/// ASCII apostrophe (U+0027, `'`) so that artists like "Guns N’ Roses" and
+/// "Guns N' Roses" collapse to a single canonical form before dedup and the
+/// XRPC post.
+pub fn normalize_text(s: &str) -> String {
+    s.trim().replace('\u{2019}', "'")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn normalizes_curly_apostrophe() {
+        assert_eq!(normalize_text(" Guns N\u{2019} Roses "), "Guns N' Roses");
+        assert_eq!(normalize_text("Guns N' Roses"), "Guns N' Roses");
+    }
+}
