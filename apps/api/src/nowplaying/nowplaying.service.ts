@@ -4,7 +4,7 @@ import chalk from "chalk";
 import { consola } from "consola";
 import type { Context } from "context";
 import dayjs from "dayjs";
-import { and, eq, gte, lte, or } from "drizzle-orm";
+import { and, eq, gte, lte, or, sql } from "drizzle-orm";
 import * as Album from "lexicon/types/app/rocksky/album";
 import * as Artist from "lexicon/types/app/rocksky/artist";
 import * as Scrobble from "lexicon/types/app/rocksky/scrobble";
@@ -49,6 +49,35 @@ function trackLookupWhere(t: {
   if (mbId) clauses.push(eq(tracks.mbId, mbId));
   if (isrc) clauses.push(eq(tracks.isrc, isrc));
   return clauses.length > 1 ? or(...clauses) : clauses[0];
+}
+
+/**
+ * Companion to `trackLookupWhere`. The same ISRC/MBID can map to multiple
+ * `tracks` rows when one recording appears on several albums (e.g. a single
+ * + a compilation soundtrack), so a bare `OR ... LIMIT 1` returns a
+ * non-deterministic row and can silently cross albums (see Dua Lipa's
+ * "End Of An Era" on "Radical Optimism" vs. the "Devil Wears Prada 2"
+ * soundtrack). We rank: exact title+artist+album SHA > MBID > ISRC so the
+ * most specific identity always wins.
+ */
+function trackLookupOrder(t: {
+  title?: string;
+  artist?: string;
+  album?: string;
+  mbId?: string | null;
+  isrc?: string | null;
+}) {
+  const sha = createHash("sha256")
+    .update(`${t.title} - ${t.artist} - ${t.album}`.toLowerCase())
+    .digest("hex");
+  const mbId = t.mbId?.trim() || null;
+  const isrc = t.isrc?.trim() || null;
+  return sql`CASE
+    WHEN ${tracks.sha256} = ${sha} THEN 0
+    WHEN ${mbId}::text IS NOT NULL AND ${tracks.mbId} = ${mbId} THEN 1
+    WHEN ${isrc}::text IS NOT NULL AND ${tracks.isrc} = ${isrc} THEN 2
+    ELSE 3
+  END`;
 }
 import userAlbums from "../schema/user-albums";
 import userArtists from "../schema/user-artists";
@@ -671,6 +700,7 @@ export async function scrobbleTrack(
     .select()
     .from(tracks)
     .where(trackLookupWhere(track))
+    .orderBy(trackLookupOrder(track))
     .limit(1)
     .then((rows) => rows[0]);
 
@@ -804,6 +834,7 @@ export async function scrobbleTrack(
       .select()
       .from(tracks)
       .where(trackLookupWhere(track))
+      .orderBy(trackLookupOrder(track))
       .limit(1)
       .then((rows) => rows[0]);
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -901,6 +932,7 @@ export async function scrobbleTrack(
     .select()
     .from(tracks)
     .where(trackLookupWhere(track))
+    .orderBy(trackLookupOrder(track))
     .limit(1)
     .then((rows) => rows[0]);
 
@@ -912,6 +944,7 @@ export async function scrobbleTrack(
       .select()
       .from(tracks)
       .where(trackLookupWhere(track))
+      .orderBy(trackLookupOrder(track))
       .limit(1)
       .then((rows) => rows[0]);
 

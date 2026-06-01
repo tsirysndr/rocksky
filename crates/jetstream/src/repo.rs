@@ -359,10 +359,20 @@ pub async fn save_track(
         .map(str::trim)
         .filter(|s| !s.is_empty());
 
+    // Rank exact sha (title+artist+album) above MBID, MBID above ISRC: the same
+    // ISRC can map to multiple `tracks` rows when one recording is released on
+    // several albums (e.g. a single + a compilation), and a bare `OR ... LIMIT 1`
+    // returns a non-deterministic row that can silently cross albums.
     let tracks: Vec<Track> = sqlx::query_as(
         "SELECT * FROM tracks WHERE sha256 = $1 \
          OR ($2::text IS NOT NULL AND mb_id IS NOT NULL AND mb_id = $2) \
          OR ($3::text IS NOT NULL AND isrc IS NOT NULL AND isrc = $3) \
+         ORDER BY CASE \
+           WHEN sha256 = $1 THEN 0 \
+           WHEN $2::text IS NOT NULL AND mb_id = $2 THEN 1 \
+           WHEN $3::text IS NOT NULL AND isrc = $3 THEN 2 \
+           ELSE 3 \
+         END \
          LIMIT 1",
     )
     .bind(&hash)
@@ -881,10 +891,18 @@ pub async fn save_user_track(
         .map(str::trim)
         .filter(|s| !s.is_empty());
 
+    // Rank sha (exact title+artist+album) above MBID, MBID above ISRC — see
+    // save_track for the rationale (recordings shared across albums).
     let mut tracks: Vec<Track> = sqlx::query_as(
         "SELECT * FROM tracks WHERE sha256 = $1 \
          OR ($2::text IS NOT NULL AND mb_id IS NOT NULL AND mb_id = $2) \
          OR ($3::text IS NOT NULL AND isrc IS NOT NULL AND isrc = $3) \
+         ORDER BY CASE \
+           WHEN sha256 = $1 THEN 0 \
+           WHEN $2::text IS NOT NULL AND mb_id = $2 THEN 1 \
+           WHEN $3::text IS NOT NULL AND isrc = $3 THEN 2 \
+           ELSE 3 \
+         END \
          LIMIT 1",
     )
     .bind(&hash)
