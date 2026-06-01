@@ -5,7 +5,7 @@ use futures_util::{FutureExt, StreamExt};
 use owo_colors::OwoColorize;
 use sqlx::postgres::PgPoolOptions;
 use std::panic::AssertUnwindSafe;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, Semaphore};
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
 use crate::{repo::save_scrobble, types::Root, webhook_worker::AppState};
@@ -35,10 +35,22 @@ impl ScrobbleSubscriber {
         let db_url = env::var("XATA_POSTGRES_URL")
             .context("Failed to get XATA_POSTGRES_URL environment variable")?;
 
+        // Match apps/api/src/drizzle.ts (max: 20, connectionTimeoutMillis: 10_000)
+        // — that's the established per-process budget for long-lived services
+        // against this Xata Postgres. Bump via env if the tier allows more.
+        let max_connections: u32 = env::var("PG_MAX_CONNECTIONS")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(20);
+        let max_inflight: usize = env::var("MAX_INFLIGHT_SCROBBLES")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(64);
+
         let pool = PgPoolOptions::new()
-            .max_connections(5)
+            .max_connections(max_connections)
             .min_connections(2)
-            .acquire_timeout(Duration::from_secs(12))
+            .acquire_timeout(Duration::from_secs(10))
             .max_lifetime(Some(Duration::from_secs(60 * 14)))
             .test_before_acquire(true)
             .connect(&db_url)
@@ -48,13 +60,28 @@ impl ScrobbleSubscriber {
         let addr = env::var("NATS_URL").unwrap_or_else(|_| "nats://localhost:4222".to_string());
         let nc = Arc::new(async_nats::connect(&addr).await?);
 
+        // Bound in-flight scrobble handlers. Acquired in the WS read loop *before*
+        // spawning, so when handlers are slow the loop awaits and TCP back-pressure
+        // propagates to the Jetstream server instead of letting tasks pile up in
+        // memory and queue against the pool.
+        let semaphore = Arc::new(Semaphore::new(max_inflight));
+
         let (mut ws_stream, _) = connect_async(&self.service_url).await?;
         tracing::info!(url = %self.service_url.bright_green(), "Connected to jetstream at");
 
         while let Some(msg) = ws_stream.next().await {
             match msg {
                 Ok(msg) => {
-                    if let Err(e) = handle_message(state.clone(), pool.clone(), nc.clone(), msg) {
+                    let permit = match semaphore.clone().acquire_owned().await {
+                        Ok(p) => p,
+                        Err(e) => {
+                            tracing::error!(error = %e, "Semaphore closed; exiting read loop");
+                            break;
+                        }
+                    };
+                    if let Err(e) =
+                        handle_message(state.clone(), pool.clone(), nc.clone(), permit, msg)
+                    {
                         tracing::error!(error = %e, "Error handling message");
                     }
                 }
@@ -73,9 +100,11 @@ fn handle_message(
     state: Arc<Mutex<AppState>>,
     pool: Arc<sqlx::PgPool>,
     nc: Arc<async_nats::Client>,
+    permit: tokio::sync::OwnedSemaphorePermit,
     msg: Message,
 ) -> Result<(), Error> {
     tokio::spawn(async move {
+        let _permit = permit;
         if let Message::Text(text) = msg {
             let message: Root = serde_json::from_str(&text)?;
 

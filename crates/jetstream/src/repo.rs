@@ -1,4 +1,5 @@
-use std::sync::Arc;
+use std::collections::HashMap;
+use std::sync::{Arc, OnceLock, RwLock};
 
 use anyhow::Error;
 use chrono::DateTime;
@@ -6,6 +7,17 @@ use owo_colors::OwoColorize;
 use serde_json::json;
 use sqlx::{Pool, Postgres};
 use tokio::sync::Mutex;
+
+// In-memory did → users.xata_id cache. Saves both the SELECT and the
+// did_to_profile HTTPS roundtrip on every scrobble for an existing user
+// (which is ~all scrobbles). xata_id is immutable for a user, so the
+// cache never goes stale; entries only need eviction if a user is deleted,
+// which we don't currently support.
+static USER_ID_CACHE: OnceLock<RwLock<HashMap<String, String>>> = OnceLock::new();
+
+fn user_id_cache() -> &'static RwLock<HashMap<String, String>> {
+    USER_ID_CACHE.get_or_init(|| RwLock::new(HashMap::new()))
+}
 
 use crate::{
     profile::did_to_profile,
@@ -23,8 +35,8 @@ use crate::{
     webhook_worker::{push_to_queue, AppState},
     xata::{
         album::Album, album_track::AlbumTrack, artist::Artist, artist_album::ArtistAlbum,
-        artist_track::ArtistTrack, scrobble::Scrobble, track::Track, user::User,
-        user_album::UserAlbum, user_artist::UserArtist, user_track::UserTrack,
+        artist_track::ArtistTrack, track::Track, user::User, user_album::UserAlbum,
+        user_artist::UserArtist, user_track::UserTrack,
     },
 };
 
@@ -70,7 +82,7 @@ pub async fn save_scrobble(
 
                 tracing::info!(title = %scrobble_record.title.magenta(), artist = %scrobble_record.artist.magenta(), album = %scrobble_record.album.magenta(), "Saving scrobble");
 
-                sqlx::query(
+                let scrobble_id: String = sqlx::query_scalar(
                     r#"
           INSERT INTO scrobbles (
             album_id,
@@ -80,6 +92,7 @@ pub async fn save_scrobble(
             user_id,
             timestamp
           ) VALUES ($1, $2, $3, $4, $5, $6)
+          RETURNING xata_id
         "#,
                 )
                 .bind(album_id)
@@ -92,29 +105,11 @@ pub async fn save_scrobble(
                         .unwrap()
                         .with_timezone(&chrono::Utc),
                 )
-                .execute(&mut *tx)
+                .fetch_one(&mut *tx)
                 .await?;
 
                 tx.commit().await?;
 
-                let scrobbles: Vec<Scrobble> = sqlx::query_as::<_, Scrobble>(
-                    r#"
-          SELECT * FROM scrobbles WHERE user_id = $1 ORDER BY xata_createdat DESC LIMIT 5
-        "#,
-                )
-                .bind(&user_id)
-                .fetch_all(&*pool)
-                .await?;
-
-                let scrobble_id =
-                    scrobbles
-                        .first()
-                        .map(|s| s.xata_id.clone())
-                        .ok_or_else(|| {
-                            anyhow::anyhow!(
-                            "save_scrobble: scrobble row missing after insert (user_id={user_id})"
-                        )
-                        })?;
                 nc.publish("rocksky.scrobble.new", scrobble_id.into())
                     .await?;
                 publish_user(&nc, &pool, &user_id).await?;
@@ -260,11 +255,19 @@ pub async fn save_scrobble(
 }
 
 pub async fn save_user(pool: &Pool<Postgres>, did: &str) -> Result<String, Error> {
+    if let Some(id) = user_id_cache().read().unwrap().get(did).cloned() {
+        return Ok(id);
+    }
+
     if let Some(id) = sqlx::query_scalar::<_, String>("SELECT xata_id FROM users WHERE did = $1")
         .bind(did)
         .fetch_optional(pool)
         .await?
     {
+        user_id_cache()
+            .write()
+            .unwrap()
+            .insert(did.to_string(), id.clone());
         return Ok(id);
     }
 
@@ -279,23 +282,27 @@ pub async fn save_user(pool: &Pool<Postgres>, did: &str) -> Result<String, Error
         )
     });
 
-    sqlx::query(
+    // DO UPDATE SET did = users.did is a no-op write that forces RETURNING to
+    // fire on conflict, so two parallel inserts of the same DID both get back
+    // the existing xata_id instead of one needing a follow-up SELECT.
+    let id: String = sqlx::query_scalar(
         "INSERT INTO users (display_name, did, handle, avatar)
          VALUES ($1, $2, $3, $4)
-         ON CONFLICT (did) DO NOTHING",
+         ON CONFLICT (did) DO UPDATE SET did = users.did
+         RETURNING xata_id",
     )
     .bind(profile.display_name)
     .bind(did)
     .bind(profile.handle)
     .bind(avatar)
-    .execute(pool)
+    .fetch_one(pool)
     .await?;
 
-    sqlx::query_scalar::<_, String>("SELECT xata_id FROM users WHERE did = $1")
-        .bind(did)
-        .fetch_one(pool)
-        .await
-        .map_err(Into::into)
+    user_id_cache()
+        .write()
+        .unwrap()
+        .insert(did.to_string(), id.clone());
+    Ok(id)
 }
 
 pub async fn publish_user(
@@ -385,7 +392,10 @@ pub async fn save_track(
         return Ok(t.xata_id.clone());
     }
 
-    sqlx::query(
+    // DO UPDATE SET sha256 = tracks.sha256 forces RETURNING to fire on conflict,
+    // so a concurrent insert of the same sha256 still gives us back the existing
+    // xata_id instead of needing a follow-up SELECT.
+    let id: String = sqlx::query_scalar(
         r#"
     INSERT INTO tracks (
       title,
@@ -411,7 +421,8 @@ pub async fn save_track(
     ) VALUES (
       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
     )
-    ON CONFLICT (sha256) DO NOTHING
+    ON CONFLICT (sha256) DO UPDATE SET sha256 = tracks.sha256
+    RETURNING xata_id
   "#,
     )
     .bind(scrobble_record.title)
@@ -434,18 +445,10 @@ pub async fn save_track(
     .bind(scrobble_record.tidal_link)
     .bind(scrobble_record.youtube_link)
     .bind(scrobble_record.label)
-    .execute(&mut **tx)
+    .fetch_one(&mut **tx)
     .await?;
 
-    let tracks: Vec<Track> = sqlx::query_as("SELECT * FROM tracks WHERE sha256 = $1")
-        .bind(&hash)
-        .fetch_all(&mut **tx)
-        .await?;
-
-    tracks
-        .first()
-        .map(|t| t.xata_id.clone())
-        .ok_or_else(|| anyhow::anyhow!("save_track: row missing after insert (sha256={hash})"))
+    Ok(id)
 }
 
 pub async fn save_album(
@@ -474,7 +477,7 @@ pub async fn save_album(
 
     let uri: Option<String> = None;
     let artist_uri: Option<String> = None;
-    sqlx::query(
+    let id: String = sqlx::query_scalar(
         r#"
     INSERT INTO albums (
       title,
@@ -488,7 +491,8 @@ pub async fn save_album(
     ) VALUES (
       $1, $2, $3, $4, $5, $6, $7, $8
     )
-    ON CONFLICT (sha256) DO NOTHING
+    ON CONFLICT (sha256) DO UPDATE SET sha256 = albums.sha256
+    RETURNING xata_id
   "#,
     )
     .bind(scrobble_record.album)
@@ -499,18 +503,10 @@ pub async fn save_album(
     .bind(&hash)
     .bind(uri)
     .bind(artist_uri)
-    .execute(&mut **tx)
+    .fetch_one(&mut **tx)
     .await?;
 
-    let albums: Vec<Album> = sqlx::query_as("SELECT * FROM albums WHERE sha256 = $1")
-        .bind(&hash)
-        .fetch_all(&mut **tx)
-        .await?;
-
-    albums
-        .first()
-        .map(|a| a.xata_id.clone())
-        .ok_or_else(|| anyhow::anyhow!("save_album: row missing after insert (sha256={hash})"))
+    Ok(id)
 }
 
 pub async fn save_artist(
@@ -532,7 +528,7 @@ pub async fn save_artist(
 
     let uri: Option<String> = None;
     let picture = "";
-    sqlx::query(
+    let id: String = sqlx::query_scalar(
         r#"
     INSERT INTO artists (
       name,
@@ -543,7 +539,8 @@ pub async fn save_artist(
     ) VALUES (
       $1, $2, $3, $4, $5
     )
-    ON CONFLICT (sha256) DO NOTHING
+    ON CONFLICT (sha256) DO UPDATE SET sha256 = artists.sha256
+    RETURNING xata_id
   "#,
     )
     .bind(scrobble_record.artist)
@@ -551,18 +548,10 @@ pub async fn save_artist(
     .bind(uri)
     .bind(picture)
     .bind(scrobble_record.tags)
-    .execute(&mut **tx)
+    .fetch_one(&mut **tx)
     .await?;
 
-    let artists: Vec<Artist> = sqlx::query_as("SELECT * FROM artists WHERE sha256 = $1")
-        .bind(&hash)
-        .fetch_all(&mut **tx)
-        .await?;
-
-    artists
-        .first()
-        .map(|a| a.xata_id.clone())
-        .ok_or_else(|| anyhow::anyhow!("save_artist: row missing after insert (sha256={hash})"))
+    Ok(id)
 }
 
 pub async fn save_album_track(
