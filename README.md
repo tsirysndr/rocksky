@@ -35,7 +35,7 @@ Rocksky automatically tracks ("scrobbles") the music you listen to from Spotify,
 - More coming soon
 
 ### 🔍 Search
-- Blazing-fast search powered by MeiliSearch
+- Blazing-fast search powered by Typesense
 
 ## 🚧 Roadmap
 

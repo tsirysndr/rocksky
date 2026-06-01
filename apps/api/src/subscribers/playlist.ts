@@ -7,6 +7,7 @@ import * as Playlist from "lexicon/types/app/rocksky/playlist";
 import { createAgent } from "lib/agent";
 import { StringCodec } from "nats";
 import tables from "schema";
+import { indexPlaylists } from "typesense/search";
 
 export function onNewPlaylist(ctx: Context) {
   const sc = StringCodec();
@@ -99,8 +100,5 @@ async function putPlaylistRecord(
     .where(eq(tables.playlists.id, payload.id))
     .execute();
 
-  await ctx.meilisearch.post(
-    `indexes/playlists/documents?primaryKey=id`,
-    updatedPlaylist,
-  );
+  await indexPlaylists([updatedPlaylist]);
 }

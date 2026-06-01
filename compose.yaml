@@ -16,14 +16,16 @@ services:
         soft: -1
         hard: -1
 
-  meilisearch:
-    image: getmeili/meilisearch:v1.14
+  typesense:
+    image: typesense/typesense:28.0
     ports:
-      - "7700:7700"
-    environment:
-      MEILI_MASTER_KEY: 'masterKey'
+      - "8108:8108"
+    command: >
+      --data-dir /data
+      --api-key=xyz
+      --enable-cors
     volumes:
-      - meilisearch_data:/data.ms
+      - typesense_data:/data
 
   db:
     image: postgres:18
@@ -43,4 +45,4 @@ services:
 
 volumes:
   pgdata:
-  meilisearch_data:
+  typesense_data:

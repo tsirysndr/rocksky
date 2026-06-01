@@ -9,6 +9,7 @@ import { createBidirectionalResolver, createIdResolver } from "lib/idResolver";
 import { connect } from "nats";
 import redis from "redis";
 import sqliteKv from "sqliteKv";
+import { typesense } from "typesense/client";
 import { createStorage } from "unstorage";
 
 const { DB_PATH } = env;
@@ -40,10 +41,7 @@ export const ctx = {
       process.exit(1);
     })
     .connect(),
-  meilisearch: axios.create({
-    baseURL: env.MEILISEARCH_URL,
-    headers: { Authorization: `Bearer ${env.MEILISEARCH_API_KEY}` },
-  }),
+  typesense,
   authVerifier,
   sqliteDb: db,
   sqliteKv: kv,

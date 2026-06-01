@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import _ from "lodash";
 import { StringCodec } from "nats";
 import tables from "schema";
+import { indexUsers } from "typesense/search";
 
 export function onNewUser(ctx: Context) {
   const sc = StringCodec();
@@ -22,10 +23,7 @@ export function onNewUser(ctx: Context) {
 
       consola.info(`New user: ${chalk.cyan(_.get(results, "0.handle"))}`);
 
-      await ctx.meilisearch.post(
-        `/indexes/users/documents?primaryKey=id`,
-        results,
-      );
+      await indexUsers(results);
     }
   })();
 }

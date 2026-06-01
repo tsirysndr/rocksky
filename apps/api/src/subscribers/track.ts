@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import _ from "lodash";
 import { StringCodec } from "nats";
 import tables from "schema";
+import { indexAlbums, indexArtists, indexTracks } from "typesense/search";
 
 export function onNewTrack(ctx: Context) {
   const sc = StringCodec();
@@ -40,12 +41,9 @@ export function onNewTrack(ctx: Context) {
       consola.info(`New track: ${chalk.cyan(_.get(tracks, "0.title"))}`);
 
       await Promise.all([
-        ctx.meilisearch.post(`indexes/albums/documents?primaryKey=id`, albums),
-        ctx.meilisearch.post(
-          `indexes/artists/documents?primaryKey=id`,
-          artists,
-        ),
-        ctx.meilisearch.post(`indexes/tracks/documents?primaryKey=id`, tracks),
+        indexAlbums(albums),
+        indexArtists(artists),
+        indexTracks(tracks),
       ]);
     }
   })();
