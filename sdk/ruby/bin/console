@@ -17,7 +17,7 @@ puts <<~BANNER
     base_url : #{client.base_url}
     token    : #{client.token ? "set" : "unset"}
 
-  Try:  client.actor.get_profile(did: "alice.bsky.social")
+  Try:  client.actor.get_profile(did: "tsiry-sandratraina.com")
 BANNER
 
 IRB.setup(nil)
