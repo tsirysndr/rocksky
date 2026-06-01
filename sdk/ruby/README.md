@@ -5,7 +5,7 @@ Idiomatic Ruby client for the [Rocksky](https://rocksky.app) XRPC API.
 ```ruby
 client = Rocksky.new(token: ENV["ROCKSKY_TOKEN"])
 
-client.actor.get_profile(did: "alice.bsky.social")
+client.actor.get_profile(did: "tsiry-sandratraina.com")
 client.charts.get_top_artists(limit: 10, start_date: "2025-01-01")
 client.scrobble.create_scrobble(title: "In Bloom", artist: "Nirvana")
 ```
@@ -39,7 +39,7 @@ require "rocksky"
 # Reads ROCKSKY_BASE_URL and ROCKSKY_TOKEN from the env when omitted.
 client = Rocksky.new
 
-profile = client.actor.get_profile(did: "alice.bsky.social")
+profile = client.actor.get_profile(did: "tsiry-sandratraina.com")
 puts profile["displayName"]
 ```
 
@@ -83,7 +83,7 @@ def for_user(base, token) = base.with_token(token)
 For anything not covered, drop down to the raw transport:
 
 ```ruby
-client.query("app.rocksky.actor.getProfile", did: "alice")
+client.query("app.rocksky.actor.getProfile", did: "did:plc:7vdlgi2bflelz7mmuxoqjfcr")
 client.procedure("app.rocksky.like.likeSong", body: { uri: "at://..." })
 ```
 
@@ -137,11 +137,11 @@ Rocksky 0.1.0 — interactive console
   token    : present (set via ROCKSKY_TOKEN)
 
 A client is bound to `client`. Try:
-  client.actor.get_profile(did: "alice.bsky.social")
+  client.actor.get_profile(did: "did:plc:7vdlgi2bflelz7mmuxoqjfcr")
   client.charts.get_top_artists(limit: 10)
 
-irb> client.actor.get_profile(did: "alice.bsky.social")
-=> {"did"=>"did:plc:...", "handle"=>"alice", ...}
+irb> client.actor.get_profile(did: "did:plc:7vdlgi2bflelz7mmuxoqjfcr")
+=> {"did"=>"did:plc:...", "handle"=>"tsiry-sandratraina.com", ...}
 ```
 
 ### From a checkout (development)
@@ -171,7 +171,7 @@ irb> client.charts.get_top_tracks(limit: 5)
 ```ruby
 # Pretty-print responses
 require "json"
-puts JSON.pretty_generate(client.actor.get_profile(did: "alice.bsky.social"))
+puts JSON.pretty_generate(client.actor.get_profile(did: "did:plc:7vdlgi2bflelz7mmuxoqjfcr"))
 
 # Inspect what the SDK is about to send
 client = Rocksky.new(headers: { "X-Debug" => "1" })
@@ -199,7 +199,7 @@ client = Rocksky.new(open_timeout: 2, read_timeout: 5)
 The `examples/` directory contains runnable scripts:
 
 ```bash
-bundle exec ruby examples/01_profile.rb alice.bsky.social
+bundle exec ruby examples/01_profile.rb tsiry-sandratraina.com
 bundle exec ruby examples/03_charts.rb
 ROCKSKY_TOKEN=... bundle exec ruby examples/02_scrobble.rb
 ```
