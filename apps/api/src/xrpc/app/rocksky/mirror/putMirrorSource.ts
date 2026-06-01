@@ -11,6 +11,11 @@ import tables from "schema";
 
 const PROVIDERS = new Set(["lastfm", "listenbrainz", "tealfm"]);
 const MIRROR_TOPIC = "rocksky.mirror.user";
+// Seed the watermark this far in the past on (re-)enable so the very first
+// poll backfills a window of recent scrobbles instead of starting from "now"
+// and missing everything the user listened to in the minutes/hours before
+// they flipped the toggle.
+const BACKFILL_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export default function (server: Server, ctx: Context) {
   const putMirrorSource = (input: InputSchema, auth: HandlerAuth) =>
@@ -88,10 +93,12 @@ const upsert = ({
             ? null
             : await encryptCredential(input.apiKey);
 
-      // Bump watermark on (re-)enable so we only mirror new plays.
+      // Seed the watermark to (now - backfill window) on (re-)enable so the
+      // first poll catches recent scrobbles instead of only "from now on".
       const enableTransition =
         input.enabled === true && existing?.enabled !== true;
       const now = new Date();
+      const watermarkSeed = new Date(now.getTime() - BACKFILL_WINDOW_MS);
 
       let row: typeof tables.mirrorSources.$inferSelect;
       if (existing) {
@@ -101,7 +108,7 @@ const upsert = ({
           updates.externalUsername = input.externalUsername;
         if (encryptedApiKey !== undefined)
           updates.encryptedApiKey = encryptedApiKey;
-        if (enableTransition) updates.lastScrobbleSeenAt = now;
+        if (enableTransition) updates.lastScrobbleSeenAt = watermarkSeed;
 
         const [updated] = await ctx.db
           .update(tables.mirrorSources)
@@ -118,7 +125,7 @@ const upsert = ({
             enabled: input.enabled ?? false,
             externalUsername: input.externalUsername ?? null,
             encryptedApiKey: encryptedApiKey ?? null,
-            lastScrobbleSeenAt: input.enabled ? now : null,
+            lastScrobbleSeenAt: input.enabled ? watermarkSeed : null,
           })
           .returning();
         row = inserted;

@@ -7,7 +7,7 @@
 use std::time::Duration;
 
 use anyhow::Error;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use reqwest::Client;
 use serde::Deserialize;
 use sqlx::{Pool, Postgres};
@@ -26,6 +26,10 @@ use crate::{
 
 const POLL_INTERVAL: Duration = Duration::from_secs(30);
 const RECENT_LIMIT: u32 = 50;
+// Defensive backfill if the column is somehow NULL — the API normally seeds
+// it on enable, but if it isn't we still want a sensible window instead of
+// "now" (which would skip every listen that happened before this task booted).
+const BACKFILL_HOURS: i64 = 24;
 
 pub async fn run_user(
     pool: Pool<Postgres>,
@@ -53,7 +57,9 @@ pub async fn run_user(
         "ListenBrainz: starting poll loop"
     );
 
-    let mut watermark = row.last_scrobble_seen_at_utc().unwrap_or_else(Utc::now);
+    let mut watermark = row
+        .last_scrobble_seen_at_utc()
+        .unwrap_or_else(|| Utc::now() - ChronoDuration::hours(BACKFILL_HOURS));
 
     loop {
         tokio::select! {
