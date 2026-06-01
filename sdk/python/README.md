@@ -39,7 +39,7 @@ from rocksky import Client
 
 async def main() -> None:
     async with Client() as rocksky:
-        me = await rocksky.actor.get_profile("alice.bsky.social")
+        me = await rocksky.actor.get_profile("tsiry-sandratraina.com")
         print(me.display_name, "—", me.did)
 
         recent = await rocksky.scrobble.list(did=me.did, limit=10)
@@ -100,7 +100,7 @@ rocksky = (
 )
 
 async with rocksky:
-    profile = await rocksky.actor.get_profile("alice.bsky.social")
+    profile = await rocksky.actor.get_profile("tsiry-sandratraina.com")
 ```
 
 A few notes:
@@ -134,10 +134,10 @@ In [2]: from rocksky import Client
 
 In [3]: rocksky = Client()       # base_url defaults to https://api.rocksky.app
 
-In [4]: me = await rocksky.actor.get_profile("alice.bsky.social")
+In [4]: me = await rocksky.actor.get_profile("tsiry-sandratraina.com")
 
 In [5]: me.display_name
-Out[5]: 'Alice'
+Out[5]: 'Tsiry Sandratraina'
 
 In [6]: recent = await rocksky.scrobble.list(did=me.did, limit=5)
 
@@ -241,7 +241,7 @@ Runnable example scripts live in [`examples/`](examples/):
 Run them with:
 
 ```bash
-uv run python examples/quickstart.py alice.bsky.social
+uv run python examples/quickstart.py tsiry-sandratraina.com
 ```
 
 ## License
