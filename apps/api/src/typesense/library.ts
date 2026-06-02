@@ -1,4 +1,5 @@
 import { typesense } from "./client";
+import { withTypesenseRetry } from "./retry";
 import { LIBRARY_TRACKS_COLLECTION } from "./schema";
 
 export interface LibraryTrackDocument {
@@ -27,18 +28,19 @@ export interface LibraryTrackDocument {
 export async function indexLibraryTrack(
   doc: LibraryTrackDocument,
 ): Promise<void> {
-  await typesense
-    .collections(LIBRARY_TRACKS_COLLECTION)
-    .documents()
-    .upsert(doc);
+  await withTypesenseRetry(() =>
+    typesense.collections(LIBRARY_TRACKS_COLLECTION).documents().upsert(doc),
+  );
 }
 
 export async function removeLibraryTrack(uploadId: string): Promise<void> {
   try {
-    await typesense
-      .collections(LIBRARY_TRACKS_COLLECTION)
-      .documents(uploadId)
-      .delete();
+    await withTypesenseRetry(() =>
+      typesense
+        .collections(LIBRARY_TRACKS_COLLECTION)
+        .documents(uploadId)
+        .delete(),
+    );
   } catch (e: any) {
     if (e?.httpStatus !== 404) throw e;
   }

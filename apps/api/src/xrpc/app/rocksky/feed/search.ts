@@ -3,10 +3,7 @@ import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { SearchResultsView } from "lexicon/types/app/rocksky/feed/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/feed/search";
-import {
-  type FederatedSearchResults,
-  federatedSearch,
-} from "typesense/search";
+import { type FederatedSearchResults, federatedSearch } from "typesense/search";
 
 export default function (server: Server, ctx: Context) {
   const search = (params: QueryParams) =>

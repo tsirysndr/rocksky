@@ -4,6 +4,7 @@ import type { SelectPlaylist } from "schema/playlists";
 import type { SelectTrack } from "schema/tracks";
 import type { SelectUser } from "schema/users";
 import { typesense } from "./client";
+import { withTypesenseRetry } from "./retry";
 import {
   ALBUMS_COLLECTION,
   ARTISTS_COLLECTION,
@@ -32,14 +33,15 @@ export const SEARCH_COLLECTIONS = [
 
 async function upsertMany(collection: string, docs: Doc[]): Promise<void> {
   if (docs.length === 0) return;
-  await typesense
-    .collections(collection)
-    .documents()
-    .import(docs, { action: "upsert" });
+  await withTypesenseRetry(() =>
+    typesense
+      .collections(collection)
+      .documents()
+      .import(docs, { action: "upsert" }),
+  );
 }
 
-const toDoc = <T extends { id: string }>(row: T): Doc =>
-  row as unknown as Doc;
+const toDoc = <T extends { id: string }>(row: T): Doc => row as unknown as Doc;
 
 export async function indexAlbums(rows: SelectAlbum[]): Promise<void> {
   await upsertMany(ALBUMS_COLLECTION, rows.map(toDoc));

@@ -12,18 +12,24 @@ export function onNewUser(ctx: Context) {
   const sub = ctx.nc.subscribe("rocksky.user");
   (async () => {
     for await (const m of sub) {
-      const payload: {
-        xata_id: string;
-      } = JSON.parse(sc.decode(m.data));
-      const results = await ctx.db
-        .select()
-        .from(tables.users)
-        .where(eq(tables.users.id, payload.xata_id))
-        .execute();
+      try {
+        const payload: {
+          xata_id: string;
+        } = JSON.parse(sc.decode(m.data));
+        const results = await ctx.db
+          .select()
+          .from(tables.users)
+          .where(eq(tables.users.id, payload.xata_id))
+          .execute();
 
-      consola.info(`New user: ${chalk.cyan(_.get(results, "0.handle"))}`);
+        consola.info(`New user: ${chalk.cyan(_.get(results, "0.handle"))}`);
 
-      await indexUsers(results);
+        await indexUsers(results).catch((e) =>
+          consola.warn("[typesense] index failed:", e),
+        );
+      } catch (e) {
+        consola.error("rocksky.user handler error:", e);
+      }
     }
-  })();
+  })().catch((e) => consola.error("rocksky.user subscriber crashed:", e));
 }

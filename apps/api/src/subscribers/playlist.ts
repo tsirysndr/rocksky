@@ -14,16 +14,20 @@ export function onNewPlaylist(ctx: Context) {
   const sub = ctx.nc.subscribe("rocksky.playlist");
   (async () => {
     for await (const m of sub) {
-      const payload: {
-        id: string;
-        did: string;
-      } = JSON.parse(sc.decode(m.data));
-      consola.info(
-        `New playlist: ${chalk.cyan(payload.did)} - ${chalk.greenBright(payload.id)}`,
-      );
-      await putPlaylistRecord(ctx, payload);
+      try {
+        const payload: {
+          id: string;
+          did: string;
+        } = JSON.parse(sc.decode(m.data));
+        consola.info(
+          `New playlist: ${chalk.cyan(payload.did)} - ${chalk.greenBright(payload.id)}`,
+        );
+        await putPlaylistRecord(ctx, payload);
+      } catch (e) {
+        consola.error("rocksky.playlist handler error:", e);
+      }
     }
-  })();
+  })().catch((e) => consola.error("rocksky.playlist subscriber crashed:", e));
 }
 
 async function putPlaylistRecord(
@@ -100,5 +104,7 @@ async function putPlaylistRecord(
     .where(eq(tables.playlists.id, payload.id))
     .execute();
 
-  await indexPlaylists([updatedPlaylist]);
+  await indexPlaylists([updatedPlaylist]).catch((e) =>
+    consola.warn("[typesense] index failed:", e),
+  );
 }
