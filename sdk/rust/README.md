@@ -36,7 +36,7 @@ use rocksky::Client;
 async fn main() -> rocksky::Result<()> {
     let client = Client::new();
 
-    let me = client.actor().get_profile("alice.bsky.social").await?;
+    let me = client.actor().get_profile("tsiry-sandratraina.com").await?;
     println!("{} — {}",
         me.display_name.as_deref().unwrap_or(""),
         me.did.as_deref().unwrap_or(""));
@@ -92,7 +92,7 @@ The fluent style maps every optional field to a chainable method, then calls
 
 ```rust
 // List builder
-let songs = client.actor().get_songs("did:plc:alice")
+let songs = client.actor().get_songs("did:plc:7vdlgi2bflelz7mmuxoqjfcr")
     .limit(50)
     .offset(0)
     .start_date(chrono::Utc::now() - chrono::Duration::days(30))
@@ -188,7 +188,7 @@ Runnable examples live in [`examples/`](examples/):
 Run with:
 
 ```bash
-cargo run --example quickstart -- alice.bsky.social
+cargo run --example quickstart -- tsiry-sandratraina.com
 ```
 
 ## Testing your own code against the SDK
