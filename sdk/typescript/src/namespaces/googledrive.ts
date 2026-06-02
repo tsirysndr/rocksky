@@ -1,10 +1,15 @@
-import type { Call } from "./_helpers";
+import type {
+  DownloadFileParams,
+  GetFileParams,
+  GetFilesParams,
+} from "../generated/types";
 import type { RequestOptions } from "../types";
+import type { Call } from "./_helpers";
 
 export class GoogleDriveNamespace {
   constructor(private readonly call: Call) {}
 
-  getFile<T = unknown>(params: { fileId: string }, opts?: RequestOptions) {
+  getFile<T = unknown>(params: GetFileParams, opts?: RequestOptions) {
     return this.call<T>("app.rocksky.googledrive.getFile", "GET", {
       params,
       requireAuth: true,
@@ -13,7 +18,7 @@ export class GoogleDriveNamespace {
   }
 
   getFiles<T = unknown>(
-    params: { at?: string } = {},
+    params: GetFilesParams = {},
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.googledrive.getFiles", "GET", {
@@ -24,7 +29,7 @@ export class GoogleDriveNamespace {
   }
 
   downloadFile<T = unknown>(
-    params: { fileId: string },
+    params: DownloadFileParams,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.googledrive.downloadFile", "GET", {

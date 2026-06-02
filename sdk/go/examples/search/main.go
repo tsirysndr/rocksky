@@ -35,8 +35,13 @@ func main() {
 
 	fmt.Printf("%d hits (search took %dms)\n\n", res.EstimatedTotalHits, res.ProcessingTimeMS)
 	for i, hit := range res.Hits {
-		label := pickLabel(hit)
-		fmt.Printf("%2d. [%s] %s\n", i+1, hit["$type"], label)
+		obj, ok := hit.(map[string]any)
+		if !ok {
+			fmt.Printf("%2d. (unknown shape)\n", i+1)
+			continue
+		}
+		label := pickLabel(obj)
+		fmt.Printf("%2d. [%s] %s\n", i+1, obj["$type"], label)
 	}
 }
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0
+
+- Added lexicon-derived `Struct`s under `Rocksky::Generated::*` covering every
+  lex `*View*` / `*Record` / `*Input` / `*Output` / `*Params` shape. Generated
+  from `apps/api/lexicons/` via `bun run lexgen:types` at the repo root.
+
 ## 0.1.0
 
 - Initial release. Coverage for all `app.rocksky.*` XRPC endpoints across the

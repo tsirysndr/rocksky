@@ -4,11 +4,29 @@
 
 import gleam/dynamic/decode.{type Decoder}
 import gleam/option.{None, Some}
-import rocksky/types.{
-  type Album, type ApiKey, type Artist, type Listener, type Profile,
-  type Scrobble, type Shout, type Song, type Stats, Album, ApiKey, Artist,
-  Listener, Profile, Scrobble, Shout, Song, Stats,
-}
+import rocksky/generated/types as gen
+import rocksky/types.{type ApiKey, type Shout, ApiKey, Shout}
+
+pub type Profile =
+  gen.ActorProfileViewBasic
+
+pub type Artist =
+  gen.ArtistViewBasic
+
+pub type Album =
+  gen.AlbumViewBasic
+
+pub type Song =
+  gen.SongViewBasic
+
+pub type Scrobble =
+  gen.ScrobbleViewBasic
+
+pub type Listener =
+  gen.SongRecentListenerView
+
+pub type Stats =
+  gen.StatsView
 
 // ----- helpers --------------------------------------------------------------
 
@@ -53,7 +71,7 @@ pub fn profile() -> Decoder(Profile) {
   use avatar <- decode.then(opt_string("avatar"))
   use created_at <- decode.then(opt_string("createdAt"))
   use updated_at <- decode.then(opt_string("updatedAt"))
-  decode.success(Profile(
+  decode.success(gen.ActorProfileViewBasic(
     id: id,
     did: did,
     handle: handle,
@@ -73,7 +91,7 @@ pub fn artist() -> Decoder(Artist) {
   use play_count <- decode.then(opt_int("playCount"))
   use unique_listeners <- decode.then(opt_int("uniqueListeners"))
   use tags <- decode.then(string_list("tags"))
-  decode.success(Artist(
+  decode.success(gen.ArtistViewBasic(
     id: id,
     uri: uri,
     name: name,
@@ -97,7 +115,7 @@ pub fn album() -> Decoder(Album) {
   use sha256 <- decode.then(opt_string("sha256"))
   use play_count <- decode.then(opt_int("playCount"))
   use unique_listeners <- decode.then(opt_int("uniqueListeners"))
-  decode.success(Album(
+  decode.success(gen.AlbumViewBasic(
     id: id,
     uri: uri,
     title: title,
@@ -132,7 +150,7 @@ pub fn song() -> Decoder(Song) {
   use isrc <- decode.then(opt_string("isrc"))
   use tags <- decode.then(string_list("tags"))
   use created_at <- decode.then(opt_string("createdAt"))
-  decode.success(Song(
+  decode.success(gen.SongViewBasic(
     id: id,
     uri: uri,
     title: title,
@@ -171,7 +189,7 @@ pub fn scrobble() -> Decoder(Scrobble) {
   use sha256 <- decode.then(opt_string("sha256"))
   use liked <- decode.then(opt_bool("liked"))
   use likes_count <- decode.then(opt_int("likesCount"))
-  decode.success(Scrobble(
+  decode.success(gen.ScrobbleViewBasic(
     id: id,
     uri: uri,
     user: user,
@@ -198,7 +216,7 @@ pub fn listener() -> Decoder(Listener) {
   use avatar <- decode.then(opt_string("avatar"))
   use timestamp <- decode.then(opt_string("timestamp"))
   use scrobble_uri <- decode.then(opt_string("scrobbleUri"))
-  decode.success(Listener(
+  decode.success(gen.SongRecentListenerView(
     id: id,
     did: did,
     handle: handle,
@@ -215,7 +233,7 @@ pub fn stats() -> Decoder(Stats) {
   use loved_tracks <- decode.then(opt_int("lovedTracks"))
   use albums <- decode.then(opt_int("albums"))
   use tracks <- decode.then(opt_int("tracks"))
-  decode.success(Stats(
+  decode.success(gen.StatsView(
     scrobbles: scrobbles,
     artists: artists,
     loved_tracks: loved_tracks,

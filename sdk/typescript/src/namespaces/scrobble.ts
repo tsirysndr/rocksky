@@ -1,38 +1,12 @@
-import type { Call } from "./_helpers";
+import type {
+  CreateScrobbleInput,
+  GetScrobbleParams,
+  GetScrobblesParams,
+} from "../generated/types";
 import type { RequestOptions } from "../types";
+import type { Call } from "./_helpers";
 
-export type CreateScrobbleInput = {
-  title: string;
-  artist: string;
-  album?: string;
-  duration?: number;
-  mbId?: string;
-  isrc?: string;
-  albumArt?: string;
-  trackNumber?: number;
-  releaseDate?: string;
-  year?: number;
-  discNumber?: number;
-  lyrics?: string;
-  composer?: string;
-  copyrightMessage?: string;
-  label?: string;
-  artistPicture?: string;
-  spotifyLink?: string;
-  lastfmLink?: string;
-  tidalLink?: string;
-  appleMusicLink?: string;
-  youtubeLink?: string;
-  deezerLink?: string;
-  timestamp?: number;
-};
-
-export type GetScrobblesParams = {
-  did?: string;
-  following?: boolean;
-  limit?: number;
-  offset?: number;
-};
+export type { CreateScrobbleInput, GetScrobblesParams };
 
 export class ScrobbleNamespace {
   constructor(private readonly call: Call) {}
@@ -48,7 +22,7 @@ export class ScrobbleNamespace {
     });
   }
 
-  getScrobble<T = unknown>(params: { uri: string }, opts?: RequestOptions) {
+  getScrobble<T = unknown>(params: GetScrobbleParams, opts?: RequestOptions) {
     return this.call<T>("app.rocksky.scrobble.getScrobble", "GET", {
       params,
       ...opts,

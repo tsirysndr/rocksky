@@ -1,11 +1,17 @@
-import type { Call } from "./_helpers";
+import type {
+  DownloadFileParams,
+  GetFilesParams,
+  GetMetadataParams,
+  GetTemporaryLinkParams,
+} from "../generated/types";
 import type { RequestOptions } from "../types";
+import type { Call } from "./_helpers";
 
 export class DropboxNamespace {
   constructor(private readonly call: Call) {}
 
   getFiles<T = unknown>(
-    params: { at?: string } = {},
+    params: GetFilesParams = {},
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.dropbox.getFiles", "GET", {
@@ -15,7 +21,7 @@ export class DropboxNamespace {
     });
   }
 
-  getMetadata<T = unknown>(params: { path: string }, opts?: RequestOptions) {
+  getMetadata<T = unknown>(params: GetMetadataParams, opts?: RequestOptions) {
     return this.call<T>("app.rocksky.dropbox.getMetadata", "GET", {
       params,
       requireAuth: true,
@@ -24,7 +30,7 @@ export class DropboxNamespace {
   }
 
   getTemporaryLink<T = unknown>(
-    params: { path: string },
+    params: GetTemporaryLinkParams,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.dropbox.getTemporaryLink", "GET", {
@@ -35,7 +41,7 @@ export class DropboxNamespace {
   }
 
   downloadFile<T = unknown>(
-    params: { fileId: string },
+    params: DownloadFileParams,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.dropbox.downloadFile", "GET", {

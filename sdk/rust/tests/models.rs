@@ -32,10 +32,9 @@ fn album_with_tracks_round_trips() {
     .unwrap();
     assert_eq!(a.title.as_deref(), Some("Hounds of Love"));
     assert_eq!(a.year, Some(1985));
-    let tracks = a.tracks.expect("tracks");
-    assert_eq!(tracks.len(), 1);
-    assert_eq!(tracks[0].title.as_deref(), Some("Running Up That Hill"));
-    assert_eq!(a.tags.unwrap()[1], "art rock");
+    assert_eq!(a.tracks.len(), 1);
+    assert_eq!(a.tracks[0].title.as_deref(), Some("Running Up That Hill"));
+    assert_eq!(a.tags[1], "art rock");
 }
 
 #[test]

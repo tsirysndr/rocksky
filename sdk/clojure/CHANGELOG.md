@@ -5,6 +5,14 @@ project adheres to [Semantic Versioning](https://semver.org).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-02
+
+### Added
+- Lexicon-derived malli schemas exposed as `rocksky.generated.types/schemas`.
+  Every lex `*View*` / `*Record` / `*Input` / `*Output` / `*Params` shape is
+  available as a keyword-keyed entry, regenerated from `apps/api/lexicons/` via
+  `bun run lexgen:types` at the repo root.
+
 ## [0.1.0] - 2026-05-31
 
 ### Added

@@ -1,5 +1,5 @@
 name = "rocksky"
-version = "1.0.0"
+version = "1.1.0"
 
 description = "Gleam SDK for the Rocksky XRPC API"
 licences = ["MIT"]

@@ -194,6 +194,11 @@ client = Rocksky.new(open_timeout: 2, read_timeout: 5)
 | `open_timeout` | `10` seconds                  | —                     |
 | `read_timeout` | `30` seconds                  | —                     |
 
+## Types
+
+Lexicon-derived `Struct` types are available under `Rocksky::Generated::*`, mirroring every lex `*View*` / `*Record` / `*Input` / `*Output` / `*Params` shape from [the Rocksky lexicons](https://tangled.org/rocksky.app/rocksky/tree/main/apps/api/lexicons). Regenerate with `bun run lexgen:types` at the repo root.
+
+
 ## Examples
 
 The `examples/` directory contains runnable scripts:

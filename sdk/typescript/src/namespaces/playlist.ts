@@ -1,11 +1,21 @@
-import type { Call } from "./_helpers";
+import type {
+  CreatePlaylistParams,
+  GetPlaylistParams,
+  GetPlaylistsParams,
+  InsertDirectoryParams,
+  InsertFilesParams,
+  RemovePlaylistParams,
+  RemoveTrackParams,
+  StartPlaylistParams,
+} from "../generated/types";
 import type { RequestOptions } from "../types";
+import type { Call } from "./_helpers";
 
 export class PlaylistNamespace {
   constructor(private readonly call: Call) {}
 
   getPlaylists<T = unknown>(
-    params: { limit?: number; offset?: number } = {},
+    params: GetPlaylistsParams = {},
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.playlist.getPlaylists", "GET", {
@@ -14,7 +24,7 @@ export class PlaylistNamespace {
     });
   }
 
-  getPlaylist<T = unknown>(params: { uri: string }, opts?: RequestOptions) {
+  getPlaylist<T = unknown>(params: GetPlaylistParams, opts?: RequestOptions) {
     return this.call<T>("app.rocksky.playlist.getPlaylist", "GET", {
       params,
       ...opts,
@@ -22,7 +32,7 @@ export class PlaylistNamespace {
   }
 
   createPlaylist<T = unknown>(
-    params: { name: string; description?: string },
+    params: CreatePlaylistParams,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.playlist.createPlaylist", "POST", {
@@ -32,7 +42,7 @@ export class PlaylistNamespace {
     });
   }
 
-  removePlaylist<T = unknown>(params: { uri: string }, opts?: RequestOptions) {
+  removePlaylist<T = unknown>(params: RemovePlaylistParams, opts?: RequestOptions) {
     return this.call<T>("app.rocksky.playlist.removePlaylist", "POST", {
       params,
       requireAuth: true,
@@ -41,7 +51,7 @@ export class PlaylistNamespace {
   }
 
   startPlaylist<T = unknown>(
-    params: { uri: string; shuffle?: boolean; position?: number },
+    params: StartPlaylistParams,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.playlist.startPlaylist", "POST", {
@@ -52,7 +62,7 @@ export class PlaylistNamespace {
   }
 
   insertDirectory<T = unknown>(
-    params: { uri: string; directory: string; position?: number },
+    params: InsertDirectoryParams,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.playlist.insertDirectory", "POST", {
@@ -63,7 +73,7 @@ export class PlaylistNamespace {
   }
 
   insertFiles<T = unknown>(
-    params: { uri: string; files: string[]; position?: number },
+    params: InsertFilesParams,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.playlist.insertFiles", "POST", {
@@ -74,7 +84,7 @@ export class PlaylistNamespace {
   }
 
   removeTrack<T = unknown>(
-    params: { uri: string; position: number },
+    params: RemoveTrackParams,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.playlist.removeTrack", "POST", {

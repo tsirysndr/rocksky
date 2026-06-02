@@ -63,8 +63,8 @@ async fn get_scrobble_decodes_nested_artists() {
 
     let s = client.scrobble().get("at://scrobble1").await.unwrap();
     assert_eq!(s.scrobbles, Some(12));
-    let artists = s.artists.expect("artists missing");
-    assert_eq!(artists[0].name.as_deref(), Some("Avril Lavigne"));
+    assert!(!s.artists.is_empty(), "artists missing");
+    assert_eq!(s.artists[0].name.as_deref(), Some("Avril Lavigne"));
 }
 
 #[tokio::test]

@@ -123,6 +123,12 @@
           "type": "string",
           "description": "The SHA256 hash of the scrobble data."
         },
+        "liked": {
+          "type": "boolean"
+        },
+        "likesCount": {
+          "type": "integer"
+        },
         "listeners": {
           "type": "integer",
           "description": "The number of listeners"

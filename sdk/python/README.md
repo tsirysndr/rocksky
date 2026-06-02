@@ -207,6 +207,11 @@ except NotFoundError as e:
 
 `APIError` exposes `status_code`, `method`, `error`, `message`, and `body`.
 
+## Types
+
+Public model types are derived from the [Rocksky lexicons](https://tangled.org/rocksky.app/rocksky/tree/main/apps/api/lexicons) and live in `rocksky.gen.models` (Pydantic) and `rocksky.gen.types` (dataclasses). `rocksky.models` re-exports the Pydantic shapes under their historical SDK names. Regenerate with `bun run lexgen:types` at the repo root.
+
+
 ## Testing your code against the SDK
 
 Inject your own `httpx.AsyncClient` so you can mount a mock transport:

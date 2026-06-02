@@ -1,13 +1,22 @@
-import type { Call } from "./_helpers";
+import type {
+  CreateShoutInput,
+  GetAlbumShoutsParams,
+  GetArtistShoutsParams,
+  GetProfileShoutsParams,
+  GetShoutRepliesParams,
+  GetTrackShoutsParams,
+  RemoveShoutParams,
+  ReplyShoutInput,
+  ReportShoutInput,
+} from "../generated/types";
 import type { RequestOptions } from "../types";
-
-type UriPage = { uri: string; limit?: number; offset?: number };
+import type { Call } from "./_helpers";
 
 export class ShoutNamespace {
   constructor(private readonly call: Call) {}
 
   createShout<T = unknown>(
-    input: { message?: string } = {},
+    input: CreateShoutInput = {},
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.shout.createShout", "POST", {
@@ -18,7 +27,7 @@ export class ShoutNamespace {
   }
 
   replyShout<T = unknown>(
-    input: { shoutId: string; message: string },
+    input: ReplyShoutInput,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.shout.replyShout", "POST", {
@@ -29,7 +38,7 @@ export class ShoutNamespace {
   }
 
   reportShout<T = unknown>(
-    input: { shoutId: string; reason?: string },
+    input: ReportShoutInput,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.shout.reportShout", "POST", {
@@ -39,7 +48,7 @@ export class ShoutNamespace {
     });
   }
 
-  removeShout<T = unknown>(params: { id: string }, opts?: RequestOptions) {
+  removeShout<T = unknown>(params: RemoveShoutParams, opts?: RequestOptions) {
     return this.call<T>("app.rocksky.shout.removeShout", "POST", {
       params,
       requireAuth: true,
@@ -47,7 +56,7 @@ export class ShoutNamespace {
     });
   }
 
-  getShoutReplies<T = unknown>(params: UriPage, opts?: RequestOptions) {
+  getShoutReplies<T = unknown>(params: GetShoutRepliesParams, opts?: RequestOptions) {
     return this.call<T>("app.rocksky.shout.getShoutReplies", "GET", {
       params,
       ...opts,
@@ -55,7 +64,7 @@ export class ShoutNamespace {
   }
 
   getProfileShouts<T = unknown>(
-    params: { did: string; limit?: number; offset?: number },
+    params: GetProfileShoutsParams,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.shout.getProfileShouts", "GET", {
@@ -65,7 +74,7 @@ export class ShoutNamespace {
   }
 
   getTrackShouts<T = unknown>(
-    params: { uri: string },
+    params: GetTrackShoutsParams,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.shout.getTrackShouts", "GET", {
@@ -74,14 +83,14 @@ export class ShoutNamespace {
     });
   }
 
-  getArtistShouts<T = unknown>(params: UriPage, opts?: RequestOptions) {
+  getArtistShouts<T = unknown>(params: GetArtistShoutsParams, opts?: RequestOptions) {
     return this.call<T>("app.rocksky.shout.getArtistShouts", "GET", {
       params,
       ...opts,
     });
   }
 
-  getAlbumShouts<T = unknown>(params: UriPage, opts?: RequestOptions) {
+  getAlbumShouts<T = unknown>(params: GetAlbumShoutsParams, opts?: RequestOptions) {
     return this.call<T>("app.rocksky.shout.getAlbumShouts", "GET", {
       params,
       ...opts,

@@ -249,6 +249,11 @@ If you need an NSID we haven't wrapped yet you can always drop down to
 Rocksky.HTTP.query(client, "app.rocksky.actor.getProfile", did: "alice")
 ```
 
+## Types
+
+Lexicon-derived structs are available under `Rocksky.Generated.*`, mirroring every lex `*View*` / `*Record` / `*Input` / `*Output` / `*Params` shape from [the Rocksky lexicons](https://tangled.org/rocksky.app/rocksky/tree/main/apps/api/lexicons). Regenerate with `bun run lexgen:types` at the repo root.
+
+
 ## Testing your own code
 
 The SDK routes every request through `Req`, which means you can stub it with

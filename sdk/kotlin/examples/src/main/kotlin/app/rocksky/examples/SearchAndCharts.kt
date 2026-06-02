@@ -14,8 +14,9 @@ fun main(args: Array<String>): Unit = runBlocking {
     RockskyClient().use { client ->
         println("→ Search: $query")
         val results = client.feed.search(query = query)
-        println("  ${results.estimatedTotalHits ?: results.hits.size} hits (showing first 5):")
-        results.hits.take(5).forEach { hit -> println("  • $hit") }
+        val hits = results.hits.orEmpty()
+        println("  ${results.estimatedTotalHits ?: hits.size} hits (showing first 5):")
+        hits.take(5).forEach { hit -> println("  • $hit") }
 
         println("\n→ Top 10 tracks this week:")
         val tracks = client.charts.topTracks(limit = 10)

@@ -209,7 +209,8 @@ func TestFeedSearch(t *testing.T) {
 	if got.EstimatedTotalHits != 2 || len(got.Hits) != 2 {
 		t.Fatalf("got = %+v", got)
 	}
-	if got.Hits[1]["name"] != "Tame Impala" {
+	hit1, ok := got.Hits[1].(map[string]any)
+	if !ok || hit1["name"] != "Tame Impala" {
 		t.Fatalf("hit[1] = %+v", got.Hits[1])
 	}
 }

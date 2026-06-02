@@ -138,6 +138,11 @@ Clients are immutable values — share them across threads:
   on the wire — handy for `cond->` chains.
 - **Booleans round-trip.** `:enabled false` is preserved.
 
+## Types
+
+Lexicon-derived schemas (in [malli](https://github.com/metosin/malli) form) are exposed as `rocksky.generated.types/schemas`, a map keyed by `:TypeName` keywords covering every lex `*View*` / `*Record` / `*Input` / `*Output` / `*Params` shape from [the Rocksky lexicons](https://tangled.org/rocksky.app/rocksky/tree/main/apps/api/lexicons). Regenerate with `bun run lexgen:types` at the repo root.
+
+
 ## License
 
 MIT © Tsiry Sandratraina. Source:

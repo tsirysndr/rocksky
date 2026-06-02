@@ -5,7 +5,7 @@ export type Call = <T>(
   nsid: string,
   method: "GET" | "POST",
   opts?: {
-    params?: Record<string, unknown>;
+    params?: object;
     body?: unknown;
     requireAuth?: boolean;
   } & RequestOptions,

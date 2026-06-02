@@ -192,6 +192,11 @@ let _ =
   |> rocksky.send(client)
 ```
 
+## Types
+
+Most public model types alias the lexicon-derived shapes in `rocksky/generated/types`, mirroring every lex `*View*` / `*Record` / `*Input` / `*Output` / `*Params` shape from [the Rocksky lexicons](https://tangled.org/rocksky.app/rocksky/tree/main/apps/api/lexicons). `ApiKey` and `Shout` are hand-written because they carry fields the lexicon does not yet declare. Regenerate with `bun run lexgen:types` at the repo root.
+
+
 ## Examples
 
 Runnable examples live under [`src/examples/`](./src/examples) so they are

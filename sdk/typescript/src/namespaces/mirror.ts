@@ -1,12 +1,8 @@
-import type { Call } from "./_helpers";
+import type { PutMirrorSourceInput } from "../generated/types";
 import type { RequestOptions } from "../types";
+import type { Call } from "./_helpers";
 
-export type PutMirrorSourceInput = {
-  provider: string;
-  enabled?: boolean;
-  externalUsername?: string;
-  apiKey?: string;
-};
+export type { PutMirrorSourceInput };
 
 export class MirrorNamespace {
   constructor(private readonly call: Call) {}

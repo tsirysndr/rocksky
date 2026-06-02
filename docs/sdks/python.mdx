@@ -169,6 +169,11 @@ async with Client(http_client=external) as rocksky:
 await external.aclose()
 ```
 
+## Types
+
+Public model types are derived from the [Rocksky lexicons](https://tangled.org/rocksky.app/rocksky/tree/main/apps/api/lexicons) and live in `rocksky.gen.models` (Pydantic) and `rocksky.gen.types` (dataclasses). `rocksky.models` re-exports the Pydantic shapes under their historical SDK names. Regenerate with `bun run lexgen:types` at the repo root.
+
+
 ## License
 
 MIT © Tsiry Sandratraina. Source:

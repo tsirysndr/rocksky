@@ -1,13 +1,24 @@
-import type { Call } from "./_helpers";
+import type {
+  AddDirectoryToQueueParams,
+  AddItemsToQueueParams,
+  GetCurrentlyPlayingParams,
+  GetPlaybackQueueParams,
+  NextParams,
+  PauseParams,
+  PlayDirectoryParams,
+  PlayFileParams,
+  PlayParams,
+  PreviousParams,
+  SeekParams,
+} from "../generated/types";
 import type { RequestOptions } from "../types";
-
-type PlayerId = { playerId?: string };
+import type { Call } from "./_helpers";
 
 export class PlayerNamespace {
   constructor(private readonly call: Call) {}
 
   getCurrentlyPlaying<T = unknown>(
-    params: PlayerId & { actor?: string } = {},
+    params: GetCurrentlyPlayingParams = {},
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.player.getCurrentlyPlaying", "GET", {
@@ -17,7 +28,7 @@ export class PlayerNamespace {
   }
 
   getPlaybackQueue<T = unknown>(
-    params: PlayerId = {},
+    params: GetPlaybackQueueParams = {},
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.player.getPlaybackQueue", "GET", {
@@ -26,7 +37,7 @@ export class PlayerNamespace {
     });
   }
 
-  play<T = unknown>(params: PlayerId = {}, opts?: RequestOptions) {
+  play<T = unknown>(params: PlayParams = {}, opts?: RequestOptions) {
     return this.call<T>("app.rocksky.player.play", "POST", {
       params,
       requireAuth: true,
@@ -34,7 +45,7 @@ export class PlayerNamespace {
     });
   }
 
-  pause<T = unknown>(params: PlayerId = {}, opts?: RequestOptions) {
+  pause<T = unknown>(params: PauseParams = {}, opts?: RequestOptions) {
     return this.call<T>("app.rocksky.player.pause", "POST", {
       params,
       requireAuth: true,
@@ -42,7 +53,7 @@ export class PlayerNamespace {
     });
   }
 
-  next<T = unknown>(params: PlayerId = {}, opts?: RequestOptions) {
+  next<T = unknown>(params: NextParams = {}, opts?: RequestOptions) {
     return this.call<T>("app.rocksky.player.next", "POST", {
       params,
       requireAuth: true,
@@ -50,7 +61,7 @@ export class PlayerNamespace {
     });
   }
 
-  previous<T = unknown>(params: PlayerId = {}, opts?: RequestOptions) {
+  previous<T = unknown>(params: PreviousParams = {}, opts?: RequestOptions) {
     return this.call<T>("app.rocksky.player.previous", "POST", {
       params,
       requireAuth: true,
@@ -59,7 +70,7 @@ export class PlayerNamespace {
   }
 
   seek<T = unknown>(
-    params: PlayerId & { position: number },
+    params: SeekParams,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.player.seek", "POST", {
@@ -70,7 +81,7 @@ export class PlayerNamespace {
   }
 
   playFile<T = unknown>(
-    params: PlayerId & { fileId: string },
+    params: PlayFileParams,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.player.playFile", "POST", {
@@ -81,12 +92,7 @@ export class PlayerNamespace {
   }
 
   playDirectory<T = unknown>(
-    params: PlayerId & {
-      directoryId: string;
-      shuffle?: boolean;
-      recurse?: boolean;
-      position?: number;
-    },
+    params: PlayDirectoryParams,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.player.playDirectory", "POST", {
@@ -97,11 +103,7 @@ export class PlayerNamespace {
   }
 
   addItemsToQueue<T = unknown>(
-    params: PlayerId & {
-      items: string[];
-      position?: number;
-      shuffle?: boolean;
-    },
+    params: AddItemsToQueueParams,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.player.addItemsToQueue", "POST", {
@@ -112,11 +114,7 @@ export class PlayerNamespace {
   }
 
   addDirectoryToQueue<T = unknown>(
-    params: PlayerId & {
-      directory: string;
-      position?: number;
-      shuffle?: boolean;
-    },
+    params: AddDirectoryToQueueParams,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.player.addDirectoryToQueue", "POST", {

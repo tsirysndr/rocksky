@@ -151,6 +151,11 @@ ROCKSKY_TOKEN=… ./gradlew :examples:run -PmainClass=app.rocksky.examples.Creat
 
 See [`examples/src/main/kotlin/app/rocksky/examples/`](examples/src/main/kotlin/app/rocksky/examples/) for source.
 
+## Types
+
+Public model types are derived from the [Rocksky lexicons](https://tangled.org/rocksky.app/rocksky/tree/main/apps/api/lexicons) and live in `app.rocksky.generated`. The `app.rocksky.Models` typealiases re-export them under their historical names; `Profile`, `ApiKey`, and `FollowList` extend with SDK-specific fields. Regenerate with `bun run lexgen:types` at the repo root.
+
+
 ## Build & test
 
 ```bash

@@ -249,6 +249,11 @@ await rt.close();
 Events: `open`, `close`, `error`, `registered`, `deviceRegistered`, `message`,
 `control`, `raw`.
 
+## Types
+
+Public model types are derived from the [Rocksky lexicons](https://tangled.org/rocksky.app/rocksky/tree/main/apps/api/lexicons) and live in `src/generated/types.ts`. They are regenerated from `apps/api/lexicons/**/*.json` by running `bun run lexgen:types` at the repo root.
+
+
 ## License
 
 MIT © Tsiry Sandratraina. Source:

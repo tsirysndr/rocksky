@@ -1,27 +1,21 @@
-import type { Call } from "./_helpers";
+import type {
+  GetArtistAlbumsParams,
+  GetArtistListenersParams,
+  GetArtistParams,
+  GetArtistRecentListenersParams,
+  GetArtistsParams,
+  GetArtistTracksParams,
+} from "../generated/types";
 import type { RequestOptions } from "../types";
+import type { Call } from "./_helpers";
 
-export type UriParam = { uri: string };
-export type ArtistListenersParams = UriParam & {
-  limit?: number;
-  offset?: number;
-};
-export type GetArtistsParams = {
-  limit?: number;
-  offset?: number;
-  names?: string;
-  genre?: string;
-};
-export type GetArtistTracksParams = {
-  uri?: string;
-  limit?: number;
-  offset?: number;
-};
+export type { GetArtistsParams, GetArtistTracksParams };
+export type ArtistListenersParams = GetArtistListenersParams;
 
 export class ArtistNamespace {
   constructor(private readonly call: Call) {}
 
-  getArtist<T = unknown>(params: UriParam, opts?: RequestOptions) {
+  getArtist<T = unknown>(params: GetArtistParams, opts?: RequestOptions) {
     return this.call<T>("app.rocksky.artist.getArtist", "GET", {
       params,
       ...opts,
@@ -35,7 +29,7 @@ export class ArtistNamespace {
     });
   }
 
-  getArtistAlbums<T = unknown>(params: UriParam, opts?: RequestOptions) {
+  getArtistAlbums<T = unknown>(params: GetArtistAlbumsParams, opts?: RequestOptions) {
     return this.call<T>("app.rocksky.artist.getArtistAlbums", "GET", {
       params,
       ...opts,
@@ -53,7 +47,7 @@ export class ArtistNamespace {
   }
 
   getArtistListeners<T = unknown>(
-    params: ArtistListenersParams,
+    params: GetArtistListenersParams,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.artist.getArtistListeners", "GET", {
@@ -63,7 +57,7 @@ export class ArtistNamespace {
   }
 
   getArtistRecentListeners<T = unknown>(
-    params: ArtistListenersParams,
+    params: GetArtistRecentListenersParams,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.artist.getArtistRecentListeners", "GET", {

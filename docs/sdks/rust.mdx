@@ -179,6 +179,11 @@ async fn it_works() {
 }
 ```
 
+## Types
+
+Public model types are derived from the [Rocksky lexicons](https://tangled.org/rocksky.app/rocksky/tree/main/apps/api/lexicons) and live in `rocksky::generated`. The hand-written `rocksky::models` module re-exports them under their historical SDK names and extends `Profile` / `ApiKey` with fields the lexicon does not yet model. Regenerate with `bun run lexgen:types` at the repo root.
+
+
 ## License
 
 MIT © Tsiry Sandratraina. Source:

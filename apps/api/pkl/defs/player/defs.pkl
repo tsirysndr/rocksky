@@ -19,7 +19,7 @@ defs = new Mapping<String, ObjectType> {
         type = "array"
         items = new Ref {
           type = "ref"
-          ref = "app.rocksky.song.defs.songViewBasic"
+          ref = "app.rocksky.song.defs#songViewBasic"
         }
       }
     }

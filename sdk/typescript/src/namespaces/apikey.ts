@@ -1,14 +1,14 @@
-import type { Call } from "./_helpers";
+import type {
+  CreateApikeyInput,
+  GetApikeysParams,
+  RemoveApikeyParams,
+  UpdateApikeyInput,
+} from "../generated/types";
 import type { RequestOptions } from "../types";
+import type { Call } from "./_helpers";
 
-export type ListApikeysParams = { limit?: number; offset?: number };
-export type CreateApikeyInput = { name: string; description?: string };
-export type UpdateApikeyInput = {
-  id: string;
-  name: string;
-  description?: string;
-};
-export type RemoveApikeyParams = { id: string };
+export type { CreateApikeyInput, UpdateApikeyInput };
+export type ListApikeysParams = GetApikeysParams;
 
 export class ApikeyNamespace {
   constructor(private readonly call: Call) {}

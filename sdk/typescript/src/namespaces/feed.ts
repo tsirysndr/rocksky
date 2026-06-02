@@ -1,12 +1,23 @@
-import type { Call } from "./_helpers";
+import type {
+  GetAlbumRecommendationsParams,
+  GetArtistRecommendationsParams,
+  GetFeedGeneratorParams,
+  GetFeedGeneratorsParams,
+  GetFeedParams,
+  GetFeedSkeletonParams,
+  GetRecommendationsParams,
+  GetStoriesParams,
+  SearchParams,
+} from "../generated/types";
 import type { RequestOptions } from "../types";
+import type { Call } from "./_helpers";
 
-export type RecommendParams = { did: string; limit?: number };
+export type RecommendParams = GetRecommendationsParams;
 
 export class FeedNamespace {
   constructor(private readonly call: Call) {}
 
-  search<T = unknown>(params: { query: string }, opts?: RequestOptions) {
+  search<T = unknown>(params: SearchParams, opts?: RequestOptions) {
     return this.call<T>("app.rocksky.feed.search", "GET", {
       params,
       ...opts,
@@ -14,7 +25,7 @@ export class FeedNamespace {
   }
 
   getFeed<T = unknown>(
-    params: { feed: string; limit?: number; cursor?: string },
+    params: GetFeedParams,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.feed.getFeed", "GET", {
@@ -24,7 +35,7 @@ export class FeedNamespace {
   }
 
   getFeedGenerators<T = unknown>(
-    params: { size?: number } = {},
+    params: GetFeedGeneratorsParams = {},
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.feed.getFeedGenerators", "GET", {
@@ -34,7 +45,7 @@ export class FeedNamespace {
   }
 
   getFeedGenerator<T = unknown>(
-    params: { feed: string },
+    params: GetFeedGeneratorParams,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.feed.getFeedGenerator", "GET", {
@@ -50,12 +61,7 @@ export class FeedNamespace {
   }
 
   getFeedSkeleton<T = unknown>(
-    params: {
-      feed: string;
-      limit?: number;
-      offset?: number;
-      cursor?: string;
-    },
+    params: GetFeedSkeletonParams,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.feed.getFeedSkeleton", "GET", {
@@ -65,7 +71,7 @@ export class FeedNamespace {
   }
 
   getRecommendations<T = unknown>(
-    params: RecommendParams,
+    params: GetRecommendationsParams,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.feed.getRecommendations", "GET", {
@@ -75,7 +81,7 @@ export class FeedNamespace {
   }
 
   getArtistRecommendations<T = unknown>(
-    params: RecommendParams,
+    params: GetArtistRecommendationsParams,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.feed.getArtistRecommendations", "GET", {
@@ -85,7 +91,7 @@ export class FeedNamespace {
   }
 
   getAlbumRecommendations<T = unknown>(
-    params: RecommendParams,
+    params: GetAlbumRecommendationsParams,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.feed.getAlbumRecommendations", "GET", {
@@ -95,7 +101,7 @@ export class FeedNamespace {
   }
 
   getStories<T = unknown>(
-    params: { size?: number } = {},
+    params: GetStoriesParams = {},
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.feed.getStories", "GET", {

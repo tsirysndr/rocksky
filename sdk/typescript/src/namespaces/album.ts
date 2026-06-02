@@ -1,17 +1,17 @@
-import type { Call } from "./_helpers";
+import type {
+  GetAlbumParams,
+  GetAlbumsParams,
+  GetAlbumTracksParams,
+} from "../generated/types";
 import type { RequestOptions } from "../types";
+import type { Call } from "./_helpers";
 
-export type UriParam = { uri: string };
-export type GetAlbumsParams = {
-  limit?: number;
-  offset?: number;
-  genre?: string;
-};
+export type { GetAlbumsParams };
 
 export class AlbumNamespace {
   constructor(private readonly call: Call) {}
 
-  getAlbum<T = unknown>(params: UriParam, opts?: RequestOptions) {
+  getAlbum<T = unknown>(params: GetAlbumParams, opts?: RequestOptions) {
     return this.call<T>("app.rocksky.album.getAlbum", "GET", {
       params,
       ...opts,
@@ -25,7 +25,7 @@ export class AlbumNamespace {
     });
   }
 
-  getAlbumTracks<T = unknown>(params: UriParam, opts?: RequestOptions) {
+  getAlbumTracks<T = unknown>(params: GetAlbumTracksParams, opts?: RequestOptions) {
     return this.call<T>("app.rocksky.album.getAlbumTracks", "GET", {
       params,
       ...opts,

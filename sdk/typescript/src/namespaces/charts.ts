@@ -1,22 +1,13 @@
-import type { Call } from "./_helpers";
+import type {
+  GetScrobblesChartParams,
+  GetTopArtistsParams,
+  GetTopTracksParams,
+} from "../generated/types";
 import type { RequestOptions } from "../types";
+import type { Call } from "./_helpers";
 
-export type ScrobblesChartParams = {
-  did?: string;
-  artisturi?: string;
-  albumuri?: string;
-  songuri?: string;
-  genre?: string;
-  from?: string;
-  to?: string;
-};
-
-export type TopChartParams = {
-  limit?: number;
-  offset?: number;
-  startDate?: string;
-  endDate?: string;
-};
+export type ScrobblesChartParams = GetScrobblesChartParams;
+export type TopChartParams = GetTopArtistsParams;
 
 export class ChartsNamespace {
   constructor(private readonly call: Call) {}
@@ -31,14 +22,14 @@ export class ChartsNamespace {
     });
   }
 
-  getTopArtists<T = unknown>(params: TopChartParams = {}, opts?: RequestOptions) {
+  getTopArtists<T = unknown>(params: GetTopArtistsParams = {}, opts?: RequestOptions) {
     return this.call<T>("app.rocksky.charts.getTopArtists", "GET", {
       params,
       ...opts,
     });
   }
 
-  getTopTracks<T = unknown>(params: TopChartParams = {}, opts?: RequestOptions) {
+  getTopTracks<T = unknown>(params: GetTopTracksParams = {}, opts?: RequestOptions) {
     return this.call<T>("app.rocksky.charts.getTopTracks", "GET", {
       params,
       ...opts,

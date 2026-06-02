@@ -165,6 +165,11 @@ Run any of them with:
 go run ./examples/profile -actor tsiry.bsky.social
 ```
 
+## Types
+
+Public model types are derived from the [Rocksky lexicons](https://tangled.org/rocksky.app/rocksky/tree/main/apps/api/lexicons) and live in `rocksky/gen` (package `gen`). The package-level type aliases in `rocksky/types.go` re-export them under their historical names. Regenerate with `bun run lexgen:types` at the repo root.
+
+
 ## Testing
 
 ```bash

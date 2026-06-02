@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "devDependencies": {
     "@biomejs/biome": "^2.2.3",
+    "consola": "^3.4.2",
     "prettier": "^3.5.3",
     "turbo": "^2.5.8"
   },
@@ -15,6 +16,7 @@
     "pkl:eval": "cd apps/api && bun run pkl:eval",
     "pkl:gen": "cd apps/api && bun run pkl:gen",
     "lexgen": "cd apps/api && bun run lexgen",
+    "lexgen:types": "bun run tools/lexgen/generate.ts",
     "dev:analytics": "cargo run -p rockskyd --release -- analytics serve",
     "dev:connect": "cargo run -p rocksky-connect --release",
     "dev:dropbox": "cargo run -p rockskyd --release -- dropbox serve",

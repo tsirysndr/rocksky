@@ -1,40 +1,19 @@
-import type { Call } from "./_helpers";
+import type {
+  CreateSongInput,
+  GetSongParams,
+  GetSongRecentListenersParams,
+  GetSongsParams,
+  MatchSongParams,
+} from "../generated/types";
 import type { RequestOptions } from "../types";
+import type { Call } from "./_helpers";
 
-export type GetSongParams = {
-  uri?: string;
-  mbid?: string;
-  isrc?: string;
-  spotifyId?: string;
-};
-
-export type GetSongsParams = GetSongParams & {
-  limit?: number;
-  offset?: number;
-  genre?: string;
-};
-
-export type MatchSongParams = {
-  title: string;
-  artist: string;
-  mbId?: string;
-  isrc?: string;
-};
-
-export type CreateSongInput = {
-  title: string;
-  artist: string;
-  albumArtist: string;
-  album: string;
-  duration?: number;
-  mbId?: string;
-  isrc?: string;
-  albumArt?: string;
-  trackNumber?: number;
-  releaseDate?: string;
-  year?: number;
-  discNumber?: number;
-  lyrics?: string;
+export type {
+  CreateSongInput,
+  GetSongParams,
+  GetSongRecentListenersParams,
+  GetSongsParams,
+  MatchSongParams,
 };
 
 export class SongNamespace {
@@ -55,7 +34,7 @@ export class SongNamespace {
   }
 
   getSongRecentListeners<T = unknown>(
-    params: { uri: string; limit?: number; offset?: number },
+    params: GetSongRecentListenersParams,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.song.getSongRecentListeners", "GET", {

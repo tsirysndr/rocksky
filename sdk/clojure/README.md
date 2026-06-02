@@ -163,6 +163,11 @@ Browse the [`examples/`](examples) directory:
 | `06_error_handling.clj`    | Catching `ex-info` from non-2xx |
 | `07_concurrent_requests.clj`| `pmap` across a shared client |
 
+## Types
+
+Lexicon-derived schemas (in [malli](https://github.com/metosin/malli) form) are exposed as `rocksky.generated.types/schemas`, a map keyed by `:TypeName` keywords covering every lex `*View*` / `*Record` / `*Input` / `*Output` / `*Params` shape from [the Rocksky lexicons](https://tangled.org/rocksky.app/rocksky/tree/main/apps/api/lexicons). Regenerate with `bun run lexgen:types` at the repo root.
+
+
 ## Development
 
 ```bash

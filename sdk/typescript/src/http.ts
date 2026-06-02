@@ -11,7 +11,7 @@ import {
 } from "./types";
 
 export type XrpcCallOptions = RequestOptions & {
-  params?: Record<string, unknown>;
+  params?: object;
   body?: unknown;
   requireAuth?: boolean;
 };
@@ -65,11 +65,11 @@ async function resolveAuth(
 }
 
 export function serializeParams(
-  params: Record<string, unknown> | undefined,
+  params: object | undefined,
 ): string {
   if (!params) return "";
   const usp = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) {
+  for (const [k, v] of Object.entries(params as Record<string, unknown>)) {
     if (v == null) continue;
     if (Array.isArray(v)) {
       for (const item of v) {

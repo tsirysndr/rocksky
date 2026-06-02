@@ -19,6 +19,7 @@ require "rocksky/resources/song"
 require "rocksky/resources/spotify"
 require "rocksky/resources/stats"
 require "rocksky/client"
+require "rocksky/generated/types"
 
 module Rocksky
   # Build a new Rocksky client.

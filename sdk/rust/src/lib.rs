@@ -48,6 +48,7 @@
 
 pub mod client;
 pub mod error;
+pub mod generated;
 pub mod http;
 pub mod models;
 pub mod resources;

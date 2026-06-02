@@ -4,7 +4,7 @@ import gleam/json
 import gleam/option.{None, Some}
 import gleeunit/should
 import rocksky/decoders
-import rocksky/types.{Profile, Stats}
+import rocksky/generated/types as gen
 
 pub fn profile_decoder_full_test() {
   let body =
@@ -19,7 +19,7 @@ pub fn profile_decoder_full_test() {
     }"
   let assert Ok(p) = json.parse(body, decoders.profile())
   p
-  |> should.equal(Profile(
+  |> should.equal(gen.ActorProfileViewBasic(
     id: Some("u_1"),
     did: Some("did:plc:abc"),
     handle: Some("alice.bsky.social"),
@@ -85,7 +85,7 @@ pub fn stats_decoder_test() {
     }"
   let assert Ok(s) = json.parse(body, decoders.stats())
   s
-  |> should.equal(Stats(
+  |> should.equal(gen.StatsView(
     scrobbles: Some(1234),
     artists: Some(89),
     loved_tracks: Some(12),

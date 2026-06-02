@@ -191,6 +191,11 @@ Run with:
 cargo run --example quickstart -- tsiry-sandratraina.com
 ```
 
+## Types
+
+Public model types are derived from the [Rocksky lexicons](https://tangled.org/rocksky.app/rocksky/tree/main/apps/api/lexicons) and live in `rocksky::generated`. The hand-written `rocksky::models` module re-exports them under their historical SDK names and extends `Profile` / `ApiKey` with fields the lexicon does not yet model. Regenerate with `bun run lexgen:types` at the repo root.
+
+
 ## Testing your own code against the SDK
 
 Provide your own `reqwest::Client` and point the SDK at a mock server.

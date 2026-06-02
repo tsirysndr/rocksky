@@ -255,6 +255,11 @@ Events: `open`, `close`, `error`, `registered`, `deviceRegistered`, `message`, `
 
 For tests, pass a fake `WebSocket` constructor via `.webSocket(FakeWebSocket)`.
 
+## Types
+
+Public model types are derived from the [Rocksky lexicons](https://tangled.org/rocksky.app/rocksky/tree/main/apps/api/lexicons) and live in `src/generated/types.ts`. They are regenerated from `apps/api/lexicons/**/*.json` by running `bun run lexgen:types` at the repo root.
+
+
 ## Development
 
 ```bash

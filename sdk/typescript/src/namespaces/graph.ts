@@ -1,22 +1,21 @@
-import type { Call } from "./_helpers";
+import type {
+  FollowAccountParams,
+  GetFollowersParams,
+  GetFollowsParams,
+  GetKnownFollowersParams,
+  UnfollowAccountParams,
+} from "../generated/types";
 import type { RequestOptions } from "../types";
+import type { Call } from "./_helpers";
 
-export type ActorParam = { actor: string };
-export type FollowListParams = ActorParam & {
-  limit?: number;
-  cursor?: string;
-  dids?: string[];
-};
-export type KnownFollowersParams = ActorParam & {
-  limit?: number;
-  cursor?: string;
-};
+export type FollowListParams = GetFollowersParams;
+export type KnownFollowersParams = GetKnownFollowersParams;
 
 export class GraphNamespace {
   constructor(private readonly call: Call) {}
 
   followAccount<T = unknown>(
-    params: { account: string },
+    params: FollowAccountParams,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.graph.followAccount", "POST", {
@@ -27,7 +26,7 @@ export class GraphNamespace {
   }
 
   unfollowAccount<T = unknown>(
-    params: { account: string },
+    params: UnfollowAccountParams,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.graph.unfollowAccount", "POST", {
@@ -37,14 +36,14 @@ export class GraphNamespace {
     });
   }
 
-  getFollowers<T = unknown>(params: FollowListParams, opts?: RequestOptions) {
+  getFollowers<T = unknown>(params: GetFollowersParams, opts?: RequestOptions) {
     return this.call<T>("app.rocksky.graph.getFollowers", "GET", {
       params,
       ...opts,
     });
   }
 
-  getFollows<T = unknown>(params: FollowListParams, opts?: RequestOptions) {
+  getFollows<T = unknown>(params: GetFollowsParams, opts?: RequestOptions) {
     return this.call<T>("app.rocksky.graph.getFollows", "GET", {
       params,
       ...opts,
@@ -52,7 +51,7 @@ export class GraphNamespace {
   }
 
   getKnownFollowers<T = unknown>(
-    params: KnownFollowersParams,
+    params: GetKnownFollowersParams,
     opts?: RequestOptions,
   ) {
     return this.call<T>("app.rocksky.graph.getKnownFollowers", "GET", {

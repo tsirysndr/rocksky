@@ -65,6 +65,13 @@ All SDKs share the same shape:
 | A Clojure web service or REPL workflow | [Clojure](/sdks/clojure) |
 | A typed BEAM app with strict guarantees | [Gleam](/sdks/gleam) |
 
+## Lexicon-derived types
+
+Public model types are generated from the [Rocksky lexicons](https://tangled.org/rocksky.app/rocksky/tree/main/apps/api/lexicons)
+into each SDK and re-exported under their historical SDK names. Regenerate
+across all 9 SDKs with `bun run lexgen:types` at the repo root — the generator
+lives in [`tools/lexgen/`](https://tangled.org/@rocksky.app/rocksky/blob/main/tools/lexgen).
+
 ## Source
 
 All SDKs live in the monorepo at

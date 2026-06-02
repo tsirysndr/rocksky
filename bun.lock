@@ -6,6 +6,7 @@
       "name": "rocksky",
       "devDependencies": {
         "@biomejs/biome": "^2.2.3",
+        "consola": "^3.4.2",
         "prettier": "^3.5.3",
         "turbo": "^2.5.8",
       },
