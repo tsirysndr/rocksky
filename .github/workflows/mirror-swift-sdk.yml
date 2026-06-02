@@ -1,0 +1,64 @@
+name: mirror-swift-sdk
+
+on:
+  push:
+    branches: [main]
+    paths: ['sdk/swift/**']
+    tags: ['swift-v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Optional version tag to publish (e.g. 0.1.0). Leave blank to only sync main.'
+        required: false
+
+env:
+  TARGET_REPO: tsirysndr/rocksky-swift
+  SUBTREE_PREFIX: sdk/swift
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout monorepo (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name "rocksky-bot"
+          git config user.email "bot@rocksky.app"
+
+      - name: Split sdk/swift into a standalone branch
+        run: |
+          git subtree split --prefix="${SUBTREE_PREFIX}" -b swift-release
+
+      - name: Push to standalone repo (main)
+        if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+        env:
+          MIRROR_TOKEN: ${{ secrets.SWIFT_MIRROR_TOKEN }}
+        run: |
+          git push --force \
+            "https://x-access-token:${MIRROR_TOKEN}@github.com/${TARGET_REPO}.git" \
+            swift-release:main
+
+      - name: Derive version from tag
+        id: version
+        if: startsWith(github.ref, 'refs/tags/swift-v') || github.event.inputs.version != ''
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            echo "value=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${GITHUB_REF_NAME#swift-v}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Push version tag to standalone repo
+        if: steps.version.outputs.value != ''
+        env:
+          MIRROR_TOKEN: ${{ secrets.SWIFT_MIRROR_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.value }}"
+          git tag -f "${VERSION}" swift-release
+          git push --force \
+            "https://x-access-token:${MIRROR_TOKEN}@github.com/${TARGET_REPO}.git" \
+            "refs/tags/${VERSION}"
