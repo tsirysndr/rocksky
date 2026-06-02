@@ -1,0 +1,68 @@
+{:paths ["src"]
+ :deps  {}
+
+ :tasks
+ {:requires ([console.core :as c])
+
+  ;; ── meta ─────────────────────────────────────────────────────
+  help    {:doc "Show all available console commands"
+           :task (c/help)}
+  ls      {:doc "List every registered command grouped by namespace"
+           :task (c/ls)}
+
+  ;; ── lexgen ───────────────────────────────────────────────────
+  lexgen        {:doc  "Run apps/api lex gen-server"
+                 :task (do (require 'console.lexgen)
+                           ((resolve 'console.lexgen/server)))}
+  lexgen:types  {:doc  "Generate SDK type bindings (TS/Go/Py/Rust/...)"
+                 :task (do (require 'console.lexgen)
+                           ((resolve 'console.lexgen/types)))}
+
+  ;; ── db ───────────────────────────────────────────────────────
+  db:migrate         {:task (do (require 'console.db) ((resolve 'console.db/migrate)))}
+  db:gen-migration   {:task (do (require 'console.db) ((resolve 'console.db/gen-migration)))}
+  db:pgpull          {:task (do (require 'console.db) ((resolve 'console.db/pgpull)))}
+  pkl:eval           {:task (do (require 'console.db) ((resolve 'console.db/pkl-eval)))}
+  pkl:gen            {:task (do (require 'console.db) ((resolve 'console.db/pkl-gen)))}
+
+  ;; ── data ops (apps/api scripts) ──────────────────────────────
+  sync          {:doc  "Sync a user's scrobbles. Usage: bb sync <did|handle>"
+                 :task (do (require 'console.sync)
+                           ((resolve 'console.sync/user) (first *command-line-args*)))}
+  sync:library  {:task (do (require 'console.sync) ((resolve 'console.sync/library)))}
+  backfill:isrc-mbid {:task (do (require 'console.sync) ((resolve 'console.sync/backfill-isrc-mbid)))}
+  typesense:import   {:task (do (require 'console.sync) ((resolve 'console.sync/typesense-import)))}
+  dedup        {:task (do (require 'console.sync) ((resolve 'console.sync/dedup)))}
+  genres       {:task (do (require 'console.sync) ((resolve 'console.sync/genres)))}
+  collections  {:task (do (require 'console.sync) ((resolve 'console.sync/collections)))}
+  seed:feed    {:task (do (require 'console.sync) ((resolve 'console.sync/seed-feed)))}
+  feed         {:task (do (require 'console.sync) ((resolve 'console.sync/feed)))}
+  likes        {:task (do (require 'console.sync) ((resolve 'console.sync/likes)))}
+  avatar       {:task (do (require 'console.sync) ((resolve 'console.sync/avatar)))}
+  exp          {:task (do (require 'console.sync) ((resolve 'console.sync/exp)))}
+  spotify:creds {:doc  "Register Spotify creds. Usage: bb spotify:creds <client_id> <client_secret>"
+                 :task (do (require 'console.sync)
+                           (apply (resolve 'console.sync/spotify-creds) *command-line-args*))}
+
+  ;; ── daemons (Rust) ───────────────────────────────────────────
+  d:analytics     {:task (do (require 'console.daemons) ((resolve 'console.daemons/analytics)))}
+  d:connect       {:task (do (require 'console.daemons) ((resolve 'console.daemons/connect)))}
+  d:dropbox       {:task (do (require 'console.daemons) ((resolve 'console.daemons/dropbox)))}
+  d:googledrive   {:task (do (require 'console.daemons) ((resolve 'console.daemons/googledrive)))}
+  d:jetstream     {:task (do (require 'console.daemons) ((resolve 'console.daemons/jetstream)))}
+  d:playlists     {:task (do (require 'console.daemons) ((resolve 'console.daemons/playlists)))}
+  d:scrobbler     {:task (do (require 'console.daemons) ((resolve 'console.daemons/scrobbler)))}
+  d:spotify       {:task (do (require 'console.daemons) ((resolve 'console.daemons/spotify)))}
+  d:storage       {:task (do (require 'console.daemons) ((resolve 'console.daemons/storage)))}
+  d:webscrobbler  {:task (do (require 'console.daemons) ((resolve 'console.daemons/webscrobbler)))}
+  d:tracklist     {:task (do (require 'console.daemons) ((resolve 'console.daemons/tracklist)))}
+
+  ;; ── devops & dev tools ───────────────────────────────────────
+  backup:ddb    {:task (do (require 'console.devops) ((resolve 'console.devops/backup-ddb)))}
+  build:raichu  {:task (do (require 'console.devops) ((resolve 'console.devops/build-raichu)))}
+  local-proxy   {:task (do (require 'console.devops) ((resolve 'console.devops/local-proxy)))}
+  mb            {:doc "Run musicbrainz Go server"
+                 :task (do (require 'console.devops) ((resolve 'console.devops/mb)))}
+  cron          {:doc "Schedule a command. Usage: bb cron <interval-min> <cmd> [args...]"
+                 :task (do (require 'console.cron)
+                           (apply (resolve 'console.cron/schedule) *command-line-args*))}}}
