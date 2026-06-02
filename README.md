@@ -16,6 +16,7 @@ Rocksky automatically tracks ("scrobbles") the music you listen to from Spotify,
 ### 🎵 Scrobbling
 - **Last.fm Compatible API** – Works with almost any existing Last.fm scrobbler
 - **ListenBrainz Compatible API** – Broad client support
+- Automatic Last.fm mirroring (future scrobbles)
 
 ### 🕒 Playback & History
 - Recently Played Timeline
@@ -41,7 +42,6 @@ Rocksky automatically tracks ("scrobbles") the music you listen to from Spotify,
 
 - Webhooks (Discord, custom integrations)
 - Personalized discovery feeds
-- Automatic Last.fm mirroring (future scrobbles)
 - Rocksky Connect (remote playback across devices)
 - Multi-source library support (S3, Google Drive, etc.)
 - Built-in streaming + self-uploaded music
