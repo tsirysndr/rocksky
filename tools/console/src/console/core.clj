@@ -59,6 +59,16 @@
            [:local-proxy     "Run tools/local-proxy.ts for split front/back-end dev"]
            [:mb              "Run musicbrainz Go metadata cache server"]]}
 
+   {:group "docker" :ns 'console.docker
+    :cmds [[:up              "compose up -d (pass :foreground for inline logs)"]
+           [:down            "compose down (pass :volumes to wipe data)"]
+           [:restart         "Restart one or more services"]
+           [:logs            "Print logs; pass :follow to tail"]
+           [:ps              "List running services"]
+           [:pull            "Pull latest images"]
+           [:exec            "Run a command inside a service. Args: svc cmd [args...]"]
+           [:compose         "Escape hatch: any `docker compose` subcommand"]]}
+
    {:group "cron" :ns 'console.cron
     :cmds [[:schedule        "Wrap a command in Deno cron. Args: interval-min cmd [args...]"]]}
 

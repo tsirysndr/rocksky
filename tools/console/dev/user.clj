@@ -14,6 +14,7 @@
             [console.sync    :as sync]
             [console.daemons :as daemons]
             [console.devops  :as devops]
+            [console.docker  :as docker]
             [console.cron    :as cron]))
 
 (def help c/help)
@@ -24,7 +25,7 @@
 (let [n (try (env/load!) (catch Exception _ nil))]
   (println)
   (println "Rocksky Console — REPL loaded. Try (help) or (ls).")
-  (println "Aliases in scope: c, sh, env, lexgen, db, sync, daemons, devops, cron")
+  (println "Aliases in scope: c, sh, env, lexgen, db, sync, daemons, devops, docker, cron")
   (when n
     (println (str "Loaded " n " env vars from .env — `(env/show)` to inspect.")))
   (println))

@@ -171,8 +171,49 @@ Run `(help)` / `bb help` for the live list. Snapshot:
 |           | `local-proxy`            | local dev split-proxy on :8081                      |
 |           | `mb`                     | musicbrainz Go cache server                         |
 | `cron`    | `schedule <min> <cmd>`   | wrap any command in Deno cron                       |
+| `docker`  | `up`, `down`, `restart`  | manage compose.yaml services (nats/dragonfly/typesense/db) |
+|           | `logs`, `ps`, `pull`, `exec` | inspect + exec inside containers               |
+|           | `compose & args`         | escape hatch for any subcommand                     |
 | `env`     | `load!`, `doppler!`      | populate env from `.env` or Doppler                 |
 |           | `show`, `get`, `reload!` | inspect / re-pull / clear                           |
+
+---
+
+## Docker compose
+
+The root `compose.yaml` runs four services: `nats`, `dragonfly`, `typesense`,
+and `db` (Postgres). `console.docker` wraps `docker compose` so you can
+manage them from the REPL without leaving Clojure.
+
+```clojure
+;; ── REPL ────────────────────────────────────────────────────────
+(docker/up)                       ;; docker compose up -d
+(docker/up :foreground)           ;; without -d, logs stream in REPL
+(docker/up "db" "nats")           ;; bring up only these (still detached)
+(docker/down)                     ;; docker compose down
+(docker/down :volumes)            ;; …and wipe named volumes (irreversible)
+(docker/restart "db")
+(docker/restart "db" "nats")
+(docker/logs "db" :follow)
+(docker/ps)
+(docker/pull)
+(docker/exec "db" "psql" "-U" "postgres" "rocksky")
+(docker/compose "top" "db")       ;; escape hatch — any subcommand
+
+;; ── one-shot ─────────────────────────────────────────────────────
+$ bb up                  # detached
+$ bb up fg               # foreground
+$ bb down                # bb down v  to also drop volumes
+$ bb restart db
+$ bb logs db follow
+$ bb ps
+$ bb exec db psql -U postgres rocksky
+```
+
+Every compose call runs from the repo root, so `compose.yaml` is picked up
+automatically. Because every subprocess inherits `@console.env/*env*`, any
+`${VAR}` substitutions in `compose.yaml` resolve against whatever you've
+loaded via `(env/load!)` / `(env/doppler!)`.
 
 ---
 

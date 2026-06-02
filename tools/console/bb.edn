@@ -83,4 +83,29 @@
                            ;; to be useful as a quick diagnostic.
                            ((resolve 'console.env/load!))
                            ((resolve 'console.env/show)))}
-  env:reload    {:task (do (require 'console.env) ((resolve 'console.env/reload!)))}}}
+  env:reload    {:task (do (require 'console.env) ((resolve 'console.env/reload!)))}
+
+  ;; ── docker compose ───────────────────────────────────────────
+  up            {:doc  "docker compose up -d (use `bb up fg` for foreground)"
+                 :task (do (require 'console.docker)
+                           (apply (resolve 'console.docker/up)
+                                  (map keyword (filter #{"fg" "foreground"} *command-line-args*))))}
+  down          {:doc  "docker compose down (`bb down v` to also drop volumes)"
+                 :task (do (require 'console.docker)
+                           (apply (resolve 'console.docker/down)
+                                  (map keyword (filter #{"v" "volumes"} *command-line-args*))))}
+  restart       {:doc  "Restart services. Usage: bb restart <svc> [svc...]"
+                 :task (do (require 'console.docker)
+                           (apply (resolve 'console.docker/restart) *command-line-args*))}
+  logs          {:doc  "Print logs. Usage: bb logs <svc> [svc...] (add `follow` to tail)"
+                 :task (do (require 'console.docker)
+                           (apply (resolve 'console.docker/logs)
+                                  (map #(if (#{"follow" "f"} %) (keyword %) %)
+                                       *command-line-args*)))}
+  ps            {:task (do (require 'console.docker) ((resolve 'console.docker/ps)))}
+  pull          {:doc  "docker compose pull [svc...]"
+                 :task (do (require 'console.docker)
+                           (apply (resolve 'console.docker/pull) *command-line-args*))}
+  exec          {:doc  "Exec inside a service. Usage: bb exec <svc> <cmd> [args...]"
+                 :task (do (require 'console.docker)
+                           (apply (resolve 'console.docker/exec) *command-line-args*))}}}
