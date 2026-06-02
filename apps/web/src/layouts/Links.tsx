@@ -27,14 +27,14 @@ function Links() {
   return (
     <div className="inline-flex mt-[40px]">
       <Link
-        href="https://docs.rocksky.app/introduction-918639m0"
+        href="https://docs.rocksky.app"
         target="_blank"
         className="mr-[10px] text-[var(--color-primary)]"
       >
         About
       </Link>
       <Link
-        href="https://docs.rocksky.app/faq-918661m0"
+        href="https://docs.rocksky.app/faq"
         target="_blank"
         className="mr-[10px] text-[var(--color-primary)]"
       >
@@ -48,7 +48,7 @@ function Links() {
         Docs
       </Link>
       <Link
-        href="https://docs.rocksky.app/overview-957781m0"
+        href="https://docs.rocksky.app/cli/overview"
         target="_blank"
         className="mr-[10px] text-[var(--color-primary)]"
       >
