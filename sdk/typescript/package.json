@@ -3,6 +3,15 @@
   "version": "0.1.0",
   "description": "TypeScript SDK for the Rocksky XRPC API",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tsirysndr/rocksky.git",
+    "directory": "sdk/typescript"
+  },
+  "homepage": "https://github.com/tsirysndr/rocksky/tree/main/sdk/typescript#readme",
+  "bugs": {
+    "url": "https://github.com/tsirysndr/rocksky/issues"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -36,10 +45,18 @@
   "keywords": [
     "rocksky",
     "atproto",
+    "at-protocol",
+    "bluesky",
     "xrpc",
     "scrobble",
+    "scrobbling",
     "music",
-    "sdk"
+    "lastfm",
+    "now-playing",
+    "sdk",
+    "typescript",
+    "client",
+    "api"
   ],
   "devDependencies": {
     "@types/bun": "latest",
