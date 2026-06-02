@@ -28,6 +28,7 @@
               "integrations/navidrome",
               "integrations/navidrome-server",
               "integrations/pano-scrobbler",
+              "integrations/web-scrobbler",
               "integrations/kodi",
               "integrations/claude-desktop",
               "integrations/scrobble-api-local"
