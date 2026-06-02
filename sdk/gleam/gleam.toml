@@ -3,10 +3,10 @@ version = "0.1.0"
 
 description = "Gleam SDK for the Rocksky XRPC API"
 licences = ["MIT"]
-repository = { type = "github", user = "rockskyapp", repo = "rocksky" }
+repository = { type = "tangled", user = "rocksky.app", repo = "rocksky", path = "sdk/gleam" }
 links = [
   { title = "Rocksky", href = "https://rocksky.app" },
-  { title = "Lexicons", href = "https://github.com/rockskyapp/rocksky/tree/main/apps/api/lexicons" },
+  { title = "Lexicons", href = "https://tangled.org/rocksky.app/rocksky/tree/main/apps/api/lexicons" },
 ]
 
 [dependencies]
