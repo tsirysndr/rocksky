@@ -24,7 +24,11 @@ pub async fn subscribe() -> Result<(), Error> {
     start_worker(state.clone()).await?;
 
     let servers = resolve_servers();
-    tracing::info!(count = servers.len(), ?servers, "Configured jetstream sources");
+    tracing::info!(
+        count = servers.len(),
+        ?servers,
+        "Configured jetstream sources"
+    );
 
     let subscriber = MultiSourceSubscriber::new(servers);
     subscriber.run(state).await

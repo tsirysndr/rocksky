@@ -178,7 +178,10 @@ fn dedup_key(did: &str, commit: &Commit) -> String {
     // (did, collection, rkey, rev) uniquely identifies a commit at its source
     // PDS; every jetstream server forwards the same tuple, so this collapses
     // duplicates regardless of which server delivered first.
-    format!("{}|{}|{}|{}", did, commit.collection, commit.rkey, commit.rev)
+    format!(
+        "{}|{}|{}|{}",
+        did, commit.collection, commit.rkey, commit.rev
+    )
 }
 
 async fn run_connection_worker(
@@ -224,7 +227,10 @@ async fn run_connection_worker(
             }
         }
 
-        tracing::warn!(worker = idx, "Disconnected from jetstream, reconnecting in 1s");
+        tracing::warn!(
+            worker = idx,
+            "Disconnected from jetstream, reconnecting in 1s"
+        );
         tokio::time::sleep(Duration::from_secs(1)).await;
     }
 }
