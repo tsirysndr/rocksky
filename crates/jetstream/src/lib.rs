@@ -1,6 +1,6 @@
 use anyhow::Error;
 use std::{env, sync::Arc};
-use subscriber::ScrobbleSubscriber;
+use subscriber::MultiSourceSubscriber;
 use tokio::sync::Mutex;
 
 use crate::webhook_worker::{start_worker, AppState};
@@ -23,25 +23,32 @@ pub async fn subscribe() -> Result<(), Error> {
 
     start_worker(state.clone()).await?;
 
-    let jetstream_server = env::var("JETSTREAM_SERVER")
-        .unwrap_or_else(|_| "wss://jetstream2.us-west.bsky.network".to_string());
-    let url = format!(
-        "{}/subscribe?wantedCollections=app.rocksky.*",
-        jetstream_server
-    );
-    let subscriber = ScrobbleSubscriber::new(&url);
+    let servers = resolve_servers();
+    tracing::info!(count = servers.len(), ?servers, "Configured jetstream sources");
 
-    // loop, reconnecting on failure
-    loop {
-        match subscriber.run(state.clone()).await {
-            Ok(_) => tracing::info!("Connected to jetstream server"),
-            Err(e) => {
-                tracing::error!(error = %e, "Failed to connect to jetstream server, retrying in 1 second...");
-                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-                continue;
+    let subscriber = MultiSourceSubscriber::new(servers);
+    subscriber.run(state).await
+}
+
+/// Reads `JETSTREAM_SERVERS` (comma-separated) when present, otherwise falls
+/// back to the legacy single `JETSTREAM_SERVER`, otherwise to the upstream
+/// default. Duplicates and empty entries are stripped so misconfigured env
+/// (`a,,a`) doesn't open redundant connections.
+fn resolve_servers() -> Vec<String> {
+    if let Ok(raw) = env::var("JETSTREAM_SERVERS") {
+        let mut seen = Vec::new();
+        for part in raw.split(',') {
+            let trimmed = part.trim().trim_end_matches('/').to_string();
+            if !trimmed.is_empty() && !seen.contains(&trimmed) {
+                seen.push(trimmed);
             }
         }
-        tracing::warn!("Disconnected from jetstream server, reconnecting in 1 second...");
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+        if !seen.is_empty() {
+            return seen;
+        }
     }
+
+    let single = env::var("JETSTREAM_SERVER")
+        .unwrap_or_else(|_| "wss://jetstream2.us-west.bsky.network".to_string());
+    vec![single.trim_end_matches('/').to_string()]
 }
