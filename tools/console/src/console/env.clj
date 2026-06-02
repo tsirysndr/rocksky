@@ -166,17 +166,30 @@
                   (or config  "<setup>"))))
 
 (defn show
-  "Print every loaded key with its value masked."
-  []
-  (let [m @*env*]
-    (if (empty? m)
-      (println "(env empty — try (env/load!) or (env/doppler!))")
-      (do
-        (println (str (count m) " key(s) loaded from "
-                      (mapv source-label @sources) ":"))
-        (doseq [[k v] (sort-by key m)]
-          (println " " k "=" (mask v)))))
-    :ok))
+  "Print every loaded key, values masked.
+
+  Pass `{:unmask? true}` (or just `:unmask`) to print raw values — useful
+  for quick debugging but **never** paste the output anywhere shared.
+
+      (env/show)                    ;; default — masked
+      (env/show :unmask)            ;; raw
+      (env/show {:unmask? true})    ;; same, explicit"
+  ([] (show {}))
+  ([opts]
+   (let [unmask? (or (= opts :unmask)
+                     (true? (:unmask? opts)))
+         render  (if unmask? identity mask)
+         m       @*env*]
+     (if (empty? m)
+       (println "(env empty — try (env/load!) or (env/doppler!))")
+       (do
+         (println (str (count m) " key(s) loaded from "
+                       (mapv source-label @sources)
+                       (when unmask? "  [UNMASKED]")
+                       ":"))
+         (doseq [[k v] (sort-by key m)]
+           (println " " k "=" (render v)))))
+     :ok)))
 
 (defn get
   "Fetch one value (raw, not masked)."

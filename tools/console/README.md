@@ -221,9 +221,18 @@ or use the explicit `bb env:load` / `bb env:doppler` task first.
 `doppler.yaml` (set up via `doppler setup`) is configured in the repo;
 this mirrors how production systemd units run (`doppler run …`).
 
-**Secrets safety.** `(env/show)` always masks values (first 2 + `***` +
-last 2 chars). `(env/get k)` returns the raw value because you usually
-need it. Don't paste REPL transcripts that contain `(env/get …)` results.
+**Secrets safety.** `(env/show)` masks values by default (first 2 + `***` +
+last 2 chars). To reveal them in the REPL — for debugging only — pass
+`:unmask`:
+
+```clojure
+(env/show)                  ;; masked
+(env/show :unmask)          ;; raw values (also works: {:unmask? true})
+(env/get "DATABASE_URL")    ;; raw value for one key
+@console.env/*env*          ;; deref the atom for the full raw map
+```
+
+Don't paste REPL transcripts that contain unmasked output.
 
 ---
 
