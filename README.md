@@ -116,6 +116,18 @@ turbo dev --filter=@rocksky/api --filter=@rocksky/web
 | Data Ownership          | Last.fm       | You (export)     | You (on your PDS)        |
 | Last.fm Compatibility   | —             | Partial          | Strong                   |
 
+## 📚 Documentation
+
+Full documentation is available at **[docs.rocksky.app](https://docs.rocksky.app)**.
+
+- **[Quickstart](https://docs.rocksky.app/quickstart)** – Get scrobbling in a few minutes
+- **[FAQ](https://docs.rocksky.app/faq)** – Common questions answered
+- **Integrations** – [Jellyfin](https://docs.rocksky.app/integrations/jellyfin), [Navidrome](https://docs.rocksky.app/integrations/navidrome), [Pano Scrobbler](https://docs.rocksky.app/integrations/pano-scrobbler), [Kodi](https://docs.rocksky.app/integrations/kodi), [Claude Desktop](https://docs.rocksky.app/integrations/claude-desktop)
+- **Migrating** – [from Last.fm](https://docs.rocksky.app/migrations/from-lastfm) · [from ListenBrainz](https://docs.rocksky.app/migrations/from-listenbrainz)
+- **[Rocksky CLI](https://docs.rocksky.app/cli/overview)** – Scrobble, search, and manage from the terminal
+- **[SDKs](https://docs.rocksky.app/sdks/overview)** – TypeScript, Python, Rust, Go, Ruby, Kotlin, Elixir, Clojure, Gleam
+- **[API reference](https://docs.rocksky.app/api-reference/introduction)** – HTTP endpoints and OpenAPI spec
+
 ## Feedback & Contributing
 
 This repo is the central place for issues and discussions.
