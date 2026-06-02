@@ -14,7 +14,7 @@ pub fn main() {
   let client = rocksky.new()
 
   let assert Ok(payload) =
-    stats.get_wrapped(did: "tsiry.bsky.social")
+    stats.get_wrapped(did: "tsiry-sandratraina.com")
     |> rocksky.year(2025)
     |> rocksky.send(client)
 

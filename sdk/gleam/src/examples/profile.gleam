@@ -13,7 +13,7 @@ pub fn main() {
   let client = rocksky.new()
 
   let result =
-    actor.get_profile(did: "tsiry.bsky.social")
+    actor.get_profile(did: "tsiry-sandratraina.com")
     |> rocksky.send(client)
 
   case result {
