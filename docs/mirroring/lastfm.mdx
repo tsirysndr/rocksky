@@ -1,0 +1,68 @@
+---
+title: "Mirror from Last.fm"
+description: "Pull plays from a Last.fm account into Rocksky on a 30-second poll."
+icon: "lastfm"
+---
+
+Rocksky polls Last.fm's `user.getRecentTracks` endpoint every 30 seconds and
+mirrors any new scrobble into your Rocksky timeline. Your existing Last.fm
+setup keeps working unchanged.
+
+## Prerequisites
+
+- A [Rocksky](https://rocksky.app) account
+- A Last.fm account that's actively receiving scrobbles
+- A Last.fm API key (free, instant — see below)
+
+## Setup
+
+<Steps>
+  <Step title="Create a Last.fm API account">
+    Go to [last.fm/api/account/create](https://www.last.fm/api/account/create)
+    and fill in the form. The "callback URL" and "application homepage" fields
+    can be anything — they aren't used for read-only access.
+
+    Copy the 32-character **API key**. You can ignore the shared secret —
+    `user.getRecentTracks` is a read-only endpoint and doesn't need signed
+    requests.
+  </Step>
+  <Step title="Open the Mirrors page">
+    Sign in to Rocksky and open
+    [rocksky.app/mirrors](https://rocksky.app/mirrors). Select the **Last.fm**
+    tab.
+  </Step>
+  <Step title="Enter your credentials">
+    - **Username** — your Last.fm handle (the one in your profile URL,
+      e.g. `last.fm/user/<handle>`).
+    - **Last.fm API key** — the 32-character key from step 1.
+
+    Click **Save credentials**. The API key is encrypted with
+    XSalsa20-Poly1305 before being written to the database.
+  </Step>
+  <Step title="Enable mirroring">
+    Flip the **Mirror enabled** toggle on. Within ~30 seconds the worker
+    picks up the change and starts polling.
+  </Step>
+</Steps>
+
+## What gets mirrored
+
+- Completed scrobbles from `user.getRecentTracks`, newest first.
+- Currently-playing tracks are skipped — Rocksky only mirrors plays that
+  have a `date` timestamp.
+- On first enable, a 24-hour backfill window is seeded so recent plays land
+  too, not just future ones.
+
+## Dedup behaviour
+
+Each candidate play is checked against your existing scrobbles within a
+±120-second window. If you also scrobble to Rocksky directly (from Jellyfin,
+Navidrome, the browser extension, etc.), you won't get duplicates — whichever
+arrives first wins.
+
+## Rotating or removing the key
+
+- **Rotate** — type a new API key into the field and save. The previous
+  encrypted value is overwritten.
+- **Remove** — clear the API key and save. The mirror source becomes
+  unauthenticated and the worker exits.

@@ -34,6 +34,15 @@
             ]
           },
           {
+            "group": "Mirroring",
+            "pages": [
+              "mirroring/overview",
+              "mirroring/lastfm",
+              "mirroring/listenbrainz",
+              "mirroring/tealfm"
+            ]
+          },
+          {
             "group": "Migrating",
             "pages": [
               "migrations/from-lastfm",

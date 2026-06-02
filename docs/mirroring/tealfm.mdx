@@ -1,0 +1,58 @@
+---
+title: "Mirror from Teal.fm"
+description: "Subscribe to Teal.fm play events in real time over AT Protocol Jetstream."
+icon: "bolt"
+---
+
+Teal.fm publishes plays as AT Protocol records, so Rocksky mirrors them
+through a single
+[Jetstream](https://atproto.com/blog/jetstream) subscription to
+`fm.teal.alpha.feed.play`. No polling, no API keys — your ATProto DID is the
+only identifier needed.
+
+## Prerequisites
+
+- A [Rocksky](https://rocksky.app) account (signed in with the same
+  ATProto identity you use on Teal.fm)
+- An active Teal.fm account publishing play records
+
+## Setup
+
+<Steps>
+  <Step title="Open the Mirrors page">
+    Sign in to Rocksky and open
+    [rocksky.app/mirrors](https://rocksky.app/mirrors). Select the
+    **Teal.fm** tab.
+  </Step>
+  <Step title="Enable mirroring">
+    Flip the **Mirror enabled** toggle on. There are no credentials to enter
+    — Rocksky filters the Jetstream firehose for play records whose `did`
+    matches yours.
+  </Step>
+</Steps>
+
+## How it works
+
+- One process-wide WebSocket connection subscribes to
+  `fm.teal.alpha.feed.play` on Jetstream.
+- Enabling mirroring adds your DID to an in-memory set; the next play
+  record from that DID gets normalised and re-published as a Rocksky
+  scrobble.
+- Disabling removes your DID from the set — within seconds, no further
+  events are processed.
+
+Because there's no polling, plays show up within a couple of seconds of
+Teal.fm broadcasting them to the relay.
+
+## Dedup behaviour
+
+Each event runs through the same ±120-second dedup check as the polled
+sources. If you also scrobble to Rocksky from another client at the same
+time, only one record lands.
+
+<Note>
+  Teal.fm mirroring relies on the AT Protocol relay being reachable. If the
+  Jetstream connection drops, Rocksky reconnects automatically — but any
+  plays broadcast during the gap may be missed. Use Last.fm or ListenBrainz
+  mirroring alongside it if you need polled redundancy.
+</Note>

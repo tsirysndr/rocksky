@@ -1,0 +1,70 @@
+---
+title: "Scrobble mirroring"
+description: "Keep using Last.fm, ListenBrainz, or Teal.fm — and have those plays mirror into Rocksky automatically."
+icon: "broadcast-tower"
+---
+
+Mirroring is the lighter-touch alternative to fully [migrating](/migrations/from-lastfm)
+off another scrobbler. You keep your existing setup exactly as it is — Rocksky
+just pulls new plays from your account on the other service and re-publishes
+them as scrobbles on your account.
+
+## How it differs from migrating
+
+| | Migrating | Mirroring |
+| --- | --- | --- |
+| Your clients send scrobbles to | Rocksky | Last.fm / ListenBrainz / Teal.fm (unchanged) |
+| Plays land in the other service | No | Yes |
+| Plays land in Rocksky | Yes | Yes |
+| Setup | Repoint each client | One toggle in your Rocksky settings |
+
+Pick mirroring when you want Rocksky alongside an existing scrobbler. Pick
+migrating when you're ready to point your clients directly at Rocksky and
+stop double-writing.
+
+## Supported sources
+
+<CardGroup cols={3}>
+  <Card title="Last.fm" icon="lastfm" href="/mirroring/lastfm">
+    Polls `user.getRecentTracks` every 30 seconds.
+  </Card>
+  <Card title="ListenBrainz" icon="headphones" href="/mirroring/listenbrainz">
+    Polls `/user/{name}/listens` every 30 seconds.
+  </Card>
+  <Card title="Teal.fm" icon="bolt" href="/mirroring/tealfm">
+    Real-time via AT Protocol Jetstream — no polling, no credentials.
+  </Card>
+</CardGroup>
+
+## How it works
+
+1. You enter your username (and an API key, for Last.fm and ListenBrainz) on the
+   [Mirrors page](https://rocksky.app/mirrors) and flip the **Mirror enabled** toggle.
+2. Credentials are encrypted at rest with XSalsa20-Poly1305 before being
+   written to the database.
+3. A background worker picks up the new source within a few seconds and starts
+   polling (or, for Teal.fm, subscribing to Jetstream).
+4. Each play newer than the last-seen watermark runs through a ±120-second
+   dedup check against your existing scrobbles. Anything genuinely new is
+   published as `app.rocksky.scrobble.createScrobble`.
+5. On first enable, the watermark is seeded 24 hours in the past — so you get
+   a one-day backfill rather than only future plays.
+
+## Disabling
+
+Flip the toggle off and the worker stops polling within a poll cycle (≤30s).
+Your stored credentials stay encrypted in the database so you can re-enable
+later without re-entering them. Clear them by saving an empty API key.
+
+## FAQ
+
+**Will I get duplicate scrobbles if my client also writes directly to Rocksky?**
+No. The dedup check looks ±120 seconds around each candidate play and skips
+anything already in your scrobble history from another source.
+
+**What happens if my API key expires or is revoked?**
+The worker logs the auth failure and stops polling that source. Save a new
+key on the Mirrors page to resume.
+
+**Can I mirror more than one source at once?**
+Yes. Each provider runs independently — enable any combination.
