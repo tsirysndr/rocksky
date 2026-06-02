@@ -9,7 +9,7 @@ import kotlinx.coroutines.runBlocking
  * Run: `./gradlew :examples:run -PmainClass=app.rocksky.examples.BasicProfileKt`
  */
 fun main(args: Array<String>): Unit = runBlocking {
-    val handle = args.firstOrNull() ?: "tsiry.bsky.social"
+    val handle = args.firstOrNull() ?: "tsiry-sandratraina.com"
 
     RockskyClient().use { client ->
         val profile = client.actor.getProfile(did = handle)
