@@ -27,13 +27,13 @@ pub fn main() {
 
   // GET app.rocksky.actor.getProfile
   let assert Ok(profile) =
-    actor.get_profile(did: "alice.bsky.social")
+    actor.get_profile(did: "did:plc:7vdlgi2bflelz7mmuxoqjfcr")
     |> rocksky.send(client)
   io.println("Hello, " <> option.unwrap(profile.handle, "unknown") <> "!")
 
   // Optional params chain naturally — no Some/None at the call site.
   let assert Ok(scrobbles) =
-    actor.get_actor_scrobbles(did: "alice.bsky.social")
+    actor.get_actor_scrobbles(did: "did:plc:7vdlgi2bflelz7mmuxoqjfcr")
     |> rocksky.limit(50)
     |> rocksky.offset(0)
     |> rocksky.send(client)
