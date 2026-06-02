@@ -106,6 +106,26 @@ bun run feeds
 turbo dev --filter=@rocksky/api --filter=@rocksky/web
 ```
 
+### Operations console (Clojure REPL)
+
+`tools/console/` is a Clojure project that centralizes every operational script
+in the monorepo — lexicon codegen, DB migrations, data sync/backfill, Rust
+daemons, devops glue — behind one discoverable REPL. Instead of remembering
+which `package.json` script lives in which workspace or which `cargo run -p ...`
+invokes which daemon, you call functions:
+
+```bash
+cd tools/console
+mise install                       # locks JDK 21, Clojure, Babashka
+clj -M:rebel                       # pretty terminal REPL (try `(help)`)
+clj -M:dev                         # nREPL on :7888 for CIDER / Calva / Cursive
+bb help                            # or fast one-shot CLI tasks
+bb sync did:plc:abc123             # e.g. sync one user's scrobbles
+```
+
+See [`tools/console/README.md`](tools/console/README.md) for the full command
+catalog and design notes.
+
 ## Comparison
 
 | Feature                 | Last.fm       | ListenBrainz     | **Rocksky**              |
