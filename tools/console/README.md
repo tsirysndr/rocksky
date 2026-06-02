@@ -95,13 +95,19 @@ The console will surface a useful error if any of these are missing.
 
 ### 1. REPL (recommended for ops sessions)
 
+Two flavors depending on whether you live in a terminal or an editor:
+
 ```bash
 cd tools/console
-clj -M:dev
+
+clj -M:rebel    # pretty terminal REPL (rebel-readline: syntax highlighting,
+                # multi-line editing, inline docs, tab-completion)
+
+clj -M:dev      # nREPL on :7888 — connect from CIDER / Calva / Cursive
 ```
 
-You'll get an nREPL on `:7888` (CIDER/Calva-compatible). The `user.clj`
-preloads every console namespace under short aliases:
+Both aliases include `dev/` on the classpath, so `dev/user.clj` auto-loads
+and every console namespace is preloaded under short aliases:
 
 ```clojure
 user=> (help)                          ;; full command catalog

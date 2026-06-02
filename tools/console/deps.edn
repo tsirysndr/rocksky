@@ -13,5 +13,12 @@
                "--middleware" "[cider.nrepl/cider-middleware]"
                "--interactive"]}
 
+  ;; Terminal REPL with syntax highlighting, multi-line editing,
+  ;; inline docs, and tab-completion. `clj -M:rebel`
+  :rebel
+  {:extra-paths ["dev"]
+   :extra-deps {com.bhauman/rebel-readline {:mvn/version "0.1.4"}}
+   :main-opts ["-m" "rebel-readline.main"]}
+
   :run
   {:exec-fn console.core/dispatch}}}
