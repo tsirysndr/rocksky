@@ -39,7 +39,12 @@ jobs:
         env:
           MIRROR_TOKEN: ${{ secrets.SWIFT_MIRROR_TOKEN }}
         run: |
-          git push --force \
+          if [ -z "${MIRROR_TOKEN}" ]; then
+            echo "::error::SWIFT_MIRROR_TOKEN secret is empty or unset"
+            exit 1
+          fi
+          git config --unset-all http.https://github.com/.extraheader || true
+          git -c http.extraheader= push --force \
             "https://x-access-token:${MIRROR_TOKEN}@github.com/${TARGET_REPO}.git" \
             swift-release:main
 
@@ -58,8 +63,13 @@ jobs:
         env:
           MIRROR_TOKEN: ${{ secrets.SWIFT_MIRROR_TOKEN }}
         run: |
+          if [ -z "${MIRROR_TOKEN}" ]; then
+            echo "::error::SWIFT_MIRROR_TOKEN secret is empty or unset"
+            exit 1
+          fi
           VERSION="${{ steps.version.outputs.value }}"
           git tag -f "${VERSION}" swift-release
-          git push --force \
+          git config --unset-all http.https://github.com/.extraheader || true
+          git -c http.extraheader= push --force \
             "https://x-access-token:${MIRROR_TOKEN}@github.com/${TARGET_REPO}.git" \
             "refs/tags/${VERSION}"
