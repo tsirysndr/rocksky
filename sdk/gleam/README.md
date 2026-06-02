@@ -1,5 +1,8 @@
 # rocksky — Gleam SDK for the Rocksky XRPC API
 
+[![Package Version](https://img.shields.io/hexpm/v/rocksky)](https://hex.pm/packages/rocksky)
+[![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/rocksky)
+
 A pipe-friendly, batteries-included Gleam client for the
 [Rocksky](https://rocksky.app) XRPC API, generated from the lexicons in
 [`apps/api/lexicons`](../../apps/api/lexicons).
