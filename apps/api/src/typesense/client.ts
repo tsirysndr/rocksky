@@ -10,5 +10,6 @@ export const typesense = new Typesense.Client({
     },
   ],
   apiKey: env.TYPESENSE_API_KEY,
-  connectionTimeoutSeconds: 5,
+  connectionTimeoutSeconds: 2,
+  numRetries: 0,
 });
