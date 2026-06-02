@@ -1,0 +1,45 @@
+---
+title: "Pano Scrobbler (Android)"
+description: "Scrobble from any Android music player using Pano Scrobbler."
+icon: "android"
+---
+
+[Pano Scrobbler](https://github.com/kawaiiDango/pano-scrobbler) watches
+playback on your Android device and forwards each play to a scrobbling
+service. Point it at Rocksky's ListenBrainz endpoint and every Android player
+on your phone starts scrobbling.
+
+## Prerequisites
+
+- Android device with Pano Scrobbler installed
+- A [Rocksky](https://rocksky.app) account
+- An API key from the [API Applications](https://rocksky.app/apikeys) page
+
+## Setup
+
+<Steps>
+  <Step title="Open Pano Scrobbler">
+    Launch the app on your Android device.
+  </Step>
+  <Step title="Open the ListenBrainz settings">
+    Go to **Settings** and scroll to the **ListenBrainz** section. Enable it
+    if it isn't already.
+  </Step>
+  <Step title="Set the custom server URL">
+    Tap **Custom server URL** and enter:
+
+    ```
+    https://audioscrobbler.rocksky.app
+    ```
+  </Step>
+  <Step title="Add your API key">
+    Paste your Rocksky API key into the **Authentication token** field, then
+    save.
+  </Step>
+</Steps>
+
+## Verify
+
+Start playing a track. Visit [rocksky.app](https://rocksky.app) — your recent
+scrobbles should appear in real time. Pano Scrobbler waits until enough of a
+track has played before submitting it.

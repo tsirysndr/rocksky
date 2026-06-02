@@ -1,0 +1,95 @@
+---
+title: "Introduction"
+description: "Rocksky is a decentralized, open-source music scrobbling network built on the AT Protocol."
+icon: "music"
+---
+
+**Rocksky** is a decentralized, open-source alternative to Last.fm built on the
+[AT Protocol](https://atproto.com) — the same protocol that powers
+[Bluesky](https://bsky.app). It tracks ("scrobbles") the songs you play across
+your music apps and publishes them to your own decentralized identity, so your
+listening history belongs to you, not a single company.
+
+<CardGroup cols={2}>
+  <Card title="Sign in to rocksky.app" icon="rocket" href="https://rocksky.app">
+    The hosted version is the fastest way to get started. Sign in with Bluesky
+    and connect a source.
+  </Card>
+  <Card title="Quick start" icon="bolt" href="/quickstart">
+    A 5-minute walkthrough: sign in, connect a source, start scrobbling.
+  </Card>
+</CardGroup>
+
+## Why Rocksky?
+
+- **You own your data.** Scrobbles live on your AT Protocol PDS, not on a
+  vendor-controlled server. Export, migrate, or self-host whenever you want.
+- **Works with what you already use.** Spotify, Jellyfin, Navidrome, Kodi,
+  Pano Scrobbler, WebScrobbler, plus anything that speaks the Last.fm or
+  ListenBrainz protocol.
+- **Real-time and social.** A live **Stories** feed shows what people you
+  follow are playing right now. Likes and shoutbox comments are first-class.
+- **Open source.** [Self-host the whole stack](https://tangled.org/@rocksky.app/rocksky),
+  build integrations, or contribute on Tangled.
+
+## What is "scrobbling"?
+
+Scrobbling means automatically recording the track you're listening to —
+artist, title, album, timestamp, duration — and publishing it to your profile.
+Rocksky scrobbles from your music apps in real time and makes the history
+queryable, shareable, and portable.
+
+## How it works
+
+<Steps>
+  <Step title="Sign in with Bluesky">
+    Use any AT Protocol identity. No separate Rocksky account to manage.
+  </Step>
+  <Step title="Connect your music sources">
+    Spotify connects in one click. Self-hosted players (Jellyfin, Navidrome,
+    Kodi) point their ListenBrainz/Last.fm scrobbler at the Rocksky endpoint.
+  </Step>
+  <Step title="Listen normally">
+    Your plays show up on your profile and in the Stories feed within seconds.
+  </Step>
+  <Step title="Explore">
+    Browse charts, find new neighbours, follow friends, react to shouts, or
+    pull your data through the [SDKs](/sdks/overview) and
+    [API](/api-reference/introduction).
+  </Step>
+</Steps>
+
+## Who is it for?
+
+<CardGroup cols={2}>
+  <Card title="Privacy-conscious listeners" icon="lock">
+    Keep your listening history on infrastructure you control.
+  </Card>
+  <Card title="Bluesky / AT Protocol users" icon="at">
+    A native scrobbling layer for the open social web.
+  </Card>
+  <Card title="Self-hosters" icon="server">
+    Plays nicely with Jellyfin, Navidrome, and your own PDS.
+  </Card>
+  <Card title="Developers" icon="terminal">
+    Typed [SDKs in 9 languages](/sdks/overview), a Last.fm/ListenBrainz-compatible
+    scrobble API, and an [MCP server](/cli/mcp) for LLMs.
+  </Card>
+</CardGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Connect Jellyfin" icon="server" href="/integrations/jellyfin">
+    Scrobble from your Jellyfin library.
+  </Card>
+  <Card title="Connect Navidrome" icon="music" href="/integrations/navidrome">
+    Scrobble from Navidrome.
+  </Card>
+  <Card title="Migrate from Last.fm" icon="right-from-bracket" href="/migrations/from-lastfm">
+    Point a Last.fm-compatible scrobbler at Rocksky.
+  </Card>
+  <Card title="Migrate from ListenBrainz" icon="right-from-bracket" href="/migrations/from-listenbrainz">
+    Swap the API endpoint, reuse your existing clients.
+  </Card>
+</CardGroup>

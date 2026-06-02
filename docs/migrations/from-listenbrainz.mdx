@@ -1,0 +1,57 @@
+---
+title: "Migrating from ListenBrainz"
+description: "Switch any ListenBrainz client over to Rocksky in two steps."
+icon: "right-from-bracket"
+---
+
+Rocksky exposes a ListenBrainz-compatible API for the core scrobbling
+endpoints. Most ListenBrainz clients can be moved over by changing the base
+URL and the API token.
+
+## Prerequisites
+
+- A [Rocksky](https://rocksky.app) account
+- An API key from the [API Applications](https://rocksky.app/apikeys) page
+- A ListenBrainz-compatible scrobbler
+
+## Step 1: Change the base URL
+
+| ListenBrainz                       | Rocksky                                  |
+| ---------------------------------- | ---------------------------------------- |
+| `https://api.listenbrainz.org`     | `https://audioscrobbler.rocksky.app`     |
+
+## Step 2: Use your Rocksky API key
+
+Update the `Authorization` header your client sends:
+
+```
+Authorization: Token <your_rocksky_api_key>
+```
+
+## Step 3: Test it
+
+Submit a sample scrobble to `/submit-listens` with valid metadata, then check
+your [Rocksky profile](https://rocksky.app) to confirm it landed.
+
+## Supported endpoints
+
+The Rocksky audioscrobbler implements the core ListenBrainz endpoints,
+including:
+
+- `POST /1/submit-listens`
+- `GET  /1/validate-token`
+
+## Metadata normalization
+
+Rocksky tries to normalize incoming track metadata against its catalog. If a
+match cannot be found, the scrobble may be skipped instead of stored.
+
+## Per-client setup
+
+If you use one of these clients, the per-client guide already covers the URL
+swap:
+
+- [Jellyfin](/integrations/jellyfin)
+- [Navidrome](/integrations/navidrome)
+- [Pano Scrobbler (Android)](/integrations/pano-scrobbler)
+- [Kodi](/integrations/kodi)

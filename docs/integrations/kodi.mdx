@@ -1,0 +1,37 @@
+---
+title: "Kodi"
+description: "Scrobble plays from Kodi to Rocksky using the official ListenBrainz add-on."
+icon: "tv"
+---
+
+Kodi ships a ListenBrainz Scrobbler add-on in the official repository. With
+two settings, you can point it at Rocksky.
+
+## Prerequisites
+
+- [Kodi](https://kodi.tv/) media center
+- A [Rocksky](https://rocksky.app) account
+- An API key from the [API Applications](https://rocksky.app/apikeys) page
+
+## Setup
+
+<Steps>
+  <Step title="Install the add-on">
+    In Kodi, go to **Add-ons → Install from repository → Kodi Add-on repository →
+    Services → ListenBrainz Scrobbler** and install it.
+  </Step>
+  <Step title="Set the API endpoint">
+    Open the add-on settings and change the ListenBrainz API endpoint to:
+
+    ```
+    https://audioscrobbler.rocksky.app
+    ```
+  </Step>
+  <Step title="Add your API key">
+    Paste your Rocksky API key into the **Token** field.
+  </Step>
+  <Step title="Verify">
+    Restart Kodi, play a track, and check your Rocksky profile to confirm the
+    scrobble appears.
+  </Step>
+</Steps>

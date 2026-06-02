@@ -1,0 +1,38 @@
+---
+title: "scrobble-api"
+description: "Run a local Last.fm / ListenBrainz / Web Scrobbler-compatible server."
+icon: "server"
+---
+
+Start a local API server that accepts scrobbles from Last.fm, ListenBrainz,
+and Web Scrobbler clients, and forwards them to Rocksky. Useful for testing
+or running on a home server.
+
+## Usage
+
+```bash
+rocksky scrobble-api [options]
+```
+
+## Required environment variables
+
+```bash
+ROCKSKY_API_KEY=...
+ROCKSKY_SHARED_SECRET=...
+ROCKSKY_SESSION_KEY=...
+ROCKSKY_WEBSCROBBLER_KEY=...
+
+ROCKSKY_IDENTIFIER=alice.bsky.social
+ROCKSKY_PASSWORD=...
+```
+
+## Endpoint summary
+
+| Client family           | Base URL                                                            |
+| ----------------------- | ------------------------------------------------------------------- |
+| ListenBrainz            | `http://localhost:8778`                                             |
+| Last.fm (API 2.0)       | `http://localhost:8778/2.0`                                         |
+| Web Scrobbler           | `http://localhost:8778/webscrobbler/<ROCKSKY_WEBSCROBBLER_KEY>`     |
+
+See [Local scrobble API](/integrations/scrobble-api-local) for the end-to-end
+setup, including how to obtain each credential.

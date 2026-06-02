@@ -1,0 +1,25 @@
+---
+title: "tracks"
+description: "Show top tracks for a user."
+icon: "music"
+---
+
+List a user's top tracks, ranked by play count.
+
+## Usage
+
+```bash
+rocksky tracks [options] [did]
+```
+
+## Parameters
+
+| Name    | Required | Description                                            |
+| ------- | -------- | ------------------------------------------------------ |
+| `[did]` | No       | DID to inspect. Defaults to the authenticated session. |
+
+## Example
+
+```bash
+rocksky tracks did:plc:7vdlgi2bflelz7mmuxoqjfcr
+```

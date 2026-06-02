@@ -1,0 +1,26 @@
+---
+title: "nowplaying"
+description: "Show the currently playing track for yourself or any user."
+icon: "play"
+---
+
+Print the track a user is currently listening to. Omit the DID to query your
+own account.
+
+## Usage
+
+```bash
+rocksky nowplaying [did]
+```
+
+## Parameters
+
+| Name    | Required | Description                                                                |
+| ------- | -------- | -------------------------------------------------------------------------- |
+| `[did]` | No       | DID of the user to inspect. Defaults to the authenticated session.         |
+
+## Example
+
+```bash
+rocksky nowplaying did:plc:7vdlgi2bflelz7mmuxoqjfcr
+```

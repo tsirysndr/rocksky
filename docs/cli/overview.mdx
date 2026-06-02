@@ -1,0 +1,51 @@
+---
+title: "Overview"
+description: "Scrobble tracks, view stats, and manage your listening history from the terminal."
+icon: "terminal"
+---
+
+`rocksky` is a command-line interface for the Rocksky API. Use it to scrobble
+plays, inspect listening stats, manage API keys, and run the MCP / local
+scrobble servers.
+
+## Install
+
+<CodeGroup>
+```bash Global
+npm install -g @rocksky/cli
+```
+
+```bash One-off
+npx @rocksky/cli --help
+```
+</CodeGroup>
+
+## Common workflow
+
+```bash
+rocksky login alice.bsky.social     # one-time auth
+rocksky whoami                       # confirm session
+rocksky nowplaying                   # what's playing right now
+rocksky scrobbles --limit 20         # your recent history
+rocksky stats                        # listening stats
+```
+
+## Commands
+
+| Command                                         | Description                                                |
+| ----------------------------------------------- | ---------------------------------------------------------- |
+| [`login`](/cli/login)                           | Authenticate with your Bluesky handle                      |
+| [`whoami`](/cli/whoami)                         | Show the currently authenticated user                      |
+| [`nowplaying`](/cli/nowplaying)                 | Show the currently playing track                           |
+| [`scrobbles`](/cli/scrobbles)                   | List recent scrobbles                                      |
+| [`scrobble`](/cli/scrobble)                     | Record a track to your profile                             |
+| [`search`](/cli/search)                         | Search tracks, albums, and accounts                        |
+| [`stats`](/cli/stats)                           | Listening stats for a user                                 |
+| [`artists`](/cli/artists)                       | Top artists for a user                                     |
+| [`albums`](/cli/albums)                         | Top albums for a user                                      |
+| [`tracks`](/cli/tracks)                         | Top tracks for a user                                      |
+| [`create apikey`](/cli/create-apikey)           | Generate a new API key                                     |
+| [`sync`](/cli/sync)                             | Sync local data from the AT Protocol                       |
+| [`mcp`](/cli/mcp)                               | Start the MCP server for Claude and other LLMs             |
+| [`scrobble-api`](/cli/scrobble-api)             | Run a local Last.fm / ListenBrainz-compatible server       |
+| [`help`](/cli/help)                             | Show help for any command                                  |

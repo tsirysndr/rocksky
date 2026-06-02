@@ -1,0 +1,58 @@
+---
+title: "Migrating from Last.fm"
+description: "Repoint any Last.fm Audioscrobbler-compatible client at Rocksky."
+icon: "right-from-bracket"
+---
+
+Rocksky implements the Last.fm Audioscrobbler API (both the modern 2.0
+protocol and the legacy submission protocol). Migrating an existing client
+usually means changing one URL and swapping credentials.
+
+## Get your credentials
+
+1. Sign in to [rocksky.app](https://rocksky.app).
+2. Go to your [API Applications](https://rocksky.app/apikeys).
+3. Create an application to get an **API key** and **shared secret**.
+4. Generate a **session key** with [`rocksky login`](/cli/login).
+
+## Modern Last.fm clients (API 2.0)
+
+Replace the base URL:
+
+| Last.fm                                | Rocksky                                       |
+| -------------------------------------- | --------------------------------------------- |
+| `https://ws.audioscrobbler.com/2.0`    | `https://audioscrobbler.rocksky.app/2.0`      |
+
+Authentication still uses `api_key` and `sk` (session key) parameters with
+MD5-signed requests:
+
+1. Sort all request parameters by key alphabetically.
+2. Concatenate `key + value` pairs into one string.
+3. Append your shared secret.
+4. MD5-hash the result; send it as `api_sig`.
+
+## Legacy submission protocol
+
+For older clients (e.g. Deadbeef), use the legacy endpoint:
+
+```
+https://audioscrobbler.rocksky.app
+```
+
+- **Username**: your API key
+- **Password**: your shared secret
+
+## Metadata normalization
+
+Rocksky normalizes incoming track metadata before storing it. If the track
+can't be matched against a known song, the scrobble is skipped rather than
+stored as an orphan record.
+
+## Why migrate?
+
+- Your scrobbles live on infrastructure you can self-host
+- Real-time **Stories** feed for what your network is playing
+- AT Protocol identity — portable, exportable, no lock-in
+- Compatible with existing tools you already trust
+
+Need help? Open a thread in the [Discord](https://discord.gg/EVcBy2fVa3).

@@ -1,0 +1,136 @@
+---
+title: "FAQ"
+description: "Common questions about Rocksky, scrobbling, self-hosting, and privacy."
+icon: "circle-question"
+---
+
+## General
+
+<AccordionGroup>
+  <Accordion title="What is Rocksky?">
+    Rocksky is a decentralized, open-source alternative to Last.fm built on the
+    AT Protocol (the same protocol that powers Bluesky). It automatically
+    tracks ("scrobbles") your music listening from many sources and publishes
+    it to your own decentralized identity, giving you full ownership of your
+    data.
+  </Accordion>
+  <Accordion title="Why should I use Rocksky instead of Last.fm or ListenBrainz?">
+    - You **own your data** on the AT Protocol — you can move it or self-host
+    - Real-time **Stories** feed showing what your friends are playing
+    - Strong compatibility with existing scrobblers
+    - Fully open source and self-hostable
+    - No corporate control or data lock-in
+  </Accordion>
+  <Accordion title="Do I need a Bluesky account?">
+    Yes for the hosted version at [rocksky.app](https://rocksky.app). Any AT
+    Protocol identity works, including one from a self-hosted PDS.
+  </Accordion>
+  <Accordion title="Are you affiliated with Bluesky?">
+    No. Rocksky is an independent project built on top of the AT Protocol. It
+    is not affiliated with or endorsed by Bluesky.
+  </Accordion>
+</AccordionGroup>
+
+## Privacy & data
+
+<AccordionGroup>
+  <Accordion title="Where is my data stored?">
+    Your scrobbles are stored on an **AT Protocol Personal Data Server (PDS)**.
+    You control your data and can export or migrate it any time.
+  </Accordion>
+  <Accordion title="Can I delete my data?">
+    Yes. You can delete individual scrobbles or your entire history at any
+    time.
+  </Accordion>
+</AccordionGroup>
+
+## Scrobbling & integrations
+
+<AccordionGroup>
+  <Accordion title='What does "scrobble" mean?'>
+    Scrobbling is the act of automatically recording the songs you play —
+    artist, track, album, timestamp, duration, etc. — and publishing them to
+    your profile.
+  </Accordion>
+  <Accordion title="Which players and services work with Rocksky?">
+    - **Spotify**
+    - **[Jellyfin](/integrations/jellyfin)**
+    - **[Navidrome](/integrations/navidrome)**
+    - **[Pano Scrobbler](/integrations/pano-scrobbler)** (Android, Windows, Linux)
+    - **WebScrobbler** (Chrome / Firefox)
+    - **[Kodi](/integrations/kodi)**
+    - Any player that supports the **Last.fm** or **ListenBrainz** API
+  </Accordion>
+  <Accordion title='Does it support real-time "Now Playing"?'>
+    Yes — especially with Spotify and supported native clients.
+  </Accordion>
+</AccordionGroup>
+
+## Self-hosting
+
+<AccordionGroup>
+  <Accordion title="Can I run my own instance?">
+    Absolutely. Rocksky is designed to be fully self-hostable.
+  </Accordion>
+  <Accordion title="Is self-hosting difficult?">
+    It requires Docker, some technical knowledge, and ongoing maintenance.
+    Detailed guides and Docker Compose files are provided. A simpler one-click
+    setup is planned.
+  </Accordion>
+  <Accordion title="Can I use Rocksky with my own custom domain / PDS?">
+    Yes.
+  </Accordion>
+</AccordionGroup>
+
+## Social & features
+
+<AccordionGroup>
+  <Accordion title="What is the Stories feed?">
+    A real-time decentralized feed showing what your Bluesky friends (and
+    other Rocksky users) are listening to right now.
+  </Accordion>
+  <Accordion title="Can I like or comment on scrobbles?">
+    Yes — likes and a shoutbox-style commenting system are supported.
+  </Accordion>
+  <Accordion title="Will Rocksky have personalized recommendations?">
+    On the roadmap (high priority).
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="My scrobbles aren't appearing. What should I do?">
+    1. Check that the scrobbler is pointing to the correct Rocksky endpoint
+    2. Verify your API key (if using manual setup)
+    3. Make sure your player is sending the required metadata
+  </Accordion>
+  <Accordion title="The app feels slow. Is that normal?">
+    The hosted version is still in active development; performance is
+    improving quickly. Self-hosting close to you usually feels faster.
+  </Accordion>
+</AccordionGroup>
+
+## Development
+
+<AccordionGroup>
+  <Accordion title="Is Rocksky open source?">
+    Yes. Rocksky is open source and lives on Tangled at
+    [tangled.org/@rocksky.app/rocksky](https://tangled.org/@rocksky.app/rocksky).
+    You can explore the source, self-host, build integrations, and contribute.
+  </Accordion>
+  <Accordion title="How can I contribute?">
+    - Join the [Discord](https://discord.gg/EVcBy2fVa3)
+    - Open issues or PRs on Tangled
+    - Help improve documentation
+    - Build integrations
+  </Accordion>
+</AccordionGroup>
+
+---
+
+**Still have questions?**
+
+- Join the [Discord community](https://discord.gg/EVcBy2fVa3)
+- Open an issue on [Tangled](https://tangled.org/@rocksky.app/rocksky/issues/new)
+- Send us a message on [Bluesky](https://bsky.app/profile/did:plc:vegqomyce4ssoqs7zwqvgqty)

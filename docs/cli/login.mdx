@@ -1,0 +1,29 @@
+---
+title: "login"
+description: "Authenticate the CLI with your Bluesky account."
+icon: "right-to-bracket"
+---
+
+Sign in with a Bluesky handle. The CLI exchanges credentials for a session
+token used by every subsequent command.
+
+## Usage
+
+```bash
+rocksky login <handle>
+```
+
+## Parameters
+
+| Name       | Required | Description                              |
+| ---------- | -------- | ---------------------------------------- |
+| `<handle>` | Yes      | Your Bluesky handle (e.g. `alice.bsky.social`) |
+
+## Example
+
+```bash
+rocksky login tsiry-sandratraina.com
+```
+
+After login completes, run [`rocksky whoami`](/cli/whoami) to confirm the
+session is active.

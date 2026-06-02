@@ -1,0 +1,255 @@
+---
+title: "TypeScript"
+description: "Type-safe Rocksky SDK for Bun, Node 18+, Deno, browsers, and Cloudflare Workers."
+icon: "square-js"
+---
+
+`@rocksky/sdk` is a zero-dependency TypeScript client for the Rocksky XRPC API.
+
+- **Type-safe** — every endpoint and parameter is statically typed.
+- **Builder-friendly** — fluent `RockskyClient.builder()` for ergonomic setup.
+- **Pipe-friendly** — composable async operators (`pipe`, `withRetry`,
+  `withTimeout`, `map`, `tap`, `withFallback`, `catchError`).
+- **Zero-dependency** — only the platform `fetch` and the standard library.
+
+## Install
+
+<CodeGroup>
+```bash bun
+bun add @rocksky/sdk
+```
+
+```bash npm
+npm i @rocksky/sdk
+```
+</CodeGroup>
+
+## Quick start
+
+```ts
+import { createClient } from "@rocksky/sdk";
+
+const client = createClient();
+
+const profile = await client.actor.getProfile({
+  did: "did:plc:7vdlgi2bflelz7mmuxoqjfcr",
+});
+const topTracks = await client.charts.getTopTracks({ limit: 5 });
+```
+
+## Authentication
+
+```ts
+import { createClient } from "@rocksky/sdk";
+
+const client = createClient({ auth: process.env.ROCKSKY_TOKEN });
+
+// or refresh on every call
+const client2 = createClient({
+  auth: async () => loadTokenFromKeychain(),
+});
+```
+
+Endpoints that require auth throw `RockskyAuthError` when no token is
+configured.
+
+## Builder
+
+```ts
+import { RockskyClient } from "@rocksky/sdk";
+
+const client = RockskyClient.builder()
+  .baseUrl("https://api.rocksky.app")
+  .bearer(process.env.ROCKSKY_TOKEN!)
+  .userAgent("my-app/1.0")
+  .timeout(10_000)
+  .retries(3)
+  .retryDelay(200)
+  .header("x-trace-id", crypto.randomUUID())
+  .build();
+```
+
+`withAuth(token)` and `withBaseUrl(url)` return a new client without mutating
+the original.
+
+## Pipe-style composition
+
+```ts
+import {
+  createClient,
+  map,
+  pipe,
+  tap,
+  withFallback,
+  withRetry,
+  withTimeout,
+} from "@rocksky/sdk";
+
+const client = createClient();
+
+const handle = await pipe(
+  () => client.actor.getProfile({ did: "did:plc:7vdlgi2bflelz7mmuxoqjfcr" }),
+  withRetry(3, { delayMs: 200 }),
+  withTimeout(5_000),
+  tap((p) => console.log("loaded", p.handle)),
+  map((p) => p.displayName ?? p.handle),
+  withFallback("anonymous"),
+);
+```
+
+| Operator                                          | Description                                       |
+| ------------------------------------------------- | ------------------------------------------------- |
+| `map(fn)`                                         | Transform the resolved value.                     |
+| `tap(fn)`                                         | Run a side-effect; pass the value through.        |
+| `withRetry(n, { delayMs, factor, shouldRetry })`  | Retry on rejection with exponential backoff.      |
+| `withTimeout(ms)`                                 | Reject with `RockskyTimeoutError` after `ms`.     |
+| `withFallback(value \| fn)`                       | Recover from any error with a default.            |
+| `catchError(fn)`                                  | Map a thrown error to a value.                    |
+
+## Namespaces
+
+```
+client.actor        getProfile, getActorAlbums, getActorArtists, getActorSongs,
+                    getActorScrobbles, getActorLovedSongs, getActorPlaylists,
+                    getActorNeighbours, getActorCompatibility
+client.album        getAlbum, getAlbums, getAlbumTracks
+client.apikey       getApikeys, createApikey, updateApikey, removeApikey
+client.artist       getArtist, getArtists, getArtistAlbums, getArtistTracks,
+                    getArtistListeners, getArtistRecentListeners
+client.charts       getScrobblesChart, getTopArtists, getTopTracks
+client.dropbox      getFiles, getMetadata, getTemporaryLink, downloadFile
+client.feed         search, getFeed, getFeedGenerators, getFeedGenerator,
+                    describeFeedGenerator, getFeedSkeleton,
+                    getRecommendations, getArtistRecommendations,
+                    getAlbumRecommendations, getStories
+client.googledrive  getFile, getFiles, downloadFile
+client.graph        followAccount, unfollowAccount, getFollowers, getFollows,
+                    getKnownFollowers
+client.like         likeSong, dislikeSong, likeShout, dislikeShout
+client.mirror       getMirrorSources, putMirrorSource
+client.player       getCurrentlyPlaying, getPlaybackQueue, play, pause, next,
+                    previous, seek, playFile, playDirectory, addItemsToQueue,
+                    addDirectoryToQueue
+client.playlist     getPlaylists, getPlaylist, createPlaylist, removePlaylist,
+                    startPlaylist, insertDirectory, insertFiles, removeTrack
+client.scrobble     createScrobble, getScrobble, getScrobbles
+client.shout        createShout, replyShout, reportShout, removeShout,
+                    getShoutReplies, getProfileShouts, getTrackShouts,
+                    getArtistShouts, getAlbumShouts
+client.song         getSong, getSongs, getSongRecentListeners, matchSong,
+                    createSong
+client.spotify      getCurrentlyPlaying, play, pause, next, previous, seek
+client.stats        getStats, getWrapped
+```
+
+Every method takes a typed parameter object and returns `Promise<T>`. Pass a
+generic to narrow the response type:
+
+```ts
+type Profile = { handle: string; did: string; displayName?: string };
+const me = await client.actor.getProfile<Profile>({ did: "alice.bsky.social" });
+```
+
+## Escape hatch
+
+For endpoints not yet wrapped:
+
+```ts
+const result = await client.xrpc<MyType>(
+  "app.rocksky.something.notWrappedYet",
+  "GET",
+  { params: { foo: "bar" } },
+);
+```
+
+## Error handling
+
+```ts
+import { RockskyHttpError } from "@rocksky/sdk";
+
+try {
+  await client.scrobble.getScrobble({ uri: "at://x" });
+} catch (err) {
+  if (err instanceof RockskyHttpError && err.status === 404) {
+    console.log("not found");
+  } else {
+    throw err;
+  }
+}
+```
+
+| Error                 | Meaning                                          |
+| --------------------- | ------------------------------------------------ |
+| `RockskyHttpError`    | Non-2xx response. `.status`, `.url`, `.body`     |
+| `RockskyTimeoutError` | Exceeded `timeoutMs`                             |
+| `RockskyAuthError`    | Endpoint requires auth but no token configured   |
+| `RockskyError`        | Base class                                       |
+
+## Pagination
+
+```ts
+import { createClient, paginate } from "@rocksky/sdk";
+
+const client = createClient();
+
+// Offset / limit
+for await (const s of paginate({
+  fetch: ({ limit, offset }) =>
+    client.actor
+      .getActorScrobbles({ did, limit, offset })
+      .then((p) => p.scrobbles ?? []),
+  pageSize: 50,
+  maxItems: 200,
+})) {
+  console.log(s.track.title);
+}
+
+// Cursor
+const followers = await client
+  .paginate({
+    fetch: async ({ limit, cursor }) => {
+      const page = await client.graph.getFollowers({ actor, limit, cursor });
+      return { items: page.followers, cursor: page.cursor };
+    },
+    pageSize: 100,
+  })
+  .toArray();
+```
+
+## Realtime (WebSocket)
+
+```ts
+import { RealtimeClient, createClient } from "@rocksky/sdk";
+
+const rt = RealtimeClient.builder()
+  .baseUrl("https://api.rocksky.app")
+  .token(process.env.ROCKSKY_TOKEN!)
+  .clientName("my-app")
+  .pingInterval(20_000)
+  .reconnect({ backoffMs: 1000, maxBackoffMs: 60_000 })
+  .build();
+
+rt.on("registered", ({ deviceId }) => console.log("device id:", deviceId));
+rt.on("message", ({ data, device_id }) => console.log(device_id, data));
+rt.on("control", (c) => console.log("control:", c));
+
+await rt.connect();
+
+await rt.sendMessage({
+  type: "track",
+  title: "Heart of Glass",
+  artist: "Blondie",
+});
+
+await rt.sendControl({ action: "play", target: "device-id-123" });
+
+await rt.close();
+```
+
+Events: `open`, `close`, `error`, `registered`, `deviceRegistered`, `message`,
+`control`, `raw`.
+
+## License
+
+MIT © Tsiry Sandratraina. Source:
+[`sdk/typescript`](https://tangled.org/@rocksky.app/rocksky/blob/main/sdk/typescript).

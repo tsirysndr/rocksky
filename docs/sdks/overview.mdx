@@ -1,0 +1,72 @@
+---
+title: "SDKs"
+description: "Official Rocksky SDKs across nine languages — one for every flavor of XRPC client."
+icon: "code"
+---
+
+Every SDK wraps the [Rocksky XRPC API](/api-reference/introduction) (the same
+namespace tree under `app.rocksky.*`) with idiomatic, typed bindings for the
+host language.
+
+<CardGroup cols={3}>
+  <Card title="TypeScript" icon="square-js" href="/sdks/typescript">
+    `@rocksky/sdk` — Bun, Node 18+, Deno, browsers, Workers
+  </Card>
+  <Card title="Python" icon="python" href="/sdks/python">
+    `rocksky` — asyncio + Pydantic v2 models
+  </Card>
+  <Card title="Rust" icon="rust" href="/sdks/rust">
+    `rocksky` crate — tokio + reqwest, fluent builders
+  </Card>
+  <Card title="Go" icon="golang" href="/sdks/go">
+    `github.com/tsirysndr/rocksky/sdk/go/rocksky`
+  </Card>
+  <Card title="Ruby" icon="gem" href="/sdks/ruby">
+    `rocksky` gem — stdlib-only, IRB-friendly
+  </Card>
+  <Card title="Kotlin" icon="square-k" href="/sdks/kotlin">
+    `app.rocksky:rocksky-kotlin` — coroutines + Ktor
+  </Card>
+  <Card title="Elixir" icon="droplet" href="/sdks/elixir">
+    `rocksky_ex` — pipe-friendly, `Req`-based
+  </Card>
+  <Card title="Clojure" icon="parentheses" href="/sdks/clojure">
+    `app.rocksky/sdk` — plain maps in, plain maps out
+  </Card>
+  <Card title="Gleam" icon="star" href="/sdks/gleam">
+    `rocksky` — typed `Request(a)` pipeline
+  </Card>
+</CardGroup>
+
+## Common surface
+
+All SDKs share the same shape:
+
+- **Default base URL** — `https://api.rocksky.app`
+- **Bearer auth** — pass a JWT to write or access user-scoped endpoints
+- **Namespaces** — `actor`, `album`, `artist`, `song`, `scrobble`, `charts`,
+  `feed`, `graph`, `like`, `shout`, `playlist`, `player`, `stats`, `apikey`,
+  `mirror`, `dropbox`, `googledrive`, `spotify`
+- **Escape hatch** — a generic `query` / `procedure` / `call` / `xrpc` method
+  for endpoints the SDK hasn't wrapped yet
+- **Typed errors** — `RockskyError` (or the language-equivalent base) with
+  status, NSID, and body attached
+
+## Choosing an SDK
+
+| You're writing… | Use |
+| --- | --- |
+| A web frontend, Cloudflare Worker, or CLI in Node/Bun | [TypeScript](/sdks/typescript) |
+| A backend job, notebook, or data pipeline | [Python](/sdks/python) |
+| A long-running daemon or system tool | [Rust](/sdks/rust) or [Go](/sdks/go) |
+| A Rails app, script, or IRB session | [Ruby](/sdks/ruby) |
+| An Android app or JVM service | [Kotlin](/sdks/kotlin) |
+| A Phoenix app or supervised process tree | [Elixir](/sdks/elixir) |
+| A Clojure web service or REPL workflow | [Clojure](/sdks/clojure) |
+| A typed BEAM app with strict guarantees | [Gleam](/sdks/gleam) |
+
+## Source
+
+All SDKs live in the monorepo at
+[tangled.org/@rocksky.app/rocksky](https://tangled.org/@rocksky.app/rocksky)
+under `sdk/<language>/`.

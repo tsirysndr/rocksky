@@ -1,0 +1,33 @@
+---
+title: "create apikey"
+description: "Generate a new API key for an application or integration."
+icon: "key"
+---
+
+Create a Rocksky API key. Use it with the
+[scrobble API](/migrations/from-listenbrainz), the
+[SDKs](/sdks/overview), or any third-party scrobbler.
+
+## Usage
+
+```bash
+rocksky create apikey [options] <name>
+```
+
+## Parameters
+
+| Name     | Required | Description                                       |
+| -------- | -------- | ------------------------------------------------- |
+| `<name>` | Yes      | Human-readable name for the key                   |
+
+## Options
+
+| Flag        | Description                                |
+| ----------- | ------------------------------------------ |
+| `-d <text>` | Description of what the key is used for    |
+
+## Example
+
+```bash
+rocksky create apikey -d "Used for my scrobbling bot" scrobbler-bot
+```

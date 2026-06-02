@@ -1,0 +1,44 @@
+---
+title: "Navidrome"
+description: "Scrobble from a Navidrome server to Rocksky using the ListenBrainz-compatible API."
+icon: "music"
+---
+
+Navidrome ships with native ListenBrainz scrobbling. Rocksky implements that
+same protocol, so the integration is a one-line config change.
+
+## Prerequisites
+
+- A running [Navidrome](https://www.navidrome.org/) server
+- A [Rocksky](https://rocksky.app) account
+- An API key from the [API Applications](https://rocksky.app/apikeys) page
+
+## Configure Navidrome
+
+Enable ListenBrainz scrobbling, then point Navidrome at the Rocksky endpoint.
+
+<CodeGroup>
+```toml navidrome.toml
+ListenBrainz.Enabled = true
+ListenBrainz.BaseURL = "https://audioscrobbler.rocksky.app/1/"
+```
+
+```bash Environment
+ND_LISTENBRAINZ_ENABLED=true
+ND_LISTENBRAINZ_BASEURL=https://audioscrobbler.rocksky.app/1/
+```
+</CodeGroup>
+
+Restart Navidrome to pick up the changes.
+
+## Add your API key
+
+1. Open your Navidrome profile.
+2. Enable **ListenBrainz** scrobbling.
+3. Paste your Rocksky API key into the token field.
+
+## Verify
+
+Play a track through Navidrome and check your [Rocksky profile](https://rocksky.app)
+— the scrobble should appear in your history. Navidrome only sends a scrobble
+once you've played enough of a track.

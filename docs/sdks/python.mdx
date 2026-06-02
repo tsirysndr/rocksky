@@ -1,0 +1,175 @@
+---
+title: "Python"
+description: "Async Python SDK for the Rocksky XRPC API with Pydantic v2 models."
+icon: "python"
+---
+
+`rocksky` is an async-first, typed Python client for the Rocksky API.
+
+- Built on `asyncio` + `httpx.AsyncClient`
+- Pydantic v2 models for every common entity
+- Resource-style namespaces (`client.actor`, `client.scrobble`, …)
+- Escape hatch via `client.call(method)` for un-wrapped XRPC methods
+- Works on Python 3.10+
+
+## Install
+
+<CodeGroup>
+```bash uv
+uv add rocksky
+```
+
+```bash pip
+pip install rocksky
+```
+</CodeGroup>
+
+## Quick start
+
+```python
+import asyncio
+from rocksky import Client
+
+async def main() -> None:
+    async with Client() as rocksky:
+        me = await rocksky.actor.get_profile("tsiry-sandratraina.com")
+        print(me.display_name, "—", me.did)
+
+        recent = await rocksky.scrobble.list(did=me.did, limit=10)
+        for s in recent:
+            print(f"  {s.artist} — {s.title}")
+
+asyncio.run(main())
+```
+
+## Authenticating
+
+```python
+async with Client(token="eyJhbGciOi…") as rocksky:
+    await rocksky.scrobble.create(
+        title="Hounds of Love",
+        artist="Kate Bush",
+        album="Hounds of Love",
+        duration=298000,
+    )
+```
+
+Swap tokens mid-session:
+
+```python
+rocksky.set_token(new_jwt)
+```
+
+## Self-hosting / custom base URL
+
+```python
+Client(base_url="http://localhost:8000", token=...)
+```
+
+## Builder
+
+```python
+from rocksky import ClientBuilder
+
+rocksky = (
+    ClientBuilder()
+    .base_url("https://api.rocksky.app")
+    .token(os.environ["ROCKSKY_TOKEN"])
+    .timeout(10.0)
+    .user_agent("my-app/1.0")
+    .header("x-request-id", "trace-abc")
+    .retries(3, backoff=0.5)
+    .on_request(lambda r: log.debug("→ %s %s", r.method, r.url))
+    .on_response(lambda r: log.debug("← %s", r.status_code))
+    .build()
+)
+```
+
+- Every setter returns `self`, so chain freely.
+- Hooks may be sync **or** async — the SDK awaits when needed.
+- `retries(n)` retries `TransportError` + any 5xx response with exponential
+  backoff (`backoff * 2**attempt`). 4xx surfaces immediately.
+
+## IPython autoawait
+
+```bash
+uv run --with ipython ipython
+```
+
+```python
+In [1]: %autoawait
+In [2]: from rocksky import Client
+In [3]: rocksky = Client()
+In [4]: me = await rocksky.actor.get_profile("tsiry-sandratraina.com")
+In [5]: me.display_name
+Out[5]: 'Tsiry Sandratraina'
+```
+
+## Resources
+
+| Namespace                 | Methods                                                                                                                                            |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `actor`                   | `get_profile`, `get_albums`, `get_artists`, `get_songs`, `get_scrobbles`, `get_loved_songs`, `get_playlists`, `get_neighbours`, `get_compatibility` |
+| `album`                   | `get`, `list`, `get_tracks`                                                                                                                        |
+| `artist`                  | `get`, `list`, `get_albums`, `get_tracks`, `get_listeners`, `get_recent_listeners`                                                                 |
+| `song`                    | `get`, `list`, `match`, `get_recent_listeners`, `create`                                                                                           |
+| `scrobble`                | `get`, `list`, `create`                                                                                                                            |
+| `charts`                  | `top_tracks`, `top_artists`, `scrobbles_chart`                                                                                                     |
+| `feed`                    | `get`, `search`, `stories`, `recommendations`, `artist_recommendations`, `album_recommendations`, `get_generator`, `list_generators`               |
+| `graph`                   | `follow`, `unfollow`, `get_followers`, `get_follows`, `get_known_followers`                                                                        |
+| `shout`                   | `create`, `reply`, `remove`, `report`, `for_profile`, `for_album`, `for_artist`, `for_track`, `replies`                                            |
+| `like`                    | `like_song`, `dislike_song`, `like_shout`, `dislike_shout`                                                                                         |
+| `playlist`                | `get`, `list`, `create`, `remove`, `start`, `insert_files`, `insert_directory`                                                                     |
+| `player`                  | `currently_playing`, `queue`, `play`, `pause`, `next`, `previous`, `seek`, `play_file`, `play_directory`, `add_items_to_queue`                     |
+| `spotify`                 | `currently_playing`, `play`, `pause`, `next`, `previous`, `seek`                                                                                   |
+| `apikey`                  | `list`, `create`, `update`, `remove`                                                                                                               |
+| `stats`                   | `get`, `wrapped`                                                                                                                                   |
+| `mirror`                  | `list_sources`, `put_source`                                                                                                                       |
+| `dropbox` / `googledrive` | `list_files`, `get_file`, `download_file`, …                                                                                                       |
+
+## Escape hatch
+
+```python
+raw = await rocksky.call("app.rocksky.feed.describeFeedGenerator", verb="GET")
+```
+
+## Errors
+
+```python
+from rocksky import (
+    APIError,
+    AuthenticationError,    # 401
+    PermissionError,        # 403
+    NotFoundError,          # 404
+    RateLimitError,         # 429
+    ServerError,            # 5xx
+    TransportError,         # network / timeout
+)
+
+try:
+    await rocksky.song.get(uri="at://does-not-exist")
+except NotFoundError as e:
+    print(e.status_code, e.error, e.message)
+```
+
+`APIError` exposes `status_code`, `method`, `error`, `message`, and `body`.
+
+## Testing
+
+```python
+import httpx
+from rocksky import Client
+
+transport = httpx.MockTransport(lambda req: httpx.Response(200, json={"hits": []}))
+external = httpx.AsyncClient(transport=transport)
+
+async with Client(http_client=external) as rocksky:
+    await rocksky.feed.search("kate bush")
+
+await external.aclose()
+```
+
+## License
+
+MIT © Tsiry Sandratraina. Source:
+[`sdk/python`](https://tangled.org/@rocksky.app/rocksky/blob/main/sdk/python).

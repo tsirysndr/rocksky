@@ -1,0 +1,25 @@
+---
+title: "artists"
+description: "Show top artists for a user."
+icon: "user-music"
+---
+
+List a user's top artists, ranked by play count.
+
+## Usage
+
+```bash
+rocksky artists [options] [did]
+```
+
+## Parameters
+
+| Name    | Required | Description                                            |
+| ------- | -------- | ------------------------------------------------------ |
+| `[did]` | No       | DID to inspect. Defaults to the authenticated session. |
+
+## Example
+
+```bash
+rocksky artists did:plc:7vdlgi2bflelz7mmuxoqjfcr
+```

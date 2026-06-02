@@ -1,0 +1,34 @@
+---
+title: "mcp"
+description: "Start an MCP server so Claude and other LLMs can read your Rocksky data."
+icon: "robot"
+---
+
+Start a [Model Context Protocol](https://modelcontextprotocol.io) server.
+Once registered with an MCP-capable client (Claude Desktop, Cursor, …), the
+LLM can call Rocksky tools to query your scrobbles, top artists, now
+playing, and more.
+
+## Usage
+
+```bash
+rocksky mcp
+```
+
+## Wire it into Claude Desktop
+
+Add this to your Claude Desktop MCP config:
+
+```json
+{
+  "mcpServers": {
+    "rocksky": {
+      "command": "rocksky",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+See [Claude Desktop (MCP)](/integrations/claude-desktop) for the full setup
+walkthrough.

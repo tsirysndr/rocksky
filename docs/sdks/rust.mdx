@@ -1,0 +1,185 @@
+---
+title: "Rust"
+description: "Async Rust SDK for the Rocksky XRPC API — tokio + reqwest, builder-friendly."
+icon: "rust"
+---
+
+`rocksky` is an async Rust crate built on `tokio` + `reqwest`.
+
+- Strongly typed `serde` models, snake_case API
+- Fluent builders on every list / paginated endpoint
+- Namespaced accessors: `client.actor()`, `client.scrobble()`, …
+- Generic escape hatch (`client.call`, `client.procedure`) for un-wrapped methods
+- Compiles on Rust 1.75+
+
+## Install
+
+```toml
+[dependencies]
+rocksky = "0.1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+```
+
+Pin TLS backend if you don't want `rustls` (the default):
+
+```toml
+rocksky = { version = "0.1", default-features = false, features = ["native-tls"] }
+```
+
+## Quickstart
+
+```rust
+use rocksky::Client;
+
+#[tokio::main]
+async fn main() -> rocksky::Result<()> {
+    let client = Client::new();
+
+    let me = client.actor().get_profile("tsiry-sandratraina.com").await?;
+    println!(
+        "{} — {}",
+        me.display_name.as_deref().unwrap_or(""),
+        me.did.as_deref().unwrap_or(""),
+    );
+
+    let scrobbles = client
+        .scrobble()
+        .list()
+        .did(me.did.clone().unwrap_or_default())
+        .limit(10)
+        .send()
+        .await?;
+    for s in scrobbles {
+        println!(
+            "  {} — {}",
+            s.artist.as_deref().unwrap_or("?"),
+            s.title.as_deref().unwrap_or("?"),
+        );
+    }
+    Ok(())
+}
+```
+
+## Authenticating
+
+```rust
+let client = rocksky::Client::builder()
+    .token("eyJhbGciOi…")
+    .build();
+```
+
+…or change later:
+
+```rust
+client.set_token(Some("new-token".into())).await;
+```
+
+## Self-hosting / custom base URL
+
+```rust
+let client = rocksky::Client::builder()
+    .base_url("http://localhost:8000")
+    .token(token)
+    .timeout(std::time::Duration::from_secs(10))
+    .build();
+```
+
+## Builders
+
+```rust
+// List builder
+let songs = client.actor().get_songs("did:plc:7vdlgi2bflelz7mmuxoqjfcr")
+    .limit(50)
+    .offset(0)
+    .start_date(chrono::Utc::now() - chrono::Duration::days(30))
+    .send().await?;
+
+// Mutation builder (required args positional)
+let _ = client.scrobble().create("Hounds of Love", "Kate Bush")
+    .album("Hounds of Love")
+    .duration(298_000)
+    .year(1985)
+    .send().await?;
+
+// Charts
+let top = client.charts().top_tracks().limit(100).send().await?;
+```
+
+## Resources
+
+| Namespace            | Accessor              | Methods (selected)                                                                                                          |
+| -------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `actor`              | `client.actor()`      | `get_profile`, `get_albums`, `get_artists`, `get_songs`, `get_scrobbles`, `get_loved_songs`, `get_playlists`, …             |
+| `album`              | `client.album()`      | `get`, `list`, `get_tracks`                                                                                                 |
+| `artist`             | `client.artist()`     | `get`, `list`, `get_albums`, `get_tracks`, `get_listeners`, `get_recent_listeners`                                           |
+| `song`               | `client.song()`       | `get`, `get_by_mbid`, `get_by_isrc`, `get_by_spotify_id`, `list`, `match_song`, `get_recent_listeners`, `create`             |
+| `scrobble`           | `client.scrobble()`   | `get`, `list`, `create`                                                                                                     |
+| `charts`             | `client.charts()`     | `top_tracks`, `top_artists`, `scrobbles_chart`                                                                              |
+| `feed`               | `client.feed()`       | `get`, `search`, `stories`, `recommendations`, `artist_recommendations`, `album_recommendations`, `get_generator`, `list_generators` |
+| `graph`              | `client.graph()`      | `follow`, `unfollow`, `get_followers`, `get_follows`, `get_known_followers`                                                  |
+| `shout`              | `client.shout()`      | `create`, `reply`, `remove`, `report`, `for_profile`, `for_album`, `for_artist`, `for_track`, `replies`                      |
+| `like`               | `client.like()`       | `like_song`, `dislike_song`, `like_shout`, `dislike_shout`                                                                   |
+| `playlist`           | `client.playlist()`   | `get`, `list`, `create`, `remove`, `start`, `insert_files`, `insert_directory`                                              |
+| `player`             | `client.player()`     | `currently_playing`, `queue`, `play`, `pause`, `next`, `previous`, `seek`, `play_file`, `play_directory`, `add_items_to_queue` |
+| `spotify`            | `client.spotify()`    | `currently_playing`, `play`, `pause`, `next`, `previous`, `seek`                                                            |
+| `apikey`             | `client.apikey()`     | `list`, `create`, `update`, `remove`                                                                                        |
+| `stats`              | `client.stats()`      | `get`, `wrapped`                                                                                                            |
+| `mirror`             | `client.mirror()`     | `list_sources`, `put_source`                                                                                                |
+| `dropbox`            | `client.dropbox()`    | `list_files`, `metadata`, `temporary_link`, `download_file`                                                                  |
+| `googledrive`        | `client.googledrive()`| `list_files`, `get_file`, `download_file`                                                                                   |
+
+## Escape hatch
+
+```rust
+let raw: serde_json::Value =
+    client.call("app.rocksky.feed.describeFeedGenerator").await?;
+```
+
+## Errors
+
+```rust
+use rocksky::Error;
+
+match client.song().get("at://does-not-exist").await {
+    Ok(song) => println!("{song:?}"),
+    Err(e) if e.is_not_found() => eprintln!("not found"),
+    Err(Error::Api { status, error, message, .. }) => {
+        eprintln!("api error {status}: {error:?} / {message:?}");
+    }
+    Err(Error::MissingToken { method }) => {
+        eprintln!("auth required for {method}");
+    }
+    Err(e) => return Err(e.into()),
+}
+```
+
+Convenience predicates: `is_unauthorized()`, `is_forbidden()`,
+`is_not_found()`, `is_rate_limited()`, `is_client_error()`, `is_server_error()`.
+
+## Testing
+
+The SDK's own test suite uses [`wiremock`](https://docs.rs/wiremock):
+
+```rust
+use wiremock::{Mock, ResponseTemplate};
+use wiremock::matchers::{method, path};
+
+#[tokio::test]
+async fn it_works() {
+    let server = wiremock::MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/xrpc/app.rocksky.feed.search"))
+        .respond_with(ResponseTemplate::new(200)
+            .set_body_json(serde_json::json!({"hits": []})))
+        .mount(&server).await;
+
+    let client = rocksky::Client::builder().base_url(server.uri()).build();
+    let results = client.feed().search("kate bush").await.unwrap();
+    assert!(results.hits.is_empty());
+}
+```
+
+## License
+
+MIT © Tsiry Sandratraina. Source:
+[`sdk/rust`](https://tangled.org/@rocksky.app/rocksky/blob/main/sdk/rust).

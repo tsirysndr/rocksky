@@ -1,0 +1,70 @@
+---
+title: "Introduction"
+description: "The Rocksky HTTP API, built on AT Protocol XRPC."
+icon: "terminal"
+---
+
+The Rocksky API is an XRPC ([AT Protocol](https://atproto.com)) API. Every
+endpoint lives under the `app.rocksky.*` namespace and is reachable at
+`https://api.rocksky.app/xrpc/<nsid>`.
+
+## Base URL
+
+```
+https://api.rocksky.app
+```
+
+## Authentication
+
+Authenticated endpoints expect a **bearer token** in the `Authorization`
+header:
+
+```
+Authorization: Bearer <your_jwt>
+```
+
+You can obtain a token by:
+
+- Signing in at [rocksky.app](https://rocksky.app) and copying the OAuth
+  callback JWT
+- Running [`rocksky login <handle>`](/cli/login) with the CLI
+- Creating an [API key](/cli/create-apikey) for an application
+
+Read-only endpoints (profiles, charts, public scrobble feeds, search) work
+without authentication.
+
+## Audioscrobbler endpoints
+
+For Last.fm / ListenBrainz compatibility, Rocksky exposes a separate host:
+
+```
+https://audioscrobbler.rocksky.app
+```
+
+- [Migrate from Last.fm](/migrations/from-lastfm)
+- [Migrate from ListenBrainz](/migrations/from-listenbrainz)
+
+## SDKs
+
+Prefer typed bindings? Use one of the [official SDKs](/sdks/overview) in
+TypeScript, Python, Rust, Go, Ruby, Kotlin, Elixir, Clojure, or Gleam — every
+endpoint in this reference is wrapped.
+
+## Errors
+
+Non-2xx responses return an XRPC-style error body:
+
+```json
+{
+  "error": "InvalidRequest",
+  "message": "actor must be a DID or handle"
+}
+```
+
+The HTTP status code carries the category (400-class for client errors,
+500-class for server errors).
+
+## OpenAPI spec
+
+The endpoint reference below is generated directly from the
+[OpenAPI specification](/api-reference/openapi.json) shipped with this site.

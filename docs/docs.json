@@ -1,0 +1,163 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Rocksky",
+  "colors": {
+    "primary": "#FB26BD",
+    "light": "#FB26BD",
+    "dark": "#C71F95"
+  },
+  "favicon": "/favicon.png",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Getting started",
+            "pages": [
+              "index",
+              "quickstart",
+              "faq"
+            ]
+          },
+          {
+            "group": "Integrations",
+            "pages": [
+              "integrations/jellyfin",
+              "integrations/navidrome",
+              "integrations/navidrome-server",
+              "integrations/pano-scrobbler",
+              "integrations/kodi",
+              "integrations/claude-desktop",
+              "integrations/scrobble-api-local"
+            ]
+          },
+          {
+            "group": "Migrating",
+            "pages": [
+              "migrations/from-lastfm",
+              "migrations/from-listenbrainz"
+            ]
+          },
+          {
+            "group": "Rocksky CLI",
+            "pages": [
+              "cli/overview",
+              "cli/login",
+              "cli/whoami",
+              "cli/nowplaying",
+              "cli/scrobbles",
+              "cli/scrobble",
+              "cli/search",
+              "cli/stats",
+              "cli/artists",
+              "cli/albums",
+              "cli/tracks",
+              "cli/create-apikey",
+              "cli/sync",
+              "cli/mcp",
+              "cli/scrobble-api",
+              "cli/help"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "SDKs",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "sdks/overview"
+            ]
+          },
+          {
+            "group": "Language SDKs",
+            "pages": [
+              "sdks/typescript",
+              "sdks/python",
+              "sdks/rust",
+              "sdks/go",
+              "sdks/ruby",
+              "sdks/kotlin",
+              "sdks/elixir",
+              "sdks/clojure",
+              "sdks/gleam"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API reference",
+        "groups": [
+          {
+            "group": "API documentation",
+            "pages": [
+              "api-reference/introduction"
+            ]
+          },
+          {
+            "group": "Endpoints",
+            "openapi": "api-reference/openapi.json"
+          }
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "rocksky.app",
+          "href": "https://rocksky.app",
+          "icon": "music"
+        },
+        {
+          "anchor": "Source",
+          "href": "https://tangled.org/@rocksky.app/rocksky",
+          "icon": "code"
+        },
+        {
+          "anchor": "Discord",
+          "href": "https://discord.gg/EVcBy2fVa3",
+          "icon": "discord"
+        }
+      ]
+    }
+  },
+  "logo": {
+    "light": "/favicon.png",
+    "dark": "/favicon.png"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Discord",
+        "href": "https://discord.gg/EVcBy2fVa3"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Sign in",
+      "href": "https://rocksky.app"
+    }
+  },
+  "contextual": {
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "perplexity",
+      "mcp",
+      "cursor",
+      "vscode"
+    ]
+  },
+  "footer": {
+    "socials": {
+      "bluesky": "https://bsky.app/profile/did:plc:vegqomyce4ssoqs7zwqvgqty",
+      "github": "https://tangled.org/@rocksky.app/rocksky",
+      "discord": "https://discord.gg/EVcBy2fVa3"
+    }
+  }
+}

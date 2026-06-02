@@ -1,0 +1,54 @@
+---
+title: "Rocksky as a personal Navidrome server"
+description: "Stream your uploaded library through any Navidrome / Subsonic-compatible client, using Rocksky as the backend."
+icon: "cloud"
+---
+
+Rocksky exposes a Subsonic / Navidrome-compatible API. Upload your music to
+your private Rocksky library and stream it from any Subsonic client — phone,
+desktop, car head unit — without running your own server.
+
+## Step 1: Upload music
+
+Open **My Library** in Rocksky and use the upload option to add your audio
+files.
+
+<Info>
+  Your uploaded music is private — only you can access and stream your files.
+</Info>
+
+## Step 2: Get an API key
+
+Visit the [API Keys](https://rocksky.app/apikeys) page and generate a new key.
+You'll use it as the password in your Subsonic client.
+
+## Step 3: Configure your client
+
+In any Subsonic / Navidrome-compatible app, add a new server with these
+details:
+
+| Field      | Value                                    |
+| ---------- | ---------------------------------------- |
+| Server URL | `https://navidrome.rocksky.app`          |
+| Username   | Your ATProto handle (e.g. `alice.bsky.social`) |
+| Password   | Your Rocksky API key                     |
+
+## Compatible apps
+
+- **Symfonium** (Android)
+- **Substreamer** (Android, iOS)
+- **Cassette** (iOS)
+- **play:Sub** (iOS)
+- **Amperfy** (iOS, macOS)
+- **Tempo** (iOS, macOS)
+- …and many other Navidrome / Subsonic clients.
+
+## Scrobbling
+
+Plays from any of these clients are scrobbled automatically — there's nothing
+extra to wire up.
+
+<Note>
+  Rocksky currently stores uploads on Cloudflare R2. Support for user-connected
+  S3-compatible providers (bring-your-own bucket) is on the roadmap.
+</Note>

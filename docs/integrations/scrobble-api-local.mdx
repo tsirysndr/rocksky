@@ -1,0 +1,62 @@
+---
+title: "Local scrobble API"
+description: "Run a local ListenBrainz / Last.fm / Web Scrobbler-compatible server backed by Rocksky."
+icon: "network-wired"
+---
+
+The Rocksky CLI can boot a local scrobble server that speaks the
+ListenBrainz, Last.fm, and Web Scrobbler protocols. Point any compatible
+client at `localhost` and have your plays forwarded to Rocksky — handy for
+offline-tolerant setups, testing integrations, or running on a home server.
+
+## Prerequisites
+
+- [Node.js](https://nodejs.org/)
+- An AT Protocol (Bluesky) account
+
+## Configure credentials
+
+Set these environment variables once so the server can authenticate after a
+restart:
+
+```bash
+export ROCKSKY_API_KEY=...
+export ROCKSKY_SHARED_SECRET=...
+export ROCKSKY_SESSION_KEY=...
+export ROCKSKY_WEBSCROBBLER_KEY=...
+
+export ROCKSKY_IDENTIFIER=alice.bsky.social   # your handle or DID
+export ROCKSKY_PASSWORD=...                   # app password from https://bsky.app/settings/app-passwords
+```
+
+## Start the server
+
+```bash
+npx @rocksky/cli scrobble-api
+```
+
+The server listens on `http://localhost:8778`.
+
+<Note>
+  First startup can take a while: it syncs your existing scrobble history
+  locally before accepting writes.
+</Note>
+
+## Point your clients at it
+
+<Tabs>
+  <Tab title="ListenBrainz clients">
+    Base URL: `http://localhost:8778`. Use your `ROCKSKY_API_KEY` as the
+    authentication token.
+  </Tab>
+  <Tab title="Last.fm clients">
+    Base URL: `http://localhost:8778/2.0`. Use your `ROCKSKY_API_KEY` and
+    `ROCKSKY_SESSION_KEY`.
+  </Tab>
+  <Tab title="Web Scrobbler">
+    Endpoint: `http://localhost:8778/webscrobbler/<ROCKSKY_WEBSCROBBLER_KEY>`
+  </Tab>
+</Tabs>
+
+See the [`rocksky scrobble-api`](/cli/scrobble-api) command reference for the
+full surface.

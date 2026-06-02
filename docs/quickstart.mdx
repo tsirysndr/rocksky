@@ -1,0 +1,79 @@
+---
+title: "Quick start"
+description: "Get up and running with Rocksky in under 5 minutes."
+icon: "bolt"
+---
+
+Rocksky is a decentralized Last.fm alternative. It lets you automatically
+track your music listening ("scrobble") and publish it to your Bluesky / AT
+Protocol identity.
+
+<Card title="rocksky.app" icon="arrow-up-right-from-square" href="https://rocksky.app" horizontal>
+  Sign in with Bluesky and start scrobbling.
+</Card>
+
+## Option 1: Use the hosted version
+
+No server required — sign in and start scrobbling.
+
+<Steps>
+  <Step title="Sign in">
+    Go to [rocksky.app](https://rocksky.app) and click **Sign in with Bluesky**.
+    Log in with your Bluesky account (or create one).
+  </Step>
+  <Step title="Connect your music sources">
+    Pick one or more sources below.
+
+    | Source            | How to connect                                        | Difficulty |
+    | ----------------- | ----------------------------------------------------- | ---------- |
+    | **Spotify**       | Connect from Settings                                 | Easy       |
+    | **Jellyfin**      | [Add Rocksky as a scrobbler](/integrations/jellyfin)  | Easy       |
+    | **Navidrome**     | [Configure Navidrome](/integrations/navidrome)        | Easy       |
+    | **Android**       | [Pano Scrobbler](/integrations/pano-scrobbler)        | Easy       |
+    | **Browser**       | Install the WebScrobbler extension                    | Easy       |
+    | **Kodi**          | [Install the Rocksky add-on](/integrations/kodi)      | Medium     |
+    | **Other players** | Any Last.fm or ListenBrainz-compatible scrobbler      | Easy       |
+  </Step>
+  <Step title="Start listening">
+    Your plays appear on your profile and in the **Stories** feed within
+    seconds.
+  </Step>
+</Steps>
+
+## Option 2: Self-host Rocksky
+
+For full control and privacy.
+
+**Prerequisites**
+
+- Docker + Docker Compose
+- Node.js or Bun (for development)
+
+```bash
+git clone https://tangled.org/@rocksky.app/rocksky
+cd rocksky
+# follow the self-hosting guide in the repo README
+```
+
+<Note>
+  A one-command setup is on the roadmap. In the meantime, the
+  [source repo](https://tangled.org/@rocksky.app/rocksky) is the canonical
+  starting point.
+</Note>
+
+## What next?
+
+<CardGroup cols={2}>
+  <Card title="Migrate from Last.fm" icon="right-from-bracket" href="/migrations/from-lastfm">
+    Repoint any Last.fm-compatible scrobbler at Rocksky.
+  </Card>
+  <Card title="Install the CLI" icon="terminal" href="/cli/overview">
+    `rocksky` is a CLI for scrobbling, stats, and managing API keys.
+  </Card>
+  <Card title="Talk to Rocksky from Claude" icon="robot" href="/integrations/claude-desktop">
+    Plug the MCP server into Claude Desktop.
+  </Card>
+  <Card title="Build on the API" icon="code" href="/sdks/overview">
+    SDKs for TypeScript, Python, Rust, Go, Ruby, Kotlin, Elixir, Clojure, and Gleam.
+  </Card>
+</CardGroup>

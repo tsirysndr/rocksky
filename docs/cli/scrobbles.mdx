@@ -1,0 +1,28 @@
+---
+title: "scrobbles"
+description: "List recent scrobbles for yourself or another user."
+icon: "list-music"
+---
+
+Show the most recent scrobbles for a user.
+
+## Usage
+
+```bash
+rocksky scrobbles [options] [did]
+```
+
+## Parameters
+
+| Name    | Required | Description                                                  |
+| ------- | -------- | ------------------------------------------------------------ |
+| `[did]` | No       | DID to inspect. Defaults to the authenticated session.       |
+
+## Example
+
+```bash
+rocksky scrobbles did:plc:7vdlgi2bflelz7mmuxoqjfcr
+```
+
+Run `rocksky help scrobbles` to see the available flags (limit, offset,
+date ranges).

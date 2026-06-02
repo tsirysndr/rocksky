@@ -1,0 +1,26 @@
+---
+title: "stats"
+description: "Show listening statistics for a user."
+icon: "chart-line"
+---
+
+Print aggregated listening stats for a user (scrobble totals, unique artists,
+unique tracks, etc.).
+
+## Usage
+
+```bash
+rocksky stats [options] [did]
+```
+
+## Parameters
+
+| Name    | Required | Description                                            |
+| ------- | -------- | ------------------------------------------------------ |
+| `[did]` | No       | DID to inspect. Defaults to the authenticated session. |
+
+## Example
+
+```bash
+rocksky stats did:plc:7vdlgi2bflelz7mmuxoqjfcr
+```

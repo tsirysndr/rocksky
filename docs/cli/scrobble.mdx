@@ -1,0 +1,30 @@
+---
+title: "scrobble"
+description: "Record a play to your Rocksky profile."
+icon: "circle-dot"
+---
+
+Submit a one-off scrobble. Useful for testing integrations or recording a
+play from a source the CLI doesn't watch automatically.
+
+## Usage
+
+```bash
+rocksky scrobble [options] <track> <artist>
+```
+
+## Parameters
+
+| Name        | Required | Description                                |
+| ----------- | -------- | ------------------------------------------ |
+| `<track>`   | Yes      | Track title (quote multi-word values)      |
+| `<artist>`  | Yes      | Artist name (quote multi-word values)      |
+
+## Example
+
+```bash
+rocksky scrobble "Karma Police" "Radiohead"
+```
+
+Run `rocksky help scrobble` to see the optional metadata flags (album,
+duration, timestamp, MBID, ISRC).

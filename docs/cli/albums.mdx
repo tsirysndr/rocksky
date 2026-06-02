@@ -1,0 +1,25 @@
+---
+title: "albums"
+description: "Show top albums for a user."
+icon: "compact-disc"
+---
+
+List a user's top albums, ranked by play count.
+
+## Usage
+
+```bash
+rocksky albums [options] [did]
+```
+
+## Parameters
+
+| Name    | Required | Description                                            |
+| ------- | -------- | ------------------------------------------------------ |
+| `[did]` | No       | DID to inspect. Defaults to the authenticated session. |
+
+## Example
+
+```bash
+rocksky albums did:plc:7vdlgi2bflelz7mmuxoqjfcr
+```
