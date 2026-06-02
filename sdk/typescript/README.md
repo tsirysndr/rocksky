@@ -22,7 +22,7 @@ import { createClient } from "@rocksky/sdk";
 
 const client = createClient();
 
-const profile = await client.actor.getProfile({ did: "tsiry.bsky.social" });
+const profile = await client.actor.getProfile({ did: "did:plc:7vdlgi2bflelz7mmuxoqjfcr" });
 const topTracks = await client.charts.getTopTracks({ limit: 5 });
 ```
 
@@ -78,7 +78,7 @@ const client = createClient();
 
 // Pass a thunk so withRetry can re-invoke the network call.
 const handle = await pipe(
-  () => client.actor.getProfile({ did: "tsiry.bsky.social" }),
+  () => client.actor.getProfile({ did: "did:plc:7vdlgi2bflelz7mmuxoqjfcr" }),
   withRetry(3, { delayMs: 200 }),
   withTimeout(5_000),
   tap((p) => console.log("loaded", p.handle)),

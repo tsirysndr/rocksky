@@ -3,7 +3,7 @@ import { createClient } from "../src";
 const client = createClient();
 
 const profile = await client.actor.getProfile<{ handle: string; did: string }>({
-  did: "tsiry.bsky.social",
+  did: "did:plc:7vdlgi2bflelz7mmuxoqjfcr",
 });
 
 console.log("handle:", profile.handle, "did:", profile.did);
