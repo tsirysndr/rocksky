@@ -17,14 +17,14 @@ Async Rust SDK for the [Rocksky](https://rocksky.app) XRPC API.
 
 ```toml
 [dependencies]
-rocksky = "0.1"
+rocksky = "0.2"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
 
 Pin TLS backend if you don't want `rustls` (the default):
 
 ```toml
-rocksky = { version = "0.1", default-features = false, features = ["native-tls"] }
+rocksky = { version = "0.2", default-features = false, features = ["native-tls"] }
 ```
 
 ## Quickstart

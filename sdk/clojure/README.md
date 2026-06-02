@@ -17,13 +17,13 @@ An idiomatic, pipe-friendly Clojure client for the
 `deps.edn`:
 
 ```clojure
-{:deps {app.rocksky/sdk {:mvn/version "0.1.1-SNAPSHOT"}}}
+{:deps {app.rocksky/sdk {:mvn/version "0.2.0-SNAPSHOT"}}}
 ```
 
 Leiningen / Boot:
 
 ```clojure
-[app.rocksky/sdk "0.1.1-SNAPSHOT"]
+[app.rocksky/sdk "0.2.0-SNAPSHOT"]
 ```
 
 Or, to track a specific commit instead of a release:

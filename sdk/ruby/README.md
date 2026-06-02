@@ -132,7 +132,7 @@ pre-loaded with a `client` bound to your environment.
 ```bash
 $ gem install rocksky
 $ ROCKSKY_TOKEN=eyJ... rocksky-console
-Rocksky 0.1.0 — interactive console
+Rocksky 0.2.0 — interactive console
   base_url : https://api.rocksky.app
   token    : present (set via ROCKSKY_TOKEN)
 

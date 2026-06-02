@@ -6,7 +6,7 @@ A pipe-friendly Elixir client for the [Rocksky](https://rocksky.app) XRPC API.
 ```elixir
 def deps do
   [
-    {:rocksky_ex, "~> 0.1"}
+    {:rocksky_ex, "~> 0.2"}
   ]
 end
 ```

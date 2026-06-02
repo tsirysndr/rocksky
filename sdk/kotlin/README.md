@@ -13,7 +13,7 @@ The SDK is published as a single module:
 
 ```kotlin
 dependencies {
-    implementation("app.rocksky:rocksky-kotlin:0.1.0")
+    implementation("app.rocksky:rocksky-kotlin:0.2.0")
 }
 ```
 
