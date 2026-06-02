@@ -8,6 +8,7 @@
       user=> (daemons/jetstream)"
   (:require [console.core    :as c]
             [console.shell   :as sh]
+            [console.env     :as env]
             [console.lexgen  :as lexgen]
             [console.db      :as db]
             [console.sync    :as sync]
@@ -18,7 +19,12 @@
 (def help c/help)
 (def ls   c/ls)
 
-(println)
-(println "Rocksky Console — REPL loaded. Try (help) or (ls).")
-(println "Aliases in scope: c, sh, lexgen, db, sync, daemons, devops, cron")
-(println)
+;; Auto-load <repo>/.env on REPL startup. Silent if the file is missing,
+;; so a fresh clone still drops into a usable REPL.
+(let [n (try (env/load!) (catch Exception _ nil))]
+  (println)
+  (println "Rocksky Console — REPL loaded. Try (help) or (ls).")
+  (println "Aliases in scope: c, sh, env, lexgen, db, sync, daemons, devops, cron")
+  (when n
+    (println (str "Loaded " n " env vars from .env — `(env/show)` to inspect.")))
+  (println))

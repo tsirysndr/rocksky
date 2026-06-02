@@ -4,27 +4,30 @@
   Two flavors:
     `sh`   — inherit stdio (you see live output, exit-code returned)
     `sh!`  — capture (returns {:out :err :exit}), throws on non-zero
-    `sh*`  — background (returns a process handle you can deref)"
+    `sh*`  — background (returns a process handle you can deref)
+
+  Every subprocess automatically inherits `@console.env/*env*` via
+  `:extra-env`. Pass `:extra-env {...}` in opts to override individual
+  keys for one call."
   (:require [babashka.process :as p]
             [babashka.fs :as fs]
-            [clojure.java.io :as io]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [console.path :as path]
+            [console.env  :as env]))
 
 (defn repo-root
-  "Walk up from *file* (or cwd) until we find the rocksky monorepo root,
-  identified by a `turbo.json` next to a `package.json`."
+  "Re-exported for callers that want the repo root."
   []
-  (loop [dir (fs/absolutize (or (some-> (System/getProperty "user.dir") fs/path)
-                                (fs/cwd)))]
-    (cond
-      (nil? dir) (throw (ex-info "Could not locate rocksky repo root" {}))
-      (and (fs/exists? (fs/path dir "turbo.json"))
-           (fs/exists? (fs/path dir "package.json")))
-      (str dir)
-      :else (recur (fs/parent dir)))))
+  (path/repo-root))
+
+(defn- with-env
+  "Make `@env/*env*` the default `:extra-env`. Per-call `:extra-env` wins."
+  [opts]
+  (assoc opts :extra-env (merge (env/as-map) (:extra-env opts))))
 
 (defn- in-repo [opts]
-  (merge {:dir (repo-root) :inherit true} opts))
+  (-> (merge {:dir (path/repo-root) :inherit true} opts)
+      with-env))
 
 (defn sh
   "Run a command with inherited stdio. Returns the exit code.
@@ -43,7 +46,9 @@
   ([cmd] (sh! cmd {}))
   ([cmd opts]
    (let [args (if (vector? cmd) cmd (str/split cmd #"\s+"))
-         opts (merge {:dir (repo-root) :out :string :err :string} opts)]
+         opts (-> {:dir (path/repo-root) :out :string :err :string}
+                  (merge opts)
+                  with-env)]
      @(p/process args opts))))
 
 (defn sh*
@@ -62,7 +67,7 @@
   "Shortcut for `bun run <script>` inside `dir` (relative to repo root)."
   [dir script & args]
   (sh (into ["bun" "run" script] args)
-      {:dir (str (fs/path (repo-root) dir))}))
+      {:dir (str (fs/path (path/repo-root) dir))}))
 
 (defn cargo
   "`cargo run -p <crate> --release -- <args>`"

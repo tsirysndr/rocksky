@@ -65,4 +65,22 @@
                  :task (do (require 'console.devops) ((resolve 'console.devops/mb)))}
   cron          {:doc "Schedule a command. Usage: bb cron <interval-min> <cmd> [args...]"
                  :task (do (require 'console.cron)
-                           (apply (resolve 'console.cron/schedule) *command-line-args*))}}}
+                           (apply (resolve 'console.cron/schedule) *command-line-args*))}
+
+  ;; ── env ──────────────────────────────────────────────────────
+  env:load      {:doc "Load <repo>/.env (or a specific path passed as arg)."
+                 :task (do (require 'console.env)
+                           (if-let [p (first *command-line-args*)]
+                             ((resolve 'console.env/load!) p)
+                             ((resolve 'console.env/load!))))}
+  env:doppler   {:doc "Pull Doppler secrets. Usage: bb env:doppler [project] [config]"
+                 :task (do (require 'console.env)
+                           (apply (resolve 'console.env/doppler!) *command-line-args*))}
+  env:show      {:doc "Show every loaded key (masked values)."
+                 :task (do (require 'console.env)
+                           ;; Default `bb` invocation runs commands with an
+                           ;; empty *env*; chain loads here for `bb env:show`
+                           ;; to be useful as a quick diagnostic.
+                           ((resolve 'console.env/load!))
+                           ((resolve 'console.env/show)))}
+  env:reload    {:task (do (require 'console.env) ((resolve 'console.env/reload!)))}}}

@@ -171,6 +171,59 @@ Run `(help)` / `bb help` for the live list. Snapshot:
 |           | `local-proxy`            | local dev split-proxy on :8081                      |
 |           | `mb`                     | musicbrainz Go cache server                         |
 | `cron`    | `schedule <min> <cmd>`   | wrap any command in Deno cron                       |
+| `env`     | `load!`, `doppler!`      | populate env from `.env` or Doppler                 |
+|           | `show`, `get`, `reload!` | inspect / re-pull / clear                           |
+
+---
+
+## Environment variables
+
+Most wrapped scripts (bun, cargo, deno) read configuration from environment
+variables. The console exposes a small `console.env` namespace that loads
+those vars into an in-memory map and **automatically injects them into every
+subprocess** spawned through `console.shell`. Two source types are
+supported: `.env` files and Doppler.
+
+```clojure
+;; ── REPL ────────────────────────────────────────────────────────
+user=> (env/load!)                     ;; reads <repo>/.env (auto on startup)
+user=> (env/load! "apps/api/.env")     ;; layer another file on top
+user=> (env/doppler!)                  ;; pull from Doppler using doppler.yaml
+user=> (env/doppler! "rocksky" "dev")  ;; …or explicit project + config
+user=> (env/show)                      ;; masked dump of every loaded key
+user=> (env/get "DATABASE_URL")        ;; raw value
+user=> (env/reload!)                   ;; re-pull every source in order
+user=> (env/unload!)                   ;; clear back to JVM defaults
+
+;; ── one-shot ─────────────────────────────────────────────────────
+$ bb env:show
+$ bb env:load apps/api/.env
+$ bb env:doppler rocksky dev
+$ bb env:reload
+```
+
+**Layering & precedence.** Sources are merged in load order, later wins.
+Per-call overrides are still possible via the `:extra-env` opt on
+`console.shell/sh`. The final env passed to a subprocess is:
+
+```
+JVM-inherited env  ⊕  @console.env/*env*  ⊕  (:extra-env opts)
+```
+
+**Auto-load.** `dev/user.clj` calls `(env/load!)` on REPL startup, so
+`clj -M:rebel` and `clj -M:dev` come up with `<repo>/.env` already in scope.
+Babashka one-shots do *not* auto-load (each invocation is a fresh
+process) — chain `(env/load!)` at the top of any new bb task that needs it,
+or use the explicit `bb env:load` / `bb env:doppler` task first.
+
+**Doppler.** Requires the `doppler` CLI on `PATH` and a prior
+`doppler login`. With no args, `(env/doppler!)` defers to whatever
+`doppler.yaml` (set up via `doppler setup`) is configured in the repo;
+this mirrors how production systemd units run (`doppler run …`).
+
+**Secrets safety.** `(env/show)` always masks values (first 2 + `***` +
+last 2 chars). `(env/get k)` returns the raw value because you usually
+need it. Don't paste REPL transcripts that contain `(env/get …)` results.
 
 ---
 
@@ -197,6 +250,10 @@ That's it — no compilation step, the REPL picks it up on next `(require … :r
 - **Wrappers, not reimplementations.** Every wrapper calls the existing script.
   This means production behavior is identical and we never have two
   implementations to keep in sync.
+- **Env injection happens at the subprocess boundary.** JVM env vars are
+  read-only in-process, so `console.env` keeps its own atom and merges it into
+  every subprocess's `:extra-env`. This matches where the work actually happens
+  (the bun/cargo/deno child processes).
 - **Shared `src/` between clj and bb.** The source tree lives at `src/`; both
   `deps.edn` and `bb.edn` point at it. Don't import anything that Babashka
   can't load (no AOT-only libs, no native-image-incompatible deps).
@@ -220,6 +277,11 @@ That's it — no compilation step, the REPL picks it up on next `(require … :r
   monorepo. `cd` into the repo (or any subdir) first.
 - **Daemon won't stop** — JVM REPL: `(.destroyForcibly ^Process (:proc <handle>))`.
   Babashka one-shot: Ctrl-C.
+- **`doppler: command not found`** — install the Doppler CLI and run
+  `doppler login` once. `(env/doppler!)` shells out to it.
+- **Wrapped script can't see an env var** — confirm it loaded with
+  `(env/show)`. If it's missing, the `.env` file may not have been read; run
+  `(env/load!)` (auto-loads `<repo>/.env`) or pass an explicit path.
 
 ---
 

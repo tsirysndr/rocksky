@@ -60,7 +60,15 @@
            [:mb              "Run musicbrainz Go metadata cache server"]]}
 
    {:group "cron" :ns 'console.cron
-    :cmds [[:schedule        "Wrap a command in Deno cron. Args: interval-min cmd [args...]"]]}])
+    :cmds [[:schedule        "Wrap a command in Deno cron. Args: interval-min cmd [args...]"]]}
+
+   {:group "env" :ns 'console.env
+    :cmds [[:load!           "Load a .env file (defaults to <repo>/.env)"]
+           [:doppler!        "Pull secrets from Doppler. Args: [project config]"]
+           [:reload!         "Re-pull every previously loaded source"]
+           [:unload!         "Clear the loaded env back to JVM defaults"]
+           [:show            "Print loaded keys with values masked"]
+           [:get             "Fetch one value (raw). Args: key [default]"]]}])
 
 (defn- pad [s n] (let [s (str s)] (str s (apply str (repeat (max 0 (- n (count s))) " ")))))
 
