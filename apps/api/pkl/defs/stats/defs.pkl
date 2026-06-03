@@ -29,6 +29,32 @@ defs = new Mapping<String, ObjectType> {
     }
   }
 
+  ["globalStatsView"] {
+    type = "object"
+    properties {
+      ["scrobbles"] = new IntegerType {
+        type = "integer"
+        description = "Total scrobbles across all users on Rocksky."
+      }
+      ["users"] = new IntegerType {
+        type = "integer"
+        description = "Total number of users on Rocksky."
+      }
+      ["artists"] = new IntegerType {
+        type = "integer"
+        description = "Total number of artists known to Rocksky."
+      }
+      ["albums"] = new IntegerType {
+        type = "integer"
+        description = "Total number of albums known to Rocksky."
+      }
+      ["tracks"] = new IntegerType {
+        type = "integer"
+        description = "Total number of tracks known to Rocksky."
+      }
+    }
+  }
+
   ["wrappedArtist"] {
     type = "object"
     properties {

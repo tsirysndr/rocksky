@@ -1,0 +1,21 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.stats.getGlobalStats",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get all-time stats across all of Rocksky.",
+      "parameters": {
+        "type": "params",
+        "properties": {}
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "ref",
+          "ref": "app.rocksky.stats.defs#globalStatsView"
+        }
+      }
+    }
+  }
+}

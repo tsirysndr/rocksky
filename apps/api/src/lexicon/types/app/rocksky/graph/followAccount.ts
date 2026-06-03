@@ -1,12 +1,13 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import type express from "express";
-import { ValidationResult, BlobRef } from "@atproto/lexicon";
-import { lexicons } from "../../../../lexicons";
-import { isObj, hasProp } from "../../../../util";
-import { CID } from "multiformats/cid";
+
+import { BlobRef, ValidationResult } from "@atproto/lexicon";
 import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
+import type express from "express";
+import { CID } from "multiformats/cid";
+import { lexicons } from "../../../../lexicons";
+import { hasProp, isObj } from "../../../../util";
 import type * as AppRockskyActorDefs from "../actor/defs";
 
 export interface QueryParams {

@@ -1579,7 +1579,7 @@ export const schemaDict = {
             type: "array",
             items: {
               type: "ref",
-              ref: "lex:app.rocksky.song.defs.songViewBasic",
+              ref: "lex:app.rocksky.song.defs#songViewBasic",
             },
           },
         },
@@ -4267,7 +4267,7 @@ export const schemaDict = {
             type: "array",
             items: {
               type: "ref",
-              ref: "lex:app.rocksky.song.defs.songViewBasic",
+              ref: "lex:app.rocksky.song.defs#songViewBasic",
             },
           },
         },
@@ -5311,6 +5311,12 @@ export const schemaDict = {
           sha256: {
             type: "string",
             description: "The SHA256 hash of the scrobble data.",
+          },
+          liked: {
+            type: "boolean",
+          },
+          likesCount: {
+            type: "integer",
           },
           listeners: {
             type: "integer",
@@ -6900,6 +6906,31 @@ export const schemaDict = {
           },
         },
       },
+      globalStatsView: {
+        type: "object",
+        properties: {
+          scrobbles: {
+            type: "integer",
+            description: "Total scrobbles across all users on Rocksky.",
+          },
+          users: {
+            type: "integer",
+            description: "Total number of users on Rocksky.",
+          },
+          artists: {
+            type: "integer",
+            description: "Total number of artists known to Rocksky.",
+          },
+          albums: {
+            type: "integer",
+            description: "Total number of albums known to Rocksky.",
+          },
+          tracks: {
+            type: "integer",
+            description: "Total number of tracks known to Rocksky.",
+          },
+        },
+      },
       wrappedArtist: {
         type: "object",
         properties: {
@@ -7160,6 +7191,27 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyStatsGetGlobalStats: {
+    lexicon: 1,
+    id: "app.rocksky.stats.getGlobalStats",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get all-time stats across all of Rocksky.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "ref",
+            ref: "lex:app.rocksky.stats.defs#globalStatsView",
+          },
+        },
+      },
+    },
+  },
   AppRockskyStatsGetStats: {
     lexicon: 1,
     id: "app.rocksky.stats.getStats",
@@ -7390,6 +7442,7 @@ export const ids = {
   AppRockskySpotifyPrevious: "app.rocksky.spotify.previous",
   AppRockskySpotifySeek: "app.rocksky.spotify.seek",
   AppRockskyStatsDefs: "app.rocksky.stats.defs",
+  AppRockskyStatsGetGlobalStats: "app.rocksky.stats.getGlobalStats",
   AppRockskyStatsGetStats: "app.rocksky.stats.getStats",
   AppRockskyStatsGetWrapped: "app.rocksky.stats.getWrapped",
   ComAtprotoRepoStrongRef: "com.atproto.repo.strongRef",

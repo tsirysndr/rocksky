@@ -1,10 +1,10 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import { type ValidationResult, BlobRef } from "@atproto/lexicon";
-import { lexicons } from "../../../../lexicons";
-import { isObj, hasProp } from "../../../../util";
+import { BlobRef, type ValidationResult } from "@atproto/lexicon";
 import { CID } from "multiformats/cid";
+import { lexicons } from "../../../../lexicons";
+import { hasProp, isObj } from "../../../../util";
 
 export interface StatsView {
   /** The total number of scrobbles. */
@@ -30,6 +30,32 @@ export function isStatsView(v: unknown): v is StatsView {
 
 export function validateStatsView(v: unknown): ValidationResult {
   return lexicons.validate("app.rocksky.stats.defs#statsView", v);
+}
+
+export interface GlobalStatsView {
+  /** Total scrobbles across all users on Rocksky. */
+  scrobbles?: number;
+  /** Total number of users on Rocksky. */
+  users?: number;
+  /** Total number of artists known to Rocksky. */
+  artists?: number;
+  /** Total number of albums known to Rocksky. */
+  albums?: number;
+  /** Total number of tracks known to Rocksky. */
+  tracks?: number;
+  [k: string]: unknown;
+}
+
+export function isGlobalStatsView(v: unknown): v is GlobalStatsView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.stats.defs#globalStatsView"
+  );
+}
+
+export function validateGlobalStatsView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.stats.defs#globalStatsView", v);
 }
 
 export interface WrappedArtist {

@@ -1,13 +1,13 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import { type ValidationResult, BlobRef } from "@atproto/lexicon";
-import { lexicons } from "../../../../../lexicons";
-import { isObj, hasProp } from "../../../../../util";
+import { BlobRef, type ValidationResult } from "@atproto/lexicon";
 import { CID } from "multiformats/cid";
+import { lexicons } from "../../../../../lexicons";
+import { hasProp, isObj } from "../../../../../util";
 import type * as AppBskyRichtextFacet from "../../../../app/bsky/richtext/facet";
-import type * as FmTealAlphaActorProfile from "./profile";
 import type * as FmTealAlphaFeedDefs from "../feed/defs";
+import type * as FmTealAlphaActorProfile from "./profile";
 
 export interface ProfileView {
   /** The decentralized identifier of the actor */

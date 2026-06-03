@@ -1,10 +1,10 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import type { ValidationResult, BlobRef } from "@atproto/lexicon";
-import { lexicons } from "../../../lexicons";
-import { isObj, hasProp } from "../../../util";
+import type { BlobRef, ValidationResult } from "@atproto/lexicon";
 import { CID } from "multiformats/cid";
+import { lexicons } from "../../../lexicons";
+import { hasProp, isObj } from "../../../util";
 
 export interface Record {
   /** The name of the playlist. */

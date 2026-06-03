@@ -27,6 +27,31 @@
         }
       }
     },
+    "globalStatsView": {
+      "type": "object",
+      "properties": {
+        "scrobbles": {
+          "type": "integer",
+          "description": "Total scrobbles across all users on Rocksky."
+        },
+        "users": {
+          "type": "integer",
+          "description": "Total number of users on Rocksky."
+        },
+        "artists": {
+          "type": "integer",
+          "description": "Total number of artists known to Rocksky."
+        },
+        "albums": {
+          "type": "integer",
+          "description": "Total number of albums known to Rocksky."
+        },
+        "tracks": {
+          "type": "integer",
+          "description": "Total number of tracks known to Rocksky."
+        }
+      }
+    },
     "wrappedArtist": {
       "type": "object",
       "properties": {

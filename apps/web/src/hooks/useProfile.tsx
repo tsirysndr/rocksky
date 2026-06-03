@@ -1,16 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
+import consola from "consola";
 import { useSetAtom } from "jotai";
 import { useEffect, useState } from "react";
 import {
   getActorCompatibility,
   getActorNeighbours,
+  getGlobalStats,
   getProfileByDid,
   getProfileStatsByDid,
   getRecentTracksByDid,
 } from "../api/profile";
 import { profileAtom } from "../atoms/profile";
 import { API_URL } from "../consts";
-import consola from "consola";
 
 export const useProfileByDidQuery = (did: string) =>
   useQuery({
@@ -24,6 +25,12 @@ export const useProfileStatsByDidQuery = (did: string) =>
     queryFn: () => getProfileStatsByDid(did),
     enabled: !!did,
     // refetchInterval: 4500,
+  });
+
+export const useGlobalStatsQuery = () =>
+  useQuery({
+    queryKey: ["stats", "global"],
+    queryFn: () => getGlobalStats(),
   });
 
 export const useRecentTracksByDidQuery = (did: string, offset = 0, size = 10) =>

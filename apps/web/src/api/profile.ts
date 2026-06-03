@@ -1,8 +1,8 @@
-import { client } from ".";
 import { Compatibility } from "../types/compatibility";
 import { Neighbour } from "../types/neighbour";
 import { Profile } from "../types/profile";
 import { Scrobble } from "../types/scrobble";
+import { client } from ".";
 
 export const getProfileByDid = async (did: string) => {
   const response = await client.get<Profile>(
@@ -18,6 +18,17 @@ export const getProfileStatsByDid = async (did: string) => {
   const response = await client.get("/xrpc/app.rocksky.stats.getStats", {
     params: { did },
   });
+  return response.data;
+};
+
+export const getGlobalStats = async () => {
+  const response = await client.get<{
+    scrobbles: number;
+    users: number;
+    artists: number;
+    albums: number;
+    tracks: number;
+  }>("/xrpc/app.rocksky.stats.getGlobalStats");
   return response.data;
 };
 

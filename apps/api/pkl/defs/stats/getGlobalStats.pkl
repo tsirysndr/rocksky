@@ -1,0 +1,20 @@
+amends  "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.stats.getGlobalStats"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get all-time stats across all of Rocksky."
+    parameters = new Params {
+      properties {}
+    }
+    output = new Output {
+      encoding = "application/json"
+      schema = new Ref {
+        type = "ref"
+        ref = "app.rocksky.stats.defs#globalStatsView"
+      }
+    }
+  }
+}

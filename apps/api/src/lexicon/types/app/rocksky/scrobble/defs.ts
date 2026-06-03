@@ -1,10 +1,10 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import { type ValidationResult, BlobRef } from "@atproto/lexicon";
-import { lexicons } from "../../../../lexicons";
-import { isObj, hasProp } from "../../../../util";
+import { BlobRef, type ValidationResult } from "@atproto/lexicon";
 import { CID } from "multiformats/cid";
+import { lexicons } from "../../../../lexicons";
+import { hasProp, isObj } from "../../../../util";
 import type * as AppRockskyArtistDefs from "../artist/defs";
 
 export interface ScrobbleViewBasic {
@@ -74,6 +74,8 @@ export interface ScrobbleViewDetailed {
   uri?: string;
   /** The SHA256 hash of the scrobble data. */
   sha256?: string;
+  liked?: boolean;
+  likesCount?: number;
   /** The number of listeners */
   listeners?: number;
   /** The number of scrobbles for this song */

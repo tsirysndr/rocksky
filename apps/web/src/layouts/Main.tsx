@@ -1,18 +1,19 @@
 import styled from "@emotion/styled";
+import { IconDisc } from "@tabler/icons-react";
 import { Link, useSearch } from "@tanstack/react-router";
 import { PLACEMENT, ToasterContainer } from "baseui/toast";
+import { consola } from "consola";
 import { useAtomValue } from "jotai";
 import { useEffect, useState } from "react";
-import { IconDisc } from "@tabler/icons-react";
+import { displayDrawerAtom } from "../atoms/drawer";
 import { profileAtom } from "../atoms/profile";
 import ScrobblesAreaChart from "../components/ScrobblesAreaChart";
+import TotalScrobbles from "../components/TotalScrobbles";
 import { API_URL } from "../consts";
 import useProfile from "../hooks/useProfile";
 import Navbar from "./Navbar";
 import Search from "./Search";
 import SpotifyLogin from "./SpotifyLogin";
-import { consola } from "consola";
-import { displayDrawerAtom } from "../atoms/drawer";
 
 const Container = styled.div`
   display: flex;
@@ -51,9 +52,9 @@ export type MainProps = {
   withRightPane?: boolean;
 };
 
-import LoginForm from "./LoginForm";
 import ExternalLinks from "./ExternalLinks";
 import Links from "./Links";
+import LoginForm from "./LoginForm";
 
 function Main(props: MainProps) {
   const { children } = props;
@@ -253,6 +254,7 @@ function Main(props: MainProps) {
             )}
 
             <div className="mt-[40px]">
+              <TotalScrobbles />
               <ScrobblesAreaChart />
             </div>
             <ExternalLinks />

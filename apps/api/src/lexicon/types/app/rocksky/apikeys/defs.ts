@@ -1,7 +1,7 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import { ValidationResult, BlobRef } from "@atproto/lexicon";
-import { lexicons } from "../../../../lexicons";
-import { isObj, hasProp } from "../../../../util";
+import { BlobRef, ValidationResult } from "@atproto/lexicon";
 import { CID } from "multiformats/cid";
+import { lexicons } from "../../../../lexicons";
+import { hasProp, isObj } from "../../../../util";
