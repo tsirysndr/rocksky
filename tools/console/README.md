@@ -164,7 +164,7 @@ Run `(help)` / `bb help` for the live list. Snapshot:
 |           | `likes`, `avatar`        | likes processing, avatar generation                 |
 |           | `spotify-creds <id> <s>` | register Spotify app creds                          |
 |           | `exp`                    | ad-hoc experimentation                              |
-| `daemons` | `analytics` … `tracklist`| every `rockskyd <subcommand>`                       |
+| `daemons` | `jetstream`, `scrobbler`, … `tracklist` | every `rockskyd <subcommand>`            |
 |           | `connect`, `storage`     | rocksky-connect, rocksky-storage                    |
 | `devops`  | `backup-ddb`             | DuckDB → R2 backup                                  |
 |           | `build-raichu`           | wasm-pack build + copy into apps/web                |

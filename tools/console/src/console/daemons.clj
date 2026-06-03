@@ -7,7 +7,6 @@
       (.destroy ^Process (:proc js))"
   (:require [console.shell :as sh]))
 
-(defn analytics    [] (sh/cargo "rockskyd" "analytics" "serve"))
 (defn dropbox      [] (sh/cargo "rockskyd" "dropbox" "serve"))
 (defn googledrive  [] (sh/cargo "rockskyd" "googledrive" "serve"))
 (defn jetstream    [] (sh/cargo "rockskyd" "jetstream"))

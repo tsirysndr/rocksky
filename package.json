@@ -17,7 +17,6 @@
     "pkl:gen": "cd apps/api && bun run pkl:gen",
     "lexgen": "cd apps/api && bun run lexgen",
     "lexgen:types": "bun run tools/lexgen/generate.ts",
-    "dev:analytics": "cargo run -p rockskyd --release -- analytics serve",
     "dev:connect": "cargo run -p rocksky-connect --release",
     "dev:dropbox": "cargo run -p rockskyd --release -- dropbox serve",
     "dev:googledrive": "cargo run -p rockskyd --release -- googledrive serve",

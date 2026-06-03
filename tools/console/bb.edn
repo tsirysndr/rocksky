@@ -45,7 +45,6 @@
                            (apply (resolve 'console.sync/spotify-creds) *command-line-args*))}
 
   ;; ── daemons (Rust) ───────────────────────────────────────────
-  d:analytics     {:task (do (require 'console.daemons) ((resolve 'console.daemons/analytics)))}
   d:connect       {:task (do (require 'console.daemons) ((resolve 'console.daemons/connect)))}
   d:dropbox       {:task (do (require 'console.daemons) ((resolve 'console.daemons/dropbox)))}
   d:googledrive   {:task (do (require 'console.daemons) ((resolve 'console.daemons/googledrive)))}

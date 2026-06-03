@@ -41,8 +41,7 @@
            [:exp             "Ad-hoc experimentation script"]]}
 
    {:group "daemons" :ns 'console.daemons
-    :cmds [[:analytics       "rockskyd analytics serve"]
-           [:connect         "rocksky-connect"]
+    :cmds [[:connect         "rocksky-connect"]
            [:dropbox         "rockskyd dropbox serve"]
            [:googledrive     "rockskyd googledrive serve"]
            [:jetstream       "rockskyd jetstream"]
