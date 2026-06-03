@@ -809,6 +809,11 @@ export async function scrobbleTrack(
     if (!track.duration || track.duration <= 0) track.duration = 1;
   }
 
+  // Prefer the DB's album art over a null/missing client value so the
+  // lexicon record (and the Discord embed downstream) doesn't end up with
+  // the Last.fm placeholder when we already know the real art.
+  if (existingTrack && !track.albumArt) track.albumArt = existingTrack.albumArt;
+
   if (!existingTrack?.uri || !userTrack?.userTrack.uri?.includes(userDid)) {
     await putSongRecord(track, agent);
   }
@@ -912,6 +917,8 @@ export async function scrobbleTrack(
     .where(and(eq(albums.id, existingAlbum?.id || ""), eq(users.did, userDid)))
     .limit(1)
     .then((rows) => rows[0]);
+
+  if (existingAlbum && !track.albumArt) track.albumArt = existingAlbum.albumArt;
 
   if (!existingAlbum?.uri || !userAlbum?.userAlbum.uri?.includes(userDid)) {
     if (importCache) {
@@ -1040,11 +1047,13 @@ export async function scrobbleTrack(
     if (!track.genres?.length && existingTrack.genre)
       track.genres = [existingTrack.genre];
     if (!track.spotifyLink) track.spotifyLink = existingTrack.spotifyLink;
+    if (!track.albumArt) track.albumArt = existingTrack.albumArt;
   }
   if (existingAlbum) {
     if (track.year == null) track.year = existingAlbum.year;
     if (!track.releaseDate && existingAlbum.releaseDate)
       track.releaseDate = new Date(existingAlbum.releaseDate);
+    if (!track.albumArt) track.albumArt = existingAlbum.albumArt;
   }
 
   const scrobbleUri = await putScrobbleRecord(track, agent);

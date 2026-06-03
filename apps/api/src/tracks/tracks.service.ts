@@ -34,6 +34,11 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
     .limit(1)
     .then((results) => results[0]);
 
+  // Prefer the DB's album art over a null/missing client value so the
+  // lexicon record (and the Discord embed downstream) doesn't end up with
+  // the Last.fm placeholder when we already know the real art.
+  if (existingTrack && !track.albumArt) track.albumArt = existingTrack.albumArt;
+
   let trackUri = existingTrack?.uri;
   if (!existingTrack?.uri) {
     trackUri = await putSongRecord(track, agent);
@@ -107,6 +112,8 @@ export async function saveTrack(ctx: Context, track: Track, agent: Agent) {
     .where(eq(albums.sha256, albumHash))
     .limit(1)
     .then((results) => results[0]);
+
+  if (existingAlbum && !track.albumArt) track.albumArt = existingAlbum.albumArt;
 
   let albumUri = existingAlbum?.uri;
   if (!existingAlbum?.uri) {
