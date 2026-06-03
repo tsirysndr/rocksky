@@ -54,7 +54,7 @@ function TotalScrobbles() {
   if (count === undefined) return null;
 
   return (
-    <div className="mb-[20px]">
+    <div className="mb-[30px]">
       <b className="!text-[var(--color-text-muted)] text-[11px] tracking-wide">
         {label.toUpperCase()}
       </b>

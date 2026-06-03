@@ -120,7 +120,7 @@ function ScrobblesAreaChart() {
       {!pathname.includes("/playlist/") && (
         <>
           <LabelMedium
-            marginBottom={"20px"}
+            marginBottom={"10px"}
             className="!text-[var(--color-text)]"
           >
             Scrobble Stats
