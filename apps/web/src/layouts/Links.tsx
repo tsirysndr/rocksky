@@ -25,7 +25,7 @@ const InternalLink = styled(RouterLink)`
 
 function Links() {
   return (
-    <div className="inline-flex mt-[40px]">
+    <div className="inline-flex mt-[30px] mb-[20px]">
       <Link
         href="https://docs.rocksky.app"
         target="_blank"
