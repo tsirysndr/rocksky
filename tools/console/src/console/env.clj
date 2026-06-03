@@ -125,6 +125,29 @@
      (record-source! src)
      n)))
 
+(defn set!
+  "Set one key in `*env*`. Immediately visible to every subsequent
+  subprocess; does not write to disk.
+
+      (env/set! \"DATABASE_URL\" \"postgres://...\")"
+  [k v]
+  (swap! *env* assoc (str k) (str v))
+  k)
+
+(defn unset!
+  "Remove one key from `*env*`. In-memory only."
+  [k]
+  (swap! *env* dissoc (str k))
+  k)
+
+(defn merge!
+  "Merge a map of {key value} into `*env*` (later values win). Useful for
+  bulk edits or testing — e.g. `(env/merge! {\"FOO\" \"a\" \"BAR\" \"b\"})`."
+  [m]
+  (let [m (into {} (for [[k v] m] [(str k) (str v)]))]
+    (swap! *env* clojure.core/merge m)
+    (count m)))
+
 (defn unload!
   "Clear `*env*` and forget every loaded source."
   []
@@ -148,6 +171,48 @@
   "Return the currently loaded source descriptors (for inspection)."
   []
   @sources)
+
+;; ── persistence ─────────────────────────────────────────────────────
+
+(defn- needs-quoting? [v]
+  (re-find #"[\s\"'#$=]" (str v)))
+
+(defn- emit-dotenv
+  "Render `*env*` as a dotenv-format string. Keys are alphabetized;
+  values containing whitespace or special chars are double-quoted with
+  embedded `\"` and `\\` escaped."
+  [m]
+  (->> (sort-by key m)
+       (map (fn [[k v]]
+              (let [v (str v)]
+                (str k "="
+                     (if (needs-quoting? v)
+                       (str "\""
+                            (-> v
+                                (str/replace "\\" "\\\\")
+                                (str/replace "\"" "\\\""))
+                            "\"")
+                       v)))))
+       (str/join "\n")))
+
+(defn save!
+  "Write the current `*env*` to disk as a `.env`-format file.
+
+  Path is relative to repo root if not absolute. With no args, writes
+  `.env.local` — chosen so the original source `.env` is never silently
+  clobbered (and so the result is git-ignored by convention). Pass an
+  explicit path to overwrite a specific file.
+
+      (env/save!)                 ;; -> <repo>/.env.local
+      (env/save! \"apps/api/.env\") ;; overwrite an existing file
+
+  NOTE: this writes the *resolved* in-memory map. Comments, ordering,
+  and `${VAR}` interpolation from the original source files are lost."
+  ([] (save! ".env.local"))
+  ([path]
+   (let [resolved (resolve-path path)]
+     (spit resolved (str (emit-dotenv @*env*) "\n"))
+     resolved)))
 
 ;; ── inspection ──────────────────────────────────────────────────────
 

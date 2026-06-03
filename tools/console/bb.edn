@@ -84,6 +84,18 @@
                            ((resolve 'console.env/load!))
                            ((resolve 'console.env/show)))}
   env:reload    {:task (do (require 'console.env) ((resolve 'console.env/reload!)))}
+  env:set       {:doc  "Set one key. Usage: bb env:set <KEY> <VALUE>"
+                 :task (do (require 'console.env)
+                           (apply (resolve 'console.env/set!) *command-line-args*))}
+  env:unset     {:doc  "Remove one key. Usage: bb env:unset <KEY>"
+                 :task (do (require 'console.env)
+                           (apply (resolve 'console.env/unset!) *command-line-args*))}
+  env:save      {:doc  "Save current env. Usage: bb env:save [path] (default .env.local)"
+                 :task (do (require 'console.env)
+                           ;; For bb to be useful here, load existing env first
+                           ;; so save isn't just writing out the args' edits.
+                           ((resolve 'console.env/load!))
+                           (apply (resolve 'console.env/save!) *command-line-args*))}
 
   ;; ── docker compose ───────────────────────────────────────────
   up            {:doc  "docker compose up -d (use `bb up fg` for foreground)"

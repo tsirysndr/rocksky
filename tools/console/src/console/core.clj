@@ -77,8 +77,12 @@
            [:doppler!        "Pull secrets from Doppler. Args: [project config]"]
            [:reload!         "Re-pull every previously loaded source"]
            [:unload!         "Clear the loaded env back to JVM defaults"]
-           [:show            "Print loaded keys with values masked"]
-           [:get             "Fetch one value (raw). Args: key [default]"]]}])
+           [:show            "Print loaded keys. (show :unmask) for raw"]
+           [:get             "Fetch one value (raw). Args: key [default]"]
+           [:set!            "Set one key. Args: key value (in-memory)"]
+           [:unset!          "Remove one key. Args: key (in-memory)"]
+           [:merge!          "Bulk-merge a map of {k v} into the env"]
+           [:save!           "Write current env to disk (default <repo>/.env.local)"]]}])
 
 (defn- pad [s n] (let [s (str s)] (str s (apply str (repeat (max 0 (- n (count s))) " ")))))
 

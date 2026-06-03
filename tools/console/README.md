@@ -226,21 +226,32 @@ subprocess** spawned through `console.shell`. Two source types are
 supported: `.env` files and Doppler.
 
 ```clojure
-;; ── REPL ────────────────────────────────────────────────────────
+;; ── REPL: loading ───────────────────────────────────────────────
 user=> (env/load!)                     ;; reads <repo>/.env (auto on startup)
 user=> (env/load! "apps/api/.env")     ;; layer another file on top
 user=> (env/doppler!)                  ;; pull from Doppler using doppler.yaml
 user=> (env/doppler! "rocksky" "dev")  ;; …or explicit project + config
-user=> (env/show)                      ;; masked dump of every loaded key
+user=> (env/show)                      ;; masked dump (env/show :unmask for raw)
 user=> (env/get "DATABASE_URL")        ;; raw value
 user=> (env/reload!)                   ;; re-pull every source in order
 user=> (env/unload!)                   ;; clear back to JVM defaults
+
+;; ── REPL: editing live (in-memory only) ─────────────────────────
+user=> (env/set!   "FEATURE_X" "true")     ;; visible to next subprocess
+user=> (env/unset! "STALE_VAR")
+user=> (env/merge! {"A" "1" "B" "2"})       ;; bulk set
+user=> (env/save!)                          ;; persist -> <repo>/.env.local
+user=> (env/save! ".env")                   ;; or overwrite the source .env
 
 ;; ── one-shot ─────────────────────────────────────────────────────
 $ bb env:show
 $ bb env:load apps/api/.env
 $ bb env:doppler rocksky dev
 $ bb env:reload
+$ bb env:set FEATURE_X true
+$ bb env:unset STALE_VAR
+$ bb env:save                ;; -> <repo>/.env.local
+$ bb env:save .env           ;; overwrite source
 ```
 
 **Layering & precedence.** Sources are merged in load order, later wins.
@@ -261,6 +272,15 @@ or use the explicit `bb env:load` / `bb env:doppler` task first.
 `doppler login`. With no args, `(env/doppler!)` defers to whatever
 `doppler.yaml` (set up via `doppler setup`) is configured in the repo;
 this mirrors how production systemd units run (`doppler run …`).
+
+**Live edits + persistence.** `(env/set!)` / `(env/unset!)` / `(env/merge!)`
+update `*env*` in memory only — immediately picked up by every subsequent
+subprocess but never written to disk on their own. Call `(env/save!)`
+when you want them persisted. The default target is `<repo>/.env.local`
+so the source `.env` isn't silently overwritten; pass an explicit path
+(e.g. `(env/save! ".env")`) to overwrite. Be aware that `save!` writes
+the *resolved* in-memory map — comments, ordering, and `${VAR}`
+interpolation from the original file are lost.
 
 **Secrets safety.** `(env/show)` masks values by default (first 2 + `***` +
 last 2 chars). To reveal them in the REPL — for debugging only — pass
