@@ -1,3 +1,4 @@
+import accessTokens from "./access-tokens";
 import albumTracks from "./album-tracks";
 import albums from "./albums";
 import apiKeys from "./api-keys";
@@ -54,6 +55,7 @@ export default {
   playlists,
   playlistTracks,
   apiKeys,
+  accessTokens,
   webscrobblers,
   userAlbums,
   userArtists,

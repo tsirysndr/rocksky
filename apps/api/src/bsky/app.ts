@@ -11,6 +11,7 @@ import { deepSnakeCaseKeys } from "lib";
 import { createAgent } from "lib/agent";
 import { env } from "lib/env";
 import extractPdsFromDid from "lib/extractPdsFromDid";
+import { verifyToken } from "lib/verifyToken";
 import { requestCounter } from "metrics";
 import dropboxAccounts from "schema/dropbox-accounts";
 import googleDriveAccounts from "schema/google-drive-accounts";
@@ -177,9 +178,7 @@ app.get("/profile", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const { did } = await verifyToken(bearer);
 
   const agent = await createAgent(ctx.oauthClient, did);
 

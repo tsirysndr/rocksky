@@ -125,6 +125,14 @@ function Navbar() {
                 API Keys
               </Link>
               <Link
+                to="/access-tokens"
+                className="py-3.5 px-2 no-underline font-medium text-base block"
+                style={{ color: "var(--color-text)" }}
+                onClick={() => setMenuOpen(false)}
+              >
+                Access Tokens
+              </Link>
+              <Link
                 to="/mirrors"
                 className="py-3.5 px-2 no-underline font-medium text-base block"
                 style={{ color: "var(--color-text)" }}

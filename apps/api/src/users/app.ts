@@ -12,10 +12,9 @@ import {
   sql,
 } from "drizzle-orm";
 import { Hono } from "hono";
-import jwt from "jsonwebtoken";
 import * as Profile from "lexicon/types/app/bsky/actor/profile";
 import { createAgent } from "lib/agent";
-import { env } from "lib/env";
+import { verifyToken } from "lib/verifyToken";
 import { likeTrack, unLikeTrack } from "lovedtracks/lovedtracks.service";
 import { requestCounter } from "metrics";
 import * as R from "ramda";
@@ -526,9 +525,7 @@ app.get("/:did", async (c) => {
   const did = c.req.param("did");
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
   if (bearer && bearer !== "null") {
-    const claims = jwt.verify(bearer, env.JWT_SECRET, {
-      ignoreExpiration: true,
-    });
+    const claims = await verifyToken(bearer);
     const agent = await createAgent(ctx.oauthClient, claims.did);
 
     if (agent) {
@@ -600,9 +597,7 @@ app.post("/:did/app.rocksky.artist/:rkey/shouts", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const payload = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const payload = await verifyToken(bearer);
   const agent = await createAgent(ctx.oauthClient, payload.did);
 
   const user = await ctx.db
@@ -649,9 +644,7 @@ app.post("/:did/app.rocksky.album/:rkey/shouts", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const payload = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const payload = await verifyToken(bearer);
   const agent = await createAgent(ctx.oauthClient, payload.did);
 
   const user = await ctx.db
@@ -698,9 +691,7 @@ app.post("/:did/app.rocksky.song/:rkey/shouts", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const payload = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const payload = await verifyToken(bearer);
   const agent = await createAgent(ctx.oauthClient, payload.did);
 
   const user = await ctx.db
@@ -748,9 +739,7 @@ app.post("/:did/app.rocksky.scrobble/:rkey/shouts", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const payload = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const payload = await verifyToken(bearer);
   const agent = await createAgent(ctx.oauthClient, payload.did);
 
   const user = await ctx.db
@@ -795,9 +784,7 @@ app.post("/:did/shouts", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const payload = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const payload = await verifyToken(bearer);
   const agent = await createAgent(ctx.oauthClient, payload.did);
 
   const user = await ctx.db
@@ -850,9 +837,7 @@ app.post("/:did/app.rocksky.shout/:rkey/likes", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const payload = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const payload = await verifyToken(bearer);
   const agent = await createAgent(ctx.oauthClient, payload.did);
 
   const user = await ctx.db
@@ -886,9 +871,7 @@ app.delete("/:did/app.rocksky.shout/:rkey/likes", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const payload = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const payload = await verifyToken(bearer);
   const agent = await createAgent(ctx.oauthClient, payload.did);
 
   const user = await ctx.db
@@ -923,9 +906,7 @@ app.post("/:did/app.rocksky.song/:rkey/likes", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const payload = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const payload = await verifyToken(bearer);
   const agent = await createAgent(ctx.oauthClient, payload.did);
 
   const user = await ctx.db
@@ -980,9 +961,7 @@ app.delete("/:did/app.rocksky.song/:rkey/likes", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const payload = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const payload = await verifyToken(bearer);
   const agent = await createAgent(ctx.oauthClient, payload.did);
 
   const user = await ctx.db
@@ -1030,9 +1009,7 @@ app.post("/:did/app.rocksky.shout/:rkey/replies", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const payload = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const payload = await verifyToken(bearer);
   const agent = await createAgent(ctx.oauthClient, payload.did);
 
   const user = await ctx.db
@@ -1080,9 +1057,7 @@ app.get("/:did/app.rocksky.artist/:rkey/shouts", async (c) => {
 
   let user: SelectUser | undefined;
   if (bearer && bearer !== "null") {
-    const payload = jwt.verify(bearer, env.JWT_SECRET, {
-      ignoreExpiration: true,
-    });
+    const payload = await verifyToken(bearer);
 
     user = await ctx.db
       .select()
@@ -1165,9 +1140,7 @@ app.get("/:did/app.rocksky.album/:rkey/shouts", async (c) => {
 
   let user: SelectUser | undefined;
   if (bearer && bearer !== "null") {
-    const payload = jwt.verify(bearer, env.JWT_SECRET, {
-      ignoreExpiration: true,
-    });
+    const payload = await verifyToken(bearer);
 
     user = await ctx.db
       .select()
@@ -1250,9 +1223,7 @@ app.get("/:did/app.rocksky.song/:rkey/shouts", async (c) => {
 
   let user: SelectUser | undefined;
   if (bearer && bearer !== "null") {
-    const payload = jwt.verify(bearer, env.JWT_SECRET, {
-      ignoreExpiration: true,
-    });
+    const payload = await verifyToken(bearer);
 
     user = await ctx.db
       .select()
@@ -1335,9 +1306,7 @@ app.get("/:did/app.rocksky.scrobble/:rkey/shouts", async (c) => {
 
   let user: SelectUser | undefined;
   if (bearer && bearer !== "null") {
-    const payload = jwt.verify(bearer, env.JWT_SECRET, {
-      ignoreExpiration: true,
-    });
+    const payload = await verifyToken(bearer);
 
     user = await ctx.db
       .select()
@@ -1419,9 +1388,7 @@ app.get("/:did/shouts", async (c) => {
 
   let user: SelectUser | undefined;
   if (bearer && bearer !== "null") {
-    const payload = jwt.verify(bearer, env.JWT_SECRET, {
-      ignoreExpiration: true,
-    });
+    const payload = await verifyToken(bearer);
 
     user = await ctx.db
       .select()
@@ -1580,9 +1547,7 @@ app.post("/:did/app.rocksky.shout/:rkey/report", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const payload = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const payload = await verifyToken(bearer);
   const shout = await ctx.db
     .select()
     .from(tables.shouts)
@@ -1654,9 +1619,7 @@ app.delete("/:did/app.rocksky.shout/:rkey/report", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const payload = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const payload = await verifyToken(bearer);
   const shout = await ctx.db
     .select()
     .from(tables.shouts)
@@ -1729,9 +1692,7 @@ app.delete("/:did/app.rocksky.shout/:rkey", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const payload = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const payload = await verifyToken(bearer);
   const agent = await createAgent(ctx.oauthClient, payload.did);
 
   const user = await ctx.db

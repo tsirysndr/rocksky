@@ -3,9 +3,9 @@ import { consola } from "consola";
 import { ctx } from "context";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
-import jwt from "jsonwebtoken";
 import { encrypt } from "lib/crypto";
 import { env } from "lib/env";
+import { verifyToken } from "lib/verifyToken";
 import { requestCounter } from "metrics";
 import tables from "schema";
 import { emailSchema } from "types/email";
@@ -21,9 +21,7 @@ app.get("/login", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const { did } = await verifyToken(bearer);
 
   const user = await ctx.db
     .select()
@@ -121,9 +119,7 @@ app.post("/join", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const { did } = await verifyToken(bearer);
 
   const user = await ctx.db
     .select()
@@ -187,9 +183,7 @@ app.get("/files", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const { did } = await verifyToken(bearer);
 
   const [user] = await ctx.db
     .select()
@@ -239,9 +233,7 @@ app.get("/temporary-link", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const { did } = await verifyToken(bearer);
 
   const [user] = await ctx.db
     .select()
@@ -277,9 +269,7 @@ app.get("/files/:id", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const { did } = await verifyToken(bearer);
 
   const [user] = await ctx.db
     .select()
@@ -311,9 +301,7 @@ app.get("/file", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const { did } = await verifyToken(bearer);
 
   const [user] = await ctx.db
     .select()
@@ -350,9 +338,7 @@ app.get("/download", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const { did } = await verifyToken(bearer);
 
   const [user] = await ctx.db
     .select()

@@ -10,9 +10,9 @@ import { ctx } from "context";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { resolveStorageClient } from "storage/app";
 import { Hono } from "hono";
-import jwt from "jsonwebtoken";
 import { createAgent } from "lib/agent";
 import { env } from "lib/env";
+import { verifyToken } from "lib/verifyToken";
 import { parseBuffer } from "music-metadata";
 import { createHash } from "node:crypto";
 import tables from "schema";
@@ -138,9 +138,7 @@ function makeS3Client(): S3Client {
 async function resolveUser(authHeader: string | undefined | null) {
   const bearer = (authHeader || "").split(" ")[1]?.trim();
   if (!bearer || bearer === "null") return null;
-  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  }) as { did: string };
+  const { did } = await verifyToken(bearer) as { did: string };
   return ctx.db
     .select()
     .from(tables.users)

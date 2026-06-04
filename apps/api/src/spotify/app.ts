@@ -2,9 +2,9 @@ import { consola } from "consola";
 import { ctx } from "context";
 import { and, eq, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
-import jwt from "jsonwebtoken";
 import { decrypt, encrypt } from "lib/crypto";
 import { env } from "lib/env";
+import { verifyToken } from "lib/verifyToken";
 import _ from "lodash";
 import { requestCounter } from "metrics";
 import crypto, { createHash } from "node:crypto";
@@ -37,9 +37,7 @@ app.get("/login", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const { did } = await verifyToken(bearer);
 
   const user = await ctx.db
     .select()
@@ -213,9 +211,7 @@ app.post("/join", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const { did } = await verifyToken(bearer);
 
   const user = await ctx.db
     .select()
@@ -288,7 +284,7 @@ app.get("/currently-playing", async (c) => {
 
   const payload =
     bearer && bearer !== "null"
-      ? jwt.verify(bearer, env.JWT_SECRET, { ignoreExpiration: true })
+      ? await verifyToken(bearer)
       : {};
   const did = c.req.query("did") || payload.did;
 
@@ -375,7 +371,7 @@ app.put("/pause", async (c) => {
 
   const { did } =
     bearer && bearer !== "null"
-      ? jwt.verify(bearer, env.JWT_SECRET, { ignoreExpiration: true })
+      ? await verifyToken(bearer)
       : {};
 
   if (!did) {
@@ -458,7 +454,7 @@ app.put("/play", async (c) => {
 
   const { did } =
     bearer && bearer !== "null"
-      ? jwt.verify(bearer, env.JWT_SECRET, { ignoreExpiration: true })
+      ? await verifyToken(bearer)
       : {};
 
   if (!did) {
@@ -541,7 +537,7 @@ app.post("/next", async (c) => {
 
   const { did } =
     bearer && bearer !== "null"
-      ? jwt.verify(bearer, env.JWT_SECRET, { ignoreExpiration: true })
+      ? await verifyToken(bearer)
       : {};
 
   if (!did) {
@@ -624,7 +620,7 @@ app.post("/previous", async (c) => {
 
   const { did } =
     bearer && bearer !== "null"
-      ? jwt.verify(bearer, env.JWT_SECRET, { ignoreExpiration: true })
+      ? await verifyToken(bearer)
       : {};
 
   if (!did) {
@@ -710,7 +706,7 @@ app.put("/seek", async (c) => {
 
   const { did } =
     bearer && bearer !== "null"
-      ? jwt.verify(bearer, env.JWT_SECRET, { ignoreExpiration: true })
+      ? await verifyToken(bearer)
       : {};
 
   if (!did) {

@@ -1,8 +1,7 @@
 import { ctx } from "context";
 import { eq, or } from "drizzle-orm";
 import { Hono } from "hono";
-import jwt from "jsonwebtoken";
-import { env } from "lib/env";
+import { verifyToken } from "lib/verifyToken";
 import users from "schema/users";
 import webscrobblers from "schema/webscrobblers";
 import { v4 as uuid } from "uuid";
@@ -17,9 +16,7 @@ app.get("/", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const { did } = await verifyToken(bearer);
 
   const user = await ctx.db
     .select()
@@ -63,9 +60,7 @@ app.put("/:id", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const { did } = await verifyToken(bearer);
 
   const user = await ctx.db
     .select()

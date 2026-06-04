@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import MiniPlayer from "./components/MiniPlayer";
+import AccessTokensPage from "./pages/access-tokens";
 import AlbumPage from "./pages/album";
 import ApiKeysPage from "./pages/apikeys";
 import MirrorsPage from "./pages/mirrors";
@@ -30,6 +31,7 @@ function App() {
         <Route path="/search" element={<Search />} />
         <Route path="/me" element={<Me />} />
         <Route path="/apikeys" element={<ApiKeysPage />} />
+        <Route path="/access-tokens" element={<AccessTokensPage />} />
         <Route path="/storage" element={<StoragePage />} />
         <Route path="/mirrors" element={<MirrorsPage />} />
         <Route path="/library" element={<LibraryPage />} />

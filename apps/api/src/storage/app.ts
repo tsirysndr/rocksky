@@ -2,9 +2,9 @@ import { HeadBucketCommand, S3Client } from "@aws-sdk/client-s3";
 import { ctx } from "context";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
-import jwt from "jsonwebtoken";
 import { env } from "lib/env";
 import { decryptCredential, encryptCredential } from "lib/storage-crypto";
+import { verifyToken } from "lib/verifyToken";
 import tables from "schema";
 
 const app = new Hono();
@@ -12,9 +12,7 @@ const app = new Hono();
 async function resolveUser(authHeader: string | undefined | null) {
   const bearer = (authHeader || "").split(" ")[1]?.trim();
   if (!bearer || bearer === "null") return null;
-  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  }) as { did: string };
+  const { did } = await verifyToken(bearer) as { did: string };
   return ctx.db
     .select()
     .from(tables.users)

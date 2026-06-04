@@ -7,8 +7,8 @@ import { ctx } from "context";
 import { and, desc, eq, isNotNull, or } from "drizzle-orm";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import jwt from "jsonwebtoken";
 import { createAgent } from "lib/agent";
+import { verifyToken } from "lib/verifyToken";
 import {
   getLovedTracks,
   likeTrack,
@@ -21,6 +21,7 @@ import subscribe from "subscribers";
 import { saveTrack } from "tracks/tracks.service";
 import { trackSchema } from "types/track";
 import handleWebsocket from "websocket/handler";
+import accessTokensApp from "./access-tokens/app";
 import apikeys from "./apikeys/app";
 import bsky from "./bsky/app";
 import storageApp from "./storage/app";
@@ -28,7 +29,6 @@ import uploadsApp from "./uploads/app";
 import importApp from "./import/app";
 import dropbox from "./dropbox/app";
 import googledrive from "./googledrive/app";
-import { env } from "./lib/env";
 import { requestCounter, requestDuration } from "./metrics";
 import "./profiling";
 import albumTracks from "./schema/album-tracks";
@@ -89,6 +89,8 @@ app.route("/googledrive", googledrive);
 
 app.route("/apikeys", apikeys);
 
+app.route("/access-tokens", accessTokensApp);
+
 app.route("/import", importApp);
 
 app.route("/public/og", opengraph);
@@ -124,9 +126,7 @@ app.post("/now-playing", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const { did } = await verifyToken(bearer);
 
   const user = await ctx.db
     .select()
@@ -185,7 +185,7 @@ app.get("/now-playing", async (c) => {
 
   const payload =
     bearer && bearer !== "null"
-      ? jwt.verify(bearer, env.JWT_SECRET, { ignoreExpiration: true })
+      ? await verifyToken(bearer)
       : {};
   const did = c.req.query("did") || payload.did;
 
@@ -237,9 +237,7 @@ app.post("/likes", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const { did } = await verifyToken(bearer);
   const agent = await createAgent(ctx.oauthClient, did);
 
   const user = await ctx.db
@@ -276,9 +274,7 @@ app.delete("/likes/:sha256", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const { did } = await verifyToken(bearer);
   const agent = await createAgent(ctx.oauthClient, did);
 
   const user = await ctx.db
@@ -307,9 +303,7 @@ app.get("/likes", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const { did } = await verifyToken(bearer);
 
   const user = await ctx.db
     .select()
@@ -432,9 +426,7 @@ app.get("/scrobbles", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const { did } = await verifyToken(bearer);
 
   const user = await ctx.db
     .select()
@@ -476,9 +468,7 @@ app.post("/tracks", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const { did } = await verifyToken(bearer);
 
   const user = await ctx.db
     .select()

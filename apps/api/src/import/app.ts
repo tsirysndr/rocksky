@@ -6,9 +6,8 @@ import utc from "dayjs/plugin/utc";
 import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
-import jwt from "jsonwebtoken";
 import { createAgent } from "lib/agent";
-import { env } from "lib/env";
+import { verifyToken } from "lib/verifyToken";
 import { type ImportCache, scrobbleTrack } from "nowplaying/nowplaying.service";
 import importJobs from "schema/import-jobs";
 import scrobbles from "schema/scrobbles";
@@ -25,10 +24,8 @@ const cancelledJobs = new Set<string>();
 // In-process current track per job — for real-time "currently processing" display
 const currentTracks = new Map<string, string>();
 
-function getBearerDid(bearer: string): string {
-  const payload = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  }) as { did: string };
+async function getBearerDid(bearer: string): Promise<string> {
+  const payload = (await verifyToken(bearer)) as { did: string };
   return payload.did;
 }
 
@@ -38,7 +35,7 @@ async function getAuthedUser(c: {
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
   if (!bearer || bearer === "null") return null;
   try {
-    const did = getBearerDid(bearer);
+    const did = await getBearerDid(bearer);
     const user = await ctx.db
       .select()
       .from(users)
@@ -555,9 +552,7 @@ app.get("/events", async (c) => {
 
   let did: string;
   try {
-    const payload = jwt.verify(token, env.JWT_SECRET, {
-      ignoreExpiration: true,
-    }) as { did: string };
+    const payload = await verifyToken(token) as { did: string };
     did = payload.did;
   } catch {
     c.status(401);

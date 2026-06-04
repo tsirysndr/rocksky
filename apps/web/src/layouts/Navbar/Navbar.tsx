@@ -298,6 +298,14 @@ function Navbar() {
                       ),
                     },
                     {
+                      id: "access-tokens",
+                      label: (
+                        <LabelMedium className="!text-[var(--color-text)]">
+                          Access Tokens
+                        </LabelMedium>
+                      ),
+                    },
+                    {
                       id: "mirrors",
                       label: (
                         <LabelMedium className="!text-[var(--color-text)]">
@@ -392,6 +400,9 @@ function Navbar() {
                         break;
                       case "api-applications":
                         navigate({ to: "/apikeys" });
+                        break;
+                      case "access-tokens":
+                        navigate({ to: "/access-tokens" });
                         break;
                       case "storage":
                         navigate({ to: "/storage" });

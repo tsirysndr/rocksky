@@ -1,8 +1,7 @@
 import { ctx } from "context";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
-import jwt from "jsonwebtoken";
-import { env } from "lib/env";
+import { verifyToken } from "lib/verifyToken";
 import crypto from "node:crypto";
 import * as R from "ramda";
 import apiKeys from "schema/api-keys";
@@ -19,9 +18,7 @@ app.get("/", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const { did } = await verifyToken(bearer);
 
   const user = await ctx.db
     .select()
@@ -56,9 +53,7 @@ app.post("/", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const { did } = await verifyToken(bearer);
 
   const user = await ctx.db
     .select()
@@ -118,9 +113,7 @@ app.put("/:id", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const { did } = await verifyToken(bearer);
 
   const user = await ctx.db
     .select()
@@ -160,9 +153,7 @@ app.delete("/:id", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { did } = jwt.verify(bearer, env.JWT_SECRET, {
-    ignoreExpiration: true,
-  });
+  const { did } = await verifyToken(bearer);
 
   const user = await ctx.db
     .select()

@@ -3,8 +3,7 @@ import { consola } from "consola";
 import { ctx } from "context";
 import { and, eq } from "drizzle-orm";
 import type { Context } from "hono";
-import jwt from "jsonwebtoken";
-import { env } from "lib/env";
+import { verifyToken } from "lib/verifyToken";
 import { createHash } from "node:crypto";
 import lovedTracks from "schema/loved-tracks";
 import tracks from "schema/tracks";
@@ -64,9 +63,7 @@ function handleWebsocket(c: Context) {
 
         if (deviceMessage.success) {
           const { data, device_id, token } = deviceMessage.data;
-          const { did } = jwt.verify(token, env.JWT_SECRET, {
-            ignoreExpiration: true,
-          });
+          const { did } = await verifyToken(token);
 
           // ── Enrichment & NATS events (once, outside the device loop) ──
           if (data.type === "track") {
@@ -288,9 +285,7 @@ function handleWebsocket(c: Context) {
 
         if (controlMessage.success) {
           const { type, target, action, args, token } = controlMessage.data;
-          const { did } = jwt.verify(token, env.JWT_SECRET, {
-            ignoreExpiration: true,
-          });
+          const { did } = await verifyToken(token);
           consola.info(
             `Control message: ${chalk.greenBright(type)}, ${chalk.greenBright(target)}, ${chalk.greenBright(action)}, ${chalk.greenBright(args)}, ${chalk.greenBright("***")}`,
           );
@@ -328,9 +323,7 @@ function handleWebsocket(c: Context) {
             `Register message: ${chalk.greenBright(type)}, ${chalk.greenBright(clientName)}, ${chalk.greenBright("****")}`,
           );
           // Handle register Message
-          const { did } = jwt.verify(token, env.JWT_SECRET, {
-            ignoreExpiration: true,
-          });
+          const { did } = await verifyToken(token);
           const deviceId = uuidv4();
           ws.deviceId = deviceId;
           ws.did = did;

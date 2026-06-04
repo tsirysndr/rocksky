@@ -29,9 +29,43 @@ You can obtain a token by:
   callback JWT
 - Running [`rocksky login <handle>`](/cli/login) with the CLI
 - Creating an [API key](/cli/create-apikey) for an application
+- Creating a personal **Access Token** at
+  [rocksky.app/access-tokens](https://rocksky.app/access-tokens) — name it,
+  copy the secret once, and use it interchangeably with a JWT (see
+  [Personal access tokens](#personal-access-tokens) below)
 
 Read-only endpoints (profiles, charts, public scrobble feeds, search) work
 without authentication.
+
+## Personal access tokens
+
+Access tokens are long-lived JWTs you generate from the web UI for scripts,
+CLIs, and integrations that can't run an interactive OAuth flow. They behave
+exactly like an OAuth-issued JWT — pass them in the `Authorization: Bearer`
+header on any authenticated endpoint.
+
+Create / list / revoke them at:
+
+- Web: [rocksky.app/access-tokens](https://rocksky.app/access-tokens)
+- Mobile web: [m.rocksky.app/access-tokens](https://m.rocksky.app/access-tokens)
+
+The full secret is shown **once**, at creation — copy it somewhere safe.
+Subsequent listings only show the last four characters. Deleting a token
+revokes it immediately on the API side (no waiting for expiry).
+
+```http
+GET https://api.rocksky.app/access-tokens
+Authorization: Bearer <jwt-or-access-token>
+
+POST https://api.rocksky.app/access-tokens
+Authorization: Bearer <jwt-or-access-token>
+Content-Type: application/json
+
+{ "name": "my-laptop" }
+
+DELETE https://api.rocksky.app/access-tokens/{id}
+Authorization: Bearer <jwt-or-access-token>
+```
 
 ## Audioscrobbler endpoints
 

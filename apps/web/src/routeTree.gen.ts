@@ -19,6 +19,7 @@ import { Route as LoadingRouteImport } from './routes/loading'
 import { Route as ImportRouteImport } from './routes/import'
 import { Route as ChartsRouteImport } from './routes/charts'
 import { Route as ApikeysRouteImport } from './routes/apikeys'
+import { Route as AccessTokensRouteImport } from './routes/access-tokens'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LibraryIndexRouteImport } from './routes/library/index'
 import { Route as GoogledriveIndexRouteImport } from './routes/googledrive/index'
@@ -92,6 +93,11 @@ const ChartsRoute = ChartsRouteImport.update({
 const ApikeysRoute = ApikeysRouteImport.update({
   id: '/apikeys',
   path: '/apikeys',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccessTokensRoute = AccessTokensRouteImport.update({
+  id: '/access-tokens',
+  path: '/access-tokens',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -217,6 +223,7 @@ const LibraryDidAlbumRkeyRoute = LibraryDidAlbumRkeyRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/access-tokens': typeof AccessTokensRoute
   '/apikeys': typeof ApikeysRoute
   '/charts': typeof ChartsRoute
   '/import': typeof ImportRoute
@@ -253,6 +260,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/access-tokens': typeof AccessTokensRoute
   '/apikeys': typeof ApikeysRoute
   '/charts': typeof ChartsRoute
   '/import': typeof ImportRoute
@@ -290,6 +298,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/access-tokens': typeof AccessTokensRoute
   '/apikeys': typeof ApikeysRoute
   '/charts': typeof ChartsRoute
   '/import': typeof ImportRoute
@@ -328,6 +337,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/access-tokens'
     | '/apikeys'
     | '/charts'
     | '/import'
@@ -364,6 +374,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/access-tokens'
     | '/apikeys'
     | '/charts'
     | '/import'
@@ -400,6 +411,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/access-tokens'
     | '/apikeys'
     | '/charts'
     | '/import'
@@ -437,6 +449,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccessTokensRoute: typeof AccessTokensRoute
   ApikeysRoute: typeof ApikeysRoute
   ChartsRoute: typeof ChartsRoute
   ImportRoute: typeof ImportRoute
@@ -542,6 +555,13 @@ declare module '@tanstack/react-router' {
       path: '/apikeys'
       fullPath: '/apikeys'
       preLoaderRoute: typeof ApikeysRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/access-tokens': {
+      id: '/access-tokens'
+      path: '/access-tokens'
+      fullPath: '/access-tokens'
+      preLoaderRoute: typeof AccessTokensRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -717,6 +737,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccessTokensRoute: AccessTokensRoute,
   ApikeysRoute: ApikeysRoute,
   ChartsRoute: ChartsRoute,
   ImportRoute: ImportRoute,
