@@ -823,6 +823,11 @@ class GetFollowsParams:
 
 
 @dataclass
+class GetGlobalStatsParams:
+    pass
+
+
+@dataclass
 class GetKnownFollowersOutput:
     subject: "ActorProfileViewBasic"
     followers: List["ActorProfileViewBasic"]
@@ -1506,6 +1511,15 @@ class StartPlaylistParams:
     uri: str
     shuffle: Optional[bool] = None
     position: Optional[int] = None
+
+
+@dataclass
+class StatsGlobalStatsView:
+    scrobbles: Optional[int] = None
+    users: Optional[int] = None
+    artists: Optional[int] = None
+    albums: Optional[int] = None
+    tracks: Optional[int] = None
 
 
 @dataclass

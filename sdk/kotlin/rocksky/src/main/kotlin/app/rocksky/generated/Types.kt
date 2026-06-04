@@ -1073,6 +1073,9 @@ public data class GetFollowsParams(
 )
 
 @Serializable
+public class GetGlobalStatsParams
+
+@Serializable
 public data class GetKnownFollowersOutput(
     public val subject: ActorProfileViewBasic,
     public val followers: List<ActorProfileViewBasic>,
@@ -2049,6 +2052,20 @@ public data class StartPlaylistParams(
     public val shuffle: Boolean? = null,
     /** The position in the playlist to start from, if not specified, starts from the beginning */
     public val position: Int? = null,
+)
+
+@Serializable
+public data class StatsGlobalStatsView(
+    /** Total scrobbles across all users on Rocksky. */
+    public val scrobbles: Int? = null,
+    /** Total number of users on Rocksky. */
+    public val users: Int? = null,
+    /** Total number of artists known to Rocksky. */
+    public val artists: Int? = null,
+    /** Total number of albums known to Rocksky. */
+    public val albums: Int? = null,
+    /** Total number of tracks known to Rocksky. */
+    public val tracks: Int? = null,
 )
 
 @Serializable

@@ -1,4 +1,5 @@
 import { buildConfig, type HttpClientConfig, xrpcCall } from "./http.js";
+import { makeCall } from "./namespaces/_helpers.js";
 import {
   type PaginateArgs,
   paginate as paginateFn,
@@ -26,13 +27,19 @@ import { ShoutNamespace } from "./namespaces/shout.js";
 import { SongNamespace } from "./namespaces/song.js";
 import { SpotifyNamespace } from "./namespaces/spotify.js";
 import { StatsNamespace } from "./namespaces/stats.js";
-import type { Call } from "./namespaces/_helpers.js";
+import type { Endpoints } from "./generated/types.js";
 import type {
   AuthProvider,
   ClientOptions,
   FetchLike,
   RequestOptions,
 } from "./types.js";
+
+type XrpcOpts = {
+  params?: Record<string, unknown>;
+  body?: unknown;
+  requireAuth?: boolean;
+} & RequestOptions;
 
 export class RockskyClient {
   readonly config: HttpClientConfig;
@@ -58,8 +65,7 @@ export class RockskyClient {
 
   constructor(options: ClientOptions = {}) {
     this.config = buildConfig(options);
-    const call: Call = (nsid, method, opts) =>
-      xrpcCall(this.config, nsid, method, opts ?? {});
+    const call = makeCall(this.config);
 
     this.actor = new ActorNamespace(call);
     this.album = new AlbumNamespace(call);
@@ -130,17 +136,28 @@ export class RockskyClient {
     return paginateFn(args);
   }
 
-  /** Direct escape hatch — call any XRPC endpoint by NSID. */
+  /**
+   * Direct escape hatch — call any XRPC endpoint by NSID.
+   *
+   * Known NSIDs (string literals) are typed via the generated `Endpoints`
+   * map; arbitrary strings fall back to `unknown` (override with `<T>`).
+   */
+  xrpc<K extends keyof Endpoints>(
+    nsid: K,
+    method?: "GET" | "POST",
+    opts?: XrpcOpts,
+  ): Promise<Endpoints[K]>;
   xrpc<T = unknown>(
     nsid: string,
+    method?: "GET" | "POST",
+    opts?: XrpcOpts,
+  ): Promise<T>;
+  xrpc(
+    nsid: string,
     method: "GET" | "POST" = "GET",
-    opts: {
-      params?: Record<string, unknown>;
-      body?: unknown;
-      requireAuth?: boolean;
-    } & RequestOptions = {},
-  ): Promise<T> {
-    return xrpcCall<T>(this.config, nsid, method, opts);
+    opts: XrpcOpts = {},
+  ): Promise<unknown> {
+    return xrpcCall(this.config, nsid, method, opts);
   }
 
   static builder(): RockskyClientBuilder {

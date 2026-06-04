@@ -1415,6 +1415,10 @@ pub struct GetFollowsParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetGlobalStatsParams {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetKnownFollowersOutput {
     pub subject: ActorProfileViewBasic,
     pub followers: Vec<ActorProfileViewBasic>,
@@ -2686,6 +2690,25 @@ pub struct StartPlaylistParams {
     /// The position in the playlist to start from, if not specified, starts from the beginning
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub position: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct StatsGlobalStatsView {
+    /// Total scrobbles across all users on Rocksky.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scrobbles: Option<i64>,
+    /// Total number of users on Rocksky.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub users: Option<i64>,
+    /// Total number of artists known to Rocksky.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artists: Option<i64>,
+    /// Total number of albums known to Rocksky.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub albums: Option<i64>,
+    /// Total number of tracks known to Rocksky.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tracks: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

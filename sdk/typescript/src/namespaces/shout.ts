@@ -15,83 +15,83 @@ import type { Call } from "./_helpers.js";
 export class ShoutNamespace {
   constructor(private readonly call: Call) {}
 
-  createShout<T = unknown>(
+  createShout(
     input: CreateShoutInput = {},
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.shout.createShout", "POST", {
+    return this.call("app.rocksky.shout.createShout", "POST", {
       body: input,
       requireAuth: true,
       ...opts,
     });
   }
 
-  replyShout<T = unknown>(
+  replyShout(
     input: ReplyShoutInput,
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.shout.replyShout", "POST", {
+    return this.call("app.rocksky.shout.replyShout", "POST", {
       body: input,
       requireAuth: true,
       ...opts,
     });
   }
 
-  reportShout<T = unknown>(
+  reportShout(
     input: ReportShoutInput,
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.shout.reportShout", "POST", {
+    return this.call("app.rocksky.shout.reportShout", "POST", {
       body: input,
       requireAuth: true,
       ...opts,
     });
   }
 
-  removeShout<T = unknown>(params: RemoveShoutParams, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.shout.removeShout", "POST", {
+  removeShout(params: RemoveShoutParams, opts?: RequestOptions) {
+    return this.call("app.rocksky.shout.removeShout", "POST", {
       params,
       requireAuth: true,
       ...opts,
     });
   }
 
-  getShoutReplies<T = unknown>(params: GetShoutRepliesParams, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.shout.getShoutReplies", "GET", {
+  getShoutReplies(params: GetShoutRepliesParams, opts?: RequestOptions) {
+    return this.call("app.rocksky.shout.getShoutReplies", "GET", {
       params,
       ...opts,
     });
   }
 
-  getProfileShouts<T = unknown>(
+  getProfileShouts(
     params: GetProfileShoutsParams,
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.shout.getProfileShouts", "GET", {
+    return this.call("app.rocksky.shout.getProfileShouts", "GET", {
       params,
       ...opts,
     });
   }
 
-  getTrackShouts<T = unknown>(
+  getTrackShouts(
     params: GetTrackShoutsParams,
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.shout.getTrackShouts", "GET", {
+    return this.call("app.rocksky.shout.getTrackShouts", "GET", {
       params,
       ...opts,
     });
   }
 
-  getArtistShouts<T = unknown>(params: GetArtistShoutsParams, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.shout.getArtistShouts", "GET", {
+  getArtistShouts(params: GetArtistShoutsParams, opts?: RequestOptions) {
+    return this.call("app.rocksky.shout.getArtistShouts", "GET", {
       params,
       ...opts,
     });
   }
 
-  getAlbumShouts<T = unknown>(params: GetAlbumShoutsParams, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.shout.getAlbumShouts", "GET", {
+  getAlbumShouts(params: GetAlbumShoutsParams, opts?: RequestOptions) {
+    return this.call("app.rocksky.shout.getAlbumShouts", "GET", {
       params,
       ...opts,
     });

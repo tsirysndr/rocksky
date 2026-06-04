@@ -19,73 +19,73 @@ export type ActorRangeParams = GetActorAlbumsParams;
 export class ActorNamespace {
   constructor(private readonly call: Call) {}
 
-  getProfile<T = unknown>(params: GetProfileParams = {}, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.actor.getProfile", "GET", {
+  getProfile(params: GetProfileParams = {}, opts?: RequestOptions) {
+    return this.call("app.rocksky.actor.getProfile", "GET", {
       params,
       ...opts,
     });
   }
 
-  getActorAlbums<T = unknown>(params: GetActorAlbumsParams, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.actor.getActorAlbums", "GET", {
+  getActorAlbums(params: GetActorAlbumsParams, opts?: RequestOptions) {
+    return this.call("app.rocksky.actor.getActorAlbums", "GET", {
       params,
       ...opts,
     });
   }
 
-  getActorArtists<T = unknown>(params: GetActorArtistsParams, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.actor.getActorArtists", "GET", {
+  getActorArtists(params: GetActorArtistsParams, opts?: RequestOptions) {
+    return this.call("app.rocksky.actor.getActorArtists", "GET", {
       params,
       ...opts,
     });
   }
 
-  getActorSongs<T = unknown>(params: GetActorSongsParams, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.actor.getActorSongs", "GET", {
+  getActorSongs(params: GetActorSongsParams, opts?: RequestOptions) {
+    return this.call("app.rocksky.actor.getActorSongs", "GET", {
       params,
       ...opts,
     });
   }
 
-  getActorScrobbles<T = unknown>(
+  getActorScrobbles(
     params: GetActorScrobblesParams,
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.actor.getActorScrobbles", "GET", {
+    return this.call("app.rocksky.actor.getActorScrobbles", "GET", {
       params,
       ...opts,
     });
   }
 
-  getActorLovedSongs<T = unknown>(
+  getActorLovedSongs(
     params: GetActorLovedSongsParams,
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.actor.getActorLovedSongs", "GET", {
+    return this.call("app.rocksky.actor.getActorLovedSongs", "GET", {
       params,
       ...opts,
     });
   }
 
-  getActorPlaylists<T = unknown>(
+  getActorPlaylists(
     params: GetActorPlaylistsParams,
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.actor.getActorPlaylists", "GET", {
+    return this.call("app.rocksky.actor.getActorPlaylists", "GET", {
       params,
       ...opts,
     });
   }
 
-  getActorNeighbours<T = unknown>(params: GetActorNeighboursParams, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.actor.getActorNeighbours", "GET", {
+  getActorNeighbours(params: GetActorNeighboursParams, opts?: RequestOptions) {
+    return this.call("app.rocksky.actor.getActorNeighbours", "GET", {
       params,
       ...opts,
     });
   }
 
-  getActorCompatibility<T = unknown>(params: GetActorCompatibilityParams, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.actor.getActorCompatibility", "GET", {
+  getActorCompatibility(params: GetActorCompatibilityParams, opts?: RequestOptions) {
+    return this.call("app.rocksky.actor.getActorCompatibility", "GET", {
       params,
       ...opts,
     });

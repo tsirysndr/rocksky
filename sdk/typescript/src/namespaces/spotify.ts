@@ -8,46 +8,46 @@ import type { Call } from "./_helpers.js";
 export class SpotifyNamespace {
   constructor(private readonly call: Call) {}
 
-  getCurrentlyPlaying<T = unknown>(
+  getCurrentlyPlaying(
     params: GetCurrentlyPlayingParams = {},
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.spotify.getCurrentlyPlaying", "GET", {
+    return this.call("app.rocksky.spotify.getCurrentlyPlaying", "GET", {
       params,
       ...opts,
     });
   }
 
-  play<T = unknown>(opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.spotify.play", "POST", {
+  play(opts?: RequestOptions) {
+    return this.call("app.rocksky.spotify.play", "POST", {
       requireAuth: true,
       ...opts,
     });
   }
 
-  pause<T = unknown>(opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.spotify.pause", "POST", {
+  pause(opts?: RequestOptions) {
+    return this.call("app.rocksky.spotify.pause", "POST", {
       requireAuth: true,
       ...opts,
     });
   }
 
-  next<T = unknown>(opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.spotify.next", "POST", {
+  next(opts?: RequestOptions) {
+    return this.call("app.rocksky.spotify.next", "POST", {
       requireAuth: true,
       ...opts,
     });
   }
 
-  previous<T = unknown>(opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.spotify.previous", "POST", {
+  previous(opts?: RequestOptions) {
+    return this.call("app.rocksky.spotify.previous", "POST", {
       requireAuth: true,
       ...opts,
     });
   }
 
-  seek<T = unknown>(params: SeekParams, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.spotify.seek", "POST", {
+  seek(params: SeekParams, opts?: RequestOptions) {
+    return this.call("app.rocksky.spotify.seek", "POST", {
       params,
       requireAuth: true,
       ...opts,

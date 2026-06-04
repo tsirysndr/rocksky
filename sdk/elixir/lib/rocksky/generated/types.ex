@@ -1169,6 +1169,12 @@ defmodule Rocksky.Generated.GetFollowsParams do
   defstruct [:actor, :limit, :dids, :cursor]
 end
 
+defmodule Rocksky.Generated.GetGlobalStatsParams do
+  @moduledoc false
+  @type t :: %__MODULE__{}
+  defstruct []
+end
+
 defmodule Rocksky.Generated.GetKnownFollowersOutput do
   @moduledoc false
   @type t :: %__MODULE__{
@@ -2139,6 +2145,18 @@ defmodule Rocksky.Generated.StartPlaylistParams do
         }
   @enforce_keys [:uri]
   defstruct [:uri, :shuffle, :position]
+end
+
+defmodule Rocksky.Generated.StatsGlobalStatsView do
+  @moduledoc false
+  @type t :: %__MODULE__{
+          scrobbles: integer() | nil,
+          users: integer() | nil,
+          artists: integer() | nil,
+          albums: integer() | nil,
+          tracks: integer() | nil
+        }
+  defstruct [:scrobbles, :users, :artists, :albums, :tracks]
 end
 
 defmodule Rocksky.Generated.StatsView do

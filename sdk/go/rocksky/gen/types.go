@@ -963,6 +963,9 @@ type GetFollowsParams struct {
 	Cursor string `json:"cursor,omitempty"`
 }
 
+type GetGlobalStatsParams struct {
+}
+
 type GetKnownFollowersOutput struct {
 	Subject *ActorProfileViewBasic `json:"subject,omitempty"`
 	Followers []ActorProfileViewBasic `json:"followers,omitempty"`
@@ -1857,6 +1860,19 @@ type StartPlaylistParams struct {
 	Shuffle bool `json:"shuffle,omitempty"`
 	// The position in the playlist to start from, if not specified, starts from the beginning
 	Position int `json:"position,omitempty"`
+}
+
+type StatsGlobalStatsView struct {
+	// Total scrobbles across all users on Rocksky.
+	Scrobbles int `json:"scrobbles,omitempty"`
+	// Total number of users on Rocksky.
+	Users int `json:"users,omitempty"`
+	// Total number of artists known to Rocksky.
+	Artists int `json:"artists,omitempty"`
+	// Total number of albums known to Rocksky.
+	Albums int `json:"albums,omitempty"`
+	// Total number of tracks known to Rocksky.
+	Tracks int `json:"tracks,omitempty"`
 }
 
 type StatsView struct {

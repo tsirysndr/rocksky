@@ -12,25 +12,25 @@ export type TopChartParams = GetTopArtistsParams;
 export class ChartsNamespace {
   constructor(private readonly call: Call) {}
 
-  getScrobblesChart<T = unknown>(
+  getScrobblesChart(
     params: ScrobblesChartParams = {},
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.charts.getScrobblesChart", "GET", {
+    return this.call("app.rocksky.charts.getScrobblesChart", "GET", {
       params,
       ...opts,
     });
   }
 
-  getTopArtists<T = unknown>(params: GetTopArtistsParams = {}, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.charts.getTopArtists", "GET", {
+  getTopArtists(params: GetTopArtistsParams = {}, opts?: RequestOptions) {
+    return this.call("app.rocksky.charts.getTopArtists", "GET", {
       params,
       ...opts,
     });
   }
 
-  getTopTracks<T = unknown>(params: GetTopTracksParams = {}, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.charts.getTopTracks", "GET", {
+  getTopTracks(params: GetTopTracksParams = {}, opts?: RequestOptions) {
+    return this.call("app.rocksky.charts.getTopTracks", "GET", {
       params,
       ...opts,
     });

@@ -14,47 +14,47 @@ export type KnownFollowersParams = GetKnownFollowersParams;
 export class GraphNamespace {
   constructor(private readonly call: Call) {}
 
-  followAccount<T = unknown>(
+  followAccount(
     params: FollowAccountParams,
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.graph.followAccount", "POST", {
+    return this.call("app.rocksky.graph.followAccount", "POST", {
       params,
       requireAuth: true,
       ...opts,
     });
   }
 
-  unfollowAccount<T = unknown>(
+  unfollowAccount(
     params: UnfollowAccountParams,
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.graph.unfollowAccount", "POST", {
+    return this.call("app.rocksky.graph.unfollowAccount", "POST", {
       params,
       requireAuth: true,
       ...opts,
     });
   }
 
-  getFollowers<T = unknown>(params: GetFollowersParams, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.graph.getFollowers", "GET", {
+  getFollowers(params: GetFollowersParams, opts?: RequestOptions) {
+    return this.call("app.rocksky.graph.getFollowers", "GET", {
       params,
       ...opts,
     });
   }
 
-  getFollows<T = unknown>(params: GetFollowsParams, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.graph.getFollows", "GET", {
+  getFollows(params: GetFollowsParams, opts?: RequestOptions) {
+    return this.call("app.rocksky.graph.getFollows", "GET", {
       params,
       ...opts,
     });
   }
 
-  getKnownFollowers<T = unknown>(
+  getKnownFollowers(
     params: GetKnownFollowersParams,
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.graph.getKnownFollowers", "GET", {
+    return this.call("app.rocksky.graph.getKnownFollowers", "GET", {
       params,
       ...opts,
     });

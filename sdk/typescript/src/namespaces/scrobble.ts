@@ -11,29 +11,29 @@ export type { CreateScrobbleInput, GetScrobblesParams };
 export class ScrobbleNamespace {
   constructor(private readonly call: Call) {}
 
-  createScrobble<T = unknown>(
+  createScrobble(
     input: CreateScrobbleInput,
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.scrobble.createScrobble", "POST", {
+    return this.call("app.rocksky.scrobble.createScrobble", "POST", {
       body: input,
       requireAuth: true,
       ...opts,
     });
   }
 
-  getScrobble<T = unknown>(params: GetScrobbleParams, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.scrobble.getScrobble", "GET", {
+  getScrobble(params: GetScrobbleParams, opts?: RequestOptions) {
+    return this.call("app.rocksky.scrobble.getScrobble", "GET", {
       params,
       ...opts,
     });
   }
 
-  getScrobbles<T = unknown>(
+  getScrobbles(
     params: GetScrobblesParams = {},
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.scrobble.getScrobbles", "GET", {
+    return this.call("app.rocksky.scrobble.getScrobbles", "GET", {
       params,
       ...opts,
     });

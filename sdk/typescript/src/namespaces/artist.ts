@@ -15,52 +15,52 @@ export type ArtistListenersParams = GetArtistListenersParams;
 export class ArtistNamespace {
   constructor(private readonly call: Call) {}
 
-  getArtist<T = unknown>(params: GetArtistParams, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.artist.getArtist", "GET", {
+  getArtist(params: GetArtistParams, opts?: RequestOptions) {
+    return this.call("app.rocksky.artist.getArtist", "GET", {
       params,
       ...opts,
     });
   }
 
-  getArtists<T = unknown>(params: GetArtistsParams = {}, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.artist.getArtists", "GET", {
+  getArtists(params: GetArtistsParams = {}, opts?: RequestOptions) {
+    return this.call("app.rocksky.artist.getArtists", "GET", {
       params,
       ...opts,
     });
   }
 
-  getArtistAlbums<T = unknown>(params: GetArtistAlbumsParams, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.artist.getArtistAlbums", "GET", {
+  getArtistAlbums(params: GetArtistAlbumsParams, opts?: RequestOptions) {
+    return this.call("app.rocksky.artist.getArtistAlbums", "GET", {
       params,
       ...opts,
     });
   }
 
-  getArtistTracks<T = unknown>(
+  getArtistTracks(
     params: GetArtistTracksParams = {},
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.artist.getArtistTracks", "GET", {
+    return this.call("app.rocksky.artist.getArtistTracks", "GET", {
       params,
       ...opts,
     });
   }
 
-  getArtistListeners<T = unknown>(
+  getArtistListeners(
     params: GetArtistListenersParams,
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.artist.getArtistListeners", "GET", {
+    return this.call("app.rocksky.artist.getArtistListeners", "GET", {
       params,
       ...opts,
     });
   }
 
-  getArtistRecentListeners<T = unknown>(
+  getArtistRecentListeners(
     params: GetArtistRecentListenersParams,
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.artist.getArtistRecentListeners", "GET", {
+    return this.call("app.rocksky.artist.getArtistRecentListeners", "GET", {
       params,
       ...opts,
     });

@@ -738,6 +738,10 @@ class GetFollowsParams(RockskyModel):
     cursor: str | None = None
 
 
+class GetGlobalStatsParams(RockskyModel):
+    pass
+
+
 class GetKnownFollowersOutput(RockskyModel):
     subject: ActorProfileViewBasic | None = None
     followers: list[ActorProfileViewBasic] | None = None
@@ -1343,6 +1347,14 @@ class StartPlaylistParams(RockskyModel):
     position: int | None = None
 
 
+class StatsGlobalStatsView(RockskyModel):
+    scrobbles: int | None = None
+    users: int | None = None
+    artists: int | None = None
+    albums: int | None = None
+    tracks: int | None = None
+
+
 class StatsView(RockskyModel):
     scrobbles: int | None = None
     artists: int | None = None
@@ -1550,6 +1562,7 @@ GetFollowersOutput.model_rebuild()
 GetFollowersParams.model_rebuild()
 GetFollowsOutput.model_rebuild()
 GetFollowsParams.model_rebuild()
+GetGlobalStatsParams.model_rebuild()
 GetKnownFollowersOutput.model_rebuild()
 GetKnownFollowersParams.model_rebuild()
 GetMetadataParams.model_rebuild()
@@ -1634,6 +1647,7 @@ SongViewBasic.model_rebuild()
 SongViewDetailed.model_rebuild()
 SpotifyTrackView.model_rebuild()
 StartPlaylistParams.model_rebuild()
+StatsGlobalStatsView.model_rebuild()
 StatsView.model_rebuild()
 StatsWrappedAlbum.model_rebuild()
 StatsWrappedArtist.model_rebuild()

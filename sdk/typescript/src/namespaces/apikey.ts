@@ -13,35 +13,35 @@ export type ListApikeysParams = GetApikeysParams;
 export class ApikeyNamespace {
   constructor(private readonly call: Call) {}
 
-  getApikeys<T = unknown>(
+  getApikeys(
     params: ListApikeysParams = {},
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.apikey.getApikeys", "GET", {
+    return this.call("app.rocksky.apikey.getApikeys", "GET", {
       params,
       requireAuth: true,
       ...opts,
     });
   }
 
-  createApikey<T = unknown>(input: CreateApikeyInput, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.apikey.createApikey", "POST", {
+  createApikey(input: CreateApikeyInput, opts?: RequestOptions) {
+    return this.call("app.rocksky.apikey.createApikey", "POST", {
       body: input,
       requireAuth: true,
       ...opts,
     });
   }
 
-  updateApikey<T = unknown>(input: UpdateApikeyInput, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.apikey.updateApikey", "POST", {
+  updateApikey(input: UpdateApikeyInput, opts?: RequestOptions) {
+    return this.call("app.rocksky.apikey.updateApikey", "POST", {
       body: input,
       requireAuth: true,
       ...opts,
     });
   }
 
-  removeApikey<T = unknown>(params: RemoveApikeyParams, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.apikey.removeApikey", "POST", {
+  removeApikey(params: RemoveApikeyParams, opts?: RequestOptions) {
+    return this.call("app.rocksky.apikey.removeApikey", "POST", {
       params,
       requireAuth: true,
       ...opts,

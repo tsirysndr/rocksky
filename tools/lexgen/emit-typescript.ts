@@ -78,7 +78,25 @@ function emitInterface(t: NamedType): string {
   return head + body + "\n}\n";
 }
 
+function emitEndpoints(reg: Registry): string {
+  const head =
+    "/**\n" +
+    " * Map of every XRPC method (NSID) to the type of its response body.\n" +
+    " * Endpoints with no output map to `void`. Used by the SDK to type method\n" +
+    " * return values automatically — callers should not need to reference this\n" +
+    " * directly.\n" +
+    " */\n" +
+    "export interface Endpoints {\n";
+  const body = reg.endpoints
+    .map((ep) => {
+      const t = ep.output ? tsType(ep.output) : "void";
+      return `  "${ep.nsid}": ${t};`;
+    })
+    .join("\n");
+  return head + body + "\n}\n";
+}
+
 export function emitTypescript(reg: Registry): string {
-  const parts = [HEADER, ...reg.types.map(emitInterface)];
+  const parts = [HEADER, ...reg.types.map(emitInterface), emitEndpoints(reg)];
   return parts.join("\n");
 }

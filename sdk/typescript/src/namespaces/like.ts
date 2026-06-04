@@ -12,32 +12,32 @@ export type LikeInput = LikeSongInput;
 export class LikeNamespace {
   constructor(private readonly call: Call) {}
 
-  likeSong<T = unknown>(input: LikeSongInput = {}, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.like.likeSong", "POST", {
+  likeSong(input: LikeSongInput = {}, opts?: RequestOptions) {
+    return this.call("app.rocksky.like.likeSong", "POST", {
       body: input,
       requireAuth: true,
       ...opts,
     });
   }
 
-  dislikeSong<T = unknown>(input: DislikeSongInput = {}, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.like.dislikeSong", "POST", {
+  dislikeSong(input: DislikeSongInput = {}, opts?: RequestOptions) {
+    return this.call("app.rocksky.like.dislikeSong", "POST", {
       body: input,
       requireAuth: true,
       ...opts,
     });
   }
 
-  likeShout<T = unknown>(input: LikeShoutInput = {}, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.like.likeShout", "POST", {
+  likeShout(input: LikeShoutInput = {}, opts?: RequestOptions) {
+    return this.call("app.rocksky.like.likeShout", "POST", {
       body: input,
       requireAuth: true,
       ...opts,
     });
   }
 
-  dislikeShout<T = unknown>(input: DislikeShoutInput = {}, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.like.dislikeShout", "POST", {
+  dislikeShout(input: DislikeShoutInput = {}, opts?: RequestOptions) {
+    return this.call("app.rocksky.like.dislikeShout", "POST", {
       body: input,
       requireAuth: true,
       ...opts,

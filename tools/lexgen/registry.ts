@@ -32,7 +32,15 @@ export interface NamedType {
   fields: Field[];
 }
 
+export interface EndpointDef {
+  nsid: string;
+  kind: "query" | "procedure" | "subscription";
+  /** Output type, or null if the endpoint has no output body. */
+  output: TypeRef | null;
+}
+
 export interface Registry {
   types: NamedType[];
   refMap: Map<string, string>;
+  endpoints: EndpointDef[];
 }

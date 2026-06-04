@@ -19,39 +19,39 @@ export type {
 export class SongNamespace {
   constructor(private readonly call: Call) {}
 
-  getSong<T = unknown>(params: GetSongParams, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.song.getSong", "GET", {
+  getSong(params: GetSongParams, opts?: RequestOptions) {
+    return this.call("app.rocksky.song.getSong", "GET", {
       params,
       ...opts,
     });
   }
 
-  getSongs<T = unknown>(params: GetSongsParams = {}, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.song.getSongs", "GET", {
+  getSongs(params: GetSongsParams = {}, opts?: RequestOptions) {
+    return this.call("app.rocksky.song.getSongs", "GET", {
       params,
       ...opts,
     });
   }
 
-  getSongRecentListeners<T = unknown>(
+  getSongRecentListeners(
     params: GetSongRecentListenersParams,
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.song.getSongRecentListeners", "GET", {
+    return this.call("app.rocksky.song.getSongRecentListeners", "GET", {
       params,
       ...opts,
     });
   }
 
-  matchSong<T = unknown>(params: MatchSongParams, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.song.matchSong", "GET", {
+  matchSong(params: MatchSongParams, opts?: RequestOptions) {
+    return this.call("app.rocksky.song.matchSong", "GET", {
       params,
       ...opts,
     });
   }
 
-  createSong<T = unknown>(input: CreateSongInput, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.song.createSong", "POST", {
+  createSong(input: CreateSongInput, opts?: RequestOptions) {
+    return this.call("app.rocksky.song.createSong", "POST", {
       body: input,
       requireAuth: true,
       ...opts,

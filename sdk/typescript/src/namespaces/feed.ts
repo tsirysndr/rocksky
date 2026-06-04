@@ -17,94 +17,94 @@ export type RecommendParams = GetRecommendationsParams;
 export class FeedNamespace {
   constructor(private readonly call: Call) {}
 
-  search<T = unknown>(params: SearchParams, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.feed.search", "GET", {
+  search(params: SearchParams, opts?: RequestOptions) {
+    return this.call("app.rocksky.feed.search", "GET", {
       params,
       ...opts,
     });
   }
 
-  getFeed<T = unknown>(
+  getFeed(
     params: GetFeedParams,
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.feed.getFeed", "GET", {
+    return this.call("app.rocksky.feed.getFeed", "GET", {
       params,
       ...opts,
     });
   }
 
-  getFeedGenerators<T = unknown>(
+  getFeedGenerators(
     params: GetFeedGeneratorsParams = {},
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.feed.getFeedGenerators", "GET", {
+    return this.call("app.rocksky.feed.getFeedGenerators", "GET", {
       params,
       ...opts,
     });
   }
 
-  getFeedGenerator<T = unknown>(
+  getFeedGenerator(
     params: GetFeedGeneratorParams,
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.feed.getFeedGenerator", "GET", {
+    return this.call("app.rocksky.feed.getFeedGenerator", "GET", {
       params,
       ...opts,
     });
   }
 
-  describeFeedGenerator<T = unknown>(opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.feed.describeFeedGenerator", "GET", {
+  describeFeedGenerator(opts?: RequestOptions) {
+    return this.call("app.rocksky.feed.describeFeedGenerator", "GET", {
       ...opts,
     });
   }
 
-  getFeedSkeleton<T = unknown>(
+  getFeedSkeleton(
     params: GetFeedSkeletonParams,
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.feed.getFeedSkeleton", "GET", {
+    return this.call("app.rocksky.feed.getFeedSkeleton", "GET", {
       params,
       ...opts,
     });
   }
 
-  getRecommendations<T = unknown>(
+  getRecommendations(
     params: GetRecommendationsParams,
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.feed.getRecommendations", "GET", {
+    return this.call("app.rocksky.feed.getRecommendations", "GET", {
       params,
       ...opts,
     });
   }
 
-  getArtistRecommendations<T = unknown>(
+  getArtistRecommendations(
     params: GetArtistRecommendationsParams,
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.feed.getArtistRecommendations", "GET", {
+    return this.call("app.rocksky.feed.getArtistRecommendations", "GET", {
       params,
       ...opts,
     });
   }
 
-  getAlbumRecommendations<T = unknown>(
+  getAlbumRecommendations(
     params: GetAlbumRecommendationsParams,
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.feed.getAlbumRecommendations", "GET", {
+    return this.call("app.rocksky.feed.getAlbumRecommendations", "GET", {
       params,
       ...opts,
     });
   }
 
-  getStories<T = unknown>(
+  getStories(
     params: GetStoriesParams = {},
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.feed.getStories", "GET", {
+    return this.call("app.rocksky.feed.getStories", "GET", {
       params,
       ...opts,
     });

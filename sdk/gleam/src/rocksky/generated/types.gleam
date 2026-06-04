@@ -924,6 +924,10 @@ pub type GetFollowsParams {
   )
 }
 
+pub type GetGlobalStatsParams {
+  GetGlobalStatsParams
+}
+
 pub type GetKnownFollowersOutput {
   GetKnownFollowersOutput(
     subject: ActorProfileViewBasic,
@@ -1689,6 +1693,16 @@ pub type StartPlaylistParams {
     uri: String,
     shuffle: Option(Bool),
     position: Option(Int),
+  )
+}
+
+pub type StatsGlobalStatsView {
+  StatsGlobalStatsView(
+    scrobbles: Option(Int),
+    users: Option(Int),
+    artists: Option(Int),
+    albums: Option(Int),
+    tracks: Option(Int),
   )
 }
 

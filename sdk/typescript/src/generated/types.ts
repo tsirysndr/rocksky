@@ -964,6 +964,10 @@ export interface GetFollowsParams {
   cursor?: string;
 }
 
+export interface GetGlobalStatsParams {
+
+}
+
 export interface GetKnownFollowersOutput {
   subject: ActorProfileViewBasic;
   followers: ActorProfileViewBasic[];
@@ -1861,6 +1865,19 @@ export interface StartPlaylistParams {
   position?: number;
 }
 
+export interface StatsGlobalStatsView {
+  /** Total scrobbles across all users on Rocksky. */
+  scrobbles?: number;
+  /** Total number of users on Rocksky. */
+  users?: number;
+  /** Total number of artists known to Rocksky. */
+  artists?: number;
+  /** Total number of albums known to Rocksky. */
+  albums?: number;
+  /** Total number of tracks known to Rocksky. */
+  tracks?: number;
+}
+
 export interface StatsView {
   /** The total number of scrobbles. */
   scrobbles?: number;
@@ -2016,4 +2033,111 @@ export interface UpdateApikeyInput {
   name: string;
   /** A new description for the API key. */
   description?: string;
+}
+
+/**
+ * Map of every XRPC method (NSID) to the type of its response body.
+ * Endpoints with no output map to `void`. Used by the SDK to type method
+ * return values automatically — callers should not need to reference this
+ * directly.
+ */
+export interface Endpoints {
+  "app.rocksky.actor.getActorAlbums": GetActorAlbumsOutput;
+  "app.rocksky.actor.getActorArtists": GetActorArtistsOutput;
+  "app.rocksky.actor.getActorCompatibility": GetActorCompatibilityOutput;
+  "app.rocksky.actor.getActorLovedSongs": GetActorLovedSongsOutput;
+  "app.rocksky.actor.getActorNeighbours": GetActorNeighboursOutput;
+  "app.rocksky.actor.getActorPlaylists": GetActorPlaylistsOutput;
+  "app.rocksky.actor.getActorScrobbles": GetActorScrobblesOutput;
+  "app.rocksky.actor.getActorSongs": GetActorSongsOutput;
+  "app.rocksky.actor.getProfile": ActorProfileViewDetailed;
+  "app.rocksky.album.getAlbum": AlbumViewDetailed;
+  "app.rocksky.album.getAlbums": GetAlbumsOutput;
+  "app.rocksky.album.getAlbumTracks": GetAlbumTracksOutput;
+  "app.rocksky.apikey.createApikey": unknown;
+  "app.rocksky.apikey.getApikeys": GetApikeysOutput;
+  "app.rocksky.apikey.removeApikey": unknown;
+  "app.rocksky.apikey.updateApikey": unknown;
+  "app.rocksky.artist.getArtist": ArtistViewDetailed;
+  "app.rocksky.artist.getArtistAlbums": GetArtistAlbumsOutput;
+  "app.rocksky.artist.getArtistListeners": GetArtistListenersOutput;
+  "app.rocksky.artist.getArtistRecentListeners": GetArtistRecentListenersOutput;
+  "app.rocksky.artist.getArtists": GetArtistsOutput;
+  "app.rocksky.artist.getArtistTracks": GetArtistTracksOutput;
+  "app.rocksky.charts.getScrobblesChart": ChartsView;
+  "app.rocksky.charts.getTopArtists": GetTopArtistsOutput;
+  "app.rocksky.charts.getTopTracks": GetTopTracksOutput;
+  "app.rocksky.dropbox.downloadFile": void;
+  "app.rocksky.dropbox.getFiles": DropboxFileListView;
+  "app.rocksky.dropbox.getMetadata": DropboxFileView;
+  "app.rocksky.dropbox.getTemporaryLink": DropboxTemporaryLinkView;
+  "app.rocksky.feed.describeFeedGenerator": DescribeFeedGeneratorOutput;
+  "app.rocksky.feed.getAlbumRecommendations": FeedRecommendedAlbumsView;
+  "app.rocksky.feed.getArtistRecommendations": FeedRecommendedArtistsView;
+  "app.rocksky.feed.getFeed": FeedView;
+  "app.rocksky.feed.getFeedGenerator": GetFeedGeneratorOutput;
+  "app.rocksky.feed.getFeedGenerators": FeedGeneratorsView;
+  "app.rocksky.feed.getFeedSkeleton": GetFeedSkeletonOutput;
+  "app.rocksky.feed.getRecommendations": FeedRecommendationsView;
+  "app.rocksky.feed.getStories": FeedStoriesView;
+  "app.rocksky.feed.search": FeedSearchResultsView;
+  "app.rocksky.googledrive.downloadFile": void;
+  "app.rocksky.googledrive.getFile": GoogledriveFileView;
+  "app.rocksky.googledrive.getFiles": GoogledriveFileListView;
+  "app.rocksky.graph.followAccount": FollowAccountOutput;
+  "app.rocksky.graph.getFollowers": GetFollowersOutput;
+  "app.rocksky.graph.getFollows": GetFollowsOutput;
+  "app.rocksky.graph.getKnownFollowers": GetKnownFollowersOutput;
+  "app.rocksky.graph.unfollowAccount": UnfollowAccountOutput;
+  "app.rocksky.like.dislikeShout": ShoutView;
+  "app.rocksky.like.dislikeSong": SongViewDetailed;
+  "app.rocksky.like.likeShout": ShoutView;
+  "app.rocksky.like.likeSong": SongViewDetailed;
+  "app.rocksky.mirror.getMirrorSources": GetMirrorSourcesOutput;
+  "app.rocksky.mirror.putMirrorSource": MirrorSourceView;
+  "app.rocksky.player.addDirectoryToQueue": void;
+  "app.rocksky.player.addItemsToQueue": void;
+  "app.rocksky.player.getCurrentlyPlaying": PlayerCurrentlyPlayingViewDetailed;
+  "app.rocksky.player.getPlaybackQueue": PlayerPlaybackQueueViewDetailed;
+  "app.rocksky.player.next": void;
+  "app.rocksky.player.pause": void;
+  "app.rocksky.player.play": void;
+  "app.rocksky.player.playDirectory": void;
+  "app.rocksky.player.playFile": void;
+  "app.rocksky.player.previous": void;
+  "app.rocksky.player.seek": void;
+  "app.rocksky.playlist.createPlaylist": void;
+  "app.rocksky.playlist.getPlaylist": PlaylistViewDetailed;
+  "app.rocksky.playlist.getPlaylists": GetPlaylistsOutput;
+  "app.rocksky.playlist.insertDirectory": void;
+  "app.rocksky.playlist.insertFiles": void;
+  "app.rocksky.playlist.removePlaylist": void;
+  "app.rocksky.playlist.removeTrack": void;
+  "app.rocksky.playlist.startPlaylist": void;
+  "app.rocksky.scrobble.createScrobble": ScrobbleViewBasic;
+  "app.rocksky.scrobble.getScrobble": ScrobbleViewDetailed;
+  "app.rocksky.scrobble.getScrobbles": GetScrobblesOutput;
+  "app.rocksky.shout.createShout": ShoutView;
+  "app.rocksky.shout.getAlbumShouts": GetAlbumShoutsOutput;
+  "app.rocksky.shout.getArtistShouts": GetArtistShoutsOutput;
+  "app.rocksky.shout.getProfileShouts": GetProfileShoutsOutput;
+  "app.rocksky.shout.getShoutReplies": GetShoutRepliesOutput;
+  "app.rocksky.shout.getTrackShouts": GetTrackShoutsOutput;
+  "app.rocksky.shout.removeShout": ShoutView;
+  "app.rocksky.shout.replyShout": ShoutView;
+  "app.rocksky.shout.reportShout": ShoutView;
+  "app.rocksky.song.createSong": SongViewDetailed;
+  "app.rocksky.song.getSong": SongViewDetailed;
+  "app.rocksky.song.getSongRecentListeners": GetSongRecentListenersOutput;
+  "app.rocksky.song.getSongs": GetSongsOutput;
+  "app.rocksky.song.matchSong": SongViewDetailed;
+  "app.rocksky.spotify.getCurrentlyPlaying": PlayerCurrentlyPlayingViewDetailed;
+  "app.rocksky.spotify.next": void;
+  "app.rocksky.spotify.pause": void;
+  "app.rocksky.spotify.play": void;
+  "app.rocksky.spotify.previous": void;
+  "app.rocksky.spotify.seek": void;
+  "app.rocksky.stats.getGlobalStats": StatsGlobalStatsView;
+  "app.rocksky.stats.getStats": StatsView;
+  "app.rocksky.stats.getWrapped": StatsWrappedView;
 }

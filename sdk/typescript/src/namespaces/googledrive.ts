@@ -9,30 +9,30 @@ import type { Call } from "./_helpers.js";
 export class GoogleDriveNamespace {
   constructor(private readonly call: Call) {}
 
-  getFile<T = unknown>(params: GetFileParams, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.googledrive.getFile", "GET", {
+  getFile(params: GetFileParams, opts?: RequestOptions) {
+    return this.call("app.rocksky.googledrive.getFile", "GET", {
       params,
       requireAuth: true,
       ...opts,
     });
   }
 
-  getFiles<T = unknown>(
+  getFiles(
     params: GetFilesParams = {},
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.googledrive.getFiles", "GET", {
+    return this.call("app.rocksky.googledrive.getFiles", "GET", {
       params,
       requireAuth: true,
       ...opts,
     });
   }
 
-  downloadFile<T = unknown>(
+  downloadFile(
     params: DownloadFileParams,
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.googledrive.downloadFile", "GET", {
+    return this.call("app.rocksky.googledrive.downloadFile", "GET", {
       params,
       requireAuth: true,
       ...opts,

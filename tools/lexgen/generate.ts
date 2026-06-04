@@ -16,7 +16,7 @@ import { emitElixir } from "./emit-elixir";
 import { emitClojure } from "./emit-clojure";
 import { emitGleam } from "./emit-gleam";
 
-import type { Registry, NamedType, Field, TypeRef } from "./registry";
+import type { Registry, NamedType, Field, TypeRef, EndpointDef } from "./registry";
 
 const log = createConsola({
   level: 4,
@@ -172,6 +172,7 @@ function buildRegistry(): Registry {
   const types: NamedType[] = [];
   const refMap = new Map<string, string>();
   const refs = new Set<string>();
+  const endpoints: EndpointDef[] = [];
 
   const hoist = (name: string, t: NamedType) => {
     if (!types.find((x) => x.name === name)) types.push(t);
@@ -226,12 +227,21 @@ function buildRegistry(): Registry {
             const t = buildNamedType(name, def.input.schema, ctx);
             types.push(t);
           }
-          if (def.output?.schema?.type === "object") {
-            const name = nsidNs(nsid) + "Output";
-            const ctx: ParseCtx = { ...baseCtx, parentTypeName: name, hoist };
-            const t = buildNamedType(name, def.output.schema, ctx);
-            types.push(t);
+          let outputRef: TypeRef | null = null;
+          if (def.output?.schema) {
+            const schema = def.output.schema;
+            if (schema.type === "object") {
+              const name = nsidNs(nsid) + "Output";
+              const ctx: ParseCtx = { ...baseCtx, parentTypeName: name, hoist };
+              const t = buildNamedType(name, schema, ctx);
+              types.push(t);
+              outputRef = { kind: "ref", targetId: `__inline:${name}` };
+            } else {
+              const ctx: ParseCtx = { ...baseCtx, parentTypeName: nsidNs(nsid) + "Output", hoist };
+              outputRef = parseTypeRef(schema, ctx);
+            }
           }
+          endpoints.push({ nsid, kind: def.type, output: outputRef });
           if (def.message?.schema?.type === "object") {
             const name = nsidNs(nsid) + "Message";
             const ctx: ParseCtx = { ...baseCtx, parentTypeName: name, hoist };
@@ -254,14 +264,18 @@ function buildRegistry(): Registry {
   for (const t of types) {
     for (const f of t.fields) f.type = resolveTypeRef(f.type, refMap);
   }
+  for (const ep of endpoints) {
+    if (ep.output) ep.output = resolveTypeRef(ep.output, refMap);
+  }
 
   const seen = new Map<string, NamedType>();
   for (const t of types) {
     if (!seen.has(t.name)) seen.set(t.name, t);
   }
   const deduped = Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name));
+  const sortedEndpoints = endpoints.slice().sort((a, b) => a.nsid.localeCompare(b.nsid));
 
-  return { types: deduped, refMap };
+  return { types: deduped, refMap, endpoints: sortedEndpoints };
 }
 
 function resolveTypeRef(t: TypeRef, refMap: Map<string, string>): TypeRef {

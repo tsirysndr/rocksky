@@ -14,80 +14,80 @@ import type { Call } from "./_helpers.js";
 export class PlaylistNamespace {
   constructor(private readonly call: Call) {}
 
-  getPlaylists<T = unknown>(
+  getPlaylists(
     params: GetPlaylistsParams = {},
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.playlist.getPlaylists", "GET", {
+    return this.call("app.rocksky.playlist.getPlaylists", "GET", {
       params,
       ...opts,
     });
   }
 
-  getPlaylist<T = unknown>(params: GetPlaylistParams, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.playlist.getPlaylist", "GET", {
+  getPlaylist(params: GetPlaylistParams, opts?: RequestOptions) {
+    return this.call("app.rocksky.playlist.getPlaylist", "GET", {
       params,
       ...opts,
     });
   }
 
-  createPlaylist<T = unknown>(
+  createPlaylist(
     params: CreatePlaylistParams,
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.playlist.createPlaylist", "POST", {
+    return this.call("app.rocksky.playlist.createPlaylist", "POST", {
       params,
       requireAuth: true,
       ...opts,
     });
   }
 
-  removePlaylist<T = unknown>(params: RemovePlaylistParams, opts?: RequestOptions) {
-    return this.call<T>("app.rocksky.playlist.removePlaylist", "POST", {
+  removePlaylist(params: RemovePlaylistParams, opts?: RequestOptions) {
+    return this.call("app.rocksky.playlist.removePlaylist", "POST", {
       params,
       requireAuth: true,
       ...opts,
     });
   }
 
-  startPlaylist<T = unknown>(
+  startPlaylist(
     params: StartPlaylistParams,
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.playlist.startPlaylist", "POST", {
+    return this.call("app.rocksky.playlist.startPlaylist", "POST", {
       params,
       requireAuth: true,
       ...opts,
     });
   }
 
-  insertDirectory<T = unknown>(
+  insertDirectory(
     params: InsertDirectoryParams,
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.playlist.insertDirectory", "POST", {
+    return this.call("app.rocksky.playlist.insertDirectory", "POST", {
       params,
       requireAuth: true,
       ...opts,
     });
   }
 
-  insertFiles<T = unknown>(
+  insertFiles(
     params: InsertFilesParams,
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.playlist.insertFiles", "POST", {
+    return this.call("app.rocksky.playlist.insertFiles", "POST", {
       params,
       requireAuth: true,
       ...opts,
     });
   }
 
-  removeTrack<T = unknown>(
+  removeTrack(
     params: RemoveTrackParams,
     opts?: RequestOptions,
   ) {
-    return this.call<T>("app.rocksky.playlist.removeTrack", "POST", {
+    return this.call("app.rocksky.playlist.removeTrack", "POST", {
       params,
       ...opts,
     });

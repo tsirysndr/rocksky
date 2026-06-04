@@ -951,6 +951,8 @@
     [:dids {:optional true} [:vector :string]]
     [:cursor {:optional true} :string]
     ]
+   :GetGlobalStatsParams
+   [:map]
    :GetKnownFollowersOutput
    [:map
     [:subject :ActorProfileViewBasic]
@@ -1845,6 +1847,19 @@
     [:shuffle {:optional true} :boolean]
     ;; The position in the playlist to start from, if not specified, starts from the beginning
     [:position {:optional true} :int]
+    ]
+   :StatsGlobalStatsView
+   [:map
+    ;; Total scrobbles across all users on Rocksky.
+    [:scrobbles {:optional true} :int]
+    ;; Total number of users on Rocksky.
+    [:users {:optional true} :int]
+    ;; Total number of artists known to Rocksky.
+    [:artists {:optional true} :int]
+    ;; Total number of albums known to Rocksky.
+    [:albums {:optional true} :int]
+    ;; Total number of tracks known to Rocksky.
+    [:tracks {:optional true} :int]
     ]
    :StatsView
    [:map
