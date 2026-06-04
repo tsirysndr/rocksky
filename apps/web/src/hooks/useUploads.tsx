@@ -1,6 +1,7 @@
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { UploadedTrack } from "../api/uploads";
 import {
+  deleteAlbum,
   deleteUpload,
   getAlbumTracks,
   getStreamUrl,
@@ -59,6 +60,18 @@ export const useDeleteUploadMutation = () => {
     mutationFn: deleteUpload,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["uploads"] });
+      queryClient.invalidateQueries({ queryKey: ["albumTracks"] });
+    },
+  });
+};
+
+export const useDeleteAlbumMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteAlbum,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["uploads"] });
+      queryClient.invalidateQueries({ queryKey: ["albumTracks"] });
     },
   });
 };

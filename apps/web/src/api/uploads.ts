@@ -159,6 +159,25 @@ export const deleteUpload = async (uploadId: string): Promise<void> => {
   });
 };
 
+export const deleteAlbum = async (params: {
+  albumUri?: string;
+  albumArtist?: string;
+  albumName?: string;
+}): Promise<{ deleted: number }> => {
+  const response = await axios.delete<{ status: string; deleted: number }>(
+    `${API_URL}/uploads/album`,
+    {
+      headers: headers(),
+      params: {
+        ...(params.albumUri ? { albumUri: params.albumUri } : {}),
+        ...(params.albumArtist ? { albumArtist: params.albumArtist } : {}),
+        ...(params.albumName ? { albumName: params.albumName } : {}),
+      },
+    },
+  );
+  return { deleted: response.data.deleted };
+};
+
 export interface PersistedQueueTrack {
   uploadId: string;
   title: string;

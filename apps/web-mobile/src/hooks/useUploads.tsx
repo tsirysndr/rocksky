@@ -1,5 +1,5 @@
-import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
-import { getUploads, uploadTrack } from "../api/uploads";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { deleteAlbum, deleteUpload, getUploads, uploadTrack } from "../api/uploads";
 
 export const useUploadsQuery = (offset = 0, size = 1000) =>
   useQuery({
@@ -22,3 +22,25 @@ export const useUploadTrackMutation = () =>
   useMutation({
     mutationFn: (file: File) => uploadTrack(file),
   });
+
+export const useDeleteUploadMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteUpload,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["uploads"] });
+      queryClient.invalidateQueries({ queryKey: ["uploads-infinite"] });
+    },
+  });
+};
+
+export const useDeleteAlbumMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteAlbum,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["uploads"] });
+      queryClient.invalidateQueries({ queryKey: ["uploads-infinite"] });
+    },
+  });
+};

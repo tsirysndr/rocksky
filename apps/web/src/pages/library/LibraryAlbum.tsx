@@ -6,12 +6,17 @@ import {
   IconDots,
   IconMusic,
   IconPlayerPlay,
+  IconTrash,
   IconVinyl,
 } from "@tabler/icons-react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { UploadedTrack } from "../../api/uploads";
-import { useAlbumTracksQuery } from "../../hooks/useUploads";
+import {
+  useAlbumTracksQuery,
+  useDeleteAlbumMutation,
+  useDeleteUploadMutation,
+} from "../../hooks/useUploads";
 import { useUploadPlayer } from "../../hooks/useUploadPlayer";
 import type { QueueTrack } from "../../atoms/queue";
 import Main from "../../layouts/Main";
@@ -356,6 +361,11 @@ const MenuItem = styled.button`
   &:hover { background: var(--color-menu-hover); }
 `;
 
+const DangerMenuItem = styled(MenuItem)`
+  color: #e55;
+  &:hover { background: color-mix(in srgb, #e55 12%, transparent); }
+`;
+
 // ---------------------------------------------------------------------------
 // Page component
 // ---------------------------------------------------------------------------
@@ -366,6 +376,8 @@ export default function LibraryAlbum() {
   const { playNow, playNext, playLast } = useUploadPlayer();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const deleteUploadMutation = useDeleteUploadMutation();
+  const deleteAlbumMutation = useDeleteAlbumMutation();
 
   const albumUri = `at://${did}/app.rocksky.album/${rkey}`;
 
@@ -465,6 +477,27 @@ export default function LibraryAlbum() {
               <ShuffleBtn onClick={handleShuffle}>
                 <IconArrowsShuffle size={15} /> Shuffle
               </ShuffleBtn>
+              <ShuffleBtn
+                disabled={deleteAlbumMutation.isPending || tracks.length === 0}
+                style={{ color: "#e55" }}
+                onClick={() => {
+                  if (
+                    !window.confirm(
+                      `Delete every track from "${album}" by ${albumArtist}? This cannot be undone.`,
+                    )
+                  ) {
+                    return;
+                  }
+                  deleteAlbumMutation.mutate(
+                    { albumUri },
+                    {
+                      onSuccess: () => navigate({ to: "/library" }),
+                    },
+                  );
+                }}
+              >
+                <IconTrash size={15} /> Delete album
+              </ShuffleBtn>
             </PlayButtons>
           </AlbumMeta>
         </AlbumHeader>
@@ -506,6 +539,17 @@ export default function LibraryAlbum() {
                       onPlay={() => handleTrackClick(item)}
                       playNext={playNext}
                       playLast={playLast}
+                      onDelete={() => {
+                        if (
+                          !window.confirm(
+                            `Delete "${item.track.title}" from your library? This cannot be undone.`,
+                          )
+                        ) {
+                          return;
+                        }
+                        deleteUploadMutation.mutate(item.upload.id);
+                      }}
+                      deletePending={deleteUploadMutation.isPending}
                       onClose={() => { setOpenMenuId(null); setMenuAnchor(null); }}
                     />
                   )}
@@ -532,6 +576,8 @@ function TrackContextMenu({
   onPlay,
   playNext,
   playLast,
+  onDelete,
+  deletePending,
   onClose,
 }: {
   item: UploadedTrack;
@@ -539,6 +585,8 @@ function TrackContextMenu({
   onPlay: () => void;
   playNext: (t: QueueTrack) => void;
   playLast: (t: QueueTrack) => void;
+  onDelete: () => void;
+  deletePending: boolean;
   onClose: () => void;
 }) {
   const navigate = useNavigate();
@@ -582,6 +630,19 @@ function TrackContextMenu({
           onClose();
         }}>Go to artist</MenuItem>
       )}
+      <MenuDivider />
+      <DangerMenuItem
+        disabled={deletePending}
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete();
+          onClose();
+        }}
+      >
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <IconTrash size={14} /> Delete track
+        </span>
+      </DangerMenuItem>
     </DropdownPortal>
   );
 }

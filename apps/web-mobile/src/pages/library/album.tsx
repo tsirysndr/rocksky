@@ -5,13 +5,18 @@ import {
   IconDots,
   IconMusic,
   IconPlayerPlay,
+  IconTrash,
   IconVinyl,
 } from "@tabler/icons-react";
 import { useCallback, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import type { UploadedTrack } from "../../api/uploads";
 import type { QueueTrack } from "../../atoms/queue";
-import { useUploadsQuery } from "../../hooks/useUploads";
+import {
+  useDeleteAlbumMutation,
+  useDeleteUploadMutation,
+  useUploadsQuery,
+} from "../../hooks/useUploads";
 import { useUploadPlayer } from "../../hooks/useUploadPlayer";
 import Main from "../../layouts/Main";
 import ContentLoader from "react-content-loader";
@@ -79,9 +84,28 @@ function ActionSheet({ open, onClose, children }: { open: boolean; onClose: () =
   );
 }
 
-function SheetItem({ label, onClick }: { label: string; onClick: () => void }) {
+function SheetItem({
+  label,
+  onClick,
+  icon,
+  danger,
+  disabled,
+}: {
+  label: string;
+  onClick: () => void;
+  icon?: React.ReactNode;
+  danger?: boolean;
+  disabled?: boolean;
+}) {
+  const color = danger ? "#e55" : "var(--color-text)";
   return (
-    <button onClick={onClick} className="w-full flex items-center gap-3 px-5 py-3.5 border-none bg-transparent cursor-pointer text-left text-sm font-medium" style={{ color: "var(--color-text)" }}>
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="w-full flex items-center gap-3 px-5 py-3.5 border-none bg-transparent cursor-pointer text-left text-sm font-medium disabled:opacity-50"
+      style={{ color }}
+    >
+      {icon && <span style={{ color: danger ? "#e55" : "var(--color-text-muted)" }}>{icon}</span>}
       {label}
     </button>
   );
@@ -96,6 +120,8 @@ export default function LibraryAlbumPage() {
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
   const { playNow, playNext, playLast } = useUploadPlayer();
   const [sheetTrack, setSheetTrack] = useState<UploadedTrack | null>(null);
+  const deleteUploadMutation = useDeleteUploadMutation();
+  const deleteAlbumMutation = useDeleteAlbumMutation();
 
   const albumUri = `at://${did}/app.rocksky.album/${rkey}`;
   const { data: allUploads = [], isLoading } = useUploadsQuery(0, 1000);
@@ -201,6 +227,26 @@ export default function LibraryAlbumPage() {
               >
                 <IconArrowsShuffle size={14} /> Shuffle
               </button>
+              <button
+                disabled={deleteAlbumMutation.isPending || tracks.length === 0}
+                onClick={() => {
+                  if (
+                    !window.confirm(
+                      `Delete every track from "${album}" by ${albumArtist}? This cannot be undone.`,
+                    )
+                  ) {
+                    return;
+                  }
+                  deleteAlbumMutation.mutate(
+                    { albumUri },
+                    { onSuccess: () => navigate("/library") },
+                  );
+                }}
+                className="flex items-center gap-2 px-4 py-2 rounded-full border-none cursor-pointer text-sm font-semibold bg-transparent disabled:opacity-50"
+                style={{ color: "#e55" }}
+              >
+                <IconTrash size={14} /> Delete
+              </button>
             </div>
           </div>
         </div>
@@ -275,6 +321,23 @@ export default function LibraryAlbumPage() {
             {artistParsed && (
               <SheetItem label="Go to artist" onClick={() => { navigate(`/library/${artistParsed.did}/artist/${artistParsed.rkey}`); setSheetTrack(null); }} />
             )}
+            <SheetItem
+              icon={<IconTrash size={16} />}
+              label="Delete track"
+              danger
+              disabled={deleteUploadMutation.isPending}
+              onClick={() => {
+                if (
+                  !window.confirm(
+                    `Delete "${sheetTrack.track.title}" from your library? This cannot be undone.`,
+                  )
+                ) {
+                  return;
+                }
+                deleteUploadMutation.mutate(sheetTrack.upload.id);
+                setSheetTrack(null);
+              }}
+            />
           </>
         )}
       </ActionSheet>

@@ -122,6 +122,31 @@ export const getStreamUrl = (uploadId: string): string => {
   return `${API_URL}/uploads/${uploadId}/stream?token=${token}`;
 };
 
+export const deleteUpload = async (uploadId: string): Promise<void> => {
+  await axios.delete(`${API_URL}/uploads/${uploadId}`, {
+    headers: headers(),
+  });
+};
+
+export const deleteAlbum = async (params: {
+  albumUri?: string;
+  albumArtist?: string;
+  albumName?: string;
+}): Promise<{ deleted: number }> => {
+  const response = await axios.delete<{ status: string; deleted: number }>(
+    `${API_URL}/uploads/album`,
+    {
+      headers: headers(),
+      params: {
+        ...(params.albumUri ? { albumUri: params.albumUri } : {}),
+        ...(params.albumArtist ? { albumArtist: params.albumArtist } : {}),
+        ...(params.albumName ? { albumName: params.albumName } : {}),
+      },
+    },
+  );
+  return { deleted: response.data.deleted };
+};
+
 export interface PersistedQueueTrack {
   uploadId: string;
   title: string;

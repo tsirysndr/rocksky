@@ -5,6 +5,7 @@ import {
   IconMusic,
   IconPlayerPlay,
   IconSearch,
+  IconTrash,
   IconUpload,
   IconUser,
   IconVinyl,
@@ -17,6 +18,8 @@ import ContentLoader from "react-content-loader";
 import { getAlbumTracks } from "../../api/uploads";
 import type { UploadedTrack } from "../../api/uploads";
 import {
+  useDeleteAlbumMutation,
+  useDeleteUploadMutation,
   useInfiniteUploadsQuery,
 } from "../../hooks/useUploads";
 import { useArtistQuery } from "../../hooks/useLibrary";
@@ -323,6 +326,13 @@ const MenuItem = styled.button`
   cursor: pointer;
   &:hover {
     background: var(--color-menu-hover);
+  }
+`;
+
+const DangerMenuItem = styled(MenuItem)`
+  color: #e55;
+  &:hover {
+    background: color-mix(in srgb, #e55 12%, transparent);
   }
 `;
 
@@ -637,6 +647,7 @@ interface TrackContextMenuProps {
 function TrackContextMenu({ item, anchorEl, onPlay, onClose }: TrackContextMenuProps) {
   const navigate = useNavigate();
   const { playNext, playLast } = useUploadPlayer();
+  const deleteUploadMutation = useDeleteUploadMutation();
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -720,6 +731,26 @@ function TrackContextMenu({ item, anchorEl, onPlay, onClose }: TrackContextMenuP
           Go to album
         </MenuItem>
       )}
+      <MenuDivider />
+      <DangerMenuItem
+        disabled={deleteUploadMutation.isPending}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (
+            !window.confirm(
+              `Delete "${item.track.title}" from your library? This cannot be undone.`,
+            )
+          ) {
+            return;
+          }
+          deleteUploadMutation.mutate(item.upload.id);
+          onClose();
+        }}
+      >
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <IconTrash size={14} /> Delete track
+        </span>
+      </DangerMenuItem>
     </DropdownPortal>
   );
 }
@@ -745,6 +776,7 @@ interface AlbumContextMenuProps {
 function AlbumContextMenu({ alb, anchorEl, onClose }: AlbumContextMenuProps) {
   const navigate = useNavigate();
   const { playNow, playNextAll, playLastAll } = useUploadPlayer();
+  const deleteAlbumMutation = useDeleteAlbumMutation();
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -801,6 +833,30 @@ function AlbumContextMenu({ alb, anchorEl, onClose }: AlbumContextMenuProps) {
           }}>Go to artist</MenuItem>
         </>
       )}
+      <MenuDivider />
+      <DangerMenuItem
+        disabled={deleteAlbumMutation.isPending}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (
+            !window.confirm(
+              `Delete every track from "${alb.album}" by ${alb.albumArtist}? This cannot be undone.`,
+            )
+          ) {
+            return;
+          }
+          deleteAlbumMutation.mutate(
+            alb.albumUri
+              ? { albumUri: alb.albumUri }
+              : { albumArtist: alb.albumArtist, albumName: alb.album },
+          );
+          onClose();
+        }}
+      >
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <IconTrash size={14} /> Delete album
+        </span>
+      </DangerMenuItem>
     </DropdownPortal>
   );
 }
