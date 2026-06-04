@@ -199,9 +199,7 @@ async fn spawn_for(
                 .await
                 .insert((provider, row.user_id.clone()), cancel.clone());
 
-            tokio::spawn(run_supervised(
-                provider, pool, http, enricher, row, cancel,
-            ));
+            tokio::spawn(run_supervised(provider, pool, http, enricher, row, cancel));
         }
     }
 }

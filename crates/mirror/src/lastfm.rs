@@ -78,7 +78,9 @@ pub async fn run_user(
 
         let poll = tokio::time::timeout(
             POLL_TIMEOUT,
-            poll_once(&pool, &http, &enricher, &row, &api_key, &username, watermark),
+            poll_once(
+                &pool, &http, &enricher, &row, &api_key, &username, watermark,
+            ),
         );
         tokio::select! {
             _ = cancel.cancelled() => {
