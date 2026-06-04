@@ -1,5 +1,5 @@
-import { RockskyError } from "./errors";
-import { DEFAULT_BASE_URL } from "./types";
+import { RockskyError } from "./errors.js";
+import { DEFAULT_BASE_URL } from "./types.js";
 
 /** Minimal WebSocket interface — works with browser `WebSocket`, `ws`, `bun`. */
 export interface WebSocketLike {

@@ -1,9 +1,9 @@
 import type {
   GetStatsParams,
   GetWrappedParams,
-} from "../generated/types";
-import type { RequestOptions } from "../types";
-import type { Call } from "./_helpers";
+} from "../generated/types.js";
+import type { RequestOptions } from "../types.js";
+import type { Call } from "./_helpers.js";
 
 export class StatsNamespace {
   constructor(private readonly call: Call) {}

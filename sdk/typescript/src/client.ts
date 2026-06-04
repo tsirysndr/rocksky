@@ -1,38 +1,38 @@
-import { buildConfig, type HttpClientConfig, xrpcCall } from "./http";
+import { buildConfig, type HttpClientConfig, xrpcCall } from "./http.js";
 import {
   type PaginateArgs,
   paginate as paginateFn,
-} from "./paginate";
+} from "./paginate.js";
 import {
   RealtimeClient,
   type RealtimeOptions,
   createRealtimeClient,
-} from "./realtime";
-import { ActorNamespace } from "./namespaces/actor";
-import { AlbumNamespace } from "./namespaces/album";
-import { ApikeyNamespace } from "./namespaces/apikey";
-import { ArtistNamespace } from "./namespaces/artist";
-import { ChartsNamespace } from "./namespaces/charts";
-import { DropboxNamespace } from "./namespaces/dropbox";
-import { FeedNamespace } from "./namespaces/feed";
-import { GoogleDriveNamespace } from "./namespaces/googledrive";
-import { GraphNamespace } from "./namespaces/graph";
-import { LikeNamespace } from "./namespaces/like";
-import { MirrorNamespace } from "./namespaces/mirror";
-import { PlayerNamespace } from "./namespaces/player";
-import { PlaylistNamespace } from "./namespaces/playlist";
-import { ScrobbleNamespace } from "./namespaces/scrobble";
-import { ShoutNamespace } from "./namespaces/shout";
-import { SongNamespace } from "./namespaces/song";
-import { SpotifyNamespace } from "./namespaces/spotify";
-import { StatsNamespace } from "./namespaces/stats";
-import type { Call } from "./namespaces/_helpers";
+} from "./realtime.js";
+import { ActorNamespace } from "./namespaces/actor.js";
+import { AlbumNamespace } from "./namespaces/album.js";
+import { ApikeyNamespace } from "./namespaces/apikey.js";
+import { ArtistNamespace } from "./namespaces/artist.js";
+import { ChartsNamespace } from "./namespaces/charts.js";
+import { DropboxNamespace } from "./namespaces/dropbox.js";
+import { FeedNamespace } from "./namespaces/feed.js";
+import { GoogleDriveNamespace } from "./namespaces/googledrive.js";
+import { GraphNamespace } from "./namespaces/graph.js";
+import { LikeNamespace } from "./namespaces/like.js";
+import { MirrorNamespace } from "./namespaces/mirror.js";
+import { PlayerNamespace } from "./namespaces/player.js";
+import { PlaylistNamespace } from "./namespaces/playlist.js";
+import { ScrobbleNamespace } from "./namespaces/scrobble.js";
+import { ShoutNamespace } from "./namespaces/shout.js";
+import { SongNamespace } from "./namespaces/song.js";
+import { SpotifyNamespace } from "./namespaces/spotify.js";
+import { StatsNamespace } from "./namespaces/stats.js";
+import type { Call } from "./namespaces/_helpers.js";
 import type {
   AuthProvider,
   ClientOptions,
   FetchLike,
   RequestOptions,
-} from "./types";
+} from "./types.js";
 
 export class RockskyClient {
   readonly config: HttpClientConfig;

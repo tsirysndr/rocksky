@@ -2,13 +2,13 @@ import {
   RockskyAuthError,
   RockskyHttpError,
   RockskyTimeoutError,
-} from "./errors";
+} from "./errors.js";
 import {
   type AuthProvider,
   DEFAULT_BASE_URL,
   type FetchLike,
   type RequestOptions,
-} from "./types";
+} from "./types.js";
 
 export type XrpcCallOptions = RequestOptions & {
   params?: object;

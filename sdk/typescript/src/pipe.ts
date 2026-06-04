@@ -1,4 +1,4 @@
-import { RockskyTimeoutError } from "./errors";
+import { RockskyTimeoutError } from "./errors.js";
 
 /**
  * Compose async operators.

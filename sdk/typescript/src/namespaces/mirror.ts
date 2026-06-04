@@ -1,6 +1,6 @@
-import type { PutMirrorSourceInput } from "../generated/types";
-import type { RequestOptions } from "../types";
-import type { Call } from "./_helpers";
+import type { PutMirrorSourceInput } from "../generated/types.js";
+import type { RequestOptions } from "../types.js";
+import type { Call } from "./_helpers.js";
 
 export type { PutMirrorSourceInput };
 

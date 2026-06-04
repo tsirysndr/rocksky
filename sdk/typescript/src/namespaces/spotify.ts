@@ -1,9 +1,9 @@
 import type {
   GetCurrentlyPlayingParams,
   SeekParams,
-} from "../generated/types";
-import type { RequestOptions } from "../types";
-import type { Call } from "./_helpers";
+} from "../generated/types.js";
+import type { RequestOptions } from "../types.js";
+import type { Call } from "./_helpers.js";
 
 export class SpotifyNamespace {
   constructor(private readonly call: Call) {}

@@ -7,9 +7,9 @@ import type {
   RemovePlaylistParams,
   RemoveTrackParams,
   StartPlaylistParams,
-} from "../generated/types";
-import type { RequestOptions } from "../types";
-import type { Call } from "./_helpers";
+} from "../generated/types.js";
+import type { RequestOptions } from "../types.js";
+import type { Call } from "./_helpers.js";
 
 export class PlaylistNamespace {
   constructor(private readonly call: Call) {}

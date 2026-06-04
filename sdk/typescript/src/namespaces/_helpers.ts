@@ -1,5 +1,5 @@
-import { type HttpClientConfig, xrpcCall } from "../http";
-import type { RequestOptions } from "../types";
+import { type HttpClientConfig, xrpcCall } from "../http.js";
+import type { RequestOptions } from "../types.js";
 
 export type Call = <T>(
   nsid: string,

@@ -2,9 +2,9 @@ import type {
   GetScrobblesChartParams,
   GetTopArtistsParams,
   GetTopTracksParams,
-} from "../generated/types";
-import type { RequestOptions } from "../types";
-import type { Call } from "./_helpers";
+} from "../generated/types.js";
+import type { RequestOptions } from "../types.js";
+import type { Call } from "./_helpers.js";
 
 export type ScrobblesChartParams = GetScrobblesChartParams;
 export type TopChartParams = GetTopArtistsParams;

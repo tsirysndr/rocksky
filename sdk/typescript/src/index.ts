@@ -2,13 +2,13 @@ export {
   RockskyClient,
   RockskyClientBuilder,
   createClient,
-} from "./client";
+} from "./client.js";
 export {
   RockskyError,
   RockskyHttpError,
   RockskyTimeoutError,
   RockskyAuthError,
-} from "./errors";
+} from "./errors.js";
 export {
   pipe,
   map,
@@ -18,7 +18,7 @@ export {
   withFallback,
   catchError,
   type Op,
-} from "./pipe";
+} from "./pipe.js";
 export {
   DEFAULT_BASE_URL,
   type AuthProvider,
@@ -27,13 +27,13 @@ export {
   type Json,
   type Pagination,
   type RequestOptions,
-} from "./types";
+} from "./types.js";
 export {
   paginate,
   type PageOpts,
   type PageResult,
   type PaginateArgs,
-} from "./paginate";
+} from "./paginate.js";
 export {
   RealtimeClient,
   RealtimeClientBuilder,
@@ -44,42 +44,42 @@ export {
   type ReconnectOptions,
   type WebSocketCtor,
   type WebSocketLike,
-} from "./realtime";
+} from "./realtime.js";
 
 export type {
   GetProfileParams,
   ActorPagedParams,
   ActorRangeParams,
-} from "./namespaces/actor";
+} from "./namespaces/actor.js";
 export type {
   CreateScrobbleInput,
   GetScrobblesParams,
-} from "./namespaces/scrobble";
+} from "./namespaces/scrobble.js";
 export type {
   GetSongParams,
   GetSongsParams,
   MatchSongParams,
   CreateSongInput,
-} from "./namespaces/song";
-export type { GetAlbumsParams } from "./namespaces/album";
+} from "./namespaces/song.js";
+export type { GetAlbumsParams } from "./namespaces/album.js";
 export type {
   GetArtistsParams,
   ArtistListenersParams,
   GetArtistTracksParams,
-} from "./namespaces/artist";
+} from "./namespaces/artist.js";
 export type {
   ListApikeysParams,
   CreateApikeyInput,
   UpdateApikeyInput,
-} from "./namespaces/apikey";
+} from "./namespaces/apikey.js";
 export type {
   ScrobblesChartParams,
   TopChartParams,
-} from "./namespaces/charts";
+} from "./namespaces/charts.js";
 export type {
   FollowListParams,
   KnownFollowersParams,
-} from "./namespaces/graph";
-export type { RecommendParams } from "./namespaces/feed";
-export type { LikeInput } from "./namespaces/like";
-export type { PutMirrorSourceInput } from "./namespaces/mirror";
+} from "./namespaces/graph.js";
+export type { RecommendParams } from "./namespaces/feed.js";
+export type { LikeInput } from "./namespaces/like.js";
+export type { PutMirrorSourceInput } from "./namespaces/mirror.js";
