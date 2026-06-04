@@ -37,6 +37,10 @@ async function publishPlayingNow(
   track: MusicbrainzTrack,
   duration: number,
 ) {
+  if (!agent) {
+    return;
+  }
+
   if (env.DISABLED_TEALFM.includes(agent.assertDid)) {
     consola.info(
       `teal.fm is disabled for ${chalk.cyanBright(agent.assertDid)}`,
