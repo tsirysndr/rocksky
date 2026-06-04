@@ -2,13 +2,18 @@
  * GENERATED CODE - DO NOT MODIFY
  */
 import {
-  type AuthVerifier,
   createServer as createXrpcServer,
-  type StreamAuthVerifier,
-  type Options as XrpcOptions,
   type Server as XrpcServer,
+  type Options as XrpcOptions,
+  type AuthVerifier,
+  type StreamAuthVerifier,
 } from "@atproto/xrpc-server";
 import { schemas } from "./lexicons";
+import type * as FmTealAlphaActorGetProfile from "./types/fm/teal/alpha/actor/getProfile";
+import type * as FmTealAlphaActorGetProfiles from "./types/fm/teal/alpha/actor/getProfiles";
+import type * as FmTealAlphaActorSearchActors from "./types/fm/teal/alpha/actor/searchActors";
+import type * as FmTealAlphaFeedGetActorFeed from "./types/fm/teal/alpha/feed/getActorFeed";
+import type * as FmTealAlphaFeedGetPlay from "./types/fm/teal/alpha/feed/getPlay";
 import type * as AppRockskyActorGetActorAlbums from "./types/app/rocksky/actor/getActorAlbums";
 import type * as AppRockskyActorGetActorArtists from "./types/app/rocksky/actor/getActorArtists";
 import type * as AppRockskyActorGetActorCompatibility from "./types/app/rocksky/actor/getActorCompatibility";
@@ -107,11 +112,6 @@ import type * as AppRockskySpotifySeek from "./types/app/rocksky/spotify/seek";
 import type * as AppRockskyStatsGetGlobalStats from "./types/app/rocksky/stats/getGlobalStats";
 import type * as AppRockskyStatsGetStats from "./types/app/rocksky/stats/getStats";
 import type * as AppRockskyStatsGetWrapped from "./types/app/rocksky/stats/getWrapped";
-import type * as FmTealAlphaActorGetProfile from "./types/fm/teal/alpha/actor/getProfile";
-import type * as FmTealAlphaActorGetProfiles from "./types/fm/teal/alpha/actor/getProfiles";
-import type * as FmTealAlphaActorSearchActors from "./types/fm/teal/alpha/actor/searchActors";
-import type * as FmTealAlphaFeedGetActorFeed from "./types/fm/teal/alpha/feed/getActorFeed";
-import type * as FmTealAlphaFeedGetPlay from "./types/fm/teal/alpha/feed/getPlay";
 
 export function createServer(options?: XrpcOptions): Server {
   return new Server(options);

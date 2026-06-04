@@ -1,13 +1,12 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-
-import { BlobRef, ValidationResult } from "@atproto/lexicon";
-import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
 import type express from "express";
-import { CID } from "multiformats/cid";
+import { ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
-import { hasProp, isObj } from "../../../../util";
+import { isObj, hasProp } from "../../../../util";
+import { CID } from "multiformats/cid";
+import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
 import type * as AppRockskyScrobbleDefs from "./defs";
 
 export type QueryParams = {};
@@ -19,7 +18,7 @@ export interface InputSchema {
   artist: string;
   /** The album of the track being scrobbled */
   album?: string;
-  /** The duration of the track in milliseconds */
+  /** The duration of the track in milliseconds (e.g., 240000 for 4 minutes) */
   duration?: number;
   /** The MusicBrainz ID of the track, if available */
   mbId?: string;

@@ -1,13 +1,12 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-
-import { BlobRef, ValidationResult } from "@atproto/lexicon";
-import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
 import type express from "express";
-import { CID } from "multiformats/cid";
+import { ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
-import { hasProp, isObj } from "../../../../util";
+import { isObj, hasProp } from "../../../../util";
+import { CID } from "multiformats/cid";
+import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
 import type * as AppRockskySongDefs from "./defs";
 
 export type QueryParams = {};
@@ -21,7 +20,7 @@ export interface InputSchema {
   albumArtist: string;
   /** The album of the song, if applicable */
   album: string;
-  /** The duration of the song in seconds */
+  /** The duration of the song in milliseconds */
   duration?: number;
   /** The MusicBrainz ID of the song, if available */
   mbId?: string;

@@ -1,10 +1,10 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import { BlobRef, type ValidationResult } from "@atproto/lexicon";
-import { CID } from "multiformats/cid";
+import { type ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../../lexicons";
-import { hasProp, isObj } from "../../../../util";
+import { isObj, hasProp } from "../../../../util";
+import { CID } from "multiformats/cid";
 
 /** indicates that a handle or DID could not be resolved */
 export interface NotFoundActor {

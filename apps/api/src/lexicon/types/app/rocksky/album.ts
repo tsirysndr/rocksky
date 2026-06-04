@@ -1,17 +1,17 @@
 /**
  * GENERATED CODE - DO NOT MODIFY
  */
-import type { BlobRef, ValidationResult } from "@atproto/lexicon";
-import { CID } from "multiformats/cid";
+import type { ValidationResult, BlobRef } from "@atproto/lexicon";
 import { lexicons } from "../../../lexicons";
-import { hasProp, isObj } from "../../../util";
+import { isObj, hasProp } from "../../../util";
+import { CID } from "multiformats/cid";
 
 export interface Record {
   /** The title of the album. */
   title: string;
   /** The artist of the album. */
   artist: string;
-  /** The duration of the album in seconds. */
+  /** The duration of the album in milliseconds. */
   duration?: number;
   /** The release date of the album. */
   releaseDate?: string;

@@ -1391,7 +1391,7 @@ export const schemaDict = {
             },
             duration: {
               type: "integer",
-              description: "The duration of the album in seconds.",
+              description: "The duration of the album in milliseconds.",
             },
             releaseDate: {
               type: "string",
@@ -5082,7 +5082,8 @@ export const schemaDict = {
               },
               duration: {
                 type: "integer",
-                description: "The duration of the track in milliseconds",
+                description:
+                  "The duration of the track in milliseconds (e.g., 240000 for 4 minutes)",
               },
               mbId: {
                 type: "string",
@@ -6087,7 +6088,7 @@ export const schemaDict = {
               },
               duration: {
                 type: "integer",
-                description: "The duration of the song in seconds",
+                description: "The duration of the song in milliseconds",
               },
               mbId: {
                 type: "string",
