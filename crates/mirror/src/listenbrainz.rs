@@ -25,6 +25,10 @@ use crate::{
 };
 
 const POLL_INTERVAL: Duration = Duration::from_secs(30);
+// Hard ceiling on a single `poll_once`. Normal runs finish in under a second;
+// reqwest's per-request timeout is 30s, so 90s comfortably absorbs even a
+// large backfill batch while still recovering from a wedged DB/HTTP await.
+const POLL_TIMEOUT: Duration = Duration::from_secs(90);
 const RECENT_LIMIT: u32 = 50;
 // Defensive backfill if the column is somehow NULL — the API normally seeds
 // it on enable, but if it isn't we still want a sensible window instead of
@@ -70,20 +74,35 @@ pub async fn run_user(
             _ = tokio::time::sleep(POLL_INTERVAL) => {}
         }
 
-        match poll_once(
-            &pool,
-            &http,
-            &enricher,
-            &row,
-            token.as_deref(),
-            &username,
-            watermark,
-        )
-        .await
-        {
-            Ok(new_watermark) => watermark = new_watermark,
-            Err(e) => {
-                error!(user_id = %row.user_id, error = %e, "ListenBrainz: poll failed");
+        let poll = tokio::time::timeout(
+            POLL_TIMEOUT,
+            poll_once(
+                &pool,
+                &http,
+                &enricher,
+                &row,
+                token.as_deref(),
+                &username,
+                watermark,
+            ),
+        );
+        tokio::select! {
+            _ = cancel.cancelled() => {
+                info!(user_id = %row.user_id, "ListenBrainz: cancelled mid-poll");
+                return Ok(());
+            }
+            result = poll => match result {
+                Ok(Ok(new_watermark)) => watermark = new_watermark,
+                Ok(Err(e)) => {
+                    error!(user_id = %row.user_id, error = %e, "ListenBrainz: poll failed");
+                }
+                Err(_) => {
+                    error!(
+                        user_id = %row.user_id,
+                        timeout_secs = POLL_TIMEOUT.as_secs(),
+                        "ListenBrainz: poll_once timed out, will retry next interval"
+                    );
+                }
             }
         }
     }

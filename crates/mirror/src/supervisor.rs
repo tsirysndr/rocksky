@@ -9,10 +9,11 @@ use std::time::Duration;
 
 use anyhow::{Context, Error};
 use async_nats::connect;
-use futures_util::StreamExt;
+use futures_util::{FutureExt, StreamExt};
 use owo_colors::OwoColorize;
 use reqwest::Client;
 use sqlx::{Pool, Postgres};
+use std::panic::AssertUnwindSafe;
 use tokio::sync::RwLock;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
@@ -198,29 +199,100 @@ async fn spawn_for(
                 .await
                 .insert((provider, row.user_id.clone()), cancel.clone());
 
-            let pool_c = pool.clone();
-            let http_c = http.clone();
-            let enricher_c = enricher.clone();
-            let user_id_c = row.user_id.clone();
-            tokio::spawn(async move {
-                let result = match provider {
-                    Provider::Lastfm => {
-                        lastfm::run_user(pool_c, http_c, enricher_c, row, cancel).await
-                    }
-                    Provider::Listenbrainz => {
-                        listenbrainz::run_user(pool_c, http_c, enricher_c, row, cancel).await
-                    }
-                    Provider::Tealfm => unreachable!(),
-                };
-                if let Err(e) = result {
-                    error!(
-                        provider = provider.as_str(),
-                        user_id = %user_id_c,
-                        error = %e,
-                        "supervisor: per-user task exited with error"
-                    );
-                }
-            });
+            tokio::spawn(run_supervised(
+                provider, pool, http, enricher, row, cancel,
+            ));
         }
+    }
+}
+
+/// Wraps a per-user `run_user` in a restart loop that survives both unexpected
+/// errors and panics. Without this, a single transient failure (sqlx pool
+/// reset, a panic in serde, an error escaping `crypto::decrypt`) would kill
+/// the task until the next NATS toggle or full process restart.
+///
+/// Restart policy:
+///   * `Err(_)` or panic → log, sleep `backoff`, restart. Backoff is 2s
+///     doubling to 60s, reset to 2s after any run that lasted >60s (so a
+///     stable run that fails later starts fresh, not at the ceiling).
+///   * `Ok(())` → don't restart. `run_user` returns `Ok(())` both on
+///     cancellation and on permanent-fail exits (no API key, no username);
+///     restarting either is wrong.
+///   * Cancellation during backoff sleep returns immediately.
+async fn run_supervised(
+    provider: Provider,
+    pool: Pool<Postgres>,
+    http: Client,
+    enricher: Enricher,
+    row: db::MirrorSourceRow,
+    cancel: CancellationToken,
+) {
+    const MIN_BACKOFF: Duration = Duration::from_secs(2);
+    const MAX_BACKOFF: Duration = Duration::from_secs(60);
+    const STABLE_RUNTIME: Duration = Duration::from_secs(60);
+
+    let user_id = row.user_id.clone();
+    let mut backoff = MIN_BACKOFF;
+
+    while !cancel.is_cancelled() {
+        let started = std::time::Instant::now();
+        let pool_c = pool.clone();
+        let http_c = http.clone();
+        let enricher_c = enricher.clone();
+        let row_c = row.clone();
+        let cancel_c = cancel.clone();
+
+        let result = AssertUnwindSafe(async move {
+            match provider {
+                Provider::Lastfm => {
+                    lastfm::run_user(pool_c, http_c, enricher_c, row_c, cancel_c).await
+                }
+                Provider::Listenbrainz => {
+                    listenbrainz::run_user(pool_c, http_c, enricher_c, row_c, cancel_c).await
+                }
+                Provider::Tealfm => unreachable!(),
+            }
+        })
+        .catch_unwind()
+        .await;
+
+        if cancel.is_cancelled() {
+            return;
+        }
+
+        match result {
+            Ok(Ok(())) => {
+                info!(
+                    provider = provider.as_str(),
+                    user_id = %user_id,
+                    "supervisor: per-user task exited cleanly, not restarting"
+                );
+                return;
+            }
+            Ok(Err(e)) => error!(
+                provider = provider.as_str(),
+                user_id = %user_id,
+                error = %e,
+                backoff_secs = backoff.as_secs(),
+                "supervisor: per-user task returned error, restarting"
+            ),
+            Err(_) => error!(
+                provider = provider.as_str(),
+                user_id = %user_id,
+                backoff_secs = backoff.as_secs(),
+                "supervisor: per-user task panicked, restarting"
+            ),
+        }
+
+        if started.elapsed() > STABLE_RUNTIME {
+            backoff = MIN_BACKOFF;
+        }
+
+        tokio::select! {
+            _ = cancel.cancelled() => return,
+            _ = tokio::time::sleep(backoff) => {}
+        }
+
+        backoff = (backoff * 2).min(MAX_BACKOFF);
     }
 }
