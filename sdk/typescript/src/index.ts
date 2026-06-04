@@ -46,6 +46,8 @@ export {
   type WebSocketLike,
 } from "./realtime.js";
 
+export type * from "./generated/types.js";
+
 export type {
   GetProfileParams,
   ActorPagedParams,
