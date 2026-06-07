@@ -18,6 +18,10 @@
     :cmds [[:server         "Run apps/api lex gen-server"]
            [:types          "Generate SDK type bindings (TS/Go/Py/Rust/Kotlin/...)"]]}
 
+   {:group "api" :ns 'console.api
+    :cmds [[:format         "Run biome format on apps/api (pass :fix to write)"]
+           [:lint           "Run biome lint on apps/api (pass :fix to write)"]]}
+
    {:group "db" :ns 'console.db
     :cmds [[:migrate        "Apply Drizzle migrations"]
            [:gen-migration  "Generate a new Drizzle migration"]

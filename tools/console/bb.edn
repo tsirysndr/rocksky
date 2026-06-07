@@ -18,6 +18,14 @@
                  :task (do (require 'console.lexgen)
                            ((resolve 'console.lexgen/types)))}
 
+  ;; ── api (apps/api code quality) ──────────────────────────────
+  api:format    {:doc  "biome format apps/api/src. Add `fix` to write changes."
+                 :task (do (require 'console.api)
+                           (apply (resolve 'console.api/format) *command-line-args*))}
+  api:lint      {:doc  "biome lint apps/api/src. Add `fix` to apply safe autofixes."
+                 :task (do (require 'console.api)
+                           (apply (resolve 'console.api/lint) *command-line-args*))}
+
   ;; ── db ───────────────────────────────────────────────────────
   db:migrate         {:task (do (require 'console.db) ((resolve 'console.db/migrate)))}
   db:gen-migration   {:task (do (require 'console.db) ((resolve 'console.db/gen-migration)))}
@@ -111,7 +119,7 @@
   logs          {:doc  "Print logs. Usage: bb logs <svc> [svc...] (add `follow` to tail)"
                  :task (do (require 'console.docker)
                            (apply (resolve 'console.docker/logs)
-                                  (map #(if (#{"follow" "f"} %) (keyword %) %)
+                                  (map (fn [a] (if (#{"follow" "f"} a) (keyword a) a))
                                        *command-line-args*)))}
   ps            {:task (do (require 'console.docker) ((resolve 'console.docker/ps)))}
   pull          {:doc  "docker compose pull [svc...]"

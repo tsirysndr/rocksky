@@ -150,6 +150,8 @@ Run `(help)` / `bb help` for the live list. Snapshot:
 | --------- | ------------------------ | --------------------------------------------------- |
 | `lexgen`  | `server`                 | apps/api lex gen-server                             |
 |           | `types`                  | SDK type bindings (TS/Go/Py/Rust/Kotlin/…)          |
+| `api`     | `format [:fix]`          | biome format apps/api/src (`:fix` to write)         |
+|           | `lint [:fix]`            | biome lint apps/api/src (`:fix` to write)           |
 | `db`      | `migrate`                | drizzle-kit migrate                                 |
 |           | `gen-migration`          | drizzle-kit generate                                |
 |           | `pkl-eval` / `pkl-gen`   | Pkl config                                          |
