@@ -112,8 +112,8 @@ const retrieve = ({
       }
 
       const innerFilters = [
-        feedUris ? sql`inner_s.uri = ANY(${feedUris})` : null,
-        followedUserIds ? sql`inner_s.user_id = ANY(${followedUserIds})` : null,
+        feedUris ? sql`inner_s.uri IN ${feedUris}` : null,
+        followedUserIds ? sql`inner_s.user_id IN ${followedUserIds}` : null,
       ].filter((c): c is NonNullable<typeof c> => c !== null);
 
       const innerWhere =
