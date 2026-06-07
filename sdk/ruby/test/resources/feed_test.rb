@@ -36,6 +36,24 @@ class FeedTest < Minitest::Test
                      query: { feed: "at://x", limit: "50", cursor: "abc" })
   end
 
+  def test_get_stories_with_filters
+    stub_xrpc(:get, "app.rocksky.feed.getStories", body: { "stories" => [] })
+
+    build_client.feed.get_stories(
+      size: 10,
+      feed: "at://did:plc:abc/app.rocksky.feed.generator/metalcore",
+      following: true
+    )
+
+    assert_requested(:get,
+                     "#{RockskyTest::BASE_URL}/xrpc/app.rocksky.feed.getStories",
+                     query: {
+                       size: "10",
+                       feed: "at://did:plc:abc/app.rocksky.feed.generator/metalcore",
+                       following: "true"
+                     })
+  end
+
   def test_recommendations
     stub_xrpc(:get, "app.rocksky.feed.getRecommendations", body: {})
     stub_xrpc(:get, "app.rocksky.feed.getArtistRecommendations", body: {})

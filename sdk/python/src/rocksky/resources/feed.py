@@ -47,9 +47,22 @@ class FeedResource(Resource):
         )
         return parse_model(SearchResults, data)
 
-    async def stories(self, *, size: int | None = None) -> list[Story]:
+    async def stories(
+        self,
+        *,
+        size: int | None = None,
+        feed: str | None = None,
+        following: bool | None = None,
+    ) -> list[Story]:
+        """Return the latest scrobble per user.
+
+        ``feed`` narrows results to scrobbles in the given feed (at-uri).
+        ``following`` restricts to users the viewer follows and requires
+        the client to be authenticated.
+        """
         data = await self._transport.query(
-            "app.rocksky.feed.getStories", params={"size": size}
+            "app.rocksky.feed.getStories",
+            params={"size": size, "feed": feed, "following": following},
         )
         return parse_list(Story, data, key="stories")
 

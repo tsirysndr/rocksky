@@ -197,7 +197,7 @@ pub struct AlbumRecord {
     pub title: String,
     /// The artist of the album.
     pub artist: String,
-    /// The duration of the album in seconds.
+    /// The duration of the album in milliseconds.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub duration: Option<i64>,
     /// The release date of the album.
@@ -531,7 +531,7 @@ pub struct CreateScrobbleInput {
     /// The album of the track being scrobbled
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub album: Option<String>,
-    /// The duration of the track in milliseconds
+    /// The duration of the track in milliseconds (e.g., 240000 for 4 minutes)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub duration: Option<i64>,
     /// The MusicBrainz ID of the track, if available
@@ -611,7 +611,7 @@ pub struct CreateSongInput {
     pub album_artist: String,
     /// The album of the song, if applicable
     pub album: String,
-    /// The duration of the song in seconds
+    /// The duration of the song in milliseconds
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub duration: Option<i64>,
     /// The MusicBrainz ID of the song, if available
@@ -1656,6 +1656,12 @@ pub struct GetStoriesParams {
     /// The maximum number of stories to return.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub size: Option<i64>,
+    /// The feed URI to filter stories by.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub feed: Option<String>,
+    /// If true, only return stories from users the viewer follows. Requires authentication.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub following: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

@@ -129,7 +129,7 @@ type AlbumRecord struct {
 	Title string `json:"title,omitempty"`
 	// The artist of the album.
 	Artist string `json:"artist,omitempty"`
-	// The duration of the album in seconds.
+	// The duration of the album in milliseconds.
 	Duration int `json:"duration,omitempty"`
 	// The release date of the album.
 	ReleaseDate string `json:"releaseDate,omitempty"`
@@ -358,7 +358,7 @@ type CreateScrobbleInput struct {
 	Artist string `json:"artist,omitempty"`
 	// The album of the track being scrobbled
 	Album string `json:"album,omitempty"`
-	// The duration of the track in milliseconds
+	// The duration of the track in milliseconds (e.g., 240000 for 4 minutes)
 	Duration int `json:"duration,omitempty"`
 	// The MusicBrainz ID of the track, if available
 	MbID string `json:"mbId,omitempty"`
@@ -414,7 +414,7 @@ type CreateSongInput struct {
 	AlbumArtist string `json:"albumArtist,omitempty"`
 	// The album of the song, if applicable
 	Album string `json:"album,omitempty"`
-	// The duration of the song in seconds
+	// The duration of the song in milliseconds
 	Duration int `json:"duration,omitempty"`
 	// The MusicBrainz ID of the song, if available
 	MbID string `json:"mbId,omitempty"`
@@ -1136,6 +1136,10 @@ type GetStatsParams struct {
 type GetStoriesParams struct {
 	// The maximum number of stories to return.
 	Size int `json:"size,omitempty"`
+	// The feed URI to filter stories by.
+	Feed string `json:"feed,omitempty"`
+	// If true, only return stories from users the viewer follows. Requires authentication.
+	Following bool `json:"following,omitempty"`
 }
 
 type GetTemporaryLinkParams struct {

@@ -27,9 +27,11 @@ module Rocksky
         query("app.rocksky.feed.getFeed", feed: feed, limit: limit, cursor: cursor)
       end
 
-      # Stories (recent highlights).
-      def get_stories(size: nil)
-        query("app.rocksky.feed.getStories", size: size)
+      # Latest scrobble per user. Pass `feed:` (at-uri) to restrict to scrobbles
+      # in that feed generator, and/or `following: true` to restrict to users
+      # the viewer follows (requires an authenticated client).
+      def get_stories(size: nil, feed: nil, following: nil)
+        query("app.rocksky.feed.getStories", size: size, feed: feed, following: following)
       end
 
       # Track recommendations for an actor.

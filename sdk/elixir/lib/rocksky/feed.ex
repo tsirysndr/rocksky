@@ -19,7 +19,16 @@ defmodule Rocksky.Feed do
   def get_feed(client, params \\ []),
     do: HTTP.query(client, "app.rocksky.feed.getFeed", params)
 
-  @doc "Stories (recent highlights). Params: `:size`."
+  @doc """
+  Latest scrobble per user.
+
+  Params:
+    * `:size`      max number of stories.
+    * `:feed`      at-uri of a feed generator; only stories whose scrobble is
+      in that feed are returned.
+    * `:following` `true` to restrict to users the viewer follows; requires
+      the client to be authenticated.
+  """
   def get_stories(client, params \\ []),
     do: HTTP.query(client, "app.rocksky.feed.getStories", params)
 

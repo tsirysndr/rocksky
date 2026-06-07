@@ -58,11 +58,25 @@ type GetStoriesResponse struct {
 	Stories []StoryView `json:"stories,omitempty"`
 }
 
-// GetStories returns the "stories" feed (recent listening activity from people you follow).
-// Requires an authenticated client.
-func (s *FeedService) GetStories(ctx context.Context) (*GetStoriesResponse, error) {
+// GetStoriesParams configures app.rocksky.feed.getStories.
+//
+// Feed restricts results to scrobbles in the given feed generator (at-uri).
+// Following restricts results to users the viewer follows; this requires the
+// client to be authenticated. When both are set, results intersect.
+type GetStoriesParams struct {
+	Size      int
+	Feed      string
+	Following bool
+}
+
+// GetStories returns the latest scrobble per user.
+func (s *FeedService) GetStories(ctx context.Context, p GetStoriesParams) (*GetStoriesResponse, error) {
+	q := newQuery()
+	q.setInt("size", p.Size)
+	q.setString("feed", p.Feed)
+	q.setBool("following", p.Following)
 	out := &GetStoriesResponse{}
-	if err := s.c.query(ctx, "app.rocksky.feed.getStories", nil, out); err != nil {
+	if err := s.c.query(ctx, "app.rocksky.feed.getStories", q.Values(), out); err != nil {
 		return nil, err
 	}
 	return out, nil

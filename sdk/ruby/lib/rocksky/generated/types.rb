@@ -138,7 +138,7 @@ module Rocksky
     GetSongsOutput = Struct.new(:songs, keyword_init: true)
     GetSongsParams = Struct.new(:limit, :offset, :genre, :mbid, :isrc, :spotifyId, keyword_init: true)
     GetStatsParams = Struct.new(:did, keyword_init: true)
-    GetStoriesParams = Struct.new(:size, keyword_init: true)
+    GetStoriesParams = Struct.new(:size, :feed, :following, keyword_init: true)
     GetTemporaryLinkParams = Struct.new(:path, keyword_init: true)
     GetTopArtistsOutput = Struct.new(:artists, keyword_init: true)
     GetTopArtistsParams = Struct.new(:limit, :offset, :startDate, :endDate, keyword_init: true)

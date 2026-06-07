@@ -2,7 +2,7 @@
 
 mod common;
 
-use common::mock_client;
+use common::{mock_client, mock_client_with_token};
 use serde_json::json;
 use wiremock::matchers::{method, path, query_param};
 use wiremock::{Mock, ResponseTemplate};
@@ -57,6 +57,41 @@ async fn get_feed_with_cursor() {
     assert_eq!(f.cursor.as_deref(), Some("next"));
     assert_eq!(f.feed.len(), 1);
     assert!(f.feed[0].scrobble.is_some());
+}
+
+#[tokio::test]
+async fn stories_with_feed_and_following_filters() {
+    let (server, client) = mock_client_with_token("tkn").await;
+    Mock::given(method("GET"))
+        .and(path("/xrpc/app.rocksky.feed.getStories"))
+        .and(query_param("size", "10"))
+        .and(query_param(
+            "feed",
+            "at://did:plc:abc/app.rocksky.feed.generator/metalcore",
+        ))
+        .and(query_param("following", "true"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "stories": [{
+                "id": "st1",
+                "handle": "alice.bsky.social",
+                "title": "Heaven",
+                "artist": "BMTH",
+            }],
+        })))
+        .mount(&server)
+        .await;
+
+    let stories = client
+        .feed()
+        .stories()
+        .size(10)
+        .feed("at://did:plc:abc/app.rocksky.feed.generator/metalcore")
+        .following(true)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(stories.len(), 1);
+    assert_eq!(stories[0].artist.as_deref(), Some("BMTH"));
 }
 
 #[tokio::test]

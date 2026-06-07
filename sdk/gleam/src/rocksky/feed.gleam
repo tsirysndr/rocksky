@@ -39,7 +39,12 @@ pub fn get_album_recommendations(did did: String) -> Request(Dynamic) {
   |> rocksky.param("did", did)
 }
 
-/// `app.rocksky.feed.getStories` — current stories panel.
+/// `app.rocksky.feed.getStories` — latest scrobble per user.
+///
+/// Chainable params:
+///   `|> rocksky.int_param("size", 10)`
+///   `|> rocksky.param("feed", "at://…")`                    — filter by feed
+///   `|> rocksky.bool_param("following", True)`              — requires auth
 pub fn get_stories() -> Request(Dynamic) {
   rocksky.query("app.rocksky.feed.getStories", decode.dynamic)
 }

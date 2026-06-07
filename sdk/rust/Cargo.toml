@@ -2,7 +2,7 @@
 
 [package]
 name = "rocksky"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 rust-version = "1.75"
 authors = ["Tsiry Sandratraina <tsiry.sndr@rocksky.app>"]
@@ -57,3 +57,7 @@ path = "examples/search.rs"
 [[example]]
 name = "follow_feed"
 path = "examples/follow_feed.rs"
+
+[[example]]
+name = "stories"
+path = "examples/stories.rs"

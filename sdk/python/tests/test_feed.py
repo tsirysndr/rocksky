@@ -71,6 +71,24 @@ async def test_stories(mock_api: respx.Router, base_url: str) -> None:
 
 
 @respx.mock
+async def test_stories_with_filters(mock_api: respx.Router, base_url: str) -> None:
+    payload = {"stories": []}
+    route = mock_api.get("/xrpc/app.rocksky.feed.getStories").mock(
+        return_value=httpx.Response(200, json=payload)
+    )
+    async with Client(base_url=base_url) as c:
+        await c.feed.stories(
+            size=10,
+            feed="at://did:plc:abc/app.rocksky.feed.generator/main",
+            following=True,
+        )
+    params = route.calls.last.request.url.params
+    assert params["size"] == "10"
+    assert params["feed"] == "at://did:plc:abc/app.rocksky.feed.generator/main"
+    assert params["following"] == "true"
+
+
+@respx.mock
 async def test_recommendations(mock_api: respx.Router, base_url: str) -> None:
     payload = {
         "recommendations": [

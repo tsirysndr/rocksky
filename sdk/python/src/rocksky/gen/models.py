@@ -873,6 +873,8 @@ class GetStatsParams(RockskyModel):
 
 class GetStoriesParams(RockskyModel):
     size: int | None = None
+    feed: str | None = None
+    following: bool | None = None
 
 
 class GetTemporaryLinkParams(RockskyModel):

@@ -37,6 +37,34 @@ describe("namespaces — query endpoints route correctly", () => {
   });
 });
 
+describe("feed.getStories — filter params", () => {
+  it("serializes feed and following params", async () => {
+    const { fetchImpl, calls } = mockFetch();
+    const c = makeClient(fetchImpl);
+    await c.feed.getStories({
+      size: 10,
+      feed: "at://did:plc:abc/app.rocksky.feed.generator/main",
+      following: true,
+    });
+    const url = lastUrl(calls);
+    expect(url.pathname).toBe("/xrpc/app.rocksky.feed.getStories");
+    expect(url.searchParams.get("size")).toBe("10");
+    expect(url.searchParams.get("feed")).toBe(
+      "at://did:plc:abc/app.rocksky.feed.generator/main",
+    );
+    expect(url.searchParams.get("following")).toBe("true");
+  });
+
+  it("omits filter params when not provided", async () => {
+    const { fetchImpl, calls } = mockFetch();
+    const c = makeClient(fetchImpl);
+    await c.feed.getStories();
+    const url = lastUrl(calls);
+    expect(url.searchParams.get("feed")).toBeNull();
+    expect(url.searchParams.get("following")).toBeNull();
+  });
+});
+
 describe("namespaces — procedures route correctly", () => {
   it("scrobble.createScrobble POSTs JSON body", async () => {
     const { fetchImpl, calls } = mockFetch();

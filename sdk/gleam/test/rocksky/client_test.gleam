@@ -14,6 +14,7 @@ import gleeunit/should
 import rocksky
 import rocksky/actor
 import rocksky/error
+import rocksky/feed
 import rocksky/scrobble as scr
 
 /// A canned-response transport: returns the same body for every call and
@@ -93,6 +94,28 @@ pub fn chained_params_serialise_in_pipe_order_test() {
   // Order: required first, then params added later in the pipe.
   req.query
   |> should.equal(Some("did=alice.bsky.social&limit=50&offset=10"))
+}
+
+pub fn get_stories_with_feed_and_following_test() {
+  let #(send, read_back) = mock_send("{\"stories\":[]}", 200)
+  let client = rocksky.new() |> rocksky.with_send(send)
+
+  let assert Ok(_) =
+    feed.get_stories()
+    |> rocksky.int_param("size", 10)
+    |> rocksky.param(
+      "feed",
+      "at://did:plc:abc/app.rocksky.feed.generator/metalcore",
+    )
+    |> rocksky.bool_param("following", True)
+    |> rocksky.send(client)
+
+  let assert [req, ..] = read_back()
+  req.path |> should.equal("/xrpc/app.rocksky.feed.getStories")
+  let assert Some(q) = req.query
+  string.contains(q, "size=10") |> should.be_true
+  string.contains(q, "feed=at%3A%2F%2F") |> should.be_true
+  string.contains(q, "following=true") |> should.be_true
 }
 
 pub fn per_request_header_is_sent_test() {

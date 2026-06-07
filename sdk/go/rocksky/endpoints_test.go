@@ -215,6 +215,31 @@ func TestFeedSearch(t *testing.T) {
 	}
 }
 
+func TestFeedGetStoriesFilters(t *testing.T) {
+	var gotQuery string
+	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		gotQuery = r.URL.RawQuery
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"stories":[{"handle":"alice","title":"Heaven","artist":"BMTH"}]}`)
+	})
+	got, err := c.Feed.GetStories(context.Background(), GetStoriesParams{
+		Size:      10,
+		Feed:      "at://did:plc:abc/app.rocksky.feed.generator/metalcore",
+		Following: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Stories) != 1 || got.Stories[0].Artist != "BMTH" {
+		t.Fatalf("got = %+v", got)
+	}
+	for _, want := range []string{"size=10", "feed=at", "metalcore", "following=true"} {
+		if !strings.Contains(gotQuery, want) {
+			t.Fatalf("query %q missing %q", gotQuery, want)
+		}
+	}
+}
+
 func TestGraphGetFollowersAndFollow(t *testing.T) {
 	c := newTestClient(t, mux(t, map[string]string{
 		"/xrpc/app.rocksky.graph.getFollowers": `{

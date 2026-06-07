@@ -1416,9 +1416,11 @@ end
 defmodule Rocksky.Generated.GetStoriesParams do
   @moduledoc false
   @type t :: %__MODULE__{
-          size: integer() | nil
+          size: integer() | nil,
+          feed: String.t() | nil,
+          following: boolean() | nil
         }
-  defstruct [:size]
+  defstruct [:size, :feed, :following]
 end
 
 defmodule Rocksky.Generated.GetTemporaryLinkParams do

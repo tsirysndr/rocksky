@@ -40,8 +40,22 @@ public class FeedResource internal constructor(transport: HttpTransport) : Resou
         return parseModel(data)
     }
 
-    public suspend fun stories(size: Int? = null): List<Story> {
-        val data = transport.query("app.rocksky.feed.getStories", mapOf("size" to size))
+    /**
+     * Return the latest scrobble per user.
+     *
+     * @param feed restrict to scrobbles in the given feed generator (at-uri)
+     * @param following restrict to users the viewer follows (requires auth)
+     */
+    public suspend fun stories(
+        size: Int? = null,
+        feed: String? = null,
+        following: Boolean? = null,
+    ): List<Story> {
+        val data = transport.query(
+            "app.rocksky.feed.getStories",
+            params = mapOf("size" to size, "feed" to feed, "following" to following),
+            requireAuth = following == true,
+        )
         return parseList(data, key = "stories")
     }
 

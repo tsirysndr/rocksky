@@ -1108,6 +1108,8 @@ pub type GetStatsParams {
 pub type GetStoriesParams {
   GetStoriesParams(
     size: Option(Int),
+    feed: Option(String),
+    following: Option(Bool),
   )
 }
 

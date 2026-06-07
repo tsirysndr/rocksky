@@ -129,7 +129,7 @@ export interface AlbumRecord {
   title: string;
   /** The artist of the album. */
   artist: string;
-  /** The duration of the album in seconds. */
+  /** The duration of the album in milliseconds. */
   duration?: number;
   /** The release date of the album. */
   releaseDate?: DateTime;
@@ -358,7 +358,7 @@ export interface CreateScrobbleInput {
   artist: string;
   /** The album of the track being scrobbled */
   album?: string;
-  /** The duration of the track in milliseconds */
+  /** The duration of the track in milliseconds (e.g., 240000 for 4 minutes) */
   duration?: number;
   /** The MusicBrainz ID of the track, if available */
   mbId?: string;
@@ -414,7 +414,7 @@ export interface CreateSongInput {
   albumArtist: string;
   /** The album of the song, if applicable */
   album: string;
-  /** The duration of the song in seconds */
+  /** The duration of the song in milliseconds */
   duration?: number;
   /** The MusicBrainz ID of the song, if available */
   mbId?: string;
@@ -1139,6 +1139,10 @@ export interface GetStatsParams {
 export interface GetStoriesParams {
   /** The maximum number of stories to return. */
   size?: number;
+  /** The feed URI to filter stories by. */
+  feed?: AtUri;
+  /** If true, only return stories from users the viewer follows. Requires authentication. */
+  following?: boolean;
 }
 
 export interface GetTemporaryLinkParams {

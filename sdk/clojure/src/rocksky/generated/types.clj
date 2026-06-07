@@ -119,7 +119,7 @@
     [:title :string]
     ;; The artist of the album.
     [:artist :string]
-    ;; The duration of the album in seconds.
+    ;; The duration of the album in milliseconds.
     [:duration {:optional true} :int]
     ;; The release date of the album.
     [:releaseDate {:optional true} :string]
@@ -348,7 +348,7 @@
     [:artist :string]
     ;; The album of the track being scrobbled
     [:album {:optional true} :string]
-    ;; The duration of the track in milliseconds
+    ;; The duration of the track in milliseconds (e.g., 240000 for 4 minutes)
     [:duration {:optional true} :int]
     ;; The MusicBrainz ID of the track, if available
     [:mbId {:optional true} :string]
@@ -404,7 +404,7 @@
     [:albumArtist :string]
     ;; The album of the song, if applicable
     [:album :string]
-    ;; The duration of the song in seconds
+    ;; The duration of the song in milliseconds
     [:duration {:optional true} :int]
     ;; The MusicBrainz ID of the song, if available
     [:mbId {:optional true} :string]
@@ -1123,6 +1123,10 @@
    [:map
     ;; The maximum number of stories to return.
     [:size {:optional true} :int]
+    ;; The feed URI to filter stories by.
+    [:feed {:optional true} :string]
+    ;; If true, only return stories from users the viewer follows. Requires authentication.
+    [:following {:optional true} :boolean]
     ]
    :GetTemporaryLinkParams
    [:map

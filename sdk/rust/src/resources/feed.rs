@@ -72,11 +72,12 @@ impl<'a> FeedApi<'a> {
             .await
     }
 
-    /// "Stories" — short-lived now-playing-style feed.
+    /// "Stories" — latest scrobble per user, optionally filtered by feed or
+    /// restricted to users the viewer follows.
     pub fn stories(&self) -> ListStories<'_> {
         ListStories {
             client: self.client,
-            params: SizeParams { size: None },
+            params: ListStoriesParams::default(),
         }
     }
 
@@ -171,10 +172,20 @@ impl<'a> ListFeedGenerators<'a> {
     }
 }
 
+#[derive(Debug, Default, Serialize)]
+struct ListStoriesParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    size: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    feed: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    following: Option<bool>,
+}
+
 #[derive(Debug)]
 pub struct ListStories<'a> {
     client: &'a Client,
-    params: SizeParams,
+    params: ListStoriesParams,
 }
 
 impl<'a> ListStories<'a> {
@@ -182,10 +193,22 @@ impl<'a> ListStories<'a> {
         self.params.size = Some(size);
         self
     }
+    /// Restrict to scrobbles published into the given feed generator (at-uri).
+    pub fn feed(mut self, feed: impl Into<String>) -> Self {
+        self.params.feed = Some(feed.into());
+        self
+    }
+    /// Restrict to users the viewer follows. Requires the client to be
+    /// authenticated.
+    pub fn following(mut self, following: bool) -> Self {
+        self.params.following = Some(following);
+        self
+    }
     pub async fn send(self) -> Result<Vec<Story>> {
+        let needs_auth = self.params.following.unwrap_or(false);
         let env: StoriesEnvelope = self
             .client
-            .query_as("app.rocksky.feed.getStories", &self.params, false)
+            .query_as("app.rocksky.feed.getStories", &self.params, needs_auth)
             .await?;
         Ok(env.stories)
     }

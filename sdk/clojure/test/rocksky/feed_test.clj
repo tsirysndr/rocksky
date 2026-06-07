@@ -30,3 +30,14 @@
       (is (= :get (:method req)))
       (is (.endsWith ^String (:url req) "getStories")
           "no params required for the zero-arg variant"))))
+
+(deftest stories-with-feed-and-following
+  (let [[client calls] (h/mock-client {})]
+    (feed/get-stories client
+                      {:size 10
+                       :feed "at://did:plc:abc/app.rocksky.feed.generator/metalcore"
+                       :following true})
+    (is (= {"size" "10"
+            "feed" "at://did:plc:abc/app.rocksky.feed.generator/metalcore"
+            "following" "true"}
+           (:query-params (h/last-call calls))))))

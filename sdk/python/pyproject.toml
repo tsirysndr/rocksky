@@ -1,6 +1,6 @@
 [project]
 name = "rocksky"
-version = "0.2.0"
+version = "0.3.0"
 description = "Async Python SDK for the Rocksky XRPC API"
 readme = "README.md"
 license = { text = "MIT" }

@@ -145,7 +145,7 @@ public data class AlbumRecord(
     public val artist: String,
     /** The date and time when the album was created. */
     @SerialName("createdAt") public val createdAt: String,
-    /** The duration of the album in seconds. */
+    /** The duration of the album in milliseconds. */
     public val duration: Int? = null,
     /** The release date of the album. */
     @SerialName("releaseDate") public val releaseDate: String? = null,
@@ -387,7 +387,7 @@ public data class CreateScrobbleInput(
     public val artist: String,
     /** The album of the track being scrobbled */
     public val album: String? = null,
-    /** The duration of the track in milliseconds */
+    /** The duration of the track in milliseconds (e.g., 240000 for 4 minutes) */
     public val duration: Int? = null,
     /** The MusicBrainz ID of the track, if available */
     @SerialName("mbId") public val mbId: String? = null,
@@ -445,7 +445,7 @@ public data class CreateSongInput(
     @SerialName("albumArtist") public val albumArtist: String,
     /** The album of the song, if applicable */
     public val album: String,
-    /** The duration of the song in seconds */
+    /** The duration of the song in milliseconds */
     public val duration: Int? = null,
     /** The MusicBrainz ID of the song, if available */
     @SerialName("mbId") public val mbId: String? = null,
@@ -1270,6 +1270,10 @@ public data class GetStatsParams(
 public data class GetStoriesParams(
     /** The maximum number of stories to return. */
     public val size: Int? = null,
+    /** The feed URI to filter stories by. */
+    public val feed: String? = null,
+    /** If true, only return stories from users the viewer follows. Requires authentication. */
+    public val following: Boolean? = null,
 )
 
 @Serializable

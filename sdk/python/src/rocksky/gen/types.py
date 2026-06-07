@@ -984,6 +984,8 @@ class GetStatsParams:
 @dataclass
 class GetStoriesParams:
     size: Optional[int] = None
+    feed: Optional[str] = None
+    following: Optional[bool] = None
 
 
 @dataclass

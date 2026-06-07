@@ -28,10 +28,18 @@
    (c/query client :app.rocksky.feed.getFeedGenerators {:size size})))
 
 (defn get-stories
-  "Get all currently playing tracks by users. Optional: `:size`."
+  "Get the latest scrobble per user.
+
+  Optional:
+   - `:size`      max number of stories.
+   - `:feed`      at-uri of a feed generator; only stories whose scrobble is
+                  in that feed are returned.
+   - `:following` `true` to restrict to users the viewer follows; requires
+                  the client to be authenticated."
   ([client] (get-stories client nil))
-  ([client {:keys [size]}]
-   (c/query client :app.rocksky.feed.getStories {:size size})))
+  ([client {:keys [size feed following]}]
+   (c/query client :app.rocksky.feed.getStories
+            {:size size :feed feed :following following})))
 
 (defn get-recommendations
   "Get personalised track recommendations.

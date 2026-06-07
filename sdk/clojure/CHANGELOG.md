@@ -5,6 +5,14 @@ project adheres to [Semantic Versioning](https://semver.org).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-07
+
+### Added
+- `feed/get-stories` now accepts optional `:feed` (at-uri) and `:following`
+  (boolean) keys. `:feed` narrows results to scrobbles in that feed generator;
+  `:following true` restricts to users the viewer follows and requires the
+  client to be authenticated. Filters intersect when both are supplied.
+
 ## [0.2.0] - 2026-06-02
 
 ### Added
