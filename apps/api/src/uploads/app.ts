@@ -138,7 +138,7 @@ function makeS3Client(): S3Client {
 async function resolveUser(authHeader: string | undefined | null) {
   const bearer = (authHeader || "").split(" ")[1]?.trim();
   if (!bearer || bearer === "null") return null;
-  const { did } = await verifyToken(bearer) as { did: string };
+  const { did } = (await verifyToken(bearer)) as { did: string };
   return ctx.db
     .select()
     .from(tables.users)

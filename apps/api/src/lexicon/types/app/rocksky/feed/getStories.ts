@@ -12,6 +12,10 @@ import type * as AppRockskyFeedDefs from "./defs";
 export interface QueryParams {
   /** The maximum number of stories to return. */
   size?: number;
+  /** The feed URI to filter stories by. */
+  feed?: string;
+  /** If true, only return stories from users the viewer follows. Requires authentication. */
+  following?: boolean;
 }
 
 export type InputSchema = undefined;

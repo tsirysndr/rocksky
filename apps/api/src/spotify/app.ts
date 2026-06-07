@@ -282,10 +282,7 @@ app.get("/currently-playing", async (c) => {
   requestCounter.add(1, { method: "GET", route: "/spotify/currently-playing" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
-  const payload =
-    bearer && bearer !== "null"
-      ? await verifyToken(bearer)
-      : {};
+  const payload = bearer && bearer !== "null" ? await verifyToken(bearer) : {};
   const did = c.req.query("did") || payload.did;
 
   if (!did) {
@@ -369,10 +366,7 @@ app.put("/pause", async (c) => {
   requestCounter.add(1, { method: "PUT", route: "/spotify/pause" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
-  const { did } =
-    bearer && bearer !== "null"
-      ? await verifyToken(bearer)
-      : {};
+  const { did } = bearer && bearer !== "null" ? await verifyToken(bearer) : {};
 
   if (!did) {
     c.status(401);
@@ -452,10 +446,7 @@ app.put("/play", async (c) => {
   requestCounter.add(1, { method: "PUT", route: "/spotify/play" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
-  const { did } =
-    bearer && bearer !== "null"
-      ? await verifyToken(bearer)
-      : {};
+  const { did } = bearer && bearer !== "null" ? await verifyToken(bearer) : {};
 
   if (!did) {
     c.status(401);
@@ -535,10 +526,7 @@ app.post("/next", async (c) => {
   requestCounter.add(1, { method: "POST", route: "/spotify/next" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
-  const { did } =
-    bearer && bearer !== "null"
-      ? await verifyToken(bearer)
-      : {};
+  const { did } = bearer && bearer !== "null" ? await verifyToken(bearer) : {};
 
   if (!did) {
     c.status(401);
@@ -618,10 +606,7 @@ app.post("/previous", async (c) => {
   requestCounter.add(1, { method: "POST", route: "/spotify/previous" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
-  const { did } =
-    bearer && bearer !== "null"
-      ? await verifyToken(bearer)
-      : {};
+  const { did } = bearer && bearer !== "null" ? await verifyToken(bearer) : {};
 
   if (!did) {
     c.status(401);
@@ -704,10 +689,7 @@ app.put("/seek", async (c) => {
   requestCounter.add(1, { method: "PUT", route: "/spotify/seek" });
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
-  const { did } =
-    bearer && bearer !== "null"
-      ? await verifyToken(bearer)
-      : {};
+  const { did } = bearer && bearer !== "null" ? await verifyToken(bearer) : {};
 
   if (!did) {
     c.status(401);

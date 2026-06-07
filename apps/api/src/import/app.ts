@@ -552,7 +552,7 @@ app.get("/events", async (c) => {
 
   let did: string;
   try {
-    const payload = await verifyToken(token) as { did: string };
+    const payload = (await verifyToken(token)) as { did: string };
     did = payload.did;
   } catch {
     c.status(401);

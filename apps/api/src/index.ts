@@ -183,10 +183,7 @@ app.get("/now-playing", async (c) => {
 
   const bearer = (c.req.header("authorization") || "").split(" ")[1]?.trim();
 
-  const payload =
-    bearer && bearer !== "null"
-      ? await verifyToken(bearer)
-      : {};
+  const payload = bearer && bearer !== "null" ? await verifyToken(bearer) : {};
   const did = c.req.query("did") || payload.did;
 
   if (!did) {

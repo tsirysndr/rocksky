@@ -6,9 +6,7 @@ type ReqCtx = {
   req: express.Request;
 };
 
-export default async function authVerifier(
-  ctx: ReqCtx,
-): Promise<AuthOutput> {
+export default async function authVerifier(ctx: ReqCtx): Promise<AuthOutput> {
   if (!ctx.req.headers.authorization) {
     return {};
   }

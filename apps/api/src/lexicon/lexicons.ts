@@ -3416,6 +3416,16 @@ export const schemaDict = {
               description: "The maximum number of stories to return.",
               minimum: 1,
             },
+            feed: {
+              type: "string",
+              description: "The feed URI to filter stories by.",
+              format: "at-uri",
+            },
+            following: {
+              type: "boolean",
+              description:
+                "If true, only return stories from users the viewer follows. Requires authentication.",
+            },
           },
         },
         output: {
