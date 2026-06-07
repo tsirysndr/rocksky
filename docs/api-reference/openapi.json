@@ -3808,6 +3808,25 @@
               "type": "integer",
               "minimum": 1
             }
+          },
+          {
+            "name": "feed",
+            "in": "query",
+            "description": "The feed URI to filter stories by.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "at-uri"
+            }
+          },
+          {
+            "name": "following",
+            "in": "query",
+            "description": "If true, only return stories from users the viewer follows. Requires authentication.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
