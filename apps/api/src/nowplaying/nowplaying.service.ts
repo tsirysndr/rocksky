@@ -1059,6 +1059,29 @@ export async function scrobbleTrack(
     if (!track.albumArt) track.albumArt = existingAlbum.albumArt;
   }
 
+  // Cross-process lock: when multiple sources (Spotify webhook, Last.fm mirror,
+  // Navidrome, etc.) fire for the same listen within the same second, they all
+  // arrive here with the same userDid + track + timestamp and would each call
+  // putRecord, leaving duplicate at://app.rocksky.scrobble records on the user's
+  // PDS. The DB unique on (user, track, timestamp) catches dupes at storage, but
+  // by then the redundant at-records already exist. SETNX on Redis ensures only
+  // the first caller writes the at-record; the rest exit before the put. Lock
+  // identity uses lowercased title+artist (the values the 60s window already
+  // dedupes against) plus the exact integer-second timestamp.
+  const lockTs = track.timestamp || dayjs().unix();
+  const lockHash = createHash("sha256")
+    .update(`${track.title.toLowerCase()}|${track.artist.toLowerCase()}`)
+    .digest("hex");
+  const lockKey = `scrobble-put:${userDid}:${lockHash}:${lockTs}`;
+  const lockAcquired = await ctx.redis.set(lockKey, "1", { NX: true, EX: 120 });
+  if (lockAcquired !== "OK") {
+    consola.info(
+      `Scrobble put lock held by concurrent source for ${chalk.cyan(track.title)} @ ${chalk.cyan(
+        dayjs.unix(lockTs).format("YYYY-MM-DD HH:mm:ss"),
+      )} — skipping putRecord`,
+    );
+    return;
+  }
   const scrobbleUri = await putScrobbleRecord(track, agent);
 
   // loop while scrobble is null, try 30 times, sleep 1 second between tries

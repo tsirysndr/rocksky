@@ -82,7 +82,13 @@ pub async fn save_scrobble(
 
                 tracing::info!(title = %scrobble_record.title.magenta(), artist = %scrobble_record.artist.magenta(), album = %scrobble_record.album.magenta(), "Saving scrobble");
 
-                let scrobble_id: String = sqlx::query_scalar(
+                // ON CONFLICT on the (user, track, timestamp) composite drops the
+                // race between concurrent sources (Spotify webhook, Last.fm mirror,
+                // Navidrome, etc.) that each publish their own at-uri for the same
+                // listen. RETURNING is empty on conflict — that's the signal to
+                // skip the downstream fan-out (NATS + Discord) so we don't double-
+                // fire for what is, by definition, the same scrobble.
+                let scrobble_id: Option<String> = sqlx::query_scalar(
                     r#"
           INSERT INTO scrobbles (
             album_id,
@@ -92,6 +98,7 @@ pub async fn save_scrobble(
             user_id,
             timestamp
           ) VALUES ($1, $2, $3, $4, $5, $6)
+          ON CONFLICT (user_id, track_id, timestamp) DO NOTHING
           RETURNING xata_id
         "#,
                 )
@@ -105,10 +112,20 @@ pub async fn save_scrobble(
                         .unwrap()
                         .with_timezone(&chrono::Utc),
                 )
-                .fetch_one(&mut *tx)
+                .fetch_optional(&mut *tx)
                 .await?;
 
                 tx.commit().await?;
+
+                let Some(scrobble_id) = scrobble_id else {
+                    tracing::info!(
+                        title = %scrobble_record.title.magenta(),
+                        artist = %scrobble_record.artist.magenta(),
+                        did = %did,
+                        "Duplicate scrobble (same user/track/timestamp) — skipping publish"
+                    );
+                    return Ok(());
+                };
 
                 nc.publish("rocksky.scrobble.new", scrobble_id.into())
                     .await?;

@@ -14,6 +14,7 @@ pub async fn create_scrobble(
         r#"
         INSERT INTO scrobbles (user_id, track_id, album_id, artist_id, timestamp)
         VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (user_id, track_id, timestamp) DO NOTHING
         "#,
     )
     .bind(user_id)

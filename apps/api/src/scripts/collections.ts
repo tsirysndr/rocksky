@@ -193,6 +193,8 @@ async function insertScrobbles(scrobbles: Record[]) {
 
       try {
         if (!newScrobble) {
+          // Conflict path — either the at-uri or the
+          // (user_id, track_id, timestamp) composite already exists.
           [newScrobble] = await ctx.db
             .select()
             .from(schema.scrobbles)
@@ -201,7 +203,6 @@ async function insertScrobbles(scrobbles: Record[]) {
                 and(
                   eq(schema.scrobbles.userId, user.id),
                   eq(schema.scrobbles.trackId, track.id),
-                  eq(schema.scrobbles.artistId, artist.id),
                   eq(schema.scrobbles.timestamp, new Date(value.createdAt)),
                 ),
                 eq(schema.scrobbles.uri, scrobble.uri),
@@ -216,19 +217,6 @@ async function insertScrobbles(scrobbles: Record[]) {
               scrobble.uri,
             )} — skipping publish`,
           );
-          await ctx.db
-            .insert(schema.scrobbles)
-            .values({
-              albumId: album.id,
-              trackId: track.id,
-              artistId: artist.id,
-              uri: scrobble.uri,
-              userId: user.id,
-              timestamp: new Date(value.createdAt),
-              createdAt: new Date(value.createdAt),
-            })
-            .returning()
-            .execute();
           return;
         }
         await publishScrobble(ctx, newScrobble.id);
