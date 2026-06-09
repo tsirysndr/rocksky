@@ -13,39 +13,52 @@ import type { SelectUser } from "schema/users";
 import axios from "axios";
 import type { HandlerAuth } from "@atproto/xrpc-server";
 import { env } from "lib/env";
+import { getFeedVersion } from "lib/feedCache";
 import type { SelectArtist } from "schema/artists";
 
-const FEED_CACHE_TTL = 5;
-const cacheKey = (params: QueryParams, did?: string) =>
-  `feed:getFeed:v1:${did ?? "anon"}:${params.feed}:${params.limit ?? ""}:${params.cursor ?? ""}`;
+const FEED_CACHE_TTL = 30;
+const cacheKey = (params: QueryParams, version: number, did?: string) =>
+  `feed:getFeed:v2:${did ?? "anon"}:${params.feed}:${version}:${params.limit ?? ""}:${params.cursor ?? ""}`;
 
 export default function (server: Server, ctx: Context) {
   const getFeed = (params: QueryParams, auth: HandlerAuth) => {
     const did = auth.credentials?.did;
-    const key = cacheKey(params, did);
 
     return pipe(
       Effect.tryPromise({
-        try: () => ctx.redis.get(key),
-        catch: () => null,
+        try: () => getFeedVersion(ctx, params.feed),
+        catch: () => 0,
       }),
-      Effect.flatMap((cached) =>
-        cached
-          ? Effect.succeed(JSON.parse(cached) as FeedView)
-          : pipe(
-              { params, ctx, did },
-              retrieve,
-              Effect.flatMap(hydrate),
-              Effect.flatMap(presentation),
-              Effect.tap((view) =>
-                Effect.tryPromise({
-                  try: () =>
-                    ctx.redis.setEx(key, FEED_CACHE_TTL, JSON.stringify(view)),
-                  catch: () => null,
-                }),
-              ),
-            ),
-      ),
+      Effect.flatMap((version) => {
+        const key = cacheKey(params, version, did);
+        return pipe(
+          Effect.tryPromise({
+            try: () => ctx.redis.get(key),
+            catch: () => null,
+          }),
+          Effect.flatMap((cached) =>
+            cached
+              ? Effect.succeed(JSON.parse(cached) as FeedView)
+              : pipe(
+                  { params, ctx, did },
+                  retrieve,
+                  Effect.flatMap(hydrate),
+                  Effect.flatMap(presentation),
+                  Effect.tap((view) =>
+                    Effect.tryPromise({
+                      try: () =>
+                        ctx.redis.setEx(
+                          key,
+                          FEED_CACHE_TTL,
+                          JSON.stringify(view),
+                        ),
+                      catch: () => null,
+                    }),
+                  ),
+                ),
+          ),
+        );
+      }),
       Effect.retry({ times: 3 }),
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
