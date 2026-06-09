@@ -15,13 +15,37 @@ import type { HandlerAuth } from "@atproto/xrpc-server";
 import { env } from "lib/env";
 import type { SelectArtist } from "schema/artists";
 
+const FEED_CACHE_TTL = 5;
+const cacheKey = (params: QueryParams, did?: string) =>
+  `feed:getFeed:v1:${did ?? "anon"}:${params.feed}:${params.limit ?? ""}:${params.cursor ?? ""}`;
+
 export default function (server: Server, ctx: Context) {
-  const getFeed = (params: QueryParams, auth: HandlerAuth) =>
-    pipe(
-      { params, ctx, did: auth.credentials?.did },
-      retrieve,
-      Effect.flatMap(hydrate),
-      Effect.flatMap(presentation),
+  const getFeed = (params: QueryParams, auth: HandlerAuth) => {
+    const did = auth.credentials?.did;
+    const key = cacheKey(params, did);
+
+    return pipe(
+      Effect.tryPromise({
+        try: () => ctx.redis.get(key),
+        catch: () => null,
+      }),
+      Effect.flatMap((cached) =>
+        cached
+          ? Effect.succeed(JSON.parse(cached) as FeedView)
+          : pipe(
+              { params, ctx, did },
+              retrieve,
+              Effect.flatMap(hydrate),
+              Effect.flatMap(presentation),
+              Effect.tap((view) =>
+                Effect.tryPromise({
+                  try: () =>
+                    ctx.redis.setEx(key, FEED_CACHE_TTL, JSON.stringify(view)),
+                  catch: () => null,
+                }),
+              ),
+            ),
+      ),
       Effect.retry({ times: 3 }),
       Effect.timeout("10 seconds"),
       Effect.catchAll((err) => {
@@ -29,6 +53,7 @@ export default function (server: Server, ctx: Context) {
         return Effect.succeed({ scrobbles: [] });
       }),
     );
+  };
   server.app.rocksky.feed.getFeed({
     auth: ctx.authVerifier,
     handler: async ({ params, auth }) => {
