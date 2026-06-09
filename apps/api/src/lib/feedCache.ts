@@ -3,6 +3,7 @@ import { consola } from "consola";
 import tables from "schema";
 
 const versionKey = (feedUri: string) => `feed:ver:${feedUri}`;
+const scrobblesVersionKey = "scrobbles:ver";
 
 export async function getFeedVersion(
   ctx: Context,
@@ -13,6 +14,23 @@ export async function getFeedVersion(
     return v ? Number.parseInt(v, 10) || 0 : 0;
   } catch {
     return 0;
+  }
+}
+
+export async function getScrobblesVersion(ctx: Context): Promise<number> {
+  try {
+    const v = await ctx.redis.get(scrobblesVersionKey);
+    return v ? Number.parseInt(v, 10) || 0 : 0;
+  } catch {
+    return 0;
+  }
+}
+
+export async function bumpScrobblesVersion(ctx: Context): Promise<void> {
+  try {
+    await ctx.redis.incr(scrobblesVersionKey);
+  } catch (err) {
+    consola.warn("bumpScrobblesVersion failed:", err);
   }
 }
 

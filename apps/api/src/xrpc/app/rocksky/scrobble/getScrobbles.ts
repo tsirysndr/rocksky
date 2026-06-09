@@ -5,24 +5,63 @@ import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { ScrobbleViewBasic } from "lexicon/types/app/rocksky/scrobble/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/scrobble/getScrobbles";
+import { getScrobblesVersion } from "lib/feedCache";
 import * as R from "ramda";
 import tables from "schema";
+import type { SelectArtist } from "schema/artists";
 import type { SelectScrobble } from "schema/scrobbles";
 import type { SelectTrack } from "schema/tracks";
 import type { SelectUser } from "schema/users";
-import type { SelectArtist } from "schema/artists";
+
+const SCROBBLES_CACHE_TTL = 30;
+
+const cacheKey = (params: QueryParams, version: number) =>
+  `scrobbles:getScrobbles:v1:${version}:${params.did ?? "anon"}:${
+    params.following ? "1" : "0"
+  }:${params.limit ?? ""}:${params.offset ?? ""}`;
+
+type ScrobblesResponse = { scrobbles: ScrobbleViewBasic[] };
 
 export default function (server: Server, ctx: Context) {
   const getScrobbles = (params: QueryParams) =>
     pipe(
-      { params, ctx },
-      retrieve,
-      Effect.flatMap(presentation),
-      Effect.retry({ times: 3 }),
-      Effect.timeout("10 seconds"),
+      Effect.tryPromise({
+        try: () => getScrobblesVersion(ctx),
+        catch: () => 0,
+      }),
+      Effect.flatMap((version) => {
+        const key = cacheKey(params, version);
+        return pipe(
+          Effect.tryPromise({
+            try: () => ctx.redis.get(key),
+            catch: () => null,
+          }),
+          Effect.flatMap((cached) =>
+            cached
+              ? Effect.succeed(JSON.parse(cached) as ScrobblesResponse)
+              : pipe(
+                  { params, ctx },
+                  retrieve,
+                  Effect.flatMap(presentation),
+                  Effect.tap((view) =>
+                    Effect.tryPromise({
+                      try: () =>
+                        ctx.redis.setEx(
+                          key,
+                          SCROBBLES_CACHE_TTL,
+                          JSON.stringify(view),
+                        ),
+                      catch: () => null,
+                    }),
+                  ),
+                ),
+          ),
+        );
+      }),
+      Effect.timeout("20 seconds"),
       Effect.catchAll((err) => {
         consola.error("Error retrieving scrobbles:", err);
-        return Effect.succeed({ scrobbles: [] });
+        return Effect.succeed<ScrobblesResponse>({ scrobbles: [] });
       }),
     );
   server.app.rocksky.scrobble.getScrobbles({
@@ -42,43 +81,47 @@ const retrieve = ({
 }: {
   params: QueryParams;
   ctx: Context;
-}): Effect.Effect<Scrobbles | undefined, Error> => {
+}): Effect.Effect<Scrobbles, Error> => {
   return Effect.tryPromise({
     try: async () => {
-      const filterDids = await getFilterDids(ctx, params);
+      const filterUserIds = await getFilterUserIds(ctx, params);
 
-      if (filterDids !== null && filterDids.length === 0) {
+      if (filterUserIds !== null && filterUserIds.length === 0) {
         return [];
       }
 
-      const scrobbles = await fetchScrobbles(ctx, params, filterDids);
+      const scrobbles = await fetchScrobbles(ctx, params, filterUserIds);
       return enrichWithLikes(ctx, scrobbles, params.did);
     },
     catch: (error) => new Error(`Failed to retrieve scrobbles: ${error}`),
   });
 };
 
-const getFilterDids = async (
+const getFilterUserIds = async (
   ctx: Context,
   params: QueryParams,
 ): Promise<string[] | null> => {
   if (!params.did || !params.following) {
-    return null; // No filtering needed
+    return null;
   }
 
-  const followedUsers = await ctx.db
-    .select({ subjectDid: tables.follows.subject_did })
+  const rows = await ctx.db
+    .select({ userId: tables.users.id })
     .from(tables.follows)
+    .innerJoin(
+      tables.users,
+      eq(tables.users.did, tables.follows.subject_did),
+    )
     .where(eq(tables.follows.follower_did, params.did))
     .execute();
 
-  return followedUsers.map((f) => f.subjectDid);
+  return rows.map((r) => r.userId);
 };
 
 const fetchScrobbles = async (
   ctx: Context,
   params: QueryParams,
-  filterDids: string[] | null,
+  filterUserIds: string[] | null,
 ) => {
   const baseQuery = ctx.db
     .select()
@@ -87,8 +130,8 @@ const fetchScrobbles = async (
     .leftJoin(tables.users, eq(tables.scrobbles.userId, tables.users.id))
     .leftJoin(tables.artists, eq(tables.scrobbles.artistId, tables.artists.id));
 
-  const query = filterDids
-    ? baseQuery.where(inArray(tables.users.did, filterDids))
+  const query = filterUserIds
+    ? baseQuery.where(inArray(tables.scrobbles.userId, filterUserIds))
     : baseQuery;
 
   return query
@@ -137,7 +180,7 @@ const enrichWithLikes = async (
 
 const presentation = (
   data: Scrobbles,
-): Effect.Effect<{ scrobbles: ScrobbleViewBasic[] }, never> => {
+): Effect.Effect<ScrobblesResponse, never> => {
   return Effect.sync(() => ({
     scrobbles: data.map(
       ({ scrobbles, tracks, users, artists, liked, likesCount }) => ({

@@ -12,7 +12,7 @@ import * as Song from "lexicon/types/app/rocksky/song";
 import { deepSnakeCaseKeys, withFallbackAlbumArt } from "lib";
 import { decrypt } from "lib/crypto";
 import { env } from "lib/env";
-import { bumpAllFeedVersions } from "lib/feedCache";
+import { bumpAllFeedVersions, bumpScrobblesVersion } from "lib/feedCache";
 import { createHash } from "node:crypto";
 import type { MusicbrainzTrack, Track } from "types/track";
 import albumTracks from "../schema/album-tracks";
@@ -528,6 +528,7 @@ export async function publishScrobble(ctx: Context, id: string) {
   );
 
   void bumpAllFeedVersions(ctx);
+  void bumpScrobblesVersion(ctx);
 
   const trackMessage = JSON.stringify(
     deepSnakeCaseKeys({
