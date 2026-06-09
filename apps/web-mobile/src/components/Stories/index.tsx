@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { IconChevronLeft, IconChevronRight, IconUser, IconX } from "@tabler/icons-react";
 import type { TouchEvent } from "react";
 import { Link } from "react-router-dom";
@@ -7,6 +7,12 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import utc from "dayjs/plugin/utc";
 import _ from "lodash";
 import ContentLoader from "react-content-loader";
+import { useAtomValue } from "jotai";
+import {
+  feedAtom,
+  feedGeneratorUriAtom,
+  followingFeedAtom,
+} from "../../atoms/feed";
 import { useStoriesQuery, type Story } from "../../hooks/useStories";
 
 dayjs.extend(relativeTime);
@@ -217,7 +223,15 @@ function StoryModal({
 }
 
 export default function Stories() {
-  const { data: rawStories, isLoading } = useStoriesQuery();
+  const activeCategory = useAtomValue(feedAtom);
+  const followingFeed = useAtomValue(followingFeedAtom);
+  const feedUri = useAtomValue(feedGeneratorUriAtom);
+  const filter = useMemo(() => {
+    if (followingFeed) return { following: true };
+    if (activeCategory === "all") return {};
+    return { feed: feedUri };
+  }, [activeCategory, followingFeed, feedUri]);
+  const { data: rawStories, isLoading } = useStoriesQuery(filter);
   const [modalIndex, setModalIndex] = useState<number | null>(null);
   const [showLeft, setShowLeft] = useState(false);
   const [showRight, setShowRight] = useState(true);

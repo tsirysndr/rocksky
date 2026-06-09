@@ -7,13 +7,16 @@ import { StatefulTooltip } from "baseui/tooltip";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import utc from "dayjs/plugin/utc";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import {
   IconChevronLeft,
   IconChevronRight,
   IconUser,
   IconMusic,
 } from "@tabler/icons-react";
+import { useAtomValue } from "jotai";
+import { feedAtom, feedGeneratorUriAtom } from "../../../atoms/feed";
+import { followingFeedAtom } from "../../../atoms/followingFeed";
 import { useStoriesQuery } from "../../../hooks/useStories";
 import styles, { getModalStyles } from "./styles";
 import _ from "lodash";
@@ -96,7 +99,15 @@ const Link = styled(DefaultLink)`
 
 function Stories() {
   const [isOpen, setIsOpen] = useState(false);
-  const { data: rawStories, isLoading } = useStoriesQuery();
+  const activeCategory = useAtomValue(feedAtom);
+  const followingFeed = useAtomValue(followingFeedAtom);
+  const feedUri = useAtomValue(feedGeneratorUriAtom);
+  const filter = useMemo(() => {
+    if (followingFeed) return { following: true };
+    if (activeCategory === "all") return {};
+    return { feed: feedUri };
+  }, [activeCategory, followingFeed, feedUri]);
+  const { data: rawStories, isLoading } = useStoriesQuery(filter);
 
   // Deduplicate by trackId + did (user) + createdAt to ensure truly unique entries
   const stories = _.uniqBy(
