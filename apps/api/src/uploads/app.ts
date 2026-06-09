@@ -578,6 +578,84 @@ app.get("/", async (c) => {
   return c.json(uploads);
 });
 
+// GET /uploads/albums --------------------------------------------------------
+// Paginated list of distinct albums the caller has uploaded tracks for.
+app.get("/albums", async (c) => {
+  const user = await resolveUser(c.req.header("authorization"));
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const size = Math.min(+c.req.query("size") || 50, 200);
+  const offset = +c.req.query("offset") || 0;
+  const q = c.req.query("q")?.trim() || undefined;
+
+  const conditions = [eq(tables.userUploads.userId, user.id)];
+  if (q) {
+    const like = `%${q.toLowerCase()}%`;
+    conditions.push(
+      sql`(lower(${tables.tracks.album}) like ${like} or lower(${tables.tracks.albumArtist}) like ${like})`,
+    );
+  }
+
+  const rows = await ctx.db
+    .select({
+      albumArtist: tables.tracks.albumArtist,
+      album: tables.tracks.album,
+      albumArt: sql<string | null>`max(${tables.tracks.albumArt})`,
+      albumUri: sql<string | null>`max(${tables.tracks.albumUri})`,
+      artistUri: sql<string | null>`max(${tables.tracks.artistUri})`,
+      trackCount: sql<number>`count(distinct ${tables.userUploads.id})::int`,
+    })
+    .from(tables.userUploads)
+    .innerJoin(tables.tracks, eq(tables.userUploads.trackId, tables.tracks.id))
+    .where(and(...conditions))
+    .groupBy(tables.tracks.albumArtist, tables.tracks.album)
+    .orderBy(asc(tables.tracks.album), asc(tables.tracks.albumArtist))
+    .limit(size)
+    .offset(offset);
+
+  return c.json(rows);
+});
+
+// GET /uploads/artists -------------------------------------------------------
+// Paginated list of distinct album artists the caller has uploaded tracks for.
+app.get("/artists", async (c) => {
+  const user = await resolveUser(c.req.header("authorization"));
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const size = Math.min(+c.req.query("size") || 50, 200);
+  const offset = +c.req.query("offset") || 0;
+  const q = c.req.query("q")?.trim() || undefined;
+
+  const conditions = [eq(tables.userUploads.userId, user.id)];
+  if (q) {
+    const like = `%${q.toLowerCase()}%`;
+    conditions.push(sql`lower(${tables.tracks.albumArtist}) like ${like}`);
+  }
+
+  const rows = await ctx.db
+    .select({
+      name: tables.tracks.albumArtist,
+      artistUri: sql<string | null>`max(${tables.tracks.artistUri})`,
+      trackCount: sql<number>`count(distinct ${tables.userUploads.id})::int`,
+      albumCount: sql<number>`count(distinct ${tables.tracks.album})::int`,
+    })
+    .from(tables.userUploads)
+    .innerJoin(tables.tracks, eq(tables.userUploads.trackId, tables.tracks.id))
+    .where(and(...conditions))
+    .groupBy(tables.tracks.albumArtist)
+    .orderBy(asc(tables.tracks.albumArtist))
+    .limit(size)
+    .offset(offset);
+
+  return c.json(rows);
+});
+
 // GET /uploads/stream-token --------------------------------------------------
 // Issues a short-lived opaque token (random hex, stored in Redis with 1 h TTL)
 // for use as ?token= in stream URLs.  WASM audio can't set HTTP headers so we

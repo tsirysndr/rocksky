@@ -10,12 +10,19 @@ import {
 import { useCallback, useMemo, useRef, useState, useEffect } from "react";
 import ContentLoader from "react-content-loader";
 import { Link, useNavigate } from "react-router-dom";
-import type { UploadedTrack } from "../../api/uploads";
+import { getAlbumTracks } from "../../api/uploads";
+import type {
+  UploadAlbum,
+  UploadArtist,
+  UploadedTrack,
+} from "../../api/uploads";
 import type { QueueTrack } from "../../atoms/queue";
 import { useArtistQuery } from "../../hooks/useLibrary";
 import {
   useDeleteAlbumMutation,
   useDeleteUploadMutation,
+  useInfiniteUploadAlbumsQuery,
+  useInfiniteUploadArtistsQuery,
   useInfiniteUploadsQuery,
 } from "../../hooks/useUploads";
 import { useUploadPlayer } from "../../hooks/useUploadPlayer";
@@ -32,6 +39,26 @@ function formatDuration(ms: number) {
 
 function albumKey(albumArtist: string, album: string) {
   return `${albumArtist}|||${album}`;
+}
+
+function useInfiniteScrollSentinel(
+  hasNextPage: boolean,
+  isFetchingNextPage: boolean,
+  fetchNextPage: () => unknown,
+) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage();
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  return ref;
 }
 
 function parseAtUri(uri: string | null | undefined) {
@@ -184,72 +211,50 @@ export default function LibraryPage() {
   // Track action sheet
   const [sheetTrack, setSheetTrack] = useState<UploadedTrack | null>(null);
   // Album action sheet
-  const [sheetAlbum, setSheetAlbum] = useState<{
-    albumArtist: string;
-    album: string;
-    albumArt: string | null;
-    albumUri: string | null;
-    artistUri: string | null;
-    tracks: QueueTrack[];
-  } | null>(null);
+  const [sheetAlbum, setSheetAlbum] = useState<UploadAlbum | null>(null);
 
-  const {
-    data,
-    isLoading,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteUploadsQuery();
+  const tracksQuery = useInfiniteUploadsQuery();
+  const albumsQuery = useInfiniteUploadAlbumsQuery();
+  const artistsQuery = useInfiniteUploadArtistsQuery();
 
-  const allTracks: UploadedTrack[] = useMemo(() => data?.pages.flat() ?? [], [data]);
+  const allTracks: UploadedTrack[] = useMemo(
+    () => tracksQuery.data?.pages.flat() ?? [],
+    [tracksQuery.data],
+  );
+  const albums: UploadAlbum[] = useMemo(
+    () => albumsQuery.data?.pages.flat() ?? [],
+    [albumsQuery.data],
+  );
+  const artists: UploadArtist[] = useMemo(
+    () => artistsQuery.data?.pages.flat() ?? [],
+    [artistsQuery.data],
+  );
 
-  const albums = useMemo(() => {
-    const map = new Map<string, {
-      albumArtist: string; album: string; albumArt: string | null;
-      albumUri: string | null; artistUri: string | null; count: number;
-    }>();
-    for (const item of allTracks) {
-      const key = albumKey(item.track.albumArtist, item.track.album);
-      if (!map.has(key)) {
-        map.set(key, {
-          albumArtist: item.track.albumArtist,
-          album: item.track.album,
-          albumArt: item.track.albumArt,
-          albumUri: item.track.albumUri ?? null,
-          artistUri: item.track.artistUri ?? null,
-          count: 0,
-        });
-      }
-      map.get(key)!.count++;
-    }
-    return Array.from(map.values()).sort((a, b) => a.album.localeCompare(b.album));
-  }, [allTracks]);
+  const tracksSentinelRef = useInfiniteScrollSentinel(
+    tracksQuery.hasNextPage ?? false,
+    tracksQuery.isFetchingNextPage,
+    tracksQuery.fetchNextPage,
+  );
+  const albumsSentinelRef = useInfiniteScrollSentinel(
+    albumsQuery.hasNextPage ?? false,
+    albumsQuery.isFetchingNextPage,
+    albumsQuery.fetchNextPage,
+  );
+  const artistsSentinelRef = useInfiniteScrollSentinel(
+    artistsQuery.hasNextPage ?? false,
+    artistsQuery.isFetchingNextPage,
+    artistsQuery.fetchNextPage,
+  );
 
-  const artists = useMemo(() => {
-    const map = new Map<string, { name: string; artistUri: string | null; trackCount: number; albumCount: number }>();
-    for (const item of allTracks) {
-      const name = item.track.albumArtist;
-      if (!map.has(name)) map.set(name, { name, artistUri: item.track.artistUri ?? null, trackCount: 0, albumCount: 0 });
-      map.get(name)!.trackCount++;
-    }
-    for (const alb of albums) {
-      const e = map.get(alb.albumArtist);
-      if (e) e.albumCount++;
-    }
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [allTracks, albums]);
-
-  // Infinite scroll
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) fetchNextPage();
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  const fetchSheetAlbumTracks = useCallback(async (): Promise<QueueTrack[]> => {
+    if (!sheetAlbum) return [];
+    const tracks = await getAlbumTracks(
+      sheetAlbum.albumUri ?? undefined,
+      sheetAlbum.albumUri ? undefined : sheetAlbum.albumArtist,
+      sheetAlbum.albumUri ? undefined : sheetAlbum.album,
+    );
+    return tracks.map(toQueueTrack);
+  }, [sheetAlbum]);
 
   const handleTrackPlay = useCallback(
     (item: UploadedTrack) => {
@@ -304,8 +309,8 @@ export default function LibraryPage() {
       {/* Tracks tab */}
       {tab === "tracks" && (
         <div>
-          {isLoading && Array.from({ length: 8 }).map((_, i) => <TrackSkeleton key={i} />)}
-          {!isLoading && allTracks.length === 0 && (
+          {tracksQuery.isLoading && Array.from({ length: 8 }).map((_, i) => <TrackSkeleton key={i} />)}
+          {!tracksQuery.isLoading && allTracks.length === 0 && (
             <div className="flex flex-col items-center py-20 gap-4 px-4">
               <IconVinyl size={48} color="var(--color-text-muted)" />
               <p className="text-center m-0" style={{ color: "var(--color-text-muted)" }}>
@@ -363,15 +368,15 @@ export default function LibraryPage() {
               </button>
             </div>
           ))}
-          <div ref={sentinelRef} />
-          {isFetchingNextPage && <TrackSkeleton />}
+          <div ref={tracksSentinelRef} />
+          {tracksQuery.isFetchingNextPage && <TrackSkeleton />}
         </div>
       )}
 
       {/* Albums tab */}
       {tab === "albums" && (
         <div className="px-4 pt-4">
-          {isLoading && (
+          {albumsQuery.isLoading && (
             <div className="grid grid-cols-2 gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
                 <ContentLoader
@@ -389,7 +394,7 @@ export default function LibraryPage() {
               ))}
             </div>
           )}
-          {!isLoading && albums.length === 0 && (
+          {!albumsQuery.isLoading && albums.length === 0 && (
             <div className="flex flex-col items-center py-20 gap-3">
               <IconVinyl size={48} color="var(--color-text-muted)" />
               <p className="m-0 text-sm" style={{ color: "var(--color-text-muted)" }}>No albums yet</p>
@@ -400,9 +405,6 @@ export default function LibraryPage() {
               {albums.map((alb) => {
                 const key = albumKey(alb.albumArtist, alb.album);
                 const parsed = parseAtUri(alb.albumUri);
-                const albumTracks = allTracks
-                  .filter((t) => alb.albumUri ? t.track.albumUri === alb.albumUri : t.track.albumArtist === alb.albumArtist && t.track.album === alb.album)
-                  .map(toQueueTrack);
                 return (
                   <div
                     key={key}
@@ -425,7 +427,7 @@ export default function LibraryPage() {
                         style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setSheetAlbum({ ...alb, tracks: albumTracks });
+                          setSheetAlbum(alb);
                         }}
                       >
                         <IconDots size={16} color="#fff" />
@@ -438,13 +440,14 @@ export default function LibraryPage() {
               })}
             </div>
           )}
+          <div ref={albumsSentinelRef} />
         </div>
       )}
 
       {/* Artists tab */}
       {tab === "artists" && (
         <div className="px-4 pt-4">
-          {isLoading && (
+          {artistsQuery.isLoading && (
             <div className="grid grid-cols-2 gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
                 <ContentLoader
@@ -461,7 +464,7 @@ export default function LibraryPage() {
               ))}
             </div>
           )}
-          {!isLoading && artists.length === 0 && (
+          {!artistsQuery.isLoading && artists.length === 0 && (
             <div className="flex flex-col items-center py-20 gap-3">
               <IconMusic size={48} color="var(--color-text-muted)" />
               <p className="m-0 text-sm" style={{ color: "var(--color-text-muted)" }}>No artists yet</p>
@@ -492,6 +495,7 @@ export default function LibraryPage() {
               })}
             </div>
           )}
+          <div ref={artistsSentinelRef} />
         </div>
       )}
 
@@ -563,10 +567,10 @@ export default function LibraryPage() {
                 <p className="text-xs truncate m-0" style={{ color: "var(--color-text-muted)" }}>{sheetAlbum.albumArtist}</p>
               </div>
             </div>
-            <SheetItem icon={<IconPlayerPlay size={16} />} label="Play" onClick={() => { playNow(sheetAlbum.tracks); setSheetAlbum(null); }} />
-            <SheetItem icon={<IconArrowsShuffle size={16} />} label="Shuffle" onClick={() => { playNow([...sheetAlbum.tracks].sort(() => Math.random() - 0.5)); setSheetAlbum(null); }} />
-            <SheetItem label="Play next" onClick={() => { playNextAll(sheetAlbum.tracks); setSheetAlbum(null); }} />
-            <SheetItem label="Add to queue" onClick={() => { playLastAll(sheetAlbum.tracks); setSheetAlbum(null); }} />
+            <SheetItem icon={<IconPlayerPlay size={16} />} label="Play" onClick={async () => { const t = await fetchSheetAlbumTracks(); playNow(t); setSheetAlbum(null); }} />
+            <SheetItem icon={<IconArrowsShuffle size={16} />} label="Shuffle" onClick={async () => { const t = await fetchSheetAlbumTracks(); playNow([...t].sort(() => Math.random() - 0.5)); setSheetAlbum(null); }} />
+            <SheetItem label="Play next" onClick={async () => { const t = await fetchSheetAlbumTracks(); playNextAll(t); setSheetAlbum(null); }} />
+            <SheetItem label="Add to queue" onClick={async () => { const t = await fetchSheetAlbumTracks(); playLastAll(t); setSheetAlbum(null); }} />
             {sheetAlbum.artistUri && parseAtUri(sheetAlbum.artistUri) && (
               <SheetItem label="Go to artist" onClick={() => {
                 const p = parseAtUri(sheetAlbum.artistUri!)!;

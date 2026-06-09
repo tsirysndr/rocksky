@@ -102,6 +102,49 @@ export const getUploads = async (
   return response.data;
 };
 
+export interface UploadAlbum {
+  albumArtist: string;
+  album: string;
+  albumArt: string | null;
+  albumUri: string | null;
+  artistUri: string | null;
+  trackCount: number;
+}
+
+export interface UploadArtist {
+  name: string;
+  artistUri: string | null;
+  trackCount: number;
+  albumCount: number;
+}
+
+export const getUploadAlbums = async (
+  offset = 0,
+  size = 50,
+  q?: string,
+): Promise<UploadAlbum[]> => {
+  const response = await axios.get<UploadAlbum[]>(`${API_URL}/uploads/albums`, {
+    headers: headers(),
+    params: { offset, size, ...(q ? { q } : {}) },
+  });
+  return response.data;
+};
+
+export const getUploadArtists = async (
+  offset = 0,
+  size = 50,
+  q?: string,
+): Promise<UploadArtist[]> => {
+  const response = await axios.get<UploadArtist[]>(
+    `${API_URL}/uploads/artists`,
+    {
+      headers: headers(),
+      params: { offset, size, ...(q ? { q } : {}) },
+    },
+  );
+  return response.data;
+};
+
 export const getAlbumTracks = async (
   albumUri?: string,
   albumArtist?: string,

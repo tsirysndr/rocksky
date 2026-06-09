@@ -1,5 +1,13 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { deleteAlbum, deleteUpload, getUploads, uploadTrack } from "../api/uploads";
+import type { UploadAlbum, UploadArtist, UploadedTrack } from "../api/uploads";
+import {
+  deleteAlbum,
+  deleteUpload,
+  getUploadAlbums,
+  getUploadArtists,
+  getUploads,
+  uploadTrack,
+} from "../api/uploads";
 
 export const useUploadsQuery = (offset = 0, size = 1000) =>
   useQuery({
@@ -13,7 +21,27 @@ export const useInfiniteUploadsQuery = () =>
     queryKey: ["uploads-infinite"],
     queryFn: ({ pageParam = 0 }) => getUploads(pageParam as number, 50),
     initialPageParam: 0,
-    getNextPageParam: (lastPage, allPages) =>
+    getNextPageParam: (lastPage: UploadedTrack[], allPages: UploadedTrack[][]) =>
+      lastPage.length === 50 ? allPages.flat().length : undefined,
+    enabled: !!localStorage.getItem("token"),
+  });
+
+export const useInfiniteUploadAlbumsQuery = () =>
+  useInfiniteQuery({
+    queryKey: ["uploads-albums-infinite"],
+    queryFn: ({ pageParam = 0 }) => getUploadAlbums(pageParam as number, 50),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage: UploadAlbum[], allPages: UploadAlbum[][]) =>
+      lastPage.length === 50 ? allPages.flat().length : undefined,
+    enabled: !!localStorage.getItem("token"),
+  });
+
+export const useInfiniteUploadArtistsQuery = () =>
+  useInfiniteQuery({
+    queryKey: ["uploads-artists-infinite"],
+    queryFn: ({ pageParam = 0 }) => getUploadArtists(pageParam as number, 50),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage: UploadArtist[], allPages: UploadArtist[][]) =>
       lastPage.length === 50 ? allPages.flat().length : undefined,
     enabled: !!localStorage.getItem("token"),
   });
@@ -23,14 +51,18 @@ export const useUploadTrackMutation = () =>
     mutationFn: (file: File) => uploadTrack(file),
   });
 
+const invalidateUploadCaches = (queryClient: ReturnType<typeof useQueryClient>) => {
+  queryClient.invalidateQueries({ queryKey: ["uploads"] });
+  queryClient.invalidateQueries({ queryKey: ["uploads-infinite"] });
+  queryClient.invalidateQueries({ queryKey: ["uploads-albums-infinite"] });
+  queryClient.invalidateQueries({ queryKey: ["uploads-artists-infinite"] });
+};
+
 export const useDeleteUploadMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: deleteUpload,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["uploads"] });
-      queryClient.invalidateQueries({ queryKey: ["uploads-infinite"] });
-    },
+    onSuccess: () => invalidateUploadCaches(queryClient),
   });
 };
 
@@ -38,9 +70,6 @@ export const useDeleteAlbumMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: deleteAlbum,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["uploads"] });
-      queryClient.invalidateQueries({ queryKey: ["uploads-infinite"] });
-    },
+    onSuccess: () => invalidateUploadCaches(queryClient),
   });
 };

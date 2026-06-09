@@ -1,10 +1,12 @@
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { UploadedTrack } from "../api/uploads";
+import type { UploadAlbum, UploadArtist, UploadedTrack } from "../api/uploads";
 import {
   deleteAlbum,
   deleteUpload,
   getAlbumTracks,
   getStreamUrl,
+  getUploadAlbums,
+  getUploadArtists,
   getUploads,
   uploadTrack,
 } from "../api/uploads";
@@ -41,6 +43,32 @@ export const useInfiniteUploadsQuery = (q?: string) =>
     queryFn: ({ pageParam }: { pageParam: number }) => getUploads(pageParam, 50, q),
     initialPageParam: 0,
     getNextPageParam: (lastPage: UploadedTrack[], allPages: UploadedTrack[][]) => {
+      if (lastPage.length < 50) return undefined;
+      return allPages.flat().length;
+    },
+    placeholderData: keepPreviousData,
+  });
+
+export const useInfiniteUploadAlbumsQuery = (q?: string) =>
+  useInfiniteQuery({
+    queryKey: ["uploads", "albums", "infinite", q],
+    queryFn: ({ pageParam }: { pageParam: number }) =>
+      getUploadAlbums(pageParam, 50, q),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage: UploadAlbum[], allPages: UploadAlbum[][]) => {
+      if (lastPage.length < 50) return undefined;
+      return allPages.flat().length;
+    },
+    placeholderData: keepPreviousData,
+  });
+
+export const useInfiniteUploadArtistsQuery = (q?: string) =>
+  useInfiniteQuery({
+    queryKey: ["uploads", "artists", "infinite", q],
+    queryFn: ({ pageParam }: { pageParam: number }) =>
+      getUploadArtists(pageParam, 50, q),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage: UploadArtist[], allPages: UploadArtist[][]) => {
       if (lastPage.length < 50) return undefined;
       return allPages.flat().length;
     },

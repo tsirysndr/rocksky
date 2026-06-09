@@ -16,10 +16,16 @@ import { Tab, Tabs } from "baseui/tabs-motion";
 import { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import ContentLoader from "react-content-loader";
 import { getAlbumTracks } from "../../api/uploads";
-import type { UploadedTrack } from "../../api/uploads";
+import type {
+  UploadAlbum,
+  UploadArtist,
+  UploadedTrack,
+} from "../../api/uploads";
 import {
   useDeleteAlbumMutation,
   useDeleteUploadMutation,
+  useInfiniteUploadAlbumsQuery,
+  useInfiniteUploadArtistsQuery,
   useInfiniteUploadsQuery,
 } from "../../hooks/useUploads";
 import { useArtistQuery } from "../../hooks/useLibrary";
@@ -41,6 +47,26 @@ function formatDuration(ms: number) {
 
 function albumKey(albumArtist: string, album: string) {
   return `${albumArtist}|||${album}`;
+}
+
+function useInfiniteScrollSentinel(
+  hasNextPage: boolean,
+  isFetchingNextPage: boolean,
+  fetchNextPage: () => unknown,
+) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage();
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  return ref;
 }
 
 export function parseAtUri(uri: string | null | undefined) {
@@ -887,76 +913,40 @@ export default function Library() {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  const {
-    data,
-    isLoading,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteUploadsQuery(searchQuery);
+  const tracksQuery = useInfiniteUploadsQuery(searchQuery);
+  const albumsQuery = useInfiniteUploadAlbumsQuery(searchQuery);
+  const artistsQuery = useInfiniteUploadArtistsQuery(searchQuery);
 
   const allTracks: UploadedTrack[] = useMemo(
-    () => data?.pages.flat() ?? [],
-    [data],
+    () => tracksQuery.data?.pages.flat() ?? [],
+    [tracksQuery.data],
   );
 
-  // Derived: albums
-  const albums = useMemo(() => {
-    const map = new Map<
-      string,
-      { albumArtist: string; album: string; albumArt: string | null; albumUri: string | null; artistUri: string | null; count: number }
-    >();
-    for (const item of allTracks) {
-      const key = albumKey(item.track.albumArtist, item.track.album);
-      if (!map.has(key)) {
-        map.set(key, {
-          albumArtist: item.track.albumArtist,
-          album: item.track.album,
-          albumArt: item.track.albumArt,
-          albumUri: item.track.albumUri ?? null,
-          artistUri: item.track.artistUri ?? null,
-          count: 0,
-        });
-      }
-      map.get(key)!.count++;
-    }
-    return Array.from(map.values()).sort((a, b) => a.album.localeCompare(b.album));
-  }, [allTracks]);
+  const albums: UploadAlbum[] = useMemo(
+    () => albumsQuery.data?.pages.flat() ?? [],
+    [albumsQuery.data],
+  );
 
-  // Derived: artists
-  const artists = useMemo(() => {
-    const map = new Map<
-      string,
-      { name: string; artistUri: string | null; trackCount: number; albumCount: number }
-    >();
-    for (const item of allTracks) {
-      const name = item.track.albumArtist;
-      if (!map.has(name)) {
-        map.set(name, { name, artistUri: item.track.artistUri ?? null, trackCount: 0, albumCount: 0 });
-      }
-      map.get(name)!.trackCount++;
-    }
-    // Count albums per artist
-    for (const alb of albums) {
-      const entry = map.get(alb.albumArtist);
-      if (entry) entry.albumCount++;
-    }
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [allTracks, albums]);
+  const artists: UploadArtist[] = useMemo(
+    () => artistsQuery.data?.pages.flat() ?? [],
+    [artistsQuery.data],
+  );
 
-  // Infinite scroll sentinel
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-        fetchNextPage();
-      }
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  const tracksSentinelRef = useInfiniteScrollSentinel(
+    tracksQuery.hasNextPage,
+    tracksQuery.isFetchingNextPage,
+    tracksQuery.fetchNextPage,
+  );
+  const albumsSentinelRef = useInfiniteScrollSentinel(
+    albumsQuery.hasNextPage,
+    albumsQuery.isFetchingNextPage,
+    albumsQuery.fetchNextPage,
+  );
+  const artistsSentinelRef = useInfiniteScrollSentinel(
+    artistsQuery.hasNextPage,
+    artistsQuery.isFetchingNextPage,
+    artistsQuery.fetchNextPage,
+  );
 
   const handleTrackClick = useCallback(
     (item: UploadedTrack) => {
@@ -1002,9 +992,9 @@ export default function Library() {
           activateOnFocus
         >
           <Tab title="Tracks" overrides={tabOverrides}>
-            {isLoading && <LibrarySkeleton />}
+            {tracksQuery.isLoading && <LibrarySkeleton />}
 
-            {!isLoading && allTracks.length === 0 && (
+            {!tracksQuery.isLoading && allTracks.length === 0 && (
               <EmptyState>
                 <IconVinyl size={48} color="var(--color-text-muted)" />
                 {searchQuery ? (
@@ -1092,15 +1082,15 @@ export default function Library() {
                   </TrackRow>
                 ))}
 
-                <Sentinel ref={sentinelRef} />
-                {isFetchingNextPage && <TrackRowSkeleton />}
+                <Sentinel ref={tracksSentinelRef} />
+                {tracksQuery.isFetchingNextPage && <TrackRowSkeleton />}
               </TrackList>
             )}
           </Tab>
 
           <Tab title="Albums" overrides={tabOverrides}>
-            {isLoading && <LibrarySkeleton />}
-            {!isLoading && albums.length === 0 && (
+            {albumsQuery.isLoading && <LibrarySkeleton />}
+            {!albumsQuery.isLoading && albums.length === 0 && (
               <EmptyState>
                 <IconVinyl size={48} color="var(--color-text-muted)" />
                 <div style={{ textAlign: "center" }}>
@@ -1186,11 +1176,12 @@ export default function Library() {
                 })}
               </Grid>
             )}
+            <Sentinel ref={albumsSentinelRef} />
           </Tab>
 
           <Tab title="Artists" overrides={tabOverrides}>
-            {isLoading && <LibrarySkeleton />}
-            {!isLoading && artists.length === 0 && (
+            {artistsQuery.isLoading && <LibrarySkeleton />}
+            {!artistsQuery.isLoading && artists.length === 0 && (
               <EmptyState>
                 <IconUser size={48} color="var(--color-text-muted)" />
                 <div style={{ textAlign: "center" }}>
@@ -1222,6 +1213,7 @@ export default function Library() {
                 })}
               </ArtistGrid>
             )}
+            <Sentinel ref={artistsSentinelRef} />
           </Tab>
         </Tabs>
       </Page>
