@@ -123,7 +123,7 @@ async fn poll_once(
             ("api_key", api_key),
             ("format", "json"),
             ("limit", &RECENT_LIMIT.to_string()),
-            ("from", &watermark.timestamp().to_string()),
+            ("from", &(watermark.timestamp() + 1).to_string()),
         ])
         .send()
         .await?
