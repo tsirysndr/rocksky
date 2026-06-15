@@ -889,6 +889,8 @@ type GetArtistTracksParams struct {
 }
 
 type GetAudioSettingsParams struct {
+	// DID or handle of the user whose settings to fetch. Required for unauthenticated requests.
+	DID string `json:"did,omitempty"`
 }
 
 type GetCurrentlyPlayingParams struct {

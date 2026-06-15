@@ -750,7 +750,7 @@ class GetArtistTracksParams:
 
 @dataclass
 class GetAudioSettingsParams:
-    pass
+    did: Optional[str] = None
 
 
 @dataclass

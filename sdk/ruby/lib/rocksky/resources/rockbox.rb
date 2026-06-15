@@ -1,10 +1,13 @@
 module Rocksky
   module Resources
-    # `app.rocksky.rockbox.*` endpoints. Require an authenticated client.
+    # `app.rocksky.rockbox.*` endpoints.
     class Rockbox < Base
-      # Get the authenticated user's Rockbox audio settings.
-      def get_audio_settings
-        query("app.rocksky.rockbox.getAudioSettings")
+      # Get Rockbox audio settings.
+      # Pass `did:` to fetch any user's settings publicly (no auth needed).
+      # Omit `did:` to fetch the authenticated caller's own settings (auth required).
+      def get_audio_settings(did: nil)
+        params = did ? { did: did } : {}
+        query("app.rocksky.rockbox.getAudioSettings", **params)
       end
 
       # Upsert Rockbox audio settings. Only provided sections are merged.

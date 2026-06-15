@@ -677,7 +677,7 @@ class GetArtistTracksParams(RockskyModel):
 
 
 class GetAudioSettingsParams(RockskyModel):
-    pass
+    did: str | None = None
 
 
 class GetCurrentlyPlayingParams(RockskyModel):

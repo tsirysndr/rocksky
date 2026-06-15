@@ -877,7 +877,10 @@
     [:offset {:optional true} :int]
     ]
    :GetAudioSettingsParams
-   [:map]
+   [:map
+    ;; DID or handle of the user whose settings to fetch. Required for unauthenticated requests.
+    [:did {:optional true} :string]
+    ]
    :GetCurrentlyPlayingParams
    [:map
     [:playerId {:optional true} :string]

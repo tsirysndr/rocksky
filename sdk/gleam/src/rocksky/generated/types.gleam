@@ -839,7 +839,9 @@ pub type GetArtistTracksParams {
 }
 
 pub type GetAudioSettingsParams {
-  GetAudioSettingsParams
+  GetAudioSettingsParams(
+    did: Option(String),
+  )
 }
 
 pub type GetCurrentlyPlayingParams {

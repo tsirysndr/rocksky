@@ -5,12 +5,22 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 
-/** `app.rocksky.rockbox.*` — Rockbox audio settings. All methods require auth. */
+/** `app.rocksky.rockbox.*` — Rockbox audio settings. */
 public class RockboxResource internal constructor(transport: HttpTransport) : Resource(transport) {
 
-    /** Get the authenticated user's Rockbox audio settings. */
-    public suspend fun getAudioSettings(): JsonElement =
-        transport.query("app.rocksky.rockbox.getAudioSettings", requireAuth = true)
+    /**
+     * Get Rockbox audio settings.
+     * - Pass a [did] to fetch any user's settings publicly (no auth needed).
+     * - Omit [did] (or pass `null`) to fetch the authenticated caller's own settings.
+     */
+    public suspend fun getAudioSettings(did: String? = null): JsonElement {
+        val params = if (did != null) mapOf("did" to did) else emptyMap()
+        return transport.query(
+            "app.rocksky.rockbox.getAudioSettings",
+            params = params,
+            requireAuth = did == null,
+        )
+    }
 
     /**
      * Upsert Rockbox audio settings. Only provided sections are merged; omit a section

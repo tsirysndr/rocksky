@@ -1312,6 +1312,9 @@ pub struct GetArtistTracksParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetAudioSettingsParams {
+    /// DID or handle of the user whose settings to fetch. Required for unauthenticated requests.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub did: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

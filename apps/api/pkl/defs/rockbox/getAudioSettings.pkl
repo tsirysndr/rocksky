@@ -5,10 +5,15 @@ id = "app.rocksky.rockbox.getAudioSettings"
 defs = new Mapping<String, Query> {
   ["main"] {
     type = "query"
-    description = "Get the authenticated user's Rockbox audio settings."
+    description = "Get Rockbox audio settings. If `did` is provided the request is public; otherwise an auth token is required and the caller's own settings are returned."
     parameters {
       type = "params"
       properties {
+        ["did"] = new StringType {
+          type = "string"
+          format = "at-identifier"
+          description = "DID or handle of the user whose settings to fetch. Required for unauthenticated requests."
+        }
       }
     }
     output {

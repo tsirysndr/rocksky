@@ -7,9 +7,18 @@ export type { PutAudioSettingsInput, RockboxSettingsView };
 export class RockboxNamespace {
   constructor(private readonly call: Call) {}
 
-  getAudioSettings(opts?: RequestOptions): Promise<RockboxSettingsView> {
+  /**
+   * Get Rockbox audio settings.
+   * - Pass `did` to fetch any user's settings publicly (no auth needed).
+   * - Omit `did` to fetch the authenticated caller's own settings (auth required).
+   */
+  getAudioSettings(
+    params?: { did?: string },
+    opts?: RequestOptions,
+  ): Promise<RockboxSettingsView> {
     return this.call("app.rocksky.rockbox.getAudioSettings", "GET", {
-      requireAuth: true,
+      params,
+      requireAuth: !params?.did,
       ...opts,
     }) as Promise<RockboxSettingsView>;
   }

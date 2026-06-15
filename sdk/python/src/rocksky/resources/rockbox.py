@@ -8,10 +8,19 @@ from ._base import Resource
 
 
 class RockboxResource(Resource):
-    async def get_audio_settings(self) -> dict[str, Any]:
-        """Return the authenticated user's Rockbox audio settings."""
-        return await self._transport.query(
-            "app.rocksky.rockbox.getAudioSettings", auth=True
+    async def get_audio_settings(self, did: str | None = None) -> dict[str, Any]:
+        """Return Rockbox audio settings.
+
+        If *did* is provided the request is public (no auth needed).
+        If omitted the authenticated caller's own settings are returned (auth required).
+        """
+        params = {"did": did} if did else None
+        return (
+            await self._transport.query(
+                "app.rocksky.rockbox.getAudioSettings",
+                params=params,
+                auth=did is None,
+            )
         ) or {}
 
     async def put_audio_settings(

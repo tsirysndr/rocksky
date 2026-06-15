@@ -890,7 +890,8 @@ export interface GetArtistTracksParams {
 }
 
 export interface GetAudioSettingsParams {
-
+  /** DID or handle of the user whose settings to fetch. Required for unauthenticated requests. */
+  did?: AtIdentifier;
 }
 
 export interface GetCurrentlyPlayingParams {

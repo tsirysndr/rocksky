@@ -100,7 +100,7 @@ module Rocksky
     GetArtistsParams = Struct.new(:limit, :offset, :names, :genre, keyword_init: true)
     GetArtistTracksOutput = Struct.new(:tracks, keyword_init: true)
     GetArtistTracksParams = Struct.new(:uri, :limit, :offset, keyword_init: true)
-    GetAudioSettingsParams = Struct.new(keyword_init: true)
+    GetAudioSettingsParams = Struct.new(:did, keyword_init: true)
     GetCurrentlyPlayingParams = Struct.new(:playerId, :actor, keyword_init: true)
     GetFeedGeneratorOutput = Struct.new(:view, keyword_init: true)
     GetFeedGeneratorParams = Struct.new(:feed, keyword_init: true)

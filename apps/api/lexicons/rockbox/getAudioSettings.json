@@ -4,10 +4,16 @@
   "defs": {
     "main": {
       "type": "query",
-      "description": "Get the authenticated user's Rockbox audio settings.",
+      "description": "Get Rockbox audio settings. If `did` is provided the request is public; otherwise an auth token is required and the caller's own settings are returned.",
       "parameters": {
         "type": "params",
-        "properties": {}
+        "properties": {
+          "did": {
+            "type": "string",
+            "description": "DID or handle of the user whose settings to fetch. Required for unauthenticated requests.",
+            "format": "at-identifier"
+          }
+        }
       },
       "output": {
         "encoding": "application/json",

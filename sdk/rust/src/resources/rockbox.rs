@@ -19,11 +19,20 @@ impl<'a> RockboxApi<'a> {
         Self { client }
     }
 
-    /// Get the authenticated user's Rockbox audio settings.
+    /// Get Rockbox audio settings.
+    ///
+    /// Pass a `did` to fetch any user's settings publicly (no auth needed).
+    /// Pass `None` to fetch the authenticated caller's own settings (auth required).
     /// XRPC: `app.rocksky.rockbox.getAudioSettings`.
-    pub async fn get_audio_settings(&self) -> Result<RockboxSettingsView> {
+    pub async fn get_audio_settings(&self, did: Option<&str>) -> Result<RockboxSettingsView> {
+        #[derive(Serialize)]
+        struct Params<'a> {
+            #[serde(skip_serializing_if = "Option::is_none")]
+            did: Option<&'a str>,
+        }
+        let auth = did.is_none();
         self.client
-            .query_as("app.rocksky.rockbox.getAudioSettings", &(), true)
+            .query_as("app.rocksky.rockbox.getAudioSettings", &Params { did }, auth)
             .await
     }
 

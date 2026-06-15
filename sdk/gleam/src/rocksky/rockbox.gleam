@@ -7,9 +7,16 @@ import gleam/list
 import gleam/option.{type Option, None, Some}
 import rocksky.{type Request}
 
-/// Get the authenticated user's Rockbox audio settings.
-pub fn get_audio_settings() -> Request(Dynamic) {
-  rocksky.query("app.rocksky.rockbox.getAudioSettings", decode.dynamic)
+/// Get Rockbox audio settings.
+///
+/// Pass `did: Some("did:plc:...")` to fetch any user's settings publicly (no auth needed).
+/// Pass `did: None` to fetch the authenticated caller's own settings (auth required).
+pub fn get_audio_settings(did: Option(String)) -> Request(Dynamic) {
+  let req = rocksky.query("app.rocksky.rockbox.getAudioSettings", decode.dynamic)
+  case did {
+    Some(d) -> rocksky.param(req, "did", d)
+    None -> req
+  }
 }
 
 /// Start building a `putAudioSettings` call.

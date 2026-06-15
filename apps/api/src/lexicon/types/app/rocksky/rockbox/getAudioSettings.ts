@@ -9,7 +9,10 @@ import { CID } from "multiformats/cid";
 import type { HandlerAuth, HandlerPipeThrough } from "@atproto/xrpc-server";
 import type * as AppRockskyRockboxDefs from "./defs";
 
-export type QueryParams = {};
+export interface QueryParams {
+  /** DID or handle of the user whose settings to fetch. Required for unauthenticated requests. */
+  did?: string;
+}
 
 export type InputSchema = undefined;
 export type OutputSchema = AppRockskyRockboxDefs.SettingsView;

@@ -1054,8 +1054,10 @@ end
 
 defmodule Rocksky.Generated.GetAudioSettingsParams do
   @moduledoc false
-  @type t :: %__MODULE__{}
-  defstruct []
+  @type t :: %__MODULE__{
+          did: String.t() | nil
+        }
+  defstruct [:did]
 end
 
 defmodule Rocksky.Generated.GetCurrentlyPlayingParams do

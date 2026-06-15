@@ -986,7 +986,10 @@ public data class GetArtistTracksParams(
 )
 
 @Serializable
-public class GetAudioSettingsParams
+public data class GetAudioSettingsParams(
+    /** DID or handle of the user whose settings to fetch. Required for unauthenticated requests. */
+    public val did: String? = null,
+)
 
 @Serializable
 public data class GetCurrentlyPlayingParams(
