@@ -237,6 +237,15 @@ class ArtistViewDetailed(RockskyModel):
     tags: list[str] | None = None
 
 
+class AudioSettingsRecord(RockskyModel):
+    crossfade: RockboxCrossfadeSettings | None = None
+    equalizer: RockboxEqualizerSettings | None = None
+    replay_gain: RockboxReplayGainSettings | None = Field(default=None, alias="replayGain")
+    tone: RockboxToneSettings | None = None
+    created_at: datetime | None = Field(default=None, alias="createdAt")
+    updated_at: datetime | None = Field(default=None, alias="updatedAt")
+
+
 class ChartsScrobbleViewBasic(RockskyModel):
     date: datetime | None = None
     count: int | None = None
@@ -667,6 +676,10 @@ class GetArtistTracksParams(RockskyModel):
     offset: int | None = None
 
 
+class GetAudioSettingsParams(RockskyModel):
+    pass
+
+
 class GetCurrentlyPlayingParams(RockskyModel):
     player_id: str | None = Field(default=None, alias="playerId")
     actor: str | None = None
@@ -1076,6 +1089,13 @@ class ProfileRecord(RockskyModel):
     created_at: datetime | None = Field(default=None, alias="createdAt")
 
 
+class PutAudioSettingsInput(RockskyModel):
+    crossfade: RockboxCrossfadeSettings | None = None
+    equalizer: RockboxEqualizerSettings | None = None
+    replay_gain: RockboxReplayGainSettings | None = Field(default=None, alias="replayGain")
+    tone: RockboxToneSettings | None = None
+
+
 class PutMirrorSourceInput(RockskyModel):
     provider: str | None = None
     enabled: bool | None = None
@@ -1136,6 +1156,49 @@ class ReplyShoutInput(RockskyModel):
 class ReportShoutInput(RockskyModel):
     shout_id: str | None = Field(default=None, alias="shoutId")
     reason: str | None = None
+
+
+class RockboxCrossfadeSettings(RockskyModel):
+    mode: str | None = None
+    fade_in_delay: int | None = Field(default=None, alias="fadeInDelay")
+    fade_in_duration: int | None = Field(default=None, alias="fadeInDuration")
+    fade_out_delay: int | None = Field(default=None, alias="fadeOutDelay")
+    fade_out_duration: int | None = Field(default=None, alias="fadeOutDuration")
+    fade_out_mix_mode: str | None = Field(default=None, alias="fadeOutMixMode")
+
+
+class RockboxEqualizerBand(RockskyModel):
+    frequency: int | None = None
+    gain: int | None = None
+    q: int | None = None
+
+
+class RockboxEqualizerSettings(RockskyModel):
+    enabled: bool | None = None
+    precut: int | None = None
+    bands: list[RockboxEqualizerBand] | None = None
+
+
+class RockboxReplayGainSettings(RockskyModel):
+    mode: str | None = None
+    preamp: int | None = None
+    prevent_clipping: bool | None = Field(default=None, alias="preventClipping")
+
+
+class RockboxSettingsView(RockskyModel):
+    crossfade: RockboxCrossfadeSettings | None = None
+    equalizer: RockboxEqualizerSettings | None = None
+    replay_gain: RockboxReplayGainSettings | None = Field(default=None, alias="replayGain")
+    tone: RockboxToneSettings | None = None
+    created_at: datetime | None = Field(default=None, alias="createdAt")
+    updated_at: datetime | None = Field(default=None, alias="updatedAt")
+
+
+class RockboxToneSettings(RockskyModel):
+    bass: int | None = None
+    treble: int | None = None
+    balance: int | None = None
+    channels: str | None = None
 
 
 class ScrobbleFirstScrobbleView(RockskyModel):
@@ -1478,6 +1541,7 @@ ArtistRecord.model_rebuild()
 ArtistSongViewBasic.model_rebuild()
 ArtistViewBasic.model_rebuild()
 ArtistViewDetailed.model_rebuild()
+AudioSettingsRecord.model_rebuild()
 ChartsScrobbleViewBasic.model_rebuild()
 ChartsView.model_rebuild()
 CreateApikeyInput.model_rebuild()
@@ -1551,6 +1615,7 @@ GetArtistsOutput.model_rebuild()
 GetArtistsParams.model_rebuild()
 GetArtistTracksOutput.model_rebuild()
 GetArtistTracksParams.model_rebuild()
+GetAudioSettingsParams.model_rebuild()
 GetCurrentlyPlayingParams.model_rebuild()
 GetFeedGeneratorOutput.model_rebuild()
 GetFeedGeneratorParams.model_rebuild()
@@ -1623,6 +1688,7 @@ PlaylistViewDetailed.model_rebuild()
 PlayParams.model_rebuild()
 PreviousParams.model_rebuild()
 ProfileRecord.model_rebuild()
+PutAudioSettingsInput.model_rebuild()
 PutMirrorSourceInput.model_rebuild()
 RadioRecord.model_rebuild()
 RadioViewBasic.model_rebuild()
@@ -1633,6 +1699,12 @@ RemoveShoutParams.model_rebuild()
 RemoveTrackParams.model_rebuild()
 ReplyShoutInput.model_rebuild()
 ReportShoutInput.model_rebuild()
+RockboxCrossfadeSettings.model_rebuild()
+RockboxEqualizerBand.model_rebuild()
+RockboxEqualizerSettings.model_rebuild()
+RockboxReplayGainSettings.model_rebuild()
+RockboxSettingsView.model_rebuild()
+RockboxToneSettings.model_rebuild()
 ScrobbleFirstScrobbleView.model_rebuild()
 ScrobbleRecord.model_rebuild()
 ScrobbleViewBasic.model_rebuild()

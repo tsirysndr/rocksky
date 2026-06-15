@@ -63,6 +63,7 @@ module Rocksky
     def graph;    @graph    ||= Resources::Graph.new(@http); end
     def like;     @like     ||= Resources::Like.new(@http); end
     def mirror;   @mirror   ||= Resources::Mirror.new(@http); end
+    def rockbox;  @rockbox  ||= Resources::Rockbox.new(@http); end
     def player;   @player   ||= Resources::Player.new(@http); end
     def playlist; @playlist ||= Resources::Playlist.new(@http); end
     def scrobble; @scrobble ||= Resources::Scrobble.new(@http); end

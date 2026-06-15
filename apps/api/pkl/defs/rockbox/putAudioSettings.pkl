@@ -1,0 +1,45 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.rockbox.putAudioSettings"
+defs = new Mapping<String, Procedure> {
+  ["main"] {
+    type = "procedure"
+    description = "Upsert the authenticated user's Rockbox audio settings. Only provided sections are merged; omitted sections are left unchanged."
+    input {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        properties {
+          ["crossfade"] = new Ref {
+            type = "ref"
+            ref = "app.rocksky.rockbox.defs#crossfadeSettings"
+            description = "Crossfade settings to apply."
+          }
+          ["equalizer"] = new Ref {
+            type = "ref"
+            ref = "app.rocksky.rockbox.defs#equalizerSettings"
+            description = "Equalizer settings to apply."
+          }
+          ["replayGain"] = new Ref {
+            type = "ref"
+            ref = "app.rocksky.rockbox.defs#replayGainSettings"
+            description = "Replay gain settings to apply."
+          }
+          ["tone"] = new Ref {
+            type = "ref"
+            ref = "app.rocksky.rockbox.defs#toneSettings"
+            description = "Tone control settings to apply."
+          }
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new Ref {
+        type = "ref"
+        ref = "app.rocksky.rockbox.defs#settingsView"
+      }
+    }
+  }
+}

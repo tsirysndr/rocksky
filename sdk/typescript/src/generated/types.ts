@@ -326,6 +326,21 @@ export interface ArtistViewDetailed {
   tags?: string[];
 }
 
+export interface AudioSettingsRecord {
+  /** Crossfade settings */
+  crossfade?: RockboxCrossfadeSettings;
+  /** Equalizer settings */
+  equalizer?: RockboxEqualizerSettings;
+  /** Replay gain settings */
+  replayGain?: RockboxReplayGainSettings;
+  /** Tone control settings (bass, treble, balance, channels) */
+  tone?: RockboxToneSettings;
+  /** When this settings record was first created. */
+  createdAt: DateTime;
+  /** When this settings record was last updated. */
+  updatedAt?: DateTime;
+}
+
 export interface ChartsScrobbleViewBasic {
   /** The date of the scrobble. */
   date?: DateTime;
@@ -874,6 +889,10 @@ export interface GetArtistTracksParams {
   offset?: number;
 }
 
+export interface GetAudioSettingsParams {
+
+}
+
 export interface GetCurrentlyPlayingParams {
   playerId?: string;
   /** Handle or DID of the actor to retrieve the currently playing track for. If not provided, defaults to the current user. */
@@ -1412,6 +1431,17 @@ export interface ProfileRecord {
   createdAt?: DateTime;
 }
 
+export interface PutAudioSettingsInput {
+  /** Crossfade settings to apply. */
+  crossfade?: RockboxCrossfadeSettings;
+  /** Equalizer settings to apply. */
+  equalizer?: RockboxEqualizerSettings;
+  /** Replay gain settings to apply. */
+  replayGain?: RockboxReplayGainSettings;
+  /** Tone control settings to apply. */
+  tone?: RockboxToneSettings;
+}
+
 export interface PutMirrorSourceInput {
   /** One of: lastfm, listenbrainz, tealfm */
   provider: string;
@@ -1504,6 +1534,74 @@ export interface ReportShoutInput {
   shoutId: string;
   /** The reason for reporting the shout */
   reason?: string;
+}
+
+export interface RockboxCrossfadeSettings {
+  /** Crossfade mode: disabled | enabled | shuffle | albumChange | trackChange */
+  mode?: string;
+  /** Fade-in delay in ms */
+  fadeInDelay?: number;
+  /** Fade-in duration in ms */
+  fadeInDuration?: number;
+  /** Fade-out delay in ms */
+  fadeOutDelay?: number;
+  /** Fade-out duration in ms */
+  fadeOutDuration?: number;
+  /** Fade-out mix mode: crossfade | mix */
+  fadeOutMixMode?: string;
+}
+
+export interface RockboxEqualizerBand {
+  /** Center frequency in Hz */
+  frequency: number;
+  /** Band gain in dB */
+  gain: number;
+  /** Q factor × 10 (e.g. 7 = Q 0.7) */
+  q: number;
+}
+
+export interface RockboxEqualizerSettings {
+  /** Whether the equalizer is enabled */
+  enabled?: boolean;
+  /** Pre-amplification cut in dB applied before EQ bands */
+  precut?: number;
+  /** Up to 10 EQ bands */
+  bands?: RockboxEqualizerBand[];
+}
+
+export interface RockboxReplayGainSettings {
+  /** Replay gain mode: disabled | track | album | trackIfShuffling */
+  mode?: string;
+  /** Pre-amplification in tenths of dB (e.g. 15 = +1.5 dB) */
+  preamp?: number;
+  /** Whether to prevent clipping by reducing volume */
+  preventClipping?: boolean;
+}
+
+export interface RockboxSettingsView {
+  /** Crossfade settings */
+  crossfade?: RockboxCrossfadeSettings;
+  /** Equalizer settings */
+  equalizer?: RockboxEqualizerSettings;
+  /** Replay gain settings */
+  replayGain?: RockboxReplayGainSettings;
+  /** Tone control settings (bass, treble, balance, channels) */
+  tone?: RockboxToneSettings;
+  /** When this settings record was first created. */
+  createdAt: DateTime;
+  /** When this settings record was last updated. */
+  updatedAt?: DateTime;
+}
+
+export interface RockboxToneSettings {
+  /** Bass level in dB */
+  bass?: number;
+  /** Treble level in dB */
+  treble?: number;
+  /** Left/right balance. Negative = left, positive = right */
+  balance?: number;
+  /** Channel configuration: stereo | mono | monoLeft | monoRight | karaoke | wide */
+  channels?: string;
 }
 
 export interface ScrobbleFirstScrobbleView {
@@ -2118,6 +2216,8 @@ export interface Endpoints {
   "app.rocksky.playlist.removePlaylist": void;
   "app.rocksky.playlist.removeTrack": void;
   "app.rocksky.playlist.startPlaylist": void;
+  "app.rocksky.rockbox.getAudioSettings": RockboxSettingsView;
+  "app.rocksky.rockbox.putAudioSettings": RockboxSettingsView;
   "app.rocksky.scrobble.createScrobble": ScrobbleViewBasic;
   "app.rocksky.scrobble.getScrobble": ScrobbleViewDetailed;
   "app.rocksky.scrobble.getScrobbles": GetScrobblesOutput;

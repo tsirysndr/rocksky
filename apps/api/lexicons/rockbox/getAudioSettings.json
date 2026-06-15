@@ -1,0 +1,21 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.rockbox.getAudioSettings",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get the authenticated user's Rockbox audio settings.",
+      "parameters": {
+        "type": "params",
+        "properties": {}
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "ref",
+          "ref": "app.rocksky.rockbox.defs#settingsView"
+        }
+      }
+    }
+  }
+}

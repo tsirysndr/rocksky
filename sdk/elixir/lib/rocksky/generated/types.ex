@@ -291,6 +291,20 @@ defmodule Rocksky.Generated.ArtistViewDetailed do
   defstruct [:id, :uri, :name, :picture, :sha256, :playCount, :uniqueListeners, :tags]
 end
 
+defmodule Rocksky.Generated.AudioSettingsRecord do
+  @moduledoc false
+  @type t :: %__MODULE__{
+          crossfade: Rocksky.Generated.RockboxCrossfadeSettings.t() | nil,
+          equalizer: Rocksky.Generated.RockboxEqualizerSettings.t() | nil,
+          replayGain: Rocksky.Generated.RockboxReplayGainSettings.t() | nil,
+          tone: Rocksky.Generated.RockboxToneSettings.t() | nil,
+          createdAt: String.t(),
+          updatedAt: String.t() | nil
+        }
+  @enforce_keys [:createdAt]
+  defstruct [:crossfade, :equalizer, :replayGain, :tone, :createdAt, :updatedAt]
+end
+
 defmodule Rocksky.Generated.ChartsScrobbleViewBasic do
   @moduledoc false
   @type t :: %__MODULE__{
@@ -1038,6 +1052,12 @@ defmodule Rocksky.Generated.GetArtistTracksParams do
   defstruct [:uri, :limit, :offset]
 end
 
+defmodule Rocksky.Generated.GetAudioSettingsParams do
+  @moduledoc false
+  @type t :: %__MODULE__{}
+  defstruct []
+end
+
 defmodule Rocksky.Generated.GetCurrentlyPlayingParams do
   @moduledoc false
   @type t :: %__MODULE__{
@@ -1758,6 +1778,17 @@ defmodule Rocksky.Generated.ProfileRecord do
   defstruct [:displayName, :description, :avatar, :banner, :labels, :joinedViaStarterPack, :createdAt]
 end
 
+defmodule Rocksky.Generated.PutAudioSettingsInput do
+  @moduledoc false
+  @type t :: %__MODULE__{
+          crossfade: Rocksky.Generated.RockboxCrossfadeSettings.t() | nil,
+          equalizer: Rocksky.Generated.RockboxEqualizerSettings.t() | nil,
+          replayGain: Rocksky.Generated.RockboxReplayGainSettings.t() | nil,
+          tone: Rocksky.Generated.RockboxToneSettings.t() | nil
+        }
+  defstruct [:crossfade, :equalizer, :replayGain, :tone]
+end
+
 defmodule Rocksky.Generated.PutMirrorSourceInput do
   @moduledoc false
   @type t :: %__MODULE__{
@@ -1866,6 +1897,75 @@ defmodule Rocksky.Generated.ReportShoutInput do
         }
   @enforce_keys [:shoutId]
   defstruct [:shoutId, :reason]
+end
+
+defmodule Rocksky.Generated.RockboxCrossfadeSettings do
+  @moduledoc false
+  @type t :: %__MODULE__{
+          mode: String.t() | nil,
+          fadeInDelay: integer() | nil,
+          fadeInDuration: integer() | nil,
+          fadeOutDelay: integer() | nil,
+          fadeOutDuration: integer() | nil,
+          fadeOutMixMode: String.t() | nil
+        }
+  defstruct [:mode, :fadeInDelay, :fadeInDuration, :fadeOutDelay, :fadeOutDuration, :fadeOutMixMode]
+end
+
+defmodule Rocksky.Generated.RockboxEqualizerBand do
+  @moduledoc false
+  @type t :: %__MODULE__{
+          frequency: integer(),
+          gain: integer(),
+          q: integer()
+        }
+  @enforce_keys [:frequency, :gain, :q]
+  defstruct [:frequency, :gain, :q]
+end
+
+defmodule Rocksky.Generated.RockboxEqualizerSettings do
+  @moduledoc false
+  @type t :: %__MODULE__{
+          enabled: boolean() | nil,
+          precut: integer() | nil,
+          bands: list(Rocksky.Generated.RockboxEqualizerBand.t()) | nil
+        }
+  defstruct [:enabled, :precut, :bands]
+end
+
+defmodule Rocksky.Generated.RockboxReplayGainSettings do
+  @moduledoc false
+  @type t :: %__MODULE__{
+          mode: String.t() | nil,
+          preamp: integer() | nil,
+          preventClipping: boolean() | nil
+        }
+  defstruct [:mode, :preamp, :preventClipping]
+end
+
+defmodule Rocksky.Generated.RockboxSettingsView do
+  @moduledoc false
+  @type t :: %__MODULE__{
+          crossfade: Rocksky.Generated.RockboxCrossfadeSettings.t() | nil,
+          equalizer: Rocksky.Generated.RockboxEqualizerSettings.t() | nil,
+          replayGain: Rocksky.Generated.RockboxReplayGainSettings.t() | nil,
+          tone: Rocksky.Generated.RockboxToneSettings.t() | nil,
+          createdAt: String.t(),
+          updatedAt: String.t() | nil
+        }
+  @enforce_keys [:createdAt]
+  defstruct [:crossfade, :equalizer, :replayGain, :tone, :createdAt, :updatedAt]
+end
+
+defmodule Rocksky.Generated.RockboxToneSettings do
+  @moduledoc false
+  @type t :: %__MODULE__{
+          bass: integer() | nil,
+          treble: integer() | nil,
+          balance: integer() | nil,
+          channels: String.t() | nil
+        }
+  defstruct [:bass, :treble, :balance, :channels]
 end
 
 defmodule Rocksky.Generated.ScrobbleFirstScrobbleView do

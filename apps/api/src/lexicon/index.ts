@@ -86,6 +86,8 @@ import type * as AppRockskyPlaylistInsertFiles from "./types/app/rocksky/playlis
 import type * as AppRockskyPlaylistRemovePlaylist from "./types/app/rocksky/playlist/removePlaylist";
 import type * as AppRockskyPlaylistRemoveTrack from "./types/app/rocksky/playlist/removeTrack";
 import type * as AppRockskyPlaylistStartPlaylist from "./types/app/rocksky/playlist/startPlaylist";
+import type * as AppRockskyRockboxGetAudioSettings from "./types/app/rocksky/rockbox/getAudioSettings";
+import type * as AppRockskyRockboxPutAudioSettings from "./types/app/rocksky/rockbox/putAudioSettings";
 import type * as AppRockskyScrobbleCreateScrobble from "./types/app/rocksky/scrobble/createScrobble";
 import type * as AppRockskyScrobbleGetScrobble from "./types/app/rocksky/scrobble/getScrobble";
 import type * as AppRockskyScrobbleGetScrobbles from "./types/app/rocksky/scrobble/getScrobbles";
@@ -261,6 +263,7 @@ export class AppRockskyNS {
   mirror: AppRockskyMirrorNS;
   player: AppRockskyPlayerNS;
   playlist: AppRockskyPlaylistNS;
+  rockbox: AppRockskyRockboxNS;
   scrobble: AppRockskyScrobbleNS;
   shout: AppRockskyShoutNS;
   song: AppRockskySongNS;
@@ -282,6 +285,7 @@ export class AppRockskyNS {
     this.mirror = new AppRockskyMirrorNS(server);
     this.player = new AppRockskyPlayerNS(server);
     this.playlist = new AppRockskyPlaylistNS(server);
+    this.rockbox = new AppRockskyRockboxNS(server);
     this.scrobble = new AppRockskyScrobbleNS(server);
     this.shout = new AppRockskyShoutNS(server);
     this.song = new AppRockskySongNS(server);
@@ -1182,6 +1186,36 @@ export class AppRockskyPlaylistNS {
     >,
   ) {
     const nsid = "app.rocksky.playlist.startPlaylist"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+}
+
+export class AppRockskyRockboxNS {
+  _server: Server;
+
+  constructor(server: Server) {
+    this._server = server;
+  }
+
+  getAudioSettings<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyRockboxGetAudioSettings.Handler<ExtractAuth<AV>>,
+      AppRockskyRockboxGetAudioSettings.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.rockbox.getAudioSettings"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  putAudioSettings<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyRockboxPutAudioSettings.Handler<ExtractAuth<AV>>,
+      AppRockskyRockboxPutAudioSettings.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.rockbox.putAudioSettings"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 }

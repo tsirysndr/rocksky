@@ -351,6 +351,22 @@ public data class ArtistViewDetailed(
 )
 
 @Serializable
+public data class AudioSettingsRecord(
+    /** When this settings record was first created. */
+    @SerialName("createdAt") public val createdAt: String,
+    /** Crossfade settings */
+    public val crossfade: RockboxCrossfadeSettings? = null,
+    /** Equalizer settings */
+    public val equalizer: RockboxEqualizerSettings? = null,
+    /** Replay gain settings */
+    @SerialName("replayGain") public val replayGain: RockboxReplayGainSettings? = null,
+    /** Tone control settings (bass, treble, balance, channels) */
+    public val tone: RockboxToneSettings? = null,
+    /** When this settings record was last updated. */
+    @SerialName("updatedAt") public val updatedAt: String? = null,
+)
+
+@Serializable
 public data class ChartsScrobbleViewBasic(
     /** The date of the scrobble. */
     public val date: String? = null,
@@ -970,6 +986,9 @@ public data class GetArtistTracksParams(
 )
 
 @Serializable
+public class GetAudioSettingsParams
+
+@Serializable
 public data class GetCurrentlyPlayingParams(
     @SerialName("playerId") public val playerId: String? = null,
     /** Handle or DID of the actor to retrieve the currently playing track for. If not provided, defaults to the current user. */
@@ -1576,6 +1595,18 @@ public data class ProfileRecord(
 )
 
 @Serializable
+public data class PutAudioSettingsInput(
+    /** Crossfade settings to apply. */
+    public val crossfade: RockboxCrossfadeSettings? = null,
+    /** Equalizer settings to apply. */
+    public val equalizer: RockboxEqualizerSettings? = null,
+    /** Replay gain settings to apply. */
+    @SerialName("replayGain") public val replayGain: RockboxReplayGainSettings? = null,
+    /** Tone control settings to apply. */
+    public val tone: RockboxToneSettings? = null,
+)
+
+@Serializable
 public data class PutMirrorSourceInput(
     /** One of: lastfm, listenbrainz, tealfm */
     public val provider: String,
@@ -1677,6 +1708,80 @@ public data class ReportShoutInput(
     @SerialName("shoutId") public val shoutId: String,
     /** The reason for reporting the shout */
     public val reason: String? = null,
+)
+
+@Serializable
+public data class RockboxCrossfadeSettings(
+    /** Crossfade mode: disabled | enabled | shuffle | albumChange | trackChange */
+    public val mode: String? = null,
+    /** Fade-in delay in ms */
+    @SerialName("fadeInDelay") public val fadeInDelay: Int? = null,
+    /** Fade-in duration in ms */
+    @SerialName("fadeInDuration") public val fadeInDuration: Int? = null,
+    /** Fade-out delay in ms */
+    @SerialName("fadeOutDelay") public val fadeOutDelay: Int? = null,
+    /** Fade-out duration in ms */
+    @SerialName("fadeOutDuration") public val fadeOutDuration: Int? = null,
+    /** Fade-out mix mode: crossfade | mix */
+    @SerialName("fadeOutMixMode") public val fadeOutMixMode: String? = null,
+)
+
+@Serializable
+public data class RockboxEqualizerBand(
+    /** Center frequency in Hz */
+    public val frequency: Int,
+    /** Band gain in dB */
+    public val gain: Int,
+    /** Q factor × 10 (e.g. 7 = Q 0.7) */
+    public val q: Int,
+)
+
+@Serializable
+public data class RockboxEqualizerSettings(
+    /** Whether the equalizer is enabled */
+    public val enabled: Boolean? = null,
+    /** Pre-amplification cut in dB applied before EQ bands */
+    public val precut: Int? = null,
+    /** Up to 10 EQ bands */
+    public val bands: List<RockboxEqualizerBand>? = null,
+)
+
+@Serializable
+public data class RockboxReplayGainSettings(
+    /** Replay gain mode: disabled | track | album | trackIfShuffling */
+    public val mode: String? = null,
+    /** Pre-amplification in tenths of dB (e.g. 15 = +1.5 dB) */
+    public val preamp: Int? = null,
+    /** Whether to prevent clipping by reducing volume */
+    @SerialName("preventClipping") public val preventClipping: Boolean? = null,
+)
+
+@Serializable
+public data class RockboxSettingsView(
+    /** When this settings record was first created. */
+    @SerialName("createdAt") public val createdAt: String,
+    /** Crossfade settings */
+    public val crossfade: RockboxCrossfadeSettings? = null,
+    /** Equalizer settings */
+    public val equalizer: RockboxEqualizerSettings? = null,
+    /** Replay gain settings */
+    @SerialName("replayGain") public val replayGain: RockboxReplayGainSettings? = null,
+    /** Tone control settings (bass, treble, balance, channels) */
+    public val tone: RockboxToneSettings? = null,
+    /** When this settings record was last updated. */
+    @SerialName("updatedAt") public val updatedAt: String? = null,
+)
+
+@Serializable
+public data class RockboxToneSettings(
+    /** Bass level in dB */
+    public val bass: Int? = null,
+    /** Treble level in dB */
+    public val treble: Int? = null,
+    /** Left/right balance. Negative = left, positive = right */
+    public val balance: Int? = null,
+    /** Channel configuration: stereo | mono | monoLeft | monoRight | karaoke | wide */
+    public val channels: String? = null,
 )
 
 @Serializable

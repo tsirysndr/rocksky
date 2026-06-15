@@ -41,9 +41,7 @@ export async function bumpAllFeedVersions(ctx: Context): Promise<void> {
       .from(tables.feeds)
       .execute();
     if (feeds.length === 0) return;
-    await Promise.all(
-      feeds.map((f) => ctx.redis.incr(versionKey(f.uri))),
-    );
+    await Promise.all(feeds.map((f) => ctx.redis.incr(versionKey(f.uri))));
   } catch (err) {
     consola.warn("bumpAllFeedVersions failed:", err);
   }

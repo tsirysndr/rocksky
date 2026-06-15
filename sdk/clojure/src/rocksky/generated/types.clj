@@ -315,6 +315,21 @@
     [:uniqueListeners {:optional true} :int]
     [:tags {:optional true} [:vector :string]]
     ]
+   :AudioSettingsRecord
+   [:map
+    ;; Crossfade settings
+    [:crossfade {:optional true} :RockboxCrossfadeSettings]
+    ;; Equalizer settings
+    [:equalizer {:optional true} :RockboxEqualizerSettings]
+    ;; Replay gain settings
+    [:replayGain {:optional true} :RockboxReplayGainSettings]
+    ;; Tone control settings (bass, treble, balance, channels)
+    [:tone {:optional true} :RockboxToneSettings]
+    ;; When this settings record was first created.
+    [:createdAt :string]
+    ;; When this settings record was last updated.
+    [:updatedAt {:optional true} :string]
+    ]
    :ChartsScrobbleViewBasic
    [:map
     ;; The date of the scrobble.
@@ -861,6 +876,8 @@
     ;; The offset for pagination
     [:offset {:optional true} :int]
     ]
+   :GetAudioSettingsParams
+   [:map]
    :GetCurrentlyPlayingParams
    [:map
     [:playerId {:optional true} :string]
@@ -1395,6 +1412,17 @@
     [:joinedViaStarterPack {:optional true} :StrongRef]
     [:createdAt {:optional true} :string]
     ]
+   :PutAudioSettingsInput
+   [:map
+    ;; Crossfade settings to apply.
+    [:crossfade {:optional true} :RockboxCrossfadeSettings]
+    ;; Equalizer settings to apply.
+    [:equalizer {:optional true} :RockboxEqualizerSettings]
+    ;; Replay gain settings to apply.
+    [:replayGain {:optional true} :RockboxReplayGainSettings]
+    ;; Tone control settings to apply.
+    [:tone {:optional true} :RockboxToneSettings]
+    ]
    :PutMirrorSourceInput
    [:map
     ;; One of: lastfm, listenbrainz, tealfm
@@ -1488,6 +1516,74 @@
     [:shoutId :string]
     ;; The reason for reporting the shout
     [:reason {:optional true} :string]
+    ]
+   :RockboxCrossfadeSettings
+   [:map
+    ;; Crossfade mode: disabled | enabled | shuffle | albumChange | trackChange
+    [:mode {:optional true} :string]
+    ;; Fade-in delay in ms
+    [:fadeInDelay {:optional true} :int]
+    ;; Fade-in duration in ms
+    [:fadeInDuration {:optional true} :int]
+    ;; Fade-out delay in ms
+    [:fadeOutDelay {:optional true} :int]
+    ;; Fade-out duration in ms
+    [:fadeOutDuration {:optional true} :int]
+    ;; Fade-out mix mode: crossfade | mix
+    [:fadeOutMixMode {:optional true} :string]
+    ]
+   :RockboxEqualizerBand
+   [:map
+    ;; Center frequency in Hz
+    [:frequency :int]
+    ;; Band gain in dB
+    [:gain :int]
+    ;; Q factor × 10 (e.g. 7 = Q 0.7)
+    [:q :int]
+    ]
+   :RockboxEqualizerSettings
+   [:map
+    ;; Whether the equalizer is enabled
+    [:enabled {:optional true} :boolean]
+    ;; Pre-amplification cut in dB applied before EQ bands
+    [:precut {:optional true} :int]
+    ;; Up to 10 EQ bands
+    [:bands {:optional true} [:vector :RockboxEqualizerBand]]
+    ]
+   :RockboxReplayGainSettings
+   [:map
+    ;; Replay gain mode: disabled | track | album | trackIfShuffling
+    [:mode {:optional true} :string]
+    ;; Pre-amplification in tenths of dB (e.g. 15 = +1.5 dB)
+    [:preamp {:optional true} :int]
+    ;; Whether to prevent clipping by reducing volume
+    [:preventClipping {:optional true} :boolean]
+    ]
+   :RockboxSettingsView
+   [:map
+    ;; Crossfade settings
+    [:crossfade {:optional true} :RockboxCrossfadeSettings]
+    ;; Equalizer settings
+    [:equalizer {:optional true} :RockboxEqualizerSettings]
+    ;; Replay gain settings
+    [:replayGain {:optional true} :RockboxReplayGainSettings]
+    ;; Tone control settings (bass, treble, balance, channels)
+    [:tone {:optional true} :RockboxToneSettings]
+    ;; When this settings record was first created.
+    [:createdAt :string]
+    ;; When this settings record was last updated.
+    [:updatedAt {:optional true} :string]
+    ]
+   :RockboxToneSettings
+   [:map
+    ;; Bass level in dB
+    [:bass {:optional true} :int]
+    ;; Treble level in dB
+    [:treble {:optional true} :int]
+    ;; Left/right balance. Negative = left, positive = right
+    [:balance {:optional true} :int]
+    ;; Channel configuration: stereo | mono | monoLeft | monoRight | karaoke | wide
+    [:channels {:optional true} :string]
     ]
    :ScrobbleFirstScrobbleView
    [:map

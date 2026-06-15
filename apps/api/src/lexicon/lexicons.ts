@@ -5065,6 +5065,300 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyRockboxAudioSettings: {
+    lexicon: 1,
+    id: "app.rocksky.rockbox.audioSettings",
+    defs: {
+      main: {
+        type: "record",
+        description:
+          "A user's Rockbox audio settings. One record per user (rkey: self).",
+        key: "literal:self",
+        record: {
+          type: "object",
+          required: ["createdAt"],
+          properties: {
+            crossfade: {
+              type: "ref",
+              description: "Crossfade settings",
+              ref: "lex:app.rocksky.rockbox.defs#crossfadeSettings",
+            },
+            equalizer: {
+              type: "ref",
+              description: "Equalizer settings",
+              ref: "lex:app.rocksky.rockbox.defs#equalizerSettings",
+            },
+            replayGain: {
+              type: "ref",
+              description: "Replay gain settings",
+              ref: "lex:app.rocksky.rockbox.defs#replayGainSettings",
+            },
+            tone: {
+              type: "ref",
+              description:
+                "Tone control settings (bass, treble, balance, channels)",
+              ref: "lex:app.rocksky.rockbox.defs#toneSettings",
+            },
+            createdAt: {
+              type: "string",
+              description: "When this settings record was first created.",
+              format: "datetime",
+            },
+            updatedAt: {
+              type: "string",
+              description: "When this settings record was last updated.",
+              format: "datetime",
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyRockboxDefs: {
+    lexicon: 1,
+    id: "app.rocksky.rockbox.defs",
+    defs: {
+      crossfadeSettings: {
+        type: "object",
+        properties: {
+          mode: {
+            type: "string",
+            description:
+              "Crossfade mode: disabled | enabled | shuffle | albumChange | trackChange",
+          },
+          fadeInDelay: {
+            type: "integer",
+            description: "Fade-in delay in ms",
+            maximum: 7000,
+            minimum: 0,
+          },
+          fadeInDuration: {
+            type: "integer",
+            description: "Fade-in duration in ms",
+            maximum: 15000,
+            minimum: 0,
+          },
+          fadeOutDelay: {
+            type: "integer",
+            description: "Fade-out delay in ms",
+            maximum: 7000,
+            minimum: 0,
+          },
+          fadeOutDuration: {
+            type: "integer",
+            description: "Fade-out duration in ms",
+            maximum: 15000,
+            minimum: 0,
+          },
+          fadeOutMixMode: {
+            type: "string",
+            description: "Fade-out mix mode: crossfade | mix",
+          },
+        },
+      },
+      equalizerBand: {
+        type: "object",
+        required: ["frequency", "gain", "q"],
+        properties: {
+          frequency: {
+            type: "integer",
+            description: "Center frequency in Hz",
+            maximum: 22000,
+            minimum: 20,
+          },
+          gain: {
+            type: "integer",
+            description: "Band gain in dB",
+            maximum: 24,
+            minimum: -24,
+          },
+          q: {
+            type: "integer",
+            description: "Q factor × 10 (e.g. 7 = Q 0.7)",
+            maximum: 640,
+            minimum: 5,
+          },
+        },
+      },
+      equalizerSettings: {
+        type: "object",
+        properties: {
+          enabled: {
+            type: "boolean",
+            description: "Whether the equalizer is enabled",
+          },
+          precut: {
+            type: "integer",
+            description: "Pre-amplification cut in dB applied before EQ bands",
+            maximum: 0,
+            minimum: -24,
+          },
+          bands: {
+            type: "array",
+            description: "Up to 10 EQ bands",
+            items: {
+              type: "ref",
+              ref: "lex:app.rocksky.rockbox.defs#equalizerBand",
+            },
+          },
+        },
+      },
+      replayGainSettings: {
+        type: "object",
+        properties: {
+          mode: {
+            type: "string",
+            description:
+              "Replay gain mode: disabled | track | album | trackIfShuffling",
+          },
+          preamp: {
+            type: "integer",
+            description:
+              "Pre-amplification in tenths of dB (e.g. 15 = +1.5 dB)",
+            maximum: 120,
+            minimum: -120,
+          },
+          preventClipping: {
+            type: "boolean",
+            description: "Whether to prevent clipping by reducing volume",
+          },
+        },
+      },
+      toneSettings: {
+        type: "object",
+        properties: {
+          bass: {
+            type: "integer",
+            description: "Bass level in dB",
+            maximum: 24,
+            minimum: -24,
+          },
+          treble: {
+            type: "integer",
+            description: "Treble level in dB",
+            maximum: 24,
+            minimum: -24,
+          },
+          balance: {
+            type: "integer",
+            description:
+              "Left/right balance. Negative = left, positive = right",
+            maximum: 100,
+            minimum: -100,
+          },
+          channels: {
+            type: "string",
+            description:
+              "Channel configuration: stereo | mono | monoLeft | monoRight | karaoke | wide",
+          },
+        },
+      },
+      settingsView: {
+        type: "object",
+        required: ["createdAt"],
+        properties: {
+          crossfade: {
+            type: "ref",
+            description: "Crossfade settings",
+            ref: "lex:app.rocksky.rockbox.defs#crossfadeSettings",
+          },
+          equalizer: {
+            type: "ref",
+            description: "Equalizer settings",
+            ref: "lex:app.rocksky.rockbox.defs#equalizerSettings",
+          },
+          replayGain: {
+            type: "ref",
+            description: "Replay gain settings",
+            ref: "lex:app.rocksky.rockbox.defs#replayGainSettings",
+          },
+          tone: {
+            type: "ref",
+            description:
+              "Tone control settings (bass, treble, balance, channels)",
+            ref: "lex:app.rocksky.rockbox.defs#toneSettings",
+          },
+          createdAt: {
+            type: "string",
+            description: "When this settings record was first created.",
+            format: "datetime",
+          },
+          updatedAt: {
+            type: "string",
+            description: "When this settings record was last updated.",
+            format: "datetime",
+          },
+        },
+      },
+    },
+  },
+  AppRockskyRockboxGetAudioSettings: {
+    lexicon: 1,
+    id: "app.rocksky.rockbox.getAudioSettings",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get the authenticated user's Rockbox audio settings.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "ref",
+            ref: "lex:app.rocksky.rockbox.defs#settingsView",
+          },
+        },
+      },
+    },
+  },
+  AppRockskyRockboxPutAudioSettings: {
+    lexicon: 1,
+    id: "app.rocksky.rockbox.putAudioSettings",
+    defs: {
+      main: {
+        type: "procedure",
+        description:
+          "Upsert the authenticated user's Rockbox audio settings. Only provided sections are merged; omitted sections are left unchanged.",
+        input: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {
+              crossfade: {
+                type: "ref",
+                description: "Crossfade settings to apply.",
+                ref: "lex:app.rocksky.rockbox.defs#crossfadeSettings",
+              },
+              equalizer: {
+                type: "ref",
+                description: "Equalizer settings to apply.",
+                ref: "lex:app.rocksky.rockbox.defs#equalizerSettings",
+              },
+              replayGain: {
+                type: "ref",
+                description: "Replay gain settings to apply.",
+                ref: "lex:app.rocksky.rockbox.defs#replayGainSettings",
+              },
+              tone: {
+                type: "ref",
+                description: "Tone control settings to apply.",
+                ref: "lex:app.rocksky.rockbox.defs#toneSettings",
+              },
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "ref",
+            ref: "lex:app.rocksky.rockbox.defs#settingsView",
+          },
+        },
+      },
+    },
+  },
   AppRockskyScrobbleCreateScrobble: {
     lexicon: 1,
     id: "app.rocksky.scrobble.createScrobble",
@@ -7420,6 +7714,10 @@ export const ids = {
   AppRockskyPlaylistStartPlaylist: "app.rocksky.playlist.startPlaylist",
   AppRockskyRadioDefs: "app.rocksky.radio.defs",
   AppRockskyRadio: "app.rocksky.radio",
+  AppRockskyRockboxAudioSettings: "app.rocksky.rockbox.audioSettings",
+  AppRockskyRockboxDefs: "app.rocksky.rockbox.defs",
+  AppRockskyRockboxGetAudioSettings: "app.rocksky.rockbox.getAudioSettings",
+  AppRockskyRockboxPutAudioSettings: "app.rocksky.rockbox.putAudioSettings",
   AppRockskyScrobbleCreateScrobble: "app.rocksky.scrobble.createScrobble",
   AppRockskyScrobbleDefs: "app.rocksky.scrobble.defs",
   AppRockskyScrobbleGetScrobble: "app.rocksky.scrobble.getScrobble",

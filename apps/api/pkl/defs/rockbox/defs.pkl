@@ -1,0 +1,177 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.rockbox.defs"
+defs = new Mapping<String, ObjectType> {
+  ["crossfadeSettings"] {
+    type = "object"
+    properties {
+      ["mode"] = new StringType {
+        type = "string"
+        description = "Crossfade mode: disabled | enabled | shuffle | albumChange | trackChange"
+      }
+      ["fadeInDelay"] = new IntegerType {
+        type = "integer"
+        minimum = 0
+        maximum = 7000
+        description = "Fade-in delay in ms"
+      }
+      ["fadeInDuration"] = new IntegerType {
+        type = "integer"
+        minimum = 0
+        maximum = 15000
+        description = "Fade-in duration in ms"
+      }
+      ["fadeOutDelay"] = new IntegerType {
+        type = "integer"
+        minimum = 0
+        maximum = 7000
+        description = "Fade-out delay in ms"
+      }
+      ["fadeOutDuration"] = new IntegerType {
+        type = "integer"
+        minimum = 0
+        maximum = 15000
+        description = "Fade-out duration in ms"
+      }
+      ["fadeOutMixMode"] = new StringType {
+        type = "string"
+        description = "Fade-out mix mode: crossfade | mix"
+      }
+    }
+  }
+
+  ["equalizerBand"] {
+    type = "object"
+    required = List("frequency", "gain", "q")
+    properties {
+      ["frequency"] = new IntegerType {
+        type = "integer"
+        minimum = 20
+        maximum = 22000
+        description = "Center frequency in Hz"
+      }
+      ["gain"] = new IntegerType {
+        type = "integer"
+        minimum = -24
+        maximum = 24
+        description = "Band gain in dB"
+      }
+      ["q"] = new IntegerType {
+        type = "integer"
+        minimum = 5
+        maximum = 640
+        description = "Q factor × 10 (e.g. 7 = Q 0.7)"
+      }
+    }
+  }
+
+  ["equalizerSettings"] {
+    type = "object"
+    properties {
+      ["enabled"] = new BooleanType {
+        type = "boolean"
+        description = "Whether the equalizer is enabled"
+      }
+      ["precut"] = new IntegerType {
+        type = "integer"
+        minimum = -24
+        maximum = 0
+        description = "Pre-amplification cut in dB applied before EQ bands"
+      }
+      ["bands"] = new Array {
+        type = "array"
+        description = "Up to 10 EQ bands"
+        items = new Ref {
+          type = "ref"
+          ref = "app.rocksky.rockbox.defs#equalizerBand"
+        }
+      }
+    }
+  }
+
+  ["replayGainSettings"] {
+    type = "object"
+    properties {
+      ["mode"] = new StringType {
+        type = "string"
+        description = "Replay gain mode: disabled | track | album | trackIfShuffling"
+      }
+      ["preamp"] = new IntegerType {
+        type = "integer"
+        minimum = -120
+        maximum = 120
+        description = "Pre-amplification in tenths of dB (e.g. 15 = +1.5 dB)"
+      }
+      ["preventClipping"] = new BooleanType {
+        type = "boolean"
+        description = "Whether to prevent clipping by reducing volume"
+      }
+    }
+  }
+
+  ["toneSettings"] {
+    type = "object"
+    properties {
+      ["bass"] = new IntegerType {
+        type = "integer"
+        minimum = -24
+        maximum = 24
+        description = "Bass level in dB"
+      }
+      ["treble"] = new IntegerType {
+        type = "integer"
+        minimum = -24
+        maximum = 24
+        description = "Treble level in dB"
+      }
+      ["balance"] = new IntegerType {
+        type = "integer"
+        minimum = -100
+        maximum = 100
+        description = "Left/right balance. Negative = left, positive = right"
+      }
+      ["channels"] = new StringType {
+        type = "string"
+        description = "Channel configuration: stereo | mono | monoLeft | monoRight | karaoke | wide"
+      }
+    }
+  }
+
+  ["settingsView"] {
+    type = "object"
+    required = List("createdAt")
+    properties {
+      ["crossfade"] = new Ref {
+        type = "ref"
+        ref = "app.rocksky.rockbox.defs#crossfadeSettings"
+        description = "Crossfade settings"
+      }
+      ["equalizer"] = new Ref {
+        type = "ref"
+        ref = "app.rocksky.rockbox.defs#equalizerSettings"
+        description = "Equalizer settings"
+      }
+      ["replayGain"] = new Ref {
+        type = "ref"
+        ref = "app.rocksky.rockbox.defs#replayGainSettings"
+        description = "Replay gain settings"
+      }
+      ["tone"] = new Ref {
+        type = "ref"
+        ref = "app.rocksky.rockbox.defs#toneSettings"
+        description = "Tone control settings (bass, treble, balance, channels)"
+      }
+      ["createdAt"] = new StringType {
+        type = "string"
+        format = "datetime"
+        description = "When this settings record was first created."
+      }
+      ["updatedAt"] = new StringType {
+        type = "string"
+        format = "datetime"
+        description = "When this settings record was last updated."
+      }
+    }
+  }
+}

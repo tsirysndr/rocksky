@@ -21,6 +21,7 @@ export const SCOPES = [
   "repo:fm.teal.alpha.feed.play",
   "repo:fm.teal.alpha.actor.status",
   "repo:app.rocksky.actor.status",
+  "repo:app.rocksky.rockbox.audioSettings",
 ];
 
 export const createClient = async (db: Database) => {

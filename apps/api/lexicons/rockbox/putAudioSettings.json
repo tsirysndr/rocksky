@@ -1,0 +1,45 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.rockbox.putAudioSettings",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Upsert the authenticated user's Rockbox audio settings. Only provided sections are merged; omitted sections are left unchanged.",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "crossfade": {
+              "type": "ref",
+              "description": "Crossfade settings to apply.",
+              "ref": "app.rocksky.rockbox.defs#crossfadeSettings"
+            },
+            "equalizer": {
+              "type": "ref",
+              "description": "Equalizer settings to apply.",
+              "ref": "app.rocksky.rockbox.defs#equalizerSettings"
+            },
+            "replayGain": {
+              "type": "ref",
+              "description": "Replay gain settings to apply.",
+              "ref": "app.rocksky.rockbox.defs#replayGainSettings"
+            },
+            "tone": {
+              "type": "ref",
+              "description": "Tone control settings to apply.",
+              "ref": "app.rocksky.rockbox.defs#toneSettings"
+            }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "ref",
+          "ref": "app.rocksky.rockbox.defs#settingsView"
+        }
+      }
+    }
+  }
+}

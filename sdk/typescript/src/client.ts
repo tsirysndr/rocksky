@@ -20,6 +20,7 @@ import { GoogleDriveNamespace } from "./namespaces/googledrive.js";
 import { GraphNamespace } from "./namespaces/graph.js";
 import { LikeNamespace } from "./namespaces/like.js";
 import { MirrorNamespace } from "./namespaces/mirror.js";
+import { RockboxNamespace } from "./namespaces/rockbox.js";
 import { PlayerNamespace } from "./namespaces/player.js";
 import { PlaylistNamespace } from "./namespaces/playlist.js";
 import { ScrobbleNamespace } from "./namespaces/scrobble.js";
@@ -55,6 +56,7 @@ export class RockskyClient {
   readonly graph: GraphNamespace;
   readonly like: LikeNamespace;
   readonly mirror: MirrorNamespace;
+  readonly rockbox: RockboxNamespace;
   readonly player: PlayerNamespace;
   readonly playlist: PlaylistNamespace;
   readonly scrobble: ScrobbleNamespace;
@@ -78,6 +80,7 @@ export class RockskyClient {
     this.graph = new GraphNamespace(call);
     this.like = new LikeNamespace(call);
     this.mirror = new MirrorNamespace(call);
+    this.rockbox = new RockboxNamespace(call);
     this.player = new PlayerNamespace(call);
     this.playlist = new PlaylistNamespace(call);
     this.scrobble = new ScrobbleNamespace(call);

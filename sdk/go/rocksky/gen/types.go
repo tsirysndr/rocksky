@@ -326,6 +326,21 @@ type ArtistViewDetailed struct {
 	Tags []string `json:"tags,omitempty"`
 }
 
+type AudioSettingsRecord struct {
+	// Crossfade settings
+	Crossfade *RockboxCrossfadeSettings `json:"crossfade,omitempty"`
+	// Equalizer settings
+	Equalizer *RockboxEqualizerSettings `json:"equalizer,omitempty"`
+	// Replay gain settings
+	ReplayGain *RockboxReplayGainSettings `json:"replayGain,omitempty"`
+	// Tone control settings (bass, treble, balance, channels)
+	Tone *RockboxToneSettings `json:"tone,omitempty"`
+	// When this settings record was first created.
+	CreatedAt string `json:"createdAt,omitempty"`
+	// When this settings record was last updated.
+	UpdatedAt string `json:"updatedAt,omitempty"`
+}
+
 type ChartsScrobbleViewBasic struct {
 	// The date of the scrobble.
 	Date string `json:"date,omitempty"`
@@ -873,6 +888,9 @@ type GetArtistTracksParams struct {
 	Offset int `json:"offset,omitempty"`
 }
 
+type GetAudioSettingsParams struct {
+}
+
 type GetCurrentlyPlayingParams struct {
 	PlayerID string `json:"playerId,omitempty"`
 	// Handle or DID of the actor to retrieve the currently playing track for. If not provided, defaults to the current user.
@@ -1409,6 +1427,17 @@ type ProfileRecord struct {
 	CreatedAt string `json:"createdAt,omitempty"`
 }
 
+type PutAudioSettingsInput struct {
+	// Crossfade settings to apply.
+	Crossfade *RockboxCrossfadeSettings `json:"crossfade,omitempty"`
+	// Equalizer settings to apply.
+	Equalizer *RockboxEqualizerSettings `json:"equalizer,omitempty"`
+	// Replay gain settings to apply.
+	ReplayGain *RockboxReplayGainSettings `json:"replayGain,omitempty"`
+	// Tone control settings to apply.
+	Tone *RockboxToneSettings `json:"tone,omitempty"`
+}
+
 type PutMirrorSourceInput struct {
 	// One of: lastfm, listenbrainz, tealfm
 	Provider string `json:"provider,omitempty"`
@@ -1501,6 +1530,74 @@ type ReportShoutInput struct {
 	ShoutID string `json:"shoutId,omitempty"`
 	// The reason for reporting the shout
 	Reason string `json:"reason,omitempty"`
+}
+
+type RockboxCrossfadeSettings struct {
+	// Crossfade mode: disabled | enabled | shuffle | albumChange | trackChange
+	Mode string `json:"mode,omitempty"`
+	// Fade-in delay in ms
+	FadeInDelay int `json:"fadeInDelay,omitempty"`
+	// Fade-in duration in ms
+	FadeInDuration int `json:"fadeInDuration,omitempty"`
+	// Fade-out delay in ms
+	FadeOutDelay int `json:"fadeOutDelay,omitempty"`
+	// Fade-out duration in ms
+	FadeOutDuration int `json:"fadeOutDuration,omitempty"`
+	// Fade-out mix mode: crossfade | mix
+	FadeOutMixMode string `json:"fadeOutMixMode,omitempty"`
+}
+
+type RockboxEqualizerBand struct {
+	// Center frequency in Hz
+	Frequency int `json:"frequency,omitempty"`
+	// Band gain in dB
+	Gain int `json:"gain,omitempty"`
+	// Q factor × 10 (e.g. 7 = Q 0.7)
+	Q int `json:"q,omitempty"`
+}
+
+type RockboxEqualizerSettings struct {
+	// Whether the equalizer is enabled
+	Enabled bool `json:"enabled,omitempty"`
+	// Pre-amplification cut in dB applied before EQ bands
+	Precut int `json:"precut,omitempty"`
+	// Up to 10 EQ bands
+	Bands []RockboxEqualizerBand `json:"bands,omitempty"`
+}
+
+type RockboxReplayGainSettings struct {
+	// Replay gain mode: disabled | track | album | trackIfShuffling
+	Mode string `json:"mode,omitempty"`
+	// Pre-amplification in tenths of dB (e.g. 15 = +1.5 dB)
+	Preamp int `json:"preamp,omitempty"`
+	// Whether to prevent clipping by reducing volume
+	PreventClipping bool `json:"preventClipping,omitempty"`
+}
+
+type RockboxSettingsView struct {
+	// Crossfade settings
+	Crossfade *RockboxCrossfadeSettings `json:"crossfade,omitempty"`
+	// Equalizer settings
+	Equalizer *RockboxEqualizerSettings `json:"equalizer,omitempty"`
+	// Replay gain settings
+	ReplayGain *RockboxReplayGainSettings `json:"replayGain,omitempty"`
+	// Tone control settings (bass, treble, balance, channels)
+	Tone *RockboxToneSettings `json:"tone,omitempty"`
+	// When this settings record was first created.
+	CreatedAt string `json:"createdAt,omitempty"`
+	// When this settings record was last updated.
+	UpdatedAt string `json:"updatedAt,omitempty"`
+}
+
+type RockboxToneSettings struct {
+	// Bass level in dB
+	Bass int `json:"bass,omitempty"`
+	// Treble level in dB
+	Treble int `json:"treble,omitempty"`
+	// Left/right balance. Negative = left, positive = right
+	Balance int `json:"balance,omitempty"`
+	// Channel configuration: stereo | mono | monoLeft | monoRight | karaoke | wide
+	Channels string `json:"channels,omitempty"`
 }
 
 type ScrobbleFirstScrobbleView struct {

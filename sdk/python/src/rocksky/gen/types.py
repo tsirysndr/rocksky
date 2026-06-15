@@ -236,6 +236,16 @@ class ArtistViewDetailed:
 
 
 @dataclass
+class AudioSettingsRecord:
+    createdAt: str
+    crossfade: Optional["RockboxCrossfadeSettings"] = None
+    equalizer: Optional["RockboxEqualizerSettings"] = None
+    replayGain: Optional["RockboxReplayGainSettings"] = None
+    tone: Optional["RockboxToneSettings"] = None
+    updatedAt: Optional[str] = None
+
+
+@dataclass
 class ChartsScrobbleViewBasic:
     date: Optional[str] = None
     count: Optional[int] = None
@@ -739,6 +749,11 @@ class GetArtistTracksParams:
 
 
 @dataclass
+class GetAudioSettingsParams:
+    pass
+
+
+@dataclass
 class GetCurrentlyPlayingParams:
     playerId: Optional[str] = None
     actor: Optional[str] = None
@@ -1217,6 +1232,14 @@ class ProfileRecord:
 
 
 @dataclass
+class PutAudioSettingsInput:
+    crossfade: Optional["RockboxCrossfadeSettings"] = None
+    equalizer: Optional["RockboxEqualizerSettings"] = None
+    replayGain: Optional["RockboxReplayGainSettings"] = None
+    tone: Optional["RockboxToneSettings"] = None
+
+
+@dataclass
 class PutMirrorSourceInput:
     provider: str
     enabled: Optional[bool] = None
@@ -1286,6 +1309,55 @@ class ReplyShoutInput:
 class ReportShoutInput:
     shoutId: str
     reason: Optional[str] = None
+
+
+@dataclass
+class RockboxCrossfadeSettings:
+    mode: Optional[str] = None
+    fadeInDelay: Optional[int] = None
+    fadeInDuration: Optional[int] = None
+    fadeOutDelay: Optional[int] = None
+    fadeOutDuration: Optional[int] = None
+    fadeOutMixMode: Optional[str] = None
+
+
+@dataclass
+class RockboxEqualizerBand:
+    frequency: int
+    gain: int
+    q: int
+
+
+@dataclass
+class RockboxEqualizerSettings:
+    enabled: Optional[bool] = None
+    precut: Optional[int] = None
+    bands: Optional[List["RockboxEqualizerBand"]] = None
+
+
+@dataclass
+class RockboxReplayGainSettings:
+    mode: Optional[str] = None
+    preamp: Optional[int] = None
+    preventClipping: Optional[bool] = None
+
+
+@dataclass
+class RockboxSettingsView:
+    createdAt: str
+    crossfade: Optional["RockboxCrossfadeSettings"] = None
+    equalizer: Optional["RockboxEqualizerSettings"] = None
+    replayGain: Optional["RockboxReplayGainSettings"] = None
+    tone: Optional["RockboxToneSettings"] = None
+    updatedAt: Optional[str] = None
+
+
+@dataclass
+class RockboxToneSettings:
+    bass: Optional[int] = None
+    treble: Optional[int] = None
+    balance: Optional[int] = None
+    channels: Optional[str] = None
 
 
 @dataclass

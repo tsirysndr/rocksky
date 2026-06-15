@@ -489,6 +489,28 @@ pub struct ArtistViewDetailed {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AudioSettingsRecord {
+    /// Crossfade settings
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub crossfade: Option<RockboxCrossfadeSettings>,
+    /// Equalizer settings
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub equalizer: Option<RockboxEqualizerSettings>,
+    /// Replay gain settings
+    #[serde(rename = "replayGain", default, skip_serializing_if = "Option::is_none")]
+    pub replay_gain: Option<RockboxReplayGainSettings>,
+    /// Tone control settings (bass, treble, balance, channels)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tone: Option<RockboxToneSettings>,
+    /// When this settings record was first created.
+    #[serde(rename = "createdAt")]
+    pub created_at: DateTime<Utc>,
+    /// When this settings record was last updated.
+    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ChartsScrobbleViewBasic {
     /// The date of the scrobble.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1289,6 +1311,10 @@ pub struct GetArtistTracksParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetAudioSettingsParams {
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetCurrentlyPlayingParams {
     #[serde(rename = "playerId", default, skip_serializing_if = "Option::is_none")]
     pub player_id: Option<String>,
@@ -2043,6 +2069,22 @@ pub struct ProfileRecord {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PutAudioSettingsInput {
+    /// Crossfade settings to apply.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub crossfade: Option<RockboxCrossfadeSettings>,
+    /// Equalizer settings to apply.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub equalizer: Option<RockboxEqualizerSettings>,
+    /// Replay gain settings to apply.
+    #[serde(rename = "replayGain", default, skip_serializing_if = "Option::is_none")]
+    pub replay_gain: Option<RockboxReplayGainSettings>,
+    /// Tone control settings to apply.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tone: Option<RockboxToneSettings>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PutMirrorSourceInput {
     /// One of: lastfm, listenbrainz, tealfm
     pub provider: String,
@@ -2167,6 +2209,102 @@ pub struct ReportShoutInput {
     /// The reason for reporting the shout
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct RockboxCrossfadeSettings {
+    /// Crossfade mode: disabled | enabled | shuffle | albumChange | trackChange
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<String>,
+    /// Fade-in delay in ms
+    #[serde(rename = "fadeInDelay", default, skip_serializing_if = "Option::is_none")]
+    pub fade_in_delay: Option<i64>,
+    /// Fade-in duration in ms
+    #[serde(rename = "fadeInDuration", default, skip_serializing_if = "Option::is_none")]
+    pub fade_in_duration: Option<i64>,
+    /// Fade-out delay in ms
+    #[serde(rename = "fadeOutDelay", default, skip_serializing_if = "Option::is_none")]
+    pub fade_out_delay: Option<i64>,
+    /// Fade-out duration in ms
+    #[serde(rename = "fadeOutDuration", default, skip_serializing_if = "Option::is_none")]
+    pub fade_out_duration: Option<i64>,
+    /// Fade-out mix mode: crossfade | mix
+    #[serde(rename = "fadeOutMixMode", default, skip_serializing_if = "Option::is_none")]
+    pub fade_out_mix_mode: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct RockboxEqualizerBand {
+    /// Center frequency in Hz
+    pub frequency: i64,
+    /// Band gain in dB
+    pub gain: i64,
+    /// Q factor × 10 (e.g. 7 = Q 0.7)
+    pub q: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct RockboxEqualizerSettings {
+    /// Whether the equalizer is enabled
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// Pre-amplification cut in dB applied before EQ bands
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub precut: Option<i64>,
+    /// Up to 10 EQ bands
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub bands: Vec<RockboxEqualizerBand>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct RockboxReplayGainSettings {
+    /// Replay gain mode: disabled | track | album | trackIfShuffling
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<String>,
+    /// Pre-amplification in tenths of dB (e.g. 15 = +1.5 dB)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preamp: Option<i64>,
+    /// Whether to prevent clipping by reducing volume
+    #[serde(rename = "preventClipping", default, skip_serializing_if = "Option::is_none")]
+    pub prevent_clipping: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct RockboxSettingsView {
+    /// Crossfade settings
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub crossfade: Option<RockboxCrossfadeSettings>,
+    /// Equalizer settings
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub equalizer: Option<RockboxEqualizerSettings>,
+    /// Replay gain settings
+    #[serde(rename = "replayGain", default, skip_serializing_if = "Option::is_none")]
+    pub replay_gain: Option<RockboxReplayGainSettings>,
+    /// Tone control settings (bass, treble, balance, channels)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tone: Option<RockboxToneSettings>,
+    /// When this settings record was first created.
+    #[serde(rename = "createdAt")]
+    pub created_at: DateTime<Utc>,
+    /// When this settings record was last updated.
+    #[serde(rename = "updatedAt", default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct RockboxToneSettings {
+    /// Bass level in dB
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bass: Option<i64>,
+    /// Treble level in dB
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub treble: Option<i64>,
+    /// Left/right balance. Negative = left, positive = right
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub balance: Option<i64>,
+    /// Channel configuration: stereo | mono | monoLeft | monoRight | karaoke | wide
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub channels: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

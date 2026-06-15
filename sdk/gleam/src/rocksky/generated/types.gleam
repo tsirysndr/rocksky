@@ -253,6 +253,17 @@ pub type ArtistViewDetailed {
   )
 }
 
+pub type AudioSettingsRecord {
+  AudioSettingsRecord(
+    crossfade: Option(RockboxCrossfadeSettings),
+    equalizer: Option(RockboxEqualizerSettings),
+    replay_gain: Option(RockboxReplayGainSettings),
+    tone: Option(RockboxToneSettings),
+    created_at: String,
+    updated_at: Option(String),
+  )
+}
+
 pub type ChartsScrobbleViewBasic {
   ChartsScrobbleViewBasic(
     date: Option(String),
@@ -827,6 +838,10 @@ pub type GetArtistTracksParams {
   )
 }
 
+pub type GetAudioSettingsParams {
+  GetAudioSettingsParams
+}
+
 pub type GetCurrentlyPlayingParams {
   GetCurrentlyPlayingParams(
     player_id: Option(String),
@@ -1373,6 +1388,15 @@ pub type ProfileRecord {
   )
 }
 
+pub type PutAudioSettingsInput {
+  PutAudioSettingsInput(
+    crossfade: Option(RockboxCrossfadeSettings),
+    equalizer: Option(RockboxEqualizerSettings),
+    replay_gain: Option(RockboxReplayGainSettings),
+    tone: Option(RockboxToneSettings),
+  )
+}
+
 pub type PutMirrorSourceInput {
   PutMirrorSourceInput(
     provider: String,
@@ -1452,6 +1476,61 @@ pub type ReportShoutInput {
   ReportShoutInput(
     shout_id: String,
     reason: Option(String),
+  )
+}
+
+pub type RockboxCrossfadeSettings {
+  RockboxCrossfadeSettings(
+    mode: Option(String),
+    fade_in_delay: Option(Int),
+    fade_in_duration: Option(Int),
+    fade_out_delay: Option(Int),
+    fade_out_duration: Option(Int),
+    fade_out_mix_mode: Option(String),
+  )
+}
+
+pub type RockboxEqualizerBand {
+  RockboxEqualizerBand(
+    frequency: Int,
+    gain: Int,
+    q: Int,
+  )
+}
+
+pub type RockboxEqualizerSettings {
+  RockboxEqualizerSettings(
+    enabled: Option(Bool),
+    precut: Option(Int),
+    bands: List(RockboxEqualizerBand),
+  )
+}
+
+pub type RockboxReplayGainSettings {
+  RockboxReplayGainSettings(
+    mode: Option(String),
+    preamp: Option(Int),
+    prevent_clipping: Option(Bool),
+  )
+}
+
+pub type RockboxSettingsView {
+  RockboxSettingsView(
+    crossfade: Option(RockboxCrossfadeSettings),
+    equalizer: Option(RockboxEqualizerSettings),
+    replay_gain: Option(RockboxReplayGainSettings),
+    tone: Option(RockboxToneSettings),
+    created_at: String,
+    updated_at: Option(String),
+  )
+}
+
+pub type RockboxToneSettings {
+  RockboxToneSettings(
+    bass: Option(Int),
+    treble: Option(Int),
+    balance: Option(Int),
+    channels: Option(String),
   )
 }
 

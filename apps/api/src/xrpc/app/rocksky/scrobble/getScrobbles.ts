@@ -108,10 +108,7 @@ const getFilterUserIds = async (
   const rows = await ctx.db
     .select({ userId: tables.users.id })
     .from(tables.follows)
-    .innerJoin(
-      tables.users,
-      eq(tables.users.did, tables.follows.subject_did),
-    )
+    .innerJoin(tables.users, eq(tables.users.did, tables.follows.subject_did))
     .where(eq(tables.follows.follower_did, params.did))
     .execute();
 

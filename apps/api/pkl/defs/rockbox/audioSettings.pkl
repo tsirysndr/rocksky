@@ -1,0 +1,47 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.rockbox.audioSettings"
+defs = new Mapping<String, Record> {
+  ["main"] {
+    type = "record"
+    description = "A user's Rockbox audio settings. One record per user (rkey: self)."
+    key = "literal:self"
+    `record` {
+      type = "object"
+      required = List("createdAt")
+      properties {
+        ["crossfade"] = new Ref {
+          type = "ref"
+          ref = "app.rocksky.rockbox.defs#crossfadeSettings"
+          description = "Crossfade settings"
+        }
+        ["equalizer"] = new Ref {
+          type = "ref"
+          ref = "app.rocksky.rockbox.defs#equalizerSettings"
+          description = "Equalizer settings"
+        }
+        ["replayGain"] = new Ref {
+          type = "ref"
+          ref = "app.rocksky.rockbox.defs#replayGainSettings"
+          description = "Replay gain settings"
+        }
+        ["tone"] = new Ref {
+          type = "ref"
+          ref = "app.rocksky.rockbox.defs#toneSettings"
+          description = "Tone control settings (bass, treble, balance, channels)"
+        }
+        ["createdAt"] = new StringType {
+          type = "string"
+          format = "datetime"
+          description = "When this settings record was first created."
+        }
+        ["updatedAt"] = new StringType {
+          type = "string"
+          format = "datetime"
+          description = "When this settings record was last updated."
+        }
+      }
+    }
+  }
+}

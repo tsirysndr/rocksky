@@ -8,6 +8,7 @@ import app.rocksky.resource.ChartsResource
 import app.rocksky.resource.FeedResource
 import app.rocksky.resource.GraphResource
 import app.rocksky.resource.LikeResource
+import app.rocksky.resource.RockboxResource
 import app.rocksky.resource.PlayerResource
 import app.rocksky.resource.PlaylistResource
 import app.rocksky.resource.ScrobbleResource
@@ -51,6 +52,7 @@ public class RockskyClient internal constructor(
     public val feed: FeedResource = FeedResource(transport)
     public val graph: GraphResource = GraphResource(transport)
     public val like: LikeResource = LikeResource(transport)
+    public val rockbox: RockboxResource = RockboxResource(transport)
     public val player: PlayerResource = PlayerResource(transport)
     public val playlist: PlaylistResource = PlaylistResource(transport)
     public val scrobble: ScrobbleResource = ScrobbleResource(transport)

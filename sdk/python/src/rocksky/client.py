@@ -31,6 +31,7 @@ from .resources import (
     GraphResource,
     LikeResource,
     MirrorResource,
+    RockboxResource,
     PlayerResource,
     PlaylistResource,
     ScrobbleResource,
@@ -92,6 +93,7 @@ class Client:
         self.like = LikeResource(self._transport)
         self.mirror = MirrorResource(self._transport)
         self.player = PlayerResource(self._transport)
+        self.rockbox = RockboxResource(self._transport)
         self.playlist = PlaylistResource(self._transport)
         self.scrobble = ScrobbleResource(self._transport)
         self.shout = ShoutResource(self._transport)

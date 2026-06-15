@@ -11,8 +11,8 @@ use crate::error::{Error, Result};
 use crate::http::{DEFAULT_BASE_URL, Shared, Transport};
 use crate::resources::{
     ActorApi, AlbumApi, ApikeyApi, ArtistApi, ChartsApi, DropboxApi, FeedApi, GoogleDriveApi,
-    GraphApi, LikeApi, MirrorApi, PlayerApi, PlaylistApi, ScrobbleApi, ShoutApi, SongApi,
-    SpotifyApi, StatsApi,
+    GraphApi, LikeApi, MirrorApi, PlayerApi, PlaylistApi, RockboxApi, ScrobbleApi, ShoutApi,
+    SongApi, SpotifyApi, StatsApi,
 };
 
 /// Default user agent (`rocksky-rust/<version>`).
@@ -127,6 +127,11 @@ impl Client {
     /// `app.rocksky.mirror.*`
     pub fn mirror(&self) -> MirrorApi<'_> {
         MirrorApi::new(self)
+    }
+
+    /// `app.rocksky.rockbox.*`
+    pub fn rockbox(&self) -> RockboxApi<'_> {
+        RockboxApi::new(self)
     }
 
     /// `app.rocksky.player.*`

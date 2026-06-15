@@ -41,6 +41,7 @@ type Client struct {
 	Graph    *GraphService
 	Like     *LikeService
 	Shout    *ShoutService
+	Rockbox  *RockboxService
 }
 
 // Option configures a Client.
@@ -115,6 +116,7 @@ func NewClient(opts ...Option) *Client {
 	c.Graph = &GraphService{c: c}
 	c.Like = &LikeService{c: c}
 	c.Shout = &ShoutService{c: c}
+	c.Rockbox = &RockboxService{c: c}
 	return c
 }
 

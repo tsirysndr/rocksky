@@ -1,0 +1,49 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.rockbox.audioSettings",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A user's Rockbox audio settings. One record per user (rkey: self).",
+      "key": "literal:self",
+      "record": {
+        "type": "object",
+        "required": [
+          "createdAt"
+        ],
+        "properties": {
+          "crossfade": {
+            "type": "ref",
+            "description": "Crossfade settings",
+            "ref": "app.rocksky.rockbox.defs#crossfadeSettings"
+          },
+          "equalizer": {
+            "type": "ref",
+            "description": "Equalizer settings",
+            "ref": "app.rocksky.rockbox.defs#equalizerSettings"
+          },
+          "replayGain": {
+            "type": "ref",
+            "description": "Replay gain settings",
+            "ref": "app.rocksky.rockbox.defs#replayGainSettings"
+          },
+          "tone": {
+            "type": "ref",
+            "description": "Tone control settings (bass, treble, balance, channels)",
+            "ref": "app.rocksky.rockbox.defs#toneSettings"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When this settings record was first created.",
+            "format": "datetime"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "When this settings record was last updated.",
+            "format": "datetime"
+          }
+        }
+      }
+    }
+  }
+}

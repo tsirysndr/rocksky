@@ -10,6 +10,7 @@ from .graph import FollowList, GraphResource
 from .like import LikeResource
 from .mirror import MirrorResource
 from .player import PlayerResource
+from .rockbox import RockboxResource
 from .playlist import PlaylistResource
 from .scrobble import ScrobbleResource
 from .shout import ShoutResource
@@ -32,6 +33,7 @@ __all__ = [
     "LikeResource",
     "MirrorResource",
     "PlayerResource",
+    "RockboxResource",
     "PlaylistResource",
     "ScrobbleResource",
     "ShoutResource",
