@@ -2,10 +2,10 @@
  * GENERATED CODE - DO NOT MODIFY
  */
 import { type ValidationResult, BlobRef } from "@atproto/lexicon";
-import { lexicons } from "../../../../lexicons";
-import { isObj, hasProp } from "../../../../util";
+import { lexicons } from "../../../../../lexicons";
+import { isObj, hasProp } from "../../../../../util";
 import { CID } from "multiformats/cid";
-import type * as AppRockskyRockboxDefs from "./defs";
+import type * as AppRockskyRockboxDefs from "../defs";
 
 export interface Record {
   crossfade?: AppRockskyRockboxDefs.CrossfadeSettings;
@@ -23,11 +23,11 @@ export function isRecord(v: unknown): v is Record {
   return (
     isObj(v) &&
     hasProp(v, "$type") &&
-    (v.$type === "app.rocksky.rockbox.audioSettings#main" ||
-      v.$type === "app.rocksky.rockbox.audioSettings")
+    (v.$type === "app.rocksky.rockbox.audio.settings#main" ||
+      v.$type === "app.rocksky.rockbox.audio.settings")
   );
 }
 
 export function validateRecord(v: unknown): ValidationResult {
-  return lexicons.validate("app.rocksky.rockbox.audioSettings#main", v);
+  return lexicons.validate("app.rocksky.rockbox.audio.settings#main", v);
 }

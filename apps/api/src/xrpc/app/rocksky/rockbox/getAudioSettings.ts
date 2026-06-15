@@ -8,11 +8,11 @@ import extractPdsFromDid from "lib/extractPdsFromDid";
 import type { Server } from "lexicon";
 import type { SettingsView } from "lexicon/types/app/rocksky/rockbox/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/rockbox/getAudioSettings";
-import * as AudioSettings from "lexicon/types/app/rocksky/rockbox/audioSettings";
+import * as AudioSettings from "lexicon/types/app/rocksky/rockbox/audio/settings";
 import { AtpAgent } from "@atproto/api";
 import tables from "schema";
 
-const COLLECTION = "app.rocksky.rockbox.audioSettings";
+const COLLECTION = "app.rocksky.rockbox.audio.settings";
 
 export default function (server: Server, ctx: Context) {
   const getAudioSettings = (params: QueryParams, auth: HandlerAuth) =>

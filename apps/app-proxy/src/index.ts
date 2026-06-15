@@ -18,7 +18,7 @@ const metadata = {
 	response_types: ['code'],
 	grant_types: ['authorization_code', 'refresh_token'],
 	scope:
-		'atproto repo:app.rocksky.album repo:app.rocksky.artist repo:app.rocksky.graph.follow repo:app.rocksky.like repo:app.rocksky.playlist repo:app.rocksky.scrobble repo:app.rocksky.shout repo:app.rocksky.song repo:app.rocksky.feed.generator repo:fm.teal.alpha.feed.play repo:fm.teal.alpha.actor.status repo:app.rocksky.actor.status repo:app.rocksky.rockbox.audioSettings',
+		'atproto repo:app.rocksky.album repo:app.rocksky.artist repo:app.rocksky.graph.follow repo:app.rocksky.like repo:app.rocksky.playlist repo:app.rocksky.scrobble repo:app.rocksky.shout repo:app.rocksky.song repo:app.rocksky.feed.generator repo:fm.teal.alpha.feed.play repo:fm.teal.alpha.actor.status repo:app.rocksky.actor.status repo:app.rocksky.rockbox.audio.settings',
 	token_endpoint_auth_method: 'private_key_jwt',
 	token_endpoint_auth_signing_alg: 'ES256',
 	jwks_uri: 'https://rocksky.app/jwks.json',

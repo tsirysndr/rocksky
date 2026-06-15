@@ -1,6 +1,6 @@
 {
   "lexicon": 1,
-  "id": "app.rocksky.rockbox.audioSettings",
+  "id": "app.rocksky.rockbox.audio.settings",
   "defs": {
     "main": {
       "type": "record",

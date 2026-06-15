@@ -6,9 +6,9 @@ import { createAgent } from "lib/agent";
 import type { Server } from "lexicon";
 import type { SettingsView } from "lexicon/types/app/rocksky/rockbox/defs";
 import type { InputSchema } from "lexicon/types/app/rocksky/rockbox/putAudioSettings";
-import * as AudioSettings from "lexicon/types/app/rocksky/rockbox/audioSettings";
+import * as AudioSettings from "lexicon/types/app/rocksky/rockbox/audio/settings";
 
-const COLLECTION = "app.rocksky.rockbox.audioSettings";
+const COLLECTION = "app.rocksky.rockbox.audio.settings";
 
 export default function (server: Server, ctx: Context) {
   const putAudioSettings = (input: InputSchema, auth: HandlerAuth) =>

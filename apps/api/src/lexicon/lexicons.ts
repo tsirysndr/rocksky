@@ -5067,7 +5067,7 @@ export const schemaDict = {
   },
   AppRockskyRockboxAudioSettings: {
     lexicon: 1,
-    id: "app.rocksky.rockbox.audioSettings",
+    id: "app.rocksky.rockbox.audio.settings",
     defs: {
       main: {
         type: "record",
@@ -7723,7 +7723,7 @@ export const ids = {
   AppRockskyPlaylistStartPlaylist: "app.rocksky.playlist.startPlaylist",
   AppRockskyRadioDefs: "app.rocksky.radio.defs",
   AppRockskyRadio: "app.rocksky.radio",
-  AppRockskyRockboxAudioSettings: "app.rocksky.rockbox.audioSettings",
+  AppRockskyRockboxAudioSettings: "app.rocksky.rockbox.audio.settings",
   AppRockskyRockboxDefs: "app.rocksky.rockbox.defs",
   AppRockskyRockboxGetAudioSettings: "app.rocksky.rockbox.getAudioSettings",
   AppRockskyRockboxPutAudioSettings: "app.rocksky.rockbox.putAudioSettings",

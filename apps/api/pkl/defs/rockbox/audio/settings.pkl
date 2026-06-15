@@ -1,7 +1,7 @@
-amends "../../schema/lexicon.pkl"
+amends "../../../schema/lexicon.pkl"
 
 lexicon = 1
-id = "app.rocksky.rockbox.audioSettings"
+id = "app.rocksky.rockbox.audio.settings"
 defs = new Mapping<String, Record> {
   ["main"] {
     type = "record"
