@@ -53,9 +53,9 @@ defs = new Mapping<String, ObjectType> {
       }
       ["gain"] = new IntegerType {
         type = "integer"
-        minimum = -24
-        maximum = 24
-        description = "Band gain in dB"
+        minimum = -240
+        maximum = 240
+        description = "Band gain in tenths of dB (e.g. 30 = +3.0 dB)"
       }
       ["q"] = new IntegerType {
         type = "integer"
@@ -75,9 +75,9 @@ defs = new Mapping<String, ObjectType> {
       }
       ["precut"] = new IntegerType {
         type = "integer"
-        minimum = -24
+        minimum = -240
         maximum = 0
-        description = "Pre-amplification cut in dB applied before EQ bands"
+        description = "Pre-amplification cut in tenths of dB applied before EQ bands (e.g. -60 = -6.0 dB)"
       }
       ["bands"] = new Array {
         type = "array"

@@ -37,7 +37,7 @@ export function validateCrossfadeSettings(v: unknown): ValidationResult {
 export interface EqualizerBand {
   /** Center frequency in Hz */
   frequency: number;
-  /** Band gain in dB */
+  /** Band gain in tenths of dB (e.g. 30 = +3.0 dB) */
   gain: number;
   /** Q factor × 10 (e.g. 7 = Q 0.7) */
   q: number;
@@ -59,7 +59,7 @@ export function validateEqualizerBand(v: unknown): ValidationResult {
 export interface EqualizerSettings {
   /** Whether the equalizer is enabled */
   enabled?: boolean;
-  /** Pre-amplification cut in dB applied before EQ bands */
+  /** Pre-amplification cut in tenths of dB applied before EQ bands (e.g. -60 = -6.0 dB) */
   precut?: number;
   /** Up to 10 EQ bands */
   bands?: EqualizerBand[];

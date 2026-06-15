@@ -2240,7 +2240,7 @@ pub struct RockboxCrossfadeSettings {
 pub struct RockboxEqualizerBand {
     /// Center frequency in Hz
     pub frequency: i64,
-    /// Band gain in dB
+    /// Band gain in tenths of dB (e.g. 30 = +3.0 dB)
     pub gain: i64,
     /// Q factor × 10 (e.g. 7 = Q 0.7)
     pub q: i64,
@@ -2251,7 +2251,7 @@ pub struct RockboxEqualizerSettings {
     /// Whether the equalizer is enabled
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub enabled: Option<bool>,
-    /// Pre-amplification cut in dB applied before EQ bands
+    /// Pre-amplification cut in tenths of dB applied before EQ bands (e.g. -60 = -6.0 dB)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub precut: Option<i64>,
     /// Up to 10 EQ bands

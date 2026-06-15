@@ -5168,9 +5168,9 @@ export const schemaDict = {
           },
           gain: {
             type: "integer",
-            description: "Band gain in dB",
-            maximum: 24,
-            minimum: -24,
+            description: "Band gain in tenths of dB (e.g. 30 = +3.0 dB)",
+            maximum: 240,
+            minimum: -240,
           },
           q: {
             type: "integer",
@@ -5189,9 +5189,10 @@ export const schemaDict = {
           },
           precut: {
             type: "integer",
-            description: "Pre-amplification cut in dB applied before EQ bands",
+            description:
+              "Pre-amplification cut in tenths of dB applied before EQ bands (e.g. -60 = -6.0 dB)",
             maximum: 0,
-            minimum: -24,
+            minimum: -240,
           },
           bands: {
             type: "array",

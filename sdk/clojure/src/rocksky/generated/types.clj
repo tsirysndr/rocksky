@@ -1539,7 +1539,7 @@
    [:map
     ;; Center frequency in Hz
     [:frequency :int]
-    ;; Band gain in dB
+    ;; Band gain in tenths of dB (e.g. 30 = +3.0 dB)
     [:gain :int]
     ;; Q factor × 10 (e.g. 7 = Q 0.7)
     [:q :int]
@@ -1548,7 +1548,7 @@
    [:map
     ;; Whether the equalizer is enabled
     [:enabled {:optional true} :boolean]
-    ;; Pre-amplification cut in dB applied before EQ bands
+    ;; Pre-amplification cut in tenths of dB applied before EQ bands (e.g. -60 = -6.0 dB)
     [:precut {:optional true} :int]
     ;; Up to 10 EQ bands
     [:bands {:optional true} [:vector :RockboxEqualizerBand]]

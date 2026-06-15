@@ -1552,7 +1552,7 @@ type RockboxCrossfadeSettings struct {
 type RockboxEqualizerBand struct {
 	// Center frequency in Hz
 	Frequency int `json:"frequency,omitempty"`
-	// Band gain in dB
+	// Band gain in tenths of dB (e.g. 30 = +3.0 dB)
 	Gain int `json:"gain,omitempty"`
 	// Q factor × 10 (e.g. 7 = Q 0.7)
 	Q int `json:"q,omitempty"`
@@ -1561,7 +1561,7 @@ type RockboxEqualizerBand struct {
 type RockboxEqualizerSettings struct {
 	// Whether the equalizer is enabled
 	Enabled bool `json:"enabled,omitempty"`
-	// Pre-amplification cut in dB applied before EQ bands
+	// Pre-amplification cut in tenths of dB applied before EQ bands (e.g. -60 = -6.0 dB)
 	Precut int `json:"precut,omitempty"`
 	// Up to 10 EQ bands
 	Bands []RockboxEqualizerBand `json:"bands,omitempty"`
