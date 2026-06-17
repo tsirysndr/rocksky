@@ -35,9 +35,7 @@ fn cred_cache() -> &'static Mutex<HashMap<String, String>> {
 static ENC_KEY: OnceLock<String> = OnceLock::new();
 
 fn enc_key() -> &'static str {
-    ENC_KEY.get_or_init(|| {
-        env::var("STORAGE_ENCRYPTION_KEY").unwrap_or_else(|_| "0".repeat(64))
-    })
+    ENC_KEY.get_or_init(|| env::var("STORAGE_ENCRYPTION_KEY").unwrap_or_else(|_| "0".repeat(64)))
 }
 
 fn decrypt_cached(encoded: &str) -> Result<String, anyhow::Error> {
