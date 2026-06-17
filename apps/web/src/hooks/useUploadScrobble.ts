@@ -34,19 +34,20 @@ export function useUploadScrobble() {
   }, [currentSha256]);
 
   useEffect(() => {
-    if (player !== "upload" || !nowPlaying) return;
+    if (player !== "rockbox" || !nowPlaying) return;
 
     const { sha256, title, artist, albumArt, duration, progress } = nowPlaying;
     const album = queue[queueIndex]?.album;
     const albumArtist = queue[queueIndex]?.albumArtist ?? artist;
 
-    // Already scrobbled this track
-    if (scrobbledRef.current === sha256) return;
+    // Use sha256 when available, otherwise fall back to title+artist for dedup
+    const dedupeKey = sha256 || `${title}::${artist}`;
+    if (scrobbledRef.current === dedupeKey) return;
 
     const threshold = Math.min(duration * 0.5, SCROBBLE_MIN_MS);
     if (progress < threshold) return;
 
-    scrobbledRef.current = sha256;
+    scrobbledRef.current = dedupeKey;
 
     submitScrobble({
       title,
@@ -66,7 +67,7 @@ export function useUploadScrobble() {
     }).catch((err) => {
       consola.warn("[scrobble] failed to submit scrobble", err);
       // Allow retry on next render by resetting the flag
-      scrobbledRef.current = null;
+      scrobbledRef.current = null; // allow retry
     });
   }, [player, nowPlaying, queue, queueIndex]);
 }

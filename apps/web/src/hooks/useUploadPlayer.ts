@@ -1,8 +1,13 @@
-import { useAtom, useSetAtom } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import { useCallback } from "react";
 import { nowPlayingAtom } from "../atoms/nowpaying";
 import { playerAtom } from "../atoms/player";
+import { profileAtom } from "../atoms/profile";
 import { queueAtom, queueIndexAtom, type QueueTrack } from "../atoms/queue";
+import { ensureStreamToken, getStreamUrl } from "../api/uploads";
+import { insertTracks, startPlaylist, playTrack } from "../lib/rockbox-graphql";
+import { hlsAudio } from "../lib/hls-audio";
+import { ROCKBOX_URL } from "../consts";
 
 function trackToNowPlaying(track: QueueTrack, isPlaying = true) {
   return {
@@ -21,61 +26,91 @@ function trackToNowPlaying(track: QueueTrack, isPlaying = true) {
 }
 
 export function useUploadPlayer() {
-  const [queue, setQueue] = useAtom(queueAtom);
-  const [queueIndex, setQueueIndex] = useAtom(queueIndexAtom);
+  const [queue, setQueue] = [useAtomValue(queueAtom), useSetAtom(queueAtom)];
+  const [queueIndex, setQueueIndex] = [useAtomValue(queueIndexAtom), useSetAtom(queueIndexAtom)];
   const setNowPlaying = useSetAtom(nowPlayingAtom);
   const setPlayer = useSetAtom(playerAtom);
+  const profile = useAtomValue(profileAtom);
 
-  // Play a list of tracks starting at startIndex.
-  // Replaces the current queue entirely.
+  const did = profile?.did ?? "";
+  const hlsUrl = did ? `${ROCKBOX_URL}/${did}/hls/audio.m3u8` : "";
+
   const playNow = useCallback(
-    (tracks: QueueTrack[], startIndex = 0) => {
+    async (tracks: QueueTrack[], startIndex = 0) => {
+      if (!did) return;
       setQueue(tracks);
       setQueueIndex(startIndex);
       setNowPlaying(trackToNowPlaying(tracks[startIndex]));
-      setPlayer("upload");
+      setPlayer("rockbox");
+      hlsAudio.attach(hlsUrl);
+
+      await ensureStreamToken();
+
+      // Play the starting track immediately, then enqueue the rest one by one.
+      // Rockbox backend can't handle multiple files in one request.
+      const startUrl = getStreamUrl(tracks[startIndex].uploadId);
+      await playTrack(did, startUrl).catch(console.warn);
+
+      // Enqueue tracks after startIndex, then tracks before startIndex (wrap-around)
+      const after = tracks.slice(startIndex + 1);
+      const before = tracks.slice(0, startIndex);
+      for (const track of [...after, ...before]) {
+        await insertTracks(did, [getStreamUrl(track.uploadId)], -1).catch(console.warn);
+      }
     },
-    [setQueue, setQueueIndex, setNowPlaying, setPlayer],
+    [did, hlsUrl, setQueue, setQueueIndex, setNowPlaying, setPlayer],
   );
 
-  // Insert a track immediately after the currently playing position.
   const playNext = useCallback(
-    (track: QueueTrack) => {
+    async (track: QueueTrack) => {
+      if (!did) return;
       setQueue((prev) => {
         const next = [...prev];
         next.splice(queueIndex + 1, 0, track);
         return next;
       });
+      await ensureStreamToken();
+      await insertTracks(did, [getStreamUrl(track.uploadId)], 1).catch(console.warn);
     },
-    [setQueue, queueIndex],
+    [did, setQueue, queueIndex],
   );
 
-  // Insert multiple tracks immediately after the currently playing position.
   const playNextAll = useCallback(
-    (tracks: QueueTrack[]) => {
+    async (tracks: QueueTrack[]) => {
+      if (!did) return;
       setQueue((prev) => {
         const next = [...prev];
         next.splice(queueIndex + 1, 0, ...tracks);
         return next;
       });
+      await ensureStreamToken();
+      for (const track of tracks) {
+        await insertTracks(did, [getStreamUrl(track.uploadId)], 1).catch(console.warn);
+      }
     },
-    [setQueue, queueIndex],
+    [did, setQueue, queueIndex],
   );
 
-  // Append a track to the end of the queue.
   const playLast = useCallback(
-    (track: QueueTrack) => {
+    async (track: QueueTrack) => {
+      if (!did) return;
       setQueue((prev) => [...prev, track]);
+      await ensureStreamToken();
+      await insertTracks(did, [getStreamUrl(track.uploadId)], -1).catch(console.warn);
     },
-    [setQueue],
+    [did, setQueue],
   );
 
-  // Append multiple tracks to the end of the queue.
   const playLastAll = useCallback(
-    (tracks: QueueTrack[]) => {
+    async (tracks: QueueTrack[]) => {
+      if (!did) return;
       setQueue((prev) => [...prev, ...tracks]);
+      await ensureStreamToken();
+      for (const track of tracks) {
+        await insertTracks(did, [getStreamUrl(track.uploadId)], -1).catch(console.warn);
+      }
     },
-    [setQueue],
+    [did, setQueue],
   );
 
   return { queue, queueIndex, playNow, playNext, playNextAll, playLast, playLastAll };

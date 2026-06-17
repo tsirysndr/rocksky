@@ -86,7 +86,6 @@ function FullscreenPlayer({
   onPrevious,
   onNext,
   onSeek,
-  onEqualizer,
   onLike,
   onDislike,
   isPlaying,
@@ -99,6 +98,10 @@ function FullscreenPlayer({
   repeatMode,
   onShuffle,
   onRepeat,
+  volume,
+  muted,
+  onVolumeChange,
+  onToggleMute,
 }: FullscreenPlayerProps) {
   if (!nowPlaying) return null;
 
@@ -129,8 +132,11 @@ function FullscreenPlayer({
           onPrevious={onPrevious}
           onNext={onNext}
           onSpeaker={() => {}}
-          onEqualizer={onEqualizer ?? (() => {})}
           onPlaylist={onPlaylist}
+          volume={volume}
+          muted={muted}
+          onVolumeChange={onVolumeChange}
+          onToggleMute={onToggleMute}
           onSeek={onSeek}
           isPlaying={isPlaying}
           onLike={onLike}

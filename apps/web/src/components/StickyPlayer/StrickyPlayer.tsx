@@ -1,12 +1,11 @@
 import styled from "@emotion/styled";
 import { Link as DefaultLink } from "@tanstack/react-router";
-import { IconArrowsShuffle, IconMaximize, IconMusic, IconRepeat, IconRepeatOnce } from "@tabler/icons-react";
+import { IconArrowsShuffle, IconMaximize, IconMusic, IconRepeat, IconRepeatOnce, IconVolume2, IconVolumeOff } from "@tabler/icons-react";
 import type { RepeatMode } from "../../atoms/playback";
 import { ProgressBar } from "baseui/progress-bar";
 import { LabelSmall } from "baseui/typography";
 import { useRef, type RefObject } from "react";
 import { useTimeFormat } from "../../hooks/useFormat";
-import Equalizer from "../Icons/Equalizer";
 import Heart from "../Icons/Heart";
 import HeartOutline from "../Icons/HeartOutline";
 import Next from "../Icons/Next";
@@ -136,8 +135,11 @@ export type StickyPlayerProps = {
   onNext: () => void;
   onSpeaker: () => void;
   speakerRef?: RefObject<HTMLButtonElement>;
-  onEqualizer: () => void;
   onPlaylist: () => void;
+  volume?: number;
+  muted?: boolean;
+  onVolumeChange?: (v: number) => void;
+  onToggleMute?: () => void;
   onSeek: (position: number) => void;
   onLike: (id: string) => void;
   onDislike: (id: string) => void;
@@ -163,8 +165,11 @@ function StickyPlayer(props: StickyPlayerProps) {
     onNext,
     onSpeaker,
     speakerRef,
-    onEqualizer,
     onPlaylist,
+    volume = 1,
+    muted = false,
+    onVolumeChange,
+    onToggleMute,
     onSeek,
     onLike,
     onDislike,
@@ -357,9 +362,29 @@ function StickyPlayer(props: StickyPlayerProps) {
             >
               <Speaker />
             </Button>
-            <Button onClick={onEqualizer} disabled={!isUploadPlayer} style={{ backgroundColor: "transparent", color: isUploadPlayer ? "var(--color-text)" : undefined }}>
-              <Equalizer />
-            </Button>
+            {isUploadPlayer && (
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <button
+                  onClick={onToggleMute}
+                  style={{ background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", padding: 4 }}
+                  title={muted ? "Unmute" : "Mute"}
+                >
+                  {muted
+                    ? <IconVolumeOff size={18} color={embedded ? "rgba(255,255,255,0.7)" : "var(--color-text-muted)"} />
+                    : <IconVolume2 size={18} color={embedded ? "rgba(255,255,255,0.7)" : "var(--color-text-muted)"} />
+                  }
+                </button>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={muted ? 0 : volume}
+                  onChange={(e) => onVolumeChange?.(parseFloat(e.target.value))}
+                  style={{ width: 72, accentColor: embedded ? "#fff" : "var(--color-primary)", cursor: "pointer" }}
+                />
+              </div>
+            )}
             <Button
               onClick={onPlaylist}
               disabled={!showQueueButton}
