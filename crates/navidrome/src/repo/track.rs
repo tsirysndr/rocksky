@@ -20,17 +20,8 @@ const TRACK_SELECT: &str = r#"
         user_uploads.r2_key,
         user_uploads.mime_type,
         user_uploads.file_size,
-        (SELECT at2.album_id FROM album_tracks at2
-         JOIN albums a ON at2.album_id = a.xata_id
-         WHERE at2.track_id = tracks.xata_id
-           AND tracks.album = a.title
-           AND tracks.album_artist = a.artist
-         LIMIT 1) AS album_id,
-        (SELECT at3.artist_id FROM artist_tracks at3
-         JOIN artists ar ON at3.artist_id = ar.xata_id
-         WHERE at3.track_id = tracks.xata_id
-           AND tracks.album_artist = ar.name
-         LIMIT 1) AS artist_id,
+        alb.album_id,
+        art.artist_id,
         usp.xata_id AS storage_provider_id,
         usp.endpoint AS storage_endpoint,
         usp.region AS storage_region,
@@ -41,6 +32,21 @@ const TRACK_SELECT: &str = r#"
     FROM tracks
     JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
     LEFT JOIN user_storage_providers usp ON user_uploads.storage_provider_id = usp.xata_id
+    LEFT JOIN LATERAL (
+        SELECT at2.album_id FROM album_tracks at2
+        JOIN albums a ON at2.album_id = a.xata_id
+        WHERE at2.track_id = tracks.xata_id
+          AND tracks.album = a.title
+          AND tracks.album_artist = a.artist
+        LIMIT 1
+    ) alb ON true
+    LEFT JOIN LATERAL (
+        SELECT at3.artist_id FROM artist_tracks at3
+        JOIN artists ar ON at3.artist_id = ar.xata_id
+        WHERE at3.track_id = tracks.xata_id
+          AND tracks.album_artist = ar.name
+        LIMIT 1
+    ) art ON true
 "#;
 
 pub async fn get_tracks_by_album(

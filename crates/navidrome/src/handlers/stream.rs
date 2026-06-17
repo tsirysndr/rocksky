@@ -1,9 +1,59 @@
 use actix_web::{web::Bytes, HttpResponse};
 use futures::{stream, StreamExt};
 use sqlx::{Pool, Postgres};
-use std::{env, sync::Arc};
+use std::{
+    collections::HashMap,
+    env,
+    sync::{Arc, Mutex, OnceLock},
+    time::Duration,
+};
 
 use crate::{repo, response, s3, xata::track::TrackWithUpload};
+
+static HTTP_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+
+fn http_client() -> &'static reqwest::Client {
+    HTTP_CLIENT.get_or_init(|| {
+        reqwest::Client::builder()
+            .pool_max_idle_per_host(32)
+            .pool_idle_timeout(Duration::from_secs(90))
+            .tcp_keepalive(Duration::from_secs(60))
+            .connect_timeout(Duration::from_secs(10))
+            .build()
+            .expect("failed to build HTTP client")
+    })
+}
+
+// Cache decrypted credentials keyed by the encrypted value — safe against
+// credential rotation since the key changes when the stored bytes change.
+static CRED_CACHE: OnceLock<Mutex<HashMap<String, String>>> = OnceLock::new();
+
+fn cred_cache() -> &'static Mutex<HashMap<String, String>> {
+    CRED_CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+static ENC_KEY: OnceLock<String> = OnceLock::new();
+
+fn enc_key() -> &'static str {
+    ENC_KEY.get_or_init(|| {
+        env::var("STORAGE_ENCRYPTION_KEY").unwrap_or_else(|_| "0".repeat(64))
+    })
+}
+
+fn decrypt_cached(encoded: &str) -> Result<String, anyhow::Error> {
+    {
+        let cache = cred_cache().lock().unwrap();
+        if let Some(val) = cache.get(encoded) {
+            return Ok(val.clone());
+        }
+    }
+    let plaintext = s3::decrypt_credential(encoded, enc_key())?;
+    {
+        let mut cache = cred_cache().lock().unwrap();
+        cache.insert(encoded.to_string(), plaintext.clone());
+    }
+    Ok(plaintext)
+}
 
 async fn resolve_url(track: &TrackWithUpload) -> Result<String, anyhow::Error> {
     if track.storage_provider_id.is_none() {
@@ -15,16 +65,8 @@ async fn resolve_url(track: &TrackWithUpload) -> Result<String, anyhow::Error> {
         return Ok(format!("{}/{}", pub_url.trim_end_matches('/'), key));
     }
 
-    let enc_key = env::var("STORAGE_ENCRYPTION_KEY").unwrap_or_else(|_| "0".repeat(64));
-
-    let access_key = s3::decrypt_credential(
-        track.storage_access_key.as_deref().unwrap_or_default(),
-        &enc_key,
-    )?;
-    let secret_key = s3::decrypt_credential(
-        track.storage_secret_key.as_deref().unwrap_or_default(),
-        &enc_key,
-    )?;
+    let access_key = decrypt_cached(track.storage_access_key.as_deref().unwrap_or_default())?;
+    let secret_key = decrypt_cached(track.storage_secret_key.as_deref().unwrap_or_default())?;
 
     s3::presign_get_with_creds(
         &track.r2_key,
@@ -61,9 +103,7 @@ pub async fn handle_head(
         }
     };
 
-    let client = reqwest::Client::new();
-
-    let upstream = match client.head(&url).send().await {
+    let upstream = match http_client().head(&url).send().await {
         Ok(r) => r,
         Err(e) => {
             tracing::error!("stream HEAD fetch error: {}", e);
@@ -125,8 +165,7 @@ pub async fn handle(
         }
     };
 
-    let client = reqwest::Client::new();
-    let mut req = client.get(&url);
+    let mut req = http_client().get(&url);
     if let Some(range_val) = range {
         req = req.header("Range", range_val);
     }
