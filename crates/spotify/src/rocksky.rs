@@ -23,18 +23,18 @@ pub async fn scrobble(
     client_secret: &str,
     pool: &Pool<Postgres>,
 ) -> Result<(), Error> {
-    let cached = cache.get(spotify_email)?;
+    let cached = cache.get(spotify_email).await?;
     if cached.is_none() {
-        println!(
-            "No currently playing song is cached for {}, skipping",
-            spotify_email
+        tracing::debug!(
+            email = %spotify_email,
+            "no currently playing song is cached, skipping"
         );
         return Ok(());
     }
 
     let track = serde_json::from_str::<CurrentlyPlaying>(&cached.unwrap())?;
     if track.item.is_none() {
-        println!("No currently playing song found, skipping");
+        tracing::debug!(email = %spotify_email, "no currently playing song found, skipping");
         return Ok(());
     }
 
@@ -96,7 +96,12 @@ pub async fn scrobble(
   .await?;
 
     if !response.status().is_success() {
-        println!("Failed to scrobble: {}", response.text().await?);
+        let body = response.text().await?;
+        tracing::error!(
+            email = %spotify_email,
+            body = %body,
+            "failed to scrobble"
+        );
     }
 
     Ok(())
@@ -111,11 +116,11 @@ pub async fn update_library(
     client_secret: &str,
     pool: &Pool<Postgres>,
 ) -> Result<(), Error> {
-    let cached = cache.get(spotify_email)?;
+    let cached = cache.get(spotify_email).await?;
     if cached.is_none() {
-        println!(
-            "No currently playing song is cached for {}, refreshing",
-            spotify_email
+        tracing::debug!(
+            email = %spotify_email,
+            "no currently playing song is cached, refreshing"
         );
         get_currently_playing(
             cache.clone(),
@@ -128,22 +133,22 @@ pub async fn update_library(
         .await?;
     }
 
-    let cached = cache.get(spotify_email)?;
+    let cached = cache.get(spotify_email).await?;
     let track = serde_json::from_str::<CurrentlyPlaying>(&cached.unwrap())?;
     if track.item.is_none() {
-        println!("No currently playing song found, skipping");
+        tracing::debug!(email = %spotify_email, "no currently playing song found, skipping");
         return Ok(());
     }
     let track_item = track.item.unwrap();
-    let cached = cache.get(&format!("{}:tracks", track_item.album.id))?;
+    let cached = cache.get(&format!("{}:tracks", track_item.album.id)).await?;
     if cached.is_none() {
-        println!("Album not cached {}, skipping", track_item.album.id);
+        tracing::debug!(album_id = %track_item.album.id, "album not cached, skipping");
         return Ok(());
     }
 
     let tracks = serde_json::from_str::<Vec<Track>>(&cached.unwrap())?;
 
-    let cached = cache.get(&track_item.album.id)?;
+    let cached = cache.get(&track_item.album.id).await?;
     let album = serde_json::from_str::<Album>(&cached.unwrap())?;
 
     let token = generate_token(did)?;
@@ -189,7 +194,13 @@ pub async fn update_library(
         tokio::time::sleep(tokio::time::Duration::from_secs(50)).await;
 
         if !response.status().is_success() {
-            println!("Failed to save track: {}", response.text().await?);
+            let body = response.text().await?;
+            tracing::error!(
+                email = %spotify_email,
+                track = %track.name,
+                body = %body,
+                "failed to save track"
+            );
         }
     }
 

@@ -1,16 +1,16 @@
 use std::{
     collections::HashMap,
     env,
-    sync::{atomic::AtomicBool, Arc, Mutex},
-    thread,
+    sync::{Arc, Mutex},
+    time::Duration,
 };
 
 use anyhow::Error;
 use async_nats::connect;
-use owo_colors::OwoColorize;
 use reqwest::Client;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use tokio_stream::StreamExt;
+use tokio_util::sync::CancellationToken;
 
 use crate::{
     cache::Cache,
@@ -33,7 +33,7 @@ pub mod types;
 pub const BASE_URL: &str = "https://api.spotify.com/v1";
 
 pub async fn run() -> Result<(), Error> {
-    let cache = Cache::new()?;
+    let cache = Cache::new().await?;
     let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(&env::var("XATA_POSTGRES_URL")?)
@@ -41,92 +41,85 @@ pub async fn run() -> Result<(), Error> {
 
     let addr = env::var("NATS_URL").unwrap_or_else(|_| "nats://localhost:4222".to_string());
     let nc = connect(&addr).await?;
-    println!("Connected to NATS server at {}", addr.bright_green());
+    tracing::info!(addr = %addr, "connected to NATS server");
 
     let mut sub = nc.subscribe("rocksky.spotify.user".to_string()).await?;
-    println!("Subscribed to {}", "rocksky.spotify.user".bright_green());
+    tracing::info!(subject = "rocksky.spotify.user", "subscribed");
 
     let users = find_spotify_users(&pool, 0, 500).await?;
-    println!("Found {} users", users.len().bright_green());
+    tracing::info!(count = users.len(), "found spotify users");
 
-    // Shared HashMap to manage threads and their stop flags
-    let thread_map: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>> =
+    // Shared HashMap to manage per-user cancellation tokens
+    let task_map: Arc<Mutex<HashMap<String, CancellationToken>>> =
         Arc::new(Mutex::new(HashMap::new()));
 
-    // Helper function to start a user thread with auto-recovery
-    let start_user_thread = |email: String,
-                             token: String,
-                             did: String,
-                             client_id: String,
-                             client_secret: String,
-                             stop_flag: Arc<AtomicBool>,
-                             cache: Cache,
-                             nc: async_nats::Client,
-                             pool: Pool<Postgres>| {
-        thread::spawn(move || {
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            let mut retry_count = 0;
-            let max_retries = 5;
+    // Helper function to start a user task with auto-recovery
+    let start_user_task = |email: String,
+                           token: String,
+                           did: String,
+                           client_id: String,
+                           client_secret: String,
+                           cancel: CancellationToken,
+                           cache: Cache,
+                           nc: async_nats::Client,
+                           pool: Pool<Postgres>| {
+        tokio::spawn(async move {
+            let mut retry_count = 0u32;
+            let max_retries = 5u32;
 
             loop {
-                if stop_flag.load(std::sync::atomic::Ordering::Relaxed) {
-                    println!(
-                        "{} Stop flag set, exiting recovery loop",
-                        format!("[{}]", email).bright_green()
-                    );
+                if cancel.is_cancelled() {
+                    tracing::info!(email = %email, "cancel signal set, exiting recovery loop");
                     break;
                 }
 
-                match rt.block_on(async {
-                    watch_currently_playing(
-                        email.clone(),
-                        token.clone(),
-                        did.clone(),
-                        stop_flag.clone(),
-                        cache.clone(),
-                        client_id.clone(),
-                        client_secret.clone(),
-                        nc.clone(),
-                        pool.clone(),
-                    )
-                    .await
-                }) {
+                match watch_currently_playing(
+                    email.clone(),
+                    token.clone(),
+                    did.clone(),
+                    cancel.clone(),
+                    cache.clone(),
+                    client_id.clone(),
+                    client_secret.clone(),
+                    nc.clone(),
+                    pool.clone(),
+                )
+                .await
+                {
                     Ok(_) => {
-                        println!(
-                            "{} Thread completed normally",
-                            format!("[{}]", email).bright_green()
-                        );
+                        tracing::info!(email = %email, "task completed normally");
                         break;
                     }
                     Err(e) => {
                         retry_count += 1;
-                        println!(
-                            "{} Thread crashed (attempt {}/{}): {}",
-                            format!("[{}]", email).bright_green(),
-                            retry_count,
+                        tracing::warn!(
+                            email = %email,
+                            attempt = retry_count,
                             max_retries,
-                            e.to_string().bright_red()
+                            error = %e,
+                            "task crashed"
                         );
 
                         if retry_count >= max_retries {
-                            println!(
-                                "{} Max retries reached, publishing to NATS for external restart",
-                                format!("[{}]", email).bright_green()
+                            tracing::warn!(
+                                email = %email,
+                                "max retries reached, publishing to NATS for external restart"
                             );
-                            match rt
-                                .block_on(nc.publish("rocksky.spotify.user", email.clone().into()))
+                            match nc
+                                .publish("rocksky.spotify.user", email.clone().into())
+                                .await
                             {
                                 Ok(_) => {
-                                    println!(
-                                        "{} Published message to restart thread",
-                                        format!("[{}]", email).bright_green()
+                                    tracing::info!(
+                                        email = %email,
+                                        "published message to restart task"
                                     );
                                 }
                                 Err(e) => {
-                                    println!(
-                                        "{} Error publishing message to restart thread: {}",
-                                        format!("[{}]", email).bright_green(),
-                                        e.to_string().bright_red()
+                                    tracing::error!(
+                                        email = %email,
+                                        error = %e,
+                                        "error publishing message to restart task"
                                     );
                                 }
                             }
@@ -134,44 +127,44 @@ pub async fn run() -> Result<(), Error> {
                         }
 
                         // Exponential backoff: 2^retry_count seconds, max 60 seconds
-                        let backoff_seconds = std::cmp::min(2_u64.pow(retry_count as u32), 60);
-                        println!(
-                            "{} Retrying in {} seconds...",
-                            format!("[{}]", email).bright_green(),
-                            backoff_seconds
+                        let backoff_seconds = std::cmp::min(2_u64.pow(retry_count), 60);
+                        tracing::info!(
+                            email = %email,
+                            backoff_seconds,
+                            "retrying"
                         );
-                        std::thread::sleep(std::time::Duration::from_secs(backoff_seconds));
+                        tokio::time::sleep(Duration::from_secs(backoff_seconds)).await;
                     }
                 }
             }
         })
     };
 
-    // Start threads for all users
+    // Start tasks for all users
     for user in users {
         let email = user.0.clone();
         let token = user.1.clone();
         let did = user.2.clone();
         let client_id = user.3.clone();
         let client_secret = user.4.clone();
-        let stop_flag = Arc::new(AtomicBool::new(false));
+        let cancel = CancellationToken::new();
         let cache = cache.clone();
         let nc = nc.clone();
-        let thread_map = Arc::clone(&thread_map);
+        let task_map = Arc::clone(&task_map);
         let pool = pool.clone();
 
-        thread_map
+        task_map
             .lock()
             .unwrap()
-            .insert(email.clone(), Arc::clone(&stop_flag));
+            .insert(email.clone(), cancel.clone());
 
-        start_user_thread(
+        start_user_task(
             email,
             token,
             did,
             client_id,
             client_secret,
-            stop_flag,
+            cancel,
             cache,
             nc,
             pool,
@@ -181,29 +174,29 @@ pub async fn run() -> Result<(), Error> {
     // Handle subscription messages
     while let Some(message) = sub.next().await {
         let user_id = String::from_utf8(message.payload.to_vec()).unwrap();
-        println!(
-            "Received message to restart thread for user: {}",
-            user_id.bright_green()
-        );
+        tracing::info!(user_id = %user_id, "received message to restart task");
 
-        let mut thread_map = thread_map.lock().unwrap();
+        // Check if the user exists in the task map
+        let existed = {
+            let mut task_map = task_map.lock().unwrap();
+            if let Some(cancel) = task_map.get(&user_id) {
+                // Stop the existing task
+                cancel.cancel();
 
-        // Check if the user exists in the thread map
-        if let Some(stop_flag) = thread_map.get(&user_id) {
-            // Stop the existing thread
-            stop_flag.store(true, std::sync::atomic::Ordering::Relaxed);
+                // Create a new token and insert it for the restarted task
+                let new_cancel = CancellationToken::new();
+                task_map.insert(user_id.clone(), new_cancel.clone());
+                Some(new_cancel)
+            } else {
+                None
+            }
+        };
 
-            // Create a new stop flag and restart the thread
-            let new_stop_flag = Arc::new(AtomicBool::new(false));
-            thread_map.insert(user_id.clone(), Arc::clone(&new_stop_flag));
-
+        if let Some(new_cancel) = existed {
             let user = find_spotify_user(&pool, &user_id).await?;
 
             if user.is_none() {
-                println!(
-                    "Spotify user not found: {}, skipping",
-                    user_id.bright_green()
-                );
+                tracing::warn!(user_id = %user_id, "spotify user not found, skipping");
                 continue;
             }
 
@@ -218,24 +211,21 @@ pub async fn run() -> Result<(), Error> {
             let nc = nc.clone();
             let pool_clone = pool.clone();
 
-            start_user_thread(
+            start_user_task(
                 email,
                 token,
                 did,
                 client_id,
                 client_secret,
-                new_stop_flag,
+                new_cancel,
                 cache,
                 nc,
                 pool_clone,
             );
 
-            println!("Restarted thread for user: {}", user_id.bright_green());
+            tracing::info!(user_id = %user_id, "restarted task for user");
         } else {
-            println!(
-                "No thread found for user: {}, starting new thread",
-                user_id.bright_green()
-            );
+            tracing::info!(user_id = %user_id, "no task found for user, starting new task");
             let user = find_spotify_user(&pool, &user_id).await?;
             if let Some(user) = user {
                 let email = user.0.clone();
@@ -243,20 +233,23 @@ pub async fn run() -> Result<(), Error> {
                 let did = user.2.clone();
                 let client_id = user.3.clone();
                 let client_secret = user.4.clone();
-                let stop_flag = Arc::new(AtomicBool::new(false));
+                let cancel = CancellationToken::new();
                 let cache = cache.clone();
                 let nc = nc.clone();
                 let pool_clone = pool.clone();
 
-                thread_map.insert(email.clone(), Arc::clone(&stop_flag));
+                task_map
+                    .lock()
+                    .unwrap()
+                    .insert(email.clone(), cancel.clone());
 
-                start_user_thread(
+                start_user_task(
                     email,
                     token,
                     did,
                     client_id,
                     client_secret,
-                    stop_flag,
+                    cancel,
                     cache,
                     nc,
                     pool_clone,
@@ -315,7 +308,7 @@ pub async fn refresh_token(
 
     let json_token = serde_json::from_str::<AccessToken>(&body);
     if let Err(e) = json_token {
-        println!("Error parsing token: {}", body);
+        tracing::error!(body = %body, "error parsing token");
         return Err(Error::from(e));
     }
     Ok(json_token.unwrap())
@@ -347,39 +340,26 @@ pub async fn get_currently_playing(
     client_secret: &str,
     pool: &Pool<Postgres>,
 ) -> Result<Option<(CurrentlyPlaying, bool)>, Error> {
-    if let Ok(Some(data)) = cache.get(user_id) {
-        println!(
-            "{} {}",
-            format!("[{}]", user_id).bright_green(),
-            "Using cache".cyan()
-        );
+    if let Ok(Some(data)) = cache.get(user_id).await {
+        tracing::debug!(email = %user_id, "using cache");
         if data == "No content" {
             return Ok(None);
         }
         let decoded_data = serde_json::from_str::<CurrentlyPlaying>(&data);
 
         if decoded_data.is_err() {
-            println!(
-                "{} {} {}",
-                format!("[{}]", user_id).bright_green(),
-                "Cache is invalid".red(),
-                data
-            );
-            cache.setex(user_id, "No content", 10)?;
-            cache.del(&format!("{}:current", user_id))?;
+            tracing::warn!(email = %user_id, data = %data, "cache is invalid");
+            cache.setex(user_id, "No content", 10).await?;
+            cache.del(&format!("{}:current", user_id)).await?;
             return Ok(None);
         }
 
         let data: CurrentlyPlaying = decoded_data.unwrap();
         // detect if the song has changed
-        let previous = cache.get(&format!("{}:previous", user_id));
+        let previous = cache.get(&format!("{}:previous", user_id)).await;
 
-        if previous.is_err() {
-            println!(
-                "{} redis error: {}",
-                format!("[{}]", user_id).bright_green(),
-                previous.unwrap_err().to_string().bright_red()
-            );
+        if let Err(e) = &previous {
+            tracing::error!(email = %user_id, error = %e, "redis error");
             return Ok(None);
         }
 
@@ -388,11 +368,10 @@ pub async fn get_currently_playing(
         let changed = match previous {
             Some(previous) => {
                 if serde_json::from_str::<CurrentlyPlaying>(&previous).is_err() {
-                    println!(
-                        "{} {} {}",
-                        format!("[{}]", user_id).bright_green(),
-                        "Previous cache is invalid",
-                        previous
+                    tracing::warn!(
+                        email = %user_id,
+                        previous = %previous,
+                        "previous cache is invalid"
                     );
                     return Ok(None);
                 }
@@ -433,30 +412,25 @@ pub async fn get_currently_playing(
     let data = response.text().await?;
 
     if !data.contains("is_playing") && !data.contains("context") {
-        println!("> Currently playing: {}", data);
+        tracing::debug!(data = %data, "currently playing response");
     }
 
     if status == 429 {
-        println!(
-            "{}  Too many requests, retry-after {}",
-            format!("[{}]", user_id).bright_green(),
-            headers
-                .get("retry-after")
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .bright_green()
+        let retry_after = headers
+            .get("retry-after")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("");
+        tracing::warn!(
+            email = %user_id,
+            retry_after = %retry_after,
+            "too many requests"
         );
         return Ok(None);
     }
 
-    let previous = cache.get(&format!("{}:previous", user_id));
-    if previous.is_err() {
-        println!(
-            "{} redis error: {}",
-            format!("[{}]", user_id).bright_green(),
-            previous.unwrap_err().to_string().bright_red()
-        );
+    let previous = cache.get(&format!("{}:previous", user_id)).await;
+    if let Err(e) = &previous {
+        tracing::error!(email = %user_id, error = %e, "redis error");
         return Ok(None);
     }
 
@@ -464,33 +438,28 @@ pub async fn get_currently_playing(
 
     // check if status code is 204
     if status == 204 {
-        println!("No content");
-        match cache.setex(
-            user_id,
-            "No content",
-            match previous.is_none() {
-                true => 30,
-                false => 10,
-            },
-        ) {
+        tracing::debug!("no content");
+        match cache
+            .setex(
+                user_id,
+                "No content",
+                match previous.is_none() {
+                    true => 30,
+                    false => 10,
+                },
+            )
+            .await
+        {
             Ok(_) => {}
             Err(e) => {
-                println!(
-                    "{} redis error: {}",
-                    format!("[{}]", user_id).bright_green(),
-                    e.to_string().bright_red()
-                );
+                tracing::error!(email = %user_id, error = %e, "redis error");
                 return Ok(None);
             }
         }
-        match cache.del(&format!("{}:current", user_id)) {
+        match cache.del(&format!("{}:current", user_id)).await {
             Ok(_) => {}
             Err(e) => {
-                println!(
-                    "{} redis error: {}",
-                    format!("[{}]", user_id).bright_green(),
-                    e.to_string().bright_red()
-                );
+                tracing::error!(email = %user_id, error = %e, "redis error");
                 return Ok(None);
             }
         }
@@ -498,31 +467,18 @@ pub async fn get_currently_playing(
     }
 
     if serde_json::from_str::<CurrentlyPlaying>(&data).is_err() {
-        println!(
-            "{} {} {}",
-            format!("[{}]", user_id).bright_green(),
-            "Invalid data received".red(),
-            data
-        );
-        match cache.setex(user_id, "No content", 10) {
+        tracing::warn!(email = %user_id, data = %data, "invalid data received");
+        match cache.setex(user_id, "No content", 10).await {
             Ok(_) => {}
             Err(e) => {
-                println!(
-                    "{} redis error: {}",
-                    format!("[{}]", user_id).bright_green(),
-                    e.to_string().bright_red()
-                );
+                tracing::error!(email = %user_id, error = %e, "redis error");
                 return Ok(None);
             }
         }
-        match cache.del(&format!("{}:current", user_id)) {
+        match cache.del(&format!("{}:current", user_id)).await {
             Ok(_) => {}
             Err(e) => {
-                println!(
-                    "{} redis error: {}",
-                    format!("[{}]", user_id).bright_green(),
-                    e.to_string().bright_red()
-                );
+                tracing::error!(email = %user_id, error = %e, "redis error");
                 return Ok(None);
             }
         }
@@ -531,45 +487,36 @@ pub async fn get_currently_playing(
 
     let data = serde_json::from_str::<CurrentlyPlaying>(&data)?;
 
-    match cache.setex(
-        user_id,
-        &serde_json::to_string(&data)?,
-        match previous.is_none() {
-            true => 30,
-            false => 15,
-        },
-    ) {
+    match cache
+        .setex(
+            user_id,
+            &serde_json::to_string(&data)?,
+            match previous.is_none() {
+                true => 30,
+                false => 15,
+            },
+        )
+        .await
+    {
         Ok(_) => {}
         Err(e) => {
-            println!(
-                "{} redis error: {}",
-                format!("[{}]", user_id).bright_green(),
-                e.to_string().bright_red()
-            );
+            tracing::error!(email = %user_id, error = %e, "redis error");
             return Ok(None);
         }
     }
-    match cache.del(&format!("{}:current", user_id)) {
+    match cache.del(&format!("{}:current", user_id)).await {
         Ok(_) => {}
         Err(e) => {
-            println!(
-                "{} redis error: {}",
-                format!("[{}]", user_id).bright_green(),
-                e.to_string().bright_red()
-            );
+            tracing::error!(email = %user_id, error = %e, "redis error");
             return Ok(None);
         }
     }
 
     // detect if the song has changed
-    let previous = cache.get(&format!("{}:previous", user_id));
+    let previous = cache.get(&format!("{}:previous", user_id)).await;
 
-    if previous.is_err() {
-        println!(
-            "{} redis error: {}",
-            format!("[{}]", user_id).bright_green(),
-            previous.unwrap_err().to_string().bright_red()
-        );
+    if let Err(e) = &previous {
+        tracing::error!(email = %user_id, error = %e, "redis error");
         return Ok(None);
     }
 
@@ -577,11 +524,10 @@ pub async fn get_currently_playing(
     let changed = match previous {
         Some(previous) => {
             if serde_json::from_str::<CurrentlyPlaying>(&previous).is_err() {
-                println!(
-                    "{} {} {}",
-                    format!("[{}]", user_id).bright_green(),
-                    "Previous cache is invalid",
-                    previous
+                tracing::warn!(
+                    email = %user_id,
+                    previous = %previous,
+                    "previous cache is invalid"
                 );
                 return Ok(None);
             }
@@ -601,18 +547,17 @@ pub async fn get_currently_playing(
     };
 
     // save as previous song
-    match cache.setex(
-        &format!("{}:previous", user_id),
-        &serde_json::to_string(&data)?,
-        600,
-    ) {
+    match cache
+        .setex(
+            &format!("{}:previous", user_id),
+            &serde_json::to_string(&data)?,
+            600,
+        )
+        .await
+    {
         Ok(_) => {}
         Err(e) => {
-            println!(
-                "{} redis error: {}",
-                format!("[{}]", user_id).bright_green(),
-                e.to_string().bright_red()
-            );
+            tracing::error!(email = %user_id, error = %e, "redis error");
             return Ok(None);
         }
     }
@@ -629,7 +574,7 @@ pub async fn get_artist(
     pool: &Pool<Postgres>,
     email: &str,
 ) -> Result<Option<Artist>, Error> {
-    if let Ok(Some(data)) = cache.get(artist_id) {
+    if let Ok(Some(data)) = cache.get(artist_id).await {
         return Ok(Some(serde_json::from_str(&data)?));
     }
 
@@ -645,22 +590,23 @@ pub async fn get_artist(
     let data = response.text().await?;
 
     if data == "Too many requests" {
-        println!(
-            "> retry-after {}",
-            headers.get("retry-after").unwrap().to_str().unwrap()
+        let retry_after = headers
+            .get("retry-after")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("");
+        tracing::warn!(
+            scope = "get_artist",
+            artist_id = %artist_id,
+            retry_after = %retry_after,
+            "too many requests"
         );
-        println!("> {} [get_artist]", data);
         return Ok(None);
     }
 
-    match cache.setex(artist_id, &data, 20) {
+    match cache.setex(artist_id, &data, 20).await {
         Ok(_) => {}
         Err(e) => {
-            println!(
-                "{} redis error: {}",
-                format!("[{}]", artist_id).bright_green(),
-                e.to_string().bright_red()
-            );
+            tracing::error!(artist_id = %artist_id, error = %e, "redis error");
             return Ok(None);
         }
     }
@@ -677,7 +623,7 @@ pub async fn get_album(
     pool: &Pool<Postgres>,
     email: &str,
 ) -> Result<Option<Album>, Error> {
-    if let Ok(Some(data)) = cache.get(album_id) {
+    if let Ok(Some(data)) = cache.get(album_id).await {
         return Ok(Some(serde_json::from_str(&data)?));
     }
 
@@ -693,22 +639,23 @@ pub async fn get_album(
     let data = response.text().await?;
 
     if data == "Too many requests" {
-        println!(
-            "> retry-after {}",
-            headers.get("retry-after").unwrap().to_str().unwrap()
+        let retry_after = headers
+            .get("retry-after")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("");
+        tracing::warn!(
+            scope = "get_album",
+            album_id = %album_id,
+            retry_after = %retry_after,
+            "too many requests"
         );
-        println!("> {} [get_album]", data);
         return Ok(None);
     }
 
-    match cache.setex(album_id, &data, 20) {
+    match cache.setex(album_id, &data, 20).await {
         Ok(_) => {}
         Err(e) => {
-            println!(
-                "{} redis error: {}",
-                format!("[{}]", album_id).bright_green(),
-                e.to_string().bright_red()
-            );
+            tracing::error!(album_id = %album_id, error = %e, "redis error");
             return Ok(None);
         }
     }
@@ -725,7 +672,7 @@ pub async fn get_album_tracks(
     pool: &Pool<Postgres>,
     email: &str,
 ) -> Result<AlbumTracks, Error> {
-    if let Ok(Some(data)) = cache.get(&format!("{}:tracks", album_id)) {
+    if let Ok(Some(data)) = cache.get(&format!("{}:tracks", album_id)).await {
         return Ok(serde_json::from_str(&data)?);
     }
 
@@ -749,11 +696,16 @@ pub async fn get_album_tracks(
         let headers = response.headers().clone();
         let data = response.text().await?;
         if data == "Too many requests" {
-            println!(
-                "> retry-after {}",
-                headers.get("retry-after").unwrap().to_str().unwrap()
+            let retry_after = headers
+                .get("retry-after")
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or("");
+            tracing::warn!(
+                scope = "get_album_tracks",
+                album_id = %album_id,
+                retry_after = %retry_after,
+                "too many requests"
             );
-            println!("> {} [get_album_tracks]", data);
             continue;
         }
 
@@ -768,14 +720,13 @@ pub async fn get_album_tracks(
     }
 
     let all_tracks_json = serde_json::to_string(&all_tracks)?;
-    match cache.setex(&format!("{}:tracks", album_id), &all_tracks_json, 20) {
+    match cache
+        .setex(&format!("{}:tracks", album_id), &all_tracks_json, 20)
+        .await
+    {
         Ok(_) => {}
         Err(e) => {
-            println!(
-                "{} redis error: {}",
-                format!("[{}]", album_id).bright_green(),
-                e.to_string().bright_red()
-            );
+            tracing::error!(album_id = %album_id, error = %e, "redis error");
         }
     }
 
@@ -870,36 +821,33 @@ pub async fn watch_currently_playing(
     spotify_email: String,
     token: String,
     did: String,
-    stop_flag: Arc<AtomicBool>,
+    cancel: CancellationToken,
     cache: Cache,
     client_id: String,
     client_secret: String,
     nc: async_nats::Client,
     pool: Pool<Postgres>,
 ) -> Result<(), Error> {
-    println!(
-        "{} {}",
-        format!("[{}]", spotify_email).bright_green(),
-        "Checking currently playing".cyan()
-    );
+    tracing::info!(email = %spotify_email, "checking currently playing");
 
-    let stop_flag_clone = stop_flag.clone();
+    let cancel_clone = cancel.clone();
     let spotify_email_clone = spotify_email.clone();
     let cache_clone = cache.clone();
-    thread::spawn(move || {
-        // Inner thread with error recovery
-        let result: Result<(), Error> = (|| {
+    tokio::spawn(async move {
+        // Inner task with error recovery
+        let result: Result<(), Error> = async {
             loop {
-                if stop_flag_clone.load(std::sync::atomic::Ordering::Relaxed) {
-                    println!(
-                        "{} Stopping progress tracker thread",
-                        format!("[{}]", spotify_email_clone).bright_green()
+                if cancel_clone.is_cancelled() {
+                    tracing::info!(
+                        email = %spotify_email_clone,
+                        "stopping progress tracker task"
                     );
                     break;
                 }
 
-                if let Ok(Some(cached)) =
-                    cache_clone.get(&format!("{}:current", spotify_email_clone))
+                if let Ok(Some(cached)) = cache_clone
+                    .get(&format!("{}:current", spotify_email_clone))
+                    .await
                 {
                     if let Ok(mut current_song) = serde_json::from_str::<CurrentlyPlaying>(&cached)
                     {
@@ -909,56 +857,59 @@ pub async fn watch_currently_playing(
                             {
                                 current_song.progress_ms =
                                     Some(current_song.progress_ms.unwrap_or(0) + 800);
-                                match cache_clone.setex(
-                                    &format!("{}:current", spotify_email_clone),
-                                    &serde_json::to_string(&current_song).unwrap_or_default(),
-                                    16,
-                                ) {
+                                match cache_clone
+                                    .setex(
+                                        &format!("{}:current", spotify_email_clone),
+                                        &serde_json::to_string(&current_song).unwrap_or_default(),
+                                        16,
+                                    )
+                                    .await
+                                {
                                     Ok(_) => {}
                                     Err(e) => {
-                                        println!(
-                                            "{} redis error: {}",
-                                            format!("[{}]", spotify_email_clone).bright_green(),
-                                            e.to_string().bright_red()
+                                        tracing::error!(
+                                            email = %spotify_email_clone,
+                                            error = %e,
+                                            "redis error"
                                         );
                                     }
                                 }
-                                thread::sleep(std::time::Duration::from_millis(800));
+                                tokio::time::sleep(Duration::from_millis(800)).await;
                                 continue;
                             }
                         }
                     }
                 }
 
-                if let Ok(Some(cached)) = cache_clone.get(&spotify_email_clone) {
+                if let Ok(Some(cached)) = cache_clone.get(&spotify_email_clone).await {
                     if cached != "No content" {
-                        match cache_clone.setex(
-                            &format!("{}:current", spotify_email_clone),
-                            &cached,
-                            16,
-                        ) {
+                        match cache_clone
+                            .setex(&format!("{}:current", spotify_email_clone), &cached, 16)
+                            .await
+                        {
                             Ok(_) => {}
                             Err(e) => {
-                                println!(
-                                    "{} redis error: {}",
-                                    format!("[{}]", spotify_email_clone).bright_green(),
-                                    e.to_string().bright_red()
+                                tracing::error!(
+                                    email = %spotify_email_clone,
+                                    error = %e,
+                                    "redis error"
                                 );
                             }
                         }
                     }
                 }
 
-                thread::sleep(std::time::Duration::from_millis(800));
+                tokio::time::sleep(Duration::from_millis(800)).await;
             }
             Ok(())
-        })();
+        }
+        .await;
 
         if let Err(e) = result {
-            println!(
-                "{} Progress tracker thread error: {}",
-                format!("[{}]", spotify_email_clone).bright_green(),
-                e.to_string().bright_red()
+            tracing::error!(
+                email = %spotify_email_clone,
+                error = %e,
+                "progress tracker task error"
             );
         }
     });
@@ -966,11 +917,8 @@ pub async fn watch_currently_playing(
     let mut was_playing = false;
 
     loop {
-        if stop_flag.load(std::sync::atomic::Ordering::Relaxed) {
-            println!(
-                "{} Stopping Thread",
-                format!("[{}]", spotify_email).bright_green()
-            );
+        if cancel.is_cancelled() {
+            tracing::info!(email = %spotify_email, "stopping task");
             break;
         }
         let spotify_email = spotify_email.clone();
@@ -993,11 +941,7 @@ pub async fn watch_currently_playing(
         let currently_playing = match currently_playing {
             Ok(currently_playing) => currently_playing,
             Err(e) => {
-                println!(
-                    "{} {}",
-                    format!("[{}]", spotify_email).bright_green(),
-                    e.to_string().bright_red()
-                );
+                tracing::error!(email = %spotify_email, error = %e, "get_currently_playing failed");
                 tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
                 continue;
             }
@@ -1010,10 +954,10 @@ pub async fn watch_currently_playing(
                     was_playing = false;
                     let payload = serde_json::json!({ "did": did }).to_string().into_bytes();
                     if let Err(e) = nc.publish("rocksky.song.stopped", payload.into()).await {
-                        println!(
-                            "{} Failed to publish song stopped event: {}",
-                            format!("[{}]", spotify_email).bright_green(),
-                            e.to_string().bright_red()
+                        tracing::error!(
+                            email = %spotify_email,
+                            error = %e,
+                            "failed to publish song stopped event"
                         );
                     }
                 }
@@ -1022,19 +966,15 @@ pub async fn watch_currently_playing(
             }
             Some((data, changed)) => {
                 if data.item.is_none() {
-                    println!(
-                        "{} {}",
-                        format!("[{}]", spotify_email).bright_green(),
-                        "No song playing".yellow()
-                    );
+                    tracing::debug!(email = %spotify_email, "no song playing");
                     if was_playing {
                         was_playing = false;
                         let payload = serde_json::json!({ "did": did }).to_string().into_bytes();
                         if let Err(e) = nc.publish("rocksky.song.stopped", payload.into()).await {
-                            println!(
-                                "{} Failed to publish song stopped event: {}",
-                                format!("[{}]", spotify_email).bright_green(),
-                                e.to_string().bright_red()
+                            tracing::error!(
+                                email = %spotify_email,
+                                error = %e,
+                                "failed to publish song stopped event"
                             );
                         }
                     }
@@ -1046,22 +986,25 @@ pub async fn watch_currently_playing(
         };
         {
             let data_item = data.item.unwrap();
-            println!(
-                "{} {} is_playing: {} changed: {}",
-                format!("[{}]", spotify_email).bright_green(),
-                format!("{} - {}", data_item.name, data_item.artists[0].name).yellow(),
-                data.is_playing,
-                changed
+            tracing::info!(
+                email = %spotify_email,
+                track = %data_item.name,
+                artist = %data_item.artists[0].name,
+                is_playing = data.is_playing,
+                changed,
+                "currently playing"
             );
 
             was_playing = true;
 
             if changed {
-                cache.setex(
-                    &format!("changed:{}:{}", spotify_email, data_item.id),
-                    &data_item.duration_ms.to_string(),
-                    3600 * 24,
-                )?;
+                cache
+                    .setex(
+                        &format!("changed:{}:{}", spotify_email, data_item.id),
+                        &data_item.duration_ms.to_string(),
+                        3600 * 24,
+                    )
+                    .await?;
                 let payload = serde_json::json!({
                     "did": did,
                     "track": {
@@ -1081,32 +1024,34 @@ pub async fn watch_currently_playing(
                 .to_string()
                 .into_bytes();
                 if let Err(e) = nc.publish("rocksky.song.changed", payload.into()).await {
-                    println!(
-                        "{} Failed to publish song changed event: {}",
-                        format!("[{}]", spotify_email).bright_green(),
-                        e.to_string().bright_red()
+                    tracing::error!(
+                        email = %spotify_email,
+                        error = %e,
+                        "failed to publish song changed event"
                     );
                 }
             }
 
-            let current_track =
-                match cache.get(&format!("changed:{}:{}", spotify_email, data_item.id)) {
-                    Ok(x) => x.is_some(),
-                    Err(_) => false,
-                };
+            let current_track = match cache
+                .get(&format!("changed:{}:{}", spotify_email, data_item.id))
+                .await
+            {
+                Ok(x) => x.is_some(),
+                Err(_) => false,
+            };
 
-            if let Ok(Some(cached)) = cache.get(&format!("{}:current", spotify_email)) {
+            if let Ok(Some(cached)) = cache.get(&format!("{}:current", spotify_email)).await {
                 let current_song = serde_json::from_str::<CurrentlyPlaying>(&cached)?;
                 if let Some(item) = current_song.item {
                     let percentage = current_song.progress_ms.unwrap_or(0) as f32
                         / data_item.duration_ms as f32
                         * 100.0;
                     if current_track && percentage >= 40.0 && item.id == data_item.id {
-                        println!(
-                            "{} Scrobbling track: {} {}",
-                            format!("[{}]", spotify_email).bright_green(),
-                            item.name.yellow(),
-                            format!("{:.2}%", percentage)
+                        tracing::info!(
+                            email = %spotify_email,
+                            track = %item.name,
+                            percentage = format!("{:.2}", percentage),
+                            "scrobbling track"
                         );
                         scrobble(
                             cache.clone(),
@@ -1119,22 +1064,24 @@ pub async fn watch_currently_playing(
                         )
                         .await?;
 
-                        match cache.del(&format!("changed:{}:{}", spotify_email, data_item.id)) {
+                        match cache
+                            .del(&format!("changed:{}:{}", spotify_email, data_item.id))
+                            .await
+                        {
                             Ok(_) => {}
-                            Err(_) => tracing::error!("Failed to delete cache entry"),
+                            Err(_) => tracing::error!("failed to delete cache entry"),
                         };
 
-                        let pool_for_thread = pool.clone();
-                        thread::spawn(move || {
-                            let rt = tokio::runtime::Runtime::new().unwrap();
-                            match rt.block_on(async {
+                        let pool_for_task = pool.clone();
+                        tokio::spawn(async move {
+                            let result: Result<(), Error> = async {
                                 get_album_tracks(
                                     cache.clone(),
                                     &data_item.album.id,
                                     &token,
                                     &client_id,
                                     &client_secret,
-                                    &pool_for_thread,
+                                    &pool_for_task,
                                     &spotify_email,
                                 )
                                 .await?;
@@ -1144,7 +1091,7 @@ pub async fn watch_currently_playing(
                                     &token,
                                     &client_id,
                                     &client_secret,
-                                    &pool_for_thread,
+                                    &pool_for_task,
                                     &spotify_email,
                                 )
                                 .await?;
@@ -1155,19 +1102,19 @@ pub async fn watch_currently_playing(
                                     &token,
                                     &client_id,
                                     &client_secret,
-                                    &pool_for_thread,
+                                    &pool_for_task,
                                 )
                                 .await?;
-                                Ok::<(), Error>(())
-                            }) {
-                                Ok(_) => {}
-                                Err(e) => {
-                                    println!(
-                                        "{} {}",
-                                        format!("[{}]", spotify_email).bright_green(),
-                                        e.to_string().bright_red()
-                                    );
-                                }
+                                Ok(())
+                            }
+                            .await;
+
+                            if let Err(e) = result {
+                                tracing::error!(
+                                    email = %spotify_email,
+                                    error = %e,
+                                    "post-scrobble background work failed"
+                                );
                             }
                         });
                     }

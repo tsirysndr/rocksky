@@ -1,47 +1,53 @@
 use anyhow::Error;
-use redis::Client;
+use redis::aio::MultiplexedConnection;
 use std::env;
 
 #[derive(Clone)]
 pub struct Cache {
-    pub client: Client,
+    conn: MultiplexedConnection,
 }
 
 impl Cache {
-    pub fn new() -> Result<Self, Error> {
+    pub async fn new() -> Result<Self, Error> {
         let client =
             redis::Client::open(env::var("REDIS_URL").unwrap_or("redis://127.0.0.1".into()))?;
-        Ok(Cache { client })
+        let conn = client.get_multiplexed_async_connection().await?;
+        Ok(Cache { conn })
     }
 
-    pub fn get(&self, key: &str) -> Result<Option<String>, Error> {
-        let mut con = self.client.get_connection()?;
-        let result: Option<String> = redis::cmd("GET").arg(key).query(&mut con)?;
+    pub async fn get(&self, key: &str) -> Result<Option<String>, Error> {
+        let mut conn = self.conn.clone();
+        let result: Option<String> = redis::cmd("GET").arg(key).query_async(&mut conn).await?;
         Ok(result)
     }
 
-    pub fn set(&self, key: &str, value: &str) -> Result<(), Error> {
-        let mut con = self.client.get_connection()?;
+    pub async fn set(&self, key: &str, value: &str) -> Result<(), Error> {
+        let mut conn = self.conn.clone();
         redis::cmd("SET")
             .arg(key)
             .arg(value)
-            .query::<()>(&mut con)?;
+            .query_async::<()>(&mut conn)
+            .await?;
         Ok(())
     }
 
-    pub fn setex(&self, key: &str, value: &str, seconds: usize) -> Result<(), Error> {
-        let mut con = self.client.get_connection()?;
+    pub async fn setex(&self, key: &str, value: &str, seconds: usize) -> Result<(), Error> {
+        let mut conn = self.conn.clone();
         redis::cmd("SETEX")
             .arg(key)
             .arg(seconds)
             .arg(value)
-            .query::<()>(&mut con)?;
+            .query_async::<()>(&mut conn)
+            .await?;
         Ok(())
     }
 
-    pub fn del(&self, key: &str) -> Result<(), Error> {
-        let mut con = self.client.get_connection()?;
-        redis::cmd("DEL").arg(key).query::<()>(&mut con)?;
+    pub async fn del(&self, key: &str) -> Result<(), Error> {
+        let mut conn = self.conn.clone();
+        redis::cmd("DEL")
+            .arg(key)
+            .query_async::<()>(&mut conn)
+            .await?;
         Ok(())
     }
 }

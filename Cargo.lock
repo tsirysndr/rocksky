@@ -5197,7 +5197,6 @@ dependencies = [
  "dotenv",
  "hex",
  "jsonwebtoken",
- "owo-colors",
  "redis 0.29.5",
  "reqwest",
  "serde",
@@ -5205,6 +5204,7 @@ dependencies = [
  "sqlx",
  "tokio",
  "tokio-stream",
+ "tokio-util",
  "tracing",
 ]
 
