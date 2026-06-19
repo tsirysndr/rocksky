@@ -157,6 +157,10 @@ export class HlsAudioController {
     }
   }
 
+  toggleMute() {
+    this.audio.muted = !this.audio.muted;
+  }
+
   state(): HlsAudioState {
     return {
       attached: this.currentUrl !== null,

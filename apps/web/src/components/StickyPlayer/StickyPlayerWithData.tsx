@@ -574,7 +574,6 @@ function StickyPlayerWithData() {
         onNext={onNext}
         onSpeaker={() => setPlayerSelectorOpen((o) => !o)}
         speakerRef={speakerRef}
-        onEqualizer={() => {}}
         onPlaylist={() => setQueuePanelOpen((o) => !o)}
         onSeek={onSeek}
         isPlaying={nowPlaying.isPlaying}

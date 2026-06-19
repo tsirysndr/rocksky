@@ -13,7 +13,6 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import { Tab, Tabs } from "baseui/tabs-motion";
 import { useMemo, useRef, useState, useEffect, useCallback } from "react";
-import ContentLoader from "react-content-loader";
 import {
   fetchNavidromeAlbum,
   getCoverArtUrl,
@@ -794,7 +793,7 @@ export default function Library() {
   const tracksSentinelRef = useInfiniteScrollSentinel(tracksQuery.hasNextPage, tracksQuery.isFetchingNextPage, tracksQuery.fetchNextPage);
   const albumsSentinelRef = useInfiniteScrollSentinel(albumsQuery.hasNextPage, albumsQuery.isFetchingNextPage, albumsQuery.fetchNextPage);
 
-  const handleTrackClick = useCallback((song: NavidromeSong, idx: number) => {
+  const handleTrackClick = useCallback((_song: NavidromeSong, idx: number) => {
     if (!creds) return;
     const queue = allSongs.map((s) => songToQueueTrack(s, creds, s.coverArt ? getCoverArtUrl(creds, s.coverArt) : null));
     playNow(queue, idx);
