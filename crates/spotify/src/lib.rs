@@ -61,7 +61,8 @@ pub async fn run() -> Result<(), Error> {
                              client_secret: String,
                              stop_flag: Arc<AtomicBool>,
                              cache: Cache,
-                             nc: async_nats::Client| {
+                             nc: async_nats::Client,
+                             pool: Pool<Postgres>| {
         thread::spawn(move || {
             let rt = tokio::runtime::Runtime::new().unwrap();
             let mut retry_count = 0;
@@ -86,6 +87,7 @@ pub async fn run() -> Result<(), Error> {
                         client_id.clone(),
                         client_secret.clone(),
                         nc.clone(),
+                        pool.clone(),
                     )
                     .await
                 }) {
@@ -156,6 +158,7 @@ pub async fn run() -> Result<(), Error> {
         let cache = cache.clone();
         let nc = nc.clone();
         let thread_map = Arc::clone(&thread_map);
+        let pool = pool.clone();
 
         thread_map
             .lock()
@@ -171,6 +174,7 @@ pub async fn run() -> Result<(), Error> {
             stop_flag,
             cache,
             nc,
+            pool,
         );
     }
 
@@ -212,6 +216,7 @@ pub async fn run() -> Result<(), Error> {
             let client_secret = user.4.clone();
             let cache = cache.clone();
             let nc = nc.clone();
+            let pool_clone = pool.clone();
 
             start_user_thread(
                 email,
@@ -222,6 +227,7 @@ pub async fn run() -> Result<(), Error> {
                 new_stop_flag,
                 cache,
                 nc,
+                pool_clone,
             );
 
             println!("Restarted thread for user: {}", user_id.bright_green());
@@ -240,6 +246,7 @@ pub async fn run() -> Result<(), Error> {
                 let stop_flag = Arc::new(AtomicBool::new(false));
                 let cache = cache.clone();
                 let nc = nc.clone();
+                let pool_clone = pool.clone();
 
                 thread_map.insert(email.clone(), Arc::clone(&stop_flag));
 
@@ -252,6 +259,7 @@ pub async fn run() -> Result<(), Error> {
                     stop_flag,
                     cache,
                     nc,
+                    pool_clone,
                 );
             }
         }
@@ -264,6 +272,8 @@ pub async fn refresh_token(
     token: &str,
     client_id: &str,
     client_secret: &str,
+    pool: &Pool<Postgres>,
+    email: &str,
 ) -> Result<AccessToken, Error> {
     let client = Client::new();
 
@@ -277,13 +287,56 @@ pub async fn refresh_token(
         ])
         .send()
         .await?;
-    let token = response.text().await?;
-    let json_token = serde_json::from_str::<AccessToken>(&token);
+    let status = response.status();
+    let body = response.text().await?;
+
+    if !status.is_success() {
+        if let Ok(err_json) = serde_json::from_str::<serde_json::Value>(&body) {
+            if err_json.get("error").and_then(|v| v.as_str()) == Some("invalid_grant") {
+                tracing::info!(
+                    email = %email,
+                    "refresh token revoked/expired, removing from spotify_tokens"
+                );
+                if let Err(e) = delete_spotify_token_by_email(pool, email).await {
+                    tracing::error!(
+                        email = %email,
+                        error = %e,
+                        "failed to delete spotify token"
+                    );
+                }
+                return Err(Error::msg(format!("refresh token revoked for {}", email)));
+            }
+        }
+        return Err(Error::msg(format!(
+            "token refresh failed ({}): {}",
+            status, body
+        )));
+    }
+
+    let json_token = serde_json::from_str::<AccessToken>(&body);
     if let Err(e) = json_token {
-        println!("Error parsing token: {}", token);
+        println!("Error parsing token: {}", body);
         return Err(Error::from(e));
     }
     Ok(json_token.unwrap())
+}
+
+pub async fn delete_spotify_token_by_email(
+    pool: &Pool<Postgres>,
+    email: &str,
+) -> Result<(), Error> {
+    sqlx::query(
+        r#"
+        DELETE FROM spotify_tokens
+        USING spotify_accounts
+        WHERE spotify_tokens.user_id = spotify_accounts.user_id
+          AND spotify_accounts.email = $1
+        "#,
+    )
+    .bind(email)
+    .execute(pool)
+    .await?;
+    Ok(())
 }
 
 pub async fn get_currently_playing(
@@ -292,6 +345,7 @@ pub async fn get_currently_playing(
     token: &str,
     client_id: &str,
     client_secret: &str,
+    pool: &Pool<Postgres>,
 ) -> Result<Option<(CurrentlyPlaying, bool)>, Error> {
     if let Ok(Some(data)) = cache.get(user_id) {
         println!(
@@ -366,7 +420,7 @@ pub async fn get_currently_playing(
         return Ok(Some((data, changed)));
     }
 
-    let token = refresh_token(token, client_id, client_secret).await?;
+    let token = refresh_token(token, client_id, client_secret, pool, user_id).await?;
     let client = Client::new();
     let response = client
         .get(format!("{}/me/player/currently-playing", BASE_URL))
@@ -572,12 +626,14 @@ pub async fn get_artist(
     token: &str,
     client_id: &str,
     client_secret: &str,
+    pool: &Pool<Postgres>,
+    email: &str,
 ) -> Result<Option<Artist>, Error> {
     if let Ok(Some(data)) = cache.get(artist_id) {
         return Ok(Some(serde_json::from_str(&data)?));
     }
 
-    let token = refresh_token(token, client_id, client_secret).await?;
+    let token = refresh_token(token, client_id, client_secret, pool, email).await?;
     let client = Client::new();
     let response = client
         .get(&format!("{}/artists/{}", BASE_URL, artist_id))
@@ -618,12 +674,14 @@ pub async fn get_album(
     token: &str,
     client_id: &str,
     client_secret: &str,
+    pool: &Pool<Postgres>,
+    email: &str,
 ) -> Result<Option<Album>, Error> {
     if let Ok(Some(data)) = cache.get(album_id) {
         return Ok(Some(serde_json::from_str(&data)?));
     }
 
-    let token = refresh_token(token, client_id, client_secret).await?;
+    let token = refresh_token(token, client_id, client_secret, pool, email).await?;
     let client = Client::new();
     let response = client
         .get(&format!("{}/albums/{}", BASE_URL, album_id))
@@ -664,12 +722,14 @@ pub async fn get_album_tracks(
     token: &str,
     client_id: &str,
     client_secret: &str,
+    pool: &Pool<Postgres>,
+    email: &str,
 ) -> Result<AlbumTracks, Error> {
     if let Ok(Some(data)) = cache.get(&format!("{}:tracks", album_id)) {
         return Ok(serde_json::from_str(&data)?);
     }
 
-    let token = refresh_token(token, client_id, client_secret).await?;
+    let token = refresh_token(token, client_id, client_secret, pool, email).await?;
     let client = Client::new();
     let mut all_tracks = Vec::new();
     let mut offset = 0;
@@ -815,6 +875,7 @@ pub async fn watch_currently_playing(
     client_id: String,
     client_secret: String,
     nc: async_nats::Client,
+    pool: Pool<Postgres>,
 ) -> Result<(), Error> {
     println!(
         "{} {}",
@@ -926,6 +987,7 @@ pub async fn watch_currently_playing(
             &token,
             &client_id,
             &client_secret,
+            &pool,
         )
         .await;
         let currently_playing = match currently_playing {
@@ -1053,6 +1115,7 @@ pub async fn watch_currently_playing(
                             &token,
                             &client_id,
                             &client_secret,
+                            &pool,
                         )
                         .await?;
 
@@ -1061,6 +1124,7 @@ pub async fn watch_currently_playing(
                             Err(_) => tracing::error!("Failed to delete cache entry"),
                         };
 
+                        let pool_for_thread = pool.clone();
                         thread::spawn(move || {
                             let rt = tokio::runtime::Runtime::new().unwrap();
                             match rt.block_on(async {
@@ -1070,6 +1134,8 @@ pub async fn watch_currently_playing(
                                     &token,
                                     &client_id,
                                     &client_secret,
+                                    &pool_for_thread,
+                                    &spotify_email,
                                 )
                                 .await?;
                                 get_album(
@@ -1078,6 +1144,8 @@ pub async fn watch_currently_playing(
                                     &token,
                                     &client_id,
                                     &client_secret,
+                                    &pool_for_thread,
+                                    &spotify_email,
                                 )
                                 .await?;
                                 update_library(
@@ -1087,6 +1155,7 @@ pub async fn watch_currently_playing(
                                     &token,
                                     &client_id,
                                     &client_secret,
+                                    &pool_for_thread,
                                 )
                                 .await?;
                                 Ok::<(), Error>(())

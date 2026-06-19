@@ -1,5 +1,6 @@
 use anyhow::Error;
 use reqwest::Client;
+use sqlx::{Pool, Postgres};
 
 use crate::{
     cache::Cache,
@@ -20,6 +21,7 @@ pub async fn scrobble(
     refresh_token: &str,
     client_id: &str,
     client_secret: &str,
+    pool: &Pool<Postgres>,
 ) -> Result<(), Error> {
     let cached = cache.get(spotify_email)?;
     if cached.is_none() {
@@ -44,6 +46,8 @@ pub async fn scrobble(
         &refresh_token,
         &client_id,
         &client_secret,
+        pool,
+        spotify_email,
     )
     .await?;
 
@@ -105,6 +109,7 @@ pub async fn update_library(
     refresh_token: &str,
     client_id: &str,
     client_secret: &str,
+    pool: &Pool<Postgres>,
 ) -> Result<(), Error> {
     let cached = cache.get(spotify_email)?;
     if cached.is_none() {
@@ -118,6 +123,7 @@ pub async fn update_library(
             &refresh_token,
             client_id,
             client_secret,
+            pool,
         )
         .await?;
     }
