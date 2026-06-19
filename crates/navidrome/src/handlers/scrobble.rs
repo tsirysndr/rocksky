@@ -4,6 +4,7 @@ use serde_json::json;
 use sqlx::{Pool, Postgres};
 use std::{collections::HashMap, sync::Arc};
 
+#[allow(unused_imports)]
 use crate::{api, repo, response};
 
 pub async fn publish_song_changed(
@@ -107,38 +108,44 @@ pub async fn handle_scrobble(
         })
         .unwrap_or_else(Utc::now);
 
-    let track = match repo::track::get_track_by_id(pool, song_id, user_id).await {
-        Ok(Some(t)) => t,
-        Ok(None) => return response::err(format, 70, "Song not found"),
-        Err(e) => {
-            tracing::error!("scrobble track lookup error: {}", e);
-            return response::err(format, 0, "Internal server error");
-        }
-    };
-
-    // Do NOT insert into `scrobbles` directly — the API's scrobbleTrack owns
-    // the full pipeline (dedup check → ATProto records → DB write with URI).
-    // A direct insert here would be found by the duplicate check and cause
-    // scrobbleTrack to exit early, leaving uri = NULL forever.
-    let pool_clone = Arc::clone(pool);
-    let user_id_owned = user_id.to_string();
-    let timestamp_unix = timestamp.timestamp();
-    tokio::spawn(async move {
-        match repo::user::get_user_did_by_id(&pool_clone, &user_id_owned).await {
-            Ok(Some(did)) => {
-                api::post_now_playing(did, track, timestamp_unix).await;
-            }
-            Ok(None) => {
-                tracing::warn!(user_id = %user_id_owned, "DID not found, skipping ATProto publish");
-            }
-            Err(e) => {
-                tracing::warn!(user_id = %user_id_owned, "DID lookup error: {}", e);
-            }
-        }
-    });
-
-    tracing::info!(user_id, song_id, "scrobble queued for ATProto publish");
+    // Scrobble submission temporarily disabled — acknowledge the request
+    // without queueing an ATProto publish.
+    let _ = timestamp;
+    tracing::info!(user_id, song_id, "scrobble submission ignored (disabled)");
     response::ok(format, json!({}))
+
+    // let track = match repo::track::get_track_by_id(pool, song_id, user_id).await {
+    //     Ok(Some(t)) => t,
+    //     Ok(None) => return response::err(format, 70, "Song not found"),
+    //     Err(e) => {
+    //         tracing::error!("scrobble track lookup error: {}", e);
+    //         return response::err(format, 0, "Internal server error");
+    //     }
+    // };
+    //
+    // // Do NOT insert into `scrobbles` directly — the API's scrobbleTrack owns
+    // // the full pipeline (dedup check → ATProto records → DB write with URI).
+    // // A direct insert here would be found by the duplicate check and cause
+    // // scrobbleTrack to exit early, leaving uri = NULL forever.
+    // let pool_clone = Arc::clone(pool);
+    // let user_id_owned = user_id.to_string();
+    // let timestamp_unix = timestamp.timestamp();
+    // tokio::spawn(async move {
+    //     match repo::user::get_user_did_by_id(&pool_clone, &user_id_owned).await {
+    //         Ok(Some(did)) => {
+    //             api::post_now_playing(did, track, timestamp_unix).await;
+    //         }
+    //         Ok(None) => {
+    //             tracing::warn!(user_id = %user_id_owned, "DID not found, skipping ATProto publish");
+    //         }
+    //         Err(e) => {
+    //             tracing::warn!(user_id = %user_id_owned, "DID lookup error: {}", e);
+    //         }
+    //     }
+    // });
+    //
+    // tracing::info!(user_id, song_id, "scrobble queued for ATProto publish");
+    // response::ok(format, json!({}))
 }
 
 pub async fn handle_update_now_playing(
