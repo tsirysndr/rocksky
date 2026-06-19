@@ -1,77 +1,64 @@
-import { Container, getContainer, getRandom } from "@cloudflare/containers";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 
-export class RockboxContainer extends Container<Env> {
-	// Port the container listens on (default: 8080)
-	defaultPort = 8080;
-	// Time before container sleeps due to inactivity (default: 30s)
-	sleepAfter = "2m";
-	// Environment variables passed to the container
-	envVars = {
-		MESSAGE: "I was passed in via the container class!",
-	};
+// CF Worker frontline for rockbox. Responsibilities:
+//   1. Public hostname (rockbox.rocksky.app) + CORS.
+//   2. Extract the DID from /:did/* and forward to rockbox-router on Fly.
+//   3. Hold the shared bearer between the public edge and the router.
+//
+// The Fly router responds to our request with `fly-replay: instance=<id>`,
+// Fly's anycast proxy then re-issues the request to the specific per-DID
+// rockbox machine. So this Worker never sees the audio bytes pass through —
+// it just authenticates and forwards.
 
-	// Optional lifecycle hooks
-	override onStart() {
-		console.log("Container successfully started");
-	}
+type Env = {
+  ROCKBOX_ROUTER_URL: string; // e.g. https://rockbox-router.fly.dev
+  ROCKBOX_ROUTER_TOKEN: string; // matches ROUTER_AUTH_BEARER on the router
+};
 
-	override onStop() {
-		console.log("Container successfully shut down");
-	}
-
-	override onError(error: unknown) {
-		console.log("Container error:", error);
-	}
-}
-
-// Create Hono app with proper typing for Cloudflare Workers
-const app = new Hono<{
-	Bindings: Env;
-}>();
+const app = new Hono<{ Bindings: Env }>();
 
 app.use("*", cors());
 
-// Home route with available endpoints
-app.get("/", (c) => {
-	return c.text(
-		"Available endpoints:\n" +
-			"GET /<ID> - Start a container for each ID with a 2m timeout\n"
-	);
-});
+app.get("/", (c) =>
+  c.text(
+    "rockbox.rocksky.app — per-user rockbox on Fly\n" +
+      "GET /<did>/hls/audio.m3u8 → user's CMAF HLS stream\n" +
+      "POST /<did>/graphql       → user's rockbox GraphQL\n",
+  ),
+);
 
-app.all("/assets/*", async (c) => {
-	const container = getContainer(c.env.ROCKBOX_CONTAINER, 'assets');
-	return await container.fetch(c.req.raw);
-});
+// /:did/* — strip the DID, forward to the router with X-Rockbox-Id set.
+//
+// We strip the prefix because fly-replay forwards the URL verbatim to the
+// rockbox machine, and that machine's internal proxy expects clean paths
+// (/hls/, /seg/, /init.mp4, /graphql) — no /:did/ prefix.
+app.all("/:id{[^/]+}/*", async (c) => forward(c.req.raw, c.env, c.req.param("id")));
+app.all("/:id{[^/]+}", async (c) => forward(c.req.raw, c.env, c.req.param("id"), true));
 
-app.all("/graphql", async (c) => {
-	const container = getContainer(c.env.ROCKBOX_CONTAINER, 'did:plc:7vdlgi2bflelz7mmuxoqjfcr');
-	return await container.fetch(c.req.raw);
-});
+async function forward(req: Request, env: Env, did: string, rootOnly = false): Promise<Response> {
+  const inUrl = new URL(req.url);
+  const stripped = rootOnly ? "/" : inUrl.pathname.slice(1 + did.length) || "/";
 
-// Route requests to a specific container, stripping the /:id prefix
-app.all("/:id/*", async (c) => {
-	const id = c.req.param("id");
-	const url = new URL(c.req.url);
-	url.pathname = url.pathname.slice(1 + id.length) || "/";
-	const headers = new Headers(c.req.raw.headers);
-	headers.set("X-Rockbox-Id", id);
-	const container = getContainer(c.env.ROCKBOX_CONTAINER, id);
-	return await container.fetch(new Request(url.toString(), {
-		method: c.req.method,
-		headers,
-		body: ["GET", "HEAD"].includes(c.req.method) ? undefined : c.req.raw.body,
-	}));
-});
+  const target = new URL(env.ROCKBOX_ROUTER_URL);
+  target.pathname = stripped;
+  target.search = inUrl.search;
 
-app.all("/:id", async (c) => {
-	const id = c.req.param("id");
-	const url = new URL(c.req.url);
-	url.pathname = "/";
-	const container = getContainer(c.env.ROCKBOX_CONTAINER, id);
-	return await container.fetch(new Request(url.toString(), c.req.raw));
-});
+  const headers = new Headers(req.headers);
+  headers.set("X-Rockbox-Id", did);
+  headers.set("Authorization", `Bearer ${env.ROCKBOX_ROUTER_TOKEN}`);
+  // Drop CF's host/cf-* hop headers so they don't confuse Fly's proxy.
+  headers.delete("host");
+
+  return fetch(target.toString(), {
+    method: req.method,
+    headers,
+    body: ["GET", "HEAD"].includes(req.method) ? undefined : req.body,
+    // Required when forwarding a streamed body to a sub-request.
+    // @ts-expect-error — duplex is a valid Workers RequestInit field.
+    duplex: "half",
+    redirect: "manual",
+  });
+}
 
 export default app;

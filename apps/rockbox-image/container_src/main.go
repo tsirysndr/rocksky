@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -17,6 +18,13 @@ import (
 	"syscall"
 	"time"
 )
+
+// Upstream ports we gate /healthz on. 6062 is rockbox's GraphQL server (what
+// /graphql forwards to); 6063 is the REST/actix server that the GraphQL crate
+// itself calls into (http://127.0.0.1:6063/playlists/current and friends).
+// If either is down, downstream requests fail mid-flight, so Fly's readiness
+// check must reflect both.
+var upstreamPorts = []string{"127.0.0.1:6062", "127.0.0.1:6063"}
 
 var (
 	defaultTarget = &url.URL{Scheme: "http", Host: "localhost:6062"}
@@ -125,6 +133,19 @@ func rewriteM3U8(body []byte, prefix string) []byte {
 	return bytes.Join(lines, []byte("\n"))
 }
 
+// upstreamsReady probes every upstream port with a short TCP dial. Returns
+// the first port that isn't accepting connections, or "" if all are up.
+func upstreamsReady() string {
+	for _, addr := range upstreamPorts {
+		c, err := net.DialTimeout("tcp", addr, 200*time.Millisecond)
+		if err != nil {
+			return addr
+		}
+		_ = c.Close()
+	}
+	return ""
+}
+
 func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
@@ -133,6 +154,13 @@ func main() {
 	mediaProxy := newMediaProxy(mediaTarget)
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		if down := upstreamsReady(); down != "" {
+			http.Error(w, "upstream not ready: "+down, http.StatusServiceUnavailable)
+			return
+		}
+		w.Write([]byte("ok"))
+	})
 	mux.HandleFunc("/hls/", func(w http.ResponseWriter, r *http.Request) {
 		mediaProxy.ServeHTTP(w, r)
 	})

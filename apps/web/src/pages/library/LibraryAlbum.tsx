@@ -1,4 +1,3 @@
-import dayjs from "dayjs";
 import styled from "@emotion/styled";
 import {
   IconArrowLeft,
@@ -6,17 +5,14 @@ import {
   IconDots,
   IconMusic,
   IconPlayerPlay,
-  IconTrash,
   IconVinyl,
 } from "@tabler/icons-react";
-import { useNavigate, useParams } from "@tanstack/react-router";
-import { useState, useRef, useEffect, useCallback } from "react";
-import type { UploadedTrack } from "../../api/uploads";
-import {
-  useAlbumTracksQuery,
-  useDeleteAlbumMutation,
-  useDeleteUploadMutation,
-} from "../../hooks/useUploads";
+import { useNavigate } from "@tanstack/react-router";
+import { useCallback, useRef, useEffect, useState } from "react";
+import { Route } from "../../routes/library/album/$id";
+import { getCoverArtUrl, type NavidromeSong, type NavidromeCredentials } from "../../api/navidrome";
+import { useNavidromeAlbumQuery, useNavidromeCredentials, songToQueueTrack } from "../../hooks/useNavidrome";
+import { useDeleteUploadByTrackIdMutation, useDeleteAlbumByIdMutation } from "../../hooks/useUploads";
 import { useUploadPlayer } from "../../hooks/useUploadPlayer";
 import type { QueueTrack } from "../../atoms/queue";
 import Main from "../../layouts/Main";
@@ -26,58 +22,21 @@ import { DropdownPortal } from "../../components/DropdownPortal";
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatReleaseDate(raw: string | null | undefined, year: number | null | undefined): string | null {
-  if (raw) {
-    const parts = raw.split("-");
-    if (parts.length === 3) {
-      const d = dayjs(raw);
-      if (d.isValid()) return d.format("D MMMM YYYY");
-    }
-    if (parts.length === 2) {
-      const d = dayjs(`${raw}-01`);
-      if (d.isValid()) return d.format("MMMM YYYY");
-    }
-  }
-  if (year) return String(year);
-  return null;
-}
-
-function formatDuration(ms: number) {
-  const totalSeconds = Math.floor(ms / 1000);
-  const m = Math.floor(totalSeconds / 60);
-  const s = totalSeconds % 60;
+function formatDurationSecs(secs: number) {
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-function formatTotalDuration(ms: number) {
-  const totalSeconds = Math.floor(ms / 1000);
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
+function formatTotalSecs(secs: number) {
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
   if (h > 0) return `${h} hr ${m} min`;
   return `${m} min`;
 }
 
-function toQueueTrack(item: UploadedTrack): QueueTrack {
-  return {
-    uploadId: item.upload.id,
-    title: item.track.title,
-    artist: item.track.artist,
-    albumArtist: item.track.albumArtist,
-    album: item.track.album,
-    albumArt: item.track.albumArt,
-    duration: item.track.duration,
-    sha256: item.track.sha256,
-    songUri: item.track.uri ?? "",
-    trackNumber: item.track.trackNumber,
-    copyrightMessage: item.track.copyrightMessage,
-    genre: item.track.genre,
-    releaseDate: item.albumReleaseDate,
-    year: item.albumYear,
-  };
-}
-
 // ---------------------------------------------------------------------------
-// Styled
+// Styled components
 // ---------------------------------------------------------------------------
 
 const Page = styled.div`
@@ -136,7 +95,7 @@ const AlbumTitle = styled.h1`
   text-overflow: ellipsis;
 `;
 
-const AlbumArtist = styled.p`
+const AlbumArtistLink = styled.p`
   margin: 0 0 8px;
   font-size: 1rem;
   font-family: RockfordSansMedium;
@@ -185,6 +144,12 @@ const ShuffleBtn = styled.button`
   font-family: RockfordSansMedium;
   cursor: pointer;
   &:hover { color: var(--color-text); }
+`;
+
+const DeleteAlbumBtn = styled(ShuffleBtn)`
+  color: #e55;
+  &:hover { color: #e55; opacity: 0.8; }
+  &:disabled { opacity: 0.4; cursor: default; }
 `;
 
 const TrackList = styled.div`
@@ -262,49 +227,6 @@ const MenuBtn = styled.button`
   &:hover { background: var(--color-menu-hover); color: var(--color-text); }
 `;
 
-
-const MenuDivider = styled.div`
-  height: 1px;
-  background: var(--color-menu-hover);
-  margin: 2px 0;
-`;
-
-const CopyrightText = styled.p`
-  margin: 0;
-  font-size: 0.725rem;
-  color: var(--color-text-muted);
-  opacity: 0.7;
-`;
-
-const AlbumReleaseDate = styled.p`
-  margin: 0 0 6px;
-  font-size: 0.8125rem;
-  color: var(--color-text-muted);
-`;
-
-const shimmer = `
-  @keyframes shimmer {
-    0% { background-position: -400px 0; }
-    100% { background-position: 400px 0; }
-  }
-`;
-
-const SkeletonBox = styled.div<{ w?: string; h?: string; radius?: string }>`
-  ${shimmer}
-  width: ${({ w }) => w ?? "100%"};
-  height: ${({ h }) => h ?? "16px"};
-  border-radius: ${({ radius }) => radius ?? "8px"};
-  background: linear-gradient(
-    90deg,
-    var(--color-menu-hover) 25%,
-    color-mix(in srgb, var(--color-menu-hover) 60%, var(--color-text-muted) 10%) 50%,
-    var(--color-menu-hover) 75%
-  );
-  background-size: 800px 100%;
-  animation: shimmer 1.4s infinite linear;
-  flex-shrink: 0;
-`;
-
 const MenuHeader = styled.div`
   display: flex;
   align-items: center;
@@ -348,7 +270,14 @@ const MenuHeaderArtist = styled.p`
   text-overflow: ellipsis;
 `;
 
+const MenuDivider = styled.div`
+  height: 1px;
+  background: var(--color-menu-hover);
+  margin: 2px 0;
+`;
+
 const MenuItem = styled.button`
+  width: 100%;
   text-align: left;
   padding: 8px 12px;
   border: none;
@@ -366,54 +295,38 @@ const DangerMenuItem = styled(MenuItem)`
   &:hover { background: color-mix(in srgb, #e55 12%, transparent); }
 `;
 
-// ---------------------------------------------------------------------------
-// Page component
-// ---------------------------------------------------------------------------
+const shimmer = `
+  @keyframes shimmer {
+    0% { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+  }
+`;
 
-export default function LibraryAlbum() {
-  const navigate = useNavigate();
-  const { did, rkey } = useParams({ strict: false });
-  const { playNow, playNext, playLast } = useUploadPlayer();
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
-  const deleteUploadMutation = useDeleteUploadMutation();
-  const deleteAlbumMutation = useDeleteAlbumMutation();
-
-  const albumUri = `at://${did}/app.rocksky.album/${rkey}`;
-
-  const { data: tracks = [], isLoading } = useAlbumTracksQuery(albumUri);
-
-  const albumArt = tracks[0]?.track.albumArt ?? null;
-  const album = tracks[0]?.track.album ?? "";
-  const albumArtist = tracks[0]?.track.albumArtist ?? "";
-  const totalDuration = tracks.reduce((sum, t) => sum + t.track.duration, 0);
-  const releaseDate = formatReleaseDate(tracks[0]?.albumReleaseDate, tracks[0]?.albumYear);
-  const copyrightMessage = tracks[0]?.track.copyrightMessage ?? null;
-
-  const handlePlay = useCallback(() => {
-    playNow(tracks.map(toQueueTrack));
-  }, [tracks, playNow]);
-
-  const handleShuffle = useCallback(() => {
-    const queue = [...tracks.map(toQueueTrack)].sort(() => Math.random() - 0.5);
-    playNow(queue);
-  }, [tracks, playNow]);
-
-  const handleTrackClick = useCallback(
-    (item: UploadedTrack) => {
-      const queue = tracks.map(toQueueTrack);
-      const idx = tracks.findIndex((t) => t.upload.id === item.upload.id);
-      playNow(queue, idx >= 0 ? idx : 0);
-    },
-    [tracks, playNow],
+const SkeletonBox = styled.div<{ w?: string; h?: string; radius?: string }>`
+  ${shimmer}
+  width: ${({ w }) => w ?? "100%"};
+  height: ${({ h }) => h ?? "16px"};
+  border-radius: ${({ radius }) => radius ?? "8px"};
+  background: linear-gradient(
+    90deg,
+    var(--color-menu-hover) 25%,
+    color-mix(in srgb, var(--color-menu-hover) 60%, var(--color-text-muted) 10%) 50%,
+    var(--color-menu-hover) 75%
   );
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+  flex-shrink: 0;
+`;
 
-  if (isLoading) return (
+// ---------------------------------------------------------------------------
+// Skeleton
+// ---------------------------------------------------------------------------
+
+function AlbumPageSkeleton() {
+  return (
     <Main>
       <Page>
-        <BackBtn onClick={() => navigate({ to: "/library" })}>
-          <IconArrowLeft size={16} /> Library
-        </BackBtn>
+        <SkeletonBox w="80px" h="32px" radius="10px" style={{ marginBottom: 24 }} />
         <AlbumHeader>
           <SkeletonBox w="160px" h="160px" radius="16px" />
           <AlbumMeta>
@@ -440,157 +353,28 @@ export default function LibraryAlbum() {
       </Page>
     </Main>
   );
-
-  return (
-    <Main>
-      <Page>
-        <BackBtn onClick={() => navigate({ to: "/library" })}>
-          <IconArrowLeft size={16} /> Library
-        </BackBtn>
-
-        <AlbumHeader>
-          <AlbumArt>
-            {albumArt ? (
-              <img src={albumArt} alt={album} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            ) : (
-              <IconVinyl size={56} color="var(--color-text-muted)" />
-            )}
-          </AlbumArt>
-          <AlbumMeta>
-            <AlbumTitle>{album}</AlbumTitle>
-            <AlbumArtist
-              onClick={() => {
-                const artistUri = tracks[0]?.track.artistUri;
-                const m = artistUri?.match(/^at:\/\/([^/]+)\/[^/]+\/([^/]+)$/);
-                if (m) navigate({ to: "/library/$did/artist/$rkey", params: { did: m[1], rkey: m[2] } });
-              }}
-            >
-              {albumArtist}
-            </AlbumArtist>
-            <AlbumStats>
-              {tracks.length} track{tracks.length !== 1 ? "s" : ""} · {formatTotalDuration(totalDuration)}
-            </AlbumStats>
-            <PlayButtons>
-              <PlayBtn onClick={handlePlay}>
-                <IconPlayerPlay size={15} /> Play
-              </PlayBtn>
-              <ShuffleBtn onClick={handleShuffle}>
-                <IconArrowsShuffle size={15} /> Shuffle
-              </ShuffleBtn>
-              <ShuffleBtn
-                disabled={deleteAlbumMutation.isPending || tracks.length === 0}
-                style={{ color: "#e55" }}
-                onClick={() => {
-                  if (
-                    !window.confirm(
-                      `Delete every track from "${album}" by ${albumArtist}? This cannot be undone.`,
-                    )
-                  ) {
-                    return;
-                  }
-                  deleteAlbumMutation.mutate(
-                    { albumUri },
-                    {
-                      onSuccess: () => navigate({ to: "/library" }),
-                    },
-                  );
-                }}
-              >
-                <IconTrash size={15} /> Delete album
-              </ShuffleBtn>
-            </PlayButtons>
-          </AlbumMeta>
-        </AlbumHeader>
-
-        <TrackList>
-          {tracks.map((item, idx) => (
-            <TrackRow key={item.upload.id} onClick={() => handleTrackClick(item)}>
-              <TrackNum>{item.track.trackNumber ?? idx + 1}</TrackNum>
-
-              <TrackInfo>
-                <TrackTitle>{item.track.title}</TrackTitle>
-                {item.track.artist !== albumArtist && (
-                  <TrackArtist>{item.track.artist}</TrackArtist>
-                )}
-              </TrackInfo>
-
-              <Duration>{formatDuration(item.track.duration)}</Duration>
-
-              <div className="track-actions">
-                <MenuWrap>
-                  <MenuBtn
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (openMenuId === item.upload.id) {
-                        setOpenMenuId(null);
-                        setMenuAnchor(null);
-                      } else {
-                        setOpenMenuId(item.upload.id);
-                        setMenuAnchor(e.currentTarget);
-                      }
-                    }}
-                  >
-                    <IconDots size={15} />
-                  </MenuBtn>
-                  {openMenuId === item.upload.id && (
-                    <TrackContextMenu
-                      item={item}
-                      anchorEl={menuAnchor}
-                      onPlay={() => handleTrackClick(item)}
-                      playNext={playNext}
-                      playLast={playLast}
-                      onDelete={() => {
-                        if (
-                          !window.confirm(
-                            `Delete "${item.track.title}" from your library? This cannot be undone.`,
-                          )
-                        ) {
-                          return;
-                        }
-                        deleteUploadMutation.mutate(item.upload.id);
-                      }}
-                      deletePending={deleteUploadMutation.isPending}
-                      onClose={() => { setOpenMenuId(null); setMenuAnchor(null); }}
-                    />
-                  )}
-                </MenuWrap>
-              </div>
-            </TrackRow>
-          ))}
-        </TrackList>
-
-        {(releaseDate || copyrightMessage) && (
-          <div style={{ marginTop: 32 }}>
-            {releaseDate && <AlbumReleaseDate>{releaseDate}</AlbumReleaseDate>}
-            {copyrightMessage && <CopyrightText>{copyrightMessage}</CopyrightText>}
-          </div>
-        )}
-      </Page>
-    </Main>
-  );
 }
 
-function TrackContextMenu({
-  item,
-  anchorEl,
-  onPlay,
-  playNext,
-  playLast,
-  onDelete,
-  deletePending,
-  onClose,
+// ---------------------------------------------------------------------------
+// Track context menu
+// ---------------------------------------------------------------------------
+
+function TrackMenu({
+  song, albumArt, anchorEl, creds, onPlay, onPlayNext, onPlayLast, onDelete, onClose,
 }: {
-  item: UploadedTrack;
+  song: NavidromeSong;
+  albumArt: string | null;
   anchorEl: HTMLElement | null;
+  creds: NavidromeCredentials;
   onPlay: () => void;
-  playNext: (t: QueueTrack) => void;
-  playLast: (t: QueueTrack) => void;
+  onPlayNext: (t: QueueTrack) => void;
+  onPlayLast: (t: QueueTrack) => void;
   onDelete: () => void;
-  deletePending: boolean;
   onClose: () => void;
 }) {
   const navigate = useNavigate();
   const menuRef = useRef<HTMLDivElement>(null);
+  const track = songToQueueTrack(song, creds, albumArt);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -604,15 +388,13 @@ function TrackContextMenu({
     <DropdownPortal anchorEl={anchorEl} menuRef={menuRef}>
       <MenuHeader>
         <MenuHeaderArt>
-          {item.track.albumArt ? (
-            <img src={item.track.albumArt} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          ) : (
-            <IconMusic size={16} color="var(--color-text-muted)" />
-          )}
+          {albumArt
+            ? <img src={albumArt} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            : <IconMusic size={16} color="var(--color-text-muted)" />}
         </MenuHeaderArt>
         <MenuHeaderInfo>
-          <MenuHeaderTitle>{item.track.title}</MenuHeaderTitle>
-          <MenuHeaderArtist>{item.track.artist}</MenuHeaderArtist>
+          <MenuHeaderTitle>{song.title}</MenuHeaderTitle>
+          <MenuHeaderArtist>{song.artist}</MenuHeaderArtist>
         </MenuHeaderInfo>
       </MenuHeader>
       <MenuDivider />
@@ -620,29 +402,143 @@ function TrackContextMenu({
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconPlayerPlay size={14} /> Play</span>
       </MenuItem>
       <MenuDivider />
-      <MenuItem onClick={(e) => { e.stopPropagation(); playNext(toQueueTrack(item)); onClose(); }}>Play next</MenuItem>
-      <MenuItem onClick={(e) => { e.stopPropagation(); playLast(toQueueTrack(item)); onClose(); }}>Add to queue</MenuItem>
-      {item.track.artistUri && (
-        <MenuItem onClick={(e) => {
-          e.stopPropagation();
-          const m = item.track.artistUri!.match(/^at:\/\/([^/]+)\/[^/]+\/([^/]+)$/);
-          if (m) navigate({ to: "/library/$did/artist/$rkey", params: { did: m[1], rkey: m[2] } });
-          onClose();
-        }}>Go to artist</MenuItem>
+      <MenuItem onClick={(e) => { e.stopPropagation(); onPlayNext(track); onClose(); }}>Play next</MenuItem>
+      <MenuItem onClick={(e) => { e.stopPropagation(); onPlayLast(track); onClose(); }}>Add to queue</MenuItem>
+      {song.artistId && (
+        <>
+          <MenuDivider />
+          <MenuItem onClick={(e) => { e.stopPropagation(); navigate({ to: "/library/artist/$id", params: { id: song.artistId! } }); onClose(); }}>
+            Go to artist
+          </MenuItem>
+        </>
       )}
       <MenuDivider />
-      <DangerMenuItem
-        disabled={deletePending}
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete();
-          onClose();
-        }}
-      >
-        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <IconTrash size={14} /> Delete track
-        </span>
+      <DangerMenuItem onClick={(e) => {
+        e.stopPropagation();
+        if (!window.confirm(`Delete "${song.title}"? This cannot be undone.`)) return;
+        onDelete();
+        onClose();
+      }}>
+        Delete track
       </DangerMenuItem>
     </DropdownPortal>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
+
+export default function LibraryAlbum() {
+  const navigate = useNavigate();
+  const { id } = Route.useParams();
+  const { data: creds } = useNavidromeCredentials();
+  const { playNow, playNext, playLast } = useUploadPlayer();
+  const deleteTrack = useDeleteUploadByTrackIdMutation();
+  const deleteAlbumById = useDeleteAlbumByIdMutation();
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+
+  const { data: album, isLoading } = useNavidromeAlbumQuery(id);
+
+  const songs: NavidromeSong[] = album?.song ?? [];
+  const albumArtUrl = creds && album?.coverArt ? getCoverArtUrl(creds, album.coverArt) : null;
+  const totalSecs = songs.reduce((sum, s) => sum + s.duration, 0);
+
+  const toTrack = useCallback(
+    (s: NavidromeSong) => creds ? songToQueueTrack(s, creds, albumArtUrl) : null,
+    [creds, albumArtUrl],
+  );
+
+  const handlePlay = useCallback(() => {
+    playNow(songs.map(toTrack).filter(Boolean) as QueueTrack[]);
+  }, [songs, toTrack, playNow]);
+
+  const handleShuffle = useCallback(() => {
+    playNow([...songs.map(toTrack).filter(Boolean) as QueueTrack[]].sort(() => Math.random() - 0.5));
+  }, [songs, toTrack, playNow]);
+
+  const handleTrackClick = useCallback((idx: number) => {
+    playNow(songs.map(toTrack).filter(Boolean) as QueueTrack[], idx);
+  }, [songs, toTrack, playNow]);
+
+  if (isLoading || !album || !creds) return <AlbumPageSkeleton />;
+
+  return (
+    <Main>
+      <Page>
+        <BackBtn onClick={() => navigate({ to: "/library" })}>
+          <IconArrowLeft size={16} /> Library
+        </BackBtn>
+
+        <AlbumHeader>
+          <AlbumArt>
+            {albumArtUrl
+              ? <img src={albumArtUrl} alt={album.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              : <IconVinyl size={56} color="var(--color-text-muted)" />}
+          </AlbumArt>
+          <AlbumMeta>
+            <AlbumTitle>{album.name}</AlbumTitle>
+            <AlbumArtistLink onClick={() => album.artistId && navigate({ to: "/library/artist/$id", params: { id: album.artistId } })}>
+              {album.artist}
+            </AlbumArtistLink>
+            <AlbumStats>
+              {songs.length} track{songs.length !== 1 ? "s" : ""} · {formatTotalSecs(totalSecs)}
+              {album.year ? ` · ${album.year}` : ""}
+            </AlbumStats>
+            <PlayButtons>
+              <PlayBtn onClick={handlePlay}><IconPlayerPlay size={15} /> Play</PlayBtn>
+              <ShuffleBtn onClick={handleShuffle}><IconArrowsShuffle size={15} /> Shuffle</ShuffleBtn>
+              <DeleteAlbumBtn
+                disabled={deleteAlbumById.isPending}
+                onClick={() => {
+                  if (!window.confirm(`Delete all tracks from "${album.name}"? This cannot be undone.`)) return;
+                  deleteAlbumById.mutate(id, { onSuccess: () => navigate({ to: "/library" }) });
+                }}
+              >
+                Delete album
+              </DeleteAlbumBtn>
+            </PlayButtons>
+          </AlbumMeta>
+        </AlbumHeader>
+
+        <TrackList>
+          {songs.map((song, idx) => (
+            <TrackRow key={song.id} onClick={() => handleTrackClick(idx)}>
+              <TrackNum>{song.track ?? idx + 1}</TrackNum>
+              <TrackInfo>
+                <TrackTitle>{song.title}</TrackTitle>
+                {song.artist !== album.artist && <TrackArtist>{song.artist}</TrackArtist>}
+              </TrackInfo>
+              <Duration>{formatDurationSecs(song.duration)}</Duration>
+              <div className="track-actions">
+                <MenuWrap>
+                  <MenuBtn onClick={(e) => {
+                    e.stopPropagation();
+                    if (openMenuId === song.id) { setOpenMenuId(null); setMenuAnchor(null); }
+                    else { setOpenMenuId(song.id); setMenuAnchor(e.currentTarget); }
+                  }}>
+                    <IconDots size={15} />
+                  </MenuBtn>
+                  {openMenuId === song.id && (
+                    <TrackMenu
+                      song={song}
+                      albumArt={albumArtUrl}
+                      anchorEl={menuAnchor}
+                      creds={creds}
+                      onPlay={() => handleTrackClick(idx)}
+                      onPlayNext={playNext}
+                      onPlayLast={playLast}
+                      onDelete={() => deleteTrack.mutate(song.id)}
+                      onClose={() => { setOpenMenuId(null); setMenuAnchor(null); }}
+                    />
+                  )}
+                </MenuWrap>
+              </div>
+            </TrackRow>
+          ))}
+        </TrackList>
+      </Page>
+    </Main>
   );
 }

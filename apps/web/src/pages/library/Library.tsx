@@ -5,7 +5,6 @@ import {
   IconMusic,
   IconPlayerPlay,
   IconSearch,
-  IconTrash,
   IconUpload,
   IconUser,
   IconVinyl,
@@ -15,20 +14,22 @@ import { useNavigate } from "@tanstack/react-router";
 import { Tab, Tabs } from "baseui/tabs-motion";
 import { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import ContentLoader from "react-content-loader";
-import { getAlbumTracks } from "../../api/uploads";
-import type {
-  UploadAlbum,
-  UploadArtist,
-  UploadedTrack,
-} from "../../api/uploads";
 import {
-  useDeleteAlbumMutation,
-  useDeleteUploadMutation,
-  useInfiniteUploadAlbumsQuery,
-  useInfiniteUploadArtistsQuery,
-  useInfiniteUploadsQuery,
-} from "../../hooks/useUploads";
-import { useArtistQuery } from "../../hooks/useLibrary";
+  fetchNavidromeAlbum,
+  getCoverArtUrl,
+  type NavidromeAlbum,
+  type NavidromeArtist,
+  type NavidromeSong,
+  type NavidromeCredentials,
+} from "../../api/navidrome";
+import {
+  useNavidromeAlbumsQuery,
+  useNavidromeArtistsQuery,
+  useNavidromeCredentials,
+  useNavidromeTracksQuery,
+  songToQueueTrack,
+} from "../../hooks/useNavidrome";
+import { useDeleteUploadByTrackIdMutation, useDeleteAlbumByIdMutation } from "../../hooks/useUploads";
 import { useUploadPlayer } from "../../hooks/useUploadPlayer";
 import type { QueueTrack } from "../../atoms/queue";
 import Main from "../../layouts/Main";
@@ -38,15 +39,20 @@ import { DropdownPortal } from "../../components/DropdownPortal";
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatDuration(ms: number) {
-  const totalSeconds = Math.floor(ms / 1000);
-  const m = Math.floor(totalSeconds / 60);
-  const s = totalSeconds % 60;
+function formatDuration(seconds: number) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-function albumKey(albumArtist: string, album: string) {
-  return `${albumArtist}|||${album}`;
+function getScrollParent(el: HTMLElement | null): HTMLElement | null {
+  let cur: HTMLElement | null = el?.parentElement ?? null;
+  while (cur) {
+    const overflowY = getComputedStyle(cur).overflowY;
+    if (overflowY === "auto" || overflowY === "scroll") return cur;
+    cur = cur.parentElement;
+  }
+  return null;
 }
 
 function useInfiniteScrollSentinel(
@@ -58,44 +64,43 @@ function useInfiniteScrollSentinel(
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-        fetchNextPage();
-      }
-    });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { root: getScrollParent(el), rootMargin: "400px 0px" },
+    );
     observer.observe(el);
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
   return ref;
 }
 
-export function parseAtUri(uri: string | null | undefined) {
-  if (!uri) return null;
-  const m = uri.match(/^at:\/\/([^/]+)\/[^/]+\/([^/]+)$/);
-  return m ? { did: m[1], rkey: m[2] } : null;
-}
+// ---------------------------------------------------------------------------
+// Tab overrides (baseui requires plain objects)
+// ---------------------------------------------------------------------------
 
-function toQueueTrack(item: UploadedTrack): QueueTrack {
-  return {
-    uploadId: item.upload.id,
-    title: item.track.title,
-    artist: item.track.artist,
-    albumArtist: item.track.albumArtist,
-    album: item.track.album,
-    albumArt: item.track.albumArt,
-    duration: item.track.duration,
-    sha256: item.track.sha256,
-    songUri: item.track.uri ?? "",
-    trackNumber: item.track.trackNumber,
-    copyrightMessage: item.track.copyrightMessage,
-    genre: item.track.genre,
-    releaseDate: item.albumReleaseDate,
-    year: item.albumYear,
-  };
-}
+const tabOverrides = {
+  Tab: {
+    style: {
+      color: "var(--color-text)",
+      backgroundColor: "var(--color-background) !important",
+    },
+  },
+  TabPanel: {
+    style: { paddingTop: "16px", paddingBottom: "0", paddingLeft: "0", paddingRight: "0" },
+  },
+};
+
+const tabsOverrides = {
+  TabHighlight: { style: { backgroundColor: "var(--color-purple)" } },
+  TabBorder: { style: { display: "none" } },
+};
 
 // ---------------------------------------------------------------------------
-// Layout
+// Styled components
 // ---------------------------------------------------------------------------
 
 const Page = styled.div`
@@ -129,9 +134,7 @@ const UploadButton = styled.button`
   font-size: 0.875rem;
   font-family: RockfordSansMedium;
   cursor: pointer;
-  &:hover {
-    background: color-mix(in srgb, var(--color-primary) 15%, transparent);
-  }
+  &:hover { background: color-mix(in srgb, var(--color-primary) 15%, transparent); }
 `;
 
 const SearchWrap = styled.div`
@@ -139,7 +142,7 @@ const SearchWrap = styled.div`
   margin-bottom: 16px;
 `;
 
-const SearchIcon = styled.span`
+const SearchIconWrap = styled.span`
   position: absolute;
   left: 12px;
   top: 50%;
@@ -161,12 +164,8 @@ const SearchInput = styled.input`
   font-size: 0.875rem;
   font-family: RockfordSansMedium;
   outline: none;
-  &::placeholder {
-    color: var(--color-text-muted);
-  }
-  &:focus {
-    border-color: var(--color-primary);
-  }
+  &::placeholder { color: var(--color-text-muted); }
+  &:focus { border-color: var(--color-primary); }
 `;
 
 const ClearBtn = styled.button`
@@ -188,67 +187,23 @@ const ClearBtn = styled.button`
   }
 `;
 
-// ---------------------------------------------------------------------------
-// Tab overrides (matches profile page style)
-// ---------------------------------------------------------------------------
-
-const tabOverrides = {
-  Tab: {
-    style: {
-      color: "var(--color-text)",
-      backgroundColor: "var(--color-background) !important",
-    },
-  },
-  TabPanel: {
-    style: {
-      paddingTop: "16px",
-      paddingBottom: "0",
-      paddingLeft: "0",
-      paddingRight: "0",
-    },
-  },
-};
-
-const tabsOverrides = {
-  TabHighlight: { style: { backgroundColor: "var(--color-purple)" } },
-  TabBorder: { style: { display: "none" } },
-};
-
-// ---------------------------------------------------------------------------
-// Track list
-// ---------------------------------------------------------------------------
-
 const TrackList = styled.div`
   display: flex;
   flex-direction: column;
   gap: 2px;
 `;
 
-const TrackRow = styled.div<{ active: boolean }>`
+const TrackRow = styled.div`
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 10px 12px 10px 0;
   border-radius: 12px;
   cursor: pointer;
-  position: relative;
-  background: ${({ active }) =>
-    active ? "color-mix(in srgb, var(--color-primary) 10%, transparent)" : "transparent"};
-  &:hover {
-    background: ${({ active }) =>
-      active
-        ? "color-mix(in srgb, var(--color-primary) 10%, transparent)"
-        : "var(--color-menu-hover)"};
-  }
-  & .track-actions {
-    opacity: 0;
-  }
-  &:hover .track-actions {
-    opacity: 1;
-  }
-  &:hover .artwork-overlay {
-    opacity: 1;
-  }
+  &:hover { background: var(--color-menu-hover); }
+  & .track-actions { opacity: 0; }
+  &:hover .track-actions { opacity: 1; }
+  &:hover .artwork-overlay { opacity: 1; }
 `;
 
 const TrackNum = styled.span`
@@ -276,7 +231,7 @@ const ArtworkBox = styled.div`
 const ArtworkOverlay = styled.div`
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0,0,0,0.45);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -289,14 +244,14 @@ const TrackInfo = styled.div`
   min-width: 0;
 `;
 
-const TrackTitle = styled.p<{ active: boolean }>`
+const TrackTitle = styled.p`
   margin: 0;
   font-size: 0.875rem;
   font-family: RockfordSansMedium;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: ${({ active }) => (active ? "var(--color-primary)" : "var(--color-text)")};
+  color: var(--color-text);
 `;
 
 const TrackMeta = styled.p`
@@ -315,10 +270,6 @@ const Duration = styled.span`
   font-variant-numeric: tabular-nums;
 `;
 
-// ---------------------------------------------------------------------------
-// Context menu
-// ---------------------------------------------------------------------------
-
 const MenuWrap = styled.div`
   position: relative;
   flex-shrink: 0;
@@ -333,39 +284,7 @@ const MenuBtn = styled.button`
   display: flex;
   align-items: center;
   cursor: pointer;
-  &:hover {
-    background: var(--color-menu-hover);
-    color: var(--color-text);
-  }
-`;
-
-
-const MenuItem = styled.button`
-  text-align: left;
-  padding: 8px 12px;
-  border: none;
-  background: transparent;
-  color: var(--color-text);
-  font-size: 0.8125rem;
-  font-family: RockfordSansMedium;
-  border-radius: 8px;
-  cursor: pointer;
-  &:hover {
-    background: var(--color-menu-hover);
-  }
-`;
-
-const DangerMenuItem = styled(MenuItem)`
-  color: #e55;
-  &:hover {
-    background: color-mix(in srgb, #e55 12%, transparent);
-  }
-`;
-
-const MenuDivider = styled.div`
-  height: 1px;
-  background: var(--color-menu-hover);
-  margin: 2px 0;
+  &:hover { background: var(--color-menu-hover); color: var(--color-text); }
 `;
 
 const MenuHeader = styled.div`
@@ -411,9 +330,30 @@ const MenuHeaderArtist = styled.p`
   text-overflow: ellipsis;
 `;
 
-// ---------------------------------------------------------------------------
-// Album grid
-// ---------------------------------------------------------------------------
+const MenuDivider = styled.div`
+  height: 1px;
+  background: var(--color-menu-hover);
+  margin: 2px 0;
+`;
+
+const MenuItem = styled.button`
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 0.8125rem;
+  font-family: RockfordSansMedium;
+  border-radius: 8px;
+  cursor: pointer;
+  &:hover { background: var(--color-menu-hover); }
+`;
+
+const DangerMenuItem = styled(MenuItem)`
+  color: #e55;
+  &:hover { background: color-mix(in srgb, #e55 12%, transparent); }
+`;
 
 const Grid = styled.div`
   display: grid;
@@ -423,14 +363,8 @@ const Grid = styled.div`
 
 const AlbumCard = styled.div`
   cursor: pointer;
-  &:hover .album-art-wrap {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
-  }
-  &:hover .album-actions {
-    opacity: 1;
-    pointer-events: auto;
-  }
+  &:hover .album-art-wrap { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.14); }
+  &:hover .album-actions { opacity: 1; pointer-events: auto; }
 `;
 
 const AlbumArtContainer = styled.div`
@@ -461,11 +395,7 @@ const AlbumActionsOverlay = styled.div`
   pointer-events: none;
   transition: opacity 0.15s;
   z-index: 2;
-  & > * {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-  }
+  & > * { flex: 1; display: flex; justify-content: center; }
 `;
 
 const AlbumFloatBtn = styled.button`
@@ -473,7 +403,7 @@ const AlbumFloatBtn = styled.button`
   height: 36px;
   border-radius: 50%;
   border: none;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0,0,0,0.55);
   color: #fff;
   display: flex;
   align-items: center;
@@ -481,9 +411,7 @@ const AlbumFloatBtn = styled.button`
   cursor: pointer;
   backdrop-filter: blur(4px);
   flex-shrink: 0;
-  &:hover {
-    background: rgba(0, 0, 0, 0.8);
-  }
+  &:hover { background: rgba(0,0,0,0.8); }
 `;
 
 const AlbumName = styled.p`
@@ -496,7 +424,7 @@ const AlbumName = styled.p`
   text-overflow: ellipsis;
 `;
 
-const AlbumArtist = styled.p`
+const AlbumArtistName = styled.p`
   margin: 2px 0 0;
   font-size: 0.75rem;
   color: var(--color-text-muted);
@@ -504,10 +432,6 @@ const AlbumArtist = styled.p`
   overflow: hidden;
   text-overflow: ellipsis;
 `;
-
-// ---------------------------------------------------------------------------
-// Artist grid
-// ---------------------------------------------------------------------------
 
 const ArtistGrid = styled.div`
   display: grid;
@@ -521,10 +445,7 @@ const ArtistCard = styled.div`
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  &:hover .artist-avatar {
-    transform: scale(1.04);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
-  }
+  &:hover .artist-avatar { transform: scale(1.04); box-shadow: 0 8px 24px rgba(0,0,0,0.14); }
 `;
 
 const ArtistAvatar = styled.div`
@@ -542,7 +463,7 @@ const ArtistAvatar = styled.div`
   color: var(--color-text-muted);
 `;
 
-const ArtistName = styled.p`
+const ArtistNameLabel = styled.p`
   margin: 0;
   font-size: 0.8125rem;
   font-family: RockfordSansMedium;
@@ -553,10 +474,6 @@ const ArtistName = styled.p`
   text-overflow: ellipsis;
   max-width: 120px;
 `;
-
-// ---------------------------------------------------------------------------
-// Empty + skeleton
-// ---------------------------------------------------------------------------
 
 const EmptyState = styled.div`
   display: flex;
@@ -596,66 +513,107 @@ const PrimaryButton = styled.button`
   &:hover { opacity: 0.9; }
 `;
 
-const Sentinel = styled.div`
-  height: 1px;
+const Sentinel = styled.div`height: 1px;`;
+
+// ---------------------------------------------------------------------------
+// Skeleton
+// ---------------------------------------------------------------------------
+
+const shimmer = `
+  @keyframes shimmer {
+    0% { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+  }
 `;
 
-function TrackRowSkeleton() {
+const Shimmer = styled.div`
+  ${shimmer}
+  background: linear-gradient(
+    90deg,
+    var(--color-skeleton-background) 25%,
+    var(--color-skeleton-foreground) 50%,
+    var(--color-skeleton-background) 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 6px;
+  flex-shrink: 0;
+`;
+
+const TrackRowSkeletonWrap = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px 10px 0;
+`;
+
+const TrackInfoSkeleton = styled.div`
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+function TrackRowSkeleton({ titleWidth = "55%", metaWidth = "35%" }: { titleWidth?: string; metaWidth?: string }) {
   return (
-    <ContentLoader
-      width="100%"
-      height={62}
-      viewBox="0 0 600 62"
-      backgroundColor="var(--color-skeleton-background)"
-      foregroundColor="var(--color-skeleton-foreground)"
-      style={{ display: "block" }}
-    >
-      <rect x="8" y="24" rx="3" ry="3" width="20" height="14" />
-      <rect x="44" y="11" rx="8" ry="8" width="40" height="40" />
-      <rect x="96" y="14" rx="4" ry="4" width="180" height="14" />
-      <rect x="96" y="36" rx="3" ry="3" width="120" height="11" />
-      <rect x="536" y="23" rx="3" ry="3" width="40" height="14" />
-    </ContentLoader>
+    <TrackRowSkeletonWrap>
+      <Shimmer style={{ width: 12, height: 14, borderRadius: 3 }} />
+      <Shimmer style={{ width: 40, height: 40, borderRadius: 8 }} />
+      <TrackInfoSkeleton>
+        <Shimmer style={{ width: titleWidth, height: 14 }} />
+        <Shimmer style={{ width: metaWidth, height: 12 }} />
+      </TrackInfoSkeleton>
+      <Shimmer style={{ width: 32, height: 14 }} />
+    </TrackRowSkeletonWrap>
   );
 }
 
-function LibrarySkeleton() {
+function TracksSkeleton() {
+  // vary widths a bit so the rows don't look mechanically identical
+  const widths: Array<[string, string]> = [
+    ["55%", "35%"],
+    ["70%", "40%"],
+    ["48%", "30%"],
+    ["62%", "38%"],
+    ["50%", "32%"],
+    ["68%", "42%"],
+    ["58%", "34%"],
+    ["52%", "36%"],
+  ];
   return (
-    <div>
-      {Array.from({ length: 8 }).map((_, i) => (
-        <TrackRowSkeleton key={i} />
+    <TrackList>
+      {widths.map(([t, m], i) => (
+        <TrackRowSkeleton key={i} titleWidth={t} metaWidth={m} />
       ))}
-    </div>
+    </TrackList>
   );
 }
 
-// ---------------------------------------------------------------------------
-// ArtistPictureAvatar
-// ---------------------------------------------------------------------------
-
-function ArtistPictureAvatar({
-  artistUri,
-  name,
-}: {
-  artistUri: string | null;
-  name: string;
-}) {
-  const parsed = parseAtUri(artistUri);
-  const { data } = useArtistQuery(parsed?.did ?? "", parsed?.rkey ?? "");
-  const picture = data?.picture ?? null;
-
+function AlbumsSkeleton() {
   return (
-    <ArtistAvatar className="artist-avatar">
-      {picture ? (
-        <img
-          src={picture}
-          alt={name}
-          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-        />
-      ) : (
-        name.charAt(0).toUpperCase()
-      )}
-    </ArtistAvatar>
+    <Grid>
+      {Array.from({ length: 12 }).map((_, i) => (
+        <div key={i}>
+          <Shimmer style={{ width: "100%", aspectRatio: 1, borderRadius: 12, marginBottom: 10 }} />
+          <Shimmer style={{ width: "75%", height: 14, marginBottom: 6 }} />
+          <Shimmer style={{ width: "55%", height: 12 }} />
+        </div>
+      ))}
+    </Grid>
+  );
+}
+
+function ArtistsSkeleton() {
+  return (
+    <ArtistGrid>
+      {Array.from({ length: 10 }).map((_, i) => (
+        <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+          <Shimmer style={{ width: 100, height: 100, borderRadius: "50%" }} />
+          <Shimmer style={{ width: 80, height: 13 }} />
+        </div>
+      ))}
+    </ArtistGrid>
   );
 }
 
@@ -663,24 +621,26 @@ function ArtistPictureAvatar({
 // TrackContextMenu
 // ---------------------------------------------------------------------------
 
-interface TrackContextMenuProps {
-  item: UploadedTrack;
+function TrackContextMenu({
+  song, albumArt, anchorEl, creds, onPlay, onPlayNext, onPlayLast, onDelete, onClose,
+}: {
+  song: NavidromeSong;
+  albumArt: string | null;
   anchorEl: HTMLElement | null;
+  creds: NavidromeCredentials;
   onPlay: () => void;
+  onPlayNext: (t: QueueTrack) => void;
+  onPlayLast: (t: QueueTrack) => void;
+  onDelete: () => void;
   onClose: () => void;
-}
-
-function TrackContextMenu({ item, anchorEl, onPlay, onClose }: TrackContextMenuProps) {
+}) {
   const navigate = useNavigate();
-  const { playNext, playLast } = useUploadPlayer();
-  const deleteUploadMutation = useDeleteUploadMutation();
   const menuRef = useRef<HTMLDivElement>(null);
+  const track = songToQueueTrack(song, creds, albumArt);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        onClose();
-      }
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) onClose();
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -690,92 +650,38 @@ function TrackContextMenu({ item, anchorEl, onPlay, onClose }: TrackContextMenuP
     <DropdownPortal anchorEl={anchorEl} menuRef={menuRef}>
       <MenuHeader>
         <MenuHeaderArt>
-          {item.track.albumArt ? (
-            <img src={item.track.albumArt} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          ) : (
-            <IconMusic size={16} color="var(--color-text-muted)" />
-          )}
+          {albumArt
+            ? <img src={albumArt} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            : <IconMusic size={16} color="var(--color-text-muted)" />}
         </MenuHeaderArt>
         <MenuHeaderInfo>
-          <MenuHeaderTitle>{item.track.title}</MenuHeaderTitle>
-          <MenuHeaderArtist>{item.track.artist}</MenuHeaderArtist>
+          <MenuHeaderTitle>{song.title}</MenuHeaderTitle>
+          <MenuHeaderArtist>{song.artist}</MenuHeaderArtist>
         </MenuHeaderInfo>
       </MenuHeader>
       <MenuDivider />
-      <MenuItem
-        onClick={(e) => {
-          e.stopPropagation();
-          onPlay();
-          onClose();
-        }}
-      >
-        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <IconPlayerPlay size={14} /> Play
-        </span>
+      <MenuItem onClick={(e) => { e.stopPropagation(); onPlay(); onClose(); }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconPlayerPlay size={14} /> Play</span>
       </MenuItem>
       <MenuDivider />
-      <MenuItem
-        onClick={(e) => {
-          e.stopPropagation();
-          playNext(toQueueTrack(item));
-          onClose();
-        }}
-      >
-        Play next
-      </MenuItem>
-      <MenuItem
-        onClick={(e) => {
-          e.stopPropagation();
-          playLast(toQueueTrack(item));
-          onClose();
-        }}
-      >
-        Add to queue
-      </MenuItem>
-      <MenuDivider />
-      {parseAtUri(item.track.artistUri) && (
-        <MenuItem
-          onClick={(e) => {
-            e.stopPropagation();
-            const p = parseAtUri(item.track.artistUri)!;
-            navigate({ to: "/library/$did/artist/$rkey", params: { did: p.did, rkey: p.rkey } });
-            onClose();
-          }}
-        >
-          Go to artist
-        </MenuItem>
+      <MenuItem onClick={(e) => { e.stopPropagation(); onPlayNext(track); onClose(); }}>Play next</MenuItem>
+      <MenuItem onClick={(e) => { e.stopPropagation(); onPlayLast(track); onClose(); }}>Add to queue</MenuItem>
+      {song.artistId && (
+        <>
+          <MenuDivider />
+          <MenuItem onClick={(e) => { e.stopPropagation(); navigate({ to: "/library/artist/$id", params: { id: song.artistId! } }); onClose(); }}>
+            Go to artist
+          </MenuItem>
+        </>
       )}
-      {parseAtUri(item.track.albumUri) && (
-        <MenuItem
-          onClick={(e) => {
-            e.stopPropagation();
-            const p = parseAtUri(item.track.albumUri)!;
-            navigate({ to: "/library/$did/album/$rkey", params: { did: p.did, rkey: p.rkey } });
-            onClose();
-          }}
-        >
+      {song.albumId && (
+        <MenuItem onClick={(e) => { e.stopPropagation(); navigate({ to: "/library/album/$id", params: { id: song.albumId! } }); onClose(); }}>
           Go to album
         </MenuItem>
       )}
       <MenuDivider />
-      <DangerMenuItem
-        disabled={deleteUploadMutation.isPending}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (
-            !window.confirm(
-              `Delete "${item.track.title}" from your library? This cannot be undone.`,
-            )
-          ) {
-            return;
-          }
-          deleteUploadMutation.mutate(item.upload.id);
-          onClose();
-        }}
-      >
-        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <IconTrash size={14} /> Delete track
-        </span>
+      <DangerMenuItem onClick={(e) => { e.stopPropagation(); if (!window.confirm(`Delete "${song.title}"? This cannot be undone.`)) return; onDelete(); onClose(); }}>
+        Delete track
       </DangerMenuItem>
     </DropdownPortal>
   );
@@ -785,24 +691,18 @@ function TrackContextMenu({ item, anchorEl, onPlay, onClose }: TrackContextMenuP
 // AlbumContextMenu
 // ---------------------------------------------------------------------------
 
-interface AlbumInfo {
-  album: string;
-  albumArtist: string;
-  albumArt: string | null;
-  albumUri: string | null;
-  artistUri?: string | null;
-}
-
-interface AlbumContextMenuProps {
-  alb: AlbumInfo;
+function AlbumContextMenu({
+  album, albumArtUrl, anchorEl, creds, onDeleteAlbum, onClose,
+}: {
+  album: NavidromeAlbum;
+  albumArtUrl: string | null;
   anchorEl: HTMLElement | null;
+  creds: NavidromeCredentials;
+  onDeleteAlbum: () => void;
   onClose: () => void;
-}
-
-function AlbumContextMenu({ alb, anchorEl, onClose }: AlbumContextMenuProps) {
+}) {
   const navigate = useNavigate();
   const { playNow, playNextAll, playLastAll } = useUploadPlayer();
-  const deleteAlbumMutation = useDeleteAlbumMutation();
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -814,27 +714,21 @@ function AlbumContextMenu({ alb, anchorEl, onClose }: AlbumContextMenuProps) {
   }, [onClose]);
 
   const fetchTracks = async () => {
-    const tracks = await getAlbumTracks(
-      alb.albumUri ?? undefined,
-      alb.albumUri ? undefined : alb.albumArtist,
-      alb.albumUri ? undefined : alb.album,
-    );
-    return tracks.map(toQueueTrack);
+    const full = await fetchNavidromeAlbum(creds, album.id);
+    return (full?.song ?? []).map((s) => songToQueueTrack(s, creds, albumArtUrl));
   };
 
   return (
     <DropdownPortal anchorEl={anchorEl} menuRef={menuRef}>
       <MenuHeader>
         <MenuHeaderArt>
-          {alb.albumArt ? (
-            <img src={alb.albumArt} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          ) : (
-            <IconVinyl size={16} color="var(--color-text-muted)" />
-          )}
+          {albumArtUrl
+            ? <img src={albumArtUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            : <IconVinyl size={16} color="var(--color-text-muted)" />}
         </MenuHeaderArt>
         <MenuHeaderInfo>
-          <MenuHeaderTitle>{alb.album}</MenuHeaderTitle>
-          <MenuHeaderArtist>{alb.albumArtist}</MenuHeaderArtist>
+          <MenuHeaderTitle>{album.name}</MenuHeaderTitle>
+          <MenuHeaderArtist>{album.artist}</MenuHeaderArtist>
         </MenuHeaderInfo>
       </MenuHeader>
       <MenuDivider />
@@ -848,40 +742,17 @@ function AlbumContextMenu({ alb, anchorEl, onClose }: AlbumContextMenuProps) {
       <MenuItem onClick={async (e) => { e.stopPropagation(); playNextAll(await fetchTracks()); onClose(); }}>Play next</MenuItem>
       <MenuItem onClick={async (e) => { e.stopPropagation(); playLastAll(await fetchTracks()); onClose(); }}>Play last</MenuItem>
       <MenuItem onClick={async (e) => { e.stopPropagation(); const t = await fetchTracks(); playLastAll([...t].sort(() => Math.random() - 0.5)); onClose(); }}>Add shuffled</MenuItem>
-      {alb.artistUri && parseAtUri(alb.artistUri) && (
+      {album.artistId && (
         <>
           <MenuDivider />
-          <MenuItem onClick={(e) => {
-            e.stopPropagation();
-            const p = parseAtUri(alb.artistUri!)!;
-            navigate({ to: "/library/$did/artist/$rkey", params: { did: p.did, rkey: p.rkey } });
-            onClose();
-          }}>Go to artist</MenuItem>
+          <MenuItem onClick={(e) => { e.stopPropagation(); navigate({ to: "/library/artist/$id", params: { id: album.artistId! } }); onClose(); }}>
+            Go to artist
+          </MenuItem>
         </>
       )}
       <MenuDivider />
-      <DangerMenuItem
-        disabled={deleteAlbumMutation.isPending}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (
-            !window.confirm(
-              `Delete every track from "${alb.album}" by ${alb.albumArtist}? This cannot be undone.`,
-            )
-          ) {
-            return;
-          }
-          deleteAlbumMutation.mutate(
-            alb.albumUri
-              ? { albumUri: alb.albumUri }
-              : { albumArtist: alb.albumArtist, albumName: alb.album },
-          );
-          onClose();
-        }}
-      >
-        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <IconTrash size={14} /> Delete album
-        </span>
+      <DangerMenuItem onClick={(e) => { e.stopPropagation(); if (!window.confirm(`Delete all tracks from "${album.name}"? This cannot be undone.`)) return; onDeleteAlbum(); onClose(); }}>
+        Delete album
       </DangerMenuItem>
     </DropdownPortal>
   );
@@ -893,69 +764,43 @@ function AlbumContextMenu({ alb, anchorEl, onClose }: AlbumContextMenuProps) {
 
 export default function Library() {
   const navigate = useNavigate();
-  const { playNow } = useUploadPlayer();
-
+  const { playNow, playNext, playLast } = useUploadPlayer();
+  const { data: creds } = useNavidromeCredentials();
+  const deleteTrack = useDeleteUploadByTrackIdMutation();
+  const deleteAlbumById = useDeleteAlbumByIdMutation();
 
   const [activeKey, setActiveKey] = useState<string | number>("0");
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [openAlbumMenuKey, setOpenAlbumMenuKey] = useState<string | null>(null);
   const [albumMenuAnchor, setAlbumMenuAnchor] = useState<HTMLElement | null>(null);
-
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     const trimmed = searchInput.trim();
-    const timer = setTimeout(() => {
-      setSearchQuery(trimmed || undefined);
-    }, 300);
+    const timer = setTimeout(() => setSearchQuery(trimmed || undefined), 300);
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  const tracksQuery = useInfiniteUploadsQuery(searchQuery);
-  const albumsQuery = useInfiniteUploadAlbumsQuery(searchQuery);
-  const artistsQuery = useInfiniteUploadArtistsQuery(searchQuery);
+  const tracksQuery = useNavidromeTracksQuery(searchQuery);
+  const albumsQuery = useNavidromeAlbumsQuery(searchQuery);
+  const artistsQuery = useNavidromeArtistsQuery(searchQuery);
 
-  const allTracks: UploadedTrack[] = useMemo(
-    () => tracksQuery.data?.pages.flat() ?? [],
-    [tracksQuery.data],
-  );
+  const allSongs: NavidromeSong[] = useMemo(() => tracksQuery.data?.pages.flat() ?? [], [tracksQuery.data]);
+  const albums: NavidromeAlbum[] = useMemo(() => albumsQuery.data?.pages.flat() ?? [], [albumsQuery.data]);
+  const artists: NavidromeArtist[] = useMemo(() => artistsQuery.data ?? [], [artistsQuery.data]);
 
-  const albums: UploadAlbum[] = useMemo(
-    () => albumsQuery.data?.pages.flat() ?? [],
-    [albumsQuery.data],
-  );
+  const tracksSentinelRef = useInfiniteScrollSentinel(tracksQuery.hasNextPage, tracksQuery.isFetchingNextPage, tracksQuery.fetchNextPage);
+  const albumsSentinelRef = useInfiniteScrollSentinel(albumsQuery.hasNextPage, albumsQuery.isFetchingNextPage, albumsQuery.fetchNextPage);
 
-  const artists: UploadArtist[] = useMemo(
-    () => artistsQuery.data?.pages.flat() ?? [],
-    [artistsQuery.data],
-  );
+  const handleTrackClick = useCallback((song: NavidromeSong, idx: number) => {
+    if (!creds) return;
+    const queue = allSongs.map((s) => songToQueueTrack(s, creds, s.coverArt ? getCoverArtUrl(creds, s.coverArt) : null));
+    playNow(queue, idx);
+  }, [allSongs, creds, playNow]);
 
-  const tracksSentinelRef = useInfiniteScrollSentinel(
-    tracksQuery.hasNextPage,
-    tracksQuery.isFetchingNextPage,
-    tracksQuery.fetchNextPage,
-  );
-  const albumsSentinelRef = useInfiniteScrollSentinel(
-    albumsQuery.hasNextPage,
-    albumsQuery.isFetchingNextPage,
-    albumsQuery.fetchNextPage,
-  );
-  const artistsSentinelRef = useInfiniteScrollSentinel(
-    artistsQuery.hasNextPage,
-    artistsQuery.isFetchingNextPage,
-    artistsQuery.fetchNextPage,
-  );
-
-  const handleTrackClick = useCallback(
-    (item: UploadedTrack) => {
-      const queue = allTracks.map(toQueueTrack);
-      const idx = allTracks.findIndex((t) => t.upload.id === item.upload.id);
-      playNow(queue, idx >= 0 ? idx : 0);
-    },
-    [allTracks, playNow],
-  );
+  const isLoading = !creds || tracksQuery.isLoading;
 
   return (
     <Main>
@@ -963,15 +808,12 @@ export default function Library() {
         <Header>
           <Title>My Library</Title>
           <UploadButton onClick={() => navigate({ to: "/library/upload" })}>
-            <IconUpload size={15} />
-            Upload Music
+            <IconUpload size={15} /> Upload Music
           </UploadButton>
         </Header>
 
         <SearchWrap>
-          <SearchIcon>
-            <IconSearch size={15} />
-          </SearchIcon>
+          <SearchIconWrap><IconSearch size={15} /></SearchIconWrap>
           <SearchInput
             type="text"
             placeholder="Search your library…"
@@ -979,9 +821,7 @@ export default function Library() {
             onChange={(e) => setSearchInput(e.target.value)}
           />
           {searchInput && (
-            <ClearBtn onClick={() => setSearchInput("")}>
-              <IconX size={14} />
-            </ClearBtn>
+            <ClearBtn onClick={() => setSearchInput("")}><IconX size={14} /></ClearBtn>
           )}
         </SearchWrap>
 
@@ -991,10 +831,11 @@ export default function Library() {
           overrides={tabsOverrides}
           activateOnFocus
         >
+          {/* -------- Tracks -------- */}
           <Tab title="Tracks" overrides={tabOverrides}>
-            {tracksQuery.isLoading && <LibrarySkeleton />}
+            {isLoading && <TracksSkeleton />}
 
-            {!tracksQuery.isLoading && allTracks.length === 0 && (
+            {!isLoading && allSongs.length === 0 && (
               <EmptyState>
                 <IconVinyl size={48} color="var(--color-text-muted)" />
                 {searchQuery ? (
@@ -1009,88 +850,80 @@ export default function Library() {
                       <EmptySubtitle>Upload your music files to start listening</EmptySubtitle>
                     </div>
                     <PrimaryButton onClick={() => navigate({ to: "/library/upload" })}>
-                      <IconUpload size={15} />
-                      Upload your first track
+                      <IconUpload size={15} /> Upload your first track
                     </PrimaryButton>
                   </>
                 )}
               </EmptyState>
             )}
 
-            {allTracks.length > 0 && (
+            {allSongs.length > 0 && creds && (
               <TrackList>
-                {allTracks.map((item, idx) => (
-                  <TrackRow
-                    key={item.upload.id}
-                    active={false}
-                    onClick={() => handleTrackClick(item)}
-                  >
-                    <TrackNum>{idx + 1}</TrackNum>
-                    <ArtworkBox>
-                      {item.track.albumArt ? (
-                        <>
-                          <img
-                            src={item.track.albumArt}
-                            alt=""
-                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                          />
-                          <ArtworkOverlay className="artwork-overlay">
-                            <IconPlayerPlay size={16} color="#fff" fill="#fff" />
-                          </ArtworkOverlay>
-                        </>
-                      ) : (
-                        <IconMusic size={18} color="var(--color-text-muted)" />
-                      )}
-                    </ArtworkBox>
-
-                    <TrackInfo>
-                      <TrackTitle active={false}>{item.track.title}</TrackTitle>
-                      <TrackMeta>
-                        {item.track.artist}
-                        {item.track.album && ` — ${item.track.album}`}
-                      </TrackMeta>
-                    </TrackInfo>
-
-                    <Duration>{formatDuration(item.track.duration)}</Duration>
-
-                    <div className="track-actions" style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <MenuWrap>
-                        <MenuBtn
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (openMenuId === item.upload.id) {
-                              setOpenMenuId(null);
-                              setMenuAnchor(null);
-                            } else {
-                              setOpenMenuId(item.upload.id);
-                              setMenuAnchor(e.currentTarget);
-                            }
-                          }}
-                        >
-                          <IconDots size={15} />
-                        </MenuBtn>
-                        {openMenuId === item.upload.id && (
-                          <TrackContextMenu
-                            item={item}
-                            anchorEl={menuAnchor}
-                            onPlay={() => handleTrackClick(item)}
-                            onClose={() => { setOpenMenuId(null); setMenuAnchor(null); }}
-                          />
+                {allSongs.map((song, idx) => {
+                  const albumArt = song.coverArt ? getCoverArtUrl(creds, song.coverArt) : null;
+                  return (
+                    <TrackRow key={song.id} onClick={() => handleTrackClick(song, idx)}>
+                      <TrackNum>{idx + 1}</TrackNum>
+                      <ArtworkBox>
+                        {albumArt ? (
+                          <>
+                            <img src={albumArt} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            <ArtworkOverlay className="artwork-overlay">
+                              <IconPlayerPlay size={16} color="#fff" fill="#fff" />
+                            </ArtworkOverlay>
+                          </>
+                        ) : (
+                          <IconMusic size={18} color="var(--color-text-muted)" />
                         )}
-                      </MenuWrap>
-                    </div>
-                  </TrackRow>
-                ))}
-
+                      </ArtworkBox>
+                      <TrackInfo>
+                        <TrackTitle>{song.title}</TrackTitle>
+                        <TrackMeta>{song.artist}{song.album && ` — ${song.album}`}</TrackMeta>
+                      </TrackInfo>
+                      <Duration>{formatDuration(song.duration)}</Duration>
+                      <div className="track-actions" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <MenuWrap>
+                          <MenuBtn onClick={(e) => {
+                            e.stopPropagation();
+                            if (openMenuId === song.id) { setOpenMenuId(null); setMenuAnchor(null); }
+                            else { setOpenMenuId(song.id); setMenuAnchor(e.currentTarget); }
+                          }}>
+                            <IconDots size={15} />
+                          </MenuBtn>
+                          {openMenuId === song.id && (
+                            <TrackContextMenu
+                              song={song}
+                              albumArt={albumArt}
+                              anchorEl={menuAnchor}
+                              creds={creds}
+                              onPlay={() => handleTrackClick(song, idx)}
+                              onPlayNext={playNext}
+                              onPlayLast={playLast}
+                              onDelete={() => deleteTrack.mutate(song.id)}
+                              onClose={() => { setOpenMenuId(null); setMenuAnchor(null); }}
+                            />
+                          )}
+                        </MenuWrap>
+                      </div>
+                    </TrackRow>
+                  );
+                })}
                 <Sentinel ref={tracksSentinelRef} />
-                {tracksQuery.isFetchingNextPage && <TrackRowSkeleton />}
+                {tracksQuery.isFetchingNextPage && (
+                  <>
+                    <TrackRowSkeleton />
+                    <TrackRowSkeleton titleWidth="65%" metaWidth="38%" />
+                    <TrackRowSkeleton titleWidth="48%" metaWidth="30%" />
+                  </>
+                )}
               </TrackList>
             )}
           </Tab>
 
+          {/* -------- Albums -------- */}
           <Tab title="Albums" overrides={tabOverrides}>
-            {albumsQuery.isLoading && <LibrarySkeleton />}
-            {!albumsQuery.isLoading && albums.length === 0 && (
+            {(albumsQuery.isLoading || !creds) && <AlbumsSkeleton />}
+            {!albumsQuery.isLoading && creds && albums.length === 0 && (
               <EmptyState>
                 <IconVinyl size={48} color="var(--color-text-muted)" />
                 <div style={{ textAlign: "center" }}>
@@ -1099,78 +932,51 @@ export default function Library() {
                 </div>
               </EmptyState>
             )}
-            {albums.length > 0 && (
+            {creds && albums.length > 0 && (
               <Grid>
                 {albums.map((alb) => {
-                  const key = albumKey(alb.albumArtist, alb.album);
-                  const albParsed = parseAtUri(alb.albumUri);
-                  const fetchAlbTracks = () => getAlbumTracks(
-                    alb.albumUri ?? undefined,
-                    alb.albumUri ? undefined : alb.albumArtist,
-                    alb.albumUri ? undefined : alb.album,
-                  ).then((tracks) => tracks.map(toQueueTrack));
+                  const albumArtUrl = alb.coverArt ? getCoverArtUrl(creds, alb.coverArt) : null;
                   return (
-                    <AlbumCard
-                      key={key}
-                      onClick={() => {
-                        if (!albParsed) return;
-                        navigate({
-                          to: "/library/$did/album/$rkey",
-                          params: { did: albParsed.did, rkey: albParsed.rkey },
-                        });
-                      }}
-                      style={{ opacity: albParsed ? 1 : 0.5, cursor: albParsed ? "pointer" : "default" }}
-                    >
+                    <AlbumCard key={alb.id} onClick={() => navigate({ to: "/library/album/$id", params: { id: alb.id } })}>
                       <AlbumArtContainer>
                         <AlbumArtWrap className="album-art-wrap">
-                          {alb.albumArt ? (
-                            <img
-                              src={alb.albumArt}
-                              alt={alb.album}
-                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                            />
-                          ) : (
-                            <IconVinyl size={40} color="var(--color-text-muted)" />
-                          )}
+                          {albumArtUrl
+                            ? <img src={albumArtUrl} alt={alb.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            : <IconVinyl size={40} color="var(--color-text-muted)" />}
                         </AlbumArtWrap>
                         <AlbumActionsOverlay className="album-actions">
                           <MenuWrap>
-                            <AlbumFloatBtn
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                playNow(await fetchAlbTracks());
-                              }}
-                            >
+                            <AlbumFloatBtn onClick={async (e) => {
+                              e.stopPropagation();
+                              const full = await fetchNavidromeAlbum(creds, alb.id);
+                              playNow((full?.song ?? []).map((s) => songToQueueTrack(s, creds, albumArtUrl)));
+                            }}>
                               <IconPlayerPlay size={16} fill="#fff" />
                             </AlbumFloatBtn>
                           </MenuWrap>
                           <MenuWrap>
-                            <AlbumFloatBtn
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (openAlbumMenuKey === key) {
-                                  setOpenAlbumMenuKey(null);
-                                  setAlbumMenuAnchor(null);
-                                } else {
-                                  setOpenAlbumMenuKey(key);
-                                  setAlbumMenuAnchor(e.currentTarget);
-                                }
-                              }}
-                            >
+                            <AlbumFloatBtn onClick={(e) => {
+                              e.stopPropagation();
+                              if (openAlbumMenuKey === alb.id) { setOpenAlbumMenuKey(null); setAlbumMenuAnchor(null); }
+                              else { setOpenAlbumMenuKey(alb.id); setAlbumMenuAnchor(e.currentTarget); }
+                            }}>
                               <IconDots size={16} />
                             </AlbumFloatBtn>
-                            {openAlbumMenuKey === key && (
+                            {openAlbumMenuKey === alb.id && (
                               <AlbumContextMenu
-                                alb={alb}
+                                album={alb}
+                                albumArtUrl={albumArtUrl}
                                 anchorEl={albumMenuAnchor}
+                                creds={creds}
+                                onDeleteAlbum={() => deleteAlbumById.mutate(alb.id)}
                                 onClose={() => { setOpenAlbumMenuKey(null); setAlbumMenuAnchor(null); }}
                               />
                             )}
                           </MenuWrap>
                         </AlbumActionsOverlay>
                       </AlbumArtContainer>
-                      <AlbumName title={alb.album}>{alb.album}</AlbumName>
-                      <AlbumArtist title={alb.albumArtist}>{alb.albumArtist}</AlbumArtist>
+                      <AlbumName title={alb.name}>{alb.name}</AlbumName>
+                      <AlbumArtistName title={alb.artist}>{alb.artist}</AlbumArtistName>
                     </AlbumCard>
                   );
                 })}
@@ -1179,9 +985,10 @@ export default function Library() {
             <Sentinel ref={albumsSentinelRef} />
           </Tab>
 
+          {/* -------- Artists -------- */}
           <Tab title="Artists" overrides={tabOverrides}>
-            {artistsQuery.isLoading && <LibrarySkeleton />}
-            {!artistsQuery.isLoading && artists.length === 0 && (
+            {(artistsQuery.isLoading || !creds) && <ArtistsSkeleton />}
+            {!artistsQuery.isLoading && creds && artists.length === 0 && (
               <EmptyState>
                 <IconUser size={48} color="var(--color-text-muted)" />
                 <div style={{ textAlign: "center" }}>
@@ -1190,30 +997,20 @@ export default function Library() {
                 </div>
               </EmptyState>
             )}
-            {artists.length > 0 && (
+            {creds && artists.length > 0 && (
               <ArtistGrid>
-                {artists.map((art) => {
-                  const artParsed = parseAtUri(art.artistUri);
-                  return (
-                  <ArtistCard
-                    key={art.name}
-                    onClick={() => {
-                      if (!artParsed) return;
-                      navigate({
-                        to: "/library/$did/artist/$rkey",
-                        params: { did: artParsed.did, rkey: artParsed.rkey },
-                      });
-                    }}
-                    style={{ opacity: artParsed ? 1 : 0.5, cursor: artParsed ? "pointer" : "default" }}
-                  >
-                    <ArtistPictureAvatar artistUri={art.artistUri} name={art.name} />
-                    <ArtistName title={art.name}>{art.name}</ArtistName>
+                {artists.map((art) => (
+                  <ArtistCard key={art.id} onClick={() => navigate({ to: "/library/artist/$id", params: { id: art.id } })}>
+                    <ArtistAvatar className="artist-avatar">
+                      {art.artistImageUrl
+                        ? <img src={art.artistImageUrl} alt={art.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        : art.name.charAt(0).toUpperCase()}
+                    </ArtistAvatar>
+                    <ArtistNameLabel title={art.name}>{art.name}</ArtistNameLabel>
                   </ArtistCard>
-                  );
-                })}
+                ))}
               </ArtistGrid>
             )}
-            <Sentinel ref={artistsSentinelRef} />
           </Tab>
         </Tabs>
       </Page>

@@ -431,7 +431,14 @@ export function QueuePanel({
                     key={`${track.uploadId}-${absoluteIdx}`}
                     track={track}
                     active={false}
-                    onPlay={() => onPlayIndex(absoluteIdx)}
+                    onPlay={() => {
+                      // Switch to the Queue tab so the user immediately sees
+                      // the new Now Playing + Up Next state. Without this
+                      // the user stays on History (which just shrinks) and
+                      // it LOOKS like Up Next didn't update.
+                      setTab("queue");
+                      onPlayIndex(absoluteIdx);
+                    }}
                   />
                 );
               })

@@ -952,6 +952,116 @@ app.delete("/album", async (c) => {
   return c.json({ status: "ok", deleted: uploads.length });
 });
 
+// DELETE /uploads/by-track/:trackId -----------------------------------------
+// Deletes the upload for a given track (identified by track xata_id, which is
+// the ID navidrome exposes as the song ID).
+app.delete("/by-track/:trackId", async (c) => {
+  const user = await resolveUser(c.req.header("authorization"));
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const upload = await ctx.db
+    .select()
+    .from(tables.userUploads)
+    .where(
+      and(
+        eq(tables.userUploads.trackId, c.req.param("trackId")),
+        eq(tables.userUploads.userId, user.id),
+      ),
+    )
+    .limit(1)
+    .then((rows) => rows[0] ?? null);
+
+  if (!upload) {
+    c.status(404);
+    return c.text("Upload not found");
+  }
+
+  const { client, bucket } = await resolveStorageClient(
+    user.id,
+    upload.storageProviderId ?? null,
+  );
+  await client.send(
+    new DeleteObjectCommand({ Bucket: bucket, Key: upload.r2Key }),
+  );
+
+  await ctx.db
+    .delete(tables.userUploads)
+    .where(eq(tables.userUploads.id, upload.id));
+
+  removeLibraryTrack(upload.id).catch((e) =>
+    consola.warn("[typesense] remove failed:", e),
+  );
+
+  return c.json({ status: "ok" });
+});
+
+// DELETE /uploads/by-album/:albumId ------------------------------------------
+// Deletes every upload owned by the caller that belongs to an album identified
+// by the album's xata_id (the ID navidrome exposes).
+app.delete("/by-album/:albumId", async (c) => {
+  const user = await resolveUser(c.req.header("authorization"));
+  if (!user) {
+    c.status(401);
+    return c.text("Unauthorized");
+  }
+
+  const rows = await ctx.db
+    .select({ upload: tables.userUploads })
+    .from(tables.userUploads)
+    .innerJoin(
+      tables.albumTracks,
+      eq(tables.albumTracks.trackId, tables.userUploads.trackId),
+    )
+    .where(
+      and(
+        eq(tables.albumTracks.albumId, c.req.param("albumId")),
+        eq(tables.userUploads.userId, user.id),
+      ),
+    );
+
+  if (rows.length === 0) {
+    return c.json({ status: "ok", deleted: 0 });
+  }
+
+  const uploads = rows.map((r) => r.upload);
+  await Promise.all(
+    uploads.map(async (upload) => {
+      try {
+        const { client, bucket } = await resolveStorageClient(
+          user.id,
+          upload.storageProviderId ?? null,
+        );
+        await client.send(
+          new DeleteObjectCommand({ Bucket: bucket, Key: upload.r2Key }),
+        );
+      } catch (e) {
+        consola.warn(
+          `[uploads] failed to delete object ${upload.r2Key} from storage`,
+          e,
+        );
+      }
+    }),
+  );
+
+  await ctx.db.delete(tables.userUploads).where(
+    inArray(
+      tables.userUploads.id,
+      uploads.map((u) => u.id),
+    ),
+  );
+
+  for (const upload of uploads) {
+    removeLibraryTrack(upload.id).catch((e) =>
+      consola.warn("[typesense] remove failed:", e),
+    );
+  }
+
+  return c.json({ status: "ok", deleted: uploads.length });
+});
+
 // DELETE /uploads/:id --------------------------------------------------------
 app.delete("/:id", async (c) => {
   const user = await resolveUser(c.req.header("authorization"));

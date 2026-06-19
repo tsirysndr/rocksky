@@ -115,20 +115,26 @@ pub async fn get_album_list(
         String::new()
     };
 
-    // byGenre needs an extra join through artist_albums → artists to check genres array
-    let (genre_join, genre_filter) = if list_type == "byGenre" {
-        if let Some(_g) = genre {
-            (
-                "JOIN artist_albums ag ON albums.xata_id = ag.album_id JOIN artists ON ag.artist_id = artists.xata_id".to_string(),
-                format!(" AND $4::text = ANY(artists.genres)"),
-            )
+    // byGenre filter — apply via EXISTS so we don't need a top-level join
+    let genre_filter = if list_type == "byGenre" {
+        if genre.is_some() {
+            " AND EXISTS (\
+                SELECT 1 FROM artist_albums ag \
+                JOIN artists ar ON ag.artist_id = ar.xata_id \
+                WHERE ag.album_id = albums.xata_id \
+                  AND $4::text = ANY(ar.genres)\
+              )"
+            .to_string()
         } else {
-            (String::new(), String::new())
+            String::new()
         }
     } else {
-        (String::new(), String::new())
+        String::new()
     };
 
+    // No strict join on (tracks.album = albums.title AND tracks.album_artist = albums.artist):
+    // string drift between track tags and the canonical album row would silently hide albums.
+    // Membership is defined purely by album_tracks; uploads are scoped to the caller via EXISTS.
     let sql = format!(
         r#"
         SELECT
@@ -137,24 +143,37 @@ pub async fn get_album_list(
             albums.artist,
             albums.year,
             albums.album_art,
-            COUNT(DISTINCT album_tracks.track_id) AS song_count,
-            SUM(tracks.duration)::bigint AS total_duration,
-            MIN(user_uploads.uploaded_at)::timestamptz AS created_at,
+            COALESCE((
+                SELECT COUNT(DISTINCT atr.track_id)
+                FROM album_tracks atr
+                JOIN user_uploads uu ON uu.track_id = atr.track_id
+                WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
+            ), 0) AS song_count,
+            COALESCE((
+                SELECT SUM(tr.duration)::bigint
+                FROM album_tracks atr
+                JOIN tracks tr ON tr.xata_id = atr.track_id
+                JOIN user_uploads uu ON uu.track_id = atr.track_id
+                WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
+            ), 0) AS total_duration,
+            (
+                SELECT MIN(uu.uploaded_at)::timestamptz
+                FROM album_tracks atr
+                JOIN user_uploads uu ON uu.track_id = atr.track_id
+                WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
+            ) AS created_at,
             (SELECT aa.artist_id FROM artist_albums aa WHERE aa.album_id = albums.xata_id LIMIT 1) AS artist_id
         FROM albums
-        JOIN album_tracks ON albums.xata_id = album_tracks.album_id
-        JOIN tracks ON album_tracks.track_id = tracks.xata_id
-                    AND tracks.album = albums.title
-                    AND tracks.album_artist = albums.artist
-        JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
-        {}
-        WHERE user_uploads.user_id = $1
+        WHERE EXISTS (
+            SELECT 1 FROM album_tracks atr
+            JOIN user_uploads uu ON uu.track_id = atr.track_id
+            WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
+        )
         {}{}
-        GROUP BY albums.xata_id, albums.title, albums.artist, albums.year, albums.album_art
         {}
         LIMIT $2 OFFSET $3
         "#,
-        genre_join, year_filter, genre_filter, order_clause
+        year_filter, genre_filter, order_clause
     );
 
     let mut q = sqlx::query_as::<_, AlbumWithStats>(&sql)
@@ -185,19 +204,33 @@ pub async fn search_albums(
             albums.artist,
             albums.year,
             albums.album_art,
-            COUNT(DISTINCT album_tracks.track_id) AS song_count,
-            SUM(tracks.duration)::bigint AS total_duration,
-            MIN(user_uploads.uploaded_at)::timestamptz AS created_at,
+            COALESCE((
+                SELECT COUNT(DISTINCT atr.track_id)
+                FROM album_tracks atr
+                JOIN user_uploads uu ON uu.track_id = atr.track_id
+                WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
+            ), 0) AS song_count,
+            COALESCE((
+                SELECT SUM(tr.duration)::bigint
+                FROM album_tracks atr
+                JOIN tracks tr ON tr.xata_id = atr.track_id
+                JOIN user_uploads uu ON uu.track_id = atr.track_id
+                WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
+            ), 0) AS total_duration,
+            (
+                SELECT MIN(uu.uploaded_at)::timestamptz
+                FROM album_tracks atr
+                JOIN user_uploads uu ON uu.track_id = atr.track_id
+                WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
+            ) AS created_at,
             (SELECT aa.artist_id FROM artist_albums aa WHERE aa.album_id = albums.xata_id LIMIT 1) AS artist_id
         FROM albums
-        JOIN album_tracks ON albums.xata_id = album_tracks.album_id
-        JOIN tracks ON album_tracks.track_id = tracks.xata_id
-                    AND tracks.album = albums.title
-                    AND tracks.album_artist = albums.artist
-        JOIN user_uploads ON tracks.xata_id = user_uploads.track_id
-        WHERE user_uploads.user_id = $1
-          AND LOWER(albums.title) LIKE LOWER($2)
-        GROUP BY albums.xata_id, albums.title, albums.artist, albums.year, albums.album_art
+        WHERE LOWER(albums.title) LIKE LOWER($2)
+          AND EXISTS (
+              SELECT 1 FROM album_tracks atr
+              JOIN user_uploads uu ON uu.track_id = atr.track_id
+              WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
+          )
         ORDER BY albums.title ASC
         LIMIT $3 OFFSET $4
         "#,

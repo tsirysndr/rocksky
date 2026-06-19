@@ -1,6 +1,6 @@
 import styled from "@emotion/styled";
-import { Link as DefaultLink } from "@tanstack/react-router";
-import { IconArrowsShuffle, IconMaximize, IconMusic, IconRepeat, IconRepeatOnce, IconVolume2, IconVolumeOff } from "@tabler/icons-react";
+import { Link as DefaultLink, useNavigate } from "@tanstack/react-router";
+import { IconAdjustmentsHorizontal, IconArrowsShuffle, IconMaximize, IconMusic, IconRepeat, IconRepeatOnce, IconVolume2, IconVolumeOff } from "@tabler/icons-react";
 import type { RepeatMode } from "../../atoms/playback";
 import { ProgressBar } from "baseui/progress-bar";
 import { LabelSmall } from "baseui/typography";
@@ -116,6 +116,19 @@ const Link = styled(DefaultLink)`
   }
 `;
 
+// Build a router path from an atproto URI like
+//   at://did:plc:xxx/app.rocksky.song/abc
+// Returns null when `uri` is missing OR isn't an at:// URI (e.g. an HTTPS
+// stream URL coming from a rockbox playlist track — those have no in-app
+// route to link to, and the old code crashed trying to .split("at://")[1]
+// + .replace(...) on `undefined`).
+function atUriToPath(uri: string | undefined): string | null {
+  if (!uri) return null;
+  const rest = uri.split("at://")[1];
+  if (!rest) return null;
+  return `/${rest.replace("app.rocksky.", "")}`;
+}
+
 export type StickyPlayerProps = {
   nowPlaying?: {
     title: string;
@@ -157,6 +170,7 @@ export type StickyPlayerProps = {
 };
 
 function StickyPlayer(props: StickyPlayerProps) {
+  const navigate = useNavigate();
   const {
     nowPlaying,
     onPlay,
@@ -209,17 +223,19 @@ function StickyPlayer(props: StickyPlayerProps) {
         <MiniPlayer embedded={embedded} className={embedded ? "" : "!bg-[var(--color-background)]"}>
           {!fullscreenOpen && (
             <CoverWrapper onClick={onOpenFullscreen}>
-              {nowPlaying?.albumUri ? (
-                <Link to={`/${nowPlaying.albumUri.split("at://")[1].replace("app.rocksky.", "")}`} onClick={(e) => e.stopPropagation()}>
-                  {nowPlaying?.albumArt
-                    ? <Cover src={nowPlaying.albumArt} key={nowPlaying.albumUri} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
-                    : <div className="w-[54px] h-[54px] rounded-[5px] bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]"><IconMusic size={20} /></div>}
-                </Link>
-              ) : (
-                nowPlaying?.albumArt
+              {(() => {
+                const albumPath = atUriToPath(nowPlaying?.albumUri);
+                const fallback = nowPlaying?.albumArt
                   ? <Cover src={nowPlaying.albumArt} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
-                  : <div className="w-[54px] h-[54px] rounded-[5px] bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]"><IconMusic size={20} /></div>
-              )}
+                  : <div className="w-[54px] h-[54px] rounded-[5px] bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]"><IconMusic size={20} /></div>;
+                return albumPath ? (
+                  <Link to={albumPath} onClick={(e) => e.stopPropagation()}>
+                    {nowPlaying?.albumArt
+                      ? <Cover src={nowPlaying.albumArt} key={nowPlaying.albumUri} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+                      : <div className="w-[54px] h-[54px] rounded-[5px] bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]"><IconMusic size={20} /></div>}
+                  </Link>
+                ) : fallback;
+              })()}
               <FullscreenOverlay className="fullscreen-icon">
                 <IconMaximize size={20} color="#fff" />
               </FullscreenOverlay>
@@ -227,52 +243,52 @@ function StickyPlayer(props: StickyPlayerProps) {
           )}
           <div className="max-w-[310px] overflow-hidden">
             <div className="max-w-[310px] text-ellipsis overflow-hidden">
-              {!!nowPlaying?.songUri && (
-                <Link
-                  to={`/${nowPlaying?.songUri?.split("at://")[1].replace("app.rocksky.", "")}`}
-                  style={{
-                    fontWeight: 600,
-                  }}
-                  className="text-ellipsis text-nowrap"
-                >
-                  {nowPlaying?.title}
-                </Link>
-              )}
-              {!nowPlaying?.songUri && (
-                <div
-                  style={{
-                    fontWeight: 600,
-                  }}
-                  className="text-ellipsis text-nowrap"
-                >
-                  {nowPlaying?.title}
-                </div>
-              )}
+              {(() => {
+                const songPath = atUriToPath(nowPlaying?.songUri);
+                return songPath ? (
+                  <Link
+                    to={songPath}
+                    style={{ fontWeight: 600 }}
+                    className="text-ellipsis text-nowrap"
+                  >
+                    {nowPlaying?.title}
+                  </Link>
+                ) : (
+                  <div
+                    style={{ fontWeight: 600 }}
+                    className="text-ellipsis text-nowrap"
+                  >
+                    {nowPlaying?.title}
+                  </div>
+                );
+              })()}
             </div>
             <div className="max-w-[310px] overflow-hidden text-ellipsis">
-              {!!nowPlaying?.artistUri && (
-                <Link
-                  to={`/${nowPlaying?.artistUri?.split("at://")[1].replace("app.rocksky.", "")}`}
-                  style={{
-                    fontFamily: "RockfordSansLight",
-                    fontWeight: 600,
-                  }}
-                  className="!text-[var(--color-text-muted)] text-ellipsis text-nowrap"
-                >
-                  {nowPlaying?.artist}
-                </Link>
-              )}
-              {!nowPlaying?.artistUri && (
-                <div
-                  style={{
-                    fontFamily: "RockfordSansLight",
-                    fontWeight: 600,
-                  }}
-                  className="text-[var(--color-text-muted)] text-ellipsis text-nowrap"
-                >
-                  {nowPlaying?.artist}
-                </div>
-              )}
+              {(() => {
+                const artistPath = atUriToPath(nowPlaying?.artistUri);
+                return artistPath ? (
+                  <Link
+                    to={artistPath}
+                    style={{
+                      fontFamily: "RockfordSansLight",
+                      fontWeight: 600,
+                    }}
+                    className="!text-[var(--color-text-muted)] text-ellipsis text-nowrap"
+                  >
+                    {nowPlaying?.artist}
+                  </Link>
+                ) : (
+                  <div
+                    style={{
+                      fontFamily: "RockfordSansLight",
+                      fontWeight: 600,
+                    }}
+                    className="text-[var(--color-text-muted)] text-ellipsis text-nowrap"
+                  >
+                    {nowPlaying?.artist}
+                  </div>
+                );
+              })()}
             </div>
           </div>
           <div className="mt-[-14px] ml-[16px]">
@@ -385,6 +401,21 @@ function StickyPlayer(props: StickyPlayerProps) {
                 />
               </div>
             )}
+            <Button
+              onClick={() => navigate({ to: "/settings/audio" })}
+              title="Audio settings"
+              aria-label="Audio settings"
+              style={{
+                backgroundColor: "transparent",
+                color: embedded ? "#fff" : "var(--color-text)",
+                padding: "0 8px",
+              }}
+            >
+              <IconAdjustmentsHorizontal
+                size={20}
+                color={embedded ? "rgba(255,255,255,0.85)" : "var(--color-text-muted)"}
+              />
+            </Button>
             <Button
               onClick={onPlaylist}
               disabled={!showQueueButton}

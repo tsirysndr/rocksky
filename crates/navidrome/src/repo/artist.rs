@@ -13,25 +13,20 @@ pub async fn get_all_artists(
             artists.xata_id,
             artists.name,
             artists.picture,
-            (
-                SELECT COUNT(DISTINCT alb.xata_id)
-                FROM albums alb
-                JOIN artist_albums aa  ON alb.xata_id   = aa.album_id
-                JOIN album_tracks  atr ON alb.xata_id   = atr.album_id
-                JOIN tracks        tr  ON atr.track_id  = tr.xata_id
-                                      AND tr.album       = alb.title
-                                      AND tr.album_artist = alb.artist
-                JOIN user_uploads  uu  ON tr.xata_id    = uu.track_id
+            COALESCE((
+                SELECT COUNT(DISTINCT aa.album_id)
+                FROM artist_albums aa
+                JOIN album_tracks atr ON atr.album_id = aa.album_id
+                JOIN user_uploads uu  ON uu.track_id = atr.track_id
                 WHERE aa.artist_id = artists.xata_id
-                  AND uu.user_id   = $1
-            ) AS album_count
+                  AND uu.user_id = $1
+            ), 0) AS album_count
         FROM artists
-        JOIN artist_tracks ON artists.xata_id = artist_tracks.artist_id
-        JOIN tracks        ON artist_tracks.track_id = tracks.xata_id
-                          AND tracks.album_artist = artists.name
-        JOIN user_uploads  ON tracks.xata_id = user_uploads.track_id
-        WHERE user_uploads.user_id = $1
-        GROUP BY artists.xata_id, artists.name, artists.picture
+        WHERE EXISTS (
+            SELECT 1 FROM artist_tracks atk
+            JOIN user_uploads uu ON uu.track_id = atk.track_id
+            WHERE atk.artist_id = artists.xata_id AND uu.user_id = $1
+        )
         ORDER BY artists.name ASC
         "#,
     )
@@ -81,26 +76,21 @@ pub async fn search_artists(
             artists.xata_id,
             artists.name,
             artists.picture,
-            (
-                SELECT COUNT(DISTINCT alb.xata_id)
-                FROM albums alb
-                JOIN artist_albums aa  ON alb.xata_id   = aa.album_id
-                JOIN album_tracks  atr ON alb.xata_id   = atr.album_id
-                JOIN tracks        tr  ON atr.track_id  = tr.xata_id
-                                      AND tr.album       = alb.title
-                                      AND tr.album_artist = alb.artist
-                JOIN user_uploads  uu  ON tr.xata_id    = uu.track_id
+            COALESCE((
+                SELECT COUNT(DISTINCT aa.album_id)
+                FROM artist_albums aa
+                JOIN album_tracks atr ON atr.album_id = aa.album_id
+                JOIN user_uploads uu  ON uu.track_id = atr.track_id
                 WHERE aa.artist_id = artists.xata_id
-                  AND uu.user_id   = $1
-            ) AS album_count
+                  AND uu.user_id = $1
+            ), 0) AS album_count
         FROM artists
-        JOIN artist_tracks ON artists.xata_id = artist_tracks.artist_id
-        JOIN tracks        ON artist_tracks.track_id = tracks.xata_id
-                          AND tracks.album_artist = artists.name
-        JOIN user_uploads  ON tracks.xata_id = user_uploads.track_id
-        WHERE user_uploads.user_id = $1
-          AND LOWER(artists.name) LIKE LOWER($2)
-        GROUP BY artists.xata_id, artists.name, artists.picture
+        WHERE LOWER(artists.name) LIKE LOWER($2)
+          AND EXISTS (
+              SELECT 1 FROM artist_tracks atk
+              JOIN user_uploads uu ON uu.track_id = atk.track_id
+              WHERE atk.artist_id = artists.xata_id AND uu.user_id = $1
+          )
         ORDER BY artists.name ASC
         LIMIT $3 OFFSET $4
         "#,

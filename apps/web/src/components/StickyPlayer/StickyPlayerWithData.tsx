@@ -28,6 +28,7 @@ import {
   pausePlayback,
   nextTrack,
   previousTrack,
+  playlistRemoveTrack,
   seekTo,
 } from "../../lib/rockbox-graphql";
 import { useUploadScrobble } from "../../hooks/useUploadScrobble";
@@ -121,6 +122,16 @@ function StickyPlayerWithData() {
 
   const queueRef = useRef(queue);
   const queueIndexRef = useRef(queueIndex);
+  // Suppress pollRockbox's "status === 0 → clear player" path for ~2 s after
+  // a user-initiated jump. Rockbox flips status to 0 mid-track-switch; if we
+  // catch that, we'd null the player and stop the queue panel from rendering.
+  const transitionUntilRef = useRef(0);
+  // Pending index from a user click. While set, pollQueue won't accept a
+  // playlist.index that disagrees with it — rockbox can briefly report the
+  // OLD index after a backward jump (the playlist-pointer update and the
+  // codec restart aren't perfectly atomic), which would otherwise revert
+  // our optimistic queueIndex and snap Up Next back to the pre-click window.
+  const pendingIndexRef = useRef<{ idx: number; until: number } | null>(null);
 
   useEffect(() => { queueRef.current = queue; }, [queue]);
   useEffect(() => { queueIndexRef.current = queueIndex; }, [queueIndex]);
@@ -139,7 +150,10 @@ function StickyPlayerWithData() {
 
       // Only clear when rockbox explicitly reports stopped (status 0).
       // currentTrack can be null for URL-based playback even while playing.
-      if (status === 0 && playerRef.current === "rockbox") {
+      // Also suppress during a user-initiated jump — rockbox flips status to
+      // 0 momentarily while switching tracks, and clearing player would tear
+      // down the queue panel + cause pollQueue to stop syncing.
+      if (status === 0 && playerRef.current === "rockbox" && Date.now() >= transitionUntilRef.current) {
         setNowPlaying(null);
         setPlayer(null);
         return;
@@ -178,34 +192,66 @@ function StickyPlayerWithData() {
     }
   }, [did, setNowPlaying, setPlayer]);
 
-  // Poll rockbox queue to keep QueuePanel in sync
-  const pollQueue = useCallback(async () => {
-    if (!did || playerRef.current !== "rockbox") return;
-    try {
-      const playlist = await getCurrentPlaylist(did);
-      if (!playlist) return;
-      setQueueIndex(playlist.index);
-      setQueue(
-        playlist.tracks.map((t) => ({
-          uploadId: t.id,
-          title: t.title,
-          artist: t.artist,
-          albumArtist: t.artist,
-          album: t.album,
-          albumArt: t.albumArt
-            ? t.albumArt.startsWith("http")
-              ? t.albumArt
-              : `${ROCKBOX_URL}/${did}/covers/${t.albumArt}`
-            : null,
-          duration: t.length,
-          sha256: "",
-          songUri: t.path,
-        })),
-      );
-    } catch {
-      // ignore
-    }
-  }, [did, setQueue, setQueueIndex]);
+  // Poll rockbox queue to keep QueuePanel in sync.
+  //
+  // `force=true` skips the player-state gate. We use it for refetches
+  // triggered by an explicit user action (clicking a queue row, removing a
+  // track) — during the brief moment rockbox transitions tracks its status
+  // flips to 0, pollRockbox clears `player` to null, and a non-forced
+  // pollQueue would bail, leaving the queue mirror stale and Up Next
+  // showing the wrong window of tracks.
+  const pollQueue = useCallback(
+    async (force = false) => {
+      if (!did) return;
+      if (!force && playerRef.current !== "rockbox") return;
+      try {
+        const playlist = await getCurrentPlaylist(did);
+        if (!playlist) return;
+
+        // Pending-index protection. If the user just jumped to `pending.idx`
+        // and rockbox echoes back a DIFFERENT index, that's almost always
+        // a stale read (rockbox hasn't fully committed the seek yet). Keep
+        // the user's intent and try again on the next tick. If rockbox
+        // confirms (or the window elapses), clear pending and accept its
+        // value as authoritative again.
+        const pending = pendingIndexRef.current;
+        const now = Date.now();
+        let effectiveIndex = playlist.index;
+        if (pending) {
+          if (now > pending.until) {
+            pendingIndexRef.current = null;
+          } else if (playlist.index !== pending.idx) {
+            effectiveIndex = pending.idx;
+          } else {
+            // rockbox caught up — release the pending hold
+            pendingIndexRef.current = null;
+          }
+        }
+
+        setQueueIndex(effectiveIndex);
+        setQueue(
+          playlist.tracks.map((t) => ({
+            uploadId: t.id,
+            title: t.title,
+            artist: t.artist,
+            albumArtist: t.artist,
+            album: t.album,
+            albumArt: t.albumArt
+              ? t.albumArt.startsWith("http")
+                ? t.albumArt
+                : `${ROCKBOX_URL}/${did}/covers/${t.albumArt}`
+              : null,
+            duration: t.length,
+            sha256: "",
+            songUri: t.path,
+          })),
+        );
+      } catch {
+        // ignore
+      }
+    },
+    [did, setQueue, setQueueIndex],
+  );
 
   useEffect(() => {
     if (!did) return;
@@ -394,7 +440,24 @@ function StickyPlayerWithData() {
             onClose={() => setQueuePanelOpen(false)}
             onPlayIndex={(idx) => {
               const track = queue[idx];
-              if (!track) return;
+              if (!track || !did) return;
+              // Suppress pollRockbox's status=0 → clear-player path for the
+              // next 2 seconds. Rockbox stops the codec mid-jump and the
+              // transient status=0 would otherwise nuke `player`, hiding
+              // the queue panel and stopping pollQueue.
+              transitionUntilRef.current = Date.now() + 2000;
+              // Pin our intent for 3 s. pollQueue will keep displaying `idx`
+              // even if rockbox briefly echoes the OLD index — common for
+              // backward jumps where the playlist-pointer update and the
+              // codec restart race. Released early once rockbox confirms.
+              pendingIndexRef.current = { idx, until: Date.now() + 3000 };
+              // Optimistic UI: jump the index NOW so up-next/history flip
+              // immediately. Then call rockbox, then refetch — twice. The
+              // first refetch handles the common case (rockbox sets
+              // playlist->index synchronously). The 500 ms second refetch is
+              // belt-and-suspenders for backward jumps where rockbox needs
+              // to spin up a fresh HTTP fetch for the older track before
+              // get_current_track returns the right metadata.
               setQueueIndex(idx);
               setNowPlaying({
                 title: track.title,
@@ -409,40 +472,32 @@ function StickyPlayerWithData() {
                 sha256: track.sha256,
                 liked: false,
               });
-              // Tell rockbox to jump to this index
               import("../../lib/rockbox-graphql").then(({ startPlaylist }) =>
-                startPlaylist(did, idx).catch(console.warn),
+                startPlaylist(did, idx)
+                  .then(() => pollQueue(true))
+                  .then(() =>
+                    new Promise((r) => setTimeout(r, 500)).then(() => pollQueue(true)),
+                  )
+                  .catch((e) => consola.warn("startPlaylist failed", e)),
               );
             }}
             onRemove={(idx) => {
-              const newQueue = queue.filter((_, i) => i !== idx);
-              setQueue(newQueue);
-              if (idx < queueIndex) {
-                setQueueIndex(queueIndex - 1);
-              } else if (idx === queueIndex) {
-                const next = newQueue[queueIndex] ?? newQueue[queueIndex - 1];
-                if (next) {
-                  setNowPlaying({
-                    title: next.title,
-                    artist: next.artist,
-                    artistUri: "",
-                    songUri: next.songUri ?? "",
-                    albumUri: "",
-                    duration: next.duration,
-                    progress: 0,
-                    albumArt: next.albumArt ?? undefined,
-                    isPlaying: true,
-                    sha256: next.sha256,
-                    liked: false,
-                  });
-                  setQueueIndex(Math.min(queueIndex, newQueue.length - 1));
-                }
-              }
-              import("../../lib/rockbox-graphql").then(({ insertTracks: _ }) => {
-                // No direct "remove track" mutation exposed yet; queue will re-sync on next poll
-              });
+              if (!did) return;
+              // Call rockbox to actually drop the track; force the refetch
+              // because removing the currently-playing track can flip the
+              // player status to 0 briefly.
+              playlistRemoveTrack(did, idx)
+                .then(() => pollQueue(true))
+                .catch((e) => consola.warn("playlistRemoveTrack failed", e));
             }}
-            onReorder={(newQueue) => setQueue(newQueue)}
+            onReorder={(newQueue) => {
+              // Reorder is a UI-only optimistic update for now — rockbox has
+              // no "move track" mutation, only insert/remove. A proper
+              // implementation would remove + re-insert at the new position;
+              // until then, the next pollQueue tick will snap back to
+              // rockbox's order.
+              setQueue(newQueue);
+            }}
           />
         </>
       )}

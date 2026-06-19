@@ -74,7 +74,7 @@ impl TypesenseClient {
         Ok(resp)
     }
 
-    /// Returns track_ids for hits, deduplicated in order.
+    /// Returns track_ids for hits, paginated server-side via Typesense.
     pub async fn search_track_ids(
         &self,
         user_id: &str,
@@ -82,22 +82,22 @@ impl TypesenseClient {
         count: i64,
         offset: i64,
     ) -> Result<Vec<String>, Error> {
-        let per_page = (count + offset).min(250) as u64;
+        let per_page = count.max(1).min(250) as u64;
+        // Typesense pages are 1-indexed. Frontend always advances offset by `count`.
+        let page = ((offset / count.max(1)) + 1) as u64;
         let resp = self
             .search(
                 query,
                 "title,artist,album,album_artist,genre,composer",
                 &format!("user_id:={}", user_id),
                 per_page,
-                1,
+                page,
             )
             .await?;
 
         let ids: Vec<String> = resp
             .hits
             .iter()
-            .skip(offset as usize)
-            .take(count as usize)
             .filter_map(|h| h.document["track_id"].as_str().map(|s| s.to_string()))
             .collect();
         Ok(ids)
