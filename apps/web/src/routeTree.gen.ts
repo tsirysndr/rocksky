@@ -24,6 +24,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as LibraryIndexRouteImport } from './routes/library/index'
 import { Route as GoogledriveIndexRouteImport } from './routes/googledrive/index'
 import { Route as DropboxIndexRouteImport } from './routes/dropbox/index'
+import { Route as SettingsAudioRouteImport } from './routes/settings.audio'
 import { Route as LibraryUploadRouteImport } from './routes/library/upload'
 import { Route as GoogledriveIdRouteImport } from './routes/googledrive/$id'
 import { Route as GenreIdRouteImport } from './routes/genre/$id'
@@ -37,13 +38,13 @@ import { Route as ProfileDidLikesRouteImport } from './routes/profile/$did/likes
 import { Route as ProfileDidLibraryRouteImport } from './routes/profile/$did/library'
 import { Route as ProfileDidArtistsRouteImport } from './routes/profile/$did/artists'
 import { Route as ProfileDidAlbumsRouteImport } from './routes/profile/$did/albums'
+import { Route as LibraryArtistIdRouteImport } from './routes/library/artist/$id'
+import { Route as LibraryAlbumIdRouteImport } from './routes/library/album/$id'
 import { Route as DidSongRkeyRouteImport } from './routes/$did.song.$rkey'
 import { Route as DidScrobbleRkeyRouteImport } from './routes/$did.scrobble.$rkey'
 import { Route as DidPlaylistRkeyRouteImport } from './routes/$did.playlist.$rkey'
 import { Route as DidArtistRkeyRouteImport } from './routes/$did.artist.$rkey'
 import { Route as DidAlbumRkeyRouteImport } from './routes/$did.album.$rkey'
-import { Route as LibraryDidArtistRkeyRouteImport } from './routes/library/$did/artist/$rkey'
-import { Route as LibraryDidAlbumRkeyRouteImport } from './routes/library/$did/album/$rkey'
 
 const WrappedRoute = WrappedRouteImport.update({
   id: '/wrapped',
@@ -120,6 +121,11 @@ const DropboxIndexRoute = DropboxIndexRouteImport.update({
   path: '/dropbox/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsAudioRoute = SettingsAudioRouteImport.update({
+  id: '/settings/audio',
+  path: '/settings/audio',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LibraryUploadRoute = LibraryUploadRouteImport.update({
   id: '/library/upload',
   path: '/library/upload',
@@ -185,6 +191,16 @@ const ProfileDidAlbumsRoute = ProfileDidAlbumsRouteImport.update({
   path: '/profile/$did/albums',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LibraryArtistIdRoute = LibraryArtistIdRouteImport.update({
+  id: '/library/artist/$id',
+  path: '/library/artist/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LibraryAlbumIdRoute = LibraryAlbumIdRouteImport.update({
+  id: '/library/album/$id',
+  path: '/library/album/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DidSongRkeyRoute = DidSongRkeyRouteImport.update({
   id: '/$did/song/$rkey',
   path: '/$did/song/$rkey',
@@ -210,16 +226,6 @@ const DidAlbumRkeyRoute = DidAlbumRkeyRouteImport.update({
   path: '/$did/album/$rkey',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LibraryDidArtistRkeyRoute = LibraryDidArtistRkeyRouteImport.update({
-  id: '/library/$did/artist/$rkey',
-  path: '/library/$did/artist/$rkey',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LibraryDidAlbumRkeyRoute = LibraryDidAlbumRkeyRouteImport.update({
-  id: '/library/$did/album/$rkey',
-  path: '/library/$did/album/$rkey',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -238,6 +244,7 @@ export interface FileRoutesByFullPath {
   '/genre/$id': typeof GenreIdRoute
   '/googledrive/$id': typeof GoogledriveIdRoute
   '/library/upload': typeof LibraryUploadRoute
+  '/settings/audio': typeof SettingsAudioRoute
   '/dropbox': typeof DropboxIndexRoute
   '/googledrive': typeof GoogledriveIndexRoute
   '/library': typeof LibraryIndexRoute
@@ -246,6 +253,8 @@ export interface FileRoutesByFullPath {
   '/$did/playlist/$rkey': typeof DidPlaylistRkeyRoute
   '/$did/scrobble/$rkey': typeof DidScrobbleRkeyRoute
   '/$did/song/$rkey': typeof DidSongRkeyRoute
+  '/library/album/$id': typeof LibraryAlbumIdRoute
+  '/library/artist/$id': typeof LibraryArtistIdRoute
   '/profile/$did/albums': typeof ProfileDidAlbumsRoute
   '/profile/$did/artists': typeof ProfileDidArtistsRoute
   '/profile/$did/library': typeof ProfileDidLibraryRoute
@@ -255,8 +264,6 @@ export interface FileRoutesByFullPath {
   '/profile/$did/tags': typeof ProfileDidTagsRoute
   '/profile/$did/tracks': typeof ProfileDidTracksRoute
   '/profile/$did': typeof ProfileDidIndexRoute
-  '/library/$did/album/$rkey': typeof LibraryDidAlbumRkeyRoute
-  '/library/$did/artist/$rkey': typeof LibraryDidArtistRkeyRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -275,6 +282,7 @@ export interface FileRoutesByTo {
   '/genre/$id': typeof GenreIdRoute
   '/googledrive/$id': typeof GoogledriveIdRoute
   '/library/upload': typeof LibraryUploadRoute
+  '/settings/audio': typeof SettingsAudioRoute
   '/dropbox': typeof DropboxIndexRoute
   '/googledrive': typeof GoogledriveIndexRoute
   '/library': typeof LibraryIndexRoute
@@ -283,6 +291,8 @@ export interface FileRoutesByTo {
   '/$did/playlist/$rkey': typeof DidPlaylistRkeyRoute
   '/$did/scrobble/$rkey': typeof DidScrobbleRkeyRoute
   '/$did/song/$rkey': typeof DidSongRkeyRoute
+  '/library/album/$id': typeof LibraryAlbumIdRoute
+  '/library/artist/$id': typeof LibraryArtistIdRoute
   '/profile/$did/albums': typeof ProfileDidAlbumsRoute
   '/profile/$did/artists': typeof ProfileDidArtistsRoute
   '/profile/$did/library': typeof ProfileDidLibraryRoute
@@ -292,8 +302,6 @@ export interface FileRoutesByTo {
   '/profile/$did/tags': typeof ProfileDidTagsRoute
   '/profile/$did/tracks': typeof ProfileDidTracksRoute
   '/profile/$did': typeof ProfileDidIndexRoute
-  '/library/$did/album/$rkey': typeof LibraryDidAlbumRkeyRoute
-  '/library/$did/artist/$rkey': typeof LibraryDidArtistRkeyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -313,6 +321,7 @@ export interface FileRoutesById {
   '/genre/$id': typeof GenreIdRoute
   '/googledrive/$id': typeof GoogledriveIdRoute
   '/library/upload': typeof LibraryUploadRoute
+  '/settings/audio': typeof SettingsAudioRoute
   '/dropbox/': typeof DropboxIndexRoute
   '/googledrive/': typeof GoogledriveIndexRoute
   '/library/': typeof LibraryIndexRoute
@@ -321,6 +330,8 @@ export interface FileRoutesById {
   '/$did/playlist/$rkey': typeof DidPlaylistRkeyRoute
   '/$did/scrobble/$rkey': typeof DidScrobbleRkeyRoute
   '/$did/song/$rkey': typeof DidSongRkeyRoute
+  '/library/album/$id': typeof LibraryAlbumIdRoute
+  '/library/artist/$id': typeof LibraryArtistIdRoute
   '/profile/$did/albums': typeof ProfileDidAlbumsRoute
   '/profile/$did/artists': typeof ProfileDidArtistsRoute
   '/profile/$did/library': typeof ProfileDidLibraryRoute
@@ -330,8 +341,6 @@ export interface FileRoutesById {
   '/profile/$did/tags': typeof ProfileDidTagsRoute
   '/profile/$did/tracks': typeof ProfileDidTracksRoute
   '/profile/$did/': typeof ProfileDidIndexRoute
-  '/library/$did/album/$rkey': typeof LibraryDidAlbumRkeyRoute
-  '/library/$did/artist/$rkey': typeof LibraryDidArtistRkeyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -352,6 +361,7 @@ export interface FileRouteTypes {
     | '/genre/$id'
     | '/googledrive/$id'
     | '/library/upload'
+    | '/settings/audio'
     | '/dropbox'
     | '/googledrive'
     | '/library'
@@ -360,6 +370,8 @@ export interface FileRouteTypes {
     | '/$did/playlist/$rkey'
     | '/$did/scrobble/$rkey'
     | '/$did/song/$rkey'
+    | '/library/album/$id'
+    | '/library/artist/$id'
     | '/profile/$did/albums'
     | '/profile/$did/artists'
     | '/profile/$did/library'
@@ -369,8 +381,6 @@ export interface FileRouteTypes {
     | '/profile/$did/tags'
     | '/profile/$did/tracks'
     | '/profile/$did'
-    | '/library/$did/album/$rkey'
-    | '/library/$did/artist/$rkey'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -389,6 +399,7 @@ export interface FileRouteTypes {
     | '/genre/$id'
     | '/googledrive/$id'
     | '/library/upload'
+    | '/settings/audio'
     | '/dropbox'
     | '/googledrive'
     | '/library'
@@ -397,6 +408,8 @@ export interface FileRouteTypes {
     | '/$did/playlist/$rkey'
     | '/$did/scrobble/$rkey'
     | '/$did/song/$rkey'
+    | '/library/album/$id'
+    | '/library/artist/$id'
     | '/profile/$did/albums'
     | '/profile/$did/artists'
     | '/profile/$did/library'
@@ -406,8 +419,6 @@ export interface FileRouteTypes {
     | '/profile/$did/tags'
     | '/profile/$did/tracks'
     | '/profile/$did'
-    | '/library/$did/album/$rkey'
-    | '/library/$did/artist/$rkey'
   id:
     | '__root__'
     | '/'
@@ -426,6 +437,7 @@ export interface FileRouteTypes {
     | '/genre/$id'
     | '/googledrive/$id'
     | '/library/upload'
+    | '/settings/audio'
     | '/dropbox/'
     | '/googledrive/'
     | '/library/'
@@ -434,6 +446,8 @@ export interface FileRouteTypes {
     | '/$did/playlist/$rkey'
     | '/$did/scrobble/$rkey'
     | '/$did/song/$rkey'
+    | '/library/album/$id'
+    | '/library/artist/$id'
     | '/profile/$did/albums'
     | '/profile/$did/artists'
     | '/profile/$did/library'
@@ -443,8 +457,6 @@ export interface FileRouteTypes {
     | '/profile/$did/tags'
     | '/profile/$did/tracks'
     | '/profile/$did/'
-    | '/library/$did/album/$rkey'
-    | '/library/$did/artist/$rkey'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -464,6 +476,7 @@ export interface RootRouteChildren {
   GenreIdRoute: typeof GenreIdRoute
   GoogledriveIdRoute: typeof GoogledriveIdRoute
   LibraryUploadRoute: typeof LibraryUploadRoute
+  SettingsAudioRoute: typeof SettingsAudioRoute
   DropboxIndexRoute: typeof DropboxIndexRoute
   GoogledriveIndexRoute: typeof GoogledriveIndexRoute
   LibraryIndexRoute: typeof LibraryIndexRoute
@@ -472,6 +485,8 @@ export interface RootRouteChildren {
   DidPlaylistRkeyRoute: typeof DidPlaylistRkeyRoute
   DidScrobbleRkeyRoute: typeof DidScrobbleRkeyRoute
   DidSongRkeyRoute: typeof DidSongRkeyRoute
+  LibraryAlbumIdRoute: typeof LibraryAlbumIdRoute
+  LibraryArtistIdRoute: typeof LibraryArtistIdRoute
   ProfileDidAlbumsRoute: typeof ProfileDidAlbumsRoute
   ProfileDidArtistsRoute: typeof ProfileDidArtistsRoute
   ProfileDidLibraryRoute: typeof ProfileDidLibraryRoute
@@ -481,8 +496,6 @@ export interface RootRouteChildren {
   ProfileDidTagsRoute: typeof ProfileDidTagsRoute
   ProfileDidTracksRoute: typeof ProfileDidTracksRoute
   ProfileDidIndexRoute: typeof ProfileDidIndexRoute
-  LibraryDidAlbumRkeyRoute: typeof LibraryDidAlbumRkeyRoute
-  LibraryDidArtistRkeyRoute: typeof LibraryDidArtistRkeyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -592,6 +605,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DropboxIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/audio': {
+      id: '/settings/audio'
+      path: '/settings/audio'
+      fullPath: '/settings/audio'
+      preLoaderRoute: typeof SettingsAudioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/library/upload': {
       id: '/library/upload'
       path: '/library/upload'
@@ -683,6 +703,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileDidAlbumsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/library/artist/$id': {
+      id: '/library/artist/$id'
+      path: '/library/artist/$id'
+      fullPath: '/library/artist/$id'
+      preLoaderRoute: typeof LibraryArtistIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/library/album/$id': {
+      id: '/library/album/$id'
+      path: '/library/album/$id'
+      fullPath: '/library/album/$id'
+      preLoaderRoute: typeof LibraryAlbumIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$did/song/$rkey': {
       id: '/$did/song/$rkey'
       path: '/$did/song/$rkey'
@@ -718,20 +752,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DidAlbumRkeyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/library/$did/artist/$rkey': {
-      id: '/library/$did/artist/$rkey'
-      path: '/library/$did/artist/$rkey'
-      fullPath: '/library/$did/artist/$rkey'
-      preLoaderRoute: typeof LibraryDidArtistRkeyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/library/$did/album/$rkey': {
-      id: '/library/$did/album/$rkey'
-      path: '/library/$did/album/$rkey'
-      fullPath: '/library/$did/album/$rkey'
-      preLoaderRoute: typeof LibraryDidAlbumRkeyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -752,6 +772,7 @@ const rootRouteChildren: RootRouteChildren = {
   GenreIdRoute: GenreIdRoute,
   GoogledriveIdRoute: GoogledriveIdRoute,
   LibraryUploadRoute: LibraryUploadRoute,
+  SettingsAudioRoute: SettingsAudioRoute,
   DropboxIndexRoute: DropboxIndexRoute,
   GoogledriveIndexRoute: GoogledriveIndexRoute,
   LibraryIndexRoute: LibraryIndexRoute,
@@ -760,6 +781,8 @@ const rootRouteChildren: RootRouteChildren = {
   DidPlaylistRkeyRoute: DidPlaylistRkeyRoute,
   DidScrobbleRkeyRoute: DidScrobbleRkeyRoute,
   DidSongRkeyRoute: DidSongRkeyRoute,
+  LibraryAlbumIdRoute: LibraryAlbumIdRoute,
+  LibraryArtistIdRoute: LibraryArtistIdRoute,
   ProfileDidAlbumsRoute: ProfileDidAlbumsRoute,
   ProfileDidArtistsRoute: ProfileDidArtistsRoute,
   ProfileDidLibraryRoute: ProfileDidLibraryRoute,
@@ -769,8 +792,6 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileDidTagsRoute: ProfileDidTagsRoute,
   ProfileDidTracksRoute: ProfileDidTracksRoute,
   ProfileDidIndexRoute: ProfileDidIndexRoute,
-  LibraryDidAlbumRkeyRoute: LibraryDidAlbumRkeyRoute,
-  LibraryDidArtistRkeyRoute: LibraryDidArtistRkeyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

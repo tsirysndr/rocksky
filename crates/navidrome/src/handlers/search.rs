@@ -40,24 +40,29 @@ pub async fn handle_search3(
         .and_then(|s| s.parse().ok())
         .unwrap_or(0);
 
-    if let Some(ts) = ts {
-        return search_via_typesense(
-            format,
-            user_id,
-            pool,
-            ts,
-            query,
-            artist_count,
-            artist_offset,
-            album_count,
-            album_offset,
-            song_count,
-            song_offset,
-        )
-        .await;
+    // Empty query is the "browse all" path used by the web client's infinite-scroll
+    // tabs. Typesense's pagination here is hard-capped at 250 hits on page=1, so we
+    // skip it for browse-all and let SQL do real LIMIT/OFFSET pagination.
+    if !query.trim().is_empty() {
+        if let Some(ts) = ts {
+            return search_via_typesense(
+                format,
+                user_id,
+                pool,
+                ts,
+                query,
+                artist_count,
+                artist_offset,
+                album_count,
+                album_offset,
+                song_count,
+                song_offset,
+            )
+            .await;
+        }
     }
 
-    // Fallback: PostgreSQL LIKE search
+    // Fallback / browse-all: PostgreSQL LIKE search
     let artists_fut =
         repo::artist::search_artists(pool, user_id, query, artist_count, artist_offset);
     let albums_fut = repo::album::search_albums(pool, user_id, query, album_count, album_offset);

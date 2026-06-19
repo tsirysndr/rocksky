@@ -1,0 +1,22 @@
+{
+  "name": "@rocksky/rockbox-router",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
+    "format": "biome format src",
+    "lint": "biome lint src"
+  },
+  "dependencies": {
+    "consola": "^3.2.3",
+    "hono": "^4.6.14",
+    "postgres": "^3.4.5"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.2.3",
+    "@types/bun": "^1.1.14",
+    "typescript": "^5.5.2"
+  }
+}

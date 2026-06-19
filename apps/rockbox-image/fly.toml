@@ -1,0 +1,13 @@
+# This fly.toml only exists so `fly deploy --build-only --push` can push the
+# per-user rockbox image to Fly's registry. The `rockbox` app itself never has
+# a "default" release — every machine is spawned on demand by the router
+# (apps/rockbox-router) using this image.
+
+app = "rockbox"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+# Deliberately NO [http_service] block — we don't want `fly deploy` (without
+# --build-only) to create a default machine. The router owns lifecycle.

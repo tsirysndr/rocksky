@@ -1,23 +1,7 @@
 export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 export const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:8002";
-
-export const AUDIO_EXTENSIONS = [
-  "mp3",
-  "ogg",
-  "flac",
-  "m4a",
-  "aac",
-  "mp4",
-  "alac",
-  "wav",
-  "wv",
-  "mpc",
-  "aiff",
-  "aif",
-  "ac3",
-  "opus",
-  "wma",
-];
+export const ROCKBOX_URL = import.meta.env.VITE_ROCKBOX_URL || "https://rockbox.rocksky.app";
+export const NAVIDROME_URL = import.meta.env.VITE_NAVIDROME_URL || "https://navidrome.rocksky.app";
 
 export const LAST_7_DAYS = "LAST_7_DAYS";
 export const LAST_30_DAYS = "LAST_30_DAYS";

@@ -1,11 +1,11 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { LibraryArtist } from "../../../../pages/library";
+import { LibraryAlbum } from "../../../pages/library";
 
-export const Route = createFileRoute("/library/$did/artist/$rkey")({
+export const Route = createFileRoute("/library/album/$id")({
   beforeLoad: () => {
     if (!localStorage.getItem("token")) {
       throw redirect({ to: "/" });
     }
   },
-  component: LibraryArtist,
+  component: LibraryAlbum,
 });

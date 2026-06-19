@@ -1,8 +1,8 @@
 import styled from "@emotion/styled";
 import { IconX } from "@tabler/icons-react";
-import { useAtom } from "jotai";
 import { useCallback, useMemo } from "react";
-import { eqBandsAtom, eqEnabledAtom, EQ_BANDS, type EqBandSetting } from "../../atoms/equalizer";
+import { EQ_BANDS, EQ_Q, type EqBandSetting } from "../../atoms/equalizer";
+import { useAudioSettings } from "../../hooks/useAudioSettings";
 
 const Overlay = styled.div`
   position: fixed;
@@ -221,16 +221,56 @@ function formatFreq(hz: number) {
 type Props = { onClose: () => void };
 
 function EqualizerModal({ onClose }: Props) {
-  const [enabled, setEnabled] = useAtom(eqEnabledAtom);
-  const [bands, setBands] = useAtom(eqBandsAtom);
+  const { data, actions } = useAudioSettings();
 
-  const setBandGain = useCallback((index: number, gain: number) => {
-    setBands((prev) => prev.map((b, i) => i === index ? { ...b, gain } : b));
-  }, [setBands]);
+  // Rockbox stores gain in TENTHS of dB; render in whole dB for the slider.
+  // Q is also ×10 in rockbox (70 → Q 0.7).
+  const enabled = data?.eqEnabled ?? false;
+  // Rockbox stores gain in tenths of dB; keep half-dB precision in the UI
+  // (a value like -135 in the wire format means -13.5 dB).
+  const bands: EqBandSetting[] = useMemo(
+    () =>
+      (data?.eqBandSettings ?? EQ_BANDS).map((b) => ({
+        cutoff: b.cutoff,
+        gain: b.gain / 10,
+      })),
+    [data?.eqBandSettings],
+  );
+
+  const setEnabled = useCallback(
+    (next: boolean) => {
+      actions.setEqualizer({ enabled: next });
+    },
+    [actions],
+  );
+
+  const setBandGain = useCallback(
+    (index: number, gainDb: number) => {
+      const next = bands.map((b, i) =>
+        i === index ? { ...b, gain: gainDb } : b,
+      );
+      // Convert display dB → wire tenths and add the q factor rockbox expects.
+      // Round to integer tenths to avoid float drift (e.g. 0.30000000004).
+      actions.setEqualizer({
+        bands: next.map((b) => ({
+          cutoff: b.cutoff,
+          gain: Math.round(b.gain * 10),
+          q: Math.round(EQ_Q * 10),
+        })),
+      });
+    },
+    [actions, bands],
+  );
 
   const reset = useCallback(() => {
-    setBands(EQ_BANDS.map((b) => ({ ...b, gain: 0 })));
-  }, [setBands]);
+    actions.setEqualizer({
+      bands: EQ_BANDS.map((b) => ({
+        cutoff: b.cutoff,
+        gain: 0,
+        q: Math.round(EQ_Q * 10),
+      })),
+    });
+  }, [actions]);
 
   return (
     <Overlay onClick={onClose}>
@@ -239,7 +279,7 @@ function EqualizerModal({ onClose }: Props) {
           <Title>Equalizer</Title>
           <HeaderRight>
             <ResetBtn onClick={reset}>Reset</ResetBtn>
-            <Toggle on={enabled} onClick={() => setEnabled((v) => !v)}>
+            <Toggle on={enabled} onClick={() => setEnabled(!enabled)}>
               <ToggleTrack on={enabled} />
               {enabled ? "On" : "Off"}
             </Toggle>
@@ -257,23 +297,28 @@ function EqualizerModal({ onClose }: Props) {
             <GainLabel>-24dB</GainLabel>
           </div>
           <SlidersRow style={{ flex: 1 }}>
-            {bands.map((band, i) => (
-              <BandCol key={i}>
-                <GainLabel>{band.gain > 0 ? `+${band.gain}` : band.gain}</GainLabel>
-                <SliderWrap>
-                  <VerticalSlider
-                    type="range"
-                    min={-24}
-                    max={24}
-                    step={1}
-                    value={band.gain}
-                    disabled={!enabled}
-                    onChange={(e) => setBandGain(i, Number(e.target.value))}
-                  />
-                </SliderWrap>
-                <FreqLabel>{formatFreq(band.cutoff)}</FreqLabel>
-              </BandCol>
-            ))}
+            {bands.map((band, i) => {
+              const display = band.gain === Math.trunc(band.gain)
+                ? band.gain.toFixed(0)
+                : band.gain.toFixed(1);
+              return (
+                <BandCol key={i}>
+                  <GainLabel>{band.gain > 0 ? `+${display}` : display}</GainLabel>
+                  <SliderWrap>
+                    <VerticalSlider
+                      type="range"
+                      min={-24}
+                      max={24}
+                      step={0.5}
+                      value={band.gain}
+                      disabled={!enabled}
+                      onChange={(e) => setBandGain(i, Number(e.target.value))}
+                    />
+                  </SliderWrap>
+                  <FreqLabel>{formatFreq(band.cutoff)}</FreqLabel>
+                </BandCol>
+              );
+            })}
           </SlidersRow>
         </div>
       </Modal>

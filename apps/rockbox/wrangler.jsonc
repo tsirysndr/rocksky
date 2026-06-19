@@ -1,0 +1,42 @@
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "rockbox",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-10-08",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "upload_source_maps": true,
+
+  /**
+   * Public URL of the Fly-hosted router. Override per-environment via
+   * `wrangler.<env>.vars`. The Worker forwards every /:did/* request here.
+   */
+  "vars": {
+    "ROCKBOX_ROUTER_URL": "https://rockbox-router.fly.dev"
+  },
+
+  /**
+   * v1 created the RockboxContainer Durable Object (Cloudflare Containers).
+   * v2 drops it now that audio is served by the Fly-hosted rockbox-router.
+   */
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["RockboxContainer"]
+    },
+    {
+      "tag": "v2",
+      "deleted_classes": ["RockboxContainer"]
+    }
+  ]
+
+  /**
+   * Set the shared bearer with:
+   *   wrangler secret put ROCKBOX_ROUTER_TOKEN
+   * It must match `ROUTER_AUTH_BEARER` on the Fly router.
+   */
+}
