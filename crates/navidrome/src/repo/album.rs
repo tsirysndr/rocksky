@@ -89,15 +89,15 @@ pub async fn get_album_list(
 ) -> Result<Vec<AlbumWithStats>, Error> {
     let order_clause = match list_type {
         "newest" => "ORDER BY created_at DESC NULLS LAST",
-        "alphabeticalByName" => "ORDER BY albums.title ASC",
-        "alphabeticalByArtist" => "ORDER BY albums.artist ASC",
+        "alphabeticalByName" => "ORDER BY title ASC",
+        "alphabeticalByArtist" => "ORDER BY artist ASC",
         "random" => "ORDER BY RANDOM()",
         "recent" => "ORDER BY created_at DESC NULLS LAST",
         "byYear" => {
             if from_year.unwrap_or(0) > to_year.unwrap_or(9999) {
-                "ORDER BY albums.year DESC NULLS LAST"
+                "ORDER BY year DESC NULLS LAST"
             } else {
-                "ORDER BY albums.year ASC NULLS LAST"
+                "ORDER BY year ASC NULLS LAST"
             }
         }
         _ => "ORDER BY created_at DESC NULLS LAST",
@@ -135,41 +135,70 @@ pub async fn get_album_list(
     // No strict join on (tracks.album = albums.title AND tracks.album_artist = albums.artist):
     // string drift between track tags and the canonical album row would silently hide albums.
     // Membership is defined purely by album_tracks; uploads are scoped to the caller via EXISTS.
+    //
+    // Ingestion stores album_artist verbatim, so featured-artist tracks ("Clean Bandit, Zara Larsson")
+    // create separate albums rows from the canonical album ("Clean Bandit"). Dedup by
+    // (title, first comma-separated artist token), keeping the row with the most tracks.
     let sql = format!(
         r#"
         SELECT
-            albums.xata_id,
-            albums.title,
-            albums.artist,
-            albums.year,
-            albums.album_art,
-            COALESCE((
-                SELECT COUNT(DISTINCT atr.track_id)
-                FROM album_tracks atr
+            xata_id,
+            title,
+            artist,
+            year,
+            album_art,
+            song_count,
+            total_duration,
+            created_at,
+            artist_id
+        FROM (
+            SELECT
+                albums.xata_id,
+                albums.title,
+                albums.artist,
+                albums.year,
+                albums.album_art,
+                COALESCE((
+                    SELECT COUNT(DISTINCT atr.track_id)
+                    FROM album_tracks atr
+                    JOIN user_uploads uu ON uu.track_id = atr.track_id
+                    WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
+                ), 0) AS song_count,
+                COALESCE((
+                    SELECT SUM(tr.duration)::bigint
+                    FROM album_tracks atr
+                    JOIN tracks tr ON tr.xata_id = atr.track_id
+                    JOIN user_uploads uu ON uu.track_id = atr.track_id
+                    WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
+                ), 0) AS total_duration,
+                (
+                    SELECT MIN(uu.uploaded_at)::timestamptz
+                    FROM album_tracks atr
+                    JOIN user_uploads uu ON uu.track_id = atr.track_id
+                    WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
+                ) AS created_at,
+                (SELECT aa.artist_id FROM artist_albums aa WHERE aa.album_id = albums.xata_id LIMIT 1) AS artist_id,
+                ROW_NUMBER() OVER (
+                    PARTITION BY LOWER(albums.title), LOWER(TRIM(SPLIT_PART(albums.artist, ',', 1)))
+                    ORDER BY
+                        COALESCE((
+                            SELECT COUNT(DISTINCT atr.track_id)
+                            FROM album_tracks atr
+                            JOIN user_uploads uu ON uu.track_id = atr.track_id
+                            WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
+                        ), 0) DESC,
+                        albums.year DESC NULLS LAST,
+                        albums.xata_id ASC
+                ) AS dedup_rank
+            FROM albums
+            WHERE EXISTS (
+                SELECT 1 FROM album_tracks atr
                 JOIN user_uploads uu ON uu.track_id = atr.track_id
                 WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
-            ), 0) AS song_count,
-            COALESCE((
-                SELECT SUM(tr.duration)::bigint
-                FROM album_tracks atr
-                JOIN tracks tr ON tr.xata_id = atr.track_id
-                JOIN user_uploads uu ON uu.track_id = atr.track_id
-                WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
-            ), 0) AS total_duration,
-            (
-                SELECT MIN(uu.uploaded_at)::timestamptz
-                FROM album_tracks atr
-                JOIN user_uploads uu ON uu.track_id = atr.track_id
-                WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
-            ) AS created_at,
-            (SELECT aa.artist_id FROM artist_albums aa WHERE aa.album_id = albums.xata_id LIMIT 1) AS artist_id
-        FROM albums
-        WHERE EXISTS (
-            SELECT 1 FROM album_tracks atr
-            JOIN user_uploads uu ON uu.track_id = atr.track_id
-            WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
-        )
-        {}{}
+            )
+            {}{}
+        ) deduped
+        WHERE dedup_rank = 1
         {}
         LIMIT $2 OFFSET $3
         "#,
@@ -199,39 +228,64 @@ pub async fn search_albums(
     let rows: Vec<AlbumWithStats> = sqlx::query_as(
         r#"
         SELECT
-            albums.xata_id,
-            albums.title,
-            albums.artist,
-            albums.year,
-            albums.album_art,
-            COALESCE((
-                SELECT COUNT(DISTINCT atr.track_id)
-                FROM album_tracks atr
-                JOIN user_uploads uu ON uu.track_id = atr.track_id
-                WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
-            ), 0) AS song_count,
-            COALESCE((
-                SELECT SUM(tr.duration)::bigint
-                FROM album_tracks atr
-                JOIN tracks tr ON tr.xata_id = atr.track_id
-                JOIN user_uploads uu ON uu.track_id = atr.track_id
-                WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
-            ), 0) AS total_duration,
-            (
-                SELECT MIN(uu.uploaded_at)::timestamptz
-                FROM album_tracks atr
-                JOIN user_uploads uu ON uu.track_id = atr.track_id
-                WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
-            ) AS created_at,
-            (SELECT aa.artist_id FROM artist_albums aa WHERE aa.album_id = albums.xata_id LIMIT 1) AS artist_id
-        FROM albums
-        WHERE LOWER(albums.title) LIKE LOWER($2)
-          AND EXISTS (
-              SELECT 1 FROM album_tracks atr
-              JOIN user_uploads uu ON uu.track_id = atr.track_id
-              WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
-          )
-        ORDER BY albums.title ASC
+            xata_id,
+            title,
+            artist,
+            year,
+            album_art,
+            song_count,
+            total_duration,
+            created_at,
+            artist_id
+        FROM (
+            SELECT
+                albums.xata_id,
+                albums.title,
+                albums.artist,
+                albums.year,
+                albums.album_art,
+                COALESCE((
+                    SELECT COUNT(DISTINCT atr.track_id)
+                    FROM album_tracks atr
+                    JOIN user_uploads uu ON uu.track_id = atr.track_id
+                    WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
+                ), 0) AS song_count,
+                COALESCE((
+                    SELECT SUM(tr.duration)::bigint
+                    FROM album_tracks atr
+                    JOIN tracks tr ON tr.xata_id = atr.track_id
+                    JOIN user_uploads uu ON uu.track_id = atr.track_id
+                    WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
+                ), 0) AS total_duration,
+                (
+                    SELECT MIN(uu.uploaded_at)::timestamptz
+                    FROM album_tracks atr
+                    JOIN user_uploads uu ON uu.track_id = atr.track_id
+                    WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
+                ) AS created_at,
+                (SELECT aa.artist_id FROM artist_albums aa WHERE aa.album_id = albums.xata_id LIMIT 1) AS artist_id,
+                ROW_NUMBER() OVER (
+                    PARTITION BY LOWER(albums.title), LOWER(TRIM(SPLIT_PART(albums.artist, ',', 1)))
+                    ORDER BY
+                        COALESCE((
+                            SELECT COUNT(DISTINCT atr.track_id)
+                            FROM album_tracks atr
+                            JOIN user_uploads uu ON uu.track_id = atr.track_id
+                            WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
+                        ), 0) DESC,
+                        albums.year DESC NULLS LAST,
+                        albums.xata_id ASC
+                ) AS dedup_rank
+            FROM albums
+            WHERE LOWER(albums.title) LIKE LOWER($2)
+              AND EXISTS (
+                  SELECT 1 FROM album_tracks atr
+                  JOIN user_uploads uu ON uu.track_id = atr.track_id
+                  WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
+              )
+        ) deduped
+        WHERE dedup_rank = 1
+        ORDER BY title ASC
         LIMIT $3 OFFSET $4
         "#,
     )

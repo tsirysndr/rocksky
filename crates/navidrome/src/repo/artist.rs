@@ -42,16 +42,19 @@ pub async fn get_artist_by_id(
     artist_id: &str,
     user_id: &str,
 ) -> Result<Option<ArtistRow>, Error> {
+    // Use the same membership rule as get_all_artists: any artist_tracks link to a user upload.
+    // Joining on tracks.album_artist = artists.name dropped artists that only appear as
+    // featured/secondary credits, even when getArtists already listed them.
     let row: Option<ArtistRow> = sqlx::query_as(
         r#"
-        SELECT DISTINCT artists.xata_id, artists.name, artists.picture, artists.xata_createdat
+        SELECT artists.xata_id, artists.name, artists.picture, artists.xata_createdat
         FROM artists
-        JOIN artist_tracks ON artists.xata_id = artist_tracks.artist_id
-        JOIN tracks        ON artist_tracks.track_id = tracks.xata_id
-                          AND tracks.album_artist = artists.name
-        JOIN user_uploads  ON tracks.xata_id = user_uploads.track_id
-        WHERE artists.xata_id = $1 AND user_uploads.user_id = $2
-        LIMIT 1
+        WHERE artists.xata_id = $1
+          AND EXISTS (
+              SELECT 1 FROM artist_tracks atk
+              JOIN user_uploads uu ON uu.track_id = atk.track_id
+              WHERE atk.artist_id = artists.xata_id AND uu.user_id = $2
+          )
         "#,
     )
     .bind(artist_id)
