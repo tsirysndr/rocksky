@@ -7,6 +7,9 @@ pub async fn get_all_artists(
     pool: &Pool<Postgres>,
     user_id: &str,
 ) -> Result<Vec<ArtistWithStats>, Error> {
+    // artist_tracks has polluted entries (tracks linked to artists they don't actually credit).
+    // Without (tr.album_artist = artists.name) on every artist_tracks join, a single stray row
+    // makes a stranger's artist show up in the caller's library. See commit 8f06a470.
     let rows: Vec<ArtistWithStats> = sqlx::query_as(
         r#"
         SELECT
@@ -17,6 +20,8 @@ pub async fn get_all_artists(
                 SELECT COUNT(DISTINCT aa.album_id)
                 FROM artist_albums aa
                 JOIN album_tracks atr ON atr.album_id = aa.album_id
+                JOIN tracks tr ON tr.xata_id = atr.track_id
+                              AND tr.album_artist = artists.name
                 JOIN user_uploads uu  ON uu.track_id = atr.track_id
                 WHERE aa.artist_id = artists.xata_id
                   AND uu.user_id = $1
@@ -24,6 +29,8 @@ pub async fn get_all_artists(
         FROM artists
         WHERE EXISTS (
             SELECT 1 FROM artist_tracks atk
+            JOIN tracks tr ON tr.xata_id = atk.track_id
+                          AND tr.album_artist = artists.name
             JOIN user_uploads uu ON uu.track_id = atk.track_id
             WHERE atk.artist_id = artists.xata_id AND uu.user_id = $1
         )
@@ -42,9 +49,9 @@ pub async fn get_artist_by_id(
     artist_id: &str,
     user_id: &str,
 ) -> Result<Option<ArtistRow>, Error> {
-    // Use the same membership rule as get_all_artists: any artist_tracks link to a user upload.
-    // Joining on tracks.album_artist = artists.name dropped artists that only appear as
-    // featured/secondary credits, even when getArtists already listed them.
+    // Same junction-table consistency check as get_all_artists: only count artist_tracks rows
+    // where the track's album_artist actually matches this artist's name, otherwise polluted
+    // junction entries let strangers' artists pass.
     let row: Option<ArtistRow> = sqlx::query_as(
         r#"
         SELECT artists.xata_id, artists.name, artists.picture, artists.xata_createdat
@@ -52,6 +59,8 @@ pub async fn get_artist_by_id(
         WHERE artists.xata_id = $1
           AND EXISTS (
               SELECT 1 FROM artist_tracks atk
+              JOIN tracks tr ON tr.xata_id = atk.track_id
+                            AND tr.album_artist = artists.name
               JOIN user_uploads uu ON uu.track_id = atk.track_id
               WHERE atk.artist_id = artists.xata_id AND uu.user_id = $2
           )
@@ -73,6 +82,7 @@ pub async fn search_artists(
     offset: i64,
 ) -> Result<Vec<ArtistWithStats>, Error> {
     let pattern = format!("%{}%", query);
+    // Same junction-table consistency check as get_all_artists.
     let rows: Vec<ArtistWithStats> = sqlx::query_as(
         r#"
         SELECT
@@ -83,6 +93,8 @@ pub async fn search_artists(
                 SELECT COUNT(DISTINCT aa.album_id)
                 FROM artist_albums aa
                 JOIN album_tracks atr ON atr.album_id = aa.album_id
+                JOIN tracks tr ON tr.xata_id = atr.track_id
+                              AND tr.album_artist = artists.name
                 JOIN user_uploads uu  ON uu.track_id = atr.track_id
                 WHERE aa.artist_id = artists.xata_id
                   AND uu.user_id = $1
@@ -91,6 +103,8 @@ pub async fn search_artists(
         WHERE LOWER(artists.name) LIKE LOWER($2)
           AND EXISTS (
               SELECT 1 FROM artist_tracks atk
+              JOIN tracks tr ON tr.xata_id = atk.track_id
+                            AND tr.album_artist = artists.name
               JOIN user_uploads uu ON uu.track_id = atk.track_id
               WHERE atk.artist_id = artists.xata_id AND uu.user_id = $1
           )

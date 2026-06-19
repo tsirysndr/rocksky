@@ -132,9 +132,11 @@ pub async fn get_album_list(
         String::new()
     };
 
-    // No strict join on (tracks.album = albums.title AND tracks.album_artist = albums.artist):
-    // string drift between track tags and the canonical album row would silently hide albums.
-    // Membership is defined purely by album_tracks; uploads are scoped to the caller via EXISTS.
+    // Junction-table consistency: album_tracks has polluted entries that link tracks to albums
+    // they don't actually belong to (different release with the same title from another user,
+    // stale links from re-ingestion, etc.). Without (tr.album = albums.title AND
+    // tr.album_artist = albums.artist) on every album_tracks join, a single stray row makes a
+    // stranger's album show up in the caller's library. See commit ffcbfc3b.
     //
     // Ingestion stores album_artist verbatim, so featured-artist tracks ("Clean Bandit, Zara Larsson")
     // create separate albums rows from the canonical album ("Clean Bandit"). Dedup by
@@ -161,6 +163,9 @@ pub async fn get_album_list(
                 COALESCE((
                     SELECT COUNT(DISTINCT atr.track_id)
                     FROM album_tracks atr
+                    JOIN tracks tr ON tr.xata_id = atr.track_id
+                                  AND tr.album = albums.title
+                                  AND tr.album_artist = albums.artist
                     JOIN user_uploads uu ON uu.track_id = atr.track_id
                     WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
                 ), 0) AS song_count,
@@ -168,12 +173,17 @@ pub async fn get_album_list(
                     SELECT SUM(tr.duration)::bigint
                     FROM album_tracks atr
                     JOIN tracks tr ON tr.xata_id = atr.track_id
+                                  AND tr.album = albums.title
+                                  AND tr.album_artist = albums.artist
                     JOIN user_uploads uu ON uu.track_id = atr.track_id
                     WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
                 ), 0) AS total_duration,
                 (
                     SELECT MIN(uu.uploaded_at)::timestamptz
                     FROM album_tracks atr
+                    JOIN tracks tr ON tr.xata_id = atr.track_id
+                                  AND tr.album = albums.title
+                                  AND tr.album_artist = albums.artist
                     JOIN user_uploads uu ON uu.track_id = atr.track_id
                     WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
                 ) AS created_at,
@@ -184,6 +194,9 @@ pub async fn get_album_list(
                         COALESCE((
                             SELECT COUNT(DISTINCT atr.track_id)
                             FROM album_tracks atr
+                            JOIN tracks tr ON tr.xata_id = atr.track_id
+                                          AND tr.album = albums.title
+                                          AND tr.album_artist = albums.artist
                             JOIN user_uploads uu ON uu.track_id = atr.track_id
                             WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
                         ), 0) DESC,
@@ -193,6 +206,9 @@ pub async fn get_album_list(
             FROM albums
             WHERE EXISTS (
                 SELECT 1 FROM album_tracks atr
+                JOIN tracks tr ON tr.xata_id = atr.track_id
+                              AND tr.album = albums.title
+                              AND tr.album_artist = albums.artist
                 JOIN user_uploads uu ON uu.track_id = atr.track_id
                 WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
             )
@@ -225,6 +241,7 @@ pub async fn search_albums(
     offset: i64,
 ) -> Result<Vec<AlbumWithStats>, Error> {
     let pattern = format!("%{}%", query);
+    // Same junction-table consistency check as get_album_list — see comment there.
     let rows: Vec<AlbumWithStats> = sqlx::query_as(
         r#"
         SELECT
@@ -247,6 +264,9 @@ pub async fn search_albums(
                 COALESCE((
                     SELECT COUNT(DISTINCT atr.track_id)
                     FROM album_tracks atr
+                    JOIN tracks tr ON tr.xata_id = atr.track_id
+                                  AND tr.album = albums.title
+                                  AND tr.album_artist = albums.artist
                     JOIN user_uploads uu ON uu.track_id = atr.track_id
                     WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
                 ), 0) AS song_count,
@@ -254,12 +274,17 @@ pub async fn search_albums(
                     SELECT SUM(tr.duration)::bigint
                     FROM album_tracks atr
                     JOIN tracks tr ON tr.xata_id = atr.track_id
+                                  AND tr.album = albums.title
+                                  AND tr.album_artist = albums.artist
                     JOIN user_uploads uu ON uu.track_id = atr.track_id
                     WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
                 ), 0) AS total_duration,
                 (
                     SELECT MIN(uu.uploaded_at)::timestamptz
                     FROM album_tracks atr
+                    JOIN tracks tr ON tr.xata_id = atr.track_id
+                                  AND tr.album = albums.title
+                                  AND tr.album_artist = albums.artist
                     JOIN user_uploads uu ON uu.track_id = atr.track_id
                     WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
                 ) AS created_at,
@@ -270,6 +295,9 @@ pub async fn search_albums(
                         COALESCE((
                             SELECT COUNT(DISTINCT atr.track_id)
                             FROM album_tracks atr
+                            JOIN tracks tr ON tr.xata_id = atr.track_id
+                                          AND tr.album = albums.title
+                                          AND tr.album_artist = albums.artist
                             JOIN user_uploads uu ON uu.track_id = atr.track_id
                             WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
                         ), 0) DESC,
@@ -280,6 +308,9 @@ pub async fn search_albums(
             WHERE LOWER(albums.title) LIKE LOWER($2)
               AND EXISTS (
                   SELECT 1 FROM album_tracks atr
+                  JOIN tracks tr ON tr.xata_id = atr.track_id
+                                AND tr.album = albums.title
+                                AND tr.album_artist = albums.artist
                   JOIN user_uploads uu ON uu.track_id = atr.track_id
                   WHERE atr.album_id = albums.xata_id AND uu.user_id = $1
               )
