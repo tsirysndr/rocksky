@@ -75,7 +75,6 @@ cd rocksky
 # 2. Install dependencies
 npm install -g turbo
 bun install
-bun run build:raichu
 
 # 3. Environment variables
 cp apps/api/.env.example apps/api/.env
