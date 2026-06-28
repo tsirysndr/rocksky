@@ -27,7 +27,18 @@ jobs:
             pkg-config \
             flex \
             bison \
-            build-essential
+            build-essential \
+            unzip
+      - name: Install DuckDB
+        run: |
+          DUCKDB_VERSION=1.4.0
+          curl -L -o /tmp/duckdb.zip \
+            https://github.com/duckdb/duckdb/releases/download/v${DUCKDB_VERSION}/libduckdb-linux-amd64.zip
+          sudo mkdir -p /usr/local/lib /usr/local/include
+          sudo unzip -o /tmp/duckdb.zip -d /tmp/duckdb
+          sudo cp /tmp/duckdb/libduckdb.so /usr/local/lib/
+          sudo cp /tmp/duckdb/duckdb.h /tmp/duckdb/duckdb.hpp /usr/local/include/
+          sudo ldconfig
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
@@ -35,3 +46,6 @@ jobs:
           cache-on-failure: true
       - name: cargo build -p rockskyd --release
         run: cargo build -p rockskyd --release
+        env:
+          DUCKDB_LIB_DIR: /usr/local/lib
+          DUCKDB_INCLUDE_DIR: /usr/local/include

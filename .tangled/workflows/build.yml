@@ -16,6 +16,7 @@ dependencies:
     - rustc
     - cargo
     - gcc
+    - duckdb
   github:NixOS/nixpkgs/nixpkgs-unstable:
     - bun
 
