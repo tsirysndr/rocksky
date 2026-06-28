@@ -1,6 +1,7 @@
 # Rocksky 
 
 [![ci](https://github.com/tsirysndr/rocksky/actions/workflows/ci.yml/badge.svg)](https://github.com/tsirysndr/rocksky/actions/workflows/ci.yml)
+[![build](https://github.com/tsirysndr/rocksky/actions/workflows/build.yml/badge.svg)](https://github.com/tsirysndr/rocksky/actions/workflows/build.yml)
 [![discord](https://img.shields.io/discord/1103720908104929321?label=discord&logo=discord&color=5865F2)](https://discord.gg/EVcBy2fVa3)
 
 **A decentralized, open-source Last.fm alternative built on the AT Protocol (Bluesky).**
