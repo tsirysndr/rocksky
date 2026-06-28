@@ -77,35 +77,38 @@ function Compatibility() {
                   <b>{data.compatibility?.compatibilityLevel}</b>
                 </span>
               </div>
-              <div className="!text-[var(--color-text)] mt-[5px]">
-                You both listen to{" "}
-                {(data.compatibility?.topSharedDetailedArtists || []).map(
-                  (artist, index) => (
-                    <div key={artist.id} className="inline">
-                      <Link
-                        to={
-                          `/${artist.uri.split("at://")[1].replace("app.rocksky.", "")}` as string
-                        }
-                        className="no-underline"
-                      >
-                        <span className="mt-[0px] mb-[0px] text-[14px] !text-[var(--color-primary)]">
-                          {artist.name}
-                        </span>
-                      </Link>
-                      {index !==
-                        (data.compatibility?.topSharedDetailedArtists || [])
-                          .length -
-                          1 &&
-                        (index ===
-                        (data.compatibility?.topSharedDetailedArtists || [])
-                          .length -
-                          2
-                          ? " and "
-                          : ", ")}
-                    </div>
-                  ),
-                )}
-              </div>
+              {(data.compatibility?.topSharedDetailedArtists || []).length >
+                0 && (
+                <div className="!text-[var(--color-text)] mt-[5px]">
+                  You both listen to{" "}
+                  {(data.compatibility?.topSharedDetailedArtists || []).map(
+                    (artist, index) => (
+                      <div key={artist.id} className="inline">
+                        <Link
+                          to={
+                            `/${artist.uri.split("at://")[1].replace("app.rocksky.", "")}` as string
+                          }
+                          className="no-underline"
+                        >
+                          <span className="mt-[0px] mb-[0px] text-[14px] !text-[var(--color-primary)]">
+                            {artist.name}
+                          </span>
+                        </Link>
+                        {index !==
+                          (data.compatibility?.topSharedDetailedArtists || [])
+                            .length -
+                            1 &&
+                          (index ===
+                          (data.compatibility?.topSharedDetailedArtists || [])
+                            .length -
+                            2
+                            ? " and "
+                            : ", ")}
+                      </div>
+                    ),
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
