@@ -39,27 +39,6 @@ jobs:
               - 'musicbrainz/**'
               - '.github/workflows/build.yml'
 
-  api:
-    needs: changes
-    if: needs.changes.outputs.api == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.2.15
-      - name: Build apps/api
-        run: |
-          bun install --frozen-lockfile
-          bun run build
-        working-directory: apps/api
-      - name: Upload api dist
-        uses: actions/upload-artifact@v4
-        with:
-          name: api-dist
-          path: apps/api/dist
-          if-no-files-found: error
-
   rockskyd:
     needs: changes
     if: needs.changes.outputs.rockskyd == 'true'
@@ -103,26 +82,19 @@ jobs:
           if-no-files-found: error
 
   deploy:
-    needs: [changes, api, rockskyd]
+    needs: [changes, rockskyd]
     if: |
       always() &&
       github.ref == 'refs/heads/main' &&
-      needs.api.result != 'failure' &&
       needs.rockskyd.result != 'failure' &&
-      (needs.api.result == 'success' ||
-       needs.rockskyd.result == 'success' ||
+      (needs.rockskyd.result == 'success' ||
+       needs.changes.outputs.api == 'true' ||
        needs.changes.outputs.embed == 'true' ||
        needs.changes.outputs.feeds == 'true' ||
        needs.changes.outputs.ws == 'true' ||
        needs.changes.outputs.mb == 'true')
     runs-on: ubuntu-latest
     steps:
-      - name: Download api dist
-        if: needs.changes.outputs.api == 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: api-dist
-          path: apps/api/dist
       - name: Download rockskyd binary
         if: needs.changes.outputs.rockskyd == 'true'
         uses: actions/download-artifact@v4
@@ -143,14 +115,15 @@ jobs:
           ssh-keyscan -H ssh.rocksky.app >> ~/.ssh/known_hosts
       - name: Pull latest on server
         run: |
-          ssh root@ssh.rocksky.app 'cd /root/github/rocksky && git pull origin main && mkdir -p apps/api target/release'
-      - name: Deploy apps/api/dist
+          ssh root@ssh.rocksky.app 'cd /root/github/rocksky && git pull origin main && mkdir -p target/release'
+      - name: Build apps/api on server and restart
         if: needs.changes.outputs.api == 'true'
         env:
           API_SERVICES: rocksky rocksky-xrpc
         run: |
-          rsync -az --delete -e ssh apps/api/dist/ root@ssh.rocksky.app:/root/github/rocksky/apps/api/dist/
           ssh root@ssh.rocksky.app "set -e; \
+            cd /root/github/rocksky/apps/api && \
+            /bin/bash -ic 'bun install --frozen-lockfile && bun run build'; \
             systemctl restart $API_SERVICES; \
             systemctl --no-pager --lines=0 status $API_SERVICES"
       - name: Deploy rockskyd binary
