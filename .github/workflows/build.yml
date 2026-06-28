@@ -3,7 +3,45 @@ on:
   push:
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      rockskyd: ${{ steps.filter.outputs.rockskyd }}
+      embed: ${{ steps.filter.outputs.embed }}
+      feeds: ${{ steps.filter.outputs.feeds }}
+      ws: ${{ steps.filter.outputs.ws }}
+      mb: ${{ steps.filter.outputs.mb }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'apps/api/**'
+              - '.github/workflows/build.yml'
+            rockskyd:
+              - 'crates/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+              - '.github/workflows/build.yml'
+            embed:
+              - 'apps/embed/**'
+              - '.github/workflows/build.yml'
+            feeds:
+              - 'apps/feeds/**'
+              - '.github/workflows/build.yml'
+            ws:
+              - 'apps/ws/**'
+              - '.github/workflows/build.yml'
+            mb:
+              - 'musicbrainz/**'
+              - '.github/workflows/build.yml'
+
   api:
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,6 +61,8 @@ jobs:
           if-no-files-found: error
 
   rockskyd:
+    needs: changes
+    if: needs.changes.outputs.rockskyd == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -63,16 +103,28 @@ jobs:
           if-no-files-found: error
 
   deploy:
-    needs: [api, rockskyd]
-    if: github.ref == 'refs/heads/main'
+    needs: [changes, api, rockskyd]
+    if: |
+      always() &&
+      github.ref == 'refs/heads/main' &&
+      needs.api.result != 'failure' &&
+      needs.rockskyd.result != 'failure' &&
+      (needs.api.result == 'success' ||
+       needs.rockskyd.result == 'success' ||
+       needs.changes.outputs.embed == 'true' ||
+       needs.changes.outputs.feeds == 'true' ||
+       needs.changes.outputs.ws == 'true' ||
+       needs.changes.outputs.mb == 'true')
     runs-on: ubuntu-latest
     steps:
       - name: Download api dist
+        if: needs.changes.outputs.api == 'true'
         uses: actions/download-artifact@v4
         with:
           name: api-dist
           path: apps/api/dist
       - name: Download rockskyd binary
+        if: needs.changes.outputs.rockskyd == 'true'
         uses: actions/download-artifact@v4
         with:
           name: rockskyd
@@ -89,12 +141,23 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           chmod 644 ~/.ssh/id_ed25519.pub
           ssh-keyscan -H ssh.rocksky.app >> ~/.ssh/known_hosts
-      - name: Deploy to ssh.rocksky.app
+      - name: Pull latest on server
+        run: |
+          ssh root@ssh.rocksky.app 'cd /root/github/rocksky && git pull origin main && mkdir -p apps/api target/release'
+      - name: Deploy apps/api/dist
+        if: needs.changes.outputs.api == 'true'
+        env:
+          API_SERVICES: rocksky rocksky-xrpc
+        run: |
+          rsync -az --delete -e ssh apps/api/dist/ root@ssh.rocksky.app:/root/github/rocksky/apps/api/dist/
+          ssh root@ssh.rocksky.app "set -e; \
+            systemctl restart $API_SERVICES; \
+            systemctl --no-pager --lines=0 status $API_SERVICES"
+      - name: Deploy rockskyd binary
+        if: needs.changes.outputs.rockskyd == 'true'
         env:
           ROCKSKYD_SERVICES: rocksky-jetstream rocksky-scrobbler rocksky-spotify rocksky-webscrobbler
         run: |
-          ssh root@ssh.rocksky.app 'cd /root/github/rocksky && git pull origin main && mkdir -p apps/api target/release'
-          rsync -az --delete -e ssh apps/api/dist/ root@ssh.rocksky.app:/root/github/rocksky/apps/api/dist/
           chmod +x target/release/rockskyd
           scp target/release/rockskyd root@ssh.rocksky.app:/root/github/rocksky/target/release/rockskyd.new
           ssh root@ssh.rocksky.app "set -e; \
@@ -103,3 +166,19 @@ jobs:
             chmod +x /root/github/rocksky/target/release/rockskyd; \
             systemctl start $ROCKSKYD_SERVICES; \
             systemctl --no-pager --lines=0 status $ROCKSKYD_SERVICES"
+      - name: Restart rocksky-embed
+        if: needs.changes.outputs.embed == 'true'
+        run: |
+          ssh root@ssh.rocksky.app 'set -e; systemctl restart rocksky-embed; systemctl --no-pager --lines=0 status rocksky-embed'
+      - name: Restart rocksky-feeds
+        if: needs.changes.outputs.feeds == 'true'
+        run: |
+          ssh root@ssh.rocksky.app 'set -e; systemctl restart rocksky-feeds; systemctl --no-pager --lines=0 status rocksky-feeds'
+      - name: Restart rocksky-ws
+        if: needs.changes.outputs.ws == 'true'
+        run: |
+          ssh root@ssh.rocksky.app 'set -e; systemctl restart rocksky-ws; systemctl --no-pager --lines=0 status rocksky-ws'
+      - name: Restart rocksky-mb
+        if: needs.changes.outputs.mb == 'true'
+        run: |
+          ssh root@ssh.rocksky.app 'set -e; systemctl restart rocksky-mb; systemctl --no-pager --lines=0 status rocksky-mb'
