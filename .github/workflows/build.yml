@@ -10,10 +10,11 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.2.15
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
       - name: Build apps/api
-        run: bun --filter @rocksky/api run build
+        run: |
+          bun install --frozen-lockfile
+          bun run build
+        working-directory: apps/api
 
   rockskyd:
     runs-on: ubuntu-latest

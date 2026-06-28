@@ -22,8 +22,9 @@ dependencies:
 steps:
   - name: build apps/api
     command: |
+      cd apps/api
       bun install --frozen-lockfile
-      bun --filter @rocksky/api run build
+      bun run build
 
   - name: cargo build -p rockskyd --release
     command: |
