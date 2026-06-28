@@ -1,0 +1,41 @@
+# Depot CI Migration
+# Source: .github/workflows/build.yml
+#
+# Changes made:
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: build
+on:
+  push:
+jobs:
+  api:
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.15
+      - name: Build apps/api
+        run: |
+          bun install --frozen-lockfile
+          bun run build
+        working-directory: apps/api
+  rockskyd:
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y \
+            libreadline-dev \
+            pkg-config \
+            flex \
+            bison \
+            build-essential
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rockskyd-release
+          cache-on-failure: true
+      - name: cargo build -p rockskyd --release
+        run: cargo build -p rockskyd --release
