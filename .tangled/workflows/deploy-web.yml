@@ -1,0 +1,34 @@
+when:
+  - event: ["push", "manual"]
+    branch: ["main"]
+
+engine: 'nixery'
+
+clone:
+  skip: false
+  depth: 1
+  submodules: false
+
+dependencies:
+  nixpkgs:
+    - nodejs
+  github:NixOS/nixpkgs/nixpkgs-unstable:
+    - bun
+
+steps:
+  - name: build site
+    command: |
+      cd apps/web
+      bun install --frozen-lockfile
+      echo 'VITE_API_URL=https://api.rocksky.app' >> .env.prod
+      echo 'VITE_WS_URL=wss://ws.rocksky.app' >> .env.prod
+      echo 'VITE_PUBLIC_URL=https://rocksky.app' >> .env.prod
+      echo 'VITE_ROCKBOX_URL=https://rockbox.rocksky.app' >> .env.prod
+      echo 'VITE_PUBLIC_POSTHOG_KEY=phc_erMjlNEGNOSKX6dXBZne7k4PuUWqM4Bw4EuQxdcaSd5' >> .env.prod
+      bun run build:prod
+
+  - name: deploy to cloudflare
+    command: |
+      cd apps/web
+      bunx wrangler pages deploy dist
+
