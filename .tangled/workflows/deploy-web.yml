@@ -30,5 +30,5 @@ steps:
   - name: deploy to cloudflare
     command: |
       cd apps/web
-      bunx wrangler pages deploy dist
+      bunx wrangler pages deploy dist --project-name=rocksky
 
