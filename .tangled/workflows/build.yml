@@ -1,0 +1,29 @@
+when:
+  - event: ["push", "manual"]
+
+engine: 'nixery'
+
+clone:
+  skip: false
+  depth: 1
+  submodules: false
+
+dependencies:
+  nixpkgs:
+    - nodejs
+    - pkg-config
+    - rustc
+    - cargo
+    - gcc
+  github:NixOS/nixpkgs/nixpkgs-unstable:
+    - bun
+
+steps:
+  - name: build apps/api
+    command: |
+      bun install --frozen-lockfile
+      bun --filter @rocksky/api run build
+
+  - name: cargo build -p rockskyd --release
+    command: |
+      cargo build -p rockskyd --release
