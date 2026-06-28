@@ -15,6 +15,12 @@ jobs:
           bun install --frozen-lockfile
           bun run build
         working-directory: apps/api
+      - name: Upload api dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-dist
+          path: apps/api/dist
+          if-no-files-found: error
 
   rockskyd:
     runs-on: ubuntu-latest
@@ -49,3 +55,43 @@ jobs:
         env:
           DUCKDB_LIB_DIR: /usr/local/lib
           DUCKDB_INCLUDE_DIR: /usr/local/include
+      - name: Upload rockskyd binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: rockskyd
+          path: target/release/rockskyd
+          if-no-files-found: error
+
+  deploy:
+    needs: [api, rockskyd]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download api dist
+        uses: actions/download-artifact@v4
+        with:
+          name: api-dist
+          path: apps/api/dist
+      - name: Download rockskyd binary
+        uses: actions/download-artifact@v4
+        with:
+          name: rockskyd
+          path: target/release
+      - name: Setup SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "$SSH_PRIVATE_KEY" | base64 -d > ~/.ssh/id_ed25519
+          echo "$SSH_PUBLIC_KEY"  | base64 -d > ~/.ssh/id_ed25519.pub
+          chmod 600 ~/.ssh/id_ed25519
+          chmod 644 ~/.ssh/id_ed25519.pub
+          ssh-keyscan -H ssh.rocksky.app >> ~/.ssh/known_hosts
+      - name: Deploy to ssh.rocksky.app
+        run: |
+          ssh root@ssh.rocksky.app 'cd /root/github/rocksky && git pull origin main && mkdir -p apps/api target/release'
+          rsync -az --delete -e ssh apps/api/dist/ root@ssh.rocksky.app:/root/github/rocksky/apps/api/dist/
+          chmod +x target/release/rockskyd
+          scp target/release/rockskyd root@ssh.rocksky.app:/root/github/rocksky/target/release/rockskyd
