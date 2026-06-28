@@ -140,7 +140,9 @@ pub async fn update_library(
         return Ok(());
     }
     let track_item = track.item.unwrap();
-    let cached = cache.get(&format!("{}:tracks", track_item.album.id)).await?;
+    let cached = cache
+        .get(&format!("{}:tracks", track_item.album.id))
+        .await?;
     if cached.is_none() {
         tracing::debug!(album_id = %track_item.album.id, "album not cached, skipping");
         return Ok(());
