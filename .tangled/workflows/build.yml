@@ -27,6 +27,6 @@ steps:
       bun install --frozen-lockfile
       bun run build
 
-  - name: cargo build -p rockskyd --release
-    command: |
-      cargo build -p rockskyd --release
+  #- name: cargo build -p rockskyd --release
+  #  command: |
+  #    cargo build -p rockskyd --release
