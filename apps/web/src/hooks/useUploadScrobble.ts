@@ -22,16 +22,29 @@ export function useUploadScrobble() {
   // timestamp when playback of the current track started (for the scrobble timestamp)
   const startedAtRef = useRef<number>(Date.now());
 
-  // Reset when the track changes
-  const currentSha256 = nowPlaying?.sha256 ?? null;
-  const prevSha256Ref = useRef<string | null>(null);
+  // Reset the "started at" clock every time the playing track changes so each
+  // scrobble is stamped with the actual play time.
+  //
+  // We can't key on sha256 alone: pollRockbox in StickyPlayerWithData writes
+  // sha256: "" on every poll (rockbox GraphQL doesn't expose a sha256), and
+  // `"" !== ""` is always false — so the effect would only fire once (on the
+  // first non-null → "" transition) and every subsequent track would inherit
+  // the same startedAt. Result: all scrobbles landed with the same timestamp.
+  //
+  // Mirror the dedup key from the submit effect below (sha256 || title::artist)
+  // so an empty sha256 falls through to a value that actually changes per
+  // track.
+  const currentTrackKey = nowPlaying
+    ? nowPlaying.sha256 || `${nowPlaying.title}::${nowPlaying.artist}`
+    : null;
+  const prevTrackKeyRef = useRef<string | null>(null);
   useEffect(() => {
-    if (currentSha256 !== prevSha256Ref.current) {
-      prevSha256Ref.current = currentSha256;
+    if (currentTrackKey !== prevTrackKeyRef.current) {
+      prevTrackKeyRef.current = currentTrackKey;
       startedAtRef.current = Date.now();
       // Don't reset scrobbledRef here — it tracks what was already submitted
     }
-  }, [currentSha256]);
+  }, [currentTrackKey]);
 
   useEffect(() => {
     if (player !== "rockbox" || !nowPlaying) return;
