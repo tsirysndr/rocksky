@@ -2,7 +2,7 @@ import postgres from "postgres";
 import { config } from "./config";
 import { logger } from "./logger";
 
-const sql = postgres(config.postgresUrl, { max: 4, prepare: false });
+export const sql = postgres(config.postgresUrl, { max: 4, prepare: false });
 
 logger.info("ensuring rockbox_machines table");
 await sql`

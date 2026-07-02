@@ -4,6 +4,7 @@ import { config } from "./config";
 import { forgetMachine, userExistsByDid } from "./db";
 import { ensureMachine } from "./ensure";
 import { destroyMachine } from "./fly";
+import { GC_IDLE_DAYS, gcIdleMachines, startGcTimer } from "./gc";
 import { logger } from "./logger";
 
 const app = new Hono();
@@ -36,6 +37,20 @@ const requireAuth = async (c: Parameters<Parameters<typeof app.use>[1]>[0], next
   }
   return next();
 };
+
+// Admin: sweep idle machines. Safe to hit from an external cron; also runs
+// on boot + every GC_INTERVAL_MS while the router is up.
+app.post("/admin/gc", requireAuth, async (c) => {
+  const idleDays = Number(c.req.query("idleDays") ?? GC_IDLE_DAYS);
+  logger.info("admin gc", { idleDays });
+  try {
+    const result = await gcIdleMachines(idleDays);
+    return c.json({ ok: true, idleDays, ...result });
+  } catch (e) {
+    logger.error("admin gc failed", { err: String(e) });
+    return c.json({ ok: false, err: String(e) }, 500);
+  }
+});
 
 // Admin: tear down a user's machine (e.g. on account delete).
 app.delete("/admin/:did", requireAuth, async (c) => {
@@ -106,5 +121,9 @@ logger.success(`rockbox-router listening on :${config.port}`, {
   flyApp: config.flyApp,
   defaultRegion: config.defaultRegion,
   authGate: config.authBearer ? "on" : "off",
+  gcIdleDays: GC_IDLE_DAYS,
 });
+
+startGcTimer();
+
 export default { port: config.port, fetch: app.fetch };

@@ -12,8 +12,8 @@ primary_region = "iad"
   ROCKBOX_IMAGE           = "registry.fly.io/rockbox:latest"
   FLY_DEFAULT_REGION      = "iad"
   MACHINE_CPU_KIND        = "shared"
-  MACHINE_CPUS            = "2"
-  MACHINE_MEMORY_MB       = "1024"
+  MACHINE_CPUS            = "1"
+  MACHINE_MEMORY_MB       = "512"
   MACHINE_INTERNAL_PORT   = "8080"
   PORT                    = "8080"
 
@@ -25,7 +25,7 @@ primary_region = "iad"
   force_https         = true
   auto_stop_machines  = "stop"
   auto_start_machines = true
-  min_machines_running = 1
+  min_machines_running = 0
 
   [http_service.concurrency]
     type       = "requests"

@@ -19,15 +19,15 @@ export const config = {
   // `PC01: instance refused connection` because rockbox itself doesn't bind 8080.
   rockboxImage: process.env.ROCKBOX_IMAGE ?? "registry.fly.io/rockbox:latest",
   defaultRegion: process.env.FLY_DEFAULT_REGION ?? "iad",
-  // performance-2x: 2 dedicated vCPUs. The pipeline has genuine concurrency
-  // — decoder thread, encoder thread, buffering thread, pcm-cmaf sink — and
-  // on a single core the sink can poll for PCM before the decoder gets a
-  // chance to run, tripping "no more PCM data" within the first 23 ms.
-  // 2 vCPUs lets decoder and encoder run truly in parallel; 3+ adds no
-  // further benefit for one user's stream.
+  // Cost-optimized default: shared-cpu-1x. The pipeline has genuine concurrency
+  // (decoder / encoder / buffering / pcm-cmaf sink) so on a single core the
+  // sink can poll for PCM before the decoder gets a chance to run, tripping
+  // "no more PCM data" within the first 23 ms. If that regresses, bump
+  // MACHINE_CPUS back to 2 — that lets decoder and encoder run in parallel;
+  // 3+ adds no further benefit for one user's stream.
   machineCpuKind: (process.env.MACHINE_CPU_KIND ?? "shared") as "shared" | "performance",
-  machineCpus: Number(process.env.MACHINE_CPUS ?? 4),
-  machineMemoryMb: Number(process.env.MACHINE_MEMORY_MB ?? 1024),
+  machineCpus: Number(process.env.MACHINE_CPUS ?? 1),
+  machineMemoryMb: Number(process.env.MACHINE_MEMORY_MB ?? 512),
   machineInternalPort: Number(process.env.MACHINE_INTERNAL_PORT ?? 8080),
 
   // Postgres for the did → machine_id mapping (reuses the API DB by default).
