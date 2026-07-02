@@ -3,7 +3,7 @@ import { destroyMachine } from "./fly";
 import { logger } from "./logger";
 
 // How long a machine can sit idle before we destroy it.
-export const GC_IDLE_DAYS = Number(process.env.GC_IDLE_DAYS ?? 2);
+export const GC_IDLE_DAYS = Number(process.env.GC_IDLE_DAYS ?? 1);
 // How often the in-process timer runs (default 6h). Only fires while the
 // router is up — with min_machines_running=0 the router auto-stops when idle,
 // so also expose an /admin/gc endpoint for an external cron to hit.
