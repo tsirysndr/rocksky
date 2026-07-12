@@ -231,8 +231,14 @@ async function runImport(
       .map((t) => t.timestamp ?? 0)
       .filter((t) => t > 0);
     if (validTimestamps.length > 0) {
-      const minTs = new Date(Math.min(...validTimestamps) * 1000);
-      const maxTs = new Date(Math.max(...validTimestamps) * 1000);
+      // Math.min(...arr) passes every element as a call argument and throws
+      // RangeError on large imports (a 20-year Last.fm history is ~500k rows).
+      const minTs = new Date(
+        validTimestamps.reduce((a, b) => Math.min(a, b)) * 1000,
+      );
+      const maxTs = new Date(
+        validTimestamps.reduce((a, b) => Math.max(a, b)) * 1000,
+      );
 
       const existing = await ctx.db
         .select({ timestamp: scrobbles.timestamp })
@@ -460,9 +466,14 @@ app.post("/upload", async (c) => {
   // Fire-and-forget background processing
   runImport(job.id, tracks, user.did).catch((err) => {
     consola.error(`[import] Unhandled error in job ${job.id}:`, err);
+    const msg = err instanceof Error ? err.message : String(err);
     ctx.db
       .update(importJobs)
-      .set({ status: "failed", updatedAt: new Date() })
+      .set({
+        status: "failed",
+        errors: JSON.stringify([`Import crashed: ${msg}`]),
+        updatedAt: new Date(),
+      })
       .where(eq(importJobs.id, job.id))
       .catch(consola.error);
   });
