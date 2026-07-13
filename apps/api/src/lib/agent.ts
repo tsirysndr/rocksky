@@ -41,7 +41,22 @@ export async function createAgent(
 
         return atpAgent;
       }
-      const oauthSession = await oauthClient.restore(did);
+      let oauthSession: Awaited<ReturnType<typeof oauthClient.restore>> | null;
+      try {
+        oauthSession = await oauthClient.restore(did);
+      } catch (e) {
+        // Restoring the OAuth session failed (e.g. the refresh token was
+        // revoked or has expired). This is not a transient error, so there is
+        // no point retrying: treat the user session as expired / logged out.
+        consola.info("Session restore failed, treating session as expired");
+        consola.info(did);
+        consola.info(e);
+        await ctx.sqliteDb
+          .deleteFrom("auth_session")
+          .where("key", "=", did)
+          .execute();
+        return null;
+      }
       agent = oauthSession ? new Agent(oauthSession) : null;
       if (agent === null) {
         await new Promise((r) => setTimeout(r, 1000));
