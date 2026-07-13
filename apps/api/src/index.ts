@@ -1,3 +1,4 @@
+import dns from "node:dns";
 import { serve } from "@hono/node-server";
 import { createNodeWebSocket } from "@hono/node-ws";
 import { trace } from "@opentelemetry/api";
@@ -8,13 +9,16 @@ import { and, desc, eq, isNotNull, or } from "drizzle-orm";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { createAgent } from "lib/agent";
+import {
+  ScrobbleBlockedError,
+  scrobbleBlockedMessage,
+} from "lib/scrobbleGuard";
 import { verifyToken } from "lib/verifyToken";
 import {
   getLovedTracks,
   likeTrack,
   unLikeTrack,
 } from "lovedtracks/lovedtracks.service";
-import dns from "node:dns";
 import { scrobbleTrack } from "nowplaying/nowplaying.service";
 import { rateLimiter } from "ratelimiter";
 import subscribe from "subscribers";
@@ -24,12 +28,12 @@ import handleWebsocket from "websocket/handler";
 import accessTokensApp from "./access-tokens/app";
 import apikeys from "./apikeys/app";
 import bsky from "./bsky/app";
-import storageApp from "./storage/app";
-import uploadsApp from "./uploads/app";
-import importApp from "./import/app";
 import dropbox from "./dropbox/app";
 import googledrive from "./googledrive/app";
+import importApp from "./import/app";
 import { requestCounter, requestDuration } from "./metrics";
+import storageApp from "./storage/app";
+import uploadsApp from "./uploads/app";
 import "./profiling";
 import albumTracks from "./schema/album-tracks";
 import albums from "./schema/albums";
@@ -40,9 +44,9 @@ import tracks from "./schema/tracks";
 import users from "./schema/users";
 import spotify from "./spotify/app";
 import "./tracing";
+import opengraph from "./opengraph/app";
 import usersApp from "./users/app";
 import webscrobbler from "./webscrobbler/app";
-import opengraph from "./opengraph/app";
 
 dns.setDefaultResultOrder("ipv4first");
 
@@ -173,7 +177,24 @@ app.post("/now-playing", async (c) => {
     `[now-playing] agent created for ${chalk.cyan(did)}, calling scrobbleTrack`,
   );
 
-  await scrobbleTrack(ctx, track, agent, user.did);
+  try {
+    await scrobbleTrack(ctx, track, agent, user.did);
+  } catch (err) {
+    if (err instanceof ScrobbleBlockedError) {
+      consola.warn(
+        `[now-playing] blocked suspected bot ${chalk.cyan(did)} — retry after ${err.retryAfter}s`,
+      );
+      c.status(429);
+      c.header("Retry-After", err.retryAfter.toString());
+      return c.json({
+        status: "blocked",
+        error: "scrobble_rate_exceeded",
+        message: scrobbleBlockedMessage(err.retryAfter),
+        retryAfter: err.retryAfter,
+      });
+    }
+    throw err;
+  }
 
   return c.json({ status: "ok" });
 });

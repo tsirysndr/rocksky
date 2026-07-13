@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-import { cleanEnv, host, port, str } from "envalid";
+import { cleanEnv, host, num, port, str } from "envalid";
 
 dotenv.config();
 
@@ -56,4 +56,8 @@ export const env = cleanEnv(process.env, {
   TYPESENSE_PORT: port({ default: 8108 }),
   TYPESENSE_PROTOCOL: str({ default: "http", choices: ["http", "https"] }),
   TYPESENSE_API_KEY: str({}),
+  // Bot-scrobble guard (see lib/scrobbleGuard.ts). Set SCROBBLE_ABUSE_MAX=0 to disable.
+  SCROBBLE_ABUSE_WINDOW: num({ default: 1800 }), // rolling window, seconds (30m)
+  SCROBBLE_ABUSE_MAX: num({ default: 25 }), // max accepted scrobbles per window
+  SCROBBLE_ABUSE_BLOCK: num({ default: 3600 }), // temp block duration, seconds (1h)
 });

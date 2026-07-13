@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { Agent } from "@atproto/api";
 import { TID } from "@atproto/common";
 import chalk from "chalk";
@@ -13,7 +14,10 @@ import { deepSnakeCaseKeys, withFallbackAlbumArt } from "lib";
 import { decrypt } from "lib/crypto";
 import { env } from "lib/env";
 import { bumpAllFeedVersions, bumpScrobblesVersion } from "lib/feedCache";
-import { createHash } from "node:crypto";
+import {
+  assertNotScrobbleBlocked,
+  recordScrobbleAndGuard,
+} from "lib/scrobbleGuard";
 import type { MusicbrainzTrack, Track } from "types/track";
 import albumTracks from "../schema/album-tracks";
 import albums from "../schema/albums";
@@ -80,6 +84,7 @@ function trackLookupOrder(t: {
     ELSE 3
   END`;
 }
+
 import userAlbums from "../schema/user-albums";
 import userArtists from "../schema/user-artists";
 import userTracks from "../schema/user-tracks";
@@ -665,6 +670,10 @@ export async function scrobbleTrack(
   // check if scrobble already exists (user did + timestamp)
   // skipDupCheck=true when called from runImport — the bulk pre-filter already handled dedup
   if (!skipDupCheck) {
+    // Reject up front if this user is currently flagged as a bot. Throws
+    // ScrobbleBlockedError, handled by the callers (429 on /now-playing).
+    await assertNotScrobbleBlocked(ctx, userDid);
+
     const scrobbleTime = dayjs.unix(track.timestamp || dayjs().unix());
     const existingScrobble = await ctx.db
       .select({
@@ -698,6 +707,11 @@ export async function scrobbleTrack(
       );
       return;
     }
+
+    // Genuinely new scrobble — record it in the user's rolling window. Throws
+    // ScrobbleBlockedError (and places a temporary block) if the user is
+    // scrobbling faster than a human physically can.
+    await recordScrobbleAndGuard(ctx, userDid, scrobbleTime.unix());
   }
 
   let existingTrack = await ctx.db
