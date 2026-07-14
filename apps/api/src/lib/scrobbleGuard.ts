@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type { Context } from "context";
+import { eq } from "drizzle-orm";
 import { env } from "lib/env";
+import users from "../schema/users";
 
 // Bot-scrobble guard.
 //
@@ -53,6 +55,53 @@ export function scrobbleBlockedMessage(retryAfterSeconds: number): string {
     "rather than on a fixed short timer. If you believe this is a mistake, contact " +
     `support@rocksky.app. You can retry in about ${minutes} minute(s).`
   );
+}
+
+/**
+ * Raised when a user carries a persistent `is_bot` flag in the DB. Unlike the
+ * rolling-window block (which expires), this flag is set by the offline
+ * scrobble-abuse-sweep service and cleared only by an operator. Extends
+ * ScrobbleBlockedError so existing `instanceof ScrobbleBlockedError` handlers at
+ * both scrobble entry points already reject it with a 429.
+ */
+export class ScrobbleBotFlaggedError extends ScrobbleBlockedError {
+  constructor(did: string) {
+    // retryAfter is meaningless for a persistent flag; keep it 0.
+    super(did, 0);
+    this.name = "ScrobbleBotFlaggedError";
+  }
+}
+
+/**
+ * Human-readable explanation returned to a user whose account is flagged as a
+ * bot. Distinct from the rate-limit message because the flag is not time-boxed.
+ */
+export function scrobbleBotFlaggedMessage(): string {
+  return (
+    "Your account has been flagged as a bot and can no longer scrobble. This " +
+    "happens when scrobbles arrive continuously, around the clock, faster than " +
+    "tracks can physically be played — a pattern real listening never produces. " +
+    "If you believe this is a mistake, contact support@rocksky.app to have it reviewed."
+  );
+}
+
+/**
+ * Reject if the user carries the persistent `is_bot` flag. This is the "always
+ * check the flag" enforcement: one indexed lookup on the scrobble path, in
+ * addition to the rolling-window guard below.
+ */
+export async function assertNotBotFlagged(
+  ctx: Context,
+  did: string,
+): Promise<void> {
+  const row = await ctx.db
+    .select({ isBot: users.isBot })
+    .from(users)
+    .where(eq(users.did, did))
+    .limit(1)
+    .then((rows) => rows[0]);
+
+  if (row?.isBot) throw new ScrobbleBotFlaggedError(did);
 }
 
 /**

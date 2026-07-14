@@ -4,9 +4,12 @@ import type { Context } from "context";
 import type { Server } from "lexicon";
 import { createAgent } from "lib/agent";
 import {
+  assertNotBotFlagged,
   assertNotScrobbleBlocked,
   ScrobbleBlockedError,
+  ScrobbleBotFlaggedError,
   scrobbleBlockedMessage,
+  scrobbleBotFlaggedMessage,
 } from "lib/scrobbleGuard";
 import { scrobbleTrack } from "nowplaying/nowplaying.service";
 import { type Track, trackSchema } from "types/track";
@@ -35,8 +38,15 @@ export default function (server: Server, ctx: Context) {
       // currently flagged as a suspected bot, so the client gets a real error
       // instead of a silent no-op.
       try {
+        await assertNotBotFlagged(ctx, did);
         await assertNotScrobbleBlocked(ctx, did);
       } catch (err) {
+        if (err instanceof ScrobbleBotFlaggedError) {
+          consola.warn(
+            `[createScrobble] rejected bot-flagged account ${chalk.cyan(did)}`,
+          );
+          return { status: 429, message: scrobbleBotFlaggedMessage() };
+        }
         if (err instanceof ScrobbleBlockedError) {
           consola.warn(
             `[createScrobble] blocked suspected bot ${chalk.cyan(did)} — retry after ${err.retryAfter}s`,
