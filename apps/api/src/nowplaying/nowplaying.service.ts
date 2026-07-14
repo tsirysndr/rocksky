@@ -15,6 +15,7 @@ import { decrypt } from "lib/crypto";
 import { env } from "lib/env";
 import { bumpAllFeedVersions, bumpScrobblesVersion } from "lib/feedCache";
 import {
+  assertNotBotFlagged,
   assertNotScrobbleBlocked,
   recordScrobbleAndGuard,
 } from "lib/scrobbleGuard";
@@ -670,8 +671,10 @@ export async function scrobbleTrack(
   // check if scrobble already exists (user did + timestamp)
   // skipDupCheck=true when called from runImport — the bulk pre-filter already handled dedup
   if (!skipDupCheck) {
-    // Reject up front if this user is currently flagged as a bot. Throws
-    // ScrobbleBlockedError, handled by the callers (429 on /now-playing).
+    // Reject up front if this user carries the persistent bot flag (set by the
+    // scrobble-abuse-sweep service) or is currently under a temporary rate
+    // block. Both throw a ScrobbleBlockedError, handled by the callers.
+    await assertNotBotFlagged(ctx, userDid);
     await assertNotScrobbleBlocked(ctx, userDid);
 
     const scrobbleTime = dayjs.unix(track.timestamp || dayjs().unix());

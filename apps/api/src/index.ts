@@ -11,7 +11,9 @@ import { cors } from "hono/cors";
 import { createAgent } from "lib/agent";
 import {
   ScrobbleBlockedError,
+  ScrobbleBotFlaggedError,
   scrobbleBlockedMessage,
+  scrobbleBotFlaggedMessage,
 } from "lib/scrobbleGuard";
 import { verifyToken } from "lib/verifyToken";
 import {
@@ -180,6 +182,15 @@ app.post("/now-playing", async (c) => {
   try {
     await scrobbleTrack(ctx, track, agent, user.did);
   } catch (err) {
+    if (err instanceof ScrobbleBotFlaggedError) {
+      consola.warn(`[now-playing] rejected bot-flagged account ${chalk.cyan(did)}`);
+      c.status(429);
+      return c.json({
+        status: "blocked",
+        error: "account_flagged_as_bot",
+        message: scrobbleBotFlaggedMessage(),
+      });
+    }
     if (err instanceof ScrobbleBlockedError) {
       consola.warn(
         `[now-playing] blocked suspected bot ${chalk.cyan(did)} — retry after ${err.retryAfter}s`,

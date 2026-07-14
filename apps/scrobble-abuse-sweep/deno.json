@@ -1,0 +1,16 @@
+{
+  "tasks": {
+    "start": "deno run --unstable-cron --env-file=.env -A main.ts",
+    "dev": "deno run --unstable-cron --env-file=.env -A --watch main.ts",
+    "sweep:once": "deno run --env-file=.env -A src/cli.ts",
+    "db:generate": "deno run -A npm:drizzle-kit generate",
+    "db:migrate": "deno run -A npm:drizzle-kit migrate"
+  },
+  "imports": {
+    "consola": "npm:consola@^3.4.2",
+    "drizzle-kit": "npm:drizzle-kit@^0.31.8",
+    "drizzle-orm": "npm:drizzle-orm@^0.45.1",
+    "envalid": "npm:envalid@^8.1.1",
+    "pg": "npm:pg@^8.16.3"
+  }
+}
