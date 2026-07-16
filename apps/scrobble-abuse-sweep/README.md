@@ -11,9 +11,15 @@ rolling-window rate limiter (25 scrobbles / 30min), which a _slow_ bot pacing
 itself just under the threshold evades. This sweep catches that slow burn with a
 duration-based signal instead of a rate one.
 
-## The signal
+## The signals
 
-Per user, over a lookback window (default 72h), all five must hold:
+Two detectors run each pass over the same lookback window (default 72h). A user
+matching either is flagged; one matching both is reported once (round-the-clock
+wins). Candidates are de-duplicated by DID.
+
+### 1. Round-the-clock
+
+A sustained looper active every hour, for days, that never sleeps. All five hold:
 
 | Gate                                      | Default | Meaning                                        |
 | ----------------------------------------- | ------- | ---------------------------------------------- |
@@ -28,6 +34,27 @@ runs music all day — always has at least one multi-hour silent stretch (sleep)
 When first calibrated against the live user base, the nearest genuine listener
 sat at a longest-quiet of ~743min against the 120min cutoff — a ~6x margin — so
 no human is caught.
+
+### 2. Burst
+
+The round-the-clock detector needs a full day of history, so a **fresh account
+running a dense burst** slips past it until it has polluted a day of stats. The
+burst detector catches it earlier with a physical-impossibility signal: a
+scrobble only registers after you've actually played most of a track, so a
+stream that logs tracks _faster than they can play_ is not a human listening.
+
+| Gate                                              | Default | Meaning                                                             |
+| ------------------------------------------------- | ------- | ------------------------------------------------------------------- |
+| `n >= SWEEP_BURST_MIN_SCROBBLES`                  | 150     | sustained volume                                                    |
+| `longest_quiet_min < SWEEP_BURST_MAX_QUIET_MIN`   | 120     | **never takes a sleep-length break**                                |
+| `fast_pct >= SWEEP_BURST_MIN_FAST_PCT`            | 30      | ≥30% of scrobbles logged within `FAST_FRACTION` of the track length |
+
+`fast_pct` is the share of scrobbles whose gap since the previous one is under
+`SWEEP_BURST_FAST_FRACTION` (default `0.5`) of the track's own duration — i.e.
+the track was logged after less than half of it could have played. Calibrated
+against the live user base over 72h, this flagged four burst bots
+(impossibly-fast share 34–70%) and left every human clear — the heaviest genuine
+listener sat at 18%, comfortably below the 30% cutoff.
 
 ## Run
 
