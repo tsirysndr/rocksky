@@ -14,4 +14,9 @@ export interface UploadResumeState {
 export const uploadResumeAtom = atomWithStorage<UploadResumeState | null>(
   "rocksky:upload-resume",
   null,
+  undefined,
+  // Read localStorage synchronously on init so the very first render already
+  // has the persisted queue — otherwise the mount-time restore sees the null
+  // default and the mini-player never comes back after a reload.
+  { getOnInit: true },
 );
