@@ -90,18 +90,21 @@ export default {
 			return new Response(null, { status: 204, headers: corsHeaders(origin) });
 		}
 
-		// Serve Rockbox WASM assets from R2 with COOP/COEP headers required for SharedArrayBuffer
-		if (url.pathname.toLowerCase().includes('rockbox')) {
-			const baseUrl = (env as any).ROCKBOX_ASSETS_URL as string;
-			const assetUrl = `${baseUrl.replace(/\/$/, '')}${url.pathname}`;
-			const assetRes = await fetch(assetUrl);
+		// Serve rockbox-wasm runtime assets (audio worklet + decoder worker + the
+		// wasm-embedded core) from the web deployment, where the Vite build ships
+		// them at /rockbox/*. The current package is single-threaded with the wasm
+		// embedded (Emscripten SINGLE_FILE), so it needs NO SharedArrayBuffer and
+		// NO COOP/COEP — and the assets are versioned with the app rather than a
+		// separately-maintained CDN/R2 bucket. Match the /rockbox/ path prefix
+		// only (not any path merely containing "rockbox", e.g. the
+		// app.rocksky.rockbox.* XRPC endpoints).
+		if (url.pathname.startsWith('/rockbox/')) {
+			const assetUrl = new URL(request.url);
+			assetUrl.host = 'rocksky.pages.dev';
+			assetUrl.hostname = 'rocksky.pages.dev';
+			const assetRes = await fetch(assetUrl, request);
 			const headers = new Headers(assetRes.headers);
-			headers.set('Cross-Origin-Opener-Policy', 'same-origin');
-			headers.set('Cross-Origin-Embedder-Policy', 'credentialless');
 			headers.set('Access-Control-Allow-Origin', '*');
-			if (url.pathname.endsWith('.wasm')) {
-				headers.set('Content-Type', 'application/wasm');
-			}
 			return new Response(assetRes.body, { status: assetRes.status, headers });
 		}
 
@@ -169,8 +172,6 @@ export default {
 			if (!og) return htmlRes;
 			const headers = new Headers(htmlRes.headers);
 			headers.set('cache-control', 'public, max-age=300');
-			headers.set('Cross-Origin-Opener-Policy', 'same-origin');
-			headers.set('Cross-Origin-Embedder-Policy', 'credentialless');
 
 			const rewritten = new HTMLRewriter()
 				.on('meta[property^="og:"]', new StripMeta())
@@ -194,8 +195,6 @@ export default {
 
 		const headers = new Headers(htmlRes.headers);
 		headers.set('cache-control', 'public, max-age=300');
-		headers.set('Cross-Origin-Opener-Policy', 'same-origin');
-		headers.set('Cross-Origin-Embedder-Policy', 'credentialless');
 
 		const rewritten = new HTMLRewriter()
 			.on('meta[property^="og:"]', new StripMeta())

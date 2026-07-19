@@ -34,3 +34,5 @@ dist-ssr
 .env.local
 
 .tanstack
+# rockbox-wasm runtime assets (copied from node_modules by vite.config.ts)
+public/rockbox

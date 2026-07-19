@@ -10,7 +10,7 @@ import {
   IconX,
   IconAdjustmentsHorizontal,
 } from "@tabler/icons-react";
-import { useAtom, useSetAtom } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { nowPlayingAtom } from "../../atoms/nowpaying";
@@ -22,39 +22,19 @@ import useLike from "../../hooks/useLike";
 import useSpotify from "../../hooks/useSpotify";
 import { useQueuePersistence } from "../../hooks/useQueuePersistence";
 import { useUploadScrobble } from "../../hooks/useUploadScrobble";
-import { getStreamUrl, ensureStreamToken } from "../../api/uploads";
-import { useRockboxDSP } from "../../hooks/useRockboxDSP";
+import { useRockboxEngine } from "../../hooks/useRockboxEngine";
+import {
+  ensureRockboxReady,
+  getRockboxPlayer,
+  registerTracks,
+  streamUrlFor,
+} from "../../lib/audio/rockbox-engine";
+import { ensureStreamToken } from "../../api/uploads";
 import EqualizerSheet from "../EqualizerSheet";
 import PlayerScreen from "../PlayerScreen";
 import axios from "axios";
 import { API_URL } from "../../consts";
 import _ from "lodash";
-import { consola } from "consola";
-
-// Encode decoded PCM samples to a 16-bit WAV blob for HTML5 audio playback.
-function pcmToWavBlob(channelData: Float32Array[], sampleRate: number): Blob {
-  const nc = channelData.length;
-  const ns = channelData[0].length;
-  const buf = new ArrayBuffer(44 + ns * nc * 2);
-  const v = new DataView(buf);
-  const w = (off: number, s: string) => { for (let i = 0; i < s.length; i++) v.setUint8(off + i, s.charCodeAt(i)); };
-  w(0, "RIFF"); v.setUint32(4, 36 + ns * nc * 2, true);
-  w(8, "WAVE"); w(12, "fmt ");
-  v.setUint32(16, 16, true); v.setUint16(20, 1, true);
-  v.setUint16(22, nc, true); v.setUint32(24, sampleRate, true);
-  v.setUint32(28, sampleRate * nc * 2, true); v.setUint16(32, nc * 2, true);
-  v.setUint16(34, 16, true); w(36, "data");
-  v.setUint32(40, ns * nc * 2, true);
-  let off = 44;
-  for (let i = 0; i < ns; i++) {
-    for (let ch = 0; ch < nc; ch++) {
-      const s = Math.max(-1, Math.min(1, channelData[ch][i]));
-      v.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7fff, true);
-      off += 2;
-    }
-  }
-  return new Blob([buf], { type: "audio/wav" });
-}
 
 // ---------------------------------------------------------------------------
 // Source selector bottom sheet
@@ -141,11 +121,14 @@ function SourceItem({ label, active, onClick }: { label: string; active: boolean
 
 export default function MiniPlayer() {
   useQueuePersistence();
+  // Bridge the in-browser rockbox-wasm engine → jotai atoms + push EQ/crossfade.
+  useRockboxEngine();
+  useUploadScrobble();
   const setPlayerScreenOpen = useSetAtom(playerScreenOpenAtom);
 
   const [nowPlaying, setNowPlaying] = useAtom(nowPlayingAtom);
   const [player, setPlayer] = useAtom(playerAtom);
-  const [queue, setQueue] = useAtom(queueAtom);
+  const queue = useAtomValue(queueAtom);
   const [queueIndex, setQueueIndex] = useAtom(queueIndexAtom);
   const { like, unlike } = useLike();
   const { play, pause, next } = useSpotify();
@@ -164,15 +147,6 @@ export default function MiniPlayer() {
   const [eqSheetOpen, setEqSheetOpen] = useState(false);
   const [shuffle, setShuffle] = useAtom(shuffleAtom);
   const [repeatMode, setRepeatMode] = useAtom(repeatModeAtom);
-  const shuffleRef = useRef(shuffle);
-  const repeatModeRef = useRef(repeatMode);
-
-  // Hidden audio element for upload player
-  const audioRef = useRef<HTMLAudioElement>(null);
-
-  useRockboxDSP(audioRef);
-  useUploadScrobble(audioRef);
-  const audioBlobUrlRef = useRef<string | null>(null);
 
   // Keep refs in sync
   useEffect(() => {
@@ -181,9 +155,39 @@ export default function MiniPlayer() {
     likedRef.current = liked;
     queueRef.current = queue;
     queueIndexRef.current = queueIndex;
-    shuffleRef.current = shuffle;
-    repeatModeRef.current = repeatMode;
-  }, [nowPlaying, player, liked, queue, queueIndex, shuffle, repeatMode]);
+  }, [nowPlaying, player, liked, queue, queueIndex]);
+
+  // Push shuffle/repeat to the engine while the upload (wasm) player is active.
+  useEffect(() => {
+    if (player !== "upload") return;
+    const p = getRockboxPlayer();
+    if (p.ready) p.setShuffle(shuffle);
+  }, [shuffle, player]);
+
+  useEffect(() => {
+    if (player !== "upload") return;
+    const p = getRockboxPlayer();
+    if (p.ready) p.setRepeat(repeatMode === "one" ? 1 : repeatMode === "all" ? 2 : 0);
+  }, [repeatMode, player]);
+
+  /** Ensure the wasm engine has the current queue loaded, then return it.
+   *  Used when (re)activating the upload player — e.g. after a restore or when
+   *  switching back to it from Spotify. Idempotent: won't reload if already
+   *  holding a queue. */
+  const ensureEngineQueue = useCallback(async () => {
+    const p = await ensureRockboxReady();
+    if (p.queue.length === 0) {
+      const q = queueRef.current;
+      if (q.length) {
+        await ensureStreamToken();
+        registerTracks(q);
+        p.setQueue(q.map(streamUrlFor), false);
+        const idx = queueIndexRef.current;
+        if (idx > 0) p.skipTo(idx);
+      }
+    }
+    return p;
+  }, []);
 
   const fetchCurrentlyPlaying = useCallback(async () => {
     if (playerRef.current === "rockbox" || playerRef.current === "upload") return;
@@ -221,123 +225,15 @@ export default function MiniPlayer() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setNowPlaying, setPlayer]);
 
-  // Stop upload audio when switching to another player
+  // Stop wasm playback when switching away from the upload player.
   useEffect(() => {
     if (player === "upload") return;
-    const audio = audioRef.current;
-    if (audio) { audio.pause(); audio.src = ""; }
-    if (audioBlobUrlRef.current) { URL.revokeObjectURL(audioBlobUrlRef.current); audioBlobUrlRef.current = null; }
+    const p = getRockboxPlayer();
+    if (p.ready) p.pause();
   }, [player]);
 
-  // Load audio when upload track changes
-  useEffect(() => {
-    if (player !== "upload") return;
-    const track = queue[queueIndex];
-    if (!track) return;
-
-    if (audioBlobUrlRef.current) { URL.revokeObjectURL(audioBlobUrlRef.current); audioBlobUrlRef.current = null; }
-
-    let cancelled = false;
-    ensureStreamToken().then(() => {
-      if (cancelled) return;
-      const audio = audioRef.current;
-      if (!audio) return;
-      audio.src = getStreamUrl(track.uploadId);
-      if (nowPlayingRef.current?.isPlaying) audio.play().catch(() => {});
-    });
-
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [player, queueIndex]);
-
-  // Audio event listeners for upload player
-  useEffect(() => {
-    if (player !== "upload") return;
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const onTimeUpdate = () => {
-      setNowPlaying((prev) =>
-        prev ? { ...prev, progress: Math.floor(audio.currentTime * 1000) } : prev,
-      );
-    };
-    const onPlay = () => setNowPlaying((prev) => prev ? { ...prev, isPlaying: true } : prev);
-    const onPause = () => setNowPlaying((prev) => prev ? { ...prev, isPlaying: false } : prev);
-    const onEnded = () => {
-      const q = queueRef.current;
-      const cur = queueIndexRef.current;
-      if (repeatModeRef.current === "one") {
-        audio.currentTime = 0;
-        audio.play().catch(() => {});
-        setNowPlaying((prev) => prev ? { ...prev, progress: 0, isPlaying: true } : prev);
-        return;
-      }
-      let nextIdx: number;
-      if (shuffleRef.current && q.length > 1) {
-        do { nextIdx = Math.floor(Math.random() * q.length); } while (nextIdx === cur);
-      } else {
-        nextIdx = cur + 1;
-      }
-      const nextTrack = q[nextIdx] ?? (repeatModeRef.current === "all" ? q[0] : null);
-      const resolvedIdx = q[nextIdx] ? nextIdx : (repeatModeRef.current === "all" ? 0 : -1);
-      if (nextTrack && resolvedIdx >= 0) {
-        setQueueIndex(resolvedIdx);
-        setNowPlaying({
-          title: nextTrack.title,
-          artist: nextTrack.artist,
-          artistUri: "",
-          songUri: nextTrack.songUri ?? "",
-          albumUri: "",
-          duration: nextTrack.duration,
-          progress: 0,
-          albumArt: nextTrack.albumArt ?? undefined,
-          isPlaying: true,
-          sha256: nextTrack.sha256,
-          liked: false,
-        });
-      }
-    };
-    // Fallback: when HTML5 can't decode the format, use audio-type to identify it
-    // and audio-decode to transcode to WAV for playback.
-    const onError = async () => {
-      const errCode = audio.error?.code;
-      if (errCode !== MediaError.MEDIA_ERR_DECODE && errCode !== MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) return;
-      if (!audio.src || audio.src.startsWith("blob:")) return;
-      const srcUrl = audio.src;
-      try {
-        const response = await fetch(srcUrl);
-        const arrayBuffer = await response.arrayBuffer();
-        const { default: audioType } = await import("audio-type");
-        const format = audioType(new Uint8Array(arrayBuffer));
-        consola.info("[upload] HTML5 failed for format:", format, "— falling back to audio-decode");
-        const { default: decode } = await import("audio-decode");
-        const { channelData, sampleRate } = await decode(arrayBuffer);
-        const blob = pcmToWavBlob(channelData, sampleRate);
-        if (audioBlobUrlRef.current) URL.revokeObjectURL(audioBlobUrlRef.current);
-        audioBlobUrlRef.current = URL.createObjectURL(blob);
-        audio.src = audioBlobUrlRef.current;
-        if (nowPlayingRef.current?.isPlaying) audio.play().catch(() => {});
-      } catch (e) {
-        consola.warn("[upload] audio-decode fallback failed:", e);
-      }
-    };
-
-    audio.addEventListener("timeupdate", onTimeUpdate);
-    audio.addEventListener("play", onPlay);
-    audio.addEventListener("pause", onPause);
-    audio.addEventListener("ended", onEnded);
-    audio.addEventListener("error", onError);
-    return () => {
-      audio.removeEventListener("timeupdate", onTimeUpdate);
-      audio.removeEventListener("play", onPlay);
-      audio.removeEventListener("pause", onPause);
-      audio.removeEventListener("ended", onEnded);
-      audio.removeEventListener("error", onError);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [player]);
-
-  // Progress ticker (Spotify / Rockbox device)
+  // Progress ticker (Spotify only — upload progress comes from engine events,
+  // the WebSocket rockbox device reports its own elapsed).
   useEffect(() => {
     progressInterval.current = window.setInterval(() => {
       setNowPlaying((prev) => {
@@ -363,7 +259,7 @@ export default function MiniPlayer() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // WebSocket for Rockbox device
+  // WebSocket for Rockbox device (companion hardware — monitors its now-playing)
   useEffect(() => {
     if (!localStorage.getItem("token")) return;
     const wsUrl = API_URL.replace("https", "wss").replace("http", "ws");
@@ -442,19 +338,8 @@ export default function MiniPlayer() {
   const onPlayPause = async () => {
     if (!nowPlaying) return;
     if (player === "upload") {
-      const audio = audioRef.current;
-      if (!audio) return;
-      if (nowPlaying.isPlaying) {
-        audio.pause();
-      } else if (!audio.src) {
-        await ensureStreamToken();
-        const track = queueRef.current[queueIndexRef.current];
-        if (!track) return;
-        audio.src = getStreamUrl(track.uploadId);
-        audio.play().catch(() => {});
-      } else {
-        audio.play().catch(() => {});
-      }
+      const p = await ensureEngineQueue();
+      p.toggle();
       return;
     }
     if (player === "rockbox" && socketRef.current) {
@@ -470,31 +355,7 @@ export default function MiniPlayer() {
 
   const onNext = () => {
     if (player === "upload") {
-      const q = queueRef.current;
-      const cur = queueIndexRef.current;
-      let nextIdx: number;
-      if (shuffleRef.current && q.length > 1) {
-        do { nextIdx = Math.floor(Math.random() * q.length); } while (nextIdx === cur);
-      } else {
-        nextIdx = cur + 1;
-      }
-      const nextTrack = q[nextIdx] ?? (repeatModeRef.current === "all" ? q[0] : null);
-      const resolvedIdx = q[nextIdx] ? nextIdx : (repeatModeRef.current === "all" ? 0 : -1);
-      if (!nextTrack || resolvedIdx < 0) return;
-      setQueueIndex(resolvedIdx);
-      setNowPlaying({
-        title: nextTrack.title,
-        artist: nextTrack.artist,
-        artistUri: "",
-        songUri: nextTrack.songUri ?? "",
-        albumUri: "",
-        duration: nextTrack.duration,
-        progress: 0,
-        albumArt: nextTrack.albumArt ?? undefined,
-        isPlaying: true,
-        sha256: nextTrack.sha256,
-        liked: false,
-      });
+      getRockboxPlayer().next();
       return;
     }
     if (player === "rockbox" && socketRef.current) {
@@ -508,56 +369,23 @@ export default function MiniPlayer() {
 
   const onPrevious = () => {
     if (player !== "upload") return;
-    const audio = audioRef.current;
-    if (audio && audio.currentTime > 3) {
-      audio.currentTime = 0;
-      setNowPlaying((prev) => prev ? { ...prev, progress: 0 } : prev);
-      return;
-    }
-    const prevIdx = queueIndexRef.current - 1;
-    const prevTrack = queueRef.current[prevIdx];
-    if (!prevTrack) return;
-    setQueueIndex(prevIdx);
-    setNowPlaying({
-      title: prevTrack.title,
-      artist: prevTrack.artist,
-      artistUri: "",
-      songUri: prevTrack.songUri ?? "",
-      albumUri: "",
-      duration: prevTrack.duration,
-      progress: 0,
-      albumArt: prevTrack.albumArt ?? undefined,
-      isPlaying: true,
-      sha256: prevTrack.sha256,
-      liked: false,
-    });
+    getRockboxPlayer().prev();
   };
 
   const onSeek = useCallback((positionMs: number) => {
-    const audio = audioRef.current;
-    if (audio) audio.currentTime = positionMs / 1000;
+    if (playerRef.current === "upload") {
+      const p = getRockboxPlayer();
+      if (p.ready) p.seek(positionMs);
+    }
     setNowPlaying((prev) => prev ? { ...prev, progress: positionMs } : prev);
   }, [setNowPlaying]);
 
   const onSelectQueueIndex = useCallback((idx: number) => {
-    const q = queueRef.current;
-    const curIdx = queueIndexRef.current;
-    const track = q[idx];
+    const track = queueRef.current[idx];
     if (!track) return;
-    if (idx < curIdx) {
-      // History click: splice track out and insert it just before the current
-      // track so "up next" remains the original current + everything after.
-      const newQueue = [
-        ...q.slice(0, idx),
-        ...q.slice(idx + 1, curIdx),
-        track,
-        ...q.slice(curIdx),
-      ];
-      setQueue(newQueue);
-      setQueueIndex(curIdx - 1);
-    } else {
-      setQueueIndex(idx);
-    }
+    getRockboxPlayer().skipTo(idx);
+    // Optimistic now-playing for instant UI; engine track event reconciles.
+    setQueueIndex(idx);
     setNowPlaying({
       title: track.title,
       artist: track.artist,
@@ -571,59 +399,80 @@ export default function MiniPlayer() {
       sha256: track.sha256,
       liked: false,
     });
-  }, [setQueue, setQueueIndex, setNowPlaying]);
+  }, [setQueueIndex, setNowPlaying]);
 
   const onRemoveFromQueue = useCallback((idx: number) => {
-    setQueue((prev) => {
-      const next = prev.filter((_, i) => i !== idx);
-      const currentIdx = queueIndexRef.current;
-      if (idx < currentIdx) {
-        setQueueIndex(currentIdx - 1);
-      } else if (idx === currentIdx) {
-        const nextTrack = next[currentIdx] ?? next[currentIdx - 1];
-        if (nextTrack) {
-          setNowPlaying({
-            title: nextTrack.title,
-            artist: nextTrack.artist,
-            artistUri: "",
-            songUri: nextTrack.songUri ?? "",
-            albumUri: "",
-            duration: nextTrack.duration,
-            progress: 0,
-            albumArt: nextTrack.albumArt ?? undefined,
-            isPlaying: true,
-            sha256: nextTrack.sha256,
-            liked: false,
-          });
-          setQueueIndex(Math.min(currentIdx, next.length - 1));
-        }
-      }
-      return next;
-    });
-  }, [setQueue, setQueueIndex, setNowPlaying]);
+    getRockboxPlayer().removeAt(idx);
+  }, []);
 
-  // Media Session API — keeps Android/iOS lock-screen / notification in sync
+  // Media Session API — Android/iOS lock-screen / notification. Mirrors the
+  // mini-player: title, artist, album + artwork, live play/pause state, a
+  // scrubbable position, and every transport action.
+  const msAlbum = queue[queueIndex]?.album;
+
   useEffect(() => {
     if (!("mediaSession" in navigator) || !nowPlaying) return;
+    const art = nowPlaying.albumArt;
     navigator.mediaSession.metadata = new MediaMetadata({
       title: nowPlaying.title,
       artist: nowPlaying.artist,
-      artwork: nowPlaying.albumArt
-        ? [{ src: nowPlaying.albumArt, sizes: "512x512" }]
+      album: msAlbum ?? "",
+      artwork: art
+        ? [
+            { src: art, sizes: "96x96" },
+            { src: art, sizes: "256x256" },
+            { src: art, sizes: "512x512" },
+          ]
         : [],
     });
-    navigator.mediaSession.setActionHandler("play", () => {
-      audioRef.current?.play().catch(() => {});
-    });
-    navigator.mediaSession.setActionHandler("pause", () => {
-      audioRef.current?.pause();
-    });
-    navigator.mediaSession.setActionHandler("previoustrack", onPrevious);
-    navigator.mediaSession.setActionHandler("nexttrack", onNext);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nowPlaying?.title, nowPlaying?.artist, nowPlaying?.albumArt]);
+  }, [nowPlaying?.title, nowPlaying?.artist, nowPlaying?.albumArt, msAlbum, nowPlaying]);
 
-  if (!nowPlaying) return <audio ref={audioRef} crossOrigin="anonymous" style={{ display: "none" }} />;
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+    const set = navigator.mediaSession.setActionHandler.bind(navigator.mediaSession);
+    // onPlayPause routes to the active backend (wasm engine / Spotify / device).
+    set("play", () => { if (!nowPlayingRef.current?.isPlaying) onPlayPause(); });
+    set("pause", () => { if (nowPlayingRef.current?.isPlaying) onPlayPause(); });
+    set("previoustrack", onPrevious);
+    set("nexttrack", onNext);
+    try {
+      set("seekto", (d) => {
+        if (typeof d.seekTime === "number") onSeek(Math.floor(d.seekTime * 1000));
+      });
+      set("seekbackward", (d) =>
+        onSeek(Math.max(0, (nowPlayingRef.current?.progress ?? 0) - (d.seekOffset ?? 10) * 1000)),
+      );
+      set("seekforward", (d) =>
+        onSeek((nowPlayingRef.current?.progress ?? 0) + (d.seekOffset ?? 10) * 1000),
+      );
+    } catch {
+      // older browsers may not support these actions
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [player]);
+
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+    navigator.mediaSession.playbackState = nowPlaying?.isPlaying ? "playing" : "paused";
+  }, [nowPlaying?.isPlaying]);
+
+  useEffect(() => {
+    if (!("mediaSession" in navigator) || !navigator.mediaSession.setPositionState) return;
+    const dur = nowPlaying?.duration ?? 0;
+    const pos = nowPlaying?.progress ?? 0;
+    if (dur <= 0) return;
+    try {
+      navigator.mediaSession.setPositionState({
+        duration: dur / 1000,
+        position: Math.min(pos, dur) / 1000,
+        playbackRate: 1,
+      });
+    } catch {
+      // invalid values mid-transition — ignore
+    }
+  }, [nowPlaying?.progress, nowPlaying?.duration]);
+
+  if (!nowPlaying) return null;
 
   const progress =
     nowPlaying.duration > 0
@@ -638,8 +487,6 @@ export default function MiniPlayer() {
 
   return (
     <>
-      <audio ref={audioRef} crossOrigin="anonymous" style={{ display: "none" }} />
-
       <EqualizerSheet open={eqSheetOpen} onClose={() => setEqSheetOpen(false)} />
 
       <PlayerScreen
@@ -682,6 +529,9 @@ export default function MiniPlayer() {
                 liked: false,
               });
             }
+            setPlayer(src);
+            void ensureEngineQueue();
+            return;
           }
           setPlayer(src);
           if (src === "spotify") fetchCurrentlyPlaying();

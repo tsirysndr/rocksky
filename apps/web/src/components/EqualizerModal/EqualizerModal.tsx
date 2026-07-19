@@ -1,8 +1,23 @@
 import styled from "@emotion/styled";
 import { IconX } from "@tabler/icons-react";
 import { useCallback, useMemo } from "react";
-import { EQ_BANDS, EQ_Q, type EqBandSetting } from "../../atoms/equalizer";
+import { EQ_BANDS, EQ_BANDS_HZ, EQ_Q, type EqBandSetting } from "../../atoms/equalizer";
 import { useAudioSettings } from "../../hooks/useAudioSettings";
+
+// Vertical EQ band fader — native range input styled to match the app's other
+// audio sliders (Tone / Crossfade / ReplayGain). baseweb's Slider is
+// horizontal-only, so it can't render a vertical 10-band fader.
+const VerticalSlider = styled.input<{ disabled: boolean }>`
+  appearance: slider-vertical;
+  -webkit-appearance: slider-vertical;
+  writing-mode: vertical-lr;
+  direction: rtl;
+  width: 22px;
+  height: 148px;
+  cursor: ${({ disabled }) => disabled ? "not-allowed" : "pointer"};
+  accent-color: var(--color-primary);
+  opacity: ${({ disabled }) => disabled ? 0.35 : 1};
+`;
 
 const Overlay = styled.div`
   position: fixed;
@@ -194,18 +209,6 @@ const SliderWrap = styled.div`
   justify-content: center;
 `;
 
-const VerticalSlider = styled.input<{ disabled: boolean }>`
-  appearance: slider-vertical;
-  -webkit-appearance: slider-vertical;
-  writing-mode: vertical-lr;
-  direction: rtl;
-  width: 22px;
-  height: 148px;
-  cursor: ${({ disabled }) => disabled ? "not-allowed" : "pointer"};
-  accent-color: var(--color-primary);
-  opacity: ${({ disabled }) => disabled ? 0.35 : 1};
-`;
-
 const FreqLabel = styled.span`
   font-size: 0.62rem;
   font-family: RockfordSansMedium;
@@ -215,7 +218,7 @@ const FreqLabel = styled.span`
 `;
 
 function formatFreq(hz: number) {
-  return hz >= 1000 ? `${hz / 1000}kHz` : `${hz}Hz`;
+  return hz >= 1000 ? `${hz / 1000}kHz` : `${hz}`;
 }
 
 type Props = { onClose: () => void };
@@ -230,8 +233,9 @@ function EqualizerModal({ onClose }: Props) {
   // (a value like -135 in the wire format means -13.5 dB).
   const bands: EqBandSetting[] = useMemo(
     () =>
-      (data?.eqBandSettings ?? EQ_BANDS).map((b) => ({
-        cutoff: b.cutoff,
+      (data?.eqBandSettings ?? EQ_BANDS).map((b, i) => ({
+        // Frequency is fixed by band index — ignore any stale persisted cutoff.
+        cutoff: EQ_BANDS_HZ[i] ?? b.cutoff,
         gain: b.gain / 10,
       })),
     [data?.eqBandSettings],
@@ -307,6 +311,7 @@ function EqualizerModal({ onClose }: Props) {
                   <SliderWrap>
                     <VerticalSlider
                       type="range"
+                      aria-label={`${formatFreq(band.cutoff)} gain`}
                       min={-24}
                       max={24}
                       step={0.5}

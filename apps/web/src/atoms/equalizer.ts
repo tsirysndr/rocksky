@@ -5,19 +5,18 @@ export interface EqBandSetting {
   gain: number; // dB, clamped to [-24, +24]
 }
 
+// The 10 EQ band centre frequencies (32 Hz … 16 kHz). Shared canonical set —
+// index-aligned across the EQ UI, the settings lexicon and the wasm engine.
+// Matches atradio.fm so records sync cleanly.
+export const EQ_BANDS_HZ = [
+  32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000,
+] as const;
+
 // 10-band EQ: band 0 = low-shelf, bands 1-8 = peaking, band 9 = high-shelf
-export const EQ_BANDS: EqBandSetting[] = [
-  { cutoff: 60,    gain: 0 },
-  { cutoff: 200,   gain: 0 },
-  { cutoff: 500,   gain: 0 },
-  { cutoff: 1000,  gain: 0 },
-  { cutoff: 2000,  gain: 0 },
-  { cutoff: 4000,  gain: 0 },
-  { cutoff: 7000,  gain: 0 },
-  { cutoff: 10000, gain: 0 },
-  { cutoff: 14000, gain: 0 },
-  { cutoff: 20000, gain: 0 },
-];
+export const EQ_BANDS: EqBandSetting[] = EQ_BANDS_HZ.map((cutoff) => ({
+  cutoff,
+  gain: 0,
+}));
 
 // Q=7.0 matches the Rockbox firmware default (stored as tenths: 70 → 7.0).
 export const EQ_Q = 7.0;
