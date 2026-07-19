@@ -73,7 +73,7 @@
     "react-i18next": "^15.4.0",
     "react-lazy-load-image-component": "^1.6.3",
     "recharts": "^2.15.1",
-    "rockbox-wasm": "^0.1.5",
+    "rockbox-wasm": "^0.1.6",
     "styletron-engine-monolithic": "^1.0.0",
     "styletron-react": "^6.1.1",
     "swr": "^2.3.0",
