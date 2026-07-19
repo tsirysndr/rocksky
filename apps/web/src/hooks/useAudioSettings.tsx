@@ -101,10 +101,29 @@ function bandRockboxToLex(b: EqBand): LexEqBand {
 // Persisted to localStorage so the DSP chain survives reloads without a network
 // round-trip. Seeded from firmware defaults; hydrated from the lexicon on mount.
 
-const settingsAtom = atomWithStorage<GlobalSettings>(
+// Exported so an always-mounted publisher (useAudioSettingsPublisher) can push
+// it to the engine on app load — without it, the settings only reach the engine
+// when the Audio Settings page/EQ modal mounts, and the flat default gets
+// applied for a render first (audible EQ flicker on first open).
+// getOnInit reads localStorage synchronously so the very first render already
+// has the stored settings, not the flat default.
+export const audioSettingsAtom = atomWithStorage<GlobalSettings>(
   "rocksky:audio.settings",
   DEFAULT_GLOBAL_SETTINGS,
+  undefined,
+  { getOnInit: true },
 );
+const settingsAtom = audioSettingsAtom;
+
+/** Always-mounted: keep the engine's DSP chain in sync with the persisted audio
+ *  settings from app load on, so opening Audio Settings later applies nothing
+ *  new (publishAudioSettings is idempotent) and there's no audible flicker. */
+export function useAudioSettingsPublisher(): void {
+  const settings = useAtomValue(audioSettingsAtom);
+  useEffect(() => {
+    publishAudioSettings(settings);
+  }, [settings]);
+}
 
 /** Merge a lexicon record into a GlobalSettings snapshot. Anything the lexicon
  *  doesn't specify keeps its current value. */
@@ -229,11 +248,9 @@ export function useAudioSettings(): {
     staleTime: 60_000,
   });
 
-  // Push the current snapshot to the wasm engine whenever it changes (and on
-  // mount). Cheap + idempotent; the engine adopts it live or on next init().
-  useEffect(() => {
-    publishAudioSettings(settings);
-  }, [settings]);
+  // Engine sync lives in the always-mounted useAudioSettingsPublisher (mounted
+  // by the sticky player) so the DSP chain is in sync from app load — not only
+  // while this settings-page hook is mounted.
 
   // Hydrate the local snapshot from the lexicon ONCE per did.
   useEffect(() => {

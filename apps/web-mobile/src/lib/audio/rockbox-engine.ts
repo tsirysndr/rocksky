@@ -22,6 +22,11 @@ let player: RockboxPlayer | null = null;
  *  late-booting engine (init runs on a user gesture) adopts them on init(). */
 let latestEq: { enabled: boolean; bands: EqBandSetting[] } | null = null;
 let latestCrossfade: { enabled: boolean; durationSec: number } | null = null;
+// JSON of the last-applied EQ/crossfade, so we skip redundant re-applies —
+// re-pushing the same EQ recomputes the DSP IIR coefficients and briefly
+// disturbs the audio (the "EQ flickers when I open the EQ sheet" glitch).
+let latestEqJson = "";
+let latestCrossfadeJson = "";
 
 // Transport modes, remembered so they survive a late init — repeat "all" set
 // before the first play still loops the queue instead of stopping at the end.
@@ -71,9 +76,14 @@ export async function ensureRockboxReady(): Promise<RockboxPlayer> {
     await p.init();
     // Adopt whatever settings were last published (the engine may have booted
     // after they loaded), so a fresh AudioContext starts with the user's EQ.
-    if (latestEq) applyEq(p, latestEq.enabled, latestEq.bands);
-    if (latestCrossfade)
+    if (latestEq) {
+      applyEq(p, latestEq.enabled, latestEq.bands);
+      latestEqJson = JSON.stringify(latestEq);
+    }
+    if (latestCrossfade) {
       applyCrossfade(p, latestCrossfade.enabled, latestCrossfade.durationSec);
+      latestCrossfadeJson = JSON.stringify(latestCrossfade);
+    }
     p.setRepeat(latestRepeat);
     p.setShuffle(latestShuffle);
   }
@@ -141,11 +151,17 @@ export function applyCrossfade(
 /** Publish EQ state: remember it (for a late init) and push it live if ready. */
 export function publishEq(enabled: boolean, bands: EqBandSetting[]): void {
   latestEq = { enabled, bands };
+  const json = JSON.stringify(latestEq);
+  if (json === latestEqJson) return;
+  latestEqJson = json;
   if (player?.ready) applyEq(player, enabled, bands);
 }
 
 /** Publish crossfade state: remember + push live if the engine is running. */
 export function publishCrossfade(enabled: boolean, durationSec: number): void {
   latestCrossfade = { enabled, durationSec };
+  const json = JSON.stringify(latestCrossfade);
+  if (json === latestCrossfadeJson) return;
+  latestCrossfadeJson = json;
   if (player?.ready) applyCrossfade(player, enabled, durationSec);
 }
