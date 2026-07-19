@@ -1,6 +1,6 @@
 import styled from "@emotion/styled";
 import { useMemo } from "react";
-import { EQ_BANDS, EQ_Q } from "../../../../atoms/equalizer";
+import { EQ_BANDS, EQ_BANDS_HZ, EQ_Q } from "../../../../atoms/equalizer";
 import { useAudioSettings } from "../../../../hooks/useAudioSettings";
 import {
   Card,
@@ -35,6 +35,9 @@ const GainText = styled.span`
   font-variant-numeric: tabular-nums;
 `;
 
+// Vertical EQ band fader — native range input styled to match the app's other
+// audio sliders. baseweb's Slider is horizontal-only, so it can't render a
+// vertical 10-band fader.
 const VertSlider = styled.input<{ disabled: boolean }>`
   appearance: slider-vertical;
   -webkit-appearance: slider-vertical;
@@ -61,7 +64,7 @@ const CurveBox = styled.div`
 `;
 
 function formatFreq(hz: number) {
-  return hz >= 1000 ? `${hz / 1000}kHz` : `${hz}Hz`;
+  return hz >= 1000 ? `${hz / 1000}kHz` : `${hz}`;
 }
 
 // Rockbox stores gain in tenths of dB (e.g. -135 = -13.5 dB), so keep one
@@ -175,7 +178,11 @@ function EqCurve({
 export function Equalizer() {
   const { data, actions } = useAudioSettings();
   const enabled = data?.eqEnabled ?? false;
-  const bands = data?.eqBandSettings ?? EQ_BANDS.map((b) => ({ ...b, q: EQ_Q * 10 }));
+  // Frequency is fixed by band index — ignore any stale persisted cutoff so the
+  // labels are always the canonical 32 Hz … 16 kHz set.
+  const bands = (
+    data?.eqBandSettings ?? EQ_BANDS.map((b) => ({ ...b, q: EQ_Q * 10 }))
+  ).map((b, i) => ({ ...b, cutoff: EQ_BANDS_HZ[i] ?? b.cutoff }));
   const currentPreset = detectPreset(bands);
 
   const setBand = (index: number, gainDb: number) => {
@@ -254,6 +261,7 @@ export function Equalizer() {
                 <GainText>{formatGain(gainDb)}</GainText>
                 <VertSlider
                   type="range"
+                  aria-label={`${formatFreq(band.cutoff)} gain`}
                   min={-24}
                   max={24}
                   step={0.5}

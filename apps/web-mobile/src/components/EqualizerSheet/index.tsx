@@ -1,10 +1,123 @@
 import { IconX } from "@tabler/icons-react";
+import { Slider } from "baseui/slider";
 import { useAtom } from "jotai";
 import { useCallback, useMemo } from "react";
-import { eqBandsAtom, eqEnabledAtom, EQ_BANDS, type EqBandSetting } from "../../atoms/equalizer";
+import {
+  crossfadeDurationAtom,
+  crossfadeEnabledAtom,
+  eqBandsAtom,
+  eqEnabledAtom,
+  EQ_BANDS,
+  EQ_BANDS_HZ,
+  type EqBandSetting,
+} from "../../atoms/equalizer";
 
 function formatFreq(hz: number) {
-  return hz >= 1000 ? `${hz / 1000}k` : `${hz}`;
+  return hz >= 1000 ? `${hz / 1000}kHz` : `${hz}`;
+}
+
+// Compact, on-brand overrides for the baseweb Slider (crossfade duration).
+const SLIDER_OVERRIDES = {
+  Root: { style: { flexGrow: 1 } },
+  Track: {
+    style: {
+      paddingLeft: 0,
+      paddingRight: 0,
+      paddingTop: "8px",
+      paddingBottom: "8px",
+    },
+  },
+  InnerTrack: {
+    style: {
+      height: "6px",
+      borderTopLeftRadius: "3px",
+      borderTopRightRadius: "3px",
+      borderBottomLeftRadius: "3px",
+      borderBottomRightRadius: "3px",
+      background: "var(--color-border)",
+    },
+  },
+  Thumb: {
+    style: ({ $disabled }: { $disabled?: boolean }) => ({
+      height: "16px",
+      width: "16px",
+      borderTopLeftRadius: "50%",
+      borderTopRightRadius: "50%",
+      borderBottomLeftRadius: "50%",
+      borderBottomRightRadius: "50%",
+      backgroundColor: "var(--color-primary)",
+      borderWidth: 0,
+      opacity: $disabled ? 0.35 : 1,
+    }),
+  },
+  InnerThumb: { style: { display: "none" } },
+  ThumbValue: { style: { display: "none" } },
+  Tick: { style: { display: "none" } },
+  TickBar: { style: { display: "none" } },
+};
+
+// EQ band faders use native range inputs — baseweb's Slider is horizontal-only
+// (can't render the vertical portrait faders) and too chunky for a dense
+// 10-band grid. baseweb's Slider IS used for the horizontal crossfade below.
+
+/** One vertical EQ band fader (portrait, gain in dB). */
+function VertBandSlider(props: {
+  value: number;
+  disabled: boolean;
+  onChange: (v: number) => void;
+  "aria-label": string;
+}) {
+  return (
+    <input
+      type="range"
+      aria-label={props["aria-label"]}
+      min={-24}
+      max={24}
+      step={1}
+      value={props.value}
+      disabled={props.disabled}
+      onChange={(e) => props.onChange(Number(e.target.value))}
+      style={{
+        appearance: "none",
+        WebkitAppearance: "slider-vertical",
+        writingMode: "vertical-lr",
+        direction: "rtl",
+        width: 20,
+        height: 120,
+        cursor: props.disabled ? "not-allowed" : "pointer",
+        accentColor: "var(--color-primary)",
+        opacity: props.disabled ? 0.35 : 1,
+      } as React.CSSProperties}
+    />
+  );
+}
+
+/** One horizontal EQ band fader (landscape layout, gain in dB). */
+function HorizBandSlider(props: {
+  value: number;
+  disabled: boolean;
+  onChange: (v: number) => void;
+  "aria-label": string;
+}) {
+  return (
+    <input
+      type="range"
+      aria-label={props["aria-label"]}
+      min={-24}
+      max={24}
+      step={1}
+      value={props.value}
+      disabled={props.disabled}
+      onChange={(e) => props.onChange(Number(e.target.value))}
+      className="flex-1"
+      style={{
+        accentColor: "var(--color-primary)",
+        opacity: props.disabled ? 0.35 : 1,
+        cursor: props.disabled ? "not-allowed" : "pointer",
+        height: 4,
+      }}
+    />
+  );
 }
 
 function EqCurve({ bands, enabled }: { bands: EqBandSetting[]; enabled: boolean }) {
@@ -63,6 +176,8 @@ type Props = { open: boolean; onClose: () => void };
 export default function EqualizerSheet({ open, onClose }: Props) {
   const [enabled, setEnabled] = useAtom(eqEnabledAtom);
   const [bands, setBands] = useAtom(eqBandsAtom);
+  const [crossfadeEnabled, setCrossfadeEnabled] = useAtom(crossfadeEnabledAtom);
+  const [crossfadeDuration, setCrossfadeDuration] = useAtom(crossfadeDurationAtom);
 
   const setBandGain = useCallback((index: number, gain: number) => {
     setBands((prev) => prev.map((b, i) => i === index ? { ...b, gain } : b));
@@ -142,7 +257,7 @@ export default function EqualizerSheet({ open, onClose }: Props) {
         </div>
 
         {/* Sliders — portrait: vertical, landscape: horizontal rows */}
-        <div className="landscape:hidden flex px-2 pb-6" style={{ gap: 0 }}>
+        <div className="landscape:hidden flex px-2 pb-4" style={{ gap: 0 }}>
           {/* dB labels column */}
           <div className="flex flex-col justify-between items-end pr-1 shrink-0" style={{ height: 150, paddingTop: 18, paddingBottom: 20 }}>
             <span style={{ fontSize: "0.55rem", color: "var(--color-text-muted)", fontWeight: 600 }}>+24</span>
@@ -155,36 +270,22 @@ export default function EqualizerSheet({ open, onClose }: Props) {
                 {band.gain > 0 ? `+${band.gain}` : band.gain}
               </span>
               <div style={{ height: 130, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <input
-                  type="range"
-                  min={-24}
-                  max={24}
-                  step={1}
+                <VertBandSlider
+                  aria-label={`${formatFreq(EQ_BANDS_HZ[i] ?? band.cutoff)} gain`}
                   value={band.gain}
                   disabled={!enabled}
-                  onChange={(e) => setBandGain(i, Number(e.target.value))}
-                  style={{
-                    appearance: "none",
-                    WebkitAppearance: "slider-vertical",
-                    writingMode: "vertical-lr",
-                    direction: "rtl",
-                    width: 20,
-                    height: 120,
-                    cursor: enabled ? "pointer" : "not-allowed",
-                    accentColor: "var(--color-primary)",
-                    opacity: enabled ? 1 : 0.35,
-                  } as React.CSSProperties}
+                  onChange={(v) => setBandGain(i, v)}
                 />
               </div>
               <span style={{ fontSize: "0.58rem", color: "var(--color-text-muted)", fontWeight: 600, textAlign: "center" }}>
-                {formatFreq(band.cutoff)}
+                {formatFreq(EQ_BANDS_HZ[i] ?? band.cutoff)}
               </span>
             </div>
           ))}
         </div>
 
         {/* Landscape layout — horizontal sliders in a grid */}
-        <div className="hidden landscape:block px-4 pb-4">
+        <div className="hidden landscape:block px-4 pb-2">
           {/* dB axis labels */}
           <div className="flex items-center mb-1 gap-2" style={{ paddingLeft: 36 }}>
             <span style={{ fontSize: "0.55rem", color: "var(--color-text-muted)", fontWeight: 600, flexShrink: 0 }}>-24dB</span>
@@ -197,29 +298,69 @@ export default function EqualizerSheet({ open, onClose }: Props) {
             {bands.map((band, i) => (
               <div key={i} className="flex items-center gap-2">
                 <span style={{ fontSize: "0.6rem", color: "var(--color-text-muted)", fontWeight: 600, width: 32, textAlign: "right", flexShrink: 0 }}>
-                  {formatFreq(band.cutoff)}
+                  {formatFreq(EQ_BANDS_HZ[i] ?? band.cutoff)}
                 </span>
-                <input
-                  type="range"
-                  min={-24}
-                  max={24}
-                  step={1}
+                <HorizBandSlider
+                  aria-label={`${formatFreq(EQ_BANDS_HZ[i] ?? band.cutoff)} gain`}
                   value={band.gain}
                   disabled={!enabled}
-                  onChange={(e) => setBandGain(i, Number(e.target.value))}
-                  className="flex-1"
-                  style={{
-                    accentColor: "var(--color-primary)",
-                    opacity: enabled ? 1 : 0.35,
-                    cursor: enabled ? "pointer" : "not-allowed",
-                    height: 4,
-                  }}
+                  onChange={(v) => setBandGain(i, v)}
                 />
                 <span style={{ fontSize: "0.6rem", color: "var(--color-text-muted)", fontWeight: 600, width: 28, textAlign: "right", flexShrink: 0 }}>
                   {band.gain > 0 ? `+${band.gain}` : band.gain}dB
                 </span>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Crossfade — smooth transitions between tracks (rockbox pcmbuf) */}
+        <div
+          className="px-5 py-3 flex items-center gap-3"
+          style={{ borderTop: "1px solid var(--color-border)" }}
+        >
+          <button
+            onClick={() => setCrossfadeEnabled((v) => !v)}
+            className="flex items-center gap-2 border-none bg-transparent cursor-pointer p-0"
+            style={{ color: crossfadeEnabled ? "var(--color-primary)" : "var(--color-text-muted)" }}
+          >
+            <span
+              className="relative inline-flex shrink-0"
+              style={{
+                width: 32, height: 18, borderRadius: 9,
+                background: crossfadeEnabled ? "var(--color-primary)" : "var(--color-border)",
+                transition: "background 0.2s",
+              }}
+            >
+              <span
+                style={{
+                  position: "absolute", top: 2,
+                  left: crossfadeEnabled ? 16 : 2,
+                  width: 14, height: 14,
+                  borderRadius: "50%", background: "#fff",
+                  transition: "left 0.2s",
+                }}
+              />
+            </span>
+            <span className="text-xs font-semibold">Crossfade</span>
+          </button>
+          <div className="flex-1 flex items-center gap-2">
+            <div className="flex-1">
+              <Slider
+                min={1}
+                max={12}
+                step={1}
+                value={[crossfadeDuration]}
+                disabled={!crossfadeEnabled}
+                onChange={({ value }) => {
+                  if (value?.length) setCrossfadeDuration(value[0]);
+                }}
+                overrides={SLIDER_OVERRIDES}
+              />
+            </div>
+            <span style={{ fontSize: "0.6rem", color: "var(--color-text-muted)", fontWeight: 600, width: 28, textAlign: "right", flexShrink: 0 }}>
+              {crossfadeDuration}s
+            </span>
           </div>
         </div>
       </div>
