@@ -23,6 +23,40 @@ let player: RockboxPlayer | null = null;
 let latestEq: { enabled: boolean; bands: EqBandSetting[] } | null = null;
 let latestCrossfade: { enabled: boolean; durationSec: number } | null = null;
 
+// Transport modes, remembered so they survive a late init — repeat "all" set
+// before the first play still loops the queue instead of stopping at the end.
+let latestRepeat = 0; // 0 off, 1 one, 2 all
+let latestShuffle = false;
+
+/** Set repeat mode (0 off, 1 one, 2 all). Remembered + applied live if ready. */
+export function publishRepeat(mode: number): void {
+  latestRepeat = mode;
+  if (player?.ready) player.setRepeat(mode);
+}
+
+/** Set shuffle. Remembered + applied live if ready. */
+export function publishShuffle(on: boolean): void {
+  latestShuffle = on;
+  if (player?.ready) player.setShuffle(on);
+}
+
+// Pin the queue index the user just jumped to, so a late status event from the
+// outgoing track (fetch+decode latency) can't revert the "up next" they picked.
+let pinnedIndex: { idx: number; until: number } | null = null;
+
+export function pinQueueIndex(idx: number): void {
+  pinnedIndex = { idx, until: Date.now() + 2500 };
+}
+
+export function effectiveQueueIndex(engineIdx: number): number {
+  if (pinnedIndex) {
+    if (Date.now() > pinnedIndex.until) pinnedIndex = null;
+    else if (engineIdx !== pinnedIndex.idx) return pinnedIndex.idx;
+    else pinnedIndex = null;
+  }
+  return engineIdx;
+}
+
 /** Lazy singleton. Cheap to construct; `init()` boots the AudioContext so it
  *  must be reached from a user gesture (see ensureRockboxReady). */
 export function getRockboxPlayer(): RockboxPlayer {
@@ -40,6 +74,8 @@ export async function ensureRockboxReady(): Promise<RockboxPlayer> {
     if (latestEq) applyEq(p, latestEq.enabled, latestEq.bands);
     if (latestCrossfade)
       applyCrossfade(p, latestCrossfade.enabled, latestCrossfade.durationSec);
+    p.setRepeat(latestRepeat);
+    p.setShuffle(latestShuffle);
   }
   return p;
 }

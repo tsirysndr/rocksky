@@ -6,19 +6,19 @@ import { queueAtom, queueIndexAtom } from "../atoms/queue";
 import { uploadResumeAtom } from "../atoms/resume";
 import { registerTracks } from "../lib/audio/rockbox-engine";
 
-// useQueuePersistence — persist the in-browser upload queue + position to
-// localStorage (jotai) and restore it on reload.
+// useUploadResume — persist the in-browser upload queue + position to
+// localStorage and restore it on reload.
 //
 // On mount (once) it rehydrates the queue, the current index and the elapsed
-// time into the player atoms (paused). The engine is only (re)loaded when the
-// user presses play — see the resume branch in MiniPlayer's ensureEngineQueue,
+// time into the player atoms (paused). The engine itself is only (re)loaded
+// when the user presses play — see the resume branch in StickyPlayer's onPlay,
 // which rebuilds the engine queue at the saved index and seeks to the saved
 // elapsed time. While the upload player is active it snapshots every few
-// seconds (and on unmount / tab hide).
+// seconds (and on unmount) so a reload loses at most a few seconds of position.
 
 const PERSIST_INTERVAL_MS = 3000;
 
-export function useQueuePersistence() {
+export function useUploadResume() {
   const [resume, setResume] = useAtom(uploadResumeAtom);
   const setQueue = useSetAtom(queueAtom);
   const setQueueIndex = useSetAtom(queueIndexAtom);
@@ -51,7 +51,7 @@ export function useQueuePersistence() {
     const idx = Math.min(Math.max(0, r.index), r.queue.length - 1);
     const t = r.queue[idx];
     if (!t) return;
-    registerTracks(r.queue);
+    registerTracks(r.queue); // so the engine can map URLs → metadata on play
     setQueue(r.queue);
     setQueueIndex(idx);
     setNowPlaying({
@@ -67,14 +67,14 @@ export function useQueuePersistence() {
       sha256: t.sha256,
       liked: false,
     });
-    setPlayer("upload");
+    setPlayer("rockbox");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Snapshot the queue + position periodically (and on unmount / tab hide).
   useEffect(() => {
     const write = () => {
-      if (playerRef.current !== "upload") return;
+      if (playerRef.current !== "rockbox") return;
       const q = queueRef.current;
       const np = npRef.current;
       if (!q.length || !np) return;

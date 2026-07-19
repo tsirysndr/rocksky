@@ -175,8 +175,10 @@ function QueuePanel({
                   No history yet
                 </p>
               ) : (
-                [...history].reverse().map((track, i) => {
-                  const absoluteIdx = currentIndex - 1 - i;
+                history.map((track, i) => {
+                  // Chronological: oldest at top, most-recently-played at the
+                  // bottom (nearest Now Playing).
+                  const absoluteIdx = i;
                   return (
                     <QueueRow
                       key={`${track.uploadId}-${absoluteIdx}`}

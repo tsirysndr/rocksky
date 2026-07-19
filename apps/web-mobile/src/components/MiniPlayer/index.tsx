@@ -13,6 +13,7 @@ import {
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { InsertMode } from "rockbox-wasm";
 import { nowPlayingAtom } from "../../atoms/nowpaying";
 import { playerAtom } from "../../atoms/player";
 import { playerScreenOpenAtom } from "../../atoms/playerScreen";
@@ -26,10 +27,14 @@ import { useRockboxEngine } from "../../hooks/useRockboxEngine";
 import {
   ensureRockboxReady,
   getRockboxPlayer,
+  pinQueueIndex,
+  publishRepeat,
+  publishShuffle,
   registerTracks,
   streamUrlFor,
 } from "../../lib/audio/rockbox-engine";
 import { ensureStreamToken } from "../../api/uploads";
+import { SILENT_AUDIO_DATA_URI } from "../../lib/audio/silence";
 import EqualizerSheet from "../EqualizerSheet";
 import PlayerScreen from "../PlayerScreen";
 import axios from "axios";
@@ -147,6 +152,10 @@ export default function MiniPlayer() {
   const [eqSheetOpen, setEqSheetOpen] = useState(false);
   const [shuffle, setShuffle] = useAtom(shuffleAtom);
   const [repeatMode, setRepeatMode] = useAtom(repeatModeAtom);
+  // Hidden silent <audio> that plays while the wasm engine plays, so the OS /
+  // lock-screen media controls (Media Session) surface — Web Audio alone
+  // doesn't trigger them.
+  const silentRef = useRef<HTMLAudioElement>(null);
 
   // Keep refs in sync
   useEffect(() => {
@@ -157,18 +166,16 @@ export default function MiniPlayer() {
     queueIndexRef.current = queueIndex;
   }, [nowPlaying, player, liked, queue, queueIndex]);
 
-  // Push shuffle/repeat to the engine while the upload (wasm) player is active.
+  // Publish shuffle/repeat to the engine. No player/ready guard: publish*
+  // remembers the value and (re)applies it on the engine's next init, so
+  // repeat "all" set before the first play still loops the queue.
   useEffect(() => {
-    if (player !== "upload") return;
-    const p = getRockboxPlayer();
-    if (p.ready) p.setShuffle(shuffle);
-  }, [shuffle, player]);
+    publishShuffle(shuffle);
+  }, [shuffle]);
 
   useEffect(() => {
-    if (player !== "upload") return;
-    const p = getRockboxPlayer();
-    if (p.ready) p.setRepeat(repeatMode === "one" ? 1 : repeatMode === "all" ? 2 : 0);
-  }, [repeatMode, player]);
+    publishRepeat(repeatMode === "one" ? 1 : repeatMode === "all" ? 2 : 0);
+  }, [repeatMode]);
 
   /** Ensure the wasm engine has the current queue loaded, then return it.
    *  Used when (re)activating the upload player — e.g. after a restore or when
@@ -176,17 +183,29 @@ export default function MiniPlayer() {
    *  holding a queue. */
   const ensureEngineQueue = useCallback(async () => {
     const p = await ensureRockboxReady();
-    if (p.queue.length === 0) {
-      const q = queueRef.current;
-      if (q.length) {
-        await ensureStreamToken();
-        registerTracks(q);
-        p.setQueue(q.map(streamUrlFor), false);
-        const idx = queueIndexRef.current;
-        if (idx > 0) p.skipTo(idx);
-      }
+    if (p.queue.length > 0) return { p, loaded: false };
+    const q = queueRef.current;
+    if (!q.length) return { p, loaded: false };
+    await ensureStreamToken();
+    registerTracks(q);
+    const urls = q.map(streamUrlFor);
+    const idx = Math.min(Math.max(0, queueIndexRef.current), urls.length - 1);
+    const seekMs = nowPlayingRef.current?.progress ?? 0;
+    // Start the saved track immediately, background-fill the rest, then seek to
+    // the saved elapsed time once it's decoded (resume after reload).
+    p.setQueue([urls[idx]], true);
+    const after = urls.slice(idx + 1);
+    const before = urls.slice(0, idx);
+    if (after.length) p.insert(after, InsertMode.PlayLast);
+    if (before.length) p.insert(before, InsertMode.Prepend);
+    if (seekMs > 1000) {
+      const onceTrack = () => {
+        p.off("track", onceTrack);
+        try { p.seek(seekMs); } catch { /* not seekable yet */ }
+      };
+      p.on("track", onceTrack);
     }
-    return p;
+    return { p, loaded: true };
   }, []);
 
   const fetchCurrentlyPlaying = useCallback(async () => {
@@ -338,8 +357,10 @@ export default function MiniPlayer() {
   const onPlayPause = async () => {
     if (!nowPlaying) return;
     if (player === "upload") {
-      const p = await ensureEngineQueue();
-      p.toggle();
+      const { p, loaded } = await ensureEngineQueue();
+      // If we just (re)loaded the queue it's already playing the saved track —
+      // toggling would immediately pause it.
+      if (!loaded) p.toggle();
       return;
     }
     if (player === "rockbox" && socketRef.current) {
@@ -383,6 +404,9 @@ export default function MiniPlayer() {
   const onSelectQueueIndex = useCallback((idx: number) => {
     const track = queueRef.current[idx];
     if (!track) return;
+    // Pin the chosen index so a late status from the outgoing track can't
+    // revert the "up next" the user just selected, then jump.
+    pinQueueIndex(idx);
     getRockboxPlayer().skipTo(idx);
     // Optimistic now-playing for instant UI; engine track event reconciles.
     setQueueIndex(idx);
@@ -425,14 +449,24 @@ export default function MiniPlayer() {
           ]
         : [],
     });
-  }, [nowPlaying?.title, nowPlaying?.artist, nowPlaying?.albumArt, msAlbum, nowPlaying]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nowPlaying?.title, nowPlaying?.artist, nowPlaying?.albumArt, msAlbum]);
 
   useEffect(() => {
     if (!("mediaSession" in navigator)) return;
     const set = navigator.mediaSession.setActionHandler.bind(navigator.mediaSession);
-    // onPlayPause routes to the active backend (wasm engine / Spotify / device).
-    set("play", () => { if (!nowPlayingRef.current?.isPlaying) onPlayPause(); });
-    set("pause", () => { if (nowPlayingRef.current?.isPlaying) onPlayPause(); });
+    // Drive the silent anchor SYNCHRONOUSLY here (inside the media-key gesture)
+    // so resume works — the deferred sync effect can't call play() in-gesture
+    // and would be blocked by the autoplay policy. onPlayPause routes to the
+    // active backend (wasm engine / Spotify / device).
+    set("play", () => {
+      silentRef.current?.play().catch(() => {});
+      if (!nowPlayingRef.current?.isPlaying) onPlayPause();
+    });
+    set("pause", () => {
+      silentRef.current?.pause();
+      if (nowPlayingRef.current?.isPlaying) onPlayPause();
+    });
     set("previoustrack", onPrevious);
     set("nexttrack", onNext);
     try {
@@ -455,6 +489,14 @@ export default function MiniPlayer() {
     if (!("mediaSession" in navigator)) return;
     navigator.mediaSession.playbackState = nowPlaying?.isPlaying ? "playing" : "paused";
   }, [nowPlaying?.isPlaying]);
+
+  // Keep the silent Media Session anchor playing whenever the engine plays.
+  useEffect(() => {
+    const el = silentRef.current;
+    if (!el) return;
+    if (player === "upload" && nowPlaying?.isPlaying) el.play().catch(() => {});
+    else el.pause();
+  }, [player, nowPlaying?.isPlaying]);
 
   useEffect(() => {
     if (!("mediaSession" in navigator) || !navigator.mediaSession.setPositionState) return;
@@ -487,6 +529,9 @@ export default function MiniPlayer() {
 
   return (
     <>
+      {/* Silent Media Session anchor for the Web Audio (engine) playback path. */}
+      <audio ref={silentRef} src={SILENT_AUDIO_DATA_URI} loop preload="auto" />
+
       <EqualizerSheet open={eqSheetOpen} onClose={() => setEqSheetOpen(false)} />
 
       <PlayerScreen

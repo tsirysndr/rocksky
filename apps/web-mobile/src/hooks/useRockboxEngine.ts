@@ -10,6 +10,7 @@ import { nowPlayingAtom } from "../atoms/nowpaying";
 import { playerAtom } from "../atoms/player";
 import { queueAtom, queueIndexAtom, type QueueTrack } from "../atoms/queue";
 import {
+  effectiveQueueIndex,
   getRockboxPlayer,
   publishCrossfade,
   publishEq,
@@ -117,7 +118,7 @@ export function useRockboxEngine() {
       index: number;
       queue_len: number;
     }) => {
-      if (e.index >= 0) setQueueIndex(e.index);
+      if (e.index >= 0) setQueueIndex(effectiveQueueIndex(e.index));
       setNowPlaying((prev) =>
         prev ? { ...prev, isPlaying: e.state === "playing" } : prev,
       );
@@ -125,7 +126,7 @@ export function useRockboxEngine() {
 
     const onQueue = (e: { urls: string[]; index: number }) => {
       setQueue(e.urls.map(urlToQueueTrack));
-      setQueueIndex(e.index);
+      setQueueIndex(effectiveQueueIndex(e.index));
     };
 
     p.on("track", onTrack);
