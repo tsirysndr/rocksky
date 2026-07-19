@@ -405,28 +405,72 @@ export default function MiniPlayer() {
     getRockboxPlayer().removeAt(idx);
   }, []);
 
-  // Media Session API — keeps Android/iOS lock-screen / notification in sync
+  // Media Session API — Android/iOS lock-screen / notification. Mirrors the
+  // mini-player: title, artist, album + artwork, live play/pause state, a
+  // scrubbable position, and every transport action.
+  const msAlbum = queue[queueIndex]?.album;
+
   useEffect(() => {
     if (!("mediaSession" in navigator) || !nowPlaying) return;
+    const art = nowPlaying.albumArt;
     navigator.mediaSession.metadata = new MediaMetadata({
       title: nowPlaying.title,
       artist: nowPlaying.artist,
-      artwork: nowPlaying.albumArt
-        ? [{ src: nowPlaying.albumArt, sizes: "512x512" }]
+      album: msAlbum ?? "",
+      artwork: art
+        ? [
+            { src: art, sizes: "96x96" },
+            { src: art, sizes: "256x256" },
+            { src: art, sizes: "512x512" },
+          ]
         : [],
     });
-    navigator.mediaSession.setActionHandler("play", () => {
-      const p = getRockboxPlayer();
-      if (p.ready) p.play();
-    });
-    navigator.mediaSession.setActionHandler("pause", () => {
-      const p = getRockboxPlayer();
-      if (p.ready) p.pause();
-    });
-    navigator.mediaSession.setActionHandler("previoustrack", onPrevious);
-    navigator.mediaSession.setActionHandler("nexttrack", onNext);
+  }, [nowPlaying?.title, nowPlaying?.artist, nowPlaying?.albumArt, msAlbum, nowPlaying]);
+
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+    const set = navigator.mediaSession.setActionHandler.bind(navigator.mediaSession);
+    // onPlayPause routes to the active backend (wasm engine / Spotify / device).
+    set("play", () => { if (!nowPlayingRef.current?.isPlaying) onPlayPause(); });
+    set("pause", () => { if (nowPlayingRef.current?.isPlaying) onPlayPause(); });
+    set("previoustrack", onPrevious);
+    set("nexttrack", onNext);
+    try {
+      set("seekto", (d) => {
+        if (typeof d.seekTime === "number") onSeek(Math.floor(d.seekTime * 1000));
+      });
+      set("seekbackward", (d) =>
+        onSeek(Math.max(0, (nowPlayingRef.current?.progress ?? 0) - (d.seekOffset ?? 10) * 1000)),
+      );
+      set("seekforward", (d) =>
+        onSeek((nowPlayingRef.current?.progress ?? 0) + (d.seekOffset ?? 10) * 1000),
+      );
+    } catch {
+      // older browsers may not support these actions
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nowPlaying?.title, nowPlaying?.artist, nowPlaying?.albumArt]);
+  }, [player]);
+
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+    navigator.mediaSession.playbackState = nowPlaying?.isPlaying ? "playing" : "paused";
+  }, [nowPlaying?.isPlaying]);
+
+  useEffect(() => {
+    if (!("mediaSession" in navigator) || !navigator.mediaSession.setPositionState) return;
+    const dur = nowPlaying?.duration ?? 0;
+    const pos = nowPlaying?.progress ?? 0;
+    if (dur <= 0) return;
+    try {
+      navigator.mediaSession.setPositionState({
+        duration: dur / 1000,
+        position: Math.min(pos, dur) / 1000,
+        playbackRate: 1,
+      });
+    } catch {
+      // invalid values mid-transition — ignore
+    }
+  }, [nowPlaying?.progress, nowPlaying?.duration]);
 
   if (!nowPlaying) return null;
 

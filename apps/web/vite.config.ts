@@ -6,6 +6,7 @@ import { createRequire } from "node:module";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
+import { VitePWA } from "vite-plugin-pwa";
 
 // rockbox-wasm's runtime (core + decoder worker + audio worklet) is fetched by
 // URL at runtime, so it can't go through the module graph. Mirror the package
@@ -35,6 +36,47 @@ export default defineConfig({
     }),
     react(),
     tailwindcss(),
+    VitePWA({
+      registerType: "autoUpdate",
+      includeAssets: [
+        "favicon.ico",
+        "favicon.png",
+        "icon-192x192.png",
+        "icon-512x512.png",
+      ],
+      manifest: {
+        name: "Rocksky",
+        short_name: "Rocksky",
+        description: "Music scrobbling for Bluesky",
+        // Window / splash colours match the app's default (dark) background —
+        // the running app keeps <meta name="theme-color"> in sync with the
+        // active light/dark theme (see src/routes/__root.tsx).
+        theme_color: "#130825",
+        background_color: "#130825",
+        display: "standalone",
+        scope: "/",
+        start_url: "/",
+        icons: [
+          { src: "/icon-192x192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: "/icon-512x512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" },
+        ],
+      },
+      workbox: {
+        // rockbox-core.js is ~1.5 MB — raise the precache size ceiling.
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2,otf}"],
+        navigateFallback: "/index.html",
+        // These paths are handled by the app-proxy (OAuth / auth endpoints) —
+        // never answer them with the SPA shell.
+        navigateFallbackDenylist: [
+          /^\/oauth/,
+          /^\/login/,
+          /^\/token/,
+          /^\/jwks\.json/,
+          /^\/oauth-client-metadata\.json/,
+        ],
+      },
+    }),
   ],
   optimizeDeps: {
     force: true,

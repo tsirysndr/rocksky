@@ -110,6 +110,7 @@ function ScrobblesAreaChart() {
     pathname === "/mirrors" ||
     pathname === "/recommendations" ||
     pathname.startsWith("/library") ||
+    pathname.startsWith("/settings") ||
     pathname.startsWith("/dropbox") ||
     (pathname.startsWith("/googledrive") && getScrobblesChart().length > 0)
       ? getScrobblesChart()
