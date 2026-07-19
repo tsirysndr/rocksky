@@ -20,16 +20,35 @@ export const EQ_BANDS: EqBandSetting[] = EQ_BANDS_HZ.map((cutoff) => ({
 // Q=7.0 matches the Rockbox firmware default.
 export const EQ_Q = 7.0;
 
-export const eqEnabledAtom = atomWithStorage<boolean>("eq_enabled", false);
-export const eqBandsAtom = atomWithStorage<EqBandSetting[]>("eq_bands", EQ_BANDS);
+// getOnInit reads localStorage synchronously so the first render already has
+// the stored EQ, not the flat default — otherwise the engine gets a flat EQ
+// pushed for one render on app load (audible flicker).
+const SYNC_INIT = { getOnInit: true } as const;
+
+export const eqEnabledAtom = atomWithStorage<boolean>(
+  "eq_enabled",
+  false,
+  undefined,
+  SYNC_INIT,
+);
+export const eqBandsAtom = atomWithStorage<EqBandSetting[]>(
+  "eq_bands",
+  EQ_BANDS,
+  undefined,
+  SYNC_INIT,
+);
 
 // ── Crossfade (rockbox pcmbuf algorithm, run in the wasm engine) ─────────────
 export const crossfadeEnabledAtom = atomWithStorage<boolean>(
   "crossfade_enabled",
   false,
+  undefined,
+  SYNC_INIT,
 );
 // Fade in/out duration in seconds (Rockbox range 0–15 s).
 export const crossfadeDurationAtom = atomWithStorage<number>(
   "crossfade_duration",
   2,
+  undefined,
+  SYNC_INIT,
 );

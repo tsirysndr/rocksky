@@ -31,6 +31,7 @@ import {
 import { ensureStreamToken } from "../../api/uploads";
 import { SILENT_AUDIO_DATA_URI } from "../../lib/audio/silence";
 import { useRockboxEngine } from "../../hooks/useRockboxEngine";
+import { useAudioSettingsPublisher } from "../../hooks/useAudioSettings";
 import { useUploadResume } from "../../hooks/useUploadResume";
 import { useUploadScrobble } from "../../hooks/useUploadScrobble";
 
@@ -98,6 +99,9 @@ function StickyPlayerWithData() {
   // Persist the upload queue + position to localStorage and rehydrate it on
   // reload (the engine is reloaded lazily on the next play — see onPlay).
   useUploadResume();
+  // Keep the engine's DSP chain (EQ/tone/crossfade/…) in sync with the saved
+  // audio settings from app load, so opening Audio Settings applies nothing new.
+  useAudioSettingsPublisher();
   const queryClient = useQueryClient();
   const feedUri = useAtomValue(feedGeneratorUriAtom);
   const [liked, setLiked] = useState<Record<string, boolean>>({});

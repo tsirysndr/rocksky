@@ -21,6 +21,8 @@ let player: RockboxPlayer | null = null;
  *  late-booting engine (init happens on a user gesture, which can land after the
  *  settings have already loaded) can adopt the user's settings on `init()`. */
 let latestSettings: GlobalSettings | null = null;
+/** JSON of the last snapshot actually applied — used to skip redundant re-applies. */
+let latestSettingsJson = "";
 
 // Transport modes are likewise remembered so they survive a late init — the
 // repeat/shuffle effects can run before the engine has booted (e.g. repeat set
@@ -79,7 +81,10 @@ export async function ensureRockboxReady(): Promise<RockboxPlayer> {
     // Apply whatever DSP settings were last published (the engine may have
     // booted after the settings loaded), so a fresh AudioContext starts with
     // the user's EQ/crossfade/etc. rather than firmware defaults.
-    if (latestSettings) applyAudioSettings(p, latestSettings);
+    if (latestSettings) {
+      applyAudioSettings(p, latestSettings);
+      latestSettingsJson = JSON.stringify(latestSettings);
+    }
     p.setRepeat(latestRepeat);
     p.setShuffle(latestShuffle);
   }
@@ -264,8 +269,16 @@ export function applyAudioSettings(
 
 /** Publish the current DSP snapshot: remember it (so a late `init()` adopts it)
  *  and, if the engine is already running, push it live. Safe to call before the
- *  engine has booted — it'll be applied on the next `ensureRockboxReady()`. */
+ *  engine has booted — it'll be applied on the next `ensureRockboxReady()`.
+ *
+ *  Idempotent: if the snapshot is byte-for-byte identical to the last one we
+ *  applied, we skip re-applying it. Re-pushing the same EQ recomputes the DSP's
+ *  IIR coefficients and briefly disturbs the audio, which is what caused the
+ *  "EQ flickers when I open Audio Settings" glitch. */
 export function publishAudioSettings(s: GlobalSettings): void {
   latestSettings = s;
+  const json = JSON.stringify(s);
+  if (json === latestSettingsJson) return;
+  latestSettingsJson = json;
   if (player?.ready) applyAudioSettings(player, s);
 }
