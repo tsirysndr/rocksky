@@ -22,6 +22,48 @@ let player: RockboxPlayer | null = null;
  *  settings have already loaded) can adopt the user's settings on `init()`. */
 let latestSettings: GlobalSettings | null = null;
 
+// Transport modes are likewise remembered so they survive a late init — the
+// repeat/shuffle effects can run before the engine has booted (e.g. repeat set
+// to "all" before the first play), and without this the engine would keep its
+// firmware defaults and stop at the end of the queue instead of looping.
+let latestRepeat = 0; // 0 off, 1 one, 2 all
+let latestShuffle = false;
+
+/** Set repeat mode (0 off, 1 one, 2 all). Remembered + applied live if ready. */
+export function publishRepeat(mode: number): void {
+  latestRepeat = mode;
+  if (player?.ready) player.setRepeat(mode);
+}
+
+/** Set shuffle. Remembered + applied live if ready. */
+export function publishShuffle(on: boolean): void {
+  latestShuffle = on;
+  if (player?.ready) player.setShuffle(on);
+}
+
+// When the user jumps to a queue position, the engine takes a moment (fetch +
+// decode) before it reports the new index via a status event — and a late
+// status from the outgoing track can carry the OLD index. Pin the user's chosen
+// index briefly so those stale events don't revert the "up next" they just
+// selected.
+let pinnedIndex: { idx: number; until: number } | null = null;
+
+/** Pin the queue index the user just jumped to (for ~2.5 s). */
+export function pinQueueIndex(idx: number): void {
+  pinnedIndex = { idx, until: Date.now() + 2500 };
+}
+
+/** Reconcile an engine-reported index against an active pin: while pinned, keep
+ *  the user's chosen index until the engine confirms it (or the pin expires). */
+export function effectiveQueueIndex(engineIdx: number): number {
+  if (pinnedIndex) {
+    if (Date.now() > pinnedIndex.until) pinnedIndex = null;
+    else if (engineIdx !== pinnedIndex.idx) return pinnedIndex.idx;
+    else pinnedIndex = null; // engine caught up
+  }
+  return engineIdx;
+}
+
 /** Lazy singleton. Cheap to construct (event wiring only); `init()` boots the
  *  AudioContext so it must be reached from a user gesture (see ensureReady). */
 export function getRockboxPlayer(): RockboxPlayer {
@@ -38,6 +80,8 @@ export async function ensureRockboxReady(): Promise<RockboxPlayer> {
     // booted after the settings loaded), so a fresh AudioContext starts with
     // the user's EQ/crossfade/etc. rather than firmware defaults.
     if (latestSettings) applyAudioSettings(p, latestSettings);
+    p.setRepeat(latestRepeat);
+    p.setShuffle(latestShuffle);
   }
   return p;
 }

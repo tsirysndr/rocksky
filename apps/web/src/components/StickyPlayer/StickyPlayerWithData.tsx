@@ -18,8 +18,20 @@ import FullscreenPlayer from "../FullscreenPlayer/FullscreenPlayer";
 import { QueuePanel } from "../QueuePanel/QueuePanel";
 import { useQueryClient } from "@tanstack/react-query";
 import { feedGeneratorUriAtom } from "../../atoms/feed";
-import { getRockboxPlayer } from "../../lib/audio/rockbox-engine";
+import { InsertMode } from "rockbox-wasm";
+import {
+  ensureRockboxReady,
+  getRockboxPlayer,
+  pinQueueIndex,
+  publishRepeat,
+  publishShuffle,
+  registerTracks,
+  streamUrlFor,
+} from "../../lib/audio/rockbox-engine";
+import { ensureStreamToken } from "../../api/uploads";
+import { SILENT_AUDIO_DATA_URI } from "../../lib/audio/silence";
 import { useRockboxEngine } from "../../hooks/useRockboxEngine";
+import { useUploadResume } from "../../hooks/useUploadResume";
 import { useUploadScrobble } from "../../hooks/useUploadScrobble";
 
 // ---------------------------------------------------------------------------
@@ -83,6 +95,9 @@ function StickyPlayerWithData() {
   // Bridge the in-browser rockbox-wasm engine → jotai atoms (track/progress/
   // status/queue events). Replaces the old GraphQL polling entirely.
   useRockboxEngine();
+  // Persist the upload queue + position to localStorage and rehydrate it on
+  // reload (the engine is reloaded lazily on the next play — see onPlay).
+  useUploadResume();
   const queryClient = useQueryClient();
   const feedUri = useAtomValue(feedGeneratorUriAtom);
   const [liked, setLiked] = useState<Record<string, boolean>>({});
@@ -96,6 +111,10 @@ function StickyPlayerWithData() {
   const playerRef = useRef(player);
   const likedRef = useRef(liked);
   const profile = useAtomValue(profileAtom);
+  // Hidden silent <audio> that plays while the wasm engine plays, so the
+  // browser surfaces the Media Session / OS media controls (Web Audio alone
+  // doesn't trigger them).
+  const silentRef = useRef<HTMLAudioElement>(null);
 
   // The in-browser rockbox queue (mirrored from the wasm engine's events).
   const [queue, setQueue] = useAtom(queueAtom);
@@ -119,20 +138,17 @@ function StickyPlayerWithData() {
     likedRef.current = liked;
   }, [nowPlaying, player, liked]);
 
-  // Push shuffle/repeat changes to the engine when rockbox is active.
+  // Publish shuffle/repeat to the engine. No player/ready guard: publish*
+  // remembers the value and (re)applies it on the engine's next init, so
+  // repeat "all" set before the first play still loops the queue instead of
+  // stopping at the end.
   useEffect(() => {
-    if (player !== "rockbox") return;
-    const p = getRockboxPlayer();
-    if (!p.ready) return;
-    p.setShuffle(shuffle);
-  }, [shuffle, player]);
+    publishShuffle(shuffle);
+  }, [shuffle]);
 
   useEffect(() => {
-    if (player !== "rockbox") return;
-    const p = getRockboxPlayer();
-    if (!p.ready) return;
-    p.setRepeat(repeatMode === "one" ? 1 : repeatMode === "all" ? 2 : 0);
-  }, [repeatMode, player]);
+    publishRepeat(repeatMode === "one" ? 1 : repeatMode === "all" ? 2 : 0);
+  }, [repeatMode]);
 
   // Progress ticker for Spotify only — rockbox progress comes from the engine's
   // `progress` events, so skip it here to avoid double-counting.
@@ -196,8 +212,31 @@ function StickyPlayerWithData() {
 
   const onPlay = async () => {
     if (player === "rockbox") {
-      const p = getRockboxPlayer();
-      if (!p.ready) await p.init();
+      const p = await ensureRockboxReady();
+      // Resume after a reload: the queue was rehydrated from localStorage but
+      // the engine is empty. Rebuild the engine queue at the saved index and
+      // seek to the saved elapsed time once the track is decoded.
+      if (p.queue.length === 0 && queue.length > 0) {
+        await ensureStreamToken();
+        registerTracks(queue);
+        const urls = queue.map(streamUrlFor);
+        const idx = Math.min(Math.max(0, queueIndex), urls.length - 1);
+        const seekMs = nowPlaying?.progress ?? 0;
+        p.setQueue([urls[idx]], true);
+        const after = urls.slice(idx + 1);
+        const before = urls.slice(0, idx);
+        if (after.length) p.insert(after, InsertMode.PlayLast);
+        if (before.length) p.insert(before, InsertMode.Prepend);
+        if (seekMs > 1000) {
+          const onceTrack = () => {
+            p.off("track", onceTrack);
+            try { p.seek(seekMs); } catch { /* not seekable yet */ }
+          };
+          p.on("track", onceTrack);
+        }
+        setNowPlaying((prev) => prev ? { ...prev, isPlaying: true } : prev);
+        return;
+      }
       p.play();
       setNowPlaying((prev) => prev ? { ...prev, isPlaying: true } : prev);
       return;
@@ -292,15 +331,19 @@ function StickyPlayerWithData() {
           ]
         : [],
     });
-  }, [nowPlaying?.title, nowPlaying?.artist, nowPlaying?.albumArt, album, nowPlaying]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nowPlaying?.title, nowPlaying?.artist, nowPlaying?.albumArt, album]);
 
   // Transport action handlers (re-bound when the active engine changes so the
   // right backend is driven).
   useEffect(() => {
     if (!("mediaSession" in navigator)) return;
     const set = navigator.mediaSession.setActionHandler.bind(navigator.mediaSession);
-    set("play", onPlay);
-    set("pause", onPause);
+    // Drive the silent anchor SYNCHRONOUSLY here (this runs inside the media-key
+    // user gesture) so resume works — the deferred sync effect can't call
+    // play() in-gesture and would be blocked by the autoplay policy.
+    set("play", () => { silentRef.current?.play().catch(() => {}); onPlay(); });
+    set("pause", () => { silentRef.current?.pause(); onPause(); });
     set("previoustrack", onPrevious);
     set("nexttrack", onNext);
     try {
@@ -325,6 +368,14 @@ function StickyPlayerWithData() {
     navigator.mediaSession.playbackState = nowPlaying?.isPlaying ? "playing" : "paused";
   }, [nowPlaying?.isPlaying]);
 
+  // Keep the silent Media Session anchor playing whenever the engine plays.
+  useEffect(() => {
+    const el = silentRef.current;
+    if (!el) return;
+    if (player === "rockbox" && nowPlaying?.isPlaying) el.play().catch(() => {});
+    else el.pause();
+  }, [player, nowPlaying?.isPlaying]);
+
   // Scrubber position (units: mediaSession wants seconds; nowPlaying is ms).
   useEffect(() => {
     if (!("mediaSession" in navigator) || !navigator.mediaSession.setPositionState) return;
@@ -348,6 +399,9 @@ function StickyPlayerWithData() {
 
   return (
     <>
+      {/* Silent Media Session anchor for the Web Audio (engine) playback path. */}
+      <audio ref={silentRef} src={SILENT_AUDIO_DATA_URI} loop preload="auto" />
+
       {queuePanelOpen && isRockbox && (
         <>
           <QueueOverlay onClick={() => setQueuePanelOpen(false)} />
@@ -358,8 +412,10 @@ function StickyPlayerWithData() {
             onPlayIndex={(idx) => {
               const track = queue[idx];
               if (!track) return;
-              // Optimistic UI: flip the index + now-playing immediately; the
-              // engine's track/status events reconcile within a tick.
+              // Optimistic UI: flip the index + now-playing immediately, and
+              // pin the index so a late status from the outgoing track can't
+              // revert the "up next" the user just selected.
+              pinQueueIndex(idx);
               setQueueIndex(idx);
               setNowPlaying({
                 title: track.title,
