@@ -1,15 +1,17 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { RockskyClient } from "client";
 import dayjs from "dayjs";
 import relative from "dayjs/plugin/relativeTime.js";
 import { Box, Text, useInput } from "ink";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Cell, Ell } from "./Columns";
 import { List } from "./List";
 import { rockskyLink } from "./links";
 import { BLUE, TEAL, VIOLET } from "./theme";
 
 dayjs.extend(relative);
+
+const PAGE_SIZE = 100;
 
 interface Scrobble {
   id?: string;
@@ -36,16 +38,37 @@ export function ScrobblesView({
   const [detail, setDetail] = useState<Scrobble | null>(null);
 
   const {
-    data: items = [],
+    data,
     isLoading: loading,
     error,
-  } = useQuery<Scrobble[]>({
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery<Scrobble[]>({
     queryKey: ["globalScrobbles"],
-    queryFn: () => new RockskyClient().getGlobalScrobbles({ limit: 100 }),
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) =>
+      new RockskyClient().getGlobalScrobbles({
+        skip: pageParam as number,
+        limit: PAGE_SIZE,
+      }),
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length < PAGE_SIZE
+        ? undefined
+        : allPages.reduce((n, p) => n + p.length, 0),
     // Live feed — refresh in the background every 15s.
     refetchInterval: 15000,
     refetchIntervalInBackground: true,
   });
+
+  const items: Scrobble[] = data ? data.pages.flat() : [];
+
+  // Infinite scroll: load the next page as the cursor nears the end.
+  useEffect(() => {
+    if (hasNextPage && !isFetchingNextPage && selected >= items.length - 15) {
+      fetchNextPage();
+    }
+  }, [selected, items.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   useInput(
     (input, key) => {
@@ -67,7 +90,8 @@ export function ScrobblesView({
   if (detail) return <ScrobbleDetail scrobble={detail} />;
 
   return (
-    <List
+    <Box flexDirection="column">
+      <List
       items={items}
       selected={selected}
       height={height}
@@ -94,7 +118,9 @@ export function ScrobblesView({
           </>
         );
       }}
-    />
+      />
+      {isFetchingNextPage ? <Text dimColor>Loading more…</Text> : null}
+    </Box>
   );
 }
 
