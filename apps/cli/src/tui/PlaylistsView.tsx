@@ -16,6 +16,7 @@ import {
   type PlaylistEntry,
 } from "./navidrome";
 import { queryClient } from "./queryClient";
+import { shuffled } from "./shuffle";
 import { authAtom } from "./store";
 import { BLUE, TEAL, VIOLET } from "./theme";
 
@@ -33,6 +34,11 @@ export function PlaylistsView({
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
   const [note, setNote] = useState("");
+  // Playlist pending delete confirmation.
+  const [confirmDelete, setConfirmDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const credsQ = useQuery({
     queryKey: ["ndCreds", token],
@@ -60,8 +66,32 @@ export function PlaylistsView({
   const refetchDetail = () =>
     queryClient.invalidateQueries({ queryKey: ["playlist", detailId] });
 
+  function doDelete(pl: { id: string; name: string }) {
+    if (!creds) return;
+    setNote(`Deleting "${pl.name}"…`);
+    deletePlaylist(creds, pl.id)
+      .then(() => {
+        setNote("");
+        setSel((s) => Math.max(0, Math.min(s, playlists.length - 2)));
+        refetchLists();
+      })
+      .catch((e) => setNote(`Error: ${e.message}`));
+  }
+
   useInput(
     (input, key) => {
+      // --- delete confirmation ---
+      if (confirmDelete) {
+        if (key.return || input === "y" || input === "Y") {
+          const target = confirmDelete;
+          setConfirmDelete(null);
+          doDelete(target);
+        } else if (key.escape || input === "n" || input === "N") {
+          setConfirmDelete(null);
+        }
+        return;
+      }
+
       // --- create playlist (name input) ---
       if (creating) {
         if (key.escape) {
@@ -104,6 +134,10 @@ export function PlaylistsView({
           void playEntries(creds, entries, entrySel);
           return;
         }
+        if (input === "S" && creds && entries.length) {
+          void playEntries(creds, shuffled(entries), 0);
+          return;
+        }
         if ((input === "d" || input === "x") && creds && entries[entrySel]) {
           setNote("Removing…");
           removeTrackFromPlaylist(creds, detailId, entrySel)
@@ -132,16 +166,7 @@ export function PlaylistsView({
         setName("");
       } else if (input === "d" || input === "x") {
         const pl = playlists[sel];
-        if (pl && creds) {
-          setNote(`Deleting "${pl.name}"…`);
-          deletePlaylist(creds, pl.id)
-            .then(() => {
-              setNote("");
-              setSel((s) => Math.max(0, Math.min(s, playlists.length - 2)));
-              refetchLists();
-            })
-            .catch((e) => setNote(`Error: ${e.message}`));
-        }
+        if (pl && creds) setConfirmDelete({ id: pl.id, name: pl.name });
       }
     },
     { isActive },
@@ -155,6 +180,29 @@ export function PlaylistsView({
     );
   }
   if (credsQ.isLoading) return <Text color={VIOLET}>Connecting…</Text>;
+
+  // Delete confirmation
+  if (confirmDelete) {
+    return (
+      <Box flexDirection="column">
+        <Text bold color={BLUE}>
+          Delete playlist
+        </Text>
+        <Box marginTop={1}>
+          <Text>
+            {"Delete "}
+            <Text bold color={VIOLET}>
+              {confirmDelete.name}
+            </Text>
+            {"? This cannot be undone."}
+          </Text>
+        </Box>
+        <Box marginTop={1}>
+          <Text dimColor>y / Enter to delete · n / Esc to cancel</Text>
+        </Box>
+      </Box>
+    );
+  }
 
   // Create prompt
   if (creating) {
@@ -217,7 +265,7 @@ export function PlaylistsView({
         )}
         {note ? <Text color={BLUE}>{note}</Text> : null}
         <Text dimColor>
-          Enter play · d remove · Esc back
+          Enter play · S shuffle · d remove · Esc back
         </Text>
       </Box>
     );

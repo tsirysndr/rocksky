@@ -370,6 +370,45 @@ export class RockskyClient {
     return response.json();
   }
 
+  // Delete a single uploaded track (by its track id).
+  async deleteUploadByTrack(trackId: string) {
+    const response = await fetch(
+      `${ROCKSKY_API_URL}/uploads/by-track/${trackId}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: this.token ? `Bearer ${this.token}` : undefined,
+        },
+      },
+    );
+    if (!response.ok) {
+      throw new Error(`Failed to delete track: ${response.statusText}`);
+    }
+    return response.json().catch(() => ({}));
+  }
+
+  // Delete all uploaded tracks of an album (by albumUri, or albumArtist+name).
+  async deleteUploadAlbum(params: {
+    albumUri?: string;
+    albumArtist?: string;
+    albumName?: string;
+  }) {
+    const qs = new URLSearchParams();
+    if (params.albumUri) qs.set("albumUri", params.albumUri);
+    if (params.albumArtist) qs.set("albumArtist", params.albumArtist);
+    if (params.albumName) qs.set("albumName", params.albumName);
+    const response = await fetch(`${ROCKSKY_API_URL}/uploads/album?${qs}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: this.token ? `Bearer ${this.token}` : undefined,
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to delete album: ${response.statusText}`);
+    }
+    return response.json().catch(() => ({}));
+  }
+
   // Distinct albums the user has uploaded tracks for.
   async getUploadAlbums({ skip = 0, limit = 200 } = {}) {
     const response = await fetch(

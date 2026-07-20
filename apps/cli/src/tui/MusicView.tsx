@@ -16,6 +16,8 @@ import {
 import { enqueueAt, streamAndPlay } from "./playback";
 import { INSERT_MODES, type QueueItem } from "./player";
 import { PlaylistsView } from "./PlaylistsView";
+import { queryClient } from "./queryClient";
+import { shuffled } from "./shuffle";
 import { addToPlaylistAtom, authAtom, playbackMessageAtom } from "./store";
 import { BLUE, TEAL, VIOLET } from "./theme";
 
@@ -74,6 +76,12 @@ export function MusicView({
     label: string;
     sel: number;
   } | null>(null);
+  // A track/album pending delete confirmation.
+  const [confirmDelete, setConfirmDelete] = useState<
+    | { kind: "track"; trackId: string; label: string }
+    | { kind: "album"; albumUri?: string; albumArtist: string; album: string; label: string }
+    | null
+  >(null);
 
   const top = drill[drill.length - 1];
   const drillKey = drill.map((d) => `${d.type}:${d.label}`).join(">");
@@ -151,6 +159,28 @@ export function MusicView({
       fetchNextPage();
     }
   }, [selected, items.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  async function runDelete(target: NonNullable<typeof confirmDelete>) {
+    if (!token) return;
+    try {
+      setMessage("Deleting…");
+      const client = new RockskyClient(token);
+      if (target.kind === "track") {
+        await client.deleteUploadByTrack(target.trackId);
+      } else {
+        await client.deleteUploadAlbum({
+          albumUri: target.albumUri,
+          albumArtist: target.albumUri ? undefined : target.albumArtist,
+          albumName: target.albumUri ? undefined : target.album,
+        });
+      }
+      setMessage("");
+      // Refresh every My Music list so the removed item disappears.
+      queryClient.invalidateQueries({ queryKey: ["library"] });
+    } catch (e: any) {
+      setMessage(`Delete failed: ${e.message}`);
+    }
+  }
 
   async function playFrom(tracks: TrackItem[], index: number) {
     if (tracks.length === 0 || !token) return;
@@ -273,6 +303,18 @@ export function MusicView({
 
   useInput(
     (input, key) => {
+      // Delete confirmation takes over input while open.
+      if (confirmDelete) {
+        if (key.return || input === "y" || input === "Y") {
+          const target = confirmDelete;
+          setConfirmDelete(null);
+          void runDelete(target);
+        } else if (key.escape || input === "n" || input === "N") {
+          setConfirmDelete(null);
+        }
+        return;
+      }
+
       // Insert-mode menu takes over input while open.
       if (insertMenu) {
         if (key.escape) return setInsertMenu(null);
@@ -328,6 +370,10 @@ export function MusicView({
         // Play ONLY the selected track (single-item queue).
         const cur = items[selected];
         if (cur?.kind === "track") playFrom([cur], 0);
+      } else if (input === "S") {
+        // Play the whole visible track list in shuffled order.
+        const tracks = items.filter((i): i is TrackItem => i.kind === "track");
+        if (tracks.length) playFrom(shuffled(tracks), 0);
       } else if (input === "f") {
         // Like / unlike the selected track via Navidrome.
         const cur = items[selected];
@@ -337,6 +383,24 @@ export function MusicView({
         const cur = items[selected];
         if (cur?.kind === "track" && cur.trackId)
           setAddToPlaylist({ trackId: cur.trackId, title: cur.title });
+      } else if (input === "d" || input === "x") {
+        // Delete the selected uploaded track or album (with confirmation).
+        const cur = items[selected];
+        if (cur?.kind === "track" && cur.trackId) {
+          setConfirmDelete({
+            kind: "track",
+            trackId: cur.trackId,
+            label: `${cur.title} — ${cur.artist}`,
+          });
+        } else if (cur?.kind === "album") {
+          setConfirmDelete({
+            kind: "album",
+            albumUri: cur.albumUri,
+            albumArtist: cur.albumArtist,
+            album: cur.album,
+            label: `${cur.album} — ${cur.albumArtist}`,
+          });
+        }
       }
     },
     { isActive },
@@ -372,7 +436,25 @@ export function MusicView({
         ) : null}
       </Box>
 
-      {insertMenu ? (
+      {confirmDelete ? (
+        <Box flexDirection="column">
+          <Text bold color="#FF5F87">
+            {confirmDelete.kind === "album" ? "Delete album" : "Delete track"}
+          </Text>
+          <Box marginTop={1}>
+            <Text>
+              {"Permanently delete "}
+              <Text bold color={VIOLET}>
+                {confirmDelete.label}
+              </Text>
+              {confirmDelete.kind === "album"
+                ? " and all its uploaded tracks? This cannot be undone."
+                : " from your library? This cannot be undone."}
+            </Text>
+          </Box>
+          <Text dimColor>y / Enter to delete · n / Esc to cancel</Text>
+        </Box>
+      ) : insertMenu ? (
         <Box flexDirection="column">
           <Text>
             <Text color={BLUE} bold>
@@ -473,13 +555,13 @@ function RowLine({
     return (
       <>
         {marker}
-        <Cell width={2}>
-          <Text color={TEAL}>{liked ? "♥" : " "}</Text>
-        </Cell>
         <Cell grow>
           <Ell color={active ? BLUE : undefined} bold>
             {row.title}
           </Ell>
+        </Cell>
+        <Cell width={2}>
+          <Text color={TEAL}>{liked ? "♥" : " "}</Text>
         </Cell>
         <Cell width={24}>
           <Ell dimColor>{row.artist}</Ell>

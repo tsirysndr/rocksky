@@ -1,3 +1,4 @@
+import { RockskyClient } from "client";
 import { Box, Text, useInput } from "ink";
 import { useAtom, useAtomValue } from "jotai";
 import React, { useState } from "react";
@@ -25,14 +26,40 @@ export function QueueView({ height }: { height: number }) {
   const [note, setNote] = useState("");
 
   async function saveAsPlaylist(playlistName: string) {
-    const withId = items.map((i) => i.trackId).filter(Boolean) as string[];
-    const songIds = [...new Set(withId)]; // dedupe repeated tracks
-    const skippedNoId = items.length - withId.length;
-    if (songIds.length === 0) {
-      setNote("No exportable tracks in the queue.");
-      return;
-    }
     try {
+      // Resolve every queue item to its Subsonic song id (tracks.xata_id).
+      // Items played this session already carry `trackId`; older ones restored
+      // from a saved session may only have `uploadId`, so map those via the
+      // uploads API.
+      const trackIds = items.map((i) => i.trackId).filter(Boolean) as string[];
+      const unresolvable = items.filter((i) => !i.trackId && !i.uploadId).length;
+      const needResolve = items.filter((i) => !i.trackId && i.uploadId);
+      let missed = 0;
+      if (needResolve.length > 0 && token) {
+        setNote("Resolving tracks…");
+        const wanted = new Set(needResolve.map((i) => i.uploadId));
+        const client = new RockskyClient(token);
+        let offset = 0;
+        while (wanted.size > 0 && offset < 5000) {
+          const rows: any[] = await client.getUploads({ skip: offset, limit: 200 });
+          if (!rows.length) break;
+          for (const r of rows) {
+            if (wanted.has(r.upload.id)) {
+              trackIds.push(r.track.id);
+              wanted.delete(r.upload.id);
+            }
+          }
+          offset += rows.length;
+          if (rows.length < 200) break;
+        }
+        missed = wanted.size;
+      }
+
+      const songIds = [...new Set(trackIds)]; // dedupe repeated tracks
+      if (songIds.length === 0) {
+        setNote("No exportable tracks in the queue.");
+        return;
+      }
       setNote(`Saving "${playlistName}"…`);
       const creds = await getCreds(token);
       if (!creds) {
@@ -41,7 +68,7 @@ export function QueueView({ height }: { height: number }) {
       }
       const { added, failed } = await exportQueue(creds, playlistName, songIds);
       queryClient.invalidateQueries({ queryKey: ["playlists"] });
-      const skipped = failed + skippedNoId;
+      const skipped = failed + missed + unresolvable;
       setNote(
         skipped > 0
           ? `Saved "${playlistName}" — ${added} tracks (${skipped} skipped)`

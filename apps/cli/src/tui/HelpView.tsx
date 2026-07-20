@@ -21,11 +21,13 @@ const GROUPS: { title: string; keys: [string, string][] }[] = [
       ["← →", "tracks/albums/artists/favorites/playlists"],
       ["Enter", "play (queue from here)"],
       ["P", "play only this track"],
+      ["S", "play list shuffled"],
       ["a", "play album"],
       ["N / L", "play next / last"],
       ["i", "insert-mode menu"],
       ["f", "like / unlike"],
       [";", "add to playlist"],
+      ["d", "delete track / album"],
     ],
   },
   {
