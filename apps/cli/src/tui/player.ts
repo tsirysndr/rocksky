@@ -10,6 +10,7 @@ export interface QueueItem {
   duration?: number;
   mimeType?: string;
   uri?: string; // song at:// URI, used for like/dislike
+  trackId?: string; // tracks.xata_id — the Subsonic song id (playlists)
 }
 
 // Native enum values (see rockbox-ffi enums) kept inline so we don't eagerly

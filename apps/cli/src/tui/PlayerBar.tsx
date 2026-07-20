@@ -2,7 +2,7 @@ import { Box, Text } from "ink";
 import { useAtomValue } from "jotai";
 import React from "react";
 import { fmtDuration } from "./format";
-import { likedUrisAtom } from "./likes";
+import { likedIdsAtom } from "./likes";
 import { playerController } from "./player";
 import { playerStatusAtom, scrobbledTitleAtom } from "./store";
 import { BLUE, TEAL, VIOLET } from "./theme";
@@ -12,7 +12,7 @@ const BAR_WIDTH = 30;
 export function PlayerBar() {
   const status = useAtomValue(playerStatusAtom);
   const scrobbledTitle = useAtomValue(scrobbledTitleAtom);
-  const likedUris = useAtomValue(likedUrisAtom);
+  const likedIds = useAtomValue(likedIdsAtom);
 
   if (!status || status.state === "stopped") {
     const restored = playerController.restored;
@@ -73,7 +73,7 @@ export function PlayerBar() {
     >
       <Text>
         <Text color={BLUE}>{icon} </Text>
-        {item?.uri && likedUris.has(item.uri) ? (
+        {item?.trackId && likedIds.has(item.trackId) ? (
           <Text color="#FF3366">{"♥ "}</Text>
         ) : null}
         <Text bold color="white">

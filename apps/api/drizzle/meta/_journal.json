@@ -1,97 +1,104 @@
 {
-  "version": "7",
-  "dialect": "postgresql",
-  "entries": [
-    {
-      "idx": 0,
-      "version": "7",
-      "when": 1766859854227,
-      "tag": "0000_puzzling_lockheed",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1766863536746,
-      "tag": "0001_parched_random",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1767252686993,
-      "tag": "0002_robust_wong",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1778698236366,
-      "tag": "0003_plain_doorman",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1747699200000,
-      "tag": "0005_import_jobs",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1779511801748,
-      "tag": "0005_square_pixie",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1779570501440,
-      "tag": "0006_funny_johnny_blaze",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1779582000000,
-      "tag": "0007_tracks_fts",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "7",
-      "when": 1780000000000,
-      "tag": "0010_mirror_sources",
-      "breakpoints": true
-    },
-    {
-      "idx": 11,
-      "version": "7",
-      "when": 1780300000000,
-      "tag": "0011_tracks_swap_unique_mbid_to_isrc",
-      "breakpoints": true
-    },
-    {
-      "idx": 12,
-      "version": "7",
-      "when": 1780400000000,
-      "tag": "0012_tracks_drop_isrc_unique",
-      "breakpoints": true
-    },
-    {
-      "idx": 13,
-      "version": "7",
-      "when": 1780500000000,
-      "tag": "0013_access_tokens",
-      "breakpoints": true
-    },
-    {
-      "idx": 14,
-      "version": "7",
-      "when": 1780600000000,
-      "tag": "0014_scrobbles_unique_user_track_ts",
-      "breakpoints": true
-    }
-  ]
+	"version": "7",
+	"dialect": "postgresql",
+	"entries": [
+		{
+			"idx": 0,
+			"version": "7",
+			"when": 1766859854227,
+			"tag": "0000_puzzling_lockheed",
+			"breakpoints": true
+		},
+		{
+			"idx": 1,
+			"version": "7",
+			"when": 1766863536746,
+			"tag": "0001_parched_random",
+			"breakpoints": true
+		},
+		{
+			"idx": 2,
+			"version": "7",
+			"when": 1767252686993,
+			"tag": "0002_robust_wong",
+			"breakpoints": true
+		},
+		{
+			"idx": 3,
+			"version": "7",
+			"when": 1778698236366,
+			"tag": "0003_plain_doorman",
+			"breakpoints": true
+		},
+		{
+			"idx": 4,
+			"version": "7",
+			"when": 1747699200000,
+			"tag": "0005_import_jobs",
+			"breakpoints": true
+		},
+		{
+			"idx": 5,
+			"version": "7",
+			"when": 1779511801748,
+			"tag": "0005_square_pixie",
+			"breakpoints": true
+		},
+		{
+			"idx": 6,
+			"version": "7",
+			"when": 1779570501440,
+			"tag": "0006_funny_johnny_blaze",
+			"breakpoints": true
+		},
+		{
+			"idx": 7,
+			"version": "7",
+			"when": 1779582000000,
+			"tag": "0007_tracks_fts",
+			"breakpoints": true
+		},
+		{
+			"idx": 10,
+			"version": "7",
+			"when": 1780000000000,
+			"tag": "0010_mirror_sources",
+			"breakpoints": true
+		},
+		{
+			"idx": 11,
+			"version": "7",
+			"when": 1780300000000,
+			"tag": "0011_tracks_swap_unique_mbid_to_isrc",
+			"breakpoints": true
+		},
+		{
+			"idx": 12,
+			"version": "7",
+			"when": 1780400000000,
+			"tag": "0012_tracks_drop_isrc_unique",
+			"breakpoints": true
+		},
+		{
+			"idx": 13,
+			"version": "7",
+			"when": 1780500000000,
+			"tag": "0013_access_tokens",
+			"breakpoints": true
+		},
+		{
+			"idx": 14,
+			"version": "7",
+			"when": 1780600000000,
+			"tag": "0014_scrobbles_unique_user_track_ts",
+			"breakpoints": true
+		},
+		{
+			"idx": 15,
+			"version": "7",
+			"when": 1780700000000,
+			"tag": "0015_navidrome_playlists",
+			"breakpoints": true
+		}
+	]
 }

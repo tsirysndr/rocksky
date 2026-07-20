@@ -37,6 +37,11 @@ export const queueVersionAtom = atom(0);
 /** Whether the cache-management overlay is open. */
 export const cacheOpenAtom = atom(false);
 
+/** A track pending "add to playlist" (its Subsonic song id + title), or null. */
+export const addToPlaylistAtom = atom<{ trackId: string; title: string } | null>(
+  null,
+);
+
 /** Whether the sound / equalizer overlay is open. */
 export const soundOpenAtom = atom(false);
 

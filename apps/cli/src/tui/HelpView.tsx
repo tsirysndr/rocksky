@@ -18,12 +18,23 @@ const GROUPS: { title: string; keys: [string, string][] }[] = [
   {
     title: "My Music",
     keys: [
-      ["← →", "tracks / albums / artists"],
+      ["← →", "tracks/albums/artists/favorites/playlists"],
       ["Enter", "play (queue from here)"],
       ["P", "play only this track"],
       ["a", "play album"],
       ["N / L", "play next / last"],
       ["i", "insert-mode menu"],
+      ["f", "like / unlike"],
+      [";", "add to playlist"],
+    ],
+  },
+  {
+    title: "Playlists (My Music tab)",
+    keys: [
+      ["Enter", "open / play"],
+      ["c", "create playlist"],
+      ["d", "delete / remove track"],
+      ["Q → s", "save queue as playlist"],
     ],
   },
   {
@@ -51,6 +62,7 @@ const GROUPS: { title: string; keys: [string, string][] }[] = [
       ["e", "equalizer & sound"],
       ["C", "track cache"],
       ["A", "sign in / sign out"],
+      ["R", "refresh scrobbles"],
       ["?", "this help"],
     ],
   },

@@ -1,25 +1,34 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { RockskyClient } from "client";
 import { Box, Text, useInput } from "ink";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import React, { useEffect, useState } from "react";
 import { Cell, Ell } from "./Columns";
 import { fmtDuration } from "./format";
-import { likedUrisAtom, useToggleLike } from "./likes";
+import { likedIdsAtom, useToggleLike } from "./likes";
 import { List } from "./List";
-import { enqueueAt, enqueueLast, enqueueNext, streamAndPlay } from "./playback";
+import {
+  enqueueByTrackIds,
+  getCreds,
+  getStarred,
+  playByTrackIds,
+} from "./navidrome";
+import { enqueueAt, streamAndPlay } from "./playback";
 import { INSERT_MODES, type QueueItem } from "./player";
-import { authAtom, playbackMessageAtom } from "./store";
+import { PlaylistsView } from "./PlaylistsView";
+import { addToPlaylistAtom, authAtom, playbackMessageAtom } from "./store";
 import { BLUE, TEAL, VIOLET } from "./theme";
 
 const PAGE_SIZE = 100;
 
-type Mode = "tracks" | "albums" | "artists";
-const MODES: Mode[] = ["tracks", "albums", "artists"];
+type Mode = "tracks" | "albums" | "artists" | "favorites" | "playlists";
+const MODES: Mode[] = ["tracks", "albums", "artists", "favorites", "playlists"];
 const MODE_LABELS: Record<Mode, string> = {
   tracks: "Tracks",
   albums: "Albums",
   artists: "Artists",
+  favorites: "Favorites",
+  playlists: "Playlists",
 };
 
 interface TrackItem extends QueueItem {
@@ -52,8 +61,9 @@ export function MusicView({
   height?: number;
 }) {
   const token = useAtomValue(authAtom);
-  const likedUris = useAtomValue(likedUrisAtom);
+  const likedIds = useAtomValue(likedIdsAtom);
   const toggleLike = useToggleLike(token);
+  const setAddToPlaylist = useSetAtom(addToPlaylistAtom);
   const [mode, setMode] = useState<Mode>("tracks");
   const [drill, setDrill] = useState<Drill[]>([]);
   const [selected, setSelected] = useState(0);
@@ -68,6 +78,13 @@ export function MusicView({
   const top = drill[drill.length - 1];
   const drillKey = drill.map((d) => `${d.type}:${d.label}`).join(">");
 
+  // Navidrome credentials (for Favorites) — created/cached on first use.
+  const { data: creds } = useQuery({
+    queryKey: ["ndCreds", token],
+    enabled: !!token,
+    queryFn: () => getCreds(token),
+  });
+
   const {
     data,
     isLoading: loading,
@@ -77,11 +94,20 @@ export function MusicView({
     isFetchingNextPage,
   } = useInfiniteQuery<Row[]>({
     queryKey: ["library", token, mode, drillKey],
-    enabled: !!token,
+    enabled:
+      !!token && mode !== "playlists" && (mode !== "favorites" || !!creds),
     initialPageParam: 0,
     queryFn: async ({ pageParam }) => {
       const client = new RockskyClient(token);
       const skip = pageParam as number;
+      // Playlists render their own view; no library rows here.
+      if (mode === "playlists") return [];
+      // Favorites come from the Navidrome starred API (single page).
+      if (mode === "favorites") {
+        if (skip > 0 || !creds) return [];
+        const songs = await getStarred(creds);
+        return songs.map(toFavTrack);
+      }
       // Drill-down lists are bounded → fetched in a single page.
       if (top?.type === "album") {
         if (skip > 0) return [];
@@ -106,7 +132,7 @@ export function MusicView({
       return (await client.getUploads({ skip, limit: PAGE_SIZE })).map(toTrack);
     },
     getNextPageParam: (lastPage, allPages) => {
-      if (drill.length > 0) return undefined; // drill lists are single-page
+      if (drill.length > 0 || mode === "favorites") return undefined; // single page
       if (lastPage.length < PAGE_SIZE) return undefined;
       return allPages.reduce((n, p) => n + p.length, 0);
     },
@@ -130,10 +156,32 @@ export function MusicView({
     if (tracks.length === 0 || !token) return;
     try {
       setMessage("Buffering…");
-      await streamAndPlay(token, tracks, index);
+      // Favorites stream via the Navidrome API (no upload id); everything else
+      // streams through the uploads endpoint.
+      if (mode === "favorites" && creds) {
+        await playByTrackIds(creds, tracks, index);
+      } else {
+        await streamAndPlay(token, tracks, index);
+      }
       setMessage("");
     } catch (e: any) {
       setMessage(`Playback error: ${e.message}`);
+    }
+  }
+
+  // Add tracks to the queue at `position`, routing favorites through Navidrome.
+  async function enqueueSmart(tracks: QueueItem[], position: number) {
+    if (tracks.length === 0) return;
+    try {
+      setMessage("Queuing…");
+      if (mode === "favorites") {
+        if (creds) await enqueueByTrackIds(creds, tracks, position);
+      } else if (token) {
+        await enqueueAt(token, tracks, position);
+      }
+      setMessage("");
+    } catch (e: any) {
+      setMessage(`Error: ${e.message}`);
     }
   }
 
@@ -240,13 +288,16 @@ export function MusicView({
           const menu = insertMenu;
           const chosen = INSERT_MODES[menu.sel];
           setInsertMenu(null);
-          if (token) {
-            setMessage(`${chosen.label}…`);
-            enqueueAt(token, menu.tracks, chosen.pos)
-              .then(() => setMessage(""))
-              .catch((e) => setMessage(`Error: ${e.message}`));
-          }
+          void enqueueSmart(menu.tracks, chosen.pos);
         }
+        return;
+      }
+
+      // Playlists sub-tab: only sub-tab switching is handled here — the embedded
+      // PlaylistsView owns navigation / create / delete.
+      if (mode === "playlists") {
+        if (key.leftArrow) cycleMode(-1);
+        else if (key.rightArrow) cycleMode(1);
         return;
       }
 
@@ -263,12 +314,10 @@ export function MusicView({
         if (cur) withResolved(cur, (tracks) => playFrom(tracks as TrackItem[], 0));
       } else if (input === "N") {
         const cur = items[selected];
-        if (cur && token)
-          withResolved(cur, (tracks) => enqueueNext(token, tracks));
+        if (cur) withResolved(cur, (tracks) => enqueueSmart(tracks, 2));
       } else if (input === "L") {
         const cur = items[selected];
-        if (cur && token)
-          withResolved(cur, (tracks) => enqueueLast(token, tracks));
+        if (cur) withResolved(cur, (tracks) => enqueueSmart(tracks, 3));
       } else if (input === "i") {
         const cur = items[selected];
         if (cur)
@@ -280,9 +329,14 @@ export function MusicView({
         const cur = items[selected];
         if (cur?.kind === "track") playFrom([cur], 0);
       } else if (input === "f") {
-        // Like / unlike the selected track.
+        // Like / unlike the selected track via Navidrome.
         const cur = items[selected];
-        if (cur?.kind === "track") void toggleLike(cur.uri);
+        if (cur?.kind === "track") void toggleLike(cur.trackId);
+      } else if (input === ";") {
+        // Add the selected track to a playlist.
+        const cur = items[selected];
+        if (cur?.kind === "track" && cur.trackId)
+          setAddToPlaylist({ trackId: cur.trackId, title: cur.title });
       }
     },
     { isActive },
@@ -339,6 +393,8 @@ export function MusicView({
           </Box>
           <Text dimColor>{"↑/↓ choose · Enter apply · Esc cancel"}</Text>
         </Box>
+      ) : mode === "playlists" ? (
+        <PlaylistsView isActive={isActive} height={height} />
       ) : loading ? (
         <Text color={VIOLET}>Loading…</Text>
       ) : error ? (
@@ -355,7 +411,11 @@ export function MusicView({
             <RowLine
               row={row}
               active={active}
-              liked={row.kind === "track" && !!row.uri && likedUris.has(row.uri)}
+              liked={
+                row.kind === "track" &&
+                !!row.trackId &&
+                likedIds.has(row.trackId)
+              }
             />
           )}
         />
@@ -477,6 +537,18 @@ const toTrack = (r: any): TrackItem => ({
   duration: r.track.duration,
   mimeType: r.upload.mimeType,
   uri: r.track.uri,
+  trackId: r.track.id,
+});
+
+// A Navidrome starred song → a track row (streamed via Navidrome, no uploadId).
+const toFavTrack = (s: any): TrackItem => ({
+  kind: "track",
+  uploadId: "",
+  trackId: s.id,
+  title: s.title,
+  artist: s.artist,
+  album: s.album,
+  duration: s.duration ? s.duration * 1000 : undefined,
 });
 
 const toAlbum = (r: any): AlbumItem => ({

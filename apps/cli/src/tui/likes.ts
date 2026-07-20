@@ -1,34 +1,34 @@
-import { RockskyClient } from "client";
 import { atom, useAtom } from "jotai";
+import { getCreds, star, unstar } from "./navidrome";
 
-/** Set of song URIs the user has liked (loved). */
-export const likedUrisAtom = atom<Set<string>>(new Set<string>());
+/** Set of liked track ids (Subsonic song id = tracks.xata_id). */
+export const likedIdsAtom = atom<Set<string>>(new Set<string>());
 
 /**
- * Returns a toggle(uri) that optimistically flips the liked state and calls the
- * like/dislike xrpc, reverting on failure.
+ * Returns a toggle(trackId) that optimistically flips the liked state and calls
+ * the Navidrome star / unstar API, reverting on failure.
  */
 export function useToggleLike(token?: string) {
-  const [liked, setLiked] = useAtom(likedUrisAtom);
+  const [liked, setLiked] = useAtom(likedIdsAtom);
 
-  return async function toggle(uri?: string) {
-    if (!uri || !token) return;
-    const wasLiked = liked.has(uri);
+  return async function toggle(trackId?: string) {
+    if (!trackId || !token) return;
+    const wasLiked = liked.has(trackId);
     const optimistic = new Set(liked);
-    if (wasLiked) optimistic.delete(uri);
-    else optimistic.add(uri);
+    if (wasLiked) optimistic.delete(trackId);
+    else optimistic.add(trackId);
     setLiked(optimistic);
 
     try {
-      const client = new RockskyClient(token);
-      if (wasLiked) await client.dislikeSong(uri);
-      else await client.likeSong(uri);
+      const creds = await getCreds(token);
+      if (!creds) throw new Error("no credentials");
+      if (wasLiked) await unstar(creds, trackId);
+      else await star(creds, trackId);
     } catch {
-      // revert
       setLiked((cur) => {
         const reverted = new Set(cur);
-        if (wasLiked) reverted.add(uri);
-        else reverted.delete(uri);
+        if (wasLiked) reverted.add(trackId);
+        else reverted.delete(trackId);
         return reverted;
       });
     }

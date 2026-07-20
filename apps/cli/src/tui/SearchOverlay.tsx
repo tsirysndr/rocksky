@@ -41,6 +41,7 @@ async function searchUploads(token: string, q: string): Promise<SearchRow[]> {
       duration: r.track.duration,
       mimeType: r.upload.mimeType,
       uri: r.track.uri,
+      trackId: r.track.id,
     },
   }));
 }

@@ -1,5 +1,7 @@
 ## Rocksky CLI
 
+[![FlakeHub](https://img.shields.io/endpoint?url=https://flakehub.com/f/tsirysndr/rocksky/badge)](https://flakehub.com/flake/tsirysndr/rocksky)
+
 🎧 The official command-line interface for [Rocksky](https://rocksky.app) — a modern, decentralized music tracking and discovery platform built on [AT Protocol](https://atproto.com).
 
 📚 **[View Full Documentation](https://docs.rocksky.app)**
@@ -7,18 +9,26 @@
 ![Rocksky CLI Preview](https://raw.githubusercontent.com/tsirysndr/rocksky/refs/heads/main/apps/cli/preview.png)
 
 ## Features
-- 🔐 Authenticate with your Rocksky account using OAuth
-- 🎵 View your currently playing track
-- 📈 See your recent scrobbles
-- 📤 Manually scrobble tracks
-- 🛠️ Useful developer tools for integrating Rocksky into your workflows
-- 🤖 MCP Server
+- **Interactive TUI** — a full terminal UI to browse scrobbles, stream your uploaded music, and manage playlists (just run `rocksky`)
+- **Built-in player** — gapless playback with crossfade, a 10-band equalizer, bass/treble, and ReplayGain (powered by the Rockbox engine)
+- **Upload** audio files to your private library with live progress
+- **Playlists** — create, edit, and play playlists via the Navidrome/Subsonic-compatible API
+- **Favorites** — like/unlike tracks and browse your starred songs
+- Queue management, fuzzy search, disk caching, and MPRIS (media keys) on Linux
+- Authenticate with your Rocksky account using OAuth
+- View your currently playing track, recent scrobbles, and stats
+- Manually scrobble tracks
+- Useful developer tools for integrating Rocksky into your workflows
+- MCP Server
 
 ## Table of Contents
 - [Documentation](#documentation)
 - [Installation](#installation)
 - [Run in development](#run-in-development)
 - [Usage](#usage)
+- [Interactive TUI](#interactive-tui)
+  - [Tabs](#tabs)
+  - [Keyboard shortcuts](#keyboard-shortcuts)
 - [Available Commands](#available-commands)
 - [Rocksky MCP Server Tools](#rocksky-mcp-server-tools)
   - [whoami](#whoami)
@@ -65,6 +75,33 @@ bun run dev --help
 ```bash
 rocksky <command> [options]
 ```
+
+## Interactive TUI
+
+Running `rocksky` with no arguments (or `rocksky tui`) launches a full-screen terminal UI.
+
+### Tabs
+
+- **Global Scrobbles** — a live feed of what everyone is playing (auto-refreshes); press `Enter` for scrobble details.
+- **My Music** — browse your uploaded library by **Tracks / Albums / Artists / Favorites**, with drill-down and infinite scroll. Stream tracks with gapless playback + crossfade.
+- **Profile** — your stats (scrobbles, artists, albums, tracks, loved) plus recent scrobbles and top tracks/artists/albums. Open your Bluesky (`b`) or PDSLS (`d`) profile.
+- **Playlists** — create, delete, play, and edit playlists via the Navidrome (Subsonic-compatible) API.
+
+### Keyboard shortcuts
+
+| Key                       | Action                                                                |
+| ------------------------- | --------------------------------------------------------------------- |
+| `1`–`4`, `Tab`            | Switch tabs                                                           |
+| `↑`/`↓`                   | Move selection · `←`/`→` switch My Music sub-tab                      |
+| `Enter`                   | Play / open · `Space` play/pause · `n`/`p` next/prev                  |
+| `+`/`−`                   | Volume · `s` shuffle · `r`/`o`/`0` repeat all/one/off                 |
+| `a` · `N`/`L` · `i` · `P` | Play album · play next/last · insert-mode menu · play only this track |
+| `f` · `;`                 | Like / unlike · add track to a playlist                               |
+| `/` · `Q` · `e`           | Search · queue · equalizer & sound                                    |
+| `C` · `R` · `A` · `?`     | Track cache · refresh feeds · sign in/out · help                      |
+| `q`                       | Quit                                                                  |
+
+Playback preferences (volume, EQ, crossfade, ReplayGain) are saved to `~/.rocksky/settings.toml`, and the current queue/position is restored on restart.
 
 ## Available Commands
 
@@ -120,6 +157,18 @@ rocksky albums [did]
 
 ```bash
 rocksky tracks [did]
+```
+
+`tui` - Launch the interactive terminal UI (also the default when run with no command).
+
+```bash
+rocksky tui
+```
+
+`upload` - Upload audio files (or whole folders) to your private Rocksky library, with live progress.
+
+```bash
+rocksky upload track.flac ./my-album
 ```
 
 `scrobble-api` - Start a local listenbrainz/lastfm compatibility server

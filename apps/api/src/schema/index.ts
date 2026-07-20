@@ -19,6 +19,8 @@ import googleDrivePaths from "./google-drive-paths";
 import googleDrive from "./googledrive";
 import lovedTracks from "./loved-tracks";
 import mirrorSources from "./mirror-sources";
+import navidromePlaylistTracks from "./navidrome-playlist-tracks";
+import navidromePlaylists from "./navidrome-playlists";
 import playlistTracks from "./playlist-tracks";
 import playlists from "./playlists";
 import profileShouts from "./profile-shouts";
@@ -54,6 +56,8 @@ export default {
   shoutReports,
   playlists,
   playlistTracks,
+  navidromePlaylists,
+  navidromePlaylistTracks,
   apiKeys,
   accessTokens,
   webscrobblers,

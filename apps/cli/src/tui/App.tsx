@@ -1,12 +1,14 @@
 import { Box, Text, useApp, useInput } from "ink";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import React, { useEffect, useRef } from "react";
+import { AddToPlaylistView } from "./AddToPlaylistView";
 import { AuthView } from "./AuthView";
 import { CacheView } from "./CacheView";
 import { EqualizerView } from "./EqualizerView";
 import { HelpView } from "./HelpView";
 import { RockskyClient } from "client";
-import { likedUrisAtom, useToggleLike } from "./likes";
+import { likedIdsAtom, useToggleLike } from "./likes";
+import { queryClient } from "./queryClient";
 import { initMpris, type MprisHandle } from "./mpris";
 import { MusicView } from "./MusicView";
 import { PlayerBar } from "./PlayerBar";
@@ -19,6 +21,7 @@ import { ScrobblesView } from "./ScrobblesView";
 import { SearchOverlay } from "./SearchOverlay";
 import { saveSession } from "./session";
 import {
+  addToPlaylistAtom,
   authAtom,
   authOpenAtom,
   helpOpenAtom,
@@ -49,14 +52,21 @@ export function App() {
   const [helpOpen, setHelpOpen] = useAtom(helpOpenAtom);
   const [authOpen, setAuthOpen] = useAtom(authOpenAtom);
   const [cacheOpen, setCacheOpen] = useAtom(cacheOpenAtom);
+  const addTrack = useAtomValue(addToPlaylistAtom);
   const token = useAtomValue(authAtom);
   const setScrobbledTitle = useSetAtom(scrobbledTitleAtom);
   const setQueueVersion = useSetAtom(queueVersionAtom);
-  const setLikedUris = useSetAtom(likedUrisAtom);
+  const setLikedIds = useSetAtom(likedIdsAtom);
   const toggleLike = useToggleLike(token);
 
   const overlayOpen =
-    searchOpen || queueOpen || soundOpen || helpOpen || authOpen || cacheOpen;
+    searchOpen ||
+    queueOpen ||
+    soundOpen ||
+    helpOpen ||
+    authOpen ||
+    cacheOpen ||
+    addTrack != null;
 
   // On Linux, expose the player over MPRIS (D-Bus) for media keys / desktop UI.
   const mprisRef = useRef<MprisHandle | null>(null);
@@ -97,12 +107,12 @@ export function App() {
       .getCurrentUser()
       .then((u: any) => client.getLovedSongs(u.did))
       .then((tracks: any[]) =>
-        setLikedUris(
-          new Set(tracks.map((t) => t.uri).filter(Boolean) as string[]),
+        setLikedIds(
+          new Set(tracks.map((t) => t.id).filter(Boolean) as string[]),
         ),
       )
       .catch(() => {});
-  }, [token, setLikedUris]);
+  }, [token, setLikedIds]);
 
   // Refresh the queue view instantly whenever the queue mutates.
   useEffect(() => {
@@ -171,7 +181,13 @@ export function App() {
 
       // Like the currently-playing track (My Music likes the selected one).
       if (input === "f" && tab !== 1) {
-        void toggleLike(playerController.currentItem()?.uri);
+        void toggleLike(playerController.currentItem()?.trackId);
+      }
+
+      // Force-refresh the live scrobble feeds.
+      if (input === "R") {
+        queryClient.invalidateQueries({ queryKey: ["globalScrobbles"] });
+        queryClient.invalidateQueries({ queryKey: ["actorScrobbles"] });
       }
     },
     { isActive: !overlayOpen },
@@ -224,7 +240,9 @@ export function App() {
           </Box>
         </Box>
 
-        {authOpen ? (
+        {addTrack != null ? (
+          <AddToPlaylistView />
+        ) : authOpen ? (
           <AuthView />
         ) : cacheOpen ? (
           <CacheView />

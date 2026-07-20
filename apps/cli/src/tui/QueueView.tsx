@@ -4,12 +4,15 @@ import React, { useState } from "react";
 import { Cell, Ell } from "./Columns";
 import { fmtDuration } from "./format";
 import { List } from "./List";
+import { exportQueue, getCreds } from "./navidrome";
 import { playerController } from "./player";
-import { playerStatusAtom, queueOpenAtom, queueVersionAtom } from "./store";
+import { queryClient } from "./queryClient";
+import { authAtom, playerStatusAtom, queueOpenAtom, queueVersionAtom } from "./store";
 import { BLUE, TEAL, VIOLET } from "./theme";
 
 export function QueueView({ height }: { height: number }) {
   const [, setOpen] = useAtom(queueOpenAtom);
+  const token = useAtomValue(authAtom);
   const status = useAtomValue(playerStatusAtom);
   useAtomValue(queueVersionAtom); // re-render on queue changes
   const items = playerController.queueItems;
@@ -17,8 +20,51 @@ export function QueueView({ height }: { height: number }) {
   const [selected, setSelected] = useState(
     playingIndex >= 0 ? playingIndex : 0,
   );
+  const [exporting, setExporting] = useState(false);
+  const [name, setName] = useState("");
+  const [note, setNote] = useState("");
+
+  async function saveAsPlaylist(playlistName: string) {
+    const songIds = items.map((i) => i.trackId).filter(Boolean) as string[];
+    if (songIds.length === 0) {
+      setNote("No exportable tracks in the queue.");
+      return;
+    }
+    try {
+      setNote(`Saving "${playlistName}"…`);
+      const creds = await getCreds(token);
+      if (!creds) {
+        setNote("Sign in to save playlists.");
+        return;
+      }
+      await exportQueue(creds, playlistName, songIds);
+      queryClient.invalidateQueries({ queryKey: ["playlists"] });
+      setNote(`Saved "${playlistName}" (${songIds.length} tracks)`);
+    } catch (e: any) {
+      setNote(`Error: ${e.message}`);
+    }
+  }
 
   useInput((input, key) => {
+    if (exporting) {
+      if (key.escape) {
+        setExporting(false);
+        setName("");
+        return;
+      }
+      if (key.return) {
+        const n = name.trim();
+        setExporting(false);
+        setName("");
+        if (n) void saveAsPlaylist(n);
+        return;
+      }
+      if (key.backspace || key.delete) return setName((s) => s.slice(0, -1));
+      if (input && input >= " " && !key.ctrl && !key.meta)
+        setName((s) => s + input);
+      return;
+    }
+
     if (key.escape || input === "Q") return setOpen(false);
     if (key.upArrow || input === "k")
       return setSelected((s) => Math.max(0, s - 1));
@@ -30,11 +76,34 @@ export function QueueView({ height }: { height: number }) {
       setSelected((s) => Math.max(0, Math.min(s, items.length - 2)));
       return;
     }
+    if (input === "s") {
+      setExporting(true);
+      setName("");
+      return;
+    }
     if (key.return) {
       playerController.skipTo(selected);
       setOpen(false);
     }
   });
+
+  if (exporting) {
+    return (
+      <Box flexDirection="column" flexGrow={1}>
+        <Text bold color={BLUE}>
+          {" Save queue as playlist "}
+        </Text>
+        <Box marginTop={1}>
+          <Text color={TEAL}>{"name  "}</Text>
+          <Text>{name}</Text>
+          <Text color={BLUE}>▏</Text>
+        </Box>
+        <Box marginTop={1}>
+          <Text dimColor>{`${items.length} tracks · Enter to save · Esc to cancel`}</Text>
+        </Box>
+      </Box>
+    );
+  }
 
   return (
     <Box flexDirection="column" flexGrow={1}>
@@ -42,7 +111,7 @@ export function QueueView({ height }: { height: number }) {
         <Text bold color={BLUE}>
           {" Current Queue "}
         </Text>
-        <Text dimColor>{`  ${items.length} track${items.length === 1 ? "" : "s"} · Enter jump · d remove · Esc close`}</Text>
+        <Text dimColor>{`  ${items.length} track${items.length === 1 ? "" : "s"} · Enter jump · d remove · s save · Esc close`}</Text>
       </Box>
 
       <Box marginTop={1} flexDirection="column">
@@ -78,6 +147,7 @@ export function QueueView({ height }: { height: number }) {
           }}
         />
       </Box>
+      {note ? <Text color={BLUE}>{note}</Text> : null}
     </Box>
   );
 }

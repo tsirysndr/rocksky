@@ -3,7 +3,7 @@ use sqlx::{Pool, Postgres};
 
 use crate::xata::track::TrackWithUpload;
 
-const TRACK_SELECT: &str = r#"
+pub const TRACK_SELECT: &str = r#"
     SELECT
         tracks.xata_id,
         tracks.title,
