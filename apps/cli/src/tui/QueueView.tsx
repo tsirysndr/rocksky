@@ -25,7 +25,9 @@ export function QueueView({ height }: { height: number }) {
   const [note, setNote] = useState("");
 
   async function saveAsPlaylist(playlistName: string) {
-    const songIds = items.map((i) => i.trackId).filter(Boolean) as string[];
+    const withId = items.map((i) => i.trackId).filter(Boolean) as string[];
+    const songIds = [...new Set(withId)]; // dedupe repeated tracks
+    const skippedNoId = items.length - withId.length;
     if (songIds.length === 0) {
       setNote("No exportable tracks in the queue.");
       return;
@@ -37,9 +39,14 @@ export function QueueView({ height }: { height: number }) {
         setNote("Sign in to save playlists.");
         return;
       }
-      await exportQueue(creds, playlistName, songIds);
+      const { added, failed } = await exportQueue(creds, playlistName, songIds);
       queryClient.invalidateQueries({ queryKey: ["playlists"] });
-      setNote(`Saved "${playlistName}" (${songIds.length} tracks)`);
+      const skipped = failed + skippedNoId;
+      setNote(
+        skipped > 0
+          ? `Saved "${playlistName}" — ${added} tracks (${skipped} skipped)`
+          : `Saved "${playlistName}" (${added} tracks)`,
+      );
     } catch (e: any) {
       setNote(`Error: ${e.message}`);
     }

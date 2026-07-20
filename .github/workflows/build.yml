@@ -129,7 +129,7 @@ jobs:
       - name: Deploy rockskyd binary
         if: needs.changes.outputs.rockskyd == 'true'
         env:
-          ROCKSKYD_SERVICES: rocksky-jetstream rocksky-scrobbler rocksky-spotify rocksky-webscrobbler
+          ROCKSKYD_SERVICES: rocksky-jetstream rocksky-scrobbler rocksky-spotify rocksky-webscrobbler rocksky-navidrome
         run: |
           chmod +x target/release/rockskyd
           scp target/release/rockskyd root@ssh.rocksky.app:/root/github/rocksky/target/release/rockskyd.new

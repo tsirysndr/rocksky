@@ -53,10 +53,13 @@ pub async fn create_playlist(
     name: &str,
     description: Option<&str>,
 ) -> Result<String, Error> {
+    // Generate the id explicitly with gen_random_uuid() rather than relying on
+    // the xata_id() default, which collides under rapid successive inserts
+    // (duplicate primary key violations when bulk-adding tracks).
     let playlist_id: String = sqlx::query_scalar(
         r#"
-        INSERT INTO navidrome_playlists (name, description, user_id)
-        VALUES ($1, $2, $3)
+        INSERT INTO navidrome_playlists (xata_id, name, description, user_id)
+        VALUES (gen_random_uuid()::text, $1, $2, $3)
         RETURNING xata_id
         "#,
     )
@@ -118,11 +121,16 @@ pub async fn add_track(
     playlist_id: &str,
     track_id: &str,
 ) -> Result<(), Error> {
-    sqlx::query(r#"INSERT INTO navidrome_playlist_tracks (playlist_id, track_id) VALUES ($1, $2)"#)
-        .bind(playlist_id)
-        .bind(track_id)
-        .execute(pool)
-        .await?;
+    // gen_random_uuid() for the primary key — the xata_id() default collides
+    // under the rapid inserts of a bulk add.
+    sqlx::query(
+        r#"INSERT INTO navidrome_playlist_tracks (xata_id, playlist_id, track_id)
+           VALUES (gen_random_uuid()::text, $1, $2)"#,
+    )
+    .bind(playlist_id)
+    .bind(track_id)
+    .execute(pool)
+    .await?;
     sqlx::query(r#"UPDATE navidrome_playlists SET xata_updatedat = now() WHERE xata_id = $1"#)
         .bind(playlist_id)
         .execute(pool)

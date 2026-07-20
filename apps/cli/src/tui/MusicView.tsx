@@ -473,9 +473,11 @@ function RowLine({
     return (
       <>
         {marker}
+        <Cell width={2}>
+          <Text color={TEAL}>{liked ? "♥" : " "}</Text>
+        </Cell>
         <Cell grow>
           <Ell color={active ? BLUE : undefined} bold>
-            {liked ? "♥ " : ""}
             {row.title}
           </Ell>
         </Cell>

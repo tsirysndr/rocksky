@@ -52,7 +52,7 @@ export function App() {
   const [helpOpen, setHelpOpen] = useAtom(helpOpenAtom);
   const [authOpen, setAuthOpen] = useAtom(authOpenAtom);
   const [cacheOpen, setCacheOpen] = useAtom(cacheOpenAtom);
-  const addTrack = useAtomValue(addToPlaylistAtom);
+  const [addTrack, setAddTrack] = useAtom(addToPlaylistAtom);
   const token = useAtomValue(authAtom);
   const setScrobbledTitle = useSetAtom(scrobbledTitleAtom);
   const setQueueVersion = useSetAtom(queueVersionAtom);
@@ -182,6 +182,13 @@ export function App() {
       // Like the currently-playing track (My Music likes the selected one).
       if (input === "f" && tab !== 1) {
         void toggleLike(playerController.currentItem()?.trackId);
+      }
+
+      // Add the currently-playing track to a playlist (My Music adds selection).
+      if (input === ";" && tab !== 1) {
+        const cur = playerController.currentItem();
+        if (cur?.trackId)
+          setAddTrack({ trackId: cur.trackId, title: cur.title });
       }
 
       // Force-refresh the live scrobble feeds.

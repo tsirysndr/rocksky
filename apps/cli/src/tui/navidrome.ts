@@ -149,18 +149,29 @@ export function streamUrl(creds: NavidromeCreds, songId: string) {
   return restUrl("stream", creds, { id: songId });
 }
 
-/** Create a playlist named `name` containing the given song ids. */
+/**
+ * Create a playlist named `name` containing the given song ids. Each track is
+ * added independently — one failing track (e.g. a stale id) doesn't abort the
+ * rest. Returns the new id plus how many tracks were actually added.
+ */
 export async function exportQueue(
   creds: NavidromeCreds,
   name: string,
   songIds: string[],
-): Promise<string | undefined> {
+): Promise<{ id: string; added: number; failed: number }> {
   const id = await createPlaylist(creds, name);
   if (!id) throw new Error("Failed to create playlist");
+  let added = 0;
+  let failed = 0;
   for (const songId of songIds) {
-    await addTrackToPlaylist(creds, id, songId);
+    try {
+      await addTrackToPlaylist(creds, id, songId);
+      added++;
+    } catch {
+      failed++;
+    }
   }
-  return id;
+  return { id, added, failed };
 }
 
 /** Play queue items that carry a Subsonic `trackId`, streaming via Navidrome. */

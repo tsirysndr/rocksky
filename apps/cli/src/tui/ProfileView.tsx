@@ -84,12 +84,14 @@ export function ProfileView({
         {profile?.handle ? <Text color={BLUE}>{`  @${profile.handle}`}</Text> : null}
       </Text>
 
-      <Box marginTop={1} flexDirection="row">
-        <Stat label="Scrobbles" value={stats?.scrobbles} />
-        <Stat label="Artists" value={stats?.artists} />
-        <Stat label="Albums" value={stats?.albums} />
-        <Stat label="Tracks" value={stats?.tracks} />
-        <Stat label="Loved" value={stats?.lovedTracks} />
+      <Box marginTop={1}>
+        <Text>
+          <Stat label="scrobbles" value={stats?.scrobbles} />
+          <Stat label="artists" value={stats?.artists} />
+          <Stat label="albums" value={stats?.albums} />
+          <Stat label="tracks" value={stats?.tracks} />
+          <Stat label="loved" value={stats?.lovedTracks} />
+        </Text>
       </Box>
 
       <Box marginTop={1}>
@@ -141,12 +143,12 @@ export function ProfileView({
 
 function Stat({ label, value }: { label: string; value?: number }) {
   return (
-    <Box flexDirection="column" marginRight={3}>
+    <Text>
       <Text bold color={TEAL}>
         {value != null ? value.toLocaleString() : "—"}
       </Text>
-      <Text dimColor>{label}</Text>
-    </Box>
+      <Text dimColor>{` ${label}   `}</Text>
+    </Text>
   );
 }
 

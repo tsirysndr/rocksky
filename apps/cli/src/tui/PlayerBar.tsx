@@ -74,7 +74,7 @@ export function PlayerBar() {
       <Text>
         <Text color={BLUE}>{icon} </Text>
         {item?.trackId && likedIds.has(item.trackId) ? (
-          <Text color="#FF3366">{"♥ "}</Text>
+          <Text color={TEAL}>{"♥ "}</Text>
         ) : null}
         <Text bold color="white">
           {title}

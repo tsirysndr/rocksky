@@ -82,21 +82,19 @@ export async function prefetchTick(token: string | undefined) {
   const item = playerController.queueItems[next];
   if (!item?.uploadId || prefetching.has(next)) return;
 
-  // When crossfade is active the engine pre-buffers the next entry to blend it;
-  // hot-swapping that entry would break the crossfade. So only swap the live
-  // queue entry to the local file when crossfade is off — but still download to
-  // cache either way, so future plays are instant.
-  const canSwap = playerController.sound.crossfade === 0;
-
+  // Swap the next entry to its cached local file so the engine has fully-decoded
+  // audio ready ahead of time — which is what lets crossfade actually mix (an
+  // HTTP stream can't be buffered fast enough to blend). This runs at ~50%,
+  // well before the crossfade point, so it doesn't disturb the current track.
   if (isCached(item)) {
-    if (canSwap) playerController.swapQueueToLocal(next, cachePath(item));
+    playerController.swapQueueToLocal(next, cachePath(item));
     return;
   }
 
   prefetching.add(next);
   try {
     const filePath = await cacheTrack(token, item);
-    if (canSwap) playerController.swapQueueToLocal(next, filePath);
+    playerController.swapQueueToLocal(next, filePath);
   } catch {
     // leave it as a stream URL; it will still play
   } finally {
