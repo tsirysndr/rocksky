@@ -118,13 +118,11 @@ pub async fn add_track(
     playlist_id: &str,
     track_id: &str,
 ) -> Result<(), Error> {
-    sqlx::query(
-        r#"INSERT INTO navidrome_playlist_tracks (playlist_id, track_id) VALUES ($1, $2)"#,
-    )
-    .bind(playlist_id)
-    .bind(track_id)
-    .execute(pool)
-    .await?;
+    sqlx::query(r#"INSERT INTO navidrome_playlist_tracks (playlist_id, track_id) VALUES ($1, $2)"#)
+        .bind(playlist_id)
+        .bind(track_id)
+        .execute(pool)
+        .await?;
     sqlx::query(r#"UPDATE navidrome_playlists SET xata_updatedat = now() WHERE xata_id = $1"#)
         .bind(playlist_id)
         .execute(pool)

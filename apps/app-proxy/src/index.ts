@@ -150,8 +150,16 @@ export default {
 			const proxyUrl = new URL(request.url);
 			proxyUrl.host = 'api.rocksky.app';
 			proxyUrl.hostname = 'api.rocksky.app';
-			const apiRes = await fetch(proxyUrl, request);
-			return withCors(apiRes, origin);
+			// Bypass the Cloudflare edge cache for API-proxied routes (OAuth
+			// callbacks, tokens, dynamic data) so a stale response — e.g. a 404
+			// from before a deploy — is never served.
+			const apiRes = await fetch(new Request(proxyUrl, request), { cf: { cacheTtl: 0, cacheEverything: false } });
+			const res = withCors(apiRes, origin);
+			// Also tell the browser/intermediaries not to store the response.
+			res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+			res.headers.delete('Expires');
+			res.headers.delete('ETag');
+			return res;
 		}
 
 		// check header if from mobile device, android or ios
