@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { RockskyClient } from "client";
 import { Box, Text, useInput } from "ink";
 import { useAtom, useAtomValue } from "jotai";
@@ -11,6 +11,8 @@ import { enqueueAt, enqueueLast, enqueueNext, streamAndPlay } from "./playback";
 import { INSERT_MODES, type QueueItem } from "./player";
 import { authAtom, playbackMessageAtom } from "./store";
 import { BLUE, TEAL, VIOLET } from "./theme";
+
+const PAGE_SIZE = 100;
 
 type Mode = "tracks" | "albums" | "artists";
 const MODES: Mode[] = ["tracks", "albums", "artists"];
@@ -67,15 +69,22 @@ export function MusicView({
   const drillKey = drill.map((d) => `${d.type}:${d.label}`).join(">");
 
   const {
-    data: items = [],
+    data,
     isLoading: loading,
     error,
-  } = useQuery<Row[]>({
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery<Row[]>({
     queryKey: ["library", token, mode, drillKey],
     enabled: !!token,
-    queryFn: async () => {
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
       const client = new RockskyClient(token);
+      const skip = pageParam as number;
+      // Drill-down lists are bounded → fetched in a single page.
       if (top?.type === "album") {
+        if (skip > 0) return [];
         const rows = await client.getUploads({
           limit: 500,
           albumUri: top.albumUri,
@@ -85,19 +94,37 @@ export function MusicView({
         return (rows || []).map(toTrack);
       }
       if (top?.type === "artist") {
+        if (skip > 0) return [];
         const rows = await client.getUploadAlbums({ limit: 500 });
         return (rows || []).map(toAlbum).filter((a) => a.albumArtist === top.name);
       }
-      if (mode === "albums") return (await client.getUploadAlbums({ limit: 500 })).map(toAlbum);
-      if (mode === "artists") return (await client.getUploadArtists({ limit: 500 })).map(toArtist);
-      return (await client.getUploads({ limit: 500 })).map(toTrack);
+      // Top-level lists paginate.
+      if (mode === "albums")
+        return (await client.getUploadAlbums({ skip, limit: PAGE_SIZE })).map(toAlbum);
+      if (mode === "artists")
+        return (await client.getUploadArtists({ skip, limit: PAGE_SIZE })).map(toArtist);
+      return (await client.getUploads({ skip, limit: PAGE_SIZE })).map(toTrack);
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      if (drill.length > 0) return undefined; // drill lists are single-page
+      if (lastPage.length < PAGE_SIZE) return undefined;
+      return allPages.reduce((n, p) => n + p.length, 0);
     },
   });
+
+  const items: Row[] = data ? data.pages.flat() : [];
 
   // Reset the cursor whenever we move to a different screen.
   useEffect(() => {
     setSelected(0);
   }, [mode, drillKey]);
+
+  // Infinite scroll: load the next page as the cursor nears the end.
+  useEffect(() => {
+    if (hasNextPage && !isFetchingNextPage && selected >= items.length - 15) {
+      fetchNextPage();
+    }
+  }, [selected, items.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   async function playFrom(tracks: TrackItem[], index: number) {
     if (tracks.length === 0 || !token) return;
@@ -334,6 +361,7 @@ export function MusicView({
         />
       )}
 
+      {isFetchingNextPage ? <Text dimColor>Loading more…</Text> : null}
       {message ? <Text color={BLUE}>{message}</Text> : null}
     </Box>
   );

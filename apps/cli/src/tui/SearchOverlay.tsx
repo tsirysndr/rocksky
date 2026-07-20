@@ -7,7 +7,7 @@ import { Cell, Ell } from "./Columns";
 import { fmtDuration } from "./format";
 import { List } from "./List";
 import { rockskyLink } from "./links";
-import { streamAndPlay } from "./playback";
+import { enqueueLast, enqueueNext, streamAndPlay } from "./playback";
 import { type QueueItem } from "./player";
 import { authAtom, searchContextAtom, searchOpenAtom } from "./store";
 import { BLUE, TEAL, VIOLET } from "./theme";
@@ -132,6 +132,21 @@ export function SearchOverlay({ height }: { height: number }) {
     close();
   }
 
+  // Queue the selected upload result without leaving the search box. Uses Ctrl
+  // shortcuts so plain typing still edits the query.
+  async function queueSelected(where: "next" | "last") {
+    const row = results[selected];
+    if (!row || row.kind !== "uploadTrack" || !token) return;
+    try {
+      setNote(where === "next" ? "Queued next…" : "Queued…");
+      if (where === "next") await enqueueNext(token, [row.item]);
+      else await enqueueLast(token, [row.item]);
+      setNote(`Added "${row.item.title}" to queue`);
+    } catch (e: any) {
+      setNote(`Error: ${e.message}`);
+    }
+  }
+
   useInput((input, key) => {
     if (key.escape) return close();
     if (key.tab || input === "\t") {
@@ -139,6 +154,11 @@ export function SearchOverlay({ height }: { height: number }) {
       setSelected(0);
       return;
     }
+    // Ctrl shortcuts: queue the selected upload track (works while typing).
+    if (key.ctrl && (input === "n" || input === "N"))
+      return void queueSelected("next");
+    if (key.ctrl && (input === "l" || input === "L"))
+      return void queueSelected("last");
     if (key.return) return void onSelect();
     if (key.upArrow) return setSelected((s) => Math.max(0, s - 1));
     if (key.downArrow)
@@ -157,7 +177,11 @@ export function SearchOverlay({ height }: { height: number }) {
         <Text bold color={context === "uploads" ? BLUE : VIOLET}>
           {context === "uploads" ? " Search my uploads " : " Search Rocksky "}
         </Text>
-        <Text dimColor>{"  Tab switch context · Esc close"}</Text>
+        <Text dimColor>
+          {context === "uploads"
+            ? "  Tab context · Enter play · Ctrl+N next · Ctrl+L last · Esc close"
+            : "  Tab context · Enter open · Esc close"}
+        </Text>
       </Box>
 
       <Box marginTop={1}>
