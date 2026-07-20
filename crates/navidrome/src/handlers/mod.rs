@@ -189,6 +189,23 @@ async fn dispatch(
             };
             playlists::handle_get_playlist(&format, user_id, id, pool).await
         }
+        "createPlaylist" => {
+            let name = params.get("name").map(|s| s.as_str()).unwrap_or("");
+            if name.is_empty() {
+                return response::err(&format, 10, "Missing name parameter");
+            }
+            playlists::handle_create_playlist(&format, user_id, name, pool).await
+        }
+        "updatePlaylist" => {
+            playlists::handle_update_playlist(&format, user_id, &params, pool).await
+        }
+        "deletePlaylist" => {
+            let id = match params.get("id") {
+                Some(id) => id.as_str(),
+                None => return response::err(&format, 10, "Missing id parameter"),
+            };
+            playlists::handle_delete_playlist(&format, user_id, id, pool).await
+        }
         "getSimilarSongs" | "getSimilarSongs2" => response::ok(
             &format,
             serde_json::json!({ "similarSongs": { "song": [] } }),

@@ -4,6 +4,13 @@ import path from "path";
 
 export const ROCKSKY_API_URL = "https://api.rocksky.app";
 
+interface ActorRangeOpts {
+  skip?: number;
+  limit?: number;
+  startDate?: string;
+  endDate?: string;
+}
+
 export class RockskyClient {
   constructor(private readonly token?: string) {
     this.token = token;
@@ -320,6 +327,249 @@ export class RockskyClient {
     }
 
     return response.json();
+  }
+
+  // Paginated list of the authenticated user's uploaded tracks. Each row is
+  // `{ upload, track, ... }`; `upload.id` is what streams via `streamUrl`.
+  // Optionally filtered to a single album (by `albumUri`, or `albumArtist` +
+  // `albumName`).
+  async getUploads({
+    skip = 0,
+    limit = 50,
+    albumUri,
+    albumArtist,
+    albumName,
+    q,
+  }: {
+    skip?: number;
+    limit?: number;
+    albumUri?: string;
+    albumArtist?: string;
+    albumName?: string;
+    q?: string;
+  } = {}) {
+    const params = new URLSearchParams({
+      offset: String(skip),
+      size: String(limit),
+    });
+    if (albumUri) params.set("albumUri", albumUri);
+    if (albumArtist) params.set("albumArtist", albumArtist);
+    if (albumName) params.set("albumName", albumName);
+    if (q) params.set("q", q);
+
+    const response = await fetch(`${ROCKSKY_API_URL}/uploads?${params}`, {
+      method: "GET",
+      headers: {
+        Authorization: this.token ? `Bearer ${this.token}` : undefined,
+        "Content-Type": "application/json",
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch uploads: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  // Distinct albums the user has uploaded tracks for.
+  async getUploadAlbums({ skip = 0, limit = 200 } = {}) {
+    const response = await fetch(
+      `${ROCKSKY_API_URL}/uploads/albums?offset=${skip}&size=${limit}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: this.token ? `Bearer ${this.token}` : undefined,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+    if (!response.ok) {
+      throw new Error(`Failed to fetch upload albums: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  // Distinct album artists the user has uploaded tracks for.
+  async getUploadArtists({ skip = 0, limit = 200 } = {}) {
+    const response = await fetch(
+      `${ROCKSKY_API_URL}/uploads/artists?offset=${skip}&size=${limit}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: this.token ? `Bearer ${this.token}` : undefined,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+    if (!response.ok) {
+      throw new Error(`Failed to fetch upload artists: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  // Short-lived opaque token for use as `?token=` in stream URLs (the native
+  // player can't set an Authorization header). Returns `{ token, expiresIn }`.
+  async getStreamToken(): Promise<{ token: string; expiresIn: number }> {
+    const response = await fetch(`${ROCKSKY_API_URL}/uploads/stream-token`, {
+      method: "GET",
+      headers: {
+        Authorization: this.token ? `Bearer ${this.token}` : undefined,
+        "Content-Type": "application/json",
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to get stream token: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  // A range-capable audio URL the rockbox player can stream directly.
+  streamUrl(uploadId: string, streamToken: string) {
+    return `${ROCKSKY_API_URL}/uploads/${uploadId}/stream?token=${streamToken}`;
+  }
+
+  // Submit a scrobble / now-playing update for the authenticated user. The
+  // server applies its own dedup + abuse rules and publishes the AT record.
+  async scrobbleNowPlaying(track: {
+    title: string;
+    artist: string;
+    album: string;
+    albumArtist: string;
+    duration: number;
+    albumArt?: string;
+    timestamp?: number;
+  }) {
+    const response = await fetch(`${ROCKSKY_API_URL}/now-playing`, {
+      method: "POST",
+      headers: {
+        Authorization: this.token ? `Bearer ${this.token}` : undefined,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(track),
+    });
+    if (!response.ok) {
+      throw new Error(
+        `Failed to scrobble: ${response.status} ${await response.text()}`,
+      );
+    }
+    return response.json();
+  }
+
+  // --- xrpc data endpoints --------------------------------------------------
+  private async xrpc(method: string, params: Record<string, string>) {
+    const qs = new URLSearchParams(params);
+    const response = await fetch(
+      `${ROCKSKY_API_URL}/xrpc/${method}?${qs}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: this.token ? `Bearer ${this.token}` : undefined,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+    if (!response.ok) {
+      throw new Error(`${method} failed: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  // Global recent scrobbles (all users).
+  async getGlobalScrobbles({ skip = 0, limit = 20 } = {}) {
+    const data = await this.xrpc("app.rocksky.scrobble.getScrobbles", {
+      offset: String(skip),
+      limit: String(limit),
+    });
+    return data.scrobbles || [];
+  }
+
+  async getActorScrobbles(did: string, { skip = 0, limit = 20 } = {}) {
+    const data = await this.xrpc("app.rocksky.actor.getActorScrobbles", {
+      did,
+      offset: String(skip),
+      limit: String(limit),
+    });
+    return data.scrobbles || [];
+  }
+
+  async getActorSongs(
+    did: string,
+    { skip = 0, limit = 20, startDate, endDate }: ActorRangeOpts = {},
+  ) {
+    const data = await this.xrpc("app.rocksky.actor.getActorSongs", {
+      did,
+      offset: String(skip),
+      limit: String(limit),
+      ...(startDate ? { startDate } : {}),
+      ...(endDate ? { endDate } : {}),
+    });
+    return data.tracks || [];
+  }
+
+  // User listening stats via xrpc (the REST /users/:did/stats route 500s).
+  async getStats(did: string) {
+    return this.xrpc("app.rocksky.stats.getStats", { did });
+  }
+
+  // --- likes (xrpc) ---------------------------------------------------------
+  private async xrpcPost(method: string, body: unknown) {
+    const response = await fetch(`${ROCKSKY_API_URL}/xrpc/${method}`, {
+      method: "POST",
+      headers: {
+        Authorization: this.token ? `Bearer ${this.token}` : undefined,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      throw new Error(`${method} failed: ${response.status}`);
+    }
+    return response.json().catch(() => ({}));
+  }
+
+  likeSong(uri: string) {
+    return this.xrpcPost("app.rocksky.like.likeSong", { uri });
+  }
+
+  dislikeSong(uri: string) {
+    return this.xrpcPost("app.rocksky.like.dislikeSong", { uri });
+  }
+
+  // The user's loved songs (each track carries its song `uri`).
+  async getLovedSongs(did: string, { skip = 0, limit = 500 } = {}) {
+    const data = await this.xrpc("app.rocksky.actor.getActorLovedSongs", {
+      did,
+      offset: String(skip),
+      limit: String(limit),
+    });
+    return data.tracks || [];
+  }
+
+  async getActorArtists(
+    did: string,
+    { skip = 0, limit = 20, startDate, endDate }: ActorRangeOpts = {},
+  ) {
+    const data = await this.xrpc("app.rocksky.actor.getActorArtists", {
+      did,
+      offset: String(skip),
+      limit: String(limit),
+      ...(startDate ? { startDate } : {}),
+      ...(endDate ? { endDate } : {}),
+    });
+    return data.artists || [];
+  }
+
+  async getActorAlbums(
+    did: string,
+    { skip = 0, limit = 20, startDate, endDate }: ActorRangeOpts = {},
+  ) {
+    const data = await this.xrpc("app.rocksky.actor.getActorAlbums", {
+      did,
+      offset: String(skip),
+      limit: String(limit),
+      ...(startDate ? { startDate } : {}),
+      ...(endDate ? { endDate } : {}),
+    });
+    return data.albums || [];
   }
 
   async matchSong(title: string, artist: string) {

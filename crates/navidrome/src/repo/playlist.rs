@@ -44,6 +44,142 @@ pub async fn get_playlists(
     Ok(rows)
 }
 
+/// Create an empty playlist owned by `user_id`; returns the new playlist id.
+pub async fn create_playlist(
+    pool: &Pool<Postgres>,
+    user_id: &str,
+    name: &str,
+    description: Option<&str>,
+) -> Result<String, Error> {
+    let playlist_id: String = sqlx::query_scalar(
+        r#"
+        INSERT INTO playlists (name, description, created_by)
+        VALUES ($1, $2, $3)
+        RETURNING xata_id
+        "#,
+    )
+    .bind(name)
+    .bind(description)
+    .bind(user_id)
+    .fetch_one(pool)
+    .await?;
+
+    sqlx::query(r#"INSERT INTO user_playlists (user_id, playlist_id) VALUES ($1, $2)"#)
+        .bind(user_id)
+        .bind(&playlist_id)
+        .execute(pool)
+        .await?;
+
+    Ok(playlist_id)
+}
+
+/// True when `user_id` created the playlist (i.e. may mutate/delete it).
+pub async fn is_owner(
+    pool: &Pool<Postgres>,
+    playlist_id: &str,
+    user_id: &str,
+) -> Result<bool, Error> {
+    let owner: Option<String> = sqlx::query_scalar(
+        r#"SELECT xata_id FROM playlists WHERE xata_id = $1 AND created_by = $2"#,
+    )
+    .bind(playlist_id)
+    .bind(user_id)
+    .fetch_optional(pool)
+    .await?;
+    Ok(owner.is_some())
+}
+
+pub async fn update_meta(
+    pool: &Pool<Postgres>,
+    playlist_id: &str,
+    name: Option<&str>,
+    comment: Option<&str>,
+) -> Result<(), Error> {
+    if let Some(n) = name {
+        sqlx::query(r#"UPDATE playlists SET name = $1, xata_updatedat = now() WHERE xata_id = $2"#)
+            .bind(n)
+            .bind(playlist_id)
+            .execute(pool)
+            .await?;
+    }
+    if let Some(c) = comment {
+        sqlx::query(
+            r#"UPDATE playlists SET description = $1, xata_updatedat = now() WHERE xata_id = $2"#,
+        )
+        .bind(c)
+        .bind(playlist_id)
+        .execute(pool)
+        .await?;
+    }
+    Ok(())
+}
+
+/// Append a track (by its xata_id / Subsonic song id) to the playlist.
+pub async fn add_track(
+    pool: &Pool<Postgres>,
+    playlist_id: &str,
+    track_id: &str,
+) -> Result<(), Error> {
+    sqlx::query(r#"INSERT INTO playlist_tracks (playlist_id, track_id) VALUES ($1, $2)"#)
+        .bind(playlist_id)
+        .bind(track_id)
+        .execute(pool)
+        .await?;
+    sqlx::query(r#"UPDATE playlists SET xata_updatedat = now() WHERE xata_id = $1"#)
+        .bind(playlist_id)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
+/// Remove the track at the given 0-based position (ordered as displayed).
+pub async fn remove_track_at(
+    pool: &Pool<Postgres>,
+    playlist_id: &str,
+    index: i64,
+) -> Result<(), Error> {
+    let entry_id: Option<String> = sqlx::query_scalar(
+        r#"
+        SELECT xata_id FROM playlist_tracks
+        WHERE playlist_id = $1
+        ORDER BY xata_createdat ASC
+        OFFSET $2 LIMIT 1
+        "#,
+    )
+    .bind(playlist_id)
+    .bind(index)
+    .fetch_optional(pool)
+    .await?;
+
+    if let Some(id) = entry_id {
+        sqlx::query(r#"DELETE FROM playlist_tracks WHERE xata_id = $1"#)
+            .bind(id)
+            .execute(pool)
+            .await?;
+        sqlx::query(r#"UPDATE playlists SET xata_updatedat = now() WHERE xata_id = $1"#)
+            .bind(playlist_id)
+            .execute(pool)
+            .await?;
+    }
+    Ok(())
+}
+
+pub async fn delete_playlist(pool: &Pool<Postgres>, playlist_id: &str) -> Result<(), Error> {
+    sqlx::query(r#"DELETE FROM playlist_tracks WHERE playlist_id = $1"#)
+        .bind(playlist_id)
+        .execute(pool)
+        .await?;
+    sqlx::query(r#"DELETE FROM user_playlists WHERE playlist_id = $1"#)
+        .bind(playlist_id)
+        .execute(pool)
+        .await?;
+    sqlx::query(r#"DELETE FROM playlists WHERE xata_id = $1"#)
+        .bind(playlist_id)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
 pub async fn get_playlist(
     pool: &Pool<Postgres>,
     playlist_id: &str,
