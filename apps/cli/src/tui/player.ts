@@ -112,6 +112,9 @@ export const INSERT_MODES: { pos: InsertPositionValue; label: string }[] = [
 class PlayerController {
   private player: any = null;
   queueItems: QueueItem[] = [];
+  // Queue indices already swapped to a local file (so prefetch doesn't re-swap
+  // — checked without reading the engine's async queue()). Cleared on re-queue.
+  private swapped = new Set<number>();
 
   // Desired transport preferences, mirrored to settings.toml. Applied to the
   // native player as soon as it is created (see `ensure`).
@@ -237,6 +240,7 @@ class PlayerController {
     player.play();
     if (startIndex > 0) player.skipTo(startIndex);
     this.queueItems = items.slice();
+    this.swapped.clear();
     this.notifyQueue();
   }
 
@@ -271,6 +275,7 @@ class PlayerController {
       player.insert(urls, position, 0);
       this.queueItems.push(...items);
     }
+    this.swapped.clear(); // indices shifted
     this.notifyQueue();
   }
 
@@ -294,10 +299,11 @@ class PlayerController {
     const status = this.player.status();
     if (!status || status.index == null) return;
     if (index <= status.index || index >= status.queue_len) return;
-    const q: string[] = this.player.queue();
-    if (q[index] === filePath) return;
+    // Dedup via our own set rather than reading the engine's async queue().
+    if (this.swapped.has(index)) return;
     this.player.insert([filePath], InsertPosition.INDEX, index);
     this.player.remove(index + 1);
+    this.swapped.add(index);
     this.notifyQueue();
   }
 
@@ -334,6 +340,7 @@ class PlayerController {
     if (!this.player) return;
     this.player.remove(index);
     this.queueItems.splice(index, 1);
+    this.swapped.clear(); // indices shifted
     this.notifyQueue();
   }
 

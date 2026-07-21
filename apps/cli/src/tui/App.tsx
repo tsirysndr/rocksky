@@ -12,7 +12,7 @@ import { queryClient } from "./queryClient";
 import { initMpris, type MprisHandle } from "./mpris";
 import { MusicView } from "./MusicView";
 import { PlayerBar } from "./PlayerBar";
-import { prefetchTick, resumeSession } from "./playback";
+import { prefetchTick, resumeSession, skipNext, skipPrev } from "./playback";
 import { playerController, Repeat } from "./player";
 import { scrobblerTick } from "./scrobbler";
 import { ProfileView } from "./ProfileView";
@@ -168,8 +168,8 @@ export function App() {
           playerController.toggle();
         }
       }
-      if (input === "n") playerController.next();
-      if (input === "p") playerController.previous();
+      if (input === "n" && token) void skipNext(token);
+      if (input === "p" && token) void skipPrev(token);
       if (input === "+" || input === "=") playerController.nudgeVolume(0.05);
       if (input === "-" || input === "_") playerController.nudgeVolume(-0.05);
 

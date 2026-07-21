@@ -1,5 +1,8 @@
+import { getDefaultStore } from "jotai";
 import os from "os";
+import { skipNext, skipPrev } from "./playback";
 import { playerController } from "./player";
+import { authAtom } from "./store";
 
 export interface MprisHandle {
   update(): void;
@@ -48,8 +51,17 @@ export async function initMpris(): Promise<MprisHandle | null> {
   mpris.on("play", () => playerController.play());
   mpris.on("pause", () => playerController.pause());
   mpris.on("stop", () => playerController.pause());
-  mpris.on("next", () => playerController.next());
-  mpris.on("previous", () => playerController.previous());
+  // Route media-key next/previous through the same reliable rebuild path as the
+  // in-app keys, so the target track plays from a local file (no stream buffer).
+  const store = getDefaultStore();
+  mpris.on("next", () => {
+    const token = store.get(authAtom);
+    if (token) void skipNext(token);
+  });
+  mpris.on("previous", () => {
+    const token = store.get(authAtom);
+    if (token) void skipPrev(token);
+  });
   mpris.on("volume", (v: number) => playerController.setVolume(v));
   mpris.on("shuffle", (v: boolean) => {
     if (playerController.isShuffle() !== v) playerController.toggleShuffle();

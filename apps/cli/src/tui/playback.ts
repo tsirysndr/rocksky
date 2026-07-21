@@ -1,11 +1,6 @@
 import { RockskyClient } from "client";
-import { getDefaultStore } from "jotai";
 import { playerController, type QueueItem } from "./player";
-import { playerNoticeAtom } from "./store";
 import { cachePath, cacheTrack, isCached } from "./trackCache";
-
-const store = getDefaultStore();
-const setNotice = (msg: string) => store.set(playerNoticeAtom, msg);
 
 // Resolve each track to a playable entry: the cached local file when present
 // (gapless, instant), otherwise a fresh streaming URL. Only fetches a stream
@@ -69,27 +64,63 @@ export async function enqueueAt(
 export async function resumeSession(token: string) {
   const restored = playerController.restored;
   if (!restored) return;
-  // Always play the resume track from a local file: if it isn't cached yet,
-  // download it first (with a mini-player notice) so resuming is glitch-free.
-  const track = restored.items[restored.index];
-  if (track?.uploadId && !isCached(track)) {
-    setNotice("⏳ caching track…");
-    try {
-      await cacheTrack(token, track);
-    } catch {
-      // couldn't cache — fall back to streaming it
-    }
-    setNotice("");
+  const n = restored.index;
+  // Reorder so the resume track is FIRST and play from index 0 — exactly like
+  // "play shuffled", which streams reliably. Starting at index N instead relies
+  // on skipTo, which races the async stream load and fails on weak links.
+  const items = [...restored.items.slice(n), ...restored.items.slice(0, n)];
+  const uris = await playableUris(token, items);
+  await playerController.playQueue(items, uris, 0);
+  // Only seek when the track is a local file — seeking into a live stream
+  // stalls on a weak connection (the other reason resume hung on the Pi).
+  if (restored.positionMs > 0 && isCached(items[0])) {
+    playerController.seekMs(restored.positionMs);
   }
-  const uris = await playableUris(token, restored.items);
-  await playerController.playQueue(restored.items, uris, restored.index);
-  if (restored.positionMs > 0) playerController.seekMs(restored.positionMs);
   playerController.restored = null;
 }
 
 /** True while a background track download is running (for a buffering hint). */
 export function isPrefetching(): boolean {
   return prefetching.size > 0;
+}
+
+// Jump to a queue index by rebuilding the queue from our own item mirror,
+// REORDERED so the target track is first, and playing from index 0. Starting at
+// index N would use skipTo, which races the async stream load and fails on weak
+// links (the same reason plain resume/jump broke on the Pi). Cached tracks play
+// from disk; the rest stream. Plays immediately — never blocks on a download.
+export async function jumpTo(token: string, targetIndex: number) {
+  const src = playerController.queueItems;
+  if (targetIndex < 0 || targetIndex >= src.length) return;
+  const items = [...src.slice(targetIndex), ...src.slice(0, targetIndex)];
+  const uris = await playableUris(token, items);
+  await playerController.playQueue(items, uris, 0);
+}
+
+/** Skip to the next track (rebuilds with cache, so it plays local, no buffer). */
+export async function skipNext(token: string) {
+  const s = playerController.status();
+  if (!s || s.index == null) return;
+  const len = playerController.queueItems.length;
+  let target = s.index + 1;
+  if (target >= len) {
+    if (s.repeat === "all") target = 0;
+    else return;
+  }
+  await jumpTo(token, target);
+}
+
+/** Skip to the previous track (same reliable rebuild path). */
+export async function skipPrev(token: string) {
+  const s = playerController.status();
+  if (!s || s.index == null) return;
+  const len = playerController.queueItems.length;
+  let target = s.index - 1;
+  if (target < 0) {
+    if (s.repeat === "all") target = len - 1;
+    else return;
+  }
+  await jumpTo(token, target);
 }
 
 // Runs on a short interval. Once the current track passes the halfway mark it

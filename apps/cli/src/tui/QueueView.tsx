@@ -6,6 +6,7 @@ import { Cell, Ell } from "./Columns";
 import { fmtDuration } from "./format";
 import { List } from "./List";
 import { exportQueue, getCreds } from "./navidrome";
+import { jumpTo } from "./playback";
 import { playerController } from "./player";
 import { queryClient } from "./queryClient";
 import { authAtom, playerStatusAtom, queueOpenAtom, queueVersionAtom } from "./store";
@@ -116,7 +117,7 @@ export function QueueView({ height }: { height: number }) {
       return;
     }
     if (key.return) {
-      playerController.skipTo(selected);
+      if (token) void jumpTo(token, selected);
       setOpen(false);
     }
   });
