@@ -75,6 +75,49 @@ pub async fn get_tracks_by_album(
     Ok(rows)
 }
 
+/// Minimal row needed to resolve a stream URL — avoids the `tracks` join and
+/// the two LATERAL album/artist lookups that `TRACK_SELECT` carries.
+#[derive(Debug, sqlx::FromRow, Clone)]
+pub struct StreamTrack {
+    pub r2_key: String,
+    pub storage_provider_id: Option<String>,
+    pub storage_endpoint: Option<String>,
+    pub storage_region: Option<String>,
+    pub storage_bucket: Option<String>,
+    pub storage_access_key: Option<String>,
+    pub storage_secret_key: Option<String>,
+    pub storage_public_url: Option<String>,
+}
+
+pub async fn get_stream_track_by_id(
+    pool: &Pool<Postgres>,
+    track_id: &str,
+    user_id: &str,
+) -> Result<Option<StreamTrack>, Error> {
+    let row: Option<StreamTrack> = sqlx::query_as(
+        r#"
+        SELECT
+            u.r2_key,
+            usp.xata_id     AS storage_provider_id,
+            usp.endpoint    AS storage_endpoint,
+            usp.region      AS storage_region,
+            usp.bucket      AS storage_bucket,
+            usp.access_key  AS storage_access_key,
+            usp.secret_key  AS storage_secret_key,
+            usp.public_url  AS storage_public_url
+        FROM user_uploads u
+        LEFT JOIN user_storage_providers usp ON u.storage_provider_id = usp.xata_id
+        WHERE u.track_id = $1 AND u.user_id = $2
+        "#,
+    )
+    .bind(track_id)
+    .bind(user_id)
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(row)
+}
+
 pub async fn get_track_by_id(
     pool: &Pool<Postgres>,
     track_id: &str,

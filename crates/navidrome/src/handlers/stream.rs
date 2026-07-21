@@ -1,28 +1,13 @@
-use actix_web::{web::Bytes, HttpResponse};
-use futures::{stream, StreamExt};
+use actix_web::HttpResponse;
 use sqlx::{Pool, Postgres};
 use std::{
     collections::HashMap,
     env,
     sync::{Arc, Mutex, OnceLock},
-    time::Duration,
+    time::{Duration, Instant},
 };
 
-use crate::{repo, response, s3, xata::track::TrackWithUpload};
-
-static HTTP_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
-
-fn http_client() -> &'static reqwest::Client {
-    HTTP_CLIENT.get_or_init(|| {
-        reqwest::Client::builder()
-            .pool_max_idle_per_host(32)
-            .pool_idle_timeout(Duration::from_secs(90))
-            .tcp_keepalive(Duration::from_secs(60))
-            .connect_timeout(Duration::from_secs(10))
-            .build()
-            .expect("failed to build HTTP client")
-    })
-}
+use crate::{repo, repo::track::StreamTrack, response, s3};
 
 // Cache decrypted credentials keyed by the encrypted value — safe against
 // credential rotation since the key changes when the stored bytes change.
@@ -30,6 +15,43 @@ static CRED_CACHE: OnceLock<Mutex<HashMap<String, String>>> = OnceLock::new();
 
 fn cred_cache() -> &'static Mutex<HashMap<String, String>> {
     CRED_CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+// Cache resolved stream rows keyed by "user_id:song_id" with a short TTL, so the
+// HEAD+GET pair and repeat plays skip the Postgres lookup. TTL is well under the
+// 3600s presign window, so cached BYO credentials never outlive their grant.
+const TRACK_TTL: Duration = Duration::from_secs(300);
+
+static TRACK_CACHE: OnceLock<Mutex<HashMap<String, (StreamTrack, Instant)>>> = OnceLock::new();
+
+fn track_cache() -> &'static Mutex<HashMap<String, (StreamTrack, Instant)>> {
+    TRACK_CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+async fn get_stream_track_cached(
+    pool: &Arc<Pool<Postgres>>,
+    song_id: &str,
+    user_id: &str,
+) -> Result<Option<StreamTrack>, anyhow::Error> {
+    let cache_key = format!("{user_id}:{song_id}");
+
+    {
+        let cache = track_cache().lock().unwrap();
+        if let Some((track, inserted)) = cache.get(&cache_key) {
+            if inserted.elapsed() < TRACK_TTL {
+                return Ok(Some(track.clone()));
+            }
+        }
+    }
+
+    let track = repo::track::get_stream_track_by_id(pool, song_id, user_id).await?;
+
+    if let Some(ref t) = track {
+        let mut cache = track_cache().lock().unwrap();
+        cache.insert(cache_key, (t.clone(), Instant::now()));
+    }
+
+    Ok(track)
 }
 
 static ENC_KEY: OnceLock<String> = OnceLock::new();
@@ -53,7 +75,7 @@ fn decrypt_cached(encoded: &str) -> Result<String, anyhow::Error> {
     Ok(plaintext)
 }
 
-async fn resolve_url(track: &TrackWithUpload) -> Result<String, anyhow::Error> {
+async fn resolve_url(track: &StreamTrack) -> Result<String, anyhow::Error> {
     if track.storage_provider_id.is_none() {
         return Ok(s3::public_url(&track.r2_key));
     }
@@ -78,75 +100,16 @@ async fn resolve_url(track: &TrackWithUpload) -> Result<String, anyhow::Error> {
     .await
 }
 
-pub async fn handle_head(
+/// Resolve the object URL and hand the client a 302 straight to the CDN /
+/// object store. The bytes never pass through this server, so seeking, range
+/// requests and edge caching are all served by the origin.
+async fn redirect(
     format: &str,
     user_id: &str,
     song_id: &str,
     pool: &Arc<Pool<Postgres>>,
 ) -> HttpResponse {
-    let track = match repo::track::get_track_by_id(pool, song_id, user_id).await {
-        Ok(Some(t)) => t,
-        Ok(None) => return response::err(format, 70, "Song not found"),
-        Err(e) => {
-            tracing::error!("stream HEAD lookup error: {}", e);
-            return response::err(format, 0, "Internal server error");
-        }
-    };
-
-    let url = match resolve_url(&track).await {
-        Ok(u) => u,
-        Err(e) => {
-            tracing::error!("stream HEAD url resolve error: {}", e);
-            return response::err(format, 0, "Failed to resolve audio URL");
-        }
-    };
-
-    let upstream = match http_client().head(&url).send().await {
-        Ok(r) => r,
-        Err(e) => {
-            tracing::error!("stream HEAD fetch error: {}", e);
-            return response::err(format, 0, "Failed to fetch audio metadata");
-        }
-    };
-
-    let status = actix_web::http::StatusCode::from_u16(upstream.status().as_u16())
-        .unwrap_or(actix_web::http::StatusCode::OK);
-
-    let mut builder = HttpResponse::build(status);
-    builder.append_header(("Access-Control-Allow-Origin", "*"));
-    builder.append_header(("Accept-Ranges", "bytes"));
-
-    if let Some(val) = upstream.headers().get("Content-Type") {
-        if let Ok(s) = val.to_str() {
-            builder.append_header(("Content-Type", s));
-        }
-    }
-
-    // SizedStream declares the Content-Length at the body level, which actix
-    // uses when serializing headers. finish() / no_chunking() both lose because
-    // actix overwrites Content-Length from the actual body size (0) afterwards.
-    if let Some(val) = upstream.headers().get("Content-Length") {
-        if let Ok(s) = val.to_str() {
-            if let Ok(len) = s.parse::<u64>() {
-                return builder.body(actix_web::body::SizedStream::new(
-                    len,
-                    stream::empty::<Result<Bytes, std::io::Error>>(),
-                ));
-            }
-        }
-    }
-
-    builder.finish()
-}
-
-pub async fn handle(
-    format: &str,
-    user_id: &str,
-    song_id: &str,
-    pool: &Arc<Pool<Postgres>>,
-    range: Option<&str>,
-) -> HttpResponse {
-    let track = match repo::track::get_track_by_id(pool, song_id, user_id).await {
+    let track = match get_stream_track_cached(pool, song_id, user_id).await {
         Ok(Some(t)) => t,
         Ok(None) => return response::err(format, 70, "Song not found"),
         Err(e) => {
@@ -163,54 +126,28 @@ pub async fn handle(
         }
     };
 
-    let mut req = http_client().get(&url);
-    if let Some(range_val) = range {
-        req = req.header("Range", range_val);
-    }
+    HttpResponse::Found()
+        .append_header(("Location", url))
+        .append_header(("Access-Control-Allow-Origin", "*"))
+        .append_header(("Cache-Control", "no-cache"))
+        .finish()
+}
 
-    let upstream = match req.send().await {
-        Ok(r) => r,
-        Err(e) => {
-            tracing::error!("stream fetch error: {}", e);
-            return response::err(format, 0, "Failed to fetch audio");
-        }
-    };
+pub async fn handle_head(
+    format: &str,
+    user_id: &str,
+    song_id: &str,
+    pool: &Arc<Pool<Postgres>>,
+) -> HttpResponse {
+    redirect(format, user_id, song_id, pool).await
+}
 
-    let status = actix_web::http::StatusCode::from_u16(upstream.status().as_u16())
-        .unwrap_or(actix_web::http::StatusCode::OK);
-
-    let mut builder = HttpResponse::build(status);
-    builder.append_header(("Access-Control-Allow-Origin", "*"));
-    builder.append_header(("Cache-Control", "no-cache"));
-
-    let mut content_length: Option<u64> = None;
-    for header_name in &[
-        "Content-Type",
-        "Content-Length",
-        "Content-Range",
-        "Accept-Ranges",
-    ] {
-        if let Some(val) = upstream.headers().get(*header_name) {
-            if let Ok(s) = val.to_str() {
-                if *header_name == "Content-Length" {
-                    content_length = s.parse().ok();
-                }
-                builder.append_header((*header_name, s));
-            }
-        }
-    }
-
-    let stream = upstream.bytes_stream().map(|chunk| {
-        chunk.map_err(|e| {
-            let io_err: std::io::Error =
-                std::io::Error::new(std::io::ErrorKind::Other, e.to_string());
-            io_err
-        })
-    });
-
-    if let Some(len) = content_length {
-        builder.body(actix_web::body::SizedStream::new(len, stream))
-    } else {
-        builder.streaming(stream)
-    }
+pub async fn handle(
+    format: &str,
+    user_id: &str,
+    song_id: &str,
+    pool: &Arc<Pool<Postgres>>,
+    _range: Option<&str>,
+) -> HttpResponse {
+    redirect(format, user_id, song_id, pool).await
 }
