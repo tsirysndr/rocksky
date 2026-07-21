@@ -35,10 +35,9 @@ import {
 } from "../../lib/audio/rockbox-engine";
 import { ensureStreamToken } from "../../api/uploads";
 import {
+  pauseMediaAnchor,
   playMediaAnchor,
-  registerMediaAnchor,
 } from "../../lib/audio/media-session-anchor";
-import { SILENT_AUDIO_DATA_URI } from "../../lib/audio/silence";
 import EqualizerSheet from "../EqualizerSheet";
 import PlayerScreen from "../PlayerScreen";
 import axios from "axios";
@@ -156,10 +155,9 @@ export default function MiniPlayer() {
   const [eqSheetOpen, setEqSheetOpen] = useState(false);
   const [shuffle, setShuffle] = useAtom(shuffleAtom);
   const [repeatMode, setRepeatMode] = useAtom(repeatModeAtom);
-  // Hidden silent <audio> that plays while the wasm engine plays, so the OS /
-  // lock-screen media controls (Media Session) surface — Web Audio alone
-  // doesn't trigger them.
-  const silentRef = useRef<HTMLAudioElement>(null);
+  // A hidden silent <audio> (owned by media-session-anchor, not React) plays
+  // while the wasm engine plays, so the OS / lock-screen media controls (Media
+  // Session) surface — Web Audio alone doesn't trigger them.
 
   // Keep refs in sync
   useEffect(() => {
@@ -467,11 +465,11 @@ export default function MiniPlayer() {
     // and would be blocked by the autoplay policy. onPlayPause routes to the
     // active backend (wasm engine / Spotify / device).
     set("play", () => {
-      silentRef.current?.play().catch(() => {});
+      playMediaAnchor();
       if (!nowPlayingRef.current?.isPlaying) onPlayPause();
     });
     set("pause", () => {
-      silentRef.current?.pause();
+      pauseMediaAnchor();
       if (nowPlayingRef.current?.isPlaying) onPlayPause();
     });
     set("previoustrack", onPrevious);
@@ -497,19 +495,12 @@ export default function MiniPlayer() {
     navigator.mediaSession.playbackState = nowPlaying?.isPlaying ? "playing" : "paused";
   }, [nowPlaying?.isPlaying]);
 
-  // Register the silent <audio> so in-gesture click handlers (playNow, resume,
-  // media-key play) can start it — see media-session-anchor.
+  // Keep the silent Media Session anchor in sync with engine playback. The
+  // in-gesture start happens in the click handlers (playNow / resume / media
+  // keys); this effect only mirrors state afterwards and pauses when idle.
   useEffect(() => {
-    registerMediaAnchor(silentRef.current);
-    return () => registerMediaAnchor(null);
-  }, []);
-
-  // Keep the silent Media Session anchor playing whenever the engine plays.
-  useEffect(() => {
-    const el = silentRef.current;
-    if (!el) return;
-    if (player === "upload" && nowPlaying?.isPlaying) el.play().catch(() => {});
-    else el.pause();
+    if (player === "upload" && nowPlaying?.isPlaying) playMediaAnchor();
+    else pauseMediaAnchor();
   }, [player, nowPlaying?.isPlaying]);
 
   useEffect(() => {
@@ -543,9 +534,6 @@ export default function MiniPlayer() {
 
   return (
     <>
-      {/* Silent Media Session anchor for the Web Audio (engine) playback path. */}
-      <audio ref={silentRef} src={SILENT_AUDIO_DATA_URI} loop preload="auto" />
-
       <EqualizerSheet open={eqSheetOpen} onClose={() => setEqSheetOpen(false)} />
 
       <PlayerScreen
