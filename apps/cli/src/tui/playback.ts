@@ -3,12 +3,17 @@ import { playerController, type QueueItem } from "./player";
 import { cachePath, cacheTrack, isCached } from "./trackCache";
 
 // Resolve each track to a playable entry: the cached local file when present
-// (gapless, instant), otherwise a fresh streaming URL.
+// (gapless, instant), otherwise a fresh streaming URL. Only fetches a stream
+// token when at least one track isn't cached — so resuming a fully-cached queue
+// needs no network at all and starts instantly.
 async function playableUris(token: string, tracks: QueueItem[]) {
   const client = new RockskyClient(token);
-  const { token: streamToken } = await client.getStreamToken();
+  const needStream = tracks.some((t) => !isCached(t));
+  const streamToken = needStream
+    ? (await client.getStreamToken()).token
+    : "";
   return tracks.map((t) =>
-    isCached(t) ? cachePath(t) : client.streamUrl(t.uploadId, streamToken),
+    isCached(t) ? cachePath(t)! : client.streamUrl(t.uploadId, streamToken),
   );
 }
 
@@ -70,12 +75,10 @@ export function isPrefetching(): boolean {
   return prefetching.size > 0;
 }
 
-// Runs on a short interval. Downloads the NEXT track to disk while the current
-// one plays, then hot-swaps its queue entry to the local file (gapless /
-// crossfade-ready). Crucially, it only downloads while the current track is
-// playing from a LOCAL file — never while a track is streaming — so we never
-// contend for bandwidth with the audio you're hearing. That single rule is what
-// keeps playback smooth on weak connections / SBCs.
+// Runs on a short interval. Once the current track passes the halfway mark it
+// downloads the NEXT track to disk and hot-swaps its queue entry to the local
+// file, so the transition is gapless / crossfade-ready and there's no wait when
+// the track changes.
 const prefetching = new Set<string>();
 
 export async function prefetchTick(token: string | undefined) {
@@ -84,26 +87,25 @@ export async function prefetchTick(token: string | undefined) {
   if (!status || status.index == null || status.queue_len === 0) return;
   if (status.state !== "playing") return;
 
-  // Only pull the next track while the CURRENT one is playing from a local
-  // file — otherwise we'd be downloading while streaming (the double-bandwidth
-  // that causes dropouts). No dependency on duration_ms (which streams report
-  // late, especially on Linux).
-  const current = playerController.queueItems[status.index];
-  if (!current || !isCached(current)) return;
-  if ((status.position_ms || 0) < 2000) return;
+  // Trigger at ~50% of the current track so the next one has time to download
+  // before the transition. Fall back to a time threshold while the stream's
+  // duration isn't known yet (reported late for streams, especially on Linux).
+  const dur = status.duration_ms || 0;
+  const pos = status.position_ms || 0;
+  const halfway = dur > 0 ? pos / dur >= 0.5 : pos >= 20_000;
+  if (!halfway) return;
 
-  let next = status.index + 1;
-  if (next >= status.queue_len) {
-    if (status.repeat === "all") next = 0;
-    else return;
-  }
-  if (next === status.index) return;
+  // Only the genuine next track — never the repeat-all wrap back to index 0
+  // (swapping a track before the current one would disturb playback).
+  const next = status.index + 1;
+  if (next >= status.queue_len) return;
 
   const item = playerController.queueItems[next];
   if (!item?.uploadId) return;
 
   if (isCached(item)) {
-    playerController.swapQueueToLocal(next, cachePath(item));
+    const p = cachePath(item);
+    if (p) playerController.swapQueueToLocal(next, p);
     return;
   }
   if (prefetching.has(item.uploadId)) return;

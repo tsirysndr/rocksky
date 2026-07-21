@@ -448,12 +448,15 @@ export class RockskyClient {
   // Short-lived opaque token for use as `?token=` in stream URLs (the native
   // player can't set an Authorization header). Returns `{ token, expiresIn }`.
   async getStreamToken(): Promise<{ token: string; expiresIn: number }> {
+    // On the critical path for starting playback — time it out so a stalled
+    // request can't hang play/resume forever.
     const response = await fetch(`${ROCKSKY_API_URL}/uploads/stream-token`, {
       method: "GET",
       headers: {
         Authorization: this.token ? `Bearer ${this.token}` : undefined,
         "Content-Type": "application/json",
       },
+      signal: AbortSignal.timeout(10_000),
     });
     if (!response.ok) {
       throw new Error(`Failed to get stream token: ${response.statusText}`);

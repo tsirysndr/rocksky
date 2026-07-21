@@ -59,16 +59,23 @@ export function cacheTrack(token: string, item: QueueItem): Promise<string> {
     fs.mkdirSync(CACHE_DIR, { recursive: true });
     const client = new RockskyClient(token);
     const { token: streamToken } = await client.getStreamToken();
-    const res = await fetch(client.streamUrl(item.uploadId, streamToken));
-    if (!res.ok || !res.body) {
-      throw new Error(`cache download failed: ${res.status}`);
-    }
-    // Stream straight to disk instead of buffering the whole track in RAM —
-    // critical on low-memory devices (e.g. an Orange Pi Zero with 1 GB).
+
+    // Abort the download if it stalls, so a flaky connection can't hang the
+    // prefetch forever (it will simply be retried on a later tick).
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60_000);
     const tmp = `${dest}.part`;
-    const { Readable } = await import("node:stream");
-    const { pipeline } = await import("node:stream/promises");
     try {
+      const res = await fetch(client.streamUrl(item.uploadId, streamToken), {
+        signal: controller.signal,
+      });
+      if (!res.ok || !res.body) {
+        throw new Error(`cache download failed: ${res.status}`);
+      }
+      // Stream straight to disk instead of buffering the whole track in RAM —
+      // critical on low-memory devices (e.g. an Orange Pi Zero with 1 GB).
+      const { Readable } = await import("node:stream");
+      const { pipeline } = await import("node:stream/promises");
       await pipeline(
         Readable.fromWeb(res.body as any),
         fs.createWriteStream(tmp),
@@ -78,6 +85,8 @@ export function cacheTrack(token: string, item: QueueItem): Promise<string> {
         fs.rmSync(tmp, { force: true });
       } catch {}
       throw e;
+    } finally {
+      clearTimeout(timeout);
     }
     fs.renameSync(tmp, dest);
     pruneCache();

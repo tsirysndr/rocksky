@@ -35,6 +35,8 @@ const MODE_LABELS: Record<Mode, string> = {
 
 interface TrackItem extends QueueItem {
   kind: "track";
+  trackNumber?: number;
+  discNumber?: number;
 }
 interface AlbumItem {
   kind: "album";
@@ -125,7 +127,14 @@ export function MusicView({
           albumArtist: top.albumUri ? undefined : top.albumArtist,
           albumName: top.albumUri ? undefined : top.albumName,
         });
-        return (rows || []).map(toTrack);
+        // Order by disc then track number so multi-disc albums group correctly.
+        return (rows || [])
+          .map(toTrack)
+          .sort(
+            (a, b) =>
+              (a.discNumber ?? 1) - (b.discNumber ?? 1) ||
+              (a.trackNumber ?? 0) - (b.trackNumber ?? 0),
+          );
       }
       if (top?.type === "artist") {
         if (skip > 0) return [];
@@ -147,6 +156,16 @@ export function MusicView({
   });
 
   const items: Row[] = data ? data.pages.flat() : [];
+
+  // In an album drill, detect whether it spans multiple discs (to show headers).
+  const inAlbum = top?.type === "album";
+  const multiDisc =
+    inAlbum &&
+    new Set(
+      items
+        .filter((i): i is TrackItem => i.kind === "track")
+        .map((t) => t.discNumber ?? 1),
+    ).size > 1;
 
   // Reset the cursor whenever we move to a different screen.
   useEffect(() => {
@@ -489,17 +508,27 @@ export function MusicView({
           selected={selected}
           height={height}
           emptyText="Nothing here yet."
-          renderItem={(row, _idx, active) => (
-            <RowLine
-              row={row}
-              active={active}
-              liked={
-                row.kind === "track" &&
-                !!row.trackId &&
-                likedIds.has(row.trackId)
-              }
-            />
-          )}
+          renderItem={(row, idx, active) => {
+            const liked =
+              row.kind === "track" &&
+              !!row.trackId &&
+              likedIds.has(row.trackId);
+            if (inAlbum && row.kind === "track") {
+              const prev = items[idx - 1];
+              const disc = row.discNumber ?? 1;
+              const prevDisc =
+                prev?.kind === "track" ? (prev.discNumber ?? 1) : undefined;
+              return (
+                <AlbumTrackRow
+                  row={row}
+                  active={active}
+                  liked={liked}
+                  discHeader={multiDisc && disc !== prevDisc ? disc : null}
+                />
+              );
+            }
+            return <RowLine row={row} active={active} liked={liked} />;
+          }}
         />
       )}
 
@@ -531,6 +560,50 @@ function EmptyLibrary() {
             Uploaded tracks are private — only you can see and stream them.
           </Text>
         </Box>
+      </Box>
+    </Box>
+  );
+}
+
+// Album-drill track row: an optional "Disc N" header, then the track with its
+// number.
+function AlbumTrackRow({
+  row,
+  active,
+  liked,
+  discHeader,
+}: {
+  row: TrackItem;
+  active: boolean;
+  liked?: boolean;
+  discHeader: number | null;
+}) {
+  return (
+    <Box flexDirection="column">
+      {discHeader != null ? (
+        <Text bold color={TEAL}>{`  Disc ${discHeader}`}</Text>
+      ) : null}
+      <Box>
+        <Cell width={2}>
+          <Text color={active ? BLUE : VIOLET}>{active ? "▶" : " "}</Text>
+        </Cell>
+        <Cell width={3} right>
+          <Text dimColor>{row.trackNumber != null ? `${row.trackNumber}` : ""}</Text>
+        </Cell>
+        <Cell grow>
+          <Ell color={active ? BLUE : undefined} bold>
+            {row.title}
+          </Ell>
+        </Cell>
+        <Cell width={2}>
+          <Text color={TEAL}>{liked ? "♥" : " "}</Text>
+        </Cell>
+        <Cell width={20}>
+          <Ell dimColor>{row.artist}</Ell>
+        </Cell>
+        <Cell width={6} right>
+          <Ell color={TEAL}>{row.duration ? fmtDuration(row.duration) : ""}</Ell>
+        </Cell>
       </Box>
     </Box>
   );
@@ -622,6 +695,8 @@ const toTrack = (r: any): TrackItem => ({
   mimeType: r.upload.mimeType,
   uri: r.track.uri,
   trackId: r.track.id,
+  trackNumber: r.track.trackNumber ?? undefined,
+  discNumber: r.track.discNumber ?? undefined,
 });
 
 // A Navidrome starred song → a track row (streamed via Navidrome, no uploadId).

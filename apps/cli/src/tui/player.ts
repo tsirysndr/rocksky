@@ -284,14 +284,20 @@ class PlayerController {
 
   // Swap the queue entry at `index` to a local (cached) file path, for gapless
   // prefetch. The track is unchanged, so `queueItems` needs no update.
+  //
+  // Only swaps tracks AFTER the current one, and inserts the replacement BEFORE
+  // removing the original — so the queue never momentarily shrinks. A shrink can
+  // briefly make the current track the last one, which under repeat-all makes
+  // the engine loop back to the first track prematurely.
   swapQueueToLocal(index: number, filePath: string) {
     if (!this.player) return;
     const status = this.player.status();
-    if (!status || index === status.index || index >= status.queue_len) return;
+    if (!status || status.index == null) return;
+    if (index <= status.index || index >= status.queue_len) return;
     const q: string[] = this.player.queue();
     if (q[index] === filePath) return;
-    this.player.remove(index);
     this.player.insert([filePath], InsertPosition.INDEX, index);
+    this.player.remove(index + 1);
     this.notifyQueue();
   }
 
