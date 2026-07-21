@@ -270,7 +270,7 @@
         "react-hook-form": "^7.54.2",
         "react-router-dom": "^7.6.3",
         "recharts": "^2.15.1",
-        "rockbox-wasm": "^0.1.8",
+        "rockbox-wasm": "^0.1.9",
         "styletron-engine-monolithic": "^1.0.0",
         "styletron-react": "^6.1.1",
         "tailwindcss": "^4.0.0",
@@ -3713,8 +3713,6 @@
     "@rocksky/web-mobile/@types/ramda": ["@types/ramda@0.29.12", "", { "dependencies": { "types-ramda": "^0.29.10" } }, "sha512-sgIEjpJhdQPB52gDF4aphs9nl0xe54CR22DPdWqT8gQHjZYmVApgA0R3/CpMbl0Y8az2TEZrPNL2zy0EvjbkLA=="],
 
     "@rocksky/web-mobile/ramda": ["ramda@0.29.1", "", {}, "sha512-OfxIeWzd4xdUNxlWhgFazxsA/nl3mS4/jGZI5n00uWOoSSFRhC1b6gl6xvmzUamgmqELraWp0J/qqVlXYPDPyA=="],
-
-    "@rocksky/web-mobile/rockbox-wasm": ["rockbox-wasm@0.1.8", "", {}, "sha512-h5kWS3jMttxtCklUN36vGz5BBvYNDZFyDjgOGyAKTs9kz3W/86UsDJ37IZF8NEj9GekbzOjTe09Pc2TD/xhF1A=="],
 
     "@rocksky/web-mobile/typescript": ["typescript@5.6.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-hjcS1mhfuyi4WW8IWtjP7brDrG2cuDZukyrYrSauoXGNgx0S7zceP07adYkJycEr56BOUTNPzbInooiN3fn1qw=="],
 

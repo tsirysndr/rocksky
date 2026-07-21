@@ -67,6 +67,9 @@ function sr(data: unknown) {
   return (data as Record<string, unknown>)["subsonic-response"] as Record<string, unknown>;
 }
 
+const asArray = <T>(v: T | T[] | undefined): T[] =>
+  Array.isArray(v) ? v : v ? [v] : [];
+
 export function getCoverArtUrl(creds: NavidromeCredentials, id: string): string {
   const p = new URLSearchParams({ u: creds.handle, p: creds.apiKey, v: V, c: C, id });
   return `${NAVIDROME_URL}/rest/getCoverArt?${p}`;
@@ -167,9 +170,6 @@ export async function searchNavidrome(
 
 // -- Playlists ---------------------------------------------------------------
 
-const asArray = <T>(v: T | T[] | undefined): T[] =>
-  Array.isArray(v) ? v : v ? [v] : [];
-
 export async function fetchNavidromePlaylists(
   creds: NavidromeCredentials,
 ): Promise<NavidromePlaylist[]> {
@@ -193,7 +193,9 @@ export async function createNavidromePlaylist(
   name: string,
   songIds: string[] = [],
 ): Promise<string | undefined> {
-  const res = await axios.get(restUrl("createPlaylist"), { params: qp(creds, { name }) });
+  const res = await axios.get(restUrl("createPlaylist"), {
+    params: qp(creds, { name }),
+  });
   const id = (sr(res.data)?.playlist as { id?: string } | undefined)?.id;
   if (id && songIds.length) {
     for (const songId of songIds) {
@@ -215,7 +217,9 @@ export async function renameNavidromePlaylist(
   playlistId: string,
   name: string,
 ): Promise<void> {
-  await axios.get(restUrl("updatePlaylist"), { params: qp(creds, { playlistId, name }) });
+  await axios.get(restUrl("updatePlaylist"), {
+    params: qp(creds, { playlistId, name }),
+  });
 }
 
 export async function addTrackToNavidromePlaylist(

@@ -11,6 +11,7 @@ import HomePage from "./pages/home";
 import LibraryPage from "./pages/library";
 import LibraryAlbumPage from "./pages/library/album";
 import LibraryArtistPage from "./pages/library/artist";
+import LibraryPlaylistPage from "./pages/library/playlist";
 import UploadPage from "./pages/library/upload";
 import Me from "./pages/me";
 import ProfilePage from "./pages/profile";
@@ -36,8 +37,9 @@ function App() {
         <Route path="/mirrors" element={<MirrorsPage />} />
         <Route path="/library" element={<LibraryPage />} />
         <Route path="/library/upload" element={<UploadPage />} />
-        <Route path="/library/:did/album/:rkey" element={<LibraryAlbumPage />} />
-        <Route path="/library/:did/artist/:rkey" element={<LibraryArtistPage />} />
+        <Route path="/library/album/:id" element={<LibraryAlbumPage />} />
+        <Route path="/library/artist/:id" element={<LibraryArtistPage />} />
+        <Route path="/library/playlist/:id" element={<LibraryPlaylistPage />} />
         <Route path="/:did/scrobble/:rkey" element={<SongPage />} />
         <Route path="/:did/song/:rkey" element={<SongPage />} />
         <Route path="/:did/artist/:rkey" element={<ArtistPage />} />

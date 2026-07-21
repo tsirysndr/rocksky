@@ -209,6 +209,22 @@ export const deleteUpload = async (uploadId: string): Promise<void> => {
   });
 };
 
+export const deleteUploadByTrackId = async (trackId: string): Promise<void> => {
+  await axios.delete(`${API_URL}/uploads/by-track/${trackId}`, {
+    headers: headers(),
+  });
+};
+
+export const deleteAlbumById = async (
+  albumId: string,
+): Promise<{ deleted: number }> => {
+  const response = await axios.delete<{ status: string; deleted: number }>(
+    `${API_URL}/uploads/by-album/${albumId}`,
+    { headers: headers() },
+  );
+  return { deleted: response.data.deleted };
+};
+
 export const deleteAlbum = async (params: {
   albumUri?: string;
   albumArtist?: string;

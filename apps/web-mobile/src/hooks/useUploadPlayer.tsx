@@ -5,6 +5,7 @@ import { nowPlayingAtom } from "../atoms/nowpaying";
 import { playerAtom } from "../atoms/player";
 import { queueAtom, queueIndexAtom, type QueueTrack } from "../atoms/queue";
 import { ensureStreamToken } from "../api/uploads";
+import { playMediaAnchor } from "../lib/audio/media-session-anchor";
 import {
   ensureRockboxReady,
   registerTracks,
@@ -41,6 +42,10 @@ export function useUploadPlayer() {
   const playNow = useCallback(
     async (tracks: QueueTrack[], startIndex = 0) => {
       if (!tracks.length) return;
+      // Start the silent Media Session anchor synchronously, inside this click's
+      // user gesture — starting it later (from a React effect) is blocked by the
+      // autoplay policy, so the OS media controls would never appear.
+      playMediaAnchor();
       setNowPlaying(toNowPlaying(tracks[startIndex]));
       setPlayer("upload");
       // Boot the engine FIRST, synchronously within the click's user gesture.
