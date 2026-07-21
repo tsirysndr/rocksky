@@ -14,7 +14,10 @@ export interface Settings {
     bass: number;
     treble: number;
     crossfade: number;
-    crossfadeSeconds: number;
+    fadeInDelay: number;
+    fadeInDuration: number;
+    fadeOutDelay: number;
+    fadeOutDuration: number;
     mixMode: number;
     replaygain: number;
     replaygainPreamp: number;
@@ -32,8 +35,11 @@ export const DEFAULT_SETTINGS: Settings = {
     bass: 0,
     treble: 0,
     crossfade: 5, // CrossfadeMode.ALWAYS — on by default
-    crossfadeSeconds: 5,
-    mixMode: 0,
+    fadeInDelay: 0,
+    fadeInDuration: 6,
+    fadeOutDelay: 0,
+    fadeOutDuration: 6,
+    mixMode: 1, // MixMode.MIX — mix the tracks by default
     replaygain: 0,
     replaygainPreamp: 0,
     replaygainClip: true,
@@ -90,7 +96,10 @@ function serialize(s: Settings): string {
     `bass = ${s.equalizer.bass}`,
     `treble = ${s.equalizer.treble}`,
     `crossfade = ${s.equalizer.crossfade}`,
-    `crossfadeSeconds = ${s.equalizer.crossfadeSeconds}`,
+    `fadeInDelay = ${s.equalizer.fadeInDelay}`,
+    `fadeInDuration = ${s.equalizer.fadeInDuration}`,
+    `fadeOutDelay = ${s.equalizer.fadeOutDelay}`,
+    `fadeOutDuration = ${s.equalizer.fadeOutDuration}`,
     `mixMode = ${s.equalizer.mixMode}`,
     `replaygain = ${s.equalizer.replaygain}`,
     `replaygainPreamp = ${s.equalizer.replaygainPreamp}`,
@@ -122,8 +131,11 @@ export function loadSettings(): Settings {
         bass: num(eq.bass, 0),
         treble: num(eq.treble, 0),
         crossfade: num(eq.crossfade, 5),
-        crossfadeSeconds: num(eq.crossfadeSeconds, 5),
-        mixMode: num(eq.mixMode, 0),
+        fadeInDelay: num(eq.fadeInDelay, 0),
+        fadeInDuration: num(eq.fadeInDuration, 6),
+        fadeOutDelay: num(eq.fadeOutDelay, 0),
+        fadeOutDuration: num(eq.fadeOutDuration, 6),
+        mixMode: num(eq.mixMode, 1),
         replaygain: num(eq.replaygain, 0),
         replaygainPreamp: num(eq.replaygainPreamp, 0),
         replaygainClip: bool(eq.replaygainClip, true),

@@ -2,6 +2,7 @@ import { Box, Text, useInput } from "ink";
 import { useAtom } from "jotai";
 import React, { useState } from "react";
 import {
+  CROSSFADE_FIELDS,
   CROSSFADE_MODES,
   EQ_BANDS_HZ,
   EQ_MAX_DB,
@@ -62,6 +63,7 @@ export function EqualizerView() {
   const [, force] = useState(0);
   const rerender = () => force((n) => n + 1);
   const [sel, setSel] = useState(0);
+  const [fadeSel, setFadeSel] = useState(0); // which crossfade field is active
 
   // Columns: 10 EQ bands + Bass + Treble.
   const columns: Column[] = [
@@ -113,13 +115,19 @@ export function EqualizerView() {
       rerender();
       return;
     }
-    if (input === "]") {
-      playerController.setCrossfadeSeconds(sound.crossfadeSeconds + 0.5);
-      rerender();
+    // , / . select which fade value to edit; [ / ] decrease / increase it.
+    if (input === "," || input === "<") {
+      setFadeSel((f) => Math.max(0, f - 1));
       return;
     }
-    if (input === "[") {
-      playerController.setCrossfadeSeconds(sound.crossfadeSeconds - 0.5);
+    if (input === "." || input === ">") {
+      setFadeSel((f) => Math.min(CROSSFADE_FIELDS.length - 1, f + 1));
+      return;
+    }
+    if (input === "]" || input === "[") {
+      const field = CROSSFADE_FIELDS[fadeSel];
+      const cur = playerController.sound[field.key];
+      playerController.setFade(field.key, cur + (input === "]" ? 0.5 : -0.5));
       rerender();
       return;
     }
@@ -153,11 +161,6 @@ export function EqualizerView() {
         <Text color={sound.eqEnabled ? TEAL : VIOLET}>
           {sound.eqEnabled ? "  ● ON" : "  ○ OFF"}
         </Text>
-        <Text dimColor>{`   Crossfade: `}</Text>
-        <Text color={TEAL}>{CROSSFADE_MODES[sound.crossfade]}</Text>
-        {sound.crossfade !== 0 ? (
-          <Text color={TEAL}>{`  ${sound.crossfadeSeconds}s  ${MIX_MODES[sound.mixMode]}`}</Text>
-        ) : null}
         <Text dimColor>{`   ReplayGain: `}</Text>
         <Text color={TEAL}>{REPLAYGAIN_MODES[sound.replaygain]}</Text>
         {sound.replaygain !== 0 ? (
@@ -173,9 +176,40 @@ export function EqualizerView() {
         ))}
       </Box>
 
+      {/* Crossfade editor */}
+      <Box marginTop={1} flexDirection="column">
+        <Text>
+          <Text bold color={BLUE}>
+            {"Crossfade  "}
+          </Text>
+          <Text color={sound.crossfade === 0 ? VIOLET : TEAL}>
+            {CROSSFADE_MODES[sound.crossfade]}
+          </Text>
+          <Text dimColor>{"  ·  mode "}</Text>
+          <Text color={TEAL}>{MIX_MODES[sound.mixMode]}</Text>
+        </Text>
+        <Box>
+          {CROSSFADE_FIELDS.map((f, i) => {
+            const active = i === fadeSel;
+            return (
+              <Box key={f.key} marginRight={2}>
+                <Text
+                  color={active ? BLUE : VIOLET}
+                  bold={active}
+                  inverse={active}
+                >
+                  {` ${f.label} `}
+                </Text>
+                <Text color={TEAL}>{` ${sound[f.key]}s`}</Text>
+              </Box>
+            );
+          })}
+        </Box>
+      </Box>
+
       <Box marginTop={1}>
         <Text dimColor wrap="truncate-end">
-          {"←/→ band · ↑/↓ gain · Space EQ · x crossfade · [ ] secs · m mix · g replaygain · G no-clip · r reset · Esc"}
+          {"←/→ band · ↑/↓ gain · Space EQ · x crossfade · m mix · ,/. fade field · [ ] fade secs · g replaygain · G no-clip · r reset · Esc"}
         </Text>
       </Box>
     </Box>

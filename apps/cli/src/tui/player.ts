@@ -54,13 +54,30 @@ export interface SoundState {
   bands: number[];
   bass: number;
   treble: number;
-  crossfade: number;
-  crossfadeSeconds: number;
+  crossfade: number; // CrossfadeMode: 0 Off … 5 Always
+  // Independent fade envelope (seconds). The fade-out applies to the outgoing
+  // track, the fade-in to the incoming one; delays offset each fade's start.
+  fadeInDelay: number;
+  fadeInDuration: number;
+  fadeOutDelay: number;
+  fadeOutDuration: number;
   mixMode: number; // MixMode: 0 = Crossfade, 1 = Mix
   replaygain: number; // ReplayGainMode: 0 = Off, 1 = Track, 2 = Album
   replaygainPreamp: number; // dB
   replaygainClip: boolean; // prevent clipping
 }
+
+// Field metadata for the crossfade editor (label + SoundState key).
+export const CROSSFADE_FIELDS: {
+  key: "fadeOutDelay" | "fadeOutDuration" | "fadeInDelay" | "fadeInDuration";
+  label: string;
+}[] = [
+  { key: "fadeOutDelay", label: "out delay" },
+  { key: "fadeOutDuration", label: "out dur" },
+  { key: "fadeInDelay", label: "in delay" },
+  { key: "fadeInDuration", label: "in dur" },
+];
+export const CROSSFADE_MAX_SECONDS = 12;
 
 export const MIX_MODES = ["Crossfade", "Mix"];
 export const REPLAYGAIN_MODES = ["Off", "Track", "Album"];
@@ -111,17 +128,19 @@ class PlayerController {
   private async ensure() {
     if (!this.player) {
       const { Player } = await import("rockbox-ffi/node");
-      const ms = Math.round(this.sound.crossfadeSeconds * 1000);
+      const s = this.sound;
       // A large read-ahead buffer is required for crossfade to work (it must
       // hold the tail of the current track and the head of the next at once)
       // and also smooths out streaming gaps between tracks.
       this.player = new Player({
         volume: this._volume,
         bufferSeconds: 64,
-        crossfadeMode: this.sound.crossfade,
-        fadeOutDurationMs: ms,
-        fadeInDurationMs: ms,
-        mixMode: this.sound.mixMode,
+        crossfadeMode: s.crossfade,
+        fadeOutDelayMs: Math.round(s.fadeOutDelay * 1000),
+        fadeOutDurationMs: Math.round(s.fadeOutDuration * 1000),
+        fadeInDelayMs: Math.round(s.fadeInDelay * 1000),
+        fadeInDurationMs: Math.round(s.fadeInDuration * 1000),
+        mixMode: s.mixMode,
       });
       // Apply persisted preferences to the fresh engine.
       this.player.setShuffle(this._shuffle);
@@ -148,7 +167,10 @@ class PlayerController {
       bass: number;
       treble: number;
       crossfade: number;
-      crossfadeSeconds: number;
+      fadeInDelay: number;
+      fadeInDuration: number;
+      fadeOutDelay: number;
+      fadeOutDuration: number;
       mixMode: number;
       replaygain: number;
       replaygainPreamp: number;
@@ -164,7 +186,10 @@ class PlayerController {
       bass: s.equalizer.bass,
       treble: s.equalizer.treble,
       crossfade: s.equalizer.crossfade,
-      crossfadeSeconds: s.equalizer.crossfadeSeconds,
+      fadeInDelay: s.equalizer.fadeInDelay,
+      fadeInDuration: s.equalizer.fadeInDuration,
+      fadeOutDelay: s.equalizer.fadeOutDelay,
+      fadeOutDuration: s.equalizer.fadeOutDuration,
       mixMode: s.equalizer.mixMode,
       replaygain: s.equalizer.replaygain,
       replaygainPreamp: s.equalizer.replaygainPreamp,
@@ -183,7 +208,10 @@ class PlayerController {
         bass: this.sound.bass,
         treble: this.sound.treble,
         crossfade: this.sound.crossfade,
-        crossfadeSeconds: this.sound.crossfadeSeconds,
+        fadeInDelay: this.sound.fadeInDelay,
+        fadeInDuration: this.sound.fadeInDuration,
+        fadeOutDelay: this.sound.fadeOutDelay,
+        fadeOutDuration: this.sound.fadeOutDuration,
         mixMode: this.sound.mixMode,
         replaygain: this.sound.replaygain,
         replaygainPreamp: this.sound.replaygainPreamp,
@@ -358,8 +386,12 @@ class PlayerController {
     bass: 0,
     treble: 0,
     crossfade: 5, // CrossfadeMode.ALWAYS — on by default
-    crossfadeSeconds: 5,
-    mixMode: 0,
+    // Default: mix the two tracks over 6 seconds, no delays.
+    fadeInDelay: 0,
+    fadeInDuration: 6,
+    fadeOutDelay: 0,
+    fadeOutDuration: 6,
+    mixMode: 1, // MixMode.MIX
     replaygain: 0,
     replaygainPreamp: 0,
     replaygainClip: true,
@@ -396,14 +428,14 @@ class PlayerController {
 
   private applyCrossfade() {
     if (!this.player) return;
-    const ms = Math.round(this.sound.crossfadeSeconds * 1000);
+    const s = this.sound;
     this.player.setCrossfade(
-      this.sound.crossfade,
-      0,
-      ms,
-      0,
-      ms,
-      this.sound.mixMode,
+      s.crossfade,
+      Math.round(s.fadeOutDelay * 1000),
+      Math.round(s.fadeOutDuration * 1000),
+      Math.round(s.fadeInDelay * 1000),
+      Math.round(s.fadeInDuration * 1000),
+      s.mixMode,
     );
   }
 
@@ -447,8 +479,12 @@ class PlayerController {
     this.applyCrossfade();
   }
 
-  async setCrossfadeSeconds(seconds: number) {
-    this.sound.crossfadeSeconds = Math.max(0, Math.min(12, seconds));
+  // Set one of the four fade envelope values (seconds), clamped to [0, max].
+  async setFade(
+    key: "fadeInDelay" | "fadeInDuration" | "fadeOutDelay" | "fadeOutDuration",
+    seconds: number,
+  ) {
+    this.sound[key] = Math.max(0, Math.min(CROSSFADE_MAX_SECONDS, seconds));
     this.notify();
     await this.ensure();
     this.applyCrossfade();
