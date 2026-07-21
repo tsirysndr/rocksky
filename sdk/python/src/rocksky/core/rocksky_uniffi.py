@@ -447,7 +447,8 @@ def _uniffi_load_indirect():
         libname = "lib{}.so"
 
     libname = libname.format("rocksky_uniffi")
-    path = os.path.join(os.path.dirname(__file__), libname)
+    from . import _native as _rocksky_native  # rocksky: download-on-load
+    path = _rocksky_native.resolve()
     lib = ctypes.cdll.LoadLibrary(path)
     return lib
 

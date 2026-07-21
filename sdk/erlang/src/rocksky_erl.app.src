@@ -5,7 +5,9 @@
    "follow, shout), and the identity hashes shared across every Rocksky SDK."},
   {vsn, "0.1.0"},
   {registered, []},
-  {applications, [kernel, stdlib]},
+  %% crypto/inets/ssl/public_key back the first-load NIF download + checksum
+  %% verify in rocksky_nif. kernel/stdlib are mandatory.
+  {applications, [kernel, stdlib, crypto, inets, ssl, public_key]},
   {env, []},
   {modules, []},
   {licenses, ["MPL-2.0"]},

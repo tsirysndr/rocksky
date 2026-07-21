@@ -40,6 +40,15 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/rocksky"]
+# Ship the native-core download manifest, but NOT the native lib itself — the
+# wheel is pure-Python and fetches the ~14 MB lib on first import (see
+# rocksky/core/_native.py). A gitignored local dev build must be force-excluded.
+artifacts = ["src/rocksky/core/manifest.json"]
+exclude = [
+    "src/rocksky/core/*.so",
+    "src/rocksky/core/*.dylib",
+    "src/rocksky/core/*.dll",
+]
 
 [dependency-groups]
 dev = [
