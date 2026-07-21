@@ -1,0 +1,128 @@
+# Builds the native binding libraries for every supported platform and uploads
+# them to a per-version GitHub release:
+#   - librocksky_uniffi-<triple>.{so,dylib}  → Python (UniFFI), Ruby, Clojure, Kotlin
+#   - rocksky_nif-<triple>.so                → Erlang/Elixir/Gleam (Rustler NIF)
+#
+# Each artifact is built on a NATIVE runner (the triple only names the output; we
+# don't cross-compile). The Erlang loader / language packages download the
+# matching library from this release on first load (or bundle it), verifying it
+# against a checksum manifest. See sdk/scripts/build-native.sh.
+#
+# Platforms: linux, macOS (x86_64 + arm64), plus best-effort BSDs.
+name: bindings-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (default bindings-v<vsn> from sdk/erlang/src/rocksky_erl.app.src)"
+        type: string
+        required: false
+  push:
+    tags:
+      - "erlang-v*"
+      - "bindings-v*"
+
+permissions:
+  contents: write
+
+env:
+  WORKDIR: sdk/scripts
+
+jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve release tag
+        id: tag
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            TAG="${{ inputs.tag }}"
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
+            TAG="${{ github.ref_name }}"
+          else
+            VER="$(sed -n 's/.*{vsn, *"\([^"]*\)".*/\1/p' sdk/erlang/src/rocksky_erl.app.src | head -1)"
+            [ -n "$VER" ] || { echo "could not read {vsn,...} from rocksky_erl.app.src" >&2; exit 1; }
+            TAG="bindings-v$VER"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Resolved release tag: $TAG"
+      - name: Ensure release exists (auto-creates the tag)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.tag.outputs.tag }}"
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" \
+              --title "Rocksky binding libraries ($TAG)" \
+              --notes "Native binding libraries (librocksky_uniffi + rocksky_nif) for the Rocksky SDKs. Managed by bindings-release.yml." \
+              --target "$GITHUB_SHA" --prerelease
+          fi
+
+  build:
+    needs: prepare-release
+    name: build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: x86_64-apple-darwin
+            os: macos-15-intel
+          - target: x86_64-linux-gnu
+            os: ubuntu-latest
+          - target: aarch64-linux-gnu
+            os: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Build native libs (${{ matrix.target }})
+        run: bash "$WORKDIR/build-native.sh" "${{ matrix.target }}"
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ needs.prepare-release.outputs.tag }}" "$WORKDIR"/dist/* --clobber
+
+  # BSDs — best-effort, built inside a cross-platform-actions VM. No system deps:
+  # the SDK crates use rustls (no OpenSSL). RocksDB (dedup feature) is not built here.
+  build-bsd:
+    needs: prepare-release
+    name: build (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-freebsd
+            os: freebsd
+            version: "14.2"
+            pkg: sudo pkg install -y rust
+          - target: x86_64-unknown-netbsd
+            os: netbsd
+            version: "10.1"
+            pkg: sudo pkgin -y install rust
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build native libs in ${{ matrix.os }} VM
+        uses: cross-platform-actions/action@v1.3.0
+        with:
+          operating_system: ${{ matrix.os }}
+          version: ${{ matrix.version }}
+          architecture: x86_64
+          shell: sh
+          run: |
+            set -eux
+            ${{ matrix.pkg }}
+            export CARGO_PROFILE_RELEASE_DEBUG=0 CARGO_PROFILE_RELEASE_STRIP=symbols
+            bash sdk/scripts/build-native.sh ${{ matrix.target }}
+            ls -l sdk/scripts/dist
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ needs.prepare-release.outputs.tag }}" "$WORKDIR"/dist/* --clobber
