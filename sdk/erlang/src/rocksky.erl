@@ -9,7 +9,7 @@
 -module(rocksky).
 
 -export([profile/1, profile/2, scrobbles/2, scrobbles/4, top_tracks/0,
-         top_tracks/2, global_stats/0, global_stats/1,
+         top_tracks/2, top_tracks/3, global_stats/0, global_stats/1,
          song_hash/3, album_hash/2, artist_hash/1,
          agent_login/3, agent_login/4, agent_scrobble/2, agent_like/3,
          agent_follow/2, agent_shout/4, agent_refresh_session/1]).
@@ -36,7 +36,9 @@ scrobbles(Actor, Limit, Offset, Base) ->
     unwrap(rocksky_nif:scrobbles(b(Base), b(Actor), Limit, Offset)).
 
 top_tracks() -> top_tracks(50, 0).
-top_tracks(Limit, Offset) -> unwrap(rocksky_nif:top_tracks(<<>>, Limit, Offset)).
+top_tracks(Limit, Offset) -> top_tracks(Limit, Offset, <<>>).
+%% `Base` overrides the AppView URL (default when empty).
+top_tracks(Limit, Offset, Base) -> unwrap(rocksky_nif:top_tracks(b(Base), Limit, Offset)).
 
 global_stats() -> global_stats(<<>>).
 global_stats(Base) -> unwrap(rocksky_nif:global_stats(b(Base))).

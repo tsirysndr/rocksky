@@ -14,9 +14,10 @@ pub fn main() {
     "song hash: " <> core.song_hash("Chaser", "Calibro 35", "Jazzploitation"),
   )
   // Envelope calls return Dynamic ({ok, value} | {error, message}); inspect raw.
+  // "" = the default AppView URL; pass any base to override.
   io.println("global stats:")
-  echo core.global_stats()
+  echo core.global_stats("")
   io.println("top tracks:")
-  echo core.top_tracks(5, 0)
+  echo core.top_tracks(5, 0, "")
   Nil
 }

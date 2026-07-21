@@ -85,12 +85,14 @@
                                                   (int limit) (int offset)]))))))
 
 (defn top-tracks
-  "Platform-wide top tracks chart."
-  ([limit] (top-tracks limit 0))
-  ([limit offset]
+  "Platform-wide top tracks chart. `base` overrides the AppView URL."
+  ([limit] (top-tracks limit 0 nil))
+  ([limit offset] (top-tracks limit offset nil))
+  ([limit offset base]
    (with-open [^Arena a (Arena/ofConfined)]
      (unwrap (.invokeWithArguments ^MethodHandle @h-toptracks
-                                   (object-array [(.allocateFrom a "") (int limit) (int offset)]))))))
+                                   (object-array [(.allocateFrom a (str (or base "")))
+                                                  (int limit) (int offset)]))))))
 
 (defn global-stats
   "Platform-wide totals."

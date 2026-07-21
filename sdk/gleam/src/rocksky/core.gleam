@@ -17,36 +17,39 @@ pub type Agent =
 
 // ---- reads (unauthenticated) --------------------------------------------
 
+// Every read takes `base` — the AppView URL — as the last argument; pass "" for
+// the default (https://api.rocksky.app).
+
 @external(erlang, "rocksky", "profile")
 fn profile_ffi(actor: String, base: String) -> Dynamic
 
-/// An actor's detailed profile.
-pub fn profile(actor: String) -> Dynamic {
-  profile_ffi(actor, "")
+/// An actor's detailed profile. `base` overrides the AppView URL ("" = default).
+pub fn profile(actor: String, base: String) -> Dynamic {
+  profile_ffi(actor, base)
 }
 
 @external(erlang, "rocksky", "scrobbles")
 fn scrobbles_ffi(actor: String, limit: Int, offset: Int, base: String) -> Dynamic
 
-/// An actor's scrobbles, newest first.
-pub fn scrobbles(actor: String, limit: Int, offset: Int) -> Dynamic {
-  scrobbles_ffi(actor, limit, offset, "")
+/// An actor's scrobbles, newest first. `base` overrides the AppView URL.
+pub fn scrobbles(actor: String, limit: Int, offset: Int, base: String) -> Dynamic {
+  scrobbles_ffi(actor, limit, offset, base)
 }
 
 @external(erlang, "rocksky", "top_tracks")
-fn top_tracks_ffi(limit: Int, offset: Int) -> Dynamic
+fn top_tracks_ffi(limit: Int, offset: Int, base: String) -> Dynamic
 
-/// Platform-wide top tracks chart.
-pub fn top_tracks(limit: Int, offset: Int) -> Dynamic {
-  top_tracks_ffi(limit, offset)
+/// Platform-wide top tracks chart. `base` overrides the AppView URL.
+pub fn top_tracks(limit: Int, offset: Int, base: String) -> Dynamic {
+  top_tracks_ffi(limit, offset, base)
 }
 
 @external(erlang, "rocksky", "global_stats")
 fn global_stats_ffi(base: String) -> Dynamic
 
-/// Platform-wide totals.
-pub fn global_stats() -> Dynamic {
-  global_stats_ffi("")
+/// Platform-wide totals. `base` overrides the AppView URL ("" = default).
+pub fn global_stats(base: String) -> Dynamic {
+  global_stats_ffi(base)
 }
 
 // ---- identity hashes (pure) ---------------------------------------------

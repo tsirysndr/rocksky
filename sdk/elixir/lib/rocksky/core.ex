@@ -25,8 +25,9 @@ defmodule Rocksky.Core do
   def scrobbles(actor, limit \\ 50, offset \\ 0, base \\ ""),
     do: :rocksky.scrobbles(to_bin(actor), limit, offset, to_bin(base))
 
-  @doc "Platform-wide top tracks chart."
-  def top_tracks(limit \\ 50, offset \\ 0), do: :rocksky.top_tracks(limit, offset)
+  @doc "Platform-wide top tracks chart. `base` overrides the AppView URL."
+  def top_tracks(limit \\ 50, offset \\ 0, base \\ ""),
+    do: :rocksky.top_tracks(limit, offset, to_bin(base))
 
   @doc "Platform-wide totals."
   def global_stats(base \\ ""), do: :rocksky.global_stats(to_bin(base))
