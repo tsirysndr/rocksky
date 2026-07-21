@@ -61,14 +61,40 @@ export async function resumeSession(token: string) {
   playerController.restored = null;
 }
 
-// Precache the next track once the current one passes the halfway point, then
-// hot-swap its queue entry to the local file for gapless playback.
-const prefetching = new Set<number>();
+// Runs on a short interval. Two jobs:
+//  1. Always ensure the *currently playing* track is cached — so every track
+//     you actually listen to ends up on disk, regardless of skips or how the
+//     stream's duration is reported. (cacheTrack de-dupes in-flight downloads.)
+//  2. Once the current track passes the halfway point, prefetch the *next*
+//     track and hot-swap its queue entry to the local file, so the engine has
+//     fully-decoded audio ready to crossfade / play gaplessly.
+const prefetching = new Set<string>();
+
+// Download `item` to cache (if it has an uploadId and isn't already cached or
+// in flight), tracked by uploadId so we don't pile up duplicate requests.
+async function ensureCached(token: string, item: QueueItem | undefined) {
+  if (!item?.uploadId || isCached(item) || prefetching.has(item.uploadId)) {
+    return;
+  }
+  prefetching.add(item.uploadId);
+  try {
+    await cacheTrack(token, item);
+  } catch {
+    // network / disk hiccup — will be retried on a later tick
+  } finally {
+    prefetching.delete(item.uploadId);
+  }
+}
+
 export async function prefetchTick(token: string | undefined) {
   if (!token) return;
   const status = playerController.status();
   if (!status || status.index == null || status.queue_len === 0) return;
 
+  // 1. Cache the current track (ungated).
+  void ensureCached(token, playerController.queueItems[status.index]);
+
+  // 2. Prefetch + swap the next track once we're past the halfway point.
   const duration = status.duration_ms || 0;
   if (duration <= 0 || (status.position_ms || 0) / duration < 0.5) return;
 
@@ -80,24 +106,21 @@ export async function prefetchTick(token: string | undefined) {
   if (next === status.index) return;
 
   const item = playerController.queueItems[next];
-  if (!item?.uploadId || prefetching.has(next)) return;
+  if (!item?.uploadId) return;
 
-  // Swap the next entry to its cached local file so the engine has fully-decoded
-  // audio ready ahead of time — which is what lets crossfade actually mix (an
-  // HTTP stream can't be buffered fast enough to blend). This runs at ~50%,
-  // well before the crossfade point, so it doesn't disturb the current track.
   if (isCached(item)) {
     playerController.swapQueueToLocal(next, cachePath(item));
     return;
   }
+  if (prefetching.has(item.uploadId)) return;
 
-  prefetching.add(next);
+  prefetching.add(item.uploadId);
   try {
     const filePath = await cacheTrack(token, item);
     playerController.swapQueueToLocal(next, filePath);
   } catch {
     // leave it as a stream URL; it will still play
   } finally {
-    prefetching.delete(next);
+    prefetching.delete(item.uploadId);
   }
 }
