@@ -87,12 +87,15 @@ export async function prefetchTick(token: string | undefined) {
   if (!status || status.index == null || status.queue_len === 0) return;
   if (status.state !== "playing") return;
 
-  // Trigger at ~50% of the current track so the next one has time to download
-  // before the transition. Fall back to a time threshold while the stream's
-  // duration isn't known yet (reported late for streams, especially on Linux).
-  const dur = status.duration_ms || 0;
+  // Start downloading the next track once the current one reaches its halfway
+  // point. Use the track's metadata duration (known immediately from the API)
+  // rather than the engine's duration_ms, which streams report late or as 0 —
+  // that's what made the 50% trigger unreliable on auto-advance. A short time
+  // fallback covers the rare case where no duration is known at all.
+  const current = playerController.queueItems[status.index];
+  const dur = status.duration_ms || current?.duration || 0;
   const pos = status.position_ms || 0;
-  const halfway = dur > 0 ? pos / dur >= 0.5 : pos >= 20_000;
+  const halfway = dur > 0 ? pos >= dur / 2 : pos >= 15_000;
   if (!halfway) return;
 
   // Only the genuine next track — never the repeat-all wrap back to index 0
