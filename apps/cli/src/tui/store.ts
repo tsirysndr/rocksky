@@ -21,6 +21,9 @@ export const playbackMessageAtom = atom("");
 /** Title of the most recently scrobbled track (drives the ♥ indicator). */
 export const scrobbledTitleAtom = atom("");
 
+/** Transient notice shown in the mini-player (e.g. "Caching track…" on resume). */
+export const playerNoticeAtom = atom("");
+
 /** Whether the `/` search overlay is open. */
 export const searchOpenAtom = atom(false);
 

@@ -5,7 +5,7 @@ import { fmtDuration } from "./format";
 import { likedIdsAtom } from "./likes";
 import { isPrefetching } from "./playback";
 import { playerController } from "./player";
-import { playerStatusAtom, scrobbledTitleAtom } from "./store";
+import { playerNoticeAtom, playerStatusAtom, scrobbledTitleAtom } from "./store";
 import { BLUE, TEAL, VIOLET } from "./theme";
 
 const BAR_WIDTH = 30;
@@ -15,6 +15,7 @@ export function PlayerBar() {
   const status = useAtomValue(playerStatusAtom);
   const scrobbledTitle = useAtomValue(scrobbledTitleAtom);
   const likedIds = useAtomValue(likedIdsAtom);
+  const notice = useAtomValue(playerNoticeAtom);
   // Tracks position between polls to detect a stall (= buffering).
   const progress = useRef({ index: -1, pos: -1, stalls: 0 });
 
@@ -25,10 +26,14 @@ export function PlayerBar() {
       return (
         <Box borderStyle="round" borderColor={BLUE} paddingX={1}>
           <Text>
-            <Text color={BLUE}>⏸ Resume </Text>
+            <Text color={notice ? AMBER : BLUE}>{notice ? "⏳ Resume " : "⏸ Resume "}</Text>
             <Text bold>{track?.title ?? "last session"}</Text>
             {track?.artist ? <Text dimColor>{` — ${track.artist}`}</Text> : null}
-            <Text dimColor>{`  at ${fmtDuration(restored.positionMs)} — press Space`}</Text>
+            {notice ? (
+              <Text color={AMBER}>{`   ${notice}`}</Text>
+            ) : (
+              <Text dimColor>{`  at ${fmtDuration(restored.positionMs)} — press Space`}</Text>
+            )}
           </Text>
         </Box>
       );

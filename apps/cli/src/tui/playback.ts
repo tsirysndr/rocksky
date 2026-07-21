@@ -1,6 +1,11 @@
 import { RockskyClient } from "client";
+import { getDefaultStore } from "jotai";
 import { playerController, type QueueItem } from "./player";
+import { playerNoticeAtom } from "./store";
 import { cachePath, cacheTrack, isCached } from "./trackCache";
+
+const store = getDefaultStore();
+const setNotice = (msg: string) => store.set(playerNoticeAtom, msg);
 
 // Resolve each track to a playable entry: the cached local file when present
 // (gapless, instant), otherwise a fresh streaming URL. Only fetches a stream
@@ -64,6 +69,18 @@ export async function enqueueAt(
 export async function resumeSession(token: string) {
   const restored = playerController.restored;
   if (!restored) return;
+  // Always play the resume track from a local file: if it isn't cached yet,
+  // download it first (with a mini-player notice) so resuming is glitch-free.
+  const track = restored.items[restored.index];
+  if (track?.uploadId && !isCached(track)) {
+    setNotice("⏳ caching track…");
+    try {
+      await cacheTrack(token, track);
+    } catch {
+      // couldn't cache — fall back to streaming it
+    }
+    setNotice("");
+  }
   const uris = await playableUris(token, restored.items);
   await playerController.playQueue(restored.items, uris, restored.index);
   if (restored.positionMs > 0) playerController.seekMs(restored.positionMs);
