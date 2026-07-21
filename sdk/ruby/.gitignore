@@ -7,3 +7,8 @@ Gemfile.lock
 *.gem
 .byebug_history
 .rspec_status
+
+# native core lib (built by build-core.sh)
+lib/rocksky/core/*.dylib
+lib/rocksky/core/*.so
+lib/rocksky/core/*.dll
