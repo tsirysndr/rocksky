@@ -5,3 +5,6 @@ build/
 .kotlin/
 local.properties
 out/
+
+# native core lib (built by build-core.sh)
+core/src/main/resources/**/librocksky_uniffi.*

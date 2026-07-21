@@ -3057,11 +3057,11 @@ class RockskyError:  # type: ignore
     """
 
     class Generic(_UniffiTempRockskyError):
-        def __init__(self, message):
+        def __init__(self, reason):
             super().__init__(", ".join([
-                "message={!r}".format(message),
+                "reason={!r}".format(reason),
             ]))
-            self.message = message
+            self.reason = reason
 
         def __repr__(self):
             return "RockskyError.Generic({})".format(str(self))
@@ -3084,14 +3084,14 @@ class _UniffiConverterTypeRockskyError(_UniffiConverterRustBuffer):
     @staticmethod
     def check_lower(value):
         if isinstance(value, RockskyError.Generic):
-            _UniffiConverterString.check_lower(value.message)
+            _UniffiConverterString.check_lower(value.reason)
             return
 
     @staticmethod
     def write(value, buf):
         if isinstance(value, RockskyError.Generic):
             buf.write_i32(1)
-            _UniffiConverterString.write(value.message, buf)
+            _UniffiConverterString.write(value.reason, buf)
 
 
 

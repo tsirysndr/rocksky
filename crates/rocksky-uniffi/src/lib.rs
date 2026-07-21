@@ -27,15 +27,18 @@ pub(crate) static RT: Lazy<tokio::runtime::Runtime> = Lazy::new(|| {
 
 /// Errors surfaced to host languages (one flat message; the SDK's typed errors
 /// are stringified at the boundary).
+// `reason` (not `message`): UniFFI's Kotlin backend maps error variants to
+// exception subclasses, where a `message` field would clash with
+// `kotlin.Throwable.message`.
 #[derive(Debug, thiserror::Error, uniffi::Error)]
 pub enum RockskyError {
-    #[error("{message}")]
-    Generic { message: String },
+    #[error("{reason}")]
+    Generic { reason: String },
 }
 
 fn err<E: std::fmt::Display>(e: E) -> RockskyError {
     RockskyError::Generic {
-        message: e.to_string(),
+        reason: e.to_string(),
     }
 }
 

@@ -1,2 +1,14 @@
+# Toolchain for the Kotlin SDK. The `:core` module binds the native Rocksky core
+# (librocksky_uniffi) through UniFFI's JNA-loaded Kotlin bindings; pin Kotlin to
+# match the Gradle plugin and a JDK matching the jvmToolchain, so this subtree
+# builds reproducibly.
 [tools]
-java = "17"
+java = "temurin-17.0.13+11"
+kotlin = "2.0.21"
+
+[env]
+# JNA performs restricted native access; silence the JDK 24+ warnings and let the
+# native lib load cleanly. Also point JNA at a locally built lib for dev
+# (build-core.sh stages it under the JNA resource path in core/src/main/resources).
+JAVA_TOOL_OPTIONS = "--enable-native-access=ALL-UNNAMED"
+JNA_LIBRARY_PATH = "{{ config_root }}/../../target/release"
