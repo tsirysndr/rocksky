@@ -34,6 +34,10 @@ import {
   streamUrlFor,
 } from "../../lib/audio/rockbox-engine";
 import { ensureStreamToken } from "../../api/uploads";
+import {
+  playMediaAnchor,
+  registerMediaAnchor,
+} from "../../lib/audio/media-session-anchor";
 import { SILENT_AUDIO_DATA_URI } from "../../lib/audio/silence";
 import EqualizerSheet from "../EqualizerSheet";
 import PlayerScreen from "../PlayerScreen";
@@ -356,6 +360,9 @@ export default function MiniPlayer() {
 
   const onPlayPause = async () => {
     if (!nowPlaying) return;
+    // Kick the Media Session anchor synchronously, inside this click, when
+    // resuming — an awaited resume would land outside the gesture and be blocked.
+    if (player === "upload" && !nowPlaying.isPlaying) playMediaAnchor();
     if (player === "upload") {
       const { p, loaded } = await ensureEngineQueue();
       // If we just (re)loaded the queue it's already playing the saved track —
@@ -489,6 +496,13 @@ export default function MiniPlayer() {
     if (!("mediaSession" in navigator)) return;
     navigator.mediaSession.playbackState = nowPlaying?.isPlaying ? "playing" : "paused";
   }, [nowPlaying?.isPlaying]);
+
+  // Register the silent <audio> so in-gesture click handlers (playNow, resume,
+  // media-key play) can start it — see media-session-anchor.
+  useEffect(() => {
+    registerMediaAnchor(silentRef.current);
+    return () => registerMediaAnchor(null);
+  }, []);
 
   // Keep the silent Media Session anchor playing whenever the engine plays.
   useEffect(() => {

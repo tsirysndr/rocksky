@@ -192,12 +192,12 @@ export default function EqualizerSheet({ open, onClose }: Props) {
   return (
     <>
       <div
-        className="fixed inset-0 z-50"
+        className="fixed inset-0 z-[60]"
         style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
         onClick={onClose}
       />
       <div
-        className="fixed left-0 right-0 bottom-0 z-50 rounded-t-2xl"
+        className="fixed left-0 right-0 bottom-0 z-[60] rounded-t-2xl"
         style={{ backgroundColor: "var(--color-surface)", borderTop: "1px solid var(--color-border)" }}
       >
         {/* Handle */}

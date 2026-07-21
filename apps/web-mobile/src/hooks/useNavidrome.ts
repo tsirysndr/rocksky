@@ -71,8 +71,6 @@ export function songToQueueTrack(
     duration: song.duration * 1000,
     sha256: "",
     songUri: "",
-    trackNumber: song.track ?? null,
-    genre: song.genre ?? null,
     streamUrl: getNavidromeStreamUrl(creds, song.id),
   };
 }

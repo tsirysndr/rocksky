@@ -2,7 +2,9 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tansta
 import type { UploadAlbum, UploadArtist, UploadedTrack } from "../api/uploads";
 import {
   deleteAlbum,
+  deleteAlbumById,
   deleteUpload,
+  deleteUploadByTrackId,
   getUploadAlbums,
   getUploadArtists,
   getUploads,
@@ -56,6 +58,8 @@ const invalidateUploadCaches = (queryClient: ReturnType<typeof useQueryClient>) 
   queryClient.invalidateQueries({ queryKey: ["uploads-infinite"] });
   queryClient.invalidateQueries({ queryKey: ["uploads-albums-infinite"] });
   queryClient.invalidateQueries({ queryKey: ["uploads-artists-infinite"] });
+  // Library browsing now runs off Navidrome — refresh those views too.
+  queryClient.invalidateQueries({ queryKey: ["navidrome"] });
 };
 
 export const useDeleteUploadMutation = () => {
@@ -66,10 +70,26 @@ export const useDeleteUploadMutation = () => {
   });
 };
 
+export const useDeleteUploadByTrackIdMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteUploadByTrackId,
+    onSuccess: () => invalidateUploadCaches(queryClient),
+  });
+};
+
 export const useDeleteAlbumMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: deleteAlbum,
+    onSuccess: () => invalidateUploadCaches(queryClient),
+  });
+};
+
+export const useDeleteAlbumByIdMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteAlbumById,
     onSuccess: () => invalidateUploadCaches(queryClient),
   });
 };

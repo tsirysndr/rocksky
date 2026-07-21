@@ -118,7 +118,10 @@ function ScrobblesAreaChart() {
 
   return (
     <>
-      {!pathname.includes("/playlist/") && (
+      {/* Public playlist pages (/$did/playlist/$rkey) hide the chart; library
+          pages — including /library/playlist/$id — keep the overall Scrobble
+          Stats like the rest of the library. */}
+      {(!pathname.includes("/playlist/") || pathname.startsWith("/library")) && (
         <>
           <LabelMedium
             marginBottom={"10px"}

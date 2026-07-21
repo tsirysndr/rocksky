@@ -1,70 +1,46 @@
-import dayjs from "dayjs";
 import {
   IconArrowLeft,
   IconArrowsShuffle,
   IconDots,
   IconMusic,
   IconPlayerPlay,
+  IconPlaylist,
   IconTrash,
   IconVinyl,
 } from "@tabler/icons-react";
 import { useCallback, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import type { UploadedTrack } from "../../api/uploads";
+import ContentLoader from "react-content-loader";
+import {
+  getCoverArtUrl,
+  type NavidromeSong,
+} from "../../api/navidrome";
 import type { QueueTrack } from "../../atoms/queue";
 import {
-  useDeleteAlbumMutation,
-  useDeleteUploadMutation,
-  useUploadsQuery,
+  useNavidromeAlbumQuery,
+  useNavidromeCredentials,
+  songToQueueTrack,
+} from "../../hooks/useNavidrome";
+import {
+  useDeleteAlbumByIdMutation,
+  useDeleteUploadByTrackIdMutation,
 } from "../../hooks/useUploads";
 import { useUploadPlayer } from "../../hooks/useUploadPlayer";
+import AddToPlaylistSheet from "../../components/AddToPlaylistSheet";
 import Main from "../../layouts/Main";
-import ContentLoader from "react-content-loader";
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function formatDuration(ms: number) {
-  const s = Math.floor(ms / 1000);
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+function formatDuration(seconds: number) {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-function formatTotalDuration(ms: number) {
-  const s = Math.floor(ms / 1000);
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
+function formatTotalDuration(seconds: number) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
   if (h > 0) return `${h} hr ${m} min`;
   return `${m} min`;
 }
-
-function formatReleaseDate(raw: string | null | undefined, year: number | null | undefined): string | null {
-  if (raw) {
-    const parts = raw.split("-");
-    if (parts.length === 3) { const d = dayjs(raw); if (d.isValid()) return d.format("D MMMM YYYY"); }
-    if (parts.length === 2) { const d = dayjs(`${raw}-01`); if (d.isValid()) return d.format("MMMM YYYY"); }
-  }
-  if (year) return String(year);
-  return null;
-}
-
-function toQueueTrack(item: UploadedTrack): QueueTrack {
-  return {
-    uploadId: item.upload.id,
-    title: item.track.title,
-    artist: item.track.artist,
-    albumArtist: item.track.albumArtist,
-    album: item.track.album,
-    albumArt: item.track.albumArt,
-    duration: item.track.duration,
-    sha256: item.track.sha256,
-    songUri: item.track.uri ?? "",
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Action sheet
-// ---------------------------------------------------------------------------
 
 function ActionSheet({ open, onClose, children }: { open: boolean; onClose: () => void; children: React.ReactNode }) {
   if (!open) return null;
@@ -84,79 +60,42 @@ function ActionSheet({ open, onClose, children }: { open: boolean; onClose: () =
   );
 }
 
-function SheetItem({
-  label,
-  onClick,
-  icon,
-  danger,
-  disabled,
-}: {
-  label: string;
-  onClick: () => void;
-  icon?: React.ReactNode;
-  danger?: boolean;
-  disabled?: boolean;
-}) {
+function SheetItem({ label, onClick, icon, danger, disabled }: { label: string; onClick: () => void; icon?: React.ReactNode; danger?: boolean; disabled?: boolean }) {
   const color = danger ? "#e55" : "var(--color-text)";
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className="w-full flex items-center gap-3 px-5 py-3.5 border-none bg-transparent cursor-pointer text-left text-sm font-medium disabled:opacity-50"
-      style={{ color }}
-    >
+    <button onClick={onClick} disabled={disabled} className="w-full flex items-center gap-3 px-5 py-3.5 border-none bg-transparent cursor-pointer text-left text-sm font-medium disabled:opacity-50" style={{ color }}>
       {icon && <span style={{ color: danger ? "#e55" : "var(--color-text-muted)" }}>{icon}</span>}
       {label}
     </button>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Page
-// ---------------------------------------------------------------------------
-
 export default function LibraryAlbumPage() {
   const navigate = useNavigate();
-  const { did, rkey } = useParams<{ did: string; rkey: string }>();
+  const { id } = useParams<{ id: string }>();
   const { playNow, playNext, playLast } = useUploadPlayer();
-  const [sheetTrack, setSheetTrack] = useState<UploadedTrack | null>(null);
-  const deleteUploadMutation = useDeleteUploadMutation();
-  const deleteAlbumMutation = useDeleteAlbumMutation();
+  const { data: creds } = useNavidromeCredentials();
+  const [sheetSong, setSheetSong] = useState<NavidromeSong | null>(null);
+  const [addToPlaylistSongId, setAddToPlaylistSongId] = useState<string | null>(null);
+  const deleteTrack = useDeleteUploadByTrackIdMutation();
+  const deleteAlbum = useDeleteAlbumByIdMutation();
 
-  const albumUri = `at://${did}/app.rocksky.album/${rkey}`;
-  const { data: allUploads = [], isLoading } = useUploadsQuery(0, 1000);
+  const { data: album, isLoading } = useNavidromeAlbumQuery(id ?? "");
 
-  const tracks = useMemo(
-    () => allUploads
-      .filter((item) => item.track.albumUri === albumUri)
-      .sort((a, b) => (a.track.trackNumber ?? 0) - (b.track.trackNumber ?? 0)),
-    [allUploads, albumUri],
+  const albumArt = creds && album?.coverArt ? getCoverArtUrl(creds, album.coverArt) : null;
+  const songs: NavidromeSong[] = useMemo(() => album?.song ?? [], [album]);
+  const totalDuration = album?.duration ?? songs.reduce((sum, s) => sum + s.duration, 0);
+
+  const queue = useCallback(
+    (): QueueTrack[] => (creds ? songs.map((s) => songToQueueTrack(s, creds, albumArt)) : []),
+    [creds, songs, albumArt],
   );
 
-  const albumArt = tracks[0]?.track.albumArt ?? null;
-  const album = tracks[0]?.track.album ?? "";
-  const albumArtist = tracks[0]?.track.albumArtist ?? "";
-  const totalDuration = tracks.reduce((sum, t) => sum + t.track.duration, 0);
-  const releaseDate = formatReleaseDate(tracks[0]?.albumReleaseDate, tracks[0]?.albumYear);
-  const copyrightMessage = tracks[0]?.track.copyrightMessage ?? null;
+  const handlePlay = useCallback(() => playNow(queue()), [queue, playNow]);
+  const handleShuffle = useCallback(() => playNow([...queue()].sort(() => Math.random() - 0.5)), [queue, playNow]);
+  const handleTrackPlay = useCallback((idx: number) => playNow(queue(), idx), [queue, playNow]);
 
-  const handlePlay = useCallback(() => playNow(tracks.map(toQueueTrack)), [tracks, playNow]);
-  const handleShuffle = useCallback(() => playNow([...tracks.map(toQueueTrack)].sort(() => Math.random() - 0.5)), [tracks, playNow]);
-  const handleTrackPlay = useCallback((item: UploadedTrack) => {
-    const queue = tracks.map(toQueueTrack);
-    const idx = tracks.findIndex((t) => t.upload.id === item.upload.id);
-    playNow(queue, idx >= 0 ? idx : 0);
-  }, [tracks, playNow]);
-
-  // Parse artist URI for navigation
-  const artistParsed = (() => {
-    const uri = tracks[0]?.track.artistUri;
-    if (!uri) return null;
-    const m = uri.match(/^at:\/\/([^/]+)\/[^/]+\/([^/]+)$/);
-    return m ? { did: m[1], rkey: m[2] } : null;
-  })();
-
-  if (isLoading) {
+  if (isLoading || !creds) {
     return (
       <Main>
         <div className="px-4 pt-4">
@@ -177,10 +116,22 @@ export default function LibraryAlbumPage() {
     );
   }
 
+  if (!album) {
+    return (
+      <Main>
+        <div className="px-4 pt-4">
+          <button onClick={() => navigate("/library")} className="flex items-center gap-1 text-sm border-none bg-transparent cursor-pointer p-0 mb-4" style={{ color: "var(--color-text-muted)" }}>
+            <IconArrowLeft size={16} /> Library
+          </button>
+          <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>Album not found.</p>
+        </div>
+      </Main>
+    );
+  }
+
   return (
     <Main>
       <div className="px-4 pt-4 pb-32">
-        {/* Back */}
         <button
           onClick={() => navigate("/library")}
           className="flex items-center gap-1 text-sm border-none bg-transparent cursor-pointer p-0 mb-4"
@@ -193,24 +144,25 @@ export default function LibraryAlbumPage() {
         <div className="flex gap-4 items-end mb-6">
           <div className="w-36 h-36 rounded-2xl overflow-hidden shrink-0 flex items-center justify-center" style={{ backgroundColor: "var(--color-menu-hover)", boxShadow: "0 8px 32px rgba(0,0,0,0.2)" }}>
             {albumArt ? (
-              <img src={albumArt} alt={album} className="w-full h-full object-cover" />
+              <img src={albumArt} alt={album.name} className="w-full h-full object-cover" />
             ) : (
               <IconVinyl size={56} color="var(--color-text-muted)" />
             )}
           </div>
           <div className="flex-1 min-w-0 pb-1">
             <h1 className="text-lg font-bold m-0 mb-1 leading-tight" style={{ color: "var(--color-text)", fontFamily: "RockfordSansBold" }}>
-              {album}
+              {album.name}
             </h1>
             <p
               className="text-sm font-semibold m-0 mb-1 cursor-pointer"
               style={{ color: "var(--color-primary)" }}
-              onClick={() => { if (artistParsed) navigate(`/library/${artistParsed.did}/artist/${artistParsed.rkey}`); }}
+              onClick={() => { if (album.artistId) navigate(`/library/artist/${album.artistId}`); }}
             >
-              {albumArtist}
+              {album.artist}
             </p>
             <p className="text-xs m-0" style={{ color: "var(--color-text-muted)" }}>
-              {tracks.length} track{tracks.length !== 1 ? "s" : ""} · {formatTotalDuration(totalDuration)}
+              {songs.length} track{songs.length !== 1 ? "s" : ""} · {formatTotalDuration(totalDuration)}
+              {album.year ? ` · ${album.year}` : ""}
             </p>
             <div className="flex gap-3 mt-3">
               <button
@@ -228,19 +180,10 @@ export default function LibraryAlbumPage() {
                 <IconArrowsShuffle size={14} /> Shuffle
               </button>
               <button
-                disabled={deleteAlbumMutation.isPending || tracks.length === 0}
+                disabled={deleteAlbum.isPending || songs.length === 0}
                 onClick={() => {
-                  if (
-                    !window.confirm(
-                      `Delete every track from "${album}" by ${albumArtist}? This cannot be undone.`,
-                    )
-                  ) {
-                    return;
-                  }
-                  deleteAlbumMutation.mutate(
-                    { albumUri },
-                    { onSuccess: () => navigate("/library") },
-                  );
+                  if (!window.confirm(`Delete every track from "${album.name}" by ${album.artist}? This cannot be undone.`)) return;
+                  deleteAlbum.mutate(album.id, { onSuccess: () => navigate("/library") });
                 }}
                 className="flex items-center gap-2 px-4 py-2 rounded-full border-none cursor-pointer text-sm font-semibold bg-transparent disabled:opacity-50"
                 style={{ color: "#e55" }}
@@ -253,94 +196,83 @@ export default function LibraryAlbumPage() {
 
         {/* Track list */}
         <div className="flex flex-col">
-          {tracks.map((item, idx) => (
+          {songs.map((song, idx) => (
             <div
-              key={item.upload.id}
+              key={song.id}
               className="flex items-center gap-3 py-3 active:opacity-70"
               style={{ borderBottom: "1px solid var(--color-border)" }}
-              onClick={() => handleTrackPlay(item)}
+              onClick={() => handleTrackPlay(idx)}
             >
               <span className="w-6 text-right text-xs shrink-0" style={{ color: "var(--color-text-muted)" }}>
-                {item.track.trackNumber ?? idx + 1}
+                {song.track ?? idx + 1}
               </span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold truncate m-0" style={{ color: "var(--color-text)" }}>
-                  {item.track.title}
+                  {song.title}
                 </p>
-                {item.track.artist !== albumArtist && (
+                {song.artist !== album.artist && (
                   <p className="text-xs truncate m-0" style={{ color: "var(--color-text-muted)" }}>
-                    {item.track.artist}
+                    {song.artist}
                   </p>
                 )}
               </div>
               <span className="text-xs shrink-0" style={{ color: "var(--color-text-muted)" }}>
-                {formatDuration(item.track.duration)}
+                {formatDuration(song.duration)}
               </span>
               <button
                 className="p-1.5 border-none bg-transparent cursor-pointer rounded-lg shrink-0"
                 style={{ color: "var(--color-text-muted)" }}
-                onClick={(e) => { e.stopPropagation(); setSheetTrack(item); }}
+                onClick={(e) => { e.stopPropagation(); setSheetSong(song); }}
               >
                 <IconDots size={16} />
               </button>
             </div>
           ))}
         </div>
-
-        {/* Release date + copyright */}
-        {(releaseDate || copyrightMessage) && (
-          <div className="mt-8">
-            {releaseDate && (
-              <p className="text-sm m-0 mb-1" style={{ color: "var(--color-text-muted)" }}>{releaseDate}</p>
-            )}
-            {copyrightMessage && (
-              <p className="text-xs m-0" style={{ color: "var(--color-text-muted)", opacity: 0.7 }}>{copyrightMessage}</p>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Track action sheet */}
-      <ActionSheet open={!!sheetTrack} onClose={() => setSheetTrack(null)}>
-        {sheetTrack && (
+      <ActionSheet open={!!sheetSong} onClose={() => setSheetSong(null)}>
+        {sheetSong && creds && (
           <>
             <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: "1px solid var(--color-border)" }}>
               <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 flex items-center justify-center" style={{ backgroundColor: "var(--color-menu-hover)" }}>
-                {sheetTrack.track.albumArt
-                  ? <img src={sheetTrack.track.albumArt} alt="" className="w-full h-full object-cover" />
+                {albumArt
+                  ? <img src={albumArt} alt="" className="w-full h-full object-cover" />
                   : <IconMusic size={16} color="var(--color-text-muted)" />}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold truncate m-0" style={{ color: "var(--color-text)" }}>{sheetTrack.track.title}</p>
-                <p className="text-xs truncate m-0" style={{ color: "var(--color-text-muted)" }}>{sheetTrack.track.artist}</p>
+                <p className="text-sm font-semibold truncate m-0" style={{ color: "var(--color-text)" }}>{sheetSong.title}</p>
+                <p className="text-xs truncate m-0" style={{ color: "var(--color-text-muted)" }}>{sheetSong.artist}</p>
               </div>
             </div>
-            <SheetItem label="Play" onClick={() => { handleTrackPlay(sheetTrack); setSheetTrack(null); }} />
-            <SheetItem label="Play next" onClick={() => { playNext(toQueueTrack(sheetTrack)); setSheetTrack(null); }} />
-            <SheetItem label="Add to queue" onClick={() => { playLast(toQueueTrack(sheetTrack)); setSheetTrack(null); }} />
-            {artistParsed && (
-              <SheetItem label="Go to artist" onClick={() => { navigate(`/library/${artistParsed.did}/artist/${artistParsed.rkey}`); setSheetTrack(null); }} />
+            <SheetItem label="Play" onClick={() => { const i = songs.findIndex((s) => s.id === sheetSong.id); handleTrackPlay(i >= 0 ? i : 0); setSheetSong(null); }} />
+            <SheetItem label="Play next" onClick={() => { playNext(songToQueueTrack(sheetSong, creds, albumArt)); setSheetSong(null); }} />
+            <SheetItem label="Add to queue" onClick={() => { playLast(songToQueueTrack(sheetSong, creds, albumArt)); setSheetSong(null); }} />
+            <SheetItem icon={<IconPlaylist size={16} />} label="Add to playlist" onClick={() => { setAddToPlaylistSongId(sheetSong.id); setSheetSong(null); }} />
+            {sheetSong.artistId && (
+              <SheetItem label="Go to artist" onClick={() => { navigate(`/library/artist/${sheetSong.artistId}`); setSheetSong(null); }} />
             )}
             <SheetItem
               icon={<IconTrash size={16} />}
               label="Delete track"
               danger
-              disabled={deleteUploadMutation.isPending}
+              disabled={deleteTrack.isPending}
               onClick={() => {
-                if (
-                  !window.confirm(
-                    `Delete "${sheetTrack.track.title}" from your library? This cannot be undone.`,
-                  )
-                ) {
-                  return;
-                }
-                deleteUploadMutation.mutate(sheetTrack.upload.id);
-                setSheetTrack(null);
+                if (!window.confirm(`Delete "${sheetSong.title}" from your library? This cannot be undone.`)) return;
+                deleteTrack.mutate(sheetSong.id);
+                setSheetSong(null);
               }}
             />
           </>
         )}
       </ActionSheet>
+
+      <AddToPlaylistSheet
+        open={!!addToPlaylistSongId}
+        songId={addToPlaylistSongId}
+        onClose={() => setAddToPlaylistSongId(null)}
+      />
     </Main>
   );
 }
