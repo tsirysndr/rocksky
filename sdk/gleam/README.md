@@ -224,3 +224,22 @@ network. See `test/rocksky/client_test.gleam` for the mock-send pattern.
 ## License
 
 [MIT](LICENSE) © Tsiry Sandratraina.
+
+## Native core (`rocksky/core`)
+
+Alongside the HTTP client, this package exposes the shared Rust engine
+(`rocksky-sdk`) via typed externals over the `rocksky_erl` NIF (`rocksky/core`):
+AT Protocol PDS **writes** (scrobble, like, follow, shout) and identity hashes
+identical to every other Rocksky SDK. Published builds depend on the Hex
+`rocksky_erl` package; for monorepo dev use the local path dep in `gleam.toml`.
+
+```sh
+../erlang/build-core.sh            # build the NIF
+gleam run -m examples/native_core
+```
+
+```gleam
+import rocksky/core
+core.song_hash("Chaser", "Calibro 35", "Jazzploitation")
+core.global_stats()   // Dynamic {ok, value} | {error, message}
+```

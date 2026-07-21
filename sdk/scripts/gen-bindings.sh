@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 # Generate the UniFFI language bindings from the built native core and drop them
-# into each SDK package (keeping the existing package names: python `rocksky`,
-# ruby `rocksky`). The low-level generated module is placed alongside the
-# hand-written package so the package's public API can re-export it.
+# into each SDK package (keeping the existing package names). Only Python and
+# Kotlin consume UniFFI-generated code; the other SDKs bind the native lib
+# directly:
+#   - ruby / clojure : the plain C ABI (capi) — no codegen, just the lib
+#   - erlang/elixir/gleam : the Rustler NIF (rocksky_nif.so) — built by build-native.sh
 #
 # Run ./build-native.sh first (produces target/release/librocksky_uniffi.<ext>).
+# Each package also has its own ./build-core.sh that does gen + lib staging.
 #
 # Usage: ./gen-bindings.sh
 set -euo pipefail
@@ -29,9 +32,12 @@ gen() { # <language> <out-dir>
   echo "  generated $lang -> $outdir"
 }
 
-# python package `rocksky`: low-level module under src/rocksky/
-gen python "$sdk/python/src/rocksky/_native"
-# ruby gem `rocksky`: low-level module under lib/rocksky/
-gen ruby "$sdk/ruby/lib/rocksky/_native"
+# python package `rocksky`: UniFFI module under src/rocksky/core/ (co-locate lib).
+gen python "$sdk/python/src/rocksky/core"
+cp "$lib" "$sdk/python/src/rocksky/core/"
 
-echo "done. Wire each package's public API to re-export its _native module."
+# kotlin `:core` subproject: UniFFI module under core/src/main/kotlin/.
+gen kotlin "$sdk/kotlin/core/src/main/kotlin"
+
+echo "done. ruby/clojure use the capi C ABI (lib only); erlang/elixir/gleam use"
+echo "the NIF — run ./build-native.sh and each package's ./build-core.sh."

@@ -252,3 +252,28 @@ uv run python examples/quickstart.py tsiry-sandratraina.com
 ## License
 
 [MIT](LICENSE) © Tsiry Sandratraina.
+
+## Native core (`rocksky.core`)
+
+Alongside the async HTTP client, the package ships the **native core** — UniFFI
+bindings to the shared Rust engine (`rocksky-sdk`), giving AT Protocol PDS
+**writes** (scrobble fan-out, like, follow, shout), a local duplicate-prevention
+index, and identity hashes identical to every other Rocksky SDK.
+
+```sh
+./build-core.sh            # build the native lib + regenerate the binding
+uv run python examples/native_core.py
+```
+
+```python
+from rocksky.core import AppView, Agent, ScrobbleInput, song_hash
+
+av = AppView(None)
+print(av.global_stats().scrobbles)
+
+agent = Agent.login_password("session.json", "alice.bsky.social", "app-pw", None, None)
+out = agent.scrobble(ScrobbleInput(title="Chaser", artist="Calibro 35",
+                                   album="Jazzploitation", album_artist="Calibro 35",
+                                   duration_ms=182320))
+print(out.scrobble_uri)
+```

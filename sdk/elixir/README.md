@@ -277,3 +277,26 @@ end)
 ## License
 
 [MIT](LICENSE) © Tsiry Sandratraina.
+
+## Native core (`Rocksky.Core`)
+
+Alongside the HTTP client, this package exposes the shared Rust engine
+(`rocksky-sdk`) via `Rocksky.Core`, delegating to the `:rocksky_erl` NIF: AT
+Protocol PDS **writes** (scrobble fan-out, like, follow, shout) and identity
+hashes identical to every other Rocksky SDK. Published builds depend on the Hex
+`rocksky_erl` package; for monorepo dev set `ROCKSKY_ERL_PATH=../erlang`.
+
+```sh
+../erlang/build-core.sh
+ROCKSKY_ERL_PATH=../erlang mix run examples/native_core.exs
+```
+
+```elixir
+{:ok, stats} = Rocksky.Core.global_stats()
+Rocksky.Core.song_hash("Chaser", "Calibro 35", "Jazzploitation")
+
+agent = Rocksky.Core.login("session.json", "alice.bsky.social", "app-pw")
+{:ok, out} = Rocksky.Core.scrobble(agent, %{
+  "title" => "Chaser", "artist" => "Calibro 35",
+  "album" => "Jazzploitation", "albumArtist" => "Calibro 35", "durationMs" => 182_320})
+```

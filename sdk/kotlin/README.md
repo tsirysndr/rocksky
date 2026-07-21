@@ -171,3 +171,29 @@ Java 17 is required for the toolchain. If you use [`mise`](https://mise.jdx.dev)
 ## License
 
 [MIT](LICENSE) © Tsiry Sandratraina.
+
+## Native core (`app.rocksky.core`, `:core` module)
+
+Alongside the ktor HTTP client (`:rocksky`), the `:core` Gradle module binds the
+shared Rust engine (`rocksky-sdk`) via UniFFI's JNA-loaded Kotlin bindings
+(`app.rocksky.core`): AT Protocol PDS **writes** (scrobble fan-out, like, follow,
+shout) and identity hashes identical to every other Rocksky SDK. `mise.toml`
+pins Kotlin + JDK 17.
+
+```sh
+./build-core.sh
+./gradlew :examples:run -PmainClass=app.rocksky.examples.NativeCoreKt
+```
+
+```kotlin
+import app.rocksky.core.*
+
+val av = AppView(null)
+println(av.globalStats().scrobbles)
+
+val agent = Agent.loginPassword("session.json", "alice.bsky.social", "app-pw", null, null)
+val out = agent.scrobble(ScrobbleInput(
+    title = "Chaser", artist = "Calibro 35",
+    album = "Jazzploitation", albumArtist = "Calibro 35", durationMs = 182320))
+println(out.scrobbleUri)
+```

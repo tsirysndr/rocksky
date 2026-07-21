@@ -227,3 +227,27 @@ resource by dropping a file in `lib/rocksky/resources/`, wiring it into
 ## License
 
 [MIT](LICENSE) © Tsiry Sandratraina.
+
+## Native core (`Rocksky::Core`)
+
+Alongside the HTTP client, the gem ships the **native core** — a stdlib `fiddle`
+binding to the shared Rust engine's C ABI (`rocksky-sdk`), giving AT Protocol PDS
+**writes** (scrobble fan-out, like, follow, shout) and identity hashes identical
+to every other Rocksky SDK.
+
+```sh
+./build-core.sh
+ruby -Ilib examples/native_core.rb
+```
+
+```ruby
+require "rocksky/core"
+
+Rocksky::Core.global_stats               # => {"scrobbles"=>…, …}
+agent = Rocksky::Core::Agent.login("session.json", "alice.bsky.social", "app-pw")
+out = agent.scrobble("title" => "Chaser", "artist" => "Calibro 35",
+                     "album" => "Jazzploitation", "albumArtist" => "Calibro 35",
+                     "durationMs" => 182_320)
+puts out["scrobbleUri"]
+agent.close
+```
