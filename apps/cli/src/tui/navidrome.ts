@@ -2,7 +2,7 @@ import { RockskyClient } from "client";
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { playerController, type QueueItem } from "./player";
+import type { QueueItem } from "./player";
 
 export const NAVIDROME_URL = "https://navidrome.rocksky.app";
 const credsPath = () => path.join(os.homedir(), ".rocksky", "navidrome.json");
@@ -174,31 +174,7 @@ export async function exportQueue(
   return { id, added, failed };
 }
 
-/** Play queue items that carry a Subsonic `trackId`, streaming via Navidrome. */
-export async function playByTrackIds(
-  creds: NavidromeCreds,
-  items: QueueItem[],
-  index = 0,
-) {
-  const playable = items.filter((i) => i.trackId);
-  if (playable.length === 0) return;
-  const urls = playable.map((i) => streamUrl(creds, i.trackId!));
-  await playerController.playQueue(playable, urls, index);
-}
-
-/** Insert Navidrome-streamed items at any queue position (play next/last/…). */
-export async function enqueueByTrackIds(
-  creds: NavidromeCreds,
-  items: QueueItem[],
-  position: number,
-) {
-  const playable = items.filter((i) => i.trackId);
-  if (playable.length === 0) return;
-  const urls = playable.map((i) => streamUrl(creds, i.trackId!));
-  await playerController.insertAt(playable, urls, position);
-}
-
-const entryToItem = (e: PlaylistEntry): QueueItem => ({
+export const entryToItem = (e: PlaylistEntry): QueueItem => ({
   uploadId: "",
   trackId: e.id,
   title: e.title,
@@ -206,17 +182,3 @@ const entryToItem = (e: PlaylistEntry): QueueItem => ({
   album: e.album,
   duration: e.duration ? e.duration * 1000 : undefined,
 });
-
-/** Play a playlist's entries, streaming each via the Navidrome API. */
-export async function playEntries(
-  creds: NavidromeCreds,
-  entries: PlaylistEntry[],
-  index = 0,
-) {
-  if (entries.length === 0) return;
-  await playerController.playQueue(
-    entries.map(entryToItem),
-    entries.map((e) => streamUrl(creds, e.id)),
-    index,
-  );
-}

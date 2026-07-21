@@ -7,12 +7,7 @@ import { Cell, Ell } from "./Columns";
 import { fmtDuration } from "./format";
 import { likedIdsAtom, useToggleLike } from "./likes";
 import { List } from "./List";
-import {
-  enqueueByTrackIds,
-  getCreds,
-  getStarred,
-  playByTrackIds,
-} from "./navidrome";
+import { getCreds, getStarred } from "./navidrome";
 import { enqueueAt, streamAndPlay } from "./playback";
 import { INSERT_MODES, type QueueItem } from "./player";
 import { PlaylistsView } from "./PlaylistsView";
@@ -205,13 +200,10 @@ export function MusicView({
     if (tracks.length === 0 || !token) return;
     try {
       setMessage("Buffering…");
-      // Favorites stream via the Navidrome API (no upload id); everything else
-      // streams through the uploads endpoint.
-      if (mode === "favorites" && creds) {
-        await playByTrackIds(creds, tracks, index);
-      } else {
-        await streamAndPlay(token, tracks, index);
-      }
+      // streamAndPlay resolves every kind of track: uploads stream through the
+      // uploads endpoint, favorites (no upload id) via the Navidrome API, and
+      // anything already cached plays straight from disk.
+      await streamAndPlay(token, tracks, index);
       setMessage("");
     } catch (e: any) {
       setMessage(`Playback error: ${e.message}`);
@@ -223,11 +215,7 @@ export function MusicView({
     if (tracks.length === 0) return;
     try {
       setMessage("Queuing…");
-      if (mode === "favorites") {
-        if (creds) await enqueueByTrackIds(creds, tracks, position);
-      } else if (token) {
-        await enqueueAt(token, tracks, position);
-      }
+      if (token) await enqueueAt(token, tracks, position);
       setMessage("");
     } catch (e: any) {
       setMessage(`Error: ${e.message}`);

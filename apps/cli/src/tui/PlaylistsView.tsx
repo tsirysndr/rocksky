@@ -8,13 +8,14 @@ import { List } from "./List";
 import {
   createPlaylist,
   deletePlaylist,
+  entryToItem,
   getCreds,
   getPlaylist,
   getPlaylists,
-  playEntries,
   removeTrackFromPlaylist,
   type PlaylistEntry,
 } from "./navidrome";
+import { streamAndPlay } from "./playback";
 import { queryClient } from "./queryClient";
 import { shuffled } from "./shuffle";
 import { authAtom } from "./store";
@@ -130,12 +131,12 @@ export function PlaylistsView({
           return setEntrySel((s) => Math.max(0, s - 1));
         if (key.downArrow || input === "j")
           return setEntrySel((s) => Math.min(entries.length - 1, s + 1));
-        if (key.return && creds) {
-          void playEntries(creds, entries, entrySel);
+        if (key.return && token) {
+          void streamAndPlay(token, entries.map(entryToItem), entrySel);
           return;
         }
-        if (input === "S" && creds && entries.length) {
-          void playEntries(creds, shuffled(entries), 0);
+        if (input === "S" && token && entries.length) {
+          void streamAndPlay(token, shuffled(entries).map(entryToItem), 0);
           return;
         }
         if ((input === "d" || input === "x") && creds && entries[entrySel]) {

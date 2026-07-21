@@ -1,20 +1,44 @@
 import { RockskyClient } from "client";
+import { getCreds, streamUrl as navidromeStreamUrl } from "./navidrome";
 import { playerController, type QueueItem } from "./player";
-import { cachePath, cacheTrack, isCached } from "./trackCache";
+import { cacheId, cachePath, cacheTrack, isCached } from "./trackCache";
 
 // Resolve each track to a playable entry: the cached local file when present
-// (gapless, instant), otherwise a fresh streaming URL. Only fetches a stream
-// token when at least one track isn't cached — so resuming a fully-cached queue
-// needs no network at all and starts instantly.
-async function playableUris(token: string, tracks: QueueItem[]) {
+// (gapless, instant), otherwise a fresh streaming URL. Uploads stream through
+// the uploads endpoint; playlist / favorites tracks have NO uploadId and stream
+// via the Navidrome API by trackId — a restored session is often full of these,
+// which is why resume/jump after a restart used to build dead `/uploads//stream`
+// URLs and silently play nothing. Tokens/creds are only fetched when actually
+// needed, so a fully-cached queue starts with no network at all.
+async function playable(
+  token: string,
+  tracks: QueueItem[],
+): Promise<{ items: QueueItem[]; uris: string[] }> {
   const client = new RockskyClient(token);
-  const needStream = tracks.some((t) => !isCached(t));
+  const needStream = tracks.some((t) => !isCached(t) && t.uploadId);
   const streamToken = needStream
     ? (await client.getStreamToken()).token
     : "";
-  return tracks.map((t) =>
-    isCached(t) ? cachePath(t)! : client.streamUrl(t.uploadId, streamToken),
+  const needCreds = tracks.some(
+    (t) => !isCached(t) && !t.uploadId && t.trackId,
   );
+  const creds = needCreds ? await getCreds(token).catch(() => null) : null;
+  const items: QueueItem[] = [];
+  const uris: string[] = [];
+  for (const t of tracks) {
+    const uri = isCached(t)
+      ? cachePath(t)!
+      : t.uploadId
+        ? client.streamUrl(t.uploadId, streamToken)
+        : t.trackId && creds
+          ? navidromeStreamUrl(creds, t.trackId)
+          : null; // no id at all — unplayable, drop it
+    if (uri) {
+      items.push(t);
+      uris.push(uri);
+    }
+  }
+  return { items, uris };
 }
 
 export async function streamAndPlay(
@@ -29,21 +53,27 @@ export async function streamAndPlay(
   // kick off a cache download here: downloading a track while it's streaming is
   // the double-bandwidth that caused dropouts. Caching happens opportunistically
   // in prefetchTick, and only while the current track plays from a local file.
-  await playerController.playQueue(tracks, await playableUris(token, tracks), index);
+  const { items, uris } = await playable(token, tracks);
+  if (items.length === 0) return;
+  // Dropped (unplayable) tracks before `index` shift the start position.
+  const startAt = Math.max(0, items.indexOf(tracks[index]));
+  await playerController.playQueue(items, uris, startAt);
 }
 
 /** Insert tracks right after the current one ("play next"). Caches first. */
 export async function enqueueNext(token: string, tracks: QueueItem[]) {
   if (tracks.length === 0) return;
   await Promise.all(tracks.map((t) => cacheTrack(token, t).catch(() => {})));
-  await playerController.playNext(tracks, await playableUris(token, tracks));
+  const { items, uris } = await playable(token, tracks);
+  if (items.length > 0) await playerController.playNext(items, uris);
 }
 
 /** Append tracks to the end of the queue ("play last"). Caches first. */
 export async function enqueueLast(token: string, tracks: QueueItem[]) {
   if (tracks.length === 0) return;
   await Promise.all(tracks.map((t) => cacheTrack(token, t).catch(() => {})));
-  await playerController.playLast(tracks, await playableUris(token, tracks));
+  const { items, uris } = await playable(token, tracks);
+  if (items.length > 0) await playerController.playLast(items, uris);
 }
 
 /** Insert tracks at any rockbox InsertPosition. */
@@ -54,7 +84,8 @@ export async function enqueueAt(
 ) {
   if (tracks.length === 0) return;
   await Promise.all(tracks.map((t) => cacheTrack(token, t).catch(() => {})));
-  await playerController.insertAt(tracks, await playableUris(token, tracks), position);
+  const { items, uris } = await playable(token, tracks);
+  if (items.length > 0) await playerController.insertAt(items, uris, position);
 }
 
 /**
@@ -68,12 +99,21 @@ export async function resumeSession(token: string) {
   // Reorder so the resume track is FIRST and play from index 0 — exactly like
   // "play shuffled", which streams reliably. Starting at index N instead relies
   // on skipTo, which races the async stream load and fails on weak links.
-  const items = [...restored.items.slice(n), ...restored.items.slice(0, n)];
-  const uris = await playableUris(token, items);
+  const reordered = [
+    ...restored.items.slice(n),
+    ...restored.items.slice(0, n),
+  ];
+  const { items, uris } = await playable(token, reordered);
+  if (items.length === 0) return;
   await playerController.playQueue(items, uris, 0);
-  // Only seek when the track is a local file — seeking into a live stream
-  // stalls on a weak connection (the other reason resume hung on the Pi).
-  if (restored.positionMs > 0 && isCached(items[0])) {
+  // Only seek when we're really on the resume track and it's a local file —
+  // seeking into a live stream stalls on a weak connection (the other reason
+  // resume hung on the Pi).
+  if (
+    restored.positionMs > 0 &&
+    items[0] === reordered[0] &&
+    isCached(items[0])
+  ) {
     playerController.seekMs(restored.positionMs);
   }
   playerController.restored = null;
@@ -92,8 +132,9 @@ export function isPrefetching(): boolean {
 export async function jumpTo(token: string, targetIndex: number) {
   const src = playerController.queueItems;
   if (targetIndex < 0 || targetIndex >= src.length) return;
-  const items = [...src.slice(targetIndex), ...src.slice(0, targetIndex)];
-  const uris = await playableUris(token, items);
+  const reordered = [...src.slice(targetIndex), ...src.slice(0, targetIndex)];
+  const { items, uris } = await playable(token, reordered);
+  if (items.length === 0) return;
   await playerController.playQueue(items, uris, 0);
 }
 
@@ -152,22 +193,27 @@ export async function prefetchTick(token: string | undefined) {
   if (next >= status.queue_len) return;
 
   const item = playerController.queueItems[next];
-  if (!item?.uploadId) return;
+  if (!item) return;
+  // Works for uploads (uploadId) and Navidrome tracks (trackId only) alike —
+  // gating on uploadId is what used to keep playlist/favorites queues from
+  // ever prefetching automatically.
+  const id = cacheId(item);
+  if (!id) return;
 
   if (isCached(item)) {
     const p = cachePath(item);
     if (p) playerController.swapQueueToLocal(next, p);
     return;
   }
-  if (prefetching.has(item.uploadId)) return;
+  if (prefetching.has(id)) return;
 
-  prefetching.add(item.uploadId);
+  prefetching.add(id);
   try {
     const filePath = await cacheTrack(token, item);
     playerController.swapQueueToLocal(next, filePath);
   } catch {
     // network / disk hiccup — retried on a later tick
   } finally {
-    prefetching.delete(item.uploadId);
+    prefetching.delete(id);
   }
 }
