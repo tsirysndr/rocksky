@@ -1,0 +1,71 @@
+[package]
+name = "rocksky-sdk"
+version = "0.1.0"
+description = "Official Rust SDK for Rocksky — a music scrobbling & discovery platform on the AT Protocol"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords = ["atproto", "rocksky", "scrobble", "bluesky", "sdk"]
+categories = ["api-bindings"]
+
+[dependencies]
+# atproto client stack (identity, sessions, XRPC, OAuth).
+jacquard = { version = "0.12", default-features = false, features = [
+    "api",
+    "dns",
+    "derive",
+    "cache",
+    "loopback",
+] }
+jacquard-common = "0.12"
+# Needed by the generated app.rocksky.* bindings (lexicon schema types + derives).
+jacquard-lexicon = "0.12"
+jacquard-derive = "0.12"
+
+# async runtime primitives (the auth mutex) + HTTP for the read-only AppView client.
+tokio = { version = "1", features = ["sync", "macros", "rt-multi-thread", "time"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream"] }
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+futures = "0.3"
+thiserror = "2"
+chrono = { version = "0.4", features = ["clock"] }
+smol_str = { version = "0.3", features = ["serde"] }
+sha2 = "0.10"
+tracing = "0.1"
+
+# --- dedup feature: local repo mirror for duplicate prevention ---
+# An embedded RocksDB index built from the user's repo CAR (com.atproto.sync.getRepo),
+# parsed with the ipld stack already in the workspace lock. All optional so the
+# base SDK stays light and avoids the RocksDB C++ build unless dedup is enabled.
+rocksdb = { version = "0.22", optional = true, default-features = false, features = ["snappy"] }
+serde_ipld_dagcbor = { version = "0.6", optional = true }
+ipld-core = { version = "0.4", optional = true }
+cid = { version = "0.11", optional = true }
+serde_bytes = { version = "0.11", optional = true }
+
+# --- jetstream feature: keep the dedup index live off the Bluesky firehose ---
+tokio-tungstenite = { version = "0.26.2", optional = true, features = [
+    "tokio-rustls",
+    "rustls-tls-webpki-roots",
+] }
+
+[features]
+default = ["oauth", "dns", "appview"]
+# Browser + loopback OAuth login (jacquard oauth/loopback already pulled above).
+oauth = []
+# DNS-based handle resolution.
+dns = []
+# The unauthenticated public-read AppView client (usable without any session).
+appview = []
+# Duplicate-prevention index: mirror the user's repo into RocksDB and check it
+# before writing scrobble / song / album / artist records to the PDS.
+dedup = ["dep:rocksdb", "dep:serde_ipld_dagcbor", "dep:ipld-core", "dep:cid", "dep:serde_bytes"]
+# Keep the dedup index continuously hydrated from the Bluesky Jetstream firehose
+# (all four servers at once), filtered to `app.rocksky.*` for the user's DID.
+jetstream = ["dedup", "dep:tokio-tungstenite"]
+
+[dev-dependencies]
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
