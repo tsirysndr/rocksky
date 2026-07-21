@@ -8,6 +8,12 @@
 # Auth first: mix hex.user auth (or export HEX_API_KEY=...).
 # Usage: ./publish-elixir.sh [--dry-run]
 set -euo pipefail
+
+# Publishing is LOCAL-ONLY — never publish from CI (bindings-release.yml only
+# builds + uploads native libs to a GitHub release; it must not push packages).
+if [ -n "${CI:-}" ] || [ -n "${GITHUB_ACTIONS:-}" ]; then
+  echo "refusing to publish from CI — run this locally" >&2; exit 1
+fi
 here="$(cd "$(dirname "$0")" && pwd)"
 ex="$here/../elixir"
 dry=0

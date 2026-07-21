@@ -10,6 +10,12 @@
 # Auth first: gleam hex authenticate (or export HEXPM_API_KEY=...).
 # Usage: ./publish-gleam.sh [--dry-run]
 set -euo pipefail
+
+# Publishing is LOCAL-ONLY — never publish from CI (bindings-release.yml only
+# builds + uploads native libs to a GitHub release; it must not push packages).
+if [ -n "${CI:-}" ] || [ -n "${GITHUB_ACTIONS:-}" ]; then
+  echo "refusing to publish from CI — run this locally" >&2; exit 1
+fi
 here="$(cd "$(dirname "$0")" && pwd)"
 gleam_dir="$here/../gleam"
 dry=0
