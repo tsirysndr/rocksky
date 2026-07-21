@@ -38,7 +38,8 @@ type Resolver = JacquardResolver<reqwest::Client>;
 
 /// User input for a scrobble (`app.rocksky.scrobble`). Only the first five fields
 /// are required by the lexicon; the rest enrich the record when known.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", default)]
 pub struct ScrobbleDraft {
     pub title: String,
     pub artist: String,
@@ -68,7 +69,8 @@ pub struct ScrobbleDraft {
 }
 
 /// User input for a canonical track record (`app.rocksky.song`).
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", default)]
 pub struct SongDraft {
     pub title: String,
     pub artist: String,
@@ -91,7 +93,8 @@ pub struct SongDraft {
 
 /// User input for an album record (`app.rocksky.album`). `artist` is the album
 /// artist.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", default)]
 pub struct AlbumDraft {
     pub title: String,
     pub artist: String,
@@ -104,7 +107,8 @@ pub struct AlbumDraft {
 }
 
 /// User input for an artist record (`app.rocksky.artist`).
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", default)]
 pub struct ArtistDraft {
     pub name: String,
     pub tags: Vec<String>,
@@ -115,7 +119,8 @@ pub struct ArtistDraft {
 /// The four records a [`scrobble`](RockskyAgent::scrobble) touches. Each URI is
 /// either newly created or, when the record already existed (dedup), the
 /// pre-existing one.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ScrobbleResult {
     pub artist_uri: String,
     pub album_uri: String,
@@ -124,7 +129,8 @@ pub struct ScrobbleResult {
 }
 
 /// The track for the actor's now-playing status (`app.rocksky.actor.status`).
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", default)]
 pub struct NowPlaying {
     pub name: String,
     pub artist: String,
