@@ -8,9 +8,7 @@
 //! the authenticated agent is a Rustler resource (opaque handle).
 
 use once_cell::sync::Lazy;
-use rocksky_sdk::{
-    AlbumDraft, ArtistDraft, NowPlaying, RockskyAgent, ScrobbleDraft, SongDraft,
-};
+use rocksky_sdk::{AlbumDraft, ArtistDraft, NowPlaying, RockskyAgent, ScrobbleDraft, SongDraft};
 use rustler::{Resource, ResourceArc};
 
 /// One multi-threaded tokio runtime drives every async SDK call. Dirty-IO nif
@@ -221,7 +219,12 @@ fn agent_unfollow(agent: ResourceArc<AgentRes>, did: String) -> String {
 }
 
 #[rustler::nif(schedule = "DirtyIo")]
-fn agent_shout(agent: ResourceArc<AgentRes>, subject_uri: String, subject_cid: String, message: String) -> String {
+fn agent_shout(
+    agent: ResourceArc<AgentRes>,
+    subject_uri: String,
+    subject_cid: String,
+    message: String,
+) -> String {
     envelope(RT.block_on(agent.0.shout(&subject_uri, &subject_cid, &message)))
 }
 

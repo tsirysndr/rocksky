@@ -483,23 +483,41 @@ impl AppView {
         Ok(RT.block_on(self.inner.profile(&actor)).map_err(err)?.into())
     }
 
-    pub fn scrobbles(&self, actor: String, limit: u32, offset: u32) -> Result<Vec<ScrobbleView>, RockskyError> {
-        let out = RT.block_on(self.inner.scrobbles(&actor, limit, offset)).map_err(err)?;
+    pub fn scrobbles(
+        &self,
+        actor: String,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<ScrobbleView>, RockskyError> {
+        let out = RT
+            .block_on(self.inner.scrobbles(&actor, limit, offset))
+            .map_err(err)?;
         Ok(out.into_iter().map(Into::into).collect())
     }
 
-    pub fn songs(&self, actor: String, limit: u32, offset: u32) -> Result<Vec<SongView>, RockskyError> {
-        let out = RT.block_on(self.inner.songs(&actor, limit, offset)).map_err(err)?;
+    pub fn songs(
+        &self,
+        actor: String,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<SongView>, RockskyError> {
+        let out = RT
+            .block_on(self.inner.songs(&actor, limit, offset))
+            .map_err(err)?;
         Ok(out.into_iter().map(Into::into).collect())
     }
 
     pub fn top_tracks(&self, limit: u32, offset: u32) -> Result<Vec<SongView>, RockskyError> {
-        let out = RT.block_on(self.inner.top_tracks(limit, offset)).map_err(err)?;
+        let out = RT
+            .block_on(self.inner.top_tracks(limit, offset))
+            .map_err(err)?;
         Ok(out.into_iter().map(Into::into).collect())
     }
 
     pub fn top_artists(&self, limit: u32, offset: u32) -> Result<Vec<ArtistView>, RockskyError> {
-        let out = RT.block_on(self.inner.top_artists(limit, offset)).map_err(err)?;
+        let out = RT
+            .block_on(self.inner.top_artists(limit, offset))
+            .map_err(err)?;
         Ok(out.into_iter().map(Into::into).collect())
     }
 
@@ -540,7 +558,8 @@ impl Agent {
         #[cfg(not(feature = "dedup"))]
         let _ = &dedup_path;
         let agent = builder.build().map_err(err)?;
-        RT.block_on(agent.login_password(&identifier, &password)).map_err(err)?;
+        RT.block_on(agent.login_password(&identifier, &password))
+            .map_err(err)?;
         Ok(Arc::new(Self { inner: agent }))
     }
 
@@ -559,19 +578,25 @@ impl Agent {
 
     /// Scrobble a play — fans out to artist/album/song then the scrobble.
     pub fn scrobble(&self, input: ScrobbleInput) -> Result<ScrobbleResult, RockskyError> {
-        Ok(RT.block_on(self.inner.scrobble(&input.into())).map_err(err)?.into())
+        Ok(RT
+            .block_on(self.inner.scrobble(&input.into()))
+            .map_err(err)?
+            .into())
     }
 
     pub fn create_song(&self, input: SongInput) -> Result<String, RockskyError> {
-        RT.block_on(self.inner.create_song(&input.into())).map_err(err)
+        RT.block_on(self.inner.create_song(&input.into()))
+            .map_err(err)
     }
 
     pub fn create_album(&self, input: AlbumInput) -> Result<String, RockskyError> {
-        RT.block_on(self.inner.create_album(&input.into())).map_err(err)
+        RT.block_on(self.inner.create_album(&input.into()))
+            .map_err(err)
     }
 
     pub fn create_artist(&self, input: ArtistInput) -> Result<String, RockskyError> {
-        RT.block_on(self.inner.create_artist(&input.into())).map_err(err)
+        RT.block_on(self.inner.create_artist(&input.into()))
+            .map_err(err)
     }
 
     /// Like a record by strong reference. Returns the like URI.
@@ -593,8 +618,14 @@ impl Agent {
     }
 
     /// Post a shout on a subject. Returns the shout URI.
-    pub fn shout(&self, subject_uri: String, subject_cid: String, message: String) -> Result<String, RockskyError> {
-        RT.block_on(self.inner.shout(&subject_uri, &subject_cid, &message)).map_err(err)
+    pub fn shout(
+        &self,
+        subject_uri: String,
+        subject_cid: String,
+        message: String,
+    ) -> Result<String, RockskyError> {
+        RT.block_on(self.inner.shout(&subject_uri, &subject_cid, &message))
+            .map_err(err)
     }
 
     /// Reply to a shout. Returns the shout URI.
@@ -606,13 +637,20 @@ impl Agent {
         parent_cid: String,
         message: String,
     ) -> Result<String, RockskyError> {
-        RT.block_on(self.inner.reply_shout(&subject_uri, &subject_cid, &parent_uri, &parent_cid, &message))
-            .map_err(err)
+        RT.block_on(self.inner.reply_shout(
+            &subject_uri,
+            &subject_cid,
+            &parent_uri,
+            &parent_cid,
+            &message,
+        ))
+        .map_err(err)
     }
 
     /// Set the actor's now-playing status singleton.
     pub fn set_now_playing(&self, track: NowPlayingInput) -> Result<(), RockskyError> {
-        RT.block_on(self.inner.set_now_playing(&track.into())).map_err(err)
+        RT.block_on(self.inner.set_now_playing(&track.into()))
+            .map_err(err)
     }
 
     /// Delete the actor's now-playing status singleton.

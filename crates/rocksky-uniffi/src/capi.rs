@@ -224,10 +224,7 @@ pub unsafe extern "C" fn rocksky_agent_follow(
     did: *const c_char,
 ) -> *mut c_char {
     let a = with_agent(agent);
-    respond(
-        RT.block_on(a.follow(&cstr(did)))
-            .map_err(|e| e.to_string()),
-    )
+    respond(RT.block_on(a.follow(&cstr(did))).map_err(|e| e.to_string()))
 }
 
 /// # Safety
