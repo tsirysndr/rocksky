@@ -579,11 +579,11 @@ function AlbumTrackRow({
   discHeader: number | null;
 }) {
   return (
-    <Box flexDirection="column">
+    <Box flexDirection="column" flexGrow={1}>
       {discHeader != null ? (
         <Text bold color={TEAL}>{`  Disc ${discHeader}`}</Text>
       ) : null}
-      <Box>
+      <Box width="100%">
         <Cell width={2}>
           <Text color={active ? BLUE : VIOLET}>{active ? "▶" : " "}</Text>
         </Cell>
@@ -598,7 +598,7 @@ function AlbumTrackRow({
         <Cell width={2}>
           <Text color={TEAL}>{liked ? "♥" : " "}</Text>
         </Cell>
-        <Cell width={20}>
+        <Cell width={32}>
           <Ell dimColor>{row.artist}</Ell>
         </Cell>
         <Cell width={6} right>
@@ -636,10 +636,10 @@ function RowLine({
         <Cell width={2}>
           <Text color={TEAL}>{liked ? "♥" : " "}</Text>
         </Cell>
-        <Cell width={24}>
+        <Cell width={34}>
           <Ell dimColor>{row.artist}</Ell>
         </Cell>
-        <Cell width={18}>
+        <Cell width={16}>
           <Ell dimColor>{row.album ?? ""}</Ell>
         </Cell>
         <Cell width={6} right>

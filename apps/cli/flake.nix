@@ -20,7 +20,7 @@
 
         rocksky-cli = pkgs.buildNpmPackage {
           pname = "rocksky-cli";
-          version = "0.4.7";
+          version = "0.4.8";
 
           src = ./.;
 
