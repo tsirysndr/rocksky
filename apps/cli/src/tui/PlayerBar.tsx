@@ -1,18 +1,22 @@
 import { Box, Text } from "ink";
 import { useAtomValue } from "jotai";
-import React from "react";
+import React, { useRef } from "react";
 import { fmtDuration } from "./format";
 import { likedIdsAtom } from "./likes";
+import { isPrefetching } from "./playback";
 import { playerController } from "./player";
 import { playerStatusAtom, scrobbledTitleAtom } from "./store";
 import { BLUE, TEAL, VIOLET } from "./theme";
 
 const BAR_WIDTH = 30;
+const AMBER = "#FFB000";
 
 export function PlayerBar() {
   const status = useAtomValue(playerStatusAtom);
   const scrobbledTitle = useAtomValue(scrobbledTitleAtom);
   const likedIds = useAtomValue(likedIdsAtom);
+  // Tracks position between polls to detect a stall (= buffering).
+  const progress = useRef({ index: -1, pos: -1, stalls: 0 });
 
   if (!status || status.state === "stopped") {
     const restored = playerController.restored;
@@ -44,14 +48,30 @@ export function PlayerBar() {
   const pos = status.position_ms || 0;
   const dur = status.duration_ms || item?.duration || 0;
 
+  // Buffering = playing but position hasn't moved (initial stream load or a
+  // network stall). Shown so the wait for a large file to start is explained.
+  const pr = progress.current;
+  if (status.state === "playing") {
+    if (pr.index === status.index && pr.pos === pos) pr.stalls += 1;
+    else pr.stalls = 0;
+    pr.pos = pos;
+    pr.index = status.index ?? -1;
+  } else {
+    pr.stalls = 0;
+    pr.pos = pos;
+  }
+  const buffering =
+    status.state === "playing" && (pos === 0 || pr.stalls >= 1);
+
   const filled = dur > 0 ? Math.round((pos / dur) * BAR_WIDTH) : 0;
   const bar =
     "█".repeat(Math.min(filled, BAR_WIDTH)) +
     "─".repeat(Math.max(0, BAR_WIDTH - filled));
-  const icon = status.state === "playing" ? "▶" : "⏸";
+  const icon = buffering ? "⏳" : status.state === "playing" ? "▶" : "⏸";
   const vol = Math.round(playerController.volume() * 100);
   const scrobbled = scrobbledTitle !== "" && scrobbledTitle === title;
   const modes = [
+    isPrefetching() ? "caching next" : null,
     scrobbled ? "scrobbled" : null,
     status.shuffle ? "shuffle" : null,
     status.repeat === "all"
@@ -72,7 +92,7 @@ export function PlayerBar() {
       flexDirection="column"
     >
       <Text>
-        <Text color={BLUE}>{icon} </Text>
+        <Text color={buffering ? AMBER : BLUE}>{icon} </Text>
         {item?.trackId && likedIds.has(item.trackId) ? (
           <Text color={TEAL}>{"♥ "}</Text>
         ) : null}
@@ -80,6 +100,7 @@ export function PlayerBar() {
           {title}
         </Text>
         {artist ? <Text dimColor>{` — ${artist}`}</Text> : null}
+        {buffering ? <Text color={AMBER}>{"   ⏳ buffering…"}</Text> : null}
       </Text>
       <Text>
         <Text color={TEAL}>{bar}</Text>
