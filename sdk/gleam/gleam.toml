@@ -14,6 +14,9 @@ gleam_stdlib = ">= 0.71.0 and < 2.0.0"
 gleam_http = ">= 4.0.0 and < 5.0.0"
 gleam_httpc = ">= 5.0.0 and < 6.0.0"
 gleam_json = ">= 3.0.0 and < 4.0.0"
+# Native core (Rustler NIF) behind the `rocksky/core` module. Monorepo path dep
+# to the Erlang package; build its priv/rocksky_nif.so via ../erlang/build-core.sh.
+rocksky_erl = { path = "../erlang" }
 
 [dev-dependencies]
 gleeunit = ">= 1.2.0 and < 2.0.0"

@@ -44,10 +44,20 @@ defmodule Rocksky.MixProject do
     [
       {:req, "~> 0.5"},
       {:jason, "~> 1.4"},
+      # Native core (Rustler NIF) behind Rocksky.Core. Monorepo path dep;
+      # override with ROCKSKY_ERL_PATH for out-of-tree builds.
+      {:rocksky_erl, rocksky_erl_dep()},
       {:plug, "~> 1.16", only: :test},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
       {:excoveralls, "~> 0.18", only: :test}
     ]
+  end
+
+  defp rocksky_erl_dep do
+    case System.get_env("ROCKSKY_ERL_PATH") do
+      nil -> [path: "../erlang"]
+      path -> [path: path]
+    end
   end
 
   defp description do
