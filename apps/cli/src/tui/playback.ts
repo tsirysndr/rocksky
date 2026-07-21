@@ -18,9 +18,13 @@ export async function streamAndPlay(
   index = 0,
 ) {
   if (tracks.length === 0) return;
+  // Play immediately: cached tracks play from disk, the rest stream over HTTP —
+  // rockbox starts as soon as it has buffered enough, so there's no wait for a
+  // full download (which is painful on large files). We deliberately do NOT
+  // kick off a cache download here: downloading a track while it's streaming is
+  // the double-bandwidth that caused dropouts. Caching happens opportunistically
+  // in prefetchTick, and only while the current track plays from a local file.
   await playerController.playQueue(tracks, await playableUris(token, tracks), index);
-  // Cache the track we just started so replays (and resume) are instant.
-  cacheTrack(token, tracks[index]).catch(() => {});
 }
 
 /** Insert tracks right after the current one ("play next"). Caches first. */
@@ -61,42 +65,32 @@ export async function resumeSession(token: string) {
   playerController.restored = null;
 }
 
-// Runs on a short interval. Two jobs:
-//  1. Always ensure the *currently playing* track is cached — so every track
-//     you actually listen to ends up on disk, regardless of skips or how the
-//     stream's duration is reported. (cacheTrack de-dupes in-flight downloads.)
-//  2. Once the current track passes the halfway point, prefetch the *next*
-//     track and hot-swap its queue entry to the local file, so the engine has
-//     fully-decoded audio ready to crossfade / play gaplessly.
-const prefetching = new Set<string>();
-
-// Download `item` to cache (if it has an uploadId and isn't already cached or
-// in flight), tracked by uploadId so we don't pile up duplicate requests.
-async function ensureCached(token: string, item: QueueItem | undefined) {
-  if (!item?.uploadId || isCached(item) || prefetching.has(item.uploadId)) {
-    return;
-  }
-  prefetching.add(item.uploadId);
-  try {
-    await cacheTrack(token, item);
-  } catch {
-    // network / disk hiccup — will be retried on a later tick
-  } finally {
-    prefetching.delete(item.uploadId);
-  }
+/** True while a background track download is running (for a buffering hint). */
+export function isPrefetching(): boolean {
+  return prefetching.size > 0;
 }
+
+// Runs on a short interval. Downloads the NEXT track to disk while the current
+// one plays, then hot-swaps its queue entry to the local file (gapless /
+// crossfade-ready). Crucially, it only downloads while the current track is
+// playing from a LOCAL file — never while a track is streaming — so we never
+// contend for bandwidth with the audio you're hearing. That single rule is what
+// keeps playback smooth on weak connections / SBCs.
+const prefetching = new Set<string>();
 
 export async function prefetchTick(token: string | undefined) {
   if (!token) return;
   const status = playerController.status();
   if (!status || status.index == null || status.queue_len === 0) return;
+  if (status.state !== "playing") return;
 
-  // 1. Cache the current track (ungated).
-  void ensureCached(token, playerController.queueItems[status.index]);
-
-  // 2. Prefetch + swap the next track once we're past the halfway point.
-  const duration = status.duration_ms || 0;
-  if (duration <= 0 || (status.position_ms || 0) / duration < 0.5) return;
+  // Only pull the next track while the CURRENT one is playing from a local
+  // file — otherwise we'd be downloading while streaming (the double-bandwidth
+  // that causes dropouts). No dependency on duration_ms (which streams report
+  // late, especially on Linux).
+  const current = playerController.queueItems[status.index];
+  if (!current || !isCached(current)) return;
+  if ((status.position_ms || 0) < 2000) return;
 
   let next = status.index + 1;
   if (next >= status.queue_len) {
@@ -119,7 +113,7 @@ export async function prefetchTick(token: string | undefined) {
     const filePath = await cacheTrack(token, item);
     playerController.swapQueueToLocal(next, filePath);
   } catch {
-    // leave it as a stream URL; it will still play
+    // network / disk hiccup — retried on a later tick
   } finally {
     prefetching.delete(item.uploadId);
   }

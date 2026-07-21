@@ -60,10 +60,25 @@ export function cacheTrack(token: string, item: QueueItem): Promise<string> {
     const client = new RockskyClient(token);
     const { token: streamToken } = await client.getStreamToken();
     const res = await fetch(client.streamUrl(item.uploadId, streamToken));
-    if (!res.ok) throw new Error(`cache download failed: ${res.status}`);
-    const buf = Buffer.from(await res.arrayBuffer());
+    if (!res.ok || !res.body) {
+      throw new Error(`cache download failed: ${res.status}`);
+    }
+    // Stream straight to disk instead of buffering the whole track in RAM —
+    // critical on low-memory devices (e.g. an Orange Pi Zero with 1 GB).
     const tmp = `${dest}.part`;
-    fs.writeFileSync(tmp, buf);
+    const { Readable } = await import("node:stream");
+    const { pipeline } = await import("node:stream/promises");
+    try {
+      await pipeline(
+        Readable.fromWeb(res.body as any),
+        fs.createWriteStream(tmp),
+      );
+    } catch (e) {
+      try {
+        fs.rmSync(tmp, { force: true });
+      } catch {}
+      throw e;
+    }
     fs.renameSync(tmp, dest);
     pruneCache();
     return dest;

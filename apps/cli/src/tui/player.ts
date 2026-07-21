@@ -129,12 +129,12 @@ class PlayerController {
     if (!this.player) {
       const { Player } = await import("rockbox-ffi/node");
       const s = this.sound;
-      // A large read-ahead buffer is required for crossfade to work (it must
-      // hold the tail of the current track and the head of the next at once)
-      // and also smooths out streaming gaps between tracks.
+      // Read-ahead buffer. Tracks play from cached local files, so this only
+      // needs to cover the crossfade overlap — 24s is ample for a 12s fade and
+      // keeps memory / initial fill low on constrained devices (e.g. an SBC).
       this.player = new Player({
         volume: this._volume,
-        bufferSeconds: 64,
+        bufferSeconds: 24,
         crossfadeMode: s.crossfade,
         fadeOutDelayMs: Math.round(s.fadeOutDelay * 1000),
         fadeOutDurationMs: Math.round(s.fadeOutDuration * 1000),
