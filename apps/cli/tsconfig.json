@@ -3,6 +3,7 @@
     "allowJs": true,
     "allowSyntheticDefaultImports": true,
     "baseUrl": "src",
+    "paths": { "*": ["*"] },
     "declaration": true,
     "sourceMap": true,
     "esModuleInterop": true,

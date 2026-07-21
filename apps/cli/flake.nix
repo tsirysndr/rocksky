@@ -20,7 +20,7 @@
 
         rocksky-cli = pkgs.buildNpmPackage {
           pname = "rocksky-cli";
-          version = "0.4.1";
+          version = "0.4.2";
 
           src = ./.;
 
@@ -30,9 +30,9 @@
           nodejs = pkgs.nodejs_22;
 
           buildInputs = linuxDeps;
-          nativeBuildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [
-            pkgs.makeWrapper
-          ];
+          # bun runs the build script (`bun build …`).
+          nativeBuildInputs = [ pkgs.bun ]
+            ++ pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.makeWrapper ];
 
           # Make the ALSA / D-Bus shared libraries discoverable at runtime so the
           # native rockbox-ffi library and dbus-next can dlopen them.
@@ -49,6 +49,7 @@
         devShells.default = pkgs.mkShell {
           packages = [
             pkgs.nodejs_22
+            pkgs.bun
             rocksky-cli
           ];
           buildInputs = linuxDeps;
