@@ -5,14 +5,22 @@ import {
   IconDots,
   IconMusic,
   IconPlayerPlay,
-  IconVinyl,
+  IconPlaylist,
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
-import { useCallback, useRef, useEffect, useState } from "react";
-import { Route } from "../../routes/library/album/$id";
-import { getCoverArtUrl, type NavidromeSong, type NavidromeCredentials } from "../../api/navidrome";
-import { useNavidromeAlbumQuery, useNavidromeCredentials, songToQueueTrack } from "../../hooks/useNavidrome";
-import { useDeleteUploadByTrackIdMutation, useDeleteAlbumByIdMutation } from "../../hooks/useUploads";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Route } from "../../routes/library/playlist/$id";
+import {
+  getCoverArtUrl,
+  type NavidromeSong,
+  type NavidromeCredentials,
+} from "../../api/navidrome";
+import {
+  useNavidromeCredentials,
+  useNavidromePlaylistQuery,
+  useRemoveTrackFromPlaylistMutation,
+  songToQueueTrack,
+} from "../../hooks/useNavidrome";
 import { useUploadPlayer } from "../../hooks/useUploadPlayer";
 import type { QueueTrack } from "../../atoms/queue";
 import Main from "../../layouts/Main";
@@ -23,15 +31,15 @@ import { AddToPlaylistMenu } from "../../components/AddToPlaylistMenu";
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatDurationSecs(secs: number) {
-  const m = Math.floor(secs / 60);
-  const s = secs % 60;
+function formatDuration(seconds: number) {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-function formatTotalSecs(secs: number) {
-  const h = Math.floor(secs / 3600);
-  const m = Math.floor((secs % 3600) / 60);
+function formatTotalSecs(seconds: number) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
   if (h > 0) return `${h} hr ${m} min`;
   return `${m} min`;
 }
@@ -61,14 +69,14 @@ const BackBtn = styled.button`
   &:hover { background: var(--color-menu-hover); color: var(--color-text); }
 `;
 
-const AlbumHeader = styled.div`
+const Header = styled.div`
   display: flex;
   gap: 24px;
   align-items: flex-end;
   margin-bottom: 32px;
 `;
 
-const AlbumArt = styled.div`
+const Cover = styled.div`
   width: 160px;
   height: 160px;
   border-radius: 16px;
@@ -81,32 +89,20 @@ const AlbumArt = styled.div`
   box-shadow: 0 8px 32px rgba(0,0,0,0.12);
 `;
 
-const AlbumMeta = styled.div`
+const Meta = styled.div`
   flex: 1;
   min-width: 0;
 `;
 
-const AlbumTitle = styled.h1`
-  margin: 0 0 6px;
+const Name = styled.h1`
+  margin: 0 0 8px;
   font-size: 1.75rem;
   font-family: RockfordSansBold;
   color: var(--color-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 `;
 
-const AlbumArtistLink = styled.p`
-  margin: 0 0 8px;
-  font-size: 1rem;
-  font-family: RockfordSansMedium;
-  color: var(--color-primary);
-  cursor: pointer;
-  &:hover { text-decoration: underline; }
-`;
-
-const AlbumStats = styled.p`
-  margin: 0;
+const Stats = styled.p`
+  margin: 0 0 16px;
   font-size: 0.8125rem;
   color: var(--color-text-muted);
 `;
@@ -115,7 +111,6 @@ const PlayButtons = styled.div`
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-top: 16px;
 `;
 
 const PlayBtn = styled.button`
@@ -131,6 +126,7 @@ const PlayBtn = styled.button`
   border-radius: 999px;
   cursor: pointer;
   &:hover { opacity: 0.85; }
+  &:disabled { opacity: 0.4; cursor: default; }
 `;
 
 const ShuffleBtn = styled.button`
@@ -145,11 +141,6 @@ const ShuffleBtn = styled.button`
   font-family: RockfordSansMedium;
   cursor: pointer;
   &:hover { color: var(--color-text); }
-`;
-
-const DeleteAlbumBtn = styled(ShuffleBtn)`
-  color: #e55;
-  &:hover { color: #e55; opacity: 0.8; }
   &:disabled { opacity: 0.4; cursor: default; }
 `;
 
@@ -163,7 +154,7 @@ const TrackRow = styled.div`
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
+  padding: 10px 12px 10px 0;
   border-radius: 12px;
   cursor: pointer;
   &:hover { background: var(--color-menu-hover); }
@@ -172,12 +163,24 @@ const TrackRow = styled.div`
 `;
 
 const TrackNum = styled.span`
-  width: 24px;
+  width: 28px;
   text-align: right;
   font-size: 0.8125rem;
   color: var(--color-text-muted);
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
+`;
+
+const ArtworkBox = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--color-menu-hover);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 `;
 
 const TrackInfo = styled.div`
@@ -195,7 +198,7 @@ const TrackTitle = styled.p`
   color: var(--color-text);
 `;
 
-const TrackArtist = styled.p`
+const TrackMeta = styled.p`
   margin: 0;
   font-size: 0.75rem;
   color: var(--color-text-muted);
@@ -247,11 +250,6 @@ const MenuHeaderArt = styled.div`
   justify-content: center;
 `;
 
-const MenuHeaderInfo = styled.div`
-  flex: 1;
-  min-width: 0;
-`;
-
 const MenuHeaderTitle = styled.p`
   margin: 0;
   font-size: 0.8125rem;
@@ -296,81 +294,31 @@ const DangerMenuItem = styled(MenuItem)`
   &:hover { background: color-mix(in srgb, #e55 12%, transparent); }
 `;
 
-const shimmer = `
-  @keyframes shimmer {
-    0% { background-position: -400px 0; }
-    100% { background-position: 400px 0; }
-  }
-`;
-
-const SkeletonBox = styled.div<{ w?: string; h?: string; radius?: string }>`
-  ${shimmer}
-  width: ${({ w }) => w ?? "100%"};
-  height: ${({ h }) => h ?? "16px"};
-  border-radius: ${({ radius }) => radius ?? "8px"};
-  background: linear-gradient(
-    90deg,
-    var(--color-menu-hover) 25%,
-    color-mix(in srgb, var(--color-menu-hover) 60%, var(--color-text-muted) 10%) 50%,
-    var(--color-menu-hover) 75%
-  );
-  background-size: 800px 100%;
-  animation: shimmer 1.4s infinite linear;
-  flex-shrink: 0;
+const Empty = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 80px 0;
+  color: var(--color-text-muted);
 `;
 
 // ---------------------------------------------------------------------------
-// Skeleton
+// TrackContextMenu
 // ---------------------------------------------------------------------------
 
-function AlbumPageSkeleton() {
-  return (
-    <Main>
-      <Page>
-        <SkeletonBox w="80px" h="32px" radius="10px" style={{ marginBottom: 24 }} />
-        <AlbumHeader>
-          <SkeletonBox w="160px" h="160px" radius="16px" />
-          <AlbumMeta>
-            <SkeletonBox w="220px" h="28px" radius="8px" style={{ marginBottom: 10 }} />
-            <SkeletonBox w="140px" h="18px" radius="6px" style={{ marginBottom: 8 }} />
-            <SkeletonBox w="100px" h="14px" radius="6px" style={{ marginBottom: 16 }} />
-            <div style={{ display: "flex", gap: 12 }}>
-              <SkeletonBox w="90px" h="38px" radius="999px" />
-              <SkeletonBox w="80px" h="38px" radius="999px" />
-            </div>
-          </AlbumMeta>
-        </AlbumHeader>
-        <TrackList>
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px" }}>
-              <SkeletonBox w="24px" h="14px" radius="4px" />
-              <div style={{ flex: 1 }}>
-                <SkeletonBox w={`${60 + (i % 3) * 15}%`} h="14px" radius="6px" />
-              </div>
-              <SkeletonBox w="32px" h="14px" radius="4px" />
-            </div>
-          ))}
-        </TrackList>
-      </Page>
-    </Main>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Track context menu
-// ---------------------------------------------------------------------------
-
-function TrackMenu({
-  song, albumArt, anchorEl, creds, onPlay, onPlayNext, onPlayLast, onDelete, onClose,
+function TrackContextMenu({
+  song, index, albumArt, anchorEl, creds, onPlay, onPlayNext, onPlayLast, onRemove, onClose,
 }: {
   song: NavidromeSong;
+  index: number;
   albumArt: string | null;
   anchorEl: HTMLElement | null;
   creds: NavidromeCredentials;
   onPlay: () => void;
   onPlayNext: (t: QueueTrack) => void;
   onPlayLast: (t: QueueTrack) => void;
-  onDelete: () => void;
+  onRemove: (index: number) => void;
   onClose: () => void;
 }) {
   const navigate = useNavigate();
@@ -393,16 +341,15 @@ function TrackMenu({
             ? <img src={albumArt} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             : <IconMusic size={16} color="var(--color-text-muted)" />}
         </MenuHeaderArt>
-        <MenuHeaderInfo>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <MenuHeaderTitle>{song.title}</MenuHeaderTitle>
           <MenuHeaderArtist>{song.artist}</MenuHeaderArtist>
-        </MenuHeaderInfo>
+        </div>
       </MenuHeader>
       <MenuDivider />
       <MenuItem onClick={(e) => { e.stopPropagation(); onPlay(); onClose(); }}>
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconPlayerPlay size={14} /> Play</span>
       </MenuItem>
-      <MenuDivider />
       <MenuItem onClick={(e) => { e.stopPropagation(); onPlayNext(track); onClose(); }}>Play next</MenuItem>
       <MenuItem onClick={(e) => { e.stopPropagation(); onPlayLast(track); onClose(); }}>Add to queue</MenuItem>
       <MenuDivider />
@@ -415,14 +362,14 @@ function TrackMenu({
           </MenuItem>
         </>
       )}
+      {song.albumId && (
+        <MenuItem onClick={(e) => { e.stopPropagation(); navigate({ to: "/library/album/$id", params: { id: song.albumId! } }); onClose(); }}>
+          Go to album
+        </MenuItem>
+      )}
       <MenuDivider />
-      <DangerMenuItem onClick={(e) => {
-        e.stopPropagation();
-        if (!window.confirm(`Delete "${song.title}"? This cannot be undone.`)) return;
-        onDelete();
-        onClose();
-      }}>
-        Delete track
+      <DangerMenuItem onClick={(e) => { e.stopPropagation(); onRemove(index); onClose(); }}>
+        Remove from playlist
       </DangerMenuItem>
     </DropdownPortal>
   );
@@ -432,40 +379,49 @@ function TrackMenu({
 // Page
 // ---------------------------------------------------------------------------
 
-export default function LibraryAlbum() {
+export default function LibraryPlaylist() {
   const navigate = useNavigate();
   const { id } = Route.useParams();
   const { data: creds } = useNavidromeCredentials();
   const { playNow, playNext, playLast } = useUploadPlayer();
-  const deleteTrack = useDeleteUploadByTrackIdMutation();
-  const deleteAlbumById = useDeleteAlbumByIdMutation();
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const { data: playlist, isLoading } = useNavidromePlaylistQuery(id);
+  const removeTrack = useRemoveTrackFromPlaylistMutation();
+
+  const [openMenuIdx, setOpenMenuIdx] = useState<number | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
 
-  const { data: album, isLoading } = useNavidromeAlbumQuery(id);
+  const songs: NavidromeSong[] = useMemo(() => playlist?.entry ?? [], [playlist]);
+  const totalDuration = playlist?.duration ?? songs.reduce((sum, s) => sum + s.duration, 0);
 
-  const songs: NavidromeSong[] = album?.song ?? [];
-  const albumArtUrl = creds && album?.coverArt ? getCoverArtUrl(creds, album.coverArt) : null;
-  const totalSecs = songs.reduce((sum, s) => sum + s.duration, 0);
-
-  const toTrack = useCallback(
-    (s: NavidromeSong) => creds ? songToQueueTrack(s, creds, albumArtUrl) : null,
-    [creds, albumArtUrl],
+  const coverUrl = useCallback(
+    (coverArt?: string) => (creds && coverArt ? getCoverArtUrl(creds, coverArt) : null),
+    [creds],
   );
 
-  const handlePlay = useCallback(() => {
-    playNow(songs.map(toTrack).filter(Boolean) as QueueTrack[]);
-  }, [songs, toTrack, playNow]);
+  const queue = useCallback(
+    (): QueueTrack[] => (creds ? songs.map((s) => songToQueueTrack(s, creds, coverUrl(s.coverArt))) : []),
+    [creds, songs, coverUrl],
+  );
 
-  const handleShuffle = useCallback(() => {
-    playNow([...songs.map(toTrack).filter(Boolean) as QueueTrack[]].sort(() => Math.random() - 0.5));
-  }, [songs, toTrack, playNow]);
+  const handlePlay = useCallback(() => playNow(queue()), [queue, playNow]);
+  const handleShuffle = useCallback(() => playNow([...queue()].sort(() => Math.random() - 0.5)), [queue, playNow]);
+  const handleTrackPlay = useCallback((idx: number) => playNow(queue(), idx), [queue, playNow]);
 
-  const handleTrackClick = useCallback((idx: number) => {
-    playNow(songs.map(toTrack).filter(Boolean) as QueueTrack[], idx);
-  }, [songs, toTrack, playNow]);
-
-  if (isLoading || !album || !creds) return <AlbumPageSkeleton />;
+  if (isLoading || !creds || !playlist) {
+    return (
+      <Main>
+        <Page>
+          <BackBtn onClick={() => navigate({ to: "/library" })}>
+            <IconArrowLeft size={16} /> Library
+          </BackBtn>
+          <Empty>
+            <IconPlaylist size={40} />
+            Loading…
+          </Empty>
+        </Page>
+      </Main>
+    );
+  }
 
   return (
     <Main>
@@ -474,73 +430,76 @@ export default function LibraryAlbum() {
           <IconArrowLeft size={16} /> Library
         </BackBtn>
 
-        <AlbumHeader>
-          <AlbumArt>
-            {albumArtUrl
-              ? <img src={albumArtUrl} alt={album.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              : <IconVinyl size={56} color="var(--color-text-muted)" />}
-          </AlbumArt>
-          <AlbumMeta>
-            <AlbumTitle>{album.name}</AlbumTitle>
-            <AlbumArtistLink onClick={() => album.artistId && navigate({ to: "/library/artist/$id", params: { id: album.artistId } })}>
-              {album.artist}
-            </AlbumArtistLink>
-            <AlbumStats>
-              {songs.length} track{songs.length !== 1 ? "s" : ""} · {formatTotalSecs(totalSecs)}
-              {album.year ? ` · ${album.year}` : ""}
-            </AlbumStats>
+        <Header>
+          <Cover>
+            {coverUrl(playlist.coverArt)
+              ? <img src={coverUrl(playlist.coverArt)!} alt={playlist.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              : <IconPlaylist size={56} color="var(--color-text-muted)" />}
+          </Cover>
+          <Meta>
+            <Name>{playlist.name}</Name>
+            <Stats>
+              {songs.length} track{songs.length !== 1 ? "s" : ""} · {formatTotalSecs(totalDuration)}
+            </Stats>
             <PlayButtons>
-              <PlayBtn onClick={handlePlay}><IconPlayerPlay size={15} /> Play</PlayBtn>
-              <ShuffleBtn onClick={handleShuffle}><IconArrowsShuffle size={15} /> Shuffle</ShuffleBtn>
-              <DeleteAlbumBtn
-                disabled={deleteAlbumById.isPending}
-                onClick={() => {
-                  if (!window.confirm(`Delete all tracks from "${album.name}"? This cannot be undone.`)) return;
-                  deleteAlbumById.mutate(id, { onSuccess: () => navigate({ to: "/library" }) });
-                }}
-              >
-                Delete album
-              </DeleteAlbumBtn>
+              <PlayBtn onClick={handlePlay} disabled={songs.length === 0}><IconPlayerPlay size={15} /> Play</PlayBtn>
+              <ShuffleBtn onClick={handleShuffle} disabled={songs.length === 0}><IconArrowsShuffle size={15} /> Shuffle</ShuffleBtn>
             </PlayButtons>
-          </AlbumMeta>
-        </AlbumHeader>
+          </Meta>
+        </Header>
 
-        <TrackList>
-          {songs.map((song, idx) => (
-            <TrackRow key={song.id} onClick={() => handleTrackClick(idx)}>
-              <TrackNum>{song.track ?? idx + 1}</TrackNum>
-              <TrackInfo>
-                <TrackTitle>{song.title}</TrackTitle>
-                {song.artist !== album.artist && <TrackArtist>{song.artist}</TrackArtist>}
-              </TrackInfo>
-              <Duration>{formatDurationSecs(song.duration)}</Duration>
-              <div className="track-actions">
-                <MenuWrap>
-                  <MenuBtn onClick={(e) => {
-                    e.stopPropagation();
-                    if (openMenuId === song.id) { setOpenMenuId(null); setMenuAnchor(null); }
-                    else { setOpenMenuId(song.id); setMenuAnchor(e.currentTarget); }
-                  }}>
-                    <IconDots size={15} />
-                  </MenuBtn>
-                  {openMenuId === song.id && (
-                    <TrackMenu
-                      song={song}
-                      albumArt={albumArtUrl}
-                      anchorEl={menuAnchor}
-                      creds={creds}
-                      onPlay={() => handleTrackClick(idx)}
-                      onPlayNext={playNext}
-                      onPlayLast={playLast}
-                      onDelete={() => deleteTrack.mutate(song.id)}
-                      onClose={() => { setOpenMenuId(null); setMenuAnchor(null); }}
-                    />
-                  )}
-                </MenuWrap>
-              </div>
-            </TrackRow>
-          ))}
-        </TrackList>
+        {songs.length === 0 ? (
+          <Empty>
+            <IconPlaylist size={40} />
+            This playlist is empty.
+          </Empty>
+        ) : (
+          <TrackList>
+            {songs.map((song, idx) => {
+              const albumArt = coverUrl(song.coverArt);
+              return (
+                <TrackRow key={`${song.id}-${idx}`} onClick={() => handleTrackPlay(idx)}>
+                  <TrackNum>{idx + 1}</TrackNum>
+                  <ArtworkBox>
+                    {albumArt
+                      ? <img src={albumArt} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      : <IconMusic size={18} color="var(--color-text-muted)" />}
+                  </ArtworkBox>
+                  <TrackInfo>
+                    <TrackTitle>{song.title}</TrackTitle>
+                    <TrackMeta>{song.artist}{song.album && ` — ${song.album}`}</TrackMeta>
+                  </TrackInfo>
+                  <Duration>{formatDuration(song.duration)}</Duration>
+                  <div className="track-actions" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <MenuWrap>
+                      <MenuBtn onClick={(e) => {
+                        e.stopPropagation();
+                        if (openMenuIdx === idx) { setOpenMenuIdx(null); setMenuAnchor(null); }
+                        else { setOpenMenuIdx(idx); setMenuAnchor(e.currentTarget); }
+                      }}>
+                        <IconDots size={15} />
+                      </MenuBtn>
+                      {openMenuIdx === idx && (
+                        <TrackContextMenu
+                          song={song}
+                          index={idx}
+                          albumArt={albumArt}
+                          anchorEl={menuAnchor}
+                          creds={creds}
+                          onPlay={() => handleTrackPlay(idx)}
+                          onPlayNext={playNext}
+                          onPlayLast={playLast}
+                          onRemove={(i) => removeTrack.mutate({ playlistId: playlist.id, index: i })}
+                          onClose={() => { setOpenMenuIdx(null); setMenuAnchor(null); }}
+                        />
+                      )}
+                    </MenuWrap>
+                  </div>
+                </TrackRow>
+              );
+            })}
+          </TrackList>
+        )}
       </Page>
     </Main>
   );

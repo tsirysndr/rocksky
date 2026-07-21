@@ -28,11 +28,21 @@ import {
   useNavidromeTracksQuery,
   songToQueueTrack,
 } from "../../hooks/useNavidrome";
+import {
+  useNavidromePlaylistsQuery,
+  useCreatePlaylistMutation,
+  useDeletePlaylistMutation,
+  useRenamePlaylistMutation,
+} from "../../hooks/useNavidrome";
 import { useDeleteUploadByTrackIdMutation, useDeleteAlbumByIdMutation } from "../../hooks/useUploads";
 import { useUploadPlayer } from "../../hooks/useUploadPlayer";
 import type { QueueTrack } from "../../atoms/queue";
+import type { NavidromePlaylist } from "../../api/navidrome";
+import { fetchNavidromePlaylist } from "../../api/navidrome";
 import Main from "../../layouts/Main";
 import { DropdownPortal } from "../../components/DropdownPortal";
+import { AddToPlaylistMenu } from "../../components/AddToPlaylistMenu";
+import { IconPlaylist, IconPlus } from "@tabler/icons-react";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -665,6 +675,8 @@ function TrackContextMenu({
       <MenuDivider />
       <MenuItem onClick={(e) => { e.stopPropagation(); onPlayNext(track); onClose(); }}>Play next</MenuItem>
       <MenuItem onClick={(e) => { e.stopPropagation(); onPlayLast(track); onClose(); }}>Add to queue</MenuItem>
+      <MenuDivider />
+      <AddToPlaylistMenu songId={song.id} onDone={onClose} />
       {song.artistId && (
         <>
           <MenuDivider />
@@ -758,6 +770,59 @@ function AlbumContextMenu({
 }
 
 // ---------------------------------------------------------------------------
+// PlaylistContextMenu
+// ---------------------------------------------------------------------------
+
+function PlaylistContextMenu({
+  playlist, anchorEl, onPlay, onShuffle, onRename, onDelete, onClose,
+}: {
+  playlist: NavidromePlaylist;
+  anchorEl: HTMLElement | null;
+  onPlay: () => void;
+  onShuffle: () => void;
+  onRename: () => void;
+  onDelete: () => void;
+  onClose: () => void;
+}) {
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  return (
+    <DropdownPortal anchorEl={anchorEl} menuRef={menuRef}>
+      <MenuHeader>
+        <MenuHeaderArt>
+          <IconPlaylist size={16} color="var(--color-text-muted)" />
+        </MenuHeaderArt>
+        <MenuHeaderInfo>
+          <MenuHeaderTitle>{playlist.name}</MenuHeaderTitle>
+          <MenuHeaderArtist>{playlist.songCount} tracks</MenuHeaderArtist>
+        </MenuHeaderInfo>
+      </MenuHeader>
+      <MenuDivider />
+      <MenuItem onClick={(e) => { e.stopPropagation(); onPlay(); onClose(); }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconPlayerPlay size={14} /> Play</span>
+      </MenuItem>
+      <MenuItem onClick={(e) => { e.stopPropagation(); onShuffle(); onClose(); }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}><IconArrowsShuffle size={14} /> Play shuffled</span>
+      </MenuItem>
+      <MenuDivider />
+      <MenuItem onClick={(e) => { e.stopPropagation(); onRename(); onClose(); }}>Rename</MenuItem>
+      <MenuDivider />
+      <DangerMenuItem onClick={(e) => { e.stopPropagation(); if (!window.confirm(`Delete playlist "${playlist.name}"? This cannot be undone.`)) return; onDelete(); onClose(); }}>
+        Delete playlist
+      </DangerMenuItem>
+    </DropdownPortal>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
 
@@ -767,8 +832,14 @@ export default function Library() {
   const { data: creds } = useNavidromeCredentials();
   const deleteTrack = useDeleteUploadByTrackIdMutation();
   const deleteAlbumById = useDeleteAlbumByIdMutation();
+  const { data: playlists = [], isLoading: playlistsLoading } = useNavidromePlaylistsQuery();
+  const createPlaylist = useCreatePlaylistMutation();
+  const renamePlaylist = useRenamePlaylistMutation();
+  const deletePlaylist = useDeletePlaylistMutation();
 
   const [activeKey, setActiveKey] = useState<string | number>("0");
+  const [openPlaylistMenuId, setOpenPlaylistMenuId] = useState<string | null>(null);
+  const [playlistMenuAnchor, setPlaylistMenuAnchor] = useState<HTMLElement | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [openAlbumMenuKey, setOpenAlbumMenuKey] = useState<string | null>(null);
@@ -798,6 +869,25 @@ export default function Library() {
     const queue = allSongs.map((s) => songToQueueTrack(s, creds, s.coverArt ? getCoverArtUrl(creds, s.coverArt) : null));
     playNow(queue, idx);
   }, [allSongs, creds, playNow]);
+
+  const handleCreatePlaylist = useCallback(async () => {
+    const name = window.prompt("New playlist name")?.trim();
+    if (!name) return;
+    await createPlaylist.mutateAsync({ name });
+  }, [createPlaylist]);
+
+  const playPlaylist = useCallback(
+    async (pl: NavidromePlaylist, shuffle = false) => {
+      if (!creds) return;
+      const full = await fetchNavidromePlaylist(creds, pl.id);
+      let tracks = (full?.entry ?? []).map((s) =>
+        songToQueueTrack(s, creds, s.coverArt ? getCoverArtUrl(creds, s.coverArt) : null),
+      );
+      if (shuffle) tracks = [...tracks].sort(() => Math.random() - 0.5);
+      playNow(tracks);
+    },
+    [creds, playNow],
+  );
 
   const isLoading = !creds || tracksQuery.isLoading;
 
@@ -1009,6 +1099,67 @@ export default function Library() {
                   </ArtistCard>
                 ))}
               </ArtistGrid>
+            )}
+          </Tab>
+
+          {/* -------- Playlists -------- */}
+          <Tab title="Playlists" overrides={tabOverrides}>
+            <div style={{ marginBottom: 16 }}>
+              <UploadButton onClick={handleCreatePlaylist}>
+                <IconPlus size={15} /> New playlist
+              </UploadButton>
+            </div>
+            {(playlistsLoading || !creds) && <TracksSkeleton />}
+            {!playlistsLoading && creds && playlists.length === 0 && (
+              <EmptyState>
+                <IconPlaylist size={48} color="var(--color-text-muted)" />
+                <div style={{ textAlign: "center" }}>
+                  <EmptyTitle>No playlists yet</EmptyTitle>
+                  <EmptySubtitle>Create a playlist to organize your music</EmptySubtitle>
+                </div>
+              </EmptyState>
+            )}
+            {creds && playlists.length > 0 && (
+              <TrackList>
+                {playlists.map((pl) => (
+                  <TrackRow key={pl.id} onClick={() => navigate({ to: "/library/playlist/$id", params: { id: pl.id } })}>
+                    <ArtworkBox>
+                      {pl.coverArt
+                        ? <img src={getCoverArtUrl(creds, pl.coverArt)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        : <IconPlaylist size={18} color="var(--color-text-muted)" />}
+                    </ArtworkBox>
+                    <TrackInfo>
+                      <TrackTitle>{pl.name}</TrackTitle>
+                      <TrackMeta>{pl.songCount} track{pl.songCount !== 1 ? "s" : ""}</TrackMeta>
+                    </TrackInfo>
+                    <div className="track-actions" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <MenuWrap>
+                        <MenuBtn onClick={(e) => {
+                          e.stopPropagation();
+                          if (openPlaylistMenuId === pl.id) { setOpenPlaylistMenuId(null); setPlaylistMenuAnchor(null); }
+                          else { setOpenPlaylistMenuId(pl.id); setPlaylistMenuAnchor(e.currentTarget); }
+                        }}>
+                          <IconDots size={15} />
+                        </MenuBtn>
+                        {openPlaylistMenuId === pl.id && (
+                          <PlaylistContextMenu
+                            playlist={pl}
+                            anchorEl={playlistMenuAnchor}
+                            onPlay={() => playPlaylist(pl)}
+                            onShuffle={() => playPlaylist(pl, true)}
+                            onRename={async () => {
+                              const name = window.prompt("Rename playlist", pl.name)?.trim();
+                              if (name && name !== pl.name) await renamePlaylist.mutateAsync({ id: pl.id, name });
+                            }}
+                            onDelete={() => deletePlaylist.mutate(pl.id)}
+                            onClose={() => { setOpenPlaylistMenuId(null); setPlaylistMenuAnchor(null); }}
+                          />
+                        )}
+                      </MenuWrap>
+                    </div>
+                  </TrackRow>
+                ))}
+              </TrackList>
             )}
           </Tab>
         </Tabs>

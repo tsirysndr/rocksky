@@ -38,6 +38,7 @@ import { Route as ProfileDidLikesRouteImport } from './routes/profile/$did/likes
 import { Route as ProfileDidLibraryRouteImport } from './routes/profile/$did/library'
 import { Route as ProfileDidArtistsRouteImport } from './routes/profile/$did/artists'
 import { Route as ProfileDidAlbumsRouteImport } from './routes/profile/$did/albums'
+import { Route as LibraryPlaylistIdRouteImport } from './routes/library/playlist/$id'
 import { Route as LibraryArtistIdRouteImport } from './routes/library/artist/$id'
 import { Route as LibraryAlbumIdRouteImport } from './routes/library/album/$id'
 import { Route as DidSongRkeyRouteImport } from './routes/$did.song.$rkey'
@@ -191,6 +192,11 @@ const ProfileDidAlbumsRoute = ProfileDidAlbumsRouteImport.update({
   path: '/profile/$did/albums',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LibraryPlaylistIdRoute = LibraryPlaylistIdRouteImport.update({
+  id: '/library/playlist/$id',
+  path: '/library/playlist/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LibraryArtistIdRoute = LibraryArtistIdRouteImport.update({
   id: '/library/artist/$id',
   path: '/library/artist/$id',
@@ -255,6 +261,7 @@ export interface FileRoutesByFullPath {
   '/$did/song/$rkey': typeof DidSongRkeyRoute
   '/library/album/$id': typeof LibraryAlbumIdRoute
   '/library/artist/$id': typeof LibraryArtistIdRoute
+  '/library/playlist/$id': typeof LibraryPlaylistIdRoute
   '/profile/$did/albums': typeof ProfileDidAlbumsRoute
   '/profile/$did/artists': typeof ProfileDidArtistsRoute
   '/profile/$did/library': typeof ProfileDidLibraryRoute
@@ -293,6 +300,7 @@ export interface FileRoutesByTo {
   '/$did/song/$rkey': typeof DidSongRkeyRoute
   '/library/album/$id': typeof LibraryAlbumIdRoute
   '/library/artist/$id': typeof LibraryArtistIdRoute
+  '/library/playlist/$id': typeof LibraryPlaylistIdRoute
   '/profile/$did/albums': typeof ProfileDidAlbumsRoute
   '/profile/$did/artists': typeof ProfileDidArtistsRoute
   '/profile/$did/library': typeof ProfileDidLibraryRoute
@@ -332,6 +340,7 @@ export interface FileRoutesById {
   '/$did/song/$rkey': typeof DidSongRkeyRoute
   '/library/album/$id': typeof LibraryAlbumIdRoute
   '/library/artist/$id': typeof LibraryArtistIdRoute
+  '/library/playlist/$id': typeof LibraryPlaylistIdRoute
   '/profile/$did/albums': typeof ProfileDidAlbumsRoute
   '/profile/$did/artists': typeof ProfileDidArtistsRoute
   '/profile/$did/library': typeof ProfileDidLibraryRoute
@@ -372,6 +381,7 @@ export interface FileRouteTypes {
     | '/$did/song/$rkey'
     | '/library/album/$id'
     | '/library/artist/$id'
+    | '/library/playlist/$id'
     | '/profile/$did/albums'
     | '/profile/$did/artists'
     | '/profile/$did/library'
@@ -410,6 +420,7 @@ export interface FileRouteTypes {
     | '/$did/song/$rkey'
     | '/library/album/$id'
     | '/library/artist/$id'
+    | '/library/playlist/$id'
     | '/profile/$did/albums'
     | '/profile/$did/artists'
     | '/profile/$did/library'
@@ -448,6 +459,7 @@ export interface FileRouteTypes {
     | '/$did/song/$rkey'
     | '/library/album/$id'
     | '/library/artist/$id'
+    | '/library/playlist/$id'
     | '/profile/$did/albums'
     | '/profile/$did/artists'
     | '/profile/$did/library'
@@ -487,6 +499,7 @@ export interface RootRouteChildren {
   DidSongRkeyRoute: typeof DidSongRkeyRoute
   LibraryAlbumIdRoute: typeof LibraryAlbumIdRoute
   LibraryArtistIdRoute: typeof LibraryArtistIdRoute
+  LibraryPlaylistIdRoute: typeof LibraryPlaylistIdRoute
   ProfileDidAlbumsRoute: typeof ProfileDidAlbumsRoute
   ProfileDidArtistsRoute: typeof ProfileDidArtistsRoute
   ProfileDidLibraryRoute: typeof ProfileDidLibraryRoute
@@ -703,6 +716,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileDidAlbumsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/library/playlist/$id': {
+      id: '/library/playlist/$id'
+      path: '/library/playlist/$id'
+      fullPath: '/library/playlist/$id'
+      preLoaderRoute: typeof LibraryPlaylistIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/library/artist/$id': {
       id: '/library/artist/$id'
       path: '/library/artist/$id'
@@ -783,6 +803,7 @@ const rootRouteChildren: RootRouteChildren = {
   DidSongRkeyRoute: DidSongRkeyRoute,
   LibraryAlbumIdRoute: LibraryAlbumIdRoute,
   LibraryArtistIdRoute: LibraryArtistIdRoute,
+  LibraryPlaylistIdRoute: LibraryPlaylistIdRoute,
   ProfileDidAlbumsRoute: ProfileDidAlbumsRoute,
   ProfileDidArtistsRoute: ProfileDidArtistsRoute,
   ProfileDidLibraryRoute: ProfileDidLibraryRoute,
