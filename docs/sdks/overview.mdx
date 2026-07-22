@@ -1,79 +1,81 @@
 ---
 title: "SDKs"
-description: "Official Rocksky SDKs across nine languages — one for every flavor of XRPC client."
+description: "Official Rocksky SDKs — native AT Protocol clients across ten languages."
 icon: "code"
 ---
 
-Every SDK wraps the [Rocksky XRPC API](/api-reference/introduction) (the same
-namespace tree under `app.rocksky.*`) with idiomatic, typed bindings for the
-host language.
+The Rocksky SDKs are **native AT Protocol clients**: they read from the public
+AppView and write `app.rocksky.*` records straight to the user's PDS (scrobbles,
+likes, follows, shouts, now-playing). They are not thin HTTP wrappers.
+
+Two implementations share one behaviour:
+
+- **Shared Rust core** — Python, Ruby, Kotlin, Clojure, and the BEAM trio
+  (Erlang/Elixir/Gleam) are thin bindings over the same Rust engine
+  (`rocksky-sdk`), so auth, record writing, dedup, and the identity hashes are
+  identical everywhere.
+- **Native ecosystem** — Go is built on [indigo](https://github.com/bluesky-social/indigo),
+  TypeScript on [atcute](https://github.com/mary-ext/atcute), and Rust is the
+  `rocksky-sdk` crate itself (on [jacquard](https://crates.io/crates/jacquard)).
 
 <CardGroup cols={3}>
   <Card title="TypeScript" icon="square-js" href="/sdks/typescript">
-    `@rocksky/sdk` — Bun, Node 18+, Deno, browsers, Workers
+    `@rocksky/sdk` — built on atcute
   </Card>
   <Card title="Python" icon="python" href="/sdks/python">
-    `rocksky` — asyncio + Pydantic v2 models
+    `rocksky` — native core bindings
   </Card>
   <Card title="Rust" icon="rust" href="/sdks/rust">
-    `rocksky` crate — tokio + reqwest, fluent builders
+    `rocksky-sdk` crate — jacquard
   </Card>
   <Card title="Go" icon="golang" href="/sdks/go">
-    `github.com/tsirysndr/rocksky/sdk/go/rocksky`
+    `sdk/go/rocksky` — built on indigo
   </Card>
   <Card title="Ruby" icon="gem" href="/sdks/ruby">
-    `rocksky` gem — stdlib-only, IRB-friendly
+    `rocksky` gem — native core (fiddle)
   </Card>
   <Card title="Kotlin" icon="square-k" href="/sdks/kotlin">
-    `app.rocksky:rocksky-kotlin` — coroutines + Ktor
+    `app.rocksky:rocksky-kotlin` — UniFFI
   </Card>
   <Card title="Elixir" icon="droplet" href="/sdks/elixir">
-    `rocksky_ex` — pipe-friendly, `Req`-based
+    `rocksky_ex` — over the `rocksky_erl` NIF
   </Card>
   <Card title="Clojure" icon="parentheses" href="/sdks/clojure">
-    `app.rocksky/sdk` — plain maps in, plain maps out
+    `app.rocksky/sdk` — Panama FFM
   </Card>
   <Card title="Gleam" icon="star" href="/sdks/gleam">
-    `rocksky` — typed `Request(a)` pipeline
+    `rocksky` — over the `rocksky_erl` NIF
   </Card>
 </CardGroup>
 
 ## Common surface
 
-All SDKs share the same shape:
+Every SDK exposes the same three things:
 
-- **Default base URL** — `https://api.rocksky.app`
-- **Bearer auth** — pass a JWT to write or access user-scoped endpoints
-- **Namespaces** — `actor`, `album`, `artist`, `song`, `scrobble`, `charts`,
-  `feed`, `graph`, `like`, `shout`, `playlist`, `player`, `stats`, `apikey`,
-  `mirror`, `dropbox`, `googledrive`, `spotify`
-- **Escape hatch** — a generic `query` / `procedure` / `call` / `xrpc` method
-  for endpoints the SDK hasn't wrapped yet
-- **Typed errors** — `RockskyError` (or the language-equivalent base) with
-  status, NSID, and body attached
+- **Reads** — an unauthenticated client over the public AppView
+  (`https://api.rocksky.app`, overridable): `globalStats`, `topTracks`,
+  `topArtists`, `profile`, `scrobbles`, `songs`, `albums`, `artists`, `search`.
+- **Writes** — an **Agent** that logs in with an **app password**, resolves the
+  account's PDS, and writes records: `scrobble`, `createSong` / `createAlbum` /
+  `createArtist`, `like`, `follow`, `shout`, now-playing.
+- **Identity hashes** — `songHash` / `albumHash` / `artistHash` (lowercase-hex
+  SHA-256), byte-for-byte identical across every SDK and the server.
+
+## Duplicate prevention & real-time sync
+
+The Rust, Go, and TypeScript SDKs (and the native-core bindings) ship an optional
+**local dedup index** keyed by the identity hashes: `syncRepo()` backfills it
+from the repo CAR (`com.atproto.sync.getRepo`), and `hydrateFromJetstream()`
+keeps it live off the Bluesky Jetstream firehose. With an index attached, write
+verbs skip records that already exist and never duplicate a same-second scrobble.
 
 ## Choosing an SDK
 
 | You're writing… | Use |
 | --- | --- |
-| A web frontend, Cloudflare Worker, or CLI in Node/Bun | [TypeScript](/sdks/typescript) |
+| A web app, Cloudflare Worker, or Node/Bun service | [TypeScript](/sdks/typescript) |
 | A backend job, notebook, or data pipeline | [Python](/sdks/python) |
-| A long-running daemon or system tool | [Rust](/sdks/rust) or [Go](/sdks/go) |
-| A Rails app, script, or IRB session | [Ruby](/sdks/ruby) |
-| An Android app or JVM service | [Kotlin](/sdks/kotlin) |
-| A Phoenix app or supervised process tree | [Elixir](/sdks/elixir) |
-| A Clojure web service or REPL workflow | [Clojure](/sdks/clojure) |
-| A typed BEAM app with strict guarantees | [Gleam](/sdks/gleam) |
-
-## Lexicon-derived types
-
-Public model types are generated from the [Rocksky lexicons](https://tangled.org/rocksky.app/rocksky/tree/main/apps/api/lexicons)
-into each SDK and re-exported under their historical SDK names. Regenerate
-across all 9 SDKs with `bun run lexgen:types` at the repo root — the generator
-lives in [`tools/lexgen/`](https://tangled.org/@rocksky.app/rocksky/blob/main/tools/lexgen).
-
-## Source
-
-All SDKs live in the monorepo at
-[tangled.org/@rocksky.app/rocksky](https://tangled.org/@rocksky.app/rocksky)
-under `sdk/<language>/`.
+| A performance-critical service or CLI | [Rust](/sdks/rust) or [Go](/sdks/go) |
+| A JVM app | [Kotlin](/sdks/kotlin) or [Clojure](/sdks/clojure) |
+| A BEAM app | [Elixir](/sdks/elixir) or [Gleam](/sdks/gleam) |
+| A Ruby app or script | [Ruby](/sdks/ruby) |

@@ -1,147 +1,65 @@
 ---
 title: "Go"
-description: "Idiomatic Go SDK for the Rocksky XRPC API."
+description: "Go SDK for Rocksky — built on bluesky-social/indigo."
 icon: "golang"
 ---
 
-The Go SDK wraps the `app.rocksky.*` XRPC endpoints behind a typed,
-namespaced client.
+The Go SDK is built on [indigo](https://github.com/bluesky-social/indigo):
+`Client` does unauthenticated AppView reads, and `Agent` logs in with an app
+password and writes `app.rocksky.*` records to the user's PDS. It also ships a
+local dedup index and Jetstream real-time sync.
 
 ## Install
 
 ```bash
-go get github.com/tsirysndr/rocksky/sdk/go/rocksky
+go get github.com/tsirysndr/rocksky/sdk/go
 ```
 
-Requires Go 1.22+.
-
-## Quick start
+## Quickstart
 
 ```go
-package main
-
 import (
     "context"
-    "fmt"
-
     "github.com/tsirysndr/rocksky/sdk/go/rocksky"
+    "github.com/tsirysndr/rocksky/sdk/go/rocksky/gen"
 )
 
-func main() {
-    client := rocksky.NewClient()
+ctx := context.Background()
 
-    profile, err := client.Actor.GetProfile(context.Background(), rocksky.GetProfileParams{
-        Actor: "tsiry.bsky.social",
-    })
-    if err != nil {
-        panic(err)
-    }
-    fmt.Printf("@%s (%s)\n", profile.Handle, profile.DID)
-}
-```
+// Reads — unauthenticated. NewClient("") uses https://api.rocksky.app.
+c := rocksky.NewClient("")
+stats, _ := c.GlobalStats(ctx)
+top, _ := c.TopTracks(ctx, 10, 0)
 
-## Authentication
-
-Read-only queries work without credentials. Mutating procedures need a JWT:
-
-```go
-client := rocksky.NewClient(
-    rocksky.WithBearerToken(os.Getenv("ROCKSKY_TOKEN")),
-)
-
-_, err := client.Scrobble.CreateScrobble(ctx, rocksky.CreateScrobbleInput{
-    Title:     "Black Hole Sun",
-    Artist:    "Soundgarden",
-    Album:     "Superunknown",
-    Duration:  320000, // ms
-    Timestamp: time.Now().Unix(),
+// Writes — log in with an app password (resolves the PDS automatically).
+agent, _ := rocksky.Login(ctx, "alice.bsky.social", "app-password")
+uri, _ := agent.Scrobble(ctx, gen.ScrobbleRecord{
+    Title: "Chaser", Artist: "Calibro 35",
+    Album: "Jazzploitation", AlbumArtist: "Calibro 35", Duration: 182320,
 })
 ```
 
-## Configuration
+## API
 
-`NewClient` takes functional options:
+**Reads — `Client`**: `Profile`, `Scrobbles`, `Songs`, `Albums`, `Artists`,
+`TopTracks`, `TopArtists`, `Search`, `GlobalStats`.
 
-| Option              | Purpose                                                   |
-| ------------------- | --------------------------------------------------------- |
-| `WithBaseURL`       | Override the API host (self-hosted instance, `httptest`). |
-| `WithBearerToken`   | Authenticate as a Rocksky user.                           |
-| `WithHTTPClient`    | Inject a custom `*http.Client` (tracing, retries).        |
-| `WithUserAgent`     | Override the `User-Agent` header.                         |
-| `WithHeader`        | Add an extra header to every request.                     |
+**Writes — `Agent`**: `Scrobble`, `CreateSong` / `CreateAlbum` / `CreateArtist`,
+`Like`, `Follow`, `Shout` / `ReplyShout`, `SetNowPlaying` / `ClearNowPlaying`,
+`Delete`, `RefreshSession`. Records are the generated `gen.*Record` types.
 
-Default base URL: `https://api.rocksky.app`. Default timeout: 30s.
+**Identity hashes**: `SongHash`, `AlbumHash`, `ArtistHash`.
 
-## Surface
+## Duplicate prevention & real-time sync
 
-```
-client.Actor    // app.rocksky.actor.*
-client.Album    // app.rocksky.album.*
-client.Artist   // app.rocksky.artist.*
-client.Song     // app.rocksky.song.*
-client.Scrobble // app.rocksky.scrobble.*
-client.Charts   // app.rocksky.charts.*
-client.Stats    // app.rocksky.stats.*
-client.Feed     // app.rocksky.feed.*
-client.Graph    // app.rocksky.graph.*
-client.Like     // app.rocksky.like.*
-client.Shout    // app.rocksky.shout.*
-```
-
-Each method takes a `context.Context` plus a typed params/input struct.
-Zero-valued option fields are omitted from the outgoing query string.
-
-## Pagination
-
-Offset-based endpoints accept `PaginationParams{Limit, Offset}`. Cursor-based
-feed endpoints accept `CursorPagination{Limit, Cursor}` and return a `Cursor`
-field to feed back into the next call.
-
-## Fluent builders
+An optional local index (embedded bbolt KV — no cgo/RocksDB) prevents duplicate
+writes and stays live off the firehose:
 
 ```go
-// Write op with lots of optional metadata
-out, err := client.Scrobble.NewScrobble("Black Hole Sun", "Soundgarden").
-    Album("Superunknown").
-    Duration(320_000).
-    ISRC("USXXX1234567").
-    Year(1994).
-    Timestamp(time.Now().Unix()).
-    Send(ctx)
+idx, _ := rocksky.OpenIndex("dedup.db")
+defer idx.Close()
+agent.UseIndex(idx)
 
-// Multi-filter query
-chart, err := client.Charts.NewScrobblesChart().
-    Actor("tsiry.bsky.social").
-    From("2025-01-01").
-    To("2025-12-31").
-    Do(ctx)
-
-// Shouts and replies
-shout, err := client.Shout.NewShout("listening to this on repeat").Send(ctx)
-reply, err := client.Shout.NewReply(parentURI, "agreed!").Send(ctx)
+agent.SyncRepo(ctx)                 // backfill from the repo CAR
+go agent.HydrateFromJetstream(ctx)  // keep it live from Jetstream (all 4 servers)
 ```
-
-Use `.Do(ctx)` for queries and `.Send(ctx)` for procedures.
-
-## Errors
-
-```go
-_, err := client.Scrobble.CreateScrobble(ctx, in)
-var apiErr *rocksky.Error
-if errors.As(err, &apiErr) && apiErr.IsRateLimited() {
-    // back off and retry
-}
-```
-
-`*rocksky.Error` carries the HTTP status, XRPC error kind/message, and helpers
-like `IsUnauthorized`, `IsNotFound`, `IsRateLimited`.
-
-## Types
-
-Public model types are derived from the [Rocksky lexicons](https://tangled.org/rocksky.app/rocksky/tree/main/apps/api/lexicons) and live in `rocksky/gen` (package `gen`). The package-level type aliases in `rocksky/types.go` re-export them under their historical names. Regenerate with `bun run lexgen:types` at the repo root.
-
-
-## License
-
-MIT © Tsiry Sandratraina. Source:
-[`sdk/go`](https://tangled.org/@rocksky.app/rocksky/blob/main/sdk/go).

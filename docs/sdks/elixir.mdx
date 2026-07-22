@@ -1,198 +1,65 @@
 ---
-title: "Elixir"
-description: "Pipe-friendly Elixir client for the Rocksky XRPC API."
+title: "Elixir & Erlang"
+description: "Elixir and Erlang SDKs for Rocksky — over the shared Rustler NIF."
 icon: "droplet"
 ---
 
-`rocksky_ex` is a pipe-friendly Elixir client built on `Req`.
+`rocksky_ex` (Elixir) and `rocksky_erl` (Erlang) wrap the shared Rocksky Rust
+core through a Rustler **NIF**: AppView reads, AT Protocol PDS writes, and the
+identity hashes — the same engine behind every Rocksky SDK. Gleam uses the same
+NIF.
 
-## Install
+## Install (Elixir)
 
 ```elixir
 def deps do
-  [
-    {:rocksky_ex, "~> 0.2"}
-  ]
+  [{:rocksky_ex, "~> 0.4"}]
 end
 ```
 
-## Quick start
+`rocksky_ex` pulls in `rocksky_erl`, whose loader fetches the native library from
+the GitHub release on first use.
+
+## Quickstart (Elixir)
 
 ```elixir
-client = Rocksky.new(token: System.get_env("ROCKSKY_TOKEN"))
+# Reads — unauthenticated. The last arg overrides https://api.rocksky.app.
+{:ok, stats} = Rocksky.global_stats()
+IO.puts(stats["scrobbles"])
 
-{:ok, profile} =
-  client
-  |> Rocksky.Actor.get_profile(did: "did:plc:7vdlgi2bflelz7mmuxoqjfcr")
+{:ok, top} = Rocksky.top_tracks(10, 0)
+for t <- top, do: IO.puts("#{t["artist"]} — #{t["title"]}")
 
-{:ok, %{"scrobbles" => scrobbles}} =
-  client
-  |> Rocksky.Actor.get_actor_scrobbles(did: "did:plc:7vdlgi2bflelz7mmuxoqjfcr", limit: 25)
+# Writes — log in with an app password.
+agent = Rocksky.login("session.json", "alice.bsky.social", "app-password")
+{:ok, out} = Rocksky.scrobble(agent, %{
+  "title" => "Chaser", "artist" => "Calibro 35",
+  "album" => "Jazzploitation", "albumArtist" => "Calibro 35", "durationMs" => 182_320
+})
+IO.puts(out["scrobbleUri"])
 ```
 
-The client is the first argument so calls compose naturally with `|>`. Each
-namespace module mirrors a lexicon — `app.rocksky.actor.getProfile` becomes
-`Rocksky.Actor.get_profile/2`.
+## Erlang
 
-## Configuration
+The friendly module is `rocksky` (Hex package `rocksky_erl`):
 
-```elixir
-Rocksky.new(
-  base_url: "https://api.rocksky.app",
-  token:    "your-bearer-token",
-  headers:  [{"x-app", "my-app"}],
-  req_options: [retry: false]
-)
+```erlang
+{ok, Stats} = rocksky:global_stats().
+Agent = rocksky:agent_login(<<"session.json">>, <<"alice.bsky.social">>, <<"app-pw">>),
+{ok, Out} = rocksky:agent_scrobble(Agent, #{
+    <<"title">> => <<"Chaser">>, <<"artist">> => <<"Calibro 35">>,
+    <<"album">> => <<"Jazzploitation">>, <<"albumArtist">> => <<"Calibro 35">>,
+    <<"durationMs">> => 182320}).
 ```
 
-Or globally:
+## API
 
-```elixir
-# config/config.exs
-config :rocksky_ex, base_url: "https://api.rocksky.app"
-```
+Reads/writes return `{:ok, value}` | `{:error, message}` with binary-keyed maps.
 
-Derive an authenticated client from a shared base:
+**Reads — `Rocksky`**: `profile`, `scrobbles`, `top_tracks`, `global_stats`
+(each takes a trailing `base`).
 
-```elixir
-base = Rocksky.new()
-authed = Rocksky.Client.with_token(base, "tok")
-```
+**Writes — `Rocksky`**: `login`, then `scrobble`, `like`, `follow`, `shout`,
+`refresh_session`.
 
-## Create a scrobble
-
-```elixir
-client
-|> Rocksky.Scrobble.create_scrobble(
-  title:     "In Bloom",
-  artist:    "Nirvana",
-  album:     "Nevermind",
-  timestamp: System.system_time(:second)
-)
-```
-
-## Builder style
-
-| Builder                       | XRPC procedure                          |
-| ----------------------------- | --------------------------------------- |
-| `Rocksky.Scrobble.Builder`    | `app.rocksky.scrobble.createScrobble`   |
-| `Rocksky.Song.Builder`        | `app.rocksky.song.createSong`           |
-| `Rocksky.Mirror.Builder`      | `app.rocksky.mirror.putMirrorSource`    |
-| `Rocksky.Apikey.Builder`      | `app.rocksky.apikey.createApikey`       |
-| `Rocksky.Shout.ReplyBuilder`  | `app.rocksky.shout.replyShout`          |
-| `Rocksky.Shout.ReportBuilder` | `app.rocksky.shout.reportShout`         |
-
-```elixir
-alias Rocksky.Scrobble.Builder, as: Scrobble
-
-Scrobble.new(title: "In Bloom", artist: "Nirvana")
-|> Scrobble.album("Nevermind")
-|> Scrobble.album_art("https://...")
-|> Scrobble.spotify_link("https://open.spotify.com/track/...")
-|> Scrobble.timestamp(System.system_time(:second))
-|> Scrobble.submit(client)
-```
-
-Camel-cased lexicon keys become snake-cased setters (`album_art/2`,
-`mb_id/2`, `spotify_link/2`). `new/1` and `put/2` accept either form. Use
-`put/2` to set several at once and `to_body/1` to inspect the JSON body
-without submitting.
-
-Missing required fields are caught locally:
-
-```elixir
-Scrobble.new(title: "Only title") |> Scrobble.submit(client)
-# => {:error, %Rocksky.Error{reason: :missing_fields, body: %{missing: [:artist]}}}
-```
-
-## Find a song
-
-```elixir
-{:ok, song} = Rocksky.Song.get_song(client, isrc: "USDW19811234")
-{:ok, song} = Rocksky.Song.get_song(client, mbid: "f1234567-...")
-{:ok, song} = Rocksky.Song.get_song(client, uri:  "at://did:plc:abc/app.rocksky.song/123")
-```
-
-## Charts and search
-
-```elixir
-client |> Rocksky.Charts.get_top_tracks(limit: 10, startDate: "2026-01-01")
-{:ok, results} = Rocksky.Feed.search(client, query: "nevermind")
-```
-
-## Player remote-control
-
-```elixir
-client |> Rocksky.Player.play(playerId: id)
-client |> Rocksky.Player.pause(playerId: id)
-client |> Rocksky.Player.next(playerId: id)
-client |> Rocksky.Player.seek(playerId: id, position: 60_000)
-```
-
-## Paginate with `Stream`
-
-```elixir
-Stream.unfold(0, fn offset ->
-  case Rocksky.Actor.get_actor_scrobbles(client,
-         did: "alice.bsky.social",
-         limit: 50,
-         offset: offset
-       ) do
-    {:ok, %{"scrobbles" => []}} -> nil
-    {:ok, %{"scrobbles" => batch}} -> {batch, offset + length(batch)}
-    {:error, _} -> nil
-  end
-end)
-|> Stream.flat_map(& &1)
-|> Enum.take(500)
-```
-
-## Errors
-
-```elixir
-case Rocksky.Song.get_song(client, uri: "at://missing") do
-  {:ok, song} -> song
-  {:error, %Rocksky.Error{status: 404}} -> :not_found
-  {:error, %Rocksky.Error{reason: :unauthorized}} -> :reauth
-  {:error, err} -> Logger.error("rocksky: #{Exception.message(err)}")
-end
-```
-
-## Modules
-
-| Module                | NSID prefix                  |
-| --------------------- | ---------------------------- |
-| `Rocksky.Actor`       | `app.rocksky.actor.*`        |
-| `Rocksky.Album`       | `app.rocksky.album.*`        |
-| `Rocksky.Apikey`      | `app.rocksky.apikey.*`       |
-| `Rocksky.Artist`      | `app.rocksky.artist.*`       |
-| `Rocksky.Charts`      | `app.rocksky.charts.*`       |
-| `Rocksky.Dropbox`     | `app.rocksky.dropbox.*`      |
-| `Rocksky.Feed`        | `app.rocksky.feed.*`         |
-| `Rocksky.GoogleDrive` | `app.rocksky.googledrive.*`  |
-| `Rocksky.Graph`       | `app.rocksky.graph.*`        |
-| `Rocksky.Like`        | `app.rocksky.like.*`         |
-| `Rocksky.Mirror`      | `app.rocksky.mirror.*`       |
-| `Rocksky.Player`      | `app.rocksky.player.*`       |
-| `Rocksky.Playlist`    | `app.rocksky.playlist.*`     |
-| `Rocksky.Scrobble`    | `app.rocksky.scrobble.*`     |
-| `Rocksky.Shout`       | `app.rocksky.shout.*`        |
-| `Rocksky.Song`        | `app.rocksky.song.*`         |
-| `Rocksky.Spotify`     | `app.rocksky.spotify.*`      |
-| `Rocksky.Stats`       | `app.rocksky.stats.*`        |
-
-Generic escape hatch:
-
-```elixir
-Rocksky.HTTP.query(client, "app.rocksky.actor.getProfile", did: "alice")
-```
-
-## Types
-
-Lexicon-derived structs are available under `Rocksky.Generated.*`, mirroring every lex `*View*` / `*Record` / `*Input` / `*Output` / `*Params` shape from [the Rocksky lexicons](https://tangled.org/rocksky.app/rocksky/tree/main/apps/api/lexicons). Regenerate with `bun run lexgen:types` at the repo root.
-
-
-## License
-
-MIT © Tsiry Sandratraina. Source:
-[`sdk/elixir`](https://tangled.org/@rocksky.app/rocksky/blob/main/sdk/elixir).
+**Identity hashes**: `Rocksky.song_hash(title, artist, album)`.

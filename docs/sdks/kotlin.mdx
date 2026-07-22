@@ -1,154 +1,51 @@
 ---
 title: "Kotlin"
-description: "Coroutine-based Kotlin-first SDK for the Rocksky XRPC API."
+description: "Kotlin SDK for Rocksky — native core via UniFFI (JNA)."
 icon: "square-k"
 ---
 
-A Kotlin-first client built on Ktor + `kotlinx.serialization`.
-
-- Suspending functions, default parameters, builder DSL, `AutoCloseable`
-- Every endpoint returns a `@Serializable` data class
-- Every model field is nullable, unknown JSON keys are ignored
-- 4xx / 5xx responses become typed exceptions
-- JVM 17+; bring your own Ktor engine (CIO is the default)
+`app.rocksky:rocksky-kotlin` binds the shared Rocksky Rust core via UniFFI
+(JNA-loaded), package `app.rocksky`: AppView reads, AT Protocol PDS writes, a
+local dedup index, and the identity hashes — the same engine behind every
+Rocksky SDK.
 
 ## Install
 
 ```kotlin
 dependencies {
-    implementation("app.rocksky:rocksky-kotlin:0.2.0")
+    implementation("app.rocksky:rocksky-kotlin:0.4.0")
 }
 ```
 
-Until artifacts land in Maven Central, build locally with
-`./gradlew :rocksky:publishToMavenLocal` and use `mavenLocal()`.
+The published jar bundles the native library for each platform.
 
-## Quick start
+## Quickstart
 
 ```kotlin
-import app.rocksky.RockskyClient
-import kotlinx.coroutines.runBlocking
+import app.rocksky.*
 
-fun main() = runBlocking {
-    RockskyClient().use { client ->
-        val profile = client.actor.getProfile(did = "did:plc:example")
-        println("${profile.handle} — ${profile.displayName}")
+// Reads — unauthenticated. AppView(null) uses https://api.rocksky.app.
+val av = AppView(null)
+println(av.globalStats().scrobbles)
+av.topTracks(10u, 0u).forEach { println("${it.artist} — ${it.title}") }
 
-        val top = client.charts.topTracks(limit = 10)
-        top.forEach { println("${it.title} by ${it.artist}") }
-    }
-}
+// Writes — log in with an app password.
+val agent = Agent.loginPassword("session.json", "alice.bsky.social", "app-password", null, null)
+val out = agent.scrobble(ScrobbleInput(
+    title = "Chaser", artist = "Calibro 35",
+    album = "Jazzploitation", albumArtist = "Calibro 35", durationMs = 182320,
+))
+println(out.scrobbleUri)
 ```
 
-## Three styles for create methods
+## API
 
-Heavier write endpoints (`scrobble.create`, `song.create`, `playlist.create`,
-`shout.create`, `apiKey.create`) come in three flavors — pick whichever reads
-best:
+**Reads — `AppView(base: String?)`**: `profile`, `scrobbles`, `songs`,
+`topTracks`, `topArtists`, `globalStats`. Counts are `UInt`.
 
-```kotlin
-// 1. Named arguments (default)
-client.scrobble.create(
-    title = "Idioteque",
-    artist = "Radiohead",
-    album = "Kid A",
-    duration = 369,
-)
+**Writes — `Agent`**: `loginPassword(...)`, then `scrobble`, `createSong` /
+`createAlbum` / `createArtist`, `like` / `unlike`, `follow` / `unfollow`,
+`shout` / `replyShout`, `setNowPlaying` / `clearNowPlaying`, `syncRepo`. Write
+verbs throw `RockskyException`.
 
-// 2. Kotlin DSL
-client.scrobble.create {
-    title = "Idioteque"
-    artist = "Radiohead"
-    album = "Kid A"
-    duration = 369
-}
-
-// 3. Fluent builder (Java-friendly)
-client.scrobble.builder()
-    .title("Idioteque")
-    .artist("Radiohead")
-    .album("Kid A")
-    .duration(369L)
-    .send()
-```
-
-Required fields are validated on `send()` — calling without them throws
-`IllegalStateException` before any HTTP call.
-
-## Authenticated calls
-
-```kotlin
-val client = RockskyClient {
-    token = System.getenv("ROCKSKY_TOKEN")
-    userAgent = "my-app/1.0"
-}
-```
-
-Swap tokens at runtime: `client.setToken("…")`.
-
-## Surface
-
-| Resource          | Methods (highlights)                                                                                                                       |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `client.actor`    | `getProfile`, `getAlbums`, `getArtists`, `getSongs`, `getScrobbles`, `getLovedSongs`, `getPlaylists`, `getNeighbours`, `getCompatibility` |
-| `client.album`    | `get`, `list`, `getTracks`                                                                                                                 |
-| `client.apiKey`   | `list`, `create`, `update`, `remove`                                                                                                       |
-| `client.artist`   | `get`, `list`, `getAlbums`, `getTracks`, `getListeners`, `getRecentListeners`                                                              |
-| `client.charts`   | `topTracks`, `topArtists`, `scrobblesChart`                                                                                                |
-| `client.feed`     | `get`, `getGenerator`, `listGenerators`, `search`, `stories`, `recommendations`, `artistRecommendations`, `albumRecommendations`           |
-| `client.graph`    | `follow`, `unfollow`, `getFollowers`, `getFollows`, `getKnownFollowers`                                                                    |
-| `client.like`     | `likeSong`, `dislikeSong`, `likeShout`, `dislikeShout`                                                                                     |
-| `client.player`   | `play`, `pause`, `next`, `previous`, `seek`, `playFile`, `playDirectory`, `currentlyPlaying`, `queue`, `addItemsToQueue`                  |
-| `client.playlist` | `get`, `list`, `create`, `remove`, `start`, `insertFiles`, `insertDirectory`                                                               |
-| `client.scrobble` | `get`, `list`, `create`                                                                                                                    |
-| `client.shout`    | `create`, `reply`, `remove`, `report`, `forProfile`, `forAlbum`, `forArtist`, `forTrack`, `replies`                                        |
-| `client.song`     | `get`, `list`, `match`, `create`, `getRecentListeners`                                                                                     |
-
-## Errors
-
-```kotlin
-import app.rocksky.AuthenticationException
-import app.rocksky.NotFoundException
-import app.rocksky.RateLimitException
-import app.rocksky.ApiException
-
-try {
-    client.scrobble.create(title = "…", artist = "…", album = "…")
-} catch (e: AuthenticationException) {
-    // 401 — refresh token
-} catch (e: RateLimitException) {
-    // 429 — back off
-} catch (e: NotFoundException) {
-    // 404
-} catch (e: ApiException) {
-    // e.statusCode, e.error, e.serverMessage, e.body
-}
-```
-
-Network errors surface as `TransportException`. Every exception extends
-`RockskyException`.
-
-## Configuration
-
-```kotlin
-val client = RockskyClient {
-    baseUrl       = "https://api.rocksky.app"  // default
-    token         = "…"                         // optional bearer
-    userAgent     = "my-app/1.0"
-    timeoutMillis = 30_000
-
-    // engine = OkHttp.create()
-    // httpClient = myExistingKtorClient
-    configureClient { /* install logging, custom retry, … */ }
-}
-```
-
-## Types
-
-Public model types are derived from the [Rocksky lexicons](https://tangled.org/rocksky.app/rocksky/tree/main/apps/api/lexicons) and live in `app.rocksky.generated`. The `app.rocksky.Models` typealiases re-export them under their historical names; `Profile`, `ApiKey`, and `FollowList` extend with SDK-specific fields. Regenerate with `bun run lexgen:types` at the repo root.
-
-
-## License
-
-MIT © Tsiry Sandratraina. Source:
-[`sdk/kotlin`](https://tangled.org/@rocksky.app/rocksky/blob/main/sdk/kotlin).
+**Identity hashes**: `songHash`, `albumHash`, `artistHash`.

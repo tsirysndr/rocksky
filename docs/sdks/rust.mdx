@@ -1,190 +1,69 @@
 ---
 title: "Rust"
-description: "Async Rust SDK for the Rocksky XRPC API — tokio + reqwest, builder-friendly."
+description: "Rust SDK for Rocksky — the rocksky-sdk crate, built on jacquard."
 icon: "rust"
 ---
 
-`rocksky` is an async Rust crate built on `tokio` + `reqwest`.
-
-- Strongly typed `serde` models, snake_case API
-- Fluent builders on every list / paginated endpoint
-- Namespaced accessors: `client.actor()`, `client.scrobble()`, …
-- Generic escape hatch (`client.call`, `client.procedure`) for un-wrapped methods
-- Compiles on Rust 1.75+
+`rocksky-sdk` is the Rust SDK and the shared engine behind every other Rocksky
+SDK. Built on [jacquard](https://crates.io/crates/jacquard), it mirrors Bluesky's
+`@atproto/api`: `RockskyAgent` wraps a session and exposes high-level write verbs;
+reads go through the unauthenticated `AppView`. It also ships an optional dedup
+index and Jetstream real-time sync.
 
 ## Install
 
 ```toml
 [dependencies]
-rocksky = "0.2"
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+rocksky-sdk = { version = "0.1", features = ["dedup", "jetstream"] }
 ```
 
-Pin TLS backend if you don't want `rustls` (the default):
-
-```toml
-rocksky = { version = "0.2", default-features = false, features = ["native-tls"] }
-```
+The `dedup` and `jetstream` features are optional (they pull in RocksDB + the
+firehose client).
 
 ## Quickstart
 
 ```rust
-use rocksky::Client;
+use rocksky_sdk::{RockskyAgent, ScrobbleDraft};
 
-#[tokio::main]
-async fn main() -> rocksky::Result<()> {
-    let client = Client::new();
+let agent = RockskyAgent::builder()
+    .session_store("~/.config/rocksky/session.json")
+    .build()?;
+agent.login_password("alice.bsky.social", "app-password").await?;
 
-    let me = client.actor().get_profile("tsiry-sandratraina.com").await?;
-    println!(
-        "{} — {}",
-        me.display_name.as_deref().unwrap_or(""),
-        me.did.as_deref().unwrap_or(""),
-    );
+// Reads — via the bundled AppView client.
+let recent = agent.appview().scrobbles("alice.bsky.social", 25, 0).await?;
 
-    let scrobbles = client
-        .scrobble()
-        .list()
-        .did(me.did.clone().unwrap_or_default())
-        .limit(10)
-        .send()
-        .await?;
-    for s in scrobbles {
-        println!(
-            "  {} — {}",
-            s.artist.as_deref().unwrap_or("?"),
-            s.title.as_deref().unwrap_or("?"),
-        );
-    }
-    Ok(())
-}
+// Writes — the scrobble fans out to artist/album/song then the scrobble.
+agent.scrobble(&ScrobbleDraft {
+    title: "Chaser".into(), artist: "Calibro 35".into(),
+    album: "Jazzploitation".into(), album_artist: "Calibro 35".into(),
+    duration_ms: 182_320, ..Default::default()
+}).await?;
 ```
 
-## Authenticating
+## API
+
+**Reads — `AppView`**: `profile`, `scrobbles`, `songs`, `albums`, `artists`,
+`feed`, `search`, `top_artists`, `top_tracks`, `global_stats`.
+
+**Writes — `RockskyAgent`**: `scrobble` (fan-out), `create_song` / `create_album`
+/ `create_artist`, `like` / `unlike`, `follow` / `unfollow`, `shout` /
+`reply_shout`, `set_now_playing` / `clear_now_playing`. App-password + loopback
+OAuth login.
+
+**Identity hashes**: `rocksky_sdk::dedup::{song_hash, album_hash, artist_hash}`.
+
+## Duplicate prevention & real-time sync
+
+With the `dedup` feature, attach a RocksDB-backed index; with `jetstream`, keep
+it live off the firehose:
 
 ```rust
-let client = rocksky::Client::builder()
-    .token("eyJhbGciOi…")
-    .build();
+let agent = RockskyAgent::builder()
+    .session_store("session.json")
+    .dedup_store("dedup")        // requires the `dedup` feature
+    .build()?;
+
+agent.sync_repo().await?;                 // backfill from the repo CAR
+tokio::spawn(async move { agent.hydrate_from_jetstream().await });
 ```
-
-…or change later:
-
-```rust
-client.set_token(Some("new-token".into())).await;
-```
-
-## Self-hosting / custom base URL
-
-```rust
-let client = rocksky::Client::builder()
-    .base_url("http://localhost:8000")
-    .token(token)
-    .timeout(std::time::Duration::from_secs(10))
-    .build();
-```
-
-## Builders
-
-```rust
-// List builder
-let songs = client.actor().get_songs("did:plc:7vdlgi2bflelz7mmuxoqjfcr")
-    .limit(50)
-    .offset(0)
-    .start_date(chrono::Utc::now() - chrono::Duration::days(30))
-    .send().await?;
-
-// Mutation builder (required args positional)
-let _ = client.scrobble().create("Hounds of Love", "Kate Bush")
-    .album("Hounds of Love")
-    .duration(298_000)
-    .year(1985)
-    .send().await?;
-
-// Charts
-let top = client.charts().top_tracks().limit(100).send().await?;
-```
-
-## Resources
-
-| Namespace            | Accessor              | Methods (selected)                                                                                                          |
-| -------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `actor`              | `client.actor()`      | `get_profile`, `get_albums`, `get_artists`, `get_songs`, `get_scrobbles`, `get_loved_songs`, `get_playlists`, …             |
-| `album`              | `client.album()`      | `get`, `list`, `get_tracks`                                                                                                 |
-| `artist`             | `client.artist()`     | `get`, `list`, `get_albums`, `get_tracks`, `get_listeners`, `get_recent_listeners`                                           |
-| `song`               | `client.song()`       | `get`, `get_by_mbid`, `get_by_isrc`, `get_by_spotify_id`, `list`, `match_song`, `get_recent_listeners`, `create`             |
-| `scrobble`           | `client.scrobble()`   | `get`, `list`, `create`                                                                                                     |
-| `charts`             | `client.charts()`     | `top_tracks`, `top_artists`, `scrobbles_chart`                                                                              |
-| `feed`               | `client.feed()`       | `get`, `search`, `stories`, `recommendations`, `artist_recommendations`, `album_recommendations`, `get_generator`, `list_generators` |
-| `graph`              | `client.graph()`      | `follow`, `unfollow`, `get_followers`, `get_follows`, `get_known_followers`                                                  |
-| `shout`              | `client.shout()`      | `create`, `reply`, `remove`, `report`, `for_profile`, `for_album`, `for_artist`, `for_track`, `replies`                      |
-| `like`               | `client.like()`       | `like_song`, `dislike_song`, `like_shout`, `dislike_shout`                                                                   |
-| `playlist`           | `client.playlist()`   | `get`, `list`, `create`, `remove`, `start`, `insert_files`, `insert_directory`                                              |
-| `player`             | `client.player()`     | `currently_playing`, `queue`, `play`, `pause`, `next`, `previous`, `seek`, `play_file`, `play_directory`, `add_items_to_queue` |
-| `spotify`            | `client.spotify()`    | `currently_playing`, `play`, `pause`, `next`, `previous`, `seek`                                                            |
-| `apikey`             | `client.apikey()`     | `list`, `create`, `update`, `remove`                                                                                        |
-| `stats`              | `client.stats()`      | `get`, `wrapped`                                                                                                            |
-| `mirror`             | `client.mirror()`     | `list_sources`, `put_source`                                                                                                |
-| `dropbox`            | `client.dropbox()`    | `list_files`, `metadata`, `temporary_link`, `download_file`                                                                  |
-| `googledrive`        | `client.googledrive()`| `list_files`, `get_file`, `download_file`                                                                                   |
-
-## Escape hatch
-
-```rust
-let raw: serde_json::Value =
-    client.call("app.rocksky.feed.describeFeedGenerator").await?;
-```
-
-## Errors
-
-```rust
-use rocksky::Error;
-
-match client.song().get("at://does-not-exist").await {
-    Ok(song) => println!("{song:?}"),
-    Err(e) if e.is_not_found() => eprintln!("not found"),
-    Err(Error::Api { status, error, message, .. }) => {
-        eprintln!("api error {status}: {error:?} / {message:?}");
-    }
-    Err(Error::MissingToken { method }) => {
-        eprintln!("auth required for {method}");
-    }
-    Err(e) => return Err(e.into()),
-}
-```
-
-Convenience predicates: `is_unauthorized()`, `is_forbidden()`,
-`is_not_found()`, `is_rate_limited()`, `is_client_error()`, `is_server_error()`.
-
-## Testing
-
-The SDK's own test suite uses [`wiremock`](https://docs.rs/wiremock):
-
-```rust
-use wiremock::{Mock, ResponseTemplate};
-use wiremock::matchers::{method, path};
-
-#[tokio::test]
-async fn it_works() {
-    let server = wiremock::MockServer::start().await;
-    Mock::given(method("GET"))
-        .and(path("/xrpc/app.rocksky.feed.search"))
-        .respond_with(ResponseTemplate::new(200)
-            .set_body_json(serde_json::json!({"hits": []})))
-        .mount(&server).await;
-
-    let client = rocksky::Client::builder().base_url(server.uri()).build();
-    let results = client.feed().search("kate bush").await.unwrap();
-    assert!(results.hits.is_empty());
-}
-```
-
-## Types
-
-Public model types are derived from the [Rocksky lexicons](https://tangled.org/rocksky.app/rocksky/tree/main/apps/api/lexicons) and live in `rocksky::generated`. The hand-written `rocksky::models` module re-exports them under their historical SDK names and extends `Profile` / `ApiKey` with fields the lexicon does not yet model. Regenerate with `bun run lexgen:types` at the repo root.
-
-
-## License
-
-MIT © Tsiry Sandratraina. Source:
-[`sdk/rust`](https://tangled.org/@rocksky.app/rocksky/blob/main/sdk/rust).

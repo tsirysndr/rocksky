@@ -1,16 +1,12 @@
 ---
 title: "Python"
-description: "Async Python SDK for the Rocksky XRPC API with Pydantic v2 models."
+description: "Python SDK for Rocksky — native bindings to the shared Rust core."
 icon: "python"
 ---
 
-`rocksky` is an async-first, typed Python client for the Rocksky API.
-
-- Built on `asyncio` + `httpx.AsyncClient`
-- Pydantic v2 models for every common entity
-- Resource-style namespaces (`client.actor`, `client.scrobble`, …)
-- Escape hatch via `client.call(method)` for un-wrapped XRPC methods
-- Works on Python 3.10+
+`rocksky` is native bindings to the shared Rocksky Rust core (via UniFFI):
+AppView reads, AT Protocol PDS writes, a local dedup index, and the identity
+hashes — the same engine behind every Rocksky SDK.
 
 ## Install
 
@@ -24,157 +20,43 @@ pip install rocksky
 ```
 </CodeGroup>
 
-## Quick start
+The wheel is pure-Python; the native library is fetched from the GitHub release
+on first import and cached.
+
+## Quickstart
 
 ```python
-import asyncio
-from rocksky import Client
+from rocksky import AppView, Agent, ScrobbleInput, song_hash
 
-async def main() -> None:
-    async with Client() as rocksky:
-        me = await rocksky.actor.get_profile("tsiry-sandratraina.com")
-        print(me.display_name, "—", me.did)
+# Reads — unauthenticated. AppView(None) uses https://api.rocksky.app.
+av = AppView(None)
+print(av.global_stats().scrobbles)
+for t in av.top_tracks(10, 0):
+    print(t.artist, "—", t.title)
 
-        recent = await rocksky.scrobble.list(did=me.did, limit=10)
-        for s in recent:
-            print(f"  {s.artist} — {s.title}")
-
-asyncio.run(main())
+# Writes — log in with an app password.
+agent = Agent.login_password("session.json", "alice.bsky.social", "app-password", None, None)
+out = agent.scrobble(ScrobbleInput(
+    title="Chaser", artist="Calibro 35",
+    album="Jazzploitation", album_artist="Calibro 35", duration_ms=182320,
+))
+print(out.scrobble_uri)
 ```
 
-## Authenticating
+## API
 
-```python
-async with Client(token="eyJhbGciOi…") as rocksky:
-    await rocksky.scrobble.create(
-        title="Hounds of Love",
-        artist="Kate Bush",
-        album="Hounds of Love",
-        duration=298000,
-    )
-```
+**Reads — `AppView(base=None)`**: `profile`, `scrobbles`, `songs`, `albums`,
+`artists`, `top_tracks`, `top_artists`, `global_stats`.
 
-Swap tokens mid-session:
+**Writes — `Agent`**: `login_password(...)`, then `scrobble`, `create_song` /
+`create_album` / `create_artist`, `like` / `unlike`, `follow` / `unfollow`,
+`shout` / `reply_shout`, `set_now_playing` / `clear_now_playing`, `sync_repo`
+(dedup backfill).
 
-```python
-rocksky.set_token(new_jwt)
-```
+**Identity hashes**: `song_hash`, `album_hash`, `artist_hash`.
 
-## Self-hosting / custom base URL
+## Duplicate prevention
 
-```python
-Client(base_url="http://localhost:8000", token=...)
-```
-
-## Builder
-
-```python
-from rocksky import ClientBuilder
-
-rocksky = (
-    ClientBuilder()
-    .base_url("https://api.rocksky.app")
-    .token(os.environ["ROCKSKY_TOKEN"])
-    .timeout(10.0)
-    .user_agent("my-app/1.0")
-    .header("x-request-id", "trace-abc")
-    .retries(3, backoff=0.5)
-    .on_request(lambda r: log.debug("→ %s %s", r.method, r.url))
-    .on_response(lambda r: log.debug("← %s", r.status_code))
-    .build()
-)
-```
-
-- Every setter returns `self`, so chain freely.
-- Hooks may be sync **or** async — the SDK awaits when needed.
-- `retries(n)` retries `TransportError` + any 5xx response with exponential
-  backoff (`backoff * 2**attempt`). 4xx surfaces immediately.
-
-## IPython autoawait
-
-```bash
-uv run --with ipython ipython
-```
-
-```python
-In [1]: %autoawait
-In [2]: from rocksky import Client
-In [3]: rocksky = Client()
-In [4]: me = await rocksky.actor.get_profile("tsiry-sandratraina.com")
-In [5]: me.display_name
-Out[5]: 'Tsiry Sandratraina'
-```
-
-## Resources
-
-| Namespace                 | Methods                                                                                                                                            |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `actor`                   | `get_profile`, `get_albums`, `get_artists`, `get_songs`, `get_scrobbles`, `get_loved_songs`, `get_playlists`, `get_neighbours`, `get_compatibility` |
-| `album`                   | `get`, `list`, `get_tracks`                                                                                                                        |
-| `artist`                  | `get`, `list`, `get_albums`, `get_tracks`, `get_listeners`, `get_recent_listeners`                                                                 |
-| `song`                    | `get`, `list`, `match`, `get_recent_listeners`, `create`                                                                                           |
-| `scrobble`                | `get`, `list`, `create`                                                                                                                            |
-| `charts`                  | `top_tracks`, `top_artists`, `scrobbles_chart`                                                                                                     |
-| `feed`                    | `get`, `search`, `stories`, `recommendations`, `artist_recommendations`, `album_recommendations`, `get_generator`, `list_generators`               |
-| `graph`                   | `follow`, `unfollow`, `get_followers`, `get_follows`, `get_known_followers`                                                                        |
-| `shout`                   | `create`, `reply`, `remove`, `report`, `for_profile`, `for_album`, `for_artist`, `for_track`, `replies`                                            |
-| `like`                    | `like_song`, `dislike_song`, `like_shout`, `dislike_shout`                                                                                         |
-| `playlist`                | `get`, `list`, `create`, `remove`, `start`, `insert_files`, `insert_directory`                                                                     |
-| `player`                  | `currently_playing`, `queue`, `play`, `pause`, `next`, `previous`, `seek`, `play_file`, `play_directory`, `add_items_to_queue`                     |
-| `spotify`                 | `currently_playing`, `play`, `pause`, `next`, `previous`, `seek`                                                                                   |
-| `apikey`                  | `list`, `create`, `update`, `remove`                                                                                                               |
-| `stats`                   | `get`, `wrapped`                                                                                                                                   |
-| `mirror`                  | `list_sources`, `put_source`                                                                                                                       |
-| `dropbox` / `googledrive` | `list_files`, `get_file`, `download_file`, …                                                                                                       |
-
-## Escape hatch
-
-```python
-raw = await rocksky.call("app.rocksky.feed.describeFeedGenerator", verb="GET")
-```
-
-## Errors
-
-```python
-from rocksky import (
-    APIError,
-    AuthenticationError,    # 401
-    PermissionError,        # 403
-    NotFoundError,          # 404
-    RateLimitError,         # 429
-    ServerError,            # 5xx
-    TransportError,         # network / timeout
-)
-
-try:
-    await rocksky.song.get(uri="at://does-not-exist")
-except NotFoundError as e:
-    print(e.status_code, e.error, e.message)
-```
-
-`APIError` exposes `status_code`, `method`, `error`, `message`, and `body`.
-
-## Testing
-
-```python
-import httpx
-from rocksky import Client
-
-transport = httpx.MockTransport(lambda req: httpx.Response(200, json={"hits": []}))
-external = httpx.AsyncClient(transport=transport)
-
-async with Client(http_client=external) as rocksky:
-    await rocksky.feed.search("kate bush")
-
-await external.aclose()
-```
-
-## Types
-
-Public model types are derived from the [Rocksky lexicons](https://tangled.org/rocksky.app/rocksky/tree/main/apps/api/lexicons) and live in `rocksky.gen.models` (Pydantic) and `rocksky.gen.types` (dataclasses). `rocksky.models` re-exports the Pydantic shapes under their historical SDK names. Regenerate with `bun run lexgen:types` at the repo root.
-
-
-## License
-
-MIT © Tsiry Sandratraina. Source:
-[`sdk/python`](https://tangled.org/@rocksky.app/rocksky/blob/main/sdk/python).
+Pass a `dedup_path` to `Agent.login_password` to enable the local index, then
+`agent.sync_repo()` to backfill it from the repo. With it, write verbs skip
+records that already exist.

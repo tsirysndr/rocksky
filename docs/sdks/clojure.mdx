@@ -1,149 +1,51 @@
 ---
 title: "Clojure"
-description: "Idiomatic, pipe-friendly Clojure client for the Rocksky XRPC API."
+description: "Clojure SDK for Rocksky — native core over the JVM Panama FFM API."
 icon: "parentheses"
 ---
 
-`app.rocksky/sdk` is an idiomatic Clojure client.
-
-- **Plain maps in, plain maps out** — no records, no protocols.
-- **Client-first arg** — every endpoint threads through `->`.
-- **No global state** — clients are values you can pass around and reuse.
-- **Two real verbs** — `query` (GET) and `procedure` (POST) cover the whole
-  XRPC surface; resource namespaces are thin wrappers on top.
+`app.rocksky/sdk` binds the shared Rocksky Rust core via the JVM **Panama FFM**
+API (`rocksky.core`, JDK 22+): AppView reads, AT Protocol PDS writes, and the
+identity hashes — the same engine behind every Rocksky SDK.
 
 ## Install
 
-`deps.edn`:
+deps.edn:
 
 ```clojure
-{:deps {app.rocksky/sdk {:mvn/version "0.2.0-SNAPSHOT"}}}
+app.rocksky/sdk {:mvn/version "0.4.1"}
 ```
 
-Leiningen / Boot:
-
-```clojure
-[app.rocksky/sdk "0.2.0-SNAPSHOT"]
-```
-
-Or track a specific commit:
-
-```clojure
-{:deps {app.rocksky/sdk {:git/url   "https://tangled.org/@rocksky.app/rocksky"
-                         :git/sha   "..."
-                         :deps/root "sdk/clojure"}}}
-```
+The jar is native-free; the library is fetched from the GitHub release on first
+use. Run with `--enable-native-access=ALL-UNNAMED` (the `:native` alias adds it).
 
 ## Quickstart
 
 ```clojure
-(require '[rocksky.core :as rs])
+(require '[rocksky.core :as core])
 
-(def client (rs/client))   ;; defaults to https://api.rocksky.app
+;; Reads — unauthenticated. An optional trailing base overrides the AppView URL.
+(core/global-stats)
+(doseq [t (core/top-tracks 10 0)]
+  (println (get t "artist") "—" (get t "title")))
 
-(rs/get-profile client {:did "did:plc:7vdlgi2bflelz7mmuxoqjfcr"})
-;; => {:handle "tsiry-sandratraina.com" :followersCount 42 ...}
+;; Writes — log in with an app password.
+(def agent (core/login "session.json" "alice.bsky.social" "app-password"))
+(core/scrobble agent {"title" "Chaser" "artist" "Calibro 35"
+                      "album" "Jazzploitation" "albumArtist" "Calibro 35"
+                      "durationMs" 182320})
+(core/agent-close agent)
 ```
 
-For authenticated endpoints:
+## API
 
-```clojure
-(def client (rs/client {:token (System/getenv "ROCKSKY_TOKEN")}))
+Reads/writes return plain maps; write verbs throw `ex-info` on failure.
 
-(require '[rocksky.scrobble :as scrobble])
-(scrobble/create-scrobble client
-                          {:title  "Paranoid Android"
-                           :artist "Radiohead"
-                           :album  "OK Computer"})
-```
+**Reads — `rocksky.core`**: `(profile actor)`, `(scrobbles actor limit)`,
+`(top-tracks limit offset)`, `(global-stats)` — each accepts a trailing `base`.
 
-## Pipe-friendly composition
+**Writes — `rocksky.core`**: `(login ...)`, then `(scrobble agent track)`,
+`(like agent uri cid)`, `(follow agent did)`, `(shout ...)`,
+`(refresh-session agent)`, `(agent-close agent)`.
 
-```clojure
-(require '[rocksky.client :as c]
-         '[rocksky.actor  :as actor])
-
-(-> (c/client {:base-url "https://api.rocksky.app"})
-    (c/with-token (System/getenv "ROCKSKY_TOKEN"))
-    (actor/get-profile {:did "did:plc:7vdlgi2bflelz7mmuxoqjfcr"})
-    :handle)
-;; => "tsiry-sandratraina.com"
-```
-
-Reshape responses inline:
-
-```clojure
-(require '[rocksky.charts :as charts])
-
-(->> (charts/get-top-tracks (c/client) {:limit 5})
-     :tracks
-     (map :title))
-;; => ("Paranoid Android" "Karma Police" ...)
-```
-
-## Calling URLs the SDK doesn't wrap
-
-```clojure
-(c/query     client :app.rocksky.feed.describeFeedGenerator)
-(c/procedure client :app.rocksky.shout.createShout {:message "hi"})
-```
-
-## Errors
-
-```clojure
-(try
-  (album/get-album client {:uri "at://missing"})
-  (catch clojure.lang.ExceptionInfo e
-    (let [{:keys [status nsid body]} (ex-data e)]
-      (println status nsid body))))
-```
-
-## Concurrency
-
-Clients are immutable values — share them across threads:
-
-```clojure
-(pmap #(actor/get-profile client {:did %}) handles)
-```
-
-## Available namespaces
-
-| Namespace            | Wraps                            |
-| -------------------- | -------------------------------- |
-| `rocksky.actor`      | `app.rocksky.actor.*`            |
-| `rocksky.album`      | `app.rocksky.album.*`            |
-| `rocksky.apikey`     | `app.rocksky.apikey.*`           |
-| `rocksky.artist`     | `app.rocksky.artist.*`           |
-| `rocksky.charts`     | `app.rocksky.charts.*`           |
-| `rocksky.dropbox`    | `app.rocksky.dropbox.*`          |
-| `rocksky.feed`       | `app.rocksky.feed.*`             |
-| `rocksky.googledrive`| `app.rocksky.googledrive.*`      |
-| `rocksky.graph`      | `app.rocksky.graph.*`            |
-| `rocksky.like`       | `app.rocksky.like.*`             |
-| `rocksky.mirror`     | `app.rocksky.mirror.*`           |
-| `rocksky.player`     | `app.rocksky.player.*`           |
-| `rocksky.playlist`   | `app.rocksky.playlist.*`         |
-| `rocksky.scrobble`   | `app.rocksky.scrobble.*`         |
-| `rocksky.shout`      | `app.rocksky.shout.*`            |
-| `rocksky.song`       | `app.rocksky.song.*`             |
-| `rocksky.spotify`    | `app.rocksky.spotify.*`          |
-| `rocksky.stats`      | `app.rocksky.stats.*`            |
-
-## Conventions
-
-- **Kebab-case Clojure, camelCase wire.** The SDK translates `:start-date` →
-  `startDate`, `:album-art` → `albumArt`, etc. Raw HTTP bodies still use
-  camelCase, matching the lexicons.
-- **Nil values are dropped.** Pass `:limit nil` and the param won't appear
-  on the wire — handy for `cond->` chains.
-- **Booleans round-trip.** `:enabled false` is preserved.
-
-## Types
-
-Lexicon-derived schemas (in [malli](https://github.com/metosin/malli) form) are exposed as `rocksky.generated.types/schemas`, a map keyed by `:TypeName` keywords covering every lex `*View*` / `*Record` / `*Input` / `*Output` / `*Params` shape from [the Rocksky lexicons](https://tangled.org/rocksky.app/rocksky/tree/main/apps/api/lexicons). Regenerate with `bun run lexgen:types` at the repo root.
-
-
-## License
-
-MIT © Tsiry Sandratraina. Source:
-[`sdk/clojure`](https://tangled.org/@rocksky.app/rocksky/blob/main/sdk/clojure).
+**Identity hashes**: `(song-hash title artist album)`.

@@ -1,260 +1,74 @@
 ---
 title: "TypeScript"
-description: "Type-safe Rocksky SDK for Bun, Node 18+, Deno, browsers, and Cloudflare Workers."
+description: "TypeScript SDK for Rocksky — built on atcute."
 icon: "square-js"
 ---
 
-`@rocksky/sdk` is a zero-dependency TypeScript client for the Rocksky XRPC API.
+`@rocksky/sdk` is built on [atcute](https://github.com/mary-ext/atcute):
+`RockskyClient` does unauthenticated AppView reads, and `Agent` logs in with an
+app password and writes `app.rocksky.*` records to the user's PDS. It also ships
+a local dedup index and Jetstream real-time sync.
 
-- **Type-safe** — every endpoint and parameter is statically typed.
-- **Builder-friendly** — fluent `RockskyClient.builder()` for ergonomic setup.
-- **Pipe-friendly** — composable async operators (`pipe`, `withRetry`,
-  `withTimeout`, `map`, `tap`, `withFallback`, `catchError`).
-- **Zero-dependency** — only the platform `fetch` and the standard library.
+<Note>
+  Version 0.4.0 is a **breaking** rewrite on atcute — it is a native AT Protocol
+  client, not the old HTTP wrapper. See the package CHANGELOG.
+</Note>
 
 ## Install
 
 <CodeGroup>
+```bash npm
+npm install @rocksky/sdk
+```
+
 ```bash bun
 bun add @rocksky/sdk
 ```
-
-```bash npm
-npm i @rocksky/sdk
-```
 </CodeGroup>
 
-## Quick start
+Requires Node ≥ 22 (global `WebSocket` / `fetch`) or Bun.
+
+## Quickstart
 
 ```ts
-import { createClient } from "@rocksky/sdk";
+import { RockskyClient, Agent } from "@rocksky/sdk";
 
-const client = createClient();
+// Reads — unauthenticated. new RockskyClient() uses https://api.rocksky.app.
+const rk = new RockskyClient();
+const stats = await rk.globalStats();
+const top = await rk.topTracks(10, 0);
 
-const profile = await client.actor.getProfile({
-  did: "did:plc:7vdlgi2bflelz7mmuxoqjfcr",
-});
-const topTracks = await client.charts.getTopTracks({ limit: 5 });
-```
-
-## Authentication
-
-```ts
-import { createClient } from "@rocksky/sdk";
-
-const client = createClient({ auth: process.env.ROCKSKY_TOKEN });
-
-// or refresh on every call
-const client2 = createClient({
-  auth: async () => loadTokenFromKeychain(),
+// Writes — log in with an app password (resolves the PDS automatically).
+const agent = await Agent.login("alice.bsky.social", "app-password");
+const uri = await agent.scrobble({
+  title: "Chaser", artist: "Calibro 35",
+  album: "Jazzploitation", albumArtist: "Calibro 35", duration: 182320,
 });
 ```
 
-Endpoints that require auth throw `RockskyAuthError` when no token is
-configured.
+## API
 
-## Builder
+**Reads — `RockskyClient`**: `profile`, `scrobbles`, `songs`, `albums`,
+`artists`, `topTracks`, `topArtists`, `search`, `globalStats`.
 
-```ts
-import { RockskyClient } from "@rocksky/sdk";
+**Writes — `Agent`**: `scrobble`, `createSong` / `createAlbum` / `createArtist`,
+`like`, `follow`, `shout` / `replyShout`, `setNowPlaying` / `clearNowPlaying`,
+`delete`.
 
-const client = RockskyClient.builder()
-  .baseUrl("https://api.rocksky.app")
-  .bearer(process.env.ROCKSKY_TOKEN!)
-  .userAgent("my-app/1.0")
-  .timeout(10_000)
-  .retries(3)
-  .retryDelay(200)
-  .header("x-trace-id", crypto.randomUUID())
-  .build();
-```
+**Identity hashes**: `songHash`, `albumHash`, `artistHash`.
 
-`withAuth(token)` and `withBaseUrl(url)` return a new client without mutating
-the original.
+## Duplicate prevention & real-time sync
 
-## Pipe-style composition
+An optional local index (embedded classic-level LevelDB) prevents duplicate
+writes and stays live off the firehose:
 
 ```ts
-import {
-  createClient,
-  map,
-  pipe,
-  tap,
-  withFallback,
-  withRetry,
-  withTimeout,
-} from "@rocksky/sdk";
+import { RockskyIndex } from "@rocksky/sdk";
 
-const client = createClient();
+const idx = new RockskyIndex("./dedup");
+await idx.open();
+agent.useIndex(idx);
 
-const handle = await pipe(
-  () => client.actor.getProfile({ did: "did:plc:7vdlgi2bflelz7mmuxoqjfcr" }),
-  withRetry(3, { delayMs: 200 }),
-  withTimeout(5_000),
-  tap((p) => console.log("loaded", p.handle)),
-  map((p) => p.displayName ?? p.handle),
-  withFallback("anonymous"),
-);
+await agent.syncRepo();        // backfill from the repo CAR
+agent.hydrateFromJetstream();  // keep it live from Jetstream (all 4 servers)
 ```
-
-| Operator                                          | Description                                       |
-| ------------------------------------------------- | ------------------------------------------------- |
-| `map(fn)`                                         | Transform the resolved value.                     |
-| `tap(fn)`                                         | Run a side-effect; pass the value through.        |
-| `withRetry(n, { delayMs, factor, shouldRetry })`  | Retry on rejection with exponential backoff.      |
-| `withTimeout(ms)`                                 | Reject with `RockskyTimeoutError` after `ms`.     |
-| `withFallback(value \| fn)`                       | Recover from any error with a default.            |
-| `catchError(fn)`                                  | Map a thrown error to a value.                    |
-
-## Namespaces
-
-```
-client.actor        getProfile, getActorAlbums, getActorArtists, getActorSongs,
-                    getActorScrobbles, getActorLovedSongs, getActorPlaylists,
-                    getActorNeighbours, getActorCompatibility
-client.album        getAlbum, getAlbums, getAlbumTracks
-client.apikey       getApikeys, createApikey, updateApikey, removeApikey
-client.artist       getArtist, getArtists, getArtistAlbums, getArtistTracks,
-                    getArtistListeners, getArtistRecentListeners
-client.charts       getScrobblesChart, getTopArtists, getTopTracks
-client.dropbox      getFiles, getMetadata, getTemporaryLink, downloadFile
-client.feed         search, getFeed, getFeedGenerators, getFeedGenerator,
-                    describeFeedGenerator, getFeedSkeleton,
-                    getRecommendations, getArtistRecommendations,
-                    getAlbumRecommendations, getStories
-client.googledrive  getFile, getFiles, downloadFile
-client.graph        followAccount, unfollowAccount, getFollowers, getFollows,
-                    getKnownFollowers
-client.like         likeSong, dislikeSong, likeShout, dislikeShout
-client.mirror       getMirrorSources, putMirrorSource
-client.player       getCurrentlyPlaying, getPlaybackQueue, play, pause, next,
-                    previous, seek, playFile, playDirectory, addItemsToQueue,
-                    addDirectoryToQueue
-client.playlist     getPlaylists, getPlaylist, createPlaylist, removePlaylist,
-                    startPlaylist, insertDirectory, insertFiles, removeTrack
-client.scrobble     createScrobble, getScrobble, getScrobbles
-client.shout        createShout, replyShout, reportShout, removeShout,
-                    getShoutReplies, getProfileShouts, getTrackShouts,
-                    getArtistShouts, getAlbumShouts
-client.song         getSong, getSongs, getSongRecentListeners, matchSong,
-                    createSong
-client.spotify      getCurrentlyPlaying, play, pause, next, previous, seek
-client.stats        getStats, getWrapped
-```
-
-Every method takes a typed parameter object and returns `Promise<T>`. Pass a
-generic to narrow the response type:
-
-```ts
-type Profile = { handle: string; did: string; displayName?: string };
-const me = await client.actor.getProfile<Profile>({ did: "alice.bsky.social" });
-```
-
-## Escape hatch
-
-For endpoints not yet wrapped:
-
-```ts
-const result = await client.xrpc<MyType>(
-  "app.rocksky.something.notWrappedYet",
-  "GET",
-  { params: { foo: "bar" } },
-);
-```
-
-## Error handling
-
-```ts
-import { RockskyHttpError } from "@rocksky/sdk";
-
-try {
-  await client.scrobble.getScrobble({ uri: "at://x" });
-} catch (err) {
-  if (err instanceof RockskyHttpError && err.status === 404) {
-    console.log("not found");
-  } else {
-    throw err;
-  }
-}
-```
-
-| Error                 | Meaning                                          |
-| --------------------- | ------------------------------------------------ |
-| `RockskyHttpError`    | Non-2xx response. `.status`, `.url`, `.body`     |
-| `RockskyTimeoutError` | Exceeded `timeoutMs`                             |
-| `RockskyAuthError`    | Endpoint requires auth but no token configured   |
-| `RockskyError`        | Base class                                       |
-
-## Pagination
-
-```ts
-import { createClient, paginate } from "@rocksky/sdk";
-
-const client = createClient();
-
-// Offset / limit
-for await (const s of paginate({
-  fetch: ({ limit, offset }) =>
-    client.actor
-      .getActorScrobbles({ did, limit, offset })
-      .then((p) => p.scrobbles ?? []),
-  pageSize: 50,
-  maxItems: 200,
-})) {
-  console.log(s.track.title);
-}
-
-// Cursor
-const followers = await client
-  .paginate({
-    fetch: async ({ limit, cursor }) => {
-      const page = await client.graph.getFollowers({ actor, limit, cursor });
-      return { items: page.followers, cursor: page.cursor };
-    },
-    pageSize: 100,
-  })
-  .toArray();
-```
-
-## Realtime (WebSocket)
-
-```ts
-import { RealtimeClient, createClient } from "@rocksky/sdk";
-
-const rt = RealtimeClient.builder()
-  .baseUrl("https://api.rocksky.app")
-  .token(process.env.ROCKSKY_TOKEN!)
-  .clientName("my-app")
-  .pingInterval(20_000)
-  .reconnect({ backoffMs: 1000, maxBackoffMs: 60_000 })
-  .build();
-
-rt.on("registered", ({ deviceId }) => console.log("device id:", deviceId));
-rt.on("message", ({ data, device_id }) => console.log(device_id, data));
-rt.on("control", (c) => console.log("control:", c));
-
-await rt.connect();
-
-await rt.sendMessage({
-  type: "track",
-  title: "Heart of Glass",
-  artist: "Blondie",
-});
-
-await rt.sendControl({ action: "play", target: "device-id-123" });
-
-await rt.close();
-```
-
-Events: `open`, `close`, `error`, `registered`, `deviceRegistered`, `message`,
-`control`, `raw`.
-
-## Types
-
-Public model types are derived from the [Rocksky lexicons](https://tangled.org/rocksky.app/rocksky/tree/main/apps/api/lexicons) and live in `src/generated/types.ts`. They are regenerated from `apps/api/lexicons/**/*.json` by running `bun run lexgen:types` at the repo root.
-
-
-## License
-
-MIT © Tsiry Sandratraina. Source:
-[`sdk/typescript`](https://tangled.org/@rocksky.app/rocksky/blob/main/sdk/typescript).
