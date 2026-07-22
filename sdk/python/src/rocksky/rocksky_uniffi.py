@@ -497,17 +497,117 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_agent_unlike() != 7657:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_actor_playlists() != 29553:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_album() != 17604:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_album_recommendations() != 32927:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_album_shouts() != 22383:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_album_tracks() != 22490:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_albums() != 12109:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_apikeys() != 22024:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_artist() != 7024:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_artist_albums() != 29658:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_artist_listeners() != 28932:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_artist_recent_listeners() != 57944:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_artist_recommendations() != 6167:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_artist_shouts() != 25401:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_artist_tracks() != 32626:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_artists() != 63885:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_audio_settings() != 63854:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_catalog_albums() != 30604:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_catalog_artists() != 10804:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_catalog_songs() != 43625:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_compatibility() != 36558:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_currently_playing() != 29450:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_feed() != 45348:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_feed_generator() != 4005:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_feed_generators() != 14576:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_followers() != 43919:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_follows() != 34202:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_get() != 1491:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_global_stats() != 46392:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_known_followers() != 65122:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_loved_songs() != 22860:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_mirror_sources() != 4801:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_neighbours() != 57546:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_playback_queue() != 32322:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_playlist() != 2389:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_playlists() != 3803:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_profile() != 38853:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_profile_shouts() != 27333:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_recommendations() != 8253:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_scrobble() != 50029:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_scrobble_feed() != 49267:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_scrobbles() != 50953:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_scrobbles_chart() != 62332:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_search() != 53583:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_shout_replies() != 53377:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_song() != 39871:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_song_recent_listeners() != 11638:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_songs() != 45644:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_spotify_currently_playing() != 6866:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_stats() != 46351:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_stories() != 20285:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_top_artists() != 41013:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_top_artists_interval() != 39888:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_top_tracks() != 59184:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_top_tracks_interval() != 2448:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_track_shouts() != 8713:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_wrapped() != 63835:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_constructor_agent_login_password() != 59184:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -746,17 +846,288 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_constructor_appview_new.argtypes = (
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_rocksky_uniffi_fn_constructor_appview_new.restype = ctypes.c_void_p
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_actor_playlists.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.c_uint32,
+    ctypes.c_uint32,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_actor_playlists.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_album.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_album.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_album_recommendations.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_album_recommendations.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_album_shouts.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.c_uint32,
+    ctypes.c_uint32,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_album_shouts.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_album_tracks.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_album_tracks.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_albums.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.c_uint32,
+    ctypes.c_uint32,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_albums.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_apikeys.argtypes = (
+    ctypes.c_void_p,
+    ctypes.c_uint32,
+    ctypes.c_uint32,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_apikeys.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artist.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artist.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artist_albums.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artist_albums.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artist_listeners.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.c_uint32,
+    ctypes.c_uint32,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artist_listeners.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artist_recent_listeners.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.c_uint32,
+    ctypes.c_uint32,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artist_recent_listeners.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artist_recommendations.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artist_recommendations.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artist_shouts.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.c_uint32,
+    ctypes.c_uint32,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artist_shouts.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artist_tracks.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.c_uint32,
+    ctypes.c_uint32,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artist_tracks.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artists.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.c_uint32,
+    ctypes.c_uint32,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artists.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_audio_settings.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_audio_settings.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_catalog_albums.argtypes = (
+    ctypes.c_void_p,
+    ctypes.c_uint32,
+    ctypes.c_uint32,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_catalog_albums.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_catalog_artists.argtypes = (
+    ctypes.c_void_p,
+    ctypes.c_uint32,
+    ctypes.c_uint32,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_catalog_artists.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_catalog_songs.argtypes = (
+    ctypes.c_void_p,
+    ctypes.c_uint32,
+    ctypes.c_uint32,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_catalog_songs.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_compatibility.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_compatibility.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_currently_playing.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_currently_playing.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_feed.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.c_uint32,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_feed.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_feed_generator.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_feed_generator.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_feed_generators.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_feed_generators.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_followers.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.c_uint32,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_followers.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_follows.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.c_uint32,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_follows.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_get.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_get.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_global_stats.argtypes = (
     ctypes.c_void_p,
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_global_stats.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_known_followers.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.c_uint32,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_known_followers.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_loved_songs.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.c_uint32,
+    ctypes.c_uint32,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_loved_songs.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_mirror_sources.argtypes = (
+    ctypes.c_void_p,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_mirror_sources.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_neighbours.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_neighbours.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_playback_queue.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_playback_queue.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_playlist.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_playlist.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_playlists.argtypes = (
+    ctypes.c_void_p,
+    ctypes.c_uint32,
+    ctypes.c_uint32,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_playlists.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_profile.argtypes = (
     ctypes.c_void_p,
     _UniffiRustBuffer,
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_profile.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_profile_shouts.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.c_uint32,
+    ctypes.c_uint32,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_profile_shouts.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_recommendations.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_recommendations.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_scrobble.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_scrobble.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_scrobble_feed.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.c_int8,
+    ctypes.c_uint32,
+    ctypes.c_uint32,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_scrobble_feed.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_scrobbles.argtypes = (
     ctypes.c_void_p,
     _UniffiRustBuffer,
@@ -765,6 +1136,49 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_scrobbles.argtypes = (
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_scrobbles.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_scrobbles_chart.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_scrobbles_chart.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_search.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_search.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_shout_replies.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.c_uint32,
+    ctypes.c_uint32,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_shout_replies.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_song.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_song.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_song_recent_listeners.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.c_uint32,
+    ctypes.c_uint32,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_song_recent_listeners.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_songs.argtypes = (
     ctypes.c_void_p,
     _UniffiRustBuffer,
@@ -773,6 +1187,26 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_songs.argtypes = (
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_songs.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_spotify_currently_playing.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_spotify_currently_playing.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_stats.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_stats.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_stories.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_stories.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_top_artists.argtypes = (
     ctypes.c_void_p,
     ctypes.c_uint32,
@@ -780,6 +1214,14 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_top_artists.argtypes = (
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_top_artists.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_top_artists_interval.argtypes = (
+    ctypes.c_void_p,
+    ctypes.c_uint32,
+    ctypes.c_uint32,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_top_artists_interval.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_top_tracks.argtypes = (
     ctypes.c_void_p,
     ctypes.c_uint32,
@@ -787,6 +1229,27 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_top_tracks.argtypes = (
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_top_tracks.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_top_tracks_interval.argtypes = (
+    ctypes.c_void_p,
+    ctypes.c_uint32,
+    ctypes.c_uint32,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_top_tracks_interval.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_track_shouts.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_track_shouts.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_wrapped.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_wrapped.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_rocksky_uniffi_fn_func_album_hash.argtypes = (
     _UniffiRustBuffer,
     _UniffiRustBuffer,
@@ -1127,24 +1590,174 @@ _UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_unfollow.restype = ctypes
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_unlike.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_unlike.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_actor_playlists.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_actor_playlists.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_album.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_album.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_album_recommendations.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_album_recommendations.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_album_shouts.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_album_shouts.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_album_tracks.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_album_tracks.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_albums.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_albums.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_apikeys.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_apikeys.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_artist.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_artist.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_artist_albums.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_artist_albums.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_artist_listeners.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_artist_listeners.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_artist_recent_listeners.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_artist_recent_listeners.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_artist_recommendations.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_artist_recommendations.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_artist_shouts.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_artist_shouts.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_artist_tracks.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_artist_tracks.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_artists.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_artists.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_audio_settings.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_audio_settings.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_catalog_albums.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_catalog_albums.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_catalog_artists.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_catalog_artists.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_catalog_songs.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_catalog_songs.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_compatibility.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_compatibility.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_currently_playing.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_currently_playing.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_feed.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_feed.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_feed_generator.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_feed_generator.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_feed_generators.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_feed_generators.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_followers.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_followers.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_follows.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_follows.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_get.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_get.restype = ctypes.c_uint16
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_global_stats.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_global_stats.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_known_followers.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_known_followers.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_loved_songs.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_loved_songs.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_mirror_sources.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_mirror_sources.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_neighbours.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_neighbours.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_playback_queue.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_playback_queue.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_playlist.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_playlist.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_playlists.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_playlists.restype = ctypes.c_uint16
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_profile.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_profile.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_profile_shouts.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_profile_shouts.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_recommendations.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_recommendations.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_scrobble.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_scrobble.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_scrobble_feed.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_scrobble_feed.restype = ctypes.c_uint16
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_scrobbles.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_scrobbles.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_scrobbles_chart.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_scrobbles_chart.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_search.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_search.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_shout_replies.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_shout_replies.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_song.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_song.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_song_recent_listeners.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_song_recent_listeners.restype = ctypes.c_uint16
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_songs.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_songs.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_spotify_currently_playing.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_spotify_currently_playing.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_stats.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_stats.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_stories.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_stories.restype = ctypes.c_uint16
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_top_artists.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_top_artists.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_top_artists_interval.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_top_artists_interval.restype = ctypes.c_uint16
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_top_tracks.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_top_tracks.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_top_tracks_interval.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_top_tracks_interval.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_track_shouts.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_track_shouts.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_wrapped.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_wrapped.restype = ctypes.c_uint16
 _UniffiLib.uniffi_rocksky_uniffi_checksum_constructor_agent_login_password.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_constructor_agent_login_password.restype = ctypes.c_uint16
@@ -1632,17 +2245,129 @@ class AppViewProtocol(typing.Protocol):
     Unauthenticated read client over the public Rocksky AppView.
     """
 
+    def actor_playlists(self, actor: "str",limit: "int",offset: "int"):
+        raise NotImplementedError
+    def album(self, uri: "str"):
+        raise NotImplementedError
+    def album_recommendations(self, actor: "str",limit: "typing.Optional[int]"):
+        raise NotImplementedError
+    def album_shouts(self, uri: "str",limit: "int",offset: "int"):
+        raise NotImplementedError
+    def album_tracks(self, uri: "str"):
+        raise NotImplementedError
+    def albums(self, actor: "str",limit: "int",offset: "int"):
+        raise NotImplementedError
+    def apikeys(self, limit: "int",offset: "int"):
+        raise NotImplementedError
+    def artist(self, uri: "str"):
+        raise NotImplementedError
+    def artist_albums(self, uri: "str"):
+        raise NotImplementedError
+    def artist_listeners(self, uri: "str",limit: "int",offset: "int"):
+        raise NotImplementedError
+    def artist_recent_listeners(self, uri: "str",limit: "int",offset: "int"):
+        raise NotImplementedError
+    def artist_recommendations(self, actor: "str",limit: "typing.Optional[int]"):
+        raise NotImplementedError
+    def artist_shouts(self, uri: "str",limit: "int",offset: "int"):
+        raise NotImplementedError
+    def artist_tracks(self, uri: "str",limit: "int",offset: "int"):
+        raise NotImplementedError
+    def artists(self, actor: "str",limit: "int",offset: "int"):
+        raise NotImplementedError
+    def audio_settings(self, actor: "str"):
+        raise NotImplementedError
+    def catalog_albums(self, limit: "int",offset: "int",genre: "typing.Optional[str]"):
+        raise NotImplementedError
+    def catalog_artists(self, limit: "int",offset: "int",genre: "typing.Optional[str]"):
+        raise NotImplementedError
+    def catalog_songs(self, limit: "int",offset: "int",genre: "typing.Optional[str]"):
+        raise NotImplementedError
+    def compatibility(self, actor: "str"):
+        raise NotImplementedError
+    def currently_playing(self, player_id: "typing.Optional[str]",actor: "typing.Optional[str]"):
+        raise NotImplementedError
+    def feed(self, feed: "str",limit: "int",cursor: "typing.Optional[str]"):
+        raise NotImplementedError
+    def feed_generator(self, feed: "str"):
+        raise NotImplementedError
+    def feed_generators(self, size: "typing.Optional[int]"):
+        raise NotImplementedError
+    def followers(self, actor: "str",limit: "int",cursor: "typing.Optional[str]"):
+        raise NotImplementedError
+    def follows(self, actor: "str",limit: "int",cursor: "typing.Optional[str]"):
+        raise NotImplementedError
+    def get(self, nsid: "str",params: "dict[str, str]"):
+        """
+        Call any AppView read query by nsid; returns the raw JSON response.
+        """
+
+        raise NotImplementedError
     def global_stats(self, ):
+        raise NotImplementedError
+    def known_followers(self, actor: "str",limit: "int",cursor: "typing.Optional[str]"):
+        raise NotImplementedError
+    def loved_songs(self, actor: "str",limit: "int",offset: "int"):
+        raise NotImplementedError
+    def mirror_sources(self, ):
+        raise NotImplementedError
+    def neighbours(self, actor: "str"):
+        raise NotImplementedError
+    def playback_queue(self, player_id: "str"):
+        raise NotImplementedError
+    def playlist(self, uri: "str"):
+        raise NotImplementedError
+    def playlists(self, limit: "int",offset: "int"):
         raise NotImplementedError
     def profile(self, actor: "str"):
         raise NotImplementedError
+    def profile_shouts(self, actor: "str",limit: "int",offset: "int"):
+        raise NotImplementedError
+    def recommendations(self, actor: "str",limit: "typing.Optional[int]"):
+        raise NotImplementedError
+    def scrobble(self, uri: "str"):
+        raise NotImplementedError
+    def scrobble_feed(self, did: "typing.Optional[str]",following: "bool",limit: "int",offset: "int"):
+        raise NotImplementedError
     def scrobbles(self, actor: "str",limit: "int",offset: "int"):
+        raise NotImplementedError
+    def scrobbles_chart(self, did: "typing.Optional[str]",artist_uri: "typing.Optional[str]",album_uri: "typing.Optional[str]",song_uri: "typing.Optional[str]",genre: "typing.Optional[str]",_from: "typing.Optional[str]",to: "typing.Optional[str]"):
+        raise NotImplementedError
+    def search(self, query: "str"):
+        raise NotImplementedError
+    def shout_replies(self, uri: "str",limit: "int",offset: "int"):
+        raise NotImplementedError
+    def song(self, uri: "typing.Optional[str]",mbid: "typing.Optional[str]",isrc: "typing.Optional[str]",spotify_id: "typing.Optional[str]"):
+        raise NotImplementedError
+    def song_recent_listeners(self, uri: "str",limit: "int",offset: "int"):
         raise NotImplementedError
     def songs(self, actor: "str",limit: "int",offset: "int"):
         raise NotImplementedError
+    def spotify_currently_playing(self, actor: "str"):
+        raise NotImplementedError
+    def stats(self, actor: "str"):
+        raise NotImplementedError
+    def stories(self, size: "typing.Optional[int]",feed: "typing.Optional[str]",following: "typing.Optional[bool]"):
+        raise NotImplementedError
     def top_artists(self, limit: "int",offset: "int"):
         raise NotImplementedError
+    def top_artists_interval(self, limit: "int",offset: "int",interval: "DateInterval"):
+        """
+        Top artists over a typed [`DateInterval`].
+        """
+
+        raise NotImplementedError
     def top_tracks(self, limit: "int",offset: "int"):
+        raise NotImplementedError
+    def top_tracks_interval(self, limit: "int",offset: "int",interval: "DateInterval"):
+        """
+        Top tracks over a typed [`DateInterval`].
+        """
+
+        raise NotImplementedError
+    def track_shouts(self, uri: "str"):
+        raise NotImplementedError
+    def wrapped(self, actor: "str",year: "typing.Optional[int]"):
         raise NotImplementedError
 
 
@@ -1677,9 +2402,532 @@ class AppView:
         return inst
 
 
+    def actor_playlists(self, actor: "str",limit: "int",offset: "int") -> "str":
+        _UniffiConverterString.check_lower(actor)
+        
+        _UniffiConverterUInt32.check_lower(limit)
+        
+        _UniffiConverterUInt32.check_lower(offset)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_actor_playlists,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(actor),
+        _UniffiConverterUInt32.lower(limit),
+        _UniffiConverterUInt32.lower(offset))
+        )
+
+
+
+
+
+    def album(self, uri: "str") -> "str":
+        _UniffiConverterString.check_lower(uri)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_album,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(uri))
+        )
+
+
+
+
+
+    def album_recommendations(self, actor: "str",limit: "typing.Optional[int]") -> "str":
+        _UniffiConverterString.check_lower(actor)
+        
+        _UniffiConverterOptionalUInt32.check_lower(limit)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_album_recommendations,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(actor),
+        _UniffiConverterOptionalUInt32.lower(limit))
+        )
+
+
+
+
+
+    def album_shouts(self, uri: "str",limit: "int",offset: "int") -> "str":
+        _UniffiConverterString.check_lower(uri)
+        
+        _UniffiConverterUInt32.check_lower(limit)
+        
+        _UniffiConverterUInt32.check_lower(offset)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_album_shouts,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(uri),
+        _UniffiConverterUInt32.lower(limit),
+        _UniffiConverterUInt32.lower(offset))
+        )
+
+
+
+
+
+    def album_tracks(self, uri: "str") -> "typing.List[SongView]":
+        _UniffiConverterString.check_lower(uri)
+        
+        return _UniffiConverterSequenceTypeSongView.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_album_tracks,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(uri))
+        )
+
+
+
+
+
+    def albums(self, actor: "str",limit: "int",offset: "int") -> "typing.List[AlbumView]":
+        _UniffiConverterString.check_lower(actor)
+        
+        _UniffiConverterUInt32.check_lower(limit)
+        
+        _UniffiConverterUInt32.check_lower(offset)
+        
+        return _UniffiConverterSequenceTypeAlbumView.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_albums,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(actor),
+        _UniffiConverterUInt32.lower(limit),
+        _UniffiConverterUInt32.lower(offset))
+        )
+
+
+
+
+
+    def apikeys(self, limit: "int",offset: "int") -> "str":
+        _UniffiConverterUInt32.check_lower(limit)
+        
+        _UniffiConverterUInt32.check_lower(offset)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_apikeys,self._uniffi_clone_pointer(),
+        _UniffiConverterUInt32.lower(limit),
+        _UniffiConverterUInt32.lower(offset))
+        )
+
+
+
+
+
+    def artist(self, uri: "str") -> "str":
+        _UniffiConverterString.check_lower(uri)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artist,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(uri))
+        )
+
+
+
+
+
+    def artist_albums(self, uri: "str") -> "typing.List[AlbumView]":
+        _UniffiConverterString.check_lower(uri)
+        
+        return _UniffiConverterSequenceTypeAlbumView.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artist_albums,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(uri))
+        )
+
+
+
+
+
+    def artist_listeners(self, uri: "str",limit: "int",offset: "int") -> "str":
+        _UniffiConverterString.check_lower(uri)
+        
+        _UniffiConverterUInt32.check_lower(limit)
+        
+        _UniffiConverterUInt32.check_lower(offset)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artist_listeners,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(uri),
+        _UniffiConverterUInt32.lower(limit),
+        _UniffiConverterUInt32.lower(offset))
+        )
+
+
+
+
+
+    def artist_recent_listeners(self, uri: "str",limit: "int",offset: "int") -> "str":
+        _UniffiConverterString.check_lower(uri)
+        
+        _UniffiConverterUInt32.check_lower(limit)
+        
+        _UniffiConverterUInt32.check_lower(offset)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artist_recent_listeners,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(uri),
+        _UniffiConverterUInt32.lower(limit),
+        _UniffiConverterUInt32.lower(offset))
+        )
+
+
+
+
+
+    def artist_recommendations(self, actor: "str",limit: "typing.Optional[int]") -> "str":
+        _UniffiConverterString.check_lower(actor)
+        
+        _UniffiConverterOptionalUInt32.check_lower(limit)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artist_recommendations,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(actor),
+        _UniffiConverterOptionalUInt32.lower(limit))
+        )
+
+
+
+
+
+    def artist_shouts(self, uri: "str",limit: "int",offset: "int") -> "str":
+        _UniffiConverterString.check_lower(uri)
+        
+        _UniffiConverterUInt32.check_lower(limit)
+        
+        _UniffiConverterUInt32.check_lower(offset)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artist_shouts,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(uri),
+        _UniffiConverterUInt32.lower(limit),
+        _UniffiConverterUInt32.lower(offset))
+        )
+
+
+
+
+
+    def artist_tracks(self, uri: "str",limit: "int",offset: "int") -> "typing.List[SongView]":
+        _UniffiConverterString.check_lower(uri)
+        
+        _UniffiConverterUInt32.check_lower(limit)
+        
+        _UniffiConverterUInt32.check_lower(offset)
+        
+        return _UniffiConverterSequenceTypeSongView.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artist_tracks,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(uri),
+        _UniffiConverterUInt32.lower(limit),
+        _UniffiConverterUInt32.lower(offset))
+        )
+
+
+
+
+
+    def artists(self, actor: "str",limit: "int",offset: "int") -> "typing.List[ArtistView]":
+        _UniffiConverterString.check_lower(actor)
+        
+        _UniffiConverterUInt32.check_lower(limit)
+        
+        _UniffiConverterUInt32.check_lower(offset)
+        
+        return _UniffiConverterSequenceTypeArtistView.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_artists,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(actor),
+        _UniffiConverterUInt32.lower(limit),
+        _UniffiConverterUInt32.lower(offset))
+        )
+
+
+
+
+
+    def audio_settings(self, actor: "str") -> "str":
+        _UniffiConverterString.check_lower(actor)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_audio_settings,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(actor))
+        )
+
+
+
+
+
+    def catalog_albums(self, limit: "int",offset: "int",genre: "typing.Optional[str]") -> "typing.List[AlbumView]":
+        _UniffiConverterUInt32.check_lower(limit)
+        
+        _UniffiConverterUInt32.check_lower(offset)
+        
+        _UniffiConverterOptionalString.check_lower(genre)
+        
+        return _UniffiConverterSequenceTypeAlbumView.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_catalog_albums,self._uniffi_clone_pointer(),
+        _UniffiConverterUInt32.lower(limit),
+        _UniffiConverterUInt32.lower(offset),
+        _UniffiConverterOptionalString.lower(genre))
+        )
+
+
+
+
+
+    def catalog_artists(self, limit: "int",offset: "int",genre: "typing.Optional[str]") -> "typing.List[ArtistView]":
+        _UniffiConverterUInt32.check_lower(limit)
+        
+        _UniffiConverterUInt32.check_lower(offset)
+        
+        _UniffiConverterOptionalString.check_lower(genre)
+        
+        return _UniffiConverterSequenceTypeArtistView.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_catalog_artists,self._uniffi_clone_pointer(),
+        _UniffiConverterUInt32.lower(limit),
+        _UniffiConverterUInt32.lower(offset),
+        _UniffiConverterOptionalString.lower(genre))
+        )
+
+
+
+
+
+    def catalog_songs(self, limit: "int",offset: "int",genre: "typing.Optional[str]") -> "typing.List[SongView]":
+        _UniffiConverterUInt32.check_lower(limit)
+        
+        _UniffiConverterUInt32.check_lower(offset)
+        
+        _UniffiConverterOptionalString.check_lower(genre)
+        
+        return _UniffiConverterSequenceTypeSongView.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_catalog_songs,self._uniffi_clone_pointer(),
+        _UniffiConverterUInt32.lower(limit),
+        _UniffiConverterUInt32.lower(offset),
+        _UniffiConverterOptionalString.lower(genre))
+        )
+
+
+
+
+
+    def compatibility(self, actor: "str") -> "str":
+        _UniffiConverterString.check_lower(actor)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_compatibility,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(actor))
+        )
+
+
+
+
+
+    def currently_playing(self, player_id: "typing.Optional[str]",actor: "typing.Optional[str]") -> "str":
+        _UniffiConverterOptionalString.check_lower(player_id)
+        
+        _UniffiConverterOptionalString.check_lower(actor)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_currently_playing,self._uniffi_clone_pointer(),
+        _UniffiConverterOptionalString.lower(player_id),
+        _UniffiConverterOptionalString.lower(actor))
+        )
+
+
+
+
+
+    def feed(self, feed: "str",limit: "int",cursor: "typing.Optional[str]") -> "str":
+        _UniffiConverterString.check_lower(feed)
+        
+        _UniffiConverterUInt32.check_lower(limit)
+        
+        _UniffiConverterOptionalString.check_lower(cursor)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_feed,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(feed),
+        _UniffiConverterUInt32.lower(limit),
+        _UniffiConverterOptionalString.lower(cursor))
+        )
+
+
+
+
+
+    def feed_generator(self, feed: "str") -> "str":
+        _UniffiConverterString.check_lower(feed)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_feed_generator,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(feed))
+        )
+
+
+
+
+
+    def feed_generators(self, size: "typing.Optional[int]") -> "str":
+        _UniffiConverterOptionalUInt32.check_lower(size)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_feed_generators,self._uniffi_clone_pointer(),
+        _UniffiConverterOptionalUInt32.lower(size))
+        )
+
+
+
+
+
+    def followers(self, actor: "str",limit: "int",cursor: "typing.Optional[str]") -> "typing.List[ProfileView]":
+        _UniffiConverterString.check_lower(actor)
+        
+        _UniffiConverterUInt32.check_lower(limit)
+        
+        _UniffiConverterOptionalString.check_lower(cursor)
+        
+        return _UniffiConverterSequenceTypeProfileView.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_followers,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(actor),
+        _UniffiConverterUInt32.lower(limit),
+        _UniffiConverterOptionalString.lower(cursor))
+        )
+
+
+
+
+
+    def follows(self, actor: "str",limit: "int",cursor: "typing.Optional[str]") -> "typing.List[ProfileView]":
+        _UniffiConverterString.check_lower(actor)
+        
+        _UniffiConverterUInt32.check_lower(limit)
+        
+        _UniffiConverterOptionalString.check_lower(cursor)
+        
+        return _UniffiConverterSequenceTypeProfileView.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_follows,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(actor),
+        _UniffiConverterUInt32.lower(limit),
+        _UniffiConverterOptionalString.lower(cursor))
+        )
+
+
+
+
+
+    def get(self, nsid: "str",params: "dict[str, str]") -> "str":
+        """
+        Call any AppView read query by nsid; returns the raw JSON response.
+        """
+
+        _UniffiConverterString.check_lower(nsid)
+        
+        _UniffiConverterMapStringString.check_lower(params)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_get,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(nsid),
+        _UniffiConverterMapStringString.lower(params))
+        )
+
+
+
+
+
     def global_stats(self, ) -> "GlobalStats":
         return _UniffiConverterTypeGlobalStats.lift(
             _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_global_stats,self._uniffi_clone_pointer(),)
+        )
+
+
+
+
+
+    def known_followers(self, actor: "str",limit: "int",cursor: "typing.Optional[str]") -> "typing.List[ProfileView]":
+        _UniffiConverterString.check_lower(actor)
+        
+        _UniffiConverterUInt32.check_lower(limit)
+        
+        _UniffiConverterOptionalString.check_lower(cursor)
+        
+        return _UniffiConverterSequenceTypeProfileView.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_known_followers,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(actor),
+        _UniffiConverterUInt32.lower(limit),
+        _UniffiConverterOptionalString.lower(cursor))
+        )
+
+
+
+
+
+    def loved_songs(self, actor: "str",limit: "int",offset: "int") -> "typing.List[SongView]":
+        _UniffiConverterString.check_lower(actor)
+        
+        _UniffiConverterUInt32.check_lower(limit)
+        
+        _UniffiConverterUInt32.check_lower(offset)
+        
+        return _UniffiConverterSequenceTypeSongView.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_loved_songs,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(actor),
+        _UniffiConverterUInt32.lower(limit),
+        _UniffiConverterUInt32.lower(offset))
+        )
+
+
+
+
+
+    def mirror_sources(self, ) -> "str":
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_mirror_sources,self._uniffi_clone_pointer(),)
+        )
+
+
+
+
+
+    def neighbours(self, actor: "str") -> "str":
+        _UniffiConverterString.check_lower(actor)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_neighbours,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(actor))
+        )
+
+
+
+
+
+    def playback_queue(self, player_id: "str") -> "str":
+        _UniffiConverterString.check_lower(player_id)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_playback_queue,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(player_id))
+        )
+
+
+
+
+
+    def playlist(self, uri: "str") -> "str":
+        _UniffiConverterString.check_lower(uri)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_playlist,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(uri))
+        )
+
+
+
+
+
+    def playlists(self, limit: "int",offset: "int") -> "str":
+        _UniffiConverterUInt32.check_lower(limit)
+        
+        _UniffiConverterUInt32.check_lower(offset)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_playlists,self._uniffi_clone_pointer(),
+        _UniffiConverterUInt32.lower(limit),
+        _UniffiConverterUInt32.lower(offset))
         )
 
 
@@ -1698,6 +2946,72 @@ class AppView:
 
 
 
+    def profile_shouts(self, actor: "str",limit: "int",offset: "int") -> "str":
+        _UniffiConverterString.check_lower(actor)
+        
+        _UniffiConverterUInt32.check_lower(limit)
+        
+        _UniffiConverterUInt32.check_lower(offset)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_profile_shouts,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(actor),
+        _UniffiConverterUInt32.lower(limit),
+        _UniffiConverterUInt32.lower(offset))
+        )
+
+
+
+
+
+    def recommendations(self, actor: "str",limit: "typing.Optional[int]") -> "str":
+        _UniffiConverterString.check_lower(actor)
+        
+        _UniffiConverterOptionalUInt32.check_lower(limit)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_recommendations,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(actor),
+        _UniffiConverterOptionalUInt32.lower(limit))
+        )
+
+
+
+
+
+    def scrobble(self, uri: "str") -> "ScrobbleView":
+        _UniffiConverterString.check_lower(uri)
+        
+        return _UniffiConverterTypeScrobbleView.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_scrobble,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(uri))
+        )
+
+
+
+
+
+    def scrobble_feed(self, did: "typing.Optional[str]",following: "bool",limit: "int",offset: "int") -> "typing.List[ScrobbleView]":
+        _UniffiConverterOptionalString.check_lower(did)
+        
+        _UniffiConverterBool.check_lower(following)
+        
+        _UniffiConverterUInt32.check_lower(limit)
+        
+        _UniffiConverterUInt32.check_lower(offset)
+        
+        return _UniffiConverterSequenceTypeScrobbleView.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_scrobble_feed,self._uniffi_clone_pointer(),
+        _UniffiConverterOptionalString.lower(did),
+        _UniffiConverterBool.lower(following),
+        _UniffiConverterUInt32.lower(limit),
+        _UniffiConverterUInt32.lower(offset))
+        )
+
+
+
+
+
     def scrobbles(self, actor: "str",limit: "int",offset: "int") -> "typing.List[ScrobbleView]":
         _UniffiConverterString.check_lower(actor)
         
@@ -1708,6 +3022,105 @@ class AppView:
         return _UniffiConverterSequenceTypeScrobbleView.lift(
             _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_scrobbles,self._uniffi_clone_pointer(),
         _UniffiConverterString.lower(actor),
+        _UniffiConverterUInt32.lower(limit),
+        _UniffiConverterUInt32.lower(offset))
+        )
+
+
+
+
+
+    def scrobbles_chart(self, did: "typing.Optional[str]",artist_uri: "typing.Optional[str]",album_uri: "typing.Optional[str]",song_uri: "typing.Optional[str]",genre: "typing.Optional[str]",_from: "typing.Optional[str]",to: "typing.Optional[str]") -> "str":
+        _UniffiConverterOptionalString.check_lower(did)
+        
+        _UniffiConverterOptionalString.check_lower(artist_uri)
+        
+        _UniffiConverterOptionalString.check_lower(album_uri)
+        
+        _UniffiConverterOptionalString.check_lower(song_uri)
+        
+        _UniffiConverterOptionalString.check_lower(genre)
+        
+        _UniffiConverterOptionalString.check_lower(_from)
+        
+        _UniffiConverterOptionalString.check_lower(to)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_scrobbles_chart,self._uniffi_clone_pointer(),
+        _UniffiConverterOptionalString.lower(did),
+        _UniffiConverterOptionalString.lower(artist_uri),
+        _UniffiConverterOptionalString.lower(album_uri),
+        _UniffiConverterOptionalString.lower(song_uri),
+        _UniffiConverterOptionalString.lower(genre),
+        _UniffiConverterOptionalString.lower(_from),
+        _UniffiConverterOptionalString.lower(to))
+        )
+
+
+
+
+
+    def search(self, query: "str") -> "str":
+        _UniffiConverterString.check_lower(query)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_search,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(query))
+        )
+
+
+
+
+
+    def shout_replies(self, uri: "str",limit: "int",offset: "int") -> "str":
+        _UniffiConverterString.check_lower(uri)
+        
+        _UniffiConverterUInt32.check_lower(limit)
+        
+        _UniffiConverterUInt32.check_lower(offset)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_shout_replies,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(uri),
+        _UniffiConverterUInt32.lower(limit),
+        _UniffiConverterUInt32.lower(offset))
+        )
+
+
+
+
+
+    def song(self, uri: "typing.Optional[str]",mbid: "typing.Optional[str]",isrc: "typing.Optional[str]",spotify_id: "typing.Optional[str]") -> "str":
+        _UniffiConverterOptionalString.check_lower(uri)
+        
+        _UniffiConverterOptionalString.check_lower(mbid)
+        
+        _UniffiConverterOptionalString.check_lower(isrc)
+        
+        _UniffiConverterOptionalString.check_lower(spotify_id)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_song,self._uniffi_clone_pointer(),
+        _UniffiConverterOptionalString.lower(uri),
+        _UniffiConverterOptionalString.lower(mbid),
+        _UniffiConverterOptionalString.lower(isrc),
+        _UniffiConverterOptionalString.lower(spotify_id))
+        )
+
+
+
+
+
+    def song_recent_listeners(self, uri: "str",limit: "int",offset: "int") -> "str":
+        _UniffiConverterString.check_lower(uri)
+        
+        _UniffiConverterUInt32.check_lower(limit)
+        
+        _UniffiConverterUInt32.check_lower(offset)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_song_recent_listeners,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(uri),
         _UniffiConverterUInt32.lower(limit),
         _UniffiConverterUInt32.lower(offset))
         )
@@ -1734,6 +3147,48 @@ class AppView:
 
 
 
+    def spotify_currently_playing(self, actor: "str") -> "str":
+        _UniffiConverterString.check_lower(actor)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_spotify_currently_playing,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(actor))
+        )
+
+
+
+
+
+    def stats(self, actor: "str") -> "str":
+        _UniffiConverterString.check_lower(actor)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_stats,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(actor))
+        )
+
+
+
+
+
+    def stories(self, size: "typing.Optional[int]",feed: "typing.Optional[str]",following: "typing.Optional[bool]") -> "str":
+        _UniffiConverterOptionalUInt32.check_lower(size)
+        
+        _UniffiConverterOptionalString.check_lower(feed)
+        
+        _UniffiConverterOptionalBool.check_lower(following)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_stories,self._uniffi_clone_pointer(),
+        _UniffiConverterOptionalUInt32.lower(size),
+        _UniffiConverterOptionalString.lower(feed),
+        _UniffiConverterOptionalBool.lower(following))
+        )
+
+
+
+
+
     def top_artists(self, limit: "int",offset: "int") -> "typing.List[ArtistView]":
         _UniffiConverterUInt32.check_lower(limit)
         
@@ -1749,6 +3204,28 @@ class AppView:
 
 
 
+    def top_artists_interval(self, limit: "int",offset: "int",interval: "DateInterval") -> "typing.List[ArtistView]":
+        """
+        Top artists over a typed [`DateInterval`].
+        """
+
+        _UniffiConverterUInt32.check_lower(limit)
+        
+        _UniffiConverterUInt32.check_lower(offset)
+        
+        _UniffiConverterTypeDateInterval.check_lower(interval)
+        
+        return _UniffiConverterSequenceTypeArtistView.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_top_artists_interval,self._uniffi_clone_pointer(),
+        _UniffiConverterUInt32.lower(limit),
+        _UniffiConverterUInt32.lower(offset),
+        _UniffiConverterTypeDateInterval.lower(interval))
+        )
+
+
+
+
+
     def top_tracks(self, limit: "int",offset: "int") -> "typing.List[SongView]":
         _UniffiConverterUInt32.check_lower(limit)
         
@@ -1758,6 +3235,55 @@ class AppView:
             _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_top_tracks,self._uniffi_clone_pointer(),
         _UniffiConverterUInt32.lower(limit),
         _UniffiConverterUInt32.lower(offset))
+        )
+
+
+
+
+
+    def top_tracks_interval(self, limit: "int",offset: "int",interval: "DateInterval") -> "typing.List[SongView]":
+        """
+        Top tracks over a typed [`DateInterval`].
+        """
+
+        _UniffiConverterUInt32.check_lower(limit)
+        
+        _UniffiConverterUInt32.check_lower(offset)
+        
+        _UniffiConverterTypeDateInterval.check_lower(interval)
+        
+        return _UniffiConverterSequenceTypeSongView.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_top_tracks_interval,self._uniffi_clone_pointer(),
+        _UniffiConverterUInt32.lower(limit),
+        _UniffiConverterUInt32.lower(offset),
+        _UniffiConverterTypeDateInterval.lower(interval))
+        )
+
+
+
+
+
+    def track_shouts(self, uri: "str") -> "str":
+        _UniffiConverterString.check_lower(uri)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_track_shouts,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(uri))
+        )
+
+
+
+
+
+    def wrapped(self, actor: "str",year: "typing.Optional[int]") -> "str":
+        _UniffiConverterString.check_lower(actor)
+        
+        _UniffiConverterOptionalUInt32.check_lower(year)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_wrapped,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(actor),
+        _UniffiConverterOptionalUInt32.lower(year))
         )
 
 
@@ -1894,6 +3420,109 @@ class _UniffiConverterTypeAlbumInput(_UniffiConverterRustBuffer):
         _UniffiConverterOptionalString.write(value.spotify_link, buf)
 
 
+class AlbumView:
+    """
+    An album from the AppView.
+    """
+
+    id: "typing.Optional[str]"
+    uri: "typing.Optional[str]"
+    title: "typing.Optional[str]"
+    artist: "typing.Optional[str]"
+    artist_uri: "typing.Optional[str]"
+    year: "typing.Optional[int]"
+    album_art: "typing.Optional[str]"
+    release_date: "typing.Optional[str]"
+    sha256: "typing.Optional[str]"
+    play_count: "typing.Optional[int]"
+    unique_listeners: "typing.Optional[int]"
+    def __init__(self, *, id: "typing.Optional[str]", uri: "typing.Optional[str]", title: "typing.Optional[str]", artist: "typing.Optional[str]", artist_uri: "typing.Optional[str]", year: "typing.Optional[int]", album_art: "typing.Optional[str]", release_date: "typing.Optional[str]", sha256: "typing.Optional[str]", play_count: "typing.Optional[int]", unique_listeners: "typing.Optional[int]"):
+        self.id = id
+        self.uri = uri
+        self.title = title
+        self.artist = artist
+        self.artist_uri = artist_uri
+        self.year = year
+        self.album_art = album_art
+        self.release_date = release_date
+        self.sha256 = sha256
+        self.play_count = play_count
+        self.unique_listeners = unique_listeners
+
+    def __str__(self):
+        return "AlbumView(id={}, uri={}, title={}, artist={}, artist_uri={}, year={}, album_art={}, release_date={}, sha256={}, play_count={}, unique_listeners={})".format(self.id, self.uri, self.title, self.artist, self.artist_uri, self.year, self.album_art, self.release_date, self.sha256, self.play_count, self.unique_listeners)
+
+    def __eq__(self, other):
+        if self.id != other.id:
+            return False
+        if self.uri != other.uri:
+            return False
+        if self.title != other.title:
+            return False
+        if self.artist != other.artist:
+            return False
+        if self.artist_uri != other.artist_uri:
+            return False
+        if self.year != other.year:
+            return False
+        if self.album_art != other.album_art:
+            return False
+        if self.release_date != other.release_date:
+            return False
+        if self.sha256 != other.sha256:
+            return False
+        if self.play_count != other.play_count:
+            return False
+        if self.unique_listeners != other.unique_listeners:
+            return False
+        return True
+
+class _UniffiConverterTypeAlbumView(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        return AlbumView(
+            id=_UniffiConverterOptionalString.read(buf),
+            uri=_UniffiConverterOptionalString.read(buf),
+            title=_UniffiConverterOptionalString.read(buf),
+            artist=_UniffiConverterOptionalString.read(buf),
+            artist_uri=_UniffiConverterOptionalString.read(buf),
+            year=_UniffiConverterOptionalUInt32.read(buf),
+            album_art=_UniffiConverterOptionalString.read(buf),
+            release_date=_UniffiConverterOptionalString.read(buf),
+            sha256=_UniffiConverterOptionalString.read(buf),
+            play_count=_UniffiConverterOptionalUInt64.read(buf),
+            unique_listeners=_UniffiConverterOptionalUInt64.read(buf),
+        )
+
+    @staticmethod
+    def check_lower(value):
+        _UniffiConverterOptionalString.check_lower(value.id)
+        _UniffiConverterOptionalString.check_lower(value.uri)
+        _UniffiConverterOptionalString.check_lower(value.title)
+        _UniffiConverterOptionalString.check_lower(value.artist)
+        _UniffiConverterOptionalString.check_lower(value.artist_uri)
+        _UniffiConverterOptionalUInt32.check_lower(value.year)
+        _UniffiConverterOptionalString.check_lower(value.album_art)
+        _UniffiConverterOptionalString.check_lower(value.release_date)
+        _UniffiConverterOptionalString.check_lower(value.sha256)
+        _UniffiConverterOptionalUInt64.check_lower(value.play_count)
+        _UniffiConverterOptionalUInt64.check_lower(value.unique_listeners)
+
+    @staticmethod
+    def write(value, buf):
+        _UniffiConverterOptionalString.write(value.id, buf)
+        _UniffiConverterOptionalString.write(value.uri, buf)
+        _UniffiConverterOptionalString.write(value.title, buf)
+        _UniffiConverterOptionalString.write(value.artist, buf)
+        _UniffiConverterOptionalString.write(value.artist_uri, buf)
+        _UniffiConverterOptionalUInt32.write(value.year, buf)
+        _UniffiConverterOptionalString.write(value.album_art, buf)
+        _UniffiConverterOptionalString.write(value.release_date, buf)
+        _UniffiConverterOptionalString.write(value.sha256, buf)
+        _UniffiConverterOptionalUInt64.write(value.play_count, buf)
+        _UniffiConverterOptionalUInt64.write(value.unique_listeners, buf)
+
+
 class ArtistInput:
     """
     An artist record (`app.rocksky.artist`).
@@ -1969,7 +3598,8 @@ class ArtistView:
     play_count: "typing.Optional[int]"
     unique_listeners: "typing.Optional[int]"
     tags: "typing.List[str]"
-    def __init__(self, *, id: "typing.Optional[str]", uri: "typing.Optional[str]", name: "typing.Optional[str]", picture: "typing.Optional[str]", play_count: "typing.Optional[int]", unique_listeners: "typing.Optional[int]", tags: "typing.List[str]"):
+    genres: "typing.List[str]"
+    def __init__(self, *, id: "typing.Optional[str]", uri: "typing.Optional[str]", name: "typing.Optional[str]", picture: "typing.Optional[str]", play_count: "typing.Optional[int]", unique_listeners: "typing.Optional[int]", tags: "typing.List[str]", genres: "typing.List[str]"):
         self.id = id
         self.uri = uri
         self.name = name
@@ -1977,9 +3607,10 @@ class ArtistView:
         self.play_count = play_count
         self.unique_listeners = unique_listeners
         self.tags = tags
+        self.genres = genres
 
     def __str__(self):
-        return "ArtistView(id={}, uri={}, name={}, picture={}, play_count={}, unique_listeners={}, tags={})".format(self.id, self.uri, self.name, self.picture, self.play_count, self.unique_listeners, self.tags)
+        return "ArtistView(id={}, uri={}, name={}, picture={}, play_count={}, unique_listeners={}, tags={}, genres={})".format(self.id, self.uri, self.name, self.picture, self.play_count, self.unique_listeners, self.tags, self.genres)
 
     def __eq__(self, other):
         if self.id != other.id:
@@ -1996,6 +3627,8 @@ class ArtistView:
             return False
         if self.tags != other.tags:
             return False
+        if self.genres != other.genres:
+            return False
         return True
 
 class _UniffiConverterTypeArtistView(_UniffiConverterRustBuffer):
@@ -2009,6 +3642,7 @@ class _UniffiConverterTypeArtistView(_UniffiConverterRustBuffer):
             play_count=_UniffiConverterOptionalUInt64.read(buf),
             unique_listeners=_UniffiConverterOptionalUInt64.read(buf),
             tags=_UniffiConverterSequenceString.read(buf),
+            genres=_UniffiConverterSequenceString.read(buf),
         )
 
     @staticmethod
@@ -2020,6 +3654,7 @@ class _UniffiConverterTypeArtistView(_UniffiConverterRustBuffer):
         _UniffiConverterOptionalUInt64.check_lower(value.play_count)
         _UniffiConverterOptionalUInt64.check_lower(value.unique_listeners)
         _UniffiConverterSequenceString.check_lower(value.tags)
+        _UniffiConverterSequenceString.check_lower(value.genres)
 
     @staticmethod
     def write(value, buf):
@@ -2030,6 +3665,7 @@ class _UniffiConverterTypeArtistView(_UniffiConverterRustBuffer):
         _UniffiConverterOptionalUInt64.write(value.play_count, buf)
         _UniffiConverterOptionalUInt64.write(value.unique_listeners, buf)
         _UniffiConverterSequenceString.write(value.tags, buf)
+        _UniffiConverterSequenceString.write(value.genres, buf)
 
 
 class GlobalStats:
@@ -2910,6 +4546,8 @@ class SongView:
     album_art: "typing.Optional[str]"
     uri: "typing.Optional[str]"
     duration: "typing.Optional[int]"
+    track_number: "typing.Optional[int]"
+    disc_number: "typing.Optional[int]"
     play_count: "typing.Optional[int]"
     unique_listeners: "typing.Optional[int]"
     album_uri: "typing.Optional[str]"
@@ -2918,7 +4556,7 @@ class SongView:
     isrc: "typing.Optional[str]"
     tags: "typing.List[str]"
     created_at: "typing.Optional[str]"
-    def __init__(self, *, id: "typing.Optional[str]", title: "typing.Optional[str]", artist: "typing.Optional[str]", album_artist: "typing.Optional[str]", album: "typing.Optional[str]", album_art: "typing.Optional[str]", uri: "typing.Optional[str]", duration: "typing.Optional[int]", play_count: "typing.Optional[int]", unique_listeners: "typing.Optional[int]", album_uri: "typing.Optional[str]", artist_uri: "typing.Optional[str]", mbid: "typing.Optional[str]", isrc: "typing.Optional[str]", tags: "typing.List[str]", created_at: "typing.Optional[str]"):
+    def __init__(self, *, id: "typing.Optional[str]", title: "typing.Optional[str]", artist: "typing.Optional[str]", album_artist: "typing.Optional[str]", album: "typing.Optional[str]", album_art: "typing.Optional[str]", uri: "typing.Optional[str]", duration: "typing.Optional[int]", track_number: "typing.Optional[int]", disc_number: "typing.Optional[int]", play_count: "typing.Optional[int]", unique_listeners: "typing.Optional[int]", album_uri: "typing.Optional[str]", artist_uri: "typing.Optional[str]", mbid: "typing.Optional[str]", isrc: "typing.Optional[str]", tags: "typing.List[str]", created_at: "typing.Optional[str]"):
         self.id = id
         self.title = title
         self.artist = artist
@@ -2927,6 +4565,8 @@ class SongView:
         self.album_art = album_art
         self.uri = uri
         self.duration = duration
+        self.track_number = track_number
+        self.disc_number = disc_number
         self.play_count = play_count
         self.unique_listeners = unique_listeners
         self.album_uri = album_uri
@@ -2937,7 +4577,7 @@ class SongView:
         self.created_at = created_at
 
     def __str__(self):
-        return "SongView(id={}, title={}, artist={}, album_artist={}, album={}, album_art={}, uri={}, duration={}, play_count={}, unique_listeners={}, album_uri={}, artist_uri={}, mbid={}, isrc={}, tags={}, created_at={})".format(self.id, self.title, self.artist, self.album_artist, self.album, self.album_art, self.uri, self.duration, self.play_count, self.unique_listeners, self.album_uri, self.artist_uri, self.mbid, self.isrc, self.tags, self.created_at)
+        return "SongView(id={}, title={}, artist={}, album_artist={}, album={}, album_art={}, uri={}, duration={}, track_number={}, disc_number={}, play_count={}, unique_listeners={}, album_uri={}, artist_uri={}, mbid={}, isrc={}, tags={}, created_at={})".format(self.id, self.title, self.artist, self.album_artist, self.album, self.album_art, self.uri, self.duration, self.track_number, self.disc_number, self.play_count, self.unique_listeners, self.album_uri, self.artist_uri, self.mbid, self.isrc, self.tags, self.created_at)
 
     def __eq__(self, other):
         if self.id != other.id:
@@ -2955,6 +4595,10 @@ class SongView:
         if self.uri != other.uri:
             return False
         if self.duration != other.duration:
+            return False
+        if self.track_number != other.track_number:
+            return False
+        if self.disc_number != other.disc_number:
             return False
         if self.play_count != other.play_count:
             return False
@@ -2986,6 +4630,8 @@ class _UniffiConverterTypeSongView(_UniffiConverterRustBuffer):
             album_art=_UniffiConverterOptionalString.read(buf),
             uri=_UniffiConverterOptionalString.read(buf),
             duration=_UniffiConverterOptionalUInt64.read(buf),
+            track_number=_UniffiConverterOptionalUInt32.read(buf),
+            disc_number=_UniffiConverterOptionalUInt32.read(buf),
             play_count=_UniffiConverterOptionalUInt64.read(buf),
             unique_listeners=_UniffiConverterOptionalUInt64.read(buf),
             album_uri=_UniffiConverterOptionalString.read(buf),
@@ -3006,6 +4652,8 @@ class _UniffiConverterTypeSongView(_UniffiConverterRustBuffer):
         _UniffiConverterOptionalString.check_lower(value.album_art)
         _UniffiConverterOptionalString.check_lower(value.uri)
         _UniffiConverterOptionalUInt64.check_lower(value.duration)
+        _UniffiConverterOptionalUInt32.check_lower(value.track_number)
+        _UniffiConverterOptionalUInt32.check_lower(value.disc_number)
         _UniffiConverterOptionalUInt64.check_lower(value.play_count)
         _UniffiConverterOptionalUInt64.check_lower(value.unique_listeners)
         _UniffiConverterOptionalString.check_lower(value.album_uri)
@@ -3025,6 +4673,8 @@ class _UniffiConverterTypeSongView(_UniffiConverterRustBuffer):
         _UniffiConverterOptionalString.write(value.album_art, buf)
         _UniffiConverterOptionalString.write(value.uri, buf)
         _UniffiConverterOptionalUInt64.write(value.duration, buf)
+        _UniffiConverterOptionalUInt32.write(value.track_number, buf)
+        _UniffiConverterOptionalUInt32.write(value.disc_number, buf)
         _UniffiConverterOptionalUInt64.write(value.play_count, buf)
         _UniffiConverterOptionalUInt64.write(value.unique_listeners, buf)
         _UniffiConverterOptionalString.write(value.album_uri, buf)
@@ -3033,6 +4683,223 @@ class _UniffiConverterTypeSongView(_UniffiConverterRustBuffer):
         _UniffiConverterOptionalString.write(value.isrc, buf)
         _UniffiConverterSequenceString.write(value.tags, buf)
         _UniffiConverterOptionalString.write(value.created_at, buf)
+
+
+
+
+
+class DateInterval:
+    """
+    A typed date window for the `top_*` charts. `Range` bounds are RFC-3339
+    datetimes (e.g. `2026-01-01T00:00:00Z`).
+    """
+
+    def __init__(self):
+        raise RuntimeError("DateInterval cannot be instantiated directly")
+
+    # Each enum variant is a nested class of the enum itself.
+    class ALL_TIME:
+
+        def __init__(self,):
+            pass
+
+        def __str__(self):
+            return "DateInterval.ALL_TIME()".format()
+
+        def __eq__(self, other):
+            if not other.is_all_time():
+                return False
+            return True
+    
+    class LAST_DAYS:
+        days: "int"
+
+        def __init__(self,days: "int"):
+            self.days = days
+
+        def __str__(self):
+            return "DateInterval.LAST_DAYS(days={})".format(self.days)
+
+        def __eq__(self, other):
+            if not other.is_last_days():
+                return False
+            if self.days != other.days:
+                return False
+            return True
+    
+    class LAST_WEEKS:
+        weeks: "int"
+
+        def __init__(self,weeks: "int"):
+            self.weeks = weeks
+
+        def __str__(self):
+            return "DateInterval.LAST_WEEKS(weeks={})".format(self.weeks)
+
+        def __eq__(self, other):
+            if not other.is_last_weeks():
+                return False
+            if self.weeks != other.weeks:
+                return False
+            return True
+    
+    class LAST_MONTHS:
+        months: "int"
+
+        def __init__(self,months: "int"):
+            self.months = months
+
+        def __str__(self):
+            return "DateInterval.LAST_MONTHS(months={})".format(self.months)
+
+        def __eq__(self, other):
+            if not other.is_last_months():
+                return False
+            if self.months != other.months:
+                return False
+            return True
+    
+    class LAST_YEARS:
+        years: "int"
+
+        def __init__(self,years: "int"):
+            self.years = years
+
+        def __str__(self):
+            return "DateInterval.LAST_YEARS(years={})".format(self.years)
+
+        def __eq__(self, other):
+            if not other.is_last_years():
+                return False
+            if self.years != other.years:
+                return False
+            return True
+    
+    class RANGE:
+        start: "str"
+        end: "str"
+
+        def __init__(self,start: "str", end: "str"):
+            self.start = start
+            self.end = end
+
+        def __str__(self):
+            return "DateInterval.RANGE(start={}, end={})".format(self.start, self.end)
+
+        def __eq__(self, other):
+            if not other.is_range():
+                return False
+            if self.start != other.start:
+                return False
+            if self.end != other.end:
+                return False
+            return True
+    
+    
+
+    # For each variant, we have an `is_NAME` method for easily checking
+    # whether an instance is that variant.
+    def is_all_time(self) -> bool:
+        return isinstance(self, DateInterval.ALL_TIME)
+    def is_last_days(self) -> bool:
+        return isinstance(self, DateInterval.LAST_DAYS)
+    def is_last_weeks(self) -> bool:
+        return isinstance(self, DateInterval.LAST_WEEKS)
+    def is_last_months(self) -> bool:
+        return isinstance(self, DateInterval.LAST_MONTHS)
+    def is_last_years(self) -> bool:
+        return isinstance(self, DateInterval.LAST_YEARS)
+    def is_range(self) -> bool:
+        return isinstance(self, DateInterval.RANGE)
+    
+
+# Now, a little trick - we make each nested variant class be a subclass of the main
+# enum class, so that method calls and instance checks etc will work intuitively.
+# We might be able to do this a little more neatly with a metaclass, but this'll do.
+DateInterval.ALL_TIME = type("DateInterval.ALL_TIME", (DateInterval.ALL_TIME, DateInterval,), {})  # type: ignore
+DateInterval.LAST_DAYS = type("DateInterval.LAST_DAYS", (DateInterval.LAST_DAYS, DateInterval,), {})  # type: ignore
+DateInterval.LAST_WEEKS = type("DateInterval.LAST_WEEKS", (DateInterval.LAST_WEEKS, DateInterval,), {})  # type: ignore
+DateInterval.LAST_MONTHS = type("DateInterval.LAST_MONTHS", (DateInterval.LAST_MONTHS, DateInterval,), {})  # type: ignore
+DateInterval.LAST_YEARS = type("DateInterval.LAST_YEARS", (DateInterval.LAST_YEARS, DateInterval,), {})  # type: ignore
+DateInterval.RANGE = type("DateInterval.RANGE", (DateInterval.RANGE, DateInterval,), {})  # type: ignore
+
+
+
+
+class _UniffiConverterTypeDateInterval(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        variant = buf.read_i32()
+        if variant == 1:
+            return DateInterval.ALL_TIME(
+            )
+        if variant == 2:
+            return DateInterval.LAST_DAYS(
+                _UniffiConverterUInt32.read(buf),
+            )
+        if variant == 3:
+            return DateInterval.LAST_WEEKS(
+                _UniffiConverterUInt32.read(buf),
+            )
+        if variant == 4:
+            return DateInterval.LAST_MONTHS(
+                _UniffiConverterUInt32.read(buf),
+            )
+        if variant == 5:
+            return DateInterval.LAST_YEARS(
+                _UniffiConverterUInt32.read(buf),
+            )
+        if variant == 6:
+            return DateInterval.RANGE(
+                _UniffiConverterString.read(buf),
+                _UniffiConverterString.read(buf),
+            )
+        raise InternalError("Raw enum value doesn't match any cases")
+
+    @staticmethod
+    def check_lower(value):
+        if value.is_all_time():
+            return
+        if value.is_last_days():
+            _UniffiConverterUInt32.check_lower(value.days)
+            return
+        if value.is_last_weeks():
+            _UniffiConverterUInt32.check_lower(value.weeks)
+            return
+        if value.is_last_months():
+            _UniffiConverterUInt32.check_lower(value.months)
+            return
+        if value.is_last_years():
+            _UniffiConverterUInt32.check_lower(value.years)
+            return
+        if value.is_range():
+            _UniffiConverterString.check_lower(value.start)
+            _UniffiConverterString.check_lower(value.end)
+            return
+        raise ValueError(value)
+
+    @staticmethod
+    def write(value, buf):
+        if value.is_all_time():
+            buf.write_i32(1)
+        if value.is_last_days():
+            buf.write_i32(2)
+            _UniffiConverterUInt32.write(value.days, buf)
+        if value.is_last_weeks():
+            buf.write_i32(3)
+            _UniffiConverterUInt32.write(value.weeks, buf)
+        if value.is_last_months():
+            buf.write_i32(4)
+            _UniffiConverterUInt32.write(value.months, buf)
+        if value.is_last_years():
+            buf.write_i32(5)
+            _UniffiConverterUInt32.write(value.years, buf)
+        if value.is_range():
+            buf.write_i32(6)
+            _UniffiConverterString.write(value.start, buf)
+            _UniffiConverterString.write(value.end, buf)
+
+
 
 
 # RockskyError
@@ -3283,6 +5150,31 @@ class _UniffiConverterSequenceString(_UniffiConverterRustBuffer):
 
 
 
+class _UniffiConverterSequenceTypeAlbumView(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        for item in value:
+            _UniffiConverterTypeAlbumView.check_lower(item)
+
+    @classmethod
+    def write(cls, value, buf):
+        items = len(value)
+        buf.write_i32(items)
+        for item in value:
+            _UniffiConverterTypeAlbumView.write(item, buf)
+
+    @classmethod
+    def read(cls, buf):
+        count = buf.read_i32()
+        if count < 0:
+            raise InternalError("Unexpected negative sequence length")
+
+        return [
+            _UniffiConverterTypeAlbumView.read(buf) for i in range(count)
+        ]
+
+
+
 class _UniffiConverterSequenceTypeArtistView(_UniffiConverterRustBuffer):
     @classmethod
     def check_lower(cls, value):
@@ -3304,6 +5196,31 @@ class _UniffiConverterSequenceTypeArtistView(_UniffiConverterRustBuffer):
 
         return [
             _UniffiConverterTypeArtistView.read(buf) for i in range(count)
+        ]
+
+
+
+class _UniffiConverterSequenceTypeProfileView(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, value):
+        for item in value:
+            _UniffiConverterTypeProfileView.check_lower(item)
+
+    @classmethod
+    def write(cls, value, buf):
+        items = len(value)
+        buf.write_i32(items)
+        for item in value:
+            _UniffiConverterTypeProfileView.write(item, buf)
+
+    @classmethod
+    def read(cls, buf):
+        count = buf.read_i32()
+        if count < 0:
+            raise InternalError("Unexpected negative sequence length")
+
+        return [
+            _UniffiConverterTypeProfileView.read(buf) for i in range(count)
         ]
 
 
@@ -3356,6 +5273,39 @@ class _UniffiConverterSequenceTypeSongView(_UniffiConverterRustBuffer):
             _UniffiConverterTypeSongView.read(buf) for i in range(count)
         ]
 
+
+
+class _UniffiConverterMapStringString(_UniffiConverterRustBuffer):
+    @classmethod
+    def check_lower(cls, items):
+        for (key, value) in items.items():
+            _UniffiConverterString.check_lower(key)
+            _UniffiConverterString.check_lower(value)
+
+    @classmethod
+    def write(cls, items, buf):
+        buf.write_i32(len(items))
+        for (key, value) in items.items():
+            _UniffiConverterString.write(key, buf)
+            _UniffiConverterString.write(value, buf)
+
+    @classmethod
+    def read(cls, buf):
+        count = buf.read_i32()
+        if count < 0:
+            raise InternalError("Unexpected negative map size")
+
+        # It would be nice to use a dict comprehension,
+        # but in Python 3.7 and before the evaluation order is not according to spec,
+        # so we we're reading the value before the key.
+        # This loop makes the order explicit: first reading the key, then the value.
+        d = {}
+        for i in range(count):
+            key = _UniffiConverterString.read(buf)
+            val = _UniffiConverterString.read(buf)
+            d[key] = val
+        return d
+
 # Async support
 
 def album_hash(album: "str",album_artist: "str") -> "str":
@@ -3390,8 +5340,10 @@ def song_hash(title: "str",artist: "str",album: "str") -> "str":
 
 __all__ = [
     "InternalError",
+    "DateInterval",
     "RockskyError",
     "AlbumInput",
+    "AlbumView",
     "ArtistInput",
     "ArtistView",
     "GlobalStats",
