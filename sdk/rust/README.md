@@ -1,5 +1,12 @@
 # rocksky — Rust SDK
 
+> [!WARNING]
+> **Deprecated.** This HTTP-only client is no longer maintained. Use the
+> jacquard-based [`rocksky-sdk`](../../crates/rocksky-sdk) crate instead — it
+> wraps the AT Protocol properly (PDS writes, OAuth/app-password sessions, a
+> local dedup index, Jetstream hydration) and is the shared engine behind every
+> Rocksky SDK. This package will not receive further updates.
+
 Async Rust SDK for the [Rocksky](https://rocksky.app) XRPC API.
 
 - **Async-first** — built on `tokio` + `reqwest`

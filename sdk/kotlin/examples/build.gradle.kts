@@ -16,6 +16,6 @@ dependencies {
 application {
     // Override with `-PmainClass=app.rocksky.examples.CreateScrobbleKt` for other samples.
     val example = (project.findProperty("mainClass") as String?)
-        ?: "app.rocksky.examples.BasicProfileKt"
+        ?: "app.rocksky.examples.NativeCoreKt"
     mainClass.set(example)
 }

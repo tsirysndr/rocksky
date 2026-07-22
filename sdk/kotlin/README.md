@@ -1,199 +1,76 @@
 # Rocksky Kotlin SDK
 
-A coroutine-based, Kotlin-first client for the [Rocksky](https://rocksky.app) XRPC API.
-
-- **Idiomatic Kotlin** — suspending functions, default parameters, builder DSL, `AutoCloseable`.
-- **Strongly typed** — every endpoint returns a `@Serializable` data class.
-- **Resilient** — every model field is nullable, unknown JSON keys are ignored, and 4xx/5xx responses become typed exceptions.
-- **JVM 17+** — uses [Ktor 2.x](https://ktor.io) + `kotlinx.serialization`. Bring your own Ktor engine (CIO is the default).
+Kotlin/JVM bindings to the shared Rocksky Rust core (`rocksky-sdk`) via
+[UniFFI](https://mozilla.github.io/uniffi-rs/) (JNA-loaded): AppView reads, AT
+Protocol PDS writes (scrobble fan-out, like, follow, shout, now-playing), a local
+duplicate-prevention index, and the identity hashes — the same engine behind
+every Rocksky SDK. Lives in the `:core` Gradle module, package `app.rocksky.core`.
 
 ## Install
 
-The SDK is published as a single module:
-
 ```kotlin
 dependencies {
-    implementation("app.rocksky:rocksky-kotlin:0.2.0")
+    implementation("app.rocksky:rocksky-kotlin-core:0.1.0")
 }
 ```
 
-Until artifacts land in Maven Central, build locally with `./gradlew :rocksky:publishToMavenLocal` and use `mavenLocal()`.
+The published jar bundles the native library for each platform. For a local
+checkout, build it once: `./build-core.sh`. `mise.toml` pins Kotlin + a JDK.
 
 ## Quick start
 
 ```kotlin
-import app.rocksky.RockskyClient
-import kotlinx.coroutines.runBlocking
+import app.rocksky.core.*
 
-fun main() = runBlocking {
-    RockskyClient().use { client ->
-        val profile = client.actor.getProfile(did = "did:plc:example")
-        println("${profile.handle} — ${profile.displayName}")
+// Reads — unauthenticated. Pass a base URL to override https://api.rocksky.app.
+val av = AppView(null)
+println(av.globalStats().scrobbles)
+av.topTracks(10u, 0u).forEach { println("${it.artist} — ${it.title}") }
 
-        val top = client.charts.topTracks(limit = 10)
-        top.forEach { println("${it.title} by ${it.artist}") }
-    }
-}
+// Writes — log in once (session persisted at the given path).
+val agent = Agent.loginPassword("session.json", "alice.bsky.social", "app-password", null, null)
+val out = agent.scrobble(ScrobbleInput(
+    title = "Chaser", artist = "Calibro 35",
+    album = "Jazzploitation", albumArtist = "Calibro 35", durationMs = 182320,
+))
+println(out.scrobbleUri)   // also artistUri / albumUri / songUri
 ```
 
-### Three styles for create methods
+## API
 
-Heavier write endpoints (`scrobble.create`, `song.create`, `playlist.create`, `shout.create`, `apiKey.create`) come in three flavors — pick whichever reads best:
+### Reads — `AppView(base: String?)`
 
-```kotlin
-// 1. Named arguments (default)
-client.scrobble.create(title = "Idioteque", artist = "Radiohead", album = "Kid A", duration = 369)
+`profile(actor)`, `scrobbles(actor, limit, offset)`, `songs(actor, limit, offset)`,
+`topTracks(limit, offset)`, `topArtists(limit, offset)`, `globalStats()`. Pass a
+base URL to `AppView(...)` to target a custom AppView. (Counts are `UInt`.)
 
-// 2. Kotlin DSL
-client.scrobble.create {
-    title = "Idioteque"
-    artist = "Radiohead"
-    album = "Kid A"
-    duration = 369
-}
+### Writes — `Agent`
 
-// 3. Fluent builder (Java-friendly)
-client.scrobble.builder()
-    .title("Idioteque").artist("Radiohead").album("Kid A").duration(369L)
-    .send()
-```
+`Agent.loginPassword(sessionPath, identifier, password, appview?, dedupPath?)`
+returns an agent. Then:
 
-All three produce the same request. Required fields are validated on `send()` — calling without them throws `IllegalStateException` before any HTTP call.
+- `scrobble(ScrobbleInput)` → `ScrobbleResult` — writes **artist + album + song +
+  scrobble**, skipping any that already exist (with a dedup store).
+- `createSong(SongInput)`, `createAlbum(AlbumInput)`, `createArtist(ArtistInput)`
+- `like(uri, cid)`, `unlike(uri)`, `follow(did)`, `unfollow(did)`
+- `shout(subjectUri, subjectCid, message)`, `replyShout(...)`
+- `setNowPlaying(NowPlayingInput)`, `clearNowPlaying()`
+- `refreshSession()`, `did()`, `profile()`, `syncRepo()` (needs `dedupPath`)
 
-### Authenticated calls
+Write verbs throw `RockskyException` on failure.
 
-Many endpoints (`createScrobble`, `like.likeSong`, `apiKey.list`, …) require a bearer token. Pass it via the builder DSL:
+### Identity hashes
 
-```kotlin
-val client = RockskyClient {
-    token = System.getenv("ROCKSKY_TOKEN")
-    userAgent = "my-app/1.0"
-}
-```
+`songHash(title, artist, album)`, `albumHash(album, albumArtist)`,
+`artistHash(albumArtist)` — lowercase-hex SHA-256, identical to the server and
+every other Rocksky SDK.
 
-You can also swap tokens at runtime: `client.setToken("…")`.
-
-## API surface
-
-Resources are grouped by XRPC namespace and accessed as properties on `RockskyClient`:
-
-| Resource          | Methods (highlights) |
-| ----------------- | -------------------- |
-| `client.actor`    | `getProfile`, `getAlbums`, `getArtists`, `getSongs`, `getScrobbles`, `getLovedSongs`, `getPlaylists`, `getNeighbours`, `getCompatibility` |
-| `client.album`    | `get`, `list`, `getTracks` |
-| `client.apiKey`   | `list`, `create`, `update`, `remove` |
-| `client.artist`   | `get`, `list`, `getAlbums`, `getTracks`, `getListeners`, `getRecentListeners` |
-| `client.charts`   | `topTracks`, `topArtists`, `scrobblesChart` |
-| `client.feed`     | `get`, `getGenerator`, `listGenerators`, `search`, `stories`, `recommendations`, `artistRecommendations`, `albumRecommendations` |
-| `client.graph`    | `follow`, `unfollow`, `getFollowers`, `getFollows`, `getKnownFollowers` |
-| `client.like`     | `likeSong`, `dislikeSong`, `likeShout`, `dislikeShout` |
-| `client.player`   | `play`, `pause`, `next`, `previous`, `seek`, `playFile`, `playDirectory`, `currentlyPlaying`, `queue`, `addItemsToQueue` |
-| `client.playlist` | `get`, `list`, `create`, `remove`, `start`, `insertFiles`, `insertDirectory` |
-| `client.scrobble` | `get`, `list`, `create` |
-| `client.shout`    | `create`, `reply`, `remove`, `report`, `forProfile`, `forAlbum`, `forArtist`, `forTrack`, `replies` |
-| `client.song`     | `get`, `list`, `match`, `create`, `getRecentListeners` |
-
-## Errors
-
-Every non-2xx response becomes a typed exception:
-
-```kotlin
-import app.rocksky.AuthenticationException
-import app.rocksky.NotFoundException
-import app.rocksky.RateLimitException
-import app.rocksky.ApiException
-
-try {
-    client.scrobble.create(title = "…", artist = "…", album = "…")
-} catch (e: AuthenticationException) {
-    // 401 — refresh token
-} catch (e: RateLimitException) {
-    // 429 — back off
-} catch (e: NotFoundException) {
-    // 404
-} catch (e: ApiException) {
-    // any other API error — `e.statusCode`, `e.error`, `e.serverMessage`, `e.body`
-}
-```
-
-Network errors surface as `TransportException`. All exceptions inherit from `RockskyException`.
-
-## Configuration
-
-```kotlin
-val client = RockskyClient {
-    baseUrl       = "https://api.rocksky.app"  // default
-    token         = "…"                         // optional bearer token
-    userAgent     = "my-app/1.0"
-    timeoutMillis = 30_000
-
-    // (Optional) swap engines — Ktor supports OkHttp, Java, Apache, CIO, …
-    // engine = OkHttp.create()
-
-    // (Optional) bring your own HttpClient. When set, you own its lifecycle.
-    // httpClient = myExistingKtorClient
-
-    configureClient {
-        // Tweak the Ktor client further — install logging, custom retry, etc.
-    }
-}
-```
-
-## Examples
-
-The `examples` module ships runnable samples:
-
-```bash
-./gradlew :examples:run                                           # BasicProfile (default)
-./gradlew :examples:run -PmainClass=app.rocksky.examples.SearchAndChartsKt
-ROCKSKY_TOKEN=… ./gradlew :examples:run -PmainClass=app.rocksky.examples.CreateScrobbleKt
-```
-
-See [`examples/src/main/kotlin/app/rocksky/examples/`](examples/src/main/kotlin/app/rocksky/examples/) for source.
-
-## Types
-
-Public model types are derived from the [Rocksky lexicons](https://tangled.org/rocksky.app/rocksky/tree/main/apps/api/lexicons) and live in `app.rocksky.generated`. The `app.rocksky.Models` typealiases re-export them under their historical names; `Profile`, `ApiKey`, and `FollowList` extend with SDK-specific fields. Regenerate with `bun run lexgen:types` at the repo root.
-
-
-## Build & test
-
-```bash
-./gradlew :rocksky:build           # compile + test + jar
-./gradlew :rocksky:test            # tests only
-./gradlew :rocksky:publishToMavenLocal
-```
-
-Tests use Ktor's `MockEngine` — no network access required.
-
-Java 17 is required for the toolchain. If you use [`mise`](https://mise.jdx.dev) the bundled `mise.toml` pins it; otherwise install a JDK 17 yourself.
-
-## License
-
-[MIT](LICENSE) © Tsiry Sandratraina.
-
-## Native core (`app.rocksky.core`, `:core` module)
-
-Alongside the ktor HTTP client (`:rocksky`), the `:core` Gradle module binds the
-shared Rust engine (`rocksky-sdk`) via UniFFI's JNA-loaded Kotlin bindings
-(`app.rocksky.core`): AT Protocol PDS **writes** (scrobble fan-out, like, follow,
-shout) and identity hashes identical to every other Rocksky SDK. `mise.toml`
-pins Kotlin + JDK 17.
+## Example
 
 ```sh
-./build-core.sh
 ./gradlew :examples:run -PmainClass=app.rocksky.examples.NativeCoreKt
 ```
 
-```kotlin
-import app.rocksky.core.*
+## License
 
-val av = AppView(null)
-println(av.globalStats().scrobbles)
-
-val agent = Agent.loginPassword("session.json", "alice.bsky.social", "app-pw", null, null)
-val out = agent.scrobble(ScrobbleInput(
-    title = "Chaser", artist = "Calibro 35",
-    album = "Jazzploitation", albumArtist = "Calibro 35", durationMs = 182320))
-println(out.scrobbleUri)
-```
+MIT.
