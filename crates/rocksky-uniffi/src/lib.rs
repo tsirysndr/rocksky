@@ -1115,9 +1115,17 @@ impl Agent {
         title: String,
         artist: String,
         album: Option<String>,
+        mb_id: Option<String>,
+        isrc: Option<String>,
     ) -> Result<ScrobbleResult, RockskyError> {
         Ok(RT
-            .block_on(self.inner.scrobble_match(&title, &artist, album.as_deref()))
+            .block_on(self.inner.scrobble_match(
+                &title,
+                &artist,
+                album.as_deref(),
+                mb_id.as_deref(),
+                isrc.as_deref(),
+            ))
             .map_err(err)?
             .into())
     }

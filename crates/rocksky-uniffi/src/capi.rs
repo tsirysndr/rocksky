@@ -342,12 +342,16 @@ pub unsafe extern "C" fn rocksky_agent_scrobble_match(
     title: *const c_char,
     artist: *const c_char,
     album: *const c_char,
+    mb_id: *const c_char,
+    isrc: *const c_char,
 ) -> *mut c_char {
     let a = with_agent(agent);
-    let alb = cstr(album);
-    let album = if alb.is_empty() { None } else { Some(alb.as_str()) };
+    let (alb, mb, is) = (cstr(album), cstr(mb_id), cstr(isrc));
+    let alb = if alb.is_empty() { None } else { Some(alb.as_str()) };
+    let mb = if mb.is_empty() { None } else { Some(mb.as_str()) };
+    let is = if is.is_empty() { None } else { Some(is.as_str()) };
     respond(
-        RT.block_on(a.scrobble_match(&cstr(title), &cstr(artist), album))
+        RT.block_on(a.scrobble_match(&cstr(title), &cstr(artist), alb, mb, is))
             .map_err(|e| e.to_string()),
     )
 }

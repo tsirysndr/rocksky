@@ -40,7 +40,12 @@ defmodule Rocksky do
       Rocksky.get("app.rocksky.album.getAlbum", %{"uri" => uri})
       Rocksky.get("app.rocksky.charts.getScrobblesChart", %{"did" => did})
   """
-  def get(nsid, params \\ %{}, base \\ ""), do: :rocksky.get(to_bin(nsid), params, to_bin(base))
+  def get(nsid, params \\ %{}, base \\ "", token \\ ""),
+    do: :rocksky.get(to_bin(nsid), params, to_bin(base), to_bin(token))
+
+  @doc "Resolve full canonical metadata for a bare title + artist (matchSong)."
+  def match_song(title, artist, mb_id \\ "", isrc \\ "", base \\ ""),
+    do: :rocksky.match_song(to_bin(base), to_bin(title), to_bin(artist), to_bin(mb_id), to_bin(isrc))
 
   @doc """
   Top tracks chart over a typed date window.
@@ -67,17 +72,39 @@ defmodule Rocksky do
   Log in with an app password, persisting the session at `session_path`.
   Returns an opaque agent handle (a NIF resource freed by GC).
   """
-  def login(session_path, identifier, password, appview \\ ""),
+  def login(session_path, identifier, password, appview \\ "", dedup_path \\ ""),
     do:
       :rocksky.agent_login(
         to_bin(session_path),
         to_bin(identifier),
         to_bin(password),
-        to_bin(appview)
+        to_bin(appview),
+        to_bin(dedup_path)
       )
 
   @doc "Scrobble a play (fans out to artist/album/song/scrobble). Returns the URIs."
   def scrobble(agent, track), do: :rocksky.agent_scrobble(agent, track)
+
+  @doc """
+  Scrobble from just a title + artist (album optional): resolve full metadata
+  via matchSong, then fan out.
+  """
+  def scrobble_match(agent, title, artist, album \\ "", mb_id \\ "", isrc \\ ""),
+    do:
+      :rocksky.agent_scrobble_match(
+        agent,
+        to_bin(title),
+        to_bin(artist),
+        to_bin(album),
+        to_bin(mb_id),
+        to_bin(isrc)
+      )
+
+  @doc "Download the caller's repo and (re)build the local dedup index (needs a dedup_path at login)."
+  def sync_repo(agent), do: :rocksky.agent_sync_repo(agent)
+
+  @doc "Keep the local dedup index hydrated from Jetstream in the background."
+  def hydrate_from_jetstream(agent), do: :rocksky.agent_hydrate_from_jetstream(agent)
 
   @doc "Like a record by strong reference."
   def like(agent, uri, cid), do: :rocksky.agent_like(agent, to_bin(uri), to_bin(cid))

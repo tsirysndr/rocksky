@@ -78,18 +78,31 @@ pub fn global_stats_at(endpoint: String) -> Dynamic {
 // ---- universal read + typed date windows --------------------------------
 
 @external(erlang, "rocksky", "get_raw")
-fn get_ffi(base: String, nsid: String, params_json: String) -> Dynamic
+fn get_ffi(base: String, nsid: String, params_json: String, token: String) -> Dynamic
 
 /// Call any `app.rocksky.*` read query by nsid. `params_json` is a JSON object
 /// of string params (`"{\"uri\":\"at://…\"}"`) — the whole read-query catalog is
 /// reachable here.
 pub fn get(nsid: String, params_json: String) -> Dynamic {
-  get_ffi("", nsid, params_json)
+  get_ffi("", nsid, params_json, "")
+}
+
+/// [get](#get) with a bearer access token (for auth-gated queries).
+pub fn get_authed(nsid: String, params_json: String, token: String) -> Dynamic {
+  get_ffi("", nsid, params_json, token)
 }
 
 /// [get](#get) against a custom AppView endpoint.
 pub fn get_at(nsid: String, params_json: String, endpoint: String) -> Dynamic {
-  get_ffi(endpoint, nsid, params_json)
+  get_ffi(endpoint, nsid, params_json, "")
+}
+
+@external(erlang, "rocksky", "match_song")
+fn match_song_ffi(title: String, artist: String) -> Dynamic
+
+/// Resolve full canonical metadata for a bare title + artist (matchSong).
+pub fn match_song(title: String, artist: String) -> Dynamic {
+  match_song_ffi(title, artist)
 }
 
 /// A typed date window for the `top_*_interval` charts.
@@ -242,4 +255,44 @@ fn agent_refresh_session_ffi(agent: Agent) -> Dynamic
 /// Proactively refresh the session (keep-alive).
 pub fn refresh_session(agent: Agent) -> Dynamic {
   agent_refresh_session_ffi(agent)
+}
+
+@external(erlang, "rocksky", "agent_scrobble_match")
+fn agent_scrobble_match_ffi(
+  agent: Agent,
+  title: String,
+  artist: String,
+  album: String,
+  mb_id: String,
+  isrc: String,
+) -> Dynamic
+
+/// Scrobble from just a title + artist (pass "" for no album; optional mb_id /
+/// isrc anchor the match): resolve full metadata via matchSong, then fan out.
+pub fn scrobble_match(
+  agent: Agent,
+  title: String,
+  artist: String,
+  album: String,
+  mb_id: String,
+  isrc: String,
+) -> Dynamic {
+  agent_scrobble_match_ffi(agent, title, artist, album, mb_id, isrc)
+}
+
+@external(erlang, "rocksky", "agent_sync_repo")
+fn agent_sync_repo_ffi(agent: Agent) -> Dynamic
+
+/// Download the caller's repo and (re)build the local dedup index. Requires the
+/// agent to have been given a dedup store.
+pub fn sync_repo(agent: Agent) -> Dynamic {
+  agent_sync_repo_ffi(agent)
+}
+
+@external(erlang, "rocksky", "agent_hydrate_from_jetstream")
+fn agent_hydrate_ffi(agent: Agent) -> Dynamic
+
+/// Keep the local dedup index hydrated from Jetstream in the background.
+pub fn hydrate_from_jetstream(agent: Agent) -> Dynamic {
+  agent_hydrate_ffi(agent)
 }

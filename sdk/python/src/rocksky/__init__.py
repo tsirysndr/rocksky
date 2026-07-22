@@ -14,11 +14,17 @@ from .rocksky_uniffi import AppView as _AppView
 
 
 class AppView(_AppView):  # noqa: F811 — thin facade over the generated class
-    """Unauthenticated read client over the public Rocksky AppView.
+    """Read client over the public Rocksky AppView.
 
     ``base`` defaults to ``None`` (the public AppView at
     ``https://api.rocksky.app``). Pass a URL to target a self-hosted AppView.
+    ``token``, when given, is sent as ``Authorization: Bearer <token>`` on every
+    read — needed only for auth-gated queries.
     """
 
-    def __init__(self, base: typing.Optional[str] = None):
-        super().__init__(base)
+    def __init__(
+        self,
+        base: typing.Optional[str] = None,
+        token: typing.Optional[str] = None,
+    ):
+        super().__init__(base, token)

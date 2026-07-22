@@ -153,12 +153,23 @@ export class Agent {
     return uri;
   }
 
-  /** Scrobble from just a title + artist (album optional): resolve full metadata
-   * via `matchSong`, then write. Matching uses the public AppView unless
-   * `appview` is given; an empty match falls back to a minimal record. */
-  async scrobbleMatch(title: string, artist: string, album?: string, appview?: string): Promise<string> {
+  /** Scrobble from just a title + artist (album optional, plus optional
+   * `mbId`/`isrc` anchors): resolve full metadata via `matchSong`, then write.
+   * Matching uses the public AppView unless `appview` is given; an empty match
+   * falls back to a minimal record. */
+  async scrobbleMatch(
+    title: string,
+    artist: string,
+    album?: string,
+    mbId?: string,
+    isrc?: string,
+    appview?: string,
+  ): Promise<string> {
     const { RockskyClient } = await import("./client.js");
-    const m = (await new RockskyClient(appview).matchSong(title, artist)) as Record<string, unknown> | null;
+    const m = (await new RockskyClient(appview).matchSong(title, artist, mbId, isrc)) as Record<
+      string,
+      unknown
+    > | null;
     const s = (k: string): string | undefined => (m && typeof m[k] === "string" ? (m[k] as string) : undefined);
     const n = (k: string): number | undefined => (m && typeof m[k] === "number" ? (m[k] as number) : undefined);
     const rec: ScrobbleInput =

@@ -36,15 +36,19 @@
 (def ^:private h-scrobbles (delay (downcall "rocksky_scrobbles" ADDR [ADDR ADDR I32 I32])))
 (def ^:private h-toptracks (delay (downcall "rocksky_top_tracks" ADDR [ADDR I32 I32])))
 (def ^:private h-stats    (delay (downcall "rocksky_global_stats" ADDR [ADDR])))
-(def ^:private h-get      (delay (downcall "rocksky_get" ADDR [ADDR ADDR ADDR])))
+(def ^:private h-get      (delay (downcall "rocksky_get" ADDR [ADDR ADDR ADDR ADDR])))
+(def ^:private h-match    (delay (downcall "rocksky_match_song" ADDR [ADDR ADDR ADDR ADDR ADDR])))
 (def ^:private h-tt-iv    (delay (downcall "rocksky_top_tracks_interval" ADDR [ADDR I32 I32 ADDR I32 ADDR ADDR])))
 (def ^:private h-ta-iv    (delay (downcall "rocksky_top_artists_interval" ADDR [ADDR I32 I32 ADDR I32 ADDR ADDR])))
 (def ^:private h-songhash (delay (downcall "rocksky_song_hash" ADDR [ADDR ADDR ADDR])))
 (def ^:private h-free     (delay (downcall "rocksky_string_free" nil [ADDR])))
-(def ^:private h-login    (delay (downcall "rocksky_agent_login" ADDR [ADDR ADDR ADDR ADDR])))
+(def ^:private h-login    (delay (downcall "rocksky_agent_login" ADDR [ADDR ADDR ADDR ADDR ADDR])))
 (def ^:private h-last-err (delay (downcall "rocksky_last_error" ADDR [])))
 (def ^:private h-afree    (delay (downcall "rocksky_agent_free" nil [ADDR])))
 (def ^:private h-scrobble (delay (downcall "rocksky_agent_scrobble" ADDR [ADDR ADDR])))
+(def ^:private h-scrobble-match (delay (downcall "rocksky_agent_scrobble_match" ADDR [ADDR ADDR ADDR ADDR ADDR ADDR])))
+(def ^:private h-sync     (delay (downcall "rocksky_agent_sync_repo" ADDR [ADDR])))
+(def ^:private h-hydrate  (delay (downcall "rocksky_agent_hydrate_from_jetstream" ADDR [ADDR])))
 (def ^:private h-like     (delay (downcall "rocksky_agent_like" ADDR [ADDR ADDR ADDR])))
 (def ^:private h-follow   (delay (downcall "rocksky_agent_follow" ADDR [ADDR ADDR])))
 (def ^:private h-shout    (delay (downcall "rocksky_agent_shout" ADDR [ADDR ADDR ADDR ADDR])))
@@ -111,13 +115,27 @@
 
     (query \"app.rocksky.album.getAlbum\" {:uri uri})
     (query \"app.rocksky.charts.getScrobblesChart\" {:did did})"
-  ([nsid params] (query nsid params nil))
-  ([nsid params base]
+  ([nsid params] (query nsid params nil nil))
+  ([nsid params base] (query nsid params base nil))
+  ([nsid params base token]
    (with-open [^Arena a (Arena/ofConfined)]
      (unwrap (.invokeWithArguments ^MethodHandle @h-get
                                    (object-array [(.allocateFrom a (str (or base "")))
                                                   (.allocateFrom a (str nsid))
-                                                  (.allocateFrom a (json/generate-string params))]))))))
+                                                  (.allocateFrom a (json/generate-string params))
+                                                  (.allocateFrom a (str (or token "")))]))))))
+
+(defn match-song
+  "Resolve full canonical metadata for a bare title + artist (matchSong)."
+  ([title artist] (match-song title artist nil nil nil))
+  ([title artist mb-id isrc base]
+   (with-open [^Arena a (Arena/ofConfined)]
+     (unwrap (.invokeWithArguments ^MethodHandle @h-match
+                                   (object-array [(.allocateFrom a (str (or base "")))
+                                                  (.allocateFrom a (str title))
+                                                  (.allocateFrom a (str artist))
+                                                  (.allocateFrom a (str (or mb-id "")))
+                                                  (.allocateFrom a (str (or isrc "")))]))))))
 
 (defn- interval-parts
   "Normalize an interval into [unit n start end]. `iv` is :all, or a vector
@@ -172,14 +190,15 @@
 
 (defn login
   "Log in with an app password, persisting the session at `session-path`."
-  [session-path identifier password & {:keys [appview]}]
+  [session-path identifier password & {:keys [appview dedup-path]}]
   (with-open [^Arena a (Arena/ofConfined)]
     (let [^MemorySegment seg
           (.invokeWithArguments ^MethodHandle @h-login
                                 (object-array [(.allocateFrom a (str session-path))
                                                (.allocateFrom a (str identifier))
                                                (.allocateFrom a (str password))
-                                               (.allocateFrom a (str (or appview "")))]))]
+                                               (.allocateFrom a (str (or appview "")))
+                                               (.allocateFrom a (str (or dedup-path "")))]))]
       (if (zero? (.address seg))
         (throw (ex-info (str "rocksky login: "
                              (or (read-free (.invokeWithArguments ^MethodHandle @h-last-err (object-array [])))
@@ -196,6 +215,25 @@
   "Scrobble a play (fans out to artist/album/song/scrobble). Returns the URIs."
   [agent track]
   (agent-call @h-scrobble agent (json/generate-string track)))
+
+(defn scrobble-match
+  "Scrobble from just a title + artist (album optional, plus optional mb-id /
+  isrc anchors): resolve full metadata via matchSong, then fan out."
+  ([agent title artist] (scrobble-match agent title artist nil nil nil))
+  ([agent title artist album] (scrobble-match agent title artist album nil nil))
+  ([agent title artist album mb-id isrc]
+   (agent-call @h-scrobble-match agent title artist (or album "") (or mb-id "") (or isrc ""))))
+
+(defn sync-repo
+  "Download the caller's repo and (re)build the local dedup index (needs a
+  :dedup-path at login). Returns the per-collection counts."
+  [agent]
+  (agent-call @h-sync agent))
+
+(defn hydrate-from-jetstream
+  "Keep the local dedup index hydrated from Jetstream in the background."
+  [agent]
+  (agent-call @h-hydrate agent))
 
 (defn like       [agent uri cid] (agent-call @h-like agent uri cid))
 (defn follow     [agent did]     (agent-call @h-follow agent did))

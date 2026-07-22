@@ -520,8 +520,16 @@ fn agent_scrobble_match(
     title: String,
     artist: String,
     album: String,
+    mb_id: String,
+    isrc: String,
 ) -> String {
-    envelope(RT.block_on(agent.0.scrobble_match(&title, &artist, opt(&album))))
+    envelope(RT.block_on(agent.0.scrobble_match(
+        &title,
+        &artist,
+        opt(&album),
+        opt(&mb_id),
+        opt(&isrc),
+    )))
 }
 
 #[rustler::nif(schedule = "DirtyIo")]

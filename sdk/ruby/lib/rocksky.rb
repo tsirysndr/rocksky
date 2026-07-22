@@ -26,15 +26,19 @@ module Rocksky
       "char* rocksky_scrobbles(const char*, const char*, unsigned int, unsigned int)",
       "char* rocksky_top_tracks(const char*, unsigned int, unsigned int)",
       "char* rocksky_global_stats(const char*)",
-      "char* rocksky_get(const char*, const char*, const char*)",
+      "char* rocksky_get(const char*, const char*, const char*, const char*)",
+      "char* rocksky_match_song(const char*, const char*, const char*, const char*, const char*)",
       "char* rocksky_top_tracks_interval(const char*, unsigned int, unsigned int, const char*, unsigned int, const char*, const char*)",
       "char* rocksky_top_artists_interval(const char*, unsigned int, unsigned int, const char*, unsigned int, const char*, const char*)",
       "char* rocksky_song_hash(const char*, const char*, const char*)",
       "void rocksky_string_free(void*)",
       "char* rocksky_last_error()",
-      "void* rocksky_agent_login(const char*, const char*, const char*, const char*)",
+      "void* rocksky_agent_login(const char*, const char*, const char*, const char*, const char*)",
       "void rocksky_agent_free(void*)",
       "char* rocksky_agent_scrobble(void*, const char*)",
+      "char* rocksky_agent_scrobble_match(void*, const char*, const char*, const char*, const char*, const char*)",
+      "char* rocksky_agent_sync_repo(void*)",
+      "char* rocksky_agent_hydrate_from_jetstream(void*)",
       "char* rocksky_agent_like(void*, const char*, const char*)",
       "char* rocksky_agent_follow(void*, const char*)",
       "char* rocksky_agent_shout(void*, const char*, const char*, const char*)",
@@ -90,8 +94,15 @@ module Rocksky
   #
   #   Rocksky.get("app.rocksky.album.getAlbum", { uri: uri })
   #   Rocksky.get("app.rocksky.charts.getScrobblesChart", { did: did })
-  def self.get(nsid, params = {}, base: nil)
-    unwrap(C.rocksky_get(base.to_s, nsid, JSON.generate(params)))
+  # +token+, when given, is sent as an Authorization: Bearer header — needed for
+  # auth-gated queries.
+  def self.get(nsid, params = {}, base: nil, token: nil)
+    unwrap(C.rocksky_get(base.to_s, nsid, JSON.generate(params), token.to_s))
+  end
+
+  # Resolve full canonical metadata for a bare title + artist (matchSong).
+  def self.match_song(title, artist, mb_id: nil, isrc: nil, base: nil)
+    unwrap(C.rocksky_match_song(base.to_s, title, artist, mb_id.to_s, isrc.to_s))
   end
 
   # Top tracks chart over a typed date window. +interval+ is +:all+, or a pair
@@ -135,8 +146,10 @@ module Rocksky
   # Records are passed as Hashes with camelCase keys (title, artist, album,
   # albumArtist, durationMs, …), matching the wire record shape.
   class Agent
-    def self.login(session_path, identifier, password, appview: nil)
-      ptr = C.rocksky_agent_login(session_path, identifier, password, appview.to_s)
+    # +dedup_path+ enables the local dedup index (needed for #sync_repo /
+    # #hydrate_from_jetstream).
+    def self.login(session_path, identifier, password, appview: nil, dedup_path: nil)
+      ptr = C.rocksky_agent_login(session_path, identifier, password, appview.to_s, dedup_path.to_s)
       raise Error, (Rocksky.take_string(C.rocksky_last_error()) || "login failed") if ptr.null?
 
       new(ptr)
@@ -149,6 +162,23 @@ module Rocksky
     # Scrobble a play; fans out to artist/album/song/scrobble. Returns the URIs.
     def scrobble(track)
       Rocksky.unwrap(C.rocksky_agent_scrobble(@ptr, JSON.generate(track)))
+    end
+
+    # Scrobble from just a title + artist (album optional, plus optional mb_id /
+    # isrc anchors): resolve full metadata via matchSong, then fan out.
+    def scrobble_match(title, artist, album: nil, mb_id: nil, isrc: nil)
+      Rocksky.unwrap(C.rocksky_agent_scrobble_match(@ptr, title, artist, album.to_s, mb_id.to_s, isrc.to_s))
+    end
+
+    # Download the caller's repo and (re)build the local dedup index (needs a
+    # dedup_path at login). Returns the per-collection counts.
+    def sync_repo
+      Rocksky.unwrap(C.rocksky_agent_sync_repo(@ptr))
+    end
+
+    # Keep the local dedup index hydrated from Jetstream in the background.
+    def hydrate_from_jetstream
+      Rocksky.unwrap(C.rocksky_agent_hydrate_from_jetstream(@ptr))
     end
 
     def like(uri, cid)

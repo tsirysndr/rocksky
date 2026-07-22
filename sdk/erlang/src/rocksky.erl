@@ -10,11 +10,14 @@
 
 -export([profile/1, profile/2, scrobbles/2, scrobbles/4, top_tracks/0,
          top_tracks/2, top_tracks/3, global_stats/0, global_stats/1,
-         get/2, get/3, get_raw/3,
+         get/2, get/3, get/4, get_raw/4, match_song/2, match_song/5,
          top_tracks_interval/3, top_tracks_interval/4, top_tracks_interval_raw/7,
          top_artists_interval/3, top_artists_interval/4, top_artists_interval_raw/7,
          song_hash/3, album_hash/2, artist_hash/1,
-         agent_login/3, agent_login/4, agent_scrobble/2, agent_like/3,
+         agent_login/3, agent_login/4, agent_login/5, agent_scrobble/2,
+         agent_scrobble_match/3, agent_scrobble_match/4, agent_scrobble_match/6,
+         agent_sync_repo/1,
+         agent_hydrate_from_jetstream/1, agent_like/3,
          agent_follow/2, agent_shout/4, agent_refresh_session/1]).
 
 %% Decode a NIF JSON-envelope binary into {ok, Value} | {error, Message}.
@@ -49,12 +52,20 @@ global_stats(Base) -> unwrap(rocksky_nif:global_stats(b(Base))).
 %% Universal read escape hatch — call any app.rocksky.* query by nsid. `Params`
 %% is a map of string params (e.g. #{<<"did">> => Did, <<"limit">> => 20}); the
 %% whole read-query catalog is reachable here.
-get(Nsid, Params) -> get(Nsid, Params, <<>>).
-get(Nsid, Params, Base) -> unwrap(rocksky_nif:get(b(Base), b(Nsid), json:encode(Params))).
+get(Nsid, Params) -> get(Nsid, Params, <<>>, <<>>).
+get(Nsid, Params, Base) -> get(Nsid, Params, Base, <<>>).
+%% `Token`, when non-empty, is sent as an Authorization: Bearer header.
+get(Nsid, Params, Base, Token) ->
+    unwrap(rocksky_nif:get(b(Base), b(Nsid), json:encode(Params), b(Token))).
 
 %% Flat form for cross-language callers passing a pre-encoded JSON params object.
-get_raw(Base, Nsid, ParamsJson) ->
-    unwrap(rocksky_nif:get(b(Base), b(Nsid), b(ParamsJson))).
+get_raw(Base, Nsid, ParamsJson, Token) ->
+    unwrap(rocksky_nif:get(b(Base), b(Nsid), b(ParamsJson), b(Token))).
+
+%% Resolve full canonical metadata for a bare title + artist (matchSong).
+match_song(Title, Artist) -> match_song(<<>>, Title, Artist, <<>>, <<>>).
+match_song(Base, Title, Artist, MbId, Isrc) ->
+    unwrap(rocksky_nif:match_song(b(Base), b(Title), b(Artist), b(MbId), b(Isrc))).
 
 %% Top charts over a typed date window. `Interval` is one of: all | {days, N} |
 %% {weeks, N} | {months, N} | {years, N} | {range, StartRfc3339, EndRfc3339}.
@@ -97,12 +108,35 @@ artist_hash(AlbumArtist) -> rocksky_nif:artist_hash(b(AlbumArtist)).
 agent_login(SessionPath, Identifier, Password) ->
     agent_login(SessionPath, Identifier, Password, <<>>).
 agent_login(SessionPath, Identifier, Password, AppView) ->
-    rocksky_nif:agent_login(b(SessionPath), b(Identifier), b(Password), b(AppView), <<>>).
+    agent_login(SessionPath, Identifier, Password, AppView, <<>>).
+%% `DedupPath` enables the local dedup index (for agent_sync_repo / hydrate).
+agent_login(SessionPath, Identifier, Password, AppView, DedupPath) ->
+    rocksky_nif:agent_login(b(SessionPath), b(Identifier), b(Password),
+                            b(AppView), b(DedupPath)).
 
 %% Scrobble a play (fans out to artist/album/song/scrobble). Track is a map with
 %% camelCase binary keys. Returns {ok, #{<<"scrobbleUri">> := _, ...}}.
 agent_scrobble(Agent, Track) ->
     unwrap(rocksky_nif:agent_scrobble(Agent, json:encode(Track))).
+
+%% Scrobble from just a title + artist (album optional): resolve full metadata
+%% via matchSong, then fan out.
+agent_scrobble_match(Agent, Title, Artist) ->
+    agent_scrobble_match(Agent, Title, Artist, <<>>, <<>>, <<>>).
+agent_scrobble_match(Agent, Title, Artist, Album) ->
+    agent_scrobble_match(Agent, Title, Artist, Album, <<>>, <<>>).
+%% Optional `MbId` / `Isrc` anchor the match.
+agent_scrobble_match(Agent, Title, Artist, Album, MbId, Isrc) ->
+    unwrap(rocksky_nif:agent_scrobble_match(Agent, b(Title), b(Artist), b(Album),
+                                            b(MbId), b(Isrc))).
+
+%% Download the caller's repo and (re)build the local dedup index (needs a
+%% DedupPath at login). Returns the per-collection counts.
+agent_sync_repo(Agent) -> unwrap(rocksky_nif:agent_sync_repo(Agent)).
+
+%% Keep the local dedup index hydrated from Jetstream in the background.
+agent_hydrate_from_jetstream(Agent) ->
+    unwrap(rocksky_nif:agent_hydrate_from_jetstream(Agent)).
 
 agent_like(Agent, Uri, Cid) -> unwrap(rocksky_nif:agent_like(Agent, b(Uri), b(Cid))).
 agent_follow(Agent, Did) -> unwrap(rocksky_nif:agent_follow(Agent, b(Did))).
