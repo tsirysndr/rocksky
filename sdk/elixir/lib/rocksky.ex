@@ -32,6 +32,31 @@ defmodule Rocksky do
   @doc "Platform-wide totals."
   def global_stats(base \\ ""), do: :rocksky.global_stats(to_bin(base))
 
+  @doc """
+  Universal read escape hatch — call any `app.rocksky.*` query by nsid.
+
+  `params` is a map of string params; the whole read-query catalog is reachable.
+
+      Rocksky.get("app.rocksky.album.getAlbum", %{"uri" => uri})
+      Rocksky.get("app.rocksky.charts.getScrobblesChart", %{"did" => did})
+  """
+  def get(nsid, params \\ %{}, base \\ ""), do: :rocksky.get(to_bin(nsid), params, to_bin(base))
+
+  @doc """
+  Top tracks chart over a typed date window.
+
+  `interval` is `:all` | `{:days, n}` | `{:weeks, n}` | `{:months, n}` |
+  `{:years, n}` | `{:range, start_rfc3339, end_rfc3339}`.
+
+      Rocksky.top_tracks_interval(10, 0, {:days, 7})
+  """
+  def top_tracks_interval(limit \\ 50, offset \\ 0, interval \\ :all, base \\ ""),
+    do: :rocksky.top_tracks_interval(limit, offset, interval, to_bin(base))
+
+  @doc "Top artists chart over a typed date window (see `top_tracks_interval/4`)."
+  def top_artists_interval(limit \\ 50, offset \\ 0, interval \\ :all, base \\ ""),
+    do: :rocksky.top_artists_interval(limit, offset, interval, to_bin(base))
+
   @doc "Identity hash of a song — identical across every Rocksky SDK."
   def song_hash(title, artist, album),
     do: :rocksky.song_hash(to_bin(title), to_bin(artist), to_bin(album))

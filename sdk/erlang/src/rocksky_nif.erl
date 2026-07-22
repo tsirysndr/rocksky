@@ -8,6 +8,7 @@
 
 -export([profile/2, scrobbles/4, songs/4, albums/4, artists/4, feed/4,
          search/2, top_artists/3, top_tracks/3, global_stats/1,
+         get/3, top_tracks_interval/7, top_artists_interval/7,
          song_hash/3, album_hash/2, artist_hash/1,
          agent_login/5, agent_did/1, agent_refresh_session/1, agent_scrobble/2,
          agent_create_song/2, agent_create_album/2, agent_create_artist/2,
@@ -196,6 +197,9 @@ search(_Base, _Query) -> ?NOT_LOADED.
 top_artists(_Base, _Limit, _Offset) -> ?NOT_LOADED.
 top_tracks(_Base, _Limit, _Offset) -> ?NOT_LOADED.
 global_stats(_Base) -> ?NOT_LOADED.
+get(_Base, _Nsid, _ParamsJson) -> ?NOT_LOADED.
+top_tracks_interval(_Base, _Limit, _Offset, _Unit, _N, _Start, _End) -> ?NOT_LOADED.
+top_artists_interval(_Base, _Limit, _Offset, _Unit, _N, _Start, _End) -> ?NOT_LOADED.
 song_hash(_Title, _Artist, _Album) -> ?NOT_LOADED.
 album_hash(_Album, _AlbumArtist) -> ?NOT_LOADED.
 artist_hash(_AlbumArtist) -> ?NOT_LOADED.

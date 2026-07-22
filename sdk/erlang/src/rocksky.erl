@@ -10,6 +10,9 @@
 
 -export([profile/1, profile/2, scrobbles/2, scrobbles/4, top_tracks/0,
          top_tracks/2, top_tracks/3, global_stats/0, global_stats/1,
+         get/2, get/3, get_raw/3,
+         top_tracks_interval/3, top_tracks_interval/4, top_tracks_interval_raw/7,
+         top_artists_interval/3, top_artists_interval/4, top_artists_interval_raw/7,
          song_hash/3, album_hash/2, artist_hash/1,
          agent_login/3, agent_login/4, agent_scrobble/2, agent_like/3,
          agent_follow/2, agent_shout/4, agent_refresh_session/1]).
@@ -42,6 +45,43 @@ top_tracks(Limit, Offset, Base) -> unwrap(rocksky_nif:top_tracks(b(Base), Limit,
 
 global_stats() -> global_stats(<<>>).
 global_stats(Base) -> unwrap(rocksky_nif:global_stats(b(Base))).
+
+%% Universal read escape hatch — call any app.rocksky.* query by nsid. `Params`
+%% is a map of string params (e.g. #{<<"did">> => Did, <<"limit">> => 20}); the
+%% whole read-query catalog is reachable here.
+get(Nsid, Params) -> get(Nsid, Params, <<>>).
+get(Nsid, Params, Base) -> unwrap(rocksky_nif:get(b(Base), b(Nsid), json:encode(Params))).
+
+%% Flat form for cross-language callers passing a pre-encoded JSON params object.
+get_raw(Base, Nsid, ParamsJson) ->
+    unwrap(rocksky_nif:get(b(Base), b(Nsid), b(ParamsJson))).
+
+%% Top charts over a typed date window. `Interval` is one of: all | {days, N} |
+%% {weeks, N} | {months, N} | {years, N} | {range, StartRfc3339, EndRfc3339}.
+top_tracks_interval(Limit, Offset, Interval) ->
+    top_tracks_interval(Limit, Offset, Interval, <<>>).
+top_tracks_interval(Limit, Offset, Interval, Base) ->
+    {U, N, S, E} = interval_parts(Interval),
+    unwrap(rocksky_nif:top_tracks_interval(b(Base), Limit, Offset, U, N, S, E)).
+
+top_artists_interval(Limit, Offset, Interval) ->
+    top_artists_interval(Limit, Offset, Interval, <<>>).
+top_artists_interval(Limit, Offset, Interval, Base) ->
+    {U, N, S, E} = interval_parts(Interval),
+    unwrap(rocksky_nif:top_artists_interval(b(Base), Limit, Offset, U, N, S, E)).
+
+%% Flat interval forms for cross-language callers (Unit/N/Start/End directly).
+top_tracks_interval_raw(Base, Limit, Offset, Unit, N, Start, End) ->
+    unwrap(rocksky_nif:top_tracks_interval(b(Base), Limit, Offset, b(Unit), N, b(Start), b(End))).
+top_artists_interval_raw(Base, Limit, Offset, Unit, N, Start, End) ->
+    unwrap(rocksky_nif:top_artists_interval(b(Base), Limit, Offset, b(Unit), N, b(Start), b(End))).
+
+interval_parts(all) -> {<<"all">>, 0, <<>>, <<>>};
+interval_parts({days, N}) -> {<<"days">>, N, <<>>, <<>>};
+interval_parts({weeks, N}) -> {<<"weeks">>, N, <<>>, <<>>};
+interval_parts({months, N}) -> {<<"months">>, N, <<>>, <<>>};
+interval_parts({years, N}) -> {<<"years">>, N, <<>>, <<>>};
+interval_parts({range, S, E}) -> {<<"range">>, 0, b(S), b(E)}.
 
 %% Identity hashes — identical across every Rocksky SDK.
 song_hash(Title, Artist, Album) ->

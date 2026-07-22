@@ -75,6 +75,100 @@ pub fn global_stats_at(endpoint: String) -> Dynamic {
   global_stats_ffi(endpoint)
 }
 
+// ---- universal read + typed date windows --------------------------------
+
+@external(erlang, "rocksky", "get_raw")
+fn get_ffi(base: String, nsid: String, params_json: String) -> Dynamic
+
+/// Call any `app.rocksky.*` read query by nsid. `params_json` is a JSON object
+/// of string params (`"{\"uri\":\"at://…\"}"`) — the whole read-query catalog is
+/// reachable here.
+pub fn get(nsid: String, params_json: String) -> Dynamic {
+  get_ffi("", nsid, params_json)
+}
+
+/// [get](#get) against a custom AppView endpoint.
+pub fn get_at(nsid: String, params_json: String, endpoint: String) -> Dynamic {
+  get_ffi(endpoint, nsid, params_json)
+}
+
+/// A typed date window for the `top_*_interval` charts.
+pub type Interval {
+  AllTime
+  LastDays(Int)
+  LastWeeks(Int)
+  LastMonths(Int)
+  LastYears(Int)
+  Range(start: String, end: String)
+}
+
+fn interval_parts(iv: Interval) -> #(String, Int, String, String) {
+  case iv {
+    AllTime -> #("all", 0, "", "")
+    LastDays(n) -> #("days", n, "", "")
+    LastWeeks(n) -> #("weeks", n, "", "")
+    LastMonths(n) -> #("months", n, "", "")
+    LastYears(n) -> #("years", n, "", "")
+    Range(s, e) -> #("range", 0, s, e)
+  }
+}
+
+@external(erlang, "rocksky", "top_tracks_interval_raw")
+fn top_tracks_interval_ffi(
+  base: String,
+  limit: Int,
+  offset: Int,
+  unit: String,
+  n: Int,
+  start: String,
+  end: String,
+) -> Dynamic
+
+/// Platform-wide top tracks chart over a typed [Interval](#Interval).
+pub fn top_tracks_interval(limit: Int, offset: Int, interval: Interval) -> Dynamic {
+  let #(u, n, s, e) = interval_parts(interval)
+  top_tracks_interval_ffi("", limit, offset, u, n, s, e)
+}
+
+/// [top_tracks_interval](#top_tracks_interval) against a custom AppView endpoint.
+pub fn top_tracks_interval_at(
+  limit: Int,
+  offset: Int,
+  interval: Interval,
+  endpoint: String,
+) -> Dynamic {
+  let #(u, n, s, e) = interval_parts(interval)
+  top_tracks_interval_ffi(endpoint, limit, offset, u, n, s, e)
+}
+
+@external(erlang, "rocksky", "top_artists_interval_raw")
+fn top_artists_interval_ffi(
+  base: String,
+  limit: Int,
+  offset: Int,
+  unit: String,
+  n: Int,
+  start: String,
+  end: String,
+) -> Dynamic
+
+/// Platform-wide top artists chart over a typed [Interval](#Interval).
+pub fn top_artists_interval(limit: Int, offset: Int, interval: Interval) -> Dynamic {
+  let #(u, n, s, e) = interval_parts(interval)
+  top_artists_interval_ffi("", limit, offset, u, n, s, e)
+}
+
+/// [top_artists_interval](#top_artists_interval) against a custom AppView endpoint.
+pub fn top_artists_interval_at(
+  limit: Int,
+  offset: Int,
+  interval: Interval,
+  endpoint: String,
+) -> Dynamic {
+  let #(u, n, s, e) = interval_parts(interval)
+  top_artists_interval_ffi(endpoint, limit, offset, u, n, s, e)
+}
+
 // ---- identity hashes (pure) ---------------------------------------------
 
 @external(erlang, "rocksky", "song_hash")
