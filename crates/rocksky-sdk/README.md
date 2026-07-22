@@ -49,7 +49,7 @@ async fn demo() -> rocksky_sdk::Result<()> {
 Read-only, no auth:
 
 ```rust
-# async fn run() -> rocksky_sdk::Result<()> {
+async fn run() -> rocksky_sdk::Result<()> {
 use rocksky_sdk::DateInterval;
 
 let av = rocksky_sdk::AppView::new("https://api.rocksky.app");
@@ -64,8 +64,8 @@ let loved = me.loved_songs("alice.bsky.social", 25, 0).await?;
 
 // Universal escape hatch — call any read query by nsid, get raw JSON.
 let raw = av.get("app.rocksky.getStats", &[]).await?;
-# let _ = (charts, month, stats, loved, raw);
-# Ok(()) }
+let _ = (charts, month, stats, loved, raw);
+Ok(()) }
 ```
 
 ## Convenience verbs
@@ -89,7 +89,7 @@ a scrobble as unique per `(actor, song, second)`. The `dedup` feature mirrors th
 user's repo into a local RocksDB index so writes never create duplicates:
 
 ```rust
-# async fn run() -> rocksky_sdk::Result<()> {
+async fn run() -> rocksky_sdk::Result<()> {
 use rocksky_sdk::{RockskyAgent, ScrobbleDraft};
 
 let agent = RockskyAgent::builder()
@@ -116,7 +116,7 @@ let out = agent.scrobble(&ScrobbleDraft {
     ..Default::default()
 }).await?;
 println!("scrobble: {}", out.scrobble_uri);
-# Ok(()) }
+Ok(()) }
 ```
 
 The identity hashes match the server byte-for-byte and are exposed directly:
@@ -132,21 +132,21 @@ index as it arrives. A shared watermark de-duplicates the overlap between server
 and doubles as the reconnect cursor, so a single server stalling never opens a gap.
 
 ```rust
-# #[cfg(feature = "jetstream")]
-# async fn run(agent: rocksky_sdk::RockskyAgent) -> rocksky_sdk::Result<()> {
+#[cfg(feature = "jetstream")]
+async fn run(agent: rocksky_sdk::RockskyAgent) -> rocksky_sdk::Result<()> {
 agent.sync_repo().await?;                 // one-time backfill
 
 // Run the live tail on a background task (reconnects + resumes forever).
 let bg = agent.clone();
 tokio::spawn(async move { bg.hydrate_from_jetstream().await });
-# Ok(()) }
+Ok(()) }
 ```
 
 The servers are fully overridable via `JetstreamConfig`:
 
 ```rust
-# #[cfg(feature = "jetstream")]
-# async fn run(agent: rocksky_sdk::RockskyAgent) -> rocksky_sdk::Result<()> {
+#[cfg(feature = "jetstream")]
+async fn run(agent: rocksky_sdk::RockskyAgent) -> rocksky_sdk::Result<()> {
 use rocksky_sdk::JetstreamConfig;
 
 let config = JetstreamConfig::with_servers([
@@ -154,7 +154,7 @@ let config = JetstreamConfig::with_servers([
     "wss://jetstream1.us-west.bsky.network",
 ]);
 agent.hydrate_from_jetstream_with(config).await?;
-# Ok(()) }
+Ok(()) }
 ```
 
 All logging is via `tracing` — no stdout/stderr writes.
@@ -180,16 +180,17 @@ The `AppView` client covers the whole `app.rocksky.*` read surface.
 `Range { start, end }`. Plain `top_tracks` / `top_artists` are all-time shorthands.
 
 ```rust
-# async fn run(av: rocksky_sdk::AppView) -> rocksky_sdk::Result<()> {
-use rocksky_sdk::DateInterval;
+async fn run(av: rocksky_sdk::AppView) -> rocksky_sdk::Result<()> {
+  use rocksky_sdk::DateInterval;
 
-let last_year = av.top_artists_interval(DateInterval::LastYears(1), 50, 0).await?;
-let window    = av.top_tracks_interval(
+  let last_year = av.top_artists_interval(DateInterval::LastYears(1), 50, 0).await?;
+  let window    = av.top_tracks_interval(
     DateInterval::Range { start: "2025-01-01".into(), end: "2025-06-30".into() },
     50, 0,
-).await?;
-# let _ = (last_year, window);
-# Ok(()) }
+  ).await?;
+  let _ = (last_year, window);
+  Ok(()) 
+}
 ```
 
 ### `match_song` & the escape hatch
@@ -225,4 +226,4 @@ cargo install jacquard-lexgen   # provides `jacquard-codegen`
 
 ## License
 
-MPL-2.0. See the repository root `LICENSE`.
+MIT
