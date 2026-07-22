@@ -118,6 +118,25 @@ pub extern "C" fn rocksky_global_stats(base: *const c_char) -> *mut c_char {
     )
 }
 
+/// Call any AppView read query by nsid. `params_json` is a JSON object of string
+/// params (`{"did":"…","limit":"20"}`); empty/`null` means none. This is the
+/// universal read escape hatch — every `app.rocksky.*` query is reachable here.
+#[no_mangle]
+pub extern "C" fn rocksky_get(
+    base: *const c_char,
+    nsid: *const c_char,
+    params_json: *const c_char,
+) -> *mut c_char {
+    let params: Vec<(String, String)> =
+        serde_json::from_str::<std::collections::HashMap<String, String>>(&cstr(params_json))
+            .map(|m| m.into_iter().collect())
+            .unwrap_or_default();
+    respond(
+        RT.block_on(appview(base).get(&cstr(nsid), &params))
+            .map_err(|e| e.to_string()),
+    )
+}
+
 // ---- identity hashes -----------------------------------------------------
 
 #[no_mangle]
