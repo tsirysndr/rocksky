@@ -1,15 +1,15 @@
 ---
-title: "Elixir & Erlang"
-description: "Elixir and Erlang SDKs for Rocksky — over the shared Rustler NIF."
+title: "Elixir"
+description: "Elixir SDK for Rocksky — over the shared Rustler NIF."
 icon: "droplet"
 ---
 
-`rocksky_ex` (Elixir) and `rocksky_erl` (Erlang) wrap the shared Rocksky Rust
-core through a Rustler **NIF**: AppView reads, AT Protocol PDS writes, and the
-identity hashes — the same engine behind every Rocksky SDK. Gleam uses the same
-NIF.
+`rocksky_ex` wraps the shared Rocksky Rust core through a Rustler **NIF**:
+AppView reads, AT Protocol PDS writes, and the identity hashes — the same engine
+behind every Rocksky SDK. The same NIF powers the [Erlang](/sdks/erlang) and
+[Gleam](/sdks/gleam) SDKs.
 
-## Install (Elixir)
+## Install
 
 ```elixir
 def deps do
@@ -20,7 +20,7 @@ end
 `rocksky_ex` 0.5.0 pulls in `rocksky_erl` 0.2.0, whose loader fetches the native
 library from the GitHub release on first use.
 
-## Quickstart (Elixir)
+## Quickstart
 
 ```elixir
 # Reads — unauthenticated. The last arg overrides https://api.rocksky.app.
@@ -39,31 +39,10 @@ agent = Rocksky.login("session.json", "alice.bsky.social", "app-password")
 IO.puts(out["scrobbleUri"])
 ```
 
-## Erlang
-
-The friendly module is `rocksky` (Hex package `rocksky_erl`):
-
-```erlang
-{ok, Stats} = rocksky:global_stats().
-%% Universal escape hatch — reaches the whole app.rocksky.* read catalog:
-{ok, Albums} = rocksky:get(<<"app.rocksky.album.getAlbums">>, #{<<"limit">> => 20}),
-{ok, Top}    = rocksky:top_tracks_interval(5, 0, {days, 7}),
-{ok, Song}   = rocksky:match_song(<<"Chaser">>, <<"Calibro 35">>),
-
-Agent = rocksky:agent_login(<<"session.json">>, <<"alice.bsky.social">>, <<"app-pw">>),
-{ok, Out} = rocksky:agent_scrobble_match(Agent, <<"Chaser">>, <<"Calibro 35">>).
-```
-
-Erlang mirrors the Elixir surface. Reads: `rocksky:get(Nsid, Params)` /
-`get/3` (with `Base`) / `get/4` (with `Base`, `Token`) reach the whole
-`app.rocksky.*` catalog; `rocksky:top_tracks_interval(5, 0, {days, 7})` /
-`top_artists_interval(5, 0, all)` (interval atoms/tuples: `all`, `{days, N}`,
-`{weeks, N}`, `{months, N}`, `{years, N}`, `{range, Start, End}`);
-`rocksky:match_song(Title, Artist)`. Writes:
-`rocksky:agent_login(Session, Id, Pw, AppView, DedupPath)`,
-`rocksky:agent_scrobble_match(Agent, Title, Artist)` (also `/4` with `Album`, `/6`
-with `Album`, `MbId`, `Isrc`), and `rocksky:agent_sync_repo(Agent)` /
-`agent_hydrate_from_jetstream(Agent)` once a dedup path is set.
+<Note>
+  Using Erlang directly? The same NIF ships as `rocksky_erl` with a friendly
+  `rocksky` module — see the [Erlang SDK](/sdks/erlang) page.
+</Note>
 
 ## API
 

@@ -1,0 +1,87 @@
+---
+title: "Erlang"
+description: "Erlang SDK for Rocksky — over the shared Rustler NIF."
+icon: "circle-nodes"
+---
+
+`rocksky_erl` wraps the shared Rocksky Rust core through a Rustler **NIF**:
+AppView reads, AT Protocol PDS writes, and the identity hashes — the same engine
+behind every Rocksky SDK. The same NIF powers the [Elixir](/sdks/elixir) and
+[Gleam](/sdks/gleam) SDKs.
+
+The OTP application is `rocksky_erl`; the modules are `rocksky` (the friendly
+API) and `rocksky_nif` (the raw NIF). Its loader fetches the native library from
+the GitHub release on first use.
+
+## Install
+
+```erlang
+%% rebar.config
+{deps, [{rocksky_erl, "0.2.0"}]}.
+```
+
+## Quickstart
+
+```erlang
+%% Reads — unauthenticated. A trailing Base overrides https://api.rocksky.app.
+{ok, Stats} = rocksky:global_stats(),
+io:format("~p scrobbles~n", [maps:get(<<"scrobbles">>, Stats)]),
+
+%% Universal escape hatch — reaches the whole app.rocksky.* read catalog:
+{ok, Albums} = rocksky:get(<<"app.rocksky.album.getAlbums">>, #{<<"limit">> => 20}),
+{ok, Top}    = rocksky:top_tracks_interval(5, 0, {days, 7}),
+{ok, Song}   = rocksky:match_song(<<"Chaser">>, <<"Calibro 35">>),
+
+%% Writes — log in with an app password.
+Agent = rocksky:agent_login(<<"session.json">>, <<"alice.bsky.social">>, <<"app-pw">>),
+{ok, Out} = rocksky:agent_scrobble_match(Agent, <<"Chaser">>, <<"Calibro 35">>).
+```
+
+Reads/writes return `{ok, Value}` | `{error, Message}` with binary-keyed maps.
+
+## API
+
+### Reads
+
+Named reads: `profile`, `scrobbles`, `top_tracks`, `global_stats` (each takes a
+trailing `Base`).
+
+**Universal `get`** — the escape hatch reaches the *whole* `app.rocksky.*` read
+catalog by NSID: `rocksky:get(Nsid, Params)`, `rocksky:get(Nsid, Params, Base)`,
+and `rocksky:get(Nsid, Params, Base, Token)` (bearer token for auth-gated
+queries), each → `{ok, Data}`.
+
+```erlang
+{ok, Albums}  = rocksky:get(<<"app.rocksky.album.getAlbums">>, #{<<"limit">> => 20}),
+{ok, Tracks}  = rocksky:get(<<"app.rocksky.album.getAlbumTracks">>, #{<<"uri">> => Uri}),
+{ok, Follows} = rocksky:get(<<"app.rocksky.graph.getFollows">>, #{<<"actor">> => Actor}),
+{ok, S}       = rocksky:get(<<"app.rocksky.stats.getStats">>, #{}).
+```
+
+**Typed date-window charts** — `rocksky:top_tracks_interval(5, 0, {days, 7})` and
+`rocksky:top_artists_interval(5, 0, all)`; the interval is `all` | `{days, N}` |
+`{weeks, N}` | `{months, N}` | `{years, N}` | `{range, Start, End}`. Plain
+`top_tracks` / `top_artists` are all-time shorthands.
+
+**Match** — `rocksky:match_song(Title, Artist)` resolves a bare title + artist
+into full canonical metadata (album, artwork, duration, MBID, ISRC, links).
+
+### Writes
+
+`rocksky:agent_login(Session, Id, Pw)` (also `/5` with `AppView`, `DedupPath`),
+then `agent_scrobble` (full metadata), `agent_like`, `agent_follow`,
+`agent_shout`, `agent_refresh_session`.
+
+**Match-then-scrobble** — `rocksky:agent_scrobble_match(Agent, Title, Artist)`
+(also `/4` with `Album`, `/6` with `Album`, `MbId`, `Isrc`) resolves canonical
+metadata and scrobbles in one call.
+
+**Dedup + realtime** — pass a `DedupPath` to `agent_login/5` to enable the local
+dedup store, then keep it warm with `rocksky:agent_sync_repo(Agent)` and
+`rocksky:agent_hydrate_from_jetstream(Agent)`.
+
+### Identity hashes
+
+`rocksky:song_hash(Title, Artist, Album)` / `album_hash` / `artist_hash` —
+lowercase-hex SHA-256, byte-for-byte identical across every Rocksky SDK and the
+server.

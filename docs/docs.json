@@ -92,6 +92,7 @@
               "sdks/ruby",
               "sdks/kotlin",
               "sdks/elixir",
+              "sdks/erlang",
               "sdks/clojure",
               "sdks/gleam"
             ]
