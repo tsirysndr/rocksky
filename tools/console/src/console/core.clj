@@ -18,6 +18,14 @@
     :cmds [[:server         "Run apps/api lex gen-server"]
            [:types          "Generate SDK type bindings (TS/Go/Py/Rust/Kotlin/...)"]]}
 
+   {:group "sdk" :ns 'console.sdk
+    :cmds [[:build-native    "Build both native cores → sdk/scripts/dist. Args: [triple]"]
+           [:gen-bindings    "Regenerate UniFFI bindings (Python + Kotlin)"]
+           [:build-core      "Build one package's native core. Args: python|ruby|erlang|clojure|kotlin"]
+           [:uniffi-manifest "Write UniFFI download manifests. Args: dir-of-libs tag"]
+           [:nif-manifest    "Write NIF checksum manifest. Args: dir-of-so tag"]
+           [:publish         "Publish one SDK to its registry (local-only). Args: lang [tag|--dry-run ...]"]]}
+
    {:group "api" :ns 'console.api
     :cmds [[:format         "Run biome format on apps/api (pass :fix to write)"]
            [:lint           "Run biome lint on apps/api (pass :fix to write)"]]}

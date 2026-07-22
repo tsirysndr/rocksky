@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# atradio.fm command console — Clojure + rebel REPL that centralizes every
+# monorepo command. Requires the toolchain from mise (`mise install`).
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+export ATRADIO_ROOT="$ROOT"
+cd "$ROOT/tools/console"
+exec clojure -M:rebel

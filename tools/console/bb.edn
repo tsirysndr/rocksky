@@ -18,6 +18,26 @@
                  :task (do (require 'console.lexgen)
                            ((resolve 'console.lexgen/types)))}
 
+  ;; ── sdk (native cores + language packages) ───────────────────
+  sdk:build-native   {:doc  "Build both native cores → sdk/scripts/dist. Usage: bb sdk:build-native [triple]"
+                      :task (do (require 'console.sdk)
+                                (apply (resolve 'console.sdk/build-native) *command-line-args*))}
+  sdk:gen-bindings   {:doc  "Regenerate UniFFI bindings (Python + Kotlin) from the built core"
+                      :task (do (require 'console.sdk)
+                                ((resolve 'console.sdk/gen-bindings)))}
+  sdk:build-core     {:doc  "Build one package's native core. Usage: bb sdk:build-core <python|ruby|erlang|clojure|kotlin>"
+                      :task (do (require 'console.sdk)
+                                (apply (resolve 'console.sdk/build-core) *command-line-args*))}
+  sdk:manifest:uniffi {:doc "Write UniFFI download manifests. Usage: bb sdk:manifest:uniffi <dir-of-libs> <tag>"
+                      :task (do (require 'console.sdk)
+                                (apply (resolve 'console.sdk/uniffi-manifest) *command-line-args*))}
+  sdk:manifest:nif   {:doc  "Write NIF checksum manifest. Usage: bb sdk:manifest:nif <dir-of-so> <tag>"
+                      :task (do (require 'console.sdk)
+                                (apply (resolve 'console.sdk/nif-manifest) *command-line-args*))}
+  sdk:publish        {:doc  "Publish one SDK (local-only). Usage: bb sdk:publish <lang> [tag|--dry-run ...]"
+                      :task (do (require 'console.sdk)
+                                (apply (resolve 'console.sdk/publish) *command-line-args*))}
+
   ;; ── api (apps/api code quality) ──────────────────────────────
   api:format    {:doc  "biome format apps/api/src. Add `fix` to write changes."
                  :task (do (require 'console.api)
