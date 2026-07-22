@@ -71,10 +71,15 @@ mod index {
 
     use ipld_core::cid::Cid;
     use ipld_core::ipld::Ipld;
+    use redb::{Database, Durability, TableDefinition};
     use serde::Deserialize;
 
     use super::{album_hash, artist_hash, song_hash, C_ALBUM, C_ARTIST, C_SCROBBLE, C_SONG};
     use crate::error::{Result, SdkError};
+
+    /// The single key→value table backing the whole index (keys are the
+    /// NUL-separated byte strings below; values are at-uris or small metadata).
+    const TABLE: TableDefinition<&[u8], &[u8]> = TableDefinition::new("index");
 
     fn db_err<E: core::fmt::Display>(e: E) -> SdkError {
         SdkError::Other(format!("dedup index: {e}"))
@@ -96,10 +101,11 @@ mod index {
         }
     }
 
-    /// A local RocksDB mirror of the parts of a user's repo needed to prevent
-    /// duplicate writes. Cheap to clone-open; safe to keep across syncs.
+    /// A local [redb](https://docs.rs/redb) mirror of the parts of a user's repo
+    /// needed to prevent duplicate writes. Pure Rust (no libclang / C++), so it
+    /// builds on every target. Shared behind an `Arc`; safe to keep across syncs.
     pub struct RepoIndex {
-        db: rocksdb::DB,
+        db: Database,
     }
 
     // Key layout (NUL-separated so segments can't collide):
@@ -167,12 +173,20 @@ mod index {
     impl RepoIndex {
         /// Open (creating if needed) the index at `path`.
         pub fn open(path: impl AsRef<Path>) -> Result<Self> {
-            let mut opts = rocksdb::Options::default();
-            opts.create_if_missing(true);
-            // Bulk-insert friendly: large write buffer, no need to tune reads.
-            opts.set_write_buffer_size(64 * 1024 * 1024);
-            let db = rocksdb::DB::open(&opts, path).map_err(db_err)?;
+            let db = Database::create(path).map_err(db_err)?;
+            // Create the table up front so read transactions never race a
+            // not-yet-created table on a fresh index.
+            let w = db.begin_write().map_err(db_err)?;
+            w.open_table(TABLE).map_err(db_err)?;
+            w.commit().map_err(db_err)?;
             Ok(Self { db })
+        }
+
+        /// Raw value for `key`, if present.
+        fn get_bytes(&self, key: &[u8]) -> Result<Option<Vec<u8>>> {
+            let r = self.db.begin_read().map_err(db_err)?;
+            let t = r.open_table(TABLE).map_err(db_err)?;
+            Ok(t.get(key).map_err(db_err)?.map(|v| v.value().to_vec()))
         }
 
         // ---- point lookups used on the write path (one get each) ----
@@ -222,10 +236,9 @@ mod index {
         }
 
         fn get_str(&self, key: &[u8]) -> Result<Option<String>> {
-            match self.db.get(key).map_err(db_err)? {
-                Some(v) => Ok(Some(String::from_utf8_lossy(&v).into_owned())),
-                None => Ok(None),
-            }
+            Ok(self
+                .get_bytes(key)?
+                .map(|v| String::from_utf8_lossy(&v).into_owned()))
         }
 
         // ---- index updates after a successful write ----
@@ -293,12 +306,16 @@ mod index {
             primary: Vec<u8>,
             uri: &str,
         ) -> Result<()> {
-            let mut batch = rocksdb::WriteBatch::default();
-            if let Some(rkey) = uri.rsplit('/').next() {
-                batch.put(rk_key(did, collection, rkey), &primary);
+            let w = self.db.begin_write().map_err(db_err)?;
+            {
+                let mut t = w.open_table(TABLE).map_err(db_err)?;
+                if let Some(rkey) = uri.rsplit('/').next() {
+                    t.insert(rk_key(did, collection, rkey).as_slice(), primary.as_slice())
+                        .map_err(db_err)?;
+                }
+                t.insert(primary.as_slice(), uri.as_bytes()).map_err(db_err)?;
             }
-            batch.put(&primary, uri.as_bytes());
-            self.db.write(batch).map_err(db_err)
+            w.commit().map_err(db_err)
         }
 
         /// The last commit `rev` indexed for `did`, used as the `since` cursor for
@@ -310,20 +327,21 @@ mod index {
         /// The last Jetstream `time_us` cursor processed for `did`, if any.
         pub fn cursor(&self, did: &str) -> Result<Option<i64>> {
             Ok(self
-                .db
-                .get(cursor_key(did))
-                .map_err(db_err)?
+                .get_bytes(&cursor_key(did))?
                 .and_then(|v| std::str::from_utf8(&v).ok().and_then(|s| s.parse().ok())))
         }
 
-        /// Persist the Jetstream cursor for `did`. WAL-free — a lost cursor only
-        /// costs a small, idempotent replay on restart.
+        /// Persist the Jetstream cursor for `did`. Non-durable — a lost cursor
+        /// only costs a small, idempotent replay on restart.
         pub fn set_cursor(&self, did: &str, time_us: i64) -> Result<()> {
-            let mut wo = rocksdb::WriteOptions::default();
-            wo.disable_wal(true);
-            self.db
-                .put_opt(cursor_key(did), time_us.to_string().as_bytes(), &wo)
-                .map_err(db_err)
+            let mut w = self.db.begin_write().map_err(db_err)?;
+            w.set_durability(Durability::None);
+            {
+                let mut t = w.open_table(TABLE).map_err(db_err)?;
+                t.insert(cursor_key(did).as_slice(), time_us.to_string().as_bytes())
+                    .map_err(db_err)?;
+            }
+            w.commit().map_err(db_err)
         }
 
         /// Apply a single Jetstream commit event to the index. `create`/`update`
@@ -347,18 +365,25 @@ mod index {
                         return Ok(());
                     };
                     let uri = format!("at://{did}/{collection}/{rkey}");
-                    let mut batch = rocksdb::WriteBatch::default();
-                    batch.put(rk_key(did, collection, rkey), &primary);
-                    batch.put(&primary, uri.as_bytes());
-                    self.db.write(batch).map_err(db_err)?;
+                    let w = self.db.begin_write().map_err(db_err)?;
+                    {
+                        let mut t = w.open_table(TABLE).map_err(db_err)?;
+                        t.insert(rk_key(did, collection, rkey).as_slice(), primary.as_slice())
+                            .map_err(db_err)?;
+                        t.insert(primary.as_slice(), uri.as_bytes()).map_err(db_err)?;
+                    }
+                    w.commit().map_err(db_err)?;
                 }
                 "delete" => {
                     let rk = rk_key(did, collection, rkey);
-                    if let Some(primary) = self.db.get(&rk).map_err(db_err)? {
-                        let mut batch = rocksdb::WriteBatch::default();
-                        batch.delete(&primary);
-                        batch.delete(&rk);
-                        self.db.write(batch).map_err(db_err)?;
+                    if let Some(primary) = self.get_bytes(&rk)? {
+                        let w = self.db.begin_write().map_err(db_err)?;
+                        {
+                            let mut t = w.open_table(TABLE).map_err(db_err)?;
+                            t.remove(primary.as_slice()).map_err(db_err)?;
+                            t.remove(rk.as_slice()).map_err(db_err)?;
+                        }
+                        w.commit().map_err(db_err)?;
                     }
                 }
                 _ => {}
@@ -385,46 +410,51 @@ mod index {
             let mut leaves: Vec<(String, Cid)> = Vec::new();
             walk_mst(&blocks, &commit.data, &mut leaves);
 
-            let mut batch = rocksdb::WriteBatch::default();
             let mut stats = IndexStats::default();
-
-            for (path, value_cid) in &leaves {
-                let Some((collection, rkey)) = path.split_once('/') else {
-                    continue;
-                };
-                if !matches!(collection, C_ARTIST | C_ALBUM | C_SONG | C_SCROBBLE) {
-                    continue;
+            // The index is a rebuildable cache, so the bulk load is non-durable
+            // (Durability::None) for speed; a single write transaction keeps it
+            // atomic.
+            let mut w = self.db.begin_write().map_err(db_err)?;
+            w.set_durability(Durability::None);
+            {
+                let mut t = w.open_table(TABLE).map_err(db_err)?;
+                for (path, value_cid) in &leaves {
+                    let Some((collection, rkey)) = path.split_once('/') else {
+                        continue;
+                    };
+                    if !matches!(collection, C_ARTIST | C_ALBUM | C_SONG | C_SCROBBLE) {
+                        continue;
+                    }
+                    let Some(bytes) = blocks.get(value_cid) else {
+                        continue;
+                    };
+                    let Ok(rec): core::result::Result<Ipld, _> = decode(bytes) else {
+                        continue;
+                    };
+                    let Some(primary) = primary_key_for(did, collection, |k| str_field(&rec, k))
+                    else {
+                        continue;
+                    };
+                    let uri = format!("at://{did}/{collection}/{rkey}");
+                    t.insert(rk_key(did, collection, rkey).as_slice(), primary.as_slice())
+                        .map_err(db_err)?;
+                    t.insert(primary.as_slice(), uri.as_bytes()).map_err(db_err)?;
+                    match collection {
+                        C_ARTIST => stats.artists += 1,
+                        C_ALBUM => stats.albums += 1,
+                        C_SONG => stats.songs += 1,
+                        C_SCROBBLE => stats.scrobbles += 1,
+                        _ => {}
+                    }
                 }
-                let Some(bytes) = blocks.get(value_cid) else {
-                    continue;
-                };
-                let Ok(rec): core::result::Result<Ipld, _> = decode(bytes) else {
-                    continue;
-                };
-                let Some(primary) = primary_key_for(did, collection, |k| str_field(&rec, k)) else {
-                    continue;
-                };
-                let uri = format!("at://{did}/{collection}/{rkey}");
-                batch.put(rk_key(did, collection, rkey), &primary);
-                batch.put(&primary, uri.as_bytes());
-                match collection {
-                    C_ARTIST => stats.artists += 1,
-                    C_ALBUM => stats.albums += 1,
-                    C_SONG => stats.songs += 1,
-                    C_SCROBBLE => stats.scrobbles += 1,
-                    _ => {}
+
+                // Advance the incremental cursor to this commit's rev.
+                if let Some(rev) = &commit.rev {
+                    t.insert(rev_key(did).as_slice(), rev.as_bytes())
+                        .map_err(db_err)?;
                 }
             }
-
-            // Advance the incremental cursor to this commit's rev.
-            if let Some(rev) = &commit.rev {
-                batch.put(rev_key(did), rev.as_bytes());
-            }
-
-            // The index is a rebuildable cache; skip the WAL for a faster bulk write.
-            let mut wo = rocksdb::WriteOptions::default();
-            wo.disable_wal(true);
-            self.db.write_opt(batch, &wo).map_err(db_err)?;
+            w.commit().map_err(db_err)?;
             Ok(stats)
         }
     }
