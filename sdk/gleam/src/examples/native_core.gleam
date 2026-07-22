@@ -7,17 +7,15 @@
 //// gleam.toml and build ../erlang/build-core.sh first.
 
 import gleam/io
+import gleam/string
 import rocksky/core
 
 pub fn main() {
   io.println(
     "song hash: " <> core.song_hash("Chaser", "Calibro 35", "Jazzploitation"),
   )
-  // Envelope calls return Dynamic ({ok, value} | {error, message}); inspect raw.
+  // Envelope calls return Dynamic ({ok, value} | {error, message}); inspect it.
   // "" = the default AppView URL; pass any base to override.
-  io.println("global stats:")
-  echo core.global_stats("")
-  io.println("top tracks:")
-  echo core.top_tracks(5, 0, "")
-  Nil
+  io.println("global stats: " <> string.inspect(core.global_stats("")))
+  io.println("top tracks: " <> string.inspect(core.top_tracks(5, 0, "")))
 }
