@@ -18,7 +18,7 @@ gleam_stdlib = ">= 0.71.0 and < 2.0.0"
 # depend on the Hex `rocksky_erl` package (its loader fetches the native lib on
 # first use). For monorepo dev, comment this out and use the local path line
 # below (build its priv/rocksky_nif.so via ../erlang/build-core.sh).
-rocksky_erl = ">= 0.1.0 and < 1.0.0"
+rocksky_erl = ">= 0.2.0 and < 1.0.0"
 # rocksky_erl = { path = "../erlang" }
 
 [dev-dependencies]
