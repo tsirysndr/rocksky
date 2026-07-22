@@ -313,7 +313,8 @@ mod index {
                     t.insert(rk_key(did, collection, rkey).as_slice(), primary.as_slice())
                         .map_err(db_err)?;
                 }
-                t.insert(primary.as_slice(), uri.as_bytes()).map_err(db_err)?;
+                t.insert(primary.as_slice(), uri.as_bytes())
+                    .map_err(db_err)?;
             }
             w.commit().map_err(db_err)
         }
@@ -370,7 +371,8 @@ mod index {
                         let mut t = w.open_table(TABLE).map_err(db_err)?;
                         t.insert(rk_key(did, collection, rkey).as_slice(), primary.as_slice())
                             .map_err(db_err)?;
-                        t.insert(primary.as_slice(), uri.as_bytes()).map_err(db_err)?;
+                        t.insert(primary.as_slice(), uri.as_bytes())
+                            .map_err(db_err)?;
                     }
                     w.commit().map_err(db_err)?;
                 }
@@ -438,7 +440,8 @@ mod index {
                     let uri = format!("at://{did}/{collection}/{rkey}");
                     t.insert(rk_key(did, collection, rkey).as_slice(), primary.as_slice())
                         .map_err(db_err)?;
-                    t.insert(primary.as_slice(), uri.as_bytes()).map_err(db_err)?;
+                    t.insert(primary.as_slice(), uri.as_bytes())
+                        .map_err(db_err)?;
                     match collection {
                         C_ARTIST => stats.artists += 1,
                         C_ALBUM => stats.albums += 1,
