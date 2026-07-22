@@ -10,7 +10,7 @@ every Rocksky SDK. Lives in the `:rocksky` Gradle module, package `app.rocksky`.
 
 ```kotlin
 dependencies {
-    implementation("app.rocksky:rocksky-kotlin:0.4.0")
+    implementation("app.rocksky:rocksky-kotlin:0.5.0")
 }
 ```
 
@@ -23,12 +23,12 @@ checkout, build it once: `./build-core.sh`. `mise.toml` pins Kotlin + a JDK.
 import app.rocksky.*
 
 // Reads — unauthenticated. Pass a base URL to override https://api.rocksky.app.
-val av = AppView(null)
+val av = AppView()
 println(av.globalStats().scrobbles)
 av.topTracks(10u, 0u).forEach { println("${it.artist} — ${it.title}") }
 
 // Writes — log in once (session persisted at the given path).
-val agent = Agent.loginPassword("session.json", "alice.bsky.social", "app-password", null, null)
+val agent = login("session.json", "alice.bsky.social", "app-password")
 val out = agent.scrobble(ScrobbleInput(
     title = "Chaser", artist = "Calibro 35",
     album = "Jazzploitation", albumArtist = "Calibro 35", durationMs = 182320,
@@ -46,11 +46,11 @@ base URL to `AppView(...)` to target a custom AppView. (Counts are `UInt`.)
 
 ### Writes — `Agent`
 
-`Agent.loginPassword(sessionPath, identifier, password, appview?, dedupPath?)`
-returns an agent. Then:
+`login(sessionPath, identifier, password, appview? = null, dedupPath? = null)`
+returns an agent (`appview`/`dedupPath` default to none). Then:
 
-- `scrobble(ScrobbleInput)` → `ScrobbleResult` — writes **artist + album + song +
-  scrobble**, skipping any that already exist (with a dedup store).
+- `scrobble(ScrobbleInput)` — writes the scrobble; with a dedup store, skips an
+  existing same-second scrobble of the same track.
 - `createSong(SongInput)`, `createAlbum(AlbumInput)`, `createArtist(ArtistInput)`
 - `like(uri, cid)`, `unlike(uri)`, `follow(did)`, `unfollow(did)`
 - `shout(subjectUri, subjectCid, message)`, `replyShout(...)`

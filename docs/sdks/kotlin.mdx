@@ -13,7 +13,7 @@ Rocksky SDK.
 
 ```kotlin
 dependencies {
-    implementation("app.rocksky:rocksky-kotlin:0.4.0")
+    implementation("app.rocksky:rocksky-kotlin:0.5.0")
 }
 ```
 
@@ -24,13 +24,13 @@ The published jar bundles the native library for each platform.
 ```kotlin
 import app.rocksky.*
 
-// Reads — unauthenticated. AppView(null) uses https://api.rocksky.app.
-val av = AppView(null)
+// Reads — unauthenticated. AppView() uses https://api.rocksky.app.
+val av = AppView()
 println(av.globalStats().scrobbles)
 av.topTracks(10u, 0u).forEach { println("${it.artist} — ${it.title}") }
 
 // Writes — log in with an app password.
-val agent = Agent.loginPassword("session.json", "alice.bsky.social", "app-password", null, null)
+val agent = login("session.json", "alice.bsky.social", "app-password")
 val out = agent.scrobble(ScrobbleInput(
     title = "Chaser", artist = "Calibro 35",
     album = "Jazzploitation", albumArtist = "Calibro 35", durationMs = 182320,
@@ -43,7 +43,8 @@ println(out.scrobbleUri)
 **Reads — `AppView(base: String?)`**: `profile`, `scrobbles`, `songs`,
 `topTracks`, `topArtists`, `globalStats`. Counts are `UInt`.
 
-**Writes — `Agent`**: `loginPassword(...)`, then `scrobble`, `createSong` /
+**Writes — `Agent`**: `login(...)` (top-level, `appview`/`dedupPath` optional),
+then `scrobble`, `createSong` /
 `createAlbum` / `createArtist`, `like` / `unlike`, `follow` / `unfollow`,
 `shout` / `replyShout`, `setNowPlaying` / `clearNowPlaying`, `syncRepo`. Write
 verbs throw `RockskyException`.

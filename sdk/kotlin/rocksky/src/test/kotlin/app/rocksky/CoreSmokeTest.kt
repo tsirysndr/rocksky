@@ -13,7 +13,7 @@ class CoreSmokeTest {
     }
 
     @Test fun liveGlobalStatsAndTopTracks() {
-        val av = AppView(null)
+        val av = AppView()
         val s = av.globalStats()
         assertTrue(s.scrobbles > 0u, "scrobbles should be > 0")
         val top = av.topTracks(3u, 0u)

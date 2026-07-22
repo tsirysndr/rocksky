@@ -12,7 +12,7 @@ import app.rocksky.ScrobbleInput
 import app.rocksky.songHash
 
 fun main() {
-    val av = AppView(null)
+    val av = AppView()
     val s = av.globalStats()
     println("global: ${s.scrobbles} scrobbles · ${s.users} users · ${s.tracks} tracks")
 
@@ -22,7 +22,7 @@ fun main() {
     println("song hash: " + songHash("Chaser", "Calibro 35", "Jazzploitation"))
 
     // --- write side (uncomment with real credentials) ---
-    // val agent = app.rocksky.Agent.loginPassword("session.json", "alice.bsky.social", "app-pw", null, null)
+    // val agent = login("session.json", "alice.bsky.social", "app-pw")
     // val out = agent.scrobble(ScrobbleInput(
     //     title = "Chaser", artist = "Calibro 35",
     //     album = "Jazzploitation", albumArtist = "Calibro 35", durationMs = 182320,

@@ -1,19 +1,17 @@
 /**
- * Native core bindings for Rocksky, under the `app.rocksky.core` package.
+ * Rocksky Kotlin SDK, under the `app.rocksky` package.
  *
- * Thin aliases over the UniFFI-generated bindings to the shared Rust core
- * (`rocksky-sdk`), so the auth / record-write / dedup logic is identical across
- * the Rust, Python, Ruby, Clojure, and BEAM SDKs. This is the write + firehose
- * side (AT Protocol PDS writes); the sibling `app.rocksky` (`:rocksky`) module is
- * the ktor HTTP read side.
+ * Thin bindings over the UniFFI-generated core (`rocksky-sdk`) — the same auth /
+ * record-write / dedup engine behind every Rocksky SDK. AppView reads + Agent
+ * writes (scrobble, like, follow, shout, now-playing) + identity hashes.
  *
  * ```kotlin
- * import app.rocksky.core.*
+ * import app.rocksky.*
  *
- * val av = AppView(null)
+ * val av = AppView()                       // or AppView("https://my-appview")
  * println(av.globalStats().scrobbles)
  *
- * val agent = Agent.loginPassword("session.json", "alice.bsky.social", "app-pw", null, null)
+ * val agent = login("session.json", "alice.bsky.social", "app-pw")
  * val out = agent.scrobble(ScrobbleInput(
  *     title = "Chaser", artist = "Calibro 35",
  *     album = "Jazzploitation", albumArtist = "Calibro 35", durationMs = 182320,
@@ -38,6 +36,25 @@ typealias SongView = uniffi.rocksky_uniffi.SongView
 typealias ArtistView = uniffi.rocksky_uniffi.ArtistView
 typealias GlobalStats = uniffi.rocksky_uniffi.GlobalStats
 typealias RockskyException = uniffi.rocksky_uniffi.RockskyException
+
+/**
+ * Read client for the default Rocksky AppView (`https://api.rocksky.app`). Use
+ * `AppView("https://…")` to target a custom endpoint.
+ */
+fun AppView(): AppView = uniffi.rocksky_uniffi.AppView(null)
+
+/**
+ * Log in with an app password, persisting the session at [sessionPath]. Pass
+ * [appview] to override the AppView URL and [dedupPath] to enable the local
+ * dedup index.
+ */
+fun login(
+    sessionPath: String,
+    identifier: String,
+    password: String,
+    appview: String? = null,
+    dedupPath: String? = null,
+): Agent = uniffi.rocksky_uniffi.Agent.loginPassword(sessionPath, identifier, password, appview, dedupPath)
 
 /** Identity hash of a song — identical across every Rocksky SDK. */
 fun songHash(title: String, artist: String, album: String): String =
