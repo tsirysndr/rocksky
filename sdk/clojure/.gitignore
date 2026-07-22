@@ -13,3 +13,6 @@ pom.xml.asc
 .DS_Store
 
 .rebel_readline_history
+
+# native core lib (built by build-core.sh)
+resources/librocksky_uniffi.*

@@ -208,3 +208,30 @@ before deploying. The default release tag pattern is
 ## License
 
 [MIT](LICENSE) © Tsiry Sandratraina.
+
+## Native core (`rocksky.ffi`)
+
+Alongside the HTTP client, this package binds the shared Rust engine
+(`rocksky-sdk`) via the JVM **Panama FFM** API (`rocksky.ffi`, JDK 22+): AT
+Protocol PDS **writes** (scrobble fan-out, like, follow, shout) and identity
+hashes identical to every other Rocksky SDK. `mise.toml` pins JDK 25 + Clojure.
+
+```sh
+./build-core.sh                                 # build the native lib onto the classpath
+clojure -M:native -m rocksky.native-example     # read-only demo
+```
+
+REPL / usage — the `:native` alias adds `--enable-native-access=ALL-UNNAMED`:
+
+```clojure
+;; clojure -M:native:nrepl   (or -M:native -r)
+(require '[rocksky.ffi :as core])
+(core/global-stats)
+(core/song-hash "Chaser" "Calibro 35" "Jazzploitation")
+
+(def agent (core/login "session.json" "alice.bsky.social" "app-pw"))
+(core/scrobble agent {"title" "Chaser" "artist" "Calibro 35"
+                      "album" "Jazzploitation" "albumArtist" "Calibro 35"
+                      "durationMs" 182320})
+(core/agent-close agent)
+```

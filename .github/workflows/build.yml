@@ -1,6 +1,12 @@
 name: build
 on:
   push:
+    # The SDK binding tags only trigger bindings-release.yml (native libs → GitHub
+    # release); don't run the app build for them.
+    tags-ignore:
+      - "bindings-v*"
+      - "erlang-v*"
+      - "gleam-v*"
 
 jobs:
   changes:

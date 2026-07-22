@@ -15,6 +15,16 @@
    :extra-deps  {nrepl/nrepl {:mvn/version "1.3.0"}}
    :main-opts   ["-m" "nrepl.cmdline"]}
 
+  ;; Native core (rocksky.ffi / rocksky.native) — JVM Panama FFM over the shared
+  ;; Rust core. Compose with other aliases to enable restricted native access:
+  ;;   clojure -M:native -e "(require 'rocksky.ffi)(println (rocksky.ffi/global-stats))"
+  ;;   clojure -M:native:nrepl            ;; nREPL with native access
+  ;;   clojure -M:native -m rocksky.native-example
+  ;; Requires the native lib: build ../build-core.sh (or ../../scripts/build-native.sh)
+  ;; and set ROCKSKY_NATIVE_LIB, or put librocksky_uniffi.* on the classpath.
+  :native
+  {:jvm-opts ["--enable-native-access=ALL-UNNAMED"]}
+
   ;; Build a jar / publish to Clojars.
   ;;   clojure -T:build clean
   ;;   clojure -T:build jar

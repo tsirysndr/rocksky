@@ -1,0 +1,3 @@
+%% Filled by sdk/scripts/gen-nif-manifest.sh from the release artifacts.
+{repo, "tsirysndr/rocksky"}.
+{tag, "erlang-v0.1.0"}.

@@ -1,0 +1,15 @@
+{application, rocksky_erl,
+ [{description,
+   "Official Erlang SDK for Rocksky — a Rustler NIF over the shared Rust core "
+   "(rocksky-sdk): AppView reads, record writes (scrobble fan-out, like, "
+   "follow, shout), and the identity hashes shared across every Rocksky SDK."},
+  {vsn, "0.1.0"},
+  {registered, []},
+  %% crypto/inets/ssl/public_key back the first-load NIF download + checksum
+  %% verify in rocksky_nif. kernel/stdlib are mandatory.
+  {applications, [kernel, stdlib, crypto, inets, ssl, public_key]},
+  {env, []},
+  {modules, []},
+  {licenses, ["MPL-2.0"]},
+  {links, [{"GitHub", "https://github.com/tsirysndr/rocksky"}]}
+ ]}.

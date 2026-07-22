@@ -1,0 +1,6 @@
+/priv/*.so
+/priv/*.dylib
+/priv/*.dll
+_build/
+*.beam
+ebin/

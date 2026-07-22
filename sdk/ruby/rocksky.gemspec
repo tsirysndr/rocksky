@@ -24,6 +24,9 @@ Gem::Specification.new do |spec|
 
   spec.files = Dir[
     "lib/**/*.rb",
+    # native-core download manifest (the lib itself is fetched on first load,
+    # never bundled — only *.rb + this json ship).
+    "lib/rocksky/core/manifest.json",
     "exe/*",
     "*.gemspec",
     "LICENSE",
