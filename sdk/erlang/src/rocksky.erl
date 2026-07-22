@@ -56,7 +56,7 @@ get(Nsid, Params) -> get(Nsid, Params, <<>>, <<>>).
 get(Nsid, Params, Base) -> get(Nsid, Params, Base, <<>>).
 %% `Token`, when non-empty, is sent as an Authorization: Bearer header.
 get(Nsid, Params, Base, Token) ->
-    unwrap(rocksky_nif:get(b(Base), b(Nsid), json:encode(Params), b(Token))).
+    unwrap(rocksky_nif:get(b(Base), b(Nsid), iolist_to_binary(json:encode(Params)), b(Token))).
 
 %% Flat form for cross-language callers passing a pre-encoded JSON params object.
 get_raw(Base, Nsid, ParamsJson, Token) ->
@@ -117,7 +117,7 @@ agent_login(SessionPath, Identifier, Password, AppView, DedupPath) ->
 %% Scrobble a play (fans out to artist/album/song/scrobble). Track is a map with
 %% camelCase binary keys. Returns {ok, #{<<"scrobbleUri">> := _, ...}}.
 agent_scrobble(Agent, Track) ->
-    unwrap(rocksky_nif:agent_scrobble(Agent, json:encode(Track))).
+    unwrap(rocksky_nif:agent_scrobble(Agent, iolist_to_binary(json:encode(Track)))).
 
 %% Scrobble from just a title + artist (album optional): resolve full metadata
 %% via matchSong, then fan out.

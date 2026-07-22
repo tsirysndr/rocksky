@@ -9,6 +9,17 @@
 -export([profile/2, scrobbles/4, songs/4, albums/4, artists/4, feed/4,
          search/2, top_artists/3, top_tracks/3, global_stats/1,
          get/4, match_song/5, top_tracks_interval/7, top_artists_interval/7,
+         loved_songs/4, catalog_albums/4, catalog_artists/4, catalog_songs/4,
+         album_tracks/2, artist_albums/2, artist_tracks/4, scrobble_feed/5,
+         scrobble/2, follows/4, followers/4, known_followers/4, album/2,
+         artist/2, song/5, actor_playlists/4, neighbours/2, compatibility/2,
+         artist_listeners/4, artist_recent_listeners/4, song_recent_listeners/4,
+         scrobbles_chart/8, feed_generators/2, feed_generator/2, stories/4,
+         recommendations/3, artist_recommendations/3, album_recommendations/3,
+         stats/2, wrapped/3, mirror_sources/1, currently_playing/3,
+         playback_queue/2, spotify_currently_playing/2, playlists/3, playlist/2,
+         album_shouts/4, artist_shouts/4, profile_shouts/4, track_shouts/2,
+         shout_replies/4, audio_settings/2, apikeys/3,
          song_hash/3, album_hash/2, artist_hash/1,
          agent_login/5, agent_did/1, agent_refresh_session/1, agent_scrobble/2,
          agent_scrobble_match/6, agent_sync_repo/1, agent_hydrate_from_jetstream/1,
@@ -202,6 +213,49 @@ get(_Base, _Nsid, _ParamsJson, _Token) -> ?NOT_LOADED.
 match_song(_Base, _Title, _Artist, _MbId, _Isrc) -> ?NOT_LOADED.
 top_tracks_interval(_Base, _Limit, _Offset, _Unit, _N, _Start, _End) -> ?NOT_LOADED.
 top_artists_interval(_Base, _Limit, _Offset, _Unit, _N, _Start, _End) -> ?NOT_LOADED.
+loved_songs(_Base, _Did, _Limit, _Offset) -> ?NOT_LOADED.
+catalog_albums(_Base, _Limit, _Offset, _Genre) -> ?NOT_LOADED.
+catalog_artists(_Base, _Limit, _Offset, _Genre) -> ?NOT_LOADED.
+catalog_songs(_Base, _Limit, _Offset, _Genre) -> ?NOT_LOADED.
+album_tracks(_Base, _Uri) -> ?NOT_LOADED.
+artist_albums(_Base, _Uri) -> ?NOT_LOADED.
+artist_tracks(_Base, _Uri, _Limit, _Offset) -> ?NOT_LOADED.
+scrobble_feed(_Base, _Did, _Following, _Limit, _Offset) -> ?NOT_LOADED.
+scrobble(_Base, _Uri) -> ?NOT_LOADED.
+follows(_Base, _Actor, _Limit, _Cursor) -> ?NOT_LOADED.
+followers(_Base, _Actor, _Limit, _Cursor) -> ?NOT_LOADED.
+known_followers(_Base, _Actor, _Limit, _Cursor) -> ?NOT_LOADED.
+album(_Base, _Uri) -> ?NOT_LOADED.
+artist(_Base, _Uri) -> ?NOT_LOADED.
+song(_Base, _Uri, _MbId, _Isrc, _SpotifyId) -> ?NOT_LOADED.
+actor_playlists(_Base, _Did, _Limit, _Offset) -> ?NOT_LOADED.
+neighbours(_Base, _Did) -> ?NOT_LOADED.
+compatibility(_Base, _Did) -> ?NOT_LOADED.
+artist_listeners(_Base, _Uri, _Limit, _Offset) -> ?NOT_LOADED.
+artist_recent_listeners(_Base, _Uri, _Limit, _Offset) -> ?NOT_LOADED.
+song_recent_listeners(_Base, _Uri, _Limit, _Offset) -> ?NOT_LOADED.
+scrobbles_chart(_Base, _Did, _ArtistUri, _AlbumUri, _SongUri, _Genre, _From, _To) -> ?NOT_LOADED.
+feed_generators(_Base, _Size) -> ?NOT_LOADED.
+feed_generator(_Base, _Feed) -> ?NOT_LOADED.
+stories(_Base, _Size, _Feed, _Following) -> ?NOT_LOADED.
+recommendations(_Base, _Did, _Limit) -> ?NOT_LOADED.
+artist_recommendations(_Base, _Did, _Limit) -> ?NOT_LOADED.
+album_recommendations(_Base, _Did, _Limit) -> ?NOT_LOADED.
+stats(_Base, _Did) -> ?NOT_LOADED.
+wrapped(_Base, _Did, _Year) -> ?NOT_LOADED.
+mirror_sources(_Base) -> ?NOT_LOADED.
+currently_playing(_Base, _PlayerId, _Actor) -> ?NOT_LOADED.
+playback_queue(_Base, _PlayerId) -> ?NOT_LOADED.
+spotify_currently_playing(_Base, _Actor) -> ?NOT_LOADED.
+playlists(_Base, _Limit, _Offset) -> ?NOT_LOADED.
+playlist(_Base, _Uri) -> ?NOT_LOADED.
+album_shouts(_Base, _Uri, _Limit, _Offset) -> ?NOT_LOADED.
+artist_shouts(_Base, _Uri, _Limit, _Offset) -> ?NOT_LOADED.
+profile_shouts(_Base, _Did, _Limit, _Offset) -> ?NOT_LOADED.
+track_shouts(_Base, _Uri) -> ?NOT_LOADED.
+shout_replies(_Base, _Uri, _Limit, _Offset) -> ?NOT_LOADED.
+audio_settings(_Base, _Did) -> ?NOT_LOADED.
+apikeys(_Base, _Limit, _Offset) -> ?NOT_LOADED.
 song_hash(_Title, _Artist, _Album) -> ?NOT_LOADED.
 album_hash(_Album, _AlbumArtist) -> ?NOT_LOADED.
 artist_hash(_AlbumArtist) -> ?NOT_LOADED.
