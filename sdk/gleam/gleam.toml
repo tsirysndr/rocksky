@@ -1,5 +1,5 @@
 name = "rocksky"
-version = "1.5.0"
+version = "1.5.1"
 
 description = "Gleam SDK for Rocksky — native bindings to the shared Rust core: AppView reads, AT Protocol PDS writes, and identity hashes"
 licences = ["MIT"]
