@@ -141,7 +141,11 @@ fn opt_u32(n: u32) -> Option<u32> {
 }
 
 #[rustler::nif(schedule = "DirtyIo")]
-fn get(base: String, nsid: String, params_json: String) -> String {
+fn get(base: String, nsid: String, params_json: String, token: String) -> String {
+    let mut av = appview(&base);
+    if !token.is_empty() {
+        av.set_token(Some(token));
+    }
     // Coerce scalar values (numbers, bools) to strings so callers may pass a
     // JSON object like {"did": "…", "limit": 20}.
     let params: Vec<(String, String)> =
@@ -159,7 +163,7 @@ fn get(base: String, nsid: String, params_json: String) -> String {
                     .collect()
             })
             .unwrap_or_default();
-    envelope(RT.block_on(appview(&base).get(&nsid, &params)))
+    envelope(RT.block_on(av.get(&nsid, &params)))
 }
 
 #[rustler::nif(schedule = "DirtyIo")]
@@ -262,6 +266,16 @@ fn album(base: String, uri: String) -> String {
 #[rustler::nif(schedule = "DirtyIo")]
 fn artist(base: String, uri: String) -> String {
     envelope(RT.block_on(appview(&base).artist(&uri)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn match_song(base: String, title: String, artist: String, mb_id: String, isrc: String) -> String {
+    envelope(RT.block_on(appview(&base).match_song(
+        &title,
+        &artist,
+        opt(&mb_id),
+        opt(&isrc),
+    )))
 }
 
 #[rustler::nif(schedule = "DirtyIo")]
@@ -496,6 +510,18 @@ fn agent_scrobble(agent: ResourceArc<AgentRes>, draft_json: String) -> String {
         Ok(d) => envelope(RT.block_on(agent.0.scrobble(&d))),
         Err(e) => envelope::<(), _>(Err(e)),
     }
+}
+
+/// Scrobble from a bare title + artist (album optional): resolve full metadata
+/// via matchSong, then fan out.
+#[rustler::nif(schedule = "DirtyIo")]
+fn agent_scrobble_match(
+    agent: ResourceArc<AgentRes>,
+    title: String,
+    artist: String,
+    album: String,
+) -> String {
+    envelope(RT.block_on(agent.0.scrobble_match(&title, &artist, opt(&album))))
 }
 
 #[rustler::nif(schedule = "DirtyIo")]

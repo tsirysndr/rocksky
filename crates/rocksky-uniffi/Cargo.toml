@@ -29,6 +29,6 @@ name = "uniffi-bindgen"
 path = "src/bin/uniffi-bindgen.rs"
 
 [features]
-default = []
+default = ["dedup", "jetstream"]
 dedup = ["rocksky-sdk/dedup"]
 jetstream = ["rocksky-sdk/jetstream"]

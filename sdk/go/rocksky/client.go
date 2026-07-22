@@ -35,6 +35,14 @@ func NewClient(appview string) *Client {
 	return &Client{xrpc: &xrpc.Client{Host: strings.TrimRight(appview, "/")}}
 }
 
+// WithToken attaches a bearer access token, sent as Authorization: Bearer on
+// every read — needed only for auth-gated queries. Returns the client for
+// chaining: rocksky.NewClient("").WithToken(tok).
+func (c *Client) WithToken(token string) *Client {
+	c.xrpc.Auth = &xrpc.AuthInfo{AccessJwt: token}
+	return c
+}
+
 func (c *Client) query(ctx context.Context, nsid string, params map[string]any, out any) error {
 	filtered := make(map[string]any, len(params))
 	for k, v := range params {
@@ -306,6 +314,14 @@ func (c *Client) Album(ctx context.Context, uri string) (json.RawMessage, error)
 // Artist returns a single artist with detail.
 func (c *Client) Artist(ctx context.Context, uri string) (json.RawMessage, error) {
 	return c.Get(ctx, "app.rocksky.artist.getArtist", map[string]any{"uri": uri})
+}
+
+// MatchSong resolves full canonical metadata for a bare title + artist against
+// Rocksky's database and external providers (app.rocksky.song.matchSong).
+// Optionally anchor with mbId / isrc. This is what [Agent.ScrobbleMatch] uses.
+func (c *Client) MatchSong(ctx context.Context, title, artist, mbID, isrc string) (json.RawMessage, error) {
+	return c.Get(ctx, "app.rocksky.song.matchSong",
+		map[string]any{"title": title, "artist": artist, "mbId": mbID, "isrc": isrc})
 }
 
 // Song returns a single song by at:// uri (or pass mbid/isrc/spotifyId).

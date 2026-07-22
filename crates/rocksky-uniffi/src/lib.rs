@@ -543,12 +543,16 @@ pub struct AppView {
 
 #[uniffi::export]
 impl AppView {
+    /// `token`, when set, is sent as `Authorization: Bearer <token>` on every
+    /// read — needed only for auth-gated queries.
     #[uniffi::constructor]
-    pub fn new(base: Option<String>) -> Arc<Self> {
+    pub fn new(base: Option<String>, token: Option<String>) -> Arc<Self> {
         let base = base.unwrap_or_else(|| rocksky_sdk::DEFAULT_APPVIEW.to_string());
-        Arc::new(Self {
-            inner: rocksky_sdk::AppView::new(base),
-        })
+        let mut inner = rocksky_sdk::AppView::new(base);
+        if let Some(t) = token.filter(|t| !t.is_empty()) {
+            inner.set_token(Some(t));
+        }
+        Arc::new(Self { inner })
     }
 
     pub fn profile(&self, actor: String) -> Result<ProfileView, RockskyError> {
@@ -812,6 +816,23 @@ impl AppView {
 
     pub fn artist(&self, uri: String) -> Result<String, RockskyError> {
         json(RT.block_on(self.inner.artist(&uri)))
+    }
+
+    /// Resolve full canonical metadata for a bare title + artist
+    /// (`app.rocksky.song.matchSong`). Returns the detailed song view as JSON.
+    pub fn match_song(
+        &self,
+        title: String,
+        artist: String,
+        mb_id: Option<String>,
+        isrc: Option<String>,
+    ) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.match_song(
+            &title,
+            &artist,
+            mb_id.as_deref(),
+            isrc.as_deref(),
+        )))
     }
 
     pub fn song(
@@ -1087,6 +1108,21 @@ impl Agent {
             .into())
     }
 
+    /// Scrobble from just a title + artist (album optional): resolve full
+    /// metadata via `matchSong`, then run the normal fan-out.
+    pub fn scrobble_match(
+        &self,
+        title: String,
+        artist: String,
+        album: Option<String>,
+    ) -> Result<ScrobbleResult, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.scrobble_match(&title, &artist, album.as_deref()))
+            .map_err(err)?
+            .into())
+    }
+
+
     pub fn create_song(&self, input: SongInput) -> Result<String, RockskyError> {
         RT.block_on(self.inner.create_song(&input.into()))
             .map_err(err)
@@ -1167,11 +1203,34 @@ impl Agent {
 #[cfg(feature = "dedup")]
 #[uniffi::export]
 impl Agent {
-    /// Download the caller's repo and (re)build the local dedup index. Returns
-    /// the number of records indexed. Requires a dedup store (`dedup_path`).
-    pub fn sync_repo(&self) -> Result<u64, RockskyError> {
-        let stats = RT.block_on(self.inner.sync_repo()).map_err(err)?;
-        Ok(stats.total() as u64)
+    /// Download the caller's repo (CAR) and (re)build the local dedup index,
+    /// returning the per-collection counts as JSON. Requires a dedup store
+    /// (`dedup_path` at login).
+    pub fn sync_repo(&self) -> Result<String, RockskyError> {
+        let s = RT.block_on(self.inner.sync_repo()).map_err(err)?;
+        Ok(serde_json::json!({
+            "artists": s.artists,
+            "albums": s.albums,
+            "songs": s.songs,
+            "scrobbles": s.scrobbles,
+            "total": s.total(),
+        })
+        .to_string())
+    }
+}
+
+/// Jetstream hydration (the `jetstream` feature). Separate export block so the
+/// FFI scaffolding is gated with the impl.
+#[cfg(feature = "jetstream")]
+#[uniffi::export]
+impl Agent {
+    /// Keep the local dedup index hydrated from Jetstream in the background and
+    /// return immediately. Runs for the life of the process.
+    pub fn hydrate_from_jetstream(&self) {
+        let agent = self.inner.clone();
+        RT.spawn(async move {
+            let _ = agent.hydrate_from_jetstream().await;
+        });
     }
 }
 

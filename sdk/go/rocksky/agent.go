@@ -170,6 +170,79 @@ func (a *Agent) Scrobble(ctx context.Context, rec gen.ScrobbleRecord) (string, e
 	return uri, err
 }
 
+// ScrobbleMatch scrobbles from just a title + artist (album optional): it
+// resolves full canonical metadata via the AppView's match query
+// (app.rocksky.song.matchSong) and then writes the scrobble. Matching uses the
+// public AppView; pass appview="" for the default. If the match comes back
+// empty it falls back to a minimal record so the scrobble still lands.
+func (a *Agent) ScrobbleMatch(ctx context.Context, appview, title, artist, album string) (string, error) {
+	var m struct {
+		Title, Artist, AlbumArtist, Album, AlbumArt     string
+		Duration, TrackNumber, DiscNumber, Year         int
+		ReleaseDate, Genre, Composer, Label, MbID, Isrc string
+		SpotifyLink, YoutubeLink, TidalLink             string
+		AppleMusicLink                                  string
+	}
+	raw, err := NewClient(appview).MatchSong(ctx, title, artist, "", "")
+	if err == nil {
+		// json field names are camelCase; remap the few that differ.
+		var j map[string]any
+		if json.Unmarshal(raw, &j) == nil {
+			m.Title, _ = j["title"].(string)
+			m.Artist, _ = j["artist"].(string)
+			m.AlbumArtist, _ = j["albumArtist"].(string)
+			m.Album, _ = j["album"].(string)
+			m.AlbumArt, _ = j["albumArt"].(string)
+			m.ReleaseDate, _ = j["releaseDate"].(string)
+			m.Genre, _ = j["genre"].(string)
+			m.Composer, _ = j["composer"].(string)
+			m.Label, _ = j["label"].(string)
+			m.MbID, _ = j["mbId"].(string)
+			m.Isrc, _ = j["isrc"].(string)
+			m.SpotifyLink, _ = j["spotifyLink"].(string)
+			m.YoutubeLink, _ = j["youtubeLink"].(string)
+			m.TidalLink, _ = j["tidalLink"].(string)
+			m.AppleMusicLink, _ = j["appleMusicLink"].(string)
+			m.Duration = jsonInt(j["duration"])
+			m.TrackNumber = jsonInt(j["trackNumber"])
+			m.DiscNumber = jsonInt(j["discNumber"])
+			m.Year = jsonInt(j["year"])
+		}
+	}
+	rec := gen.ScrobbleRecord{Title: title, Artist: artist, Album: album, AlbumArtist: artist}
+	if m.Title != "" { // a match came back — use its richer metadata
+		rec.Title = m.Title
+		rec.Artist = m.Artist
+		rec.AlbumArtist = m.AlbumArtist
+		if album == "" {
+			rec.Album = m.Album
+		}
+		rec.AlbumArtURL = m.AlbumArt
+		rec.Duration = m.Duration
+		rec.TrackNumber = m.TrackNumber
+		rec.DiscNumber = m.DiscNumber
+		rec.Year = m.Year
+		rec.ReleaseDate = m.ReleaseDate
+		rec.Genre = m.Genre
+		rec.Composer = m.Composer
+		rec.Label = m.Label
+		rec.MBID = m.MbID
+		rec.ISRC = m.Isrc
+		rec.SpotifyLink = m.SpotifyLink
+		rec.YoutubeLink = m.YoutubeLink
+		rec.TidalLink = m.TidalLink
+		rec.AppleMusicLink = m.AppleMusicLink
+	}
+	return a.Scrobble(ctx, rec)
+}
+
+func jsonInt(v any) int {
+	if f, ok := v.(float64); ok {
+		return int(f)
+	}
+	return 0
+}
+
 // CreateSong writes a canonical track record (app.rocksky.song). Returns the URI.
 func (a *Agent) CreateSong(ctx context.Context, rec gen.SongRecord) (string, error) {
 	if rec.CreatedAt == "" {

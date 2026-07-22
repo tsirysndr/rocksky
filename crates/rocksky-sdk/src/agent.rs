@@ -603,6 +603,69 @@ impl RockskyAgent {
 /// Record-write convenience verbs — the SDK's high-level surface, mirroring
 /// `@atproto/api`'s `post()` / `like()`.
 impl RockskyAgent {
+    /// Scrobble a play from just a **title + artist** (album optional): resolve
+    /// the full canonical metadata via the AppView's match query
+    /// (`app.rocksky.song.matchSong`) — album, artwork, duration, track/disc
+    /// number, MBID, ISRC, links — and then run the normal [`scrobble`] fan-out.
+    ///
+    /// This is the convenient default when a client only knows what's playing by
+    /// name. If the match comes back empty (unknown track, provider hiccup) it
+    /// falls back to a minimal record from the title/artist/album given, so the
+    /// scrobble still lands. For full control over every field, build a
+    /// [`ScrobbleDraft`] and call [`scrobble`] directly.
+    ///
+    /// [`scrobble`]: RockskyAgent::scrobble
+    pub async fn scrobble_match(
+        &self,
+        title: &str,
+        artist: &str,
+        album: Option<&str>,
+    ) -> Result<ScrobbleResult> {
+        let matched = self.appview.match_song(title, artist, None, None).await.ok();
+        let draft = match matched.as_ref().filter(|m| {
+            m.get("title").and_then(|v| v.as_str()).is_some()
+        }) {
+            Some(m) => {
+                let s = |k: &str| m.get(k).and_then(|v| v.as_str()).map(str::to_string);
+                let i = |k: &str| m.get(k).and_then(serde_json::Value::as_i64);
+                ScrobbleDraft {
+                    title: s("title").unwrap_or_else(|| title.to_string()),
+                    artist: s("artist").unwrap_or_else(|| artist.to_string()),
+                    // A caller-supplied album wins; else use the matched album.
+                    album: album
+                        .map(str::to_string)
+                        .or_else(|| s("album"))
+                        .unwrap_or_default(),
+                    album_artist: s("albumArtist").unwrap_or_else(|| artist.to_string()),
+                    duration_ms: i("duration").unwrap_or(0),
+                    album_art_url: s("albumArt"),
+                    track_number: i("trackNumber"),
+                    disc_number: i("discNumber"),
+                    year: i("year"),
+                    release_date: s("releaseDate"),
+                    genre: s("genre"),
+                    composer: s("composer"),
+                    label: s("label"),
+                    mbid: s("mbId"),
+                    isrc: s("isrc"),
+                    spotify_link: s("spotifyLink"),
+                    youtube_link: s("youtubeLink"),
+                    tidal_link: s("tidalLink"),
+                    apple_music_link: s("appleMusicLink"),
+                    ..Default::default()
+                }
+            }
+            None => ScrobbleDraft {
+                title: title.to_string(),
+                artist: artist.to_string(),
+                album: album.unwrap_or_default().to_string(),
+                album_artist: artist.to_string(),
+                ..Default::default()
+            },
+        };
+        self.scrobble(&draft).await
+    }
+
     /// Scrobble a play — the full fan-out, mirroring how Rocksky's indexer
     /// materializes a play. From the draft's metadata it writes (in order) the
     /// **artist**, **album** and **song** records, then the **scrobble** itself,

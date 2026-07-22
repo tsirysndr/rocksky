@@ -67,6 +67,7 @@ impl DateInterval {
 pub struct AppView {
     http: reqwest::Client,
     base: String,
+    token: Option<String>,
 }
 
 impl AppView {
@@ -79,7 +80,21 @@ impl AppView {
         Self {
             http,
             base: base.into().trim_end_matches('/').to_string(),
+            token: None,
         }
+    }
+
+    /// Attach a bearer access token, sent as `Authorization: Bearer <token>` on
+    /// every request. Optional — needed only for auth-gated read queries
+    /// (e.g. compatibility, mirror sources, wrapped, apikeys).
+    pub fn with_token(mut self, token: impl Into<String>) -> Self {
+        self.token = Some(token.into());
+        self
+    }
+
+    /// Set (or clear, with `None`) the bearer access token in place.
+    pub fn set_token(&mut self, token: Option<String>) {
+        self.token = token;
     }
 
     async fn query<T: DeserializeOwned>(&self, nsid: &str, params: &[(&str, String)]) -> Result<T> {
@@ -89,7 +104,11 @@ impl AppView {
             .filter(|(_, v)| !v.is_empty())
             .cloned()
             .collect();
-        let res = self.http.get(&url).query(&filtered).send().await?;
+        let mut req = self.http.get(&url).query(&filtered);
+        if let Some(token) = &self.token {
+            req = req.bearer_auth(token);
+        }
+        let res = req.send().await?;
         let status = res.status();
         let body = res.text().await.unwrap_or_default();
         if !status.is_success() {
@@ -505,6 +524,30 @@ impl AppView {
     pub async fn artist(&self, uri: &str) -> Result<serde_json::Value> {
         self.query("app.rocksky.artist.getArtist", &[("uri", uri.to_string())])
             .await
+    }
+
+    /// Match a bare `title` + `artist` against Rocksky's database and external
+    /// metadata providers, resolving the best canonical track — full album,
+    /// artwork, duration, track/disc number, MBID, ISRC, links
+    /// (`app.rocksky.song.matchSong`). Optionally anchor with `mb_id` / `isrc`.
+    /// This is what [`RockskyAgent::scrobble_match`] uses to enrich a scrobble.
+    pub async fn match_song(
+        &self,
+        title: &str,
+        artist: &str,
+        mb_id: Option<&str>,
+        isrc: Option<&str>,
+    ) -> Result<serde_json::Value> {
+        self.query(
+            "app.rocksky.song.matchSong",
+            &[
+                ("title", title.to_string()),
+                ("artist", artist.to_string()),
+                ("mbId", mb_id.unwrap_or_default().to_string()),
+                ("isrc", isrc.unwrap_or_default().to_string()),
+            ],
+        )
+        .await
     }
 
     /// A single song with detail (`app.rocksky.song.getSong`). Look up by at://

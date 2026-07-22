@@ -59,9 +59,23 @@ export const DEFAULT_APPVIEW = "https://api.rocksky.app";
 export class RockskyClient {
   private rpc: Client;
 
-  /** Build a read client against an AppView base URL (defaults to {@link DEFAULT_APPVIEW}). */
-  constructor(appview: string = DEFAULT_APPVIEW) {
-    this.rpc = new Client({ handler: simpleFetchHandler({ service: appview }) });
+  /**
+   * Build a read client against an AppView base URL (defaults to
+   * {@link DEFAULT_APPVIEW}). Pass `token` to send it as
+   * `Authorization: Bearer <token>` on every read — needed only for auth-gated
+   * queries.
+   */
+  constructor(appview: string = DEFAULT_APPVIEW, token?: string) {
+    let handler = simpleFetchHandler({ service: appview });
+    if (token) {
+      const inner = handler;
+      handler = ((pathname: string, init?: RequestInit) =>
+        inner(pathname, {
+          ...init,
+          headers: { ...(init?.headers as Record<string, string>), authorization: `Bearer ${token}` },
+        })) as typeof handler;
+    }
+    this.rpc = new Client({ handler });
   }
 
   private async query<T>(nsid: string, params: Record<string, unknown>): Promise<T> {
@@ -285,6 +299,11 @@ export class RockskyClient {
   /** A single artist with detail. */
   artist(uri: string): Promise<unknown> {
     return this.query("app.rocksky.artist.getArtist", { uri });
+  }
+  /** Resolve full canonical metadata for a bare title + artist
+   * (`app.rocksky.song.matchSong`); optionally anchor with `mbId` / `isrc`. */
+  matchSong(title: string, artist: string, mbId?: string, isrc?: string): Promise<unknown> {
+    return this.query("app.rocksky.song.matchSong", { title, artist, mbId, isrc });
   }
   /** A single song by at:// `uri` (or by `mbid` / `isrc` / `spotifyId`). */
   song(opts: { uri?: string; mbid?: string; isrc?: string; spotifyId?: string }): Promise<unknown> {

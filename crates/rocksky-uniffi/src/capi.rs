@@ -126,9 +126,15 @@ pub extern "C" fn rocksky_get(
     base: *const c_char,
     nsid: *const c_char,
     params_json: *const c_char,
+    token: *const c_char,
 ) -> *mut c_char {
+    let mut av = appview(base);
+    let t = cstr(token);
+    if !t.is_empty() {
+        av.set_token(Some(t));
+    }
     respond(
-        RT.block_on(appview(base).get(&cstr(nsid), &json_params(&cstr(params_json))))
+        RT.block_on(av.get(&cstr(nsid), &json_params(&cstr(params_json))))
             .map_err(|e| e.to_string()),
     )
 }
@@ -211,6 +217,25 @@ pub extern "C" fn rocksky_top_artists_interval(
     }
 }
 
+/// Resolve full canonical metadata for a bare title + artist
+/// (`app.rocksky.song.matchSong`). Empty `mb_id`/`isrc` mean none.
+#[no_mangle]
+pub extern "C" fn rocksky_match_song(
+    base: *const c_char,
+    title: *const c_char,
+    artist: *const c_char,
+    mb_id: *const c_char,
+    isrc: *const c_char,
+) -> *mut c_char {
+    let (mb, is) = (cstr(mb_id), cstr(isrc));
+    let mb = if mb.is_empty() { None } else { Some(mb.as_str()) };
+    let is = if is.is_empty() { None } else { Some(is.as_str()) };
+    respond(
+        RT.block_on(appview(base).match_song(&cstr(title), &cstr(artist), mb, is))
+            .map_err(|e| e.to_string()),
+    )
+}
+
 // ---- identity hashes -----------------------------------------------------
 
 #[no_mangle]
@@ -232,18 +257,30 @@ pub extern "C" fn rocksky_song_hash(
 pub struct Agent(RockskyAgent);
 
 /// Log in with an app password. Returns null on failure ([`rocksky_last_error`]).
+/// `dedup_path`, when non-empty, enables the local dedup index (needed for
+/// [`rocksky_agent_sync_repo`] / [`rocksky_agent_hydrate_from_jetstream`]).
 #[no_mangle]
 pub extern "C" fn rocksky_agent_login(
     session_path: *const c_char,
     identifier: *const c_char,
     password: *const c_char,
     appview: *const c_char,
+    dedup_path: *const c_char,
 ) -> *mut Agent {
     let mut builder = RockskyAgent::builder().session_store(cstr(session_path));
     let base = cstr(appview);
     if !base.is_empty() {
         builder = builder.appview(base);
     }
+    #[cfg(feature = "dedup")]
+    {
+        let dedup = cstr(dedup_path);
+        if !dedup.is_empty() {
+            builder = builder.dedup_store(dedup);
+        }
+    }
+    #[cfg(not(feature = "dedup"))]
+    let _ = dedup_path;
     let agent = match builder.build() {
         Ok(a) => a,
         Err(e) => {
@@ -292,6 +329,63 @@ pub unsafe extern "C" fn rocksky_agent_scrobble(
         Ok(d) => respond(RT.block_on(a.scrobble(&d)).map_err(|e| e.to_string())),
         Err(e) => respond::<()>(Err(e.to_string())),
     }
+}
+
+/// Scrobble from a bare title + artist (empty `album` means none): resolve full
+/// metadata via matchSong, then fan out.
+///
+/// # Safety
+/// `agent` must be a live handle from [`rocksky_agent_login`].
+#[no_mangle]
+pub unsafe extern "C" fn rocksky_agent_scrobble_match(
+    agent: *mut Agent,
+    title: *const c_char,
+    artist: *const c_char,
+    album: *const c_char,
+) -> *mut c_char {
+    let a = with_agent(agent);
+    let alb = cstr(album);
+    let album = if alb.is_empty() { None } else { Some(alb.as_str()) };
+    respond(
+        RT.block_on(a.scrobble_match(&cstr(title), &cstr(artist), album))
+            .map_err(|e| e.to_string()),
+    )
+}
+
+/// Download the caller's repo and (re)build the local dedup index; returns the
+/// per-collection counts as JSON. Requires a `dedup_path` at login.
+///
+/// # Safety
+/// `agent` must be a live handle from [`rocksky_agent_login`].
+#[cfg(feature = "dedup")]
+#[no_mangle]
+pub unsafe extern "C" fn rocksky_agent_sync_repo(agent: *mut Agent) -> *mut c_char {
+    let a = with_agent(agent);
+    match RT.block_on(a.sync_repo()) {
+        Ok(s) => respond(Ok(serde_json::json!({
+            "artists": s.artists,
+            "albums": s.albums,
+            "songs": s.songs,
+            "scrobbles": s.scrobbles,
+            "total": s.total(),
+        }))),
+        Err(e) => respond::<()>(Err(e.to_string())),
+    }
+}
+
+/// Keep the local dedup index hydrated from Jetstream in the background and
+/// return immediately (`{"ok": true}`). Runs for the life of the process.
+///
+/// # Safety
+/// `agent` must be a live handle from [`rocksky_agent_login`].
+#[cfg(feature = "jetstream")]
+#[no_mangle]
+pub unsafe extern "C" fn rocksky_agent_hydrate_from_jetstream(agent: *mut Agent) -> *mut c_char {
+    let a = (*agent).0.clone();
+    RT.spawn(async move {
+        let _ = a.hydrate_from_jetstream().await;
+    });
+    respond(Ok(true))
 }
 
 /// # Safety

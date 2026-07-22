@@ -153,6 +153,41 @@ export class Agent {
     return uri;
   }
 
+  /** Scrobble from just a title + artist (album optional): resolve full metadata
+   * via `matchSong`, then write. Matching uses the public AppView unless
+   * `appview` is given; an empty match falls back to a minimal record. */
+  async scrobbleMatch(title: string, artist: string, album?: string, appview?: string): Promise<string> {
+    const { RockskyClient } = await import("./client.js");
+    const m = (await new RockskyClient(appview).matchSong(title, artist)) as Record<string, unknown> | null;
+    const s = (k: string): string | undefined => (m && typeof m[k] === "string" ? (m[k] as string) : undefined);
+    const n = (k: string): number | undefined => (m && typeof m[k] === "number" ? (m[k] as number) : undefined);
+    const rec: ScrobbleInput =
+      m && m.title
+        ? {
+            title: s("title")!,
+            artist: s("artist")!,
+            albumArtist: s("albumArtist") ?? artist,
+            album: album ?? s("album") ?? "",
+            albumArtUrl: s("albumArt"),
+            duration: n("duration") ?? 0,
+            trackNumber: n("trackNumber"),
+            discNumber: n("discNumber"),
+            year: n("year"),
+            releaseDate: s("releaseDate"),
+            genre: s("genre"),
+            composer: s("composer"),
+            label: s("label"),
+            mbid: s("mbId"),
+            isrc: s("isrc"),
+            spotifyLink: s("spotifyLink"),
+            youtubeLink: s("youtubeLink"),
+            tidalLink: s("tidalLink"),
+            appleMusicLink: s("appleMusicLink"),
+          }
+        : { title, artist, album: album ?? "", albumArtist: artist, duration: 0 };
+    return this.scrobble(rec);
+  }
+
   /** Create a canonical track record (app.rocksky.song). */
   async createSong(rec: SongInput): Promise<string> {
     const record = { ...rec, createdAt: rec.createdAt || nowISO() };
