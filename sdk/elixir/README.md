@@ -23,15 +23,15 @@ locally and point at it: `../erlang/build-core.sh` then set
 
 ```elixir
 # Reads — unauthenticated. The last arg overrides https://api.rocksky.app.
-{:ok, stats} = Rocksky.Core.global_stats()
+{:ok, stats} = Rocksky.global_stats()
 IO.puts(stats["scrobbles"])
 
-{:ok, top} = Rocksky.Core.top_tracks(10, 0)
+{:ok, top} = Rocksky.top_tracks(10, 0)
 for t <- top, do: IO.puts("#{t["artist"]} — #{t["title"]}")
 
 # Writes — log in once (session persisted at the given path).
-agent = Rocksky.Core.login("session.json", "alice.bsky.social", "app-password")
-{:ok, out} = Rocksky.Core.scrobble(agent, %{
+agent = Rocksky.login("session.json", "alice.bsky.social", "app-password")
+{:ok, out} = Rocksky.scrobble(agent, %{
   "title" => "Chaser", "artist" => "Calibro 35",
   "album" => "Jazzploitation", "albumArtist" => "Calibro 35", "durationMs" => 182_320
 })
@@ -43,13 +43,13 @@ IO.puts(out["scrobbleUri"])
 Reads/writes return `{:ok, value}` | `{:error, message}` with binary-keyed maps
 (the wire shape). Records are maps with camelCase binary keys.
 
-### Reads — `Rocksky.Core`
+### Reads — `Rocksky`
 
 `profile(actor, base \\ "")`, `scrobbles(actor, limit, offset, base \\ "")`,
 `top_tracks(limit, offset, base \\ "")`, `global_stats(base \\ "")`. The trailing
 `base` overrides the AppView URL.
 
-### Writes — `Rocksky.Core`
+### Writes — `Rocksky`
 
 `login(session_path, identifier, password, appview \\ "")` → an opaque agent
 handle. Then `scrobble(agent, track)` (fans out to artist/album/song/scrobble),
@@ -58,7 +58,7 @@ handle. Then `scrobble(agent, track)` (fans out to artist/album/song/scrobble),
 
 ### Identity hashes
 
-`Rocksky.Core.song_hash(title, artist, album)` — lowercase-hex SHA-256, identical
+`Rocksky.song_hash(title, artist, album)` — lowercase-hex SHA-256, identical
 to the server and every other Rocksky SDK.
 
 ## Example

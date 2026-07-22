@@ -21,15 +21,15 @@ first load and cached (checksum-verified). For a local checkout, build it once:
 ## Quick start
 
 ```ruby
-require "rocksky/core"
+require "rocksky"
 
 # Reads — unauthenticated. base: overrides https://api.rocksky.app.
-stats = Rocksky::Core.global_stats
+stats = Rocksky.global_stats
 puts stats["scrobbles"]
-Rocksky::Core.top_tracks(limit: 10).each { |t| puts "#{t["artist"]} — #{t["title"]}" }
+Rocksky.top_tracks(limit: 10).each { |t| puts "#{t["artist"]} — #{t["title"]}" }
 
 # Writes — log in once (session persisted at the given path).
-agent = Rocksky::Core::Agent.login("session.json", "alice.bsky.social", "app-password")
+agent = Rocksky::Agent.login("session.json", "alice.bsky.social", "app-password")
 out = agent.scrobble(
   "title" => "Chaser", "artist" => "Calibro 35",
   "album" => "Jazzploitation", "albumArtist" => "Calibro 35", "durationMs" => 182_320
@@ -41,16 +41,16 @@ agent.close
 ## API
 
 Reads/writes return plain Hashes/Strings (the wire shape); write verbs raise
-`Rocksky::Core::Error` on an `{"error": …}` envelope. Records are Hashes with
+`Rocksky::Error` on an `{"error": …}` envelope. Records are Hashes with
 camelCase keys.
 
-### Reads — `Rocksky::Core`
+### Reads — `Rocksky`
 
 `profile(actor, base:)`, `scrobbles(actor, limit:, offset:, base:)`,
 `top_tracks(limit:, offset:, base:)`, `global_stats(base:)`. Every read takes an
 optional `base:` to target a custom AppView.
 
-### Writes — `Rocksky::Core::Agent`
+### Writes — `Rocksky::Agent`
 
 `Agent.login(session_path, identifier, password, appview:)` → an agent. Then
 `scrobble(track)` (fans out to artist/album/song/scrobble), `like(uri, cid)`,
@@ -59,7 +59,7 @@ optional `base:` to target a custom AppView.
 
 ### Identity hashes
 
-`Rocksky::Core.song_hash(title, artist, album)` — lowercase-hex SHA-256, identical
+`Rocksky.song_hash(title, artist, album)` — lowercase-hex SHA-256, identical
 to the server and every other Rocksky SDK.
 
 ## Example

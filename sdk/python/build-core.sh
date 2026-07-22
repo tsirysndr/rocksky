@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# (Re)generate the native-core bindings for the `rocksky.core` subpackage from
+# (Re)generate the native-core bindings for the top-level `rocksky` package from
 # the shared Rust core (rocksky-uniffi), and patch the UniFFI loader for
 # download-on-load.
 #
@@ -10,7 +10,7 @@
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)" # sdk/python
 root="$here/../.."                    # repo root
-pkg="$here/src/rocksky/core"
+pkg="$here/src/rocksky"
 
 case "$(uname -s)" in
   Darwin) lib=librocksky_uniffi.dylib ;;
@@ -44,4 +44,4 @@ PY
 # A local dev build in the package dir is preferred by _native.resolve()
 # (gitignored). The published wheel ships neither this nor the module regen.
 cp "$root/target/release/$lib" "$pkg/$lib"
-echo "built rocksky.core python binding -> $pkg (patched module + $lib)"
+echo "built rocksky python binding -> $pkg (patched module + $lib)"

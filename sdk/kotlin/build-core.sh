@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# (Re)generate the :core native bindings from the shared Rust core
+# (Re)generate the :rocksky native bindings from the shared Rust core
 # (rocksky-uniffi) and stage the native library where JNA can load it.
 #
 # The generated Kotlin (uniffi/rocksky_uniffi/rocksky_uniffi.kt) is committed;
@@ -9,8 +9,8 @@
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)" # sdk/kotlin
 root="$here/../.."                    # repo root
-pkg="$here/core/src/main/kotlin/uniffi/rocksky_uniffi"
-res="$here/core/src/main/resources"
+pkg="$here/rocksky/src/main/kotlin/uniffi/rocksky_uniffi"
+res="$here/rocksky/src/main/resources"
 
 case "$(uname -s)-$(uname -m)" in
   Darwin-arm64)  lib=librocksky_uniffi.dylib; prefix=darwin-aarch64 ;;
@@ -22,8 +22,8 @@ esac
 
 cargo build --release -p rocksky-uniffi --manifest-path "$root/Cargo.toml"
 cargo run -q --release -p rocksky-uniffi --manifest-path "$root/Cargo.toml" --bin uniffi-bindgen -- \
-  generate --library "$root/target/release/$lib" --language kotlin --out-dir "$here/core/src/main/kotlin"
+  generate --library "$root/target/release/$lib" --language kotlin --out-dir "$here/rocksky/src/main/kotlin"
 
 mkdir -p "$res/$prefix"
 cp "$root/target/release/$lib" "$res/$prefix/$lib"
-echo "built rocksky kotlin :core → $pkg + $res/$prefix/$lib"
+echo "built rocksky kotlin :rocksky → $pkg + $res/$prefix/$lib"

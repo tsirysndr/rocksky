@@ -23,7 +23,7 @@ build it once:
 ## Quickstart
 
 ```python
-from rocksky.core import AppView, Agent, ScrobbleInput, song_hash
+from rocksky import AppView, Agent, ScrobbleInput, song_hash
 
 # Reads — unauthenticated. Pass a base URL to override https://api.rocksky.app.
 av = AppView(None)

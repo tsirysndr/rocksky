@@ -1,48 +1,42 @@
+// rocksky-kotlin-core — native-core bindings (UniFFI over the shared Rust core,
+// rocksky-uniffi). This is the write + dedup side (AT Protocol PDS writes); the
+// sibling `:rocksky` module is the ktor HTTP read side. No `explicitApi()` here:
+// the generated UniFFI code doesn't declare explicit visibility.
+//
+// Unlike the other SDKs (which fetch the native lib on first load), the published
+// jar BUNDLES the per-triple libs under the JNA resource prefixes
+// (core/src/main/resources/<os>-<arch>/librocksky_uniffi.*) — staged by
+// sdk/scripts/publish-kotlin.sh from the release artifacts before publishing.
 import com.vanniktech.maven.publish.JavaLibrary
 import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.SonatypeHost
 
 plugins {
     kotlin("jvm")
-    kotlin("plugin.serialization")
     `java-library`
     id("com.vanniktech.maven.publish") version "0.30.0"
 }
 
 group = "app.rocksky"
-version = "0.3.0"
+version = "0.1.0"
 
 kotlin {
     jvmToolchain(17)
-    explicitApi()
 }
 
-val ktorVersion = "2.3.12"
-val coroutinesVersion = "1.9.0"
-val serializationVersion = "1.7.3"
-
 dependencies {
-    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
-    api("org.jetbrains.kotlinx:kotlinx-serialization-json:$serializationVersion")
-
-    api("io.ktor:ktor-client-core:$ktorVersion")
-    api("io.ktor:ktor-client-content-negotiation:$ktorVersion")
-    api("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
-    implementation("io.ktor:ktor-client-cio:$ktorVersion")
+    // UniFFI's Kotlin bindings load the native library via JNA.
+    api("net.java.dev.jna:jna:5.15.0")
 
     testImplementation(kotlin("test-junit5"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.10.2")
-    testImplementation("io.ktor:ktor-client-mock:$ktorVersion")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion")
 }
 
 tasks.test {
     useJUnitPlatform()
-    testLogging {
-        events("passed", "skipped", "failed")
-        showStandardStreams = false
-    }
+    // The native lib is loaded via JNA; allow restricted native access on JDK 24+.
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
 }
 
 mavenPublishing {
@@ -54,10 +48,10 @@ mavenPublishing {
     configure(JavaLibrary(javadocJar = JavadocJar.Empty(), sourcesJar = true))
 
     pom {
-        name.set("Rocksky Kotlin SDK")
-        description.set("Coroutine-based Kotlin SDK for the Rocksky XRPC API")
+        name.set("Rocksky Kotlin SDK — native core")
+        description.set("UniFFI bindings to the shared Rust core: AT Protocol PDS writes + identity hashes")
         url.set("https://rocksky.app")
-        inceptionYear.set("2025")
+        inceptionYear.set("2026")
         licenses {
             license {
                 name.set("MIT License")
@@ -77,10 +71,6 @@ mavenPublishing {
             url.set("https://github.com/tsirysndr/rocksky")
             connection.set("scm:git:git://github.com/tsirysndr/rocksky.git")
             developerConnection.set("scm:git:ssh://git@github.com/tsirysndr/rocksky.git")
-        }
-        issueManagement {
-            system.set("GitHub")
-            url.set("https://github.com/tsirysndr/rocksky/issues")
         }
     }
 }

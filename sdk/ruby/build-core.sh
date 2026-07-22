@@ -2,7 +2,7 @@
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 root="$here/../.."
-pkg="$here/lib/rocksky/core"
+pkg="$here/lib/rocksky"
 case "$(uname -s)" in
   Darwin) lib=librocksky_uniffi.dylib ;;
   MINGW* | MSYS* | CYGWIN*) lib=rocksky_uniffi.dll ;;

@@ -4,13 +4,13 @@ Kotlin/JVM bindings to the shared Rocksky Rust core (`rocksky-sdk`) via
 [UniFFI](https://mozilla.github.io/uniffi-rs/) (JNA-loaded): AppView reads, AT
 Protocol PDS writes (scrobble fan-out, like, follow, shout, now-playing), a local
 duplicate-prevention index, and the identity hashes — the same engine behind
-every Rocksky SDK. Lives in the `:core` Gradle module, package `app.rocksky.core`.
+every Rocksky SDK. Lives in the `:rocksky` Gradle module, package `app.rocksky`.
 
 ## Install
 
 ```kotlin
 dependencies {
-    implementation("app.rocksky:rocksky-kotlin-core:0.1.0")
+    implementation("app.rocksky:rocksky-kotlin:0.1.0")
 }
 ```
 
@@ -20,7 +20,7 @@ checkout, build it once: `./build-core.sh`. `mise.toml` pins Kotlin + a JDK.
 ## Quick start
 
 ```kotlin
-import app.rocksky.core.*
+import app.rocksky.*
 
 // Reads — unauthenticated. Pass a base URL to override https://api.rocksky.app.
 val av = AppView(null)

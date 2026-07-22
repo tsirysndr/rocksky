@@ -23,6 +23,6 @@ htmlcov/
 .vscode/
 
 # native core lib (built by build-core.sh)
-src/rocksky/core/*.dylib
-src/rocksky/core/*.so
-src/rocksky/core/*.dll
+src/rocksky/*.dylib
+src/rocksky/*.so
+src/rocksky/*.dll

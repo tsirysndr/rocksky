@@ -25,7 +25,7 @@
    :tag                 (str "sdk-clojure-v" version)})
 
 (def pom-data
-  [[:description "Idiomatic, pipe-friendly Clojure client for the Rocksky XRPC API."]
+  [[:description "Clojure SDK for Rocksky — native bindings to the shared Rust core: AppView reads, AT Protocol PDS writes, and identity hashes."]
    [:url "https://github.com/tsirysndr/rocksky/tree/main/sdk/clojure"]
    [:licenses
     [:license

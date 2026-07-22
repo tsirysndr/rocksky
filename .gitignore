@@ -15,3 +15,9 @@ rocksky-backup.sql
 .build/
 .swiftpm/
 Package.resolved
+
+# Native FFI build artifacts (SDK cores) — built by build-core.sh / build-native.sh,
+# fetched on first load in published packages; never committed.
+*.dylib
+*.so
+*.dll

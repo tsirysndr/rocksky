@@ -10,24 +10,12 @@ defmodule Rocksky.MixProject do
       version: @version,
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
-      elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps(),
       description: description(),
       package: package(),
       docs: docs(),
       name: "Rocksky",
-      source_url: @source_url,
-      test_coverage: [tool: ExCoveralls]
-    ]
-  end
-
-  def cli do
-    [
-      preferred_envs: [
-        coveralls: :test,
-        "coveralls.html": :test,
-        "coveralls.json": :test
-      ]
+      source_url: @source_url
     ]
   end
 
@@ -37,20 +25,13 @@ defmodule Rocksky.MixProject do
     ]
   end
 
-  defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(_), do: ["lib"]
-
   defp deps do
     [
-      {:req, "~> 0.5"},
-      {:jason, "~> 1.4"},
-      # Native core (Rustler NIF) behind Rocksky.Core. Published builds depend on
-      # the Hex `rocksky_erl` package (its loader fetches the native lib on first
-      # use); monorepo dev sets ROCKSKY_ERL_PATH=../erlang for the local build.
+      # Native core (Rustler NIF). Published builds depend on the Hex
+      # `rocksky_erl` package (its loader fetches the native lib on first use);
+      # monorepo dev sets ROCKSKY_ERL_PATH=../erlang for the local build.
       {:rocksky_erl, rocksky_erl_dep()},
-      {:plug, "~> 1.16", only: :test},
-      {:ex_doc, "~> 0.34", only: :dev, runtime: false},
-      {:excoveralls, "~> 0.18", only: :test}
+      {:ex_doc, "~> 0.34", only: :dev, runtime: false}
     ]
   end
 
@@ -62,7 +43,9 @@ defmodule Rocksky.MixProject do
   end
 
   defp description do
-    "A pipe-friendly Elixir client for the Rocksky XRPC API."
+    "Elixir SDK for Rocksky — native bindings to the shared Rust core: " <>
+      "AppView reads, AT Protocol PDS writes (scrobble, like, follow, shout), " <>
+      "and identity hashes."
   end
 
   defp package do

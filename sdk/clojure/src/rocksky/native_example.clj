@@ -3,7 +3,7 @@
 
   Run:  clojure -M:native -m rocksky.native-example
   (needs the native lib — see ./build-core.sh or set ROCKSKY_NATIVE_LIB)."
-  (:require [rocksky.ffi :as core]))
+  (:require [rocksky.core :as core]))
 
 (defn -main [& _]
   (println "song hash:" (core/song-hash "Chaser" "Calibro 35" "Jazzploitation"))

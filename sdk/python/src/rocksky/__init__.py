@@ -1,89 +1,10 @@
-"""Rocksky — async Python SDK for the Rocksky XRPC API."""
+"""Rocksky — Python SDK.
 
-from ._version import __version__
-from .builder import ClientBuilder
-from .client import Client
-from .errors import (
-    APIError,
-    AuthenticationError,
-    NotFoundError,
-    PermissionError,
-    RateLimitError,
-    RockskyError,
-    ServerError,
-    TransportError,
-)
-from .models import (
-    Album,
-    AlbumBasic,
-    ApiKey,
-    Artist,
-    ArtistBasic,
-    ArtistListener,
-    Compatibility,
-    Feed,
-    FeedGenerator,
-    FeedItem,
-    FirstScrobble,
-    MirrorSource,
-    Neighbour,
-    Playlist,
-    PlaylistBasic,
-    Profile,
-    ProfileBasic,
-    RecentListener,
-    Recommendation,
-    Recommendations,
-    RecommendedAlbum,
-    RecommendedArtist,
-    Scrobble,
-    SearchResults,
-    Shout,
-    ShoutAuthor,
-    Song,
-    SongBasic,
-    Story,
-)
+Native bindings to the shared Rocksky Rust core (``rocksky-sdk``) via UniFFI:
+AppView reads, AT Protocol PDS writes, a local dedup index, and the identity
+hashes — the same engine behind every Rocksky SDK.
 
-__all__ = [
-    "APIError",
-    "Album",
-    "AlbumBasic",
-    "ApiKey",
-    "Artist",
-    "ArtistBasic",
-    "ArtistListener",
-    "AuthenticationError",
-    "Client",
-    "ClientBuilder",
-    "Compatibility",
-    "Feed",
-    "FeedGenerator",
-    "FeedItem",
-    "FirstScrobble",
-    "MirrorSource",
-    "Neighbour",
-    "NotFoundError",
-    "PermissionError",
-    "Playlist",
-    "PlaylistBasic",
-    "Profile",
-    "ProfileBasic",
-    "RateLimitError",
-    "RecentListener",
-    "Recommendation",
-    "Recommendations",
-    "RecommendedAlbum",
-    "RecommendedArtist",
-    "RockskyError",
-    "Scrobble",
-    "SearchResults",
-    "ServerError",
-    "Shout",
-    "ShoutAuthor",
-    "Song",
-    "SongBasic",
-    "Story",
-    "TransportError",
-    "__version__",
-]
+    from rocksky import AppView, Agent, ScrobbleInput, song_hash
+"""
+
+from .rocksky_uniffi import *  # noqa: F401,F403

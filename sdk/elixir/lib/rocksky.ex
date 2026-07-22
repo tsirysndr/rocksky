@@ -1,47 +1,72 @@
 defmodule Rocksky do
   @moduledoc """
-  Pipe-friendly Elixir client for the [Rocksky](https://rocksky.app) XRPC API.
+  Official Elixir SDK for Rocksky.
 
-  ## Quick start
+  A thin wrapper over the `:rocksky_erl` Rustler NIF (the shared Rust core,
+  `rocksky-sdk`): AppView reads, AT Protocol PDS writes (scrobble fan-out, like,
+  follow, shout) and the identity hashes — the same engine behind every Rocksky
+  SDK.
 
-      client = Rocksky.new(token: System.get_env("ROCKSKY_TOKEN"))
+  Reads/writes return `{:ok, value}` | `{:error, message}` with binary-keyed
+  maps (the wire shape). Records passed to the write verbs are maps with
+  camelCase binary keys — `"title"`, `"artist"`, `"album"`, `"albumArtist"`,
+  `"durationMs"`, …
 
-      {:ok, profile} = client |> Rocksky.Actor.get_profile(did: "alice.bsky.social")
-
-      {:ok, scrobbles} =
-        client
-        |> Rocksky.Actor.get_actor_scrobbles(did: "alice.bsky.social", limit: 25)
-
-  Every namespace module mirrors the XRPC NSID (e.g. `app.rocksky.actor.getProfile` is
-  exposed as `Rocksky.Actor.get_profile/2`). The client is always the first argument so
-  calls compose naturally with the pipe operator.
-
-  ## Auth
-
-  Procedures that require authentication accept an OAuth Bearer token. Pass it via
-  `:token` when constructing the client:
-
-      client = Rocksky.new(token: "...", base_url: "https://api.rocksky.app")
-
-  ## Errors
-
-  All functions return `{:ok, body}` on 2xx responses and `{:error, %Rocksky.Error{}}`
-  otherwise. Each function has a bang variant (e.g. `get_profile!/2`) that raises
-  `Rocksky.Error` on failure.
+      {:ok, stats} = Rocksky.global_stats()
+      Rocksky.song_hash("Chaser", "Calibro 35", "Jazzploitation")
   """
 
-  alias Rocksky.Client
+  # ---- reads (unauthenticated; trailing base overrides the AppView URL) ----
+
+  @doc "An actor's detailed profile."
+  def profile(actor, base \\ ""), do: :rocksky.profile(to_bin(actor), to_bin(base))
+
+  @doc "An actor's scrobbles, newest first."
+  def scrobbles(actor, limit \\ 50, offset \\ 0, base \\ ""),
+    do: :rocksky.scrobbles(to_bin(actor), limit, offset, to_bin(base))
+
+  @doc "Platform-wide top tracks chart."
+  def top_tracks(limit \\ 50, offset \\ 0, base \\ ""),
+    do: :rocksky.top_tracks(limit, offset, to_bin(base))
+
+  @doc "Platform-wide totals."
+  def global_stats(base \\ ""), do: :rocksky.global_stats(to_bin(base))
+
+  @doc "Identity hash of a song — identical across every Rocksky SDK."
+  def song_hash(title, artist, album),
+    do: :rocksky.song_hash(to_bin(title), to_bin(artist), to_bin(album))
+
+  # ---- authenticated agent -------------------------------------------------
 
   @doc """
-  Build a new client. Options:
-
-    * `:base_url` — base URL of the Rocksky API. Defaults to the value in
-      `config :rocksky, :base_url`, falling back to `https://api.rocksky.app`.
-    * `:token` — Bearer token used for authenticated endpoints.
-    * `:headers` — extra request headers (list of `{name, value}` tuples).
-    * `:req_options` — additional options forwarded to `Req.new/1` (useful in tests,
-      e.g. `plug: {Req.Test, MyStub}`).
+  Log in with an app password, persisting the session at `session_path`.
+  Returns an opaque agent handle (a NIF resource freed by GC).
   """
-  @spec new(keyword()) :: Client.t()
-  defdelegate new(opts \\ []), to: Client
+  def login(session_path, identifier, password, appview \\ ""),
+    do:
+      :rocksky.agent_login(
+        to_bin(session_path),
+        to_bin(identifier),
+        to_bin(password),
+        to_bin(appview)
+      )
+
+  @doc "Scrobble a play (fans out to artist/album/song/scrobble). Returns the URIs."
+  def scrobble(agent, track), do: :rocksky.agent_scrobble(agent, track)
+
+  @doc "Like a record by strong reference."
+  def like(agent, uri, cid), do: :rocksky.agent_like(agent, to_bin(uri), to_bin(cid))
+
+  @doc "Follow an account by DID."
+  def follow(agent, did), do: :rocksky.agent_follow(agent, to_bin(did))
+
+  @doc "Post a shout on a subject."
+  def shout(agent, subject_uri, subject_cid, message),
+    do: :rocksky.agent_shout(agent, to_bin(subject_uri), to_bin(subject_cid), to_bin(message))
+
+  @doc "Proactively refresh the session (keep-alive)."
+  def refresh_session(agent), do: :rocksky.agent_refresh_session(agent)
+
+  defp to_bin(s) when is_binary(s), do: s
+  defp to_bin(s), do: to_string(s)
 end

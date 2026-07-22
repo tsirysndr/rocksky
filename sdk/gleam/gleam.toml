@@ -1,7 +1,7 @@
 name = "rocksky"
 version = "1.2.0"
 
-description = "Gleam SDK for the Rocksky XRPC API"
+description = "Gleam SDK for Rocksky — native bindings to the shared Rust core: AppView reads, AT Protocol PDS writes, and identity hashes"
 licences = ["MIT"]
 repository = { type = "tangled", user = "rocksky.app", repo = "rocksky", path = "sdk/gleam" }
 links = [
@@ -11,9 +11,6 @@ links = [
 
 [dependencies]
 gleam_stdlib = ">= 0.71.0 and < 2.0.0"
-gleam_http = ">= 4.0.0 and < 5.0.0"
-gleam_httpc = ">= 5.0.0 and < 6.0.0"
-gleam_json = ">= 3.0.0 and < 4.0.0"
 # Native core (Rustler NIF) behind the `rocksky/core` module. Published builds
 # depend on the Hex `rocksky_erl` package (its loader fetches the native lib on
 # first use). For monorepo dev, comment this out and use the local path line

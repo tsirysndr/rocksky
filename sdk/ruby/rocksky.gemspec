@@ -6,9 +6,10 @@ Gem::Specification.new do |spec|
   spec.authors     = ["Rocksky"]
   spec.email       = ["hi@rocksky.app"]
 
-  spec.summary     = "Ruby client for the Rocksky XRPC API."
-  spec.description = "Idiomatic Ruby SDK for Rocksky (rocksky.app) — scrobbles, " \
-                     "shouts, charts, playlists, and more."
+  spec.summary     = "Ruby SDK for Rocksky — native bindings to the shared Rust core."
+  spec.description = "Ruby SDK for Rocksky (rocksky.app): native bindings to the " \
+                     "shared Rust core — AppView reads, AT Protocol PDS writes " \
+                     "(scrobble, like, follow, shout), and identity hashes."
   spec.homepage    = "https://github.com/tsirysndr/rocksky"
   spec.license     = "MIT"
 
@@ -26,7 +27,7 @@ Gem::Specification.new do |spec|
     "lib/**/*.rb",
     # native-core download manifest (the lib itself is fetched on first load,
     # never bundled — only *.rb + this json ship).
-    "lib/rocksky/core/manifest.json",
+    "lib/rocksky/manifest.json",
     "exe/*",
     "*.gemspec",
     "LICENSE",

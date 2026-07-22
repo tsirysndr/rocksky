@@ -6,7 +6,7 @@ Needs the native lib — run ./build-core.sh first (or it ships with the wheel).
 The write side (login + scrobble) is shown commented at the bottom.
 """
 
-from rocksky.core import AppView, ScrobbleInput, song_hash  # noqa: F401
+from rocksky import AppView, ScrobbleInput, song_hash  # noqa: F401
 
 
 def main() -> None:
@@ -21,7 +21,7 @@ def main() -> None:
     print("song hash:", song_hash("Chaser", "Calibro 35", "Jazzploitation"))
 
     # --- write side (uncomment with real credentials) ---
-    # from rocksky.core import Agent
+    # from rocksky import Agent
     # agent = Agent.login_password("session.json", "alice.bsky.social", "app-pw", None, None)
     # out = agent.scrobble(ScrobbleInput(
     #     title="Chaser", artist="Calibro 35",

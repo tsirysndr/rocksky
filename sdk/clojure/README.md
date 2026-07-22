@@ -3,7 +3,7 @@
 [![Clojars](https://img.shields.io/clojars/v/app.rocksky/sdk.svg)](https://clojars.org/app.rocksky/sdk)
 
 Clojure bindings to the shared Rocksky Rust core (`rocksky-sdk`) via the JVM
-**Panama FFM** API (`rocksky.ffi`, JDK 22+): AppView reads, AT Protocol PDS
+**Panama FFM** API (`rocksky.core`, JDK 22+): AppView reads, AT Protocol PDS
 writes (scrobble fan-out, like, follow, shout) and the identity hashes — the
 same engine behind every Rocksky SDK.
 
@@ -22,7 +22,7 @@ classpath: `./build-core.sh`. `mise.toml` pins a JDK with stable FFM + Clojure.
 ## Quickstart
 
 ```clojure
-(require '[rocksky.ffi :as core])
+(require '[rocksky.core :as core])
 
 ;; Reads — unauthenticated. An optional trailing base overrides the AppView URL.
 (core/global-stats)
@@ -40,7 +40,7 @@ classpath: `./build-core.sh`. `mise.toml` pins a JDK with stable FFM + Clojure.
 Run with restricted native access enabled — the `:native` alias adds it:
 
 ```sh
-clojure -M:native -e "(require 'rocksky.ffi)(println (rocksky.ffi/global-stats))"
+clojure -M:native -e "(require 'rocksky.core)(println (rocksky.core/global-stats))"
 clojure -M:native:nrepl        # nREPL with native access
 clojure -M:native -m rocksky.native-example
 ```
@@ -51,12 +51,12 @@ Reads/writes return plain Clojure maps/strings (the wire shape); write verbs
 throw `ex-info` on an `{"error": …}` envelope. Records are maps with camelCase
 string keys.
 
-### Reads — `rocksky.ffi`
+### Reads — `rocksky.core`
 
 `(profile actor)`, `(scrobbles actor limit)`, `(top-tracks limit offset)`,
 `(global-stats)` — each also accepts a trailing `base` to target a custom AppView.
 
-### Writes — `rocksky.ffi`
+### Writes — `rocksky.core`
 
 `(login session-path identifier password)` → an opaque agent handle. Then
 `(scrobble agent track)` (fans out to artist/album/song/scrobble),
@@ -71,7 +71,7 @@ and every other Rocksky SDK.
 
 ## Docs
 
-`rocksky.ffi` / `rocksky.native` defer all native resolution behind `delay`, so
+`rocksky.core` / `rocksky.native` defer all native resolution behind `delay`, so
 requiring the namespaces (e.g. for cljdoc) touches no native code.
 
 ## License
