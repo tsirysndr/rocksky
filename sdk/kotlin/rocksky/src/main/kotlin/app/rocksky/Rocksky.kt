@@ -40,12 +40,15 @@ typealias DateInterval = uniffi.rocksky_uniffi.DateInterval
 typealias RockskyException = uniffi.rocksky_uniffi.RockskyException
 
 /**
- * Read client for the Rocksky AppView. [base] defaults to
- * `https://api.rocksky.app`; [token], when set, is sent as
- * `Authorization: Bearer <token>` on every read (for auth-gated queries).
+ * Read client for the default Rocksky AppView (`https://api.rocksky.app`).
+ *
+ * These fill in the arities the generated two-arg constructor lacks: `AppView()`
+ * and `AppView(base)`. For an auth-gated read client pass a bearer token via the
+ * generated constructor directly — `AppView(base, token)`.
  */
-fun AppView(base: String? = null, token: String? = null): AppView =
-    uniffi.rocksky_uniffi.AppView(base, token)
+fun AppView(): AppView = uniffi.rocksky_uniffi.AppView(null, null)
+
+fun AppView(base: String?): AppView = uniffi.rocksky_uniffi.AppView(base, null)
 
 /**
  * Log in with an app password, persisting the session at [sessionPath]. Pass
