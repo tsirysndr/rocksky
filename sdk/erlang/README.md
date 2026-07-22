@@ -1,5 +1,11 @@
 # rocksky (Erlang)
 
+[![Hex.pm](https://img.shields.io/hexpm/v/rocksky_erl.svg?logo=erlang&logoColor=white)](https://hex.pm/packages/rocksky_erl)
+[![Hex Docs](https://img.shields.io/badge/hex-docs-lightgreen.svg)](https://hexdocs.pm/rocksky_erl/)
+![Erlang/OTP](https://img.shields.io/badge/Erlang%2FOTP-27%2B-A90533?logo=erlang&logoColor=white)
+![NIF](https://img.shields.io/badge/native-erl__nif-5C4B8A)
+![License](https://img.shields.io/badge/license-MIT-blue)
+
 Official Erlang SDK for [Rocksky](https://rocksky.app) — a Rustler **NIF** over
 the shared Rust engine (`rocksky-sdk`, `crates/rocksky-nif`). AppView reads,
 AT Protocol PDS **writes** (scrobble fan-out, like, follow, shout), and the
