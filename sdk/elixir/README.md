@@ -10,7 +10,7 @@ every Rocksky SDK.
 
 ```elixir
 def deps do
-  [{:rocksky_ex, "~> 0.1"}]
+  [{:rocksky_ex, "~> 0.4"}]
 end
 ```
 

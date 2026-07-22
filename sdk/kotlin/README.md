@@ -10,7 +10,7 @@ every Rocksky SDK. Lives in the `:rocksky` Gradle module, package `app.rocksky`.
 
 ```kotlin
 dependencies {
-    implementation("app.rocksky:rocksky-kotlin:0.1.0")
+    implementation("app.rocksky:rocksky-kotlin:0.4.0")
 }
 ```
 
