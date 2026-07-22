@@ -49,13 +49,15 @@ function nowISO(): string {
   return new Date().toISOString();
 }
 
-/** The four record URIs a scrobble fan-out touches. */
-export interface ScrobbleResult {
-  artistUri: string;
-  albumUri: string;
-  songUri: string;
-  scrobbleUri: string;
-}
+// Write inputs: `createdAt` is optional (the SDK defaults it to now).
+/** Input for {@link Agent.scrobble} (createdAt defaults to now). */
+export type ScrobbleInput = Omit<ScrobbleRecord, "createdAt"> & { createdAt?: string };
+/** Input for {@link Agent.createSong}. */
+export type SongInput = Omit<SongRecord, "createdAt"> & { createdAt?: string };
+/** Input for {@link Agent.createAlbum} (`artist` is the album artist). */
+export type AlbumInput = Omit<AlbumRecord, "createdAt"> & { createdAt?: string };
+/** Input for {@link Agent.createArtist}. */
+export type ArtistInput = Omit<ArtistRecord, "createdAt"> & { createdAt?: string };
 
 /**
  * Authenticated Rocksky client: logs in with an app password and writes
@@ -136,7 +138,7 @@ export class Agent {
   }
 
   /** Scrobble a play (app.rocksky.scrobble). createdAt defaults to now. */
-  async scrobble(rec: ScrobbleRecord): Promise<string> {
+  async scrobble(rec: ScrobbleInput): Promise<string> {
     const record = { ...rec, createdAt: rec.createdAt || nowISO() };
     if (this.idx) {
       const secs = Math.floor(Date.parse(record.createdAt) / 1000);
@@ -152,7 +154,7 @@ export class Agent {
   }
 
   /** Create a canonical track record (app.rocksky.song). */
-  async createSong(rec: SongRecord): Promise<string> {
+  async createSong(rec: SongInput): Promise<string> {
     const record = { ...rec, createdAt: rec.createdAt || nowISO() };
     if (this.idx) {
       const existing = await this.idx.songUri(this.did, record.title!, record.artist!, record.album!);
@@ -164,7 +166,7 @@ export class Agent {
   }
 
   /** Create an album record (app.rocksky.album). `artist` is the album artist. */
-  async createAlbum(rec: AlbumRecord): Promise<string> {
+  async createAlbum(rec: AlbumInput): Promise<string> {
     const record = { ...rec, createdAt: rec.createdAt || nowISO() };
     if (this.idx) {
       const existing = await this.idx.albumUri(this.did, record.title!, record.artist!);
@@ -176,7 +178,7 @@ export class Agent {
   }
 
   /** Create an artist record (app.rocksky.artist). */
-  async createArtist(rec: ArtistRecord): Promise<string> {
+  async createArtist(rec: ArtistInput): Promise<string> {
     const record = { ...rec, createdAt: rec.createdAt || nowISO() };
     if (this.idx) {
       const existing = await this.idx.artistUri(this.did, record.name!);

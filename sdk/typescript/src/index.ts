@@ -9,7 +9,7 @@
  * ({@link Agent.hydrateFromJetstream}).
  */
 export { RockskyClient, DEFAULT_APPVIEW } from "./client.js";
-export { Agent, type ScrobbleResult } from "./agent.js";
+export { Agent, type ScrobbleInput, type SongInput, type AlbumInput, type ArtistInput } from "./agent.js";
 export { RockskyIndex, totalIndexed, type IndexStats } from "./dedup.js";
 export { runJetstream, DEFAULT_JETSTREAM_SERVERS, type JetstreamOptions } from "./jetstream.js";
 export { songHash, albumHash, artistHash } from "./hash.js";
