@@ -326,21 +326,6 @@ export interface ArtistViewDetailed {
   tags?: string[];
 }
 
-export interface AudioSettingsRecord {
-  /** Crossfade settings */
-  crossfade?: RockboxCrossfadeSettings;
-  /** Equalizer settings */
-  equalizer?: RockboxEqualizerSettings;
-  /** Replay gain settings */
-  replayGain?: RockboxReplayGainSettings;
-  /** Tone control settings (bass, treble, balance, channels) */
-  tone?: RockboxToneSettings;
-  /** When this settings record was first created. */
-  createdAt: DateTime;
-  /** When this settings record was last updated. */
-  updatedAt?: DateTime;
-}
-
 export interface ChartsScrobbleViewBasic {
   /** The date of the scrobble. */
   date?: DateTime;
@@ -1672,26 +1657,32 @@ export interface ScrobbleRecord {
 export interface ScrobbleViewBasic {
   /** The unique identifier of the scrobble. */
   id?: string;
-  /** The handle of the user who created the scrobble. */
-  user?: string;
-  /** The display name of the user who created the scrobble. */
-  userDisplayName?: string;
-  /** The avatar URL of the user who created the scrobble. */
-  userAvatar?: Uri;
+  /** The unique identifier of the track this scrobble is of. */
+  trackId?: string;
   /** The title of the scrobble. */
   title?: string;
   /** The artist of the song. */
   artist?: string;
   /** The URI of the artist. */
   artistUri?: AtUri;
+  /** The album artist of the song. */
+  albumArtist?: string;
   /** The album of the song. */
   album?: string;
   /** The URI of the album. */
   albumUri?: AtUri;
   /** The album art URL of the song. */
-  cover?: Uri;
+  albumArt?: Uri;
+  /** The URI of the track (song) this scrobble is of. */
+  trackUri?: AtUri;
+  /** The handle of the user who created the scrobble. */
+  handle?: string;
+  /** The DID of the user who created the scrobble. */
+  did?: AtIdentifier;
+  /** The avatar URL of the user who created the scrobble. */
+  avatar?: Uri;
   /** The timestamp when the scrobble was created. */
-  date?: DateTime;
+  createdAt?: DateTime;
   /** The URI of the scrobble. */
   uri?: Uri;
   /** The SHA256 hash of the scrobble data. */
@@ -1743,6 +1734,21 @@ export interface SeekParams {
   playerId?: string;
   /** The position in seconds to seek to */
   position: number;
+}
+
+export interface SettingsRecord {
+  /** Crossfade settings */
+  crossfade?: RockboxCrossfadeSettings;
+  /** Equalizer settings */
+  equalizer?: RockboxEqualizerSettings;
+  /** Replay gain settings */
+  replayGain?: RockboxReplayGainSettings;
+  /** Tone control settings (bass, treble, balance, channels) */
+  tone?: RockboxToneSettings;
+  /** When this settings record was first created. */
+  createdAt: DateTime;
+  /** When this settings record was last updated. */
+  updatedAt?: DateTime;
 }
 
 export interface ShoutAuthor {

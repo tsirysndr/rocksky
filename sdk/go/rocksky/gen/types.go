@@ -326,21 +326,6 @@ type ArtistViewDetailed struct {
 	Tags []string `json:"tags,omitempty"`
 }
 
-type AudioSettingsRecord struct {
-	// Crossfade settings
-	Crossfade *RockboxCrossfadeSettings `json:"crossfade,omitempty"`
-	// Equalizer settings
-	Equalizer *RockboxEqualizerSettings `json:"equalizer,omitempty"`
-	// Replay gain settings
-	ReplayGain *RockboxReplayGainSettings `json:"replayGain,omitempty"`
-	// Tone control settings (bass, treble, balance, channels)
-	Tone *RockboxToneSettings `json:"tone,omitempty"`
-	// When this settings record was first created.
-	CreatedAt string `json:"createdAt,omitempty"`
-	// When this settings record was last updated.
-	UpdatedAt string `json:"updatedAt,omitempty"`
-}
-
 type ChartsScrobbleViewBasic struct {
 	// The date of the scrobble.
 	Date string `json:"date,omitempty"`
@@ -1669,26 +1654,32 @@ type ScrobbleRecord struct {
 type ScrobbleViewBasic struct {
 	// The unique identifier of the scrobble.
 	ID string `json:"id,omitempty"`
-	// The handle of the user who created the scrobble.
-	User string `json:"user,omitempty"`
-	// The display name of the user who created the scrobble.
-	UserDisplayName string `json:"userDisplayName,omitempty"`
-	// The avatar URL of the user who created the scrobble.
-	UserAvatar string `json:"userAvatar,omitempty"`
+	// The unique identifier of the track this scrobble is of.
+	TrackID string `json:"trackId,omitempty"`
 	// The title of the scrobble.
 	Title string `json:"title,omitempty"`
 	// The artist of the song.
 	Artist string `json:"artist,omitempty"`
 	// The URI of the artist.
 	ArtistURI string `json:"artistUri,omitempty"`
+	// The album artist of the song.
+	AlbumArtist string `json:"albumArtist,omitempty"`
 	// The album of the song.
 	Album string `json:"album,omitempty"`
 	// The URI of the album.
 	AlbumURI string `json:"albumUri,omitempty"`
 	// The album art URL of the song.
-	Cover string `json:"cover,omitempty"`
+	AlbumArt string `json:"albumArt,omitempty"`
+	// The URI of the track (song) this scrobble is of.
+	TrackURI string `json:"trackUri,omitempty"`
+	// The handle of the user who created the scrobble.
+	Handle string `json:"handle,omitempty"`
+	// The DID of the user who created the scrobble.
+	DID string `json:"did,omitempty"`
+	// The avatar URL of the user who created the scrobble.
+	Avatar string `json:"avatar,omitempty"`
 	// The timestamp when the scrobble was created.
-	Date string `json:"date,omitempty"`
+	CreatedAt string `json:"createdAt,omitempty"`
 	// The URI of the scrobble.
 	URI string `json:"uri,omitempty"`
 	// The SHA256 hash of the scrobble data.
@@ -1740,6 +1731,21 @@ type SeekParams struct {
 	PlayerID string `json:"playerId,omitempty"`
 	// The position in seconds to seek to
 	Position int `json:"position,omitempty"`
+}
+
+type SettingsRecord struct {
+	// Crossfade settings
+	Crossfade *RockboxCrossfadeSettings `json:"crossfade,omitempty"`
+	// Equalizer settings
+	Equalizer *RockboxEqualizerSettings `json:"equalizer,omitempty"`
+	// Replay gain settings
+	ReplayGain *RockboxReplayGainSettings `json:"replayGain,omitempty"`
+	// Tone control settings (bass, treble, balance, channels)
+	Tone *RockboxToneSettings `json:"tone,omitempty"`
+	// When this settings record was first created.
+	CreatedAt string `json:"createdAt,omitempty"`
+	// When this settings record was last updated.
+	UpdatedAt string `json:"updatedAt,omitempty"`
 }
 
 type ShoutAuthor struct {

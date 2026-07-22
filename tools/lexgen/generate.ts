@@ -336,17 +336,12 @@ async function main() {
   const reg = buildRegistry();
   parseLog.success(`parsed ${reg.types.length} named types`);
 
+  // Only the Go (indigo) and TypeScript (atcute) SDKs consume generated lexicon
+  // types. The other languages are now native-core FFI SDKs over the shared Rust
+  // engine (crates/rocksky-sdk) and no longer have a `generated/` subtree.
   const targets = [
     { lang: "typescript", path: join(REPO, "sdk/typescript/src/generated/types.ts"), fn: emitTypescript },
     { lang: "go", path: join(REPO, "sdk/go/rocksky/gen/types.go"), fn: emitGo },
-    { lang: "python", path: join(REPO, "sdk/python/src/rocksky/gen/types.py"), fn: emitPython },
-    { lang: "python-pydantic", path: join(REPO, "sdk/python/src/rocksky/gen/models.py"), fn: emitPythonPydantic },
-    { lang: "rust", path: join(REPO, "sdk/rust/src/generated.rs"), fn: emitRust },
-    { lang: "kotlin", path: join(REPO, "sdk/kotlin/rocksky/src/main/kotlin/app/rocksky/generated/Types.kt"), fn: emitKotlin },
-    { lang: "ruby", path: join(REPO, "sdk/ruby/lib/rocksky/generated/types.rb"), fn: emitRuby },
-    { lang: "elixir", path: join(REPO, "sdk/elixir/lib/rocksky/generated/types.ex"), fn: emitElixir },
-    { lang: "clojure", path: join(REPO, "sdk/clojure/src/rocksky/generated/types.clj"), fn: emitClojure },
-    { lang: "gleam", path: join(REPO, "sdk/gleam/src/rocksky/generated/types.gleam"), fn: emitGleam },
   ];
 
   let totalBytes = 0;
@@ -357,12 +352,6 @@ async function main() {
     totalBytes += content.length;
     writeOut(langLog, t.path, content);
   }
-
-  const pyLog = tag("PY");
-  const initPy = join(REPO, "sdk/python/src/rocksky/gen/__init__.py");
-  const initContent = "from .types import *  # noqa: F401,F403\n";
-  totalBytes += initContent.length;
-  writeOut(pyLog, initPy, initContent);
 
   const ms = Date.now() - t0;
   log.box({
