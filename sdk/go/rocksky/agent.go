@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/bluesky-social/indigo/api/atproto"
@@ -30,7 +31,13 @@ const (
 type Agent struct {
 	client *xrpc.Client // pointed at the user's PDS, with Auth set
 	did    string
+	idx    *Index // optional local dedup index
 }
+
+// UseIndex attaches a local dedup index. When set, the write verbs skip records
+// that already exist (returning the existing URI) and record new ones. Populate
+// it with [Agent.SyncRepo] and keep it live with [Agent.HydrateFromJetstream].
+func (a *Agent) UseIndex(idx *Index) { a.idx = idx }
 
 // Login resolves the account's PDS, authenticates with an app password, and
 // returns an [Agent]. identifier is a handle or DID.
@@ -48,7 +55,8 @@ func Login(ctx context.Context, identifier, appPassword string) (*Agent, error) 
 		return nil, fmt.Errorf("no atproto_pds endpoint for %s", identifier)
 	}
 
-	client := &xrpc.Client{Host: pds}
+	// A generous timeout: SyncRepo downloads the full repo CAR (tens of MB).
+	client := &xrpc.Client{Host: pds, Client: &http.Client{Timeout: 10 * time.Minute}}
 	sess, err := atproto.ServerCreateSession(ctx, client, &atproto.ServerCreateSession_Input{
 		Identifier: id.DID.String(),
 		Password:   appPassword,
@@ -148,7 +156,18 @@ func (a *Agent) Scrobble(ctx context.Context, rec gen.ScrobbleRecord) (string, e
 	if rec.CreatedAt == "" {
 		rec.CreatedAt = nowRFC3339()
 	}
-	return a.create(ctx, colScrobble, rec)
+	if a.idx != nil {
+		secs, _ := rfc3339Secs(rec.CreatedAt)
+		if uri, _ := a.idx.ScrobbleURI(a.did, rec.Title, rec.Artist, rec.Album, secs); uri != "" {
+			return uri, nil
+		}
+	}
+	uri, err := a.create(ctx, colScrobble, rec)
+	if err == nil && a.idx != nil {
+		secs, _ := rfc3339Secs(rec.CreatedAt)
+		_ = a.idx.recordScrobble(a.did, rec.Title, rec.Artist, rec.Album, secs, uri)
+	}
+	return uri, err
 }
 
 // CreateSong writes a canonical track record (app.rocksky.song). Returns the URI.
@@ -156,23 +175,52 @@ func (a *Agent) CreateSong(ctx context.Context, rec gen.SongRecord) (string, err
 	if rec.CreatedAt == "" {
 		rec.CreatedAt = nowRFC3339()
 	}
-	return a.create(ctx, colSong, rec)
+	if a.idx != nil {
+		if uri, _ := a.idx.SongURI(a.did, rec.Title, rec.Artist, rec.Album); uri != "" {
+			return uri, nil
+		}
+	}
+	uri, err := a.create(ctx, colSong, rec)
+	if err == nil && a.idx != nil {
+		_ = a.idx.recordSong(a.did, rec.Title, rec.Artist, rec.Album, uri)
+	}
+	return uri, err
 }
 
-// CreateAlbum writes an album record (app.rocksky.album). Returns the URI.
+// CreateAlbum writes an album record (app.rocksky.album). Returns the URI. With
+// a dedup index, returns the existing URI when the album already exists.
 func (a *Agent) CreateAlbum(ctx context.Context, rec gen.AlbumRecord) (string, error) {
 	if rec.CreatedAt == "" {
 		rec.CreatedAt = nowRFC3339()
 	}
-	return a.create(ctx, colAlbum, rec)
+	if a.idx != nil {
+		if uri, _ := a.idx.AlbumURI(a.did, rec.Title, rec.Artist); uri != "" {
+			return uri, nil
+		}
+	}
+	uri, err := a.create(ctx, colAlbum, rec)
+	if err == nil && a.idx != nil {
+		_ = a.idx.recordAlbum(a.did, rec.Title, rec.Artist, uri)
+	}
+	return uri, err
 }
 
 // CreateArtist writes an artist record (app.rocksky.artist). Returns the URI.
+// With a dedup index, returns the existing URI when the artist already exists.
 func (a *Agent) CreateArtist(ctx context.Context, rec gen.ArtistRecord) (string, error) {
 	if rec.CreatedAt == "" {
 		rec.CreatedAt = nowRFC3339()
 	}
-	return a.create(ctx, colArtist, rec)
+	if a.idx != nil {
+		if uri, _ := a.idx.ArtistURI(a.did, rec.Name); uri != "" {
+			return uri, nil
+		}
+	}
+	uri, err := a.create(ctx, colArtist, rec)
+	if err == nil && a.idx != nil {
+		_ = a.idx.recordArtist(a.did, rec.Name, uri)
+	}
+	return uri, err
 }
 
 // Like likes a record by strong reference (uri + cid). Returns the like URI.
