@@ -77,7 +77,10 @@ pub use agent::{
     AlbumDraft, ArtistDraft, NowPlaying, RockskyAgent, RockskyAgentBuilder, ScrobbleDraft,
     ScrobbleResult, SongDraft,
 };
-pub use appview::AppView;
+pub use appview::{
+    AlbumView, AppView, ArtistView, DateInterval, FeedItem, FeedView, GlobalStats, ProfileView,
+    ScrobbleView, SearchResults, SongView,
+};
 pub use auth::Profile;
 #[cfg(feature = "dedup")]
 pub use dedup::{IndexStats, RepoIndex};

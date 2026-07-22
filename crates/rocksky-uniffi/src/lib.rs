@@ -426,6 +426,7 @@ pub struct ArtistView {
     pub play_count: Option<u64>,
     pub unique_listeners: Option<u64>,
     pub tags: Vec<String>,
+    pub genres: Vec<String>,
 }
 
 impl From<rocksky_sdk::appview::ArtistView> for ArtistView {
@@ -438,7 +439,71 @@ impl From<rocksky_sdk::appview::ArtistView> for ArtistView {
             play_count: a.play_count,
             unique_listeners: a.unique_listeners,
             tags: a.tags,
+            genres: a.genres,
         }
+    }
+}
+
+/// An album from the AppView.
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct AlbumView {
+    pub id: Option<String>,
+    pub uri: Option<String>,
+    pub title: Option<String>,
+    pub artist: Option<String>,
+    pub artist_uri: Option<String>,
+    pub year: Option<u32>,
+    pub album_art: Option<String>,
+    pub release_date: Option<String>,
+    pub sha256: Option<String>,
+    pub play_count: Option<u64>,
+    pub unique_listeners: Option<u64>,
+}
+
+impl From<rocksky_sdk::appview::AlbumView> for AlbumView {
+    fn from(a: rocksky_sdk::appview::AlbumView) -> Self {
+        AlbumView {
+            id: a.id,
+            uri: a.uri,
+            title: a.title,
+            artist: a.artist,
+            artist_uri: a.artist_uri,
+            year: a.year,
+            album_art: a.album_art,
+            release_date: a.release_date,
+            sha256: a.sha256,
+            play_count: a.play_count,
+            unique_listeners: a.unique_listeners,
+        }
+    }
+}
+
+/// A typed date window for the `top_*` charts. `Range` bounds are RFC-3339
+/// datetimes (e.g. `2026-01-01T00:00:00Z`).
+#[derive(Debug, Clone, uniffi::Enum)]
+pub enum DateInterval {
+    AllTime,
+    LastDays { days: u32 },
+    LastWeeks { weeks: u32 },
+    LastMonths { months: u32 },
+    LastYears { years: u32 },
+    Range { start: String, end: String },
+}
+
+impl DateInterval {
+    fn to_core(self) -> Result<rocksky_sdk::DateInterval, RockskyError> {
+        use rocksky_sdk::DateInterval as C;
+        Ok(match self {
+            DateInterval::AllTime => C::AllTime,
+            DateInterval::LastDays { days } => C::LastDays(days),
+            DateInterval::LastWeeks { weeks } => C::LastWeeks(weeks),
+            DateInterval::LastMonths { months } => C::LastMonths(months),
+            DateInterval::LastYears { years } => C::LastYears(years),
+            DateInterval::Range { start, end } => C::Range {
+                start: start.parse().map_err(err)?,
+                end: end.parse().map_err(err)?,
+            },
+        })
     }
 }
 
