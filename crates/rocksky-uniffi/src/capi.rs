@@ -160,7 +160,12 @@ pub(crate) fn json_params(s: &str) -> Vec<(String, String)> {
 
 /// Build a core `DateInterval` from a flat `(unit, n, start, end)` spec, so
 /// window math lives in one place across every SDK.
-fn interval_from(unit: &str, n: u32, start: &str, end: &str) -> Result<rocksky_sdk::DateInterval, String> {
+fn interval_from(
+    unit: &str,
+    n: u32,
+    start: &str,
+    end: &str,
+) -> Result<rocksky_sdk::DateInterval, String> {
     use rocksky_sdk::DateInterval as D;
     Ok(match unit {
         "" | "all" => D::AllTime,
@@ -169,7 +174,9 @@ fn interval_from(unit: &str, n: u32, start: &str, end: &str) -> Result<rocksky_s
         "months" => D::LastMonths(n),
         "years" => D::LastYears(n),
         "range" => D::Range {
-            start: start.parse().map_err(|e| format!("bad start datetime: {e}"))?,
+            start: start
+                .parse()
+                .map_err(|e| format!("bad start datetime: {e}"))?,
             end: end.parse().map_err(|e| format!("bad end datetime: {e}"))?,
         },
         other => return Err(format!("unknown interval unit: {other}")),
@@ -228,8 +235,16 @@ pub extern "C" fn rocksky_match_song(
     isrc: *const c_char,
 ) -> *mut c_char {
     let (mb, is) = (cstr(mb_id), cstr(isrc));
-    let mb = if mb.is_empty() { None } else { Some(mb.as_str()) };
-    let is = if is.is_empty() { None } else { Some(is.as_str()) };
+    let mb = if mb.is_empty() {
+        None
+    } else {
+        Some(mb.as_str())
+    };
+    let is = if is.is_empty() {
+        None
+    } else {
+        Some(is.as_str())
+    };
     respond(
         RT.block_on(appview(base).match_song(&cstr(title), &cstr(artist), mb, is))
             .map_err(|e| e.to_string()),
@@ -347,9 +362,21 @@ pub unsafe extern "C" fn rocksky_agent_scrobble_match(
 ) -> *mut c_char {
     let a = with_agent(agent);
     let (alb, mb, is) = (cstr(album), cstr(mb_id), cstr(isrc));
-    let alb = if alb.is_empty() { None } else { Some(alb.as_str()) };
-    let mb = if mb.is_empty() { None } else { Some(mb.as_str()) };
-    let is = if is.is_empty() { None } else { Some(is.as_str()) };
+    let alb = if alb.is_empty() {
+        None
+    } else {
+        Some(alb.as_str())
+    };
+    let mb = if mb.is_empty() {
+        None
+    } else {
+        Some(mb.as_str())
+    };
+    let is = if is.is_empty() {
+        None
+    } else {
+        Some(is.as_str())
+    };
     respond(
         RT.block_on(a.scrobble_match(&cstr(title), &cstr(artist), alb, mb, is))
             .map_err(|e| e.to_string()),

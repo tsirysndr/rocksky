@@ -115,7 +115,12 @@ fn global_stats(base: String) -> String {
 
 /// A rolling `n` of `days | weeks | months | years`, `range` (RFC-3339
 /// start/end), or `all`. Built here so window math matches every SDK.
-fn to_interval(unit: &str, n: u32, start: &str, end: &str) -> Result<rocksky_sdk::DateInterval, String> {
+fn to_interval(
+    unit: &str,
+    n: u32,
+    start: &str,
+    end: &str,
+) -> Result<rocksky_sdk::DateInterval, String> {
     use rocksky_sdk::DateInterval as C;
     Ok(match unit {
         "" | "all" => C::AllTime,
@@ -124,7 +129,9 @@ fn to_interval(unit: &str, n: u32, start: &str, end: &str) -> Result<rocksky_sdk
         "months" => C::LastMonths(n),
         "years" => C::LastYears(n),
         "range" => C::Range {
-            start: start.parse().map_err(|e| format!("bad start datetime: {e}"))?,
+            start: start
+                .parse()
+                .map_err(|e| format!("bad start datetime: {e}"))?,
             end: end.parse().map_err(|e| format!("bad end datetime: {e}"))?,
         },
         other => return Err(format!("unknown interval unit: {other}")),
@@ -270,22 +277,12 @@ fn artist(base: String, uri: String) -> String {
 
 #[rustler::nif(schedule = "DirtyIo")]
 fn match_song(base: String, title: String, artist: String, mb_id: String, isrc: String) -> String {
-    envelope(RT.block_on(appview(&base).match_song(
-        &title,
-        &artist,
-        opt(&mb_id),
-        opt(&isrc),
-    )))
+    envelope(RT.block_on(appview(&base).match_song(&title, &artist, opt(&mb_id), opt(&isrc))))
 }
 
 #[rustler::nif(schedule = "DirtyIo")]
 fn song(base: String, uri: String, mbid: String, isrc: String, spotify_id: String) -> String {
-    envelope(RT.block_on(appview(&base).song(
-        opt(&uri),
-        opt(&mbid),
-        opt(&isrc),
-        opt(&spotify_id),
-    )))
+    envelope(RT.block_on(appview(&base).song(opt(&uri), opt(&mbid), opt(&isrc), opt(&spotify_id))))
 }
 
 #[rustler::nif(schedule = "DirtyIo")]

@@ -623,10 +623,15 @@ impl RockskyAgent {
         mb_id: Option<&str>,
         isrc: Option<&str>,
     ) -> Result<ScrobbleResult> {
-        let matched = self.appview.match_song(title, artist, mb_id, isrc).await.ok();
-        let draft = match matched.as_ref().filter(|m| {
-            m.get("title").and_then(|v| v.as_str()).is_some()
-        }) {
+        let matched = self
+            .appview
+            .match_song(title, artist, mb_id, isrc)
+            .await
+            .ok();
+        let draft = match matched
+            .as_ref()
+            .filter(|m| m.get("title").and_then(|v| v.as_str()).is_some())
+        {
             Some(m) => {
                 let s = |k: &str| m.get(k).and_then(|v| v.as_str()).map(str::to_string);
                 let i = |k: &str| m.get(k).and_then(serde_json::Value::as_i64);

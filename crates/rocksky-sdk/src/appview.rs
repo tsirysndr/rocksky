@@ -48,15 +48,15 @@ impl DateInterval {
         let now = Utc::now();
         let rfc = |dt: chrono::DateTime<Utc>| dt.to_rfc3339_opts(SecondsFormat::Secs, true);
         let ago_days = |d: i64| now - Duration::days(d);
-        let ago_months = |m: u32| {
-            now.checked_sub_months(Months::new(m)).unwrap_or(now)
-        };
+        let ago_months = |m: u32| now.checked_sub_months(Months::new(m)).unwrap_or(now);
         match self {
             DateInterval::AllTime => (None, None),
             DateInterval::LastDays(n) => (Some(rfc(ago_days(*n as i64))), Some(rfc(now))),
             DateInterval::LastWeeks(n) => (Some(rfc(ago_days(*n as i64 * 7))), Some(rfc(now))),
             DateInterval::LastMonths(n) => (Some(rfc(ago_months(*n))), Some(rfc(now))),
-            DateInterval::LastYears(n) => (Some(rfc(ago_months(n.saturating_mul(12)))), Some(rfc(now))),
+            DateInterval::LastYears(n) => {
+                (Some(rfc(ago_months(n.saturating_mul(12)))), Some(rfc(now)))
+            }
             DateInterval::Range { start, end } => (Some(rfc(*start)), Some(rfc(*end))),
         }
     }
@@ -134,13 +134,11 @@ impl AppView {
     ///     .await?;
     /// # Ok(()) }
     /// ```
-    pub async fn get(
-        &self,
-        nsid: &str,
-        params: &[(String, String)],
-    ) -> Result<serde_json::Value> {
-        let borrowed: Vec<(&str, String)> =
-            params.iter().map(|(k, v)| (k.as_str(), v.clone())).collect();
+    pub async fn get(&self, nsid: &str, params: &[(String, String)]) -> Result<serde_json::Value> {
+        let borrowed: Vec<(&str, String)> = params
+            .iter()
+            .map(|(k, v)| (k.as_str(), v.clone()))
+            .collect();
         self.query(nsid, &borrowed).await
     }
 
@@ -384,7 +382,10 @@ impl AppView {
     /// An album's tracklist by album at:// URI (`app.rocksky.album.getAlbumTracks`).
     pub async fn album_tracks(&self, uri: &str) -> Result<Vec<SongView>> {
         let out: TracksOutput = self
-            .query("app.rocksky.album.getAlbumTracks", &[("uri", uri.to_string())])
+            .query(
+                "app.rocksky.album.getAlbumTracks",
+                &[("uri", uri.to_string())],
+            )
             .await?;
         Ok(out.tracks)
     }
@@ -440,8 +441,11 @@ impl AppView {
 
     /// A single scrobble by its at:// URI (`app.rocksky.scrobble.getScrobble`).
     pub async fn scrobble(&self, uri: &str) -> Result<ScrobbleView> {
-        self.query("app.rocksky.scrobble.getScrobble", &[("uri", uri.to_string())])
-            .await
+        self.query(
+            "app.rocksky.scrobble.getScrobble",
+            &[("uri", uri.to_string())],
+        )
+        .await
     }
 
     // ---- social graph (typed) -------------------------------------------

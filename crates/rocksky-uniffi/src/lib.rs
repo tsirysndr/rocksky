@@ -641,7 +641,10 @@ impl AppView {
         interval: DateInterval,
     ) -> Result<Vec<SongView>, RockskyError> {
         let out = RT
-            .block_on(self.inner.top_tracks_interval(limit, offset, interval.to_core()?))
+            .block_on(
+                self.inner
+                    .top_tracks_interval(limit, offset, interval.to_core()?),
+            )
             .map_err(err)?;
         Ok(out.into_iter().map(Into::into).collect())
     }
@@ -654,7 +657,10 @@ impl AppView {
         interval: DateInterval,
     ) -> Result<Vec<ArtistView>, RockskyError> {
         let out = RT
-            .block_on(self.inner.top_artists_interval(limit, offset, interval.to_core()?))
+            .block_on(
+                self.inner
+                    .top_artists_interval(limit, offset, interval.to_core()?),
+            )
             .map_err(err)?;
         Ok(out.into_iter().map(Into::into).collect())
     }
@@ -827,12 +833,12 @@ impl AppView {
         mb_id: Option<String>,
         isrc: Option<String>,
     ) -> Result<String, RockskyError> {
-        json(RT.block_on(self.inner.match_song(
-            &title,
-            &artist,
-            mb_id.as_deref(),
-            isrc.as_deref(),
-        )))
+        json(
+            RT.block_on(
+                self.inner
+                    .match_song(&title, &artist, mb_id.as_deref(), isrc.as_deref()),
+            ),
+        )
     }
 
     pub fn song(
@@ -974,10 +980,12 @@ impl AppView {
         player_id: Option<String>,
         actor: Option<String>,
     ) -> Result<String, RockskyError> {
-        json(RT.block_on(
-            self.inner
-                .currently_playing(player_id.as_deref(), actor.as_deref()),
-        ))
+        json(
+            RT.block_on(
+                self.inner
+                    .currently_playing(player_id.as_deref(), actor.as_deref()),
+            ),
+        )
     }
 
     pub fn playback_queue(&self, player_id: String) -> Result<String, RockskyError> {
@@ -1129,7 +1137,6 @@ impl Agent {
             .map_err(err)?
             .into())
     }
-
 
     pub fn create_song(&self, input: SongInput) -> Result<String, RockskyError> {
         RT.block_on(self.inner.create_song(&input.into()))
