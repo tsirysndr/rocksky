@@ -36,6 +36,9 @@
 (def ^:private h-scrobbles (delay (downcall "rocksky_scrobbles" ADDR [ADDR ADDR I32 I32])))
 (def ^:private h-toptracks (delay (downcall "rocksky_top_tracks" ADDR [ADDR I32 I32])))
 (def ^:private h-stats    (delay (downcall "rocksky_global_stats" ADDR [ADDR])))
+(def ^:private h-get      (delay (downcall "rocksky_get" ADDR [ADDR ADDR ADDR])))
+(def ^:private h-tt-iv    (delay (downcall "rocksky_top_tracks_interval" ADDR [ADDR I32 I32 ADDR I32 ADDR ADDR])))
+(def ^:private h-ta-iv    (delay (downcall "rocksky_top_artists_interval" ADDR [ADDR I32 I32 ADDR I32 ADDR ADDR])))
 (def ^:private h-songhash (delay (downcall "rocksky_song_hash" ADDR [ADDR ADDR ADDR])))
 (def ^:private h-free     (delay (downcall "rocksky_string_free" nil [ADDR])))
 (def ^:private h-login    (delay (downcall "rocksky_agent_login" ADDR [ADDR ADDR ADDR ADDR])))
@@ -101,6 +104,56 @@
    (with-open [^Arena a (Arena/ofConfined)]
      (unwrap (.invokeWithArguments ^MethodHandle @h-stats
                                    (object-array [(.allocateFrom a (str (or base "")))]))))))
+
+(defn query
+  "Universal read escape hatch — call any app.rocksky.* query by nsid. `params`
+  is a map of string params; the whole read-query catalog is reachable here.
+
+    (query \"app.rocksky.album.getAlbum\" {:uri uri})
+    (query \"app.rocksky.charts.getScrobblesChart\" {:did did})"
+  ([nsid params] (query nsid params nil))
+  ([nsid params base]
+   (with-open [^Arena a (Arena/ofConfined)]
+     (unwrap (.invokeWithArguments ^MethodHandle @h-get
+                                   (object-array [(.allocateFrom a (str (or base "")))
+                                                  (.allocateFrom a (str nsid))
+                                                  (.allocateFrom a (json/generate-string params))]))))))
+
+(defn- interval-parts
+  "Normalize an interval into [unit n start end]. `iv` is :all, or a vector
+  [:days n] / [:weeks n] / [:months n] / [:years n] / [:range start end]."
+  [iv]
+  (cond
+    (or (nil? iv) (= :all iv)) ["all" 0 "" ""]
+    (vector? iv) (let [[k a b] iv]
+                   (if (= :range k)
+                     ["range" 0 (str a) (str b)]
+                     [(name k) (int a) "" ""]))
+    :else (throw (ex-info "invalid interval" {:interval iv}))))
+
+(defn top-tracks-interval
+  "Top tracks chart over a typed date window (see `interval-parts` for the shape)."
+  ([limit offset interval] (top-tracks-interval limit offset interval nil))
+  ([limit offset interval base]
+   (let [[u n s e] (interval-parts interval)]
+     (with-open [^Arena a (Arena/ofConfined)]
+       (unwrap (.invokeWithArguments ^MethodHandle @h-tt-iv
+                                     (object-array [(.allocateFrom a (str (or base "")))
+                                                    (int limit) (int offset)
+                                                    (.allocateFrom a (str u)) (int n)
+                                                    (.allocateFrom a (str s)) (.allocateFrom a (str e))])))))))
+
+(defn top-artists-interval
+  "Top artists chart over a typed date window (see `top-tracks-interval`)."
+  ([limit offset interval] (top-artists-interval limit offset interval nil))
+  ([limit offset interval base]
+   (let [[u n s e] (interval-parts interval)]
+     (with-open [^Arena a (Arena/ofConfined)]
+       (unwrap (.invokeWithArguments ^MethodHandle @h-ta-iv
+                                     (object-array [(.allocateFrom a (str (or base "")))
+                                                    (int limit) (int offset)
+                                                    (.allocateFrom a (str u)) (int n)
+                                                    (.allocateFrom a (str s)) (.allocateFrom a (str e))])))))))
 
 (defn song-hash
   "Identity hash of a song — identical across every Rocksky SDK."

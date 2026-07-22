@@ -26,6 +26,9 @@ module Rocksky
       "char* rocksky_scrobbles(const char*, const char*, unsigned int, unsigned int)",
       "char* rocksky_top_tracks(const char*, unsigned int, unsigned int)",
       "char* rocksky_global_stats(const char*)",
+      "char* rocksky_get(const char*, const char*, const char*)",
+      "char* rocksky_top_tracks_interval(const char*, unsigned int, unsigned int, const char*, unsigned int, const char*, const char*)",
+      "char* rocksky_top_artists_interval(const char*, unsigned int, unsigned int, const char*, unsigned int, const char*, const char*)",
       "char* rocksky_song_hash(const char*, const char*, const char*)",
       "void rocksky_string_free(void*)",
       "char* rocksky_last_error()",
@@ -81,6 +84,46 @@ module Rocksky
   def self.global_stats(base: nil)
     unwrap(C.rocksky_global_stats(base.to_s))
   end
+
+  # Universal read escape hatch — call any app.rocksky.* query by nsid. +params+
+  # is a hash of string params; the whole read-query catalog is reachable here.
+  #
+  #   Rocksky.get("app.rocksky.album.getAlbum", { uri: uri })
+  #   Rocksky.get("app.rocksky.charts.getScrobblesChart", { did: did })
+  def self.get(nsid, params = {}, base: nil)
+    unwrap(C.rocksky_get(base.to_s, nsid, JSON.generate(params)))
+  end
+
+  # Top tracks chart over a typed date window. +interval+ is +:all+, or a pair
+  # like +[:days, 7]+ / +[:weeks, 4]+ / +[:months, 1]+ / +[:years, 1]+, or
+  # +[:range, start_rfc3339, end_rfc3339]+.
+  #
+  #   Rocksky.top_tracks_interval(limit: 10, interval: [:days, 7])
+  def self.top_tracks_interval(limit: 50, offset: 0, interval: :all, base: nil)
+    unit, n, s, e = interval_parts(interval)
+    unwrap(C.rocksky_top_tracks_interval(base.to_s, limit, offset, unit, n, s, e))
+  end
+
+  # Top artists chart over a typed date window (see .top_tracks_interval).
+  def self.top_artists_interval(limit: 50, offset: 0, interval: :all, base: nil)
+    unit, n, s, e = interval_parts(interval)
+    unwrap(C.rocksky_top_artists_interval(base.to_s, limit, offset, unit, n, s, e))
+  end
+
+  # Normalize an interval into (unit, n, start, end) for the native call.
+  def self.interval_parts(interval)
+    case interval
+    when :all, nil then ["all", 0, "", ""]
+    when Array
+      kind, a, b = interval
+      return ["range", 0, a.to_s, b.to_s] if kind == :range
+
+      [kind.to_s, Integer(a), "", ""]
+    else
+      raise Error, "invalid interval: #{interval.inspect}"
+    end
+  end
+  private_class_method :interval_parts
 
   # Identity hash — identical across every Rocksky SDK.
   def self.song_hash(title, artist, album)

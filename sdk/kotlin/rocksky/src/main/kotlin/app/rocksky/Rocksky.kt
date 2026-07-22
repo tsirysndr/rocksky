@@ -34,7 +34,9 @@ typealias ProfileView = uniffi.rocksky_uniffi.ProfileView
 typealias ScrobbleView = uniffi.rocksky_uniffi.ScrobbleView
 typealias SongView = uniffi.rocksky_uniffi.SongView
 typealias ArtistView = uniffi.rocksky_uniffi.ArtistView
+typealias AlbumView = uniffi.rocksky_uniffi.AlbumView
 typealias GlobalStats = uniffi.rocksky_uniffi.GlobalStats
+typealias DateInterval = uniffi.rocksky_uniffi.DateInterval
 typealias RockskyException = uniffi.rocksky_uniffi.RockskyException
 
 /**

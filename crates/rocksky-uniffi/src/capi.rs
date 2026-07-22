@@ -137,6 +137,65 @@ pub extern "C" fn rocksky_get(
     )
 }
 
+/// Build a core `DateInterval` from a flat `(unit, n, start, end)` spec, so
+/// window math lives in one place across every SDK.
+fn interval_from(unit: &str, n: u32, start: &str, end: &str) -> Result<rocksky_sdk::DateInterval, String> {
+    use rocksky_sdk::DateInterval as D;
+    Ok(match unit {
+        "" | "all" => D::AllTime,
+        "days" => D::LastDays(n),
+        "weeks" => D::LastWeeks(n),
+        "months" => D::LastMonths(n),
+        "years" => D::LastYears(n),
+        "range" => D::Range {
+            start: start.parse().map_err(|e| format!("bad start datetime: {e}"))?,
+            end: end.parse().map_err(|e| format!("bad end datetime: {e}"))?,
+        },
+        other => return Err(format!("unknown interval unit: {other}")),
+    })
+}
+
+/// Top tracks chart over a typed window. `unit` is `all|days|weeks|months|years|
+/// range`; `n` is the rolling count; `start`/`end` are RFC-3339 for `range`.
+#[no_mangle]
+pub extern "C" fn rocksky_top_tracks_interval(
+    base: *const c_char,
+    limit: u32,
+    offset: u32,
+    unit: *const c_char,
+    n: u32,
+    start: *const c_char,
+    end: *const c_char,
+) -> *mut c_char {
+    match interval_from(&cstr(unit), n, &cstr(start), &cstr(end)) {
+        Ok(iv) => respond(
+            RT.block_on(appview(base).top_tracks_interval(limit, offset, iv))
+                .map_err(|e| e.to_string()),
+        ),
+        Err(e) => respond::<()>(Err(e)),
+    }
+}
+
+/// Top artists chart over a typed window (see [`rocksky_top_tracks_interval`]).
+#[no_mangle]
+pub extern "C" fn rocksky_top_artists_interval(
+    base: *const c_char,
+    limit: u32,
+    offset: u32,
+    unit: *const c_char,
+    n: u32,
+    start: *const c_char,
+    end: *const c_char,
+) -> *mut c_char {
+    match interval_from(&cstr(unit), n, &cstr(start), &cstr(end)) {
+        Ok(iv) => respond(
+            RT.block_on(appview(base).top_artists_interval(limit, offset, iv))
+                .map_err(|e| e.to_string()),
+        ),
+        Err(e) => respond::<()>(Err(e)),
+    }
+}
+
 // ---- identity hashes -----------------------------------------------------
 
 #[no_mangle]
