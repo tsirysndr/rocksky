@@ -3,7 +3,10 @@ version = "1.3.0"
 
 description = "Gleam SDK for Rocksky — native bindings to the shared Rust core: AppView reads, AT Protocol PDS writes, and identity hashes"
 licences = ["MIT"]
-repository = { type = "tangled", user = "rocksky.app", repo = "rocksky", path = "sdk/gleam" }
+# Monorepo: `path` scopes source links to the sdk/gleam/ subdir, and
+# `tag_prefix` prepends to Gleam's default v<version> ref so code links resolve
+# to the gleam-v1.3.0 tag (not v1.3.0).
+repository = { type = "tangled", user = "rocksky.app", repo = "rocksky", path = "sdk/gleam", tag_prefix = "gleam-" }
 links = [
   { title = "Rocksky", href = "https://rocksky.app" },
   { title = "Lexicons", href = "https://tangled.org/rocksky.app/rocksky/tree/main/apps/api/lexicons" },
