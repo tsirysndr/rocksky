@@ -9,18 +9,9 @@
           "type": "string",
           "description": "The unique identifier of the scrobble."
         },
-        "user": {
+        "trackId": {
           "type": "string",
-          "description": "The handle of the user who created the scrobble."
-        },
-        "userDisplayName": {
-          "type": "string",
-          "description": "The display name of the user who created the scrobble."
-        },
-        "userAvatar": {
-          "type": "string",
-          "description": "The avatar URL of the user who created the scrobble.",
-          "format": "uri"
+          "description": "The unique identifier of the track this scrobble is of."
         },
         "title": {
           "type": "string",
@@ -35,6 +26,10 @@
           "description": "The URI of the artist.",
           "format": "at-uri"
         },
+        "albumArtist": {
+          "type": "string",
+          "description": "The album artist of the song."
+        },
         "album": {
           "type": "string",
           "description": "The album of the song."
@@ -44,12 +39,31 @@
           "description": "The URI of the album.",
           "format": "at-uri"
         },
-        "cover": {
+        "albumArt": {
           "type": "string",
           "description": "The album art URL of the song.",
           "format": "uri"
         },
-        "date": {
+        "trackUri": {
+          "type": "string",
+          "description": "The URI of the track (song) this scrobble is of.",
+          "format": "at-uri"
+        },
+        "handle": {
+          "type": "string",
+          "description": "The handle of the user who created the scrobble."
+        },
+        "did": {
+          "type": "string",
+          "description": "The DID of the user who created the scrobble.",
+          "format": "at-identifier"
+        },
+        "avatar": {
+          "type": "string",
+          "description": "The avatar URL of the user who created the scrobble.",
+          "format": "uri"
+        },
+        "createdAt": {
           "type": "string",
           "description": "The timestamp when the scrobble was created.",
           "format": "datetime"

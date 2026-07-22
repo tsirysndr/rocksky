@@ -200,11 +200,10 @@ pub struct ProfileView {
 
 /// A scrobble as returned by the AppView (`app.rocksky.scrobble.defs#scrobbleViewBasic`).
 ///
-/// Field names track the live AppView JSON, which differs slightly from the
-/// lexicon def: the actor is carried as `handle`/`avatar`/`did` (rather than
-/// `user`/`userAvatar`), the album cover as `album_art`, and the timestamp as
-/// `created_at`. Every field is optional so both basic and detailed responses
-/// decode.
+/// Matches the lexicon def field-for-field (the def was aligned to production:
+/// the actor is `handle`/`avatar`/`did`, the album cover `album_art`, the
+/// timestamp `created_at`). Every field is optional so both basic and social
+/// responses decode; mirrors the generated `app_rocksky::scrobble::ScrobbleViewBasic`.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScrobbleView {

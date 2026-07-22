@@ -10,18 +10,9 @@ defs = new Mapping<String, ObjectType> {
         type = "string"
         description = "The unique identifier of the scrobble."
       }
-      ["user"] = new StringType {
+      ["trackId"] = new StringType {
         type = "string"
-        description = "The handle of the user who created the scrobble."
-      }
-      ["userDisplayName"] = new StringType {
-        type = "string"
-        description = "The display name of the user who created the scrobble."
-      }
-      ["userAvatar"] = new StringType {
-        type = "string"
-        description = "The avatar URL of the user who created the scrobble."
-        format = "uri"
+        description = "The unique identifier of the track this scrobble is of."
       }
       ["title"] = new StringType {
         type = "string"
@@ -39,6 +30,11 @@ defs = new Mapping<String, ObjectType> {
         format = "at-uri"
       }
 
+      ["albumArtist"] = new StringType {
+        type = "string"
+        description = "The album artist of the song."
+      }
+
       ["album"] = new StringType {
         type = "string"
         description = "The album of the song."
@@ -50,13 +46,36 @@ defs = new Mapping<String, ObjectType> {
         format = "at-uri"
       }
 
-      ["cover"] = new StringType {
+      ["albumArt"] = new StringType {
         type = "string"
         description = "The album art URL of the song."
         format = "uri"
       }
 
-      ["date"] = new StringType {
+      ["trackUri"] = new StringType {
+        type = "string"
+        description = "The URI of the track (song) this scrobble is of."
+        format = "at-uri"
+      }
+
+      ["handle"] = new StringType {
+        type = "string"
+        description = "The handle of the user who created the scrobble."
+      }
+
+      ["did"] = new StringType {
+        type = "string"
+        description = "The DID of the user who created the scrobble."
+        format = "at-identifier"
+      }
+
+      ["avatar"] = new StringType {
+        type = "string"
+        description = "The avatar URL of the user who created the scrobble."
+        format = "uri"
+      }
+
+      ["createdAt"] = new StringType {
         type = "string"
         format = "datetime"
         description = "The timestamp when the scrobble was created."
