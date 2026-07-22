@@ -33,4 +33,4 @@ Reads/writes return `{ok, Value}` | `{error, Message}` with binary-keyed maps.
 
 ## License
 
-MPL-2.0.
+MIT.

@@ -10,6 +10,6 @@
   {applications, [kernel, stdlib, crypto, inets, ssl, public_key]},
   {env, []},
   {modules, []},
-  {licenses, ["MPL-2.0"]},
+  {licenses, ["MIT"]},
   {links, [{"GitHub", "https://github.com/tsirysndr/rocksky"}]}
  ]}.
