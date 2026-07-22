@@ -28,8 +28,8 @@ on first import and cached.
 ```python
 from rocksky import AppView, Agent, ScrobbleInput, song_hash
 
-# Reads — unauthenticated. AppView(None) uses https://api.rocksky.app.
-av = AppView(None)
+# Reads — unauthenticated. AppView() uses https://api.rocksky.app.
+av = AppView()
 print(av.global_stats().scrobbles)
 for t in av.top_tracks(10, 0):
     print(t.artist, "—", t.title)

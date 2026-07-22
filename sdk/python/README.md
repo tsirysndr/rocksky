@@ -26,7 +26,7 @@ build it once:
 from rocksky import AppView, Agent, ScrobbleInput, song_hash
 
 # Reads — unauthenticated. Pass a base URL to override https://api.rocksky.app.
-av = AppView(None)
+av = AppView()  # defaults to https://api.rocksky.app
 print(av.global_stats().scrobbles)
 for t in av.top_tracks(10, 0):
     print(t.artist, "—", t.title)
