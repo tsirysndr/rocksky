@@ -127,14 +127,29 @@ pub extern "C" fn rocksky_get(
     nsid: *const c_char,
     params_json: *const c_char,
 ) -> *mut c_char {
-    let params: Vec<(String, String)> =
-        serde_json::from_str::<std::collections::HashMap<String, String>>(&cstr(params_json))
-            .map(|m| m.into_iter().collect())
-            .unwrap_or_default();
     respond(
-        RT.block_on(appview(base).get(&cstr(nsid), &params))
+        RT.block_on(appview(base).get(&cstr(nsid), &json_params(&cstr(params_json))))
             .map_err(|e| e.to_string()),
     )
+}
+
+/// Parse a JSON object of params into string pairs, coercing scalar values
+/// (numbers, bools) to their string form so callers can pass `{"limit": 20}`.
+pub(crate) fn json_params(s: &str) -> Vec<(String, String)> {
+    serde_json::from_str::<std::collections::HashMap<String, serde_json::Value>>(s)
+        .map(|m| {
+            m.into_iter()
+                .map(|(k, v)| {
+                    let sv = match v {
+                        serde_json::Value::String(s) => s,
+                        serde_json::Value::Null => String::new(),
+                        other => other.to_string(),
+                    };
+                    (k, sv)
+                })
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 /// Build a core `DateInterval` from a flat `(unit, n, start, end)` spec, so

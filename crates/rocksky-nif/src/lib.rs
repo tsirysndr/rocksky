@@ -142,9 +142,22 @@ fn opt_u32(n: u32) -> Option<u32> {
 
 #[rustler::nif(schedule = "DirtyIo")]
 fn get(base: String, nsid: String, params_json: String) -> String {
+    // Coerce scalar values (numbers, bools) to strings so callers may pass a
+    // JSON object like {"did": "…", "limit": 20}.
     let params: Vec<(String, String)> =
-        serde_json::from_str::<std::collections::HashMap<String, String>>(&params_json)
-            .map(|m| m.into_iter().collect())
+        serde_json::from_str::<std::collections::HashMap<String, serde_json::Value>>(&params_json)
+            .map(|m| {
+                m.into_iter()
+                    .map(|(k, v)| {
+                        let sv = match v {
+                            serde_json::Value::String(s) => s,
+                            serde_json::Value::Null => String::new(),
+                            other => other.to_string(),
+                        };
+                        (k, sv)
+                    })
+                    .collect()
+            })
             .unwrap_or_default();
     envelope(RT.block_on(appview(&base).get(&nsid, &params)))
 }
