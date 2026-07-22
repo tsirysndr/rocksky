@@ -14,8 +14,8 @@ tag="${2:?tag required, e.g. bindings-v0.1.0}"
 repo="${REPO:-tsirysndr/rocksky}"
 
 python3 - "$dir" "$tag" "$repo" \
-  "$sdk/python/src/rocksky/core/manifest.json" \
-  "$sdk/ruby/lib/rocksky/core/manifest.json" \
+  "$sdk/python/src/rocksky/manifest.json" \
+  "$sdk/ruby/lib/rocksky/manifest.json" \
   "$sdk/clojure/resources/rocksky/manifest.json" <<'PY'
 import sys, os, glob, json, hashlib
 d, tag, repo, *outs = sys.argv[1:]
