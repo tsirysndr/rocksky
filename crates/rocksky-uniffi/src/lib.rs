@@ -575,6 +575,42 @@ impl AppView {
         Ok(out.into_iter().map(Into::into).collect())
     }
 
+    pub fn albums(
+        &self,
+        actor: String,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<AlbumView>, RockskyError> {
+        let out = RT
+            .block_on(self.inner.albums(&actor, limit, offset))
+            .map_err(err)?;
+        Ok(out.into_iter().map(Into::into).collect())
+    }
+
+    pub fn artists(
+        &self,
+        actor: String,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<ArtistView>, RockskyError> {
+        let out = RT
+            .block_on(self.inner.artists(&actor, limit, offset))
+            .map_err(err)?;
+        Ok(out.into_iter().map(Into::into).collect())
+    }
+
+    pub fn loved_songs(
+        &self,
+        actor: String,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<SongView>, RockskyError> {
+        let out = RT
+            .block_on(self.inner.loved_songs(&actor, limit, offset))
+            .map_err(err)?;
+        Ok(out.into_iter().map(Into::into).collect())
+    }
+
     pub fn top_tracks(&self, limit: u32, offset: u32) -> Result<Vec<SongView>, RockskyError> {
         let out = RT
             .block_on(self.inner.top_tracks(limit, offset))
@@ -589,9 +625,404 @@ impl AppView {
         Ok(out.into_iter().map(Into::into).collect())
     }
 
+    /// Top tracks over a typed [`DateInterval`].
+    pub fn top_tracks_interval(
+        &self,
+        limit: u32,
+        offset: u32,
+        interval: DateInterval,
+    ) -> Result<Vec<SongView>, RockskyError> {
+        let out = RT
+            .block_on(self.inner.top_tracks_interval(limit, offset, interval.to_core()?))
+            .map_err(err)?;
+        Ok(out.into_iter().map(Into::into).collect())
+    }
+
+    /// Top artists over a typed [`DateInterval`].
+    pub fn top_artists_interval(
+        &self,
+        limit: u32,
+        offset: u32,
+        interval: DateInterval,
+    ) -> Result<Vec<ArtistView>, RockskyError> {
+        let out = RT
+            .block_on(self.inner.top_artists_interval(limit, offset, interval.to_core()?))
+            .map_err(err)?;
+        Ok(out.into_iter().map(Into::into).collect())
+    }
+
+    pub fn catalog_albums(
+        &self,
+        limit: u32,
+        offset: u32,
+        genre: Option<String>,
+    ) -> Result<Vec<AlbumView>, RockskyError> {
+        let out = RT
+            .block_on(self.inner.catalog_albums(limit, offset, genre.as_deref()))
+            .map_err(err)?;
+        Ok(out.into_iter().map(Into::into).collect())
+    }
+
+    pub fn catalog_artists(
+        &self,
+        limit: u32,
+        offset: u32,
+        genre: Option<String>,
+    ) -> Result<Vec<ArtistView>, RockskyError> {
+        let out = RT
+            .block_on(self.inner.catalog_artists(limit, offset, genre.as_deref()))
+            .map_err(err)?;
+        Ok(out.into_iter().map(Into::into).collect())
+    }
+
+    pub fn catalog_songs(
+        &self,
+        limit: u32,
+        offset: u32,
+        genre: Option<String>,
+    ) -> Result<Vec<SongView>, RockskyError> {
+        let out = RT
+            .block_on(self.inner.catalog_songs(limit, offset, genre.as_deref()))
+            .map_err(err)?;
+        Ok(out.into_iter().map(Into::into).collect())
+    }
+
+    pub fn album_tracks(&self, uri: String) -> Result<Vec<SongView>, RockskyError> {
+        let out = RT.block_on(self.inner.album_tracks(&uri)).map_err(err)?;
+        Ok(out.into_iter().map(Into::into).collect())
+    }
+
+    pub fn artist_albums(&self, uri: String) -> Result<Vec<AlbumView>, RockskyError> {
+        let out = RT.block_on(self.inner.artist_albums(&uri)).map_err(err)?;
+        Ok(out.into_iter().map(Into::into).collect())
+    }
+
+    pub fn artist_tracks(
+        &self,
+        uri: String,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<SongView>, RockskyError> {
+        let out = RT
+            .block_on(self.inner.artist_tracks(&uri, limit, offset))
+            .map_err(err)?;
+        Ok(out.into_iter().map(Into::into).collect())
+    }
+
+    pub fn scrobble_feed(
+        &self,
+        did: Option<String>,
+        following: bool,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<ScrobbleView>, RockskyError> {
+        let out = RT
+            .block_on(
+                self.inner
+                    .scrobble_feed(did.as_deref(), following, limit, offset),
+            )
+            .map_err(err)?;
+        Ok(out.into_iter().map(Into::into).collect())
+    }
+
+    pub fn scrobble(&self, uri: String) -> Result<ScrobbleView, RockskyError> {
+        Ok(RT.block_on(self.inner.scrobble(&uri)).map_err(err)?.into())
+    }
+
+    pub fn follows(
+        &self,
+        actor: String,
+        limit: u32,
+        cursor: Option<String>,
+    ) -> Result<Vec<ProfileView>, RockskyError> {
+        let out = RT
+            .block_on(self.inner.follows(&actor, limit, cursor.as_deref()))
+            .map_err(err)?;
+        Ok(out.into_iter().map(Into::into).collect())
+    }
+
+    pub fn followers(
+        &self,
+        actor: String,
+        limit: u32,
+        cursor: Option<String>,
+    ) -> Result<Vec<ProfileView>, RockskyError> {
+        let out = RT
+            .block_on(self.inner.followers(&actor, limit, cursor.as_deref()))
+            .map_err(err)?;
+        Ok(out.into_iter().map(Into::into).collect())
+    }
+
+    pub fn known_followers(
+        &self,
+        actor: String,
+        limit: u32,
+        cursor: Option<String>,
+    ) -> Result<Vec<ProfileView>, RockskyError> {
+        let out = RT
+            .block_on(self.inner.known_followers(&actor, limit, cursor.as_deref()))
+            .map_err(err)?;
+        Ok(out.into_iter().map(Into::into).collect())
+    }
+
     pub fn global_stats(&self) -> Result<GlobalStats, RockskyError> {
         Ok(RT.block_on(self.inner.global_stats()).map_err(err)?.into())
     }
+
+    // ---- raw JSON reads --------------------------------------------------
+    //
+    // The bespoke long tail is returned as a JSON string; host languages parse
+    // it into their native map/dict. `get` reaches any read query by nsid.
+
+    /// Call any AppView read query by nsid; returns the raw JSON response.
+    pub fn get(
+        &self,
+        nsid: String,
+        params: std::collections::HashMap<String, String>,
+    ) -> Result<String, RockskyError> {
+        let pairs: Vec<(String, String)> = params.into_iter().collect();
+        let v = RT.block_on(self.inner.get(&nsid, &pairs)).map_err(err)?;
+        serde_json::to_string(&v).map_err(err)
+    }
+
+    pub fn feed(
+        &self,
+        feed: String,
+        limit: u32,
+        cursor: Option<String>,
+    ) -> Result<String, RockskyError> {
+        let v = RT
+            .block_on(self.inner.feed(&feed, limit, cursor.as_deref()))
+            .map_err(err)?;
+        serde_json::to_string(&v).map_err(err)
+    }
+
+    pub fn search(&self, query: String) -> Result<String, RockskyError> {
+        let v = RT.block_on(self.inner.search(&query)).map_err(err)?;
+        serde_json::to_string(&v).map_err(err)
+    }
+
+    pub fn album(&self, uri: String) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.album(&uri)))
+    }
+
+    pub fn artist(&self, uri: String) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.artist(&uri)))
+    }
+
+    pub fn song(
+        &self,
+        uri: Option<String>,
+        mbid: Option<String>,
+        isrc: Option<String>,
+        spotify_id: Option<String>,
+    ) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.song(
+            uri.as_deref(),
+            mbid.as_deref(),
+            isrc.as_deref(),
+            spotify_id.as_deref(),
+        )))
+    }
+
+    pub fn actor_playlists(
+        &self,
+        actor: String,
+        limit: u32,
+        offset: u32,
+    ) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.actor_playlists(&actor, limit, offset)))
+    }
+
+    pub fn neighbours(&self, actor: String) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.neighbours(&actor)))
+    }
+
+    pub fn compatibility(&self, actor: String) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.compatibility(&actor)))
+    }
+
+    pub fn artist_listeners(
+        &self,
+        uri: String,
+        limit: u32,
+        offset: u32,
+    ) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.artist_listeners(&uri, limit, offset)))
+    }
+
+    pub fn artist_recent_listeners(
+        &self,
+        uri: String,
+        limit: u32,
+        offset: u32,
+    ) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.artist_recent_listeners(&uri, limit, offset)))
+    }
+
+    pub fn song_recent_listeners(
+        &self,
+        uri: String,
+        limit: u32,
+        offset: u32,
+    ) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.song_recent_listeners(&uri, limit, offset)))
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn scrobbles_chart(
+        &self,
+        did: Option<String>,
+        artist_uri: Option<String>,
+        album_uri: Option<String>,
+        song_uri: Option<String>,
+        genre: Option<String>,
+        from: Option<String>,
+        to: Option<String>,
+    ) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.scrobbles_chart(
+            did.as_deref(),
+            artist_uri.as_deref(),
+            album_uri.as_deref(),
+            song_uri.as_deref(),
+            genre.as_deref(),
+            from.as_deref(),
+            to.as_deref(),
+        )))
+    }
+
+    pub fn feed_generators(&self, size: Option<u32>) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.feed_generators(size)))
+    }
+
+    pub fn feed_generator(&self, feed: String) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.feed_generator(&feed)))
+    }
+
+    pub fn stories(
+        &self,
+        size: Option<u32>,
+        feed: Option<String>,
+        following: Option<bool>,
+    ) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.stories(size, feed.as_deref(), following)))
+    }
+
+    pub fn recommendations(
+        &self,
+        actor: String,
+        limit: Option<u32>,
+    ) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.recommendations(&actor, limit)))
+    }
+
+    pub fn artist_recommendations(
+        &self,
+        actor: String,
+        limit: Option<u32>,
+    ) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.artist_recommendations(&actor, limit)))
+    }
+
+    pub fn album_recommendations(
+        &self,
+        actor: String,
+        limit: Option<u32>,
+    ) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.album_recommendations(&actor, limit)))
+    }
+
+    pub fn stats(&self, actor: String) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.stats(&actor)))
+    }
+
+    pub fn wrapped(&self, actor: String, year: Option<u32>) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.wrapped(&actor, year)))
+    }
+
+    pub fn mirror_sources(&self) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.mirror_sources()))
+    }
+
+    pub fn currently_playing(
+        &self,
+        player_id: Option<String>,
+        actor: Option<String>,
+    ) -> Result<String, RockskyError> {
+        json(RT.block_on(
+            self.inner
+                .currently_playing(player_id.as_deref(), actor.as_deref()),
+        ))
+    }
+
+    pub fn playback_queue(&self, player_id: String) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.playback_queue(&player_id)))
+    }
+
+    pub fn spotify_currently_playing(&self, actor: String) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.spotify_currently_playing(&actor)))
+    }
+
+    pub fn playlists(&self, limit: u32, offset: u32) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.playlists(limit, offset)))
+    }
+
+    pub fn playlist(&self, uri: String) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.playlist(&uri)))
+    }
+
+    pub fn album_shouts(
+        &self,
+        uri: String,
+        limit: u32,
+        offset: u32,
+    ) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.album_shouts(&uri, limit, offset)))
+    }
+
+    pub fn artist_shouts(
+        &self,
+        uri: String,
+        limit: u32,
+        offset: u32,
+    ) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.artist_shouts(&uri, limit, offset)))
+    }
+
+    pub fn profile_shouts(
+        &self,
+        actor: String,
+        limit: u32,
+        offset: u32,
+    ) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.profile_shouts(&actor, limit, offset)))
+    }
+
+    pub fn track_shouts(&self, uri: String) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.track_shouts(&uri)))
+    }
+
+    pub fn shout_replies(
+        &self,
+        uri: String,
+        limit: u32,
+        offset: u32,
+    ) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.shout_replies(&uri, limit, offset)))
+    }
+
+    pub fn audio_settings(&self, actor: String) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.audio_settings(&actor)))
+    }
+
+    pub fn apikeys(&self, limit: u32, offset: u32) -> Result<String, RockskyError> {
+        json(RT.block_on(self.inner.apikeys(limit, offset)))
+    }
+}
+
+/// Serialize a raw-JSON core read result to a string for the FFI boundary.
+fn json(r: rocksky_sdk::Result<serde_json::Value>) -> Result<String, RockskyError> {
+    serde_json::to_string(&r.map_err(err)?).map_err(err)
 }
 
 // ---- authenticated agent -------------------------------------------------

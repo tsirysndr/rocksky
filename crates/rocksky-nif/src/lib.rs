@@ -107,6 +107,317 @@ fn global_stats(base: String) -> String {
     envelope(RT.block_on(appview(&base).global_stats()))
 }
 
+// ---- full read-query catalog (dirty IO) ----------------------------------
+//
+// Every AppView read query. Typed views and the raw-JSON long tail both cross
+// the boundary through `envelope` (the JSON `{"ok"|"error"}` wrapper). `get`
+// reaches any query by nsid; a treated-as-empty param is dropped.
+
+/// A rolling `n` of `days | weeks | months | years`, `range` (RFC-3339
+/// start/end), or `all`. Built here so window math matches every SDK.
+fn to_interval(unit: &str, n: u32, start: &str, end: &str) -> Result<rocksky_sdk::DateInterval, String> {
+    use rocksky_sdk::DateInterval as C;
+    Ok(match unit {
+        "" | "all" => C::AllTime,
+        "days" => C::LastDays(n),
+        "weeks" => C::LastWeeks(n),
+        "months" => C::LastMonths(n),
+        "years" => C::LastYears(n),
+        "range" => C::Range {
+            start: start.parse().map_err(|e| format!("bad start datetime: {e}"))?,
+            end: end.parse().map_err(|e| format!("bad end datetime: {e}"))?,
+        },
+        other => return Err(format!("unknown interval unit: {other}")),
+    })
+}
+
+/// `n = 0` on an optional count param means "unset".
+fn opt_u32(n: u32) -> Option<u32> {
+    if n == 0 {
+        None
+    } else {
+        Some(n)
+    }
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn get(base: String, nsid: String, params_json: String) -> String {
+    let params: Vec<(String, String)> =
+        serde_json::from_str::<std::collections::HashMap<String, String>>(&params_json)
+            .map(|m| m.into_iter().collect())
+            .unwrap_or_default();
+    envelope(RT.block_on(appview(&base).get(&nsid, &params)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn loved_songs(base: String, actor: String, limit: u32, offset: u32) -> String {
+    envelope(RT.block_on(appview(&base).loved_songs(&actor, limit, offset)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn top_tracks_interval(
+    base: String,
+    limit: u32,
+    offset: u32,
+    unit: String,
+    n: u32,
+    start: String,
+    end: String,
+) -> String {
+    match to_interval(&unit, n, &start, &end) {
+        Ok(iv) => envelope(RT.block_on(appview(&base).top_tracks_interval(limit, offset, iv))),
+        Err(e) => envelope::<(), _>(Err(e)),
+    }
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn top_artists_interval(
+    base: String,
+    limit: u32,
+    offset: u32,
+    unit: String,
+    n: u32,
+    start: String,
+    end: String,
+) -> String {
+    match to_interval(&unit, n, &start, &end) {
+        Ok(iv) => envelope(RT.block_on(appview(&base).top_artists_interval(limit, offset, iv))),
+        Err(e) => envelope::<(), _>(Err(e)),
+    }
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn catalog_albums(base: String, limit: u32, offset: u32, genre: String) -> String {
+    envelope(RT.block_on(appview(&base).catalog_albums(limit, offset, opt(&genre))))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn catalog_artists(base: String, limit: u32, offset: u32, genre: String) -> String {
+    envelope(RT.block_on(appview(&base).catalog_artists(limit, offset, opt(&genre))))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn catalog_songs(base: String, limit: u32, offset: u32, genre: String) -> String {
+    envelope(RT.block_on(appview(&base).catalog_songs(limit, offset, opt(&genre))))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn album_tracks(base: String, uri: String) -> String {
+    envelope(RT.block_on(appview(&base).album_tracks(&uri)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn artist_albums(base: String, uri: String) -> String {
+    envelope(RT.block_on(appview(&base).artist_albums(&uri)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn artist_tracks(base: String, uri: String, limit: u32, offset: u32) -> String {
+    envelope(RT.block_on(appview(&base).artist_tracks(&uri, limit, offset)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn scrobble_feed(base: String, did: String, following: bool, limit: u32, offset: u32) -> String {
+    envelope(RT.block_on(appview(&base).scrobble_feed(opt(&did), following, limit, offset)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn scrobble(base: String, uri: String) -> String {
+    envelope(RT.block_on(appview(&base).scrobble(&uri)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn follows(base: String, actor: String, limit: u32, cursor: String) -> String {
+    envelope(RT.block_on(appview(&base).follows(&actor, limit, opt(&cursor))))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn followers(base: String, actor: String, limit: u32, cursor: String) -> String {
+    envelope(RT.block_on(appview(&base).followers(&actor, limit, opt(&cursor))))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn known_followers(base: String, actor: String, limit: u32, cursor: String) -> String {
+    envelope(RT.block_on(appview(&base).known_followers(&actor, limit, opt(&cursor))))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn album(base: String, uri: String) -> String {
+    envelope(RT.block_on(appview(&base).album(&uri)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn artist(base: String, uri: String) -> String {
+    envelope(RT.block_on(appview(&base).artist(&uri)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn song(base: String, uri: String, mbid: String, isrc: String, spotify_id: String) -> String {
+    envelope(RT.block_on(appview(&base).song(
+        opt(&uri),
+        opt(&mbid),
+        opt(&isrc),
+        opt(&spotify_id),
+    )))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn actor_playlists(base: String, actor: String, limit: u32, offset: u32) -> String {
+    envelope(RT.block_on(appview(&base).actor_playlists(&actor, limit, offset)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn neighbours(base: String, actor: String) -> String {
+    envelope(RT.block_on(appview(&base).neighbours(&actor)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn compatibility(base: String, actor: String) -> String {
+    envelope(RT.block_on(appview(&base).compatibility(&actor)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn artist_listeners(base: String, uri: String, limit: u32, offset: u32) -> String {
+    envelope(RT.block_on(appview(&base).artist_listeners(&uri, limit, offset)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn artist_recent_listeners(base: String, uri: String, limit: u32, offset: u32) -> String {
+    envelope(RT.block_on(appview(&base).artist_recent_listeners(&uri, limit, offset)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn song_recent_listeners(base: String, uri: String, limit: u32, offset: u32) -> String {
+    envelope(RT.block_on(appview(&base).song_recent_listeners(&uri, limit, offset)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn scrobbles_chart(
+    base: String,
+    did: String,
+    artist_uri: String,
+    album_uri: String,
+    song_uri: String,
+    genre: String,
+    from: String,
+    to: String,
+) -> String {
+    envelope(RT.block_on(appview(&base).scrobbles_chart(
+        opt(&did),
+        opt(&artist_uri),
+        opt(&album_uri),
+        opt(&song_uri),
+        opt(&genre),
+        opt(&from),
+        opt(&to),
+    )))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn feed_generators(base: String, size: u32) -> String {
+    envelope(RT.block_on(appview(&base).feed_generators(opt_u32(size))))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn feed_generator(base: String, feed_uri: String) -> String {
+    envelope(RT.block_on(appview(&base).feed_generator(&feed_uri)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn stories(base: String, size: u32, feed_uri: String, following: bool) -> String {
+    envelope(RT.block_on(appview(&base).stories(opt_u32(size), opt(&feed_uri), Some(following))))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn recommendations(base: String, actor: String, limit: u32) -> String {
+    envelope(RT.block_on(appview(&base).recommendations(&actor, opt_u32(limit))))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn artist_recommendations(base: String, actor: String, limit: u32) -> String {
+    envelope(RT.block_on(appview(&base).artist_recommendations(&actor, opt_u32(limit))))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn album_recommendations(base: String, actor: String, limit: u32) -> String {
+    envelope(RT.block_on(appview(&base).album_recommendations(&actor, opt_u32(limit))))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn stats(base: String, actor: String) -> String {
+    envelope(RT.block_on(appview(&base).stats(&actor)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn wrapped(base: String, actor: String, year: u32) -> String {
+    envelope(RT.block_on(appview(&base).wrapped(&actor, opt_u32(year))))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn mirror_sources(base: String) -> String {
+    envelope(RT.block_on(appview(&base).mirror_sources()))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn currently_playing(base: String, player_id: String, actor: String) -> String {
+    envelope(RT.block_on(appview(&base).currently_playing(opt(&player_id), opt(&actor))))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn playback_queue(base: String, player_id: String) -> String {
+    envelope(RT.block_on(appview(&base).playback_queue(&player_id)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn spotify_currently_playing(base: String, actor: String) -> String {
+    envelope(RT.block_on(appview(&base).spotify_currently_playing(&actor)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn playlists(base: String, limit: u32, offset: u32) -> String {
+    envelope(RT.block_on(appview(&base).playlists(limit, offset)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn playlist(base: String, uri: String) -> String {
+    envelope(RT.block_on(appview(&base).playlist(&uri)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn album_shouts(base: String, uri: String, limit: u32, offset: u32) -> String {
+    envelope(RT.block_on(appview(&base).album_shouts(&uri, limit, offset)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn artist_shouts(base: String, uri: String, limit: u32, offset: u32) -> String {
+    envelope(RT.block_on(appview(&base).artist_shouts(&uri, limit, offset)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn profile_shouts(base: String, actor: String, limit: u32, offset: u32) -> String {
+    envelope(RT.block_on(appview(&base).profile_shouts(&actor, limit, offset)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn track_shouts(base: String, uri: String) -> String {
+    envelope(RT.block_on(appview(&base).track_shouts(&uri)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn shout_replies(base: String, uri: String, limit: u32, offset: u32) -> String {
+    envelope(RT.block_on(appview(&base).shout_replies(&uri, limit, offset)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn audio_settings(base: String, actor: String) -> String {
+    envelope(RT.block_on(appview(&base).audio_settings(&actor)))
+}
+
+#[rustler::nif(schedule = "DirtyIo")]
+fn apikeys(base: String, limit: u32, offset: u32) -> String {
+    envelope(RT.block_on(appview(&base).apikeys(limit, offset)))
+}
+
 // ---- identity hashes (pure + fast; normal scheduler) ---------------------
 
 #[rustler::nif]
