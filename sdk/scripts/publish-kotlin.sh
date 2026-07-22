@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Publish the Kotlin SDK's :core module to Maven Central. Runs LOCALLY after
+# Publish the Kotlin SDK's :rocksky module to Maven Central. Runs LOCALLY after
 # bindings-release.yml has built + uploaded the per-triple uniffi libraries to
 # the bindings-v<vsn> GitHub release.
 #
 # Unlike the other SDKs, the Kotlin jar BUNDLES every platform's native lib under
 # the JNA resource prefixes (JNA loads from the classpath). This downloads the
-# release libs, stages them, then runs the vanniktech publish (:core).
+# release libs, stages them, then runs the vanniktech publish (:rocksky).
 #
 # Auth first (Maven Central Portal + signing):
 #   ORG_GRADLE_PROJECT_mavenCentralUsername / ...Password
@@ -30,7 +30,7 @@ if [ -z "$dir" ]; then
   gh release download "$tag" --dir "$dir" --pattern 'librocksky_uniffi-*'
 fi
 
-res="$kt/core/src/main/resources"
+res="$kt/rocksky/src/main/resources"
 rm -rf "$res"/darwin-* "$res"/linux-*
 stage() { # <rust-triple> <ext> <jna-prefix>
   local src="$dir/librocksky_uniffi-$1.$2"
@@ -45,6 +45,6 @@ stage aarch64-linux-gnu    so    linux-aarch64
 stage x86_64-linux-gnu     so    linux-x86-64
 
 cd "$kt"
-echo "publishing :core to Maven Central (via mise JDK)..."
-mise exec -- ./gradlew :core:publishAndReleaseToMavenCentral --no-configuration-cache
+echo "publishing :rocksky to Maven Central (via mise JDK)..."
+mise exec -- ./gradlew :rocksky:publishAndReleaseToMavenCentral --no-configuration-cache
 echo "Done."
