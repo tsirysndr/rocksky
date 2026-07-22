@@ -4,6 +4,43 @@ All notable changes to `@rocksky/sdk` are documented here. This project adheres
 to [Semantic Versioning](https://semver.org) — while pre-1.0, the **minor**
 version is the breaking slot.
 
+## [0.5.0] - 2026-07-22
+
+A **backwards-compatible** release — it only *adds* to the read/write surface
+(nothing removed or renamed), so existing `^0.4.0` code keeps working.
+
+### Added
+
+- **Full AppView read catalog** on `RockskyClient` — beyond the 0.4.0 basics:
+  - typed: `lovedSongs`, `catalogAlbums` / `catalogArtists` / `catalogSongs`,
+    `albumTracks`, `artistAlbums` / `artistTracks`, `scrobbleFeed`, `scrobble`
+    (single, by uri), `follows` / `followers` / `knownFollowers`.
+  - raw (`unknown`-returning) detail & long tail: `album`, `artist`, `song`,
+    `feed`, `playlists`, `playlist`, `stats`, `wrapped`, `scrobblesChart`,
+    `recommendations` / `artistRecommendations` / `albumRecommendations`,
+    `neighbours`, `compatibility`, listeners, shouts, `mirrorSources`,
+    `currentlyPlaying`, `audioSettings`, `apikeys`.
+- **Universal escape hatch** — `get(nsid, params)` calls *any* `app.rocksky.*`
+  read query by nsid and returns the raw JSON; every named method is sugar over it.
+- **Typed date-window charts** — `topTracksInterval(limit, offset, interval)` /
+  `topArtistsInterval(...)` take a `DateInterval` built with the `Interval`
+  factories: `Interval.allTime()`, `lastDays(n)`, `lastWeeks(n)`, `lastMonths(n)`,
+  `lastYears(n)`, `range(start, end)`. `topTracks` / `topArtists` stay all-time
+  shorthands.
+- **Metadata match** — `matchSong(title, artist, mbId?, isrc?)` resolves a bare
+  title + artist into full canonical metadata (album, artwork, duration, MBID,
+  ISRC, streaming links).
+- **Match-then-scrobble** — `Agent.scrobbleMatch(title, artist, album?, mbId?,
+  isrc?)` resolves metadata via `matchSong`, then runs the normal fan-out; the
+  existing full-metadata `Agent.scrobble(rec)` is unchanged.
+- **Bearer access token** — `new RockskyClient(appview, token)` sends
+  `Authorization: Bearer <token>` on every read, for auth-gated queries.
+
+### Fixed
+
+- `songs()` returned an empty array — `app.rocksky.actor.getActorSongs` responds
+  with a `tracks` envelope, not `songs`, and the 0.4.0 method read the wrong key.
+
 ## [0.4.0] - 2026-07-22
 
 ### Changed — BREAKING
