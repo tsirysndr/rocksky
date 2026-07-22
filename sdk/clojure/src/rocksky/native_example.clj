@@ -1,4 +1,4 @@
-(ns rocksky.native-example
+(ns ^:no-doc rocksky.native-example
   "Read-only tour of the native Rocksky core (no auth needed).
 
   Run:  clojure -M:native -m rocksky.native-example

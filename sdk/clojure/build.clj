@@ -13,7 +13,7 @@
             [deps-deploy.deps-deploy :as dd]))
 
 (def lib         'app.rocksky/sdk)
-(def version     "0.4.0-SNAPSHOT")
+(def version     "0.4.1-SNAPSHOT")
 (def class-dir   "target/classes")
 (def basis       (delay (b/create-basis {:project "deps.edn"})))
 (def jar-file    (format "target/%s-%s.jar" (name lib) version))
@@ -46,6 +46,10 @@
   [{:keys [version] :or {version version}}]
   (let [jar-file (format "target/%s-%s.jar" (name lib) version)]
     (println (format "Building %s/%s %s ..." (namespace lib) (name lib) version))
+    ;; Wipe class-dir first so stale sources from a previous build (e.g. the
+    ;; removed legacy HTTP namespaces) can't leak into the jar — copy-dir only
+    ;; adds, it never removes.
+    (b/delete {:path class-dir})
     (b/write-pom {:class-dir class-dir
                   :lib       lib
                   :version   version
