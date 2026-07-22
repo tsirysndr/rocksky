@@ -479,6 +479,8 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_agent_follow() != 59928:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_agent_hydrate_from_jetstream() != 57739:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_agent_like() != 24747:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_agent_profile() != 30678:
@@ -489,9 +491,13 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_agent_scrobble() != 17314:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_agent_scrobble_match() != 48945:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_agent_set_now_playing() != 46985:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_agent_shout() != 41382:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_agent_sync_repo() != 33910:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_agent_unfollow() != 48247:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -557,6 +563,8 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_loved_songs() != 22860:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    if lib.uniffi_rocksky_uniffi_checksum_method_appview_match_song() != 2316:
+        raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_mirror_sources() != 4801:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_appview_neighbours() != 57546:
@@ -611,7 +619,7 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_constructor_agent_login_password() != 59184:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_rocksky_uniffi_checksum_constructor_appview_new() != 33159:
+    if lib.uniffi_rocksky_uniffi_checksum_constructor_appview_new() != 526:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
 
 # A ctypes library to expose the extern-C FFI definitions.
@@ -772,6 +780,11 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_follow.argtypes = (
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_follow.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_hydrate_from_jetstream.argtypes = (
+    ctypes.c_void_p,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_hydrate_from_jetstream.restype = None
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_like.argtypes = (
     ctypes.c_void_p,
     _UniffiRustBuffer,
@@ -805,6 +818,16 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_scrobble.argtypes = (
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_scrobble.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_scrobble_match.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_scrobble_match.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_set_now_playing.argtypes = (
     ctypes.c_void_p,
     _UniffiRustBuffer,
@@ -819,6 +842,11 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_shout.argtypes = (
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_shout.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_sync_repo.argtypes = (
+    ctypes.c_void_p,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_sync_repo.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_unfollow.argtypes = (
     ctypes.c_void_p,
     _UniffiRustBuffer,
@@ -842,6 +870,7 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_free_appview.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_fn_free_appview.restype = None
 _UniffiLib.uniffi_rocksky_uniffi_fn_constructor_appview_new.argtypes = (
+    _UniffiRustBuffer,
     _UniffiRustBuffer,
     ctypes.POINTER(_UniffiRustCallStatus),
 )
@@ -1062,6 +1091,15 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_loved_songs.argtypes = (
     ctypes.POINTER(_UniffiRustCallStatus),
 )
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_loved_songs.restype = _UniffiRustBuffer
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_match_song.argtypes = (
+    ctypes.c_void_p,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    _UniffiRustBuffer,
+    ctypes.POINTER(_UniffiRustCallStatus),
+)
+_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_match_song.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_mirror_sources.argtypes = (
     ctypes.c_void_p,
     ctypes.POINTER(_UniffiRustCallStatus),
@@ -1563,6 +1601,9 @@ _UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_did.restype = ctypes.c_ui
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_follow.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_follow.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_hydrate_from_jetstream.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_hydrate_from_jetstream.restype = ctypes.c_uint16
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_like.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_like.restype = ctypes.c_uint16
@@ -1578,12 +1619,18 @@ _UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_reply_shout.restype = cty
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_scrobble.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_scrobble.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_scrobble_match.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_scrobble_match.restype = ctypes.c_uint16
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_set_now_playing.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_set_now_playing.restype = ctypes.c_uint16
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_shout.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_shout.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_sync_repo.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_sync_repo.restype = ctypes.c_uint16
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_unfollow.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_agent_unfollow.restype = ctypes.c_uint16
@@ -1680,6 +1727,9 @@ _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_known_followers.restype
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_loved_songs.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_loved_songs.restype = ctypes.c_uint16
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_match_song.argtypes = (
+)
+_UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_match_song.restype = ctypes.c_uint16
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_mirror_sources.argtypes = (
 )
 _UniffiLib.uniffi_rocksky_uniffi_checksum_method_appview_mirror_sources.restype = ctypes.c_uint16
@@ -1893,6 +1943,13 @@ class AgentProtocol(typing.Protocol):
         """
 
         raise NotImplementedError
+    def hydrate_from_jetstream(self, ):
+        """
+        Keep the local dedup index hydrated from Jetstream in the background and
+        return immediately. Runs for the life of the process.
+        """
+
+        raise NotImplementedError
     def like(self, uri: "str",cid: "str"):
         """
         Like a record by strong reference. Returns the like URI.
@@ -1919,6 +1976,13 @@ class AgentProtocol(typing.Protocol):
         """
 
         raise NotImplementedError
+    def scrobble_match(self, title: "str",artist: "str",album: "typing.Optional[str]",mb_id: "typing.Optional[str]",isrc: "typing.Optional[str]"):
+        """
+        Scrobble from just a title + artist (album optional): resolve full
+        metadata via `matchSong`, then run the normal fan-out.
+        """
+
+        raise NotImplementedError
     def set_now_playing(self, track: "NowPlayingInput"):
         """
         Set the actor's now-playing status singleton.
@@ -1928,6 +1992,14 @@ class AgentProtocol(typing.Protocol):
     def shout(self, subject_uri: "str",subject_cid: "str",message: "str"):
         """
         Post a shout on a subject. Returns the shout URI.
+        """
+
+        raise NotImplementedError
+    def sync_repo(self, ):
+        """
+        Download the caller's repo (CAR) and (re)build the local dedup index,
+        returning the per-collection counts as JSON. Requires a dedup store
+        (`dedup_path` at login).
         """
 
         raise NotImplementedError
@@ -2066,6 +2138,19 @@ class Agent:
 
 
 
+    def hydrate_from_jetstream(self, ) -> None:
+        """
+        Keep the local dedup index hydrated from Jetstream in the background and
+        return immediately. Runs for the life of the process.
+        """
+
+        _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_hydrate_from_jetstream,self._uniffi_clone_pointer(),)
+
+
+
+
+
+
     def like(self, uri: "str",cid: "str") -> "str":
         """
         Like a record by strong reference. Returns the like URI.
@@ -2150,6 +2235,35 @@ class Agent:
 
 
 
+    def scrobble_match(self, title: "str",artist: "str",album: "typing.Optional[str]",mb_id: "typing.Optional[str]",isrc: "typing.Optional[str]") -> "ScrobbleResult":
+        """
+        Scrobble from just a title + artist (album optional): resolve full
+        metadata via `matchSong`, then run the normal fan-out.
+        """
+
+        _UniffiConverterString.check_lower(title)
+        
+        _UniffiConverterString.check_lower(artist)
+        
+        _UniffiConverterOptionalString.check_lower(album)
+        
+        _UniffiConverterOptionalString.check_lower(mb_id)
+        
+        _UniffiConverterOptionalString.check_lower(isrc)
+        
+        return _UniffiConverterTypeScrobbleResult.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_scrobble_match,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(title),
+        _UniffiConverterString.lower(artist),
+        _UniffiConverterOptionalString.lower(album),
+        _UniffiConverterOptionalString.lower(mb_id),
+        _UniffiConverterOptionalString.lower(isrc))
+        )
+
+
+
+
+
     def set_now_playing(self, track: "NowPlayingInput") -> None:
         """
         Set the actor's now-playing status singleton.
@@ -2181,6 +2295,21 @@ class Agent:
         _UniffiConverterString.lower(subject_uri),
         _UniffiConverterString.lower(subject_cid),
         _UniffiConverterString.lower(message))
+        )
+
+
+
+
+
+    def sync_repo(self, ) -> "str":
+        """
+        Download the caller's repo (CAR) and (re)build the local dedup index,
+        returning the per-collection counts as JSON. Requires a dedup store
+        (`dedup_path` at login).
+        """
+
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_sync_repo,self._uniffi_clone_pointer(),)
         )
 
 
@@ -2309,6 +2438,13 @@ class AppViewProtocol(typing.Protocol):
         raise NotImplementedError
     def loved_songs(self, actor: "str",limit: "int",offset: "int"):
         raise NotImplementedError
+    def match_song(self, title: "str",artist: "str",mb_id: "typing.Optional[str]",isrc: "typing.Optional[str]"):
+        """
+        Resolve full canonical metadata for a bare title + artist
+        (`app.rocksky.song.matchSong`). Returns the detailed song view as JSON.
+        """
+
+        raise NotImplementedError
     def mirror_sources(self, ):
         raise NotImplementedError
     def neighbours(self, actor: "str"):
@@ -2377,11 +2513,19 @@ class AppView:
     """
 
     _pointer: ctypes.c_void_p
-    def __init__(self, base: "typing.Optional[str]"):
+    def __init__(self, base: "typing.Optional[str]",token: "typing.Optional[str]"):
+        """
+        `token`, when set, is sent as `Authorization: Bearer <token>` on every
+        read — needed only for auth-gated queries.
+        """
+
         _UniffiConverterOptionalString.check_lower(base)
         
+        _UniffiConverterOptionalString.check_lower(token)
+        
         self._pointer = _uniffi_rust_call(_UniffiLib.uniffi_rocksky_uniffi_fn_constructor_appview_new,
-        _UniffiConverterOptionalString.lower(base))
+        _UniffiConverterOptionalString.lower(base),
+        _UniffiConverterOptionalString.lower(token))
 
     def __del__(self):
         # In case of partial initialization of instances.
@@ -2868,6 +3012,32 @@ class AppView:
         _UniffiConverterString.lower(actor),
         _UniffiConverterUInt32.lower(limit),
         _UniffiConverterUInt32.lower(offset))
+        )
+
+
+
+
+
+    def match_song(self, title: "str",artist: "str",mb_id: "typing.Optional[str]",isrc: "typing.Optional[str]") -> "str":
+        """
+        Resolve full canonical metadata for a bare title + artist
+        (`app.rocksky.song.matchSong`). Returns the detailed song view as JSON.
+        """
+
+        _UniffiConverterString.check_lower(title)
+        
+        _UniffiConverterString.check_lower(artist)
+        
+        _UniffiConverterOptionalString.check_lower(mb_id)
+        
+        _UniffiConverterOptionalString.check_lower(isrc)
+        
+        return _UniffiConverterString.lift(
+            _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_appview_match_song,self._uniffi_clone_pointer(),
+        _UniffiConverterString.lower(title),
+        _UniffiConverterString.lower(artist),
+        _UniffiConverterOptionalString.lower(mb_id),
+        _UniffiConverterOptionalString.lower(isrc))
         )
 
 

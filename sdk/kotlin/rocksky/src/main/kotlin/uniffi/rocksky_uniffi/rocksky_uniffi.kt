@@ -868,6 +868,14 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 
 
 
+
+
+
+
+
+
+
+
 // A JNA Library to expose the extern-C FFI definitions.
 // This is an implementation detail which will be called internally by the public API.
 
@@ -905,6 +913,8 @@ internal interface UniffiLib : Library {
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_agent_follow(`ptr`: Pointer,`did`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_agent_hydrate_from_jetstream(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
     fun uniffi_rocksky_uniffi_fn_method_agent_like(`ptr`: Pointer,`uri`: RustBuffer.ByValue,`cid`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_agent_profile(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
@@ -915,9 +925,13 @@ internal interface UniffiLib : Library {
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_agent_scrobble(`ptr`: Pointer,`input`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_agent_scrobble_match(`ptr`: Pointer,`title`: RustBuffer.ByValue,`artist`: RustBuffer.ByValue,`album`: RustBuffer.ByValue,`mbId`: RustBuffer.ByValue,`isrc`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_agent_set_now_playing(`ptr`: Pointer,`track`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     fun uniffi_rocksky_uniffi_fn_method_agent_shout(`ptr`: Pointer,`subjectUri`: RustBuffer.ByValue,`subjectCid`: RustBuffer.ByValue,`message`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_agent_sync_repo(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_agent_unfollow(`ptr`: Pointer,`did`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
@@ -927,7 +941,7 @@ internal interface UniffiLib : Library {
     ): Pointer
     fun uniffi_rocksky_uniffi_fn_free_appview(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    fun uniffi_rocksky_uniffi_fn_constructor_appview_new(`base`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_rocksky_uniffi_fn_constructor_appview_new(`base`: RustBuffer.ByValue,`token`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Pointer
     fun uniffi_rocksky_uniffi_fn_method_appview_actor_playlists(`ptr`: Pointer,`actor`: RustBuffer.ByValue,`limit`: Int,`offset`: Int,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
@@ -988,6 +1002,8 @@ internal interface UniffiLib : Library {
     fun uniffi_rocksky_uniffi_fn_method_appview_known_followers(`ptr`: Pointer,`actor`: RustBuffer.ByValue,`limit`: Int,`cursor`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_loved_songs(`ptr`: Pointer,`actor`: RustBuffer.ByValue,`limit`: Int,`offset`: Int,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_appview_match_song(`ptr`: Pointer,`title`: RustBuffer.ByValue,`artist`: RustBuffer.ByValue,`mbId`: RustBuffer.ByValue,`isrc`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_mirror_sources(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
@@ -1177,6 +1193,8 @@ internal interface UniffiLib : Library {
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_agent_follow(
     ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_agent_hydrate_from_jetstream(
+    ): Short
     fun uniffi_rocksky_uniffi_checksum_method_agent_like(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_agent_profile(
@@ -1187,9 +1205,13 @@ internal interface UniffiLib : Library {
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_agent_scrobble(
     ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_agent_scrobble_match(
+    ): Short
     fun uniffi_rocksky_uniffi_checksum_method_agent_set_now_playing(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_agent_shout(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_agent_sync_repo(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_agent_unfollow(
     ): Short
@@ -1254,6 +1276,8 @@ internal interface UniffiLib : Library {
     fun uniffi_rocksky_uniffi_checksum_method_appview_known_followers(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_loved_songs(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_appview_match_song(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_mirror_sources(
     ): Short
@@ -1355,6 +1379,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_rocksky_uniffi_checksum_method_agent_follow() != 59928.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_hydrate_from_jetstream() != 57739.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_rocksky_uniffi_checksum_method_agent_like() != 24747.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1370,10 +1397,16 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_rocksky_uniffi_checksum_method_agent_scrobble() != 17314.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_scrobble_match() != 48945.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_rocksky_uniffi_checksum_method_agent_set_now_playing() != 46985.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_method_agent_shout() != 41382.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_sync_repo() != 33910.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_method_agent_unfollow() != 48247.toShort()) {
@@ -1472,6 +1505,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_loved_songs() != 22860.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_match_song() != 2316.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_mirror_sources() != 4801.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1553,7 +1589,7 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_rocksky_uniffi_checksum_constructor_agent_login_password() != 59184.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rocksky_uniffi_checksum_constructor_appview_new() != 33159.toShort()) {
+    if (lib.uniffi_rocksky_uniffi_checksum_constructor_appview_new() != 526.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
 }
@@ -1938,6 +1974,12 @@ public interface AgentInterface {
     fun `follow`(`did`: kotlin.String): kotlin.String
     
     /**
+     * Keep the local dedup index hydrated from Jetstream in the background and
+     * return immediately. Runs for the life of the process.
+     */
+    fun `hydrateFromJetstream`()
+    
+    /**
      * Like a record by strong reference. Returns the like URI.
      */
     fun `like`(`uri`: kotlin.String, `cid`: kotlin.String): kotlin.String
@@ -1960,6 +2002,12 @@ public interface AgentInterface {
     fun `scrobble`(`input`: ScrobbleInput): ScrobbleResult
     
     /**
+     * Scrobble from just a title + artist (album optional): resolve full
+     * metadata via `matchSong`, then run the normal fan-out.
+     */
+    fun `scrobbleMatch`(`title`: kotlin.String, `artist`: kotlin.String, `album`: kotlin.String?, `mbId`: kotlin.String?, `isrc`: kotlin.String?): ScrobbleResult
+    
+    /**
      * Set the actor's now-playing status singleton.
      */
     fun `setNowPlaying`(`track`: NowPlayingInput)
@@ -1968,6 +2016,13 @@ public interface AgentInterface {
      * Post a shout on a subject. Returns the shout URI.
      */
     fun `shout`(`subjectUri`: kotlin.String, `subjectCid`: kotlin.String, `message`: kotlin.String): kotlin.String
+    
+    /**
+     * Download the caller's repo (CAR) and (re)build the local dedup index,
+     * returning the per-collection counts as JSON. Requires a dedup store
+     * (`dedup_path` at login).
+     */
+    fun `syncRepo`(): kotlin.String
     
     fun `unfollow`(`did`: kotlin.String)
     
@@ -2144,6 +2199,21 @@ open class Agent: Disposable, AutoCloseable, AgentInterface {
 
     
     /**
+     * Keep the local dedup index hydrated from Jetstream in the background and
+     * return immediately. Runs for the life of the process.
+     */override fun `hydrateFromJetstream`()
+        = 
+    callWithPointer {
+    uniffiRustCall() { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_agent_hydrate_from_jetstream(
+        it, _status)
+}
+    }
+    
+    
+
+    
+    /**
      * Like a record by strong reference. Returns the like URI.
      */
     @Throws(RockskyException::class)override fun `like`(`uri`: kotlin.String, `cid`: kotlin.String): kotlin.String {
@@ -2219,6 +2289,23 @@ open class Agent: Disposable, AutoCloseable, AgentInterface {
 
     
     /**
+     * Scrobble from just a title + artist (album optional): resolve full
+     * metadata via `matchSong`, then run the normal fan-out.
+     */
+    @Throws(RockskyException::class)override fun `scrobbleMatch`(`title`: kotlin.String, `artist`: kotlin.String, `album`: kotlin.String?, `mbId`: kotlin.String?, `isrc`: kotlin.String?): ScrobbleResult {
+            return FfiConverterTypeScrobbleResult.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_agent_scrobble_match(
+        it, FfiConverterString.lower(`title`),FfiConverterString.lower(`artist`),FfiConverterOptionalString.lower(`album`),FfiConverterOptionalString.lower(`mbId`),FfiConverterOptionalString.lower(`isrc`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
      * Set the actor's now-playing status singleton.
      */
     @Throws(RockskyException::class)override fun `setNowPlaying`(`track`: NowPlayingInput)
@@ -2242,6 +2329,24 @@ open class Agent: Disposable, AutoCloseable, AgentInterface {
     uniffiRustCallWithError(RockskyException) { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_agent_shout(
         it, FfiConverterString.lower(`subjectUri`),FfiConverterString.lower(`subjectCid`),FfiConverterString.lower(`message`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Download the caller's repo (CAR) and (re)build the local dedup index,
+     * returning the per-collection counts as JSON. Requires a dedup store
+     * (`dedup_path` at login).
+     */
+    @Throws(RockskyException::class)override fun `syncRepo`(): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_agent_sync_repo(
+        it, _status)
 }
     }
     )
@@ -2492,6 +2597,12 @@ public interface AppViewInterface {
     
     fun `lovedSongs`(`actor`: kotlin.String, `limit`: kotlin.UInt, `offset`: kotlin.UInt): List<SongView>
     
+    /**
+     * Resolve full canonical metadata for a bare title + artist
+     * (`app.rocksky.song.matchSong`). Returns the detailed song view as JSON.
+     */
+    fun `matchSong`(`title`: kotlin.String, `artist`: kotlin.String, `mbId`: kotlin.String?, `isrc`: kotlin.String?): kotlin.String
+    
     fun `mirrorSources`(): kotlin.String
     
     fun `neighbours`(`actor`: kotlin.String): kotlin.String
@@ -2573,11 +2684,15 @@ open class AppView: Disposable, AutoCloseable, AppViewInterface {
         this.pointer = null
         this.cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(pointer))
     }
-    constructor(`base`: kotlin.String?) :
+    /**
+     * `token`, when set, is sent as `Authorization: Bearer <token>` on every
+     * read — needed only for auth-gated queries.
+     */
+    constructor(`base`: kotlin.String?, `token`: kotlin.String?) :
         this(
     uniffiRustCall() { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_constructor_appview_new(
-        FfiConverterOptionalString.lower(`base`),_status)
+        FfiConverterOptionalString.lower(`base`),FfiConverterOptionalString.lower(`token`),_status)
 }
     )
 
@@ -3031,6 +3146,23 @@ open class AppView: Disposable, AutoCloseable, AppViewInterface {
     uniffiRustCallWithError(RockskyException) { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_loved_songs(
         it, FfiConverterString.lower(`actor`),FfiConverterUInt.lower(`limit`),FfiConverterUInt.lower(`offset`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Resolve full canonical metadata for a bare title + artist
+     * (`app.rocksky.song.matchSong`). Returns the detailed song view as JSON.
+     */
+    @Throws(RockskyException::class)override fun `matchSong`(`title`: kotlin.String, `artist`: kotlin.String, `mbId`: kotlin.String?, `isrc`: kotlin.String?): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_match_song(
+        it, FfiConverterString.lower(`title`),FfiConverterString.lower(`artist`),FfiConverterOptionalString.lower(`mbId`),FfiConverterOptionalString.lower(`isrc`),_status)
 }
     }
     )
