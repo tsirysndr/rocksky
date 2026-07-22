@@ -16,7 +16,7 @@ require "json"
 require_relative "rocksky/native"
 
 module Rocksky
-  VERSION = "1.0.0"
+  require_relative "rocksky/version"
 
   module C
     extend Fiddle::Importer
