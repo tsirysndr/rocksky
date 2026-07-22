@@ -13,10 +13,22 @@
 
 (def ^:private core-langs
   "Packages with a per-package build-core.sh (gleam reuses the erlang NIF)."
-  #{"python" "ruby" "erlang" "clojure" "kotlin"})
+  #{:python :ruby :erlang :clojure :kotlin})
 
 (def ^:private publish-langs
-  #{"python" "ruby" "erlang" "elixir" "gleam" "clojure" "kotlin"})
+  #{:python :ruby :erlang :elixir :gleam :clojure :kotlin})
+
+(defn- ->lang
+  "Coerce a language argument to a keyword, so both `:python` and `\"python\"`
+  (e.g. from the `bb` CLI) work. Validates against `allowed`, throwing with the
+  keyword choices on a miss."
+  [lang allowed what]
+  (let [k (keyword (name lang))]
+    (when-not (allowed k)
+      (throw (ex-info (str what ": unknown lang " k
+                           " (expected " (str/join " " (sort allowed)) ")")
+                      {:lang k})))
+    k))
 
 (defn build-native
   "Build both native cores (librocksky_uniffi + rocksky_nif) into
@@ -34,14 +46,11 @@
 
 (defn build-core
   "Build + wire one package's native core: bash sdk/<lang>/build-core.sh.
-  lang ∈ python|ruby|erlang|clojure|kotlin (gleam reuses the erlang NIF)."
+  lang ∈ :python :ruby :erlang :clojure :kotlin (gleam reuses the erlang NIF).
+  Accepts a keyword or string. Usage: (build-core :python)"
   [lang]
-  (let [lang (name lang)]
-    (when-not (core-langs lang)
-      (throw (ex-info (str "build-core: unknown lang " lang
-                           " (expected " (str/join "|" (sort core-langs)) ")")
-                      {:lang lang})))
-    (sh/sh ["bash" (str "sdk/" lang "/build-core.sh")])))
+  (let [lang (->lang lang core-langs "build-core")]
+    (sh/sh ["bash" (str "sdk/" (name lang) "/build-core.sh")])))
 
 (defn uniffi-manifest
   "Write the UniFFI download manifests (python/ruby/clojure) from a dir of
@@ -57,14 +66,10 @@
 
 (defn publish
   "Publish one SDK to its registry: bash sdk/scripts/publish-<lang>.sh [args...].
-  lang ∈ python|ruby|erlang|elixir|gleam|clojure|kotlin. LOCAL-ONLY (refuses in
-  CI). Extra args pass through — for uniffi/nif langs a <tag> [dir-of-libs],
-  for elixir/gleam an optional --dry-run.
-  Usage: (publish \"python\" \"bindings-v0.1.0\") | (publish \"gleam\" \"--dry-run\")"
+  lang ∈ :python :ruby :erlang :elixir :gleam :clojure :kotlin (keyword or
+  string). LOCAL-ONLY (refuses in CI). Extra args pass through — for uniffi/nif
+  langs a <tag> [dir-of-libs], for elixir/gleam an optional --dry-run.
+  Usage: (publish :python \"bindings-v0.4.0\") | (publish :gleam \"--dry-run\")"
   [lang & args]
-  (let [lang (name lang)]
-    (when-not (publish-langs lang)
-      (throw (ex-info (str "publish: unknown lang " lang
-                           " (expected " (str/join "|" (sort publish-langs)) ")")
-                      {:lang lang})))
-    (sh/sh (into ["bash" (str "sdk/scripts/publish-" lang ".sh")] (map str args)))))
+  (let [lang (->lang lang publish-langs "publish")]
+    (sh/sh (into ["bash" (str "sdk/scripts/publish-" (name lang) ".sh")] (map str args)))))
