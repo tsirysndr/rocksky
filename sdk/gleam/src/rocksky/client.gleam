@@ -1,13 +1,13 @@
-//// Native core bindings for Rocksky.
+//// Rocksky SDK for Gleam.
 ////
 //// Typed externals over the `rocksky_erl` NIF package (the shared Rust core,
-//// `rocksky-sdk`): AppView reads, record writes (scrobble fan-out, like,
-//// follow, shout), and the identity hashes shared across every Rocksky SDK.
-//// This is the write + dedup side; the top-level `rocksky` module is the
-//// read/HTTP side.
+//// `rocksky-sdk`): AppView reads, record writes (scrobble, like, follow,
+//// shout), and the identity hashes shared across every Rocksky SDK.
 ////
-//// Envelope calls return `Dynamic` — an `{ok, value}` / `{error, message}`
-//// tuple with binary-keyed maps (the wire shape); decode with `gleam/dynamic`.
+//// Reads use the default AppView (`https://api.rocksky.app`); the `*_at`
+//// variants take a custom base URL. Envelope calls return `Dynamic` — an
+//// `{ok, value}` / `{error, message}` tuple with binary-keyed maps (the wire
+//// shape); decode with `gleam/dynamic`.
 
 import gleam/dynamic.{type Dynamic}
 
@@ -15,41 +15,64 @@ import gleam/dynamic.{type Dynamic}
 pub type Agent =
   Dynamic
 
-// ---- reads (unauthenticated) --------------------------------------------
+/// The default AppView base URL used by the no-argument read functions.
+pub const default_endpoint = "https://api.rocksky.app"
 
-// Every read takes `base` — the AppView URL — as the last argument; pass "" for
-// the default (https://api.rocksky.app).
+// ---- reads (unauthenticated) --------------------------------------------
+//
+// Each read has a default variant (no base URL) and an `*_at` variant that
+// targets a custom AppView endpoint.
 
 @external(erlang, "rocksky", "profile")
 fn profile_ffi(actor: String, base: String) -> Dynamic
 
-/// An actor's detailed profile. `base` overrides the AppView URL ("" = default).
-pub fn profile(actor: String, base: String) -> Dynamic {
-  profile_ffi(actor, base)
+/// An actor's detailed profile.
+pub fn profile(actor: String) -> Dynamic {
+  profile_ffi(actor, "")
+}
+
+/// [profile](#profile) against a custom AppView endpoint.
+pub fn profile_at(actor: String, endpoint: String) -> Dynamic {
+  profile_ffi(actor, endpoint)
 }
 
 @external(erlang, "rocksky", "scrobbles")
 fn scrobbles_ffi(actor: String, limit: Int, offset: Int, base: String) -> Dynamic
 
-/// An actor's scrobbles, newest first. `base` overrides the AppView URL.
-pub fn scrobbles(actor: String, limit: Int, offset: Int, base: String) -> Dynamic {
-  scrobbles_ffi(actor, limit, offset, base)
+/// An actor's scrobbles, newest first.
+pub fn scrobbles(actor: String, limit: Int, offset: Int) -> Dynamic {
+  scrobbles_ffi(actor, limit, offset, "")
+}
+
+/// [scrobbles](#scrobbles) against a custom AppView endpoint.
+pub fn scrobbles_at(actor: String, limit: Int, offset: Int, endpoint: String) -> Dynamic {
+  scrobbles_ffi(actor, limit, offset, endpoint)
 }
 
 @external(erlang, "rocksky", "top_tracks")
 fn top_tracks_ffi(limit: Int, offset: Int, base: String) -> Dynamic
 
-/// Platform-wide top tracks chart. `base` overrides the AppView URL.
-pub fn top_tracks(limit: Int, offset: Int, base: String) -> Dynamic {
-  top_tracks_ffi(limit, offset, base)
+/// Platform-wide top tracks chart.
+pub fn top_tracks(limit: Int, offset: Int) -> Dynamic {
+  top_tracks_ffi(limit, offset, "")
+}
+
+/// [top_tracks](#top_tracks) against a custom AppView endpoint.
+pub fn top_tracks_at(limit: Int, offset: Int, endpoint: String) -> Dynamic {
+  top_tracks_ffi(limit, offset, endpoint)
 }
 
 @external(erlang, "rocksky", "global_stats")
 fn global_stats_ffi(base: String) -> Dynamic
 
-/// Platform-wide totals. `base` overrides the AppView URL ("" = default).
-pub fn global_stats(base: String) -> Dynamic {
-  global_stats_ffi(base)
+/// Platform-wide totals.
+pub fn global_stats() -> Dynamic {
+  global_stats_ffi("")
+}
+
+/// [global_stats](#global_stats) against a custom AppView endpoint.
+pub fn global_stats_at(endpoint: String) -> Dynamic {
+  global_stats_ffi(endpoint)
 }
 
 // ---- identity hashes (pure) ---------------------------------------------

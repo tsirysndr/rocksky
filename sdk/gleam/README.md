@@ -21,18 +21,18 @@ with `../erlang/build-core.sh` and use the local path dep in `gleam.toml`.
 ## Quick start
 
 ```gleam
-import rocksky/core
+import rocksky/client
 
 pub fn main() {
-  // Reads — the last arg overrides https://api.rocksky.app ("" = default).
+  // Reads — use the default AppView (https://api.rocksky.app).
   // Envelope calls return Dynamic ({ok, value} | {error, message}); decode with
   // gleam/dynamic.
-  echo core.global_stats("")
-  echo core.top_tracks(10, 0, "")
+  echo client.global_stats()
+  echo client.top_tracks(10, 0)
 
   // Writes — log in once (session persisted at the given path).
-  let agent = core.login("session.json", "alice.bsky.social", "app-password")
-  echo core.follow(agent, "did:plc:rlwgbwqdknilpxxep5gvzc3y")
+  let agent = client.login("session.json", "alice.bsky.social", "app-password")
+  echo client.follow(agent, "did:plc:rlwgbwqdknilpxxep5gvzc3y")
 }
 ```
 
@@ -40,9 +40,10 @@ pub fn main() {
 
 ### Reads
 
-`profile(actor, base)`, `scrobbles(actor, limit, offset, base)`,
-`top_tracks(limit, offset, base)`, `global_stats(base)`. The trailing `base`
-overrides the AppView URL (`""` = default). Each returns `Dynamic`.
+`profile(actor)`, `scrobbles(actor, limit, offset)`, `top_tracks(limit, offset)`,
+`global_stats()` — each returns `Dynamic`. To target a custom AppView endpoint,
+use the `*_at` variant with a trailing endpoint URL (e.g.
+`global_stats_at("https://…")`, `top_tracks_at(limit, offset, "https://…")`).
 
 ### Writes
 

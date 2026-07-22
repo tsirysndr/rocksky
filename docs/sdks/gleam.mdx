@@ -5,8 +5,8 @@ icon: "star"
 ---
 
 `rocksky` exposes the shared Rocksky Rust core via typed externals over the
-`rocksky_erl` Rustler NIF (`rocksky/core` module): AppView reads, AT Protocol PDS
-writes, and the identity hashes. Targets Erlang.
+`rocksky_erl` Rustler NIF (`rocksky/client` module): AppView reads, AT Protocol
+PDS writes, and the identity hashes. Targets Erlang.
 
 ## Install
 
@@ -20,24 +20,25 @@ the GitHub release on first use.
 ## Quickstart
 
 ```gleam
-import rocksky/core
+import rocksky/client
 
 pub fn main() {
-  // Reads — the last arg overrides https://api.rocksky.app ("" = default).
+  // Reads — use the default AppView (https://api.rocksky.app).
   // Envelope calls return Dynamic ({ok, value} | {error, message}).
-  echo core.global_stats("")
-  echo core.top_tracks(10, 0, "")
+  echo client.global_stats()
+  echo client.top_tracks(10, 0)
 
   // Writes — log in with an app password.
-  let agent = core.login("session.json", "alice.bsky.social", "app-password")
-  echo core.follow(agent, "did:plc:rlwgbwqdknilpxxep5gvzc3y")
+  let agent = client.login("session.json", "alice.bsky.social", "app-password")
+  echo client.follow(agent, "did:plc:rlwgbwqdknilpxxep5gvzc3y")
 }
 ```
 
 ## API
 
-**Reads**: `profile(actor, base)`, `scrobbles(actor, limit, offset, base)`,
-`top_tracks(limit, offset, base)`, `global_stats(base)` — each returns `Dynamic`.
+**Reads**: `profile(actor)`, `scrobbles(actor, limit, offset)`,
+`top_tracks(limit, offset)`, `global_stats()` — each returns `Dynamic`. Use the
+`*_at` variants (e.g. `global_stats_at(endpoint)`) to target a custom AppView.
 
 **Writes**: `login(session_path, identifier, password)`, then `like`, `follow`,
 `shout`, `refresh_session`.
