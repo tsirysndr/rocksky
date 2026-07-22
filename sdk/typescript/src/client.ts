@@ -1,255 +1,108 @@
-import { buildConfig, type HttpClientConfig, xrpcCall } from "./http.js";
-import { makeCall } from "./namespaces/_helpers.js";
-import {
-  type PaginateArgs,
-  paginate as paginateFn,
-} from "./paginate.js";
-import {
-  RealtimeClient,
-  type RealtimeOptions,
-  createRealtimeClient,
-} from "./realtime.js";
-import { ActorNamespace } from "./namespaces/actor.js";
-import { AlbumNamespace } from "./namespaces/album.js";
-import { ApikeyNamespace } from "./namespaces/apikey.js";
-import { ArtistNamespace } from "./namespaces/artist.js";
-import { ChartsNamespace } from "./namespaces/charts.js";
-import { DropboxNamespace } from "./namespaces/dropbox.js";
-import { FeedNamespace } from "./namespaces/feed.js";
-import { GoogleDriveNamespace } from "./namespaces/googledrive.js";
-import { GraphNamespace } from "./namespaces/graph.js";
-import { LikeNamespace } from "./namespaces/like.js";
-import { MirrorNamespace } from "./namespaces/mirror.js";
-import { RockboxNamespace } from "./namespaces/rockbox.js";
-import { PlayerNamespace } from "./namespaces/player.js";
-import { PlaylistNamespace } from "./namespaces/playlist.js";
-import { ScrobbleNamespace } from "./namespaces/scrobble.js";
-import { ShoutNamespace } from "./namespaces/shout.js";
-import { SongNamespace } from "./namespaces/song.js";
-import { SpotifyNamespace } from "./namespaces/spotify.js";
-import { StatsNamespace } from "./namespaces/stats.js";
-import type { Endpoints } from "./generated/types.js";
+import { Client, simpleFetchHandler } from "@atcute/client";
+
+import { RockskyError } from "./errors.js";
 import type {
-  AuthProvider,
-  ClientOptions,
-  FetchLike,
-  RequestOptions,
-} from "./types.js";
+  ActorProfileViewDetailed,
+  AlbumViewBasic,
+  ArtistViewBasic,
+  FeedSearchResultsView,
+  GetActorAlbumsOutput,
+  GetActorArtistsOutput,
+  GetActorScrobblesOutput,
+  GetActorSongsOutput,
+  GetTopArtistsOutput,
+  GetTopTracksOutput,
+  ScrobbleViewBasic,
+  SongViewBasic,
+  StatsGlobalStatsView,
+} from "./generated/types.js";
 
-type XrpcOpts = {
-  params?: Record<string, unknown>;
-  body?: unknown;
-  requireAuth?: boolean;
-} & RequestOptions;
+/** The default public Rocksky AppView base URL. */
+export const DEFAULT_APPVIEW = "https://api.rocksky.app";
 
+/** Unauthenticated read client over the public Rocksky AppView XRPC. */
 export class RockskyClient {
-  readonly config: HttpClientConfig;
+  private rpc: Client;
 
-  readonly actor: ActorNamespace;
-  readonly album: AlbumNamespace;
-  readonly apikey: ApikeyNamespace;
-  readonly artist: ArtistNamespace;
-  readonly charts: ChartsNamespace;
-  readonly dropbox: DropboxNamespace;
-  readonly feed: FeedNamespace;
-  readonly googledrive: GoogleDriveNamespace;
-  readonly graph: GraphNamespace;
-  readonly like: LikeNamespace;
-  readonly mirror: MirrorNamespace;
-  readonly rockbox: RockboxNamespace;
-  readonly player: PlayerNamespace;
-  readonly playlist: PlaylistNamespace;
-  readonly scrobble: ScrobbleNamespace;
-  readonly shout: ShoutNamespace;
-  readonly song: SongNamespace;
-  readonly spotify: SpotifyNamespace;
-  readonly stats: StatsNamespace;
-
-  constructor(options: ClientOptions = {}) {
-    this.config = buildConfig(options);
-    const call = makeCall(this.config);
-
-    this.actor = new ActorNamespace(call);
-    this.album = new AlbumNamespace(call);
-    this.apikey = new ApikeyNamespace(call);
-    this.artist = new ArtistNamespace(call);
-    this.charts = new ChartsNamespace(call);
-    this.dropbox = new DropboxNamespace(call);
-    this.feed = new FeedNamespace(call);
-    this.googledrive = new GoogleDriveNamespace(call);
-    this.graph = new GraphNamespace(call);
-    this.like = new LikeNamespace(call);
-    this.mirror = new MirrorNamespace(call);
-    this.rockbox = new RockboxNamespace(call);
-    this.player = new PlayerNamespace(call);
-    this.playlist = new PlaylistNamespace(call);
-    this.scrobble = new ScrobbleNamespace(call);
-    this.shout = new ShoutNamespace(call);
-    this.song = new SongNamespace(call);
-    this.spotify = new SpotifyNamespace(call);
-    this.stats = new StatsNamespace(call);
+  /** Build a read client against an AppView base URL (defaults to {@link DEFAULT_APPVIEW}). */
+  constructor(appview: string = DEFAULT_APPVIEW) {
+    this.rpc = new Client({ handler: simpleFetchHandler({ service: appview }) });
   }
 
-  /** Build a one-off authenticated copy without mutating this client. */
-  withAuth(auth: AuthProvider): RockskyClient {
-    return new RockskyClient({
-      ...this.optionsSnapshot(),
-      auth,
+  private async query<T>(nsid: string, params: Record<string, unknown>): Promise<T> {
+    const clean: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== "") clean[k] = v;
+    }
+    const res = await this.rpc.get(nsid as never, { params: clean } as never);
+    if (!res.ok) throw new RockskyError(res.data);
+    return res.data as T;
+  }
+
+  /** An actor's detailed profile. `actor` is a handle or DID. */
+  profile(actor: string): Promise<ActorProfileViewDetailed> {
+    return this.query("app.rocksky.actor.getProfile", { did: actor });
+  }
+
+  /** An actor's scrobbles, newest first. */
+  async scrobbles(actor: string, limit = 50, offset = 0): Promise<ScrobbleViewBasic[]> {
+    const out = await this.query<GetActorScrobblesOutput>("app.rocksky.actor.getActorScrobbles", {
+      did: actor,
+      limit,
+      offset,
     });
+    return out.scrobbles ?? [];
   }
 
-  /** Build a copy with an overridden base URL. */
-  withBaseUrl(baseUrl: string): RockskyClient {
-    return new RockskyClient({
-      ...this.optionsSnapshot(),
-      baseUrl,
+  /** An actor's most-played songs. */
+  async songs(actor: string, limit = 50, offset = 0): Promise<SongViewBasic[]> {
+    const out = await this.query<GetActorSongsOutput>("app.rocksky.actor.getActorSongs", {
+      did: actor,
+      limit,
+      offset,
     });
+    return out.songs ?? [];
   }
 
-  /**
-   * Open a realtime WebSocket connection to /ws.
-   *
-   *   const rt = client.realtime({ token, clientName: "my-app" });
-   *   rt.on("message", m => console.log(m));
-   *   await rt.connect();
-   *
-   * Defaults `baseUrl` to this client's base URL. Override anything by
-   * passing the option, or use `RealtimeClient.builder()` for full control.
-   */
-  realtime(
-    options: Omit<RealtimeOptions, "baseUrl"> &
-      Partial<Pick<RealtimeOptions, "baseUrl">>,
-  ): RealtimeClient {
-    return createRealtimeClient({
-      baseUrl: this.config.baseUrl,
-      ...options,
+  /** An actor's most-played albums. */
+  async albums(actor: string, limit = 50, offset = 0): Promise<AlbumViewBasic[]> {
+    const out = await this.query<GetActorAlbumsOutput>("app.rocksky.actor.getActorAlbums", {
+      did: actor,
+      limit,
+      offset,
     });
+    return out.albums ?? [];
   }
 
-  /**
-   * Page through any limit/offset or cursor-based endpoint as an async iterable.
-   *
-   *   for await (const s of client.paginate({
-   *     fetch: ({ limit, offset }) =>
-   *       client.actor.getActorScrobbles({ did, limit, offset }),
-   *     pageSize: 50,
-   *   })) { ... }
-   */
-  paginate<T>(args: PaginateArgs<T>) {
-    return paginateFn(args);
+  /** An actor's most-played artists. */
+  async artists(actor: string, limit = 50, offset = 0): Promise<ArtistViewBasic[]> {
+    const out = await this.query<GetActorArtistsOutput>("app.rocksky.actor.getActorArtists", {
+      did: actor,
+      limit,
+      offset,
+    });
+    return out.artists ?? [];
   }
 
-  /**
-   * Direct escape hatch — call any XRPC endpoint by NSID.
-   *
-   * Known NSIDs (string literals) are typed via the generated `Endpoints`
-   * map; arbitrary strings fall back to `unknown` (override with `<T>`).
-   */
-  xrpc<K extends keyof Endpoints>(
-    nsid: K,
-    method?: "GET" | "POST",
-    opts?: XrpcOpts,
-  ): Promise<Endpoints[K]>;
-  xrpc<T = unknown>(
-    nsid: string,
-    method?: "GET" | "POST",
-    opts?: XrpcOpts,
-  ): Promise<T>;
-  xrpc(
-    nsid: string,
-    method: "GET" | "POST" = "GET",
-    opts: XrpcOpts = {},
-  ): Promise<unknown> {
-    return xrpcCall(this.config, nsid, method, opts);
+  /** The platform-wide top tracks chart. */
+  async topTracks(limit = 50, offset = 0): Promise<SongViewBasic[]> {
+    const out = await this.query<GetTopTracksOutput>("app.rocksky.charts.getTopTracks", { limit, offset });
+    return out.tracks ?? [];
   }
 
-  static builder(): RockskyClientBuilder {
-    return new RockskyClientBuilder();
+  /** The platform-wide top artists chart. */
+  async topArtists(limit = 50, offset = 0): Promise<ArtistViewBasic[]> {
+    const out = await this.query<GetTopArtistsOutput>("app.rocksky.charts.getTopArtists", { limit, offset });
+    return out.artists ?? [];
   }
 
-  private optionsSnapshot(): ClientOptions {
-    return {
-      baseUrl: this.config.baseUrl,
-      auth: this.config.auth,
-      fetch: this.config.fetch,
-      headers: this.config.headers,
-      timeoutMs: this.config.timeoutMs,
-      retries: this.config.retries,
-      retryDelayMs: this.config.retryDelayMs,
-    };
-  }
-}
-
-/**
- * Fluent builder.
- *
- *   const client = RockskyClient.builder()
- *     .baseUrl("https://api.rocksky.app")
- *     .auth(() => loadToken())
- *     .timeout(10_000)
- *     .retries(3)
- *     .userAgent("my-app/1.0")
- *     .build();
- */
-export class RockskyClientBuilder {
-  private readonly opts: ClientOptions = {};
-
-  baseUrl(url: string): this {
-    this.opts.baseUrl = url;
-    return this;
+  /** Full-text search across songs, albums, artists, playlists, actors. */
+  search(query: string): Promise<FeedSearchResultsView> {
+    return this.query("app.rocksky.feed.search", { query });
   }
 
-  auth(auth: AuthProvider): this {
-    this.opts.auth = auth;
-    return this;
+  /** Platform-wide totals. */
+  globalStats(): Promise<StatsGlobalStatsView> {
+    return this.query("app.rocksky.stats.getGlobalStats", {});
   }
-
-  bearer(token: string): this {
-    this.opts.auth = token;
-    return this;
-  }
-
-  fetch(impl: FetchLike): this {
-    this.opts.fetch = impl;
-    return this;
-  }
-
-  header(key: string, value: string): this {
-    this.opts.headers = { ...this.opts.headers, [key]: value };
-    return this;
-  }
-
-  headers(headers: Record<string, string>): this {
-    this.opts.headers = { ...this.opts.headers, ...headers };
-    return this;
-  }
-
-  userAgent(ua: string): this {
-    this.opts.userAgent = ua;
-    return this;
-  }
-
-  timeout(ms: number): this {
-    this.opts.timeoutMs = ms;
-    return this;
-  }
-
-  retries(n: number): this {
-    this.opts.retries = n;
-    return this;
-  }
-
-  retryDelay(ms: number): this {
-    this.opts.retryDelayMs = ms;
-    return this;
-  }
-
-  build(): RockskyClient {
-    return new RockskyClient(this.opts);
-  }
-}
-
-/** Convenience factory — equivalent to `new RockskyClient(options)`. */
-export function createClient(options: ClientOptions = {}): RockskyClient {
-  return new RockskyClient(options);
 }
