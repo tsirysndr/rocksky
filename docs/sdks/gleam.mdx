@@ -11,11 +11,11 @@ PDS writes, and the identity hashes. Targets Erlang.
 ## Install
 
 ```bash
-gleam add rocksky
+gleam add rocksky   # rocksky = ">= 1.5.0 and < 2.0.0"
 ```
 
-`rocksky` depends on `rocksky_erl`, whose loader fetches the native library from
-the GitHub release on first use.
+`rocksky` 1.5.0 depends on `rocksky_erl` 0.2.0, whose loader fetches the native
+library from the GitHub release on first use.
 
 ## Quickstart
 
@@ -36,11 +36,25 @@ pub fn main() {
 
 ## API
 
-**Reads**: `profile(actor)`, `scrobbles(actor, limit, offset)`,
+**Reads**: named reads `profile(actor)`, `scrobbles(actor, limit, offset)`,
 `top_tracks(limit, offset)`, `global_stats()` — each returns `Dynamic`. Use the
-`*_at` variants (e.g. `global_stats_at(endpoint)`) to target a custom AppView.
+`*_at` variants (e.g. `global_stats_at(endpoint)`) to target a custom AppView. The
+universal `get(nsid, params_json)` escape hatch reaches the *whole*
+`app.rocksky.*` read catalog by NSID (e.g.
+`client.get("app.rocksky.album.getAlbums", "{\"limit\":20}")`,
+`"app.rocksky.album.getAlbumTracks"`, `"app.rocksky.graph.getFollows"`,
+`"app.rocksky.stats.getStats"`); `get_authed(nsid, params_json, token)` sends a
+bearer token for auth-gated queries and `get_at(nsid, params_json, endpoint)`
+targets a custom AppView. Typed date-window charts:
+`top_tracks_interval(5, 0, client.LastDays(7))` / `top_artists_interval` where
+`Interval` is `AllTime | LastDays(Int) | LastWeeks(Int) | LastMonths(Int) |
+LastYears(Int) | Range(String, String)`. `match_song(title, artist)` resolves a
+bare title + artist into full canonical metadata.
 
-**Writes**: `login(session_path, identifier, password)`, then `like`, `follow`,
-`shout`, `refresh_session`.
+**Writes**: `login(session_path, identifier, password)`, then `scrobble` (full
+metadata) or `scrobble_match(agent, title, artist, album, mb_id, isrc)`
+(match-then-write), `like`, `follow`, `shout`, `refresh_session`. With a dedup path
+set, `sync_repo(agent)` / `hydrate_from_jetstream(agent)` keep the dedup + realtime
+store warm.
 
 **Identity hashes**: `song_hash(title, artist, album)`, `artist_hash(album_artist)`.

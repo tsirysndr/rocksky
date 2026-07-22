@@ -13,12 +13,12 @@ NIF.
 
 ```elixir
 def deps do
-  [{:rocksky_ex, "~> 0.4"}]
+  [{:rocksky_ex, "~> 0.5"}]
 end
 ```
 
-`rocksky_ex` pulls in `rocksky_erl`, whose loader fetches the native library from
-the GitHub release on first use.
+`rocksky_ex` 0.5.0 pulls in `rocksky_erl` 0.2.0, whose loader fetches the native
+library from the GitHub release on first use.
 
 ## Quickstart (Elixir)
 
@@ -45,21 +45,47 @@ The friendly module is `rocksky` (Hex package `rocksky_erl`):
 
 ```erlang
 {ok, Stats} = rocksky:global_stats().
+%% Universal escape hatch — reaches the whole app.rocksky.* read catalog:
+{ok, Albums} = rocksky:get(<<"app.rocksky.album.getAlbums">>, #{<<"limit">> => 20}),
+{ok, Top}    = rocksky:top_tracks_interval(5, 0, {days, 7}),
+{ok, Song}   = rocksky:match_song(<<"Chaser">>, <<"Calibro 35">>),
+
 Agent = rocksky:agent_login(<<"session.json">>, <<"alice.bsky.social">>, <<"app-pw">>),
-{ok, Out} = rocksky:agent_scrobble(Agent, #{
-    <<"title">> => <<"Chaser">>, <<"artist">> => <<"Calibro 35">>,
-    <<"album">> => <<"Jazzploitation">>, <<"albumArtist">> => <<"Calibro 35">>,
-    <<"durationMs">> => 182320}).
+{ok, Out} = rocksky:agent_scrobble_match(Agent, <<"Chaser">>, <<"Calibro 35">>).
 ```
+
+Erlang mirrors the Elixir surface. Reads: `rocksky:get(Nsid, Params)` /
+`get/3` (with `Base`) / `get/4` (with `Base`, `Token`) reach the whole
+`app.rocksky.*` catalog; `rocksky:top_tracks_interval(5, 0, {days, 7})` /
+`top_artists_interval(5, 0, all)` (interval atoms/tuples: `all`, `{days, N}`,
+`{weeks, N}`, `{months, N}`, `{years, N}`, `{range, Start, End}`);
+`rocksky:match_song(Title, Artist)`. Writes:
+`rocksky:agent_login(Session, Id, Pw, AppView, DedupPath)`,
+`rocksky:agent_scrobble_match(Agent, Title, Artist)` (also `/4` with `Album`, `/6`
+with `Album`, `MbId`, `Isrc`), and `rocksky:agent_sync_repo(Agent)` /
+`agent_hydrate_from_jetstream(Agent)` once a dedup path is set.
 
 ## API
 
 Reads/writes return `{:ok, value}` | `{:error, message}` with binary-keyed maps.
 
-**Reads — `Rocksky`**: `profile`, `scrobbles`, `top_tracks`, `global_stats`
-(each takes a trailing `base`).
+**Reads — `Rocksky`**: named reads `profile`, `scrobbles`, `top_tracks`,
+`global_stats` (each takes a trailing `base`). The universal
+`get(nsid, params \\ %{}, base \\ "", token \\ "")` escape hatch reaches the
+*whole* `app.rocksky.*` read catalog by NSID (e.g.
+`Rocksky.get("app.rocksky.album.getAlbums", %{"limit" => 20})`,
+`"app.rocksky.album.getAlbumTracks"`, `"app.rocksky.graph.getFollows"`,
+`"app.rocksky.stats.getStats"`); pass a bearer `token` for auth-gated queries.
+Typed date-window charts: `top_tracks_interval(5, 0, {:days, 7})` /
+`top_artists_interval(5, 0, :all)` where the interval is `:all` | `{:days, n}` |
+`{:weeks, n}` | `{:months, n}` | `{:years, n}` | `{:range, start, end}`.
+`match_song(title, artist)` resolves a bare title + artist into full canonical
+metadata.
 
-**Writes — `Rocksky`**: `login`, then `scrobble`, `like`, `follow`, `shout`,
-`refresh_session`.
+**Writes — `Rocksky`**: `login(session, id, pw, appview \\ "", dedup_path \\ "")`,
+then `scrobble` (full metadata) or `scrobble_match(agent, title, artist, album
+\\ "", mb_id \\ "", isrc \\ "")` (match-then-write), `like`, `follow`, `shout`,
+`refresh_session`. Pass a `dedup_path` at login to enable dedup + realtime, then
+`sync_repo(agent)` / `hydrate_from_jetstream(agent)`.
 
 **Identity hashes**: `Rocksky.song_hash(title, artist, album)`.

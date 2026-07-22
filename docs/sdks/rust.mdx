@@ -14,7 +14,7 @@ index and Jetstream real-time sync.
 
 ```toml
 [dependencies]
-rocksky-sdk = { version = "0.1", features = ["dedup", "jetstream"] }
+rocksky-sdk = { version = "0.2", features = ["dedup", "jetstream"] }
 ```
 
 The `dedup` and `jetstream` features are optional (they pull in RocksDB + the
@@ -43,13 +43,37 @@ agent.scrobble(&ScrobbleDraft {
 
 ## API
 
-**Reads — `AppView`**: `profile`, `scrobbles`, `songs`, `albums`, `artists`,
-`feed`, `search`, `top_artists`, `top_tracks`, `global_stats`.
+**Reads — `AppView`**: the full `app.rocksky.*` read surface. Basics: `profile`,
+`scrobbles`, `songs`, `albums`, `artists`, `feed`, `search`, `top_artists`,
+`top_tracks`, `global_stats`. Catalog & relations: `catalog_albums`,
+`catalog_artists`, `catalog_songs`, `album_tracks`, `artist_albums`,
+`artist_tracks`, `loved_songs`, `scrobble_feed`, `scrobble` (single by uri),
+`follows`, `followers`, `known_followers`. Raw-JSON detail/long-tail methods:
+`album`, `artist`, `song`, `playlists`, `playlist`, `stats`, `wrapped`,
+`scrobbles_chart`, `recommendations`, `neighbours`, `shouts`, and more.
+`get(nsid, &params)` is the universal escape hatch — calls any read query by nsid
+and returns raw `serde_json::Value`; every named method is sugar over it.
+`match_song(title, artist, mb_id, isrc)` resolves a bare title + artist into full
+canonical metadata. Attach a bearer token for auth-gated queries with
+`AppView::new(base).with_token(token)` (or `set_token`).
 
-**Writes — `RockskyAgent`**: `scrobble` (fan-out), `create_song` / `create_album`
-/ `create_artist`, `like` / `unlike`, `follow` / `unfollow`, `shout` /
-`reply_shout`, `set_now_playing` / `clear_now_playing`. App-password + loopback
-OAuth login.
+**Date-window charts**: `top_tracks_interval` / `top_artists_interval` take a
+typed `DateInterval` — `AllTime`, `LastDays(n)`, `LastWeeks(n)`, `LastMonths(n)`,
+`LastYears(n)`, or `Range { start, end }`; `top_tracks` / `top_artists` remain
+all-time shorthands.
+
+```rust
+use rocksky_sdk::DateInterval;
+
+let month = av.top_tracks_interval(DateInterval::LastDays(30), 50, 0).await?;
+```
+
+**Writes — `RockskyAgent`**: `scrobble` (fan-out from full metadata),
+`scrobble_match(title, artist, album, mb_id, isrc)` (resolves metadata via
+`match_song`, then the same fan-out; album/mb_id/isrc optional), `create_song` /
+`create_album` / `create_artist`, `like` / `unlike`, `follow` / `unfollow`,
+`shout` / `reply_shout`, `set_now_playing` / `clear_now_playing`. App-password +
+loopback OAuth login.
 
 **Identity hashes**: `rocksky_sdk::dedup::{song_hash, album_hash, artist_hash}`.
 

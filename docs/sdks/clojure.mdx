@@ -13,7 +13,7 @@ identity hashes — the same engine behind every Rocksky SDK.
 deps.edn:
 
 ```clojure
-app.rocksky/sdk {:mvn/version "0.4.1"}
+app.rocksky/sdk {:mvn/version "0.5.0-SNAPSHOT"}
 ```
 
 The jar is native-free; the library is fetched from the GitHub release on first
@@ -41,11 +41,32 @@ use. Run with `--enable-native-access=ALL-UNNAMED` (the `:native` alias adds it)
 
 Reads/writes return plain maps; write verbs throw `ex-info` on failure.
 
-**Reads — `rocksky.core`**: `(profile actor)`, `(scrobbles actor limit)`,
-`(top-tracks limit offset)`, `(global-stats)` — each accepts a trailing `base`.
+**Reads — `rocksky.core`**: named reads `(profile actor)`,
+`(scrobbles actor limit)`, `(top-tracks limit offset)`, `(global-stats)` — each
+accepts a trailing `base`.
 
-**Writes — `rocksky.core`**: `(login ...)`, then `(scrobble agent track)`,
-`(like agent uri cid)`, `(follow agent did)`, `(shout ...)`,
-`(refresh-session agent)`, `(agent-close agent)`.
+**Universal escape hatch**: `(query nsid params)` reaches the whole
+`app.rocksky.*` read catalog and returns parsed data — e.g.
+`"app.rocksky.album.getAlbums"`, `"app.rocksky.album.getAlbumTracks"`,
+`"app.rocksky.graph.getFollows"`, `"app.rocksky.actor.getActorLovedSongs"`,
+`"app.rocksky.stats.getStats"`, `"app.rocksky.charts.getScrobblesChart"`.
+`(query nsid params base token)` sends `token` as `Authorization: Bearer` for
+auth-gated queries.
+
+**Typed date-window charts**: `(top-tracks-interval limit offset interval)` and
+`(top-artists-interval limit offset interval)` — `interval` is `:all` or
+`[:days n]` / `[:weeks n]` / `[:months n]` / `[:years n]` / `[:range start end]`,
+e.g. `(top-tracks-interval 5 0 [:days 7])`.
+
+**Match**: `(match-song title artist)` resolves a bare title + artist into full
+canonical metadata.
+
+**Writes — `rocksky.core`**: `(login ... :dedup-path "./dedup")`, then
+`(scrobble agent track)` (full metadata) or `(scrobble-match agent title artist)`
+(optionally `... album mb-id isrc` — match-then-write), `(like agent uri cid)`,
+`(follow agent did)`, `(shout ...)`, `(refresh-session agent)`,
+`(agent-close agent)`. With `:dedup-path` set, `(sync-repo agent)` (repo backfill)
+and `(hydrate-from-jetstream agent)` (live stream) run deduped against the
+on-disk store.
 
 **Identity hashes**: `(song-hash title artist album)`.

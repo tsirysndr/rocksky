@@ -13,7 +13,7 @@ Rocksky SDK.
 
 ```kotlin
 dependencies {
-    implementation("app.rocksky:rocksky-kotlin:0.5.0")
+    implementation("app.rocksky:rocksky-kotlin:0.6.0")
 }
 ```
 
@@ -40,13 +40,27 @@ println(out.scrobbleUri)
 
 ## API
 
-**Reads — `AppView(base: String?)`**: `profile`, `scrobbles`, `songs`,
-`topTracks`, `topArtists`, `globalStats`. Counts are `UInt`.
+**Reads — `AppView(base: String? = null, token: String? = null)`** (pass `token`
+to send `Authorization: Bearer` on auth-gated queries; counts are `UInt`). Typed
+views: `profile`, `scrobbles`, `songs`, `albums`, `artists`, `lovedSongs`,
+`catalogAlbums` / `catalogArtists` / `catalogSongs`, `albumTracks`,
+`artistAlbums` / `artistTracks`, `scrobbleFeed`, `scrobble` (single), `follows` /
+`followers` / `knownFollowers`, `topTracks`, `topArtists`, `globalStats`.
+Date-window charts `topTracksInterval(limit, offset, interval)` and
+`topArtistsInterval(...)` take a `DateInterval` (`AllTime`, `LastDays(7u)`,
+`LastWeeks`, `LastMonths`, `LastYears`, `Range(start, end)`).
+`matchSong(title, artist, mbId, isrc)` resolves a bare title+artist to canonical
+metadata. A raw-JSON long tail (`album`, `artist`, `song`, `playlists`,
+`playlist`, `stats`, `wrapped`, `scrobblesChart`, `recommendations`,
+`neighbours`, shouts, …) returns JSON strings, and `av.get(nsid, mapOf(...))`
+calls **any** read query by NSID.
 
 **Writes — `Agent`**: `login(...)` (top-level, `appview`/`dedupPath` optional),
-then `scrobble`, `createSong` /
-`createAlbum` / `createArtist`, `like` / `unlike`, `follow` / `unfollow`,
-`shout` / `replyShout`, `setNowPlaying` / `clearNowPlaying`, `syncRepo`. Write
-verbs throw `RockskyException`.
+then `scrobble` (full metadata) or `scrobbleMatch(title, artist, album, mbId,
+isrc)` (resolve via `matchSong`, then fan out), `createSong` / `createAlbum` /
+`createArtist`, `like` / `unlike`, `follow` / `unfollow`, `shout` / `replyShout`,
+`setNowPlaying` / `clearNowPlaying`, `syncRepo` (dedup backfill, returns
+per-collection counts as JSON), `hydrateFromJetstream` (live dedup off the
+firehose). Write verbs throw `RockskyException`.
 
 **Identity hashes**: `songHash`, `albumHash`, `artistHash`.

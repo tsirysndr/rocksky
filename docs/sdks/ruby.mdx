@@ -14,6 +14,8 @@ same engine behind every Rocksky SDK.
 gem install rocksky
 ```
 
+Or in a Gemfile: `gem "rocksky", "~> 0.5"`.
+
 The gem is pure-Ruby; the native library is fetched from the GitHub release on
 first load and cached.
 
@@ -42,10 +44,29 @@ agent.close
 Reads/writes return plain Hashes; write verbs raise `Rocksky::Error` on failure.
 Records are Hashes with camelCase keys.
 
-**Reads — `Rocksky`**: `profile(actor, base:)`, `scrobbles(actor, limit:, offset:, base:)`,
-`top_tracks(limit:, offset:, base:)`, `global_stats(base:)`.
+**Reads — `Rocksky`**: named reads `profile(actor, base:)`,
+`scrobbles(actor, limit:, offset:, base:)`, `top_tracks(limit:, offset:, base:)`,
+`global_stats(base:)`.
 
-**Writes — `Rocksky::Agent`**: `login(...)`, then `scrobble`, `like`, `follow`,
-`shout`, `refresh_session`, `close`.
+**Universal escape hatch**: `Rocksky.get(nsid, params, base: nil, token: nil)`
+reaches the whole `app.rocksky.*` read catalog and returns a parsed Hash/Array —
+e.g. `"app.rocksky.album.getAlbums"`, `"app.rocksky.album.getAlbumTracks"`,
+`"app.rocksky.graph.getFollows"`, `"app.rocksky.actor.getActorLovedSongs"`,
+`"app.rocksky.stats.getStats"`, `"app.rocksky.charts.getScrobblesChart"`. Pass
+`token:` for an `Authorization: Bearer` header on auth-gated queries.
+
+**Typed date-window charts**: `top_tracks_interval(limit:, offset:, interval:)`
+and `top_artists_interval(...)` — `interval:` is `:all` or `[:days, n]` /
+`[:weeks, n]` / `[:months, n]` / `[:years, n]` / `[:range, start, end]`, e.g.
+`Rocksky.top_tracks_interval(limit: 5, interval: [:days, 7])`.
+
+**Match**: `Rocksky.match_song(title, artist, mb_id: nil, isrc: nil)` resolves a
+bare title + artist into full canonical metadata.
+
+**Writes — `Rocksky::Agent`**: `login(..., dedup_path:)`, then `scrobble`
+(full metadata) or `scrobble_match(title, artist, album: nil, mb_id: nil, isrc: nil)`
+(match-then-write), plus `like`, `follow`, `shout`, `refresh_session`, `close`.
+With `dedup_path:` set at login, `sync_repo` (repo backfill) and
+`hydrate_from_jetstream` (live stream) run deduped against the on-disk store.
 
 **Identity hashes**: `Rocksky.song_hash(title, artist, album)`.

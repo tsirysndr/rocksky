@@ -50,10 +50,21 @@ Read-only, no auth:
 
 ```rust
 # async fn run() -> rocksky_sdk::Result<()> {
+use rocksky_sdk::DateInterval;
+
 let av = rocksky_sdk::AppView::new("https://api.rocksky.app");
-let charts = av.top_tracks(50, 0).await?;
+let charts = av.top_tracks(50, 0).await?;                       // all-time shorthand
+let month  = av.top_tracks_interval(DateInterval::LastDays(30), 50, 0).await?;
 let stats  = av.global_stats().await?;
-# let _ = (charts, stats);
+
+// Optional bearer token for auth-gated queries.
+let me = rocksky_sdk::AppView::new("https://api.rocksky.app")
+    .with_token("<access-token>");
+let loved = me.loved_songs("alice.bsky.social", 25, 0).await?;
+
+// Universal escape hatch — call any read query by nsid, get raw JSON.
+let raw = av.get("app.rocksky.getStats", &[]).await?;
+# let _ = (charts, month, stats, loved, raw);
 # Ok(()) }
 ```
 
@@ -62,6 +73,7 @@ let stats  = av.global_stats().await?;
 | Verb                                   | Record(s)                     |
 | -------------------------------------- | ----------------------------- |
 | `scrobble(draft)` → `ScrobbleResult`   | fans out to **artist + album + song + scrobble** (duplicates skipped) |
+| `scrobble_match(title, artist, album, mb_id, isrc)` | resolves full metadata via `match_song`, then the same fan-out (album/mb_id/isrc optional) |
 | `create_song(draft)`                   | `app.rocksky.song`            |
 | `create_album(draft)`                  | `app.rocksky.album`           |
 | `create_artist(draft)`                 | `app.rocksky.artist`          |
@@ -149,8 +161,46 @@ All logging is via `tracing` — no stdout/stderr writes.
 
 ## AppView reads
 
-`profile`, `scrobbles`, `songs`, `albums`, `artists`, `feed`, `search`,
-`top_artists`, `top_tracks`, `global_stats`.
+The `AppView` client covers the whole `app.rocksky.*` read surface.
+
+- **Basics**: `profile`, `scrobbles`, `songs`, `albums`, `artists`, `feed`,
+  `search`, `top_artists`, `top_tracks`, `global_stats`.
+- **Catalog & relations**: `catalog_albums`, `catalog_artists`, `catalog_songs`,
+  `album_tracks`, `artist_albums`, `artist_tracks`, `loved_songs`,
+  `scrobble_feed`, `scrobble` (single by uri), `follows`, `followers`,
+  `known_followers`.
+- **Detail / long-tail (raw JSON)**: `album`, `artist`, `song`, `playlists`,
+  `playlist`, `stats`, `wrapped`, `scrobbles_chart`, `recommendations`,
+  `neighbours`, `shouts`, and more.
+
+### Date-window charts
+
+`top_tracks_interval` / `top_artists_interval` take a typed `DateInterval` —
+`AllTime`, `LastDays(n)`, `LastWeeks(n)`, `LastMonths(n)`, `LastYears(n)`, or
+`Range { start, end }`. Plain `top_tracks` / `top_artists` are all-time shorthands.
+
+```rust
+# async fn run(av: rocksky_sdk::AppView) -> rocksky_sdk::Result<()> {
+use rocksky_sdk::DateInterval;
+
+let last_year = av.top_artists_interval(DateInterval::LastYears(1), 50, 0).await?;
+let window    = av.top_tracks_interval(
+    DateInterval::Range { start: "2025-01-01".into(), end: "2025-06-30".into() },
+    50, 0,
+).await?;
+# let _ = (last_year, window);
+# Ok(()) }
+```
+
+### `match_song` & the escape hatch
+
+`match_song(title, artist, mb_id, isrc)` resolves a bare title + artist into full
+canonical metadata (album, artwork, duration, track/disc number, MBID, ISRC,
+streaming links) as raw JSON. `get(nsid, &params)` calls any read query by nsid
+and returns raw `serde_json::Value` — every named method above is sugar over it.
+Attach an optional bearer token for auth-gated queries with
+`AppView::new(base).with_token(token)` (or `set_token`); it is sent as
+`Authorization: Bearer <token>`.
 
 ## Feature flags
 

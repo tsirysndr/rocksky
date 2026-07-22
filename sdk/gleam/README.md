@@ -11,12 +11,13 @@ Rocksky SDK. Targets Erlang.
 ## Installation
 
 ```sh
-gleam add rocksky
+gleam add rocksky   # rocksky = ">= 1.5.0 and < 2.0.0"
 ```
 
-`rocksky` depends on `rocksky_erl`, whose loader fetches the native library from
-the GitHub release on first use (checksum-verified). For monorepo dev, build it
-with `../erlang/build-core.sh` and use the local path dep in `gleam.toml`.
+`rocksky` 1.5.0 depends on `rocksky_erl` 0.2.0, whose loader fetches the native
+library from the GitHub release on first use (checksum-verified). For monorepo
+dev, build it with `../erlang/build-core.sh` and use the local path dep in
+`gleam.toml`.
 
 ## Quick start
 
@@ -40,16 +41,45 @@ pub fn main() {
 
 ### Reads
 
-`profile(actor)`, `scrobbles(actor, limit, offset)`, `top_tracks(limit, offset)`,
-`global_stats()` — each returns `Dynamic`. To target a custom AppView endpoint,
-use the `*_at` variant with a trailing endpoint URL (e.g.
-`global_stats_at("https://…")`, `top_tracks_at(limit, offset, "https://…")`).
+Named reads: `profile(actor)`, `scrobbles(actor, limit, offset)`,
+`top_tracks(limit, offset)`, `global_stats()` — each returns `Dynamic`. To target
+a custom AppView endpoint, use the `*_at` variant with a trailing endpoint URL
+(e.g. `global_stats_at("https://…")`, `top_tracks_at(limit, offset, "https://…")`).
+
+**Universal `get`** — the escape hatch reaches the *whole* `app.rocksky.*` read
+catalog by NSID: `get(nsid, params_json)`, `get_authed(nsid, params_json, token)`
+(bearer token for auth-gated queries), and `get_at(nsid, params_json, endpoint)`,
+each returning `Dynamic`.
+
+```gleam
+echo client.get("app.rocksky.album.getAlbums", "{\"limit\":20}")
+echo client.get("app.rocksky.album.getAlbumTracks", "{\"uri\":\"...\"}")
+echo client.get("app.rocksky.graph.getFollows", "{\"actor\":\"...\"}")
+echo client.get("app.rocksky.stats.getStats", "{}")
+```
+
+**Typed date-window charts** — `top_tracks_interval(limit, offset, interval)` and
+`top_artists_interval(limit, offset, interval)`, where `Interval` is
+`AllTime | LastDays(Int) | LastWeeks(Int) | LastMonths(Int) | LastYears(Int) |
+Range(String, String)`.
+
+```gleam
+echo client.top_tracks_interval(5, 0, client.LastDays(7))
+```
+
+**Match** — `match_song(title, artist)` resolves a bare title + artist into full
+canonical metadata.
 
 ### Writes
 
 `login(session_path, identifier, password)` → an opaque `Agent`. Then
+`scrobble(agent, track)` (full metadata) or
+`scrobble_match(agent, title, artist, album, mb_id, isrc)` (match-then-write),
 `like(agent, uri, cid)`, `follow(agent, did)`,
 `shout(agent, subject_uri, subject_cid, message)`, `refresh_session(agent)`.
+
+**Dedup + realtime** — once logged in with a dedup path, keep the store warm with
+`sync_repo(agent)` and `hydrate_from_jetstream(agent)`.
 
 ### Identity hashes
 

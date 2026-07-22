@@ -52,11 +52,18 @@ Two implementations share one behaviour:
 
 Every SDK exposes the same three things:
 
-- **Reads** — an unauthenticated client over the public AppView
-  (`https://api.rocksky.app`, overridable): `globalStats`, `topTracks`,
-  `topArtists`, `profile`, `scrobbles`, `songs`, `albums`, `artists`, `search`.
+- **Reads** — a client over the public AppView (`https://api.rocksky.app`,
+  overridable) covering the full `app.rocksky.*` read catalog: `globalStats`,
+  `topTracks`, `topArtists`, `profile`, `scrobbles`, `songs`, `albums`,
+  `artists`, `search`, catalog/loved/follow queries, plus a universal
+  `get(nsid, params)` escape hatch that calls any read query by nsid. Charts take
+  a typed `DateInterval` (all-time, last N days/weeks/months/years, or a custom
+  range), and `matchSong` resolves a bare title + artist into full canonical
+  metadata. Each read client also accepts an optional **bearer access token** for
+  auth-gated queries.
 - **Writes** — an **Agent** that logs in with an **app password**, resolves the
-  account's PDS, and writes records: `scrobble`, `createSong` / `createAlbum` /
+  account's PDS, and writes records: `scrobble`, `scrobble_match`
+  (match-then-write from a bare title + artist), `createSong` / `createAlbum` /
   `createArtist`, `like`, `follow`, `shout`, now-playing.
 - **Identity hashes** — `songHash` / `albumHash` / `artistHash` (lowercase-hex
   SHA-256), byte-for-byte identical across every SDK and the server.

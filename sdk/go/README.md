@@ -27,6 +27,11 @@ ctx := context.Background()
 c := rocksky.NewClient("")
 stats, _ := c.GlobalStats(ctx)
 top, _ := c.TopTracks(ctx, 10, 0)
+month, _ := c.TopTracksInterval(ctx, rocksky.LastDays(30), 50, 0)
+
+// Optional bearer token for auth-gated queries.
+me := rocksky.NewClient("").WithToken("<access-token>")
+loved, _ := me.LovedSongs(ctx, "alice.bsky.social", 25, 0)
 
 // Writes — log in with an app password (resolves the PDS automatically).
 agent, _ := rocksky.Login(ctx, "alice.bsky.social", "app-password")
@@ -38,12 +43,30 @@ uri, _ := agent.Scrobble(ctx, gen.ScrobbleRecord{
 
 ## API
 
-**Reads — `Client`**: `Profile`, `Scrobbles`, `Songs`, `Albums`, `Artists`,
-`TopTracks`, `TopArtists`, `Search`, `GlobalStats`.
+**Reads — `Client`**: the full `app.rocksky.*` read surface. Basics: `Profile`,
+`Scrobbles`, `Songs`, `Albums`, `Artists`, `TopTracks`, `TopArtists`, `Search`,
+`GlobalStats`. Catalog & relations: `CatalogAlbums`, `CatalogArtists`,
+`CatalogSongs`, `AlbumTracks`, `ArtistAlbums`, `ArtistTracks`, `LovedSongs`,
+`ScrobbleFeed`, `Scrobble` (single by uri), `Follows`, `Followers`,
+`KnownFollowers`, plus raw `json.RawMessage` detail methods (`Album`, `Artist`,
+`Song`, `Playlists`, `Playlist`, `Stats`, `Wrapped`, `ScrobblesChart`,
+`Recommendations`, `Neighbours`, `Shouts`, and more). `Get(ctx, nsid, params)` is
+the universal escape hatch — calls any read query by nsid and returns raw
+`json.RawMessage`; every named method is sugar over it. `MatchSong(ctx, title,
+artist, mbID, isrc)` resolves a bare title + artist into full canonical metadata.
+Attach a bearer token for auth-gated queries with `NewClient("").WithToken(token)`.
 
-**Writes — `Agent`**: `Scrobble`, `CreateSong`/`CreateAlbum`/`CreateArtist`,
-`Like`, `Follow`, `Shout`/`ReplyShout`, `SetNowPlaying`/`ClearNowPlaying`,
-`Delete`, `RefreshSession`. Records are the generated `gen.*Record` types.
+**Date-window charts**: `TopTracksInterval` / `TopArtistsInterval` take a typed
+`DateInterval`, built with `rocksky.AllTime()`, `rocksky.LastDays(n)`,
+`LastWeeks`, `LastMonths`, `LastYears`, or `rocksky.Range(start, end)`. Plain
+`TopTracks` / `TopArtists` remain all-time shorthands.
+
+**Writes — `Agent`**: `Scrobble` (fan-out from full metadata),
+`ScrobbleMatch(ctx, appview, title, artist, album, mbID, isrc)` (resolves
+metadata via `MatchSong`, then the same fan-out; album/mbID/isrc optional),
+`CreateSong`/`CreateAlbum`/`CreateArtist`, `Like`, `Follow`, `Shout`/`ReplyShout`,
+`SetNowPlaying`/`ClearNowPlaying`, `Delete`, `RefreshSession`. Records are the
+generated `gen.*Record` types.
 
 **Identity hashes**: `SongHash`, `AlbumHash`, `ArtistHash` — lowercase-hex
 SHA-256, identical to the server and every other Rocksky SDK.

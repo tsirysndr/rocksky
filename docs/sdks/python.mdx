@@ -12,11 +12,11 @@ hashes — the same engine behind every Rocksky SDK.
 
 <CodeGroup>
 ```bash uv
-uv add rocksky
+uv add rocksky==0.5.0
 ```
 
 ```bash pip
-pip install rocksky
+pip install rocksky==0.5.0
 ```
 </CodeGroup>
 
@@ -45,13 +45,27 @@ print(out.scrobble_uri)
 
 ## API
 
-**Reads — `AppView(base=None)`**: `profile`, `scrobbles`, `songs`, `albums`,
-`artists`, `top_tracks`, `top_artists`, `global_stats`.
+**Reads — `AppView(base=None, token=None)`** (pass `token` to send
+`Authorization: Bearer` on auth-gated queries). Typed views:
+`profile`, `scrobbles`, `songs`, `albums`, `artists`, `loved_songs`,
+`catalog_albums` / `catalog_artists` / `catalog_songs`, `album_tracks`,
+`artist_albums` / `artist_tracks`, `scrobble_feed`, `scrobble` (single),
+`follows` / `followers` / `known_followers`, `top_tracks`, `top_artists`,
+`global_stats`. Date-window charts `top_tracks_interval(limit, offset, interval)`
+and `top_artists_interval(...)` take a `DateInterval` (`ALL_TIME`,
+`LAST_DAYS(days=7)`, `LAST_WEEKS`, `LAST_MONTHS`, `LAST_YEARS`,
+`RANGE(start=..., end=...)`). `match_song(title, artist, mb_id, isrc)` resolves a
+bare title+artist to canonical metadata. A raw-JSON long tail (`album`, `artist`,
+`song`, `playlists`, `playlist`, `stats`, `wrapped`, `scrobbles_chart`,
+`recommendations`, `neighbours`, shouts, …) returns JSON strings, and
+`av.get(nsid, params)` (a `dict[str, str]`) calls **any** read query by NSID.
 
-**Writes — `Agent`**: `login_password(...)`, then `scrobble`, `create_song` /
-`create_album` / `create_artist`, `like` / `unlike`, `follow` / `unfollow`,
-`shout` / `reply_shout`, `set_now_playing` / `clear_now_playing`, `sync_repo`
-(dedup backfill).
+**Writes — `Agent`**: `login_password(...)`, then `scrobble` (full metadata) or
+`scrobble_match(title, artist, album, mb_id, isrc)` (resolve via `match_song`,
+then fan out), `create_song` / `create_album` / `create_artist`, `like` /
+`unlike`, `follow` / `unfollow`, `shout` / `reply_shout`, `set_now_playing` /
+`clear_now_playing`, `sync_repo` (dedup backfill, returns per-collection counts
+as JSON), `hydrate_from_jetstream` (live dedup off the firehose).
 
 **Identity hashes**: `song_hash`, `album_hash`, `artist_hash`.
 

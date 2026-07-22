@@ -48,12 +48,46 @@ const uri = await agent.scrobble({
 
 ## API
 
-**Reads — `RockskyClient`**: `profile`, `scrobbles`, `songs`, `albums`,
-`artists`, `topTracks`, `topArtists`, `search`, `globalStats`.
+**Reads — `RockskyClient`**: the client now covers the whole `app.rocksky.*`
+read surface. Typed methods include `profile`, `scrobbles`, `songs`, `albums`,
+`artists`, `topTracks`, `topArtists`, `search`, `globalStats`, `lovedSongs`,
+`catalogAlbums`, `catalogArtists`, `catalogSongs`, `albumTracks`, `artistAlbums`,
+`artistTracks`, `scrobbleFeed`, `scrobble` (single by uri), `follows`,
+`followers`, `knownFollowers`. Raw (`unknown`-returning) detail / long-tail
+methods cover the rest: `album`, `artist`, `song`, `feed`, `playlists`,
+`playlist`, `stats`, `wrapped`, `scrobblesChart`, `recommendations`,
+`neighbours`, shouts, and more.
 
-**Writes — `Agent`**: `scrobble`, `createSong` / `createAlbum` / `createArtist`,
-`like`, `follow`, `shout` / `replyShout`, `setNowPlaying` / `clearNowPlaying`,
-`delete`.
+Every named method is sugar over the universal escape hatch **`rk.get(nsid,
+params)`**, which calls ANY read query by nsid and returns `unknown`.
+
+**Typed date-window charts**: `topTracksInterval(limit, offset, interval)` and
+`topArtistsInterval(...)` take a `DateInterval` built with the `Interval`
+factories — `Interval.allTime()`, `Interval.lastDays(n)`, `Interval.lastWeeks(n)`,
+`Interval.lastMonths(n)`, `Interval.lastYears(n)`, `Interval.range(start, end)`.
+`topTracks` / `topArtists` remain all-time shorthands.
+
+```ts
+import { RockskyClient, Interval } from "@rocksky/sdk";
+
+const rk = new RockskyClient();
+const monthly = await rk.topTracksInterval(10, 0, Interval.lastMonths(1));
+
+// Resolve a bare title + artist into full canonical metadata.
+const song = await rk.matchSong("Chaser", "Calibro 35");
+```
+
+**`matchSong(title, artist, mbId?, isrc?)`**: resolves a bare title + artist into
+full canonical metadata (album, artwork, duration, MBID, ISRC, links).
+
+**Auth-gated reads**: pass an optional bearer access token —
+`new RockskyClient(appview, token)` — sent as `Authorization: Bearer <token>`.
+
+**Writes — `Agent`**: two scrobble paths — `scrobble(rec)` writes full metadata
+you already have, and `scrobbleMatch(title, artist, album?, mbId?, isrc?)`
+resolves full metadata via `matchSong` first, then writes. Plus `createSong` /
+`createAlbum` / `createArtist`, `like`, `follow`, `shout` / `replyShout`,
+`setNowPlaying` / `clearNowPlaying`, `delete`.
 
 **Identity hashes**: `songHash`, `albumHash`, `artistHash`.
 

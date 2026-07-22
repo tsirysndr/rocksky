@@ -11,6 +11,12 @@ every Rocksky SDK.
 gem install rocksky
 ```
 
+Or in a Gemfile:
+
+```ruby
+gem "rocksky", "~> 0.5"
+```
+
 The gem is pure-Ruby; the native library is fetched from the GitHub release on
 first load and cached (checksum-verified). For a local checkout, build it once:
 
@@ -46,16 +52,63 @@ camelCase keys.
 
 ### Reads — `Rocksky`
 
-`profile(actor, base:)`, `scrobbles(actor, limit:, offset:, base:)`,
+Named reads: `profile(actor, base:)`, `scrobbles(actor, limit:, offset:, base:)`,
 `top_tracks(limit:, offset:, base:)`, `global_stats(base:)`. Every read takes an
 optional `base:` to target a custom AppView.
 
+**Universal escape hatch** — `Rocksky.get(nsid, params, base: nil, token: nil)`
+reaches the *whole* `app.rocksky.*` read catalog and returns the parsed
+Hash/Array. Pass `token:` to send an `Authorization: Bearer` header for
+auth-gated queries.
+
+```ruby
+Rocksky.get("app.rocksky.album.getAlbums", limit: 10)
+Rocksky.get("app.rocksky.album.getAlbumTracks", uri: album_uri)
+Rocksky.get("app.rocksky.graph.getFollows", actor: "alice.bsky.social")
+Rocksky.get("app.rocksky.actor.getActorLovedSongs", actor: "alice.bsky.social")
+Rocksky.get("app.rocksky.stats.getStats")
+Rocksky.get("app.rocksky.charts.getScrobblesChart", token: "…")
+```
+
+**Typed date-window charts** — `top_tracks_interval(limit:, offset:, interval:)`
+and `top_artists_interval(...)`. `interval:` is `:all` or one of
+`[:days, n]` / `[:weeks, n]` / `[:months, n]` / `[:years, n]` /
+`[:range, start, end]`.
+
+```ruby
+Rocksky.top_tracks_interval(limit: 5, interval: [:days, 7])
+Rocksky.top_artists_interval(limit: 5, interval: :all)
+```
+
+**Match** — `Rocksky.match_song(title, artist, mb_id: nil, isrc: nil)` resolves a
+bare title + artist into full canonical metadata.
+
 ### Writes — `Rocksky::Agent`
 
-`Agent.login(session_path, identifier, password, appview:)` → an agent. Then
-`scrobble(track)` (fans out to artist/album/song/scrobble), `like(uri, cid)`,
-`follow(did)`, `shout(subject_uri, subject_cid, message)`, `refresh_session`, and
-`close` (release the native handle).
+`Agent.login(session_path, identifier, password, appview:, dedup_path:)` → an
+agent. Pass `dedup_path:` to enable scrobble dedup + realtime hydration (see
+below). Then `scrobble(track)` (fans out to artist/album/song/scrobble),
+`like(uri, cid)`, `follow(did)`, `shout(subject_uri, subject_cid, message)`,
+`refresh_session`, and `close` (release the native handle).
+
+**Two scrobble paths** — `scrobble(track)` takes full metadata, while
+`scrobble_match(title, artist, album: nil, mb_id: nil, isrc: nil)` matches a bare
+title + artist first, then writes.
+
+```ruby
+agent.scrobble_match("Chaser", "Calibro 35", album: "Jazzploitation")
+```
+
+**Dedup + realtime** — with `dedup_path:` set at login, `agent.sync_repo`
+backfills from the PDS repo and `agent.hydrate_from_jetstream` streams live
+updates, both deduped against the on-disk store.
+
+```ruby
+agent = Rocksky::Agent.login("session.json", "alice.bsky.social", "app-password",
+                             dedup_path: "./dedup")
+agent.sync_repo
+agent.hydrate_from_jetstream
+```
 
 ### Identity hashes
 
