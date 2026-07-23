@@ -1,5 +1,5 @@
 name = "rocksky"
-version = "1.5.1"
+version = "1.6.0"
 
 description = "Gleam SDK for Rocksky — native bindings to the shared Rust core: AppView reads, AT Protocol PDS writes, and identity hashes"
 licences = ["MIT"]
@@ -18,7 +18,7 @@ gleam_stdlib = ">= 0.71.0 and < 2.0.0"
 # depend on the Hex `rocksky_erl` package (its loader fetches the native lib on
 # first use). For monorepo dev, comment this out and use the local path line
 # below (build its priv/rocksky_nif.so via ../erlang/build-core.sh).
-rocksky_erl = ">= 0.2.0 and < 1.0.0"
+rocksky_erl = ">= 0.3.0 and < 1.0.0"
 # rocksky_erl = { path = "../erlang" }
 
 [dev-dependencies]

@@ -3,7 +3,7 @@
    "Official Erlang SDK for Rocksky — a Rustler NIF over the shared Rust core "
    "(rocksky-sdk): AppView reads, record writes (scrobble fan-out, like, "
    "follow, shout), and the identity hashes shared across every Rocksky SDK."},
-  {vsn, "0.2.1"},
+  {vsn, "0.3.0"},
   {registered, []},
   %% crypto/inets/ssl/public_key back the first-load NIF download + checksum
   %% verify in rocksky_nif. kernel/stdlib are mandatory.
