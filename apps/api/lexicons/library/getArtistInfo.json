@@ -1,0 +1,29 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.library.getArtistInfo",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get artist biography, images and similar artists.",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The artist id"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    }
+  }
+}

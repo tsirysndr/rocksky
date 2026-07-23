@@ -1,0 +1,34 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.library.getDownloadUrl"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get a download URL for a song."
+    parameters {
+      type = "params"
+      required = List("id")
+      properties {
+        ["id"] = new StringType {
+          type = "string"
+          description = "The song id."
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        required = List("url")
+        properties {
+          ["url"] = new StringType {
+            type = "string"
+            format = "uri"
+            description = "The resolved media or cover-art URL."
+          }
+        }
+      }
+    }
+  }
+}

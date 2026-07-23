@@ -1,0 +1,38 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.library.getRandomSongs",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get a list of random songs.",
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "size": {
+            "type": "integer",
+            "description": "Number of songs to return (max 500)."
+          },
+          "genre": {
+            "type": "string",
+            "description": "Only return songs in this genre."
+          },
+          "fromYear": {
+            "type": "integer",
+            "description": "Only return songs published after or in this year."
+          },
+          "toYear": {
+            "type": "integer",
+            "description": "Only return songs published before or in this year."
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    }
+  }
+}

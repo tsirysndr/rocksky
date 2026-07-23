@@ -1,0 +1,29 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.library.getAlbum",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get details for an album, including a list of songs.",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The album id"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    }
+  }
+}

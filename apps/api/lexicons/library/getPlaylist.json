@@ -1,0 +1,29 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.library.getPlaylist",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get a playlist and its entries.",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The playlist id"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    }
+  }
+}

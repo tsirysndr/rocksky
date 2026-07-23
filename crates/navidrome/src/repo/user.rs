@@ -14,6 +14,35 @@ pub async fn get_user_did_by_id(
     Ok(row.map(|(did,)| did))
 }
 
+/// Resolve a user by handle without requiring an API key.
+///
+/// Used by the internal (server-to-server) auth path: apps/api has already
+/// authenticated the caller via a Rocksky JWT, so we trust the handle and skip
+/// Subsonic credential verification. `api_key` is returned empty since it is
+/// irrelevant on this path.
+pub async fn get_user_by_handle(
+    pool: &Pool<Postgres>,
+    handle: &str,
+) -> Result<Option<UserWithApiKey>, Error> {
+    let row: Option<UserWithApiKey> = sqlx::query_as(
+        r#"
+        SELECT
+            xata_id,
+            handle,
+            display_name,
+            avatar,
+            '' AS api_key
+        FROM users
+        WHERE handle = $1
+        "#,
+    )
+    .bind(handle)
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(row)
+}
+
 pub async fn get_user_with_apikeys(
     pool: &Pool<Postgres>,
     handle: &str,

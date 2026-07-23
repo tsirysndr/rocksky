@@ -1,0 +1,21 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.library.getPlayQueue",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get the saved play queue for the user.",
+      "parameters": {
+        "type": "params",
+        "properties": {}
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    }
+  }
+}

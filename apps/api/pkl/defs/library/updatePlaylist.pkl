@@ -1,0 +1,46 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.library.updatePlaylist"
+defs = new Mapping<String, Procedure> {
+  ["main"] {
+    type = "procedure"
+    description = "Update an existing playlist."
+    input {
+      encoding = "application/json"
+      schema {
+        type = "object"
+        required = List("playlistId")
+        properties {
+          ["playlistId"] = new StringType {
+            type = "string"
+            description = "The playlist id to update."
+          }
+          ["name"] = new StringType {
+            type = "string"
+            description = "New playlist name."
+          }
+          ["comment"] = new StringType {
+            type = "string"
+            description = "New playlist comment."
+          }
+          ["songIdToAdd"] = new StringType {
+            type = "string"
+            description = "A song id to add to the playlist."
+          }
+          ["songIndexToRemove"] = new IntegerType {
+            type = "integer"
+            description = "A track index to remove from the playlist."
+          }
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        properties {}
+      }
+    }
+  }
+}

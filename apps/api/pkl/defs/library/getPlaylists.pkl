@@ -1,0 +1,21 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.library.getPlaylists"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get all playlists owned by the user."
+    parameters {
+      type = "params"
+      properties {}
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        properties {}
+      }
+    }
+  }
+}

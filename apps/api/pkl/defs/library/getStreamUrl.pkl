@@ -1,0 +1,42 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.library.getStreamUrl"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get a playable stream URL for a song."
+    parameters {
+      type = "params"
+      required = List("id")
+      properties {
+        ["id"] = new StringType {
+          type = "string"
+          description = "The song id."
+        }
+        ["maxBitRate"] = new IntegerType {
+          type = "integer"
+          description = "Maximum bitrate (kbps); 0 means no limit."
+        }
+        ["format"] = new StringType {
+          type = "string"
+          description = "Preferred transcode format."
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        required = List("url")
+        properties {
+          ["url"] = new StringType {
+            type = "string"
+            format = "uri"
+            description = "The resolved media or cover-art URL."
+          }
+        }
+      }
+    }
+  }
+}

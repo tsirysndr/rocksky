@@ -1,0 +1,38 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.library.getSongsByGenre",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get songs in a given genre.",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "genre"
+        ],
+        "properties": {
+          "genre": {
+            "type": "string",
+            "description": "The genre name."
+          },
+          "count": {
+            "type": "integer",
+            "description": "Number of songs to return (max 500)."
+          },
+          "offset": {
+            "type": "integer",
+            "description": "Offset for pagination.",
+            "minimum": 0
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    }
+  }
+}

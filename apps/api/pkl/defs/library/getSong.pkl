@@ -1,0 +1,27 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.library.getSong"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get details for a single song."
+    parameters {
+      type = "params"
+      required = List("id")
+      properties {
+        ["id"] = new StringType {
+          type = "string"
+          description = "The song id"
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        properties {}
+      }
+    }
+  }
+}

@@ -1,0 +1,48 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.library.getAlbumList"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get a list of albums by various criteria."
+    parameters {
+      type = "params"
+      required = List("type")
+      properties {
+        ["type"] = new StringType {
+          type = "string"
+          description = "List type: newest, alphabeticalByName, alphabeticalByArtist, random, recent, byYear, byGenre, starred."
+        }
+        ["size"] = new IntegerType {
+          type = "integer"
+          description = "Number of albums to return (max 500)."
+        }
+        ["offset"] = new IntegerType {
+          type = "integer"
+          description = "Offset for pagination."
+          minimum = 0
+        }
+        ["fromYear"] = new IntegerType {
+          type = "integer"
+          description = "First year in a byYear range."
+        }
+        ["toYear"] = new IntegerType {
+          type = "integer"
+          description = "Last year in a byYear range."
+        }
+        ["genre"] = new StringType {
+          type = "string"
+          description = "Genre name when type is byGenre."
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        properties {}
+      }
+    }
+  }
+}

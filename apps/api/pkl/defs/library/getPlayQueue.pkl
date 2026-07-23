@@ -1,0 +1,21 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.library.getPlayQueue"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get the saved play queue for the user."
+    parameters {
+      type = "params"
+      properties {}
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        properties {}
+      }
+    }
+  }
+}

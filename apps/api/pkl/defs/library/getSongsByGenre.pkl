@@ -1,0 +1,36 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.library.getSongsByGenre"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get songs in a given genre."
+    parameters {
+      type = "params"
+      required = List("genre")
+      properties {
+        ["genre"] = new StringType {
+          type = "string"
+          description = "The genre name."
+        }
+        ["count"] = new IntegerType {
+          type = "integer"
+          description = "Number of songs to return (max 500)."
+        }
+        ["offset"] = new IntegerType {
+          type = "integer"
+          description = "Offset for pagination."
+          minimum = 0
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        properties {}
+      }
+    }
+  }
+}
