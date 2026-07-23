@@ -56,6 +56,12 @@ export const env = cleanEnv(process.env, {
   TYPESENSE_PORT: port({ default: 8108 }),
   TYPESENSE_PROTOCOL: str({ default: "http", choices: ["http", "https"] }),
   TYPESENSE_API_KEY: str({}),
+  // Base URL of the internal navidrome (Subsonic-compat) service that the
+  // app.rocksky.library.* XRPC methods proxy to. Server-to-server only.
+  NAVIDROME_INTERNAL_URL: str({ default: "http://127.0.0.1:4533" }),
+  // Shared secret sent as the X-Rocksky-Internal header so navidrome trusts the
+  // JWT-authenticated user this proxy resolved (skips Subsonic credential auth).
+  NAVIDROME_INTERNAL_SECRET: str({ devDefault: "" }),
   // Bot-scrobble guard (see lib/scrobbleGuard.ts). Set SCROBBLE_ABUSE_MAX=0 to disable.
   SCROBBLE_ABUSE_WINDOW: num({ default: 1800 }), // rolling window, seconds (30m)
   SCROBBLE_ABUSE_MAX: num({ default: 25 }), // max accepted scrobbles per window

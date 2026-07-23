@@ -1,0 +1,31 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.library.getSimilarSongs"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get songs similar to the given artist."
+    parameters {
+      type = "params"
+      required = List("id")
+      properties {
+        ["id"] = new StringType {
+          type = "string"
+          description = "The artist, album or song id"
+        }
+        ["count"] = new IntegerType {
+          type = "integer"
+          description = "Number of songs to return."
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        properties {}
+      }
+    }
+  }
+}

@@ -1,0 +1,38 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.library.star"
+defs = new Mapping<String, Procedure> {
+  ["main"] {
+    type = "procedure"
+    description = "Star a song, album or artist."
+    input {
+      encoding = "application/json"
+      schema {
+        type = "object"
+        required = List("id")
+        properties {
+          ["id"] = new StringType {
+            type = "string"
+            description = "The song id to star."
+          }
+          ["albumId"] = new StringType {
+            type = "string"
+            description = "An album id to star."
+          }
+          ["artistId"] = new StringType {
+            type = "string"
+            description = "An artist id to star."
+          }
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        properties {}
+      }
+    }
+  }
+}

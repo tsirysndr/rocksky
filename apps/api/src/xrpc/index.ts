@@ -51,6 +51,7 @@ import likeShout from "./app/rocksky/like/likeShout";
 import likeSong from "./app/rocksky/like/likeSong";
 import getMirrorSources from "./app/rocksky/mirror/getMirrorSources";
 import putMirrorSource from "./app/rocksky/mirror/putMirrorSource";
+import registerLibrary from "./app/rocksky/library";
 import getAudioSettings from "./app/rocksky/rockbox/getAudioSettings";
 import putAudioSettings from "./app/rocksky/rockbox/putAudioSettings";
 import addItemsToQueue from "./app/rocksky/player/addItemsToQueue";
@@ -195,6 +196,9 @@ export default function (server: Server, ctx: Context) {
   putMirrorSource(server, ctx);
   getAudioSettings(server, ctx);
   putAudioSettings(server, ctx);
+
+  // app.rocksky.library.* — Subsonic/navidrome-compat surface for uploaded music
+  registerLibrary(server, ctx);
 
   return server;
 }

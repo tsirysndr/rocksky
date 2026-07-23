@@ -1,0 +1,30 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.library.deletePlaylist"
+defs = new Mapping<String, Procedure> {
+  ["main"] {
+    type = "procedure"
+    description = "Delete a playlist."
+    input {
+      encoding = "application/json"
+      schema {
+        type = "object"
+        required = List("id")
+        properties {
+          ["id"] = new StringType {
+            type = "string"
+            description = "The playlist id to delete."
+          }
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        properties {}
+      }
+    }
+  }
+}

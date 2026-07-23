@@ -1,0 +1,48 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.library.updatePlaylist",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Update an existing playlist.",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [
+            "playlistId"
+          ],
+          "properties": {
+            "playlistId": {
+              "type": "string",
+              "description": "The playlist id to update."
+            },
+            "name": {
+              "type": "string",
+              "description": "New playlist name."
+            },
+            "comment": {
+              "type": "string",
+              "description": "New playlist comment."
+            },
+            "songIdToAdd": {
+              "type": "string",
+              "description": "A song id to add to the playlist."
+            },
+            "songIndexToRemove": {
+              "type": "integer",
+              "description": "A track index to remove from the playlist."
+            }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    }
+  }
+}

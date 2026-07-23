@@ -1,0 +1,21 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.library.getInternetRadioStations",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get all internet radio stations.",
+      "parameters": {
+        "type": "params",
+        "properties": {}
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    }
+  }
+}

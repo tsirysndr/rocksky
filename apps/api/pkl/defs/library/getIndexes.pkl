@@ -1,0 +1,21 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.library.getIndexes"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get an indexed list of all artists."
+    parameters {
+      type = "params"
+      properties {}
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        properties {}
+      }
+    }
+  }
+}

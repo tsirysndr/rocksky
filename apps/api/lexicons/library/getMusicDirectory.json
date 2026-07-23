@@ -1,0 +1,29 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.library.getMusicDirectory",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Browse a music directory (artist, album or root).",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The directory id"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    }
+  }
+}

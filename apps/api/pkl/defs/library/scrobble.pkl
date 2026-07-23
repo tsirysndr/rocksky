@@ -1,0 +1,38 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.library.scrobble"
+defs = new Mapping<String, Procedure> {
+  ["main"] {
+    type = "procedure"
+    description = "Register a play (scrobble) for a song."
+    input {
+      encoding = "application/json"
+      schema {
+        type = "object"
+        required = List("id")
+        properties {
+          ["id"] = new StringType {
+            type = "string"
+            description = "The song id."
+          }
+          ["time"] = new IntegerType {
+            type = "integer"
+            description = "Play time as a Unix timestamp in milliseconds."
+          }
+          ["submission"] = new BooleanType {
+            type = "boolean"
+            description = "True for a final submission, false for a now-playing update."
+          }
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        properties {}
+      }
+    }
+  }
+}

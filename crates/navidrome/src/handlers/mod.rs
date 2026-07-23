@@ -20,7 +20,7 @@ use actix_web::{get, post, route, web, HttpRequest, HttpResponse};
 use sqlx::{Pool, Postgres};
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{auth, response, typesense::TypesenseClient};
+use crate::{auth, repo, response, typesense::TypesenseClient};
 
 fn get_format(params: &HashMap<String, String>) -> String {
     params
@@ -30,6 +30,26 @@ fn get_format(params: &HashMap<String, String>) -> String {
         .unwrap_or_else(|| "json".to_string())
 }
 
+/// Whether this request carries a valid internal shared secret, meaning it
+/// originates from a trusted server-to-server caller (apps/api) that has
+/// already authenticated the user via a Rocksky JWT. When true, the Subsonic
+/// `p`/`t`+`s` credential check is skipped and the user is resolved by `u`
+/// (handle) alone.
+///
+/// Disabled entirely unless `NAVIDROME_INTERNAL_SECRET` is set to a non-empty
+/// value, so this can never be triggered by accident in an unconfigured deploy.
+fn is_internal_request(req: &HttpRequest) -> bool {
+    let expected = match std::env::var("NAVIDROME_INTERNAL_SECRET") {
+        Ok(s) if !s.is_empty() => s,
+        _ => return false,
+    };
+    req.headers()
+        .get("X-Rocksky-Internal")
+        .and_then(|v| v.to_str().ok())
+        .map(|v| v == expected)
+        .unwrap_or(false)
+}
+
 async fn dispatch(
     method: &str,
     params: HashMap<String, String>,
@@ -37,6 +57,7 @@ async fn dispatch(
     range: Option<String>,
     ts: Option<&TypesenseClient>,
     nc: &Arc<async_nats::Client>,
+    internal_auth: bool,
 ) -> HttpResponse {
     let format = get_format(&params);
 
@@ -46,24 +67,39 @@ async fn dispatch(
             Some(u) => u.as_str(),
             None => return response::err(&format, 10, "Missing u parameter"),
         };
-        // Treat p="" the same as missing p — some clients send an empty p
-        // alongside t+s token auth; filtering here lets token auth proceed.
-        let password = params
-            .get("p")
-            .filter(|p| !p.is_empty())
-            .map(|s| s.as_str());
-        let token = params.get("t").map(|s| s.as_str());
-        let salt = params.get("s").map(|s| s.as_str());
 
-        if password.is_none() && (token.is_none() || salt.is_none()) {
-            return response::err(&format, 10, "Missing credentials: provide p or t+s");
-        }
+        if internal_auth {
+            // Trusted server-to-server call (apps/api): the user was already
+            // authenticated via a Rocksky JWT, so resolve by handle and skip
+            // Subsonic credential verification.
+            match repo::user::get_user_by_handle(pool, username).await {
+                Ok(Some(u)) => Some(u),
+                Ok(None) => return response::err(&format, 40, "Unknown user"),
+                Err(e) => {
+                    tracing::error!("Internal auth lookup failed for '{}': {}", username, e);
+                    return response::err(&format, 0, "Internal error");
+                }
+            }
+        } else {
+            // Treat p="" the same as missing p — some clients send an empty p
+            // alongside t+s token auth; filtering here lets token auth proceed.
+            let password = params
+                .get("p")
+                .filter(|p| !p.is_empty())
+                .map(|s| s.as_str());
+            let token = params.get("t").map(|s| s.as_str());
+            let salt = params.get("s").map(|s| s.as_str());
 
-        match auth::authenticate(pool, username, password, token, salt).await {
-            Ok(u) => Some(u),
-            Err(e) => {
-                tracing::warn!("Auth failed for '{}': {}", username, e);
-                return response::err(&format, 40, "Wrong username or password");
+            if password.is_none() && (token.is_none() || salt.is_none()) {
+                return response::err(&format, 10, "Missing credentials: provide p or t+s");
+            }
+
+            match auth::authenticate(pool, username, password, token, salt).await {
+                Ok(u) => Some(u),
+                Err(e) => {
+                    tracing::warn!("Auth failed for '{}': {}", username, e);
+                    return response::err(&format, 40, "Wrong username or password");
+                }
             }
         }
     } else {
@@ -235,6 +271,7 @@ pub async fn handle_get(
 ) -> HttpResponse {
     let method = path.into_inner();
     let method = method.trim_end_matches(".view").to_string();
+    let internal = is_internal_request(&req);
     let range = req
         .headers()
         .get("Range")
@@ -248,6 +285,7 @@ pub async fn handle_get(
         range,
         ts,
         nc_data.get_ref(),
+        internal,
     )
     .await
 }
@@ -273,22 +311,34 @@ pub async fn handle_head(
         Some(u) => u.as_str(),
         None => return response::err(&format, 10, "Missing u parameter"),
     };
-    let password = params
-        .get("p")
-        .filter(|p| !p.is_empty())
-        .map(|s| s.as_str());
-    let token = params.get("t").map(|s| s.as_str());
-    let salt = params.get("s").map(|s| s.as_str());
 
-    if password.is_none() && (token.is_none() || salt.is_none()) {
-        return response::err(&format, 10, "Missing credentials: provide p or t+s");
-    }
+    let user = if is_internal_request(&req) {
+        match repo::user::get_user_by_handle(pool.get_ref(), username).await {
+            Ok(Some(u)) => u,
+            Ok(None) => return response::err(&format, 40, "Unknown user"),
+            Err(e) => {
+                tracing::error!("Internal auth lookup failed for '{}': {}", username, e);
+                return response::err(&format, 0, "Internal error");
+            }
+        }
+    } else {
+        let password = params
+            .get("p")
+            .filter(|p| !p.is_empty())
+            .map(|s| s.as_str());
+        let token = params.get("t").map(|s| s.as_str());
+        let salt = params.get("s").map(|s| s.as_str());
 
-    let user = match auth::authenticate(pool.get_ref(), username, password, token, salt).await {
-        Ok(u) => u,
-        Err(e) => {
-            tracing::warn!("Auth failed for '{}': {}", username, e);
-            return response::err(&format, 40, "Wrong username or password");
+        if password.is_none() && (token.is_none() || salt.is_none()) {
+            return response::err(&format, 10, "Missing credentials: provide p or t+s");
+        }
+
+        match auth::authenticate(pool.get_ref(), username, password, token, salt).await {
+            Ok(u) => u,
+            Err(e) => {
+                tracing::warn!("Auth failed for '{}': {}", username, e);
+                return response::err(&format, 40, "Wrong username or password");
+            }
         }
     };
 
@@ -330,6 +380,7 @@ pub async fn handle_post(
         }
     }
 
+    let internal = is_internal_request(&req);
     let ts = ts_data.get_ref().as_ref().as_ref();
     dispatch(
         &method,
@@ -338,6 +389,7 @@ pub async fn handle_post(
         range,
         ts,
         nc_data.get_ref(),
+        internal,
     )
     .await
 }

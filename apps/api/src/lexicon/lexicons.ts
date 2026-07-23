@@ -7608,6 +7608,1162 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyLibraryCreatePlaylist: {
+    lexicon: 1,
+    id: "app.rocksky.library.createPlaylist",
+    defs: {
+      main: {
+        type: "procedure",
+        description: "Create a new playlist.",
+        input: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["name"],
+            properties: {
+              name: {
+                type: "string",
+                description: "The playlist name.",
+              },
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryDeletePlaylist: {
+    lexicon: 1,
+    id: "app.rocksky.library.deletePlaylist",
+    defs: {
+      main: {
+        type: "procedure",
+        description: "Delete a playlist.",
+        input: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["id"],
+            properties: {
+              id: {
+                type: "string",
+                description: "The playlist id to delete.",
+              },
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetAlbum: {
+    lexicon: 1,
+    id: "app.rocksky.library.getAlbum",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get details for an album, including a list of songs.",
+        parameters: {
+          type: "params",
+          required: ["id"],
+          properties: {
+            id: {
+              type: "string",
+              description: "The album id",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetAlbumInfo: {
+    lexicon: 1,
+    id: "app.rocksky.library.getAlbumInfo",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get album notes, images and similar info.",
+        parameters: {
+          type: "params",
+          required: ["id"],
+          properties: {
+            id: {
+              type: "string",
+              description: "The album id",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetAlbumList: {
+    lexicon: 1,
+    id: "app.rocksky.library.getAlbumList",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get a list of albums by various criteria.",
+        parameters: {
+          type: "params",
+          required: ["type"],
+          properties: {
+            type: {
+              type: "string",
+              description:
+                "List type: newest, alphabeticalByName, alphabeticalByArtist, random, recent, byYear, byGenre, starred.",
+            },
+            size: {
+              type: "integer",
+              description: "Number of albums to return (max 500).",
+            },
+            offset: {
+              type: "integer",
+              description: "Offset for pagination.",
+              minimum: 0,
+            },
+            fromYear: {
+              type: "integer",
+              description: "First year in a byYear range.",
+            },
+            toYear: {
+              type: "integer",
+              description: "Last year in a byYear range.",
+            },
+            genre: {
+              type: "string",
+              description: "Genre name when type is byGenre.",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetArtist: {
+    lexicon: 1,
+    id: "app.rocksky.library.getArtist",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get details for an artist, including a list of albums.",
+        parameters: {
+          type: "params",
+          required: ["id"],
+          properties: {
+            id: {
+              type: "string",
+              description: "The artist id",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetArtistInfo: {
+    lexicon: 1,
+    id: "app.rocksky.library.getArtistInfo",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get artist biography, images and similar artists.",
+        parameters: {
+          type: "params",
+          required: ["id"],
+          properties: {
+            id: {
+              type: "string",
+              description: "The artist id",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetArtists: {
+    lexicon: 1,
+    id: "app.rocksky.library.getArtists",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get all artists in the library, indexed alphabetically.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetCoverArtUrl: {
+    lexicon: 1,
+    id: "app.rocksky.library.getCoverArtUrl",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get a cover-art URL for an album, artist or song.",
+        parameters: {
+          type: "params",
+          required: ["id"],
+          properties: {
+            id: {
+              type: "string",
+              description: "The cover-art id (album, artist or song).",
+            },
+            size: {
+              type: "integer",
+              description: "Requested square size in pixels.",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["url"],
+            properties: {
+              url: {
+                type: "string",
+                description: "The resolved media or cover-art URL.",
+                format: "uri",
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetDownloadUrl: {
+    lexicon: 1,
+    id: "app.rocksky.library.getDownloadUrl",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get a download URL for a song.",
+        parameters: {
+          type: "params",
+          required: ["id"],
+          properties: {
+            id: {
+              type: "string",
+              description: "The song id.",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["url"],
+            properties: {
+              url: {
+                type: "string",
+                description: "The resolved media or cover-art URL.",
+                format: "uri",
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetGenres: {
+    lexicon: 1,
+    id: "app.rocksky.library.getGenres",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get all genres in the library.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetIndexes: {
+    lexicon: 1,
+    id: "app.rocksky.library.getIndexes",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get an indexed list of all artists.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetInternetRadioStations: {
+    lexicon: 1,
+    id: "app.rocksky.library.getInternetRadioStations",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get all internet radio stations.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetLicense: {
+    lexicon: 1,
+    id: "app.rocksky.library.getLicense",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get details about the software license.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetLyrics: {
+    lexicon: 1,
+    id: "app.rocksky.library.getLyrics",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get lyrics for a song.",
+        parameters: {
+          type: "params",
+          properties: {
+            artist: {
+              type: "string",
+              description: "The artist name.",
+            },
+            title: {
+              type: "string",
+              description: "The song title.",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetMusicDirectory: {
+    lexicon: 1,
+    id: "app.rocksky.library.getMusicDirectory",
+    defs: {
+      main: {
+        type: "query",
+        description: "Browse a music directory (artist, album or root).",
+        parameters: {
+          type: "params",
+          required: ["id"],
+          properties: {
+            id: {
+              type: "string",
+              description: "The directory id",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetMusicFolders: {
+    lexicon: 1,
+    id: "app.rocksky.library.getMusicFolders",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get all configured top-level music folders.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetNowPlaying: {
+    lexicon: 1,
+    id: "app.rocksky.library.getNowPlaying",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get what the user is currently playing.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetPlaylist: {
+    lexicon: 1,
+    id: "app.rocksky.library.getPlaylist",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get a playlist and its entries.",
+        parameters: {
+          type: "params",
+          required: ["id"],
+          properties: {
+            id: {
+              type: "string",
+              description: "The playlist id",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetPlaylists: {
+    lexicon: 1,
+    id: "app.rocksky.library.getPlaylists",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get all playlists owned by the user.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetPlayQueue: {
+    lexicon: 1,
+    id: "app.rocksky.library.getPlayQueue",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get the saved play queue for the user.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetRandomSongs: {
+    lexicon: 1,
+    id: "app.rocksky.library.getRandomSongs",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get a list of random songs.",
+        parameters: {
+          type: "params",
+          properties: {
+            size: {
+              type: "integer",
+              description: "Number of songs to return (max 500).",
+            },
+            genre: {
+              type: "string",
+              description: "Only return songs in this genre.",
+            },
+            fromYear: {
+              type: "integer",
+              description: "Only return songs published after or in this year.",
+            },
+            toYear: {
+              type: "integer",
+              description:
+                "Only return songs published before or in this year.",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetScanStatus: {
+    lexicon: 1,
+    id: "app.rocksky.library.getScanStatus",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get the current status of the media library scan.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetSimilarSongs: {
+    lexicon: 1,
+    id: "app.rocksky.library.getSimilarSongs",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get songs similar to the given artist.",
+        parameters: {
+          type: "params",
+          required: ["id"],
+          properties: {
+            id: {
+              type: "string",
+              description: "The artist, album or song id",
+            },
+            count: {
+              type: "integer",
+              description: "Number of songs to return.",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetSong: {
+    lexicon: 1,
+    id: "app.rocksky.library.getSong",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get details for a single song.",
+        parameters: {
+          type: "params",
+          required: ["id"],
+          properties: {
+            id: {
+              type: "string",
+              description: "The song id",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetSongsByGenre: {
+    lexicon: 1,
+    id: "app.rocksky.library.getSongsByGenre",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get songs in a given genre.",
+        parameters: {
+          type: "params",
+          required: ["genre"],
+          properties: {
+            genre: {
+              type: "string",
+              description: "The genre name.",
+            },
+            count: {
+              type: "integer",
+              description: "Number of songs to return (max 500).",
+            },
+            offset: {
+              type: "integer",
+              description: "Offset for pagination.",
+              minimum: 0,
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetStarred: {
+    lexicon: 1,
+    id: "app.rocksky.library.getStarred",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get starred songs, albums and artists.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetStreamUrl: {
+    lexicon: 1,
+    id: "app.rocksky.library.getStreamUrl",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get a playable stream URL for a song.",
+        parameters: {
+          type: "params",
+          required: ["id"],
+          properties: {
+            id: {
+              type: "string",
+              description: "The song id.",
+            },
+            maxBitRate: {
+              type: "integer",
+              description: "Maximum bitrate (kbps); 0 means no limit.",
+            },
+            format: {
+              type: "string",
+              description: "Preferred transcode format.",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["url"],
+            properties: {
+              url: {
+                type: "string",
+                description: "The resolved media or cover-art URL.",
+                format: "uri",
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetTopSongs: {
+    lexicon: 1,
+    id: "app.rocksky.library.getTopSongs",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get the top songs for an artist.",
+        parameters: {
+          type: "params",
+          required: ["artist"],
+          properties: {
+            artist: {
+              type: "string",
+              description: "The artist name.",
+            },
+            count: {
+              type: "integer",
+              description: "Number of songs to return.",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetUser: {
+    lexicon: 1,
+    id: "app.rocksky.library.getUser",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get details about the authenticated user.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryPing: {
+    lexicon: 1,
+    id: "app.rocksky.library.ping",
+    defs: {
+      main: {
+        type: "query",
+        description: "Test connectivity with the server.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibrarySavePlayQueue: {
+    lexicon: 1,
+    id: "app.rocksky.library.savePlayQueue",
+    defs: {
+      main: {
+        type: "procedure",
+        description: "Save the play queue for the user.",
+        input: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {
+              id: {
+                type: "string",
+                description: "Comma-separated song ids in the queue.",
+              },
+              current: {
+                type: "string",
+                description: "The id of the currently playing song.",
+              },
+              position: {
+                type: "integer",
+                description:
+                  "Position within the current song, in milliseconds.",
+              },
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryScrobble: {
+    lexicon: 1,
+    id: "app.rocksky.library.scrobble",
+    defs: {
+      main: {
+        type: "procedure",
+        description: "Register a play (scrobble) for a song.",
+        input: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["id"],
+            properties: {
+              id: {
+                type: "string",
+                description: "The song id.",
+              },
+              time: {
+                type: "integer",
+                description: "Play time as a Unix timestamp in milliseconds.",
+              },
+              submission: {
+                type: "boolean",
+                description:
+                  "True for a final submission, false for a now-playing update.",
+              },
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibrarySearch: {
+    lexicon: 1,
+    id: "app.rocksky.library.search",
+    defs: {
+      main: {
+        type: "query",
+        description: "Search for artists, albums and songs.",
+        parameters: {
+          type: "params",
+          required: ["query"],
+          properties: {
+            query: {
+              type: "string",
+              description: "The search query.",
+            },
+            artistCount: {
+              type: "integer",
+              description: "Maximum number of artists to return.",
+            },
+            artistOffset: {
+              type: "integer",
+              description: "Artist result offset.",
+              minimum: 0,
+            },
+            albumCount: {
+              type: "integer",
+              description: "Maximum number of albums to return.",
+            },
+            albumOffset: {
+              type: "integer",
+              description: "Album result offset.",
+              minimum: 0,
+            },
+            songCount: {
+              type: "integer",
+              description: "Maximum number of songs to return.",
+            },
+            songOffset: {
+              type: "integer",
+              description: "Song result offset.",
+              minimum: 0,
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryStar: {
+    lexicon: 1,
+    id: "app.rocksky.library.star",
+    defs: {
+      main: {
+        type: "procedure",
+        description: "Star a song, album or artist.",
+        input: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["id"],
+            properties: {
+              id: {
+                type: "string",
+                description: "The song id to star.",
+              },
+              albumId: {
+                type: "string",
+                description: "An album id to star.",
+              },
+              artistId: {
+                type: "string",
+                description: "An artist id to star.",
+              },
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryStartScan: {
+    lexicon: 1,
+    id: "app.rocksky.library.startScan",
+    defs: {
+      main: {
+        type: "query",
+        description: "Initiate a rescan of the media library.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryUnstar: {
+    lexicon: 1,
+    id: "app.rocksky.library.unstar",
+    defs: {
+      main: {
+        type: "procedure",
+        description: "Remove a star from a song, album or artist.",
+        input: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["id"],
+            properties: {
+              id: {
+                type: "string",
+                description: "The song id to unstar.",
+              },
+              albumId: {
+                type: "string",
+                description: "An album id to unstar.",
+              },
+              artistId: {
+                type: "string",
+                description: "An artist id to unstar.",
+              },
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryUpdateNowPlaying: {
+    lexicon: 1,
+    id: "app.rocksky.library.updateNowPlaying",
+    defs: {
+      main: {
+        type: "procedure",
+        description: "Update the now-playing song for the user.",
+        input: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["id"],
+            properties: {
+              id: {
+                type: "string",
+                description: "The song id.",
+              },
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryUpdatePlaylist: {
+    lexicon: 1,
+    id: "app.rocksky.library.updatePlaylist",
+    defs: {
+      main: {
+        type: "procedure",
+        description: "Update an existing playlist.",
+        input: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["playlistId"],
+            properties: {
+              playlistId: {
+                type: "string",
+                description: "The playlist id to update.",
+              },
+              name: {
+                type: "string",
+                description: "New playlist name.",
+              },
+              comment: {
+                type: "string",
+                description: "New playlist comment.",
+              },
+              songIdToAdd: {
+                type: "string",
+                description: "A song id to add to the playlist.",
+              },
+              songIndexToRemove: {
+                type: "integer",
+                description: "A track index to remove from the playlist.",
+              },
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
 } as const satisfies Record<string, LexiconDoc>;
 
 export const schemas = Object.values(schemaDict);
@@ -7764,4 +8920,44 @@ export const ids = {
   AppRockskyStatsGetStats: "app.rocksky.stats.getStats",
   AppRockskyStatsGetWrapped: "app.rocksky.stats.getWrapped",
   ComAtprotoRepoStrongRef: "com.atproto.repo.strongRef",
+  AppRockskyLibraryCreatePlaylist: "app.rocksky.library.createPlaylist",
+  AppRockskyLibraryDeletePlaylist: "app.rocksky.library.deletePlaylist",
+  AppRockskyLibraryGetAlbum: "app.rocksky.library.getAlbum",
+  AppRockskyLibraryGetAlbumInfo: "app.rocksky.library.getAlbumInfo",
+  AppRockskyLibraryGetAlbumList: "app.rocksky.library.getAlbumList",
+  AppRockskyLibraryGetArtist: "app.rocksky.library.getArtist",
+  AppRockskyLibraryGetArtistInfo: "app.rocksky.library.getArtistInfo",
+  AppRockskyLibraryGetArtists: "app.rocksky.library.getArtists",
+  AppRockskyLibraryGetCoverArtUrl: "app.rocksky.library.getCoverArtUrl",
+  AppRockskyLibraryGetDownloadUrl: "app.rocksky.library.getDownloadUrl",
+  AppRockskyLibraryGetGenres: "app.rocksky.library.getGenres",
+  AppRockskyLibraryGetIndexes: "app.rocksky.library.getIndexes",
+  AppRockskyLibraryGetInternetRadioStations:
+    "app.rocksky.library.getInternetRadioStations",
+  AppRockskyLibraryGetLicense: "app.rocksky.library.getLicense",
+  AppRockskyLibraryGetLyrics: "app.rocksky.library.getLyrics",
+  AppRockskyLibraryGetMusicDirectory: "app.rocksky.library.getMusicDirectory",
+  AppRockskyLibraryGetMusicFolders: "app.rocksky.library.getMusicFolders",
+  AppRockskyLibraryGetNowPlaying: "app.rocksky.library.getNowPlaying",
+  AppRockskyLibraryGetPlaylist: "app.rocksky.library.getPlaylist",
+  AppRockskyLibraryGetPlaylists: "app.rocksky.library.getPlaylists",
+  AppRockskyLibraryGetPlayQueue: "app.rocksky.library.getPlayQueue",
+  AppRockskyLibraryGetRandomSongs: "app.rocksky.library.getRandomSongs",
+  AppRockskyLibraryGetScanStatus: "app.rocksky.library.getScanStatus",
+  AppRockskyLibraryGetSimilarSongs: "app.rocksky.library.getSimilarSongs",
+  AppRockskyLibraryGetSong: "app.rocksky.library.getSong",
+  AppRockskyLibraryGetSongsByGenre: "app.rocksky.library.getSongsByGenre",
+  AppRockskyLibraryGetStarred: "app.rocksky.library.getStarred",
+  AppRockskyLibraryGetStreamUrl: "app.rocksky.library.getStreamUrl",
+  AppRockskyLibraryGetTopSongs: "app.rocksky.library.getTopSongs",
+  AppRockskyLibraryGetUser: "app.rocksky.library.getUser",
+  AppRockskyLibraryPing: "app.rocksky.library.ping",
+  AppRockskyLibrarySavePlayQueue: "app.rocksky.library.savePlayQueue",
+  AppRockskyLibraryScrobble: "app.rocksky.library.scrobble",
+  AppRockskyLibrarySearch: "app.rocksky.library.search",
+  AppRockskyLibraryStar: "app.rocksky.library.star",
+  AppRockskyLibraryStartScan: "app.rocksky.library.startScan",
+  AppRockskyLibraryUnstar: "app.rocksky.library.unstar",
+  AppRockskyLibraryUpdateNowPlaying: "app.rocksky.library.updateNowPlaying",
+  AppRockskyLibraryUpdatePlaylist: "app.rocksky.library.updatePlaylist",
 };

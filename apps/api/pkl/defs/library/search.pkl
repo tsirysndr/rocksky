@@ -1,0 +1,54 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.library.search"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Search for artists, albums and songs."
+    parameters {
+      type = "params"
+      required = List("query")
+      properties {
+        ["query"] = new StringType {
+          type = "string"
+          description = "The search query."
+        }
+        ["artistCount"] = new IntegerType {
+          type = "integer"
+          description = "Maximum number of artists to return."
+        }
+        ["artistOffset"] = new IntegerType {
+          type = "integer"
+          description = "Artist result offset."
+          minimum = 0
+        }
+        ["albumCount"] = new IntegerType {
+          type = "integer"
+          description = "Maximum number of albums to return."
+        }
+        ["albumOffset"] = new IntegerType {
+          type = "integer"
+          description = "Album result offset."
+          minimum = 0
+        }
+        ["songCount"] = new IntegerType {
+          type = "integer"
+          description = "Maximum number of songs to return."
+        }
+        ["songOffset"] = new IntegerType {
+          type = "integer"
+          description = "Song result offset."
+          minimum = 0
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        properties {}
+      }
+    }
+  }
+}

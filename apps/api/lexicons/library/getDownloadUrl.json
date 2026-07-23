@@ -1,0 +1,38 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.library.getDownloadUrl",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get a download URL for a song.",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The song id."
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [
+            "url"
+          ],
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "The resolved media or cover-art URL.",
+              "format": "uri"
+            }
+          }
+        }
+      }
+    }
+  }
+}

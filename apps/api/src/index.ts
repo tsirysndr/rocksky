@@ -183,7 +183,9 @@ app.post("/now-playing", async (c) => {
     await scrobbleTrack(ctx, track, agent, user.did);
   } catch (err) {
     if (err instanceof ScrobbleBotFlaggedError) {
-      consola.warn(`[now-playing] rejected bot-flagged account ${chalk.cyan(did)}`);
+      consola.warn(
+        `[now-playing] rejected bot-flagged account ${chalk.cyan(did)}`,
+      );
       c.status(429);
       return c.json({
         status: "blocked",

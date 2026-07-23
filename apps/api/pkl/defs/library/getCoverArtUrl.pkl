@@ -1,0 +1,38 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.library.getCoverArtUrl"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Get a cover-art URL for an album, artist or song."
+    parameters {
+      type = "params"
+      required = List("id")
+      properties {
+        ["id"] = new StringType {
+          type = "string"
+          description = "The cover-art id (album, artist or song)."
+        }
+        ["size"] = new IntegerType {
+          type = "integer"
+          description = "Requested square size in pixels."
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        required = List("url")
+        properties {
+          ["url"] = new StringType {
+            type = "string"
+            format = "uri"
+            description = "The resolved media or cover-art URL."
+          }
+        }
+      }
+    }
+  }
+}

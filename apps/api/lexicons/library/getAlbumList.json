@@ -1,0 +1,50 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.library.getAlbumList",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get a list of albums by various criteria.",
+      "parameters": {
+        "type": "params",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "List type: newest, alphabeticalByName, alphabeticalByArtist, random, recent, byYear, byGenre, starred."
+          },
+          "size": {
+            "type": "integer",
+            "description": "Number of albums to return (max 500)."
+          },
+          "offset": {
+            "type": "integer",
+            "description": "Offset for pagination.",
+            "minimum": 0
+          },
+          "fromYear": {
+            "type": "integer",
+            "description": "First year in a byYear range."
+          },
+          "toYear": {
+            "type": "integer",
+            "description": "Last year in a byYear range."
+          },
+          "genre": {
+            "type": "string",
+            "description": "Genre name when type is byGenre."
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    }
+  }
+}

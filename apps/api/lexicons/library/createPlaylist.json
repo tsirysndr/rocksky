@@ -1,0 +1,32 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.library.createPlaylist",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Create a new playlist.",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "The playlist name."
+            }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    }
+  }
+}

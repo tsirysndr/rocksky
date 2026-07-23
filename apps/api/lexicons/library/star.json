@@ -1,0 +1,40 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.library.star",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Star a song, album or artist.",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [
+            "id"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "The song id to star."
+            },
+            "albumId": {
+              "type": "string",
+              "description": "An album id to star."
+            },
+            "artistId": {
+              "type": "string",
+              "description": "An artist id to star."
+            }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    }
+  }
+}

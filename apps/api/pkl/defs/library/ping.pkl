@@ -1,0 +1,21 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.library.ping"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "Test connectivity with the server."
+    parameters {
+      type = "params"
+      properties {}
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        properties {}
+      }
+    }
+  }
+}
