@@ -14,7 +14,7 @@ same engine behind every Rocksky SDK.
 gem install rocksky
 ```
 
-Or in a Gemfile: `gem "rocksky", "~> 0.5"`.
+Or in a Gemfile: `gem "rocksky", "~> 0.6"`.
 
 The gem is pure-Ruby; the native library is fetched from the GitHub release on
 first load and cached.
@@ -64,8 +64,10 @@ and `top_artists_interval(...)` — `interval:` is `:all` or `[:days, n]` /
 bare title + artist into full canonical metadata.
 
 **Writes — `Rocksky::Agent`**: `login(..., dedup_path:)`, then `scrobble`
-(full metadata) or `scrobble_match(title, artist, album: nil, mb_id: nil, isrc: nil)`
-(match-then-write), plus `like`, `follow`, `shout`, `refresh_session`, `close`.
+(full metadata) or `scrobble_match(params)` — a single Hash with camelCase
+string keys, required `"title"`/`"artist"`, optional `"album"`, `"mbId"`,
+`"isrc"`, `"timestamp"` (match-then-write), plus `like`, `follow`, `shout`,
+`refresh_session`, `close`.
 With `dedup_path:` set at login, `sync_repo` (repo backfill) and
 `hydrate_from_jetstream` (live stream) run deduped against the on-disk store.
 

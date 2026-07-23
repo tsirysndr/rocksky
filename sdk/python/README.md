@@ -9,7 +9,7 @@ every Rocksky SDK (Ruby, Kotlin, Clojure, Erlang/Elixir/Gleam).
 ## Install
 
 ```sh
-pip install rocksky==0.5.0        # or: uv add rocksky==0.5.0
+pip install rocksky==0.6.0        # or: uv add rocksky==0.6.0
 ```
 
 The wheel is pure-Python; the ~14 MB native library is fetched from the GitHub
@@ -87,9 +87,12 @@ returns an agent. Then:
 - `scrobble(ScrobbleInput)` → `ScrobbleResult` — from full metadata, writes
   **artist + album + song + scrobble**, skipping any that already exist (with a
   dedup store).
-- `scrobble_match(title, artist, album, mb_id, isrc)` → `ScrobbleResult` —
-  resolves the track via `match_song` first, then fans out the same way
-  (`album` / `mb_id` / `isrc` optional).
+- `scrobble_match(ScrobbleMatchInput)` → `ScrobbleResult` — resolves the track
+  via `match_song` first, then fans out the same way. `ScrobbleMatchInput(title,
+  artist, album=None, mb_id=None, isrc=None, timestamp=None)` — `title`/`artist`
+  required; `album` overrides the resolved album, `mb_id`/`isrc` are match
+  anchors, `timestamp` is the scrobbled-at Unix seconds
+  (e.g. `agent.scrobble_match(ScrobbleMatchInput(title="Chaser", artist="Calibro 35"))`).
 - `create_song(SongInput)`, `create_album(AlbumInput)`, `create_artist(ArtistInput)`
 - `like(uri, cid)`, `unlike(uri)`, `follow(did)`, `unfollow(did)`
 - `shout(subject_uri, subject_cid, message)`, `reply_shout(...)`

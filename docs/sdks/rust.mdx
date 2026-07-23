@@ -14,7 +14,7 @@ index and Jetstream real-time sync.
 
 ```toml
 [dependencies]
-rocksky-sdk = { version = "0.2", features = ["dedup", "jetstream"] }
+rocksky-sdk = { version = "0.4", features = ["dedup", "jetstream"] }
 ```
 
 The `dedup` and `jetstream` features are optional (they pull in RocksDB + the
@@ -69,8 +69,9 @@ let month = av.top_tracks_interval(DateInterval::LastDays(30), 50, 0).await?;
 ```
 
 **Writes — `RockskyAgent`**: `scrobble` (fan-out from full metadata),
-`scrobble_match(title, artist, album, mb_id, isrc)` (resolves metadata via
-`match_song`, then the same fan-out; album/mb_id/isrc optional), `create_song` /
+`scrobble_match(&ScrobbleMatch { .. })` (resolves metadata via `match_song`, then
+the same fan-out; title/artist required, album/mb_id/isrc/timestamp optional),
+`create_song` /
 `create_album` / `create_artist`, `like` / `unlike`, `follow` / `unfollow`,
 `shout` / `reply_shout`, `set_now_playing` / `clear_now_playing`. App-password +
 loopback OAuth login.

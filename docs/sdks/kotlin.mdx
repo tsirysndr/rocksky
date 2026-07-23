@@ -13,7 +13,7 @@ Rocksky SDK.
 
 ```kotlin
 dependencies {
-    implementation("app.rocksky:rocksky-kotlin:0.6.0")
+    implementation("app.rocksky:rocksky-kotlin:0.7.0")
 }
 ```
 
@@ -56,8 +56,11 @@ metadata. A raw-JSON long tail (`album`, `artist`, `song`, `playlists`,
 calls **any** read query by NSID.
 
 **Writes — `Agent`**: `login(...)` (top-level, `appview`/`dedupPath` optional),
-then `scrobble` (full metadata) or `scrobbleMatch(title, artist, album, mbId,
-isrc)` (resolve via `matchSong`, then fan out), `createSong` / `createAlbum` /
+then `scrobble` (full metadata) or `scrobbleMatch(ScrobbleMatchInput(title,
+artist, album, mbId, isrc, timestamp))` (resolve via `matchSong`, then fan out —
+`title`/`artist` required, `album`/`mbId`/`isrc` are `String?` and `timestamp`
+is `Long?`, all default null; `ScrobbleMatchInput` is an `app.rocksky`
+typealias), `createSong` / `createAlbum` /
 `createArtist`, `like` / `unlike`, `follow` / `unfollow`, `shout` / `replyShout`,
 `setNowPlaying` / `clearNowPlaying`, `syncRepo` (dedup backfill, returns
 per-collection counts as JSON), `hydrateFromJetstream` (live dedup off the

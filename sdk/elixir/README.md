@@ -16,11 +16,11 @@ every Rocksky SDK.
 
 ```elixir
 def deps do
-  [{:rocksky_ex, "~> 0.5"}]
+  [{:rocksky_ex, "~> 0.6"}]
 end
 ```
 
-`rocksky_ex` 0.5.0 pulls in `rocksky_erl` 0.2.0, whose loader fetches the native library from
+`rocksky_ex` 0.6.0 pulls in `rocksky_erl` 0.3.0, whose loader fetches the native library from
 the GitHub release on first use (checksum-verified). For monorepo dev, build it
 locally and point at it: `../erlang/build-core.sh` then set
 `ROCKSKY_ERL_PATH=../erlang`.
@@ -89,9 +89,12 @@ opaque agent handle. Then `scrobble(agent, track)` (full metadata; fans out to
 artist/album/song/scrobble), `like(agent, uri, cid)`, `follow(agent, did)`,
 `shout(agent, subject_uri, subject_cid, message)`, `refresh_session(agent)`.
 
-**Match-then-scrobble** — `scrobble_match(agent, title, artist, album \\ "", mb_id
-\\ "", isrc \\ "")` resolves canonical metadata and scrobbles in one call; the
-full-metadata `scrobble/2` still works when you already have it.
+**Match-then-scrobble** — `scrobble_match(agent, input)` resolves canonical
+metadata and scrobbles in one call. `input` is a map with camelCase string keys:
+required `"title"`/`"artist"`, optional `"album"` (override), `"mbId"`/`"isrc"`
+(match anchors) and `"timestamp"` (scrobbled-at Unix seconds, default now) —
+e.g. `scrobble_match(agent, %{"title" => "Chaser", "artist" => "Calibro 35"})`.
+The full-metadata `scrobble/2` still works when you already have it.
 
 **Dedup + realtime** — pass a `dedup_path` to `login/5` to enable the local dedup
 store, then keep it warm with `sync_repo(agent)` and

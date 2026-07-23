@@ -12,7 +12,7 @@ same engine behind every Rocksky SDK.
 deps.edn:
 
 ```clojure
-app.rocksky/sdk {:mvn/version "0.5.0-SNAPSHOT"}
+app.rocksky/sdk {:mvn/version "0.6.0-SNAPSHOT"}
 ```
 
 The jar is native-free; the library is fetched from the GitHub release on first
@@ -89,8 +89,9 @@ canonical metadata.
 `(login session-path identifier password)` → an opaque agent handle; pass
 `:dedup-path "./dedup"` to enable scrobble dedup + realtime hydration (see below).
 Then `(scrobble agent track)` (full metadata, fans out to
-artist/album/song/scrobble) or `(scrobble-match agent title artist)` (optionally
-`... album mb-id isrc` — matches a bare title + artist first, then writes),
+artist/album/song/scrobble) or `(scrobble-match agent params)` — a map with
+camelCase keys, required `:title`/`:artist`, optional `:album`, `:mbId`, `:isrc`,
+`:timestamp` — matching a bare title + artist first, then writes,
 `(like agent uri cid)`, `(follow agent did)`,
 `(shout agent subject-uri subject-cid message)`, `(refresh-session agent)`,
 `(agent-close agent)`.

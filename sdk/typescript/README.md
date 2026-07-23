@@ -69,8 +69,13 @@ full canonical metadata (album, artwork, duration, MBID, ISRC, links).
 `Authorization: Bearer <token>`.
 
 **Writes — `Agent`**: two scrobble paths. `scrobble(rec)` writes full metadata
-you already have; `scrobbleMatch(title, artist, album?, mbId?, isrc?)` resolves
-full metadata via `matchSong` first, then writes. Plus
+you already have; `scrobbleMatch(input, appview?)` takes a `ScrobbleMatchInput`
+object (`{ title, artist, album?, mbId?, isrc?, timestamp? }` — title/artist
+required; `album` overrides the resolved album, `mbId`/`isrc` are match anchors,
+`timestamp` is a scrobbled-at Unix-seconds time; the optional `appview` overrides
+the AppView used for matching) and resolves full metadata via `matchSong` first,
+then writes — e.g. `agent.scrobbleMatch({ title: "Chaser", artist: "Calibro 35" })`.
+Plus
 `createSong`/`createAlbum`/`createArtist`, `like`, `follow`,
 `shout`/`replyShout`, `setNowPlaying`/`clearNowPlaying`, `delete`. Records are the
 generated types from `./generated/types`.

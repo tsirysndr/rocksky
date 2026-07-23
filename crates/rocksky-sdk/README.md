@@ -73,7 +73,7 @@ Ok(()) }
 | Verb                                   | Record(s)                     |
 | -------------------------------------- | ----------------------------- |
 | `scrobble(draft)` → `ScrobbleResult`   | fans out to **artist + album + song + scrobble** (duplicates skipped) |
-| `scrobble_match(title, artist, album, mb_id, isrc)` | resolves full metadata via `match_song`, then the same fan-out (album/mb_id/isrc optional) |
+| `scrobble_match(&ScrobbleMatch { .. })` | resolves full metadata via `match_song`, then the same fan-out (title/artist required; album/mb_id/isrc/timestamp optional) |
 | `create_song(draft)`                   | `app.rocksky.song`            |
 | `create_album(draft)`                  | `app.rocksky.album`           |
 | `create_artist(draft)`                 | `app.rocksky.artist`          |

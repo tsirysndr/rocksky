@@ -14,7 +14,7 @@ gem install rocksky
 Or in a Gemfile:
 
 ```ruby
-gem "rocksky", "~> 0.5"
+gem "rocksky", "~> 0.6"
 ```
 
 The gem is pure-Ruby; the native library is fetched from the GitHub release on
@@ -92,11 +92,14 @@ below). Then `scrobble(track)` (fans out to artist/album/song/scrobble),
 `refresh_session`, and `close` (release the native handle).
 
 **Two scrobble paths** — `scrobble(track)` takes full metadata, while
-`scrobble_match(title, artist, album: nil, mb_id: nil, isrc: nil)` matches a bare
+`scrobble_match(params)` takes a single Hash with camelCase string keys —
+required `"title"`/`"artist"`, optional `"album"` (override), `"mbId"`/`"isrc"`
+(match anchors), `"timestamp"` (scrobbled-at Unix seconds) — matching a bare
 title + artist first, then writes.
 
 ```ruby
-agent.scrobble_match("Chaser", "Calibro 35", album: "Jazzploitation")
+agent.scrobble_match("title" => "Chaser", "artist" => "Calibro 35",
+                     "album" => "Jazzploitation")
 ```
 
 **Dedup + realtime** — with `dedup_path:` set at login, `agent.sync_repo`

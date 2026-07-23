@@ -61,8 +61,9 @@ auth-gated queries with `NewClient("").WithToken(token)`.
 `TopTracks` / `TopArtists` remain all-time shorthands.
 
 **Writes — `Agent`**: `Scrobble` (fan-out from full metadata),
-`ScrobbleMatch(ctx, appview, title, artist, album, mbID, isrc)` (resolves
-metadata via `MatchSong`, then the same fan-out; album/mbID/isrc optional),
+`ScrobbleMatch(ctx, appview, ScrobbleMatchInput{Title, Artist})` (resolves
+metadata via `MatchSong`, then the same fan-out; Title/Artist required,
+Album/MbID/ISRC/Timestamp optional pointers, `appview` "" = default),
 `CreateSong` / `CreateAlbum` / `CreateArtist`, `Like`, `Follow`, `Shout` /
 `ReplyShout`, `SetNowPlaying` / `ClearNowPlaying`, `Delete`, `RefreshSession`.
 Records are the generated `gen.*Record` types.

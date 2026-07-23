@@ -10,7 +10,7 @@ every Rocksky SDK. Lives in the `:rocksky` Gradle module, package `app.rocksky`.
 
 ```kotlin
 dependencies {
-    implementation("app.rocksky:rocksky-kotlin:0.6.0")
+    implementation("app.rocksky:rocksky-kotlin:0.7.0")
 }
 ```
 
@@ -79,9 +79,13 @@ returns an agent (`appview`/`dedupPath` default to none). Then:
 
 - `scrobble(ScrobbleInput)` — from full metadata, writes the scrobble; with a
   dedup store, skips an existing same-second scrobble of the same track.
-- `scrobbleMatch(title, artist, album, mbId, isrc)` — resolves the track via
-  `matchSong` first, then fans out the same way (`album` / `mbId` / `isrc`
-  optional).
+- `scrobbleMatch(ScrobbleMatchInput)` — resolves the track via `matchSong`
+  first, then fans out the same way. `ScrobbleMatchInput(title, artist, album,
+  mbId, isrc, timestamp)` — `title`/`artist` required; `album`/`mbId`/`isrc` are
+  `String?` (album override, match anchors) and `timestamp` is `Long?`
+  (scrobbled-at Unix seconds), all defaulting to null. `ScrobbleMatchInput` is
+  an `app.rocksky` typealias
+  (e.g. `agent.scrobbleMatch(ScrobbleMatchInput(title = "Chaser", artist = "Calibro 35"))`).
 - `createSong(SongInput)`, `createAlbum(AlbumInput)`, `createArtist(ArtistInput)`
 - `like(uri, cid)`, `unlike(uri)`, `follow(did)`, `unfollow(did)`
 - `shout(subjectUri, subjectCid, message)`, `replyShout(...)`

@@ -13,7 +13,7 @@ identity hashes — the same engine behind every Rocksky SDK.
 deps.edn:
 
 ```clojure
-app.rocksky/sdk {:mvn/version "0.5.0-SNAPSHOT"}
+app.rocksky/sdk {:mvn/version "0.6.0-SNAPSHOT"}
 ```
 
 The jar is native-free; the library is fetched from the GitHub release on first
@@ -62,8 +62,10 @@ e.g. `(top-tracks-interval 5 0 [:days 7])`.
 canonical metadata.
 
 **Writes — `rocksky.core`**: `(login ... :dedup-path "./dedup")`, then
-`(scrobble agent track)` (full metadata) or `(scrobble-match agent title artist)`
-(optionally `... album mb-id isrc` — match-then-write), `(like agent uri cid)`,
+`(scrobble agent track)` (full metadata) or `(scrobble-match agent params)` — a
+map with camelCase keys, required `:title`/`:artist`, optional `:album`, `:mbId`,
+`:isrc` (match anchors) and `:timestamp` (scrobbled-at Unix seconds) —
+match-then-write, `(like agent uri cid)`,
 `(follow agent did)`, `(shout ...)`, `(refresh-session agent)`,
 `(agent-close agent)`. With `:dedup-path` set, `(sync-repo agent)` (repo backfill)
 and `(hydrate-from-jetstream agent)` (live stream) run deduped against the

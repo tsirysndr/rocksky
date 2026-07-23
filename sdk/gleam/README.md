@@ -15,10 +15,10 @@ Rocksky SDK. Targets Erlang.
 ## Installation
 
 ```sh
-gleam add rocksky   # rocksky = ">= 1.5.0 and < 2.0.0"
+gleam add rocksky   # rocksky = ">= 1.6.0 and < 2.0.0"
 ```
 
-`rocksky` 1.5.0 depends on `rocksky_erl` 0.2.0, whose loader fetches the native
+`rocksky` 1.6.0 depends on `rocksky_erl` 0.3.0, whose loader fetches the native
 library from the GitHub release on first use (checksum-verified). For monorepo
 dev, build it with `../erlang/build-core.sh` and use the local path dep in
 `gleam.toml`.
@@ -78,7 +78,10 @@ canonical metadata.
 
 `login(session_path, identifier, password)` → an opaque `Agent`. Then
 `scrobble(agent, track)` (full metadata) or
-`scrobble_match(agent, title, artist, album, mb_id, isrc)` (match-then-write),
+`scrobble_match(agent, ScrobbleMatch(title, artist, album, mb_id, isrc, timestamp))`
+(match-then-write) — `title`/`artist` are `String`, the rest `Option` (`album`
+override, `mb_id`/`isrc` match anchors, `timestamp` scrobbled-at Unix seconds),
+e.g. `scrobble_match(agent, ScrobbleMatch("Chaser", "Calibro 35", None, None, None, None))`,
 `like(agent, uri, cid)`, `follow(agent, did)`,
 `shout(agent, subject_uri, subject_cid, message)`, `refresh_session(agent)`.
 

@@ -11,10 +11,10 @@ PDS writes, and the identity hashes. Targets Erlang.
 ## Install
 
 ```bash
-gleam add rocksky   # rocksky = ">= 1.5.0 and < 2.0.0"
+gleam add rocksky   # rocksky = ">= 1.6.0 and < 2.0.0"
 ```
 
-`rocksky` 1.5.0 depends on `rocksky_erl` 0.2.0, whose loader fetches the native
+`rocksky` 1.6.0 depends on `rocksky_erl` 0.3.0, whose loader fetches the native
 library from the GitHub release on first use.
 
 ## Quickstart
@@ -52,8 +52,12 @@ LastYears(Int) | Range(String, String)`. `match_song(title, artist)` resolves a
 bare title + artist into full canonical metadata.
 
 **Writes**: `login(session_path, identifier, password)`, then `scrobble` (full
-metadata) or `scrobble_match(agent, title, artist, album, mb_id, isrc)`
-(match-then-write), `like`, `follow`, `shout`, `refresh_session`. With a dedup path
+metadata) or `scrobble_match(agent, ScrobbleMatch(title, artist, album, mb_id,
+isrc, timestamp))` (match-then-write) — `title`/`artist` are `String`, the rest
+`Option` (`album` override, `mb_id`/`isrc` match anchors, `timestamp` scrobbled-at
+Unix seconds), e.g.
+`scrobble_match(agent, ScrobbleMatch("Chaser", "Calibro 35", None, None, None, None))` —
+`like`, `follow`, `shout`, `refresh_session`. With a dedup path
 set, `sync_repo(agent)` / `hydrate_from_jetstream(agent)` keep the dedup + realtime
 store warm.
 

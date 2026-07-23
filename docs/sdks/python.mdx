@@ -12,11 +12,11 @@ hashes — the same engine behind every Rocksky SDK.
 
 <CodeGroup>
 ```bash uv
-uv add rocksky==0.5.0
+uv add rocksky==0.6.0
 ```
 
 ```bash pip
-pip install rocksky==0.5.0
+pip install rocksky==0.6.0
 ```
 </CodeGroup>
 
@@ -61,8 +61,10 @@ bare title+artist to canonical metadata. A raw-JSON long tail (`album`, `artist`
 `av.get(nsid, params)` (a `dict[str, str]`) calls **any** read query by NSID.
 
 **Writes — `Agent`**: `login_password(...)`, then `scrobble` (full metadata) or
-`scrobble_match(title, artist, album, mb_id, isrc)` (resolve via `match_song`,
-then fan out), `create_song` / `create_album` / `create_artist`, `like` /
+`scrobble_match(ScrobbleMatchInput(title, artist, album=None, mb_id=None,
+isrc=None, timestamp=None))` (resolve via `match_song`, then fan out — `title`/
+`artist` required, `timestamp` is scrobbled-at Unix seconds; `ScrobbleMatchInput`
+imports from `rocksky`), `create_song` / `create_album` / `create_artist`, `like` /
 `unlike`, `follow` / `unfollow`, `shout` / `reply_shout`, `set_now_playing` /
 `clear_now_playing`, `sync_repo` (dedup backfill, returns per-collection counts
 as JSON), `hydrate_from_jetstream` (live dedup off the firehose).

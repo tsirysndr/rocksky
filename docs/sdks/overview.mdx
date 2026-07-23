@@ -66,7 +66,9 @@ Every SDK exposes the same three things:
   auth-gated queries.
 - **Writes** — an **Agent** that logs in with an **app password**, resolves the
   account's PDS, and writes records: `scrobble`, `scrobble_match`
-  (match-then-write from a bare title + artist), `createSong` / `createAlbum` /
+  (match-then-write from a title/artist input object, with optional album
+  override, `mbId`/`isrc` match anchors, and a scrobbled-at timestamp),
+  `createSong` / `createAlbum` /
   `createArtist`, `like`, `follow`, `shout`, now-playing.
 - **Identity hashes** — `songHash` / `albumHash` / `artistHash` (lowercase-hex
   SHA-256), byte-for-byte identical across every SDK and the server.

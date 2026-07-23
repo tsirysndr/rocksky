@@ -37,7 +37,7 @@ Agent = rocksky:agent_login(<<"session.json">>, <<"alice.bsky.social">>, <<"app-
 
 Reads/writes return `{ok, Value}` | `{error, Message}` with binary-keyed maps.
 
-The Hex package is `rocksky_erl` 0.2.0.
+The Hex package is `rocksky_erl` 0.3.0.
 
 ## API
 
@@ -70,9 +70,13 @@ into full canonical metadata.
 then `agent_scrobble` (full metadata), `agent_like`, `agent_follow`,
 `agent_shout`, `agent_refresh_session`.
 
-**Match-then-scrobble** — `rocksky:agent_scrobble_match(Agent, Title, Artist)`
-(also `/4` with `Album`, `/6` with `Album`, `MbId`, `Isrc`) resolves canonical
-metadata and scrobbles in one call.
+**Match-then-scrobble** — `rocksky:agent_scrobble_match(Agent, Input)` where
+`Input` is a map with camelCase binary keys: required `<<"title">>`/`<<"artist">>`,
+optional `<<"album">>`, `<<"mbId">>`, `<<"isrc">>` (match anchors) and
+`<<"timestamp">>` (scrobbled-at Unix seconds). Resolves canonical metadata and
+scrobbles in one call. A flat `/7` form —
+`agent_scrobble_match(Agent, Title, Artist, Album, MbId, Isrc, Timestamp)`, empty
+strings / `0` omitted — backs the Gleam SDK.
 
 **Dedup + realtime** — pass a `DedupPath` to `agent_login/5` to enable the local
 dedup store, then keep it warm with `rocksky:agent_sync_repo(Agent)` and
