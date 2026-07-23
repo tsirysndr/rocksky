@@ -22,7 +22,7 @@
          shout_replies/4, audio_settings/2, apikeys/3,
          song_hash/3, album_hash/2, artist_hash/1,
          agent_login/5, agent_did/1, agent_refresh_session/1, agent_scrobble/2,
-         agent_scrobble_match/7, agent_sync_repo/1, agent_hydrate_from_jetstream/1,
+         agent_scrobble_match/2, agent_sync_repo/1, agent_hydrate_from_jetstream/1,
          agent_create_song/2, agent_create_album/2, agent_create_artist/2,
          agent_like/3, agent_unlike/2, agent_follow/2, agent_unfollow/2,
          agent_shout/4, agent_reply_shout/6, agent_set_now_playing/2,
@@ -263,7 +263,7 @@ agent_login(_Session, _Id, _Pw, _AppView, _DedupPath) -> ?NOT_LOADED.
 agent_did(_Agent) -> ?NOT_LOADED.
 agent_refresh_session(_Agent) -> ?NOT_LOADED.
 agent_scrobble(_Agent, _Json) -> ?NOT_LOADED.
-agent_scrobble_match(_Agent, _Title, _Artist, _Album, _MbId, _Isrc, _Timestamp) -> ?NOT_LOADED.
+agent_scrobble_match(_Agent, _InputJson) -> ?NOT_LOADED.
 agent_sync_repo(_Agent) -> ?NOT_LOADED.
 agent_hydrate_from_jetstream(_Agent) -> ?NOT_LOADED.
 agent_create_song(_Agent, _Json) -> ?NOT_LOADED.

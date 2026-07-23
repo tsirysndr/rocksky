@@ -115,6 +115,36 @@ impl From<ScrobbleInput> for rocksky_sdk::ScrobbleDraft {
     }
 }
 
+/// Input for `Agent.scrobble_match` — `title` + `artist` required, the rest
+/// optional (album override, mbId/isrc match anchors, scrobbled-at timestamp).
+#[derive(Debug, Clone, Default, uniffi::Record)]
+pub struct ScrobbleMatchInput {
+    pub title: String,
+    pub artist: String,
+    #[uniffi(default = None)]
+    pub album: Option<String>,
+    #[uniffi(default = None)]
+    pub mb_id: Option<String>,
+    #[uniffi(default = None)]
+    pub isrc: Option<String>,
+    /// Scrobbled-at Unix seconds; `None` = now.
+    #[uniffi(default = None)]
+    pub timestamp: Option<i64>,
+}
+
+impl From<ScrobbleMatchInput> for rocksky_sdk::ScrobbleMatch {
+    fn from(s: ScrobbleMatchInput) -> Self {
+        rocksky_sdk::ScrobbleMatch {
+            title: s.title,
+            artist: s.artist,
+            album: s.album,
+            mb_id: s.mb_id,
+            isrc: s.isrc,
+            timestamp: s.timestamp,
+        }
+    }
+}
+
 /// A canonical track record (`app.rocksky.song`).
 #[derive(Debug, Clone, Default, uniffi::Record)]
 pub struct SongInput {
@@ -1120,22 +1150,10 @@ impl Agent {
     /// metadata via `matchSong`, then run the normal fan-out.
     pub fn scrobble_match(
         &self,
-        title: String,
-        artist: String,
-        album: Option<String>,
-        mb_id: Option<String>,
-        isrc: Option<String>,
-        timestamp: Option<i64>,
+        input: ScrobbleMatchInput,
     ) -> Result<ScrobbleResult, RockskyError> {
         Ok(RT
-            .block_on(self.inner.scrobble_match(
-                &title,
-                &artist,
-                album.as_deref(),
-                mb_id.as_deref(),
-                isrc.as_deref(),
-                timestamp,
-            ))
+            .block_on(self.inner.scrobble_match(&input.into()))
             .map_err(err)?
             .into())
     }

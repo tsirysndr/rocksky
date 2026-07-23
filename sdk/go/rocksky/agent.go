@@ -170,13 +170,32 @@ func (a *Agent) Scrobble(ctx context.Context, rec gen.ScrobbleRecord) (string, e
 	return uri, err
 }
 
-// ScrobbleMatch scrobbles from just a title + artist (album optional, plus
-// optional mbID/isrc anchors): it resolves full canonical metadata via the
-// AppView's match query (app.rocksky.song.matchSong) and then writes the
-// scrobble. Matching uses the public AppView; pass appview="" for the default.
-// If the match comes back empty it falls back to a minimal record so the
-// scrobble still lands.
-func (a *Agent) ScrobbleMatch(ctx context.Context, appview, title, artist, album, mbID, isrc string, timestamp int64) (string, error) {
+// ScrobbleMatchInput is the input to [Agent.ScrobbleMatch]. Title and Artist
+// are required; the rest are optional pointers (nil = unset): Album override,
+// MbID/ISRC match anchors, and the scrobbled-at Timestamp in Unix seconds (nil
+// = now).
+type ScrobbleMatchInput struct {
+	Title     string
+	Artist    string
+	Album     *string
+	MbID      *string
+	ISRC      *string
+	Timestamp *int64
+}
+
+func strval(p *string) string {
+	if p == nil {
+		return ""
+	}
+	return *p
+}
+
+// ScrobbleMatch scrobbles from just a title + artist: it resolves full canonical
+// metadata via the AppView's match query (app.rocksky.song.matchSong) and then
+// writes the scrobble. Matching uses the public AppView; pass appview="" for the
+// default. If the match comes back empty it falls back to a minimal record so
+// the scrobble still lands.
+func (a *Agent) ScrobbleMatch(ctx context.Context, appview string, in ScrobbleMatchInput) (string, error) {
 	var m struct {
 		Title, Artist, AlbumArtist, Album, AlbumArt     string
 		Duration, TrackNumber, DiscNumber, Year         int
@@ -184,7 +203,7 @@ func (a *Agent) ScrobbleMatch(ctx context.Context, appview, title, artist, album
 		SpotifyLink, YoutubeLink, TidalLink             string
 		AppleMusicLink                                  string
 	}
-	raw, err := NewClient(appview).MatchSong(ctx, title, artist, mbID, isrc)
+	raw, err := NewClient(appview).MatchSong(ctx, in.Title, in.Artist, strval(in.MbID), strval(in.ISRC))
 	if err == nil {
 		// json field names are camelCase; remap the few that differ.
 		var j map[string]any
@@ -210,12 +229,12 @@ func (a *Agent) ScrobbleMatch(ctx context.Context, appview, title, artist, album
 			m.Year = jsonInt(j["year"])
 		}
 	}
-	rec := gen.ScrobbleRecord{Title: title, Artist: artist, Album: album, AlbumArtist: artist}
+	rec := gen.ScrobbleRecord{Title: in.Title, Artist: in.Artist, Album: strval(in.Album), AlbumArtist: in.Artist}
 	if m.Title != "" { // a match came back — use its richer metadata
 		rec.Title = m.Title
 		rec.Artist = m.Artist
 		rec.AlbumArtist = m.AlbumArtist
-		if album == "" {
+		if in.Album == nil { // caller album wins; else use the matched album
 			rec.Album = m.Album
 		}
 		rec.AlbumArtURL = m.AlbumArt
@@ -234,9 +253,9 @@ func (a *Agent) ScrobbleMatch(ctx context.Context, appview, title, artist, album
 		rec.TidalLink = m.TidalLink
 		rec.AppleMusicLink = m.AppleMusicLink
 	}
-	// "Scrobbled at" — Unix seconds; 0 leaves CreatedAt empty (Scrobble = now).
-	if timestamp != 0 {
-		rec.CreatedAt = time.Unix(timestamp, 0).UTC().Format("2006-01-02T15:04:05.000Z")
+	// "Scrobbled at" — Unix seconds; nil leaves CreatedAt empty (Scrobble = now).
+	if in.Timestamp != nil {
+		rec.CreatedAt = time.Unix(*in.Timestamp, 0).UTC().Format("2006-01-02T15:04:05.000Z")
 	}
 	return a.Scrobble(ctx, rec)
 }

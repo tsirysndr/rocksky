@@ -15,8 +15,7 @@
          top_artists_interval/3, top_artists_interval/4, top_artists_interval_raw/7,
          song_hash/3, album_hash/2, artist_hash/1,
          agent_login/3, agent_login/4, agent_login/5, agent_scrobble/2,
-         agent_scrobble_match/3, agent_scrobble_match/4, agent_scrobble_match/6,
-         agent_scrobble_match/7, agent_sync_repo/1,
+         agent_scrobble_match/2, agent_scrobble_match/7, agent_sync_repo/1,
          agent_hydrate_from_jetstream/1, agent_like/3,
          agent_follow/2, agent_shout/4, agent_refresh_session/1]).
 
@@ -121,17 +120,25 @@ agent_scrobble(Agent, Track) ->
 
 %% Scrobble from just a title + artist (album optional): resolve full metadata
 %% via matchSong, then fan out.
-agent_scrobble_match(Agent, Title, Artist) ->
-    agent_scrobble_match(Agent, Title, Artist, <<>>, <<>>, <<>>, 0).
-agent_scrobble_match(Agent, Title, Artist, Album) ->
-    agent_scrobble_match(Agent, Title, Artist, Album, <<>>, <<>>, 0).
-agent_scrobble_match(Agent, Title, Artist, Album, MbId, Isrc) ->
-    agent_scrobble_match(Agent, Title, Artist, Album, MbId, Isrc, 0).
-%% Optional `MbId` / `Isrc` anchor the match; `Timestamp` is the scrobbled-at
-%% Unix seconds (0 = now).
+%% Scrobble from a title + artist. `Input` is a map with camelCase binary keys:
+%% required <<"title">>/<<"artist">>; optional <<"album">>, <<"mbId">>,
+%% <<"isrc">> (match anchors) and <<"timestamp">> (scrobbled-at Unix seconds).
+agent_scrobble_match(Agent, Input) when is_map(Input) ->
+    unwrap(rocksky_nif:agent_scrobble_match(Agent, iolist_to_binary(json:encode(Input)))).
+
+%% Flat form (used by the Gleam SDK): empty strings / 0 are omitted so they don't
+%% override a matched field.
 agent_scrobble_match(Agent, Title, Artist, Album, MbId, Isrc, Timestamp) ->
-    unwrap(rocksky_nif:agent_scrobble_match(Agent, b(Title), b(Artist), b(Album),
-                                            b(MbId), b(Isrc), Timestamp)).
+    M0 = #{<<"title">> => b(Title), <<"artist">> => b(Artist)},
+    M1 = put_ne(M0, <<"album">>, Album),
+    M2 = put_ne(M1, <<"mbId">>, MbId),
+    M3 = put_ne(M2, <<"isrc">>, Isrc),
+    M4 = case Timestamp of 0 -> M3; T -> M3#{<<"timestamp">> => T} end,
+    agent_scrobble_match(Agent, M4).
+
+%% Put `K => V` only when the binary value is non-empty.
+put_ne(M, K, V) ->
+    case b(V) of <<>> -> M; Bin -> M#{K => Bin} end.
 
 %% Download the caller's repo and (re)build the local dedup index (needs a
 %% DedupPath at login). Returns the per-collection counts.

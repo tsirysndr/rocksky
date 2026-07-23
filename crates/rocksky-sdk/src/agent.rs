@@ -68,6 +68,29 @@ pub struct ScrobbleDraft {
     pub timestamp: Option<i64>,
 }
 
+/// Input for [`RockskyAgent::scrobble_match`] — just what's needed to resolve
+/// the track via `matchSong`. `title` and `artist` are required; the rest are
+/// optional. Build it with `..Default::default()`:
+///
+/// ```
+/// use rocksky_sdk::ScrobbleMatch;
+/// let _ = ScrobbleMatch { title: "Chaser".into(), artist: "Calibro 35".into(), ..Default::default() };
+/// ```
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct ScrobbleMatch {
+    pub title: String,
+    pub artist: String,
+    /// Overrides the matched album when set.
+    pub album: Option<String>,
+    /// MusicBrainz recording id — anchors the match.
+    pub mb_id: Option<String>,
+    /// ISRC — anchors the match.
+    pub isrc: Option<String>,
+    /// Scrobbled-at Unix seconds; defaults to now.
+    pub timestamp: Option<i64>,
+}
+
 /// User input for a canonical track record (`app.rocksky.song`).
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", default)]
@@ -615,18 +638,18 @@ impl RockskyAgent {
     /// [`ScrobbleDraft`] and call [`scrobble`] directly.
     ///
     /// [`scrobble`]: RockskyAgent::scrobble
-    pub async fn scrobble_match(
-        &self,
-        title: &str,
-        artist: &str,
-        album: Option<&str>,
-        mb_id: Option<&str>,
-        isrc: Option<&str>,
-        timestamp: Option<i64>,
-    ) -> Result<ScrobbleResult> {
+    pub async fn scrobble_match(&self, input: &ScrobbleMatch) -> Result<ScrobbleResult> {
+        let ScrobbleMatch {
+            title,
+            artist,
+            album,
+            mb_id,
+            isrc,
+            timestamp,
+        } = input;
         let matched = self
             .appview
-            .match_song(title, artist, mb_id, isrc)
+            .match_song(title, artist, mb_id.as_deref(), isrc.as_deref())
             .await
             .ok();
         let mut draft = match matched
@@ -637,14 +660,11 @@ impl RockskyAgent {
                 let s = |k: &str| m.get(k).and_then(|v| v.as_str()).map(str::to_string);
                 let i = |k: &str| m.get(k).and_then(serde_json::Value::as_i64);
                 ScrobbleDraft {
-                    title: s("title").unwrap_or_else(|| title.to_string()),
-                    artist: s("artist").unwrap_or_else(|| artist.to_string()),
+                    title: s("title").unwrap_or_else(|| title.clone()),
+                    artist: s("artist").unwrap_or_else(|| artist.clone()),
                     // A caller-supplied album wins; else use the matched album.
-                    album: album
-                        .map(str::to_string)
-                        .or_else(|| s("album"))
-                        .unwrap_or_default(),
-                    album_artist: s("albumArtist").unwrap_or_else(|| artist.to_string()),
+                    album: album.clone().or_else(|| s("album")).unwrap_or_default(),
+                    album_artist: s("albumArtist").unwrap_or_else(|| artist.clone()),
                     duration_ms: i("duration").unwrap_or(0),
                     album_art_url: s("albumArt"),
                     track_number: i("trackNumber"),
@@ -664,15 +684,15 @@ impl RockskyAgent {
                 }
             }
             None => ScrobbleDraft {
-                title: title.to_string(),
-                artist: artist.to_string(),
-                album: album.unwrap_or_default().to_string(),
-                album_artist: artist.to_string(),
+                title: title.clone(),
+                artist: artist.clone(),
+                album: album.clone().unwrap_or_default(),
+                album_artist: artist.clone(),
                 ..Default::default()
             },
         };
         // "Scrobbled at" — Unix seconds; the draft defaults to now when None.
-        draft.timestamp = timestamp;
+        draft.timestamp = *timestamp;
         self.scrobble(&draft).await
     }
 

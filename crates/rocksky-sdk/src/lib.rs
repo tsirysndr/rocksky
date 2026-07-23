@@ -75,7 +75,7 @@ pub mod namespaces;
 
 pub use agent::{
     AlbumDraft, ArtistDraft, NowPlaying, RockskyAgent, RockskyAgentBuilder, ScrobbleDraft,
-    ScrobbleResult, SongDraft,
+    ScrobbleMatch, ScrobbleResult, SongDraft,
 };
 pub use appview::{
     AlbumView, AppView, ArtistView, DateInterval, FeedItem, FeedView, GlobalStats, ProfileView,

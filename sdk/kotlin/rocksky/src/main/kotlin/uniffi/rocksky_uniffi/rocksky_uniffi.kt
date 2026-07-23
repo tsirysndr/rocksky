@@ -925,7 +925,7 @@ internal interface UniffiLib : Library {
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_agent_scrobble(`ptr`: Pointer,`input`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_rocksky_uniffi_fn_method_agent_scrobble_match(`ptr`: Pointer,`title`: RustBuffer.ByValue,`artist`: RustBuffer.ByValue,`album`: RustBuffer.ByValue,`mbId`: RustBuffer.ByValue,`isrc`: RustBuffer.ByValue,`timestamp`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_rocksky_uniffi_fn_method_agent_scrobble_match(`ptr`: Pointer,`input`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_agent_set_now_playing(`ptr`: Pointer,`track`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
@@ -1397,7 +1397,7 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_rocksky_uniffi_checksum_method_agent_scrobble() != 17314.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_scrobble_match() != 30208.toShort()) {
+    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_scrobble_match() != 139.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_method_agent_set_now_playing() != 46985.toShort()) {
@@ -2005,7 +2005,7 @@ public interface AgentInterface {
      * Scrobble from just a title + artist (album optional): resolve full
      * metadata via `matchSong`, then run the normal fan-out.
      */
-    fun `scrobbleMatch`(`title`: kotlin.String, `artist`: kotlin.String, `album`: kotlin.String?, `mbId`: kotlin.String?, `isrc`: kotlin.String?, `timestamp`: kotlin.Long?): ScrobbleResult
+    fun `scrobbleMatch`(`input`: ScrobbleMatchInput): ScrobbleResult
     
     /**
      * Set the actor's now-playing status singleton.
@@ -2292,12 +2292,12 @@ open class Agent: Disposable, AutoCloseable, AgentInterface {
      * Scrobble from just a title + artist (album optional): resolve full
      * metadata via `matchSong`, then run the normal fan-out.
      */
-    @Throws(RockskyException::class)override fun `scrobbleMatch`(`title`: kotlin.String, `artist`: kotlin.String, `album`: kotlin.String?, `mbId`: kotlin.String?, `isrc`: kotlin.String?, `timestamp`: kotlin.Long?): ScrobbleResult {
+    @Throws(RockskyException::class)override fun `scrobbleMatch`(`input`: ScrobbleMatchInput): ScrobbleResult {
             return FfiConverterTypeScrobbleResult.lift(
     callWithPointer {
     uniffiRustCallWithError(RockskyException) { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_agent_scrobble_match(
-        it, FfiConverterString.lower(`title`),FfiConverterString.lower(`artist`),FfiConverterOptionalString.lower(`album`),FfiConverterOptionalString.lower(`mbId`),FfiConverterOptionalString.lower(`isrc`),FfiConverterOptionalLong.lower(`timestamp`),_status)
+        it, FfiConverterTypeScrobbleMatchInput.lower(`input`),_status)
 }
     }
     )
@@ -4095,6 +4095,61 @@ public object FfiConverterTypeScrobbleInput: FfiConverterRustBuffer<ScrobbleInpu
             FfiConverterOptionalString.write(value.`youtubeLink`, buf)
             FfiConverterOptionalString.write(value.`tidalLink`, buf)
             FfiConverterOptionalString.write(value.`appleMusicLink`, buf)
+            FfiConverterOptionalLong.write(value.`timestamp`, buf)
+    }
+}
+
+
+
+/**
+ * Input for `Agent.scrobble_match` — `title` + `artist` required, the rest
+ * optional (album override, mbId/isrc match anchors, scrobbled-at timestamp).
+ */
+data class ScrobbleMatchInput (
+    var `title`: kotlin.String, 
+    var `artist`: kotlin.String, 
+    var `album`: kotlin.String? = null, 
+    var `mbId`: kotlin.String? = null, 
+    var `isrc`: kotlin.String? = null, 
+    /**
+     * Scrobbled-at Unix seconds; `None` = now.
+     */
+    var `timestamp`: kotlin.Long? = null
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeScrobbleMatchInput: FfiConverterRustBuffer<ScrobbleMatchInput> {
+    override fun read(buf: ByteBuffer): ScrobbleMatchInput {
+        return ScrobbleMatchInput(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalLong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: ScrobbleMatchInput) = (
+            FfiConverterString.allocationSize(value.`title`) +
+            FfiConverterString.allocationSize(value.`artist`) +
+            FfiConverterOptionalString.allocationSize(value.`album`) +
+            FfiConverterOptionalString.allocationSize(value.`mbId`) +
+            FfiConverterOptionalString.allocationSize(value.`isrc`) +
+            FfiConverterOptionalLong.allocationSize(value.`timestamp`)
+    )
+
+    override fun write(value: ScrobbleMatchInput, buf: ByteBuffer) {
+            FfiConverterString.write(value.`title`, buf)
+            FfiConverterString.write(value.`artist`, buf)
+            FfiConverterOptionalString.write(value.`album`, buf)
+            FfiConverterOptionalString.write(value.`mbId`, buf)
+            FfiConverterOptionalString.write(value.`isrc`, buf)
             FfiConverterOptionalLong.write(value.`timestamp`, buf)
     }
 }

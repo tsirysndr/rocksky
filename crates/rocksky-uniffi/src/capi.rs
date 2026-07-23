@@ -14,7 +14,7 @@ use std::cell::RefCell;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 
-use rocksky_sdk::{RockskyAgent, ScrobbleDraft};
+use rocksky_sdk::{RockskyAgent, ScrobbleDraft, ScrobbleMatch};
 
 use crate::RT;
 
@@ -354,36 +354,13 @@ pub unsafe extern "C" fn rocksky_agent_scrobble(
 #[no_mangle]
 pub unsafe extern "C" fn rocksky_agent_scrobble_match(
     agent: *mut Agent,
-    title: *const c_char,
-    artist: *const c_char,
-    album: *const c_char,
-    mb_id: *const c_char,
-    isrc: *const c_char,
-    timestamp: i64,
+    input_json: *const c_char,
 ) -> *mut c_char {
     let a = with_agent(agent);
-    let (alb, mb, is) = (cstr(album), cstr(mb_id), cstr(isrc));
-    let alb = if alb.is_empty() {
-        None
-    } else {
-        Some(alb.as_str())
-    };
-    let mb = if mb.is_empty() {
-        None
-    } else {
-        Some(mb.as_str())
-    };
-    let is = if is.is_empty() {
-        None
-    } else {
-        Some(is.as_str())
-    };
-    // 0 = "scrobbled now".
-    let ts = if timestamp == 0 { None } else { Some(timestamp) };
-    respond(
-        RT.block_on(a.scrobble_match(&cstr(title), &cstr(artist), alb, mb, is, ts))
-            .map_err(|e| e.to_string()),
-    )
+    match serde_json::from_str::<ScrobbleMatch>(&cstr(input_json)) {
+        Ok(m) => respond(RT.block_on(a.scrobble_match(&m)).map_err(|e| e.to_string())),
+        Err(e) => respond::<()>(Err(e.to_string())),
+    }
 }
 
 /// Download the caller's repo and (re)build the local dedup index; returns the

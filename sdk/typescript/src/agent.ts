@@ -52,6 +52,19 @@ function nowISO(): string {
 // Write inputs: `createdAt` is optional (the SDK defaults it to now).
 /** Input for {@link Agent.scrobble} (createdAt defaults to now). */
 export type ScrobbleInput = Omit<ScrobbleRecord, "createdAt"> & { createdAt?: string };
+/** Input for {@link Agent.scrobbleMatch} — `title`/`artist` required, rest optional. */
+export interface ScrobbleMatchInput {
+  title: string;
+  artist: string;
+  /** Overrides the matched album. */
+  album?: string;
+  /** MusicBrainz recording id — anchors the match. */
+  mbId?: string;
+  /** ISRC — anchors the match. */
+  isrc?: string;
+  /** Scrobbled-at Unix seconds; omitted = now. */
+  timestamp?: number;
+}
 /** Input for {@link Agent.createSong}. */
 export type SongInput = Omit<SongRecord, "createdAt"> & { createdAt?: string };
 /** Input for {@link Agent.createAlbum} (`artist` is the album artist). */
@@ -157,15 +170,8 @@ export class Agent {
    * `mbId`/`isrc` anchors): resolve full metadata via `matchSong`, then write.
    * Matching uses the public AppView unless `appview` is given; an empty match
    * falls back to a minimal record. */
-  async scrobbleMatch(
-    title: string,
-    artist: string,
-    album?: string,
-    mbId?: string,
-    isrc?: string,
-    timestamp?: number,
-    appview?: string,
-  ): Promise<string> {
+  async scrobbleMatch(input: ScrobbleMatchInput, appview?: string): Promise<string> {
+    const { title, artist, album, mbId, isrc, timestamp } = input;
     const { RockskyClient } = await import("./client.js");
     const m = (await new RockskyClient(appview).matchSong(title, artist, mbId, isrc)) as Record<
       string,

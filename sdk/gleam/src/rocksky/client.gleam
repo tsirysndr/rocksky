@@ -10,6 +10,7 @@
 //// shape); decode with `gleam/dynamic`.
 
 import gleam/dynamic.{type Dynamic}
+import gleam/option.{type Option}
 
 /// An opaque authenticated-agent handle (a NIF resource freed by the BEAM GC).
 pub type Agent =
@@ -257,6 +258,20 @@ pub fn refresh_session(agent: Agent) -> Dynamic {
   agent_refresh_session_ffi(agent)
 }
 
+/// Input for [scrobble_match](#scrobble_match): `title` + `artist` required, the
+/// rest optional (album override, mb_id / isrc match anchors, scrobbled-at Unix
+/// seconds).
+pub type ScrobbleMatch {
+  ScrobbleMatch(
+    title: String,
+    artist: String,
+    album: Option(String),
+    mb_id: Option(String),
+    isrc: Option(String),
+    timestamp: Option(Int),
+  )
+}
+
 @external(erlang, "rocksky", "agent_scrobble_match")
 fn agent_scrobble_match_ffi(
   agent: Agent,
@@ -268,19 +283,18 @@ fn agent_scrobble_match_ffi(
   timestamp: Int,
 ) -> Dynamic
 
-/// Scrobble from just a title + artist (pass "" for no album; optional mb_id /
-/// isrc anchor the match; `timestamp` is the scrobbled-at Unix seconds, 0 = now):
-/// resolve full metadata via matchSong, then fan out.
-pub fn scrobble_match(
-  agent: Agent,
-  title: String,
-  artist: String,
-  album: String,
-  mb_id: String,
-  isrc: String,
-  timestamp: Int,
-) -> Dynamic {
-  agent_scrobble_match_ffi(agent, title, artist, album, mb_id, isrc, timestamp)
+/// Scrobble from a title + artist: resolve full metadata via matchSong, then fan
+/// out. Unset optionals (`None`) are ignored.
+pub fn scrobble_match(agent: Agent, input: ScrobbleMatch) -> Dynamic {
+  agent_scrobble_match_ffi(
+    agent,
+    input.title,
+    input.artist,
+    option.unwrap(input.album, ""),
+    option.unwrap(input.mb_id, ""),
+    option.unwrap(input.isrc, ""),
+    option.unwrap(input.timestamp, 0),
+  )
 }
 
 @external(erlang, "rocksky", "agent_sync_repo")

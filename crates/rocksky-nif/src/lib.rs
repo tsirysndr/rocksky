@@ -8,7 +8,9 @@
 //! the authenticated agent is a Rustler resource (opaque handle).
 
 use once_cell::sync::Lazy;
-use rocksky_sdk::{AlbumDraft, ArtistDraft, NowPlaying, RockskyAgent, ScrobbleDraft, SongDraft};
+use rocksky_sdk::{
+    AlbumDraft, ArtistDraft, NowPlaying, RockskyAgent, ScrobbleDraft, ScrobbleMatch, SongDraft,
+};
 use rustler::{Resource, ResourceArc};
 
 /// One multi-threaded tokio runtime drives every async SDK call. Dirty-IO nif
@@ -512,25 +514,11 @@ fn agent_scrobble(agent: ResourceArc<AgentRes>, draft_json: String) -> String {
 /// Scrobble from a bare title + artist (album optional): resolve full metadata
 /// via matchSong, then fan out.
 #[rustler::nif(schedule = "DirtyIo")]
-fn agent_scrobble_match(
-    agent: ResourceArc<AgentRes>,
-    title: String,
-    artist: String,
-    album: String,
-    mb_id: String,
-    isrc: String,
-    timestamp: i64,
-) -> String {
-    // 0 = "scrobbled now" (the core defaults None -> now).
-    let ts = if timestamp == 0 { None } else { Some(timestamp) };
-    envelope(RT.block_on(agent.0.scrobble_match(
-        &title,
-        &artist,
-        opt(&album),
-        opt(&mb_id),
-        opt(&isrc),
-        ts,
-    )))
+fn agent_scrobble_match(agent: ResourceArc<AgentRes>, input_json: String) -> String {
+    match parse::<ScrobbleMatch>(&input_json) {
+        Ok(m) => envelope(RT.block_on(agent.0.scrobble_match(&m))),
+        Err(e) => envelope::<(), _>(Err(e)),
+    }
 }
 
 #[rustler::nif(schedule = "DirtyIo")]

@@ -24,6 +24,7 @@ package app.rocksky
 typealias AppView = uniffi.rocksky_uniffi.AppView
 typealias Agent = uniffi.rocksky_uniffi.Agent
 typealias ScrobbleInput = uniffi.rocksky_uniffi.ScrobbleInput
+typealias ScrobbleMatchInput = uniffi.rocksky_uniffi.ScrobbleMatchInput
 typealias SongInput = uniffi.rocksky_uniffi.SongInput
 typealias AlbumInput = uniffi.rocksky_uniffi.AlbumInput
 typealias ArtistInput = uniffi.rocksky_uniffi.ArtistInput

@@ -491,7 +491,7 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_agent_scrobble() != 17314:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_rocksky_uniffi_checksum_method_agent_scrobble_match() != 30208:
+    if lib.uniffi_rocksky_uniffi_checksum_method_agent_scrobble_match() != 139:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_agent_set_now_playing() != 46985:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -820,11 +820,6 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_scrobble.argtypes = (
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_scrobble.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_scrobble_match.argtypes = (
     ctypes.c_void_p,
-    _UniffiRustBuffer,
-    _UniffiRustBuffer,
-    _UniffiRustBuffer,
-    _UniffiRustBuffer,
-    _UniffiRustBuffer,
     _UniffiRustBuffer,
     ctypes.POINTER(_UniffiRustCallStatus),
 )
@@ -1977,7 +1972,7 @@ class AgentProtocol(typing.Protocol):
         """
 
         raise NotImplementedError
-    def scrobble_match(self, title: "str",artist: "str",album: "typing.Optional[str]",mb_id: "typing.Optional[str]",isrc: "typing.Optional[str]",timestamp: "typing.Optional[int]"):
+    def scrobble_match(self, input: "ScrobbleMatchInput"):
         """
         Scrobble from just a title + artist (album optional): resolve full
         metadata via `matchSong`, then run the normal fan-out.
@@ -2236,32 +2231,17 @@ class Agent:
 
 
 
-    def scrobble_match(self, title: "str",artist: "str",album: "typing.Optional[str]",mb_id: "typing.Optional[str]",isrc: "typing.Optional[str]",timestamp: "typing.Optional[int]") -> "ScrobbleResult":
+    def scrobble_match(self, input: "ScrobbleMatchInput") -> "ScrobbleResult":
         """
         Scrobble from just a title + artist (album optional): resolve full
         metadata via `matchSong`, then run the normal fan-out.
         """
 
-        _UniffiConverterString.check_lower(title)
-        
-        _UniffiConverterString.check_lower(artist)
-        
-        _UniffiConverterOptionalString.check_lower(album)
-        
-        _UniffiConverterOptionalString.check_lower(mb_id)
-        
-        _UniffiConverterOptionalString.check_lower(isrc)
-        
-        _UniffiConverterOptionalInt64.check_lower(timestamp)
+        _UniffiConverterTypeScrobbleMatchInput.check_lower(input)
         
         return _UniffiConverterTypeScrobbleResult.lift(
             _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_scrobble_match,self._uniffi_clone_pointer(),
-        _UniffiConverterString.lower(title),
-        _UniffiConverterString.lower(artist),
-        _UniffiConverterOptionalString.lower(album),
-        _UniffiConverterOptionalString.lower(mb_id),
-        _UniffiConverterOptionalString.lower(isrc),
-        _UniffiConverterOptionalInt64.lower(timestamp))
+        _UniffiConverterTypeScrobbleMatchInput.lower(input))
         )
 
 
@@ -4354,6 +4334,91 @@ class _UniffiConverterTypeScrobbleInput(_UniffiConverterRustBuffer):
         _UniffiConverterOptionalInt64.write(value.timestamp, buf)
 
 
+class ScrobbleMatchInput:
+    """
+    Input for `Agent.scrobble_match` — `title` + `artist` required, the rest
+    optional (album override, mbId/isrc match anchors, scrobbled-at timestamp).
+    """
+
+    title: "str"
+    artist: "str"
+    album: "typing.Optional[str]"
+    mb_id: "typing.Optional[str]"
+    isrc: "typing.Optional[str]"
+    timestamp: "typing.Optional[int]"
+    """
+    Scrobbled-at Unix seconds; `None` = now.
+    """
+
+    def __init__(self, *, title: "str", artist: "str", album: "typing.Optional[str]" = _DEFAULT, mb_id: "typing.Optional[str]" = _DEFAULT, isrc: "typing.Optional[str]" = _DEFAULT, timestamp: "typing.Optional[int]" = _DEFAULT):
+        self.title = title
+        self.artist = artist
+        if album is _DEFAULT:
+            self.album = None
+        else:
+            self.album = album
+        if mb_id is _DEFAULT:
+            self.mb_id = None
+        else:
+            self.mb_id = mb_id
+        if isrc is _DEFAULT:
+            self.isrc = None
+        else:
+            self.isrc = isrc
+        if timestamp is _DEFAULT:
+            self.timestamp = None
+        else:
+            self.timestamp = timestamp
+
+    def __str__(self):
+        return "ScrobbleMatchInput(title={}, artist={}, album={}, mb_id={}, isrc={}, timestamp={})".format(self.title, self.artist, self.album, self.mb_id, self.isrc, self.timestamp)
+
+    def __eq__(self, other):
+        if self.title != other.title:
+            return False
+        if self.artist != other.artist:
+            return False
+        if self.album != other.album:
+            return False
+        if self.mb_id != other.mb_id:
+            return False
+        if self.isrc != other.isrc:
+            return False
+        if self.timestamp != other.timestamp:
+            return False
+        return True
+
+class _UniffiConverterTypeScrobbleMatchInput(_UniffiConverterRustBuffer):
+    @staticmethod
+    def read(buf):
+        return ScrobbleMatchInput(
+            title=_UniffiConverterString.read(buf),
+            artist=_UniffiConverterString.read(buf),
+            album=_UniffiConverterOptionalString.read(buf),
+            mb_id=_UniffiConverterOptionalString.read(buf),
+            isrc=_UniffiConverterOptionalString.read(buf),
+            timestamp=_UniffiConverterOptionalInt64.read(buf),
+        )
+
+    @staticmethod
+    def check_lower(value):
+        _UniffiConverterString.check_lower(value.title)
+        _UniffiConverterString.check_lower(value.artist)
+        _UniffiConverterOptionalString.check_lower(value.album)
+        _UniffiConverterOptionalString.check_lower(value.mb_id)
+        _UniffiConverterOptionalString.check_lower(value.isrc)
+        _UniffiConverterOptionalInt64.check_lower(value.timestamp)
+
+    @staticmethod
+    def write(value, buf):
+        _UniffiConverterString.write(value.title, buf)
+        _UniffiConverterString.write(value.artist, buf)
+        _UniffiConverterOptionalString.write(value.album, buf)
+        _UniffiConverterOptionalString.write(value.mb_id, buf)
+        _UniffiConverterOptionalString.write(value.isrc, buf)
+        _UniffiConverterOptionalInt64.write(value.timestamp, buf)
+
+
 class ScrobbleResult:
     """
     The four record URIs a scrobble touches.
@@ -5525,6 +5590,7 @@ __all__ = [
     "Profile",
     "ProfileView",
     "ScrobbleInput",
+    "ScrobbleMatchInput",
     "ScrobbleResult",
     "ScrobbleView",
     "SongInput",
