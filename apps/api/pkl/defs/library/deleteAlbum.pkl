@@ -1,0 +1,40 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.library.deleteAlbum"
+defs = new Mapping<String, Procedure> {
+  ["main"] {
+    type = "procedure"
+    description = "Delete an uploaded album owned by the authenticated user. Removes every upload the user owns for the album (storage objects + library entries); shared album/track metadata and scrobble history are preserved."
+    input {
+      encoding = "application/json"
+      schema {
+        type = "object"
+        required = List("id")
+        properties {
+          ["id"] = new StringType {
+            type = "string"
+            description = "The album id (album xata_id, as exposed by the library API)."
+          }
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        required = List("status", "deleted")
+        properties {
+          ["status"] = new StringType {
+            type = "string"
+            description = "Always \"ok\" on success."
+          }
+          ["deleted"] = new IntegerType {
+            type = "integer"
+            description = "Number of uploads deleted for the album."
+          }
+        }
+      }
+    }
+  }
+}

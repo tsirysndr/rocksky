@@ -8764,6 +8764,90 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyLibraryDeleteAlbum: {
+    lexicon: 1,
+    id: "app.rocksky.library.deleteAlbum",
+    defs: {
+      main: {
+        type: "procedure",
+        description:
+          "Delete an uploaded album owned by the authenticated user. Removes every upload the user owns for the album (storage objects + library entries); shared album/track metadata and scrobble history are preserved.",
+        input: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["id"],
+            properties: {
+              id: {
+                type: "string",
+                description:
+                  "The album id (album xata_id, as exposed by the library API).",
+              },
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["status", "deleted"],
+            properties: {
+              status: {
+                type: "string",
+                description: 'Always "ok" on success.',
+              },
+              deleted: {
+                type: "integer",
+                description: "Number of uploads deleted for the album.",
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryDeleteSong: {
+    lexicon: 1,
+    id: "app.rocksky.library.deleteSong",
+    defs: {
+      main: {
+        type: "procedure",
+        description:
+          "Delete an uploaded song owned by the authenticated user. Removes the user's upload (storage object + library entry); the shared track metadata and scrobble history are preserved.",
+        input: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["id"],
+            properties: {
+              id: {
+                type: "string",
+                description:
+                  "The song id (track xata_id, as exposed by the library API).",
+              },
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["status", "deleted"],
+            properties: {
+              status: {
+                type: "string",
+                description: 'Always "ok" on success.',
+              },
+              deleted: {
+                type: "integer",
+                description: "Number of uploads deleted (0 or 1).",
+              },
+            },
+          },
+        },
+      },
+    },
+  },
 } as const satisfies Record<string, LexiconDoc>;
 
 export const schemas = Object.values(schemaDict);
@@ -8960,4 +9044,6 @@ export const ids = {
   AppRockskyLibraryUnstar: "app.rocksky.library.unstar",
   AppRockskyLibraryUpdateNowPlaying: "app.rocksky.library.updateNowPlaying",
   AppRockskyLibraryUpdatePlaylist: "app.rocksky.library.updatePlaylist",
+  AppRockskyLibraryDeleteAlbum: "app.rocksky.library.deleteAlbum",
+  AppRockskyLibraryDeleteSong: "app.rocksky.library.deleteSong",
 };

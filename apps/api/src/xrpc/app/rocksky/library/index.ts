@@ -1,7 +1,9 @@
 import type { Context } from "context";
 import type { Server } from "lexicon";
 import createPlaylist from "./createPlaylist";
+import deleteAlbum from "./deleteAlbum";
 import deletePlaylist from "./deletePlaylist";
+import deleteSong from "./deleteSong";
 import getAlbum from "./getAlbum";
 import getAlbumInfo from "./getAlbumInfo";
 import getAlbumList from "./getAlbumList";
@@ -71,6 +73,8 @@ export default function registerLibrary(server: Server, ctx: Context) {
   createPlaylist(server, ctx);
   updatePlaylist(server, ctx);
   deletePlaylist(server, ctx);
+  deleteSong(server, ctx);
+  deleteAlbum(server, ctx);
   scrobble(server, ctx);
   updateNowPlaying(server, ctx);
   getNowPlaying(server, ctx);

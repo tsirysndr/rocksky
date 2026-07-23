@@ -1,0 +1,45 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.library.deleteAlbum",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Delete an uploaded album owned by the authenticated user. Removes every upload the user owns for the album (storage objects + library entries); shared album/track metadata and scrobble history are preserved.",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [
+            "id"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "The album id (album xata_id, as exposed by the library API)."
+            }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [
+            "status",
+            "deleted"
+          ],
+          "properties": {
+            "status": {
+              "type": "string",
+              "description": "Always \"ok\" on success."
+            },
+            "deleted": {
+              "type": "integer",
+              "description": "Number of uploads deleted for the album."
+            }
+          }
+        }
+      }
+    }
+  }
+}

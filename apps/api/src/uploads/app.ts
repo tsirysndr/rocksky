@@ -1,5 +1,4 @@
 import {
-  DeleteObjectCommand,
   GetObjectCommand,
   PutObjectCommand,
   S3Client,
@@ -17,11 +16,8 @@ import { parseBuffer } from "music-metadata";
 import { createHash } from "node:crypto";
 import tables from "schema";
 import { saveTrack } from "tracks/tracks.service";
-import {
-  indexLibraryTrack,
-  removeLibraryTrack,
-  searchLibraryTracks,
-} from "typesense/library";
+import { purgeUploads } from "uploads/delete.service";
+import { indexLibraryTrack, searchLibraryTracks } from "typesense/library";
 
 // ---------------------------------------------------------------------------
 // Allowed audio MIME types
@@ -916,40 +912,13 @@ app.delete("/album", async (c) => {
     return c.json({ status: "ok", deleted: 0 });
   }
 
-  const uploads = rows.map((r) => r.upload);
-  await Promise.all(
-    uploads.map(async (upload) => {
-      try {
-        const { client, bucket } = await resolveStorageClient(
-          user.id,
-          upload.storageProviderId ?? null,
-        );
-        await client.send(
-          new DeleteObjectCommand({ Bucket: bucket, Key: upload.r2Key }),
-        );
-      } catch (e) {
-        consola.warn(
-          `[uploads] failed to delete object ${upload.r2Key} from storage`,
-          e,
-        );
-      }
-    }),
+  const deleted = await purgeUploads(
+    ctx,
+    user.id,
+    rows.map((r) => r.upload),
   );
 
-  await ctx.db.delete(tables.userUploads).where(
-    inArray(
-      tables.userUploads.id,
-      uploads.map((u) => u.id),
-    ),
-  );
-
-  for (const upload of uploads) {
-    removeLibraryTrack(upload.id).catch((e) =>
-      consola.warn("[typesense] remove failed:", e),
-    );
-  }
-
-  return c.json({ status: "ok", deleted: uploads.length });
+  return c.json({ status: "ok", deleted });
 });
 
 // DELETE /uploads/by-track/:trackId -----------------------------------------
@@ -979,21 +948,7 @@ app.delete("/by-track/:trackId", async (c) => {
     return c.text("Upload not found");
   }
 
-  const { client, bucket } = await resolveStorageClient(
-    user.id,
-    upload.storageProviderId ?? null,
-  );
-  await client.send(
-    new DeleteObjectCommand({ Bucket: bucket, Key: upload.r2Key }),
-  );
-
-  await ctx.db
-    .delete(tables.userUploads)
-    .where(eq(tables.userUploads.id, upload.id));
-
-  removeLibraryTrack(upload.id).catch((e) =>
-    consola.warn("[typesense] remove failed:", e),
-  );
+  await purgeUploads(ctx, user.id, [upload]);
 
   return c.json({ status: "ok" });
 });
@@ -1026,40 +981,13 @@ app.delete("/by-album/:albumId", async (c) => {
     return c.json({ status: "ok", deleted: 0 });
   }
 
-  const uploads = rows.map((r) => r.upload);
-  await Promise.all(
-    uploads.map(async (upload) => {
-      try {
-        const { client, bucket } = await resolveStorageClient(
-          user.id,
-          upload.storageProviderId ?? null,
-        );
-        await client.send(
-          new DeleteObjectCommand({ Bucket: bucket, Key: upload.r2Key }),
-        );
-      } catch (e) {
-        consola.warn(
-          `[uploads] failed to delete object ${upload.r2Key} from storage`,
-          e,
-        );
-      }
-    }),
+  const deleted = await purgeUploads(
+    ctx,
+    user.id,
+    rows.map((r) => r.upload),
   );
 
-  await ctx.db.delete(tables.userUploads).where(
-    inArray(
-      tables.userUploads.id,
-      uploads.map((u) => u.id),
-    ),
-  );
-
-  for (const upload of uploads) {
-    removeLibraryTrack(upload.id).catch((e) =>
-      consola.warn("[typesense] remove failed:", e),
-    );
-  }
-
-  return c.json({ status: "ok", deleted: uploads.length });
+  return c.json({ status: "ok", deleted });
 });
 
 // DELETE /uploads/:id --------------------------------------------------------
@@ -1087,21 +1015,7 @@ app.delete("/:id", async (c) => {
     return c.text("Upload not found");
   }
 
-  const { client, bucket } = await resolveStorageClient(
-    user.id,
-    upload.storageProviderId ?? null,
-  );
-  await client.send(
-    new DeleteObjectCommand({ Bucket: bucket, Key: upload.r2Key }),
-  );
-
-  await ctx.db
-    .delete(tables.userUploads)
-    .where(eq(tables.userUploads.id, upload.id));
-
-  removeLibraryTrack(upload.id).catch((e) =>
-    consola.warn("[typesense] remove failed:", e),
-  );
+  await purgeUploads(ctx, user.id, [upload]);
 
   return c.json({ status: "ok" });
 });

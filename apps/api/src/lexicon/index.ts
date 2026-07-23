@@ -62,7 +62,9 @@ import type * as AppRockskyGraphGetFollows from "./types/app/rocksky/graph/getFo
 import type * as AppRockskyGraphGetKnownFollowers from "./types/app/rocksky/graph/getKnownFollowers";
 import type * as AppRockskyGraphUnfollowAccount from "./types/app/rocksky/graph/unfollowAccount";
 import type * as AppRockskyLibraryCreatePlaylist from "./types/app/rocksky/library/createPlaylist";
+import type * as AppRockskyLibraryDeleteAlbum from "./types/app/rocksky/library/deleteAlbum";
 import type * as AppRockskyLibraryDeletePlaylist from "./types/app/rocksky/library/deletePlaylist";
+import type * as AppRockskyLibraryDeleteSong from "./types/app/rocksky/library/deleteSong";
 import type * as AppRockskyLibraryGetAlbum from "./types/app/rocksky/library/getAlbum";
 import type * as AppRockskyLibraryGetAlbumInfo from "./types/app/rocksky/library/getAlbumInfo";
 import type * as AppRockskyLibraryGetAlbumList from "./types/app/rocksky/library/getAlbumList";
@@ -942,6 +944,17 @@ export class AppRockskyLibraryNS {
     return this._server.xrpc.method(nsid, cfg);
   }
 
+  deleteAlbum<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyLibraryDeleteAlbum.Handler<ExtractAuth<AV>>,
+      AppRockskyLibraryDeleteAlbum.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.library.deleteAlbum"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
   deletePlaylist<AV extends AuthVerifier>(
     cfg: ConfigOf<
       AV,
@@ -950,6 +963,17 @@ export class AppRockskyLibraryNS {
     >,
   ) {
     const nsid = "app.rocksky.library.deletePlaylist"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  deleteSong<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyLibraryDeleteSong.Handler<ExtractAuth<AV>>,
+      AppRockskyLibraryDeleteSong.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.library.deleteSong"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 
