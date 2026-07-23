@@ -89,7 +89,7 @@ defmodule Rocksky do
   Scrobble from just a title + artist (album optional): resolve full metadata
   via matchSong, then fan out.
   """
-  def scrobble_match(agent, title, artist, album \\ "", mb_id \\ "", isrc \\ ""),
+  def scrobble_match(agent, title, artist, album \\ "", mb_id \\ "", isrc \\ "", timestamp \\ 0),
     do:
       :rocksky.agent_scrobble_match(
         agent,
@@ -97,7 +97,8 @@ defmodule Rocksky do
         to_bin(artist),
         to_bin(album),
         to_bin(mb_id),
-        to_bin(isrc)
+        to_bin(isrc),
+        timestamp
       )
 
   @doc "Download the caller's repo and (re)build the local dedup index (needs a dedup_path at login)."

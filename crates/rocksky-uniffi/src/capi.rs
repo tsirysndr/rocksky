@@ -359,6 +359,7 @@ pub unsafe extern "C" fn rocksky_agent_scrobble_match(
     album: *const c_char,
     mb_id: *const c_char,
     isrc: *const c_char,
+    timestamp: i64,
 ) -> *mut c_char {
     let a = with_agent(agent);
     let (alb, mb, is) = (cstr(album), cstr(mb_id), cstr(isrc));
@@ -377,8 +378,10 @@ pub unsafe extern "C" fn rocksky_agent_scrobble_match(
     } else {
         Some(is.as_str())
     };
+    // 0 = "scrobbled now".
+    let ts = if timestamp == 0 { None } else { Some(timestamp) };
     respond(
-        RT.block_on(a.scrobble_match(&cstr(title), &cstr(artist), alb, mb, is))
+        RT.block_on(a.scrobble_match(&cstr(title), &cstr(artist), alb, mb, is, ts))
             .map_err(|e| e.to_string()),
     )
 }

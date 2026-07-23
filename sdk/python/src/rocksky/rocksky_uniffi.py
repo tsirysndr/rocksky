@@ -491,7 +491,7 @@ def _uniffi_check_api_checksums(lib):
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_agent_scrobble() != 17314:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    if lib.uniffi_rocksky_uniffi_checksum_method_agent_scrobble_match() != 48945:
+    if lib.uniffi_rocksky_uniffi_checksum_method_agent_scrobble_match() != 30208:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     if lib.uniffi_rocksky_uniffi_checksum_method_agent_set_now_playing() != 46985:
         raise InternalError("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
@@ -820,6 +820,7 @@ _UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_scrobble.argtypes = (
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_scrobble.restype = _UniffiRustBuffer
 _UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_scrobble_match.argtypes = (
     ctypes.c_void_p,
+    _UniffiRustBuffer,
     _UniffiRustBuffer,
     _UniffiRustBuffer,
     _UniffiRustBuffer,
@@ -1976,7 +1977,7 @@ class AgentProtocol(typing.Protocol):
         """
 
         raise NotImplementedError
-    def scrobble_match(self, title: "str",artist: "str",album: "typing.Optional[str]",mb_id: "typing.Optional[str]",isrc: "typing.Optional[str]"):
+    def scrobble_match(self, title: "str",artist: "str",album: "typing.Optional[str]",mb_id: "typing.Optional[str]",isrc: "typing.Optional[str]",timestamp: "typing.Optional[int]"):
         """
         Scrobble from just a title + artist (album optional): resolve full
         metadata via `matchSong`, then run the normal fan-out.
@@ -2235,7 +2236,7 @@ class Agent:
 
 
 
-    def scrobble_match(self, title: "str",artist: "str",album: "typing.Optional[str]",mb_id: "typing.Optional[str]",isrc: "typing.Optional[str]") -> "ScrobbleResult":
+    def scrobble_match(self, title: "str",artist: "str",album: "typing.Optional[str]",mb_id: "typing.Optional[str]",isrc: "typing.Optional[str]",timestamp: "typing.Optional[int]") -> "ScrobbleResult":
         """
         Scrobble from just a title + artist (album optional): resolve full
         metadata via `matchSong`, then run the normal fan-out.
@@ -2251,13 +2252,16 @@ class Agent:
         
         _UniffiConverterOptionalString.check_lower(isrc)
         
+        _UniffiConverterOptionalInt64.check_lower(timestamp)
+        
         return _UniffiConverterTypeScrobbleResult.lift(
             _uniffi_rust_call_with_error(_UniffiConverterTypeRockskyError,_UniffiLib.uniffi_rocksky_uniffi_fn_method_agent_scrobble_match,self._uniffi_clone_pointer(),
         _UniffiConverterString.lower(title),
         _UniffiConverterString.lower(artist),
         _UniffiConverterOptionalString.lower(album),
         _UniffiConverterOptionalString.lower(mb_id),
-        _UniffiConverterOptionalString.lower(isrc))
+        _UniffiConverterOptionalString.lower(isrc),
+        _UniffiConverterOptionalInt64.lower(timestamp))
         )
 
 

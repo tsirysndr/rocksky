@@ -36,7 +36,7 @@ module Rocksky
       "void* rocksky_agent_login(const char*, const char*, const char*, const char*, const char*)",
       "void rocksky_agent_free(void*)",
       "char* rocksky_agent_scrobble(void*, const char*)",
-      "char* rocksky_agent_scrobble_match(void*, const char*, const char*, const char*, const char*, const char*)",
+      "char* rocksky_agent_scrobble_match(void*, const char*, const char*, const char*, const char*, const char*, long long)",
       "char* rocksky_agent_sync_repo(void*)",
       "char* rocksky_agent_hydrate_from_jetstream(void*)",
       "char* rocksky_agent_like(void*, const char*, const char*)",
@@ -166,8 +166,9 @@ module Rocksky
 
     # Scrobble from just a title + artist (album optional, plus optional mb_id /
     # isrc anchors): resolve full metadata via matchSong, then fan out.
-    def scrobble_match(title, artist, album: nil, mb_id: nil, isrc: nil)
-      Rocksky.unwrap(C.rocksky_agent_scrobble_match(@ptr, title, artist, album.to_s, mb_id.to_s, isrc.to_s))
+    # +timestamp+ is the "scrobbled at" Unix seconds (nil / 0 = now).
+    def scrobble_match(title, artist, album: nil, mb_id: nil, isrc: nil, timestamp: nil)
+      Rocksky.unwrap(C.rocksky_agent_scrobble_match(@ptr, title, artist, album.to_s, mb_id.to_s, isrc.to_s, timestamp.to_i))
     end
 
     # Download the caller's repo and (re)build the local dedup index (needs a

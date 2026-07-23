@@ -519,13 +519,17 @@ fn agent_scrobble_match(
     album: String,
     mb_id: String,
     isrc: String,
+    timestamp: i64,
 ) -> String {
+    // 0 = "scrobbled now" (the core defaults None -> now).
+    let ts = if timestamp == 0 { None } else { Some(timestamp) };
     envelope(RT.block_on(agent.0.scrobble_match(
         &title,
         &artist,
         opt(&album),
         opt(&mb_id),
         opt(&isrc),
+        ts,
     )))
 }
 

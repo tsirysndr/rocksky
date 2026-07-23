@@ -622,13 +622,14 @@ impl RockskyAgent {
         album: Option<&str>,
         mb_id: Option<&str>,
         isrc: Option<&str>,
+        timestamp: Option<i64>,
     ) -> Result<ScrobbleResult> {
         let matched = self
             .appview
             .match_song(title, artist, mb_id, isrc)
             .await
             .ok();
-        let draft = match matched
+        let mut draft = match matched
             .as_ref()
             .filter(|m| m.get("title").and_then(|v| v.as_str()).is_some())
         {
@@ -670,6 +671,8 @@ impl RockskyAgent {
                 ..Default::default()
             },
         };
+        // "Scrobbled at" — Unix seconds; the draft defaults to now when None.
+        draft.timestamp = timestamp;
         self.scrobble(&draft).await
     }
 

@@ -163,6 +163,7 @@ export class Agent {
     album?: string,
     mbId?: string,
     isrc?: string,
+    timestamp?: number,
     appview?: string,
   ): Promise<string> {
     const { RockskyClient } = await import("./client.js");
@@ -196,6 +197,8 @@ export class Agent {
             appleMusicLink: s("appleMusicLink"),
           }
         : { title, artist, album: album ?? "", albumArtist: artist, duration: 0 };
+    // "Scrobbled at" — Unix seconds; omitted -> scrobble() defaults to now.
+    if (timestamp !== undefined) rec.createdAt = new Date(timestamp * 1000).toISOString();
     return this.scrobble(rec);
   }
 

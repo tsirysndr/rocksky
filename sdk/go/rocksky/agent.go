@@ -176,7 +176,7 @@ func (a *Agent) Scrobble(ctx context.Context, rec gen.ScrobbleRecord) (string, e
 // scrobble. Matching uses the public AppView; pass appview="" for the default.
 // If the match comes back empty it falls back to a minimal record so the
 // scrobble still lands.
-func (a *Agent) ScrobbleMatch(ctx context.Context, appview, title, artist, album, mbID, isrc string) (string, error) {
+func (a *Agent) ScrobbleMatch(ctx context.Context, appview, title, artist, album, mbID, isrc string, timestamp int64) (string, error) {
 	var m struct {
 		Title, Artist, AlbumArtist, Album, AlbumArt     string
 		Duration, TrackNumber, DiscNumber, Year         int
@@ -233,6 +233,10 @@ func (a *Agent) ScrobbleMatch(ctx context.Context, appview, title, artist, album
 		rec.YoutubeLink = m.YoutubeLink
 		rec.TidalLink = m.TidalLink
 		rec.AppleMusicLink = m.AppleMusicLink
+	}
+	// "Scrobbled at" — Unix seconds; 0 leaves CreatedAt empty (Scrobble = now).
+	if timestamp != 0 {
+		rec.CreatedAt = time.Unix(timestamp, 0).UTC().Format("2006-01-02T15:04:05.000Z")
 	}
 	return a.Scrobble(ctx, rec)
 }

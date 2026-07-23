@@ -265,10 +265,12 @@ fn agent_scrobble_match_ffi(
   album: String,
   mb_id: String,
   isrc: String,
+  timestamp: Int,
 ) -> Dynamic
 
 /// Scrobble from just a title + artist (pass "" for no album; optional mb_id /
-/// isrc anchor the match): resolve full metadata via matchSong, then fan out.
+/// isrc anchor the match; `timestamp` is the scrobbled-at Unix seconds, 0 = now):
+/// resolve full metadata via matchSong, then fan out.
 pub fn scrobble_match(
   agent: Agent,
   title: String,
@@ -276,8 +278,9 @@ pub fn scrobble_match(
   album: String,
   mb_id: String,
   isrc: String,
+  timestamp: Int,
 ) -> Dynamic {
-  agent_scrobble_match_ffi(agent, title, artist, album, mb_id, isrc)
+  agent_scrobble_match_ffi(agent, title, artist, album, mb_id, isrc, timestamp)
 }
 
 @external(erlang, "rocksky", "agent_sync_repo")

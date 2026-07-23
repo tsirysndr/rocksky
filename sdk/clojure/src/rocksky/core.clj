@@ -21,6 +21,7 @@
 
 (def ^:private ADDR ValueLayout/ADDRESS)
 (def ^:private I32 ValueLayout/JAVA_INT)
+(def ^:private I64 ValueLayout/JAVA_LONG)
 
 (defn- ^MethodHandle downcall
   "Bind a C function `name` to a MethodHandle. `ret` is nil for void."
@@ -46,7 +47,7 @@
 (def ^:private h-last-err (delay (downcall "rocksky_last_error" ADDR [])))
 (def ^:private h-afree    (delay (downcall "rocksky_agent_free" nil [ADDR])))
 (def ^:private h-scrobble (delay (downcall "rocksky_agent_scrobble" ADDR [ADDR ADDR])))
-(def ^:private h-scrobble-match (delay (downcall "rocksky_agent_scrobble_match" ADDR [ADDR ADDR ADDR ADDR ADDR ADDR])))
+(def ^:private h-scrobble-match (delay (downcall "rocksky_agent_scrobble_match" ADDR [ADDR ADDR ADDR ADDR ADDR ADDR I64])))
 (def ^:private h-sync     (delay (downcall "rocksky_agent_sync_repo" ADDR [ADDR])))
 (def ^:private h-hydrate  (delay (downcall "rocksky_agent_hydrate_from_jetstream" ADDR [ADDR])))
 (def ^:private h-like     (delay (downcall "rocksky_agent_like" ADDR [ADDR ADDR ADDR])))
@@ -218,11 +219,21 @@
 
 (defn scrobble-match
   "Scrobble from just a title + artist (album optional, plus optional mb-id /
-  isrc anchors): resolve full metadata via matchSong, then fan out."
-  ([agent title artist] (scrobble-match agent title artist nil nil nil))
-  ([agent title artist album] (scrobble-match agent title artist album nil nil))
-  ([agent title artist album mb-id isrc]
-   (agent-call @h-scrobble-match agent title artist (or album "") (or mb-id "") (or isrc ""))))
+  isrc anchors and a `timestamp` — scrobbled-at Unix seconds, nil/0 = now):
+  resolve full metadata via matchSong, then fan out."
+  ([agent title artist] (scrobble-match agent title artist nil nil nil nil))
+  ([agent title artist album] (scrobble-match agent title artist album nil nil nil))
+  ([agent title artist album mb-id isrc] (scrobble-match agent title artist album mb-id isrc nil))
+  ([agent title artist album mb-id isrc timestamp]
+   (with-open [^Arena a (Arena/ofConfined)]
+     (unwrap (.invokeWithArguments ^MethodHandle @h-scrobble-match
+                                   (object-array [agent
+                                                  (.allocateFrom a (str title))
+                                                  (.allocateFrom a (str artist))
+                                                  (.allocateFrom a (str (or album "")))
+                                                  (.allocateFrom a (str (or mb-id "")))
+                                                  (.allocateFrom a (str (or isrc "")))
+                                                  (long (or timestamp 0))]))))))
 
 (defn sync-repo
   "Download the caller's repo and (re)build the local dedup index (needs a

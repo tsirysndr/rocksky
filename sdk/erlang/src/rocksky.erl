@@ -16,7 +16,7 @@
          song_hash/3, album_hash/2, artist_hash/1,
          agent_login/3, agent_login/4, agent_login/5, agent_scrobble/2,
          agent_scrobble_match/3, agent_scrobble_match/4, agent_scrobble_match/6,
-         agent_sync_repo/1,
+         agent_scrobble_match/7, agent_sync_repo/1,
          agent_hydrate_from_jetstream/1, agent_like/3,
          agent_follow/2, agent_shout/4, agent_refresh_session/1]).
 
@@ -122,13 +122,16 @@ agent_scrobble(Agent, Track) ->
 %% Scrobble from just a title + artist (album optional): resolve full metadata
 %% via matchSong, then fan out.
 agent_scrobble_match(Agent, Title, Artist) ->
-    agent_scrobble_match(Agent, Title, Artist, <<>>, <<>>, <<>>).
+    agent_scrobble_match(Agent, Title, Artist, <<>>, <<>>, <<>>, 0).
 agent_scrobble_match(Agent, Title, Artist, Album) ->
-    agent_scrobble_match(Agent, Title, Artist, Album, <<>>, <<>>).
-%% Optional `MbId` / `Isrc` anchor the match.
+    agent_scrobble_match(Agent, Title, Artist, Album, <<>>, <<>>, 0).
 agent_scrobble_match(Agent, Title, Artist, Album, MbId, Isrc) ->
+    agent_scrobble_match(Agent, Title, Artist, Album, MbId, Isrc, 0).
+%% Optional `MbId` / `Isrc` anchor the match; `Timestamp` is the scrobbled-at
+%% Unix seconds (0 = now).
+agent_scrobble_match(Agent, Title, Artist, Album, MbId, Isrc, Timestamp) ->
     unwrap(rocksky_nif:agent_scrobble_match(Agent, b(Title), b(Artist), b(Album),
-                                            b(MbId), b(Isrc))).
+                                            b(MbId), b(Isrc), Timestamp)).
 
 %% Download the caller's repo and (re)build the local dedup index (needs a
 %% DedupPath at login). Returns the per-collection counts.

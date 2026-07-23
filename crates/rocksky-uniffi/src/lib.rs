@@ -1125,6 +1125,7 @@ impl Agent {
         album: Option<String>,
         mb_id: Option<String>,
         isrc: Option<String>,
+        timestamp: Option<i64>,
     ) -> Result<ScrobbleResult, RockskyError> {
         Ok(RT
             .block_on(self.inner.scrobble_match(
@@ -1133,6 +1134,7 @@ impl Agent {
                 album.as_deref(),
                 mb_id.as_deref(),
                 isrc.as_deref(),
+                timestamp,
             ))
             .map_err(err)?
             .into())

@@ -925,7 +925,7 @@ internal interface UniffiLib : Library {
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_agent_scrobble(`ptr`: Pointer,`input`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_rocksky_uniffi_fn_method_agent_scrobble_match(`ptr`: Pointer,`title`: RustBuffer.ByValue,`artist`: RustBuffer.ByValue,`album`: RustBuffer.ByValue,`mbId`: RustBuffer.ByValue,`isrc`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_rocksky_uniffi_fn_method_agent_scrobble_match(`ptr`: Pointer,`title`: RustBuffer.ByValue,`artist`: RustBuffer.ByValue,`album`: RustBuffer.ByValue,`mbId`: RustBuffer.ByValue,`isrc`: RustBuffer.ByValue,`timestamp`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_agent_set_now_playing(`ptr`: Pointer,`track`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
@@ -1397,7 +1397,7 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_rocksky_uniffi_checksum_method_agent_scrobble() != 17314.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_scrobble_match() != 48945.toShort()) {
+    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_scrobble_match() != 30208.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_method_agent_set_now_playing() != 46985.toShort()) {
@@ -2005,7 +2005,7 @@ public interface AgentInterface {
      * Scrobble from just a title + artist (album optional): resolve full
      * metadata via `matchSong`, then run the normal fan-out.
      */
-    fun `scrobbleMatch`(`title`: kotlin.String, `artist`: kotlin.String, `album`: kotlin.String?, `mbId`: kotlin.String?, `isrc`: kotlin.String?): ScrobbleResult
+    fun `scrobbleMatch`(`title`: kotlin.String, `artist`: kotlin.String, `album`: kotlin.String?, `mbId`: kotlin.String?, `isrc`: kotlin.String?, `timestamp`: kotlin.Long?): ScrobbleResult
     
     /**
      * Set the actor's now-playing status singleton.
@@ -2292,12 +2292,12 @@ open class Agent: Disposable, AutoCloseable, AgentInterface {
      * Scrobble from just a title + artist (album optional): resolve full
      * metadata via `matchSong`, then run the normal fan-out.
      */
-    @Throws(RockskyException::class)override fun `scrobbleMatch`(`title`: kotlin.String, `artist`: kotlin.String, `album`: kotlin.String?, `mbId`: kotlin.String?, `isrc`: kotlin.String?): ScrobbleResult {
+    @Throws(RockskyException::class)override fun `scrobbleMatch`(`title`: kotlin.String, `artist`: kotlin.String, `album`: kotlin.String?, `mbId`: kotlin.String?, `isrc`: kotlin.String?, `timestamp`: kotlin.Long?): ScrobbleResult {
             return FfiConverterTypeScrobbleResult.lift(
     callWithPointer {
     uniffiRustCallWithError(RockskyException) { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_agent_scrobble_match(
-        it, FfiConverterString.lower(`title`),FfiConverterString.lower(`artist`),FfiConverterOptionalString.lower(`album`),FfiConverterOptionalString.lower(`mbId`),FfiConverterOptionalString.lower(`isrc`),_status)
+        it, FfiConverterString.lower(`title`),FfiConverterString.lower(`artist`),FfiConverterOptionalString.lower(`album`),FfiConverterOptionalString.lower(`mbId`),FfiConverterOptionalString.lower(`isrc`),FfiConverterOptionalLong.lower(`timestamp`),_status)
 }
     }
     )
