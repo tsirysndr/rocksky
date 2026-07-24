@@ -342,7 +342,8 @@ export async function importCmd(
   let failed = 0;
   const failures: { s: ImportedScrobble; error: string }[] = [];
   const startedAt = Date.now();
-  let lastMilestone = 0;
+  // The scrobble currently being written — shown live on the progress line.
+  let current: ImportedScrobble | undefined;
 
   // Checkpoint bookkeeping: advance across the unbroken completed prefix only.
   const tracker = new ContiguousTracker();
@@ -393,6 +394,9 @@ export async function importCmd(
   process.on("SIGTERM", onSignal);
 
   const publishOne = async (s: ImportedScrobble, i: number): Promise<void> => {
+    // Surface what we're about to write, and refresh the in-place line now.
+    current = s;
+    renderProgress(done, total, failed, startedAt, current);
     try {
       await withRateLimitRetry(async () => {
         // One gate slot per scrobble reserves the worst-case write fan-out
@@ -420,8 +424,7 @@ export async function importCmd(
       if (failures.length < 20) failures.push({ s, error: (e as Error).message });
     } finally {
       done++;
-      drawProgress(done, total, failed, startedAt);
-      lastMilestone = logMilestone(done, total, failed, startedAt, lastMilestone);
+      renderProgress(done, total, failed, startedAt, current);
     }
   };
 

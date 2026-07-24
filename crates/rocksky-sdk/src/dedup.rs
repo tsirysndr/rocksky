@@ -649,7 +649,10 @@ mod tests {
         idx.record_artist(DID, "Album Artist", uri).unwrap();
 
         // Hit after -> the verb reuses this URI, publishing nothing.
-        assert_eq!(idx.artist_uri(DID, "Album Artist").unwrap().as_deref(), Some(uri));
+        assert_eq!(
+            idx.artist_uri(DID, "Album Artist").unwrap().as_deref(),
+            Some(uri)
+        );
         // A different artist still misses.
         assert!(idx.artist_uri(DID, "Someone Else").unwrap().is_none());
     }
@@ -658,49 +661,78 @@ mod tests {
     fn album_dedup_keyed_on_title_and_album_artist() {
         let (idx, _dir) = tmp_index();
         let uri = "at://x/app.rocksky.album/a1";
-        idx.record_album(DID, "Album A", "Album Artist", uri).unwrap();
+        idx.record_album(DID, "Album A", "Album Artist", uri)
+            .unwrap();
 
-        assert_eq!(idx.album_uri(DID, "Album A", "Album Artist").unwrap().as_deref(), Some(uri));
+        assert_eq!(
+            idx.album_uri(DID, "Album A", "Album Artist")
+                .unwrap()
+                .as_deref(),
+            Some(uri)
+        );
         // Same title, different album artist -> a distinct album (miss).
-        assert!(idx.album_uri(DID, "Album A", "Other Artist").unwrap().is_none());
+        assert!(idx
+            .album_uri(DID, "Album A", "Other Artist")
+            .unwrap()
+            .is_none());
     }
 
     #[test]
     fn song_dedup_keyed_on_title_artist_album() {
         let (idx, _dir) = tmp_index();
         let uri = "at://x/app.rocksky.song/s1";
-        idx.record_song(DID, "Song A", "Track Artist", "Album A", uri).unwrap();
+        idx.record_song(DID, "Song A", "Track Artist", "Album A", uri)
+            .unwrap();
 
         assert_eq!(
-            idx.song_uri(DID, "Song A", "Track Artist", "Album A").unwrap().as_deref(),
+            idx.song_uri(DID, "Song A", "Track Artist", "Album A")
+                .unwrap()
+                .as_deref(),
             Some(uri)
         );
         // Same song on a different album (e.g. a compilation) -> distinct (miss).
-        assert!(idx.song_uri(DID, "Song A", "Track Artist", "Other Album").unwrap().is_none());
+        assert!(idx
+            .song_uri(DID, "Song A", "Track Artist", "Other Album")
+            .unwrap()
+            .is_none());
     }
 
     #[test]
     fn scrobble_dedup_keyed_on_song_and_second() {
         let (idx, _dir) = tmp_index();
         let secs = 1_700_000_000_i64;
-        assert!(idx.scrobble_uri(DID, "Song A", "Track Artist", "Album A", secs).unwrap().is_none());
+        assert!(idx
+            .scrobble_uri(DID, "Song A", "Track Artist", "Album A", secs)
+            .unwrap()
+            .is_none());
 
         let uri = "at://x/app.rocksky.scrobble/sc1";
-        idx.record_scrobble(DID, "Song A", "Track Artist", "Album A", secs, uri).unwrap();
+        idx.record_scrobble(DID, "Song A", "Track Artist", "Album A", secs, uri)
+            .unwrap();
 
         // Same track at the same second -> the same play (hit, skip).
         assert_eq!(
-            idx.scrobble_uri(DID, "Song A", "Track Artist", "Album A", secs).unwrap().as_deref(),
+            idx.scrobble_uri(DID, "Song A", "Track Artist", "Album A", secs)
+                .unwrap()
+                .as_deref(),
             Some(uri)
         );
         // Same track one second later -> a genuinely new play (miss, publish).
-        assert!(idx.scrobble_uri(DID, "Song A", "Track Artist", "Album A", secs + 1).unwrap().is_none());
+        assert!(idx
+            .scrobble_uri(DID, "Song A", "Track Artist", "Album A", secs + 1)
+            .unwrap()
+            .is_none());
     }
 
     #[test]
     fn dedup_is_scoped_per_did() {
         let (idx, _dir) = tmp_index();
-        idx.record_artist(DID, "Album Artist", "at://did:plc:test/app.rocksky.artist/x").unwrap();
+        idx.record_artist(
+            DID,
+            "Album Artist",
+            "at://did:plc:test/app.rocksky.artist/x",
+        )
+        .unwrap();
         // Another user's repo doesn't shadow this one.
         assert!(idx.artist_uri(OTHER, "Album Artist").unwrap().is_none());
     }
