@@ -26,10 +26,11 @@ IO.puts("song hash: #{Rocksky.song_hash("Chaser", "Calibro 35", "Jazzploitation"
 # })
 # IO.puts("scrobbled: #{out["scrobbleUri"]}")
 
-# --- library: your uploaded music (needs an access token) ---
-# {:ok, genres} = Rocksky.Library.get_genres("YOUR_ACCESS_TOKEN")
+# --- library: your uploaded music (needs an access token, set once) ---
+# lib = Rocksky.Library.new("YOUR_ACCESS_TOKEN")
+# {:ok, genres} = Rocksky.Library.get_genres(lib)
 # IO.inspect(genres)
-# {:ok, albums} = Rocksky.Library.get_album_list("YOUR_ACCESS_TOKEN", "newest", %{"size" => 10})
+# {:ok, albums} = Rocksky.Library.get_album_list(lib, "newest", %{"size" => 10})
 # IO.inspect(albums)
-# {:ok, song} = Rocksky.Library.get_song("YOUR_ACCESS_TOKEN", "<song-id>")
+# {:ok, song} = Rocksky.Library.get_song(lib, "<song-id>")
 # IO.inspect(song)

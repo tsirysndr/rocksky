@@ -17,8 +17,9 @@ pub fn main() {
   // Envelope calls return Dynamic ({ok, value} | {error, message}); inspect it.
   io.println("global stats: " <> string.inspect(client.global_stats()))
   io.println("top tracks: " <> string.inspect(client.top_tracks(5, 0)))
-  // --- library: your uploaded music (needs an access token) ---
+  // --- library: your uploaded music (needs an access token, set once) ---
   //   import rocksky/library
-  //   io.println(string.inspect(library.get_genres("YOUR_ACCESS_TOKEN")))
-  //   io.println(string.inspect(library.get_song("YOUR_ACCESS_TOKEN", "{\"id\":\"<song-id>\"}")))
+  //   let lib = library.new("YOUR_ACCESS_TOKEN")
+  //   io.println(string.inspect(library.get_genres(lib)))
+  //   io.println(string.inspect(library.get_song(lib, "{\"id\":\"<song-id>\"}")))
 }
