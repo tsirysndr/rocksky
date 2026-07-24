@@ -45,13 +45,17 @@ export async function startMpdServer(
   const db = new MpdDb(opts.getToken);
   const ctx: Ctx = { getToken: opts.getToken, db };
 
-  // Warm the browse caches in the background so the first library browse from a
-  // client returns instantly instead of racing the client's command timeout.
-  const warm = () => {
-    void db.albums().catch(() => {});
-    void db.listArtists().catch(() => {});
-  };
-  warm();
+  // Preload the whole library (from the persistent cache, then a background
+  // network refresh) at startup so the first browse from a client is instant
+  // instead of racing its command timeout.
+  db.preload();
+
+  // Keep the cache in sync with the API in the background: re-fetch on an
+  // interval, and notify idle clients (`database` subsystem) when it changed.
+  db.onLibraryChange = () => bus.bump("database");
+  const SYNC_INTERVAL_MS = 5 * 60_000;
+  const syncTimer = setInterval(() => void db.sync(), SYNC_INTERVAL_MS);
+  syncTimer.unref?.();
 
   const write = (conn: Conn, s: string) => {
     if (!conn.closed) conn.socket.write(s);
@@ -257,7 +261,9 @@ export async function startMpdServer(
     port,
     close: () => {
       clearInterval(poller);
+      clearInterval(syncTimer);
       server.close();
+      void db.close();
     },
   };
 }

@@ -511,10 +511,21 @@ const lsInfoHandler: Handler = async (args, ctx) => {
   return [];
 };
 
-// listall/listallinfo: reuse the shallow lsinfo view for the given path rather
-// than recursively enumerating the whole remote library (which would be slow
-// and huge). Enough for clients that drill down interactively.
-const listAllInfoHandler: Handler = (args, ctx) => lsInfoHandler(args, ctx);
+// listall/listallinfo with no path dump the whole library from the preloaded
+// in-memory index — cheap, since the network fetch already happened at startup.
+// Clients that cache the DB via listallinfo then have every track with tags and
+// filter locally. A path argument scopes to the shallow lsinfo view.
+const listAllInfoHandler: Handler = async (args, ctx) => {
+  if (args[0]) return lsInfoHandler(args, ctx);
+  const songs = await ctx.db.allSongs();
+  return songs.flatMap((i) => songLines(i));
+};
+
+const listAllHandler: Handler = async (args, ctx) => {
+  if (args[0]) return lsInfoHandler(args, ctx);
+  const songs = await ctx.db.allSongs();
+  return songs.map((i) => kv("file", itemUri(i)));
+};
 
 // --- stored playlists ------------------------------------------------------
 
@@ -630,7 +641,7 @@ export const handlers: Record<string, Handler> = {
   searchadd: searchAddHandler,
   count: countHandler,
   lsinfo: lsInfoHandler,
-  listall: listAllInfoHandler,
+  listall: listAllHandler,
   listallinfo: listAllInfoHandler,
   // Drop the memoized artist/album lists so the next browse re-pages the
   // library, then report a (dummy) update job id as MPD does.

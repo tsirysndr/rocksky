@@ -2,8 +2,16 @@
 // it's a remote streaming service — so we expose a *virtual* one backed by the
 // uploads API and the Navidrome-compatible playlist API. Songs are addressed by
 // a stable URI so ids round-trip through `add`.
+//
+// The whole library is preloaded once into an in-memory index (artist ->
+// albums -> tracks) and served from there, so browse/filter is instant and
+// correct regardless of how a client phrases its query. The index is persisted
+// to a classic-level (LevelDB) store so a restart warms up from disk instead of
+// re-fetching, then refreshes in the background.
 
 import { RockskyClient } from "client";
+import os from "os";
+import path from "path";
 import {
   entryToItem,
   getCreds,
@@ -107,14 +115,86 @@ export interface AlbumInfo {
   albumUri: string;
 }
 
+// The preloaded, in-memory view of the whole library.
+interface LibIndex {
+  tracks: QueueItem[];
+  byAlbumUri: Map<string, QueueItem[]>; // album key -> its tracks, sorted
+  albums: AlbumInfo[];
+  artists: string[];
+  albumArtists: string[];
+}
+
+const EMPTY_INDEX: LibIndex = {
+  tracks: [],
+  byAlbumUri: new Map(),
+  albums: [],
+  artists: [],
+  albumArtists: [],
+};
+
+// A cheap content signature for the library, to detect whether a background
+// re-fetch actually changed anything (count + a rolling hash of track ids).
+function librarySignature(tracks: QueueItem[]): string {
+  let h = 0;
+  for (const t of tracks) {
+    const id = t.uploadId || t.trackId || "";
+    for (let i = 0; i < id.length; i++) h = (Math.imul(h, 31) + id.charCodeAt(i)) | 0;
+  }
+  return `${tracks.length}:${h}`;
+}
+
+// Group a flat track list into the artist/album/track index.
+function buildIndex(tracks: QueueItem[]): LibIndex {
+  const byAlbumUri = new Map<string, QueueItem[]>();
+  const albumsMap = new Map<string, AlbumInfo>();
+  const artists = new Set<string>();
+  const albumArtists = new Set<string>();
+  for (const t of tracks) {
+    if (t.artist) artists.add(t.artist);
+    if (t.albumArtist) albumArtists.add(t.albumArtist);
+    // Group by the stable albumUri; fall back to artist+album for the rare
+    // track with no albumUri (uses \u0000 so it can't collide with real text).
+    const key = t.albumUri || `${t.albumArtist ?? ""}\u0000${t.album ?? ""}`;
+    let bucket = byAlbumUri.get(key);
+    if (!bucket) byAlbumUri.set(key, (bucket = []));
+    bucket.push(t);
+    if (t.album && !albumsMap.has(key)) {
+      albumsMap.set(key, {
+        album: t.album,
+        albumArtist: t.albumArtist ?? "",
+        albumUri: t.albumUri ?? key,
+      });
+    }
+  }
+  for (const [k, v] of byAlbumUri) byAlbumUri.set(k, sortTracks(v));
+  const byName = (a: string, b: string) => a.localeCompare(b);
+  return {
+    tracks,
+    byAlbumUri,
+    albums: [...albumsMap.values()].sort((a, b) => byName(a.album, b.album)),
+    artists: [...artists].sort(byName),
+    albumArtists: [...albumArtists].sort(byName),
+  };
+}
+
 /**
- * Backs every browse command. Holds a token-scoped RockskyClient plus a
- * uri → QueueItem cache populated as the client browses, so a later `add <uri>`
- * resolves full metadata without another round-trip.
+ * Backs every browse command. Preloads the whole library into `idx` (persisted
+ * via classic-level) and answers list/find/lsinfo from memory. Also keeps a
+ * uri → QueueItem cache so a later `add <uri>` resolves full metadata.
  */
 export class MpdDb {
   private metaCache = new Map<string, QueueItem>();
   private credsPromise: Promise<NavidromeCreds | null> | null = null;
+
+  private idx: LibIndex = EMPTY_INDEX;
+  private ready: Promise<void> | null = null;
+  private level: any = null; // ClassicLevel; lazily opened so it never loads
+  private levelUnavailable = false; // for non-mpd commands.
+  private lastSig = ""; // library signature, to detect changes on re-sync.
+
+  // Set by the server; invoked when a background sync detects the library
+  // changed, so idle clients get a `database` change event.
+  onLibraryChange: (() => void) | null = null;
 
   constructor(private readonly getToken: () => string | undefined) {}
 
@@ -135,10 +215,10 @@ export class MpdDb {
     return item;
   }
 
-  // The uploads API pages by offset/size. MPD's list/lsinfo have no paging —
-  // clients expect the *whole* collection — so we page through every result and
-  // memoize per session (below), since browsing is interactive and the library
-  // changes rarely. The cap is a runaway guard, not an expected limit.
+  // The uploads API pages by offset/size and caps the page at its own maximum
+  // (~200) even when we ask for more — so we can NOT stop on `length < PAGE`
+  // (that truncated the library to the first page). Advance by the *actual*
+  // number of rows returned and stop only on an empty page.
   private static readonly PAGE = 500;
   private static readonly MAX_ROWS = 100_000;
 
@@ -146,36 +226,151 @@ export class MpdDb {
     fetchPage: (skip: number, size: number) => Promise<any[]>,
   ): Promise<any[]> {
     const out: any[] = [];
-    for (
-      let skip = 0;
-      out.length < MpdDb.MAX_ROWS;
-      skip += MpdDb.PAGE
-    ) {
+    let skip = 0;
+    while (out.length < MpdDb.MAX_ROWS) {
       const page = (await fetchPage(skip, MpdDb.PAGE)) || [];
+      if (page.length === 0) break;
       out.push(...page);
-      if (page.length < MpdDb.PAGE) break; // last (short) page
+      skip += page.length;
     }
     return out;
   }
 
-  // Session-lifetime memo of the fully-paged artist/album lists. Cleared by
-  // `refresh()` (wired to the MPD `update`/`rescan` commands).
-  private artistsCache: string[] | null = null;
-  private albumsCache: AlbumInfo[] | null = null;
-
-  refresh(): void {
-    this.artistsCache = null;
-    this.albumsCache = null;
-    this.albumUriCache.clear();
-    this.albumsLoaded = false;
+  // --- persistent cache (classic-level) ------------------------------------
+  private levelPath(): string {
+    return path.join(os.homedir(), ".rocksky", "mpd-cache");
   }
 
+  private async openLevel(): Promise<any | null> {
+    if (this.level) return this.level;
+    if (this.levelUnavailable) return null;
+    try {
+      const { ClassicLevel } = await import("classic-level");
+      const db = new ClassicLevel(this.levelPath(), { valueEncoding: "json" });
+      await db.open();
+      this.level = db;
+      return db;
+    } catch {
+      // Another instance holds the lock, or the native module is missing —
+      // fall back to a memory-only cache (still fully functional, just no warm
+      // start across restarts).
+      this.levelUnavailable = true;
+      return null;
+    }
+  }
+
+  /** Load the persisted track list (empty if none / unavailable). */
+  private async loadPersisted(): Promise<QueueItem[]> {
+    const level = await this.openLevel();
+    if (!level) return [];
+    const out: QueueItem[] = [];
+    try {
+      for await (const [key, val] of level.iterator()) {
+        if (typeof key === "string" && key.startsWith("t:")) out.push(val);
+      }
+    } catch {
+      // ignore read errors — treat as empty cache
+    }
+    return out;
+  }
+
+  private async persist(tracks: QueueItem[]): Promise<void> {
+    const level = await this.openLevel();
+    if (!level) return;
+    try {
+      await level.clear();
+      const batch = level.batch();
+      for (const t of tracks) {
+        const id = t.uploadId || t.trackId;
+        if (id) batch.put(`t:${id}`, t);
+      }
+      batch.put("meta", { count: tracks.length });
+      await batch.write();
+    } catch {
+      // best-effort cache write
+    }
+  }
+
+  // --- preload / index -----------------------------------------------------
+  /** Kick off the preload without waiting (called at server startup). */
+  preload(): void {
+    void this.index();
+  }
+
+  private index(): Promise<LibIndex> {
+    if (!this.ready) this.ready = this.warm();
+    return this.ready.then(() => this.idx);
+  }
+
+  private async warm(): Promise<void> {
+    // 1. Warm start from the persistent cache — instant, no network.
+    const cached = await this.loadPersisted();
+    if (cached.length) {
+      this.idx = buildIndex(cached);
+      this.lastSig = librarySignature(cached);
+      cached.forEach((t) => this.remember(t));
+    }
+    // 2. First run (empty cache): fetch now so the first browse has data.
+    //    Otherwise refresh in the background so browsing stays instant.
+    if (this.idx.tracks.length === 0) {
+      await this.sync();
+    } else {
+      void this.sync();
+    }
+  }
+
+  /**
+   * Re-fetch the whole library from the API and update the in-memory index +
+   * persistent cache. Called at startup and periodically by the server to keep
+   * the cache in sync with the API in the background. When the library actually
+   * changed, fires `onLibraryChange` so idle clients refresh.
+   */
+  async sync(): Promise<void> {
+    const token = this.getToken();
+    if (!token) return;
+    let rows: any[];
+    try {
+      rows = await this.pageAll((skip, size) =>
+        this.client().getUploads({ skip, limit: size }),
+      );
+    } catch {
+      return; // keep whatever we already have
+    }
+    if (!rows.length) return;
+    const tracks = rows.map((r) => uploadToItem(r));
+    const sig = librarySignature(tracks);
+    if (sig === this.lastSig && this.idx.tracks.length) return; // unchanged
+    this.lastSig = sig;
+    this.idx = buildIndex(tracks);
+    tracks.forEach((t) => this.remember(t));
+    void this.persist(tracks);
+    this.onLibraryChange?.();
+  }
+
+  /** Drop the index + persistent cache; next browse re-fetches (MPD update). */
+  async refresh(): Promise<void> {
+    this.idx = EMPTY_INDEX;
+    this.ready = null;
+    this.lastSig = "";
+    const level = await this.openLevel();
+    if (level) await level.clear().catch(() => {});
+  }
+
+  /** Close the persistent store (called on server shutdown). */
+  async close(): Promise<void> {
+    if (this.level) {
+      await this.level.close().catch(() => {});
+      this.level = null;
+    }
+  }
+
+  // --- resolve -------------------------------------------------------------
   /** Resolve a browse URI to a playable QueueItem (cached metadata if known). */
   resolveUri(uri: string): QueueItem | null {
     const cached = this.metaCache.get(uri);
     if (cached) return cached;
-    // Not browsed this session — still playable from the id alone, just without
-    // rich tags until it starts.
+    // Not indexed yet — still playable from the id alone, just without rich
+    // tags until it starts.
     if (uri.startsWith(UPLOAD_PREFIX)) {
       return { uploadId: uri.slice(UPLOAD_PREFIX.length), title: uri, artist: "" };
     }
@@ -190,125 +385,58 @@ export class MpdDb {
     return null;
   }
 
-  // --- list ----------------------------------------------------------------
-  // `list artist` / `list album [artist "X"]` — the Media Library screen.
+  // --- browse (all served from the in-memory index) ------------------------
   async listArtists(): Promise<string[]> {
-    if (!this.artistsCache) {
-      const rows = await this.pageAll((skip, size) =>
-        this.client().getUploadArtists({ skip, limit: size }),
-      );
-      this.artistsCache = rows.map((r: any) => r.name).filter(Boolean);
-    }
-    return this.artistsCache;
+    return (await this.index()).artists;
   }
 
-  // Cache album name → its stable at:// URI, populated whenever albums are
-  // listed. Album *names* aren't unique (two artists, or a single + a
-  // compilation, can share one), so browsing/finding by name returns the wrong
-  // tracks — we must resolve to the albumUri. Keyed both by `album` and by
-  // `artist\u0000album` so an artist drill-down disambiguates same-named albums.
-  private albumUriCache = new Map<string, string>();
-  private albumsLoaded = false;
+  /** Distinct album artists — what MPD's "Album Artist" browse pane lists. */
+  async albumArtists(): Promise<string[]> {
+    return (await this.index()).albumArtists;
+  }
 
-  /** Distinct albums (optionally for one album-artist), with their URIs. */
+  /** Distinct albums, optionally filtered to one album-artist. */
   async albums(artist?: string): Promise<AlbumInfo[]> {
-    if (this.albumsCache) {
-      return artist
-        ? this.albumsCache.filter((a) => a.albumArtist === artist)
-        : this.albumsCache;
-    }
-    const rows = await this.pageAll((skip, size) =>
-      this.client().getUploadAlbums({ skip, limit: size }),
-    );
-    for (const r of rows) {
-      if (!r.album || !r.albumUri) continue;
-      this.albumUriCache.set(r.album, r.albumUri);
-      this.albumUriCache.set(`${r.albumArtist}\u0000${r.album}`, r.albumUri);
-    }
-    this.albumsLoaded = true;
-    this.albumsCache = rows
-      .filter((r: any) => r.album)
-      .map((r: any) => ({
-        album: r.album,
-        albumArtist: r.albumArtist,
-        albumUri: r.albumUri,
-      }));
+    const idx = await this.index();
     return artist
-      ? this.albumsCache.filter((a) => a.albumArtist === artist)
-      : this.albumsCache;
+      ? idx.albums.filter((a) => a.albumArtist === artist)
+      : idx.albums;
   }
 
   async listAlbums(artist?: string): Promise<string[]> {
     return (await this.albums(artist)).map((a) => a.album);
   }
 
-  /** Distinct album artists — what MPD's "Album Artist" browse pane lists. */
-  async albumArtists(): Promise<string[]> {
-    const seen = new Set<string>();
-    const out: string[] = [];
-    for (const a of await this.albums()) {
-      if (a.albumArtist && !seen.has(a.albumArtist)) {
-        seen.add(a.albumArtist);
-        out.push(a.albumArtist);
-      }
-    }
-    return out;
+  /** Every track of an album, in disc/track order (resolved by album identity). */
+  async albumTracks(album: string, artist?: string): Promise<QueueItem[]> {
+    const idx = await this.index();
+    const info =
+      idx.albums.find(
+        (a) => a.album === album && (!artist || a.albumArtist === artist),
+      ) || idx.albums.find((a) => a.album === album);
+    if (!info) return [];
+    return idx.byAlbumUri.get(info.albumUri) || [];
   }
 
-  private async resolveAlbumUri(
-    album: string,
-    artist?: string,
-  ): Promise<string | undefined> {
-    const key = artist ? `${artist}\u0000${album}` : album;
-    if (this.albumUriCache.has(key)) return this.albumUriCache.get(key);
-    if (this.albumUriCache.has(album)) return this.albumUriCache.get(album);
-    if (!this.albumsLoaded) {
-      await this.albums(); // populates the cache
-      return this.resolveAlbumUri(album, artist);
-    }
-    return undefined;
+  /** All tracks (for listall/listallinfo). */
+  async allSongs(): Promise<QueueItem[]> {
+    return (await this.index()).tracks;
   }
 
-  // --- find / search -------------------------------------------------------
-  // Return songs matching a filter. `exact` distinguishes `find` (exact match)
-  // from `search` (case-insensitive substring). We push what the uploads API
-  // can filter server-side (album drill-down by URI, free-text q) and refine
-  // the rest in memory.
+  /**
+   * Songs matching a filter, evaluated against the in-memory index. `exact`
+   * distinguishes `find` (exact match) from `search` (case-insensitive
+   * substring). Every tag is matched here, so any client query shape filters
+   * correctly.
+   */
   async findSongs(filter: Filter, exact: boolean): Promise<QueueItem[]> {
-    const get = (tag: string) =>
-      filter.find((f) => f.tag.toLowerCase() === tag)?.value;
-    const artist = get("artist") || get("albumartist");
-    const album = get("album");
-    const any = get("any") || get("title") || get("file");
+    const idx = await this.index();
+    const match = (hay: string | undefined, needle: string) =>
+      exact
+        ? (hay || "") === needle
+        : (hay || "").toLowerCase().includes(needle.toLowerCase());
 
-    let rows: any[];
-    if (album) {
-      // Resolve to the album's URI so we get exactly that album's tracks, and
-      // page through so a large compilation isn't truncated.
-      const albumUri = await this.resolveAlbumUri(album, artist);
-      rows = await this.pageAll((skip, size) =>
-        this.client().getUploads({
-          skip,
-          limit: size,
-          albumUri,
-          albumArtist: albumUri ? undefined : artist,
-          albumName: albumUri ? undefined : album,
-        }),
-      );
-    } else {
-      rows = await this.pageAll((skip, size) =>
-        this.client().getUploads({ skip, limit: size, q: any }),
-      );
-    }
-
-    let items = sortTracks(rows.map((r) => this.remember(uploadToItem(r))));
-
-    // Refine against every filter term the API couldn't apply precisely.
-    const match = (hay: string | undefined, needle: string) => {
-      const h = (hay || "").toLowerCase();
-      const n = needle.toLowerCase();
-      return exact ? (hay || "") === needle : h.includes(n);
-    };
+    let items = idx.tracks;
     for (const { tag, value } of filter) {
       const t = tag.toLowerCase();
       if (t === "any") {
@@ -316,40 +444,38 @@ export class MpdDb {
           (i) =>
             match(i.title, value) ||
             match(i.artist, value) ||
-            match(i.album, value),
+            match(i.album, value) ||
+            match(i.albumArtist, value),
         );
-      } else if (t === "artist" || t === "albumartist") {
+      } else if (t === "artist") {
+        items = items.filter((i) => match(i.artist, value));
+      } else if (t === "albumartist") {
         items = items.filter(
-          (i) => match(i.artist, value) || match(i.albumArtist, value),
+          (i) => match(i.albumArtist, value) || match(i.artist, value),
         );
       } else if (t === "album") {
         items = items.filter((i) => match(i.album, value));
       } else if (t === "title") {
         items = items.filter((i) => match(i.title, value));
+      } else if (t === "genre") {
+        items = items.filter((i) => match(i.genre, value));
+      } else if (t === "date") {
+        items = items.filter((i) => match(i.date, value));
+      } else if (t === "file") {
+        items = items.filter((i) => match(itemUri(i), value));
       }
     }
-    return items;
-  }
-
-  /**
-   * Every track of an album, in disc/track order. Resolves the album to its
-   * URI first (album names aren't unique) so the track list is correct.
-   */
-  async albumTracks(album: string, artist?: string): Promise<QueueItem[]> {
-    const albumUri = await this.resolveAlbumUri(album, artist);
-    const rows = await this.pageAll((skip, size) =>
-      this.client().getUploads({
-        skip,
-        limit: size,
-        albumUri,
-        albumArtist: albumUri ? undefined : artist,
-        albumName: albumUri ? undefined : album,
-      }),
+    // Group by album, then disc/track, so album results read in order.
+    return items.slice().sort(
+      (a, b) =>
+        (a.albumArtist || "").localeCompare(b.albumArtist || "") ||
+        (a.album || "").localeCompare(b.album || "") ||
+        (a.discNumber ?? 1) - (b.discNumber ?? 1) ||
+        (a.trackNumber ?? 0) - (b.trackNumber ?? 0),
     );
-    return sortTracks(rows.map((r) => this.remember(uploadToItem(r))));
   }
 
-  // --- stored playlists ----------------------------------------------------
+  // --- stored playlists (small; fetched live) ------------------------------
   async playlistNames(): Promise<string[]> {
     const creds = await this.creds();
     if (!creds) return [];
