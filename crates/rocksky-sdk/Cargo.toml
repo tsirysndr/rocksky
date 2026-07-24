@@ -1,6 +1,6 @@
 [package]
 name = "rocksky-sdk"
-version = "0.4.0"
+version = "0.5.0"
 description = "Official Rust SDK for Rocksky — a music scrobbling & discovery platform on the AT Protocol"
 authors.workspace = true
 edition.workspace = true

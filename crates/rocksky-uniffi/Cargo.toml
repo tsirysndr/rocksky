@@ -1,6 +1,6 @@
 [package]
 name = "rocksky-uniffi"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "UniFFI bindings core for rocksky-sdk — one Rust core powering the Python, Ruby & Clojure SDKs"
 authors.workspace = true
