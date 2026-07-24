@@ -164,6 +164,19 @@ program
   .option("-p, --port <port>", "the port to listen on", "8778")
   .action(lazy(async () => (await import("cmd/scrobble-api")).scrobbleApi));
 
+// The MPD server needs only the API + token + player, no local database.
+program
+  .command("mpd")
+  .description(
+    "start an MPD-protocol server to control playback and browse your library",
+  )
+  .option("-p, --port <port>", "port to listen on (defaults to settings.toml)")
+  .option("-b, --bind <address>", "address to bind (defaults to settings.toml)")
+  .action(async (opts: { port?: string; bind?: string }) => {
+    const { mpd } = await import("cmd/mpd");
+    await mpd(opts);
+  });
+
 // Upload needs only the API + token, no local database.
 program
   .command("upload")
