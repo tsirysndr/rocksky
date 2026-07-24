@@ -4,6 +4,19 @@ All notable changes to `@rocksky/sdk` are documented here. This project adheres
 to [Semantic Versioning](https://semver.org) — while pre-1.0, the **minor**
 version is the breaking slot.
 
+## [0.7.2] - 2026-07-24
+
+A **backwards-compatible** patch release.
+
+### Fixed
+
+- **`Agent.login` / `Agent.syncRepo`** — the identity resolver can return a PDS
+  URL with a trailing slash (e.g. `https://….host.bsky.network/`), which made
+  `syncRepo` build a `//xrpc/com.atproto.sync.getRepo` path that some PDS hosts
+  answer with **404**. The PDS URL is now normalized (trailing slashes stripped)
+  at login, so `getRepo` and every other `${pds}/xrpc/...` call resolve
+  correctly.
+
 ## [0.7.0] - 2026-07-24
 
 A **backwards-compatible** release — it only *adds* the new `library` surface, so
