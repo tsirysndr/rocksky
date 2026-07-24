@@ -8,6 +8,14 @@ export interface Settings {
   volume: number;
   shuffle: boolean;
   repeat: RepeatName;
+  // Music Player Daemon protocol server. `enabled` only gates the copy embedded
+  // in the TUI — `rocksky mpd` always serves regardless. `port` is the desired
+  // port; the server falls back to the next free one if it's taken.
+  mpd: {
+    enabled: boolean;
+    port: number;
+    bind: string;
+  };
   equalizer: {
     enabled: boolean;
     bands: number[];
@@ -29,6 +37,11 @@ export const DEFAULT_SETTINGS: Settings = {
   volume: 0.9,
   shuffle: false,
   repeat: "off",
+  mpd: {
+    enabled: false,
+    port: 6600,
+    bind: "127.0.0.1",
+  },
   equalizer: {
     enabled: false,
     bands: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -90,6 +103,11 @@ function serialize(s: Settings): string {
     `shuffle = ${s.shuffle}`,
     `repeat = "${s.repeat}"`,
     ``,
+    `[mpd]`,
+    `enabled = ${s.mpd.enabled}`,
+    `port = ${s.mpd.port}`,
+    `bind = "${s.mpd.bind}"`,
+    ``,
     `[equalizer]`,
     `enabled = ${s.equalizer.enabled}`,
     `bands = [${s.equalizer.bands.join(", ")}]`,
@@ -116,6 +134,7 @@ export function loadSettings(): Settings {
   try {
     const parsed = parseToml(fs.readFileSync(settingsPath(), "utf-8"));
     const eq = parsed.equalizer || {};
+    const mpd = parsed.mpd || {};
     const bands = Array.isArray(eq.bands)
       ? DEFAULT_SETTINGS.equalizer.bands.map((d, i) => num(eq.bands[i], d))
       : DEFAULT_SETTINGS.equalizer.bands;
@@ -125,6 +144,12 @@ export function loadSettings(): Settings {
       volume: num(parsed.volume, DEFAULT_SETTINGS.volume),
       shuffle: bool(parsed.shuffle, DEFAULT_SETTINGS.shuffle),
       repeat,
+      mpd: {
+        enabled: bool(mpd.enabled, DEFAULT_SETTINGS.mpd.enabled),
+        port: num(mpd.port, DEFAULT_SETTINGS.mpd.port),
+        bind:
+          typeof mpd.bind === "string" ? mpd.bind : DEFAULT_SETTINGS.mpd.bind,
+      },
       equalizer: {
         enabled: bool(eq.enabled, false),
         bands,
@@ -146,10 +171,14 @@ export function loadSettings(): Settings {
   }
 }
 
-export function saveSettings(s: Settings): void {
+// The player only owns the playback settings; the [mpd] section is config the
+// player never mutates. Accept playback settings and preserve [mpd] from disk
+// so a playback-triggered save doesn't clobber the user's MPD config.
+export function saveSettings(s: Omit<Settings, "mpd">): void {
   try {
+    const mpd = loadSettings().mpd;
     fs.mkdirSync(path.dirname(settingsPath()), { recursive: true });
-    fs.writeFileSync(settingsPath(), serialize(s));
+    fs.writeFileSync(settingsPath(), serialize({ ...s, mpd }));
   } catch {
     // best-effort; ignore write errors
   }

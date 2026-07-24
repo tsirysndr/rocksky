@@ -1,5 +1,5 @@
 import { Box, Text, useApp, useInput } from "ink";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { getDefaultStore, useAtom, useAtomValue, useSetAtom } from "jotai";
 import React, { useEffect, useRef } from "react";
 import { AddToPlaylistView } from "./AddToPlaylistView";
 import { AuthView } from "./AuthView";
@@ -10,6 +10,8 @@ import { RockskyClient } from "client";
 import { likedIdsAtom, useToggleLike } from "./likes";
 import { queryClient } from "./queryClient";
 import { initMpris, type MprisHandle } from "./mpris";
+import { startMpdServer, type MpdServerHandle } from "../mpd/server";
+import { loadSettings } from "./settings";
 import { MusicView } from "./MusicView";
 import { PlayerBar } from "./PlayerBar";
 import { prefetchTick, resumeSession, skipNext, skipPrev } from "./playback";
@@ -67,6 +69,28 @@ export function App() {
     authOpen ||
     cacheOpen ||
     addTrack != null;
+
+  // Expose the player over MPD (opt-in) so external clients — mpc, ncmpcpp,
+  // MALP — can control this exact session and browse the library. It shares the
+  // same playerController, so TUI and MPD state stay in sync both ways.
+  useEffect(() => {
+    const settings = loadSettings();
+    if (!settings.mpd.enabled) return;
+    let handle: MpdServerHandle | null = null;
+    const store = getDefaultStore();
+    startMpdServer({
+      getToken: () => store.get(authAtom),
+      port: settings.mpd.port,
+      bind: settings.mpd.bind,
+    })
+      .then((h) => {
+        handle = h;
+      })
+      .catch(() => {
+        // No socket (e.g. port unavailable) — the TUI keeps working.
+      });
+    return () => handle?.close();
+  }, []);
 
   // On Linux, expose the player over MPRIS (D-Bus) for media keys / desktop UI.
   const mprisRef = useRef<MprisHandle | null>(null);
