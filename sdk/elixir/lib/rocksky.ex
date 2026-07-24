@@ -87,10 +87,7 @@ defmodule Rocksky do
 
   @doc """
   Scrobble from just a title + artist (album optional): resolve full metadata
-  via matchSong, then fan out.
-  """
-  @doc """
-  Scrobble from a title + artist. `input` is a map with camelCase string keys:
+  via matchSong, then fan out. `input` is a map with camelCase string keys:
   required `"title"`/`"artist"`; optional `"album"`, `"mbId"`, `"isrc"` (match
   anchors) and `"timestamp"` (scrobbled-at Unix seconds, default now).
 
