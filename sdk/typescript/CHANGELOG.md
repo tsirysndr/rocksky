@@ -4,6 +4,19 @@ All notable changes to `@rocksky/sdk` are documented here. This project adheres
 to [Semantic Versioning](https://semver.org) — while pre-1.0, the **minor**
 version is the breaking slot.
 
+## [0.7.3] - 2026-07-24
+
+A **backwards-compatible** patch release.
+
+### Fixed
+
+- **Packaging** — the build bundled dependencies (`--external none`), inlining
+  the native **`classic-level`** and baking in a build-machine path, so on other
+  platforms/ABIs it failed at import with *"No native build was found"*.
+  Dependencies are now externalized (`--packages external`); `classic-level` and
+  `@atcute/*` are resolved from `node_modules` at runtime, where the prebuilds
+  live. The published bundle drops from ~232 KB to ~32 KB.
+
 ## [0.7.2] - 2026-07-24
 
 A **backwards-compatible** patch release.
