@@ -643,16 +643,15 @@ export const handlers: Record<string, Handler> = {
   lsinfo: lsInfoHandler,
   listall: listAllHandler,
   listallinfo: listAllInfoHandler,
-  // Drop the memoized artist/album lists so the next browse re-pages the
-  // library, then report a (dummy) update job id as MPD does.
+  // Ask the Rocksky library to rescan storage, then re-sync our cache in the
+  // background (which fires a `database` change when it actually changed).
+  // Report an update job id immediately, as MPD does.
   update: (_a, ctx) => {
-    ctx.db.refresh();
-    bus.bump("database");
+    void ctx.db.triggerScan().finally(() => ctx.db.sync());
     return [kv("updating_db", 1)];
   },
   rescan: (_a, ctx) => {
-    ctx.db.refresh();
-    bus.bump("database");
+    void ctx.db.triggerScan().finally(() => ctx.db.sync());
     return [kv("updating_db", 1)];
   },
   // stored playlists

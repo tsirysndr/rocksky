@@ -36,6 +36,7 @@ interface Conn {
   listCmds: string[];
   idle: { requested: Subsystem[]; unsub: () => void } | null;
   seen: Record<Subsystem, number>;
+  binaryLimit: number; // max bytes per albumart/readpicture chunk
 }
 
 export async function startMpdServer(
@@ -181,9 +182,55 @@ export async function startMpdServer(
     if (name === "close") return void conn.socket.end();
     if (name === "kill")
       return void write(conn, ackLine(Ack.PERMISSION, 0, cmd, "kill not permitted"));
+    // Binary-chunk negotiation + cover art need raw output / socket state, so
+    // they're handled here rather than as string-returning handlers.
+    if (name === "binarylimit") {
+      const n = parseInt(args[0], 10);
+      if (n > 0) conn.binaryLimit = n;
+      return void write(conn, "OK\n");
+    }
+    if (name === "albumart" || name === "readpicture") {
+      return sendAlbumArt(conn, cmd, args, name === "readpicture");
+    }
 
     const res = await runOne(conn, cmd, args, 0);
     write(conn, "error" in res ? res.error : res.body + "OK\n");
+  }
+
+  // Serve a cover-art chunk in MPD's binary framing:
+  //   size: <total>\n [type: <mime>\n] binary: <chunk>\n <bytes> \n OK\n
+  // The client re-requests with increasing offset until it has `size` bytes.
+  async function sendAlbumArt(
+    conn: Conn,
+    cmd: string,
+    args: string[],
+    withType: boolean,
+  ) {
+    const uri = args[0];
+    const offset = Math.max(0, parseInt(args[1] || "0", 10) || 0);
+    if (!uri) {
+      return void write(conn, ackLine(Ack.ARG, 0, cmd, "Missing uri"));
+    }
+    let art: { data: Buffer; mime: string } | null = null;
+    try {
+      art = await db.coverArt(uri);
+    } catch {
+      art = null;
+    }
+    if (!art || art.data.length === 0) {
+      return void write(conn, ackLine(Ack.NO_EXIST, 0, cmd, "No cover art"));
+    }
+    const total = art.data.length;
+    const chunk = art.data.subarray(offset, offset + conn.binaryLimit);
+    const header =
+      `size: ${total}\n` +
+      (withType ? `type: ${art.mime}\n` : "") +
+      `binary: ${chunk.length}\n`;
+    if (!conn.closed) {
+      conn.socket.write(
+        Buffer.concat([Buffer.from(header), chunk, Buffer.from("\nOK\n")]),
+      );
+    }
   }
 
   async function pump(conn: Conn) {
@@ -210,6 +257,7 @@ export async function startMpdServer(
       listCmds: [],
       idle: null,
       seen: bus.snapshot(),
+      binaryLimit: 8192,
     };
     socket.setEncoding("utf-8");
     socket.write(GREETING);

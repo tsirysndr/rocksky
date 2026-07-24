@@ -356,6 +356,67 @@ export class MpdDb {
     if (level) await level.clear().catch(() => {});
   }
 
+  // --- cover art (for MPD albumart / readpicture) --------------------------
+  // The uploads index already carries an albumArt CDN URL for every track, so
+  // cover art needs no extra lookup; fall back to the SDK library's
+  // getCoverArtUrl only when a track (e.g. a playlist entry) has none. Fetched
+  // bytes are cached (a client requests one image across several offsets).
+  private coverCache = new Map<string, { data: Buffer; mime: string }>();
+
+  // Lazily import @rocksky/sdk so it's only loaded when actually needed (cover
+  // art fallback / scan), never on a plain TUI launch.
+  private async sdkLibrary(): Promise<any | null> {
+    const token = this.getToken();
+    if (!token) return null;
+    try {
+      const { RockskyClient: SdkClient } = await import("@rocksky/sdk");
+      return new SdkClient(undefined, token).library();
+    } catch {
+      return null;
+    }
+  }
+
+  async coverArt(uri: string): Promise<{ data: Buffer; mime: string } | null> {
+    const cached = this.coverCache.get(uri);
+    if (cached) return cached;
+
+    const item = this.resolveUri(uri);
+    let url = item?.albumArt;
+    if (!url && item?.trackId) {
+      try {
+        const lib = await this.sdkLibrary();
+        const res: any = await lib?.getCoverArtUrl(item.trackId);
+        url = typeof res === "string" ? res : res?.url;
+      } catch {
+        // fall through — no art
+      }
+    }
+    if (!url) return null;
+
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) return null;
+      const mime = resp.headers.get("content-type") || "image/jpeg";
+      const data = Buffer.from(await resp.arrayBuffer());
+      const entry = { data, mime };
+      if (this.coverCache.size > 8) this.coverCache.clear(); // tiny LRU
+      this.coverCache.set(uri, entry);
+      return entry;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Ask the Rocksky library to rescan storage (wired to MPD update/rescan). */
+  async triggerScan(): Promise<void> {
+    try {
+      const lib = await this.sdkLibrary();
+      await lib?.startScan();
+    } catch {
+      // best-effort; the periodic sync will pick up changes regardless
+    }
+  }
+
   /** Close the persistent store (called on server shutdown). */
   async close(): Promise<void> {
     if (this.level) {
