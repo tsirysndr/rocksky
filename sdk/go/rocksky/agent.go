@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/bluesky-social/indigo/api/atproto"
@@ -50,7 +51,9 @@ func Login(ctx context.Context, identifier, appPassword string) (*Agent, error) 
 	if err != nil {
 		return nil, fmt.Errorf("resolve identity: %w", err)
 	}
-	pds := id.PDSEndpoint()
+	// Trim any trailing slash so URL building (Host + "/xrpc/...") can't produce
+	// a "//xrpc" path, which some PDS hosts answer with 404.
+	pds := strings.TrimRight(id.PDSEndpoint(), "/")
 	if pds == "" {
 		return nil, fmt.Errorf("no atproto_pds endpoint for %s", identifier)
 	}
@@ -148,13 +151,19 @@ func (a *Agent) Delete(ctx context.Context, collection, rkey string) error {
 
 func nowRFC3339() string { return time.Now().UTC().Format("2006-01-02T15:04:05.000Z") }
 
-// Scrobble writes a play (app.rocksky.scrobble) and returns its URI. createdAt
-// defaults to now. The AppView derives the song/album/artist catalog from the
-// scrobble; use [Agent.CreateSong]/[Agent.CreateAlbum]/[Agent.CreateArtist] to
-// write those records explicitly.
+// Scrobble writes a play (app.rocksky.scrobble) and returns its URI. Before the
+// scrobble, it publishes the canonical metadata the play implies — artist, then
+// album, then song (in that dependency order) — so the play is self-contained
+// in the user's PDS. Every write is deduplicated against the attached index:
+// anything already present in the repo is skipped, never republished. createdAt
+// defaults to now.
 func (a *Agent) Scrobble(ctx context.Context, rec gen.ScrobbleRecord) (string, error) {
 	if rec.CreatedAt == "" {
 		rec.CreatedAt = nowRFC3339()
+	}
+	// Materialize artist -> album -> song first (deduped). Then the scrobble.
+	if err := a.publishScrobbleMetadata(ctx, rec); err != nil {
+		return "", err
 	}
 	if a.idx != nil {
 		secs, _ := rfc3339Secs(rec.CreatedAt)
@@ -168,6 +177,50 @@ func (a *Agent) Scrobble(ctx context.Context, rec gen.ScrobbleRecord) (string, e
 		_ = a.idx.recordScrobble(a.did, rec.Title, rec.Artist, rec.Album, secs, uri)
 	}
 	return uri, err
+}
+
+// publishScrobbleMetadata writes the artist/album/song records a scrobble
+// implies, in dependency order, each deduplicated via [Agent.CreateArtist],
+// [Agent.CreateAlbum], and [Agent.CreateSong]. A record is written only when its
+// identity fields are present — artist needs an album artist, album needs title
+// + artist, song needs title + artist + album — because a record without a
+// stable identity hash cannot be deduped and would be republished on every
+// scrobble.
+func (a *Agent) publishScrobbleMetadata(ctx context.Context, rec gen.ScrobbleRecord) error {
+	if rec.AlbumArtist != "" {
+		if _, err := a.CreateArtist(ctx, gen.ArtistRecord{
+			Name:      rec.AlbumArtist,
+			CreatedAt: rec.CreatedAt,
+		}); err != nil {
+			return err
+		}
+	}
+	if rec.AlbumArtist != "" && rec.Album != "" {
+		if _, err := a.CreateAlbum(ctx, gen.AlbumRecord{
+			Title:          rec.Album,
+			Artist:         rec.AlbumArtist,
+			ReleaseDate:    rec.ReleaseDate,
+			Year:           rec.Year,
+			Genre:          rec.Genre,
+			AlbumArtURL:    rec.AlbumArtURL,
+			Tags:           rec.Tags,
+			YoutubeLink:    rec.YoutubeLink,
+			SpotifyLink:    rec.SpotifyLink,
+			TidalLink:      rec.TidalLink,
+			AppleMusicLink: rec.AppleMusicLink,
+			CreatedAt:      rec.CreatedAt,
+		}); err != nil {
+			return err
+		}
+	}
+	if rec.Title != "" && rec.Artist != "" && rec.Album != "" {
+		// A song record shares the scrobble's shape verbatim (same fields, in
+		// the same order) — a direct conversion, checked at compile time.
+		if _, err := a.CreateSong(ctx, gen.SongRecord(rec)); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // ScrobbleMatchInput is the input to [Agent.ScrobbleMatch]. Title and Artist
