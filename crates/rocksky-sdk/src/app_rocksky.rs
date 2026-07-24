@@ -13,6 +13,7 @@ pub mod dropbox;
 pub mod feed;
 pub mod googledrive;
 pub mod graph;
+pub mod library;
 pub mod like;
 pub mod mirror;
 pub mod player;

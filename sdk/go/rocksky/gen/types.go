@@ -124,6 +124,11 @@ type AddItemsToQueueParams struct {
 	Shuffle bool `json:"shuffle,omitempty"`
 }
 
+type AlbumGetAlbumParams struct {
+	// The URI of the album to retrieve.
+	URI string `json:"uri,omitempty"`
+}
+
 type AlbumRecord struct {
 	// The title of the album.
 	Title string `json:"title,omitempty"`
@@ -216,6 +221,26 @@ type ApiKeyView struct {
 	Description string `json:"description,omitempty"`
 	// The date and time when the API key was created.
 	CreatedAt string `json:"createdAt,omitempty"`
+}
+
+type ArtistGetArtistParams struct {
+	// The URI of the artist to retrieve details from
+	URI string `json:"uri,omitempty"`
+}
+
+type ArtistGetArtistsOutput struct {
+	Artists []ArtistViewBasic `json:"artists,omitempty"`
+}
+
+type ArtistGetArtistsParams struct {
+	// The maximum number of artists to return
+	Limit int `json:"limit,omitempty"`
+	// The offset for pagination
+	Offset int `json:"offset,omitempty"`
+	// The names of the artists to return
+	Names string `json:"names,omitempty"`
+	// The genre to filter artists by
+	Genre string `json:"genre,omitempty"`
 }
 
 type ArtistListenerViewBasic struct {
@@ -344,13 +369,6 @@ type CreateApikeyInput struct {
 	Description string `json:"description,omitempty"`
 }
 
-type CreatePlaylistParams struct {
-	// The name of the playlist
-	Name string `json:"name,omitempty"`
-	// A brief description of the playlist
-	Description string `json:"description,omitempty"`
-}
-
 type CreateScrobbleInput struct {
 	// The title of the track being scrobbled
 	Title string `json:"title,omitempty"`
@@ -434,6 +452,38 @@ type CreateSongInput struct {
 	Lyrics string `json:"lyrics,omitempty"`
 }
 
+type DeleteAlbumInput struct {
+	// The album id (album xata_id, as exposed by the library API).
+	ID string `json:"id,omitempty"`
+}
+
+type DeleteAlbumOutput struct {
+	// Always "ok" on success.
+	Status string `json:"status,omitempty"`
+	// Number of uploads deleted for the album.
+	Deleted int `json:"deleted,omitempty"`
+}
+
+type DeletePlaylistInput struct {
+	// The playlist id to delete.
+	ID string `json:"id,omitempty"`
+}
+
+type DeletePlaylistOutput struct {
+}
+
+type DeleteSongInput struct {
+	// The song id (track xata_id, as exposed by the library API).
+	ID string `json:"id,omitempty"`
+}
+
+type DeleteSongOutput struct {
+	// Always "ok" on success.
+	Status string `json:"status,omitempty"`
+	// Number of uploads deleted (0 or 1).
+	Deleted int `json:"deleted,omitempty"`
+}
+
 type DescribeFeedGeneratorOutput struct {
 	// The DID of the feed generator.
 	DID string `json:"did,omitempty"`
@@ -454,7 +504,7 @@ type DislikeSongInput struct {
 	URI string `json:"uri,omitempty"`
 }
 
-type DownloadFileParams struct {
+type DropboxDownloadFileParams struct {
 	// The unique identifier of the file to download
 	FileID string `json:"fileId,omitempty"`
 }
@@ -477,6 +527,11 @@ type DropboxFileView struct {
 	ClientModified string `json:"clientModified,omitempty"`
 	// The last modified date and time of the file on the server.
 	ServerModified string `json:"serverModified,omitempty"`
+}
+
+type DropboxGetFilesParams struct {
+	// Path to the Dropbox folder or root directory
+	At string `json:"at,omitempty"`
 }
 
 type DropboxTemporaryLinkView struct {
@@ -553,6 +608,11 @@ type FeedRecommendedArtistView struct {
 	RecommendationScore int `json:"recommendationScore,omitempty"`
 	// neighbour | social | serendipity
 	Source string `json:"source,omitempty"`
+}
+
+type FeedSearchParams struct {
+	// The search query string
+	Query string `json:"query,omitempty"`
 }
 
 type FeedSearchResultsView struct {
@@ -729,9 +789,30 @@ type GetActorSongsParams struct {
 	EndDate string `json:"endDate,omitempty"`
 }
 
-type GetAlbumParams struct {
-	// The URI of the album to retrieve.
-	URI string `json:"uri,omitempty"`
+type GetAlbumInfoOutput struct {
+}
+
+type GetAlbumInfoParams struct {
+	// The album id
+	ID string `json:"id,omitempty"`
+}
+
+type GetAlbumListOutput struct {
+}
+
+type GetAlbumListParams struct {
+	// List type: newest, alphabeticalByName, alphabeticalByArtist, random, recent, byYear, byGenre, starred.
+	Type string `json:"type,omitempty"`
+	// Number of albums to return (max 500).
+	Size int `json:"size,omitempty"`
+	// Offset for pagination.
+	Offset int `json:"offset,omitempty"`
+	// First year in a byYear range.
+	FromYear int `json:"fromYear,omitempty"`
+	// Last year in a byYear range.
+	ToYear int `json:"toYear,omitempty"`
+	// Genre name when type is byGenre.
+	Genre string `json:"genre,omitempty"`
 }
 
 type GetAlbumRecommendationsParams struct {
@@ -795,6 +876,14 @@ type GetArtistAlbumsParams struct {
 	URI string `json:"uri,omitempty"`
 }
 
+type GetArtistInfoOutput struct {
+}
+
+type GetArtistInfoParams struct {
+	// The artist id
+	ID string `json:"id,omitempty"`
+}
+
 type GetArtistListenersOutput struct {
 	Listeners []ArtistListenerViewBasic `json:"listeners,omitempty"`
 }
@@ -806,11 +895,6 @@ type GetArtistListenersParams struct {
 	Offset int `json:"offset,omitempty"`
 	// Maximum number of results to return
 	Limit int `json:"limit,omitempty"`
-}
-
-type GetArtistParams struct {
-	// The URI of the artist to retrieve details from
-	URI string `json:"uri,omitempty"`
 }
 
 type GetArtistRecentListenersOutput struct {
@@ -845,21 +929,6 @@ type GetArtistShoutsParams struct {
 	Offset int `json:"offset,omitempty"`
 }
 
-type GetArtistsOutput struct {
-	Artists []ArtistViewBasic `json:"artists,omitempty"`
-}
-
-type GetArtistsParams struct {
-	// The maximum number of artists to return
-	Limit int `json:"limit,omitempty"`
-	// The offset for pagination
-	Offset int `json:"offset,omitempty"`
-	// The names of the artists to return
-	Names string `json:"names,omitempty"`
-	// The genre to filter artists by
-	Genre string `json:"genre,omitempty"`
-}
-
 type GetArtistTracksOutput struct {
 	Tracks []SongViewBasic `json:"tracks,omitempty"`
 }
@@ -878,10 +947,26 @@ type GetAudioSettingsParams struct {
 	DID string `json:"did,omitempty"`
 }
 
-type GetCurrentlyPlayingParams struct {
-	PlayerID string `json:"playerId,omitempty"`
-	// Handle or DID of the actor to retrieve the currently playing track for. If not provided, defaults to the current user.
-	Actor string `json:"actor,omitempty"`
+type GetCoverArtUrlOutput struct {
+	// The resolved media or cover-art URL.
+	URL string `json:"url,omitempty"`
+}
+
+type GetCoverArtUrlParams struct {
+	// The cover-art id (album, artist or song).
+	ID string `json:"id,omitempty"`
+	// Requested square size in pixels.
+	Size int `json:"size,omitempty"`
+}
+
+type GetDownloadUrlOutput struct {
+	// The resolved media or cover-art URL.
+	URL string `json:"url,omitempty"`
+}
+
+type GetDownloadUrlParams struct {
+	// The song id.
+	ID string `json:"id,omitempty"`
 }
 
 type GetFeedGeneratorOutput struct {
@@ -929,11 +1014,6 @@ type GetFileParams struct {
 	FileID string `json:"fileId,omitempty"`
 }
 
-type GetFilesParams struct {
-	// Path to the Dropbox folder or root directory
-	At string `json:"at,omitempty"`
-}
-
 type GetFollowersOutput struct {
 	Subject *ActorProfileViewBasic `json:"subject,omitempty"`
 	Followers []ActorProfileViewBasic `json:"followers,omitempty"`
@@ -968,7 +1048,25 @@ type GetFollowsParams struct {
 	Cursor string `json:"cursor,omitempty"`
 }
 
+type GetGenresOutput struct {
+}
+
+type GetGenresParams struct {
+}
+
 type GetGlobalStatsParams struct {
+}
+
+type GetIndexesOutput struct {
+}
+
+type GetIndexesParams struct {
+}
+
+type GetInternetRadioStationsOutput struct {
+}
+
+type GetInternetRadioStationsParams struct {
 }
 
 type GetKnownFollowersOutput struct {
@@ -984,6 +1082,22 @@ type GetKnownFollowersParams struct {
 	Cursor string `json:"cursor,omitempty"`
 }
 
+type GetLicenseOutput struct {
+}
+
+type GetLicenseParams struct {
+}
+
+type GetLyricsOutput struct {
+}
+
+type GetLyricsParams struct {
+	// The artist name.
+	Artist string `json:"artist,omitempty"`
+	// The song title.
+	Title string `json:"title,omitempty"`
+}
+
 type GetMetadataParams struct {
 	// Path to the file or folder in Dropbox
 	Path string `json:"path,omitempty"`
@@ -996,24 +1110,34 @@ type GetMirrorSourcesOutput struct {
 type GetMirrorSourcesParams struct {
 }
 
+type GetMusicDirectoryOutput struct {
+}
+
+type GetMusicDirectoryParams struct {
+	// The directory id
+	ID string `json:"id,omitempty"`
+}
+
+type GetMusicFoldersOutput struct {
+}
+
+type GetMusicFoldersParams struct {
+}
+
+type GetNowPlayingOutput struct {
+}
+
+type GetNowPlayingParams struct {
+}
+
 type GetPlaybackQueueParams struct {
 	PlayerID string `json:"playerId,omitempty"`
 }
 
-type GetPlaylistParams struct {
-	// The URI of the playlist to retrieve.
-	URI string `json:"uri,omitempty"`
+type GetPlayQueueOutput struct {
 }
 
-type GetPlaylistsOutput struct {
-	Playlists []PlaylistViewBasic `json:"playlists,omitempty"`
-}
-
-type GetPlaylistsParams struct {
-	// The maximum number of playlists to return.
-	Limit int `json:"limit,omitempty"`
-	// The offset for pagination, used to skip a number of playlists.
-	Offset int `json:"offset,omitempty"`
+type GetPlayQueueParams struct {
 }
 
 type GetProfileParams struct {
@@ -1034,10 +1158,30 @@ type GetProfileShoutsParams struct {
 	Limit int `json:"limit,omitempty"`
 }
 
+type GetRandomSongsOutput struct {
+}
+
+type GetRandomSongsParams struct {
+	// Number of songs to return (max 500).
+	Size int `json:"size,omitempty"`
+	// Only return songs in this genre.
+	Genre string `json:"genre,omitempty"`
+	// Only return songs published after or in this year.
+	FromYear int `json:"fromYear,omitempty"`
+	// Only return songs published before or in this year.
+	ToYear int `json:"toYear,omitempty"`
+}
+
 type GetRecommendationsParams struct {
 	// DID or handle of the user to recommend for.
 	DID string `json:"did,omitempty"`
 	Limit int `json:"limit,omitempty"`
+}
+
+type GetScanStatusOutput struct {
+}
+
+type GetScanStatusParams struct {
 }
 
 type GetScrobbleParams struct {
@@ -1090,15 +1234,14 @@ type GetShoutRepliesParams struct {
 	Offset int `json:"offset,omitempty"`
 }
 
-type GetSongParams struct {
-	// The AT-URI of the song to retrieve
-	URI string `json:"uri,omitempty"`
-	// The MusicBrainz ID of the song to retrieve
-	MBID string `json:"mbid,omitempty"`
-	// The International Standard Recording Code (ISRC) of the song to retrieve
-	ISRC string `json:"isrc,omitempty"`
-	// The Spotify track ID of the song to retrieve (resolved internally to the Spotify track URL)
-	SpotifyID string `json:"spotifyId,omitempty"`
+type GetSimilarSongsOutput struct {
+}
+
+type GetSimilarSongsParams struct {
+	// The artist, album or song id
+	ID string `json:"id,omitempty"`
+	// Number of songs to return.
+	Count int `json:"count,omitempty"`
 }
 
 type GetSongRecentListenersOutput struct {
@@ -1112,6 +1255,18 @@ type GetSongRecentListenersParams struct {
 	Offset int `json:"offset,omitempty"`
 	// Maximum number of results to return
 	Limit int `json:"limit,omitempty"`
+}
+
+type GetSongsByGenreOutput struct {
+}
+
+type GetSongsByGenreParams struct {
+	// The genre name.
+	Genre string `json:"genre,omitempty"`
+	// Number of songs to return (max 500).
+	Count int `json:"count,omitempty"`
+	// Offset for pagination.
+	Offset int `json:"offset,omitempty"`
 }
 
 type GetSongsOutput struct {
@@ -1133,6 +1288,12 @@ type GetSongsParams struct {
 	SpotifyID string `json:"spotifyId,omitempty"`
 }
 
+type GetStarredOutput struct {
+}
+
+type GetStarredParams struct {
+}
+
 type GetStatsParams struct {
 	// The DID or handle of the user to get stats for.
 	DID string `json:"did,omitempty"`
@@ -1145,6 +1306,20 @@ type GetStoriesParams struct {
 	Feed string `json:"feed,omitempty"`
 	// If true, only return stories from users the viewer follows. Requires authentication.
 	Following bool `json:"following,omitempty"`
+}
+
+type GetStreamUrlOutput struct {
+	// The resolved media or cover-art URL.
+	URL string `json:"url,omitempty"`
+}
+
+type GetStreamUrlParams struct {
+	// The song id.
+	ID string `json:"id,omitempty"`
+	// Maximum bitrate (kbps); 0 means no limit.
+	MaxBitRate int `json:"maxBitRate,omitempty"`
+	// Preferred transcode format.
+	Format string `json:"format,omitempty"`
 }
 
 type GetTemporaryLinkParams struct {
@@ -1165,6 +1340,16 @@ type GetTopArtistsParams struct {
 	StartDate string `json:"startDate,omitempty"`
 	// The end date to filter artists to (ISO 8601 format)
 	EndDate string `json:"endDate,omitempty"`
+}
+
+type GetTopSongsOutput struct {
+}
+
+type GetTopSongsParams struct {
+	// The artist name.
+	Artist string `json:"artist,omitempty"`
+	// Number of songs to return.
+	Count int `json:"count,omitempty"`
 }
 
 type GetTopTracksOutput struct {
@@ -1191,11 +1376,22 @@ type GetTrackShoutsParams struct {
 	URI string `json:"uri,omitempty"`
 }
 
+type GetUserOutput struct {
+}
+
+type GetUserParams struct {
+}
+
 type GetWrappedParams struct {
 	// The DID or handle of the user
 	DID string `json:"did,omitempty"`
 	// The year to get wrapped stats for (defaults to current year)
 	Year int `json:"year,omitempty"`
+}
+
+type GoogledriveDownloadFileParams struct {
+	// The unique identifier of the file to download
+	FileID string `json:"fileId,omitempty"`
 }
 
 type GoogledriveFileListView struct {
@@ -1205,6 +1401,11 @@ type GoogledriveFileListView struct {
 type GoogledriveFileView struct {
 	// The unique identifier of the file.
 	ID string `json:"id,omitempty"`
+}
+
+type GoogledriveGetFilesParams struct {
+	// Path to the Google Drive folder or root directory
+	At string `json:"at,omitempty"`
 }
 
 // GraphNotFoundActor indicates that a handle or DID could not be resolved
@@ -1236,6 +1437,78 @@ type InsertFilesParams struct {
 	Files []string `json:"files,omitempty"`
 	// The position in the playlist to insert the files at, if not specified, files will be appended
 	Position int `json:"position,omitempty"`
+}
+
+type LibraryCreatePlaylistInput struct {
+	// The playlist name.
+	Name string `json:"name,omitempty"`
+}
+
+type LibraryCreatePlaylistOutput struct {
+}
+
+type LibraryGetAlbumOutput struct {
+}
+
+type LibraryGetAlbumParams struct {
+	// The album id
+	ID string `json:"id,omitempty"`
+}
+
+type LibraryGetArtistOutput struct {
+}
+
+type LibraryGetArtistParams struct {
+	// The artist id
+	ID string `json:"id,omitempty"`
+}
+
+type LibraryGetArtistsOutput struct {
+}
+
+type LibraryGetArtistsParams struct {
+}
+
+type LibraryGetPlaylistOutput struct {
+}
+
+type LibraryGetPlaylistParams struct {
+	// The playlist id
+	ID string `json:"id,omitempty"`
+}
+
+type LibraryGetPlaylistsOutput struct {
+}
+
+type LibraryGetPlaylistsParams struct {
+}
+
+type LibraryGetSongOutput struct {
+}
+
+type LibraryGetSongParams struct {
+	// The song id
+	ID string `json:"id,omitempty"`
+}
+
+type LibrarySearchOutput struct {
+}
+
+type LibrarySearchParams struct {
+	// The search query.
+	Query string `json:"query,omitempty"`
+	// Maximum number of artists to return.
+	ArtistCount int `json:"artistCount,omitempty"`
+	// Artist result offset.
+	ArtistOffset int `json:"artistOffset,omitempty"`
+	// Maximum number of albums to return.
+	AlbumCount int `json:"albumCount,omitempty"`
+	// Album result offset.
+	AlbumOffset int `json:"albumOffset,omitempty"`
+	// Maximum number of songs to return.
+	SongCount int `json:"songCount,omitempty"`
+	// Song result offset.
+	SongOffset int `json:"songOffset,omitempty"`
 }
 
 type LikeRecord struct {
@@ -1280,12 +1553,10 @@ type MirrorSourceView struct {
 	LastScrobbleSeenAt string `json:"lastScrobbleSeenAt,omitempty"`
 }
 
-type NextParams struct {
-	PlayerID string `json:"playerId,omitempty"`
+type PingOutput struct {
 }
 
-type PauseParams struct {
-	PlayerID string `json:"playerId,omitempty"`
+type PingParams struct {
 }
 
 type PlayDirectoryParams struct {
@@ -1301,13 +1572,64 @@ type PlayerCurrentlyPlayingViewDetailed struct {
 	Title string `json:"title,omitempty"`
 }
 
+type PlayerGetCurrentlyPlayingParams struct {
+	PlayerID string `json:"playerId,omitempty"`
+	// Handle or DID of the actor to retrieve the currently playing track for. If not provided, defaults to the current user.
+	Actor string `json:"actor,omitempty"`
+}
+
+type PlayerNextParams struct {
+	PlayerID string `json:"playerId,omitempty"`
+}
+
+type PlayerPauseParams struct {
+	PlayerID string `json:"playerId,omitempty"`
+}
+
 type PlayerPlaybackQueueViewDetailed struct {
 	Tracks []SongViewBasic `json:"tracks,omitempty"`
+}
+
+type PlayerPlayParams struct {
+	PlayerID string `json:"playerId,omitempty"`
+}
+
+type PlayerPreviousParams struct {
+	PlayerID string `json:"playerId,omitempty"`
+}
+
+type PlayerSeekParams struct {
+	PlayerID string `json:"playerId,omitempty"`
+	// The position in seconds to seek to
+	Position int `json:"position,omitempty"`
 }
 
 type PlayFileParams struct {
 	PlayerID string `json:"playerId,omitempty"`
 	FileID string `json:"fileId,omitempty"`
+}
+
+type PlaylistCreatePlaylistParams struct {
+	// The name of the playlist
+	Name string `json:"name,omitempty"`
+	// A brief description of the playlist
+	Description string `json:"description,omitempty"`
+}
+
+type PlaylistGetPlaylistParams struct {
+	// The URI of the playlist to retrieve.
+	URI string `json:"uri,omitempty"`
+}
+
+type PlaylistGetPlaylistsOutput struct {
+	Playlists []PlaylistViewBasic `json:"playlists,omitempty"`
+}
+
+type PlaylistGetPlaylistsParams struct {
+	// The maximum number of playlists to return.
+	Limit int `json:"limit,omitempty"`
+	// The offset for pagination, used to skip a number of playlists.
+	Offset int `json:"offset,omitempty"`
 }
 
 type PlaylistItemRecord struct {
@@ -1390,14 +1712,6 @@ type PlaylistViewDetailed struct {
 	CreatedAt string `json:"createdAt,omitempty"`
 	// A list of tracks in the playlist.
 	Tracks []SongViewBasic `json:"tracks,omitempty"`
-}
-
-type PlayParams struct {
-	PlayerID string `json:"playerId,omitempty"`
-}
-
-type PreviousParams struct {
-	PlayerID string `json:"playerId,omitempty"`
 }
 
 type ProfileRecord struct {
@@ -1587,6 +1901,18 @@ type RockboxToneSettings struct {
 	Channels string `json:"channels,omitempty"`
 }
 
+type SavePlayQueueInput struct {
+	// Comma-separated song ids in the queue.
+	ID string `json:"id,omitempty"`
+	// The id of the currently playing song.
+	Current string `json:"current,omitempty"`
+	// Position within the current song, in milliseconds.
+	Position int `json:"position,omitempty"`
+}
+
+type SavePlayQueueOutput struct {
+}
+
 type ScrobbleFirstScrobbleView struct {
 	// The handle of the user who first scrobbled this song.
 	Handle string `json:"handle,omitempty"`
@@ -1594,6 +1920,18 @@ type ScrobbleFirstScrobbleView struct {
 	Avatar string `json:"avatar,omitempty"`
 	// The timestamp of the first scrobble.
 	Timestamp string `json:"timestamp,omitempty"`
+}
+
+type ScrobbleInput struct {
+	// The song id.
+	ID string `json:"id,omitempty"`
+	// Play time as a Unix timestamp in milliseconds.
+	Time int `json:"time,omitempty"`
+	// True for a final submission, false for a now-playing update.
+	Submission bool `json:"submission,omitempty"`
+}
+
+type ScrobbleOutput struct {
 }
 
 type ScrobbleRecord struct {
@@ -1722,17 +2060,6 @@ type ScrobbleViewDetailed struct {
 	FirstScrobble *ScrobbleFirstScrobbleView `json:"firstScrobble,omitempty"`
 }
 
-type SearchParams struct {
-	// The search query string
-	Query string `json:"query,omitempty"`
-}
-
-type SeekParams struct {
-	PlayerID string `json:"playerId,omitempty"`
-	// The position in seconds to seek to
-	Position int `json:"position,omitempty"`
-}
-
 type SettingsRecord struct {
 	// Crossfade settings
 	Crossfade *RockboxCrossfadeSettings `json:"crossfade,omitempty"`
@@ -1790,6 +2117,17 @@ type SongFirstScrobbleView struct {
 	Avatar string `json:"avatar,omitempty"`
 	// The timestamp of the first scrobble.
 	Timestamp string `json:"timestamp,omitempty"`
+}
+
+type SongGetSongParams struct {
+	// The AT-URI of the song to retrieve
+	URI string `json:"uri,omitempty"`
+	// The MusicBrainz ID of the song to retrieve
+	MBID string `json:"mbid,omitempty"`
+	// The International Standard Recording Code (ISRC) of the song to retrieve
+	ISRC string `json:"isrc,omitempty"`
+	// The Spotify track ID of the song to retrieve (resolved internally to the Spotify track URL)
+	SpotifyID string `json:"spotifyId,omitempty"`
 }
 
 type SongRecentListenerView struct {
@@ -1947,6 +2285,16 @@ type SongViewDetailed struct {
 	FirstScrobble *SongFirstScrobbleView `json:"firstScrobble,omitempty"`
 }
 
+type SpotifyGetCurrentlyPlayingParams struct {
+	// Handle or DID of the actor to retrieve the currently playing track for. If not provided, defaults to the current user.
+	Actor string `json:"actor,omitempty"`
+}
+
+type SpotifySeekParams struct {
+	// The position in seconds to seek to
+	Position int `json:"position,omitempty"`
+}
+
 type SpotifyTrackView struct {
 	// The unique identifier of the Spotify track.
 	ID string `json:"id,omitempty"`
@@ -1962,6 +2310,18 @@ type SpotifyTrackView struct {
 	PreviewURL string `json:"previewUrl,omitempty"`
 }
 
+type StarInput struct {
+	// The song id to star.
+	ID string `json:"id,omitempty"`
+	// An album id to star.
+	AlbumID string `json:"albumId,omitempty"`
+	// An artist id to star.
+	ArtistID string `json:"artistId,omitempty"`
+}
+
+type StarOutput struct {
+}
+
 type StartPlaylistParams struct {
 	// The URI of the playlist to start
 	URI string `json:"uri,omitempty"`
@@ -1969,6 +2329,12 @@ type StartPlaylistParams struct {
 	Shuffle bool `json:"shuffle,omitempty"`
 	// The position in the playlist to start from, if not specified, starts from the beginning
 	Position int `json:"position,omitempty"`
+}
+
+type StartScanOutput struct {
+}
+
+type StartScanParams struct {
 }
 
 type StatsGlobalStatsView struct {
@@ -2132,6 +2498,18 @@ type UnfollowAccountParams struct {
 	Account string `json:"account,omitempty"`
 }
 
+type UnstarInput struct {
+	// The song id to unstar.
+	ID string `json:"id,omitempty"`
+	// An album id to unstar.
+	AlbumID string `json:"albumId,omitempty"`
+	// An artist id to unstar.
+	ArtistID string `json:"artistId,omitempty"`
+}
+
+type UnstarOutput struct {
+}
+
 type UpdateApikeyInput struct {
 	// The ID of the API key to update.
 	ID string `json:"id,omitempty"`
@@ -2139,4 +2517,28 @@ type UpdateApikeyInput struct {
 	Name string `json:"name,omitempty"`
 	// A new description for the API key.
 	Description string `json:"description,omitempty"`
+}
+
+type UpdateNowPlayingInput struct {
+	// The song id.
+	ID string `json:"id,omitempty"`
+}
+
+type UpdateNowPlayingOutput struct {
+}
+
+type UpdatePlaylistInput struct {
+	// The playlist id to update.
+	PlaylistID string `json:"playlistId,omitempty"`
+	// New playlist name.
+	Name string `json:"name,omitempty"`
+	// New playlist comment.
+	Comment string `json:"comment,omitempty"`
+	// A song id to add to the playlist.
+	SongIDToAdd string `json:"songIdToAdd,omitempty"`
+	// A track index to remove from the playlist.
+	SongIndexToRemove int `json:"songIndexToRemove,omitempty"`
+}
+
+type UpdatePlaylistOutput struct {
 }

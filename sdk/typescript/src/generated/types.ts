@@ -124,6 +124,11 @@ export interface AddItemsToQueueParams {
   shuffle?: boolean;
 }
 
+export interface AlbumGetAlbumParams {
+  /** The URI of the album to retrieve. */
+  uri: AtUri;
+}
+
 export interface AlbumRecord {
   /** The title of the album. */
   title: string;
@@ -216,6 +221,26 @@ export interface ApiKeyView {
   description?: string;
   /** The date and time when the API key was created. */
   createdAt?: DateTime;
+}
+
+export interface ArtistGetArtistParams {
+  /** The URI of the artist to retrieve details from */
+  uri: AtUri;
+}
+
+export interface ArtistGetArtistsOutput {
+  artists?: ArtistViewBasic[];
+}
+
+export interface ArtistGetArtistsParams {
+  /** The maximum number of artists to return */
+  limit?: number;
+  /** The offset for pagination */
+  offset?: number;
+  /** The names of the artists to return */
+  names?: string;
+  /** The genre to filter artists by */
+  genre?: string;
 }
 
 export interface ArtistListenerViewBasic {
@@ -344,13 +369,6 @@ export interface CreateApikeyInput {
   description?: string;
 }
 
-export interface CreatePlaylistParams {
-  /** The name of the playlist */
-  name: string;
-  /** A brief description of the playlist */
-  description?: string;
-}
-
 export interface CreateScrobbleInput {
   /** The title of the track being scrobbled */
   title: string;
@@ -434,6 +452,39 @@ export interface CreateSongInput {
   lyrics?: string;
 }
 
+export interface DeleteAlbumInput {
+  /** The album id (album xata_id, as exposed by the library API). */
+  id: string;
+}
+
+export interface DeleteAlbumOutput {
+  /** Always "ok" on success. */
+  status: string;
+  /** Number of uploads deleted for the album. */
+  deleted: number;
+}
+
+export interface DeletePlaylistInput {
+  /** The playlist id to delete. */
+  id: string;
+}
+
+export interface DeletePlaylistOutput {
+
+}
+
+export interface DeleteSongInput {
+  /** The song id (track xata_id, as exposed by the library API). */
+  id: string;
+}
+
+export interface DeleteSongOutput {
+  /** Always "ok" on success. */
+  status: string;
+  /** Number of uploads deleted (0 or 1). */
+  deleted: number;
+}
+
 export interface DescribeFeedGeneratorOutput {
   /** The DID of the feed generator. */
   did?: AtIdentifier;
@@ -455,7 +506,7 @@ export interface DislikeSongInput {
   uri?: AtUri;
 }
 
-export interface DownloadFileParams {
+export interface DropboxDownloadFileParams {
   /** The unique identifier of the file to download */
   fileId: string;
 }
@@ -478,6 +529,11 @@ export interface DropboxFileView {
   clientModified?: DateTime;
   /** The last modified date and time of the file on the server. */
   serverModified?: DateTime;
+}
+
+export interface DropboxGetFilesParams {
+  /** Path to the Dropbox folder or root directory */
+  at?: string;
 }
 
 export interface DropboxTemporaryLinkView {
@@ -554,6 +610,11 @@ export interface FeedRecommendedArtistView {
   recommendationScore?: number;
   /** neighbour | social | serendipity */
   source?: string;
+}
+
+export interface FeedSearchParams {
+  /** The search query string */
+  query: string;
 }
 
 export interface FeedSearchResultsView {
@@ -730,9 +791,32 @@ export interface GetActorSongsParams {
   endDate?: DateTime;
 }
 
-export interface GetAlbumParams {
-  /** The URI of the album to retrieve. */
-  uri: AtUri;
+export interface GetAlbumInfoOutput {
+
+}
+
+export interface GetAlbumInfoParams {
+  /** The album id */
+  id: string;
+}
+
+export interface GetAlbumListOutput {
+
+}
+
+export interface GetAlbumListParams {
+  /** List type: newest, alphabeticalByName, alphabeticalByArtist, random, recent, byYear, byGenre, starred. */
+  type: string;
+  /** Number of albums to return (max 500). */
+  size?: number;
+  /** Offset for pagination. */
+  offset?: number;
+  /** First year in a byYear range. */
+  fromYear?: number;
+  /** Last year in a byYear range. */
+  toYear?: number;
+  /** Genre name when type is byGenre. */
+  genre?: string;
 }
 
 export interface GetAlbumRecommendationsParams {
@@ -796,6 +880,15 @@ export interface GetArtistAlbumsParams {
   uri: AtUri;
 }
 
+export interface GetArtistInfoOutput {
+
+}
+
+export interface GetArtistInfoParams {
+  /** The artist id */
+  id: string;
+}
+
 export interface GetArtistListenersOutput {
   listeners?: ArtistListenerViewBasic[];
 }
@@ -807,11 +900,6 @@ export interface GetArtistListenersParams {
   offset?: number;
   /** Maximum number of results to return */
   limit?: number;
-}
-
-export interface GetArtistParams {
-  /** The URI of the artist to retrieve details from */
-  uri: AtUri;
 }
 
 export interface GetArtistRecentListenersOutput {
@@ -846,21 +934,6 @@ export interface GetArtistShoutsParams {
   offset?: number;
 }
 
-export interface GetArtistsOutput {
-  artists?: ArtistViewBasic[];
-}
-
-export interface GetArtistsParams {
-  /** The maximum number of artists to return */
-  limit?: number;
-  /** The offset for pagination */
-  offset?: number;
-  /** The names of the artists to return */
-  names?: string;
-  /** The genre to filter artists by */
-  genre?: string;
-}
-
 export interface GetArtistTracksOutput {
   tracks?: SongViewBasic[];
 }
@@ -879,10 +952,26 @@ export interface GetAudioSettingsParams {
   did?: AtIdentifier;
 }
 
-export interface GetCurrentlyPlayingParams {
-  playerId?: string;
-  /** Handle or DID of the actor to retrieve the currently playing track for. If not provided, defaults to the current user. */
-  actor?: AtIdentifier;
+export interface GetCoverArtUrlOutput {
+  /** The resolved media or cover-art URL. */
+  url: Uri;
+}
+
+export interface GetCoverArtUrlParams {
+  /** The cover-art id (album, artist or song). */
+  id: string;
+  /** Requested square size in pixels. */
+  size?: number;
+}
+
+export interface GetDownloadUrlOutput {
+  /** The resolved media or cover-art URL. */
+  url: Uri;
+}
+
+export interface GetDownloadUrlParams {
+  /** The song id. */
+  id: string;
 }
 
 export interface GetFeedGeneratorOutput {
@@ -930,11 +1019,6 @@ export interface GetFileParams {
   fileId: string;
 }
 
-export interface GetFilesParams {
-  /** Path to the Dropbox folder or root directory */
-  at?: string;
-}
-
 export interface GetFollowersOutput {
   subject: ActorProfileViewBasic;
   followers: ActorProfileViewBasic[];
@@ -969,7 +1053,31 @@ export interface GetFollowsParams {
   cursor?: string;
 }
 
+export interface GetGenresOutput {
+
+}
+
+export interface GetGenresParams {
+
+}
+
 export interface GetGlobalStatsParams {
+
+}
+
+export interface GetIndexesOutput {
+
+}
+
+export interface GetIndexesParams {
+
+}
+
+export interface GetInternetRadioStationsOutput {
+
+}
+
+export interface GetInternetRadioStationsParams {
 
 }
 
@@ -986,6 +1094,25 @@ export interface GetKnownFollowersParams {
   cursor?: string;
 }
 
+export interface GetLicenseOutput {
+
+}
+
+export interface GetLicenseParams {
+
+}
+
+export interface GetLyricsOutput {
+
+}
+
+export interface GetLyricsParams {
+  /** The artist name. */
+  artist?: string;
+  /** The song title. */
+  title?: string;
+}
+
 export interface GetMetadataParams {
   /** Path to the file or folder in Dropbox */
   path: string;
@@ -999,24 +1126,41 @@ export interface GetMirrorSourcesParams {
 
 }
 
+export interface GetMusicDirectoryOutput {
+
+}
+
+export interface GetMusicDirectoryParams {
+  /** The directory id */
+  id: string;
+}
+
+export interface GetMusicFoldersOutput {
+
+}
+
+export interface GetMusicFoldersParams {
+
+}
+
+export interface GetNowPlayingOutput {
+
+}
+
+export interface GetNowPlayingParams {
+
+}
+
 export interface GetPlaybackQueueParams {
   playerId?: string;
 }
 
-export interface GetPlaylistParams {
-  /** The URI of the playlist to retrieve. */
-  uri: AtUri;
+export interface GetPlayQueueOutput {
+
 }
 
-export interface GetPlaylistsOutput {
-  playlists?: PlaylistViewBasic[];
-}
+export interface GetPlayQueueParams {
 
-export interface GetPlaylistsParams {
-  /** The maximum number of playlists to return. */
-  limit?: number;
-  /** The offset for pagination, used to skip a number of playlists. */
-  offset?: number;
 }
 
 export interface GetProfileParams {
@@ -1037,10 +1181,33 @@ export interface GetProfileShoutsParams {
   limit?: number;
 }
 
+export interface GetRandomSongsOutput {
+
+}
+
+export interface GetRandomSongsParams {
+  /** Number of songs to return (max 500). */
+  size?: number;
+  /** Only return songs in this genre. */
+  genre?: string;
+  /** Only return songs published after or in this year. */
+  fromYear?: number;
+  /** Only return songs published before or in this year. */
+  toYear?: number;
+}
+
 export interface GetRecommendationsParams {
   /** DID or handle of the user to recommend for. */
   did: string;
   limit?: number;
+}
+
+export interface GetScanStatusOutput {
+
+}
+
+export interface GetScanStatusParams {
+
 }
 
 export interface GetScrobbleParams {
@@ -1093,15 +1260,15 @@ export interface GetShoutRepliesParams {
   offset?: number;
 }
 
-export interface GetSongParams {
-  /** The AT-URI of the song to retrieve */
-  uri?: AtUri;
-  /** The MusicBrainz ID of the song to retrieve */
-  mbid?: string;
-  /** The International Standard Recording Code (ISRC) of the song to retrieve */
-  isrc?: string;
-  /** The Spotify track ID of the song to retrieve (resolved internally to the Spotify track URL) */
-  spotifyId?: string;
+export interface GetSimilarSongsOutput {
+
+}
+
+export interface GetSimilarSongsParams {
+  /** The artist, album or song id */
+  id: string;
+  /** Number of songs to return. */
+  count?: number;
 }
 
 export interface GetSongRecentListenersOutput {
@@ -1115,6 +1282,19 @@ export interface GetSongRecentListenersParams {
   offset?: number;
   /** Maximum number of results to return */
   limit?: number;
+}
+
+export interface GetSongsByGenreOutput {
+
+}
+
+export interface GetSongsByGenreParams {
+  /** The genre name. */
+  genre: string;
+  /** Number of songs to return (max 500). */
+  count?: number;
+  /** Offset for pagination. */
+  offset?: number;
 }
 
 export interface GetSongsOutput {
@@ -1136,6 +1316,14 @@ export interface GetSongsParams {
   spotifyId?: string;
 }
 
+export interface GetStarredOutput {
+
+}
+
+export interface GetStarredParams {
+
+}
+
 export interface GetStatsParams {
   /** The DID or handle of the user to get stats for. */
   did: AtIdentifier;
@@ -1148,6 +1336,20 @@ export interface GetStoriesParams {
   feed?: AtUri;
   /** If true, only return stories from users the viewer follows. Requires authentication. */
   following?: boolean;
+}
+
+export interface GetStreamUrlOutput {
+  /** The resolved media or cover-art URL. */
+  url: Uri;
+}
+
+export interface GetStreamUrlParams {
+  /** The song id. */
+  id: string;
+  /** Maximum bitrate (kbps); 0 means no limit. */
+  maxBitRate?: number;
+  /** Preferred transcode format. */
+  format?: string;
 }
 
 export interface GetTemporaryLinkParams {
@@ -1168,6 +1370,17 @@ export interface GetTopArtistsParams {
   startDate?: DateTime;
   /** The end date to filter artists to (ISO 8601 format) */
   endDate?: DateTime;
+}
+
+export interface GetTopSongsOutput {
+
+}
+
+export interface GetTopSongsParams {
+  /** The artist name. */
+  artist: string;
+  /** Number of songs to return. */
+  count?: number;
 }
 
 export interface GetTopTracksOutput {
@@ -1194,11 +1407,24 @@ export interface GetTrackShoutsParams {
   uri: AtUri;
 }
 
+export interface GetUserOutput {
+
+}
+
+export interface GetUserParams {
+
+}
+
 export interface GetWrappedParams {
   /** The DID or handle of the user */
   did: AtIdentifier;
   /** The year to get wrapped stats for (defaults to current year) */
   year?: number;
+}
+
+export interface GoogledriveDownloadFileParams {
+  /** The unique identifier of the file to download */
+  fileId: string;
 }
 
 export interface GoogledriveFileListView {
@@ -1208,6 +1434,11 @@ export interface GoogledriveFileListView {
 export interface GoogledriveFileView {
   /** The unique identifier of the file. */
   id?: string;
+}
+
+export interface GoogledriveGetFilesParams {
+  /** Path to the Google Drive folder or root directory */
+  at?: string;
 }
 
 /** indicates that a handle or DID could not be resolved */
@@ -1239,6 +1470,88 @@ export interface InsertFilesParams {
   files: string[];
   /** The position in the playlist to insert the files at, if not specified, files will be appended */
   position?: number;
+}
+
+export interface LibraryCreatePlaylistInput {
+  /** The playlist name. */
+  name: string;
+}
+
+export interface LibraryCreatePlaylistOutput {
+
+}
+
+export interface LibraryGetAlbumOutput {
+
+}
+
+export interface LibraryGetAlbumParams {
+  /** The album id */
+  id: string;
+}
+
+export interface LibraryGetArtistOutput {
+
+}
+
+export interface LibraryGetArtistParams {
+  /** The artist id */
+  id: string;
+}
+
+export interface LibraryGetArtistsOutput {
+
+}
+
+export interface LibraryGetArtistsParams {
+
+}
+
+export interface LibraryGetPlaylistOutput {
+
+}
+
+export interface LibraryGetPlaylistParams {
+  /** The playlist id */
+  id: string;
+}
+
+export interface LibraryGetPlaylistsOutput {
+
+}
+
+export interface LibraryGetPlaylistsParams {
+
+}
+
+export interface LibraryGetSongOutput {
+
+}
+
+export interface LibraryGetSongParams {
+  /** The song id */
+  id: string;
+}
+
+export interface LibrarySearchOutput {
+
+}
+
+export interface LibrarySearchParams {
+  /** The search query. */
+  query: string;
+  /** Maximum number of artists to return. */
+  artistCount?: number;
+  /** Artist result offset. */
+  artistOffset?: number;
+  /** Maximum number of albums to return. */
+  albumCount?: number;
+  /** Album result offset. */
+  albumOffset?: number;
+  /** Maximum number of songs to return. */
+  songCount?: number;
+  /** Song result offset. */
+  songOffset?: number;
 }
 
 export interface LikeRecord {
@@ -1283,12 +1596,12 @@ export interface MirrorSourceView {
   lastScrobbleSeenAt?: DateTime;
 }
 
-export interface NextParams {
-  playerId?: string;
+export interface PingOutput {
+
 }
 
-export interface PauseParams {
-  playerId?: string;
+export interface PingParams {
+
 }
 
 export interface PlayDirectoryParams {
@@ -1304,13 +1617,64 @@ export interface PlayerCurrentlyPlayingViewDetailed {
   title?: string;
 }
 
+export interface PlayerGetCurrentlyPlayingParams {
+  playerId?: string;
+  /** Handle or DID of the actor to retrieve the currently playing track for. If not provided, defaults to the current user. */
+  actor?: AtIdentifier;
+}
+
+export interface PlayerNextParams {
+  playerId?: string;
+}
+
+export interface PlayerPauseParams {
+  playerId?: string;
+}
+
 export interface PlayerPlaybackQueueViewDetailed {
   tracks?: SongViewBasic[];
+}
+
+export interface PlayerPlayParams {
+  playerId?: string;
+}
+
+export interface PlayerPreviousParams {
+  playerId?: string;
+}
+
+export interface PlayerSeekParams {
+  playerId?: string;
+  /** The position in seconds to seek to */
+  position: number;
 }
 
 export interface PlayFileParams {
   playerId?: string;
   fileId: string;
+}
+
+export interface PlaylistCreatePlaylistParams {
+  /** The name of the playlist */
+  name: string;
+  /** A brief description of the playlist */
+  description?: string;
+}
+
+export interface PlaylistGetPlaylistParams {
+  /** The URI of the playlist to retrieve. */
+  uri: AtUri;
+}
+
+export interface PlaylistGetPlaylistsOutput {
+  playlists?: PlaylistViewBasic[];
+}
+
+export interface PlaylistGetPlaylistsParams {
+  /** The maximum number of playlists to return. */
+  limit?: number;
+  /** The offset for pagination, used to skip a number of playlists. */
+  offset?: number;
 }
 
 export interface PlaylistItemRecord {
@@ -1393,14 +1757,6 @@ export interface PlaylistViewDetailed {
   createdAt?: DateTime;
   /** A list of tracks in the playlist. */
   tracks?: SongViewBasic[];
-}
-
-export interface PlayParams {
-  playerId?: string;
-}
-
-export interface PreviousParams {
-  playerId?: string;
 }
 
 export interface ProfileRecord {
@@ -1590,6 +1946,19 @@ export interface RockboxToneSettings {
   channels?: string;
 }
 
+export interface SavePlayQueueInput {
+  /** Comma-separated song ids in the queue. */
+  id?: string;
+  /** The id of the currently playing song. */
+  current?: string;
+  /** Position within the current song, in milliseconds. */
+  position?: number;
+}
+
+export interface SavePlayQueueOutput {
+
+}
+
 export interface ScrobbleFirstScrobbleView {
   /** The handle of the user who first scrobbled this song. */
   handle?: string;
@@ -1597,6 +1966,19 @@ export interface ScrobbleFirstScrobbleView {
   avatar?: Uri;
   /** The timestamp of the first scrobble. */
   timestamp?: DateTime;
+}
+
+export interface ScrobbleInput {
+  /** The song id. */
+  id: string;
+  /** Play time as a Unix timestamp in milliseconds. */
+  time?: number;
+  /** True for a final submission, false for a now-playing update. */
+  submission?: boolean;
+}
+
+export interface ScrobbleOutput {
+
 }
 
 export interface ScrobbleRecord {
@@ -1725,17 +2107,6 @@ export interface ScrobbleViewDetailed {
   firstScrobble?: ScrobbleFirstScrobbleView;
 }
 
-export interface SearchParams {
-  /** The search query string */
-  query: string;
-}
-
-export interface SeekParams {
-  playerId?: string;
-  /** The position in seconds to seek to */
-  position: number;
-}
-
 export interface SettingsRecord {
   /** Crossfade settings */
   crossfade?: RockboxCrossfadeSettings;
@@ -1793,6 +2164,17 @@ export interface SongFirstScrobbleView {
   avatar?: Uri;
   /** The timestamp of the first scrobble. */
   timestamp?: DateTime;
+}
+
+export interface SongGetSongParams {
+  /** The AT-URI of the song to retrieve */
+  uri?: AtUri;
+  /** The MusicBrainz ID of the song to retrieve */
+  mbid?: string;
+  /** The International Standard Recording Code (ISRC) of the song to retrieve */
+  isrc?: string;
+  /** The Spotify track ID of the song to retrieve (resolved internally to the Spotify track URL) */
+  spotifyId?: string;
 }
 
 export interface SongRecentListenerView {
@@ -1950,6 +2332,16 @@ export interface SongViewDetailed {
   firstScrobble?: SongFirstScrobbleView;
 }
 
+export interface SpotifyGetCurrentlyPlayingParams {
+  /** Handle or DID of the actor to retrieve the currently playing track for. If not provided, defaults to the current user. */
+  actor?: AtIdentifier;
+}
+
+export interface SpotifySeekParams {
+  /** The position in seconds to seek to */
+  position: number;
+}
+
 export interface SpotifyTrackView {
   /** The unique identifier of the Spotify track. */
   id?: string;
@@ -1965,6 +2357,19 @@ export interface SpotifyTrackView {
   previewUrl?: string;
 }
 
+export interface StarInput {
+  /** The song id to star. */
+  id: string;
+  /** An album id to star. */
+  albumId?: string;
+  /** An artist id to star. */
+  artistId?: string;
+}
+
+export interface StarOutput {
+
+}
+
 export interface StartPlaylistParams {
   /** The URI of the playlist to start */
   uri: AtUri;
@@ -1972,6 +2377,14 @@ export interface StartPlaylistParams {
   shuffle?: boolean;
   /** The position in the playlist to start from, if not specified, starts from the beginning */
   position?: number;
+}
+
+export interface StartScanOutput {
+
+}
+
+export interface StartScanParams {
+
 }
 
 export interface StatsGlobalStatsView {
@@ -2135,6 +2548,19 @@ export interface UnfollowAccountParams {
   account: AtIdentifier;
 }
 
+export interface UnstarInput {
+  /** The song id to unstar. */
+  id: string;
+  /** An album id to unstar. */
+  albumId?: string;
+  /** An artist id to unstar. */
+  artistId?: string;
+}
+
+export interface UnstarOutput {
+
+}
+
 export interface UpdateApikeyInput {
   /** The ID of the API key to update. */
   id: string;
@@ -2142,6 +2568,32 @@ export interface UpdateApikeyInput {
   name: string;
   /** A new description for the API key. */
   description?: string;
+}
+
+export interface UpdateNowPlayingInput {
+  /** The song id. */
+  id: string;
+}
+
+export interface UpdateNowPlayingOutput {
+
+}
+
+export interface UpdatePlaylistInput {
+  /** The playlist id to update. */
+  playlistId: string;
+  /** New playlist name. */
+  name?: string;
+  /** New playlist comment. */
+  comment?: string;
+  /** A song id to add to the playlist. */
+  songIdToAdd?: string;
+  /** A track index to remove from the playlist. */
+  songIndexToRemove?: number;
+}
+
+export interface UpdatePlaylistOutput {
+
 }
 
 /**
@@ -2171,7 +2623,7 @@ export interface Endpoints {
   "app.rocksky.artist.getArtistAlbums": GetArtistAlbumsOutput;
   "app.rocksky.artist.getArtistListeners": GetArtistListenersOutput;
   "app.rocksky.artist.getArtistRecentListeners": GetArtistRecentListenersOutput;
-  "app.rocksky.artist.getArtists": GetArtistsOutput;
+  "app.rocksky.artist.getArtists": ArtistGetArtistsOutput;
   "app.rocksky.artist.getArtistTracks": GetArtistTracksOutput;
   "app.rocksky.charts.getScrobblesChart": ChartsView;
   "app.rocksky.charts.getTopArtists": GetTopArtistsOutput;
@@ -2198,6 +2650,47 @@ export interface Endpoints {
   "app.rocksky.graph.getFollows": GetFollowsOutput;
   "app.rocksky.graph.getKnownFollowers": GetKnownFollowersOutput;
   "app.rocksky.graph.unfollowAccount": UnfollowAccountOutput;
+  "app.rocksky.library.createPlaylist": LibraryCreatePlaylistOutput;
+  "app.rocksky.library.deleteAlbum": DeleteAlbumOutput;
+  "app.rocksky.library.deletePlaylist": DeletePlaylistOutput;
+  "app.rocksky.library.deleteSong": DeleteSongOutput;
+  "app.rocksky.library.getAlbum": LibraryGetAlbumOutput;
+  "app.rocksky.library.getAlbumInfo": GetAlbumInfoOutput;
+  "app.rocksky.library.getAlbumList": GetAlbumListOutput;
+  "app.rocksky.library.getArtist": LibraryGetArtistOutput;
+  "app.rocksky.library.getArtistInfo": GetArtistInfoOutput;
+  "app.rocksky.library.getArtists": LibraryGetArtistsOutput;
+  "app.rocksky.library.getCoverArtUrl": GetCoverArtUrlOutput;
+  "app.rocksky.library.getDownloadUrl": GetDownloadUrlOutput;
+  "app.rocksky.library.getGenres": GetGenresOutput;
+  "app.rocksky.library.getIndexes": GetIndexesOutput;
+  "app.rocksky.library.getInternetRadioStations": GetInternetRadioStationsOutput;
+  "app.rocksky.library.getLicense": GetLicenseOutput;
+  "app.rocksky.library.getLyrics": GetLyricsOutput;
+  "app.rocksky.library.getMusicDirectory": GetMusicDirectoryOutput;
+  "app.rocksky.library.getMusicFolders": GetMusicFoldersOutput;
+  "app.rocksky.library.getNowPlaying": GetNowPlayingOutput;
+  "app.rocksky.library.getPlaylist": LibraryGetPlaylistOutput;
+  "app.rocksky.library.getPlaylists": LibraryGetPlaylistsOutput;
+  "app.rocksky.library.getPlayQueue": GetPlayQueueOutput;
+  "app.rocksky.library.getRandomSongs": GetRandomSongsOutput;
+  "app.rocksky.library.getScanStatus": GetScanStatusOutput;
+  "app.rocksky.library.getSimilarSongs": GetSimilarSongsOutput;
+  "app.rocksky.library.getSong": LibraryGetSongOutput;
+  "app.rocksky.library.getSongsByGenre": GetSongsByGenreOutput;
+  "app.rocksky.library.getStarred": GetStarredOutput;
+  "app.rocksky.library.getStreamUrl": GetStreamUrlOutput;
+  "app.rocksky.library.getTopSongs": GetTopSongsOutput;
+  "app.rocksky.library.getUser": GetUserOutput;
+  "app.rocksky.library.ping": PingOutput;
+  "app.rocksky.library.savePlayQueue": SavePlayQueueOutput;
+  "app.rocksky.library.scrobble": ScrobbleOutput;
+  "app.rocksky.library.search": LibrarySearchOutput;
+  "app.rocksky.library.star": StarOutput;
+  "app.rocksky.library.startScan": StartScanOutput;
+  "app.rocksky.library.unstar": UnstarOutput;
+  "app.rocksky.library.updateNowPlaying": UpdateNowPlayingOutput;
+  "app.rocksky.library.updatePlaylist": UpdatePlaylistOutput;
   "app.rocksky.like.dislikeShout": ShoutView;
   "app.rocksky.like.dislikeSong": SongViewDetailed;
   "app.rocksky.like.likeShout": ShoutView;
@@ -2217,7 +2710,7 @@ export interface Endpoints {
   "app.rocksky.player.seek": void;
   "app.rocksky.playlist.createPlaylist": void;
   "app.rocksky.playlist.getPlaylist": PlaylistViewDetailed;
-  "app.rocksky.playlist.getPlaylists": GetPlaylistsOutput;
+  "app.rocksky.playlist.getPlaylists": PlaylistGetPlaylistsOutput;
   "app.rocksky.playlist.insertDirectory": void;
   "app.rocksky.playlist.insertFiles": void;
   "app.rocksky.playlist.removePlaylist": void;

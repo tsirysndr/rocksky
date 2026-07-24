@@ -56,6 +56,13 @@ function nsidNs(nsid: string): string {
   return pascal(last);
 }
 
+// The namespace segment (second-to-last), used to disambiguate endpoint type
+// names when two namespaces expose the same method name.
+function nsidParentNs(nsid: string): string {
+  const segs = nsid.split(".");
+  return segs.length >= 2 ? pascal(segs[segs.length - 2]) : "";
+}
+
 function typeNameFor(
   nsid: string,
   defName: string,
@@ -174,6 +181,42 @@ function buildRegistry(): Registry {
   const refs = new Set<string>();
   const endpoints: EndpointDef[] = [];
 
+  // Endpoint type names (Params/Input/Output/Message) are derived from the
+  // method — the last NSID segment — so two namespaces exposing the same method
+  // name (e.g. app.rocksky.library.getSong and app.rocksky.song.getSong) would
+  // produce the same name and silently clobber each other. Pre-scan to find the
+  // colliding stems, then qualify only those with the namespace segment
+  // (LibraryGetSong vs SongGetSong). Unique method names keep their short names,
+  // so nothing that isn't actually colliding is renamed.
+  const stemProducers = new Map<string, Set<string>>();
+  for (const f of files) {
+    let doc: any;
+    try {
+      doc = JSON.parse(readFileSync(f, "utf8"));
+    } catch {
+      continue;
+    }
+    const nsid: string = doc.id;
+    if (!nsid) continue;
+    for (const def of Object.values<any>(doc.defs ?? {})) {
+      if (
+        def.type === "query" ||
+        def.type === "procedure" ||
+        def.type === "subscription"
+      ) {
+        const stem = nsidNs(nsid);
+        let set = stemProducers.get(stem);
+        if (!set) stemProducers.set(stem, (set = new Set()));
+        set.add(nsid);
+      }
+    }
+  }
+  const endpointStem = (nsid: string): string => {
+    const stem = nsidNs(nsid);
+    const producers = stemProducers.get(stem);
+    return producers && producers.size > 1 ? nsidParentNs(nsid) + stem : stem;
+  };
+
   const hoist = (name: string, t: NamedType) => {
     if (!types.find((x) => x.name === name)) types.push(t);
   };
@@ -215,14 +258,14 @@ function buildRegistry(): Registry {
         case "query":
         case "procedure":
         case "subscription": {
-          const paramsName = typeNameFor(nsid, "main", "params", "Params");
+          const paramsName = endpointStem(nsid) + "Params";
           if (def.parameters && def.parameters.properties) {
             const ctx: ParseCtx = { ...baseCtx, parentTypeName: paramsName, hoist };
             const t = buildNamedType(paramsName, def.parameters, ctx);
             types.push(t);
           }
           if (def.type === "procedure" && def.input?.schema?.type === "object") {
-            const name = nsidNs(nsid) + "Input";
+            const name = endpointStem(nsid) + "Input";
             const ctx: ParseCtx = { ...baseCtx, parentTypeName: name, hoist };
             const t = buildNamedType(name, def.input.schema, ctx);
             types.push(t);
@@ -231,19 +274,19 @@ function buildRegistry(): Registry {
           if (def.output?.schema) {
             const schema = def.output.schema;
             if (schema.type === "object") {
-              const name = nsidNs(nsid) + "Output";
+              const name = endpointStem(nsid) + "Output";
               const ctx: ParseCtx = { ...baseCtx, parentTypeName: name, hoist };
               const t = buildNamedType(name, schema, ctx);
               types.push(t);
               outputRef = { kind: "ref", targetId: `__inline:${name}` };
             } else {
-              const ctx: ParseCtx = { ...baseCtx, parentTypeName: nsidNs(nsid) + "Output", hoist };
+              const ctx: ParseCtx = { ...baseCtx, parentTypeName: endpointStem(nsid) + "Output", hoist };
               outputRef = parseTypeRef(schema, ctx);
             }
           }
           endpoints.push({ nsid, kind: def.type, output: outputRef });
           if (def.message?.schema?.type === "object") {
-            const name = nsidNs(nsid) + "Message";
+            const name = endpointStem(nsid) + "Message";
             const ctx: ParseCtx = { ...baseCtx, parentTypeName: name, hoist };
             const t = buildNamedType(name, def.message.schema, ctx);
             types.push(t);
