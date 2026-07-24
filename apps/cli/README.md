@@ -15,6 +15,7 @@
 - **Playlists** — create, edit, and play playlists via the Navidrome/Subsonic-compatible API
 - **Favorites** — like/unlike tracks and browse your starred songs
 - Queue management, fuzzy search, disk caching, and MPRIS (media keys) on Linux
+- **MPD server** — control playback and browse your library from any MPD client (ncmpcpp, rmpc, mpc, MALP…)
 - Authenticate with your Rocksky account using OAuth
 - View your currently playing track, recent scrobbles, and stats
 - Manually scrobble tracks
@@ -29,6 +30,7 @@
 - [Interactive TUI](#interactive-tui)
   - [Tabs](#tabs)
   - [Keyboard shortcuts](#keyboard-shortcuts)
+- [MPD Server](#mpd-server)
 - [Available Commands](#available-commands)
 - [Rocksky MCP Server Tools](#rocksky-mcp-server-tools)
   - [whoami](#whoami)
@@ -103,6 +105,57 @@ Running `rocksky` with no arguments (or `rocksky tui`) launches a full-screen te
 
 Playback preferences (volume, EQ, crossfade, ReplayGain) are saved to `~/.rocksky/settings.toml`, and the current queue/position is restored on restart.
 
+## MPD Server
+
+Rocksky speaks the [Music Player Daemon](https://www.musicpd.org/) protocol, so any MPD client — [ncmpcpp](https://github.com/ncmpcpp/ncmpcpp), [rmpc](https://github.com/mierak/rmpc), `mpc`, [MALP](https://gitlab.com/gateship-one/malp), … — can control playback and browse your uploaded library.
+
+### Running it
+
+Standalone daemon (works without the TUI):
+
+```bash
+rocksky mpd            # listens on 127.0.0.1:6600 by default
+rocksky mpd -p 6601    # custom port
+rocksky mpd -b 0.0.0.0 # bind address (for remote clients)
+```
+
+Then point a client at it:
+
+```bash
+mpc -p 6600 status
+mpc -p 6600 play
+ncmpcpp -h 127.0.0.1 -p 6600
+```
+
+You can also run the server **inside the TUI** by enabling it in settings (see below); it then shares the exact session you see in the TUI.
+
+### Configuration
+
+Port and bind address come from the `[mpd]` section of `~/.rocksky/settings.toml`, and are overridable with `-p` / `-b`:
+
+```toml
+[mpd]
+enabled = false      # true also starts the server inside the TUI
+port = 6600
+bind = "127.0.0.1"
+```
+
+If the port is already in use, the server automatically falls back to the next free one (and logs which port it bound).
+
+### What you get
+
+- **Transport & options** — play/pause/stop, next/previous, seek, volume, random (shuffle), repeat, single.
+- **Queue** — view, add, delete, clear; songs use a stable `rocksky:upload:…` / `rocksky:track:…` URI.
+- **Library browse** — Artists, Album Artists, Albums, and a Directory tree; tag filters (`find`/`search`/`list`) and stored playlists.
+- **Cover art** — real album covers via `albumart` / `readpicture`.
+- **Live updates** — `idle` change events (player, mixer, options, playlist, database), so clients refresh instantly.
+- **Resume** — the session restored on startup shows as *paused* on the last track, so clients render it right away.
+- **Fast browsing** — your whole library is preloaded into memory and cached on disk (`~/.rocksky/mpd-cache`), so browsing is instant and survives restarts. The cache is kept in sync with the API in the background; `update` / `rescan` triggers a fresh scan.
+
+The server shares the same [Rockbox-powered player](#interactive-tui) as the TUI, so playback stays in sync between the two.
+
+> **Note:** reordering the play queue (`move` / in-queue `shuffle`) isn't supported by the underlying engine, and song ids track queue position.
+
 ## Available Commands
 
 `login` - Initiates a browser-based OAuth login flow and saves your access token securely on your machine.
@@ -175,6 +228,12 @@ rocksky upload track.flac ./my-album
 
 ```bash
 rocksky scrobble-api
+```
+
+`mpd` - Start an MPD-protocol server to control playback and browse your library (see [MPD Server](#mpd-server)).
+
+```bash
+rocksky mpd -p 6600
 ```
 
 `sync` - Sync your local Rocksky data from AT Protocol
