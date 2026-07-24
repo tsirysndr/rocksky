@@ -496,17 +496,27 @@ function printPreview(scrobbles: ImportedScrobble[]): void {
 // Eighth-block glyphs give the bar sub-cell resolution for a smooth fill.
 const BAR_EIGHTHS = ["", "▏", "▎", "▍", "▌", "▋", "▊", "▉"];
 
-/** In-place live progress bar (redrawn on the same terminal line). */
-function drawProgress(
+/** Truncate a string to `n` visible chars, adding an ellipsis when clipped. */
+function truncate(s: string, n: number): string {
+  if (n <= 1) return "";
+  return s.length <= n ? s : s.slice(0, n - 1) + "…";
+}
+
+/**
+ * Single live status line, redrawn in place (\r + clear-to-end-of-line): a
+ * smooth progress bar, counts, ETA, and the scrobble currently being written.
+ * Everything updates on the same line — nothing scrolls until the run ends.
+ */
+function renderProgress(
   done: number,
   total: number,
   failed: number,
   startedAt: number,
+  current?: ImportedScrobble,
 ): void {
-  if (done !== total && done % 5 !== 0) return; // throttle redraws
   const frac = total > 0 ? done / total : 0;
   const pct = Math.floor(frac * 100);
-  const width = 28;
+  const width = 20;
 
   // Smooth fill: full blocks + one fractional block for the remainder.
   const exact = frac * width;
@@ -519,39 +529,29 @@ function drawProgress(
   const elapsed = (Date.now() - startedAt) / 1000;
   const rate = elapsed > 0 ? done / elapsed : 0;
   const eta = rate > 0 ? (total - done) / rate : 0;
-
   const counts = `${done.toLocaleString()}/${total.toLocaleString()}`;
-  process.stdout.write(
-    `\r  ${bar} ${chalk.bold(`${String(pct).padStart(3)}%`)}  ` +
-      `${CYAN(counts)}` +
-      (failed ? RED(`  ✖${failed}`) : "") +
-      DIM(`  ${rate >= 1 ? `${Math.round(rate)}/s` : `${rate.toFixed(1)}/s`}  ~${fmtDuration(eta)} left    `),
-  );
-}
 
-/**
- * Commit a scroll-back milestone line every 10% (and at completion) so a long
- * import leaves a readable record above the live bar. Returns the new milestone.
- */
-function logMilestone(
-  done: number,
-  total: number,
-  failed: number,
-  startedAt: number,
-  lastMilestone: number,
-): number {
-  const pct = Math.floor((done / total) * 100);
-  if (pct < lastMilestone + 10 && done !== total) return lastMilestone;
-  const elapsed = (Date.now() - startedAt) / 1000;
-  const rate = elapsed > 0 ? done / elapsed : 0;
-  const eta = rate > 0 ? (total - done) / rate : 0;
-  process.stdout.write("\n"); // finalize the current bar line
-  log.info(
-    `${pct}% — ${done.toLocaleString()}/${total.toLocaleString()} published` +
-      (failed ? `, ${failed} failed` : "") +
-      (done !== total ? ` — ~${fmtDuration(eta)} left` : ""),
-  );
-  return pct - (pct % 10);
+  const head =
+    `  ${bar} ${chalk.bold(`${String(pct).padStart(3)}%`)}  ` +
+    `${CYAN(counts)}` +
+    (failed ? RED(`  ✖${failed}`) : "") +
+    DIM(`  ~${fmtDuration(eta)} left`);
+
+  // Append the current track, trimmed to whatever width the terminal leaves.
+  let tail = "";
+  if (current) {
+    // head length without ANSI colour codes ≈ bar(20)+counts+eta ~ 48 chars.
+    const cols = process.stdout.columns || 80;
+    const room = cols - 52; // conservative space left for the track label
+    if (room > 8) {
+      const label = `${current.title} — ${current.artist}`;
+      tail = "  " + VIOLET("▸ ") + truncate(label, room);
+    }
+  }
+
+  // \x1b[K clears from the cursor to end of line so a shorter label doesn't
+  // leave stale characters behind from a previous, longer one.
+  process.stdout.write(`\r${head}${tail}\x1b[K`);
 }
 
 function fmtDuration(seconds: number): string {
