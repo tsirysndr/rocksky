@@ -1,4 +1,8 @@
-import { Agent, RockskyIndex } from "@rocksky/sdk";
+// Type-only import: erased at runtime so the parse/--dry-run path (and the
+// offline smoke tests) never load @rocksky/sdk — which pulls in the native
+// classic-level. The runtime values are imported lazily, just before we
+// actually authenticate and write (see importCmd).
+import type { Agent, RockskyIndex } from "@rocksky/sdk";
 import chalk from "chalk";
 import { consola } from "consola";
 import dayjs from "dayjs";
@@ -194,6 +198,11 @@ export async function importCmd(
     );
     return;
   }
+
+  // Load the SDK lazily — only now that we're past the dry-run and actually
+  // about to authenticate and write. Keeps the parse/preview path free of the
+  // native classic-level dependency.
+  const { Agent, RockskyIndex } = await import("@rocksky/sdk");
 
   // ---- Step 2: authenticate -------------------------------------------------
   const identifier = env.ROCKSKY_IDENTIFIER || env.ROCKSKY_HANDLE;
