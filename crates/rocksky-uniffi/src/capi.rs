@@ -139,6 +139,58 @@ pub extern "C" fn rocksky_get(
     )
 }
 
+/// Build a token-enforced [`rocksky_sdk::Library`]. `token` must be non-empty —
+/// every `app.rocksky.library.*` call is auth-gated.
+fn library(base: *const c_char, token: *const c_char) -> Result<rocksky_sdk::Library, String> {
+    let base = cstr(base);
+    let base = if base.is_empty() {
+        rocksky_sdk::DEFAULT_APPVIEW.to_string()
+    } else {
+        base
+    };
+    rocksky_sdk::Library::new(base, cstr(token)).map_err(|e| e.to_string())
+}
+
+/// Call any authenticated `app.rocksky.library.*` **query** by nsid. `token` is
+/// required (empty → error). `params_json` is a JSON object of params.
+#[no_mangle]
+pub extern "C" fn rocksky_library_get(
+    base: *const c_char,
+    token: *const c_char,
+    nsid: *const c_char,
+    params_json: *const c_char,
+) -> *mut c_char {
+    match library(base, token) {
+        Ok(lib) => respond(
+            RT.block_on(lib.get(&cstr(nsid), json_params(&cstr(params_json))))
+                .map_err(|e| e.to_string()),
+        ),
+        Err(e) => respond::<()>(Err(e)),
+    }
+}
+
+/// Call any authenticated `app.rocksky.library.*` **procedure** by nsid. `token`
+/// is required (empty → error). `body_json` is the JSON input object.
+#[no_mangle]
+pub extern "C" fn rocksky_library_post(
+    base: *const c_char,
+    token: *const c_char,
+    nsid: *const c_char,
+    body_json: *const c_char,
+) -> *mut c_char {
+    match library(base, token) {
+        Ok(lib) => {
+            let body: serde_json::Value =
+                serde_json::from_str(&cstr(body_json)).unwrap_or(serde_json::Value::Null);
+            respond(
+                RT.block_on(lib.post(&cstr(nsid), body))
+                    .map_err(|e| e.to_string()),
+            )
+        }
+        Err(e) => respond::<()>(Err(e)),
+    }
+}
+
 /// Parse a JSON object of params into string pairs, coercing scalar values
 /// (numbers, bools) to their string form so callers can pass `{"limit": 20}`.
 pub(crate) fn json_params(s: &str) -> Vec<(String, String)> {

@@ -87,6 +87,23 @@ impl Library {
         self.decode(nsid, res).await
     }
 
+    /// Escape hatch — call any authenticated library **query** by nsid. Every
+    /// named query method is sugar over this, so it reaches endpoints without a
+    /// dedicated wrapper. Empty-valued params are dropped.
+    pub async fn get(&self, nsid: &str, params: Vec<(String, String)>) -> Result<Value> {
+        let borrowed: Vec<(&str, String)> = params
+            .iter()
+            .map(|(k, v)| (k.as_str(), v.clone()))
+            .collect();
+        self.query(nsid, borrowed).await
+    }
+
+    /// Escape hatch — call any authenticated library **procedure** by nsid with
+    /// a JSON body.
+    pub async fn post(&self, nsid: &str, body: Value) -> Result<Value> {
+        self.procedure(nsid, body).await
+    }
+
     /// Query `app.rocksky.library.ping` (auth required).
     pub async fn ping(&self) -> Result<Value> {
         self.query("app.rocksky.library.ping", Vec::new()).await

@@ -8,7 +8,8 @@
 
 -export([profile/2, scrobbles/4, songs/4, albums/4, artists/4, feed/4,
          search/2, top_artists/3, top_tracks/3, global_stats/1,
-         get/4, match_song/5, top_tracks_interval/7, top_artists_interval/7,
+         get/4, library_get/4, library_post/4, match_song/5,
+         top_tracks_interval/7, top_artists_interval/7,
          loved_songs/4, catalog_albums/4, catalog_artists/4, catalog_songs/4,
          album_tracks/2, artist_albums/2, artist_tracks/4, scrobble_feed/5,
          scrobble/2, follows/4, followers/4, known_followers/4, album/2,
@@ -210,6 +211,8 @@ top_artists(_Base, _Limit, _Offset) -> ?NOT_LOADED.
 top_tracks(_Base, _Limit, _Offset) -> ?NOT_LOADED.
 global_stats(_Base) -> ?NOT_LOADED.
 get(_Base, _Nsid, _ParamsJson, _Token) -> ?NOT_LOADED.
+library_get(_Base, _Token, _Nsid, _ParamsJson) -> ?NOT_LOADED.
+library_post(_Base, _Token, _Nsid, _BodyJson) -> ?NOT_LOADED.
 match_song(_Base, _Title, _Artist, _MbId, _Isrc) -> ?NOT_LOADED.
 top_tracks_interval(_Base, _Limit, _Offset, _Unit, _N, _Start, _End) -> ?NOT_LOADED.
 top_artists_interval(_Base, _Limit, _Offset, _Unit, _N, _Start, _End) -> ?NOT_LOADED.

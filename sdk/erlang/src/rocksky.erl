@@ -10,7 +10,9 @@
 
 -export([profile/1, profile/2, scrobbles/2, scrobbles/4, top_tracks/0,
          top_tracks/2, top_tracks/3, global_stats/0, global_stats/1,
-         get/2, get/3, get/4, get_raw/4, match_song/2, match_song/5,
+         get/2, get/3, get/4, get_raw/4,
+         library_get/4, library_post/4, library_get_raw/4, library_post_raw/4,
+         match_song/2, match_song/5,
          top_tracks_interval/3, top_tracks_interval/4, top_tracks_interval_raw/7,
          top_artists_interval/3, top_artists_interval/4, top_artists_interval_raw/7,
          song_hash/3, album_hash/2, artist_hash/1,
@@ -60,6 +62,25 @@ get(Nsid, Params, Base, Token) ->
 %% Flat form for cross-language callers passing a pre-encoded JSON params object.
 get_raw(Base, Nsid, ParamsJson, Token) ->
     unwrap(rocksky_nif:get(b(Base), b(Nsid), b(ParamsJson), b(Token))).
+
+%% ---- authenticated library.* (uploaded-music) escape hatches ----
+%% Every app.rocksky.library.* call requires auth — `Token` must be non-empty.
+%% `Params`/`Body` are maps with camelCase binary keys; the *_raw forms take a
+%% pre-encoded JSON string (for cross-language callers, e.g. Gleam).
+
+library_get(Base, Token, Nsid, Params) ->
+    unwrap(rocksky_nif:library_get(b(Base), b(Token), b(Nsid),
+                                   iolist_to_binary(json:encode(Params)))).
+
+library_post(Base, Token, Nsid, Body) ->
+    unwrap(rocksky_nif:library_post(b(Base), b(Token), b(Nsid),
+                                    iolist_to_binary(json:encode(Body)))).
+
+library_get_raw(Base, Token, Nsid, ParamsJson) ->
+    unwrap(rocksky_nif:library_get(b(Base), b(Token), b(Nsid), b(ParamsJson))).
+
+library_post_raw(Base, Token, Nsid, BodyJson) ->
+    unwrap(rocksky_nif:library_post(b(Base), b(Token), b(Nsid), b(BodyJson))).
 
 %% Resolve full canonical metadata for a bare title + artist (matchSong).
 match_song(Title, Artist) -> match_song(<<>>, Title, Artist, <<>>, <<>>).

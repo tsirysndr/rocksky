@@ -38,6 +38,8 @@
 (def ^:private h-toptracks (delay (downcall "rocksky_top_tracks" ADDR [ADDR I32 I32])))
 (def ^:private h-stats    (delay (downcall "rocksky_global_stats" ADDR [ADDR])))
 (def ^:private h-get      (delay (downcall "rocksky_get" ADDR [ADDR ADDR ADDR ADDR])))
+(def ^:private h-lib-get  (delay (downcall "rocksky_library_get" ADDR [ADDR ADDR ADDR ADDR])))
+(def ^:private h-lib-post (delay (downcall "rocksky_library_post" ADDR [ADDR ADDR ADDR ADDR])))
 (def ^:private h-match    (delay (downcall "rocksky_match_song" ADDR [ADDR ADDR ADDR ADDR ADDR])))
 (def ^:private h-tt-iv    (delay (downcall "rocksky_top_tracks_interval" ADDR [ADDR I32 I32 ADDR I32 ADDR ADDR])))
 (def ^:private h-ta-iv    (delay (downcall "rocksky_top_artists_interval" ADDR [ADDR I32 I32 ADDR I32 ADDR ADDR])))
@@ -125,6 +127,30 @@
                                                   (.allocateFrom a (str nsid))
                                                   (.allocateFrom a (json/generate-string params))
                                                   (.allocateFrom a (str (or token "")))]))))))
+
+(defn library-get
+  "Authenticated app.rocksky.library.* query escape hatch. `token` is required —
+  every library call is auth-gated. `params` is a map (camelCase keyword keys)."
+  ([token nsid params] (library-get token nsid params nil))
+  ([token nsid params base]
+   (with-open [^Arena a (Arena/ofConfined)]
+     (unwrap (.invokeWithArguments ^MethodHandle @h-lib-get
+                                   (object-array [(.allocateFrom a (str (or base "")))
+                                                  (.allocateFrom a (str token))
+                                                  (.allocateFrom a (str nsid))
+                                                  (.allocateFrom a (json/generate-string params))]))))))
+
+(defn library-post
+  "Authenticated app.rocksky.library.* procedure escape hatch. `token` is
+  required. `body` is a map (camelCase keyword keys)."
+  ([token nsid body] (library-post token nsid body nil))
+  ([token nsid body base]
+   (with-open [^Arena a (Arena/ofConfined)]
+     (unwrap (.invokeWithArguments ^MethodHandle @h-lib-post
+                                   (object-array [(.allocateFrom a (str (or base "")))
+                                                  (.allocateFrom a (str token))
+                                                  (.allocateFrom a (str nsid))
+                                                  (.allocateFrom a (json/generate-string body))]))))))
 
 (defn match-song
   "Resolve full canonical metadata for a bare title + artist (matchSong)."

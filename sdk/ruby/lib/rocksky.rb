@@ -27,6 +27,8 @@ module Rocksky
       "char* rocksky_top_tracks(const char*, unsigned int, unsigned int)",
       "char* rocksky_global_stats(const char*)",
       "char* rocksky_get(const char*, const char*, const char*, const char*)",
+      "char* rocksky_library_get(const char*, const char*, const char*, const char*)",
+      "char* rocksky_library_post(const char*, const char*, const char*, const char*)",
       "char* rocksky_match_song(const char*, const char*, const char*, const char*, const char*)",
       "char* rocksky_top_tracks_interval(const char*, unsigned int, unsigned int, const char*, unsigned int, const char*, const char*)",
       "char* rocksky_top_artists_interval(const char*, unsigned int, unsigned int, const char*, unsigned int, const char*, const char*)",
@@ -210,4 +212,15 @@ module Rocksky
       @ptr = Fiddle::Pointer.new(0)
     end
   end
+
+  # Build an authenticated app.rocksky.library.* (uploaded-music) client. The
+  # token is required — every library method is auth-gated.
+  #
+  #   lib = Rocksky.library(token)
+  #   lib.get_song(song_id)
+  def self.library(token, base: nil)
+    Library.new(token, base: base)
+  end
 end
+
+require_relative "rocksky/library"

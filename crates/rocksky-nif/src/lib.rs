@@ -175,6 +175,58 @@ fn get(base: String, nsid: String, params_json: String, token: String) -> String
     envelope(RT.block_on(av.get(&nsid, &params)))
 }
 
+/// Coerce a JSON object of params into string pairs (numbers/bools stringified).
+fn params_from_json(params_json: &str) -> Vec<(String, String)> {
+    serde_json::from_str::<std::collections::HashMap<String, serde_json::Value>>(params_json)
+        .map(|m| {
+            m.into_iter()
+                .map(|(k, v)| {
+                    let sv = match v {
+                        serde_json::Value::String(s) => s,
+                        serde_json::Value::Null => String::new(),
+                        other => other.to_string(),
+                    };
+                    (k, sv)
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// Build a token-enforced library client (empty token → error).
+fn library_core(base: &str, token: &str) -> Result<rocksky_sdk::Library, String> {
+    let base = if base.is_empty() {
+        rocksky_sdk::DEFAULT_APPVIEW.to_string()
+    } else {
+        base.to_string()
+    };
+    rocksky_sdk::Library::new(base, token).map_err(|e| e.to_string())
+}
+
+/// Call any authenticated `app.rocksky.library.*` query by nsid. `token` is
+/// required — empty yields an `{"error": …}` envelope.
+#[rustler::nif(schedule = "DirtyIo")]
+fn library_get(base: String, token: String, nsid: String, params_json: String) -> String {
+    match library_core(&base, &token) {
+        Ok(lib) => envelope(RT.block_on(lib.get(&nsid, params_from_json(&params_json)))),
+        Err(e) => envelope(Err::<serde_json::Value, String>(e)),
+    }
+}
+
+/// Call any authenticated `app.rocksky.library.*` procedure by nsid with a JSON
+/// input body. `token` is required.
+#[rustler::nif(schedule = "DirtyIo")]
+fn library_post(base: String, token: String, nsid: String, body_json: String) -> String {
+    match library_core(&base, &token) {
+        Ok(lib) => {
+            let body: serde_json::Value =
+                serde_json::from_str(&body_json).unwrap_or(serde_json::Value::Null);
+            envelope(RT.block_on(lib.post(&nsid, body)))
+        }
+        Err(e) => envelope(Err::<serde_json::Value, String>(e)),
+    }
+}
+
 #[rustler::nif(schedule = "DirtyIo")]
 fn loved_songs(base: String, actor: String, limit: u32, offset: u32) -> String {
     envelope(RT.block_on(appview(&base).loved_songs(&actor, limit, offset)))
