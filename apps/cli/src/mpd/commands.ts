@@ -69,12 +69,22 @@ function currentIndex(st: ReturnType<typeof playerController.status>): number | 
 const statusHandler: Handler = () => {
   const st = playerController.status();
   const { repeat, single } = repeatFlags();
-  const state =
-    !st || st.state === "stopped"
+  const restored = playerController.restored;
+  const engineStopped = !st || st.state === "stopped";
+
+  // A session restored on startup (queue + saved position, not yet playing) is
+  // presented as PAUSED on the saved song — mirroring MPD's `restore_paused`.
+  // Clients like rmpc render nothing while `state: stop`, so reporting `stop`
+  // here is exactly why the resumed song showed as "no song / unknown".
+  const restoredPaused = engineStopped && !!restored;
+  const state = restoredPaused
+    ? "pause"
+    : engineStopped
       ? "stop"
-      : st.state === "playing"
+      : st!.state === "playing"
         ? "play"
         : "pause";
+
   const lines = [
     kv("volume", Math.round(playerController.volume() * 100)),
     kv("repeat", repeat ? 1 : 0),
@@ -85,15 +95,22 @@ const statusHandler: Handler = () => {
     kv("playlistlength", playerController.queueItems.length),
     kv("state", state),
   ];
+
   const idx = currentIndex(st);
   if (idx != null && playerController.queueItems[idx]) {
     const item = playerController.queueItems[idx];
     lines.push(kv("song", idx));
     lines.push(kv("songid", idx));
-    if (state !== "stop" && st) {
-      // Live position/duration only while playing or paused.
-      const durMs = st.duration_ms || item?.duration || 0;
-      const posSec = (st.position_ms || 0) / 1000;
+    // Position/duration: live from the engine when playing/paused, else the
+    // restored session's saved position so the client shows the resume point.
+    const posMs = restoredPaused
+      ? restored!.positionMs
+      : (st?.position_ms ?? 0);
+    const durMs = restoredPaused
+      ? item?.duration || 0
+      : st?.duration_ms || item?.duration || 0;
+    if (state !== "stop") {
+      const posSec = posMs / 1000;
       lines.push(
         kv("time", `${Math.floor(posSec)}:${Math.round(durMs / 1000)}`),
       );
