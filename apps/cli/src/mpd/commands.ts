@@ -323,9 +323,32 @@ const addUriToQueue = enqueueLast; // alias for readability below
 
 // --- database: list / find / search / lsinfo -------------------------------
 
-// Parse `TYPE value TYPE value …` filter pairs (find/search/count). Also accept
-// the legacy `list album "artist"` positional form.
+// Matches one condition of a modern MPD filter expression, e.g.
+// `(AlbumArtist == "Black Sabbath")` or `(Album contains "13")`, including
+// conditions nested inside AND/negation. The quoted value may itself contain
+// parentheses (`13 (Deluxe Version)`), so we delimit on the quotes.
+const FILTER_EXPR_RE =
+  /\(\s*"?([A-Za-z_]+)"?\s*(?:==|!=|eq|contains|=~)\s*"((?:[^"\\]|\\.)*)"/g;
+
+/**
+ * Parse the filter arguments of `find`/`search`/`count`/`list` into tag→value
+ * pairs. Handles BOTH the modern expression form — `(Tag == "Value")`, possibly
+ * combined with AND and nesting, which is what MPD 0.21+ clients (rmpc) send —
+ * and the legacy `Tag Value Tag Value` pairs. Without this, an expression
+ * filter parsed to nothing and every browse returned the whole library.
+ */
 function parseFilter(args: string[]): Filter {
+  const joined = args.join(" ");
+  if (joined.includes("(") && /==|!=|contains|=~|\beq\b/.test(joined)) {
+    const out: Filter = [];
+    FILTER_EXPR_RE.lastIndex = 0;
+    let m: RegExpExecArray | null;
+    while ((m = FILTER_EXPR_RE.exec(joined)) !== null) {
+      out.push({ tag: m[1], value: m[2].replace(/\\(.)/g, "$1") });
+    }
+    if (out.length) return out;
+  }
+  // Legacy `TYPE value …` pairs.
   const filter: Filter = [];
   for (let i = 0; i + 1 < args.length; i += 2) {
     filter.push({ tag: args[i], value: args[i + 1] });
@@ -338,25 +361,27 @@ function parseFilter(args: string[]): Filter {
 // album-artist pane — returning `Artist:` there is why it renders nothing).
 const listHandler: Handler = async (args, ctx) => {
   const type = (args[0] || "").toLowerCase();
-  // Pull an optional filter value for a given tag, ignoring a trailing
-  // `group <tag>` clause (which we don't need — we return the flat list).
-  const rest = args.slice(1).filter((_, i, a) => {
-    // drop `group` and the tag right after it
-    const gi = a.findIndex((x) => x.toLowerCase() === "group");
-    return gi === -1 || (i !== gi && i !== gi + 1);
-  });
+
+  // Split the args after the type into a `group <tag>` clause and the filter.
+  const rest = args.slice(1);
+  const groupIdx = rest.findIndex((a) => a.toLowerCase() === "group");
+  const groupTag =
+    groupIdx >= 0 ? (rest[groupIdx + 1] || "").toLowerCase() : undefined;
+  const filterArgs =
+    groupIdx >= 0
+      ? [...rest.slice(0, groupIdx), ...rest.slice(groupIdx + 2)]
+      : rest;
+
+  // Understands both the expression form `(AlbumArtist == "X")` and legacy
+  // `albumartist X` pairs; falls back to a bare positional (`list album "X"`).
+  const filters = parseFilter(filterArgs);
   const filterVal = (tag: string): string | undefined => {
-    for (let i = 0; i + 1 < rest.length; i += 2) {
-      if (rest[i].toLowerCase() === tag) return rest[i + 1];
-    }
-    // legacy positional: `list album "Artist"` (bare value, no tag)
-    if (rest.length === 1 && tag === "artist") return rest[0];
+    const hit = filters.find((f) => f.tag.toLowerCase() === tag)?.value;
+    if (hit != null) return hit;
+    if (filterArgs.length === 1 && (tag === "artist" || tag === "albumartist"))
+      return filterArgs[0];
     return undefined;
   };
-
-  const groupIdx = args.findIndex((a) => a.toLowerCase() === "group");
-  const groupTag =
-    groupIdx >= 0 ? (args[groupIdx + 1] || "").toLowerCase() : undefined;
 
   if (type === "artist") {
     return (await ctx.db.listArtists()).map((a) => kv("Artist", a));
