@@ -71,6 +71,7 @@ pub mod error;
 pub mod facets;
 #[cfg(feature = "jetstream")]
 pub mod jetstream;
+pub mod library;
 pub mod namespaces;
 
 pub use agent::{
@@ -87,6 +88,7 @@ pub use dedup::{IndexStats, RepoIndex};
 pub use error::{Result, SdkError};
 #[cfg(feature = "jetstream")]
 pub use jetstream::JetstreamConfig;
+pub use library::Library;
 
 /// The default public AppView base URL.
 pub const DEFAULT_APPVIEW: &str = "https://api.rocksky.app";

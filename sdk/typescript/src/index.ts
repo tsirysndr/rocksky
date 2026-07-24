@@ -10,6 +10,7 @@
  */
 export { RockskyClient, DEFAULT_APPVIEW, Interval } from "./client.js";
 export type { DateInterval } from "./client.js";
+export { RockskyLibrary } from "./library.js";
 export {
   Agent,
   type ScrobbleInput,

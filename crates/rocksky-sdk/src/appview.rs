@@ -97,6 +97,24 @@ impl AppView {
         self.token = token;
     }
 
+    /// An authenticated client for the `app.rocksky.library.*` (uploaded-music)
+    /// API. Every library method requires auth, so this errors with
+    /// [`SdkError::Auth`] unless a token has been attached
+    /// ([`AppView::with_token`] / [`AppView::set_token`]).
+    pub fn library(&self) -> Result<crate::library::Library> {
+        let token = self
+            .token
+            .clone()
+            .filter(|t| !t.trim().is_empty())
+            .ok_or_else(|| {
+                SdkError::Auth(
+                    "app.rocksky.library.* requires an access token; call with_token() first"
+                        .into(),
+                )
+            })?;
+        crate::library::Library::new(self.base.clone(), token)
+    }
+
     async fn query<T: DeserializeOwned>(&self, nsid: &str, params: &[(&str, String)]) -> Result<T> {
         let url = format!("{}/xrpc/{}", self.base, nsid);
         let filtered: Vec<(&str, String)> = params

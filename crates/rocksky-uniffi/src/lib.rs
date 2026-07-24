@@ -1285,3 +1285,455 @@ pub fn album_hash(album: String, album_artist: String) -> String {
 pub fn artist_hash(album_artist: String) -> String {
     rocksky_sdk::dedup::artist_hash(&album_artist)
 }
+
+// ---- library client (auth-gated uploaded-music API) ----------------------
+
+/// Authenticated `app.rocksky.library.*` client. A non-empty access token is
+/// mandatory — [`Library::new`] errors without one, so no library call can be
+/// made unauthenticated. Methods return the raw JSON payload as a string.
+#[derive(uniffi::Object)]
+pub struct Library {
+    inner: rocksky_sdk::Library,
+}
+
+#[uniffi::export]
+impl Library {
+    /// Build against an AppView base (default when `None`) with the required
+    /// bearer token. Errors if `token` is empty.
+    #[uniffi::constructor]
+    pub fn new(base: Option<String>, token: String) -> Result<Arc<Self>, RockskyError> {
+        let base = base.unwrap_or_else(|| rocksky_sdk::DEFAULT_APPVIEW.to_string());
+        let inner = rocksky_sdk::Library::new(base, token).map_err(err)?;
+        Ok(Arc::new(Self { inner }))
+    }
+
+    /// `app.rocksky.library.ping` — returns the raw JSON payload.
+    pub fn ping(&self) -> Result<String, RockskyError> {
+        Ok(RT.block_on(self.inner.ping()).map_err(err)?.to_string())
+    }
+
+    /// `app.rocksky.library.getLicense` — returns the raw JSON payload.
+    pub fn get_license(&self) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.get_license())
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.getMusicFolders` — returns the raw JSON payload.
+    pub fn get_music_folders(&self) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.get_music_folders())
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.getScanStatus` — returns the raw JSON payload.
+    pub fn get_scan_status(&self) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.get_scan_status())
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.startScan` — returns the raw JSON payload.
+    pub fn start_scan(&self) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.start_scan())
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.getUser` — returns the raw JSON payload.
+    pub fn get_user(&self) -> Result<String, RockskyError> {
+        Ok(RT.block_on(self.inner.get_user()).map_err(err)?.to_string())
+    }
+
+    /// `app.rocksky.library.getArtists` — returns the raw JSON payload.
+    pub fn get_artists(&self) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.get_artists())
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.getIndexes` — returns the raw JSON payload.
+    pub fn get_indexes(&self) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.get_indexes())
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.getArtist` — returns the raw JSON payload.
+    pub fn get_artist(&self, id: String) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.get_artist(&id))
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.getArtistInfo` — returns the raw JSON payload.
+    pub fn get_artist_info(&self, id: String) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.get_artist_info(&id))
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.getAlbum` — returns the raw JSON payload.
+    pub fn get_album(&self, id: String) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.get_album(&id))
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.getAlbumList` — returns the raw JSON payload.
+    pub fn get_album_list(
+        &self,
+        r#type: String,
+        size: Option<i64>,
+        offset: Option<i64>,
+        from_year: Option<i64>,
+        to_year: Option<i64>,
+        genre: Option<String>,
+    ) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.get_album_list(
+                &r#type,
+                size,
+                offset,
+                from_year,
+                to_year,
+                genre.as_deref(),
+            ))
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.getAlbumInfo` — returns the raw JSON payload.
+    pub fn get_album_info(&self, id: String) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.get_album_info(&id))
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.getSong` — returns the raw JSON payload.
+    pub fn get_song(&self, id: String) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.get_song(&id))
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.getRandomSongs` — returns the raw JSON payload.
+    pub fn get_random_songs(
+        &self,
+        size: Option<i64>,
+        genre: Option<String>,
+        from_year: Option<i64>,
+        to_year: Option<i64>,
+    ) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(
+                self.inner
+                    .get_random_songs(size, genre.as_deref(), from_year, to_year),
+            )
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.getSongsByGenre` — returns the raw JSON payload.
+    pub fn get_songs_by_genre(
+        &self,
+        genre: String,
+        count: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.get_songs_by_genre(&genre, count, offset))
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.getSimilarSongs` — returns the raw JSON payload.
+    pub fn get_similar_songs(
+        &self,
+        id: String,
+        count: Option<i64>,
+    ) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.get_similar_songs(&id, count))
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.getTopSongs` — returns the raw JSON payload.
+    pub fn get_top_songs(
+        &self,
+        artist: String,
+        count: Option<i64>,
+    ) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.get_top_songs(&artist, count))
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.getLyrics` — returns the raw JSON payload.
+    pub fn get_lyrics(
+        &self,
+        artist: Option<String>,
+        title: Option<String>,
+    ) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.get_lyrics(artist.as_deref(), title.as_deref()))
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.getMusicDirectory` — returns the raw JSON payload.
+    pub fn get_music_directory(&self, id: String) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.get_music_directory(&id))
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.getGenres` — returns the raw JSON payload.
+    pub fn get_genres(&self) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.get_genres())
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.search` — returns the raw JSON payload.
+    pub fn search(
+        &self,
+        query: String,
+        artist_count: Option<i64>,
+        artist_offset: Option<i64>,
+        album_count: Option<i64>,
+        album_offset: Option<i64>,
+        song_count: Option<i64>,
+        song_offset: Option<i64>,
+    ) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.search(
+                &query,
+                artist_count,
+                artist_offset,
+                album_count,
+                album_offset,
+                song_count,
+                song_offset,
+            ))
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.getStarred` — returns the raw JSON payload.
+    pub fn get_starred(&self) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.get_starred())
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.star` — returns the raw JSON payload.
+    pub fn star(
+        &self,
+        id: String,
+        album_id: Option<String>,
+        artist_id: Option<String>,
+    ) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(
+                self.inner
+                    .star(&id, album_id.as_deref(), artist_id.as_deref()),
+            )
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.unstar` — returns the raw JSON payload.
+    pub fn unstar(
+        &self,
+        id: String,
+        album_id: Option<String>,
+        artist_id: Option<String>,
+    ) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(
+                self.inner
+                    .unstar(&id, album_id.as_deref(), artist_id.as_deref()),
+            )
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.getPlaylists` — returns the raw JSON payload.
+    pub fn get_playlists(&self) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.get_playlists())
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.getPlaylist` — returns the raw JSON payload.
+    pub fn get_playlist(&self, id: String) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.get_playlist(&id))
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.createPlaylist` — returns the raw JSON payload.
+    pub fn create_playlist(&self, name: String) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.create_playlist(&name))
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.updatePlaylist` — returns the raw JSON payload.
+    pub fn update_playlist(
+        &self,
+        playlist_id: String,
+        name: Option<String>,
+        comment: Option<String>,
+        song_id_to_add: Option<String>,
+        song_index_to_remove: Option<i64>,
+    ) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.update_playlist(
+                &playlist_id,
+                name.as_deref(),
+                comment.as_deref(),
+                song_id_to_add.as_deref(),
+                song_index_to_remove,
+            ))
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.deletePlaylist` — returns the raw JSON payload.
+    pub fn delete_playlist(&self, id: String) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.delete_playlist(&id))
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.deleteSong` — returns the raw JSON payload.
+    pub fn delete_song(&self, id: String) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.delete_song(&id))
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.deleteAlbum` — returns the raw JSON payload.
+    pub fn delete_album(&self, id: String) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.delete_album(&id))
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.scrobble` — returns the raw JSON payload.
+    pub fn scrobble(
+        &self,
+        id: String,
+        time: Option<i64>,
+        submission: Option<bool>,
+    ) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.scrobble(&id, time, submission))
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.updateNowPlaying` — returns the raw JSON payload.
+    pub fn update_now_playing(&self, id: String) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.update_now_playing(&id))
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.getNowPlaying` — returns the raw JSON payload.
+    pub fn get_now_playing(&self) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.get_now_playing())
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.getPlayQueue` — returns the raw JSON payload.
+    pub fn get_play_queue(&self) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.get_play_queue())
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.savePlayQueue` — returns the raw JSON payload.
+    pub fn save_play_queue(
+        &self,
+        id: Option<String>,
+        current: Option<String>,
+        position: Option<i64>,
+    ) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(
+                self.inner
+                    .save_play_queue(id.as_deref(), current.as_deref(), position),
+            )
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.getStreamUrl` — returns the raw JSON payload.
+    pub fn get_stream_url(
+        &self,
+        id: String,
+        max_bit_rate: Option<i64>,
+        format: Option<String>,
+    ) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(
+                self.inner
+                    .get_stream_url(&id, max_bit_rate, format.as_deref()),
+            )
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.getDownloadUrl` — returns the raw JSON payload.
+    pub fn get_download_url(&self, id: String) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.get_download_url(&id))
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.getCoverArtUrl` — returns the raw JSON payload.
+    pub fn get_cover_art_url(&self, id: String, size: Option<i64>) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.get_cover_art_url(&id, size))
+            .map_err(err)?
+            .to_string())
+    }
+
+    /// `app.rocksky.library.getInternetRadioStations` — returns the raw JSON payload.
+    pub fn get_internet_radio_stations(&self) -> Result<String, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.get_internet_radio_stations())
+            .map_err(err)?
+            .to_string())
+    }
+}

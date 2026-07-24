@@ -1,6 +1,7 @@
 import { Client, simpleFetchHandler } from "@atcute/client";
 
 import { RockskyError } from "./errors.js";
+import { RockskyLibrary } from "./library.js";
 import type {
   ActorProfileViewBasic,
   ActorProfileViewDetailed,
@@ -58,14 +59,16 @@ export const DEFAULT_APPVIEW = "https://api.rocksky.app";
 /** Unauthenticated read client over the public Rocksky AppView XRPC. */
 export class RockskyClient {
   private rpc: Client;
+  private token?: string;
 
   /**
    * Build a read client against an AppView base URL (defaults to
    * {@link DEFAULT_APPVIEW}). Pass `token` to send it as
    * `Authorization: Bearer <token>` on every read — needed only for auth-gated
-   * queries.
+   * queries and the whole {@link RockskyClient.library} surface.
    */
   constructor(appview: string = DEFAULT_APPVIEW, token?: string) {
+    this.token = token;
     let handler = simpleFetchHandler({ service: appview });
     if (token) {
       const inner = handler;
@@ -76,6 +79,20 @@ export class RockskyClient {
         })) as typeof handler;
     }
     this.rpc = new Client({ handler });
+  }
+
+  /**
+   * The authenticated `app.rocksky.library.*` (uploaded-music) API. Every
+   * library method requires auth, so this throws unless the client was built
+   * with a token.
+   */
+  library(): RockskyLibrary {
+    if (!this.token) {
+      throw new Error(
+        "app.rocksky.library.* requires an access token; construct RockskyClient(appview, token) first",
+      );
+    }
+    return new RockskyLibrary(this.rpc);
   }
 
   private async query<T>(nsid: string, params: Record<string, unknown>): Promise<T> {
