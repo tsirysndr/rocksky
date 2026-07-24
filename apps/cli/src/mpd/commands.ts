@@ -341,11 +341,12 @@ const addUriToQueue = enqueueLast; // alias for readability below
 // --- database: list / find / search / lsinfo -------------------------------
 
 // Matches one condition of a modern MPD filter expression, e.g.
-// `(AlbumArtist == "Black Sabbath")` or `(Album contains "13")`, including
-// conditions nested inside AND/negation. The quoted value may itself contain
-// parentheses (`13 (Deluxe Version)`), so we delimit on the quotes.
+// `(AlbumArtist == "Black Sabbath")` or `(Album contains '13')`, including
+// conditions nested inside AND/negation. MPD accepts BOTH single- and
+// double-quoted values (rmpc uses single quotes), and the quoted value may
+// itself contain parentheses (`13 (Deluxe Version)`), so we delimit on quotes.
 const FILTER_EXPR_RE =
-  /\(\s*"?([A-Za-z_]+)"?\s*(?:==|!=|eq|contains|=~)\s*"((?:[^"\\]|\\.)*)"/g;
+  /\(\s*"?([A-Za-z_]+)"?\s*(?:==|!=|eq|contains|=~)\s*(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')/g;
 
 /**
  * Parse the filter arguments of `find`/`search`/`count`/`list` into tag→value
@@ -361,7 +362,9 @@ function parseFilter(args: string[]): Filter {
     FILTER_EXPR_RE.lastIndex = 0;
     let m: RegExpExecArray | null;
     while ((m = FILTER_EXPR_RE.exec(joined)) !== null) {
-      out.push({ tag: m[1], value: m[2].replace(/\\(.)/g, "$1") });
+      // Value is whichever quote style matched (double = m[2], single = m[3]).
+      const raw = m[2] ?? m[3] ?? "";
+      out.push({ tag: m[1], value: raw.replace(/\\(.)/g, "$1") });
     }
     if (out.length) return out;
   }
@@ -464,15 +467,14 @@ const countHandler: Handler = async (args, ctx) => {
 const lsInfoHandler: Handler = async (args, ctx) => {
   const uri = (args[0] || "").replace(/^\/+|\/+$/g, "");
   if (!uri) {
-    const lines = [
+    // Top-level categories only. Stored playlists are NOT emitted as root-level
+    // `playlist:` entries — that duplicated them with the Playlists directory
+    // and confused rmpc's browser; they're browsable under Playlists/ instead.
+    return [
       kv("directory", "Artists"),
       kv("directory", "Albums"),
       kv("directory", "Playlists"),
     ];
-    for (const name of await ctx.db.playlistNames()) {
-      lines.push(kv("playlist", name));
-    }
-    return lines;
   }
   const parts = uri.split("/");
   if (parts[0] === "Artists") {
@@ -505,8 +507,17 @@ const lsInfoHandler: Handler = async (args, ctx) => {
       return items.flatMap((i) => songLines(i));
     }
   }
-  if (parts[0] === "Playlists" && parts.length === 1) {
-    return (await ctx.db.playlistNames()).map((n) => kv("playlist", n));
+  if (parts[0] === "Playlists") {
+    if (parts.length === 1) {
+      // Each stored playlist as a browsable sub-directory.
+      return (await ctx.db.playlistNames()).map((n) =>
+        kv("directory", `Playlists/${n}`),
+      );
+    }
+    if (parts.length === 2) {
+      const items = await ctx.db.playlistTracks(parts[1]);
+      return items.flatMap((i) => songLines(i));
+    }
   }
   return [];
 };
