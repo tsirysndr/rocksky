@@ -4,6 +4,51 @@ All notable changes to `@rocksky/sdk` are documented here. This project adheres
 to [Semantic Versioning](https://semver.org) — while pre-1.0, the **minor**
 version is the breaking slot.
 
+## [0.7.0] - 2026-07-24
+
+A **backwards-compatible** release — it only *adds* the new `library` surface, so
+existing `^0.6.0` code keeps working.
+
+### Added
+
+- **`RockskyClient.library()`** — the authenticated `app.rocksky.library.*` API,
+  a client over your uploaded music (the Subsonic / navidrome-compatible
+  surface). Returns a `RockskyLibrary`; **every method requires auth**, so
+  `library()` throws unless the client was built with a token
+  (`new RockskyClient(appview, token)`). 41 methods:
+  - browse: `getArtists`, `getIndexes`, `getArtist`, `getArtistInfo`, `getAlbum`,
+    `getAlbumList`, `getAlbumInfo`, `getSong`, `getRandomSongs`,
+    `getSongsByGenre`, `getSimilarSongs`, `getTopSongs`, `getLyrics`,
+    `getMusicDirectory`, `getGenres`, `search`.
+  - favorites: `getStarred`, `star`, `unstar`.
+  - playlists: `getPlaylists`, `getPlaylist`, `createPlaylist`, `updatePlaylist`,
+    `deletePlaylist`.
+  - playback: `scrobble`, `updateNowPlaying`, `getNowPlaying`, `getPlayQueue`,
+    `savePlayQueue`.
+  - uploads: `deleteSong`, `deleteAlbum` — delete your own uploaded track / album.
+  - media URLs: `getStreamUrl`, `getDownloadUrl`, `getCoverArtUrl` (return a
+    ready-to-fetch `{ url }`).
+  - system: `ping`, `getLicense`, `getMusicFolders`, `getScanStatus`,
+    `startScan`, `getUser`, `getInternetRadioStations`.
+- Generated `app.rocksky.library.*` types, wired into the `Endpoints` map.
+
+### Changed
+
+- Generated endpoint type names are now namespace-qualified when two namespaces
+  expose the same method name (e.g. `LibraryGetSongParams` vs `SongGetSongParams`),
+  so the library methods coexist with `song` / `album` / `playlist`. The public
+  client API and the exported view types (`SongViewDetailed`, …) are unchanged.
+
+## [0.6.0] - 2026-07-23
+
+### Changed — BREAKING
+
+- **`Agent.scrobbleMatch` now takes a single object**, not positional args:
+  `scrobbleMatch({ title, artist, album?, mbId?, isrc?, timestamp? })`
+  (was `scrobbleMatch(title, artist, album?, mbId?, isrc?)`). Adds an optional
+  `timestamp` (scrobbled-at Unix seconds; omitted = now). The full-metadata
+  `Agent.scrobble(rec)` is unchanged.
+
 ## [0.5.0] - 2026-07-22
 
 A **backwards-compatible** release — it only *adds* to the read/write surface
