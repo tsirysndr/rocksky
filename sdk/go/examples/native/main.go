@@ -34,4 +34,10 @@ func main() {
 	// uri, _ := agent.Scrobble(ctx, gen.ScrobbleRecord{Title: "Chaser", Artist: "Calibro 35",
 	//   Album: "Jazzploitation", AlbumArtist: "Calibro 35", Duration: 182320})
 	// go agent.HydrateFromJetstream(ctx)        // keep the index live
+
+	// --- library: your uploaded music (needs an access token) ---
+	// lib, _ := rocksky.NewClient("").WithToken("YOUR_ACCESS_TOKEN").Library()
+	// genres, _ := lib.GetGenres(ctx); fmt.Println(string(genres))
+	// albums, _ := lib.GetAlbumList(ctx, "newest", map[string]any{"size": 10}); fmt.Println(string(albums))
+	// song, _ := lib.GetSong(ctx, "<song-id>"); fmt.Println(string(song))
 }

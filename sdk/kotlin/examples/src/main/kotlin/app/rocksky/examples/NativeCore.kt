@@ -28,4 +28,10 @@ fun main() {
     //     album = "Jazzploitation", albumArtist = "Calibro 35", durationMs = 182320,
     // ))
     // println("scrobbled: ${out.scrobbleUri}")
+
+    // --- library: your uploaded music (needs an access token) ---
+    // val lib = Library(null, "YOUR_ACCESS_TOKEN")   // methods return raw JSON strings
+    // println(lib.getGenres())
+    // println(lib.getAlbumList("newest", 10, null, null, null, null))
+    // println(lib.getSong("<song-id>"))
 }

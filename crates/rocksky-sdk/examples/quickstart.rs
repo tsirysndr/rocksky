@@ -51,5 +51,13 @@ async fn main() -> rocksky_sdk::Result<()> {
         }
     }
 
+    // The authenticated library.* API (your uploaded music) needs an access
+    // token — set ROCKSKY_TOKEN to try it. `library()` errors without one.
+    if let Ok(token) = std::env::var("ROCKSKY_TOKEN") {
+        let lib = av.with_token(token).library()?;
+        info!(genres = %lib.get_genres().await?, "library genres");
+        info!(albums = %lib.get_album_list("newest", Some(10), None, None, None, None).await?, "library albums");
+    }
+
     Ok(())
 }

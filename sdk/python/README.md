@@ -9,7 +9,7 @@ every Rocksky SDK (Ruby, Kotlin, Clojure, Erlang/Elixir/Gleam).
 ## Install
 
 ```sh
-pip install rocksky==0.6.0        # or: uv add rocksky==0.6.0
+pip install rocksky==0.7.0        # or: uv add rocksky==0.7.0
 ```
 
 The wheel is pure-Python; the ~14 MB native library is fetched from the GitHub

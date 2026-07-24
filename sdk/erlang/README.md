@@ -37,7 +37,7 @@ Agent = rocksky:agent_login(<<"session.json">>, <<"alice.bsky.social">>, <<"app-
 
 Reads/writes return `{ok, Value}` | `{error, Message}` with binary-keyed maps.
 
-The Hex package is `rocksky_erl` 0.3.0.
+The Hex package is `rocksky_erl` 0.4.0.
 
 ## API
 

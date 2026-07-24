@@ -20,3 +20,9 @@ console.log("song hash:", songHash("Chaser", "Calibro 35", "Jazzploitation"));
 //   album: "Jazzploitation", albumArtist: "Calibro 35", duration: 182320 });
 // console.log("scrobbled:", uri);
 // agent.hydrateFromJetstream();                 // keep the index live (background)
+
+// --- library: your uploaded music (needs an access token) ---
+// const lib = new RockskyClient(undefined, process.env.ROCKSKY_TOKEN).library();
+// console.log(await lib.getGenres());
+// console.log(await lib.getAlbumList("newest", { size: 10 }));
+// console.log(await lib.getSong("<song-id>"));

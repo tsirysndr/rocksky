@@ -29,6 +29,13 @@ def main() -> None:
     # ))
     # print("scrobbled:", out.scrobble_uri)
 
+    # --- library: your uploaded music (needs an access token) ---
+    # from rocksky import Library
+    # lib = Library(None, "YOUR_ACCESS_TOKEN")   # returns raw JSON strings
+    # print(lib.get_genres())
+    # print(lib.get_album_list("newest", 10, None, None, None, None))
+    # print(lib.get_song("<song-id>"))
+
 
 if __name__ == "__main__":
     main()

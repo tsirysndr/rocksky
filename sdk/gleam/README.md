@@ -15,10 +15,10 @@ Rocksky SDK. Targets Erlang.
 ## Installation
 
 ```sh
-gleam add rocksky   # rocksky = ">= 1.6.0 and < 2.0.0"
+gleam add rocksky   # rocksky = ">= 1.7.0 and < 2.0.0"
 ```
 
-`rocksky` 1.6.0 depends on `rocksky_erl` 0.3.0, whose loader fetches the native
+`rocksky` 1.7.0 depends on `rocksky_erl` 0.4.0, whose loader fetches the native
 library from the GitHub release on first use (checksum-verified). For monorepo
 dev, build it with `../erlang/build-core.sh` and use the local path dep in
 `gleam.toml`.

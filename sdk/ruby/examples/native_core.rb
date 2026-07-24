@@ -26,3 +26,9 @@ puts "song hash: #{Rocksky.song_hash("Chaser", "Calibro 35", "Jazzploitation")}"
 # )
 # puts "scrobbled: #{out["scrobbleUri"]}"
 # agent.close
+
+# --- library: your uploaded music (needs an access token) ---
+# lib = Rocksky.library("YOUR_ACCESS_TOKEN")
+# puts lib.get_genres
+# puts lib.get_album_list("newest", size: 10)
+# puts lib.get_song("<song-id>")
