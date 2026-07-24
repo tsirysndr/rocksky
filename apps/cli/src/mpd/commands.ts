@@ -408,14 +408,21 @@ const lsInfoHandler: Handler = async (args, ctx) => {
       );
     }
     if (parts.length === 3) {
-      const items = await ctx.db.albumTracks(parts[1], parts[2]);
+      // Artists/<artist>/<album> — resolve within the artist to disambiguate.
+      const items = await ctx.db.albumTracks(parts[2], parts[1]);
       return items.flatMap((i) => songLines(i));
     }
   }
-  if (parts[0] === "Albums" && parts.length === 1) {
-    return (await ctx.db.listAlbums()).map((al) =>
-      kv("directory", `Albums/${al}`),
-    );
+  if (parts[0] === "Albums") {
+    if (parts.length === 1) {
+      return (await ctx.db.albums()).map((a) =>
+        kv("directory", `Albums/${a.album}`),
+      );
+    }
+    if (parts.length === 2) {
+      const items = await ctx.db.albumTracks(parts[1]);
+      return items.flatMap((i) => songLines(i));
+    }
   }
   if (parts[0] === "Playlists" && parts.length === 1) {
     return (await ctx.db.playlistNames()).map((n) => kv("playlist", n));
@@ -544,8 +551,18 @@ export const handlers: Record<string, Handler> = {
   lsinfo: lsInfoHandler,
   listall: listAllInfoHandler,
   listallinfo: listAllInfoHandler,
-  update: noopOk,
-  rescan: noopOk,
+  // Drop the memoized artist/album lists so the next browse re-pages the
+  // library, then report a (dummy) update job id as MPD does.
+  update: (_a, ctx) => {
+    ctx.db.refresh();
+    bus.bump("database");
+    return [kv("updating_db", 1)];
+  },
+  rescan: (_a, ctx) => {
+    ctx.db.refresh();
+    bus.bump("database");
+    return [kv("updating_db", 1)];
+  },
   // stored playlists
   listplaylists: listPlaylistsHandler,
   listplaylist: listPlaylistHandler,

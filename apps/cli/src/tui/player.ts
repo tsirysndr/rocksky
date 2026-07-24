@@ -11,6 +11,12 @@ export interface QueueItem {
   mimeType?: string;
   uri?: string; // song at:// URI, used for like/dislike
   trackId?: string; // tracks.xata_id — the Subsonic song id (playlists)
+  // Optional tags carried for MPD browse/now-playing (see mpd/db.ts).
+  trackNumber?: number;
+  discNumber?: number;
+  albumUri?: string; // album at:// URI — the stable album identity
+  date?: string; // release year (or ISO date), for the MPD Date tag
+  genre?: string;
 }
 
 // Native enum values (see rockbox-ffi enums) kept inline so we don't eagerly
