@@ -177,6 +177,31 @@ program
     await mpd(opts);
   });
 
+// Import reads an export file and publishes via @rocksky/sdk — no local DB.
+program
+  .command("import")
+  .argument(
+    "<file>",
+    "a Spotify or Last.fm export (JSON/CSV file, or the Spotify history folder)",
+  )
+  .option("-f, --format <format>", "force the format: spotify or lastfm (default: autodetect)")
+  .option("-n, --dry-run", "parse and print what would be published, without writing to your PDS")
+  .option("-c, --concurrency <number>", "number of scrobbles to publish in parallel", "4")
+  .option(
+    "-r, --rate <perHour>",
+    "scrobbles published per hour (hard-capped to stay under Bluesky PDS write limits; each scrobble writes up to 4 records)",
+  )
+  .option("-l, --limit <number>", "only import the first N scrobbles")
+  .option("--min-seconds <seconds>", "skip Spotify plays shorter than this (default: 30)")
+  .option("--from <date>", "only import scrobbles on or after this date (e.g. 2024-01-01)")
+  .option("--to <date>", "only import scrobbles on or before this date")
+  .option("--restart", "ignore the saved checkpoint and import from the beginning")
+  .description("import your listening history from a Spotify or Last.fm export")
+  .action(async (file: string, opts) => {
+    const { importCmd } = await import("cmd/import");
+    await importCmd(file, opts);
+  });
+
 // Upload needs only the API + token, no local database.
 program
   .command("upload")

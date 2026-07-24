@@ -1,6 +1,6 @@
 {
   "name": "@rocksky/cli",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Command-line interface for Rocksky – scrobble tracks, view stats, and manage your listening history",
   "main": "dist/index.js",
   "type": "module",
@@ -12,7 +12,7 @@
   ],
   "scripts": {
     "lexgen": "lex gen-server ./src/lexicon ./lexicons/**/* ./lexicons/*",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "tsx src/lib/importParsers.smoke.ts",
     "dev": "tsx ./src/index.ts",
     "build": "bun build src/index.ts --outfile dist/index.js --target node --packages external && chmod +x ./dist/index.js && cp -r drizzle ./dist",
     "prepublishOnly": "bun run build",
@@ -46,7 +46,7 @@
     "@logtape/logtape": "^1.3.6",
     "@modelcontextprotocol/sdk": "^1.10.2",
     "@paralleldrive/cuid2": "^3.0.6",
-    "@rocksky/sdk": "^0.7.0",
+    "@rocksky/sdk": "^0.7.3",
     "@tanstack/react-query": "^5.101.3",
     "@types/better-sqlite3": "^7.6.13",
     "axios": "^1.8.4",
@@ -54,6 +54,7 @@
     "chalk": "^5.4.1",
     "classic-level": "^3.0.0",
     "commander": "^13.1.0",
+    "consola": "^3.4.2",
     "cors": "^2.8.5",
     "dayjs": "^1.11.13",
     "dotenv": "^16.4.7",

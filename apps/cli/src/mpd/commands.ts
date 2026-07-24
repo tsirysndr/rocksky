@@ -3,13 +3,7 @@
 // (MpdDb). Handlers return the response *body* lines; the server appends `OK`.
 // Throw MpdError to emit an `ACK`.
 
-import {
-  enqueueLast,
-  jumpTo,
-  resumeSession,
-  skipNext,
-  skipPrev,
-} from "../tui/playback";
+import { enqueueLast, resumeSession, streamAndPlay } from "../tui/playback";
 import { playerController, Repeat, type QueueItem } from "../tui/player";
 import { bus } from "./bus";
 import { itemUri, MpdDb, songLines, type Filter } from "./db";
@@ -56,6 +50,14 @@ function parseRange(arg: string | undefined, len: number): [number, number] {
 
 // --- status ----------------------------------------------------------------
 
+// The player volume as a valid MPD integer 0..100. Guards against NaN / out-of
+// -range values (which clients like rmpc reject, discarding the whole status).
+export function mpdVolume(): number {
+  const v = Math.round(playerController.volume() * 100);
+  if (!Number.isFinite(v)) return 0;
+  return Math.max(0, Math.min(100, v));
+}
+
 // The queue index MPD should treat as "current". While playing/paused it's the
 // engine's index; when stopped with a session restored on startup it's the
 // restored index — so a client that connects before the TUI hits play still
@@ -86,7 +88,7 @@ const statusHandler: Handler = () => {
         : "pause";
 
   const lines = [
-    kv("volume", Math.round(playerController.volume() * 100)),
+    kv("volume", mpdVolume()),
     kv("repeat", repeat ? 1 : 0),
     kv("random", playerController.isShuffle() ? 1 : 0),
     kv("single", single ? 1 : 0),
@@ -142,15 +144,30 @@ const statsHandler: Handler = () => [
 
 // --- transport -------------------------------------------------------------
 
+// Play the queue starting at `index`, keeping it in its CURRENT order. Uses
+// streamAndPlay (rebuilds fresh, reliable stream/local URLs and starts at
+// `index`) rather than the TUI's jumpTo, which reorders the current track to
+// the front — that reorder is what made MPD clients see the queue reshuffle and
+// lose the playing track. Rebuilding also fixes skip-ahead to not-yet-buffered
+// stream tracks, which a bare engine next() would stall on.
+async function playAt(
+  token: string | undefined,
+  index: number,
+): Promise<void> {
+  const items = playerController.queueItems;
+  if (!token || index < 0 || index >= items.length) return;
+  await streamAndPlay(token, items, index);
+}
+
 const playHandler: Handler = async (args, ctx) => {
   const token = ctx.getToken();
+  const st = playerController.status();
   if (args[0] != null) {
     const pos = parseInt(args[0], 10);
-    if (!Number.isNaN(pos) && token) await jumpTo(token, pos);
+    if (!Number.isNaN(pos)) await playAt(token, pos);
     return [];
   }
   // Bare `play`: resume a restored session if we're stopped, else unpause.
-  const st = playerController.status();
   if (playerController.restored && (!st || st.state === "stopped")) {
     if (token) await resumeSession(token);
   } else {
@@ -177,17 +194,32 @@ const stopHandler: Handler = () => {
   return [];
 };
 
+// Advance/rewind by one, keeping the queue order stable so `song`/`songid`
+// simply moves — matching MPD's model. (The TUI's skipNext/skipPrev reorder the
+// current track to the front, which made MPD clients lose the playing track.)
 const nextHandler: Handler = async (_a, ctx) => {
-  const token = ctx.getToken();
-  if (token) await skipNext(token);
-  else playerController.next();
+  const st = playerController.status();
+  const len = playerController.queueItems.length;
+  const idx = st?.index ?? 0;
+  let target = idx + 1;
+  if (target >= len) {
+    if (st?.repeat === "all") target = 0;
+    else return []; // end of queue, no repeat
+  }
+  await playAt(ctx.getToken(), target);
   return [];
 };
 
 const prevHandler: Handler = async (_a, ctx) => {
-  const token = ctx.getToken();
-  if (token) await skipPrev(token);
-  else playerController.previous();
+  const st = playerController.status();
+  const len = playerController.queueItems.length;
+  const idx = st?.index ?? 0;
+  let target = idx - 1;
+  if (target < 0) {
+    if (st?.repeat === "all") target = len - 1;
+    else return [];
+  }
+  await playAt(ctx.getToken(), target);
   return [];
 };
 
@@ -215,8 +247,8 @@ const seekHandler: Handler = async (args, ctx) => {
   if (Number.isNaN(pos) || Number.isNaN(timeSec))
     throw new MpdError(Ack.ARG, "Bad arguments");
   const st = playerController.status();
-  const token = ctx.getToken();
-  if (st?.index !== pos && token) await jumpTo(token, pos);
+  // Seeking into another track: switch to it first (stable, no reorder).
+  if (st && st.index !== pos) await playAt(ctx.getToken(), pos);
   playerController.seekMs(Math.max(0, timeSec * 1000));
   return [];
 };
@@ -230,9 +262,7 @@ const setVolHandler: Handler = (args) => {
   return [];
 };
 
-const getVolHandler: Handler = () => [
-  kv("volume", Math.round(playerController.volume() * 100)),
-];
+const getVolHandler: Handler = () => [kv("volume", mpdVolume())];
 
 const volumeHandler: Handler = (args) => {
   const delta = parseInt(args[0], 10);

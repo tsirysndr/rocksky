@@ -151,6 +151,55 @@ pub struct ScrobbleResult {
     pub scrobble_uri: String,
 }
 
+/// The artist a scrobble implies: identity is the **album artist** (matching the
+/// server's hash), so albums stay grouped under one artist regardless of the
+/// per-track artist.
+fn artist_draft_for(draft: &ScrobbleDraft) -> ArtistDraft {
+    ArtistDraft {
+        name: draft.album_artist.clone(),
+        tags: draft.tags.clone(),
+        ..Default::default()
+    }
+}
+
+/// The album a scrobble implies: title is the album, artist is the **album
+/// artist** (not the per-track artist).
+fn album_draft_for(draft: &ScrobbleDraft) -> AlbumDraft {
+    AlbumDraft {
+        title: draft.album.clone(),
+        artist: draft.album_artist.clone(),
+        year: draft.year,
+        release_date: draft.release_date.clone(),
+        album_art_url: draft.album_art_url.clone(),
+        genre: draft.genre.clone(),
+        tags: draft.tags.clone(),
+        spotify_link: draft.spotify_link.clone(),
+    }
+}
+
+/// The song a scrobble implies: the track's own fields verbatim.
+fn song_draft_for(draft: &ScrobbleDraft) -> SongDraft {
+    SongDraft {
+        title: draft.title.clone(),
+        artist: draft.artist.clone(),
+        album: draft.album.clone(),
+        album_artist: draft.album_artist.clone(),
+        duration_ms: draft.duration_ms,
+        album_art_url: draft.album_art_url.clone(),
+        track_number: draft.track_number,
+        disc_number: draft.disc_number,
+        year: draft.year,
+        release_date: draft.release_date.clone(),
+        genre: draft.genre.clone(),
+        tags: draft.tags.clone(),
+        composer: draft.composer.clone(),
+        label: draft.label.clone(),
+        mbid: draft.mbid.clone(),
+        isrc: draft.isrc.clone(),
+        spotify_link: draft.spotify_link.clone(),
+    }
+}
+
 /// The track for the actor's now-playing status (`app.rocksky.actor.status`).
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", default)]
@@ -707,47 +756,12 @@ impl RockskyAgent {
     /// dedup store every call writes all four records, so a dedup store is
     /// strongly recommended for repeated scrobbling.
     pub async fn scrobble(&self, draft: &ScrobbleDraft) -> Result<ScrobbleResult> {
-        // Artist identity is the album artist (matches the server's hash).
-        let artist_uri = self
-            .create_artist(&ArtistDraft {
-                name: draft.album_artist.clone(),
-                tags: draft.tags.clone(),
-                ..Default::default()
-            })
-            .await?;
-        let album_uri = self
-            .create_album(&AlbumDraft {
-                title: draft.album.clone(),
-                artist: draft.album_artist.clone(),
-                year: draft.year,
-                release_date: draft.release_date.clone(),
-                album_art_url: draft.album_art_url.clone(),
-                genre: draft.genre.clone(),
-                tags: draft.tags.clone(),
-                spotify_link: draft.spotify_link.clone(),
-            })
-            .await?;
-        let song_uri = self
-            .create_song(&SongDraft {
-                title: draft.title.clone(),
-                artist: draft.artist.clone(),
-                album: draft.album.clone(),
-                album_artist: draft.album_artist.clone(),
-                duration_ms: draft.duration_ms,
-                album_art_url: draft.album_art_url.clone(),
-                track_number: draft.track_number,
-                disc_number: draft.disc_number,
-                year: draft.year,
-                release_date: draft.release_date.clone(),
-                genre: draft.genre.clone(),
-                tags: draft.tags.clone(),
-                composer: draft.composer.clone(),
-                label: draft.label.clone(),
-                mbid: draft.mbid.clone(),
-                isrc: draft.isrc.clone(),
-                spotify_link: draft.spotify_link.clone(),
-            })
-            .await?;
+        // The play implies an artist, album and song; materialize them (each
+        // deduped) in dependency order, then the scrobble itself. Field mapping
+        // lives in [`artist_draft_for`] / [`album_draft_for`] / [`song_draft_for`].
+        let artist_uri = self.create_artist(&artist_draft_for(draft)).await?;
+        let album_uri = self.create_album(&album_draft_for(draft)).await?;
+        let song_uri = self.create_song(&song_draft_for(draft)).await?;
         let scrobble_uri = self.write_scrobble_record(draft).await?;
         Ok(ScrobbleResult {
             artist_uri,
@@ -1197,4 +1211,73 @@ async fn list_rkeys_where<A: XrpcClient + Sync>(
         }
     }
     Ok(rkeys)
+}
+
+#[cfg(test)]
+mod tests {
+    //! The scrobble fan-out derives an artist/album/song from a draft before
+    //! writing the scrobble. These tests validate that derivation — order and
+    //! field mapping — with no network and no PDS. Dedup ("don't publish if
+    //! already present") is covered against `RepoIndex` in [`crate::dedup`].
+    use super::*;
+
+    fn full_draft() -> ScrobbleDraft {
+        ScrobbleDraft {
+            title: "Song A".into(),
+            artist: "Track Artist".into(),
+            album: "Album A".into(),
+            album_artist: "Album Artist".into(),
+            duration_ms: 210_000,
+            album_art_url: Some("https://cdn.test/art.jpg".into()),
+            track_number: Some(3),
+            disc_number: Some(1),
+            year: Some(2021),
+            release_date: Some("2021-05-01T00:00:00Z".into()),
+            genre: Some("rock".into()),
+            tags: vec!["indie".into()],
+            composer: Some("Composer C".into()),
+            label: Some("Label L".into()),
+            mbid: Some("mb-1".into()),
+            isrc: Some("isrc-1".into()),
+            spotify_link: Some("https://open.spotify.com/track/xyz".into()),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn artist_identity_is_the_album_artist() {
+        let a = artist_draft_for(&full_draft());
+        assert_eq!(a.name, "Album Artist"); // album artist, not the per-track artist
+        assert_eq!(a.tags, vec!["indie".to_string()]);
+    }
+
+    #[test]
+    fn album_uses_album_title_and_album_artist() {
+        let al = album_draft_for(&full_draft());
+        assert_eq!(al.title, "Album A");
+        assert_eq!(al.artist, "Album Artist"); // not "Track Artist"
+        assert_eq!(al.year, Some(2021));
+        assert_eq!(al.genre.as_deref(), Some("rock"));
+        assert_eq!(al.release_date.as_deref(), Some("2021-05-01T00:00:00Z"));
+        assert_eq!(
+            al.spotify_link.as_deref(),
+            Some("https://open.spotify.com/track/xyz")
+        );
+    }
+
+    #[test]
+    fn song_copies_the_track_fields_verbatim() {
+        let s = song_draft_for(&full_draft());
+        assert_eq!(s.title, "Song A");
+        assert_eq!(s.artist, "Track Artist"); // song keeps the per-track artist
+        assert_eq!(s.album, "Album A");
+        assert_eq!(s.album_artist, "Album Artist");
+        assert_eq!(s.duration_ms, 210_000);
+        assert_eq!(s.track_number, Some(3));
+        assert_eq!(s.disc_number, Some(1));
+        assert_eq!(s.mbid.as_deref(), Some("mb-1"));
+        assert_eq!(s.isrc.as_deref(), Some("isrc-1"));
+        assert_eq!(s.composer.as_deref(), Some("Composer C"));
+        assert_eq!(s.label.as_deref(), Some("Label L"));
+    }
 }

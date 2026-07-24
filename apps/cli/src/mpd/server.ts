@@ -8,7 +8,7 @@ import net from "net";
 import { itemUri, MpdDb } from "./db";
 import { playerController } from "../tui/player";
 import { bus, SUBSYSTEMS, type Subsystem } from "./bus";
-import { commandNames, type Ctx, handlers } from "./commands";
+import { commandNames, type Ctx, handlers, mpdVolume } from "./commands";
 import { Ack, ackLine, GREETING, kv, MpdError, tokenize } from "./protocol";
 
 export interface MpdServerOptions {
@@ -324,7 +324,7 @@ function snapshot() {
     state: st?.state ?? "stopped",
     index: idx,
     curId: items[idx] ? itemUri(items[idx]) : "",
-    vol: Math.round(playerController.volume() * 100),
+    vol: mpdVolume(),
     shuffle: playerController.isShuffle(),
     repeat: playerController.repeat(),
     qlen: items.length,

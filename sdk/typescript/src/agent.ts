@@ -93,8 +93,12 @@ export class Agent {
    */
   static async login(identifier: string, password: string): Promise<Agent> {
     const actor = await actorResolver().resolve(identifier as never);
-    const session = await PasswordSession.login({ service: actor.pds, identifier, password });
-    return new Agent(new Client({ handler: session }), session.did, session, actor.pds);
+    // The resolver may hand back a PDS URL with a trailing slash; strip it so
+    // callers that build `${pds}/xrpc/...` don't produce a `//xrpc` path (which
+    // some PDS hosts answer with 404).
+    const pds = actor.pds.replace(/\/+$/, "");
+    const session = await PasswordSession.login({ service: pds, identifier, password });
+    return new Agent(new Client({ handler: session }), session.did, session, pds);
   }
 
   /** Attach a local dedup index — write verbs then skip records that already exist. */
@@ -150,9 +154,18 @@ export class Agent {
     if (!res.ok) throw new RockskyError(res.data);
   }
 
-  /** Scrobble a play (app.rocksky.scrobble). createdAt defaults to now. */
+  /**
+   * Scrobble a play (app.rocksky.scrobble). Before writing the scrobble, this
+   * publishes the canonical metadata it implies — artist, then album, then song
+   * (in that dependency order) — so the play is self-contained in the user's
+   * PDS. Every write is deduplicated against the attached index: anything
+   * already present in the repo is skipped, never republished. createdAt
+   * defaults to now.
+   */
   async scrobble(rec: ScrobbleInput): Promise<string> {
     const record = { ...rec, createdAt: rec.createdAt || nowISO() };
+    // Materialize artist -> album -> song first (deduped). Then the scrobble.
+    await this.publishScrobbleMetadata(record);
     if (this.idx) {
       const secs = Math.floor(Date.parse(record.createdAt) / 1000);
       const existing = await this.idx.scrobbleUri(this.did, record.title!, record.artist!, record.album!, secs);
@@ -166,10 +179,46 @@ export class Agent {
     return uri;
   }
 
+  /**
+   * Publish the artist/album/song records a scrobble implies, in dependency
+   * order, each deduplicated via {@link Agent.createArtist}/`createAlbum`/
+   * `createSong`. A record is written only when its identity fields are
+   * present — artist needs an album artist, album needs title + artist, song
+   * needs title + artist + album — because a record without a stable identity
+   * hash cannot be deduped and would be republished on every scrobble.
+   */
+  private async publishScrobbleMetadata(record: ScrobbleInput & { createdAt: string }): Promise<void> {
+    const { albumArtist, album, title, artist, createdAt } = record;
+    if (albumArtist) {
+      await this.createArtist({ name: albumArtist, createdAt });
+    }
+    if (albumArtist && album) {
+      await this.createAlbum({
+        title: album,
+        artist: albumArtist,
+        releaseDate: record.releaseDate,
+        year: record.year,
+        genre: record.genre,
+        albumArtUrl: record.albumArtUrl,
+        tags: record.tags,
+        youtubeLink: record.youtubeLink,
+        spotifyLink: record.spotifyLink,
+        tidalLink: record.tidalLink,
+        appleMusicLink: record.appleMusicLink,
+        createdAt,
+      });
+    }
+    if (title && artist && album) {
+      // A song record shares the scrobble's shape verbatim.
+      await this.createSong({ ...record });
+    }
+  }
+
   /** Scrobble from just a title + artist (album optional, plus optional
    * `mbId`/`isrc` anchors): resolve full metadata via `matchSong`, then write.
    * Matching uses the public AppView unless `appview` is given; an empty match
-   * falls back to a minimal record. */
+   * falls back to a minimal record. Delegates to {@link Agent.scrobble}, so it
+   * publishes the implied artist/album/song (deduped) before the scrobble. */
   async scrobbleMatch(input: ScrobbleMatchInput, appview?: string): Promise<string> {
     const { title, artist, album, mbId, isrc, timestamp } = input;
     const { RockskyClient } = await import("./client.js");

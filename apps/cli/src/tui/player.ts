@@ -186,7 +186,11 @@ class PlayerController {
       replaygainClip: boolean;
     };
   }) {
-    this._volume = s.volume;
+    // Clamp to 0..1 so a bad persisted value can't produce an out-of-range
+    // volume downstream (e.g. the MPD 0..100 report).
+    this._volume = Number.isFinite(s.volume)
+      ? Math.max(0, Math.min(1, s.volume))
+      : 0.9;
     this._shuffle = s.shuffle;
     this._repeat = { off: 0, one: 1, all: 2 }[s.repeat] ?? 0;
     this.sound = {
@@ -530,11 +534,21 @@ class PlayerController {
     return this._volume;
   }
 
+  // Last successful native status, held so a transient throw from the native
+  // status() call doesn't momentarily read as "stopped / no song". That glitch
+  // (which can happen while applying a volume/EQ change mid-playback) otherwise
+  // made external consumers — the MPD server especially — flip to Stopped and
+  // drop the current track for a tick.
+  private lastStatus: PlayerStatus | null = null;
+
   status(): PlayerStatus | null {
+    if (!this.player) return null;
     try {
-      return this.player ? this.player.status() : null;
+      const s = this.player.status();
+      if (s) this.lastStatus = s;
+      return s;
     } catch {
-      return null;
+      return this.lastStatus; // transient native hiccup — hold last known
     }
   }
 
@@ -553,6 +567,7 @@ class PlayerController {
     }
     this.player = null;
     this.queueItems = [];
+    this.lastStatus = null;
   }
 }
 
