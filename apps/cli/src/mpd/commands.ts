@@ -467,10 +467,21 @@ const outputsHandler: Handler = () => [
   kv("outputenabled", 1),
 ];
 
-const tagTypesHandler: Handler = () =>
-  ["Artist", "Album", "AlbumArtist", "Title", "Track"].map((t) =>
+const tagTypesHandler: Handler = (args) => {
+  // `tagtypes clear|all|enable|disable …` are configuration subcommands that
+  // reply with a bare OK; only the argless form lists the available tags.
+  if (args.length) return [];
+  return ["Artist", "Album", "AlbumArtist", "Title", "Track"].map((t) =>
     kv("tagtype", t),
   );
+};
+
+// Cover art. We don't serve binaries over the protocol, so report "no file" —
+// the standard MPD response when a song has no embedded/adjacent art. Clients
+// (rmpc, ncmpcpp) fall back to no cover rather than failing.
+const albumArtHandler: Handler = () => {
+  throw new MpdError(Ack.NO_EXIST, "No file exists");
+};
 
 const replayGainStatusHandler: Handler = () => [kv("replay_gain_mode", "off")];
 
@@ -551,6 +562,18 @@ export const handlers: Record<string, Handler> = {
   config: () => [],
   password: noopOk,
   ping: noopOk,
+  // Modern clients (rmpc, MALP) negotiate a binary-chunk size on connect and
+  // request cover art. Accept the negotiation; report no art.
+  binarylimit: noopOk,
+  albumart: albumArtHandler,
+  readpicture: albumArtHandler,
+  // Client-to-client channels: acknowledge so clients that probe them don't
+  // error (we have no channel bus, so reads are empty).
+  channels: () => [],
+  readmessages: () => [],
+  subscribe: noopOk,
+  unsubscribe: noopOk,
+  sendmessage: noopOk,
 };
 
 commandNames = Object.keys(handlers).concat(["idle", "noidle", "close", "kill"]).sort();
