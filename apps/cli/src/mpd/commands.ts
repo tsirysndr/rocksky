@@ -333,19 +333,56 @@ function parseFilter(args: string[]): Filter {
   return filter;
 }
 
+// `list <type> [<filter-tag> <value>] [group <tag>]`. The response must be
+// keyed by the *requested* type (clients like rmpc parse `AlbumArtist:` for the
+// album-artist pane — returning `Artist:` there is why it renders nothing).
 const listHandler: Handler = async (args, ctx) => {
   const type = (args[0] || "").toLowerCase();
-  if (type === "artist" || type === "albumartist") {
-    const artists = await ctx.db.listArtists();
-    return artists.map((a) => kv("Artist", a));
+  // Pull an optional filter value for a given tag, ignoring a trailing
+  // `group <tag>` clause (which we don't need — we return the flat list).
+  const rest = args.slice(1).filter((_, i, a) => {
+    // drop `group` and the tag right after it
+    const gi = a.findIndex((x) => x.toLowerCase() === "group");
+    return gi === -1 || (i !== gi && i !== gi + 1);
+  });
+  const filterVal = (tag: string): string | undefined => {
+    for (let i = 0; i + 1 < rest.length; i += 2) {
+      if (rest[i].toLowerCase() === tag) return rest[i + 1];
+    }
+    // legacy positional: `list album "Artist"` (bare value, no tag)
+    if (rest.length === 1 && tag === "artist") return rest[0];
+    return undefined;
+  };
+
+  const groupIdx = args.findIndex((a) => a.toLowerCase() === "group");
+  const groupTag =
+    groupIdx >= 0 ? (args[groupIdx + 1] || "").toLowerCase() : undefined;
+
+  if (type === "artist") {
+    return (await ctx.db.listArtists()).map((a) => kv("Artist", a));
+  }
+  if (type === "albumartist") {
+    return (await ctx.db.albumArtists()).map((a) => kv("AlbumArtist", a));
   }
   if (type === "album") {
-    // `list album artist "X"` or legacy `list album "X"`.
-    let artist: string | undefined;
-    if (args[1] && args[1].toLowerCase() === "artist") artist = args[2];
-    else if (args[1]) artist = args[1];
-    const albums = await ctx.db.listAlbums(artist);
-    return albums.map((a) => kv("Album", a));
+    const artist = filterVal("albumartist") || filterVal("artist");
+    // `list album group albumartist` — interleave the grouping tag so clients
+    // can nest each album under its artist.
+    if (groupTag === "albumartist" && !artist) {
+      const byArtist = new Map<string, string[]>();
+      for (const a of await ctx.db.albums()) {
+        const list = byArtist.get(a.albumArtist) ?? [];
+        list.push(a.album);
+        byArtist.set(a.albumArtist, list);
+      }
+      const lines: string[] = [];
+      for (const [aa, albums] of byArtist) {
+        lines.push(kv("AlbumArtist", aa));
+        for (const al of albums) lines.push(kv("Album", al));
+      }
+      return lines;
+    }
+    return (await ctx.db.listAlbums(artist)).map((a) => kv("Album", a));
   }
   return [];
 };
@@ -398,7 +435,9 @@ const lsInfoHandler: Handler = async (args, ctx) => {
   const parts = uri.split("/");
   if (parts[0] === "Artists") {
     if (parts.length === 1) {
-      return (await ctx.db.listArtists()).map((a) =>
+      // Album artists (not track artists) so the album drill-down below, which
+      // filters by albumArtist, always matches.
+      return (await ctx.db.albumArtists()).map((a) =>
         kv("directory", `Artists/${a}`),
       );
     }

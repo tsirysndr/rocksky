@@ -45,6 +45,14 @@ export async function startMpdServer(
   const db = new MpdDb(opts.getToken);
   const ctx: Ctx = { getToken: opts.getToken, db };
 
+  // Warm the browse caches in the background so the first library browse from a
+  // client returns instantly instead of racing the client's command timeout.
+  const warm = () => {
+    void db.albums().catch(() => {});
+    void db.listArtists().catch(() => {});
+  };
+  warm();
+
   const write = (conn: Conn, s: string) => {
     if (!conn.closed) conn.socket.write(s);
   };
