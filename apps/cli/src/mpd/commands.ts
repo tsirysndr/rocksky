@@ -56,6 +56,14 @@ function parseRange(arg: string | undefined, len: number): [number, number] {
 
 // --- status ----------------------------------------------------------------
 
+// The player volume as a valid MPD integer 0..100. Guards against NaN / out-of
+// -range values (which clients like rmpc reject, discarding the whole status).
+export function mpdVolume(): number {
+  const v = Math.round(playerController.volume() * 100);
+  if (!Number.isFinite(v)) return 0;
+  return Math.max(0, Math.min(100, v));
+}
+
 // The queue index MPD should treat as "current". While playing/paused it's the
 // engine's index; when stopped with a session restored on startup it's the
 // restored index — so a client that connects before the TUI hits play still
@@ -86,7 +94,7 @@ const statusHandler: Handler = () => {
         : "pause";
 
   const lines = [
-    kv("volume", Math.round(playerController.volume() * 100)),
+    kv("volume", mpdVolume()),
     kv("repeat", repeat ? 1 : 0),
     kv("random", playerController.isShuffle() ? 1 : 0),
     kv("single", single ? 1 : 0),
@@ -230,9 +238,7 @@ const setVolHandler: Handler = (args) => {
   return [];
 };
 
-const getVolHandler: Handler = () => [
-  kv("volume", Math.round(playerController.volume() * 100)),
-];
+const getVolHandler: Handler = () => [kv("volume", mpdVolume())];
 
 const volumeHandler: Handler = (args) => {
   const delta = parseInt(args[0], 10);
