@@ -1,0 +1,76 @@
+---
+title: "mpd"
+description: "Serve your Rocksky library over the MPD protocol to control playback and browse music."
+icon: "music"
+---
+
+Start an [MPD](https://www.musicpd.org/)-protocol server backed by your Rocksky
+library. Any MPD client — `ncmpcpp`, `mpc`, `Cantata`, mobile MPD apps — can
+then browse your music and control playback, with Rocksky handling the streaming
+and scrobbling behind the scenes.
+
+## Usage
+
+```bash
+rocksky mpd [options]
+```
+
+## Requirements
+
+Playback needs an authenticated session. Log in once first:
+
+```bash
+rocksky login <handle>
+```
+
+The server still starts if you are not logged in — it just prints a note and
+serves an empty library until you authenticate. Unlike [`import`](/cli/import)
+and [`scrobble-api`](/cli/scrobble-api), `mpd` uses your saved
+[`login`](/cli/login) session, not `ROCKSKY_IDENTIFIER` / `ROCKSKY_PASSWORD`.
+
+## Options
+
+| Flag                     | Default             | Description                                            |
+| ------------------------ | ------------------- | ------------------------------------------------------ |
+| `-p, --port <port>`      | `6600`              | Port to listen on                                      |
+| `-b, --bind <address>`   | `127.0.0.1`         | Address to bind                                        |
+
+Port and bind default to the `[mpd]` section of
+`~/.rocksky/settings.toml`; the flags override those values. If the chosen port
+is busy, the server automatically falls back to the next free one.
+
+## Examples
+
+```bash
+# Start on the default MPD port (6600), localhost only
+rocksky mpd
+
+# Listen on all interfaces on a custom port
+rocksky mpd --bind 0.0.0.0 --port 6601
+```
+
+Point a client at the server and browse your library:
+
+```bash
+# Recent tracks with mpc
+mpc -h 127.0.0.1 -p 6600 status
+
+# Or launch a full TUI client
+ncmpcpp -h 127.0.0.1 -p 6600
+```
+
+## Configuration
+
+Persist your preferred port and bind address in `~/.rocksky/settings.toml`:
+
+```toml
+[mpd]
+port = 6600
+bind = "127.0.0.1"
+```
+
+<Note>
+Prefer a built-in interface? Run `rocksky` with no arguments to launch the
+interactive terminal UI, which browses your scrobbles and streams your music
+without a separate MPD client.
+</Note>

@@ -65,9 +65,11 @@
               "cli/albums",
               "cli/tracks",
               "cli/create-apikey",
+              "cli/import",
               "cli/sync",
               "cli/mcp",
               "cli/scrobble-api",
+              "cli/mpd",
               "cli/help"
             ]
           }

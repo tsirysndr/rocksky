@@ -1,0 +1,145 @@
+---
+title: "import"
+description: "Import your listening history from a Spotify or Last.fm export."
+icon: "file-import"
+---
+
+Bulk-import your past listens into Rocksky from a **Spotify Extended Streaming
+History** or **Last.fm** export. The command autodetects the format, enriches
+each play with full metadata, and publishes it to your PDS as a scrobble —
+throttled to stay within Bluesky's write limits and safe to stop and resume.
+
+## Usage
+
+```bash
+rocksky import <file> [options]
+```
+
+`<file>` is a Spotify or Last.fm export — a JSON/CSV file, or the whole
+**Spotify Extended Streaming History** folder (the format is autodetected from
+the contents).
+
+## Import your history
+
+<Steps>
+<Step title="Request your data export">
+- **Spotify** — request your *Extended Streaming History* from
+  [Privacy settings](https://www.spotify.com/account/privacy/). Spotify emails
+  a `my_spotify_data.zip`; unzip it and keep the
+  **Spotify Extended Streaming History** folder.
+- **Last.fm** — export your scrobbles as CSV or JSON with a tool such as
+  [lastfm-to-csv](https://benjaminbenben.com/lastfm-to-csv/) or
+  [ghan64's export](https://lastfm.ghan.nl/export/).
+</Step>
+
+<Step title="Create a Bluesky App Password">
+`import` writes scrobbles to your repo on your PDS, so it needs to sign in.
+Use a **dedicated App Password** — never your main account password.
+
+1. Sign in at [bsky.app](https://bsky.app).
+2. Go to **Settings → Privacy and Security → App Passwords**
+   ([direct link](https://bsky.app/settings/app-passwords)).
+3. Click **Add App Password**, name it (e.g. `rocksky-import`), and copy the
+   generated password (format `xxxx-xxxx-xxxx-xxxx`).
+
+<Warning>
+An App Password is scoped and revocable — you can delete it any time without
+changing your main password. Do not use your account password here.
+</Warning>
+</Step>
+
+<Step title="Set the required environment variables">
+`import` reads your credentials from the environment (or a `.env` file in the
+current directory):
+
+```bash
+export ROCKSKY_IDENTIFIER=alice.bsky.social   # your handle or DID
+export ROCKSKY_PASSWORD=xxxx-xxxx-xxxx-xxxx    # the App Password from step 2
+```
+
+| Variable             | Required | Description                                        |
+| -------------------- | -------- | -------------------------------------------------- |
+| `ROCKSKY_IDENTIFIER` | Yes      | Your Bluesky handle or DID                          |
+| `ROCKSKY_PASSWORD`   | Yes      | A Bluesky **App Password** (not your login password) |
+
+Both are **required** — the import aborts with an error if either is missing.
+</Step>
+
+<Step title="Preview with a dry run">
+Always dry-run first. This parses the export and prints exactly what would be
+published — **without writing anything** to your PDS and without needing your
+credentials:
+
+```bash
+rocksky import "Spotify Extended Streaming History" --dry-run
+```
+
+A dry run always previews the full import from the beginning, regardless of any
+earlier partial run.
+</Step>
+
+<Step title="Run the import">
+When the preview looks right, drop `--dry-run`:
+
+```bash
+rocksky import "Spotify Extended Streaming History"
+```
+
+The command logs each step — reading, authenticating, building a dedup index,
+then publishing — with a live progress bar showing the scrobble currently
+being written. A large history is throttled and can take a while; it is safe to
+stop with `Ctrl-C` and re-run to **resume exactly where it left off**.
+</Step>
+</Steps>
+
+## Options
+
+| Flag                       | Default          | Description                                                             |
+| -------------------------- | ---------------- | ----------------------------------------------------------------------- |
+| `-f, --format <format>`    | autodetect       | Force the format: `spotify` or `lastfm`                                 |
+| `-n, --dry-run`            | off              | Parse and print what would be published, without writing to your PDS    |
+| `-c, --concurrency <n>`    | `4`              | Number of scrobbles to publish in parallel                              |
+| `-r, --rate <perHour>`     | max safe         | Scrobbles published per hour (hard-capped under the PDS write limit)    |
+| `-l, --limit <n>`          | all              | Only import the first N scrobbles                                       |
+| `--min-seconds <seconds>`  | `30`             | Skip Spotify plays shorter than this many seconds                       |
+| `--from <date>`            | —                | Only import scrobbles on or after this date (e.g. `2024-01-01`)         |
+| `--to <date>`              | —                | Only import scrobbles on or before this date                           |
+| `--restart`                | off              | Ignore the saved checkpoint and import from the beginning               |
+
+## How it works
+
+- **Autodetection** — a Spotify export folder, a Spotify JSON file, or a
+  Last.fm CSV/JSON file are all recognized automatically. Podcasts, audiobooks,
+  and very short Spotify plays (under `--min-seconds`) are skipped and reported.
+- **Metadata enrichment** — the exports carry only title, artist, and album, so
+  each play is matched against Rocksky's catalog to fill in duration, album art,
+  MusicBrainz IDs, and streaming links before it is written.
+- **Rate limiting** — Bluesky rate-limits repo writes, and each scrobble also
+  publishes its artist, album, and song records (deduplicated). The publish rate
+  is **hard-capped** below that budget, so neither the default nor any
+  `--rate` you pass can exceed the PDS write limit.
+- **Deduplication** — a local index of your existing repo is built first (and
+  kept live off the firehose during the run), so re-imports never republish a
+  scrobble you already have.
+- **Resumable** — a checkpoint tracks the last imported scrobble. Interrupt the
+  import at any time and re-run the same command to continue from exactly where
+  it stopped; use `--restart` to start over from the beginning.
+
+## Examples
+
+```bash
+# Preview a Last.fm CSV export
+rocksky import scrobbles.csv --dry-run
+
+# Import only 2024 plays, forcing the Spotify parser
+rocksky import history.json --format spotify --from 2024-01-01 --to 2024-12-31
+
+# Import the first 100 scrobbles as a small test run
+rocksky import "Spotify Extended Streaming History" --limit 100
+```
+
+<Note>
+Prefer to point an existing app at Rocksky instead of a one-time import? See
+[Migrating from Last.fm](/migrations/from-lastfm) and
+[Migrating from ListenBrainz](/migrations/from-listenbrainz).
+</Note>
