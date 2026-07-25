@@ -6008,6 +6008,76 @@ export const schemaDict = {
             description: "The author of the shout.",
             ref: "lex:app.rocksky.shout.defs#author",
           },
+          gif: {
+            type: "ref",
+            description: "An attached GIF, sticker, or clip.",
+            ref: "lex:app.rocksky.shout.defs#gif",
+          },
+          facets: {
+            type: "array",
+            description:
+              "Mentions of other actors within the message, anchored to UTF-8 byte ranges.",
+            items: {
+              type: "ref",
+              ref: "lex:app.rocksky.shout.defs#mention",
+            },
+          },
+        },
+      },
+      mention: {
+        type: "object",
+        description:
+          "A mention of another actor within the shout message, anchored to a UTF-8 byte range in the message.",
+        required: ["did", "byteStart", "byteEnd"],
+        properties: {
+          did: {
+            type: "string",
+            description: "The DID of the mentioned actor.",
+            format: "did",
+          },
+          byteStart: {
+            type: "integer",
+            description: "Inclusive UTF-8 byte offset of the mention start.",
+            minimum: 0,
+          },
+          byteEnd: {
+            type: "integer",
+            description: "Exclusive UTF-8 byte offset of the mention end.",
+            minimum: 0,
+          },
+        },
+      },
+      gif: {
+        type: "object",
+        description:
+          "A GIF, sticker, or clip embedded in a shout. `url` may point at an image (GIF/WebP) or a video (MP4); the client decides how to render it from the file extension.",
+        required: ["url"],
+        properties: {
+          url: {
+            type: "string",
+            description: "Direct URL of the animated GIF/MP4.",
+            format: "uri",
+          },
+          previewUrl: {
+            type: "string",
+            description: "Smaller still/preview image URL.",
+            format: "uri",
+          },
+          alt: {
+            type: "string",
+            description: "Alternative text describing the media.",
+            maxLength: 512,
+          },
+          width: {
+            type: "integer",
+            description: "The intrinsic width of the media in pixels.",
+            minimum: 0,
+          },
+          height: {
+            type: "integer",
+            description: "The intrinsic height of the media in pixels.",
+            minimum: 0,
+          },
         },
       },
     },
@@ -6343,12 +6413,12 @@ export const schemaDict = {
         key: "tid",
         record: {
           type: "object",
-          required: ["message", "createdAt", "subject"],
+          required: ["createdAt", "subject"],
           properties: {
             message: {
               type: "string",
-              description: "The message of the shout.",
-              minLength: 1,
+              description:
+                "The message of the shout. Optional when a gif/sticker/clip is attached.",
               maxLength: 1000,
             },
             createdAt: {
@@ -6363,6 +6433,21 @@ export const schemaDict = {
             subject: {
               type: "ref",
               ref: "lex:com.atproto.repo.strongRef",
+            },
+            gif: {
+              type: "ref",
+              description:
+                "An attached GIF, sticker, or clip (e.g. from KLIPY).",
+              ref: "lex:app.rocksky.shout.defs#gif",
+            },
+            facets: {
+              type: "array",
+              description:
+                "Mentions of other actors within the message, anchored to UTF-8 byte ranges.",
+              items: {
+                type: "ref",
+                ref: "lex:app.rocksky.shout.defs#mention",
+              },
             },
           },
         },

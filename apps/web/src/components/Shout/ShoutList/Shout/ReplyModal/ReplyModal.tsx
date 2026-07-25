@@ -9,20 +9,26 @@ import {
   ModalFooter,
   ModalHeader,
 } from "baseui/modal";
+import { StatefulPopover, PLACEMENT } from "baseui/popover";
 import { Spinner } from "baseui/spinner";
-import { Textarea } from "baseui/textarea";
 import { LabelMedium, LabelSmall } from "baseui/typography";
+import { IconGif, IconX } from "@tabler/icons-react";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import z from "zod";
+import { isVideoUrl, type MediaResult } from "../../../../../api/klipy";
+import { type Mention, resolveMentionFacets } from "../../../../../lib/richtext";
 import { profileAtom } from "../../../../../atoms/profile";
 import { shoutsAtom } from "../../../../../atoms/shouts";
 import useShout from "../../../../../hooks/useShout";
 import scrollToTop from "../../../../../lib/scrollToTop";
+import MediaPicker from "../../../MediaPicker";
+import MentionTextarea from "../../../MentionTextarea";
+import RichText from "../../../RichText";
 
 const ShoutSchema = z.object({
-  message: z.string().min(1).max(1000),
+  message: z.string().max(1000),
 });
 
 const Link = styled(DefaultLink)`
@@ -54,6 +60,7 @@ interface ReplyModalProps {
   shout: {
     uri: string;
     message: string;
+    facets?: Mention[];
     user: {
       avatar: string;
       displayName: string;
@@ -70,6 +77,7 @@ function ReplyModal(props: ReplyModalProps) {
   const setShouts = useSetAtom(shoutsAtom);
   const { did, rkey } = useParams({ strict: false });
   const [loading, setLoading] = useState(false);
+  const [gif, setGif] = useState<MediaResult | null>(null);
 
   const { control, handleSubmit, reset, watch } = useForm<
     z.infer<typeof ShoutSchema>
@@ -83,14 +91,29 @@ function ReplyModal(props: ReplyModalProps) {
 
   const onClose = () => {
     reset();
+    setGif(null);
     close();
   };
 
   const onReply = async ({ message }: z.infer<typeof ShoutSchema>) => {
+    if (message.trim().length === 0 && !gif) {
+      return;
+    }
     setLoading(true);
-    await reply(shout.uri, message);
+    const gifEmbed = gif
+      ? {
+          url: gif.url,
+          previewUrl: gif.previewUrl,
+          alt: gif.alt,
+          width: gif.width,
+          height: gif.height,
+        }
+      : undefined;
+    const facets = message.trim() ? await resolveMentionFacets(message) : [];
+    await reply(shout.uri, message, gifEmbed, facets.length ? facets : undefined);
     setLoading(false);
     reset();
+    setGif(null);
     close();
 
     let uri = "";
@@ -134,6 +157,16 @@ function ReplyModal(props: ReplyModalProps) {
           liked: x.shouts.liked,
           reported: x.shouts.reported,
           likes: x.shouts.likes,
+          gif: x.shouts.gifUrl
+            ? {
+                url: x.shouts.gifUrl,
+                previewUrl: x.shouts.gifPreviewUrl,
+                alt: x.shouts.gifAlt,
+                width: x.shouts.gifWidth,
+                height: x.shouts.gifHeight,
+              }
+            : undefined,
+          facets: x.shouts.facets ?? undefined,
           user: {
             did: x.users.did,
             avatar: x.users.avatar,
@@ -194,7 +227,8 @@ function ReplyModal(props: ReplyModalProps) {
             onClick={handleSubmit(onReply)}
             shape={"pill"}
             disabled={
-              watch("message").length === 0 || watch("message").length > 1000
+              (watch("message").length === 0 && !gif) ||
+              watch("message").length > 1000
             }
             overrides={{
               BaseButton: {
@@ -255,7 +289,7 @@ function ReplyModal(props: ReplyModalProps) {
               </div>
             </Header>
             <Message className="!text-[var(--color-text)]">
-              {shout.message}
+              <RichText facets={shout.facets}>{shout.message}</RichText>
             </Message>
           </div>
         </div>
@@ -269,7 +303,9 @@ function ReplyModal(props: ReplyModalProps) {
             name="message"
             control={control}
             render={({ field }) => (
-              <Textarea
+              <MentionTextarea
+                value={field.value}
+                onChange={field.onChange}
                 resize="vertical"
                 overrides={{
                   Root: {
@@ -296,13 +332,64 @@ function ReplyModal(props: ReplyModalProps) {
                 autoFocus
                 maxLength={1000}
                 placeholder="Write your reply"
-                {...field}
               />
             )}
           />
         </div>
+
+        {gif && (
+          <div className="ml-[70px] mt-[10px] relative w-fit max-w-[220px] overflow-hidden rounded-[12px] border border-[var(--color-input-background)]">
+            {isVideoUrl(gif.url) ? (
+              <video
+                src={gif.url}
+                className="block w-full h-auto"
+                autoPlay
+                loop
+                muted
+                playsInline
+              />
+            ) : (
+              <img
+                src={gif.previewUrl ?? gif.url}
+                alt={gif.alt ?? ""}
+                className="block w-full h-auto"
+              />
+            )}
+            <button
+              type="button"
+              aria-label="Remove media"
+              onClick={() => setGif(null)}
+              className="absolute right-[6px] top-[6px] flex h-[24px] w-[24px] items-center justify-center rounded-full bg-black/60 text-white cursor-pointer border-none hover:bg-black/80"
+            >
+              <IconX size={14} />
+            </button>
+          </div>
+        )}
       </ModalBody>
-      <ModalFooter></ModalFooter>
+      <ModalFooter className="flex justify-start !mx-[16px]">
+        <StatefulPopover
+          placement={PLACEMENT.topLeft}
+          overrides={{ Body: { style: { zIndex: 3 } } }}
+          content={({ close: closePopover }) => (
+            <MediaPicker
+              onSelect={(m) => {
+                setGif(m);
+                closePopover();
+              }}
+              onClose={closePopover}
+            />
+          )}
+        >
+          <button
+            type="button"
+            aria-label="Add a GIF, sticker or clip"
+            className="flex items-center gap-[4px] rounded-full px-[10px] py-[5px] text-[13px] cursor-pointer border-none bg-transparent text-[var(--color-text-muted)] hover:bg-[var(--color-input-background)] hover:text-[var(--color-text)]"
+          >
+            <IconGif size={20} />
+            GIF
+          </button>
+        </StatefulPopover>
+      </ModalFooter>
     </Modal>
   );
 }

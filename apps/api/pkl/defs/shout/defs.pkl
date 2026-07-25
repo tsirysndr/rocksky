@@ -64,6 +64,81 @@ defs = new Mapping<String, ObjectType> {
         description = "The author of the shout."
         ref = "app.rocksky.shout.defs#author"
       }
+
+      ["gif"] = new Ref {
+        type = "ref"
+        description = "An attached GIF, sticker, or clip."
+        ref = "app.rocksky.shout.defs#gif"
+      }
+
+      ["facets"] = new Array {
+        type = "array"
+        description = "Mentions of other actors within the message, anchored to UTF-8 byte ranges."
+        items = new Ref {
+          type = "ref"
+          ref = "app.rocksky.shout.defs#mention"
+        }
+      }
+    }
+  }
+  ["mention"] {
+    type = "object"
+    description = "A mention of another actor within the shout message, anchored to a UTF-8 byte range in the message."
+    required = List("did", "byteStart", "byteEnd")
+    properties {
+      ["did"] = new StringType {
+        type = "string"
+        format = "did"
+        description = "The DID of the mentioned actor."
+      }
+
+      ["byteStart"] = new IntegerType {
+        type = "integer"
+        minimum = 0
+        description = "Inclusive UTF-8 byte offset of the mention start."
+      }
+
+      ["byteEnd"] = new IntegerType {
+        type = "integer"
+        minimum = 0
+        description = "Exclusive UTF-8 byte offset of the mention end."
+      }
+    }
+  }
+  ["gif"] {
+    type = "object"
+    description = "A GIF, sticker, or clip embedded in a shout. `url` may point at an image (GIF/WebP) or a video (MP4); the client decides how to render it from the file extension."
+    required = List("url")
+    properties {
+      ["url"] = new StringType {
+        type = "string"
+        format = "uri"
+        description = "Direct URL of the animated GIF/MP4."
+      }
+
+      ["previewUrl"] = new StringType {
+        type = "string"
+        format = "uri"
+        description = "Smaller still/preview image URL."
+      }
+
+      ["alt"] = new StringType {
+        type = "string"
+        maxLength = 512
+        description = "Alternative text describing the media."
+      }
+
+      ["width"] = new IntegerType {
+        type = "integer"
+        minimum = 0
+        description = "The intrinsic width of the media in pixels."
+      }
+
+      ["height"] = new IntegerType {
+        type = "integer"
+        minimum = 0
+        description = "The intrinsic height of the media in pixels."
+      }
     }
   }
 }

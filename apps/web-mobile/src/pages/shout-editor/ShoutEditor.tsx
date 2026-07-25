@@ -1,9 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { PLACEMENT, StatefulPopover } from "baseui/popover";
+import { IconGif, IconX } from "@tabler/icons-react";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { isVideoUrl, type MediaResult } from "../../api/klipy";
+import { resolveMentionFacets } from "../../lib/richtext";
 import { profileAtom } from "../../atoms/profile";
 import { shoutsAtom } from "../../atoms/shouts";
+import MediaPicker from "../../components/Shout/MediaPicker";
+import MentionTextarea from "../../components/Shout/MentionTextarea";
 import ShoutList from "../../components/Shout/ShoutList/ShoutList";
 import SignInModal from "../../components/SignInModal";
 import useShout from "../../hooks/useShout";
@@ -22,6 +28,7 @@ export default function ShoutEditor() {
   const setShouts = useSetAtom(shoutsAtom);
   const { shout: postShout, getShouts } = useShout();
   const [message, setMessage] = useState("");
+  const [gif, setGif] = useState<MediaResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
 
@@ -37,6 +44,16 @@ export default function ShoutEditor() {
           liked: x.shouts.liked,
           reported: x.shouts.reported,
           likes: x.shouts.likes,
+          gif: x.shouts.gifUrl
+            ? {
+                url: x.shouts.gifUrl,
+                previewUrl: x.shouts.gifPreviewUrl,
+                alt: x.shouts.gifAlt,
+                width: x.shouts.gifWidth,
+                height: x.shouts.gifHeight,
+              }
+            : undefined,
+          facets: x.shouts.facets ?? undefined,
           user: {
             did: x.users.did,
             avatar: x.users.avatar,
@@ -49,19 +66,30 @@ export default function ShoutEditor() {
   };
 
   const handleSubmit = async () => {
-    if (!message.trim() || !uri || loading) return;
+    if ((!message.trim() && !gif) || !uri || loading) return;
     setLoading(true);
+    const gifEmbed = gif
+      ? {
+          url: gif.url,
+          previewUrl: gif.previewUrl,
+          alt: gif.alt,
+          width: gif.width,
+          height: gif.height,
+        }
+      : undefined;
     try {
-      await postShout(uri, message);
+      const facets = message.trim() ? await resolveMentionFacets(message) : [];
+      await postShout(uri, message, gifEmbed, facets.length ? facets : undefined);
       const data = await getShouts(uri);
       setShouts({ ...shouts, [uri]: processShouts(data) });
       setMessage("");
+      setGif(null);
     } finally {
       setLoading(false);
     }
   };
 
-  const canPost = message.trim() && !loading;
+  const canPost = (message.trim() || gif) && !loading;
 
   return (
     <div className="min-h-screen bg-[var(--color-background)] pb-[calc(16px+env(safe-area-inset-bottom))]">
@@ -102,17 +130,96 @@ export default function ShoutEditor() {
         )}
         {profile && (
           <>
-            <textarea
+            <MentionTextarea
               value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              onChange={setMessage}
               placeholder={`@${profile.handle}, share your thoughts about this ${type}...`}
               maxLength={1000}
-              className="w-full min-h-[80px] resize-y rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3 text-sm font-[inherit] text-[var(--color-text)] outline-none"
+              resize="vertical"
+              overrides={{
+                Root: {
+                  style: {
+                    width: "100%",
+                    borderRadius: "12px",
+                    borderColor: "var(--color-border)",
+                    backgroundColor: "var(--color-surface-2)",
+                  },
+                },
+                InputContainer: {
+                  style: {
+                    backgroundColor: "var(--color-surface-2)",
+                  },
+                },
+                Input: {
+                  style: {
+                    minHeight: "80px",
+                    backgroundColor: "var(--color-surface-2)",
+                    color: "var(--color-text)",
+                    caretColor: "var(--color-text)",
+                    fontFamily: "inherit",
+                    fontSize: "14px",
+                  },
+                },
+              }}
             />
+
+            {gif && (
+              <div className="mt-[10px] relative w-fit max-w-[220px] overflow-hidden rounded-[12px] border border-[var(--color-input-background)]">
+                {isVideoUrl(gif.url) ? (
+                  <video
+                    src={gif.url}
+                    className="block h-auto w-full"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                  />
+                ) : (
+                  <img
+                    src={gif.previewUrl ?? gif.url}
+                    alt={gif.alt ?? ""}
+                    className="block h-auto w-full"
+                  />
+                )}
+                <button
+                  type="button"
+                  aria-label="Remove media"
+                  onClick={() => setGif(null)}
+                  className="absolute right-[6px] top-[6px] flex h-[24px] w-[24px] items-center justify-center rounded-full border-none bg-black/60 text-white cursor-pointer hover:bg-black/80"
+                >
+                  <IconX size={14} />
+                </button>
+              </div>
+            )}
+
             <div className="mt-2 flex items-center justify-between">
-              <span className="text-xs text-[var(--color-text-muted)]">
-                {message.length}/1000
-              </span>
+              <div className="flex items-center gap-3">
+                <StatefulPopover
+                  placement={PLACEMENT.topLeft}
+                  overrides={{ Body: { style: { zIndex: 60 } } }}
+                  content={({ close }) => (
+                    <MediaPicker
+                      onSelect={(m) => {
+                        setGif(m);
+                        close();
+                      }}
+                      onClose={close}
+                    />
+                  )}
+                >
+                  <button
+                    type="button"
+                    aria-label="Add a GIF, sticker or clip"
+                    className="flex items-center gap-[4px] rounded-full border-none bg-transparent px-[10px] py-[5px] text-[13px] text-[var(--color-text-muted)] cursor-pointer hover:bg-[var(--color-input-background)] hover:text-[var(--color-text)]"
+                  >
+                    <IconGif size={20} />
+                    GIF
+                  </button>
+                </StatefulPopover>
+                <span className="text-xs text-[var(--color-text-muted)]">
+                  {message.length}/1000
+                </span>
+              </div>
               <button
                 onClick={handleSubmit}
                 disabled={!canPost}

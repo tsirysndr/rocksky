@@ -32,6 +32,17 @@ import { dedupeTracksKeepLyrics } from "./utils";
 
 const app = new Hono();
 
+/** Shared media (gif/sticker/clip) + mention-facet columns selected alongside
+ * every shout row. */
+const shoutGifColumns = {
+  gifUrl: tables.shouts.gifUrl,
+  gifPreviewUrl: tables.shouts.gifPreviewUrl,
+  gifAlt: tables.shouts.gifAlt,
+  gifWidth: tables.shouts.gifWidth,
+  gifHeight: tables.shouts.gifHeight,
+  facets: tables.shouts.facets,
+};
+
 app.get("/:did/likes", async (c) => {
   requestCounter.add(1, { method: "GET", route: "/users/:did/likes" });
   const did = c.req.param("did");
@@ -1074,6 +1085,7 @@ app.get("/:did/app.rocksky.artist/:rkey/shouts", async (c) => {
         ? {
             id: tables.shouts.id,
             content: tables.shouts.content,
+            ...shoutGifColumns,
             createdAt: tables.shouts.createdAt,
             uri: tables.shouts.uri,
             parent: tables.shouts.parentId,
@@ -1089,6 +1101,7 @@ app.get("/:did/app.rocksky.artist/:rkey/shouts", async (c) => {
         : {
             id: tables.shouts.id,
             content: tables.shouts.content,
+            ...shoutGifColumns,
             createdAt: tables.shouts.createdAt,
             parent: tables.shouts.parentId,
             uri: tables.shouts.uri,
@@ -1157,6 +1170,7 @@ app.get("/:did/app.rocksky.album/:rkey/shouts", async (c) => {
         ? {
             id: tables.shouts.id,
             content: tables.shouts.content,
+            ...shoutGifColumns,
             createdAt: tables.shouts.createdAt,
             parent: tables.shouts.parentId,
             uri: tables.shouts.uri,
@@ -1172,6 +1186,7 @@ app.get("/:did/app.rocksky.album/:rkey/shouts", async (c) => {
         : {
             id: tables.shouts.id,
             content: tables.shouts.content,
+            ...shoutGifColumns,
             createdAt: tables.shouts.createdAt,
             parent: tables.shouts.parentId,
             uri: tables.shouts.uri,
@@ -1240,6 +1255,7 @@ app.get("/:did/app.rocksky.song/:rkey/shouts", async (c) => {
         ? {
             id: tables.shouts.id,
             content: tables.shouts.content,
+            ...shoutGifColumns,
             createdAt: tables.shouts.createdAt,
             uri: tables.shouts.uri,
             parent: tables.shouts.parentId,
@@ -1255,6 +1271,7 @@ app.get("/:did/app.rocksky.song/:rkey/shouts", async (c) => {
         : {
             id: tables.shouts.id,
             content: tables.shouts.content,
+            ...shoutGifColumns,
             createdAt: tables.shouts.createdAt,
             uri: tables.shouts.uri,
             parent: tables.shouts.parentId,
@@ -1323,6 +1340,7 @@ app.get("/:did/app.rocksky.scrobble/:rkey/shouts", async (c) => {
         ? {
             id: tables.shouts.id,
             content: tables.shouts.content,
+            ...shoutGifColumns,
             createdAt: tables.shouts.createdAt,
             uri: tables.shouts.uri,
             parent: tables.shouts.parentId,
@@ -1338,6 +1356,7 @@ app.get("/:did/app.rocksky.scrobble/:rkey/shouts", async (c) => {
         : {
             id: tables.shouts.id,
             content: tables.shouts.content,
+            ...shoutGifColumns,
             createdAt: tables.shouts.createdAt,
             uri: tables.shouts.uri,
             parent: tables.shouts.parentId,
@@ -1409,6 +1428,7 @@ app.get("/:did/shouts", async (c) => {
         ? {
             id: tables.shouts.id,
             content: tables.shouts.content,
+            ...shoutGifColumns,
             createdAt: tables.shouts.createdAt,
             uri: tables.shouts.uri,
             parent: tables.shouts.parentId,
@@ -1431,6 +1451,7 @@ app.get("/:did/shouts", async (c) => {
         : {
             id: tables.shouts.id,
             content: tables.shouts.content,
+            ...shoutGifColumns,
             createdAt: tables.shouts.createdAt,
             uri: tables.shouts.uri,
             parent: tables.shouts.parentId,

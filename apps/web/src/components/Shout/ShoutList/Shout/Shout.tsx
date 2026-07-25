@@ -11,8 +11,11 @@ import dayjs from "dayjs";
 import { useAtomValue } from "jotai";
 import { useState } from "react";
 import { profileAtom } from "../../../../atoms/profile";
+import { type GifEmbed, isVideoUrl } from "../../../../api/klipy";
+import type { Mention } from "../../../../lib/richtext";
 import useLike from "../../../../hooks/useLike";
 import useShout from "../../../../hooks/useShout";
+import RichText from "../../RichText";
 import HeartOutline from "../../../Icons/HeartOutline";
 import SignInModal from "../../../SignInModal";
 import DeleteShoutModal from "./DeleteShoutModal";
@@ -71,6 +74,22 @@ const Undo = styled.span`
   }
 `;
 
+const MediaEmbed = styled.div`
+  margin-top: 8px;
+  width: fit-content;
+  max-width: 260px;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid var(--color-input-background);
+
+  & > img,
+  & > video {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+`;
+
 interface ShoutProps {
   shout: {
     uri: string;
@@ -79,6 +98,8 @@ interface ShoutProps {
     liked: boolean;
     reported: boolean;
     likes: number;
+    gif?: GifEmbed;
+    facets?: Mention[];
     user: {
       did: string;
       avatar: string;
@@ -212,7 +233,31 @@ function Shout(props: ShoutProps) {
                 </StatefulTooltip>
               </div>
             </Header>
-            <Message>{shout.message}</Message>
+            {shout.message && (
+              <Message>
+                <RichText facets={shout.facets}>{shout.message}</RichText>
+              </Message>
+            )}
+
+            {shout.gif && (
+              <MediaEmbed>
+                {isVideoUrl(shout.gif.url) ? (
+                  <video
+                    src={shout.gif.url}
+                    poster={shout.gif.previewUrl}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                  />
+                ) : (
+                  <img
+                    src={shout.gif.previewUrl ?? shout.gif.url}
+                    alt={shout.gif.alt ?? ""}
+                  />
+                )}
+              </MediaEmbed>
+            )}
 
             <Actions>
               <ReplyButton onClick={onReply}>

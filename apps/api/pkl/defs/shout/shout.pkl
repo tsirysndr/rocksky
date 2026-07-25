@@ -9,12 +9,11 @@ defs = new Mapping<String, Record> {
     description = "A declaration of a shout."
     `record` {
       type = "object"
-      required = List("message", "createdAt", "subject")
+      required = List("createdAt", "subject")
       properties {
         ["message"] = new StringType {
           type = "string"
-          description = "The message of the shout."
-          minLength = 1
+          description = "The message of the shout. Optional when a gif/sticker/clip is attached."
           maxLength = 1000
         }
 
@@ -32,6 +31,21 @@ defs = new Mapping<String, Record> {
         ["subject"] = new Ref {
           type = "ref"
           ref = "com.atproto.repo.strongRef"
+        }
+
+        ["gif"] = new Ref {
+          type = "ref"
+          description = "An attached GIF, sticker, or clip (e.g. from KLIPY)."
+          ref = "app.rocksky.shout.defs#gif"
+        }
+
+        ["facets"] = new Array {
+          type = "array"
+          description = "Mentions of other actors within the message, anchored to UTF-8 byte ranges."
+          items = new Ref {
+            type = "ref"
+            ref = "app.rocksky.shout.defs#mention"
+          }
         }
       }
     }

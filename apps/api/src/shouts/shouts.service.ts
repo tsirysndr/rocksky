@@ -107,7 +107,9 @@ export async function createShout(
   const record = {
     $type: "app.rocksky.shout",
     subject: subjectRef.value,
-    message: shout.message,
+    ...(shout.message ? { message: shout.message } : {}),
+    ...(shout.gif ? { gif: shout.gif } : {}),
+    ...(shout.facets?.length ? { facets: shout.facets } : {}),
     createdAt: new Date().toISOString(),
   };
 
@@ -131,13 +133,19 @@ export async function createShout(
     const createdShout = await ctx.db
       .insert(shouts)
       .values({
-        content: shout.message,
+        content: shout.message ?? "",
         uri,
         authorId: user.id,
         albumId: album?.id,
         artistId: artist?.id,
         trackId: track?.id,
         scrobbleId: scrobble?.scrobble.id,
+        gifUrl: shout.gif?.url,
+        gifPreviewUrl: shout.gif?.previewUrl,
+        gifAlt: shout.gif?.alt,
+        gifWidth: shout.gif?.width,
+        gifHeight: shout.gif?.height,
+        facets: shout.facets?.length ? shout.facets : null,
       })
       .returning()
       .then((rows) => rows[0]);
@@ -265,7 +273,9 @@ export async function replyShout(
     $type: "app.rocksky.shout",
     subject: subjectRef.value,
     parent: parentRef.value,
-    message: reply.message,
+    ...(reply.message ? { message: reply.message } : {}),
+    ...(reply.gif ? { gif: reply.gif } : {}),
+    ...(reply.facets?.length ? { facets: reply.facets } : {}),
     createdAt: new Date().toISOString(),
   };
 
@@ -289,7 +299,7 @@ export async function replyShout(
     const createdShout = await ctx.db
       .insert(shouts)
       .values({
-        content: reply.message,
+        content: reply.message ?? "",
         uri,
         parentId: shout.shout.id,
         authorId: user.id,
@@ -297,6 +307,12 @@ export async function replyShout(
         albumId: shout.album?.id,
         artistId: shout.artist?.id,
         scrobbleId: shout.scrobble?.id,
+        gifUrl: reply.gif?.url,
+        gifPreviewUrl: reply.gif?.previewUrl,
+        gifAlt: reply.gif?.alt,
+        gifWidth: reply.gif?.width,
+        gifHeight: reply.gif?.height,
+        facets: reply.facets?.length ? reply.facets : null,
       })
       .returning()
       .then((rows) => rows[0]);
