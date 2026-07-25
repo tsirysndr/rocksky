@@ -58,6 +58,14 @@ export function mpdVolume(): number {
   return Math.max(0, Math.min(100, v));
 }
 
+// Coerce a millisecond position/duration into a finite, non-negative number.
+// Native status can transiently report NaN / negative / Infinity; emitting
+// those as `time`/`elapsed`/`duration` yields "NaN"/negative strings that rmpc
+// rejects, discarding the whole status. Clamp to keep the fields well-formed.
+export function finiteMs(v: number | undefined | null): number {
+  return typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : 0;
+}
+
 // The queue index MPD should treat as "current". While playing/paused it's the
 // engine's index; when stopped with a session restored on startup it's the
 // restored index — so a client that connects before the TUI hits play still
@@ -105,12 +113,19 @@ const statusHandler: Handler = () => {
     lines.push(kv("songid", idx));
     // Position/duration: live from the engine when playing/paused, else the
     // restored session's saved position so the client shows the resume point.
-    const posMs = restoredPaused
-      ? restored!.positionMs
-      : (st?.position_ms ?? 0);
-    const durMs = restoredPaused
-      ? item?.duration || 0
-      : st?.duration_ms || item?.duration || 0;
+    // Coerce through `finiteMs`: the native engine can momentarily hand back
+    // NaN / negative / Infinity for position or duration (end of track, seek,
+    // crossfade). `?? 0` does NOT catch NaN, so an unguarded value would emit
+    // `elapsed: NaN` / `time: NaN:213` — which rmpc treats as a malformed status
+    // and discards WHOLESALE, blanking every field (volume, state, elapsed) to
+    // 0 at once until the bad reading clears. Clamp so the fields stay
+    // well-formed, exactly as `mpdVolume()` does for the volume field.
+    const posMs = finiteMs(
+      restoredPaused ? restored!.positionMs : st?.position_ms,
+    );
+    const durMs = finiteMs(
+      restoredPaused ? item?.duration : (st?.duration_ms ?? item?.duration),
+    );
     if (state !== "stop") {
       const posSec = posMs / 1000;
       lines.push(
