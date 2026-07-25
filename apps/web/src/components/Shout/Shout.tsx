@@ -220,7 +220,21 @@ function Shout(props: ShoutProps) {
           <div className="mt-[15px] flex justify-between items-center">
             <StatefulPopover
               placement={PLACEMENT.bottomLeft}
-              overrides={{ Body: { style: { zIndex: 3 } } }}
+              overrides={{
+                Body: {
+                  style: {
+                    zIndex: 3,
+                    backgroundColor: "transparent",
+                    boxShadow: "none",
+                  },
+                },
+                Inner: {
+                  style: {
+                    backgroundColor: "transparent",
+                    borderRadius: "12px",
+                  },
+                },
+              }}
               content={({ close }) => (
                 <MediaPicker
                   onSelect={(m) => {
@@ -237,7 +251,6 @@ function Shout(props: ShoutProps) {
                 className="flex items-center gap-[4px] rounded-full px-[10px] py-[5px] text-[13px] cursor-pointer border-none bg-transparent text-[var(--color-text-muted)] hover:bg-[var(--color-input-background)] hover:text-[var(--color-text)]"
               >
                 <IconGif size={20} />
-                GIF
               </button>
             </StatefulPopover>
 

@@ -196,7 +196,21 @@ export default function ShoutEditor() {
               <div className="flex items-center gap-3">
                 <StatefulPopover
                   placement={PLACEMENT.topLeft}
-                  overrides={{ Body: { style: { zIndex: 60 } } }}
+                  overrides={{
+                    Body: {
+                      style: {
+                        zIndex: 60,
+                        backgroundColor: "transparent",
+                        boxShadow: "none",
+                      },
+                    },
+                    Inner: {
+                      style: {
+                        backgroundColor: "transparent",
+                        borderRadius: "12px",
+                      },
+                    },
+                  }}
                   content={({ close }) => (
                     <MediaPicker
                       onSelect={(m) => {
@@ -213,7 +227,6 @@ export default function ShoutEditor() {
                     className="flex items-center gap-[4px] rounded-full border-none bg-transparent px-[10px] py-[5px] text-[13px] text-[var(--color-text-muted)] cursor-pointer hover:bg-[var(--color-input-background)] hover:text-[var(--color-text)]"
                   >
                     <IconGif size={20} />
-                    GIF
                   </button>
                 </StatefulPopover>
                 <span className="text-xs text-[var(--color-text-muted)]">
