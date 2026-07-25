@@ -287,7 +287,20 @@ export async function startMpdServer(
   let last = snapshot();
   const poller = setInterval(() => {
     const s = snapshot();
-    if (s.state !== last.state || s.index !== last.index || s.curId !== last.curId)
+    const sameTrack = s.index === last.index && s.curId === last.curId;
+    // A large position jump on the same track means a seek — normal playback
+    // only advances ~0.5s between polls — so surface it as a player change.
+    // (Don't fire on ordinary per-second progression, or we'd force a resync
+    // every tick and make clients stutter.)
+    const seeked = sameTrack && Math.abs(s.posSec - last.posSec) > 2;
+    if (
+      s.state !== last.state ||
+      s.index !== last.index ||
+      s.curId !== last.curId ||
+      s.durSec !== last.durSec || // duration became known (0 -> total)
+      s.started !== last.started || // position began advancing / reset to 0
+      seeked
+    )
       bus.bump("player");
     if (s.vol !== last.vol) bus.bump("mixer");
     if (s.shuffle !== last.shuffle || s.repeat !== last.repeat)
@@ -320,6 +333,8 @@ function snapshot() {
   const st = playerController.status();
   const items = playerController.queueItems;
   const idx = st?.index ?? -1;
+  const posMs = st?.position_ms ?? 0;
+  const durMs = st?.duration_ms || items[idx]?.duration || 0;
   return {
     state: st?.state ?? "stopped",
     index: idx,
@@ -329,6 +344,17 @@ function snapshot() {
     repeat: playerController.repeat(),
     qlen: items.length,
     qsig: items.map((i) => i.uploadId || i.trackId || "").join("|"),
+    // Timing readiness. MPD clients seed their local elapsed-interpolation from
+    // one `status` read and only re-baseline on a `changed: player` event. When
+    // playback starts, the engine briefly reports `playing` with position 0 and
+    // no duration (codec still spinning up); a client that reads then latches
+    // 0:00 with no total and — absent another player event — never recovers.
+    // Track when timing becomes available (duration known, position advancing)
+    // and when the position jumps (a seek from another client) so the poller
+    // emits a player event that makes clients re-read and resync.
+    durSec: Number.isFinite(durMs) ? Math.round(durMs / 1000) : 0,
+    started: Number.isFinite(posMs) && posMs > 0,
+    posSec: Number.isFinite(posMs) ? Math.round(posMs / 1000) : 0,
   };
 }
 
