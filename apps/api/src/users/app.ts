@@ -43,6 +43,17 @@ const shoutGifColumns = {
   facets: tables.shouts.facets,
 };
 
+/** The same columns as `shoutGifColumns`, for spreading into a `groupBy()` —
+ * Postgres requires every non-aggregated selected column to appear here. */
+const shoutGifGroupBy = [
+  tables.shouts.gifUrl,
+  tables.shouts.gifPreviewUrl,
+  tables.shouts.gifAlt,
+  tables.shouts.gifWidth,
+  tables.shouts.gifHeight,
+  tables.shouts.facets,
+];
+
 app.get("/:did/likes", async (c) => {
   requestCounter.add(1, { method: "GET", route: "/users/:did/likes" });
   const did = c.req.param("did");
@@ -1129,6 +1140,7 @@ app.get("/:did/app.rocksky.artist/:rkey/shouts", async (c) => {
       tables.shouts.createdAt,
       tables.shouts.uri,
       tables.shouts.parentId,
+      ...shoutGifGroupBy,
       tables.users.id,
       tables.users.did,
       tables.users.handle,
@@ -1214,6 +1226,7 @@ app.get("/:did/app.rocksky.album/:rkey/shouts", async (c) => {
       tables.shouts.createdAt,
       tables.shouts.uri,
       tables.shouts.parentId,
+      ...shoutGifGroupBy,
       tables.users.id,
       tables.users.did,
       tables.users.handle,
@@ -1299,6 +1312,7 @@ app.get("/:did/app.rocksky.song/:rkey/shouts", async (c) => {
       tables.shouts.createdAt,
       tables.shouts.uri,
       tables.shouts.parentId,
+      ...shoutGifGroupBy,
       tables.users.id,
       tables.users.did,
       tables.users.handle,
@@ -1387,6 +1401,7 @@ app.get("/:did/app.rocksky.scrobble/:rkey/shouts", async (c) => {
       tables.shouts.createdAt,
       tables.shouts.uri,
       tables.shouts.parentId,
+      ...shoutGifGroupBy,
       tables.users.id,
       tables.users.did,
       tables.users.handle,
@@ -1485,6 +1500,7 @@ app.get("/:did/shouts", async (c) => {
       tables.shouts.content,
       tables.shouts.createdAt,
       tables.shouts.parentId,
+      ...shoutGifGroupBy,
       tables.users.id,
       tables.users.did,
       tables.users.handle,

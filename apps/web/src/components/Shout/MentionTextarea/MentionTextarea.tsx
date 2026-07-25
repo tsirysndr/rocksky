@@ -106,7 +106,12 @@ interface MentionTextareaProps extends Omit<TextareaProps, "onChange"> {
   onChange: (value: string) => void;
 }
 
-function MentionTextarea({ value, onChange, ...rest }: MentionTextareaProps) {
+function MentionTextarea({
+  value,
+  onChange,
+  overrides,
+  ...rest
+}: MentionTextareaProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [mention, setMention] = useState<{ start: number; query: string } | null>(
     null,
@@ -183,12 +188,22 @@ function MentionTextarea({ value, onChange, ...rest }: MentionTextareaProps) {
           onChange(e.currentTarget.value);
           syncMention(e.currentTarget.value, e.currentTarget.selectionStart ?? 0);
         }}
-        onClick={(e) =>
-          syncMention(
-            e.currentTarget.value,
-            e.currentTarget.selectionStart ?? 0,
-          )
-        }
+        overrides={{
+          ...overrides,
+          Input: {
+            ...overrides?.Input,
+            props: {
+              ...(overrides?.Input && "props" in overrides.Input
+                ? overrides.Input.props
+                : {}),
+              onClick: (e: React.MouseEvent<HTMLTextAreaElement>) =>
+                syncMention(
+                  e.currentTarget.value,
+                  e.currentTarget.selectionStart ?? 0,
+                ),
+            },
+          },
+        }}
         onKeyUp={(e) =>
           syncMention(
             e.currentTarget.value,
