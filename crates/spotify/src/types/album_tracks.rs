@@ -4,7 +4,7 @@ use super::currently_playing::{Artist, ExternalIds, ExternalUrls};
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct AlbumTracks {
-    pub href: String,
+    pub href: Option<String>,
     pub items: Vec<Track>,
     pub limit: u32,
     pub next: Option<String>,
@@ -23,7 +23,7 @@ pub struct Track {
     #[serde(default)]
     pub external_ids: Option<ExternalIds>,
     pub external_urls: Option<ExternalUrls>,
-    pub href: String,
+    pub href: Option<String>,
     pub id: String,
     pub name: String,
     pub preview_url: Option<String>,

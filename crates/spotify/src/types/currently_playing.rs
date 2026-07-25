@@ -46,7 +46,7 @@ pub struct Item {
     pub explicit: bool,
     pub external_ids: ExternalIds,
     pub external_urls: Option<ExternalUrls>,
-    pub href: String,
+    pub href: Option<String>,
     pub id: String,
     pub is_local: bool,
     pub name: String,
@@ -64,7 +64,7 @@ pub struct Album {
     pub artists: Vec<Artist>,
     pub available_markets: Vec<String>,
     pub external_urls: Option<ExternalUrls>,
-    pub href: String,
+    pub href: Option<String>,
     pub id: String,
     pub images: Vec<Image>,
     pub name: String,
@@ -88,7 +88,7 @@ pub struct Copyright {
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct Artist {
     pub external_urls: Option<ExternalUrls>,
-    pub href: String,
+    pub href: Option<String>,
     pub id: String,
     pub name: String,
     #[serde(rename = "type")]
