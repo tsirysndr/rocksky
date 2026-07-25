@@ -25,6 +25,7 @@ steps:
       echo 'VITE_PUBLIC_URL=https://rocksky.app' >> .env.prod
       echo 'VITE_ROCKBOX_URL=https://rockbox.rocksky.app' >> .env.prod
       echo 'VITE_PUBLIC_POSTHOG_KEY=phc_erMjlNEGNOSKX6dXBZne7k4PuUWqM4Bw4EuQxdcaSd5' >> .env.prod
+      echo "VITE_KLIPY_API_KEY=$KLIPY_API_KEY" >> .env.prod
       bun run build:prod
 
   - name: deploy to cloudflare

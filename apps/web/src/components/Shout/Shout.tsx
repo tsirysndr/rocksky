@@ -2,22 +2,27 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useParams } from "@tanstack/react-router";
 import { Button } from "baseui/button";
+import { StatefulPopover, PLACEMENT } from "baseui/popover";
 import { Spinner } from "baseui/spinner";
-import { Textarea } from "baseui/textarea";
 import { LabelLarge, LabelMedium } from "baseui/typography";
+import { IconGif, IconX } from "@tabler/icons-react";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import z from "zod";
+import { isVideoUrl, type MediaResult } from "../../api/klipy";
+import { resolveMentionFacets } from "../../lib/richtext";
 import { profileAtom } from "../../atoms/profile";
 import { shoutsAtom } from "../../atoms/shouts";
 import { userAtom } from "../../atoms/user";
 import useShout from "../../hooks/useShout";
+import MediaPicker from "./MediaPicker";
+import MentionTextarea from "./MentionTextarea";
 import SignInModal from "../SignInModal";
 import ShoutList from "./ShoutList";
 
 const ShoutSchema = z.object({
-  message: z.string().min(1).max(1000),
+  message: z.string().max(1000),
 });
 
 interface ShoutProps {
@@ -47,8 +52,12 @@ function Shout(props: ShoutProps) {
   const { did, rkey } = useParams({ strict: false });
   const location = window.location;
   const [loading, setLoading] = useState(false);
+  const [gif, setGif] = useState<MediaResult | null>(null);
 
   const onShout = async ({ message }: z.infer<typeof ShoutSchema>) => {
+    if (message.trim().length === 0 && !gif) {
+      return;
+    }
     setLoading(true);
     let uri = "";
 
@@ -72,7 +81,19 @@ function Shout(props: ShoutProps) {
       uri = `at://${did}/app.rocksky.scrobble/${rkey}`;
     }
 
-    await shout(uri, message);
+    const gifEmbed = gif
+      ? {
+          url: gif.url,
+          previewUrl: gif.previewUrl,
+          alt: gif.alt,
+          width: gif.width,
+          height: gif.height,
+        }
+      : undefined;
+
+    const facets = message.trim() ? await resolveMentionFacets(message) : [];
+
+    await shout(uri, message, gifEmbed, facets.length ? facets : undefined);
 
     const data = await getShouts(uri);
     setShouts({
@@ -81,7 +102,7 @@ function Shout(props: ShoutProps) {
     });
 
     setLoading(false);
-
+    setGif(null);
     reset();
   };
 
@@ -97,6 +118,16 @@ function Shout(props: ShoutProps) {
           liked: x.shouts.liked,
           reported: x.shouts.reported,
           likes: x.shouts.likes,
+          gif: x.shouts.gifUrl
+            ? {
+                url: x.shouts.gifUrl,
+                previewUrl: x.shouts.gifPreviewUrl,
+                alt: x.shouts.gifAlt,
+                width: x.shouts.gifWidth,
+                height: x.shouts.gifHeight,
+              }
+            : undefined,
+          facets: x.shouts.facets ?? undefined,
           user: {
             did: x.users.did,
             avatar: x.users.avatar,
@@ -121,8 +152,9 @@ function Shout(props: ShoutProps) {
             name="message"
             control={control}
             render={({ field }) => (
-              <Textarea
-                {...field}
+              <MentionTextarea
+                value={field.value}
+                onChange={field.onChange}
                 placeholder={
                   props.type === "profile"
                     ? `@${profile?.handle}, leave a shout for @${user?.handle} ...`
@@ -156,11 +188,63 @@ function Shout(props: ShoutProps) {
             )}
           />
 
-          <div className="mt-[15px] flex justify-end">
+          {gif && (
+            <div className="mt-[10px] relative w-fit max-w-[220px] overflow-hidden rounded-[12px] border border-[var(--color-input-background)]">
+              {isVideoUrl(gif.url) ? (
+                <video
+                  src={gif.url}
+                  className="block w-full h-auto"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                />
+              ) : (
+                <img
+                  src={gif.previewUrl ?? gif.url}
+                  alt={gif.alt ?? ""}
+                  className="block w-full h-auto"
+                />
+              )}
+              <button
+                type="button"
+                aria-label="Remove media"
+                onClick={() => setGif(null)}
+                className="absolute right-[6px] top-[6px] flex h-[24px] w-[24px] items-center justify-center rounded-full bg-black/60 text-white cursor-pointer border-none hover:bg-black/80"
+              >
+                <IconX size={14} />
+              </button>
+            </div>
+          )}
+
+          <div className="mt-[15px] flex justify-between items-center">
+            <StatefulPopover
+              placement={PLACEMENT.bottomLeft}
+              overrides={{ Body: { style: { zIndex: 3 } } }}
+              content={({ close }) => (
+                <MediaPicker
+                  onSelect={(m) => {
+                    setGif(m);
+                    close();
+                  }}
+                  onClose={close}
+                />
+              )}
+            >
+              <button
+                type="button"
+                aria-label="Add a GIF, sticker or clip"
+                className="flex items-center gap-[4px] rounded-full px-[10px] py-[5px] text-[13px] cursor-pointer border-none bg-transparent text-[var(--color-text-muted)] hover:bg-[var(--color-input-background)] hover:text-[var(--color-text)]"
+              >
+                <IconGif size={20} />
+                GIF
+              </button>
+            </StatefulPopover>
+
             {!loading && (
               <Button
                 disabled={
-                  watch("message").length === 0 ||
+                  (watch("message").length === 0 && !gif) ||
                   watch("message").length > 1000
                 }
                 onClick={handleSubmit(onShout)}

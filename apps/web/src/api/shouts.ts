@@ -1,10 +1,17 @@
 import axios from "axios";
+import type { GifEmbed } from "./klipy";
+import type { Mention } from "../lib/richtext";
 import { API_URL } from "../consts";
 
-export const shout = async (uri: string, message: string) => {
+export const shout = async (
+  uri: string,
+  message: string,
+  gif?: GifEmbed,
+  facets?: Mention[],
+) => {
   const response = await axios.post(
     `${API_URL}/users/${uri.replace("at://", "")}/shouts`,
-    { message },
+    { message, gif, facets },
     {
       headers: {
         "Content-Type": "application/json",
@@ -27,10 +34,15 @@ export const getShouts = async (uri: string) => {
   return response.data;
 };
 
-export const reply = async (uri: string, message: string) => {
+export const reply = async (
+  uri: string,
+  message: string,
+  gif?: GifEmbed,
+  facets?: Mention[],
+) => {
   const response = await axios.post(
     `${API_URL}/users/${uri.replace("at://", "")}/replies`,
-    { message },
+    { message, gif, facets },
     {
       headers: {
         "Content-Type": "application/json",

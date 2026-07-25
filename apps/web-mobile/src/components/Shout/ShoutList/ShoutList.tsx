@@ -78,6 +78,16 @@ function ShoutList({ uri: uriProp }: { uri?: string } = {}) {
           liked: x.shouts.liked,
           reported: x.shouts.reported,
           likes: x.shouts.likes,
+          gif: x.shouts.gifUrl
+            ? {
+                url: x.shouts.gifUrl,
+                previewUrl: x.shouts.gifPreviewUrl,
+                alt: x.shouts.gifAlt,
+                width: x.shouts.gifWidth,
+                height: x.shouts.gifHeight,
+              }
+            : undefined,
+          facets: x.shouts.facets ?? undefined,
           user: {
             did: x.users.did,
             avatar: x.users.avatar,

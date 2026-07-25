@@ -3,12 +3,15 @@ import dayjs from "dayjs";
 import { useAtomValue } from "jotai";
 import { useState } from "react";
 import { Link } from "react-router";
+import { type GifEmbed, isVideoUrl } from "../../../../api/klipy";
 import { profileAtom } from "../../../../atoms/profile";
 import Heart from "../../../Icons/Heart";
 import HeartOutline from "../../../Icons/HeartOutline";
 import SignInModal from "../../../SignInModal";
 import useLike from "../../../../hooks/useLike";
 import useShout from "../../../../hooks/useShout";
+import { type Mention } from "../../../../lib/richtext";
+import RichText from "../../RichText";
 import DeleteShoutModal from "./DeleteShoutModal";
 import ReplyModal from "./ReplyModal";
 
@@ -20,6 +23,8 @@ interface ShoutProps {
     liked: boolean;
     reported: boolean;
     likes: number;
+    gif?: GifEmbed;
+    facets?: Mention[];
     user: {
       did: string;
       avatar: string;
@@ -121,9 +126,34 @@ function Shout({ shout, refetch }: ShoutProps) {
         </div>
 
         {/* Message */}
-        <p className="mb-2.5 mt-0 text-sm leading-[1.55] text-[var(--color-text)]">
-          {shout.message}
-        </p>
+        {shout.message && (
+          <p className="mb-2.5 mt-0 text-sm leading-[1.55] text-[var(--color-text)]">
+            <RichText facets={shout.facets}>{shout.message}</RichText>
+          </p>
+        )}
+
+        {/* Media */}
+        {shout.gif && (
+          <div className="mb-2.5 w-fit max-w-[260px] overflow-hidden rounded-[12px] border border-[var(--color-input-background)]">
+            {isVideoUrl(shout.gif.url) ? (
+              <video
+                src={shout.gif.url}
+                poster={shout.gif.previewUrl}
+                className="block h-auto w-full"
+                autoPlay
+                loop
+                muted
+                playsInline
+              />
+            ) : (
+              <img
+                src={shout.gif.previewUrl ?? shout.gif.url}
+                alt={shout.gif.alt ?? ""}
+                className="block h-auto w-full"
+              />
+            )}
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex items-center gap-4">

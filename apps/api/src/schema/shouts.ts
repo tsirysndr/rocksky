@@ -1,5 +1,6 @@
 import { type InferInsertModel, type InferSelectModel, sql } from "drizzle-orm";
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { integer, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import type { Mention } from "../types/shout";
 import albums from "./albums";
 import scrobbles from "./scrobbles";
 import tracks from "./tracks";
@@ -17,6 +18,12 @@ const shouts = pgTable("shouts", {
     .references(() => users.id)
     .notNull(),
   parentId: text("parent_id").references(() => shouts.id),
+  gifUrl: text("gif_url"),
+  gifPreviewUrl: text("gif_preview_url"),
+  gifAlt: text("gif_alt"),
+  gifWidth: integer("gif_width"),
+  gifHeight: integer("gif_height"),
+  facets: jsonb("facets").$type<Mention[]>(),
   createdAt: timestamp("xata_createdat").defaultNow().notNull(),
   updatedAt: timestamp("xata_updatedat").defaultNow().notNull(),
 });

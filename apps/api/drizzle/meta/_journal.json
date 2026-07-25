@@ -99,6 +99,20 @@
 			"when": 1780700000000,
 			"tag": "0015_navidrome_playlists",
 			"breakpoints": true
+		},
+		{
+			"idx": 16,
+			"version": "7",
+			"when": 1780800000000,
+			"tag": "0016_shouts_gif",
+			"breakpoints": true
+		},
+		{
+			"idx": 17,
+			"version": "7",
+			"when": 1780800100000,
+			"tag": "0017_shouts_facets",
+			"breakpoints": true
 		}
 	]
 }
