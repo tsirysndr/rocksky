@@ -394,7 +394,9 @@ export class MpdDb {
     if (!url) return null;
 
     try {
-      const resp = await fetch(url);
+      // Bounded: each connection runs commands serially, so a hung CDN fetch
+      // here would freeze every later command (status, idle) on that client.
+      const resp = await fetch(url, { signal: AbortSignal.timeout(15_000) });
       if (!resp.ok) return null;
       const mime = resp.headers.get("content-type") || "image/jpeg";
       const data = Buffer.from(await resp.arrayBuffer());

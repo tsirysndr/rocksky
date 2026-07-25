@@ -178,7 +178,13 @@ export async function startMpdServer(
     if (!cmd) return;
     const name = cmd.toLowerCase();
     if (name === "idle") return startIdle(conn, args);
-    if (name === "noidle") return void write(conn, "OK\n");
+    // A `noidle` that arrives when no idle is active means the idle was already
+    // answered (a change event fired just as the client's cancel crossed it on
+    // the wire). Real MPD sends NOTHING here — one idle, one response. Writing
+    // an extra OK shifts every subsequent response by one, so the client parses
+    // `status` against the wrong reply and shows frozen time / stale metadata
+    // until it reconnects.
+    if (name === "noidle") return;
     if (name === "close") return void conn.socket.end();
     if (name === "kill")
       return void write(conn, ackLine(Ack.PERMISSION, 0, cmd, "kill not permitted"));
