@@ -160,6 +160,8 @@ export interface TrackView {
   source?: string;
   /** MusicBrainz recording ID, if available. */
   recordingMbId?: string;
+  /** The track's position within its album, if known (>= 1). */
+  trackNumber?: number;
   [k: string]: unknown;
 }
 

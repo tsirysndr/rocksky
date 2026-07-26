@@ -18,6 +18,7 @@ pub mod auth;
 pub mod cache;
 pub mod consts;
 pub mod crypto;
+pub mod deezer;
 pub mod events;
 pub mod handlers;
 pub mod musicbrainz;

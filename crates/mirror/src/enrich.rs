@@ -108,6 +108,29 @@ impl Enricher {
             Err(e) => warn!(error = %e, "enrich: Spotify lookup failed"),
         }
 
+        // 3. Deezer fallback — when Spotify missed (or the DB didn't provide
+        //    them), fill album_art / isrc / track metadata from Deezer.
+        if track.album_art.is_none()
+            || track.isrc.is_none()
+            || track.track_number.is_none()
+            || track.disc_number.is_none()
+            || track.duration == 0
+        {
+            match self.enrich_via_deezer(http, track).await {
+                Ok(true) => info!(
+                    title = %track.title,
+                    artist = %track.artist,
+                    "enrich: Deezer enrich hit"
+                ),
+                Ok(false) => info!(
+                    title = %track.title,
+                    artist = %track.artist,
+                    "enrich: Deezer enrich miss"
+                ),
+                Err(e) => warn!(error = %e, "enrich: Deezer lookup failed"),
+            }
+        }
+
         if track.lastfm_link.is_none() {
             match self.enrich_via_lastfm(http, track).await {
                 Ok(true) => info!(
@@ -229,6 +252,74 @@ impl Enricher {
         Ok(true)
     }
 
+    /// Query the Rocksky Deezer enrichment service (`DEEZER_URL`, default
+    /// `http://localhost:8090`) and fill any still-missing metadata. Deezer's
+    /// `durationMs` is already milliseconds, matching `NormalizedTrack`.
+    /// Best-effort: returns `Ok(false)` on no match, errors on transport
+    /// failures (the caller logs and swallows them).
+    async fn enrich_via_deezer(
+        &self,
+        http: &Client,
+        track: &mut NormalizedTrack,
+    ) -> Result<bool, Error> {
+        let base =
+            std::env::var("DEEZER_URL").unwrap_or_else(|_| "http://localhost:8090".to_string());
+        let url = format!("{}/enrich", base.trim_end_matches('/'));
+
+        let resp = http
+            .post(&url)
+            .json(&serde_json::json!({
+                "title": track.title,
+                "artist": track.artist,
+                "album": track.album,
+            }))
+            .timeout(Duration::from_secs(10))
+            .send()
+            .await
+            .context("deezer enrich request")?
+            .error_for_status()
+            .context("deezer enrich status")?
+            .json::<DeezerEnrichResponse>()
+            .await
+            .context("decode deezer enrich response")?;
+
+        let Some(d) = resp.track else {
+            return Ok(false);
+        };
+
+        let mut filled = 0;
+        if track.album_art.is_none() {
+            if let Some(a) = d.album_art.filter(|s| !s.is_empty()) {
+                track.album_art = Some(a);
+                filled += 1;
+            }
+        }
+        if track.isrc.is_none() {
+            if let Some(i) = d.isrc.filter(|s| !s.is_empty()) {
+                track.isrc = Some(i);
+                filled += 1;
+            }
+        }
+        if track.track_number.is_none() {
+            if let Some(n) = d.track_number {
+                track.track_number = Some(n);
+                filled += 1;
+            }
+        }
+        if track.disc_number.is_none() {
+            if let Some(n) = d.disc_number {
+                track.disc_number = Some(n);
+                filled += 1;
+            }
+        }
+        if track.duration == 0 && d.duration_ms > 0 {
+            track.duration = d.duration_ms;
+            filled += 1;
+        }
+
+        Ok(filled > 0)
+    }
+
     async fn enrich_via_lastfm(
         &self,
         http: &Client,
@@ -326,6 +417,22 @@ fn largest_lastfm_image(images: Option<Vec<LastfmImage>>) -> Option<String> {
 struct TokenResponse {
     access_token: String,
     expires_in: i64,
+}
+
+#[derive(Debug, Deserialize)]
+struct DeezerEnrichResponse {
+    track: Option<DeezerEnrichedTrack>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DeezerEnrichedTrack {
+    album_art: Option<String>,
+    isrc: Option<String>,
+    track_number: Option<i32>,
+    disc_number: Option<i32>,
+    #[serde(default)]
+    duration_ms: i64,
 }
 
 #[derive(Debug, Deserialize)]

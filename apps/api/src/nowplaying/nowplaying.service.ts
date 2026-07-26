@@ -12,6 +12,7 @@ import * as Scrobble from "lexicon/types/app/rocksky/scrobble";
 import * as Song from "lexicon/types/app/rocksky/song";
 import { deepSnakeCaseKeys, withFallbackAlbumArt } from "lib";
 import { decrypt } from "lib/crypto";
+import { enrichWithDeezer } from "lib/deezer";
 import { env } from "lib/env";
 import { bumpAllFeedVersions, bumpScrobblesVersion } from "lib/feedCache";
 import {
@@ -828,6 +829,48 @@ export async function scrobbleTrack(
         track.duration = spotifyDuration;
     }
     if (!track.duration || track.duration <= 0) track.duration = 1;
+  }
+
+  // Deezer fallback: when MusicBrainz/Spotify/the DB left metadata missing,
+  // fill every field Deezer can provide (album art, ISRC, genres, label,
+  // release date/year, track/disc number, artist picture, deezer link). This is
+  // the same fallback matchSong uses, so the live scrobble path no longer ends
+  // up with incomplete metadata when the other providers fail.
+  const needsDeezer =
+    !track.albumArt ||
+    !track.isrc ||
+    !track.genres?.length ||
+    !track.label ||
+    !track.releaseDate ||
+    !track.year ||
+    !track.trackNumber ||
+    !track.artistPicture ||
+    !track.deezerLink;
+  if (needsDeezer) {
+    const deezer = await enrichWithDeezer(
+      ctx,
+      track.title,
+      track.artist,
+      track.album,
+    );
+    const d = deezer?.track;
+    if (d) {
+      if (!track.albumArt && d.albumArt) track.albumArt = d.albumArt;
+      if (!track.isrc && d.isrc) track.isrc = d.isrc;
+      if ((!track.duration || track.duration <= 1) && d.durationMs > 0)
+        track.duration = d.durationMs;
+      if (!track.trackNumber && d.trackNumber)
+        track.trackNumber = d.trackNumber;
+      if (!track.discNumber && d.discNumber) track.discNumber = d.discNumber;
+      if (!track.label && d.label) track.label = d.label;
+      if (!track.releaseDate && d.releaseDate)
+        track.releaseDate = new Date(d.releaseDate);
+      if (!track.year && d.year) track.year = d.year;
+      if (!track.artistPicture && d.artistPicture)
+        track.artistPicture = d.artistPicture;
+      if (!track.genres?.length && d.genres?.length) track.genres = d.genres;
+      if (!track.deezerLink && d.deezerLink) track.deezerLink = d.deezerLink;
+    }
   }
 
   // Prefer the DB's album art over a null/missing client value so the

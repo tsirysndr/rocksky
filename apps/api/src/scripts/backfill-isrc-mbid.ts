@@ -32,6 +32,7 @@ import { consola } from "consola";
 import { ctx } from "context";
 import { and, eq, ilike, isNull, or, sql } from "drizzle-orm";
 import { decrypt } from "lib/crypto";
+import { enrichWithDeezer } from "lib/deezer";
 import { env } from "lib/env";
 import type { MusicbrainzTrack } from "types/track";
 import tables from "schema";
@@ -40,6 +41,8 @@ const PAGE_SIZE = Number(process.env.BACKFILL_PAGE_SIZE ?? 500);
 const CONCURRENCY = Number(process.env.BACKFILL_CONCURRENCY ?? 4);
 const SPOTIFY_DELAY_MS = Number(process.env.BACKFILL_SPOTIFY_DELAY ?? 250);
 const MB_DELAY_MS = Number(process.env.BACKFILL_MB_DELAY ?? 1100);
+// Deezer allows 50 req / 5s; 120ms between calls keeps us well within quota.
+const DEEZER_DELAY_MS = Number(process.env.BACKFILL_DEEZER_DELAY ?? 120);
 const LIMIT = process.env.BACKFILL_LIMIT
   ? Number(process.env.BACKFILL_LIMIT)
   : Number.POSITIVE_INFINITY;
@@ -456,6 +459,25 @@ async function processRow(row: Row): Promise<{ mb: boolean; isrc: boolean }> {
       consola.info(`[spo] · ${label} → no match`);
     }
     await sleep(SPOTIFY_DELAY_MS);
+
+    // Deezer fallback when Spotify couldn't supply an ISRC.
+    if (!updates.isrc) {
+      consola.info(`[dz]  → enrich ${label}`);
+      const deezer = await enrichWithDeezer(
+        ctx,
+        row.title,
+        row.artist,
+        row.album,
+      );
+      const dzIsrc = deezer?.track?.isrc;
+      if (dzIsrc) {
+        updates.isrc = dzIsrc;
+        consola.info(`[dz]  ✓ ${label} → ${chalk.green(dzIsrc)}`);
+      } else {
+        consola.info(`[dz]  · ${label} → no match`);
+      }
+      await sleep(DEEZER_DELAY_MS);
+    }
   }
 
   if (Object.keys(updates).length === 0) {

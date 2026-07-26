@@ -5,6 +5,7 @@ import { JSONCodec } from "nats";
 import { createHash } from "node:crypto";
 import { withFallbackAlbumArt } from "lib";
 import { createAgent } from "lib/agent";
+import { enrichWithDeezer } from "lib/deezer";
 import type * as Status from "lexicon/types/app/rocksky/actor/status";
 import type { TrackView } from "lexicon/types/app/rocksky/actor/defs";
 import tracks from "schema/tracks";
@@ -26,6 +27,10 @@ interface SongChangedPayload {
     albumCoverUrl?: string;
     recording_mb_id?: string;
     source?: string;
+    // Track position within its album, when the source provides it (either
+    // naming convention). Often absent or 0, in which case Deezer fills it.
+    track_number?: number;
+    trackNumber?: number;
   };
 }
 
@@ -39,6 +44,7 @@ async function resolveTrackInfo(
 ): Promise<{
   recordingMbId: string | undefined;
   albumArt: string | undefined;
+  trackNumber: number | undefined;
 }> {
   const name = raw.name ?? "";
   const artist = raw.artists?.[0]?.name ?? raw.artist ?? "";
@@ -50,16 +56,27 @@ async function resolveTrackInfo(
   // 1. Already provided in the payload (e.g. from ListenBrainz)
   let recordingMbId: string | undefined = raw.recording_mb_id;
   let albumArt: string | undefined;
+  // Only accept a positive track number from the payload; 0 / missing means
+  // "unknown" and should be resolved from the DB or Deezer below.
+  const payloadTrackNumber = raw.track_number ?? raw.trackNumber;
+  let trackNumber: number | undefined =
+    payloadTrackNumber && payloadTrackNumber > 0
+      ? payloadTrackNumber
+      : undefined;
 
-  if (!name || !artist) return { recordingMbId, albumArt };
+  if (!name || !artist) return { recordingMbId, albumArt, trackNumber };
 
-  // 2. Look up by sha256 in the local DB — fetch both mbId and albumArt
+  // 2. Look up by sha256 in the local DB — fetch mbId, albumArt, trackNumber
   const sha256 = createHash("sha256")
     .update(`${name} - ${artist} - ${album}`.toLowerCase())
     .digest("hex");
 
   const [track] = await ctx.db
-    .select({ mbId: tracks.mbId, albumArt: tracks.albumArt })
+    .select({
+      mbId: tracks.mbId,
+      albumArt: tracks.albumArt,
+      trackNumber: tracks.trackNumber,
+    })
     .from(tracks)
     .where(eq(tracks.sha256, sha256))
     .limit(1)
@@ -67,33 +84,59 @@ async function resolveTrackInfo(
 
   if (!recordingMbId && track?.mbId) recordingMbId = track.mbId;
   if (track?.albumArt) albumArt = track.albumArt;
+  if (!trackNumber && track?.trackNumber && track.trackNumber > 0)
+    trackNumber = track.trackNumber;
 
-  if (recordingMbId) return { recordingMbId, albumArt };
+  // 3. Fall back to MusicBrainz /hydrate for the recording MBID.
+  if (!recordingMbId) {
+    try {
+      const body: {
+        artist: { name: string }[];
+        name: string;
+        album?: string;
+      } = {
+        artist: artist.split(",").map((a) => ({ name: a.trim() })),
+        name,
+      };
+      if (album) body.album = album;
 
-  // 3. Fall back to MusicBrainz /hydrate
-  try {
-    const body: { artist: { name: string }[]; name: string; album?: string } = {
-      artist: artist.split(",").map((a) => ({ name: a.trim() })),
-      name,
-    };
-    if (album) body.album = album;
-
-    const { data } = await ctx.musicbrainz.post<{ trackMBID?: string }>(
-      "/hydrate",
-      body,
-    );
-
-    return { recordingMbId: data?.trackMBID ?? undefined, albumArt };
-  } catch (err) {
-    consola.warn("[status] MusicBrainz hydrate failed:", err);
-    return { recordingMbId, albumArt };
+      const { data } = await ctx.musicbrainz.post<{ trackMBID?: string }>(
+        "/hydrate",
+        body,
+      );
+      recordingMbId = data?.trackMBID ?? undefined;
+    } catch (err) {
+      consola.warn("[status] MusicBrainz hydrate failed:", err);
+    }
   }
+
+  // 4. Deezer fallback for album art and track number when neither the payload
+  //    nor the local DB provided them — keeps the now-playing status record
+  //    from falling back to the placeholder cover and gives it a real track
+  //    number (>0) when available.
+  if (!albumArt || !trackNumber) {
+    const deezer = await enrichWithDeezer(
+      ctx,
+      name,
+      artist,
+      album || undefined,
+    );
+    const d = deezer?.track;
+    if (d) {
+      if (!albumArt && d.albumArt) albumArt = d.albumArt;
+      if (!trackNumber && d.trackNumber && d.trackNumber > 0)
+        trackNumber = d.trackNumber;
+    }
+  }
+
+  return { recordingMbId, albumArt, trackNumber };
 }
 
 function normalizeTrack(
   raw: SongChangedPayload["track"],
   recordingMbId: string | undefined,
   dbAlbumArt?: string,
+  trackNumber?: number,
 ): TrackView {
   // Spotify emits: name, artists[], album.{name,cover}, duration_ms
   // ListenBrainz/websocket emits: name, artist, album (string), duration_ms, albumCoverUrl
@@ -118,6 +161,9 @@ function normalizeTrack(
     durationMs,
     source,
     recordingMbId,
+    // Only emit a track number when it's a valid position (>0); the lexicon
+    // requires minimum 1, so never publish 0.
+    ...(trackNumber && trackNumber > 0 ? { trackNumber } : {}),
   };
 }
 
@@ -220,17 +266,23 @@ export function onSongChanged(ctx: Context) {
           continue;
         }
 
-        const [agent, { recordingMbId, albumArt }] = await Promise.all([
-          createAgent(ctx.oauthClient, did),
-          resolveTrackInfo(ctx, rawTrack),
-        ]);
+        const [agent, { recordingMbId, albumArt, trackNumber }] =
+          await Promise.all([
+            createAgent(ctx.oauthClient, did),
+            resolveTrackInfo(ctx, rawTrack),
+          ]);
 
         if (!agent) {
           consola.warn(`[status] No agent for ${did}, skipping song.changed`);
           continue;
         }
 
-        const track = normalizeTrack(rawTrack, recordingMbId, albumArt);
+        const track = normalizeTrack(
+          rawTrack,
+          recordingMbId,
+          albumArt,
+          trackNumber,
+        );
         const startedAt = new Date().toISOString();
         const expiresAt = track.durationMs
           ? new Date(Date.now() + track.durationMs).toISOString()

@@ -2,6 +2,7 @@ use std::env;
 
 use crate::cache::Cache;
 use crate::crypto::decrypt_aes_256_ctr;
+use crate::deezer::client::DeezerClient;
 use crate::musicbrainz::client::MusicbrainzClient;
 use crate::musicbrainz::get_best_release_from_recordings;
 use crate::musicbrainz::recording::Recording;
@@ -160,7 +161,26 @@ pub async fn resolve_track(
         }
     }
 
-    // 4. MusicBrainz
+    // 4. Deezer — Spotify failed or returned no usable match; fall back to
+    // Deezer to fill the metadata before trying MusicBrainz.
+    match DeezerClient::from_env() {
+        Ok(deezer_client) => match deezer_client.enrich(track_name, artist, album).await {
+            Ok(resp) => {
+                if let Some(enriched) = resp.track {
+                    tracing::info!(%artist, %track_name, "Deezer (track)");
+                    return Ok(Some(enriched.into()));
+                }
+            }
+            Err(e) => {
+                tracing::warn!(%artist, %track_name, error = %e, "Deezer enrichment failed, continuing");
+            }
+        },
+        Err(e) => {
+            tracing::warn!(error = %e, "Failed to build Deezer client, continuing");
+        }
+    }
+
+    // 5. MusicBrainz
     let mb_query = format!(
         r#"recording:"{}" AND artist:"{}" AND status:Official"#,
         track_name, artist

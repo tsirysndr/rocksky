@@ -251,6 +251,12 @@ defs = new Mapping<String, ObjectType> {
         type = "string"
         description = "MusicBrainz recording ID, if available."
       }
+
+      ["trackNumber"] = new IntegerType {
+        type = "integer"
+        description = "The track's position within its album, if known (>= 1)."
+        minimum = 1
+      }
     }
   }
 }

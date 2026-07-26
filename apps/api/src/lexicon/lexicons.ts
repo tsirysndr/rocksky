@@ -227,6 +227,12 @@ export const schemaDict = {
             type: "string",
             description: "MusicBrainz recording ID, if available.",
           },
+          trackNumber: {
+            type: "integer",
+            description:
+              "The track's position within its album, if known (>= 1).",
+            minimum: 1,
+          },
         },
       },
     },
