@@ -6554,7 +6554,7 @@ dependencies = [
 
 [[package]]
 name = "rocksky-sdk"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "chrono",
  "cid",
