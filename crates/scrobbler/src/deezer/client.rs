@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 /// Default location of the Rocksky Deezer enrichment service (the `deezer/` Go
 /// microservice). Overridable via the `DEEZER_URL` environment variable.
-pub const DEFAULT_BASE_URL: &str = "http://localhost:8089";
+pub const DEFAULT_BASE_URL: &str = "http://localhost:8090";
 
 const REQUEST_TIMEOUT_SECS: u64 = 10;
 

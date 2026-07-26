@@ -38,9 +38,14 @@ func main() {
 	defer stop()
 
 	go func() {
-		port := os.Getenv("PORT")
+		// Prefer the service-specific DEEZER_PORT, falling back to PORT and
+		// finally the default.
+		port := os.Getenv("DEEZER_PORT")
 		if port == "" {
-			port = "8089"
+			port = os.Getenv("PORT")
+		}
+		if port == "" {
+			port = "8090"
 		}
 		if err := e.Start(fmt.Sprintf(":%s", port)); err != nil && err != http.ErrServerClosed {
 			e.Logger.Fatal(err)
