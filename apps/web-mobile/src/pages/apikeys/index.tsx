@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "@styled-icons/evaicons-solid";
+import { IconHelpCircle } from "@tabler/icons-react";
 import { Copy, Trash } from "@styled-icons/ionicons-outline";
 import { Button } from "baseui/button";
 import { Input } from "baseui/input";
@@ -229,6 +230,26 @@ export default function ApiKeysPage() {
           >
             New API Key
           </Button>
+        </div>
+
+        <div
+          className="flex items-center gap-2 mb-5 text-sm"
+          style={{ color: "var(--color-text-muted)" }}
+        >
+          <IconHelpCircle size={16} className="shrink-0" />
+          <span>
+            Need help using your API Application keys?{" "}
+            <a
+              href="https://docs.rocksky.app/integrations"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold no-underline"
+              style={{ color: "var(--color-primary)" }}
+            >
+              Read the integrations guide
+            </a>
+            .
+          </span>
         </div>
 
         {apiKeys.data?.length === 0 && (

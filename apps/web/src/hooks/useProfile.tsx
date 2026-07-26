@@ -93,6 +93,12 @@ function useProfile(token?: string | null) {
         window.location.href = "/";
         return;
       }
+      // Keep the logged-in DID in localStorage so own-profile detection
+      // (follow button, onboarding, welcome banner) is reliable and synchronous
+      // across the layout remounts that happen on every navigation.
+      if (profile.did) {
+        localStorage.setItem("did", profile.did);
+      }
       setProfile({
         avatar: profile.avatar,
         displayName: profile.displayName,

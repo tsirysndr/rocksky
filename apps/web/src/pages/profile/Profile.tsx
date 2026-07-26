@@ -5,13 +5,18 @@ import { Avatar } from "baseui/avatar";
 import { Tab, Tabs } from "baseui/tabs-motion";
 import { HeadingMedium, LabelLarge } from "baseui/typography";
 import dayjs from "dayjs";
-import { useAtom, useSetAtom } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import _ from "lodash";
 import { useEffect, useMemo, useState } from "react";
 import { profilesAtom } from "../../atoms/profiles";
+import { profileAtom } from "../../atoms/profile";
 import { userAtom } from "../../atoms/user";
 import Shout from "../../components/Shout/Shout";
-import { useProfileByDidQuery } from "../../hooks/useProfile";
+import {
+  useProfileByDidQuery,
+  useProfileStatsByDidQuery,
+} from "../../hooks/useProfile";
+import { NewUserGuide, OnboardingModal } from "../../components/Onboarding";
 import Main from "../../layouts/Main";
 import Library from "./library";
 import LovedTracks from "./lovedtracks";
@@ -58,6 +63,7 @@ export type ProfileProps = {
 function Profile(props: ProfileProps) {
   const [follows, setFollows] = useAtom(followsAtom);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [profiles, setProfiles] = useAtom(profilesAtom);
   const [activeKey, setActiveKey] = useAtom(activeTabAtom);
   const { did } = useParams({ strict: false });
@@ -69,6 +75,20 @@ function Profile(props: ProfileProps) {
   const { mutate: followAccount } = useFollowAccountMutation();
   const { mutate: unfollowAccount } = useUnfollowAccountMutation();
   const currentDid = localStorage.getItem("did");
+  const loggedInProfile = useAtomValue(profileAtom);
+  const profileStats = useProfileStatsByDidQuery(did!);
+  // "My own profile" — match against the stored did OR the logged-in profile
+  // (did/handle), since localStorage "did" is not always set for a session.
+  const isOwnProfile =
+    !!profile.data?.did &&
+    (profile.data.did === currentDid ||
+      profile.data.did === loggedInProfile?.did ||
+      (!!loggedInProfile?.handle &&
+        profile.data.handle === loggedInProfile.handle));
+  const isNewUser =
+    isOwnProfile &&
+    profileStats.data !== undefined &&
+    (profileStats.data?.scrobbles ?? 0) === 0;
   const { data, isLoading } = useFollowersQuery(
     profile.data?.did,
     1,
@@ -162,6 +182,20 @@ function Profile(props: ProfileProps) {
 
     setActiveKey(1);
   }, [tab, setActiveKey]);
+
+  // Auto-open the onboarding modal once for a brand-new user (empty profile).
+  const ownerId = currentDid || loggedInProfile?.did || profile.data?.did;
+  useEffect(() => {
+    if (!isNewUser || !ownerId) {
+      return;
+    }
+    const seenKey = `rocksky:onboarding-seen:${ownerId}`;
+    if (localStorage.getItem(seenKey)) {
+      return;
+    }
+    setIsOnboardingOpen(true);
+    localStorage.setItem(seenKey, "1");
+  }, [isNewUser, ownerId]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: <reason>want to run only on profile.data changes</reason>
   useEffect(() => {
@@ -284,8 +318,7 @@ function Profile(props: ProfileProps) {
                   </div>
                 </div>
               </ProfileInfo>
-              {(profile.data?.did !== localStorage.getItem("did") ||
-                !localStorage.getItem("did")) && (
+              {!isOwnProfile && (
                 <>
                   {!follows.has(profile.data?.did || "") && !isLoading && (
                     <Button
@@ -361,125 +394,143 @@ function Profile(props: ProfileProps) {
           </div>
         </div>
 
-        <Tabs
-          activeKey={activeKey}
-          onChange={({ activeKey }) => {
-            setActiveKey(activeKey);
-          }}
-          overrides={{
-            TabHighlight: {
-              style: {
-                backgroundColor: "var(--color-purple)",
-              },
-            },
-            TabBorder: {
-              style: {
-                display: "none",
-              },
-            },
-          }}
-          activateOnFocus
-        >
-          <Tab
-            title="Overview"
-            overrides={{
-              Tab: {
-                style: {
-                  color: "var(--color-text)",
-                  backgroundColor: "var(--color-background) !important",
+        {isNewUser ? (
+          <NewUserGuide
+            displayName={
+              profiles[did]?.displayName || profile.data?.displayName
+            }
+            onShowSteps={() => setIsOnboardingOpen(true)}
+          />
+        ) : (
+          <>
+            <Tabs
+              activeKey={activeKey}
+              onChange={({ activeKey }) => {
+                setActiveKey(activeKey);
+              }}
+              overrides={{
+                TabHighlight: {
+                  style: {
+                    backgroundColor: "var(--color-purple)",
+                  },
                 },
-              },
-            }}
-          >
-            <Overview />
-          </Tab>
-          <Tab
-            title="Library"
-            overrides={{
-              Tab: {
-                style: {
-                  color: "var(--color-text)",
-                  backgroundColor: "var(--color-background) !important",
+                TabBorder: {
+                  style: {
+                    display: "none",
+                  },
                 },
-              },
-            }}
-          >
-            <Library
-              activeKey={_.get(props, "activeKey", "0").split("/")[1] || "0"}
-            />
-          </Tab>
-          <Tab
-            title="Followers"
-            overrides={{
-              Tab: {
-                style: {
-                  color: "var(--color-text)",
-                  backgroundColor: "var(--color-background) !important",
-                },
-              },
-            }}
-          >
-            <Followers />
-          </Tab>
-          <Tab
-            title="Following"
-            overrides={{
-              Tab: {
-                style: {
-                  color: "var(--color-text)",
-                  backgroundColor: "var(--color-background) !important",
-                },
-              },
-            }}
-          >
-            <Follows />
-          </Tab>
-          <Tab
-            title="Circles"
-            overrides={{
-              Tab: {
-                style: {
-                  color: "var(--color-text)",
-                  backgroundColor: "var(--color-background) !important",
-                },
-              },
-            }}
-          >
-            <Circles />
-          </Tab>
-          <Tab
-            title="Loved Tracks"
-            overrides={{
-              Tab: {
-                style: {
-                  color: "var(--color-text)",
-                  backgroundColor: "var(--color-background) !important",
-                },
-              },
-            }}
-          >
-            <LovedTracks />
-          </Tab>
-          <Tab
-            title="Playlists"
-            overrides={{
-              Tab: {
-                style: {
-                  color: "var(--color-text)",
-                  backgroundColor: "var(--color-background) !important",
-                },
-              },
-            }}
-          >
-            <Playlists />
-          </Tab>
-        </Tabs>
-        <Shout type="profile" />
+              }}
+              activateOnFocus
+            >
+              <Tab
+                title="Overview"
+                overrides={{
+                  Tab: {
+                    style: {
+                      color: "var(--color-text)",
+                      backgroundColor: "var(--color-background) !important",
+                    },
+                  },
+                }}
+              >
+                <Overview />
+              </Tab>
+              <Tab
+                title="Library"
+                overrides={{
+                  Tab: {
+                    style: {
+                      color: "var(--color-text)",
+                      backgroundColor: "var(--color-background) !important",
+                    },
+                  },
+                }}
+              >
+                <Library
+                  activeKey={
+                    _.get(props, "activeKey", "0").split("/")[1] || "0"
+                  }
+                />
+              </Tab>
+              <Tab
+                title="Followers"
+                overrides={{
+                  Tab: {
+                    style: {
+                      color: "var(--color-text)",
+                      backgroundColor: "var(--color-background) !important",
+                    },
+                  },
+                }}
+              >
+                <Followers />
+              </Tab>
+              <Tab
+                title="Following"
+                overrides={{
+                  Tab: {
+                    style: {
+                      color: "var(--color-text)",
+                      backgroundColor: "var(--color-background) !important",
+                    },
+                  },
+                }}
+              >
+                <Follows />
+              </Tab>
+              <Tab
+                title="Circles"
+                overrides={{
+                  Tab: {
+                    style: {
+                      color: "var(--color-text)",
+                      backgroundColor: "var(--color-background) !important",
+                    },
+                  },
+                }}
+              >
+                <Circles />
+              </Tab>
+              <Tab
+                title="Loved Tracks"
+                overrides={{
+                  Tab: {
+                    style: {
+                      color: "var(--color-text)",
+                      backgroundColor: "var(--color-background) !important",
+                    },
+                  },
+                }}
+              >
+                <LovedTracks />
+              </Tab>
+              <Tab
+                title="Playlists"
+                overrides={{
+                  Tab: {
+                    style: {
+                      color: "var(--color-text)",
+                      backgroundColor: "var(--color-background) !important",
+                    },
+                  },
+                }}
+              >
+                <Playlists />
+              </Tab>
+            </Tabs>
+            <Shout type="profile" />
+          </>
+        )}
       </div>
       <SignInModal
         isOpen={isSignInOpen}
         onClose={() => setIsSignInOpen(false)}
         follow
+      />
+      <OnboardingModal
+        isOpen={isOnboardingOpen}
+        onClose={() => setIsOnboardingOpen(false)}
+        displayName={profiles[did]?.displayName || profile.data?.displayName}
       />
     </Main>
   );

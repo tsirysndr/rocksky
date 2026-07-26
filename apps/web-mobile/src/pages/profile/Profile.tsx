@@ -8,11 +8,12 @@ import { Avatar } from "baseui/avatar";
 import ContentLoader from "react-content-loader";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import numeral from "numeral";
 import { followsAtom } from "../../atoms/follows";
+import { profileAtom } from "../../atoms/profile";
 import Main from "../../layouts/Main";
 import {
   useFollowAccountMutation,
@@ -36,6 +37,7 @@ import {
 } from "../../hooks/useLibrary";
 import ShareOnBluesky from "../../components/ShareOnBluesky";
 import FloatingShoutBar from "../../components/FloatingShoutBar";
+import { NewUserGuide, OnboardingSheet } from "../../components/Onboarding";
 import { ALL_TIME, LAST_7_DAYS, RANGE_LABELS, RANGE_OPTIONS } from "../../consts";
 import { getLastDays } from "../../lib/date";
 
@@ -929,8 +931,10 @@ const TABS = ["Overview", "Library", "Followers", "Following", "Circles", "Loved
 export default function Profile() {
   const { did } = useParams<{ did: string }>();
   const [activeTab, setActiveTab] = useState(0);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [follows, setFollows] = useAtom(followsAtom);
   const currentDid = localStorage.getItem("did");
+  const loggedInProfile = useAtomValue(profileAtom);
 
   const { data: profile, isLoading } = useProfileByDidQuery(did!);
   const { data: stats } = useProfileStatsByDidQuery(did);
@@ -967,8 +971,26 @@ export default function Profile() {
   const { mutate: followAccount } = useFollowAccountMutation();
   const { mutate: unfollowAccount } = useUnfollowAccountMutation();
 
-  const isOwnProfile = profile?.did === currentDid;
+  // "My own profile" — match against the stored did OR the logged-in profile
+  // (did/handle), since localStorage "did" is not always set for a session.
+  const isOwnProfile =
+    !!profile?.did &&
+    (profile.did === currentDid ||
+      profile.did === loggedInProfile?.did ||
+      (!!loggedInProfile?.handle && profile.handle === loggedInProfile.handle));
   const isFollowing = follows.has(profile?.did || "");
+  const isNewUser =
+    isOwnProfile && stats !== undefined && (stats?.scrobbles ?? 0) === 0;
+
+  // Auto-open the onboarding sheet once for a brand-new user (empty profile).
+  const ownerId = currentDid || loggedInProfile?.did || profile?.did;
+  useEffect(() => {
+    if (!isNewUser || !ownerId) return;
+    const seenKey = `rocksky:onboarding-seen:${ownerId}`;
+    if (localStorage.getItem(seenKey)) return;
+    setOnboardingOpen(true);
+    localStorage.setItem(seenKey, "1");
+  }, [isNewUser, ownerId]);
 
   const onFollow = () => {
     if (!profile) return;
@@ -1066,40 +1088,57 @@ export default function Profile() {
           )}
         </div>
 
-        {/* Tabs */}
-        <div className="flex overflow-x-auto border-b" style={{ borderColor: "var(--color-border)", scrollbarWidth: "none" }}>
-          {TABS.map((tab, i) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(i)}
-              className="px-4 py-3 text-sm font-medium whitespace-nowrap border-none bg-transparent cursor-pointer shrink-0"
-              style={{
-                color: activeTab === i ? "var(--color-primary)" : "var(--color-text-muted)",
-                borderBottom: activeTab === i ? "2px solid var(--color-primary)" : "2px solid transparent",
-              }}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
+        {isNewUser ? (
+          /* New user: guided onboarding instead of empty tabs */
+          <div className="px-4 pt-4" style={{ paddingBottom: "calc(24px + 56px + env(safe-area-inset-bottom))" }}>
+            <NewUserGuide
+              displayName={profile?.displayName}
+              onShowSteps={() => setOnboardingOpen(true)}
+            />
+          </div>
+        ) : (
+          <>
+            {/* Tabs */}
+            <div className="flex overflow-x-auto border-b" style={{ borderColor: "var(--color-border)", scrollbarWidth: "none" }}>
+              {TABS.map((tab, i) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(i)}
+                  className="px-4 py-3 text-sm font-medium whitespace-nowrap border-none bg-transparent cursor-pointer shrink-0"
+                  style={{
+                    color: activeTab === i ? "var(--color-primary)" : "var(--color-text-muted)",
+                    borderBottom: activeTab === i ? "2px solid var(--color-primary)" : "2px solid transparent",
+                  }}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
 
-        {/* Tab content */}
-        <div className="px-4 pt-4" style={{ paddingBottom: "calc(24px + 56px + env(safe-area-inset-bottom))" }}>
-          {(() => {
-            const resolvedDid = profile?.did || did!;
-            return (
-              <>
-                {activeTab === 0 && <OverviewTab did={resolvedDid} />}
-                {activeTab === 1 && <LibraryTab did={resolvedDid} />}
-                {activeTab === 2 && <FollowersTab did={resolvedDid} />}
-                {activeTab === 3 && <FollowingTab did={resolvedDid} />}
-                {activeTab === 4 && <CirclesTab did={resolvedDid} handle={profile?.handle || ""} />}
-                {activeTab === 5 && <LovedTracksTab did={resolvedDid} />}
-              </>
-            );
-          })()}
-        </div>
+            {/* Tab content */}
+            <div className="px-4 pt-4" style={{ paddingBottom: "calc(24px + 56px + env(safe-area-inset-bottom))" }}>
+              {(() => {
+                const resolvedDid = profile?.did || did!;
+                return (
+                  <>
+                    {activeTab === 0 && <OverviewTab did={resolvedDid} />}
+                    {activeTab === 1 && <LibraryTab did={resolvedDid} />}
+                    {activeTab === 2 && <FollowersTab did={resolvedDid} />}
+                    {activeTab === 3 && <FollowingTab did={resolvedDid} />}
+                    {activeTab === 4 && <CirclesTab did={resolvedDid} handle={profile?.handle || ""} />}
+                    {activeTab === 5 && <LovedTracksTab did={resolvedDid} />}
+                  </>
+                );
+              })()}
+            </div>
+          </>
+        )}
       </div>
+      <OnboardingSheet
+        isOpen={onboardingOpen}
+        onClose={() => setOnboardingOpen(false)}
+        displayName={profile?.displayName}
+      />
       <FloatingShoutBar
         uri={`at://${profile?.did || did}`}
         type="profile"
