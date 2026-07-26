@@ -16,7 +16,40 @@ const VERB: Record<string, string> = {
   comment_profile: "commented on your profile",
   reply: "replied to your comment",
   react_comment: "reacted to your comment",
+  mention: "mentioned you",
 };
+
+/**
+ * Where a notification navigates. Shouts render inline on their subject page,
+ * so we turn the subject at-uri into that page's path and, when a shout is
+ * involved, tack on a `#shout-<id>` hash that ShoutList scrolls to. Falls back
+ * to the actor's profile for subject-less notifications (e.g. follows).
+ */
+const CONTENT_COLLECTIONS = new Set([
+  "app.rocksky.scrobble",
+  "app.rocksky.song",
+  "app.rocksky.album",
+  "app.rocksky.artist",
+]);
+
+function notificationTarget(n: NotificationView): string {
+  const actor = n.actor;
+  const [did, collection, rkey] = (n.subjectUri?.split("at://")[1] ?? "").split(
+    "/",
+  );
+  let path: string;
+  if (did && collection && CONTENT_COLLECTIONS.has(collection) && rkey) {
+    // "<did>/app.rocksky.<collection>/<rkey>" -> "/<did>/<collection>/<rkey>"
+    path = `/${did}/${collection.replace("app.rocksky.", "")}/${rkey}`;
+  } else if (did) {
+    // Profile subject ("at://<did>" or ".../app.bsky.actor.profile/self").
+    path = `/profile/${did}`;
+  } else {
+    // Subject-less (e.g. follow) — fall back to the actor's profile.
+    path = `/profile/${actor?.handle ?? actor?.did ?? ""}`;
+  }
+  return n.shoutId ? `${path}#shout-${n.shoutId}` : path;
+}
 
 const timeAgo = (iso: string): string => {
   const seconds = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
@@ -38,7 +71,7 @@ function NotificationRow({ notification }: { notification: NotificationView }) {
 
   return (
     <Link
-      to={`/profile/${actor?.handle ?? actor?.did ?? ""}`}
+      to={notificationTarget(notification)}
       className="flex items-start gap-3 px-4 py-3 no-underline"
       style={{ borderBottom: "1px solid var(--color-border)" }}
     >

@@ -2,7 +2,7 @@ import { type Agent, AtpAgent } from "@atproto/api";
 import { consola } from "consola";
 import { TID } from "@atproto/common";
 import type { Context } from "context";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import * as LikeLexicon from "lexicon/types/app/rocksky/like";
 import * as ShoutLexicon from "lexicon/types/app/rocksky/shout";
 import { validateMain } from "lexicon/types/com/atproto/repo/strongRef";
@@ -17,6 +17,47 @@ import shoutLikes from "../schema/shout-likes";
 import shouts from "../schema/shouts";
 import tracks, { type SelectTrack } from "../schema/tracks";
 import users, { type SelectUser } from "../schema/users";
+
+/**
+ * Notify every user @-mentioned in a shout's facets. Facets carry pre-resolved
+ * DIDs, so we only need to map each DID to its internal users.id. Recipients in
+ * `skipUserIds` are omitted so someone who is both mentioned and, say, the
+ * subject owner or parent-comment author isn't notified twice for one shout.
+ * Self-mentions are dropped by createNotification (actorId === userId).
+ */
+async function notifyMentions(
+  ctx: Context,
+  facets: Shout["facets"],
+  actorId: string,
+  shoutId: string,
+  subjectUri: string,
+  skipUserIds: Array<string | null | undefined> = [],
+) {
+  const dids = [...new Set((facets ?? []).map((f) => f.did))];
+  if (!dids.length) {
+    return;
+  }
+
+  const mentioned = await ctx.db
+    .select({ id: users.id })
+    .from(users)
+    .where(inArray(users.did, dids));
+
+  const skip = new Set(skipUserIds.filter(Boolean));
+
+  for (const m of mentioned) {
+    if (skip.has(m.id)) {
+      continue;
+    }
+    await createNotification(ctx, {
+      userId: m.id,
+      actorId,
+      type: "mention",
+      shoutId,
+      subjectUri,
+    });
+  }
+}
 
 export async function createShout(
   ctx: Context,
@@ -178,6 +219,23 @@ export async function createShout(
         subjectUri: `at://${profile.did}`,
       });
     }
+
+    // Notify anyone @-mentioned in the shout body. Skip the subject owner,
+    // who already got a comment_scrobble/comment_profile notification above.
+    const mentionSubjectUri =
+      scrobble?.scrobble.uri ||
+      track?.uri ||
+      album?.uri ||
+      artist?.uri ||
+      (profile ? `at://${profile.did}` : createdShout.uri);
+    await notifyMentions(
+      ctx,
+      shout.facets,
+      user.id,
+      createdShout.id,
+      mentionSubjectUri,
+      [scrobble?.scrobble.userId, profile?.id],
+    );
   } catch (e) {
     consola.error(`Error creating shout record: ${e.message}`);
   }
@@ -353,14 +411,27 @@ export async function replyShout(
       });
     }
 
-    // Notify the author of the parent comment that someone replied.
+    // Notify the author of the parent comment that someone replied. Deep-link
+    // to the underlying subject page (where the thread renders inline), not the
+    // parent shout's at-uri which has no page of its own.
     await createNotification(ctx, {
       userId: shout.shout.authorId,
       actorId: user.id,
       type: "reply",
       shoutId: createdShout.id,
-      subjectUri: shout.shout.uri,
+      subjectUri,
     });
+
+    // Notify anyone @-mentioned in the reply body. Skip the parent-comment
+    // author, who already got a reply notification above.
+    await notifyMentions(
+      ctx,
+      reply.facets,
+      user.id,
+      createdShout.id,
+      subjectUri,
+      [shout.shout.authorId],
+    );
   } catch (e) {
     consola.error(`Error creating reply record: ${e.message}`);
   }

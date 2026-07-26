@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useParams, useRouter } from "@tanstack/react-router";
+import { useParams, useRouter, useRouterState } from "@tanstack/react-router";
 import { useAtomValue, useSetAtom } from "jotai";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { shoutsAtom } from "../../../atoms/shouts";
 import useShout from "../../../hooks/useShout";
 import Shout from "./Shout";
@@ -14,13 +14,39 @@ function ShoutList() {
       location: { pathname },
     },
   } = useRouter();
+  const hash = useRouterState({ select: (s) => s.location.hash });
   const { getShouts } = useShout();
   const { did, rkey } = useParams({ strict: false });
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const handledHashRef = useRef<string>("");
 
   useEffect(() => {
     fetchShouts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getShouts, pathname, did, rkey]);
+
+  // Scroll to and briefly highlight a shout deep-linked via `#shout-<id>`
+  // (e.g. from a notification), once its list has loaded into the DOM.
+  useEffect(() => {
+    const raw = (hash ?? "").replace(/^#/, "");
+    if (!raw.startsWith("shout-") || handledHashRef.current === raw) return;
+    if (!(shouts[pathname] || []).length) return;
+    const id = raw.slice("shout-".length);
+    const raf = requestAnimationFrame(() => {
+      const el = document.getElementById(`shout-${id}`);
+      if (!el) return;
+      handledHashRef.current = raw;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      setHighlightId(id);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [shouts, pathname, hash]);
+
+  useEffect(() => {
+    if (!highlightId) return;
+    const t = setTimeout(() => setHighlightId(null), 2500);
+    return () => clearTimeout(t);
+  }, [highlightId]);
 
   const fetchShouts = async () => {
     let uri = `at://${did}`;
@@ -100,7 +126,10 @@ function ShoutList() {
     return (
       <div
         key={shout.id}
-        className="relative pl-[20px] mb-[20px] before:content-[''] before:absolute before:left-[10px] before:top-0 before:bottom-0 before:w-[2px]"
+        id={`shout-${shout.id}`}
+        className={`relative pl-[20px] mb-[20px] rounded-[8px] transition-colors before:content-[''] before:absolute before:left-[10px] before:top-0 before:bottom-0 before:w-[2px] ${
+          highlightId === shout.id ? "bg-[var(--color-menu-hover)]" : ""
+        }`}
       >
         <Shout shout={shout} refetch={fetchShouts} />
         <div className="ml-[20px] pl-[20px]">

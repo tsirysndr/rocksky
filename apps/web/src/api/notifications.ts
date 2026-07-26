@@ -14,7 +14,8 @@ export type NotificationType =
   | "comment_scrobble"
   | "comment_profile"
   | "reply"
-  | "react_comment";
+  | "react_comment"
+  | "mention";
 
 export interface NotificationView {
   id: string;
