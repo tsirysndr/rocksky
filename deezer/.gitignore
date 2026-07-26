@@ -1,0 +1,5 @@
+# Compiled binary produced by `go build` (named after the module directory).
+# Anchored to this directory so it does not also match the service/deezer/
+# source package.
+/deezer
+*.log

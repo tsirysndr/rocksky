@@ -8,6 +8,7 @@ use crate::{
     auth::{decode_token, extract_did},
     cache::Cache,
     crypto::decrypt_aes_256_ctr,
+    deezer::client::DeezerClient,
     listenbrainz::types::SubmitListensRequest,
     musicbrainz::{
         client::MusicbrainzClient, get_best_release_from_recordings, recording::Recording,
@@ -97,6 +98,45 @@ fn parse_batch(form: &BTreeMap<String, String>) -> Result<Vec<Scrobble>, Error> 
     Ok(result)
 }
 
+/// Fallback enrichment via the Deezer service. Used when Spotify search fails
+/// to resolve the track, so we don't end up scrobbling with incomplete
+/// metadata. Returns `true` when Deezer produced a track and the scrobble was
+/// submitted; `false` (never an error) when Deezer had no match or was
+/// unreachable, so the caller can continue to the next fallback.
+async fn try_deezer_enrich(
+    deezer_client: &DeezerClient,
+    cache: &Cache,
+    did: &str,
+    scrobble: &mut Scrobble,
+) -> Result<bool, Error> {
+    let resp = match deezer_client
+        .enrich(&scrobble.track, &scrobble.artist, scrobble.album.as_deref())
+        .await
+    {
+        Ok(resp) => resp,
+        Err(e) => {
+            tracing::warn!(
+                artist = %scrobble.artist,
+                track = %scrobble.track,
+                error = %e,
+                "Deezer enrichment failed, continuing"
+            );
+            return Ok(false);
+        }
+    };
+
+    if let Some(enriched) = resp.track {
+        tracing::info!(artist = %scrobble.artist, track = %scrobble.track, "Deezer (track)");
+        let track: Track = enriched.into();
+        scrobble.album = Some(track.album.clone());
+        rocksky::scrobble(cache, did, track, scrobble.timestamp).await?;
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+        return Ok(true);
+    }
+
+    Ok(false)
+}
+
 pub async fn scrobble(
     pool: &Pool<Postgres>,
     cache: &Cache,
@@ -116,6 +156,8 @@ pub async fn scrobble(
     if spofity_tokens.is_empty() {
         return Err(Error::msg("No Spotify tokens found"));
     }
+
+    let deezer_client = DeezerClient::from_env()?;
 
     for scrobble in &mut scrobbles {
         /*
@@ -272,6 +314,12 @@ pub async fn scrobble(
             continue;
         }
 
+        // Spotify search failed to resolve the track — fall back to Deezer to
+        // fill in the missing metadata before trying MusicBrainz.
+        if try_deezer_enrich(&deezer_client, cache, &did, scrobble).await? {
+            continue;
+        }
+
         let query = format!(
             r#"recording:"{}" AND artist:"{}" AND status:Official"#,
             scrobble.track, scrobble.artist
@@ -335,6 +383,8 @@ pub async fn scrobble_v1(
     };
 
     let did = user.did.clone();
+
+    let deezer_client = DeezerClient::from_env()?;
 
     /*
     0. check if scrobble is cached
@@ -518,6 +568,12 @@ pub async fn scrobble_v1(
         }
     }
 
+    // Spotify search failed to resolve the track — fall back to Deezer to fill
+    // in the missing metadata before trying MusicBrainz.
+    if try_deezer_enrich(&deezer_client, cache, &did, &mut scrobble).await? {
+        return Ok(());
+    }
+
     let query = format!(
         r#"recording:"{}" AND artist:"{}" AND status:Official"#,
         scrobble.track, scrobble.artist
@@ -642,6 +698,8 @@ pub async fn scrobble_listenbrainz(
         duration: None,
         ignored: None,
     };
+
+    let deezer_client = DeezerClient::from_env()?;
 
     /*
     0. check if scrobble is cached
@@ -822,6 +880,12 @@ pub async fn scrobble_listenbrainz(
             tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             return Ok(());
         }
+    }
+
+    // Spotify search failed to resolve the track — fall back to Deezer to fill
+    // in the missing metadata before trying MusicBrainz.
+    if try_deezer_enrich(&deezer_client, cache, &did, &mut scrobble).await? {
+        return Ok(());
     }
 
     let query = format!(

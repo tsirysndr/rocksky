@@ -93,3 +93,49 @@ export interface MusicBrainzArtist {
   mbid: string;
   name: string;
 }
+
+// Mirrors the response of the Deezer enrichment service (deezer/ Go service,
+// POST /enrich). Durations are already normalized to milliseconds.
+export interface DeezerEnrichedTrack {
+  title: string;
+  artist: string;
+  albumArtist?: string;
+  album: string;
+  albumArt?: string;
+  isrc?: string;
+  upc?: string;
+  durationMs: number;
+  trackNumber?: number;
+  discNumber?: number;
+  releaseDate?: string;
+  year?: number;
+  label?: string;
+  genres?: string[];
+  artistPicture?: string;
+  deezerLink?: string;
+  preview?: string;
+  explicit?: boolean;
+  deezerTrackId?: number;
+  deezerAlbumId?: number;
+  deezerArtistId?: number;
+}
+
+export interface DeezerMatch {
+  id: number;
+  title: string;
+  artist: string;
+  album: string;
+  albumArt?: string;
+  isrc?: string;
+  durationMs: number;
+  link?: string;
+  preview?: string;
+  rank?: number;
+  explicit?: boolean;
+  score: number;
+}
+
+export interface DeezerEnrichResponse {
+  track: DeezerEnrichedTrack | null;
+  matches: DeezerMatch[];
+}
