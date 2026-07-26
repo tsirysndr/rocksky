@@ -181,9 +181,15 @@ const presentation = (
   return Effect.sync(() => ({
     scrobbles: data.map(
       ({ scrobbles, tracks, users, artists, liked, likesCount }) => ({
-        ...R.omit(["albumArt", "id", "lyrics"])(tracks),
+        // `createdAt` is omitted from the track spread because the regenerated
+        // ScrobbleViewBasic types it as a string (the scrobble timestamp),
+        // whereas tracks.createdAt is the track row's Date. `date`/`cover`/
+        // `user` are kept for backward compatibility (allowed by the view's
+        // open index signature).
+        ...R.omit(["albumArt", "id", "lyrics", "createdAt"])(tracks),
         cover: tracks.albumArt,
         date: scrobbles.timestamp.toISOString(),
+        createdAt: scrobbles.timestamp.toISOString(),
         user: users.handle,
         userDisplayName: users.displayName,
         userAvatar: users.avatar,
