@@ -51,7 +51,20 @@ async fn match_song_supports_optional_identifiers() {
         .and(query_param("title", "Heaven"))
         .and(query_param("artist", "Bring Me The Horizon"))
         .and(query_param("mbId", "abc"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"id": "s1"})))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "id": "s1",
+            "matches": [
+                {
+                    "id": 67238735,
+                    "title": "Heaven",
+                    "artist": "Bring Me The Horizon",
+                    "album": "POST HUMAN",
+                    "durationMs": 200000,
+                    "isrc": "USRC10100001",
+                    "score": 98
+                }
+            ]
+        })))
         .mount(&server)
         .await;
 
@@ -63,6 +76,13 @@ async fn match_song_supports_optional_identifiers() {
         .await
         .unwrap();
     assert_eq!(s.id.as_deref(), Some("s1"));
+    // The ranked Deezer match list flows through the typed response.
+    assert_eq!(s.matches.len(), 1);
+    let m = &s.matches[0];
+    assert_eq!(m.id, Some(67238735));
+    assert_eq!(m.artist.as_deref(), Some("Bring Me The Horizon"));
+    assert_eq!(m.duration_ms, Some(200000));
+    assert_eq!(m.score, Some(98));
 }
 
 #[tokio::test]

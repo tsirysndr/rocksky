@@ -103,6 +103,8 @@ type ActorTrackView struct {
 	Source string `json:"source,omitempty"`
 	// MusicBrainz recording ID, if available.
 	RecordingMbID string `json:"recordingMbId,omitempty"`
+	// The track's position within its album, if known (>= 1).
+	TrackNumber int `json:"trackNumber,omitempty"`
 }
 
 type AddDirectoryToQueueParams struct {
@@ -2209,6 +2211,34 @@ type SongGetSongParams struct {
 	SpotifyID string `json:"spotifyId,omitempty"`
 }
 
+// SongMatchView A ranked candidate match for a song from an external metadata provider.
+type SongMatchView struct {
+	// The provider's numeric identifier for the matched track.
+	ID int `json:"id,omitempty"`
+	// The title of the matched track.
+	Title string `json:"title,omitempty"`
+	// The artist of the matched track.
+	Artist string `json:"artist,omitempty"`
+	// The album of the matched track.
+	Album string `json:"album,omitempty"`
+	// The URL of the matched track's album art image.
+	AlbumArt string `json:"albumArt,omitempty"`
+	// The International Standard Recording Code (ISRC) of the matched track.
+	ISRC string `json:"isrc,omitempty"`
+	// The duration of the matched track in milliseconds.
+	DurationMS int `json:"durationMs,omitempty"`
+	// A URL to the matched track on the provider.
+	Link string `json:"link,omitempty"`
+	// A URL to a short audio preview of the matched track.
+	Preview string `json:"preview,omitempty"`
+	// The provider's popularity rank for the matched track.
+	Rank int `json:"rank,omitempty"`
+	// Whether the matched track has explicit lyrics.
+	Explicit bool `json:"explicit,omitempty"`
+	// Match confidence score in the range 0-100 (higher is better).
+	Score int `json:"score,omitempty"`
+}
+
 type SongRecentListenerView struct {
 	// The unique identifier of the listener.
 	ID string `json:"id,omitempty"`
@@ -2362,6 +2392,8 @@ type SongViewDetailed struct {
 	Artists []ArtistViewBasic `json:"artists,omitempty"`
 	// The first scrobble of this song on Rocksky.
 	FirstScrobble *SongFirstScrobbleView `json:"firstScrobble,omitempty"`
+	// Ranked list of candidate matches from external metadata providers (e.g. Deezer). Additive field returned by matchSong; may be empty.
+	Matches []SongMatchView `json:"matches,omitempty"`
 }
 
 type SpotifyGetCurrentlyPlayingParams struct {

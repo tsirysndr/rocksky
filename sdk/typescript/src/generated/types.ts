@@ -103,6 +103,8 @@ export interface ActorTrackView {
   source?: string;
   /** MusicBrainz recording ID, if available. */
   recordingMbId?: string;
+  /** The track's position within its album, if known (>= 1). */
+  trackNumber?: number;
 }
 
 export interface AddDirectoryToQueueParams {
@@ -2255,6 +2257,34 @@ export interface SongGetSongParams {
   spotifyId?: string;
 }
 
+/** A ranked candidate match for a song from an external metadata provider. */
+export interface SongMatchView {
+  /** The provider's numeric identifier for the matched track. */
+  id?: number;
+  /** The title of the matched track. */
+  title?: string;
+  /** The artist of the matched track. */
+  artist?: string;
+  /** The album of the matched track. */
+  album?: string;
+  /** The URL of the matched track's album art image. */
+  albumArt?: Uri;
+  /** The International Standard Recording Code (ISRC) of the matched track. */
+  isrc?: string;
+  /** The duration of the matched track in milliseconds. */
+  durationMs?: number;
+  /** A URL to the matched track on the provider. */
+  link?: Uri;
+  /** A URL to a short audio preview of the matched track. */
+  preview?: Uri;
+  /** The provider's popularity rank for the matched track. */
+  rank?: number;
+  /** Whether the matched track has explicit lyrics. */
+  explicit?: boolean;
+  /** Match confidence score in the range 0-100 (higher is better). */
+  score?: number;
+}
+
 export interface SongRecentListenerView {
   /** The unique identifier of the listener. */
   id?: string;
@@ -2408,6 +2438,8 @@ export interface SongViewDetailed {
   artists?: ArtistViewBasic[];
   /** The first scrobble of this song on Rocksky. */
   firstScrobble?: SongFirstScrobbleView;
+  /** Ranked list of candidate matches from external metadata providers (e.g. Deezer). Additive field returned by matchSong; may be empty. */
+  matches?: SongMatchView[];
 }
 
 export interface SpotifyGetCurrentlyPlayingParams {

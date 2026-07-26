@@ -2740,6 +2740,47 @@ pub struct SongViewBasic {
     pub created_at: Option<DateTime<Utc>>,
 }
 
+/// A ranked candidate match for a song from an external metadata provider.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SongMatchView {
+    /// The provider's numeric identifier for the matched track.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<i64>,
+    /// The title of the matched track.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// The artist of the matched track.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artist: Option<String>,
+    /// The album of the matched track.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub album: Option<String>,
+    /// The URL of the matched track's album art image.
+    #[serde(rename = "albumArt", default, skip_serializing_if = "Option::is_none")]
+    pub album_art: Option<String>,
+    /// The International Standard Recording Code (ISRC) of the matched track.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub isrc: Option<String>,
+    /// The duration of the matched track in milliseconds.
+    #[serde(rename = "durationMs", default, skip_serializing_if = "Option::is_none")]
+    pub duration_ms: Option<i64>,
+    /// A URL to the matched track on the provider.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub link: Option<String>,
+    /// A URL to a short audio preview of the matched track.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preview: Option<String>,
+    /// The provider's popularity rank for the matched track.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rank: Option<i64>,
+    /// Whether the matched track has explicit lyrics.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub explicit: Option<bool>,
+    /// Match confidence score in the range 0-100 (higher is better).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub score: Option<i64>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SongViewDetailed {
     /// The unique identifier of the song.
@@ -2803,6 +2844,10 @@ pub struct SongViewDetailed {
     /// The first scrobble of this song on Rocksky.
     #[serde(rename = "firstScrobble", default, skip_serializing_if = "Option::is_none")]
     pub first_scrobble: Option<SongFirstScrobbleView>,
+    /// Ranked list of candidate matches from external metadata providers
+    /// (e.g. Deezer). Additive field returned by matchSong; may be empty.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub matches: Vec<SongMatchView>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

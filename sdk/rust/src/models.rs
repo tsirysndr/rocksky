@@ -32,6 +32,7 @@ pub use crate::generated::{
     ScrobbleViewDetailed as Scrobble,
     ShoutAuthor, ShoutView as Shout,
     SongFirstScrobbleView as FirstScrobble,
+    SongMatchView as SongMatch,
     SongRecentListenerView as RecentListener,
     SongViewBasic as SongBasic,
     SongViewDetailed as Song,
