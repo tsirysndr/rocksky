@@ -12,6 +12,8 @@ import type { SelectTrack } from "schema/tracks";
 import type {
   Album,
   Artist,
+  DeezerEnrichResponse,
+  DeezerMatch,
   MusicBrainzArtist,
   SearchResponse,
   Track,
@@ -128,6 +130,7 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
         artistPicture = null,
         genres = null,
         mbArtists: MusicBrainzArtist[] | null = null;
+      let deezerMatches: DeezerMatch[] = [];
 
       // Skip Spotify if record is found and album art is already present
       const needsSpotify = !record || !track?.albumArt;
@@ -247,6 +250,75 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
         }
       }
 
+      // Deezer enrichment fallback: when Spotify search fails (or returns
+      // partial data) we end up with incomplete metadata. Query Deezer to fill
+      // every missing field it can provide, and always surface a ranked list of
+      // candidate matches. Deezer can also build the track from scratch when no
+      // other source matched.
+      const deezerData = await searchOnDeezer(
+        ctx,
+        params.title,
+        params.artist,
+        track?.album,
+      );
+
+      if (deezerData) {
+        deezerMatches = deezerData.matches ?? [];
+        const d = deezerData.track;
+
+        if (d) {
+          if (!track) {
+            track = {
+              id: "",
+              title: d.title,
+              artist: d.artist,
+              albumArtist: d.albumArtist ?? d.artist,
+              albumArt: d.albumArt ?? null,
+              album: d.album,
+              trackNumber: d.trackNumber ?? null,
+              duration: d.durationMs ?? 0,
+              mbId: null,
+              isrc: d.isrc ?? null,
+              genre: d.genres?.length ? d.genres.join(", ") : null,
+              youtubeLink: null,
+              spotifyLink: null,
+              appleMusicLink: null,
+              tidalLink: null,
+              sha256: null,
+              discNumber: d.discNumber ?? null,
+              lyrics: null,
+              composer: null,
+              label: d.label ?? null,
+              copyrightMessage: null,
+              uri: null,
+              albumUri: null,
+              artistUri: null,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              xataVersion: 0,
+            };
+          } else {
+            if (!track.albumArt && d.albumArt) track.albumArt = d.albumArt;
+            if (!track.isrc && d.isrc) track.isrc = d.isrc;
+            if (!track.duration && d.durationMs) track.duration = d.durationMs;
+            if (!track.trackNumber && d.trackNumber)
+              track.trackNumber = d.trackNumber;
+            if (!track.discNumber && d.discNumber)
+              track.discNumber = d.discNumber;
+            if (!track.label && d.label) track.label = d.label;
+            if (!track.genre && d.genres?.length)
+              track.genre = d.genres.join(", ");
+          }
+
+          if (!releaseDate && d.releaseDate) releaseDate = d.releaseDate;
+          if (!year && d.year) year = d.year;
+          if (!artistPicture && d.artistPicture)
+            artistPicture = d.artistPicture;
+          if ((!genres || genres.length === 0) && d.genres?.length)
+            genres = d.genres;
+        }
+      }
+
       if (track && !track.mbId) {
         try {
           const mbTrack = await searchOnMusicBrainz(ctx, track, params.mbId);
@@ -278,6 +350,7 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
         Promise.resolve(artistPicture),
         Promise.resolve(genres),
         Promise.resolve(mbArtists),
+        Promise.resolve(deezerMatches),
       ]);
     },
     catch: (error) => new Error(`Failed to retrieve artist: ${error}`),
@@ -293,6 +366,7 @@ const presentation = ([
   artistPicture,
   genres,
   mbArtists,
+  matches,
 ]: [
   SelectTrack,
   number,
@@ -302,6 +376,7 @@ const presentation = ([
   string | null,
   string[] | null,
   MusicBrainzArtist[] | null,
+  DeezerMatch[],
 ]): Effect.Effect<SongViewDetailed, never> => {
   return Effect.sync(() => ({
     ...track,
@@ -310,6 +385,13 @@ const presentation = ([
     artistPicture,
     genres,
     mbArtists,
+    // Ranked list of candidate matches from Deezer. Additive field — existing
+    // consumers of the flattened track view are unaffected. The provider score
+    // (0-1) is scaled to an integer 0-100 for the API (lexicons have no float).
+    matches: matches.map((m) => ({
+      ...m,
+      score: Math.round(m.score * 100),
+    })),
     playCount,
     uniqueListeners,
     createdAt: track.createdAt.toISOString(),
@@ -546,6 +628,28 @@ const searchOnSpotify = async (
   }
 
   return track;
+};
+
+// searchOnDeezer asks the Deezer enrichment service for the best canonical
+// track metadata plus a ranked list of candidate matches. It is the fallback
+// metadata provider used when Spotify search fails or returns partial data.
+const searchOnDeezer = async (
+  ctx: Context,
+  title: string,
+  artist: string,
+  album?: string,
+): Promise<DeezerEnrichResponse | undefined> => {
+  try {
+    const { data } = await ctx.deezer.post<DeezerEnrichResponse>("/enrich", {
+      title,
+      artist,
+      album,
+    });
+    return data;
+  } catch (error) {
+    consola.error("Error fetching Deezer enrichment:", error);
+    return undefined;
+  }
 };
 
 const searchOnMusicBrainz = async (

@@ -23,6 +23,7 @@ jobs:
       ts_sdk: ${{ steps.filter.outputs.ts_sdk }}
       go_sdk: ${{ steps.filter.outputs.go_sdk }}
       rust_sdk: ${{ steps.filter.outputs.rust_sdk }}
+      deezer: ${{ steps.filter.outputs.deezer }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -40,6 +41,9 @@ jobs:
               - '.github/workflows/tests.yml'
             rust_sdk:
               - 'sdk/rust/**'
+              - '.github/workflows/tests.yml'
+            deezer:
+              - 'deezer/**'
               - '.github/workflows/tests.yml'
 
   cli:
@@ -106,3 +110,21 @@ jobs:
           workspaces: sdk/rust
       - name: Run Rust SDK tests
         run: cargo test
+
+  deezer:
+    needs: changes
+    if: needs.changes.outputs.deezer == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: deezer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: deezer/go.mod
+          cache-dependency-path: deezer/go.sum
+      # The live Deezer smoke test is gated behind DEEZER_SMOKE and stays off in
+      # CI so the suite never depends on the external API or its rate limits.
+      - name: Run Deezer service tests
+        run: go test ./...

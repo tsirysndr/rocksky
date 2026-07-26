@@ -192,6 +192,74 @@ defs = new Mapping<String, ObjectType> {
         ref = "app.rocksky.song.defs#firstScrobbleView"
         description = "The first scrobble of this song on Rocksky."
       }
+      ["matches"] = new Array {
+        type = "array"
+        description = "Ranked list of candidate matches from external metadata providers (e.g. Deezer). Additive field returned by matchSong; may be empty."
+        items = new Ref {
+          ref = "app.rocksky.song.defs#songMatchView"
+        }
+      }
+    }
+  }
+
+  ["songMatchView"] {
+    type = "object"
+    description = "A ranked candidate match for a song from an external metadata provider."
+    properties {
+      ["id"] = new IntegerType {
+        type = "integer"
+        description = "The provider's numeric identifier for the matched track."
+      }
+      ["title"] = new StringType {
+        type = "string"
+        description = "The title of the matched track."
+      }
+      ["artist"] = new StringType {
+        type = "string"
+        description = "The artist of the matched track."
+      }
+      ["album"] = new StringType {
+        type = "string"
+        description = "The album of the matched track."
+      }
+      ["albumArt"] = new StringType {
+        type = "string"
+        format = "uri"
+        description = "The URL of the matched track's album art image."
+      }
+      ["isrc"] = new StringType {
+        type = "string"
+        description = "The International Standard Recording Code (ISRC) of the matched track."
+      }
+      ["durationMs"] = new IntegerType {
+        type = "integer"
+        minimum = 0
+        description = "The duration of the matched track in milliseconds."
+      }
+      ["link"] = new StringType {
+        type = "string"
+        format = "uri"
+        description = "A URL to the matched track on the provider."
+      }
+      ["preview"] = new StringType {
+        type = "string"
+        format = "uri"
+        description = "A URL to a short audio preview of the matched track."
+      }
+      ["rank"] = new IntegerType {
+        type = "integer"
+        description = "The provider's popularity rank for the matched track."
+      }
+      ["explicit"] = new BooleanType {
+        type = "boolean"
+        description = "Whether the matched track has explicit lyrics."
+      }
+      ["score"] = new IntegerType {
+        type = "integer"
+        minimum = 0
+        maximum = 100
+        description = "Match confidence score in the range 0-100 (higher is better)."
+      }
     }
   }
 
