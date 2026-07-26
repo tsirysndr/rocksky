@@ -38,6 +38,11 @@ pub async fn resolve_track(
 
     tracing::info!(%artist, %track_name, "Resolving track (not cached)");
 
+    // Build a Deezer client once: reused both for the full fallback below (when
+    // Spotify fails entirely) and to backfill a missing (0) track/disc number on
+    // tracks resolved from the DB, Spotify or MusicBrainz.
+    let deezer_client = DeezerClient::from_env().ok();
+
     // 2. DB
     if let Some(db_track) = repo::track::get_track(pool, track_name, artist).await? {
         println!("{}", "Xata (track)".yellow());
@@ -58,6 +63,17 @@ pub async fn resolve_track(
             .release_date
             .map(|x| x.split('T').next().unwrap().to_string());
         track.artist_picture = db_artist.picture.clone();
+        // `album` here is the DB album row (shadows the fn param); use its title
+        // to anchor the Deezer backfill.
+        let album_title = Some(album.title.as_str()).filter(|s| !s.is_empty());
+        backfill_track_disc_from_deezer(
+            deezer_client.as_ref(),
+            &mut track,
+            artist,
+            track_name,
+            album_title,
+        )
+        .await;
         return Ok(Some(track));
     }
 
@@ -153,7 +169,16 @@ pub async fn resolve_track(
                         sp_track.album.artists[0] = sp_artist;
                     }
 
-                    return Ok(Some(sp_track.into()));
+                    let mut track: Track = sp_track.into();
+                    backfill_track_disc_from_deezer(
+                        deezer_client.as_ref(),
+                        &mut track,
+                        artist,
+                        track_name,
+                        album,
+                    )
+                    .await;
+                    return Ok(Some(track));
                 } else {
                     tracing::warn!(%artist, "Spotify artist mismatch, falling through to MusicBrainz");
                 }
@@ -163,8 +188,8 @@ pub async fn resolve_track(
 
     // 4. Deezer — Spotify failed or returned no usable match; fall back to
     // Deezer to fill the metadata before trying MusicBrainz.
-    match DeezerClient::from_env() {
-        Ok(deezer_client) => match deezer_client.enrich(track_name, artist, album).await {
+    if let Some(deezer_client) = deezer_client.as_ref() {
+        match deezer_client.enrich(track_name, artist, album).await {
             Ok(resp) => {
                 if let Some(enriched) = resp.track {
                     tracing::info!(%artist, %track_name, "Deezer (track)");
@@ -174,9 +199,6 @@ pub async fn resolve_track(
             Err(e) => {
                 tracing::warn!(%artist, %track_name, error = %e, "Deezer enrichment failed, continuing");
             }
-        },
-        Err(e) => {
-            tracing::warn!(error = %e, "Failed to build Deezer client, continuing");
         }
     }
 
@@ -189,7 +211,16 @@ pub async fn resolve_track(
         search_musicbrainz_recording(&mb_query, mb_client, artist, track_name).await
     {
         tracing::info!("MusicBrainz (recording)");
-        return Ok(Some(recording.into()));
+        let mut track: Track = recording.into();
+        backfill_track_disc_from_deezer(
+            deezer_client.as_ref(),
+            &mut track,
+            artist,
+            track_name,
+            album,
+        )
+        .await;
+        return Ok(Some(track));
     }
 
     tracing::warn!(%artist, %track_name, "Track not found anywhere");
@@ -224,6 +255,45 @@ pub async fn scrobble(
     }
 
     Ok(())
+}
+
+/// Backfill `track_number` / `disc_number` from Deezer when a provider-resolved
+/// track left them at 0 (MusicBrainz commonly does when a recording has no
+/// release media; Spotify occasionally too). Best-effort: only calls Deezer
+/// when at least one of the two is missing, and swallows any error.
+async fn backfill_track_disc_from_deezer(
+    deezer: Option<&DeezerClient>,
+    track: &mut Track,
+    artist: &str,
+    track_name: &str,
+    album: Option<&str>,
+) {
+    if track.track_number != 0 && track.disc_number != 0 {
+        return;
+    }
+    let Some(deezer) = deezer else {
+        return;
+    };
+
+    match deezer.enrich(track_name, artist, album).await {
+        Ok(resp) => {
+            if let Some(d) = resp.track {
+                if track.track_number == 0 {
+                    if let Some(n) = d.track_number {
+                        track.track_number = n;
+                    }
+                }
+                if track.disc_number == 0 {
+                    if let Some(n) = d.disc_number {
+                        track.disc_number = n;
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            tracing::warn!(%artist, %track_name, error = %e, "Deezer track/disc backfill failed, continuing");
+        }
+    }
 }
 
 fn accent_normalize(s: &str) -> String {

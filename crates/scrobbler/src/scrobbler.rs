@@ -137,6 +137,62 @@ async fn try_deezer_enrich(
     Ok(false)
 }
 
+/// Backfill `track_number` / `disc_number` from Deezer when a provider-resolved
+/// track left them at 0 (MusicBrainz commonly does when a recording has no
+/// release media; Spotify occasionally too). Best-effort: only calls Deezer
+/// when at least one of the two is missing, and swallows any error.
+async fn backfill_track_disc_from_deezer(
+    deezer: Option<&DeezerClient>,
+    track: &mut Track,
+    artist: &str,
+    track_name: &str,
+    album: Option<&str>,
+) {
+    if track.track_number != 0 && track.disc_number != 0 {
+        return;
+    }
+    let Some(deezer) = deezer else {
+        return;
+    };
+
+    match deezer.enrich(track_name, artist, album).await {
+        Ok(resp) => {
+            if let Some(d) = resp.track {
+                if track.track_number == 0 {
+                    if let Some(n) = d.track_number {
+                        track.track_number = n;
+                    }
+                }
+                if track.disc_number == 0 {
+                    if let Some(n) = d.disc_number {
+                        track.disc_number = n;
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            tracing::warn!(%artist, %track_name, error = %e, "Deezer track/disc backfill failed, continuing");
+        }
+    }
+}
+
+/// Submit a resolved track, first backfilling a missing (0) track/disc number
+/// from Deezer. Single choke-point so every resolution path (cache, DB, Spotify,
+/// MusicBrainz) gets the same treatment before it reaches Rocksky.
+async fn submit_scrobble(
+    cache: &Cache,
+    deezer: Option<&DeezerClient>,
+    did: &str,
+    artist: &str,
+    track_name: &str,
+    album: Option<&str>,
+    mut track: Track,
+    timestamp: u64,
+) -> Result<(), Error> {
+    backfill_track_disc_from_deezer(deezer, &mut track, artist, track_name, album).await;
+    rocksky::scrobble(cache, did, track, timestamp).await
+}
+
 pub async fn scrobble(
     pool: &Pool<Postgres>,
     cache: &Cache,
@@ -182,7 +238,17 @@ pub async fn scrobble(
             tracing::info!(key = %key, "Cached:");
             let track = serde_json::from_str::<Track>(&cached.unwrap())?;
             scrobble.album = Some(track.album.clone());
-            rocksky::scrobble(cache, &did, track, scrobble.timestamp).await?;
+            submit_scrobble(
+                cache,
+                Some(&deezer_client),
+                &did,
+                &scrobble.artist,
+                &scrobble.track,
+                scrobble.album.as_deref(),
+                track,
+                scrobble.timestamp,
+            )
+            .await?;
             tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             continue;
         }
@@ -192,7 +258,17 @@ pub async fn scrobble(
             let result = mb_client.get_recording(mbid).await?;
             tracing::info!(%scrobble.artist, %scrobble.track, "Musicbrainz (mbid)");
             scrobble.album = Some(Track::from(result.clone()).album);
-            rocksky::scrobble(cache, &did, result.into(), scrobble.timestamp).await?;
+            submit_scrobble(
+                cache,
+                Some(&deezer_client),
+                &did,
+                &scrobble.artist,
+                &scrobble.track,
+                scrobble.album.as_deref(),
+                result.into(),
+                scrobble.timestamp,
+            )
+            .await?;
             tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             continue;
         }
@@ -220,7 +296,17 @@ pub async fn scrobble(
                 .map(|x| x.split("T").next().unwrap().to_string());
             track.artist_picture = artist.picture.clone();
 
-            rocksky::scrobble(cache, &did, track, scrobble.timestamp).await?;
+            submit_scrobble(
+                cache,
+                Some(&deezer_client),
+                &did,
+                &scrobble.artist,
+                &scrobble.track,
+                scrobble.album.as_deref(),
+                track,
+                scrobble.timestamp,
+            )
+            .await?;
             tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             continue;
         }
@@ -309,7 +395,17 @@ pub async fn scrobble(
                 track.album.artists[0] = artist;
             }
 
-            rocksky::scrobble(cache, &did, track.into(), scrobble.timestamp).await?;
+            submit_scrobble(
+                cache,
+                Some(&deezer_client),
+                &did,
+                &scrobble.artist,
+                &scrobble.track,
+                scrobble.album.as_deref(),
+                track.into(),
+                scrobble.timestamp,
+            )
+            .await?;
             tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             continue;
         }
@@ -330,7 +426,17 @@ pub async fn scrobble(
             let result = mb_client.get_recording(&recording.id).await?;
             tracing::info!(%scrobble.artist, %scrobble.track, "Musicbrainz (recording)");
             scrobble.album = Some(Track::from(result.clone()).album);
-            rocksky::scrobble(cache, &did, result.into(), scrobble.timestamp).await?;
+            submit_scrobble(
+                cache,
+                Some(&deezer_client),
+                &did,
+                &scrobble.artist,
+                &scrobble.track,
+                scrobble.album.as_deref(),
+                result.into(),
+                scrobble.timestamp,
+            )
+            .await?;
             tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             continue;
         }
@@ -408,7 +514,17 @@ pub async fn scrobble_v1(
         tracing::info!(key = %key, "Cached:");
         let track = serde_json::from_str::<Track>(&cached.unwrap())?;
         scrobble.album = Some(track.album.clone());
-        rocksky::scrobble(cache, &did, track, scrobble.timestamp).await?;
+        submit_scrobble(
+            cache,
+            Some(&deezer_client),
+            &did,
+            &scrobble.artist,
+            &scrobble.track,
+            scrobble.album.as_deref(),
+            track,
+            scrobble.timestamp,
+        )
+        .await?;
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
         return Ok(());
     }
@@ -418,7 +534,17 @@ pub async fn scrobble_v1(
         let result = mb_client.get_recording(mbid).await?;
         tracing::info!(%scrobble.artist, %scrobble.track, "Musicbrainz (mbid)");
         scrobble.album = Some(Track::from(result.clone()).album);
-        rocksky::scrobble(cache, &did, result.into(), scrobble.timestamp).await?;
+        submit_scrobble(
+            cache,
+            Some(&deezer_client),
+            &did,
+            &scrobble.artist,
+            &scrobble.track,
+            scrobble.album.as_deref(),
+            result.into(),
+            scrobble.timestamp,
+        )
+        .await?;
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
         return Ok(());
     }
@@ -446,7 +572,17 @@ pub async fn scrobble_v1(
             .map(|x| x.split("T").next().unwrap().to_string());
         track.artist_picture = artist.picture.clone();
 
-        rocksky::scrobble(cache, &did, track, scrobble.timestamp).await?;
+        submit_scrobble(
+            cache,
+            Some(&deezer_client),
+            &did,
+            &scrobble.artist,
+            &scrobble.track,
+            scrobble.album.as_deref(),
+            track,
+            scrobble.timestamp,
+        )
+        .await?;
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
         return Ok(());
     }
@@ -562,7 +698,17 @@ pub async fn scrobble_v1(
                 track.album.artists[0] = artist;
             }
 
-            rocksky::scrobble(cache, &did, track.into(), scrobble.timestamp).await?;
+            submit_scrobble(
+                cache,
+                Some(&deezer_client),
+                &did,
+                &scrobble.artist,
+                &scrobble.track,
+                scrobble.album.as_deref(),
+                track.into(),
+                scrobble.timestamp,
+            )
+            .await?;
             tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             return Ok(());
         }
@@ -588,7 +734,17 @@ pub async fn scrobble_v1(
         let result = mb_client.get_recording(&recording.id).await?;
         tracing::info!(%scrobble.artist, %scrobble.track, "Musicbrainz (recording)");
         scrobble.album = Some(Track::from(result.clone()).album);
-        rocksky::scrobble(cache, &did, result.into(), scrobble.timestamp).await?;
+        submit_scrobble(
+            cache,
+            Some(&deezer_client),
+            &did,
+            &scrobble.artist,
+            &scrobble.track,
+            scrobble.album.as_deref(),
+            result.into(),
+            scrobble.timestamp,
+        )
+        .await?;
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
         return Ok(());
     }
@@ -723,7 +879,17 @@ pub async fn scrobble_listenbrainz(
         tracing::info!(key = %key, "Cached");
         let track = serde_json::from_str::<Track>(&cached.unwrap())?;
         scrobble.album = Some(track.album.clone());
-        rocksky::scrobble(cache, &did, track, scrobble.timestamp).await?;
+        submit_scrobble(
+            cache,
+            Some(&deezer_client),
+            &did,
+            &scrobble.artist,
+            &scrobble.track,
+            scrobble.album.as_deref(),
+            track,
+            scrobble.timestamp,
+        )
+        .await?;
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
         return Ok(());
     }
@@ -733,7 +899,17 @@ pub async fn scrobble_listenbrainz(
         let result = mb_client.get_recording(mbid).await?;
         tracing::info!("Musicbrainz (mbid)");
         scrobble.album = Some(Track::from(result.clone()).album);
-        rocksky::scrobble(cache, &did, result.into(), scrobble.timestamp).await?;
+        submit_scrobble(
+            cache,
+            Some(&deezer_client),
+            &did,
+            &scrobble.artist,
+            &scrobble.track,
+            scrobble.album.as_deref(),
+            result.into(),
+            scrobble.timestamp,
+        )
+        .await?;
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
         return Ok(());
     }
@@ -765,7 +941,17 @@ pub async fn scrobble_listenbrainz(
             .map(|x| x.split("T").next().unwrap().to_string());
         track.artist_picture = artist.picture.clone();
 
-        rocksky::scrobble(cache, &did, track, scrobble.timestamp).await?;
+        submit_scrobble(
+            cache,
+            Some(&deezer_client),
+            &did,
+            &scrobble.artist,
+            &scrobble.track,
+            scrobble.album.as_deref(),
+            track,
+            scrobble.timestamp,
+        )
+        .await?;
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
         return Ok(());
     }
@@ -876,7 +1062,17 @@ pub async fn scrobble_listenbrainz(
                 track.album.artists[0] = artist;
             }
 
-            rocksky::scrobble(cache, &did, track.into(), scrobble.timestamp).await?;
+            submit_scrobble(
+                cache,
+                Some(&deezer_client),
+                &did,
+                &scrobble.artist,
+                &scrobble.track,
+                scrobble.album.as_deref(),
+                track.into(),
+                scrobble.timestamp,
+            )
+            .await?;
             tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             return Ok(());
         }
@@ -900,7 +1096,17 @@ pub async fn scrobble_listenbrainz(
     let result = result.unwrap();
     if let Some(result) = result {
         tracing::info!("Musicbrainz (recording)");
-        rocksky::scrobble(cache, &did, result.into(), scrobble.timestamp).await?;
+        submit_scrobble(
+            cache,
+            Some(&deezer_client),
+            &did,
+            &scrobble.artist,
+            &scrobble.track,
+            scrobble.album.as_deref(),
+            result.into(),
+            scrobble.timestamp,
+        )
+        .await?;
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
         return Ok(());
     }
