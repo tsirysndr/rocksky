@@ -1,6 +1,7 @@
 import styled from "@emotion/styled";
-import { IconBell, IconUser } from "@tabler/icons-react";
+import { IconUser } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
+import BellIcon from "./BellIcon";
 import { Avatar } from "baseui/avatar";
 import { PLACEMENT, Popover } from "baseui/popover";
 import { useState } from "react";
@@ -211,7 +212,7 @@ function NotificationBell() {
         onClick={() => (open ? setOpen(false) : handleOpen())}
         aria-label="Notifications"
       >
-        <IconBell size={24} color="var(--color-text)" />
+        <BellIcon size={24} color="var(--color-text)" />
         {unreadCount > 0 && (
           <Badge>{unreadCount > 99 ? "99+" : unreadCount}</Badge>
         )}

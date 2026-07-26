@@ -1,14 +1,15 @@
 import {
-  IconBell,
   IconChartBar,
   IconHome,
   IconSearch,
   IconUser,
   IconVinyl,
 } from "@tabler/icons-react";
+import type { ComponentType } from "react";
 import { useAtomValue } from "jotai";
 import { Link, useLocation } from "react-router-dom";
 import { profileAtom } from "../../atoms/profile";
+import BellIcon from "../BellIcon";
 import {
   useNotificationStream,
   useUnreadCountQuery,
@@ -16,7 +17,8 @@ import {
 
 type NavTab = {
   to: string;
-  icon: typeof IconHome;
+  // Accepts both @tabler/icons-react and @styled-icons components.
+  icon: ComponentType<{ size?: number; strokeWidth?: number }>;
   label: string;
   badge?: number;
 };
@@ -45,7 +47,7 @@ export default function BottomNav() {
           baseTabs[0],
           {
             to: "/notifications",
-            icon: IconBell,
+            icon: BellIcon,
             label: "Alerts",
             badge: unreadCount,
           },
