@@ -23,7 +23,10 @@
         "encoding": "application/json",
         "schema": {
           "type": "object",
-          "required": ["notifications", "unreadCount"],
+          "required": [
+            "notifications",
+            "unreadCount"
+          ],
           "properties": {
             "notifications": {
               "type": "array",

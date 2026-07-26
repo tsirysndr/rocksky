@@ -9,6 +9,7 @@ class StringType extends BaseType {
   minLength: Int?
   maxLength: Int?
   format: "uri" | "datetime" | "cid" | "at-uri" | "at-identifier" | "did" | Null = null
+  knownValues: List<String>? = null
 }
 
 class IntegerType extends BaseType {
@@ -67,7 +68,7 @@ class Output {
 
 class Query extends BaseType {
   type: "query"
-  parameters: Params
+  parameters: Params?
   output: Output
 }
 

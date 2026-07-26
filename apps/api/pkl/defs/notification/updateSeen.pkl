@@ -1,0 +1,38 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.notification.updateSeen"
+defs = new Mapping<String, Procedure> {
+  ["main"] {
+    type = "procedure"
+    description = "Mark notifications as viewed. When no ids are provided, marks all of the authenticated user's notifications as viewed."
+    input {
+      encoding = "application/json"
+      schema {
+        type = "object"
+        properties {
+          ["ids"] = new Array {
+            type = "array"
+            items = new StringType {
+              type = "string"
+            }
+            description = "The ids of the notifications to mark as viewed. Omit to mark all."
+          }
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        required = List("unreadCount")
+        properties {
+          ["unreadCount"] = new IntegerType {
+            type = "integer"
+            description = "The number of unread notifications remaining."
+          }
+        }
+      }
+    }
+  }
+}

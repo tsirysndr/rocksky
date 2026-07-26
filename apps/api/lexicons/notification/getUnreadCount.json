@@ -9,7 +9,9 @@
         "encoding": "application/json",
         "schema": {
           "type": "object",
-          "required": ["count"],
+          "required": [
+            "count"
+          ],
           "properties": {
             "count": {
               "type": "integer",

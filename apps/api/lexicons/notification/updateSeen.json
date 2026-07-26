@@ -24,7 +24,9 @@
         "encoding": "application/json",
         "schema": {
           "type": "object",
-          "required": ["unreadCount"],
+          "required": [
+            "unreadCount"
+          ],
           "properties": {
             "unreadCount": {
               "type": "integer",

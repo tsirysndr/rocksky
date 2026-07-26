@@ -1,0 +1,82 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.notification.defs"
+defs = new Mapping<String, ObjectType> {
+  ["notificationActor"] = new ObjectType {
+    type = "object"
+    description = "The user who triggered a notification."
+    properties {
+      ["id"] = new StringType {
+        type = "string"
+        description = "The unique identifier of the actor."
+      }
+      ["did"] = new StringType {
+        type = "string"
+        format = "did"
+        description = "The decentralized identifier of the actor."
+      }
+      ["handle"] = new StringType {
+        type = "string"
+        format = "at-identifier"
+        description = "The handle of the actor."
+      }
+      ["displayName"] = new StringType {
+        type = "string"
+        description = "The display name of the actor."
+      }
+      ["avatar"] = new StringType {
+        type = "string"
+        format = "uri"
+        description = "The URL of the actor's avatar image."
+      }
+    }
+  }
+  ["notificationView"] = new ObjectType {
+    type = "object"
+    required = List("id", "type", "read", "createdAt")
+    properties {
+      ["id"] = new StringType {
+        type = "string"
+        description = "The unique identifier of the notification."
+      }
+      ["type"] = new StringType {
+        type = "string"
+        description = "The notification type: like_scrobble, follow, comment_scrobble, comment_profile, reply, or react_comment."
+        knownValues = List(
+          "like_scrobble",
+          "follow",
+          "comment_scrobble",
+          "comment_profile",
+          "reply",
+          "react_comment"
+        )
+      }
+      ["read"] = new BooleanType {
+        type = "boolean"
+        description = "Whether the notification has been viewed."
+      }
+      ["createdAt"] = new StringType {
+        type = "string"
+        format = "datetime"
+        description = "When the notification was created."
+      }
+      ["subjectUri"] = new StringType {
+        type = "string"
+        description = "The at-uri of the subject the notification relates to."
+      }
+      ["shoutId"] = new StringType {
+        type = "string"
+        description = "The id of the related shout, if any."
+      }
+      ["shoutContent"] = new StringType {
+        type = "string"
+        description = "The content of the related shout, if any."
+      }
+      ["actor"] = new Ref {
+        type = "ref"
+        ref = "app.rocksky.notification.defs#notificationActor"
+      }
+    }
+  }
+}

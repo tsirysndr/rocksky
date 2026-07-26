@@ -12,13 +12,13 @@
         },
         "did": {
           "type": "string",
-          "format": "did",
-          "description": "The decentralized identifier of the actor."
+          "description": "The decentralized identifier of the actor.",
+          "format": "did"
         },
         "handle": {
           "type": "string",
-          "format": "at-identifier",
-          "description": "The handle of the actor."
+          "description": "The handle of the actor.",
+          "format": "at-identifier"
         },
         "displayName": {
           "type": "string",
@@ -26,14 +26,19 @@
         },
         "avatar": {
           "type": "string",
-          "format": "uri",
-          "description": "The URL of the actor's avatar image."
+          "description": "The URL of the actor's avatar image.",
+          "format": "uri"
         }
       }
     },
     "notificationView": {
       "type": "object",
-      "required": ["id", "type", "read", "createdAt"],
+      "required": [
+        "id",
+        "type",
+        "read",
+        "createdAt"
+      ],
       "properties": {
         "id": {
           "type": "string",
@@ -57,8 +62,8 @@
         },
         "createdAt": {
           "type": "string",
-          "format": "datetime",
-          "description": "When the notification was created."
+          "description": "When the notification was created.",
+          "format": "datetime"
         },
         "subjectUri": {
           "type": "string",
