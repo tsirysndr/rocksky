@@ -5,10 +5,6 @@
     "main": {
       "type": "query",
       "description": "Get information about a feed generator",
-      "parameters": {
-        "type": "params",
-        "properties": {}
-      },
       "output": {
         "encoding": "application/json",
         "schema": {
