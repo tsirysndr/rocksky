@@ -282,22 +282,73 @@ func rankCandidates(params SearchParams, tracks []DeezerTrack) []rankedCandidate
 }
 
 // toMatch converts a scored Deezer track into the lightweight Match shape.
+// TrackNumber / DiscNumber are only present when the seed track has already
+// been deep-fetched (the /search endpoint omits them); hydrateMatches fills
+// them in afterwards.
 func toMatch(c rankedCandidate) Match {
 	t := c.track
 	return Match{
-		ID:         t.ID,
-		Title:      t.Title,
-		Artist:     t.Artist.Name,
-		Album:      t.Album.Title,
-		AlbumArt:   bestCover(t.Album),
-		ISRC:       t.ISRC,
-		DurationMs: int64(t.Duration) * 1000,
-		Link:       t.Link,
-		Preview:    t.Preview,
-		Rank:       t.Rank,
-		Explicit:   t.ExplicitLyrics,
-		Score:      c.score,
+		ID:          t.ID,
+		Title:       t.Title,
+		Artist:      t.Artist.Name,
+		Album:       t.Album.Title,
+		AlbumArt:    bestCover(t.Album),
+		ISRC:        t.ISRC,
+		DurationMs:  int64(t.Duration) * 1000,
+		TrackNumber: t.TrackPosition,
+		DiscNumber:  t.DiskNumber,
+		Link:        t.Link,
+		Preview:     t.Preview,
+		Rank:        t.Rank,
+		Explicit:    t.ExplicitLyrics,
+		Score:       c.score,
 	}
+}
+
+// matchHydrateConcurrency bounds how many match deep-fetches run at once. The
+// Deezer limiter still governs the overall request rate; this just caps the
+// number of in-flight goroutines.
+const matchHydrateConcurrency = 5
+
+// maxHydratedMatches caps how many top-ranked matches we deep-fetch to backfill
+// track position / disc number. Each deep-fetch costs an extra API call, so we
+// only spend them on the most relevant candidates.
+const maxHydratedMatches = 5
+
+// hydrateMatches deep-fetches the full track for the top maxHydratedMatches
+// matches to fill in the track position and disc number, which the /search
+// endpoint does not return. GetTrack is cached, so repeated calls (e.g. the top
+// match that Enrich also hydrates) are cheap. Failures leave the match's
+// numbers at 0.
+func (s *DeezerService) hydrateMatches(ctx context.Context, matches []Match) {
+	if len(matches) == 0 {
+		return
+	}
+
+	limit := min(len(matches), maxHydratedMatches)
+	sem := make(chan struct{}, matchHydrateConcurrency)
+	var wg sync.WaitGroup
+	for i := range matches[:limit] {
+		if matches[i].ID == 0 || (matches[i].TrackNumber != 0 && matches[i].DiscNumber != 0) {
+			continue
+		}
+		wg.Add(1)
+		sem <- struct{}{}
+		go func(i int) {
+			defer wg.Done()
+			defer func() { <-sem }()
+			full, err := s.GetTrack(ctx, matches[i].ID)
+			if err != nil || full == nil {
+				if err != nil {
+					s.logger.Printf("match deep-fetch failed for id=%d: %v", matches[i].ID, err)
+				}
+				return
+			}
+			matches[i].TrackNumber = full.TrackPosition
+			matches[i].DiscNumber = full.DiskNumber
+		}(i)
+	}
+	wg.Wait()
 }
 
 // Enrich searches for the track, ranks candidates, deep-fetches the best one to
@@ -318,6 +369,10 @@ func (s *DeezerService) Enrich(ctx context.Context, params SearchParams) (*Enric
 		}
 		matches = append(matches, toMatch(c))
 	}
+
+	// Search results omit track_position / disk_number, so deep-fetch each match
+	// to backfill them before returning.
+	s.hydrateMatches(ctx, matches)
 
 	resp := &EnrichResponse{Matches: matches}
 	if len(ranked) == 0 {

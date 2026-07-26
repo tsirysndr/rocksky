@@ -332,6 +332,12 @@ func TestEnrichReturnsRankedMatches(t *testing.T) {
 	if resp.Matches[0].DurationMs != 369000 {
 		t.Errorf("match duration should be ms: %d", resp.Matches[0].DurationMs)
 	}
+	// Matches are deep-fetched so track position / disc number are backfilled
+	// from the full track (the /search endpoint omits them).
+	if resp.Matches[0].TrackNumber != 8 || resp.Matches[0].DiscNumber != 1 {
+		t.Errorf("match track/disc not backfilled: track=%d disc=%d",
+			resp.Matches[0].TrackNumber, resp.Matches[0].DiscNumber)
+	}
 }
 
 func TestEnrichNoResults(t *testing.T) {

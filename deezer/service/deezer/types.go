@@ -98,20 +98,23 @@ type SearchParams struct {
 
 // Match is a lightweight, ranked candidate returned to callers alongside the
 // enriched track. Duration is expressed in milliseconds to match the rest of
-// the Rocksky pipeline.
+// the Rocksky pipeline. TrackNumber and DiscNumber are only populated after a
+// deep-fetch of the full track (the /search endpoint omits them).
 type Match struct {
-	ID         int64   `json:"id"`
-	Title      string  `json:"title"`
-	Artist     string  `json:"artist"`
-	Album      string  `json:"album"`
-	AlbumArt   string  `json:"albumArt,omitempty"`
-	ISRC       string  `json:"isrc,omitempty"`
-	DurationMs int64   `json:"durationMs"`
-	Link       string  `json:"link,omitempty"`
-	Preview    string  `json:"preview,omitempty"`
-	Rank       int     `json:"rank,omitempty"`
-	Explicit   bool    `json:"explicit,omitempty"`
-	Score      float64 `json:"score"`
+	ID          int64   `json:"id"`
+	Title       string  `json:"title"`
+	Artist      string  `json:"artist"`
+	Album       string  `json:"album"`
+	AlbumArt    string  `json:"albumArt,omitempty"`
+	ISRC        string  `json:"isrc,omitempty"`
+	DurationMs  int64   `json:"durationMs"`
+	TrackNumber int     `json:"trackNumber,omitempty"`
+	DiscNumber  int     `json:"discNumber,omitempty"`
+	Link        string  `json:"link,omitempty"`
+	Preview     string  `json:"preview,omitempty"`
+	Rank        int     `json:"rank,omitempty"`
+	Explicit    bool    `json:"explicit,omitempty"`
+	Score       float64 `json:"score"`
 }
 
 // EnrichedTrack is the fully hydrated, normalized track metadata returned to
