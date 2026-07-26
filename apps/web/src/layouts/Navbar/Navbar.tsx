@@ -19,8 +19,6 @@ import { profileAtom } from "../../atoms/profile";
 import { themeAtom } from "../../atoms/theme";
 import { API_URL } from "../../consts";
 import { useProfileStatsByDidQuery } from "../../hooks/useProfile";
-import LogoDark from "../../assets/rocksky-logo-dark.png";
-import LogoLight from "../../assets/rocksky-logo-light.png";
 import WebScrobblerScreenshot from "../../assets/webscrobbler.png";
 import { IconUser, IconMenu2, IconX } from "@tabler/icons-react";
 import { displayDrawerAtom } from "../../atoms/drawer";
@@ -148,7 +146,8 @@ function Navbar() {
       <div className="flex">
         <Link to="/" style={{ textDecoration: "none" }}>
           <img
-            src={darkMode ? LogoDark : LogoLight}
+            src="/favicon.png"
+            alt="Rocksky"
             className="max-h-[25px] max-w-[30px] mr-[5px] mt-[28px]"
           />
         </Link>
