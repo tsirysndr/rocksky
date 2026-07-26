@@ -136,8 +136,7 @@ function NotificationRow({
 
   return (
     <Row
-      to="/profile/$did"
-      params={{ did: actor?.handle ?? actor?.did ?? "" }}
+      to={`/profile/${actor?.handle ?? actor?.did ?? ""}`}
       onClick={onNavigate}
     >
       {actor?.avatar && !isJpegPlaceholder ? (
