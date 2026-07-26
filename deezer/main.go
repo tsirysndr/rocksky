@@ -25,6 +25,7 @@ func main() {
 
 	e := echo.New()
 	e.HideBanner = true
+	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
 	e.GET("/health", func(c echo.Context) error {
