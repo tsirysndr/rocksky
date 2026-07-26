@@ -38,6 +38,8 @@ export interface DeezerMatch {
   albumArt?: string;
   isrc?: string;
   durationMs: number;
+  trackNumber?: number;
+  discNumber?: number;
   link?: string;
   preview?: string;
   rank?: number;

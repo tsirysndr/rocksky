@@ -133,6 +133,10 @@ export interface SongMatchView {
   isrc?: string;
   /** The duration of the matched track in milliseconds. */
   durationMs?: number;
+  /** The track number of the matched track in its album. */
+  trackNumber?: number;
+  /** The disc number of the matched track in its album. */
+  discNumber?: number;
   /** A URL to the matched track on the provider. */
   link?: string;
   /** A URL to a short audio preview of the matched track. */

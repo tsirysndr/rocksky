@@ -2227,6 +2227,10 @@ type SongMatchView struct {
 	ISRC string `json:"isrc,omitempty"`
 	// The duration of the matched track in milliseconds.
 	DurationMS int `json:"durationMs,omitempty"`
+	// The track number of the matched track in its album.
+	TrackNumber int `json:"trackNumber,omitempty"`
+	// The disc number of the matched track in its album.
+	DiscNumber int `json:"discNumber,omitempty"`
 	// A URL to the matched track on the provider.
 	Link string `json:"link,omitempty"`
 	// A URL to a short audio preview of the matched track.

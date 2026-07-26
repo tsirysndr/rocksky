@@ -236,6 +236,14 @@ defs = new Mapping<String, ObjectType> {
         minimum = 0
         description = "The duration of the matched track in milliseconds."
       }
+      ["trackNumber"] = new IntegerType {
+        type = "integer"
+        description = "The track number of the matched track in its album."
+      }
+      ["discNumber"] = new IntegerType {
+        type = "integer"
+        description = "The disc number of the matched track in its album."
+      }
       ["link"] = new StringType {
         type = "string"
         format = "uri"

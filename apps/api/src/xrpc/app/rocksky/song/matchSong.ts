@@ -140,7 +140,11 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
       let spotifyTrack: Track | undefined;
       if (needsSpotify) {
         try {
-          spotifyTrack = await searchOnSpotify(ctx, params.title, params.artist);
+          spotifyTrack = await searchOnSpotify(
+            ctx,
+            params.title,
+            params.artist,
+          );
         } catch (error) {
           consola.warn(
             "Spotify search failed, falling back to Deezer:",

@@ -202,6 +202,9 @@ pub struct SongMatchView<S: BosStr = DefaultStr> {
     ///The artist of the matched track.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub artist: Option<S>,
+    ///The disc number of the matched track in its album.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub disc_number: Option<i64>,
     ///The duration of the matched track in milliseconds.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub duration_ms: Option<i64>,
@@ -229,6 +232,9 @@ pub struct SongMatchView<S: BosStr = DefaultStr> {
     ///The title of the matched track.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<S>,
+    ///The track number of the matched track in its album.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub track_number: Option<i64>,
     #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }
@@ -1893,6 +1899,12 @@ fn lexicon_doc_app_rocksky_song_defs() -> LexiconDoc<'static> {
                             }),
                         );
                         map.insert(
+                            SmolStr::new_static("discNumber"),
+                            LexObjectProperty::Integer(LexInteger {
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
                             SmolStr::new_static("durationMs"),
                             LexObjectProperty::Integer(LexInteger {
                                 minimum: Some(0i64),
@@ -1966,6 +1978,12 @@ fn lexicon_doc_app_rocksky_song_defs() -> LexiconDoc<'static> {
                                 description: Some(
                                     CowStr::new_static("The title of the matched track."),
                                 ),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("trackNumber"),
+                            LexObjectProperty::Integer(LexInteger {
                                 ..Default::default()
                             }),
                         );

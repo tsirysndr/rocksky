@@ -7598,6 +7598,14 @@ export const schemaDict = {
             description: "The duration of the matched track in milliseconds.",
             minimum: 0,
           },
+          trackNumber: {
+            type: "integer",
+            description: "The track number of the matched track in its album.",
+          },
+          discNumber: {
+            type: "integer",
+            description: "The disc number of the matched track in its album.",
+          },
           link: {
             type: "string",
             description: "A URL to the matched track on the provider.",
