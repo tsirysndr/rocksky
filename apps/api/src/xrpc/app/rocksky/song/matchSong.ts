@@ -132,11 +132,23 @@ const retrieve = ({ params, ctx }: { params: QueryParams; ctx: Context }) => {
         mbArtists: MusicBrainzArtist[] | null = null;
       let deezerMatches: DeezerMatch[] = [];
 
-      // Skip Spotify if record is found and album art is already present
+      // Skip Spotify if record is found and album art is already present.
+      // A Spotify failure (rate limiting / HTTP 429, auth, timeout, …) must not
+      // abort the match — degrade to no Spotify result so the Deezer fallback
+      // below can still fill in the missing metadata.
       const needsSpotify = !record || !track?.albumArt;
-      const spotifyTrack = needsSpotify
-        ? await searchOnSpotify(ctx, params.title, params.artist)
-        : undefined;
+      let spotifyTrack: Track | undefined;
+      if (needsSpotify) {
+        try {
+          spotifyTrack = await searchOnSpotify(ctx, params.title, params.artist);
+        } catch (error) {
+          consola.warn(
+            "Spotify search failed, falling back to Deezer:",
+            error instanceof Error ? error.message : error,
+          );
+          spotifyTrack = undefined;
+        }
+      }
 
       if (!record) {
         if (params.mbId) {
