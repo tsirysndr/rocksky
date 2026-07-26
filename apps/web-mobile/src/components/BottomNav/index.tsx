@@ -5,7 +5,7 @@ import {
   IconUser,
   IconVinyl,
 } from "@tabler/icons-react";
-import type { ComponentType } from "react";
+import type { ElementType } from "react";
 import { useAtomValue } from "jotai";
 import { Link, useLocation } from "react-router-dom";
 import { profileAtom } from "../../atoms/profile";
@@ -17,8 +17,8 @@ import {
 
 type NavTab = {
   to: string;
-  // Accepts both @tabler/icons-react and @styled-icons components.
-  icon: ComponentType<{ size?: number; strokeWidth?: number }>;
+  // Accepts both @tabler/icons-react components and the custom BellIcon.
+  icon: ElementType;
   label: string;
   badge?: number;
 };
