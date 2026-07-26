@@ -3,7 +3,7 @@ import { IconUser } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import BellIcon from "./BellIcon";
 import { Avatar } from "baseui/avatar";
-import { PLACEMENT, Popover } from "baseui/popover";
+import { PLACEMENT, StatefulPopover } from "baseui/popover";
 import { useState } from "react";
 import type { NotificationView } from "../../api/notifications";
 import {
@@ -159,25 +159,23 @@ function NotificationRow({
 }
 
 function NotificationBell() {
-  const [open, setOpen] = useState(false);
+  const [opened, setOpened] = useState(false);
   useNotificationStream();
   const { data: unreadCount = 0 } = useUnreadCountQuery();
-  const { data: list } = useNotificationListQuery(open);
+  const { data: list } = useNotificationListQuery(opened);
   const markSeen = useMarkSeenMutation();
 
-  const handleOpen = () => {
-    setOpen(true);
-    if (unreadCount > 0) {
-      markSeen.mutate(undefined);
-    }
-  };
-
   return (
-    <Popover
-      isOpen={open}
-      onClickOutside={() => setOpen(false)}
-      onEsc={() => setOpen(false)}
+    <StatefulPopover
       placement={PLACEMENT.bottomRight}
+      dismissOnClickOutside
+      dismissOnEsc
+      onOpen={() => {
+        setOpened(true);
+        if (unreadCount > 0) {
+          markSeen.mutate(undefined);
+        }
+      }}
       overrides={{
         Body: {
           style: {
@@ -191,7 +189,7 @@ function NotificationBell() {
           },
         },
       }}
-      content={() => (
+      content={({ close }) => (
         <Dropdown>
           <DropdownHeader>Notifications</DropdownHeader>
           {!list || list.notifications.length === 0 ? (
@@ -201,23 +199,20 @@ function NotificationBell() {
               <NotificationRow
                 key={n.id}
                 notification={n}
-                onNavigate={() => setOpen(false)}
+                onNavigate={close}
               />
             ))
           )}
         </Dropdown>
       )}
     >
-      <BellButton
-        onClick={() => (open ? setOpen(false) : handleOpen())}
-        aria-label="Notifications"
-      >
+      <BellButton aria-label="Notifications">
         <BellIcon size={24} color="var(--color-text)" />
         {unreadCount > 0 && (
           <Badge>{unreadCount > 99 ? "99+" : unreadCount}</Badge>
         )}
       </BellButton>
-    </Popover>
+    </StatefulPopover>
   );
 }
 
