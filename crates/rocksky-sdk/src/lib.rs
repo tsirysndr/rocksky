@@ -76,11 +76,12 @@ pub mod namespaces;
 
 pub use agent::{
     AlbumDraft, ArtistDraft, NowPlaying, RockskyAgent, RockskyAgentBuilder, ScrobbleDraft,
-    ScrobbleMatch, ScrobbleResult, SongDraft,
+    ScrobbleMatch, ScrobbleResult, ShoutGif, SongDraft,
 };
 pub use appview::{
-    AlbumView, AppView, ArtistView, DateInterval, FeedItem, FeedView, GlobalStats, ProfileView,
-    ScrobbleView, SearchResults, SongView,
+    AlbumView, AppView, ArtistView, DateInterval, FeedItem, FeedView, GlobalStats,
+    NotificationActor, NotificationList, NotificationView, ProfileView, ScrobbleView,
+    SearchResults, SongView, UnreadCount, UpdateSeenResult,
 };
 pub use auth::Profile;
 #[cfg(feature = "dedup")]

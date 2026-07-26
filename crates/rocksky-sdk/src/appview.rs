@@ -140,6 +140,29 @@ impl AppView {
             .map_err(|e| SdkError::Other(format!("decode {nsid}: {e}: {body}")))
     }
 
+    /// POST an `application/json` body to an XRPC procedure and decode the JSON
+    /// response. Attaches the bearer token when one is set — most procedures are
+    /// auth-gated.
+    async fn mutate<T: DeserializeOwned>(&self, nsid: &str, body: serde_json::Value) -> Result<T> {
+        let url = format!("{}/xrpc/{}", self.base, nsid);
+        let mut req = self.http.post(&url).json(&body);
+        if let Some(token) = &self.token {
+            req = req.bearer_auth(token);
+        }
+        let res = req.send().await?;
+        let status = res.status();
+        let body = res.text().await.unwrap_or_default();
+        if !status.is_success() {
+            return Err(SdkError::AppView {
+                nsid: nsid.to_string(),
+                status: status.as_u16(),
+                body,
+            });
+        }
+        serde_json::from_str(&body)
+            .map_err(|e| SdkError::Other(format!("decode {nsid}: {e}: {body}")))
+    }
+
     /// Escape hatch — call **any** AppView read query by its nsid and get the raw
     /// JSON response back. Every named method on this client is sugar over this,
     /// so `get` reaches queries that have no dedicated wrapper (and any added
@@ -974,6 +997,46 @@ impl AppView {
         )
         .await
     }
+
+    /// The number of unread notifications for the authenticated viewer
+    /// (`app.rocksky.notification.getUnreadCount`, auth-gated).
+    pub async fn unread_count(&self) -> Result<UnreadCount> {
+        self.query("app.rocksky.notification.getUnreadCount", &[])
+            .await
+    }
+
+    /// The authenticated viewer's notifications, most recent first
+    /// (`app.rocksky.notification.listNotifications`, auth-gated). `limit`
+    /// defaults to 30 server-side; `cursor` paginates.
+    pub async fn notifications(
+        &self,
+        limit: Option<u32>,
+        cursor: Option<&str>,
+    ) -> Result<NotificationList> {
+        self.query(
+            "app.rocksky.notification.listNotifications",
+            &[
+                ("limit", limit.map(|l| l.to_string()).unwrap_or_default()),
+                ("cursor", cursor.unwrap_or_default().to_string()),
+            ],
+        )
+        .await
+    }
+
+    /// Mark notifications as viewed (`app.rocksky.notification.updateSeen`,
+    /// procedure, auth-gated). Pass the notification ids to mark, or an empty
+    /// slice to mark **all** of the viewer's notifications. Returns the number
+    /// remaining unread.
+    pub async fn update_seen(&self, ids: &[String]) -> Result<UpdateSeenResult> {
+        // An empty `ids` array would mark nothing; omit the field to mark all.
+        let body = if ids.is_empty() {
+            serde_json::json!({})
+        } else {
+            serde_json::json!({ "ids": ids })
+        };
+        self.mutate("app.rocksky.notification.updateSeen", body)
+            .await
+    }
 }
 
 // ---- wire types ----------------------------------------------------------
@@ -1194,6 +1257,81 @@ pub struct GlobalStats {
     pub albums: u64,
     #[serde(default)]
     pub tracks: u64,
+}
+
+/// `app.rocksky.notification.defs#notificationActor` — the user who triggered a
+/// notification.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationActor {
+    #[serde(default)]
+    pub id: Option<String>,
+    #[serde(default)]
+    pub did: Option<String>,
+    #[serde(default)]
+    pub handle: Option<String>,
+    #[serde(default)]
+    pub display_name: Option<String>,
+    #[serde(default)]
+    pub avatar: Option<String>,
+}
+
+/// `app.rocksky.notification.defs#notificationView`.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationView {
+    #[serde(default)]
+    pub id: String,
+    /// One of `like_scrobble`, `follow`, `comment_scrobble`, `comment_profile`,
+    /// `reply`, `react_comment`.
+    #[serde(default)]
+    pub r#type: String,
+    /// Whether the notification has been viewed.
+    #[serde(default)]
+    pub read: bool,
+    #[serde(default)]
+    pub created_at: String,
+    /// The at-uri of the subject the notification relates to.
+    #[serde(default)]
+    pub subject_uri: Option<String>,
+    #[serde(default)]
+    pub shout_id: Option<String>,
+    #[serde(default)]
+    pub shout_content: Option<String>,
+    #[serde(default)]
+    pub actor: Option<NotificationActor>,
+}
+
+/// Result of `app.rocksky.notification.listNotifications`.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationList {
+    #[serde(default)]
+    pub notifications: Vec<NotificationView>,
+    /// The number of unread notifications.
+    #[serde(default)]
+    pub unread_count: i64,
+    /// Cursor to pass to the next call for the following page.
+    #[serde(default)]
+    pub cursor: Option<String>,
+}
+
+/// Result of `app.rocksky.notification.getUnreadCount`.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UnreadCount {
+    /// The number of unread notifications.
+    #[serde(default)]
+    pub count: i64,
+}
+
+/// Result of `app.rocksky.notification.updateSeen`.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateSeenResult {
+    /// The number of unread notifications remaining.
+    #[serde(default)]
+    pub unread_count: i64,
 }
 
 // ---- output envelopes ----------------------------------------------------

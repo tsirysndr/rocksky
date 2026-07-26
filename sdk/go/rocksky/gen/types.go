@@ -491,9 +491,6 @@ type DescribeFeedGeneratorOutput struct {
 	Feeds []FeedUriView `json:"feeds,omitempty"`
 }
 
-type DescribeFeedGeneratorParams struct {
-}
-
 type DislikeShoutInput struct {
 	// The unique identifier of the shout to dislike
 	URI string `json:"uri,omitempty"`
@@ -1376,6 +1373,11 @@ type GetTrackShoutsParams struct {
 	URI string `json:"uri,omitempty"`
 }
 
+type GetUnreadCountOutput struct {
+	// The number of unread notifications.
+	Count int `json:"count,omitempty"`
+}
+
 type GetUserOutput struct {
 }
 
@@ -1527,6 +1529,19 @@ type LikeSongInput struct {
 	URI string `json:"uri,omitempty"`
 }
 
+type ListNotificationsOutput struct {
+	Notifications []NotificationView `json:"notifications,omitempty"`
+	// The number of unread notifications.
+	UnreadCount int `json:"unreadCount,omitempty"`
+	// A cursor value to pass to subsequent calls to get the next page of results.
+	Cursor string `json:"cursor,omitempty"`
+}
+
+type ListNotificationsParams struct {
+	Limit int `json:"limit,omitempty"`
+	Cursor string `json:"cursor,omitempty"`
+}
+
 type MatchSongParams struct {
 	// The title of the song to retrieve
 	Title string `json:"title,omitempty"`
@@ -1551,6 +1566,38 @@ type MirrorSourceView struct {
 	LastPolledAt string `json:"lastPolledAt,omitempty"`
 	// Watermark — scrobbles from the external service older than this are skipped.
 	LastScrobbleSeenAt string `json:"lastScrobbleSeenAt,omitempty"`
+}
+
+// NotificationActor The user who triggered a notification.
+type NotificationActor struct {
+	// The unique identifier of the actor.
+	ID string `json:"id,omitempty"`
+	// The decentralized identifier of the actor.
+	DID string `json:"did,omitempty"`
+	// The handle of the actor.
+	Handle string `json:"handle,omitempty"`
+	// The display name of the actor.
+	DisplayName string `json:"displayName,omitempty"`
+	// The URL of the actor's avatar image.
+	Avatar string `json:"avatar,omitempty"`
+}
+
+type NotificationView struct {
+	// The unique identifier of the notification.
+	ID string `json:"id,omitempty"`
+	// The notification type: like_scrobble, follow, comment_scrobble, comment_profile, reply, or react_comment.
+	Type string `json:"type,omitempty"`
+	// Whether the notification has been viewed.
+	Read bool `json:"read,omitempty"`
+	// When the notification was created.
+	CreatedAt string `json:"createdAt,omitempty"`
+	// The at-uri of the subject the notification relates to.
+	SubjectURI string `json:"subjectUri,omitempty"`
+	// The id of the related shout, if any.
+	ShoutID string `json:"shoutId,omitempty"`
+	// The content of the related shout, if any.
+	ShoutContent string `json:"shoutContent,omitempty"`
+	Actor *NotificationActor `json:"actor,omitempty"`
 }
 
 type PingOutput struct {
@@ -2088,13 +2135,41 @@ type ShoutAuthor struct {
 	Avatar string `json:"avatar,omitempty"`
 }
 
+// ShoutGif A GIF, sticker, or clip embedded in a shout. `url` may point at an image (GIF/WebP) or a video (MP4); the client decides how to render it from the file extension.
+type ShoutGif struct {
+	// Direct URL of the animated GIF/MP4.
+	URL string `json:"url,omitempty"`
+	// Smaller still/preview image URL.
+	PreviewURL string `json:"previewUrl,omitempty"`
+	// Alternative text describing the media.
+	Alt string `json:"alt,omitempty"`
+	// The intrinsic width of the media in pixels.
+	Width int `json:"width,omitempty"`
+	// The intrinsic height of the media in pixels.
+	Height int `json:"height,omitempty"`
+}
+
+// ShoutMention A mention of another actor within the shout message, anchored to a UTF-8 byte range in the message.
+type ShoutMention struct {
+	// The DID of the mentioned actor.
+	DID string `json:"did,omitempty"`
+	// Inclusive UTF-8 byte offset of the mention start.
+	ByteStart int `json:"byteStart,omitempty"`
+	// Exclusive UTF-8 byte offset of the mention end.
+	ByteEnd int `json:"byteEnd,omitempty"`
+}
+
 type ShoutRecord struct {
-	// The message of the shout.
+	// The message of the shout. Optional when a gif/sticker/clip is attached.
 	Message string `json:"message,omitempty"`
 	// The date when the shout was created.
 	CreatedAt string `json:"createdAt,omitempty"`
 	Parent *StrongRef `json:"parent,omitempty"`
 	Subject *StrongRef `json:"subject,omitempty"`
+	// An attached GIF, sticker, or clip (e.g. from KLIPY).
+	Gif *ShoutGif `json:"gif,omitempty"`
+	// Mentions of other actors within the message, anchored to UTF-8 byte ranges.
+	Facets []ShoutMention `json:"facets,omitempty"`
 }
 
 type ShoutView struct {
@@ -2108,6 +2183,10 @@ type ShoutView struct {
 	CreatedAt string `json:"createdAt,omitempty"`
 	// The author of the shout.
 	Author *ShoutAuthor `json:"author,omitempty"`
+	// An attached GIF, sticker, or clip.
+	Gif *ShoutGif `json:"gif,omitempty"`
+	// Mentions of other actors within the message, anchored to UTF-8 byte ranges.
+	Facets []ShoutMention `json:"facets,omitempty"`
 }
 
 type SongFirstScrobbleView struct {
@@ -2541,4 +2620,14 @@ type UpdatePlaylistInput struct {
 }
 
 type UpdatePlaylistOutput struct {
+}
+
+type UpdateSeenInput struct {
+	// The ids of the notifications to mark as viewed. Omit to mark all.
+	Ids []string `json:"ids,omitempty"`
+}
+
+type UpdateSeenOutput struct {
+	// The number of unread notifications remaining.
+	UnreadCount int `json:"unreadCount,omitempty"`
 }

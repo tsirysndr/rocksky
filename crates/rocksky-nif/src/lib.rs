@@ -175,6 +175,28 @@ fn get(base: String, nsid: String, params_json: String, token: String) -> String
     envelope(RT.block_on(av.get(&nsid, &params)))
 }
 
+/// Mark notifications as viewed (`app.rocksky.notification.updateSeen`). `token`
+/// is required. `ids_json` is a JSON array of notification ids, or `[]` to mark
+/// **all** as viewed. Returns the typed `{ "unreadCount": <int> }` result.
+#[rustler::nif(schedule = "DirtyIo")]
+fn update_seen(base: String, token: String, ids_json: String) -> String {
+    let mut av = appview(&base);
+    if !token.is_empty() {
+        av.set_token(Some(token));
+    }
+    let ids: Vec<String> = serde_json::from_str(&ids_json).unwrap_or_default();
+    envelope(RT.block_on(av.update_seen(&ids)))
+}
+
+/// Parse a JSON GIF embed (`app.rocksky.shout.defs#gif`) into a
+/// [`rocksky_sdk::ShoutGif`]. Empty or invalid input yields `None`.
+fn parse_gif(gif_json: &str) -> Option<rocksky_sdk::ShoutGif> {
+    if gif_json.is_empty() {
+        return None;
+    }
+    serde_json::from_str::<rocksky_sdk::ShoutGif>(gif_json).ok()
+}
+
 /// Coerce a JSON object of params into string pairs (numbers/bools stringified).
 fn params_from_json(params_json: &str) -> Vec<(String, String)> {
     serde_json::from_str::<std::collections::HashMap<String, serde_json::Value>>(params_json)
@@ -625,6 +647,59 @@ fn agent_shout(
     message: String,
 ) -> String {
     envelope(RT.block_on(agent.0.shout(&subject_uri, &subject_cid, &message)))
+}
+
+/// Post a shout with an optional GIF/sticker/clip. `message` may be empty when a
+/// `gif_json` embed is supplied (pass at least one); `gif_json` empty = no gif.
+#[rustler::nif(schedule = "DirtyIo")]
+fn agent_shout_with_gif(
+    agent: ResourceArc<AgentRes>,
+    subject_uri: String,
+    subject_cid: String,
+    message: String,
+    gif_json: String,
+) -> String {
+    let message = if message.is_empty() {
+        None
+    } else {
+        Some(message)
+    };
+    let gif = parse_gif(&gif_json);
+    envelope(
+        RT.block_on(
+            agent
+                .0
+                .shout_with_gif(&subject_uri, &subject_cid, message.as_deref(), gif),
+        ),
+    )
+}
+
+/// Reply to a shout with an optional GIF/sticker/clip. Semantics match
+/// [`agent_shout_with_gif`], plus a `parent` strong-ref.
+#[rustler::nif(schedule = "DirtyIo")]
+fn agent_reply_shout_with_gif(
+    agent: ResourceArc<AgentRes>,
+    subject_uri: String,
+    subject_cid: String,
+    parent_uri: String,
+    parent_cid: String,
+    message: String,
+    gif_json: String,
+) -> String {
+    let message = if message.is_empty() {
+        None
+    } else {
+        Some(message)
+    };
+    let gif = parse_gif(&gif_json);
+    envelope(RT.block_on(agent.0.reply_shout_with_gif(
+        &subject_uri,
+        &subject_cid,
+        &parent_uri,
+        &parent_cid,
+        message.as_deref(),
+        gif,
+    )))
 }
 
 #[rustler::nif(schedule = "DirtyIo")]

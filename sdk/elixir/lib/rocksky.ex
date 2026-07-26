@@ -43,6 +43,27 @@ defmodule Rocksky do
   def get(nsid, params \\ %{}, base \\ "", token \\ ""),
     do: :rocksky.get(to_bin(nsid), params, to_bin(base), to_bin(token))
 
+  @doc """
+  The authenticated viewer's unread-notification count (`token` required).
+  Returns `%{"count" => n}`.
+  """
+  def unread_count(token, base \\ ""),
+    do: :rocksky.unread_count(to_bin(token), to_bin(base))
+
+  @doc """
+  The authenticated viewer's notifications, most recent first (`token` required).
+  `params` may include `"limit"` (default 30) and `"cursor"`.
+  """
+  def notifications(token, params \\ %{}, base \\ ""),
+    do: :rocksky.notifications(to_bin(token), params, to_bin(base))
+
+  @doc """
+  Mark notifications as viewed (`token` required). `ids` is a list of notification
+  ids, or `[]` to mark all. Returns `%{"unreadCount" => n}`.
+  """
+  def update_seen(token, ids \\ [], base \\ ""),
+    do: :rocksky.update_seen(to_bin(token), ids, to_bin(base))
+
   @doc "Resolve full canonical metadata for a bare title + artist (matchSong)."
   def match_song(title, artist, mb_id \\ "", isrc \\ "", base \\ ""),
     do: :rocksky.match_song(to_bin(base), to_bin(title), to_bin(artist), to_bin(mb_id), to_bin(isrc))
@@ -112,8 +133,39 @@ defmodule Rocksky do
   def shout(agent, subject_uri, subject_cid, message),
     do: :rocksky.agent_shout(agent, to_bin(subject_uri), to_bin(subject_cid), to_bin(message))
 
+  @doc """
+  Post a shout with an optional GIF/sticker/clip. Pass at least one of `message`
+  / `gif`. `gif` is a map (`"url"` required, plus `"previewUrl"`, `"alt"`,
+  `"width"`, `"height"`) or `nil`.
+  """
+  def shout_with_gif(agent, subject_uri, subject_cid, message, gif \\ nil),
+    do:
+      :rocksky.agent_shout_with_gif(
+        agent,
+        to_bin(subject_uri),
+        to_bin(subject_cid),
+        to_bin(message),
+        gif_arg(gif)
+      )
+
+  @doc "Reply to a shout with an optional GIF/sticker/clip (see `shout_with_gif/5`)."
+  def reply_shout_with_gif(agent, subject_uri, subject_cid, parent_uri, parent_cid, message, gif \\ nil),
+    do:
+      :rocksky.agent_reply_shout_with_gif(
+        agent,
+        to_bin(subject_uri),
+        to_bin(subject_cid),
+        to_bin(parent_uri),
+        to_bin(parent_cid),
+        to_bin(message),
+        gif_arg(gif)
+      )
+
   @doc "Proactively refresh the session (keep-alive)."
   def refresh_session(agent), do: :rocksky.agent_refresh_session(agent)
+
+  defp gif_arg(nil), do: :undefined
+  defp gif_arg(gif), do: gif
 
   defp to_bin(s) when is_binary(s), do: s
   defp to_bin(s), do: to_string(s)

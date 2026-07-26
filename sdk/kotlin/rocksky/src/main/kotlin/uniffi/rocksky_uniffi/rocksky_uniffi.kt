@@ -876,6 +876,102 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // A JNA Library to expose the extern-C FFI definitions.
 // This is an implementation detail which will be called internally by the public API.
 
@@ -923,6 +1019,8 @@ internal interface UniffiLib : Library {
     ): Unit
     fun uniffi_rocksky_uniffi_fn_method_agent_reply_shout(`ptr`: Pointer,`subjectUri`: RustBuffer.ByValue,`subjectCid`: RustBuffer.ByValue,`parentUri`: RustBuffer.ByValue,`parentCid`: RustBuffer.ByValue,`message`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_agent_reply_shout_with_gif(`ptr`: Pointer,`subjectUri`: RustBuffer.ByValue,`subjectCid`: RustBuffer.ByValue,`parentUri`: RustBuffer.ByValue,`parentCid`: RustBuffer.ByValue,`message`: RustBuffer.ByValue,`gif`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_agent_scrobble(`ptr`: Pointer,`input`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_agent_scrobble_match(`ptr`: Pointer,`input`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -930,6 +1028,8 @@ internal interface UniffiLib : Library {
     fun uniffi_rocksky_uniffi_fn_method_agent_set_now_playing(`ptr`: Pointer,`track`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
     fun uniffi_rocksky_uniffi_fn_method_agent_shout(`ptr`: Pointer,`subjectUri`: RustBuffer.ByValue,`subjectCid`: RustBuffer.ByValue,`message`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_agent_shout_with_gif(`ptr`: Pointer,`subjectUri`: RustBuffer.ByValue,`subjectCid`: RustBuffer.ByValue,`message`: RustBuffer.ByValue,`gif`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_agent_sync_repo(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
@@ -1009,6 +1109,8 @@ internal interface UniffiLib : Library {
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_neighbours(`ptr`: Pointer,`actor`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_appview_notifications(`ptr`: Pointer,`limit`: RustBuffer.ByValue,`cursor`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_playback_queue(`ptr`: Pointer,`playerId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_playlist(`ptr`: Pointer,`uri`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -1055,7 +1157,99 @@ internal interface UniffiLib : Library {
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_track_shouts(`ptr`: Pointer,`uri`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_appview_unread_count(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_appview_update_seen(`ptr`: Pointer,`ids`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_method_appview_wrapped(`ptr`: Pointer,`actor`: RustBuffer.ByValue,`year`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_clone_library(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): Pointer
+    fun uniffi_rocksky_uniffi_fn_free_library(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    fun uniffi_rocksky_uniffi_fn_constructor_library_new(`base`: RustBuffer.ByValue,`token`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Pointer
+    fun uniffi_rocksky_uniffi_fn_method_library_create_playlist(`ptr`: Pointer,`name`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_delete_album(`ptr`: Pointer,`id`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_delete_playlist(`ptr`: Pointer,`id`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_delete_song(`ptr`: Pointer,`id`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_get_album(`ptr`: Pointer,`id`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_get_album_info(`ptr`: Pointer,`id`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_get_album_list(`ptr`: Pointer,`type`: RustBuffer.ByValue,`size`: RustBuffer.ByValue,`offset`: RustBuffer.ByValue,`fromYear`: RustBuffer.ByValue,`toYear`: RustBuffer.ByValue,`genre`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_get_artist(`ptr`: Pointer,`id`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_get_artist_info(`ptr`: Pointer,`id`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_get_artists(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_get_cover_art_url(`ptr`: Pointer,`id`: RustBuffer.ByValue,`size`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_get_download_url(`ptr`: Pointer,`id`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_get_genres(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_get_indexes(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_get_internet_radio_stations(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_get_license(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_get_lyrics(`ptr`: Pointer,`artist`: RustBuffer.ByValue,`title`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_get_music_directory(`ptr`: Pointer,`id`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_get_music_folders(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_get_now_playing(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_get_play_queue(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_get_playlist(`ptr`: Pointer,`id`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_get_playlists(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_get_random_songs(`ptr`: Pointer,`size`: RustBuffer.ByValue,`genre`: RustBuffer.ByValue,`fromYear`: RustBuffer.ByValue,`toYear`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_get_scan_status(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_get_similar_songs(`ptr`: Pointer,`id`: RustBuffer.ByValue,`count`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_get_song(`ptr`: Pointer,`id`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_get_songs_by_genre(`ptr`: Pointer,`genre`: RustBuffer.ByValue,`count`: RustBuffer.ByValue,`offset`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_get_starred(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_get_stream_url(`ptr`: Pointer,`id`: RustBuffer.ByValue,`maxBitRate`: RustBuffer.ByValue,`format`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_get_top_songs(`ptr`: Pointer,`artist`: RustBuffer.ByValue,`count`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_get_user(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_ping(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_save_play_queue(`ptr`: Pointer,`id`: RustBuffer.ByValue,`current`: RustBuffer.ByValue,`position`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_scrobble(`ptr`: Pointer,`id`: RustBuffer.ByValue,`time`: RustBuffer.ByValue,`submission`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_search(`ptr`: Pointer,`query`: RustBuffer.ByValue,`artistCount`: RustBuffer.ByValue,`artistOffset`: RustBuffer.ByValue,`albumCount`: RustBuffer.ByValue,`albumOffset`: RustBuffer.ByValue,`songCount`: RustBuffer.ByValue,`songOffset`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_star(`ptr`: Pointer,`id`: RustBuffer.ByValue,`albumId`: RustBuffer.ByValue,`artistId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_start_scan(`ptr`: Pointer,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_unstar(`ptr`: Pointer,`id`: RustBuffer.ByValue,`albumId`: RustBuffer.ByValue,`artistId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_update_now_playing(`ptr`: Pointer,`id`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_rocksky_uniffi_fn_method_library_update_playlist(`ptr`: Pointer,`playlistId`: RustBuffer.ByValue,`name`: RustBuffer.ByValue,`comment`: RustBuffer.ByValue,`songIdToAdd`: RustBuffer.ByValue,`songIndexToRemove`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_rocksky_uniffi_fn_func_album_hash(`album`: RustBuffer.ByValue,`albumArtist`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
@@ -1203,6 +1397,8 @@ internal interface UniffiLib : Library {
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_agent_reply_shout(
     ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_agent_reply_shout_with_gif(
+    ): Short
     fun uniffi_rocksky_uniffi_checksum_method_agent_scrobble(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_agent_scrobble_match(
@@ -1210,6 +1406,8 @@ internal interface UniffiLib : Library {
     fun uniffi_rocksky_uniffi_checksum_method_agent_set_now_playing(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_agent_shout(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_agent_shout_with_gif(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_agent_sync_repo(
     ): Short
@@ -1283,6 +1481,8 @@ internal interface UniffiLib : Library {
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_neighbours(
     ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_appview_notifications(
+    ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_playback_queue(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_playlist(
@@ -1329,11 +1529,99 @@ internal interface UniffiLib : Library {
     ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_track_shouts(
     ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_appview_unread_count(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_appview_update_seen(
+    ): Short
     fun uniffi_rocksky_uniffi_checksum_method_appview_wrapped(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_create_playlist(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_delete_album(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_delete_playlist(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_delete_song(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_get_album(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_get_album_info(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_get_album_list(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_get_artist(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_get_artist_info(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_get_artists(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_get_cover_art_url(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_get_download_url(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_get_genres(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_get_indexes(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_get_internet_radio_stations(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_get_license(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_get_lyrics(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_get_music_directory(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_get_music_folders(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_get_now_playing(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_get_play_queue(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_get_playlist(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_get_playlists(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_get_random_songs(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_get_scan_status(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_get_similar_songs(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_get_song(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_get_songs_by_genre(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_get_starred(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_get_stream_url(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_get_top_songs(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_get_user(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_ping(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_save_play_queue(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_scrobble(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_search(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_star(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_start_scan(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_unstar(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_update_now_playing(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_method_library_update_playlist(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_constructor_agent_login_password(
     ): Short
     fun uniffi_rocksky_uniffi_checksum_constructor_appview_new(
+    ): Short
+    fun uniffi_rocksky_uniffi_checksum_constructor_library_new(
     ): Short
     fun ffi_rocksky_uniffi_uniffi_contract_version(
     ): Int
@@ -1394,6 +1682,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_rocksky_uniffi_checksum_method_agent_reply_shout() != 29470.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_reply_shout_with_gif() != 30347.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_rocksky_uniffi_checksum_method_agent_scrobble() != 17314.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1404,6 +1695,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_method_agent_shout() != 41382.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_agent_shout_with_gif() != 51807.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_method_agent_sync_repo() != 33910.toShort()) {
@@ -1514,6 +1808,9 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_neighbours() != 57546.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_notifications() != 60047.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_playback_queue() != 32322.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -1583,13 +1880,145 @@ private fun uniffiCheckApiChecksums(lib: UniffiLib) {
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_track_shouts() != 8713.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_unread_count() != 41669.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_appview_update_seen() != 15297.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_rocksky_uniffi_checksum_method_appview_wrapped() != 63835.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_create_playlist() != 1198.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_delete_album() != 61199.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_delete_playlist() != 22674.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_delete_song() != 65357.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_get_album() != 29404.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_get_album_info() != 52466.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_get_album_list() != 40173.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_get_artist() != 29339.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_get_artist_info() != 16237.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_get_artists() != 28277.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_get_cover_art_url() != 4983.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_get_download_url() != 28146.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_get_genres() != 59896.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_get_indexes() != 12238.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_get_internet_radio_stations() != 55752.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_get_license() != 5838.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_get_lyrics() != 38380.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_get_music_directory() != 52674.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_get_music_folders() != 17682.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_get_now_playing() != 36367.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_get_play_queue() != 65057.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_get_playlist() != 64635.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_get_playlists() != 42853.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_get_random_songs() != 50256.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_get_scan_status() != 65363.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_get_similar_songs() != 43677.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_get_song() != 35370.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_get_songs_by_genre() != 55810.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_get_starred() != 42756.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_get_stream_url() != 25069.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_get_top_songs() != 31996.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_get_user() != 22213.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_ping() != 50138.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_save_play_queue() != 48102.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_scrobble() != 2804.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_search() != 53170.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_star() != 19540.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_start_scan() != 3950.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_unstar() != 50111.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_update_now_playing() != 58737.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_method_library_update_playlist() != 33660.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_constructor_agent_login_password() != 59184.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_rocksky_uniffi_checksum_constructor_appview_new() != 526.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_rocksky_uniffi_checksum_constructor_library_new() != 16490.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
 }
@@ -1997,6 +2426,12 @@ public interface AgentInterface {
     fun `replyShout`(`subjectUri`: kotlin.String, `subjectCid`: kotlin.String, `parentUri`: kotlin.String, `parentCid`: kotlin.String, `message`: kotlin.String): kotlin.String
     
     /**
+     * Reply to a shout with an optional GIF/sticker/clip attachment. Pass at
+     * least one of `message` / `gif`. Returns the shout URI.
+     */
+    fun `replyShoutWithGif`(`subjectUri`: kotlin.String, `subjectCid`: kotlin.String, `parentUri`: kotlin.String, `parentCid`: kotlin.String, `message`: kotlin.String?, `gif`: ShoutGifInput?): kotlin.String
+    
+    /**
      * Scrobble a play — fans out to artist/album/song then the scrobble.
      */
     fun `scrobble`(`input`: ScrobbleInput): ScrobbleResult
@@ -2016,6 +2451,12 @@ public interface AgentInterface {
      * Post a shout on a subject. Returns the shout URI.
      */
     fun `shout`(`subjectUri`: kotlin.String, `subjectCid`: kotlin.String, `message`: kotlin.String): kotlin.String
+    
+    /**
+     * Post a shout with an optional GIF/sticker/clip attachment. Pass at least
+     * one of `message` / `gif`. Returns the shout URI.
+     */
+    fun `shoutWithGif`(`subjectUri`: kotlin.String, `subjectCid`: kotlin.String, `message`: kotlin.String?, `gif`: ShoutGifInput?): kotlin.String
     
     /**
      * Download the caller's repo (CAR) and (re)build the local dedup index,
@@ -2273,6 +2714,23 @@ open class Agent: Disposable, AutoCloseable, AgentInterface {
 
     
     /**
+     * Reply to a shout with an optional GIF/sticker/clip attachment. Pass at
+     * least one of `message` / `gif`. Returns the shout URI.
+     */
+    @Throws(RockskyException::class)override fun `replyShoutWithGif`(`subjectUri`: kotlin.String, `subjectCid`: kotlin.String, `parentUri`: kotlin.String, `parentCid`: kotlin.String, `message`: kotlin.String?, `gif`: ShoutGifInput?): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_agent_reply_shout_with_gif(
+        it, FfiConverterString.lower(`subjectUri`),FfiConverterString.lower(`subjectCid`),FfiConverterString.lower(`parentUri`),FfiConverterString.lower(`parentCid`),FfiConverterOptionalString.lower(`message`),FfiConverterOptionalTypeShoutGifInput.lower(`gif`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
      * Scrobble a play — fans out to artist/album/song then the scrobble.
      */
     @Throws(RockskyException::class)override fun `scrobble`(`input`: ScrobbleInput): ScrobbleResult {
@@ -2329,6 +2787,23 @@ open class Agent: Disposable, AutoCloseable, AgentInterface {
     uniffiRustCallWithError(RockskyException) { _status ->
     UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_agent_shout(
         it, FfiConverterString.lower(`subjectUri`),FfiConverterString.lower(`subjectCid`),FfiConverterString.lower(`message`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Post a shout with an optional GIF/sticker/clip attachment. Pass at least
+     * one of `message` / `gif`. Returns the shout URI.
+     */
+    @Throws(RockskyException::class)override fun `shoutWithGif`(`subjectUri`: kotlin.String, `subjectCid`: kotlin.String, `message`: kotlin.String?, `gif`: ShoutGifInput?): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_agent_shout_with_gif(
+        it, FfiConverterString.lower(`subjectUri`),FfiConverterString.lower(`subjectCid`),FfiConverterOptionalString.lower(`message`),FfiConverterOptionalTypeShoutGifInput.lower(`gif`),_status)
 }
     }
     )
@@ -2607,6 +3082,12 @@ public interface AppViewInterface {
     
     fun `neighbours`(`actor`: kotlin.String): kotlin.String
     
+    /**
+     * The authenticated viewer's notifications, most recent first
+     * (`app.rocksky.notification.listNotifications`). `limit` defaults to 30.
+     */
+    fun `notifications`(`limit`: kotlin.UInt?, `cursor`: kotlin.String?): NotificationList
+    
     fun `playbackQueue`(`playerId`: kotlin.String): kotlin.String
     
     fun `playlist`(`uri`: kotlin.String): kotlin.String
@@ -2658,6 +3139,18 @@ public interface AppViewInterface {
     fun `topTracksInterval`(`limit`: kotlin.UInt, `offset`: kotlin.UInt, `interval`: DateInterval): List<SongView>
     
     fun `trackShouts`(`uri`: kotlin.String): kotlin.String
+    
+    /**
+     * The authenticated viewer's unread-notification count
+     * (`app.rocksky.notification.getUnreadCount`).
+     */
+    fun `unreadCount`(): UnreadCount
+    
+    /**
+     * Mark notifications as viewed (`app.rocksky.notification.updateSeen`). Pass
+     * the ids to mark, or an empty list to mark **all** as viewed.
+     */
+    fun `updateSeen`(`ids`: List<kotlin.String>): UpdateSeenResult
     
     fun `wrapped`(`actor`: kotlin.String, `year`: kotlin.UInt?): kotlin.String
     
@@ -3196,6 +3689,23 @@ open class AppView: Disposable, AutoCloseable, AppViewInterface {
     
 
     
+    /**
+     * The authenticated viewer's notifications, most recent first
+     * (`app.rocksky.notification.listNotifications`). `limit` defaults to 30.
+     */
+    @Throws(RockskyException::class)override fun `notifications`(`limit`: kotlin.UInt?, `cursor`: kotlin.String?): NotificationList {
+            return FfiConverterTypeNotificationList.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_notifications(
+        it, FfiConverterOptionalUInt.lower(`limit`),FfiConverterOptionalString.lower(`cursor`),_status)
+}
+    }
+    )
+    }
+    
+
+    
     @Throws(RockskyException::class)override fun `playbackQueue`(`playerId`: kotlin.String): kotlin.String {
             return FfiConverterString.lift(
     callWithPointer {
@@ -3501,6 +4011,40 @@ open class AppView: Disposable, AutoCloseable, AppViewInterface {
     
 
     
+    /**
+     * The authenticated viewer's unread-notification count
+     * (`app.rocksky.notification.getUnreadCount`).
+     */
+    @Throws(RockskyException::class)override fun `unreadCount`(): UnreadCount {
+            return FfiConverterTypeUnreadCount.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_unread_count(
+        it, _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * Mark notifications as viewed (`app.rocksky.notification.updateSeen`). Pass
+     * the ids to mark, or an empty list to mark **all** as viewed.
+     */
+    @Throws(RockskyException::class)override fun `updateSeen`(`ids`: List<kotlin.String>): UpdateSeenResult {
+            return FfiConverterTypeUpdateSeenResult.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_appview_update_seen(
+        it, FfiConverterSequenceString.lower(`ids`),_status)
+}
+    }
+    )
+    }
+    
+
+    
     @Throws(RockskyException::class)override fun `wrapped`(`actor`: kotlin.String, `year`: kotlin.UInt?): kotlin.String {
             return FfiConverterString.lift(
     callWithPointer {
@@ -3543,6 +4087,1109 @@ public object FfiConverterTypeAppView: FfiConverter<AppView, Pointer> {
     override fun allocationSize(value: AppView) = 8UL
 
     override fun write(value: AppView, buf: ByteBuffer) {
+        // The Rust code always expects pointers written as 8 bytes,
+        // and will fail to compile if they don't fit.
+        buf.putLong(Pointer.nativeValue(lower(value)))
+    }
+}
+
+
+// This template implements a class for working with a Rust struct via a Pointer/Arc<T>
+// to the live Rust struct on the other side of the FFI.
+//
+// Each instance implements core operations for working with the Rust `Arc<T>` and the
+// Kotlin Pointer to work with the live Rust struct on the other side of the FFI.
+//
+// There's some subtlety here, because we have to be careful not to operate on a Rust
+// struct after it has been dropped, and because we must expose a public API for freeing
+// theq Kotlin wrapper object in lieu of reliable finalizers. The core requirements are:
+//
+//   * Each instance holds an opaque pointer to the underlying Rust struct.
+//     Method calls need to read this pointer from the object's state and pass it in to
+//     the Rust FFI.
+//
+//   * When an instance is no longer needed, its pointer should be passed to a
+//     special destructor function provided by the Rust FFI, which will drop the
+//     underlying Rust struct.
+//
+//   * Given an instance, calling code is expected to call the special
+//     `destroy` method in order to free it after use, either by calling it explicitly
+//     or by using a higher-level helper like the `use` method. Failing to do so risks
+//     leaking the underlying Rust struct.
+//
+//   * We can't assume that calling code will do the right thing, and must be prepared
+//     to handle Kotlin method calls executing concurrently with or even after a call to
+//     `destroy`, and to handle multiple (possibly concurrent!) calls to `destroy`.
+//
+//   * We must never allow Rust code to operate on the underlying Rust struct after
+//     the destructor has been called, and must never call the destructor more than once.
+//     Doing so may trigger memory unsafety.
+//
+//   * To mitigate many of the risks of leaking memory and use-after-free unsafety, a `Cleaner`
+//     is implemented to call the destructor when the Kotlin object becomes unreachable.
+//     This is done in a background thread. This is not a panacea, and client code should be aware that
+//      1. the thread may starve if some there are objects that have poorly performing
+//     `drop` methods or do significant work in their `drop` methods.
+//      2. the thread is shared across the whole library. This can be tuned by using `android_cleaner = true`,
+//         or `android = true` in the [`kotlin` section of the `uniffi.toml` file](https://mozilla.github.io/uniffi-rs/kotlin/configuration.html).
+//
+// If we try to implement this with mutual exclusion on access to the pointer, there is the
+// possibility of a race between a method call and a concurrent call to `destroy`:
+//
+//    * Thread A starts a method call, reads the value of the pointer, but is interrupted
+//      before it can pass the pointer over the FFI to Rust.
+//    * Thread B calls `destroy` and frees the underlying Rust struct.
+//    * Thread A resumes, passing the already-read pointer value to Rust and triggering
+//      a use-after-free.
+//
+// One possible solution would be to use a `ReadWriteLock`, with each method call taking
+// a read lock (and thus allowed to run concurrently) and the special `destroy` method
+// taking a write lock (and thus blocking on live method calls). However, we aim not to
+// generate methods with any hidden blocking semantics, and a `destroy` method that might
+// block if called incorrectly seems to meet that bar.
+//
+// So, we achieve our goals by giving each instance an associated `AtomicLong` counter to track
+// the number of in-flight method calls, and an `AtomicBoolean` flag to indicate whether `destroy`
+// has been called. These are updated according to the following rules:
+//
+//    * The initial value of the counter is 1, indicating a live object with no in-flight calls.
+//      The initial value for the flag is false.
+//
+//    * At the start of each method call, we atomically check the counter.
+//      If it is 0 then the underlying Rust struct has already been destroyed and the call is aborted.
+//      If it is nonzero them we atomically increment it by 1 and proceed with the method call.
+//
+//    * At the end of each method call, we atomically decrement and check the counter.
+//      If it has reached zero then we destroy the underlying Rust struct.
+//
+//    * When `destroy` is called, we atomically flip the flag from false to true.
+//      If the flag was already true we silently fail.
+//      Otherwise we atomically decrement and check the counter.
+//      If it has reached zero then we destroy the underlying Rust struct.
+//
+// Astute readers may observe that this all sounds very similar to the way that Rust's `Arc<T>` works,
+// and indeed it is, with the addition of a flag to guard against multiple calls to `destroy`.
+//
+// The overall effect is that the underlying Rust struct is destroyed only when `destroy` has been
+// called *and* all in-flight method calls have completed, avoiding violating any of the expectations
+// of the underlying Rust code.
+//
+// This makes a cleaner a better alternative to _not_ calling `destroy()` as
+// and when the object is finished with, but the abstraction is not perfect: if the Rust object's `drop`
+// method is slow, and/or there are many objects to cleanup, and it's on a low end Android device, then the cleaner
+// thread may be starved, and the app will leak memory.
+//
+// In this case, `destroy`ing manually may be a better solution.
+//
+// The cleaner can live side by side with the manual calling of `destroy`. In the order of responsiveness, uniffi objects
+// with Rust peers are reclaimed:
+//
+// 1. By calling the `destroy` method of the object, which calls `rustObject.free()`. If that doesn't happen:
+// 2. When the object becomes unreachable, AND the Cleaner thread gets to call `rustObject.free()`. If the thread is starved then:
+// 3. The memory is reclaimed when the process terminates.
+//
+// [1] https://stackoverflow.com/questions/24376768/can-java-finalize-an-object-when-it-is-still-in-scope/24380219
+//
+
+
+/**
+ * Authenticated `app.rocksky.library.*` client. A non-empty access token is
+ * mandatory — [`Library::new`] errors without one, so no library call can be
+ * made unauthenticated. Methods return the raw JSON payload as a string.
+ */
+public interface LibraryInterface {
+    
+    /**
+     * `app.rocksky.library.createPlaylist` — returns the raw JSON payload.
+     */
+    fun `createPlaylist`(`name`: kotlin.String): kotlin.String
+    
+    /**
+     * `app.rocksky.library.deleteAlbum` — returns the raw JSON payload.
+     */
+    fun `deleteAlbum`(`id`: kotlin.String): kotlin.String
+    
+    /**
+     * `app.rocksky.library.deletePlaylist` — returns the raw JSON payload.
+     */
+    fun `deletePlaylist`(`id`: kotlin.String): kotlin.String
+    
+    /**
+     * `app.rocksky.library.deleteSong` — returns the raw JSON payload.
+     */
+    fun `deleteSong`(`id`: kotlin.String): kotlin.String
+    
+    /**
+     * `app.rocksky.library.getAlbum` — returns the raw JSON payload.
+     */
+    fun `getAlbum`(`id`: kotlin.String): kotlin.String
+    
+    /**
+     * `app.rocksky.library.getAlbumInfo` — returns the raw JSON payload.
+     */
+    fun `getAlbumInfo`(`id`: kotlin.String): kotlin.String
+    
+    /**
+     * `app.rocksky.library.getAlbumList` — returns the raw JSON payload.
+     */
+    fun `getAlbumList`(`type`: kotlin.String, `size`: kotlin.Long?, `offset`: kotlin.Long?, `fromYear`: kotlin.Long?, `toYear`: kotlin.Long?, `genre`: kotlin.String?): kotlin.String
+    
+    /**
+     * `app.rocksky.library.getArtist` — returns the raw JSON payload.
+     */
+    fun `getArtist`(`id`: kotlin.String): kotlin.String
+    
+    /**
+     * `app.rocksky.library.getArtistInfo` — returns the raw JSON payload.
+     */
+    fun `getArtistInfo`(`id`: kotlin.String): kotlin.String
+    
+    /**
+     * `app.rocksky.library.getArtists` — returns the raw JSON payload.
+     */
+    fun `getArtists`(): kotlin.String
+    
+    /**
+     * `app.rocksky.library.getCoverArtUrl` — returns the raw JSON payload.
+     */
+    fun `getCoverArtUrl`(`id`: kotlin.String, `size`: kotlin.Long?): kotlin.String
+    
+    /**
+     * `app.rocksky.library.getDownloadUrl` — returns the raw JSON payload.
+     */
+    fun `getDownloadUrl`(`id`: kotlin.String): kotlin.String
+    
+    /**
+     * `app.rocksky.library.getGenres` — returns the raw JSON payload.
+     */
+    fun `getGenres`(): kotlin.String
+    
+    /**
+     * `app.rocksky.library.getIndexes` — returns the raw JSON payload.
+     */
+    fun `getIndexes`(): kotlin.String
+    
+    /**
+     * `app.rocksky.library.getInternetRadioStations` — returns the raw JSON payload.
+     */
+    fun `getInternetRadioStations`(): kotlin.String
+    
+    /**
+     * `app.rocksky.library.getLicense` — returns the raw JSON payload.
+     */
+    fun `getLicense`(): kotlin.String
+    
+    /**
+     * `app.rocksky.library.getLyrics` — returns the raw JSON payload.
+     */
+    fun `getLyrics`(`artist`: kotlin.String?, `title`: kotlin.String?): kotlin.String
+    
+    /**
+     * `app.rocksky.library.getMusicDirectory` — returns the raw JSON payload.
+     */
+    fun `getMusicDirectory`(`id`: kotlin.String): kotlin.String
+    
+    /**
+     * `app.rocksky.library.getMusicFolders` — returns the raw JSON payload.
+     */
+    fun `getMusicFolders`(): kotlin.String
+    
+    /**
+     * `app.rocksky.library.getNowPlaying` — returns the raw JSON payload.
+     */
+    fun `getNowPlaying`(): kotlin.String
+    
+    /**
+     * `app.rocksky.library.getPlayQueue` — returns the raw JSON payload.
+     */
+    fun `getPlayQueue`(): kotlin.String
+    
+    /**
+     * `app.rocksky.library.getPlaylist` — returns the raw JSON payload.
+     */
+    fun `getPlaylist`(`id`: kotlin.String): kotlin.String
+    
+    /**
+     * `app.rocksky.library.getPlaylists` — returns the raw JSON payload.
+     */
+    fun `getPlaylists`(): kotlin.String
+    
+    /**
+     * `app.rocksky.library.getRandomSongs` — returns the raw JSON payload.
+     */
+    fun `getRandomSongs`(`size`: kotlin.Long?, `genre`: kotlin.String?, `fromYear`: kotlin.Long?, `toYear`: kotlin.Long?): kotlin.String
+    
+    /**
+     * `app.rocksky.library.getScanStatus` — returns the raw JSON payload.
+     */
+    fun `getScanStatus`(): kotlin.String
+    
+    /**
+     * `app.rocksky.library.getSimilarSongs` — returns the raw JSON payload.
+     */
+    fun `getSimilarSongs`(`id`: kotlin.String, `count`: kotlin.Long?): kotlin.String
+    
+    /**
+     * `app.rocksky.library.getSong` — returns the raw JSON payload.
+     */
+    fun `getSong`(`id`: kotlin.String): kotlin.String
+    
+    /**
+     * `app.rocksky.library.getSongsByGenre` — returns the raw JSON payload.
+     */
+    fun `getSongsByGenre`(`genre`: kotlin.String, `count`: kotlin.Long?, `offset`: kotlin.Long?): kotlin.String
+    
+    /**
+     * `app.rocksky.library.getStarred` — returns the raw JSON payload.
+     */
+    fun `getStarred`(): kotlin.String
+    
+    /**
+     * `app.rocksky.library.getStreamUrl` — returns the raw JSON payload.
+     */
+    fun `getStreamUrl`(`id`: kotlin.String, `maxBitRate`: kotlin.Long?, `format`: kotlin.String?): kotlin.String
+    
+    /**
+     * `app.rocksky.library.getTopSongs` — returns the raw JSON payload.
+     */
+    fun `getTopSongs`(`artist`: kotlin.String, `count`: kotlin.Long?): kotlin.String
+    
+    /**
+     * `app.rocksky.library.getUser` — returns the raw JSON payload.
+     */
+    fun `getUser`(): kotlin.String
+    
+    /**
+     * `app.rocksky.library.ping` — returns the raw JSON payload.
+     */
+    fun `ping`(): kotlin.String
+    
+    /**
+     * `app.rocksky.library.savePlayQueue` — returns the raw JSON payload.
+     */
+    fun `savePlayQueue`(`id`: kotlin.String?, `current`: kotlin.String?, `position`: kotlin.Long?): kotlin.String
+    
+    /**
+     * `app.rocksky.library.scrobble` — returns the raw JSON payload.
+     */
+    fun `scrobble`(`id`: kotlin.String, `time`: kotlin.Long?, `submission`: kotlin.Boolean?): kotlin.String
+    
+    /**
+     * `app.rocksky.library.search` — returns the raw JSON payload.
+     */
+    fun `search`(`query`: kotlin.String, `artistCount`: kotlin.Long?, `artistOffset`: kotlin.Long?, `albumCount`: kotlin.Long?, `albumOffset`: kotlin.Long?, `songCount`: kotlin.Long?, `songOffset`: kotlin.Long?): kotlin.String
+    
+    /**
+     * `app.rocksky.library.star` — returns the raw JSON payload.
+     */
+    fun `star`(`id`: kotlin.String, `albumId`: kotlin.String?, `artistId`: kotlin.String?): kotlin.String
+    
+    /**
+     * `app.rocksky.library.startScan` — returns the raw JSON payload.
+     */
+    fun `startScan`(): kotlin.String
+    
+    /**
+     * `app.rocksky.library.unstar` — returns the raw JSON payload.
+     */
+    fun `unstar`(`id`: kotlin.String, `albumId`: kotlin.String?, `artistId`: kotlin.String?): kotlin.String
+    
+    /**
+     * `app.rocksky.library.updateNowPlaying` — returns the raw JSON payload.
+     */
+    fun `updateNowPlaying`(`id`: kotlin.String): kotlin.String
+    
+    /**
+     * `app.rocksky.library.updatePlaylist` — returns the raw JSON payload.
+     */
+    fun `updatePlaylist`(`playlistId`: kotlin.String, `name`: kotlin.String?, `comment`: kotlin.String?, `songIdToAdd`: kotlin.String?, `songIndexToRemove`: kotlin.Long?): kotlin.String
+    
+    companion object
+}
+
+/**
+ * Authenticated `app.rocksky.library.*` client. A non-empty access token is
+ * mandatory — [`Library::new`] errors without one, so no library call can be
+ * made unauthenticated. Methods return the raw JSON payload as a string.
+ */
+open class Library: Disposable, AutoCloseable, LibraryInterface {
+
+    constructor(pointer: Pointer) {
+        this.pointer = pointer
+        this.cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(pointer))
+    }
+
+    /**
+     * This constructor can be used to instantiate a fake object. Only used for tests. Any
+     * attempt to actually use an object constructed this way will fail as there is no
+     * connected Rust object.
+     */
+    @Suppress("UNUSED_PARAMETER")
+    constructor(noPointer: NoPointer) {
+        this.pointer = null
+        this.cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(pointer))
+    }
+    /**
+     * Build against an AppView base (default when `None`) with the required
+     * bearer token. Errors if `token` is empty.
+     */
+    constructor(`base`: kotlin.String?, `token`: kotlin.String) :
+        this(
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_constructor_library_new(
+        FfiConverterOptionalString.lower(`base`),FfiConverterString.lower(`token`),_status)
+}
+    )
+
+    protected val pointer: Pointer?
+    protected val cleanable: UniffiCleaner.Cleanable
+
+    private val wasDestroyed = AtomicBoolean(false)
+    private val callCounter = AtomicLong(1)
+
+    override fun destroy() {
+        // Only allow a single call to this method.
+        // TODO: maybe we should log a warning if called more than once?
+        if (this.wasDestroyed.compareAndSet(false, true)) {
+            // This decrement always matches the initial count of 1 given at creation time.
+            if (this.callCounter.decrementAndGet() == 0L) {
+                cleanable.clean()
+            }
+        }
+    }
+
+    @Synchronized
+    override fun close() {
+        this.destroy()
+    }
+
+    internal inline fun <R> callWithPointer(block: (ptr: Pointer) -> R): R {
+        // Check and increment the call counter, to keep the object alive.
+        // This needs a compare-and-set retry loop in case of concurrent updates.
+        do {
+            val c = this.callCounter.get()
+            if (c == 0L) {
+                throw IllegalStateException("${this.javaClass.simpleName} object has already been destroyed")
+            }
+            if (c == Long.MAX_VALUE) {
+                throw IllegalStateException("${this.javaClass.simpleName} call counter would overflow")
+            }
+        } while (! this.callCounter.compareAndSet(c, c + 1L))
+        // Now we can safely do the method call without the pointer being freed concurrently.
+        try {
+            return block(this.uniffiClonePointer())
+        } finally {
+            // This decrement always matches the increment we performed above.
+            if (this.callCounter.decrementAndGet() == 0L) {
+                cleanable.clean()
+            }
+        }
+    }
+
+    // Use a static inner class instead of a closure so as not to accidentally
+    // capture `this` as part of the cleanable's action.
+    private class UniffiCleanAction(private val pointer: Pointer?) : Runnable {
+        override fun run() {
+            pointer?.let { ptr ->
+                uniffiRustCall { status ->
+                    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_free_library(ptr, status)
+                }
+            }
+        }
+    }
+
+    fun uniffiClonePointer(): Pointer {
+        return uniffiRustCall() { status ->
+            UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_clone_library(pointer!!, status)
+        }
+    }
+
+    
+    /**
+     * `app.rocksky.library.createPlaylist` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `createPlaylist`(`name`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_create_playlist(
+        it, FfiConverterString.lower(`name`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.deleteAlbum` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `deleteAlbum`(`id`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_delete_album(
+        it, FfiConverterString.lower(`id`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.deletePlaylist` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `deletePlaylist`(`id`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_delete_playlist(
+        it, FfiConverterString.lower(`id`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.deleteSong` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `deleteSong`(`id`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_delete_song(
+        it, FfiConverterString.lower(`id`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.getAlbum` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `getAlbum`(`id`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_get_album(
+        it, FfiConverterString.lower(`id`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.getAlbumInfo` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `getAlbumInfo`(`id`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_get_album_info(
+        it, FfiConverterString.lower(`id`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.getAlbumList` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `getAlbumList`(`type`: kotlin.String, `size`: kotlin.Long?, `offset`: kotlin.Long?, `fromYear`: kotlin.Long?, `toYear`: kotlin.Long?, `genre`: kotlin.String?): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_get_album_list(
+        it, FfiConverterString.lower(`type`),FfiConverterOptionalLong.lower(`size`),FfiConverterOptionalLong.lower(`offset`),FfiConverterOptionalLong.lower(`fromYear`),FfiConverterOptionalLong.lower(`toYear`),FfiConverterOptionalString.lower(`genre`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.getArtist` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `getArtist`(`id`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_get_artist(
+        it, FfiConverterString.lower(`id`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.getArtistInfo` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `getArtistInfo`(`id`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_get_artist_info(
+        it, FfiConverterString.lower(`id`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.getArtists` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `getArtists`(): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_get_artists(
+        it, _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.getCoverArtUrl` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `getCoverArtUrl`(`id`: kotlin.String, `size`: kotlin.Long?): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_get_cover_art_url(
+        it, FfiConverterString.lower(`id`),FfiConverterOptionalLong.lower(`size`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.getDownloadUrl` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `getDownloadUrl`(`id`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_get_download_url(
+        it, FfiConverterString.lower(`id`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.getGenres` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `getGenres`(): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_get_genres(
+        it, _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.getIndexes` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `getIndexes`(): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_get_indexes(
+        it, _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.getInternetRadioStations` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `getInternetRadioStations`(): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_get_internet_radio_stations(
+        it, _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.getLicense` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `getLicense`(): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_get_license(
+        it, _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.getLyrics` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `getLyrics`(`artist`: kotlin.String?, `title`: kotlin.String?): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_get_lyrics(
+        it, FfiConverterOptionalString.lower(`artist`),FfiConverterOptionalString.lower(`title`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.getMusicDirectory` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `getMusicDirectory`(`id`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_get_music_directory(
+        it, FfiConverterString.lower(`id`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.getMusicFolders` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `getMusicFolders`(): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_get_music_folders(
+        it, _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.getNowPlaying` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `getNowPlaying`(): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_get_now_playing(
+        it, _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.getPlayQueue` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `getPlayQueue`(): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_get_play_queue(
+        it, _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.getPlaylist` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `getPlaylist`(`id`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_get_playlist(
+        it, FfiConverterString.lower(`id`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.getPlaylists` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `getPlaylists`(): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_get_playlists(
+        it, _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.getRandomSongs` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `getRandomSongs`(`size`: kotlin.Long?, `genre`: kotlin.String?, `fromYear`: kotlin.Long?, `toYear`: kotlin.Long?): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_get_random_songs(
+        it, FfiConverterOptionalLong.lower(`size`),FfiConverterOptionalString.lower(`genre`),FfiConverterOptionalLong.lower(`fromYear`),FfiConverterOptionalLong.lower(`toYear`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.getScanStatus` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `getScanStatus`(): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_get_scan_status(
+        it, _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.getSimilarSongs` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `getSimilarSongs`(`id`: kotlin.String, `count`: kotlin.Long?): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_get_similar_songs(
+        it, FfiConverterString.lower(`id`),FfiConverterOptionalLong.lower(`count`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.getSong` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `getSong`(`id`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_get_song(
+        it, FfiConverterString.lower(`id`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.getSongsByGenre` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `getSongsByGenre`(`genre`: kotlin.String, `count`: kotlin.Long?, `offset`: kotlin.Long?): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_get_songs_by_genre(
+        it, FfiConverterString.lower(`genre`),FfiConverterOptionalLong.lower(`count`),FfiConverterOptionalLong.lower(`offset`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.getStarred` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `getStarred`(): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_get_starred(
+        it, _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.getStreamUrl` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `getStreamUrl`(`id`: kotlin.String, `maxBitRate`: kotlin.Long?, `format`: kotlin.String?): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_get_stream_url(
+        it, FfiConverterString.lower(`id`),FfiConverterOptionalLong.lower(`maxBitRate`),FfiConverterOptionalString.lower(`format`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.getTopSongs` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `getTopSongs`(`artist`: kotlin.String, `count`: kotlin.Long?): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_get_top_songs(
+        it, FfiConverterString.lower(`artist`),FfiConverterOptionalLong.lower(`count`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.getUser` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `getUser`(): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_get_user(
+        it, _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.ping` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `ping`(): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_ping(
+        it, _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.savePlayQueue` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `savePlayQueue`(`id`: kotlin.String?, `current`: kotlin.String?, `position`: kotlin.Long?): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_save_play_queue(
+        it, FfiConverterOptionalString.lower(`id`),FfiConverterOptionalString.lower(`current`),FfiConverterOptionalLong.lower(`position`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.scrobble` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `scrobble`(`id`: kotlin.String, `time`: kotlin.Long?, `submission`: kotlin.Boolean?): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_scrobble(
+        it, FfiConverterString.lower(`id`),FfiConverterOptionalLong.lower(`time`),FfiConverterOptionalBoolean.lower(`submission`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.search` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `search`(`query`: kotlin.String, `artistCount`: kotlin.Long?, `artistOffset`: kotlin.Long?, `albumCount`: kotlin.Long?, `albumOffset`: kotlin.Long?, `songCount`: kotlin.Long?, `songOffset`: kotlin.Long?): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_search(
+        it, FfiConverterString.lower(`query`),FfiConverterOptionalLong.lower(`artistCount`),FfiConverterOptionalLong.lower(`artistOffset`),FfiConverterOptionalLong.lower(`albumCount`),FfiConverterOptionalLong.lower(`albumOffset`),FfiConverterOptionalLong.lower(`songCount`),FfiConverterOptionalLong.lower(`songOffset`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.star` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `star`(`id`: kotlin.String, `albumId`: kotlin.String?, `artistId`: kotlin.String?): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_star(
+        it, FfiConverterString.lower(`id`),FfiConverterOptionalString.lower(`albumId`),FfiConverterOptionalString.lower(`artistId`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.startScan` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `startScan`(): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_start_scan(
+        it, _status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.unstar` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `unstar`(`id`: kotlin.String, `albumId`: kotlin.String?, `artistId`: kotlin.String?): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_unstar(
+        it, FfiConverterString.lower(`id`),FfiConverterOptionalString.lower(`albumId`),FfiConverterOptionalString.lower(`artistId`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.updateNowPlaying` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `updateNowPlaying`(`id`: kotlin.String): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_update_now_playing(
+        it, FfiConverterString.lower(`id`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+    /**
+     * `app.rocksky.library.updatePlaylist` — returns the raw JSON payload.
+     */
+    @Throws(RockskyException::class)override fun `updatePlaylist`(`playlistId`: kotlin.String, `name`: kotlin.String?, `comment`: kotlin.String?, `songIdToAdd`: kotlin.String?, `songIndexToRemove`: kotlin.Long?): kotlin.String {
+            return FfiConverterString.lift(
+    callWithPointer {
+    uniffiRustCallWithError(RockskyException) { _status ->
+    UniffiLib.INSTANCE.uniffi_rocksky_uniffi_fn_method_library_update_playlist(
+        it, FfiConverterString.lower(`playlistId`),FfiConverterOptionalString.lower(`name`),FfiConverterOptionalString.lower(`comment`),FfiConverterOptionalString.lower(`songIdToAdd`),FfiConverterOptionalLong.lower(`songIndexToRemove`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+
+    
+    
+    companion object
+    
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeLibrary: FfiConverter<Library, Pointer> {
+
+    override fun lower(value: Library): Pointer {
+        return value.uniffiClonePointer()
+    }
+
+    override fun lift(value: Pointer): Library {
+        return Library(value)
+    }
+
+    override fun read(buf: ByteBuffer): Library {
+        // The Rust code always writes pointers as 8 bytes, and will
+        // fail to compile if they don't fit.
+        return lift(Pointer(buf.getLong()))
+    }
+
+    override fun allocationSize(value: Library) = 8UL
+
+    override fun write(value: Library, buf: ByteBuffer) {
         // The Rust code always expects pointers written as 8 bytes,
         // and will fail to compile if they don't fit.
         buf.putLong(Pointer.nativeValue(lower(value)))
@@ -3825,6 +5472,165 @@ public object FfiConverterTypeGlobalStats: FfiConverterRustBuffer<GlobalStats> {
             FfiConverterULong.write(value.`artists`, buf)
             FfiConverterULong.write(value.`albums`, buf)
             FfiConverterULong.write(value.`tracks`, buf)
+    }
+}
+
+
+
+/**
+ * The user who triggered a notification
+ * (`app.rocksky.notification.defs#notificationActor`).
+ */
+data class NotificationActor (
+    var `id`: kotlin.String?, 
+    var `did`: kotlin.String?, 
+    var `handle`: kotlin.String?, 
+    var `displayName`: kotlin.String?, 
+    var `avatar`: kotlin.String?
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeNotificationActor: FfiConverterRustBuffer<NotificationActor> {
+    override fun read(buf: ByteBuffer): NotificationActor {
+        return NotificationActor(
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: NotificationActor) = (
+            FfiConverterOptionalString.allocationSize(value.`id`) +
+            FfiConverterOptionalString.allocationSize(value.`did`) +
+            FfiConverterOptionalString.allocationSize(value.`handle`) +
+            FfiConverterOptionalString.allocationSize(value.`displayName`) +
+            FfiConverterOptionalString.allocationSize(value.`avatar`)
+    )
+
+    override fun write(value: NotificationActor, buf: ByteBuffer) {
+            FfiConverterOptionalString.write(value.`id`, buf)
+            FfiConverterOptionalString.write(value.`did`, buf)
+            FfiConverterOptionalString.write(value.`handle`, buf)
+            FfiConverterOptionalString.write(value.`displayName`, buf)
+            FfiConverterOptionalString.write(value.`avatar`, buf)
+    }
+}
+
+
+
+/**
+ * A page of notifications (`app.rocksky.notification.listNotifications`).
+ */
+data class NotificationList (
+    var `notifications`: List<NotificationView>, 
+    /**
+     * The number of unread notifications.
+     */
+    var `unreadCount`: kotlin.Long, 
+    /**
+     * Cursor to pass to the next call for the following page.
+     */
+    var `cursor`: kotlin.String?
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeNotificationList: FfiConverterRustBuffer<NotificationList> {
+    override fun read(buf: ByteBuffer): NotificationList {
+        return NotificationList(
+            FfiConverterSequenceTypeNotificationView.read(buf),
+            FfiConverterLong.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: NotificationList) = (
+            FfiConverterSequenceTypeNotificationView.allocationSize(value.`notifications`) +
+            FfiConverterLong.allocationSize(value.`unreadCount`) +
+            FfiConverterOptionalString.allocationSize(value.`cursor`)
+    )
+
+    override fun write(value: NotificationList, buf: ByteBuffer) {
+            FfiConverterSequenceTypeNotificationView.write(value.`notifications`, buf)
+            FfiConverterLong.write(value.`unreadCount`, buf)
+            FfiConverterOptionalString.write(value.`cursor`, buf)
+    }
+}
+
+
+
+/**
+ * A single notification (`app.rocksky.notification.defs#notificationView`).
+ */
+data class NotificationView (
+    var `id`: kotlin.String, 
+    /**
+     * One of `like_scrobble`, `follow`, `comment_scrobble`, `comment_profile`,
+     * `reply`, `react_comment`.
+     */
+    var `notificationType`: kotlin.String, 
+    /**
+     * Whether the notification has been viewed.
+     */
+    var `read`: kotlin.Boolean, 
+    var `createdAt`: kotlin.String, 
+    var `subjectUri`: kotlin.String?, 
+    var `shoutId`: kotlin.String?, 
+    var `shoutContent`: kotlin.String?, 
+    var `actor`: NotificationActor?
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeNotificationView: FfiConverterRustBuffer<NotificationView> {
+    override fun read(buf: ByteBuffer): NotificationView {
+        return NotificationView(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalTypeNotificationActor.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: NotificationView) = (
+            FfiConverterString.allocationSize(value.`id`) +
+            FfiConverterString.allocationSize(value.`notificationType`) +
+            FfiConverterBoolean.allocationSize(value.`read`) +
+            FfiConverterString.allocationSize(value.`createdAt`) +
+            FfiConverterOptionalString.allocationSize(value.`subjectUri`) +
+            FfiConverterOptionalString.allocationSize(value.`shoutId`) +
+            FfiConverterOptionalString.allocationSize(value.`shoutContent`) +
+            FfiConverterOptionalTypeNotificationActor.allocationSize(value.`actor`)
+    )
+
+    override fun write(value: NotificationView, buf: ByteBuffer) {
+            FfiConverterString.write(value.`id`, buf)
+            FfiConverterString.write(value.`notificationType`, buf)
+            FfiConverterBoolean.write(value.`read`, buf)
+            FfiConverterString.write(value.`createdAt`, buf)
+            FfiConverterOptionalString.write(value.`subjectUri`, buf)
+            FfiConverterOptionalString.write(value.`shoutId`, buf)
+            FfiConverterOptionalString.write(value.`shoutContent`, buf)
+            FfiConverterOptionalTypeNotificationActor.write(value.`actor`, buf)
     }
 }
 
@@ -4291,6 +6097,63 @@ public object FfiConverterTypeScrobbleView: FfiConverterRustBuffer<ScrobbleView>
 
 
 /**
+ * A GIF / sticker / clip to attach to a shout
+ * (`app.rocksky.shout.defs#gif`). Only `url` is required.
+ */
+data class ShoutGifInput (
+    /**
+     * Direct URL of the animated GIF/MP4.
+     */
+    var `url`: kotlin.String, 
+    /**
+     * Smaller still / preview image URL.
+     */
+    var `previewUrl`: kotlin.String? = null, 
+    /**
+     * Alternative text describing the media.
+     */
+    var `alt`: kotlin.String? = null, 
+    var `width`: kotlin.Long? = null, 
+    var `height`: kotlin.Long? = null
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeShoutGifInput: FfiConverterRustBuffer<ShoutGifInput> {
+    override fun read(buf: ByteBuffer): ShoutGifInput {
+        return ShoutGifInput(
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalLong.read(buf),
+            FfiConverterOptionalLong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: ShoutGifInput) = (
+            FfiConverterString.allocationSize(value.`url`) +
+            FfiConverterOptionalString.allocationSize(value.`previewUrl`) +
+            FfiConverterOptionalString.allocationSize(value.`alt`) +
+            FfiConverterOptionalLong.allocationSize(value.`width`) +
+            FfiConverterOptionalLong.allocationSize(value.`height`)
+    )
+
+    override fun write(value: ShoutGifInput, buf: ByteBuffer) {
+            FfiConverterString.write(value.`url`, buf)
+            FfiConverterOptionalString.write(value.`previewUrl`, buf)
+            FfiConverterOptionalString.write(value.`alt`, buf)
+            FfiConverterOptionalLong.write(value.`width`, buf)
+            FfiConverterOptionalLong.write(value.`height`, buf)
+    }
+}
+
+
+
+/**
  * A canonical track record (`app.rocksky.song`).
  */
 data class SongInput (
@@ -4471,6 +6334,72 @@ public object FfiConverterTypeSongView: FfiConverterRustBuffer<SongView> {
             FfiConverterOptionalString.write(value.`isrc`, buf)
             FfiConverterSequenceString.write(value.`tags`, buf)
             FfiConverterOptionalString.write(value.`createdAt`, buf)
+    }
+}
+
+
+
+/**
+ * The unread-notification count (`app.rocksky.notification.getUnreadCount`).
+ */
+data class UnreadCount (
+    var `count`: kotlin.Long
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeUnreadCount: FfiConverterRustBuffer<UnreadCount> {
+    override fun read(buf: ByteBuffer): UnreadCount {
+        return UnreadCount(
+            FfiConverterLong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: UnreadCount) = (
+            FfiConverterLong.allocationSize(value.`count`)
+    )
+
+    override fun write(value: UnreadCount, buf: ByteBuffer) {
+            FfiConverterLong.write(value.`count`, buf)
+    }
+}
+
+
+
+/**
+ * The result of marking notifications seen
+ * (`app.rocksky.notification.updateSeen`).
+ */
+data class UpdateSeenResult (
+    /**
+     * The number of unread notifications remaining.
+     */
+    var `unreadCount`: kotlin.Long
+) {
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeUpdateSeenResult: FfiConverterRustBuffer<UpdateSeenResult> {
+    override fun read(buf: ByteBuffer): UpdateSeenResult {
+        return UpdateSeenResult(
+            FfiConverterLong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: UpdateSeenResult) = (
+            FfiConverterLong.allocationSize(value.`unreadCount`)
+    )
+
+    override fun write(value: UpdateSeenResult, buf: ByteBuffer) {
+            FfiConverterLong.write(value.`unreadCount`, buf)
     }
 }
 
@@ -4855,6 +6784,38 @@ public object FfiConverterOptionalString: FfiConverterRustBuffer<kotlin.String?>
 /**
  * @suppress
  */
+public object FfiConverterOptionalTypeNotificationActor: FfiConverterRustBuffer<NotificationActor?> {
+    override fun read(buf: ByteBuffer): NotificationActor? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeNotificationActor.read(buf)
+    }
+
+    override fun allocationSize(value: NotificationActor?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeNotificationActor.allocationSize(value)
+        }
+    }
+
+    override fun write(value: NotificationActor?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeNotificationActor.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalTypeProfile: FfiConverterRustBuffer<Profile?> {
     override fun read(buf: ByteBuffer): Profile? {
         if (buf.get().toInt() == 0) {
@@ -4877,6 +6838,38 @@ public object FfiConverterOptionalTypeProfile: FfiConverterRustBuffer<Profile?> 
         } else {
             buf.put(1)
             FfiConverterTypeProfile.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeShoutGifInput: FfiConverterRustBuffer<ShoutGifInput?> {
+    override fun read(buf: ByteBuffer): ShoutGifInput? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeShoutGifInput.read(buf)
+    }
+
+    override fun allocationSize(value: ShoutGifInput?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeShoutGifInput.allocationSize(value)
+        }
+    }
+
+    override fun write(value: ShoutGifInput?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeShoutGifInput.write(value, buf)
         }
     }
 }
@@ -4961,6 +6954,34 @@ public object FfiConverterSequenceTypeArtistView: FfiConverterRustBuffer<List<Ar
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterTypeArtistView.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeNotificationView: FfiConverterRustBuffer<List<NotificationView>> {
+    override fun read(buf: ByteBuffer): List<NotificationView> {
+        val len = buf.getInt()
+        return List<NotificationView>(len) {
+            FfiConverterTypeNotificationView.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<NotificationView>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeNotificationView.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<NotificationView>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeNotificationView.write(it, buf)
         }
     }
 }

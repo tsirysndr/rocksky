@@ -6,14 +6,48 @@ import type {
   ActorProfileViewBasic,
   ActorProfileViewDetailed,
   AlbumViewBasic,
+  AlbumViewDetailed,
   ArtistViewBasic,
+  ArtistViewDetailed,
+  ChartsView,
+  FeedGeneratorsView,
+  FeedRecommendationsView,
+  FeedRecommendedAlbumsView,
+  FeedRecommendedArtistsView,
   FeedSearchResultsView,
+  FeedStoriesView,
+  FeedView,
   GetActorAlbumsOutput,
   GetActorArtistsOutput,
+  GetActorCompatibilityOutput,
+  GetActorNeighboursOutput,
+  GetActorPlaylistsOutput,
   GetActorScrobblesOutput,
+  GetAlbumShoutsOutput,
+  GetApikeysOutput,
+  GetArtistListenersOutput,
+  GetArtistRecentListenersOutput,
+  GetArtistShoutsOutput,
+  GetFeedGeneratorOutput,
+  GetMirrorSourcesOutput,
+  GetProfileShoutsOutput,
+  GetShoutRepliesOutput,
+  GetSongRecentListenersOutput,
+  GetTrackShoutsOutput,
+  GetUnreadCountOutput,
+  ListNotificationsOutput,
+  PlayerCurrentlyPlayingViewDetailed,
+  PlayerPlaybackQueueViewDetailed,
+  PlaylistGetPlaylistsOutput,
+  PlaylistViewDetailed,
+  RockboxSettingsView,
   ScrobbleViewBasic,
   SongViewBasic,
+  SongViewDetailed,
   StatsGlobalStatsView,
+  StatsView,
+  StatsWrappedView,
+  UpdateSeenOutput,
 } from "./generated/types.js";
 
 /**
@@ -303,51 +337,60 @@ export class RockskyClient {
     return this.query("app.rocksky.stats.getGlobalStats", {});
   }
 
-  // ---- raw-JSON long tail: bespoke shapes returned as `unknown` ----------
+  // ---- detail reads (typed against the generated lexicon views) ----------
 
   /** A feed by its at:// URI (paginate via `cursor`). */
-  feed(feed: string, limit = 50, cursor?: string): Promise<unknown> {
+  feed(feed: string, limit = 50, cursor?: string): Promise<FeedView> {
     return this.query("app.rocksky.feed.getFeed", { feed, limit, cursor });
   }
   /** A single album with its tracklist. */
-  album(uri: string): Promise<unknown> {
+  album(uri: string): Promise<AlbumViewDetailed> {
     return this.query("app.rocksky.album.getAlbum", { uri });
   }
   /** A single artist with detail. */
-  artist(uri: string): Promise<unknown> {
+  artist(uri: string): Promise<ArtistViewDetailed> {
     return this.query("app.rocksky.artist.getArtist", { uri });
   }
   /** Resolve full canonical metadata for a bare title + artist
    * (`app.rocksky.song.matchSong`); optionally anchor with `mbId` / `isrc`. */
-  matchSong(title: string, artist: string, mbId?: string, isrc?: string): Promise<unknown> {
+  matchSong(title: string, artist: string, mbId?: string, isrc?: string): Promise<SongViewDetailed> {
     return this.query("app.rocksky.song.matchSong", { title, artist, mbId, isrc });
   }
   /** A single song by at:// `uri` (or by `mbid` / `isrc` / `spotifyId`). */
-  song(opts: { uri?: string; mbid?: string; isrc?: string; spotifyId?: string }): Promise<unknown> {
+  song(opts: {
+    uri?: string;
+    mbid?: string;
+    isrc?: string;
+    spotifyId?: string;
+  }): Promise<SongViewDetailed> {
     return this.query("app.rocksky.song.getSong", opts);
   }
   /** An actor's playlists. */
-  actorPlaylists(actor: string, limit = 50, offset = 0): Promise<unknown> {
+  actorPlaylists(actor: string, limit = 50, offset = 0): Promise<GetActorPlaylistsOutput> {
     return this.query("app.rocksky.actor.getActorPlaylists", { did: actor, limit, offset });
   }
   /** Actors with similar taste to `actor`. */
-  neighbours(actor: string): Promise<unknown> {
+  neighbours(actor: string): Promise<GetActorNeighboursOutput> {
     return this.query("app.rocksky.actor.getActorNeighbours", { did: actor });
   }
   /** Music compatibility between the viewer and `actor` (auth). */
-  compatibility(actor: string): Promise<unknown> {
+  compatibility(actor: string): Promise<GetActorCompatibilityOutput> {
     return this.query("app.rocksky.actor.getActorCompatibility", { did: actor });
   }
   /** An artist's all-time listeners. */
-  artistListeners(uri: string, limit = 50, offset = 0): Promise<unknown> {
+  artistListeners(uri: string, limit = 50, offset = 0): Promise<GetArtistListenersOutput> {
     return this.query("app.rocksky.artist.getArtistListeners", { uri, limit, offset });
   }
   /** An artist's recent listeners. */
-  artistRecentListeners(uri: string, limit = 50, offset = 0): Promise<unknown> {
+  artistRecentListeners(
+    uri: string,
+    limit = 50,
+    offset = 0,
+  ): Promise<GetArtistRecentListenersOutput> {
     return this.query("app.rocksky.artist.getArtistRecentListeners", { uri, limit, offset });
   }
   /** A song's recent listeners. */
-  songRecentListeners(uri: string, limit = 50, offset = 0): Promise<unknown> {
+  songRecentListeners(uri: string, limit = 50, offset = 0): Promise<GetSongRecentListenersOutput> {
     return this.query("app.rocksky.song.getSongRecentListeners", { uri, limit, offset });
   }
   /** A scrobble time-series chart. Scope with any of `did` / `artisturi` /
@@ -360,91 +403,113 @@ export class RockskyClient {
     genre?: string;
     from?: string;
     to?: string;
-  }): Promise<unknown> {
+  }): Promise<ChartsView> {
     return this.query("app.rocksky.charts.getScrobblesChart", opts);
   }
   /** List the available feed generators. */
-  feedGenerators(size?: number): Promise<unknown> {
+  feedGenerators(size?: number): Promise<FeedGeneratorsView> {
     return this.query("app.rocksky.feed.getFeedGenerators", { size });
   }
   /** A single feed generator's record. */
-  feedGenerator(feed: string): Promise<unknown> {
+  feedGenerator(feed: string): Promise<GetFeedGeneratorOutput> {
     return this.query("app.rocksky.feed.getFeedGenerator", { feed });
   }
   /** The stories row. */
-  stories(size?: number, feed?: string, following?: boolean): Promise<unknown> {
+  stories(size?: number, feed?: string, following?: boolean): Promise<FeedStoriesView> {
     return this.query("app.rocksky.feed.getStories", { size, feed, following });
   }
   /** Track recommendations for `actor`. */
-  recommendations(actor: string, limit?: number): Promise<unknown> {
+  recommendations(actor: string, limit?: number): Promise<FeedRecommendationsView> {
     return this.query("app.rocksky.feed.getRecommendations", { did: actor, limit });
   }
   /** Artist recommendations for `actor`. */
-  artistRecommendations(actor: string, limit?: number): Promise<unknown> {
+  artistRecommendations(actor: string, limit?: number): Promise<FeedRecommendedArtistsView> {
     return this.query("app.rocksky.feed.getArtistRecommendations", { did: actor, limit });
   }
   /** Album recommendations for `actor`. */
-  albumRecommendations(actor: string, limit?: number): Promise<unknown> {
+  albumRecommendations(actor: string, limit?: number): Promise<FeedRecommendedAlbumsView> {
     return this.query("app.rocksky.feed.getAlbumRecommendations", { did: actor, limit });
   }
   /** An actor's aggregate stats. */
-  stats(actor: string): Promise<unknown> {
+  stats(actor: string): Promise<StatsView> {
     return this.query("app.rocksky.stats.getStats", { did: actor });
   }
   /** An actor's year-in-review. */
-  wrapped(actor: string, year?: number): Promise<unknown> {
+  wrapped(actor: string, year?: number): Promise<StatsWrappedView> {
     return this.query("app.rocksky.stats.getWrapped", { did: actor, year });
   }
   /** The viewer's configured scrobble mirror sources (auth). */
-  mirrorSources(): Promise<unknown> {
+  mirrorSources(): Promise<GetMirrorSourcesOutput> {
     return this.query("app.rocksky.mirror.getMirrorSources", {});
   }
   /** What `actor` is playing now. */
-  currentlyPlaying(playerId?: string, actor?: string): Promise<unknown> {
+  currentlyPlaying(playerId?: string, actor?: string): Promise<PlayerCurrentlyPlayingViewDetailed> {
     return this.query("app.rocksky.player.getCurrentlyPlaying", { playerId, actor });
   }
   /** A player's playback queue. */
-  playbackQueue(playerId: string): Promise<unknown> {
+  playbackQueue(playerId: string): Promise<PlayerPlaybackQueueViewDetailed> {
     return this.query("app.rocksky.player.getPlaybackQueue", { playerId });
   }
   /** What `actor` is playing now on Spotify. */
-  spotifyCurrentlyPlaying(actor: string): Promise<unknown> {
+  spotifyCurrentlyPlaying(actor: string): Promise<PlayerCurrentlyPlayingViewDetailed> {
     return this.query("app.rocksky.spotify.getCurrentlyPlaying", { actor });
   }
   /** The playlist catalog. */
-  playlists(limit = 50, offset = 0): Promise<unknown> {
+  playlists(limit = 50, offset = 0): Promise<PlaylistGetPlaylistsOutput> {
     return this.query("app.rocksky.playlist.getPlaylists", { limit, offset });
   }
   /** A single playlist with its items. */
-  playlist(uri: string): Promise<unknown> {
+  playlist(uri: string): Promise<PlaylistViewDetailed> {
     return this.query("app.rocksky.playlist.getPlaylist", { uri });
   }
   /** Shouts on an album. */
-  albumShouts(uri: string, limit = 50, offset = 0): Promise<unknown> {
+  albumShouts(uri: string, limit = 50, offset = 0): Promise<GetAlbumShoutsOutput> {
     return this.query("app.rocksky.shout.getAlbumShouts", { uri, limit, offset });
   }
   /** Shouts on an artist. */
-  artistShouts(uri: string, limit = 50, offset = 0): Promise<unknown> {
+  artistShouts(uri: string, limit = 50, offset = 0): Promise<GetArtistShoutsOutput> {
     return this.query("app.rocksky.shout.getArtistShouts", { uri, limit, offset });
   }
   /** Shouts on a profile. */
-  profileShouts(actor: string, limit = 50, offset = 0): Promise<unknown> {
+  profileShouts(actor: string, limit = 50, offset = 0): Promise<GetProfileShoutsOutput> {
     return this.query("app.rocksky.shout.getProfileShouts", { did: actor, limit, offset });
   }
   /** Shouts on a track. */
-  trackShouts(uri: string): Promise<unknown> {
+  trackShouts(uri: string): Promise<GetTrackShoutsOutput> {
     return this.query("app.rocksky.shout.getTrackShouts", { uri });
   }
   /** Replies to a shout. */
-  shoutReplies(uri: string, limit = 50, offset = 0): Promise<unknown> {
+  shoutReplies(uri: string, limit = 50, offset = 0): Promise<GetShoutRepliesOutput> {
     return this.query("app.rocksky.shout.getShoutReplies", { uri, limit, offset });
   }
   /** An actor's Rockbox EQ / audio settings. */
-  audioSettings(actor: string): Promise<unknown> {
+  audioSettings(actor: string): Promise<RockboxSettingsView> {
     return this.query("app.rocksky.rockbox.getAudioSettings", { did: actor });
   }
   /** The viewer's API keys (auth). */
-  apikeys(limit = 50, offset = 0): Promise<unknown> {
+  apikeys(limit = 50, offset = 0): Promise<GetApikeysOutput> {
     return this.query("app.rocksky.apikey.getApikeys", { limit, offset });
+  }
+
+  // ---- notifications (auth-gated — construct the client with a token) -----
+
+  /** The authenticated viewer's unread-notification count. */
+  unreadCount(): Promise<GetUnreadCountOutput> {
+    return this.query("app.rocksky.notification.getUnreadCount", {});
+  }
+  /** The authenticated viewer's notifications, most recent first. `limit`
+   * defaults to 30 server-side; paginate via `cursor`. */
+  notifications(limit = 30, cursor?: string): Promise<ListNotificationsOutput> {
+    return this.query("app.rocksky.notification.listNotifications", { limit, cursor });
+  }
+  /** Mark notifications as viewed. Pass the notification `ids` to mark, or omit
+   * to mark **all** of the viewer's notifications. Returns the number remaining
+   * unread. */
+  async updateSeen(ids?: string[]): Promise<UpdateSeenOutput> {
+    const res = await this.rpc.post("app.rocksky.notification.updateSeen" as never, {
+      input: (ids && ids.length ? { ids } : {}) as never,
+    } as never);
+    if (!res.ok) throw new RockskyError(res.data);
+    return res.data as UpdateSeenOutput;
   }
 }

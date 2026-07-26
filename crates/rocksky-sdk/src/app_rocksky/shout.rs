@@ -28,7 +28,7 @@ use jacquard_common::deps::codegen::unicode_segmentation::UnicodeSegmentation;
 use jacquard_common::deps::smol_str::SmolStr;
 use jacquard_common::types::collection::{Collection, RecordError};
 use jacquard_common::types::ident::AtIdentifier;
-use jacquard_common::types::string::{AtUri, Cid, Datetime, UriValue};
+use jacquard_common::types::string::{AtUri, Cid, Datetime, Did, UriValue};
 use jacquard_common::types::uri::{RecordUri, UriError};
 use jacquard_common::types::value::Data;
 use jacquard_common::xrpc::XrpcResp;
@@ -53,8 +53,15 @@ use serde::{Deserialize, Serialize};
 pub struct Shout<S: BosStr = DefaultStr> {
     ///The date when the shout was created.
     pub created_at: Datetime,
-    ///The message of the shout.
-    pub message: S,
+    ///Mentions of other actors within the message, anchored to UTF-8 byte ranges.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub facets: Option<Vec<shout::Mention<S>>>,
+    ///An attached GIF, sticker, or clip (e.g. from KLIPY).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub gif: Option<shout::Gif<S>>,
+    ///The message of the shout. Optional when a gif/sticker/clip is attached.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message: Option<S>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub parent: Option<StrongRef<S>>,
     pub subject: StrongRef<S>,
@@ -98,6 +105,50 @@ pub struct Author<S: BosStr = DefaultStr> {
     pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
 }
 
+/// A GIF, sticker, or clip embedded in a shout. `url` may point at an image (GIF/WebP) or a video (MP4); the client decides how to render it from the file extension.
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic)]
+#[serde(
+    rename_all = "camelCase",
+    bound(deserialize = "S: Deserialize<'de> + BosStr")
+)]
+pub struct Gif<S: BosStr = DefaultStr> {
+    ///Alternative text describing the media.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alt: Option<S>,
+    ///The intrinsic height of the media in pixels.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub height: Option<i64>,
+    ///Smaller still/preview image URL.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub preview_url: Option<UriValue<S>>,
+    ///Direct URL of the animated GIF/MP4.
+    pub url: UriValue<S>,
+    ///The intrinsic width of the media in pixels.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub width: Option<i64>,
+    #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
+    pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
+}
+
+/// A mention of another actor within the shout message, anchored to a UTF-8 byte range in the message.
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic)]
+#[serde(
+    rename_all = "camelCase",
+    bound(deserialize = "S: Deserialize<'de> + BosStr")
+)]
+pub struct Mention<S: BosStr = DefaultStr> {
+    ///Exclusive UTF-8 byte offset of the mention end.
+    pub byte_end: i64,
+    ///Inclusive UTF-8 byte offset of the mention start.
+    pub byte_start: i64,
+    ///The DID of the mentioned actor.
+    pub did: Did<S>,
+    #[serde(flatten, default, skip_serializing_if = "Option::is_none")]
+    pub extra_data: Option<BTreeMap<SmolStr, Data<S>>>,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, IntoStatic, Default)]
 #[serde(
     rename_all = "camelCase",
@@ -110,6 +161,12 @@ pub struct ShoutView<S: BosStr = DefaultStr> {
     ///The date and time when the shout was created.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<Datetime>,
+    ///Mentions of other actors within the message, anchored to UTF-8 byte ranges.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub facets: Option<Vec<shout::Mention<S>>>,
+    ///An attached GIF, sticker, or clip.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub gif: Option<shout::Gif<S>>,
     ///The unique identifier of the shout.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<S>,
@@ -167,24 +224,12 @@ impl<S: BosStr> LexiconSchema for Shout<S> {
         lexicon_doc_app_rocksky_shout()
     }
     fn validate(&self) -> Result<(), ConstraintError> {
-        {
-            let value = &self.message;
+        if let Some(ref value) = self.message {
             #[allow(unused_comparisons)]
             if <str>::len(value.as_ref()) > 1000usize {
                 return Err(ConstraintError::MaxLength {
                     path: ValidationPath::from_field("message"),
                     max: 1000usize,
-                    actual: <str>::len(value.as_ref()),
-                });
-            }
-        }
-        {
-            let value = &self.message;
-            #[allow(unused_comparisons)]
-            if <str>::len(value.as_ref()) < 1usize {
-                return Err(ConstraintError::MinLength {
-                    path: ValidationPath::from_field("message"),
-                    min: 1usize,
                     actual: <str>::len(value.as_ref()),
                 });
             }
@@ -204,6 +249,84 @@ impl<S: BosStr> LexiconSchema for Author<S> {
         lexicon_doc_app_rocksky_shout_defs()
     }
     fn validate(&self) -> Result<(), ConstraintError> {
+        Ok(())
+    }
+}
+
+impl<S: BosStr> LexiconSchema for Gif<S> {
+    fn nsid() -> &'static str {
+        "app.rocksky.shout.defs"
+    }
+    fn def_name() -> &'static str {
+        "gif"
+    }
+    fn lexicon_doc() -> LexiconDoc<'static> {
+        lexicon_doc_app_rocksky_shout_defs()
+    }
+    fn validate(&self) -> Result<(), ConstraintError> {
+        if let Some(ref value) = self.alt {
+            #[allow(unused_comparisons)]
+            if <str>::len(value.as_ref()) > 512usize {
+                return Err(ConstraintError::MaxLength {
+                    path: ValidationPath::from_field("alt"),
+                    max: 512usize,
+                    actual: <str>::len(value.as_ref()),
+                });
+            }
+        }
+        if let Some(ref value) = self.height {
+            if *value < 0i64 {
+                return Err(ConstraintError::Minimum {
+                    path: ValidationPath::from_field("height"),
+                    min: 0i64,
+                    actual: *value,
+                });
+            }
+        }
+        if let Some(ref value) = self.width {
+            if *value < 0i64 {
+                return Err(ConstraintError::Minimum {
+                    path: ValidationPath::from_field("width"),
+                    min: 0i64,
+                    actual: *value,
+                });
+            }
+        }
+        Ok(())
+    }
+}
+
+impl<S: BosStr> LexiconSchema for Mention<S> {
+    fn nsid() -> &'static str {
+        "app.rocksky.shout.defs"
+    }
+    fn def_name() -> &'static str {
+        "mention"
+    }
+    fn lexicon_doc() -> LexiconDoc<'static> {
+        lexicon_doc_app_rocksky_shout_defs()
+    }
+    fn validate(&self) -> Result<(), ConstraintError> {
+        {
+            let value = &self.byte_end;
+            if *value < 0i64 {
+                return Err(ConstraintError::Minimum {
+                    path: ValidationPath::from_field("byte_end"),
+                    min: 0i64,
+                    actual: *value,
+                });
+            }
+        }
+        {
+            let value = &self.byte_start;
+            if *value < 0i64 {
+                return Err(ConstraintError::Minimum {
+                    path: ValidationPath::from_field("byte_start"),
+                    min: 0i64,
+                    actual: *value,
+                });
+            }
+        }
         Ok(())
     }
 }
@@ -234,7 +357,6 @@ pub mod shout_state {
     /// State trait tracking which required fields have been set
     pub trait State: sealed::Sealed {
         type CreatedAt;
-        type Message;
         type Subject;
     }
     /// Empty state - all required fields are unset
@@ -242,7 +364,6 @@ pub mod shout_state {
     impl sealed::Sealed for Empty {}
     impl State for Empty {
         type CreatedAt = Unset;
-        type Message = Unset;
         type Subject = Unset;
     }
     ///State transition - sets the `created_at` field to Set
@@ -250,15 +371,6 @@ pub mod shout_state {
     impl<St: State> sealed::Sealed for SetCreatedAt<St> {}
     impl<St: State> State for SetCreatedAt<St> {
         type CreatedAt = Set<members::created_at>;
-        type Message = St::Message;
-        type Subject = St::Subject;
-    }
-    ///State transition - sets the `message` field to Set
-    pub struct SetMessage<St: State = Empty>(PhantomData<fn() -> St>);
-    impl<St: State> sealed::Sealed for SetMessage<St> {}
-    impl<St: State> State for SetMessage<St> {
-        type CreatedAt = St::CreatedAt;
-        type Message = Set<members::message>;
         type Subject = St::Subject;
     }
     ///State transition - sets the `subject` field to Set
@@ -266,7 +378,6 @@ pub mod shout_state {
     impl<St: State> sealed::Sealed for SetSubject<St> {}
     impl<St: State> State for SetSubject<St> {
         type CreatedAt = St::CreatedAt;
-        type Message = St::Message;
         type Subject = Set<members::subject>;
     }
     /// Marker types for field names
@@ -274,8 +385,6 @@ pub mod shout_state {
     pub mod members {
         ///Marker type for the `created_at` field
         pub struct created_at(());
-        ///Marker type for the `message` field
-        pub struct message(());
         ///Marker type for the `subject` field
         pub struct subject(());
     }
@@ -286,6 +395,8 @@ pub struct ShoutBuilder<St: shout_state::State, S: BosStr = DefaultStr> {
     _state: PhantomData<fn() -> St>,
     _fields: (
         Option<Datetime>,
+        Option<Vec<shout::Mention<S>>>,
+        Option<shout::Gif<S>>,
         Option<S>,
         Option<StrongRef<S>>,
         Option<StrongRef<S>>,
@@ -312,7 +423,7 @@ impl ShoutBuilder<shout_state::Empty, DefaultStr> {
     pub fn new() -> Self {
         ShoutBuilder {
             _state: PhantomData,
-            _fields: (None, None, None, None),
+            _fields: (None, None, None, None, None, None),
             _type: PhantomData,
         }
     }
@@ -323,7 +434,7 @@ impl<S: BosStr> ShoutBuilder<shout_state::Empty, S> {
     pub fn builder() -> Self {
         ShoutBuilder {
             _state: PhantomData,
-            _fields: (None, None, None, None),
+            _fields: (None, None, None, None, None, None),
             _type: PhantomData,
         }
     }
@@ -348,31 +459,54 @@ where
     }
 }
 
-impl<St, S: BosStr> ShoutBuilder<St, S>
-where
-    St: shout_state::State,
-    St::Message: shout_state::IsUnset,
-{
-    /// Set the `message` field (required)
-    pub fn message(mut self, value: impl Into<S>) -> ShoutBuilder<shout_state::SetMessage<St>, S> {
-        self._fields.1 = Option::Some(value.into());
-        ShoutBuilder {
-            _state: PhantomData,
-            _fields: self._fields,
-            _type: PhantomData,
-        }
+impl<St: shout_state::State, S: BosStr> ShoutBuilder<St, S> {
+    /// Set the `facets` field (optional)
+    pub fn facets(mut self, value: impl Into<Option<Vec<shout::Mention<S>>>>) -> Self {
+        self._fields.1 = value.into();
+        self
+    }
+    /// Set the `facets` field to an Option value (optional)
+    pub fn maybe_facets(mut self, value: Option<Vec<shout::Mention<S>>>) -> Self {
+        self._fields.1 = value;
+        self
+    }
+}
+
+impl<St: shout_state::State, S: BosStr> ShoutBuilder<St, S> {
+    /// Set the `gif` field (optional)
+    pub fn gif(mut self, value: impl Into<Option<shout::Gif<S>>>) -> Self {
+        self._fields.2 = value.into();
+        self
+    }
+    /// Set the `gif` field to an Option value (optional)
+    pub fn maybe_gif(mut self, value: Option<shout::Gif<S>>) -> Self {
+        self._fields.2 = value;
+        self
+    }
+}
+
+impl<St: shout_state::State, S: BosStr> ShoutBuilder<St, S> {
+    /// Set the `message` field (optional)
+    pub fn message(mut self, value: impl Into<Option<S>>) -> Self {
+        self._fields.3 = value.into();
+        self
+    }
+    /// Set the `message` field to an Option value (optional)
+    pub fn maybe_message(mut self, value: Option<S>) -> Self {
+        self._fields.3 = value;
+        self
     }
 }
 
 impl<St: shout_state::State, S: BosStr> ShoutBuilder<St, S> {
     /// Set the `parent` field (optional)
     pub fn parent(mut self, value: impl Into<Option<StrongRef<S>>>) -> Self {
-        self._fields.2 = value.into();
+        self._fields.4 = value.into();
         self
     }
     /// Set the `parent` field to an Option value (optional)
     pub fn maybe_parent(mut self, value: Option<StrongRef<S>>) -> Self {
-        self._fields.2 = value;
+        self._fields.4 = value;
         self
     }
 }
@@ -387,7 +521,7 @@ where
         mut self,
         value: impl Into<StrongRef<S>>,
     ) -> ShoutBuilder<shout_state::SetSubject<St>, S> {
-        self._fields.3 = Option::Some(value.into());
+        self._fields.5 = Option::Some(value.into());
         ShoutBuilder {
             _state: PhantomData,
             _fields: self._fields,
@@ -400,16 +534,17 @@ impl<St, S: BosStr> ShoutBuilder<St, S>
 where
     St: shout_state::State,
     St::CreatedAt: shout_state::IsSet,
-    St::Message: shout_state::IsSet,
     St::Subject: shout_state::IsSet,
 {
     /// Build the final struct.
     pub fn build(self) -> Shout<S> {
         Shout {
             created_at: self._fields.0.unwrap(),
-            message: self._fields.1.unwrap(),
-            parent: self._fields.2,
-            subject: self._fields.3.unwrap(),
+            facets: self._fields.1,
+            gif: self._fields.2,
+            message: self._fields.3,
+            parent: self._fields.4,
+            subject: self._fields.5.unwrap(),
             extra_data: Default::default(),
         }
     }
@@ -417,9 +552,11 @@ where
     pub fn build_with_data(self, extra_data: BTreeMap<SmolStr, Data<S>>) -> Shout<S> {
         Shout {
             created_at: self._fields.0.unwrap(),
-            message: self._fields.1.unwrap(),
-            parent: self._fields.2,
-            subject: self._fields.3.unwrap(),
+            facets: self._fields.1,
+            gif: self._fields.2,
+            message: self._fields.3,
+            parent: self._fields.4,
+            subject: self._fields.5.unwrap(),
             extra_data: Some(extra_data),
         }
     }
@@ -441,31 +578,55 @@ fn lexicon_doc_app_rocksky_shout() -> LexiconDoc<'static> {
                     description: Some(CowStr::new_static("A declaration of a shout.")),
                     key: Some(CowStr::new_static("tid")),
                     record: LexRecordRecord::Object(LexObject {
-                        required: Some(vec![
-                            SmolStr::new_static("message"),
-                            SmolStr::new_static("createdAt"),
-                            SmolStr::new_static("subject"),
-                        ]),
+                        required: Some(
+                            vec![
+                                SmolStr::new_static("createdAt"),
+                                SmolStr::new_static("subject")
+                            ],
+                        ),
                         properties: {
                             #[allow(unused_mut)]
                             let mut map = BTreeMap::new();
                             map.insert(
                                 SmolStr::new_static("createdAt"),
                                 LexObjectProperty::String(LexString {
-                                    description: Some(CowStr::new_static(
-                                        "The date when the shout was created.",
-                                    )),
+                                    description: Some(
+                                        CowStr::new_static("The date when the shout was created."),
+                                    ),
                                     format: Some(LexStringFormat::Datetime),
+                                    ..Default::default()
+                                }),
+                            );
+                            map.insert(
+                                SmolStr::new_static("facets"),
+                                LexObjectProperty::Array(LexArray {
+                                    description: Some(
+                                        CowStr::new_static(
+                                            "Mentions of other actors within the message, anchored to UTF-8 byte ranges.",
+                                        ),
+                                    ),
+                                    items: LexArrayItem::Ref(LexRef {
+                                        r#ref: CowStr::new_static("app.rocksky.shout.defs#mention"),
+                                        ..Default::default()
+                                    }),
+                                    ..Default::default()
+                                }),
+                            );
+                            map.insert(
+                                SmolStr::new_static("gif"),
+                                LexObjectProperty::Ref(LexRef {
+                                    r#ref: CowStr::new_static("app.rocksky.shout.defs#gif"),
                                     ..Default::default()
                                 }),
                             );
                             map.insert(
                                 SmolStr::new_static("message"),
                                 LexObjectProperty::String(LexString {
-                                    description: Some(CowStr::new_static(
-                                        "The message of the shout.",
-                                    )),
-                                    min_length: Some(1usize),
+                                    description: Some(
+                                        CowStr::new_static(
+                                            "The message of the shout. Optional when a gif/sticker/clip is attached.",
+                                        ),
+                                    ),
                                     max_length: Some(1000usize),
                                     ..Default::default()
                                 }),
@@ -565,6 +726,113 @@ fn lexicon_doc_app_rocksky_shout_defs() -> LexiconDoc<'static> {
                 }),
             );
             map.insert(
+                SmolStr::new_static("gif"),
+                LexUserType::Object(LexObject {
+                    description: Some(
+                        CowStr::new_static(
+                            "A GIF, sticker, or clip embedded in a shout. `url` may point at an image (GIF/WebP) or a video (MP4); the client decides how to render it from the file extension.",
+                        ),
+                    ),
+                    required: Some(vec![SmolStr::new_static("url")]),
+                    properties: {
+                        #[allow(unused_mut)]
+                        let mut map = BTreeMap::new();
+                        map.insert(
+                            SmolStr::new_static("alt"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static("Alternative text describing the media."),
+                                ),
+                                max_length: Some(512usize),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("height"),
+                            LexObjectProperty::Integer(LexInteger {
+                                minimum: Some(0i64),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("previewUrl"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static("Smaller still/preview image URL."),
+                                ),
+                                format: Some(LexStringFormat::Uri),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("url"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static("Direct URL of the animated GIF/MP4."),
+                                ),
+                                format: Some(LexStringFormat::Uri),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("width"),
+                            LexObjectProperty::Integer(LexInteger {
+                                minimum: Some(0i64),
+                                ..Default::default()
+                            }),
+                        );
+                        map
+                    },
+                    ..Default::default()
+                }),
+            );
+            map.insert(
+                SmolStr::new_static("mention"),
+                LexUserType::Object(LexObject {
+                    description: Some(
+                        CowStr::new_static(
+                            "A mention of another actor within the shout message, anchored to a UTF-8 byte range in the message.",
+                        ),
+                    ),
+                    required: Some(
+                        vec![
+                            SmolStr::new_static("did"), SmolStr::new_static("byteStart"),
+                            SmolStr::new_static("byteEnd")
+                        ],
+                    ),
+                    properties: {
+                        #[allow(unused_mut)]
+                        let mut map = BTreeMap::new();
+                        map.insert(
+                            SmolStr::new_static("byteEnd"),
+                            LexObjectProperty::Integer(LexInteger {
+                                minimum: Some(0i64),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("byteStart"),
+                            LexObjectProperty::Integer(LexInteger {
+                                minimum: Some(0i64),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("did"),
+                            LexObjectProperty::String(LexString {
+                                description: Some(
+                                    CowStr::new_static("The DID of the mentioned actor."),
+                                ),
+                                format: Some(LexStringFormat::Did),
+                                ..Default::default()
+                            }),
+                        );
+                        map
+                    },
+                    ..Default::default()
+                }),
+            );
+            map.insert(
                 SmolStr::new_static("shoutView"),
                 LexUserType::Object(LexObject {
                     properties: {
@@ -586,6 +854,28 @@ fn lexicon_doc_app_rocksky_shout_defs() -> LexiconDoc<'static> {
                                     ),
                                 ),
                                 format: Some(LexStringFormat::Datetime),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("facets"),
+                            LexObjectProperty::Array(LexArray {
+                                description: Some(
+                                    CowStr::new_static(
+                                        "Mentions of other actors within the message, anchored to UTF-8 byte ranges.",
+                                    ),
+                                ),
+                                items: LexArrayItem::Ref(LexRef {
+                                    r#ref: CowStr::new_static("app.rocksky.shout.defs#mention"),
+                                    ..Default::default()
+                                }),
+                                ..Default::default()
+                            }),
+                        );
+                        map.insert(
+                            SmolStr::new_static("gif"),
+                            LexObjectProperty::Ref(LexRef {
+                                r#ref: CowStr::new_static("app.rocksky.shout.defs#gif"),
                                 ..Default::default()
                             }),
                         );
@@ -626,5 +916,365 @@ fn lexicon_doc_app_rocksky_shout_defs() -> LexiconDoc<'static> {
             map
         },
         ..Default::default()
+    }
+}
+
+pub mod gif_state {
+
+    pub use crate::builder_types::{IsSet, IsUnset, Set, Unset};
+    #[allow(unused)]
+    use ::core::marker::PhantomData;
+    mod sealed {
+        pub trait Sealed {}
+    }
+    /// State trait tracking which required fields have been set
+    pub trait State: sealed::Sealed {
+        type Url;
+    }
+    /// Empty state - all required fields are unset
+    pub struct Empty(());
+    impl sealed::Sealed for Empty {}
+    impl State for Empty {
+        type Url = Unset;
+    }
+    ///State transition - sets the `url` field to Set
+    pub struct SetUrl<St: State = Empty>(PhantomData<fn() -> St>);
+    impl<St: State> sealed::Sealed for SetUrl<St> {}
+    impl<St: State> State for SetUrl<St> {
+        type Url = Set<members::url>;
+    }
+    /// Marker types for field names
+    #[allow(non_camel_case_types)]
+    pub mod members {
+        ///Marker type for the `url` field
+        pub struct url(());
+    }
+}
+
+/// Builder for constructing an instance of this type.
+pub struct GifBuilder<St: gif_state::State, S: BosStr = DefaultStr> {
+    _state: PhantomData<fn() -> St>,
+    _fields: (
+        Option<S>,
+        Option<i64>,
+        Option<UriValue<S>>,
+        Option<UriValue<S>>,
+        Option<i64>,
+    ),
+    _type: PhantomData<fn() -> S>,
+}
+
+impl Gif<DefaultStr> {
+    /// Create a new builder for this type, using the default string type (DefaultStr = SmolStr) if needed
+    pub fn new() -> GifBuilder<gif_state::Empty, DefaultStr> {
+        GifBuilder::new()
+    }
+}
+
+impl<S: BosStr> Gif<S> {
+    /// Create a new builder for this type
+    pub fn builder() -> GifBuilder<gif_state::Empty, S> {
+        GifBuilder::builder()
+    }
+}
+
+impl GifBuilder<gif_state::Empty, DefaultStr> {
+    /// Create a new builder with all fields unset, using the default string type, if needed
+    pub fn new() -> Self {
+        GifBuilder {
+            _state: PhantomData,
+            _fields: (None, None, None, None, None),
+            _type: PhantomData,
+        }
+    }
+}
+
+impl<S: BosStr> GifBuilder<gif_state::Empty, S> {
+    /// Create a new builder with all fields unset
+    pub fn builder() -> Self {
+        GifBuilder {
+            _state: PhantomData,
+            _fields: (None, None, None, None, None),
+            _type: PhantomData,
+        }
+    }
+}
+
+impl<St: gif_state::State, S: BosStr> GifBuilder<St, S> {
+    /// Set the `alt` field (optional)
+    pub fn alt(mut self, value: impl Into<Option<S>>) -> Self {
+        self._fields.0 = value.into();
+        self
+    }
+    /// Set the `alt` field to an Option value (optional)
+    pub fn maybe_alt(mut self, value: Option<S>) -> Self {
+        self._fields.0 = value;
+        self
+    }
+}
+
+impl<St: gif_state::State, S: BosStr> GifBuilder<St, S> {
+    /// Set the `height` field (optional)
+    pub fn height(mut self, value: impl Into<Option<i64>>) -> Self {
+        self._fields.1 = value.into();
+        self
+    }
+    /// Set the `height` field to an Option value (optional)
+    pub fn maybe_height(mut self, value: Option<i64>) -> Self {
+        self._fields.1 = value;
+        self
+    }
+}
+
+impl<St: gif_state::State, S: BosStr> GifBuilder<St, S> {
+    /// Set the `previewUrl` field (optional)
+    pub fn preview_url(mut self, value: impl Into<Option<UriValue<S>>>) -> Self {
+        self._fields.2 = value.into();
+        self
+    }
+    /// Set the `previewUrl` field to an Option value (optional)
+    pub fn maybe_preview_url(mut self, value: Option<UriValue<S>>) -> Self {
+        self._fields.2 = value;
+        self
+    }
+}
+
+impl<St, S: BosStr> GifBuilder<St, S>
+where
+    St: gif_state::State,
+    St::Url: gif_state::IsUnset,
+{
+    /// Set the `url` field (required)
+    pub fn url(mut self, value: impl Into<UriValue<S>>) -> GifBuilder<gif_state::SetUrl<St>, S> {
+        self._fields.3 = Option::Some(value.into());
+        GifBuilder {
+            _state: PhantomData,
+            _fields: self._fields,
+            _type: PhantomData,
+        }
+    }
+}
+
+impl<St: gif_state::State, S: BosStr> GifBuilder<St, S> {
+    /// Set the `width` field (optional)
+    pub fn width(mut self, value: impl Into<Option<i64>>) -> Self {
+        self._fields.4 = value.into();
+        self
+    }
+    /// Set the `width` field to an Option value (optional)
+    pub fn maybe_width(mut self, value: Option<i64>) -> Self {
+        self._fields.4 = value;
+        self
+    }
+}
+
+impl<St, S: BosStr> GifBuilder<St, S>
+where
+    St: gif_state::State,
+    St::Url: gif_state::IsSet,
+{
+    /// Build the final struct.
+    pub fn build(self) -> Gif<S> {
+        Gif {
+            alt: self._fields.0,
+            height: self._fields.1,
+            preview_url: self._fields.2,
+            url: self._fields.3.unwrap(),
+            width: self._fields.4,
+            extra_data: Default::default(),
+        }
+    }
+    /// Build the final struct with custom extra_data.
+    pub fn build_with_data(self, extra_data: BTreeMap<SmolStr, Data<S>>) -> Gif<S> {
+        Gif {
+            alt: self._fields.0,
+            height: self._fields.1,
+            preview_url: self._fields.2,
+            url: self._fields.3.unwrap(),
+            width: self._fields.4,
+            extra_data: Some(extra_data),
+        }
+    }
+}
+
+pub mod mention_state {
+
+    pub use crate::builder_types::{IsSet, IsUnset, Set, Unset};
+    #[allow(unused)]
+    use ::core::marker::PhantomData;
+    mod sealed {
+        pub trait Sealed {}
+    }
+    /// State trait tracking which required fields have been set
+    pub trait State: sealed::Sealed {
+        type ByteEnd;
+        type ByteStart;
+        type Did;
+    }
+    /// Empty state - all required fields are unset
+    pub struct Empty(());
+    impl sealed::Sealed for Empty {}
+    impl State for Empty {
+        type ByteEnd = Unset;
+        type ByteStart = Unset;
+        type Did = Unset;
+    }
+    ///State transition - sets the `byte_end` field to Set
+    pub struct SetByteEnd<St: State = Empty>(PhantomData<fn() -> St>);
+    impl<St: State> sealed::Sealed for SetByteEnd<St> {}
+    impl<St: State> State for SetByteEnd<St> {
+        type ByteEnd = Set<members::byte_end>;
+        type ByteStart = St::ByteStart;
+        type Did = St::Did;
+    }
+    ///State transition - sets the `byte_start` field to Set
+    pub struct SetByteStart<St: State = Empty>(PhantomData<fn() -> St>);
+    impl<St: State> sealed::Sealed for SetByteStart<St> {}
+    impl<St: State> State for SetByteStart<St> {
+        type ByteEnd = St::ByteEnd;
+        type ByteStart = Set<members::byte_start>;
+        type Did = St::Did;
+    }
+    ///State transition - sets the `did` field to Set
+    pub struct SetDid<St: State = Empty>(PhantomData<fn() -> St>);
+    impl<St: State> sealed::Sealed for SetDid<St> {}
+    impl<St: State> State for SetDid<St> {
+        type ByteEnd = St::ByteEnd;
+        type ByteStart = St::ByteStart;
+        type Did = Set<members::did>;
+    }
+    /// Marker types for field names
+    #[allow(non_camel_case_types)]
+    pub mod members {
+        ///Marker type for the `byte_end` field
+        pub struct byte_end(());
+        ///Marker type for the `byte_start` field
+        pub struct byte_start(());
+        ///Marker type for the `did` field
+        pub struct did(());
+    }
+}
+
+/// Builder for constructing an instance of this type.
+pub struct MentionBuilder<St: mention_state::State, S: BosStr = DefaultStr> {
+    _state: PhantomData<fn() -> St>,
+    _fields: (Option<i64>, Option<i64>, Option<Did<S>>),
+    _type: PhantomData<fn() -> S>,
+}
+
+impl Mention<DefaultStr> {
+    /// Create a new builder for this type, using the default string type (DefaultStr = SmolStr) if needed
+    pub fn new() -> MentionBuilder<mention_state::Empty, DefaultStr> {
+        MentionBuilder::new()
+    }
+}
+
+impl<S: BosStr> Mention<S> {
+    /// Create a new builder for this type
+    pub fn builder() -> MentionBuilder<mention_state::Empty, S> {
+        MentionBuilder::builder()
+    }
+}
+
+impl MentionBuilder<mention_state::Empty, DefaultStr> {
+    /// Create a new builder with all fields unset, using the default string type, if needed
+    pub fn new() -> Self {
+        MentionBuilder {
+            _state: PhantomData,
+            _fields: (None, None, None),
+            _type: PhantomData,
+        }
+    }
+}
+
+impl<S: BosStr> MentionBuilder<mention_state::Empty, S> {
+    /// Create a new builder with all fields unset
+    pub fn builder() -> Self {
+        MentionBuilder {
+            _state: PhantomData,
+            _fields: (None, None, None),
+            _type: PhantomData,
+        }
+    }
+}
+
+impl<St, S: BosStr> MentionBuilder<St, S>
+where
+    St: mention_state::State,
+    St::ByteEnd: mention_state::IsUnset,
+{
+    /// Set the `byteEnd` field (required)
+    pub fn byte_end(
+        mut self,
+        value: impl Into<i64>,
+    ) -> MentionBuilder<mention_state::SetByteEnd<St>, S> {
+        self._fields.0 = Option::Some(value.into());
+        MentionBuilder {
+            _state: PhantomData,
+            _fields: self._fields,
+            _type: PhantomData,
+        }
+    }
+}
+
+impl<St, S: BosStr> MentionBuilder<St, S>
+where
+    St: mention_state::State,
+    St::ByteStart: mention_state::IsUnset,
+{
+    /// Set the `byteStart` field (required)
+    pub fn byte_start(
+        mut self,
+        value: impl Into<i64>,
+    ) -> MentionBuilder<mention_state::SetByteStart<St>, S> {
+        self._fields.1 = Option::Some(value.into());
+        MentionBuilder {
+            _state: PhantomData,
+            _fields: self._fields,
+            _type: PhantomData,
+        }
+    }
+}
+
+impl<St, S: BosStr> MentionBuilder<St, S>
+where
+    St: mention_state::State,
+    St::Did: mention_state::IsUnset,
+{
+    /// Set the `did` field (required)
+    pub fn did(mut self, value: impl Into<Did<S>>) -> MentionBuilder<mention_state::SetDid<St>, S> {
+        self._fields.2 = Option::Some(value.into());
+        MentionBuilder {
+            _state: PhantomData,
+            _fields: self._fields,
+            _type: PhantomData,
+        }
+    }
+}
+
+impl<St, S: BosStr> MentionBuilder<St, S>
+where
+    St: mention_state::State,
+    St::ByteEnd: mention_state::IsSet,
+    St::ByteStart: mention_state::IsSet,
+    St::Did: mention_state::IsSet,
+{
+    /// Build the final struct.
+    pub fn build(self) -> Mention<S> {
+        Mention {
+            byte_end: self._fields.0.unwrap(),
+            byte_start: self._fields.1.unwrap(),
+            did: self._fields.2.unwrap(),
+            extra_data: Default::default(),
+        }
+    }
+    /// Build the final struct with custom extra_data.
+    pub fn build_with_data(self, extra_data: BTreeMap<SmolStr, Data<S>>) -> Mention<S> {
+        Mention {
+            byte_end: self._fields.0.unwrap(),
+            byte_start: self._fields.1.unwrap(),
+            did: self._fields.2.unwrap(),
+            extra_data: Some(extra_data),
+        }
     }
 }

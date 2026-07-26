@@ -288,6 +288,36 @@ impl From<NowPlayingInput> for rocksky_sdk::NowPlaying {
     }
 }
 
+/// A GIF / sticker / clip to attach to a shout
+/// (`app.rocksky.shout.defs#gif`). Only `url` is required.
+#[derive(Debug, Clone, Default, uniffi::Record)]
+pub struct ShoutGifInput {
+    /// Direct URL of the animated GIF/MP4.
+    pub url: String,
+    /// Smaller still / preview image URL.
+    #[uniffi(default = None)]
+    pub preview_url: Option<String>,
+    /// Alternative text describing the media.
+    #[uniffi(default = None)]
+    pub alt: Option<String>,
+    #[uniffi(default = None)]
+    pub width: Option<i64>,
+    #[uniffi(default = None)]
+    pub height: Option<i64>,
+}
+
+impl From<ShoutGifInput> for rocksky_sdk::ShoutGif {
+    fn from(g: ShoutGifInput) -> Self {
+        rocksky_sdk::ShoutGif {
+            url: g.url,
+            preview_url: g.preview_url,
+            alt: g.alt,
+            width: g.width,
+            height: g.height,
+        }
+    }
+}
+
 // ---- output records (SDK -> host) ----------------------------------------
 
 /// The four record URIs a scrobble touches.
@@ -354,6 +384,108 @@ impl From<rocksky_sdk::appview::ProfileView> for ProfileView {
             avatar: p.avatar,
             created_at: p.created_at,
             updated_at: p.updated_at,
+        }
+    }
+}
+
+/// The user who triggered a notification
+/// (`app.rocksky.notification.defs#notificationActor`).
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct NotificationActor {
+    pub id: Option<String>,
+    pub did: Option<String>,
+    pub handle: Option<String>,
+    pub display_name: Option<String>,
+    pub avatar: Option<String>,
+}
+
+impl From<rocksky_sdk::appview::NotificationActor> for NotificationActor {
+    fn from(a: rocksky_sdk::appview::NotificationActor) -> Self {
+        NotificationActor {
+            id: a.id,
+            did: a.did,
+            handle: a.handle,
+            display_name: a.display_name,
+            avatar: a.avatar,
+        }
+    }
+}
+
+/// A single notification (`app.rocksky.notification.defs#notificationView`).
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct NotificationView {
+    pub id: String,
+    /// One of `like_scrobble`, `follow`, `comment_scrobble`, `comment_profile`,
+    /// `reply`, `react_comment`.
+    pub notification_type: String,
+    /// Whether the notification has been viewed.
+    pub read: bool,
+    pub created_at: String,
+    pub subject_uri: Option<String>,
+    pub shout_id: Option<String>,
+    pub shout_content: Option<String>,
+    pub actor: Option<NotificationActor>,
+}
+
+impl From<rocksky_sdk::appview::NotificationView> for NotificationView {
+    fn from(n: rocksky_sdk::appview::NotificationView) -> Self {
+        NotificationView {
+            id: n.id,
+            notification_type: n.r#type,
+            read: n.read,
+            created_at: n.created_at,
+            subject_uri: n.subject_uri,
+            shout_id: n.shout_id,
+            shout_content: n.shout_content,
+            actor: n.actor.map(Into::into),
+        }
+    }
+}
+
+/// A page of notifications (`app.rocksky.notification.listNotifications`).
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct NotificationList {
+    pub notifications: Vec<NotificationView>,
+    /// The number of unread notifications.
+    pub unread_count: i64,
+    /// Cursor to pass to the next call for the following page.
+    pub cursor: Option<String>,
+}
+
+impl From<rocksky_sdk::appview::NotificationList> for NotificationList {
+    fn from(l: rocksky_sdk::appview::NotificationList) -> Self {
+        NotificationList {
+            notifications: l.notifications.into_iter().map(Into::into).collect(),
+            unread_count: l.unread_count,
+            cursor: l.cursor,
+        }
+    }
+}
+
+/// The unread-notification count (`app.rocksky.notification.getUnreadCount`).
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct UnreadCount {
+    pub count: i64,
+}
+
+impl From<rocksky_sdk::appview::UnreadCount> for UnreadCount {
+    fn from(c: rocksky_sdk::appview::UnreadCount) -> Self {
+        UnreadCount { count: c.count }
+    }
+}
+
+/// The result of marking notifications seen
+/// (`app.rocksky.notification.updateSeen`).
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct UpdateSeenResult {
+    /// The number of unread notifications remaining.
+    pub unread_count: i64,
+}
+
+impl From<rocksky_sdk::appview::UpdateSeenResult> for UpdateSeenResult {
+    fn from(r: rocksky_sdk::appview::UpdateSeenResult) -> Self {
+        UpdateSeenResult {
+            unread_count: r.unread_count,
         }
     }
 }
@@ -1081,6 +1213,34 @@ impl AppView {
     pub fn apikeys(&self, limit: u32, offset: u32) -> Result<String, RockskyError> {
         json(RT.block_on(self.inner.apikeys(limit, offset)))
     }
+
+    /// The authenticated viewer's unread-notification count
+    /// (`app.rocksky.notification.getUnreadCount`).
+    pub fn unread_count(&self) -> Result<UnreadCount, RockskyError> {
+        Ok(RT.block_on(self.inner.unread_count()).map_err(err)?.into())
+    }
+
+    /// The authenticated viewer's notifications, most recent first
+    /// (`app.rocksky.notification.listNotifications`). `limit` defaults to 30.
+    pub fn notifications(
+        &self,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    ) -> Result<NotificationList, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.notifications(limit, cursor.as_deref()))
+            .map_err(err)?
+            .into())
+    }
+
+    /// Mark notifications as viewed (`app.rocksky.notification.updateSeen`). Pass
+    /// the ids to mark, or an empty list to mark **all** as viewed.
+    pub fn update_seen(&self, ids: Vec<String>) -> Result<UpdateSeenResult, RockskyError> {
+        Ok(RT
+            .block_on(self.inner.update_seen(&ids))
+            .map_err(err)?
+            .into())
+    }
 }
 
 /// Serialize a raw-JSON core read result to a string for the FFI boundary.
@@ -1202,6 +1362,24 @@ impl Agent {
             .map_err(err)
     }
 
+    /// Post a shout with an optional GIF/sticker/clip attachment. Pass at least
+    /// one of `message` / `gif`. Returns the shout URI.
+    pub fn shout_with_gif(
+        &self,
+        subject_uri: String,
+        subject_cid: String,
+        message: Option<String>,
+        gif: Option<ShoutGifInput>,
+    ) -> Result<String, RockskyError> {
+        RT.block_on(self.inner.shout_with_gif(
+            &subject_uri,
+            &subject_cid,
+            message.as_deref(),
+            gif.map(Into::into),
+        ))
+        .map_err(err)
+    }
+
     /// Reply to a shout. Returns the shout URI.
     pub fn reply_shout(
         &self,
@@ -1217,6 +1395,28 @@ impl Agent {
             &parent_uri,
             &parent_cid,
             &message,
+        ))
+        .map_err(err)
+    }
+
+    /// Reply to a shout with an optional GIF/sticker/clip attachment. Pass at
+    /// least one of `message` / `gif`. Returns the shout URI.
+    pub fn reply_shout_with_gif(
+        &self,
+        subject_uri: String,
+        subject_cid: String,
+        parent_uri: String,
+        parent_cid: String,
+        message: Option<String>,
+        gif: Option<ShoutGifInput>,
+    ) -> Result<String, RockskyError> {
+        RT.block_on(self.inner.reply_shout_with_gif(
+            &subject_uri,
+            &subject_cid,
+            &parent_uri,
+            &parent_cid,
+            message.as_deref(),
+            gif.map(Into::into),
         ))
         .map_err(err)
     }

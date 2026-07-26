@@ -98,6 +98,29 @@ pub fn get_at(nsid: String, params_json: String, endpoint: String) -> Dynamic {
   get_ffi(endpoint, nsid, params_json, "")
 }
 
+// ---- notifications (auth-gated; `token` required) ------------------------
+
+/// The authenticated viewer's unread-notification count. Returns
+/// `{"count": n}`.
+pub fn unread_count(token: String) -> Dynamic {
+  get_ffi("", "app.rocksky.notification.getUnreadCount", "{}", token)
+}
+
+/// The authenticated viewer's notifications, most recent first. `params_json` is
+/// a JSON object that may contain `"limit"` (default 30) and `"cursor"`.
+pub fn notifications(token: String, params_json: String) -> Dynamic {
+  get_ffi("", "app.rocksky.notification.listNotifications", params_json, token)
+}
+
+@external(erlang, "rocksky", "update_seen_raw")
+fn update_seen_ffi(token: String, ids_json: String, base: String) -> Dynamic
+
+/// Mark notifications as viewed. `ids_json` is a JSON array of notification ids
+/// (`"[\"id1\",\"id2\"]"`), or `"[]"` to mark all. Returns `{"unreadCount": n}`.
+pub fn update_seen(token: String, ids_json: String) -> Dynamic {
+  update_seen_ffi(token, ids_json, "")
+}
+
 @external(erlang, "rocksky", "match_song")
 fn match_song_ffi(title: String, artist: String) -> Dynamic
 
@@ -248,6 +271,61 @@ pub fn shout(
   message: String,
 ) -> Dynamic {
   agent_shout_ffi(agent, subject_uri, subject_cid, message)
+}
+
+@external(erlang, "rocksky", "agent_shout_with_gif_raw")
+fn agent_shout_with_gif_ffi(
+  agent: Agent,
+  subject_uri: String,
+  subject_cid: String,
+  message: String,
+  gif_json: String,
+) -> Dynamic
+
+/// Post a shout with an optional GIF/sticker/clip. Pass at least one of
+/// `message` / `gif_json` (a JSON gif embed with `"url"` required, plus
+/// `"previewUrl"`, `"alt"`, `"width"`, `"height"`; `""` for none).
+pub fn shout_with_gif(
+  agent: Agent,
+  subject_uri: String,
+  subject_cid: String,
+  message: String,
+  gif_json: String,
+) -> Dynamic {
+  agent_shout_with_gif_ffi(agent, subject_uri, subject_cid, message, gif_json)
+}
+
+@external(erlang, "rocksky", "agent_reply_shout_with_gif_raw")
+fn agent_reply_shout_with_gif_ffi(
+  agent: Agent,
+  subject_uri: String,
+  subject_cid: String,
+  parent_uri: String,
+  parent_cid: String,
+  message: String,
+  gif_json: String,
+) -> Dynamic
+
+/// Reply to a shout with an optional GIF/sticker/clip (see
+/// [shout_with_gif](#shout_with_gif)), plus a parent strong-ref.
+pub fn reply_shout_with_gif(
+  agent: Agent,
+  subject_uri: String,
+  subject_cid: String,
+  parent_uri: String,
+  parent_cid: String,
+  message: String,
+  gif_json: String,
+) -> Dynamic {
+  agent_reply_shout_with_gif_ffi(
+    agent,
+    subject_uri,
+    subject_cid,
+    parent_uri,
+    parent_cid,
+    message,
+    gif_json,
+  )
 }
 
 @external(erlang, "rocksky", "agent_refresh_session")
