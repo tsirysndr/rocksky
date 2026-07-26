@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useAtomValue, useSetAtom } from "jotai";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "react-router";
 import { shoutsAtom } from "../../../atoms/shouts";
 import useShout from "../../../hooks/useShout";
@@ -10,9 +10,11 @@ import "./styles.css";
 function ShoutList({ uri: uriProp }: { uri?: string } = {}) {
   const shouts = useAtomValue(shoutsAtom);
   const setShouts = useSetAtom(shoutsAtom);
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
   const { getShouts } = useShout();
   const { did, rkey } = useParams<{ did: string; rkey: string }>();
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const handledHashRef = useRef<string>("");
 
   const shoutKey = uriProp || pathname;
 
@@ -20,6 +22,29 @@ function ShoutList({ uri: uriProp }: { uri?: string } = {}) {
     fetchShouts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getShouts, shoutKey, did, rkey]);
+
+  // Scroll to and briefly highlight a shout deep-linked via `#shout-<id>`
+  // (e.g. from a notification), once its list has loaded into the DOM.
+  useEffect(() => {
+    const raw = (hash ?? "").replace(/^#/, "");
+    if (!raw.startsWith("shout-") || handledHashRef.current === raw) return;
+    if (!(shouts[shoutKey] || []).length) return;
+    const id = raw.slice("shout-".length);
+    const raf = requestAnimationFrame(() => {
+      const el = document.getElementById(`shout-${id}`);
+      if (!el) return;
+      handledHashRef.current = raw;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      setHighlightId(id);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [shouts, shoutKey, hash]);
+
+  useEffect(() => {
+    if (!highlightId) return;
+    const t = setTimeout(() => setHighlightId(null), 2500);
+    return () => clearTimeout(t);
+  }, [highlightId]);
 
   const fetchShouts = async () => {
     if (uriProp) {
@@ -103,7 +128,13 @@ function ShoutList({ uri: uriProp }: { uri?: string } = {}) {
 
   const renderShout = (shout: any) => {
     return (
-      <div key={shout.id} className="shout-container">
+      <div
+        key={shout.id}
+        id={`shout-${shout.id}`}
+        className={`shout-container rounded-[8px] transition-colors ${
+          highlightId === shout.id ? "bg-[var(--color-menu-hover)]" : ""
+        }`}
+      >
         <Shout shout={shout} refetch={fetchShouts} />
         <div className="replies-container">
           {(shout.replies || []).map((reply: any) => renderShout(reply))}

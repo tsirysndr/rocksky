@@ -108,7 +108,40 @@ const VERB: Record<string, string> = {
   comment_profile: "commented on your profile",
   reply: "replied to your comment",
   react_comment: "reacted to your comment",
+  mention: "mentioned you",
 };
+
+/**
+ * Where a notification navigates. Shouts render inline on their subject page,
+ * so we turn the subject at-uri into that page's path and, when a shout is
+ * involved, tack on a `#shout-<id>` hash that ShoutList scrolls to. Falls back
+ * to the actor's profile for subject-less notifications (e.g. follows).
+ */
+const CONTENT_COLLECTIONS = new Set([
+  "app.rocksky.scrobble",
+  "app.rocksky.song",
+  "app.rocksky.album",
+  "app.rocksky.artist",
+]);
+
+function notificationTarget(n: NotificationView): { to: string; hash?: string } {
+  const actor = n.actor;
+  const [did, collection, rkey] = (n.subjectUri?.split("at://")[1] ?? "").split(
+    "/",
+  );
+  let to: string;
+  if (did && collection && CONTENT_COLLECTIONS.has(collection) && rkey) {
+    // "<did>/app.rocksky.<collection>/<rkey>" -> "/<did>/<collection>/<rkey>"
+    to = `/${did}/${collection.replace("app.rocksky.", "")}/${rkey}`;
+  } else if (did) {
+    // Profile subject ("at://<did>" or ".../app.bsky.actor.profile/self").
+    to = `/profile/${did}`;
+  } else {
+    // Subject-less (e.g. follow) — fall back to the actor's profile.
+    to = `/profile/${actor?.handle ?? actor?.did ?? ""}`;
+  }
+  return { to, hash: n.shoutId ? `shout-${n.shoutId}` : undefined };
+}
 
 const timeAgo = (iso: string): string => {
   const seconds = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
@@ -133,12 +166,10 @@ function NotificationRow({
   const name = actor?.displayName || actor?.handle || "Someone";
   const verb = VERB[notification.type] ?? "sent you a notification";
   const isJpegPlaceholder = actor?.avatar?.endsWith("/@jpeg");
+  const { to, hash } = notificationTarget(notification);
 
   return (
-    <Row
-      to={`/profile/${actor?.handle ?? actor?.did ?? ""}`}
-      onClick={onNavigate}
-    >
+    <Row to={to} hash={hash} onClick={onNavigate}>
       {actor?.avatar && !isJpegPlaceholder ? (
         <Avatar src={actor.avatar} name={name} size="36px" />
       ) : (

@@ -13,7 +13,8 @@ export type NotificationType =
   | "comment_scrobble"
   | "comment_profile"
   | "reply"
-  | "react_comment";
+  | "react_comment"
+  | "mention";
 
 export interface CreateNotificationParams {
   /** Recipient user id (users.xata_id). */

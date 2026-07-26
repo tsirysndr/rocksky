@@ -11,6 +11,7 @@ import users from "./users";
  *  - "comment_profile"  — someone commented on the recipient's profile
  *  - "reply"            — someone replied to the recipient's comment
  *  - "react_comment"    — someone reacted to (liked) the recipient's comment
+ *  - "mention"          — someone @-mentioned the recipient in a shout
  *
  * `userId` is the recipient; `actorId` is the user who triggered the event.
  * `shoutId` / `subjectUri` point at the relevant record so the UI can deep-link.
