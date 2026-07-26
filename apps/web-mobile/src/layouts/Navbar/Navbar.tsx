@@ -90,7 +90,7 @@ function Navbar() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm no-underline"
-                  style={{ color: "var(--color-primary)" }}
+                  style={{ color: "var(--color-primary)", fontFamily: "var(--font-mono)" }}
                 >
                   @{profile?.handle}
                 </a>

@@ -51,7 +51,7 @@ function Weekly() {
   return (
     <>
       <div className="mt-[15px] mb-[25px]">
-        <strong>{range}</strong>
+        <strong style={{ fontFamily: "var(--font-mono)" }}>{range}</strong>
       </div>
       {isLoading && (
         <ContentLoader
@@ -201,14 +201,14 @@ function Weekly() {
             </TableBuilderColumn>
             <TableBuilderColumn header="LISTENERS">
               {(row: ArtistRow) => (
-                <div className="flex flex-row items-center">
+                <div className="flex flex-row items-center" style={{ fontFamily: "var(--font-mono)" }}>
                   {numeral(row.uniqueListeners).format("0,0")}
                 </div>
               )}
             </TableBuilderColumn>
             <TableBuilderColumn header="SCROBBLES">
               {(row: ArtistRow) => (
-                <div className="flex flex-row items-center">
+                <div className="flex flex-row items-center" style={{ fontFamily: "var(--font-mono)" }}>
                   {numeral(row.scrobbles).format("0,0")}
                 </div>
               )}

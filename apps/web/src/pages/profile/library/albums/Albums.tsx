@@ -100,7 +100,11 @@ function Albums(props: AlbumsProps) {
           <LabelSmall className="!text-[var(--color-text-muted)]">
             ALBUMS SCROBBLED
           </LabelSmall>
-          <HeadingXSmall margin={0} className="!text-[var(--color-text)]">
+          <HeadingXSmall
+            margin={0}
+            className="!text-[var(--color-text)]"
+            style={{ fontFamily: "var(--font-mono)" }}
+          >
             {did ? numeral(profileStats.data?.albums).format("0,0") : ""}
           </HeadingXSmall>
         </div>
@@ -221,7 +225,10 @@ function Albums(props: AlbumsProps) {
                     : "!text-[#000]"
                 }`}
               >
-                {numeral(row.scrobbles).format("0,0")}{" "}
+                <span style={{ fontFamily: "var(--font-mono)" }}>
+                  {numeral(row.scrobbles).format("0,0")}
+                </span>
+                {" "}
                 {index == 0 && " scrobbles"}
               </div>
               <span

@@ -68,20 +68,20 @@ export default function Album() {
               )}
 
               {album.releaseDate && (
-                <p className="text-sm m-0 mb-4" style={{ color: "var(--color-text-muted)" }}>
+                <p className="text-sm m-0 mb-4" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
                   {dayjs(album.releaseDate).format("YYYY")}
                 </p>
               )}
 
               <div className="flex gap-8">
                 <div className="text-center">
-                  <p className="font-bold text-base m-0" style={{ color: "var(--color-text)" }}>
+                  <p className="font-bold text-base m-0" style={{ color: "var(--color-text)", fontFamily: "var(--font-mono)" }}>
                     {numeral(album.uniqueListeners || album.listeners).format("0,0")}
                   </p>
                   <p className="text-xs m-0" style={{ color: "var(--color-text-muted)" }}>Listeners</p>
                 </div>
                 <div className="text-center">
-                  <p className="font-bold text-base m-0" style={{ color: "var(--color-text)" }}>
+                  <p className="font-bold text-base m-0" style={{ color: "var(--color-text)", fontFamily: "var(--font-mono)" }}>
                     {numeral(album.playCount || album.scrobbles).format("0,0")}
                   </p>
                   <p className="text-xs m-0" style={{ color: "var(--color-text-muted)" }}>Scrobbles</p>
@@ -95,7 +95,7 @@ export default function Album() {
                       key={tag}
                       to={`/genre/${tag}`}
                       className="text-xs px-3 py-1 rounded-full no-underline"
-                      style={{ backgroundColor: "var(--color-surface-2)", color: "var(--color-genre)" }}
+                      style={{ backgroundColor: "var(--color-surface-2)", color: "var(--color-genre)", fontFamily: "var(--font-mono)" }}
                     >
                       #{tag}
                     </Link>
@@ -144,7 +144,7 @@ export default function Album() {
                         )}
                       </div>
                       {!!track.duration && (
-                        <span className="text-xs shrink-0" style={{ color: "var(--color-text-muted)" }}>
+                        <span className="text-xs shrink-0" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
                           {formatDuration(track.duration)}
                         </span>
                       )}

@@ -268,6 +268,7 @@ function Navbar() {
                       <LabelMedium
                         color="var(--color-primary)"
                         className="text-center"
+                        style={{ fontFamily: "var(--font-mono)" }}
                       >
                         @{profile.handle}
                       </LabelMedium>
@@ -278,6 +279,7 @@ function Navbar() {
                         margin={0}
                         color="var(--color-text-muted)"
                         className="text-center !mr-[5px]"
+                        style={{ fontFamily: "var(--font-mono)" }}
                       >
                         {numeral(profileStats?.data?.scrobbles).format("0,0")}
                       </LabelMedium>

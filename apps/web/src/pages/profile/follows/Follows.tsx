@@ -130,7 +130,7 @@ function Follows() {
   return (
     <>
       <HeadingSmall className="!text-[var(--color-text)]">
-        Following {count > 0 ? `(${numeral(count).format("0,0")})` : ""}
+        Following{count > 0 ? <> (<span style={{ fontFamily: "var(--font-mono)" }}>{numeral(count).format("0,0")}</span>)</> : ""}
       </HeadingSmall>
 
       {(isPending || (isFetching && allFollows.length === 0)) && (
@@ -191,7 +191,10 @@ function Follows() {
                       scrollToTop();
                     }}
                   >
-                    <LabelSmall className="!text-[var(--color-primary)] mt-[3px] mb-[25px]">
+                    <LabelSmall
+                      className="!text-[var(--color-primary)] mt-[3px] mb-[25px]"
+                      style={{ fontFamily: "var(--font-mono)" }}
+                    >
                       @{follow.handle}
                     </LabelSmall>
                   </Link>

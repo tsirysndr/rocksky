@@ -310,11 +310,15 @@ const Song = () => {
                       margin={0}
                       className="!text-[var(--color-text-muted)]"
                     >
-                      First scrobbled {dayjs(firstScrobble.timestamp).fromNow()}{" "}
+                      First scrobbled{" "}
+                      <span style={{ fontFamily: "var(--font-mono)" }}>
+                        {dayjs(firstScrobble.timestamp).fromNow()}
+                      </span>{" "}
                       by{" "}
                       <Link
                         to={`/profile/${firstScrobble.handle}` as string}
                         className="!text-[var(--color-primary)]"
+                        style={{ fontFamily: "var(--font-mono)" }}
                       >
                         @{firstScrobble.handle}
                       </Link>
@@ -337,6 +341,7 @@ const Song = () => {
                     <HeadingXSmall
                       margin={0}
                       className="!text-[var(--color-text)]"
+                      style={{ fontFamily: "var(--font-mono)" }}
                     >
                       {numeral(song?.listeners).format("0,0")}
                     </HeadingXSmall>
@@ -351,6 +356,7 @@ const Song = () => {
                     <HeadingXSmall
                       margin={0}
                       className="!text-[var(--color-text)]"
+                      style={{ fontFamily: "var(--font-mono)" }}
                     >
                       {numeral(song?.scrobbles).format("0,0")}
                     </HeadingXSmall>
@@ -381,7 +387,7 @@ const Song = () => {
                   <Link
                     to={`/genre/${genre}` as string}
                     className="mr-[15px] !text-[var(--color-genre)] text-[13px] !no-underline"
-                    style={{ fontFamily: "RockfordSansRegular" }}
+                    style={{ fontFamily: "var(--font-mono)" }}
                   >
                     # {genre}
                   </Link>

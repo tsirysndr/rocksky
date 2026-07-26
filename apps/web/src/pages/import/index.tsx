@@ -142,9 +142,10 @@ function ActiveJobCard({ job, onCancel }: { job: ImportJob; onCancel: () => void
         )}
 
         <p className="text-xs text-[var(--color-text-muted)] mt-4">
-          Started {dayjs(job.createdAt).format("MMM D, YYYY [at] HH:mm")}
-          {job.status !== "running" &&
-            ` · Ended ${dayjs(job.updatedAt).format("HH:mm")}`}
+          Started <span style={{ fontFamily: "var(--font-mono)" }}>{dayjs(job.createdAt).format("MMM D, YYYY [at] HH:mm")}</span>
+          {job.status !== "running" && (
+            <> · Ended <span style={{ fontFamily: "var(--font-mono)" }}>{dayjs(job.updatedAt).format("HH:mm")}</span></>
+          )}
         </p>
       </div>
     </div>
@@ -404,7 +405,7 @@ function ImportHistory({ jobs }: { jobs: ImportJob[] }) {
                 >
                   {job.type === "lastfm" ? "Last.fm" : "Spotify"}
                 </p>
-                <p className="text-xs text-[var(--color-text-muted)]">
+                <p className="text-xs text-[var(--color-text-muted)]" style={{ fontFamily: "var(--font-mono)" }}>
                   {dayjs(job.createdAt).format("MMM D, YYYY [at] HH:mm")}
                 </p>
               </div>

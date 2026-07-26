@@ -144,7 +144,11 @@ function RecentTracks(props: RecentTracksProps) {
             <LabelSmall className="!text-[var(--color-text-muted)]">
               SCROBBLES
             </LabelSmall>
-            <HeadingXSmall margin={0} className="!text-[var(--color-text)]">
+            <HeadingXSmall
+              margin={0}
+              className="!text-[var(--color-text)]"
+              style={{ fontFamily: "var(--font-mono)" }}
+            >
               {did ? numeral(profileStats.data?.scrobbles).format("0,0") : ""}
             </HeadingXSmall>
           </div>
@@ -292,7 +296,10 @@ function RecentTracks(props: RecentTracksProps) {
                 returnFocus
                 autoFocus
               >
-                <div className="w-[120px] text-[var(--color-text-muted)]">
+                <div
+                  className="w-[120px] text-[var(--color-text-muted)]"
+                  style={{ fontFamily: "var(--font-mono)" }}
+                >
                   {dayjs(row.date).fromNow()}
                 </div>
               </StatefulTooltip>

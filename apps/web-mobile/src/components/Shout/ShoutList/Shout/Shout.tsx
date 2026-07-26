@@ -120,6 +120,7 @@ function Shout({ shout, refetch }: ShoutProps) {
           <span
             title={dayjs(shout.date).format("MMMM D, YYYY [at] HH:mm")}
             className="ml-2 shrink-0 text-xs text-[var(--color-text-muted)]"
+            style={{ fontFamily: "var(--font-mono)" }}
           >
             {dayjs(shout.date).fromNow()}
           </span>

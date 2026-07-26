@@ -70,7 +70,7 @@ function RecentListeners(props: RecentListenersProps) {
                   <Link
                     to={`/profile/${item.handle}` as string}
                     className="!text-[var(--color-text)] hover:underline no-underline text-[14px]"
-                    style={{ fontWeight: 600 }}
+                    style={{ fontWeight: 600, fontFamily: "var(--font-mono)" }}
                   >
                     @{item.handle}
                   </Link>
@@ -78,11 +78,15 @@ function RecentListeners(props: RecentListenersProps) {
                     <Link
                       to={`/${scrobblePath}` as string}
                       className="!text-[var(--color-text-muted)] hover:underline no-underline text-[12px]"
+                      style={{ fontFamily: "var(--font-mono)" }}
                     >
                       {dateLabel}
                     </Link>
                   ) : (
-                    <span className="text-[var(--color-text-muted)] text-[12px]">
+                    <span
+                      className="text-[var(--color-text-muted)] text-[12px]"
+                      style={{ fontFamily: "var(--font-mono)" }}
+                    >
                       {dateLabel}
                     </span>
                   )}

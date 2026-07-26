@@ -282,7 +282,10 @@ function ReplyModal(props: ReplyModalProps) {
                   <LabelMedium className="!text-[var(--color-text)] no-underline">
                     {shout.user.displayName}
                   </LabelMedium>
-                  <LabelSmall className="ml-[5px] mt-[4px] no-underline !text-[var(--color-text-muted)]">
+                  <LabelSmall
+                    className="ml-[5px] mt-[4px] no-underline !text-[var(--color-text-muted)]"
+                    style={{ fontFamily: "var(--font-mono)" }}
+                  >
                     @{shout.user.handle}
                   </LabelSmall>
                 </Link>

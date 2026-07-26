@@ -224,7 +224,7 @@ function Tracks() {
                   <div
                     className={`absolute w-full top-[10px] left-[10px] z-[1]`}
                   >
-                    {numeral(row.scrobbles).format("0,0")}{" "}
+                    <span style={{ fontFamily: "var(--font-mono)" }}>{numeral(row.scrobbles).format("0,0")}</span>{" "}
                     {index == 0 && " scrobbles"}
                   </div>
                   <span

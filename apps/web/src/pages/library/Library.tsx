@@ -277,6 +277,7 @@ const Duration = styled.span`
   color: var(--color-text-muted);
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
 `;
 
 const MenuWrap = styled.div`

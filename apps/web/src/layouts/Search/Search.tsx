@@ -105,7 +105,10 @@ function Search() {
                                   </div>
                                 </div>
                                 <div className="overflow-hidden">
-                                  <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[var(--color-text-muted)] text-[14px]">
+                                  <div
+                                    className="overflow-hidden text-ellipsis whitespace-nowrap text-[var(--color-text-muted)] text-[14px]"
+                                    style={{ fontFamily: "var(--font-mono)" }}
+                                  >
                                     @{item.handle}
                                   </div>
                                 </div>

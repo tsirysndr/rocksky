@@ -92,7 +92,7 @@ function NotificationRow({ notification }: { notification: NotificationView }) {
         </p>
         <p
           className="text-xs m-0 mt-0.5"
-          style={{ color: "var(--color-text-muted)" }}
+          style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
         >
           {timeAgo(notification.createdAt)}
         </p>

@@ -70,13 +70,13 @@ export default function Artist() {
 
               <div className="flex gap-8">
                 <div className="text-center">
-                  <p className="font-bold text-base m-0" style={{ color: "var(--color-text)" }}>
+                  <p className="font-bold text-base m-0" style={{ color: "var(--color-text)", fontFamily: "var(--font-mono)" }}>
                     {numeral(artist.uniqueListeners || artist.listeners).format("0,0")}
                   </p>
                   <p className="text-xs m-0" style={{ color: "var(--color-text-muted)" }}>Listeners</p>
                 </div>
                 <div className="text-center">
-                  <p className="font-bold text-base m-0" style={{ color: "var(--color-text)" }}>
+                  <p className="font-bold text-base m-0" style={{ color: "var(--color-text)", fontFamily: "var(--font-mono)" }}>
                     {numeral(artist.playCount || artist.scrobbles).format("0,0")}
                   </p>
                   <p className="text-xs m-0" style={{ color: "var(--color-text-muted)" }}>Scrobbles</p>
@@ -91,7 +91,7 @@ export default function Artist() {
                       key={tag}
                       to={`/genre/${tag}`}
                       className="text-xs px-3 py-1 rounded-full no-underline"
-                      style={{ backgroundColor: "var(--color-surface-2)", color: "var(--color-genre)" }}
+                      style={{ backgroundColor: "var(--color-surface-2)", color: "var(--color-genre)", fontFamily: "var(--font-mono)" }}
                     >
                       #{tag}
                     </Link>
@@ -158,7 +158,7 @@ export default function Artist() {
                           <p className="font-medium text-sm truncate m-0" style={{ color: "var(--color-text)" }}>{track.title as string}</p>
                         )}
                       </div>
-                      <span className="text-xs shrink-0" style={{ color: "var(--color-text-muted)" }}>
+                      <span className="text-xs shrink-0" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
                         {numeral(track.playCount || track.scrobbles).format("0,0")}
                       </span>
                     </div>

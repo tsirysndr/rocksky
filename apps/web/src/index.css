@@ -51,6 +51,33 @@
     url(./assets/fonts/RockfordSans-Regular.otf) format("opentype");
 }
 
+@font-face {
+  font-family: "JetBrainsMono";
+  font-weight: 400;
+  font-display: swap;
+  src:
+    local("JetBrains Mono"),
+    url(./assets/fonts/JetBrainsMono-Regular.woff2) format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrainsMono";
+  font-weight: 500;
+  font-display: swap;
+  src:
+    local("JetBrains Mono Medium"),
+    url(./assets/fonts/JetBrainsMono-Medium.woff2) format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrainsMono";
+  font-weight: 700;
+  font-display: swap;
+  src:
+    local("JetBrains Mono Bold"),
+    url(./assets/fonts/JetBrainsMono-Bold.woff2) format("woff2");
+}
+
 body {
   margin: 0;
   font-family:
@@ -72,6 +99,8 @@ body {
 }
 
 :root {
+  --font-mono: "JetBrainsMono", ui-monospace, "SFMono-Regular", Menlo,
+    Consolas, monospace;
   --color-background: #ffffff;
   --color-text: #000000;
   --color-primary: #ff2876;

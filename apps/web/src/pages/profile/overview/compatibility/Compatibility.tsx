@@ -72,7 +72,11 @@ function Compatibility() {
             </div>
             <div className="ml-[10px] text-[14px]">
               <div className="!text-[var(--color-text)]">
-                Your compatibility with <b>@{profile.data?.handle}</b> is{" "}
+                Your compatibility with{" "}
+                <b style={{ fontFamily: "var(--font-mono)" }}>
+                  @{profile.data?.handle}
+                </b>{" "}
+                is{" "}
                 <span style={{ color: borderColor }}>
                   <b>{data.compatibility?.compatibilityLevel}</b>
                 </span>

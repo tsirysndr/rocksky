@@ -212,7 +212,7 @@ function Feed() {
                             <Link
                               to={`/genre/${genre}` as string}
                               className="text-[var(--color-genre)] text-[13px] no-underline"
-                              style={{ fontFamily: "RockfordSansRegular" }}
+                              style={{ fontFamily: "var(--font-mono)" }}
                             >
                               # {genre}
                             </Link>
@@ -250,7 +250,10 @@ function Feed() {
                         returnFocus
                         autoFocus
                       >
-                        <LabelSmall className="!text-[var(--color-text-muted)]">
+                        <LabelSmall
+                          className="!text-[var(--color-text-muted)]"
+                          style={{ fontFamily: "var(--font-mono)" }}
+                        >
                           {dayjs(song.date).fromNow()}
                         </LabelSmall>
                       </StatefulTooltip>

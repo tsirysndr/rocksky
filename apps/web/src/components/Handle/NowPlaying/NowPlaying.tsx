@@ -240,7 +240,10 @@ function NowPlaying({ did }: NowPlayingProps) {
           </div>
           <div className="mt-[0px] flex flex-row items-center">
             <div>
-              <LabelXSmall className="!text-[var(--color-text-muted)]">
+              <LabelXSmall
+                className="!text-[var(--color-text-muted)]"
+                style={{ fontFamily: "var(--font-mono)" }}
+              >
                 {formatTime(nowPlaying[did]?.progress || 0)}
               </LabelXSmall>
             </div>
@@ -256,7 +259,10 @@ function NowPlaying({ did }: NowPlayingProps) {
               />
             </div>
             <div>
-              <LabelXSmall className="!text-[var(--color-text-muted)]">
+              <LabelXSmall
+                className="!text-[var(--color-text-muted)]"
+                style={{ fontFamily: "var(--font-mono)" }}
+              >
                 {formatTime(nowPlaying[did]?.duration || 0)}
               </LabelXSmall>
             </div>

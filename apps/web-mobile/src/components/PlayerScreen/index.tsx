@@ -452,10 +452,10 @@ export default function PlayerScreen({
               onTouchEnd={(e) => handleSeekCommit(Number((e.target as HTMLInputElement).value))}
             />
             <div className="flex justify-between mt-1">
-              <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+              <span className="text-xs" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
                 {formatTime(isSeeking ? seekValue : nowPlaying.progress)}
               </span>
-              <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+              <span className="text-xs" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
                 {formatTime(nowPlaying.duration)}
               </span>
             </div>

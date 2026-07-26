@@ -294,13 +294,16 @@ function Profile(props: ProfileProps) {
                       href={`https://bsky.app/profile/${profiles[did]?.handle}`}
                       className="no-underline text-[var(--color-primary)]"
                       target="_blank"
+                      style={{ fontFamily: "var(--font-mono)" }}
                     >
                       @{profiles[did]?.handle}
                     </a>
                     <span className="text-[var(--color-text-muted)] text-[15px]">
                       {" "}
                       • scrobbling since{" "}
-                      {dayjs(profiles[did]?.createdAt).format("DD MMM YYYY")}
+                      <span style={{ fontFamily: "var(--font-mono)" }}>
+                        {dayjs(profiles[did]?.createdAt).format("DD MMM YYYY")}
+                      </span>
                     </span>
                   </LabelLarge>
                   <div className="flex items-center gap-[10px] mt-[30px] mr-[10px]">
@@ -381,7 +384,7 @@ function Profile(props: ProfileProps) {
                 <Link
                   to={`/genre/${genre}` as string}
                   className="mr-[15px] mb-[5px] text-[var(--color-genre)] text-[13px] whitespace-nowrap no-underline"
-                  style={{ fontFamily: "RockfordSansRegular" }}
+                  style={{ fontFamily: "var(--font-mono)" }}
                 >
                   # {genre}
                 </Link>

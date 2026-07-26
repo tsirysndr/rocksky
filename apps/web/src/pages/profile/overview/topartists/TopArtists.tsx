@@ -168,7 +168,11 @@ function TopArtists(props: TopArtistsProps) {
             <LabelSmall className="!text-[var(--color-text-muted)]">
               ARTISTS SCROBBLED
             </LabelSmall>
-            <HeadingXSmall margin={0} className="!text-[var(--color-text)]">
+            <HeadingXSmall
+              margin={0}
+              className="!text-[var(--color-text)]"
+              style={{ fontFamily: "var(--font-mono)" }}
+            >
               {did ? numeral(profileStats.data?.artists).format("0,0") : ""}
             </HeadingXSmall>
           </div>
@@ -322,7 +326,10 @@ function TopArtists(props: TopArtistsProps) {
                       : "!text-[#000]"
                   }`}
                 >
-                  {numeral(row.scrobbles).format("0,0")}{" "}
+                  <span style={{ fontFamily: "var(--font-mono)" }}>
+                    {numeral(row.scrobbles).format("0,0")}
+                  </span>
+                  {" "}
                   {index == 0 && " scrobbles"}
                 </div>
                 <span

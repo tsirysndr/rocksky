@@ -397,7 +397,7 @@ export default function LibraryPage() {
                   {song.artist}{song.album ? ` — ${song.album}` : ""}
                 </p>
               </div>
-              <span className="text-xs shrink-0" style={{ color: "var(--color-text-muted)" }}>
+              <span className="text-xs shrink-0" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
                 {formatDuration(song.duration)}
               </span>
               <button

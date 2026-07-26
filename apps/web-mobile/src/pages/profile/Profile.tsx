@@ -89,7 +89,7 @@ function UserCard({ user }: { user: Record<string, string> }) {
         <Link to={`/profile/${user.did}`} className="no-underline block font-semibold text-sm truncate" style={{ color: "var(--color-text)" }}>
           {user.displayName || user.handle}
         </Link>
-        <Link to={`/profile/${user.did}`} className="no-underline text-xs truncate block" style={{ color: "var(--color-primary)" }}>
+        <Link to={`/profile/${user.did}`} className="no-underline text-xs truncate block" style={{ color: "var(--color-primary)", fontFamily: "var(--font-mono)" }}>
           @{user.handle}
         </Link>
       </div>
@@ -291,7 +291,7 @@ function OverviewTab({ did }: { did: string }) {
                 )}
                 <p className="text-xs truncate m-0" style={{ color: "var(--color-text-muted)" }}>{artist}</p>
               </div>
-              {date && <span className="text-[10px] shrink-0" style={{ color: "var(--color-text-muted)" }}>{dayjs(date).fromNow()}</span>}
+              {date && <span className="text-[10px] shrink-0" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>{dayjs(date).fromNow()}</span>}
             </div>
           );
         })}
@@ -328,7 +328,7 @@ function OverviewTab({ did }: { did: string }) {
                         )}
                       </div>
                       <span className="text-[11px] text-center truncate w-full" style={{ color: "var(--color-text)" }}>{a.name}</span>
-                      <span className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>{numeral(a.playCount || a.scrobbles).format("0,0")}</span>
+                      <span className="text-[10px]" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>{numeral(a.playCount || a.scrobbles).format("0,0")}</span>
                     </Link>
                   ) : (
                     <>
@@ -404,7 +404,7 @@ function OverviewTab({ did }: { did: string }) {
                   )}
                   <p className="text-xs truncate m-0" style={{ color: "var(--color-text-muted)" }}>{t.artist || t.albumArtist || t.album_artist}</p>
                 </div>
-                <span className="text-xs shrink-0" style={{ color: "var(--color-text-muted)" }}>
+                <span className="text-xs shrink-0" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
                   {numeral(t.playCount || t.scrobbles).format("0,0")}
                 </span>
               </div>
@@ -525,7 +525,7 @@ function LibraryTab({ did }: { did: string }) {
                   )}
                   <p className="text-xs truncate m-0" style={{ color: "var(--color-text-muted)" }}>{artist}</p>
                 </div>
-                {date && <span className="text-[10px] shrink-0" style={{ color: "var(--color-text-muted)" }}>{dayjs(date).fromNow()}</span>}
+                {date && <span className="text-[10px] shrink-0" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>{dayjs(date).fromNow()}</span>}
               </div>
             );
           })}
@@ -555,7 +555,7 @@ function LibraryTab({ did }: { did: string }) {
                     <p className="font-medium text-sm truncate m-0" style={{ color: "var(--color-text)" }}>{a.name}</p>
                   )}
                 </div>
-                <span className="text-xs shrink-0" style={{ color: "var(--color-text-muted)" }}>{numeral(a.playCount || a.scrobbles).format("0,0")}</span>
+                <span className="text-xs shrink-0" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>{numeral(a.playCount || a.scrobbles).format("0,0")}</span>
               </div>
             );
           })}
@@ -582,7 +582,7 @@ function LibraryTab({ did }: { did: string }) {
                         )}
                       </div>
                       <p className="text-[11px] m-0 truncate font-medium" style={{ color: "var(--color-text)" }}>{a.title}</p>
-                      <p className="text-[10px] m-0 truncate" style={{ color: "var(--color-text-muted)" }}>{numeral(a.playCount || a.scrobbles).format("0,0")} plays</p>
+                      <p className="text-[10px] m-0 truncate" style={{ color: "var(--color-text-muted)" }}><span style={{ fontFamily: "var(--font-mono)" }}>{numeral(a.playCount || a.scrobbles).format("0,0")}</span> plays</p>
                     </Link>
                   ) : (
                     <>
@@ -624,7 +624,7 @@ function LibraryTab({ did }: { did: string }) {
                   )}
                   <p className="text-xs truncate m-0" style={{ color: "var(--color-text-muted)" }}>{t.artist || t.albumArtist || t.album_artist}</p>
                 </div>
-                <span className="text-xs shrink-0" style={{ color: "var(--color-text-muted)" }}>{numeral(t.playCount || t.scrobbles).format("0,0")}</span>
+                <span className="text-xs shrink-0" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>{numeral(t.playCount || t.scrobbles).format("0,0")}</span>
               </div>
             );
           })}
@@ -643,7 +643,7 @@ function FollowersTab({ did }: { did: string }) {
   const count = data?.pages?.[0]?.count;
   return (
     <div>
-      {count > 0 && <p className="text-sm mb-3" style={{ color: "var(--color-text-muted)" }}>{numeral(count).format("0,0")} followers</p>}
+      {count > 0 && <p className="text-sm mb-3" style={{ color: "var(--color-text-muted)" }}><span style={{ fontFamily: "var(--font-mono)" }}>{numeral(count).format("0,0")}</span> followers</p>}
       <InfiniteUserList
         pages={data?.pages}
         fetchNextPage={fetchNextPage}
@@ -662,7 +662,7 @@ function FollowingTab({ did }: { did: string }) {
   const count = data?.pages?.[0]?.count;
   return (
     <div>
-      {count > 0 && <p className="text-sm mb-3" style={{ color: "var(--color-text-muted)" }}>{numeral(count).format("0,0")} following</p>}
+      {count > 0 && <p className="text-sm mb-3" style={{ color: "var(--color-text-muted)" }}><span style={{ fontFamily: "var(--font-mono)" }}>{numeral(count).format("0,0")}</span> following</p>}
       <InfiniteUserList
         pages={data?.pages}
         fetchNextPage={fetchNextPage}
@@ -732,7 +732,7 @@ function CirclesTab({ did, handle }: { did: string; handle: string }) {
               <Link to={`/profile/${n.did}`} className="no-underline font-semibold text-sm" style={{ color: "var(--color-text)" }}>
                 {n.displayName as string || n.handle as string}
               </Link>
-              <span className="text-xs ml-1.5" style={{ color: "var(--color-text-muted)" }}>@{n.handle as string}</span>
+              <span className="text-xs ml-1.5" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>@{n.handle as string}</span>
               {artists.length > 0 && (
                 <p className="text-xs mt-1 m-0" style={{ color: "var(--color-text-muted)" }}>
                   {currentDid === did ? "You" : "They"} both listen to{" "}
@@ -787,7 +787,7 @@ function LovedTracksTab({ did }: { did: string }) {
       {(stats?.lovedTracks ?? 0) > 0 && (
         <p className="text-sm mb-3 flex items-center gap-1" style={{ color: "var(--color-text-muted)" }}>
           <IconHeart size={14} style={{ color: "var(--color-primary)" }} />
-          {numeral(stats?.lovedTracks).format("0,0")} loved tracks
+          <span style={{ fontFamily: "var(--font-mono)" }}>{numeral(stats?.lovedTracks).format("0,0")}</span> loved tracks
         </p>
       )}
       {list.map((t, i) => {
@@ -821,7 +821,7 @@ function LovedTracksTab({ did }: { did: string }) {
               )}
               <p className="text-xs truncate m-0" style={{ color: "var(--color-text-muted)" }}>{artist}</p>
             </div>
-            {date && <span className="text-[10px] shrink-0" style={{ color: "var(--color-text-muted)" }}>{dayjs(date).fromNow()}</span>}
+            {date && <span className="text-[10px] shrink-0" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>{dayjs(date).fromNow()}</span>}
           </div>
         );
       })}
@@ -1024,11 +1024,11 @@ export default function Profile() {
                   <h2 className="font-bold text-xl m-0 mb-0.5 truncate" style={{ color: "var(--color-text)" }}>
                     {profile?.displayName}
                   </h2>
-                  <a href={`https://bsky.app/profile/${profile?.handle}`} target="_blank" rel="noopener noreferrer" className="text-sm no-underline" style={{ color: "var(--color-primary)" }}>
+                  <a href={`https://bsky.app/profile/${profile?.handle}`} target="_blank" rel="noopener noreferrer" className="text-sm no-underline" style={{ color: "var(--color-primary)", fontFamily: "var(--font-mono)" }}>
                     @{profile?.handle}
                   </a>
                   <p className="text-xs m-0 mt-1" style={{ color: "var(--color-text-muted)" }}>
-                    scrobbling since {dayjs(profile?.createdAt).format("MMM YYYY")}
+                    scrobbling since <span style={{ fontFamily: "var(--font-mono)" }}>{dayjs(profile?.createdAt).format("MMM YYYY")}</span>
                   </p>
                 </div>
               </div>
@@ -1042,7 +1042,7 @@ export default function Profile() {
                   { label: "Loved", value: stats?.lovedTracks },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex flex-col items-center">
-                    <span className="font-bold text-base" style={{ color: "var(--color-text)" }}>{numeral(value).format("0,0") || "—"}</span>
+                    <span className="font-bold text-base" style={{ color: "var(--color-text)", fontFamily: "var(--font-mono)" }}>{numeral(value).format("0,0") || "—"}</span>
                     <span className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>{label}</span>
                   </div>
                 ))}
@@ -1073,7 +1073,7 @@ export default function Profile() {
               {genres.length > 0 && (
                 <div className="flex flex-wrap gap-x-3 gap-y-1.5 mb-4">
                   {genres.map((genre) => (
-                    <span key={genre} className="text-xs" style={{ color: "var(--color-genre, var(--color-primary))", fontFamily: "RockfordSansRegular, sans-serif" }}>
+                    <span key={genre} className="text-xs" style={{ color: "var(--color-genre, var(--color-primary))", fontFamily: "var(--font-mono)" }}>
                       # {genre}
                     </span>
                   ))}

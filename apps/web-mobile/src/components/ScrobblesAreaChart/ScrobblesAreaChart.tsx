@@ -10,8 +10,8 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>)
   if (active && payload && payload.length) {
     return (
       <div style={{ backgroundColor: "var(--color-surface-2)", padding: "5px 10px", border: "1px solid var(--color-border)", borderRadius: 6 }}>
-        <span style={{ color: "var(--color-text-muted)" }}>{dayjs(label).format("dddd DD MMMM YYYY")}: </span>
-        <span style={{ color: "var(--color-text)" }}>{numeral(payload[0].value).format("0,0")}</span>
+        <span style={{ color: "var(--color-text-muted)" }}><span style={{ fontFamily: "var(--font-mono)" }}>{dayjs(label).format("dddd DD MMMM YYYY")}</span>: </span>
+        <span style={{ color: "var(--color-text)", fontFamily: "var(--font-mono)" }}>{numeral(payload[0].value).format("0,0")}</span>
       </div>
     );
   }

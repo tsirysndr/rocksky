@@ -30,13 +30,21 @@ function Stats(props: StatsProps) {
     <Group mb={mb} className="!mb-[0px]">
       <div className="mr-[20px]">
         <b className="!text-[var(--color-text-muted)] text-[13px]">SCROBBLES</b>
-        <HeadingSmall margin={0} className="!text-[var(--color-text)]">
+        <HeadingSmall
+          margin={0}
+          className="!text-[var(--color-text)]"
+          style={{ fontFamily: "var(--font-mono)" }}
+        >
           {numeral(stats?.scrobbles).format("0,0")}
         </HeadingSmall>
       </div>
       <div className="mr-[20px]">
         <b className="!text-[var(--color-text-muted)] text-[13px]">ARTISTS</b>
-        <HeadingSmall margin={0} className="!text-[var(--color-text)]">
+        <HeadingSmall
+          margin={0}
+          className="!text-[var(--color-text)]"
+          style={{ fontFamily: "var(--font-mono)" }}
+        >
           {numeral(stats?.artists).format("0,0")}
         </HeadingSmall>
       </div>
@@ -44,7 +52,11 @@ function Stats(props: StatsProps) {
         <b className="!text-[var(--color-text-muted)] text-[13px]">
           LOVED TRACKS
         </b>
-        <HeadingSmall margin={0} className="!text-[var(--color-text)]">
+        <HeadingSmall
+          margin={0}
+          className="!text-[var(--color-text)]"
+          style={{ fontFamily: "var(--font-mono)" }}
+        >
           {numeral(stats?.lovedTracks).format("0,0")}
         </HeadingSmall>
       </div>

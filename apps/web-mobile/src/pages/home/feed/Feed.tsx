@@ -125,7 +125,7 @@ function SongCard({ song }: { song: Record<string, unknown> }) {
       {tags.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-1">
           {tags.slice(0, 2).map((genre) => (
-            <Link key={genre} to={`/genre/${genre}`} className="text-[10px] no-underline" style={{ color: "var(--color-genre)" }}>
+            <Link key={genre} to={`/genre/${genre}`} className="text-[10px] no-underline" style={{ color: "var(--color-genre)", fontFamily: "var(--font-mono)" }}>
               #{genre}
             </Link>
           ))}
@@ -144,7 +144,7 @@ function SongCard({ song }: { song: Record<string, unknown> }) {
           {userDisplayName || user}
         </Link>
         <span className="text-[10px] shrink-0" style={{ color: "var(--color-text-muted)" }}>
-          · {dayjs(date).fromNow()}
+          · <span style={{ fontFamily: "var(--font-mono)" }}>{dayjs(date).fromNow()}</span>
         </span>
       </div>
       <SignInModal isOpen={isSignInOpen} onClose={() => setIsSignInOpen(false)} />

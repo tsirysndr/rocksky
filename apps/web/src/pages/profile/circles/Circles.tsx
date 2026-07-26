@@ -168,7 +168,10 @@ function Circles() {
                         scrollToTop();
                       }}
                     >
-                      <LabelSmall className="!text-[var(--color-text-muted)]  mt-[3px] mb-[5px]">
+                      <LabelSmall
+                        className="!text-[var(--color-text-muted)]  mt-[3px] mb-[5px]"
+                        style={{ fontFamily: "var(--font-mono)" }}
+                      >
                         @{neighbour.handle}
                       </LabelSmall>
                     </Link>

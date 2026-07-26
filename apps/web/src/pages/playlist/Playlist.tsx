@@ -283,7 +283,11 @@ function Playlist() {
                 )}
               </TableBuilderColumn>
               <TableBuilderColumn header="Duration">
-                {(row: Row) => <div>{formatTime(row.duration)}</div>}
+                {(row: Row) => (
+                  <div style={{ fontFamily: "var(--font-mono)" }}>
+                    {formatTime(row.duration)}
+                  </div>
+                )}
               </TableBuilderColumn>
             </TableBuilder>
           </>

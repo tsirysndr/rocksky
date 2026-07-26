@@ -135,7 +135,7 @@ export default function LibraryPlaylistPage() {
               {playlist.name}
             </h1>
             <p className="text-xs m-0 mb-3" style={{ color: "var(--color-text-muted)" }}>
-              {songs.length} track{songs.length !== 1 ? "s" : ""} · {formatTotalDuration(totalDuration)}
+              {songs.length} track{songs.length !== 1 ? "s" : ""} · <span style={{ fontFamily: "var(--font-mono)" }}>{formatTotalDuration(totalDuration)}</span>
             </p>
             <div className="flex gap-3">
               <button
@@ -188,7 +188,7 @@ export default function LibraryPlaylistPage() {
                     {song.artist}{song.album ? ` — ${song.album}` : ""}
                   </p>
                 </div>
-                <span className="text-xs shrink-0" style={{ color: "var(--color-text-muted)" }}>
+                <span className="text-xs shrink-0" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
                   {formatDuration(song.duration)}
                 </span>
                 <button

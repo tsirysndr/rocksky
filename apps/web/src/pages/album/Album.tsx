@@ -221,7 +221,11 @@ const Album = () => {
                   >
                     Listeners
                   </LabelMedium>
-                  <LabelLarge margin={0} className="!text-[var(--color-text)]">
+                  <LabelLarge
+                    margin={0}
+                    className="!text-[var(--color-text)]"
+                    style={{ fontFamily: "var(--font-mono)" }}
+                  >
                     {numeral(album.listeners).format("0,0")}
                   </LabelLarge>
                 </div>
@@ -232,7 +236,11 @@ const Album = () => {
                   >
                     Scrobbles
                   </LabelMedium>
-                  <LabelLarge margin={0} className="!text-[var(--color-text)]">
+                  <LabelLarge
+                    margin={0}
+                    className="!text-[var(--color-text)]"
+                    style={{ fontFamily: "var(--font-mono)" }}
+                  >
                     {numeral(album.scrobbles || 1).format("0,0")}
                   </LabelLarge>
                 </div>
@@ -258,7 +266,7 @@ const Album = () => {
                   <Link
                     to={`/genre/${genre}` as string}
                     className="mr-[15px] !text-[var(--color-genre)] text-[13px] !no-underline"
-                    style={{ fontFamily: "RockfordSansRegular" }}
+                    style={{ fontFamily: "var(--font-mono)" }}
                   >
                     # {genre}
                   </Link>
@@ -365,7 +373,11 @@ const Album = () => {
                 )}
               </TableBuilderColumn>
               <TableBuilderColumn header="Duration">
-                {(row: Row) => <div>{formatTime(row.duration)}</div>}
+                {(row: Row) => (
+                  <div style={{ fontFamily: "var(--font-mono)" }}>
+                    {formatTime(row.duration)}
+                  </div>
+                )}
               </TableBuilderColumn>
             </TableBuilder>
           )}
@@ -467,7 +479,10 @@ const Album = () => {
                     </TableBuilderColumn>
                     <TableBuilderColumn header="Duration">
                       {(row: Row) => (
-                        <div className="w-[80px] text-[var(--color-text)]">
+                        <div
+                          className="w-[80px] text-[var(--color-text)]"
+                          style={{ fontFamily: "var(--font-mono)" }}
+                        >
                           {formatTime(row.duration)}
                         </div>
                       )}
@@ -479,7 +494,11 @@ const Album = () => {
           )}
 
           <div className="mt-[20px]">
-            <LabelMedium margin={0} className="!text-[var(--color-text-muted)]">
+            <LabelMedium
+              margin={0}
+              className="!text-[var(--color-text-muted)]"
+              style={{ fontFamily: "var(--font-mono)" }}
+            >
               {album?.releaseDate}
             </LabelMedium>
             <LabelXSmall margin={0} className="!text-[var(--color-text-muted)]">

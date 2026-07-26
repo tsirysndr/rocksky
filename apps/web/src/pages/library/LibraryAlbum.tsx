@@ -209,6 +209,7 @@ const Duration = styled.span`
   color: var(--color-text-muted);
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
 `;
 
 const MenuWrap = styled.div`
@@ -486,8 +487,8 @@ export default function LibraryAlbum() {
               {album.artist}
             </AlbumArtistLink>
             <AlbumStats>
-              {songs.length} track{songs.length !== 1 ? "s" : ""} · {formatTotalSecs(totalSecs)}
-              {album.year ? ` · ${album.year}` : ""}
+              <span style={{ fontFamily: "var(--font-mono)" }}>{songs.length}</span> track{songs.length !== 1 ? "s" : ""} · <span style={{ fontFamily: "var(--font-mono)" }}>{formatTotalSecs(totalSecs)}</span>
+              {album.year ? <> · <span style={{ fontFamily: "var(--font-mono)" }}>{album.year}</span></> : ""}
             </AlbumStats>
             <PlayButtons>
               <PlayBtn onClick={handlePlay}><IconPlayerPlay size={15} /> Play</PlayBtn>

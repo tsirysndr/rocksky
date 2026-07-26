@@ -118,7 +118,7 @@ function Artists() {
                     <b>{artist.name}</b>
                   </Link>
                   <span className="!text-[var(--color-text-muted)] text-[14px]">
-                    {numeral(artist.playCount).format("0,0")} plays
+                    <span style={{ fontFamily: "var(--font-mono)" }}>{numeral(artist.playCount).format("0,0")}</span> plays
                   </span>
                 </div>
               </FlexGridItem>

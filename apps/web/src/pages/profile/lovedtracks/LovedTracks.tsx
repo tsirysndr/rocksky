@@ -110,7 +110,7 @@ function LovedTracks() {
     <>
       {did && (
         <HeadingSmall className="!text-[var(--color-text)]">
-          Loved Tracks ({numeral(profileStats.data?.lovedTracks).format("0,0")})
+          Loved Tracks (<span style={{ fontFamily: "var(--font-mono)" }}>{numeral(profileStats.data?.lovedTracks).format("0,0")}</span>)
         </HeadingSmall>
       )}
       {(lovedTracksResult.isPending || lovedTracksResult.isFetching) &&
@@ -227,7 +227,10 @@ function LovedTracks() {
               returnFocus
               autoFocus
             >
-              <div className="w-[120px] text-[var(--color-text-muted)]">
+              <div
+                className="w-[120px] text-[var(--color-text-muted)]"
+                style={{ fontFamily: "var(--font-mono)" }}
+              >
                 {dayjs(row.date).fromNow()}
               </div>
             </StatefulTooltip>

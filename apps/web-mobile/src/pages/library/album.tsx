@@ -161,7 +161,7 @@ export default function LibraryAlbumPage() {
               {album.artist}
             </p>
             <p className="text-xs m-0" style={{ color: "var(--color-text-muted)" }}>
-              {songs.length} track{songs.length !== 1 ? "s" : ""} · {formatTotalDuration(totalDuration)}
+              {songs.length} track{songs.length !== 1 ? "s" : ""} · <span style={{ fontFamily: "var(--font-mono)" }}>{formatTotalDuration(totalDuration)}</span>
               {album.year ? ` · ${album.year}` : ""}
             </p>
             <div className="flex gap-3 mt-3">
@@ -216,7 +216,7 @@ export default function LibraryAlbumPage() {
                   </p>
                 )}
               </div>
-              <span className="text-xs shrink-0" style={{ color: "var(--color-text-muted)" }}>
+              <span className="text-xs shrink-0" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
                 {formatDuration(song.duration)}
               </span>
               <button

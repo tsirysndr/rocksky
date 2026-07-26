@@ -56,6 +56,7 @@ const Handle = styled.div`
   white-space: nowrap;
   margin-top: 5px;
   text-align: center;
+  font-family: var(--font-mono);
 `;
 
 const Cover = styled.img`
@@ -422,13 +423,19 @@ function Stories() {
                     )}
                 </Link>
                 <Link to={`/profile/${currentlyPlaying?.handle}`}>
-                  <div className="text-[#fff] no-underline text-[15px]">
+                  <div
+                    className="text-[#fff] no-underline text-[15px]"
+                    style={{ fontFamily: "var(--font-mono)" }}
+                  >
                     @{currentlyPlaying?.handle}
                   </div>
                 </Link>
                 <span
                   className="ml-[10px] text-[15px]"
-                  style={{ color: "rgba(255, 255, 255, 0.7)" }}
+                  style={{
+                    color: "rgba(255, 255, 255, 0.7)",
+                    fontFamily: "var(--font-mono)",
+                  }}
                 >
                   {dayjs.utc(currentlyPlaying?.createdAt).local().fromNow()}
                 </span>

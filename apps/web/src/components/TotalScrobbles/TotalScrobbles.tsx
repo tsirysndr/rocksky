@@ -61,6 +61,7 @@ function TotalScrobbles() {
       <LabelMedium
         marginTop="4px"
         className="!text-[var(--color-text)] !text-[22px] !font-bold"
+        style={{ fontFamily: "var(--font-mono)" }}
       >
         {numeral(count).format("0,0")}
       </LabelMedium>

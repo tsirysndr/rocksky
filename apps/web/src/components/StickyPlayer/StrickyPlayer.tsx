@@ -307,7 +307,7 @@ function StickyPlayer(props: StickyPlayerProps) {
           </div>
           <div className="ml-[16px]">
             <div className="h-[45px] min-w-[43px]"></div>
-            <LabelSmall style={{ color: embedded ? "rgba(255,255,255,0.8)" : undefined }} className={embedded ? "min-w-[43px]" : "!text-[var(--color-text)] min-w-[43px]"}>
+            <LabelSmall style={{ color: embedded ? "rgba(255,255,255,0.8)" : undefined, fontFamily: "var(--font-mono)" }} className={embedded ? "min-w-[43px]" : "!text-[var(--color-text)] min-w-[43px]"}>
               {formatTime(nowPlaying?.progress || 0)}
             </LabelSmall>
           </div>
@@ -366,7 +366,7 @@ function StickyPlayer(props: StickyPlayerProps) {
           </MainWrapper>
           <div className="mr-[16px]">
             <div className="h-[45px]"></div>
-            <LabelSmall style={{ color: embedded ? "rgba(255,255,255,0.8)" : undefined }} className={embedded ? "" : "!text-[var(--color-text)]"}>
+            <LabelSmall style={{ color: embedded ? "rgba(255,255,255,0.8)" : undefined, fontFamily: "var(--font-mono)" }} className={embedded ? "" : "!text-[var(--color-text)]"}>
               {formatTime(nowPlaying?.duration || 0)}
             </LabelSmall>
           </div>

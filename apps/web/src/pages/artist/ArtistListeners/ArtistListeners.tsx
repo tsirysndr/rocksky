@@ -43,7 +43,7 @@ function ArtistListeners(props: ArtistListenersProps) {
             <Link
               to={`/profile/${item.handle}` as string}
               className="text-[var(--color-text)] hover:underline no-underline"
-              style={{ fontWeight: 600 }}
+              style={{ fontWeight: 600, fontFamily: "var(--font-mono)" }}
             >
               @{item.handle}
             </Link>

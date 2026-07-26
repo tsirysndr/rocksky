@@ -128,11 +128,11 @@ export default function Song() {
                   />
                 )}
                 <p className="text-xs m-0" style={{ color: "var(--color-text-muted)" }}>
-                  First scrobbled {dayjs(song.firstScrobble.timestamp).fromNow()} by{" "}
+                  First scrobbled <span style={{ fontFamily: "var(--font-mono)" }}>{dayjs(song.firstScrobble.timestamp).fromNow()}</span> by{" "}
                   <Link
                     to={`/profile/${song.firstScrobble.handle}`}
                     className="no-underline font-medium"
-                    style={{ color: "var(--color-primary)" }}
+                    style={{ color: "var(--color-primary)", fontFamily: "var(--font-mono)" }}
                   >
                     @{song.firstScrobble.handle}
                   </Link>
@@ -146,13 +146,13 @@ export default function Song() {
               style={{ backgroundColor: "var(--color-surface-2)" }}
             >
               <div className="text-center">
-                <p className="font-bold text-lg m-0" style={{ color: "var(--color-text)" }}>
+                <p className="font-bold text-lg m-0" style={{ color: "var(--color-text)", fontFamily: "var(--font-mono)" }}>
                   {numeral(song.listeners).format("0,0")}
                 </p>
                 <p className="text-xs m-0" style={{ color: "var(--color-text-muted)" }}>Listeners</p>
               </div>
               <div className="text-center">
-                <p className="font-bold text-lg m-0" style={{ color: "var(--color-text)" }}>
+                <p className="font-bold text-lg m-0" style={{ color: "var(--color-text)", fontFamily: "var(--font-mono)" }}>
                   {numeral(song.scrobbles).format("0,0")}
                 </p>
                 <p className="text-xs m-0" style={{ color: "var(--color-text-muted)" }}>Scrobbles</p>
@@ -167,7 +167,7 @@ export default function Song() {
                     key={tag}
                     to={`/genre/${tag}`}
                     className="text-xs px-3 py-1 rounded-full no-underline"
-                    style={{ backgroundColor: "var(--color-surface-2)", color: "var(--color-genre)" }}
+                    style={{ backgroundColor: "var(--color-surface-2)", color: "var(--color-genre)", fontFamily: "var(--font-mono)" }}
                   >
                     #{tag}
                   </Link>

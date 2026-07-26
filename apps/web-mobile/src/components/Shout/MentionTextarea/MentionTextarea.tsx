@@ -89,6 +89,7 @@ const Handle = styled.span`
   white-space: nowrap;
   color: var(--color-text-muted);
   font-size: 12px;
+  font-family: var(--font-mono);
 `;
 
 /** Debounce a fast-changing value. */

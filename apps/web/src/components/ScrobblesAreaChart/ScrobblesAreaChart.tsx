@@ -15,11 +15,16 @@ const CustomTooltip = ({
     return (
       <div className="bg-[#fff] border-[1px] border-[#ccc] p-[5px]">
         <span className="text-[#808080]">
-          {dayjs(label).format("dddd DD MMMM YYYY")}:
+          <span style={{ fontFamily: "var(--font-mono)" }}>
+            {dayjs(label).format("dddd DD MMMM YYYY")}
+          </span>
+          :
         </span>
         <span className="text-[#710de4]">
           {" "}
-          {numeral(payload[0].value).format("0,0")}
+          <span style={{ fontFamily: "var(--font-mono)" }}>
+            {numeral(payload[0].value).format("0,0")}
+          </span>
         </span>
       </div>
     );

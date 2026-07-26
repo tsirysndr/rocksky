@@ -87,7 +87,7 @@ export default function RecentListeners(props: RecentListenersProps) {
                 <Link
                   to={`/profile/${item.handle}`}
                   className="no-underline text-xs font-medium truncate w-full text-center"
-                  style={{ color: "var(--color-text)" }}
+                  style={{ color: "var(--color-text)", fontFamily: "var(--font-mono)" }}
                 >
                   @{item.handle}
                 </Link>
@@ -98,6 +98,7 @@ export default function RecentListeners(props: RecentListenersProps) {
                     style={{
                       color: "var(--color-text-muted)",
                       fontSize: 10,
+                      fontFamily: "var(--font-mono)",
                     }}
                   >
                     {dateLabel}

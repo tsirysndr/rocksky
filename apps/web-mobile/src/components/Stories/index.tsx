@@ -42,7 +42,7 @@ function StoryAvatar({ item, onClick }: { item: Story; onClick: () => void }) {
       </div>
       <span
         className="text-[11px] mt-1 truncate w-full text-center"
-        style={{ color: "var(--color-text-muted)" }}
+        style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
       >
         {item.handle}
       </span>
@@ -144,8 +144,8 @@ function StoryModal({
               </div>
             )}
           </div>
-          <span className="text-sm font-medium text-white truncate">@{current?.handle}</span>
-          <span className="text-xs flex-shrink-0" style={{ color: "rgba(255,255,255,0.6)" }}>
+          <span className="text-sm font-medium text-white truncate" style={{ fontFamily: "var(--font-mono)" }}>@{current?.handle}</span>
+          <span className="text-xs flex-shrink-0" style={{ color: "rgba(255,255,255,0.6)", fontFamily: "var(--font-mono)" }}>
             {dayjs.utc(current?.createdAt).local().fromNow()}
           </span>
           <span className="text-xs flex-shrink-0 tabular-nums" style={{ color: "rgba(255,255,255,0.5)" }}>

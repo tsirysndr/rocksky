@@ -117,9 +117,9 @@ function Albums() {
                     </span>
                   </Link>
                   <span className="!text-[var(--color-text-muted)] text-[14px] mt-[5px]">
-                    {numeral(album.playCount).format("0,0")} plays
+                    <span style={{ fontFamily: "var(--font-mono)" }}>{numeral(album.playCount).format("0,0")}</span> plays
                   </span>
-                  <span className="!text-[var(--color-text-muted)] text-[14px]">
+                  <span className="!text-[var(--color-text-muted)] text-[14px]" style={{ fontFamily: "var(--font-mono)" }}>
                     {album.releaseDate
                       ? dayjs(album.releaseDate).format("MMMM D, YYYY")
                       : album.year}

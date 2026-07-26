@@ -48,7 +48,7 @@ function TrackItem({
         )}
       </div>
       {playCount > 0 && (
-        <span className="text-xs shrink-0" style={{ color: "var(--color-text-muted)" }}>
+        <span className="text-xs shrink-0" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
           {playCount.toLocaleString()}
         </span>
       )}
@@ -88,7 +88,7 @@ function ArtistItem({ rank, item }: { rank: number; item: Record<string, unknown
         )}
       </div>
       {playCount > 0 && (
-        <span className="text-xs shrink-0" style={{ color: "var(--color-text-muted)" }}>
+        <span className="text-xs shrink-0" style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}>
           {playCount.toLocaleString()}
         </span>
       )}

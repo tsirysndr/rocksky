@@ -203,7 +203,10 @@ function Handle(props: HandleProps) {
                     className="no-underline text-[var(--color-primary)]"
                     target="_blank"
                   >
-                    <LabelSmall className="!text-[var(--color-primary)] mt-[3px] mb-[25px]">
+                    <LabelSmall
+                      className="!text-[var(--color-primary)] mt-[3px] mb-[25px]"
+                      style={{ fontFamily: "var(--font-mono)" }}
+                    >
                       @{did}
                     </LabelSmall>
                   </a>
@@ -271,7 +274,7 @@ function Handle(props: HandleProps) {
                   <Link
                     to={`/genre/${genre}` as string}
                     className="mr-[15px] text-[var(--color-genre)] text-[13px] whitespace-nowrap no-underline"
-                    style={{ fontFamily: "RockfordSansRegular" }}
+                    style={{ fontFamily: "var(--font-mono)" }}
                   >
                     # {genre}
                   </Link>
@@ -296,7 +299,10 @@ function Handle(props: HandleProps) {
         }}
       >
         <Link to={link} className="no-underline">
-          <LabelMedium className="!text-[var(--color-primary)] !overflow-hidden !text-ellipsis !max-w-[220px] !text-[14px]">
+          <LabelMedium
+            className="!text-[var(--color-primary)] !overflow-hidden !text-ellipsis !max-w-[220px] !text-[14px]"
+            style={{ fontFamily: "var(--font-mono)" }}
+          >
             @{did}
           </LabelMedium>
         </Link>

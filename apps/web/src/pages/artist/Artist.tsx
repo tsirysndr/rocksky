@@ -206,6 +206,7 @@ const Artist = () => {
                       <HeadingXSmall
                         margin={0}
                         className="!text-[var(--color-text)]"
+                        style={{ fontFamily: "var(--font-mono)" }}
                       >
                         {numeral(artist?.listeners).format("0,0")}
                       </HeadingXSmall>
@@ -220,6 +221,7 @@ const Artist = () => {
                       <HeadingXSmall
                         margin={0}
                         className="!text-[var(--color-text)]"
+                        style={{ fontFamily: "var(--font-mono)" }}
                       >
                         {numeral(artist?.scrobbles).format("0,0")}
                       </HeadingXSmall>
@@ -252,7 +254,7 @@ const Artist = () => {
                 <Link
                   to={`/genre/${genre}` as string}
                   className="mr-[15px] text-[var(--color-genre)] text-[13px] no-underline"
-                  style={{ fontFamily: "RockfordSansRegular" }}
+                  style={{ fontFamily: "var(--font-mono)" }}
                 >
                   # {genre}
                 </Link>

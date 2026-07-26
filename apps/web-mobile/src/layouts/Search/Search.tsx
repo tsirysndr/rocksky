@@ -119,7 +119,7 @@ function Search() {
                                 </div>
                                 <div
                                   style={{
-                                    fontFamily: "RockfordSansLight",
+                                    fontFamily: "var(--font-mono)",
                                     color: "rgba(36, 49, 61, 0.65)",
                                     fontSize: 14,
                                   }}
