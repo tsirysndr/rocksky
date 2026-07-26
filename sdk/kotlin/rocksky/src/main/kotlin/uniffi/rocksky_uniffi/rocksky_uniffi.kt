@@ -17,7 +17,7 @@ package uniffi.rocksky_uniffi
 // compile the Rust component. The easiest way to ensure this is to bundle the Kotlin
 // helpers directly inline like we're doing here.
 
-import com.sun.jna.Library
+import com.sun.jna.Library as JnaLibrary
 import com.sun.jna.IntegerType
 import com.sun.jna.Native
 import com.sun.jna.Pointer
@@ -378,7 +378,7 @@ private fun findLibraryName(componentName: String): String {
     return "rocksky_uniffi"
 }
 
-private inline fun <reified Lib : Library> loadIndirect(
+private inline fun <reified Lib : JnaLibrary> loadIndirect(
     componentName: String
 ): Lib {
     return Native.load<Lib>(findLibraryName(componentName), Lib::class.java)
@@ -975,7 +975,7 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 // A JNA Library to expose the extern-C FFI definitions.
 // This is an implementation detail which will be called internally by the public API.
 
-internal interface UniffiLib : Library {
+internal interface UniffiLib : JnaLibrary {
     companion object {
         internal val INSTANCE: UniffiLib by lazy {
             loadIndirect<UniffiLib>(componentName = "rocksky_uniffi")
