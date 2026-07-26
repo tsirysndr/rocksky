@@ -27,6 +27,14 @@ function RootComponent() {
       document.head.appendChild(meta);
     }
     meta.content = bg;
+
+    // The `.dark` class lives on #root, so html/body (outside #root) never get
+    // the themed --color-background and stay white. That white shows through on
+    // overscroll / rubber-band at the top of a scroll container. Paint the root
+    // elements with the active theme colour so the bounce area matches.
+    document.documentElement.style.backgroundColor = bg;
+    document.documentElement.style.colorScheme = darkMode ? "dark" : "light";
+    document.body.style.backgroundColor = bg;
   }, [darkMode]);
 
   return (
