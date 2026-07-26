@@ -8933,6 +8933,204 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyNotificationDefs: {
+    lexicon: 1,
+    id: "app.rocksky.notification.defs",
+    defs: {
+      notificationActor: {
+        type: "object",
+        description: "The user who triggered a notification.",
+        properties: {
+          id: {
+            type: "string",
+            description: "The unique identifier of the actor.",
+          },
+          did: {
+            type: "string",
+            format: "did",
+            description: "The decentralized identifier of the actor.",
+          },
+          handle: {
+            type: "string",
+            format: "at-identifier",
+            description: "The handle of the actor.",
+          },
+          displayName: {
+            type: "string",
+            description: "The display name of the actor.",
+          },
+          avatar: {
+            type: "string",
+            format: "uri",
+            description: "The URL of the actor's avatar image.",
+          },
+        },
+      },
+      notificationView: {
+        type: "object",
+        required: ["id", "type", "read", "createdAt"],
+        properties: {
+          id: {
+            type: "string",
+            description: "The unique identifier of the notification.",
+          },
+          type: {
+            type: "string",
+            description:
+              "The notification type: like_scrobble, follow, comment_scrobble, comment_profile, reply, or react_comment.",
+            knownValues: [
+              "like_scrobble",
+              "follow",
+              "comment_scrobble",
+              "comment_profile",
+              "reply",
+              "react_comment",
+            ],
+          },
+          read: {
+            type: "boolean",
+            description: "Whether the notification has been viewed.",
+          },
+          createdAt: {
+            type: "string",
+            format: "datetime",
+            description: "When the notification was created.",
+          },
+          subjectUri: {
+            type: "string",
+            description:
+              "The at-uri of the subject the notification relates to.",
+          },
+          shoutId: {
+            type: "string",
+            description: "The id of the related shout, if any.",
+          },
+          shoutContent: {
+            type: "string",
+            description: "The content of the related shout, if any.",
+          },
+          actor: {
+            type: "ref",
+            ref: "lex:app.rocksky.notification.defs#notificationActor",
+          },
+        },
+      },
+    },
+  },
+  AppRockskyNotificationGetUnreadCount: {
+    lexicon: 1,
+    id: "app.rocksky.notification.getUnreadCount",
+    defs: {
+      main: {
+        type: "query",
+        description:
+          "Get the number of unread notifications for the authenticated user.",
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["count"],
+            properties: {
+              count: {
+                type: "integer",
+                description: "The number of unread notifications.",
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyNotificationListNotifications: {
+    lexicon: 1,
+    id: "app.rocksky.notification.listNotifications",
+    defs: {
+      main: {
+        type: "query",
+        description:
+          "List notifications for the authenticated user, most recent first.",
+        parameters: {
+          type: "params",
+          properties: {
+            limit: {
+              type: "integer",
+              maximum: 100,
+              minimum: 1,
+              default: 30,
+            },
+            cursor: {
+              type: "string",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["notifications", "unreadCount"],
+            properties: {
+              notifications: {
+                type: "array",
+                items: {
+                  type: "ref",
+                  ref: "lex:app.rocksky.notification.defs#notificationView",
+                },
+              },
+              unreadCount: {
+                type: "integer",
+                description: "The number of unread notifications.",
+              },
+              cursor: {
+                type: "string",
+                description:
+                  "A cursor value to pass to subsequent calls to get the next page of results.",
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyNotificationUpdateSeen: {
+    lexicon: 1,
+    id: "app.rocksky.notification.updateSeen",
+    defs: {
+      main: {
+        type: "procedure",
+        description:
+          "Mark notifications as viewed. When no ids are provided, marks all of the authenticated user's notifications as viewed.",
+        input: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {
+              ids: {
+                type: "array",
+                description:
+                  "The ids of the notifications to mark as viewed. Omit to mark all.",
+                items: {
+                  type: "string",
+                },
+              },
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["unreadCount"],
+            properties: {
+              unreadCount: {
+                type: "integer",
+                description: "The number of unread notifications remaining.",
+              },
+            },
+          },
+        },
+      },
+    },
+  },
 } as const satisfies Record<string, LexiconDoc>;
 
 export const schemas = Object.values(schemaDict);
@@ -9131,4 +9329,10 @@ export const ids = {
   AppRockskyLibraryUpdatePlaylist: "app.rocksky.library.updatePlaylist",
   AppRockskyLibraryDeleteAlbum: "app.rocksky.library.deleteAlbum",
   AppRockskyLibraryDeleteSong: "app.rocksky.library.deleteSong",
+  AppRockskyNotificationDefs: "app.rocksky.notification.defs",
+  AppRockskyNotificationGetUnreadCount:
+    "app.rocksky.notification.getUnreadCount",
+  AppRockskyNotificationListNotifications:
+    "app.rocksky.notification.listNotifications",
+  AppRockskyNotificationUpdateSeen: "app.rocksky.notification.updateSeen",
 };

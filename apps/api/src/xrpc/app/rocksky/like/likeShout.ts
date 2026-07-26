@@ -1,18 +1,29 @@
 import type { HandlerAuth } from "@atproto/xrpc-server";
+import { consola } from "consola";
 import type { Context } from "context";
 import { eq } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
-import type { QueryParams } from "lexicon/types/app/rocksky/like/likeShout";
+import type { InputSchema } from "lexicon/types/app/rocksky/like/likeShout";
+import { createAgent } from "lib/agent";
 import tables from "schema";
+import { likeShout as likeShoutService } from "shouts/shouts.service";
 
 export default function (server: Server, ctx: Context) {
-  const likeShout = (params, auth: HandlerAuth) =>
-    pipe(params, like, presentation);
+  const likeShout = (input: InputSchema, auth: HandlerAuth) =>
+    pipe(
+      like({ input, ctx, did: auth.credentials?.did }),
+      Effect.flatMap(presentation),
+      Effect.timeout("10 seconds"),
+      Effect.catchAll((err) => {
+        consola.error(err);
+        return Effect.succeed({});
+      }),
+    );
   server.app.rocksky.like.likeShout({
     auth: ctx.authVerifier,
-    handler: async ({ params, auth }) => {
-      const result = likeShout(params, auth);
+    handler: async ({ input, auth }) => {
+      const result = await Effect.runPromise(likeShout(input.body, auth));
       return {
         encoding: "application/json",
         body: result,
@@ -21,33 +32,43 @@ export default function (server: Server, ctx: Context) {
   });
 }
 
-const getCurrentUser = ({
-  params,
+const like = ({
+  input,
   ctx,
   did,
 }: {
-  params: QueryParams;
+  input: InputSchema;
   ctx: Context;
   did?: string;
-}) => {
-  return Effect.tryPromise({
-    try: async () =>
-      ctx.db
+}) =>
+  Effect.tryPromise({
+    try: async () => {
+      if (!did) {
+        throw new Error("User is not authenticated");
+      }
+      if (!input.uri) {
+        throw new Error("Missing shout uri");
+      }
+
+      const user = await ctx.db
         .select()
         .from(tables.users)
         .where(eq(tables.users.did, did))
-        .execute()
-        .then((users) => ({ user: users[0], ctx, params })),
-    catch: (error) => new Error(`Failed to retrieve current user: ${error}`),
+        .limit(1)
+        .then((rows) => rows[0]);
+      if (!user) {
+        throw new Error("User not found");
+      }
+
+      const agent = await createAgent(ctx.oauthClient, did);
+      if (!agent) {
+        throw new Error("Unauthorized");
+      }
+
+      await likeShoutService(ctx, input.uri, user, agent);
+      return {};
+    },
+    catch: (error) => new Error(`Failed to like shout: ${error}`),
   });
-};
 
-const like = () => {
-  // Logic to like a shout
-  return {};
-};
-
-const presentation = () => {
-  // Logic to format the response for presentation
-  return {};
-};
+const presentation = () => Effect.sync(() => ({}));

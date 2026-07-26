@@ -1,0 +1,82 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.notification.defs",
+  "defs": {
+    "notificationActor": {
+      "type": "object",
+      "description": "The user who triggered a notification.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the actor."
+        },
+        "did": {
+          "type": "string",
+          "format": "did",
+          "description": "The decentralized identifier of the actor."
+        },
+        "handle": {
+          "type": "string",
+          "format": "at-identifier",
+          "description": "The handle of the actor."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The display name of the actor."
+        },
+        "avatar": {
+          "type": "string",
+          "format": "uri",
+          "description": "The URL of the actor's avatar image."
+        }
+      }
+    },
+    "notificationView": {
+      "type": "object",
+      "required": ["id", "type", "read", "createdAt"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique identifier of the notification."
+        },
+        "type": {
+          "type": "string",
+          "description": "The notification type: like_scrobble, follow, comment_scrobble, comment_profile, reply, or react_comment.",
+          "knownValues": [
+            "like_scrobble",
+            "follow",
+            "comment_scrobble",
+            "comment_profile",
+            "reply",
+            "react_comment"
+          ]
+        },
+        "read": {
+          "type": "boolean",
+          "description": "Whether the notification has been viewed."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "datetime",
+          "description": "When the notification was created."
+        },
+        "subjectUri": {
+          "type": "string",
+          "description": "The at-uri of the subject the notification relates to."
+        },
+        "shoutId": {
+          "type": "string",
+          "description": "The id of the related shout, if any."
+        },
+        "shoutContent": {
+          "type": "string",
+          "description": "The content of the related shout, if any."
+        },
+        "actor": {
+          "type": "ref",
+          "ref": "app.rocksky.notification.defs#notificationActor"
+        }
+      }
+    }
+  }
+}

@@ -15,7 +15,9 @@ import artistTracks from "../schema/artist-tracks";
 import artists from "../schema/artists";
 import lovedTracks from "../schema/loved-tracks";
 import tracks from "../schema/tracks";
+import users from "../schema/users";
 import extractPdsFromDid from "lib/extractPdsFromDid";
+import { createNotification } from "notifications/notifications.service";
 
 export async function likeTrack(
   ctx: Context,
@@ -325,6 +327,25 @@ export async function likeTrack(
     xata_version: 0,
   });
   ctx.nc.publish("rocksky.like", Buffer.from(message));
+
+  // Notify the owner of the liked song record (the repo the at-uri belongs to).
+  if (trackWithUri?.uri) {
+    const ownerDid = trackWithUri.uri.replace("at://", "").split("/")[0];
+    const owner = await ctx.db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.did, ownerDid))
+      .limit(1)
+      .then((rows) => rows[0]);
+    if (owner) {
+      await createNotification(ctx, {
+        userId: owner.id,
+        actorId: user.id,
+        type: "like_scrobble",
+        subjectUri: trackWithUri.uri,
+      });
+    }
+  }
 
   return created;
 }

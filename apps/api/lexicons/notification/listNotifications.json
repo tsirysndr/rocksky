@@ -1,0 +1,48 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.notification.listNotifications",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "List notifications for the authenticated user, most recent first.",
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "maximum": 100,
+            "minimum": 1,
+            "default": 30
+          },
+          "cursor": {
+            "type": "string"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["notifications", "unreadCount"],
+          "properties": {
+            "notifications": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "app.rocksky.notification.defs#notificationView"
+              }
+            },
+            "unreadCount": {
+              "type": "integer",
+              "description": "The number of unread notifications."
+            },
+            "cursor": {
+              "type": "string",
+              "description": "A cursor value to pass to subsequent calls to get the next page of results."
+            }
+          }
+        }
+      }
+    }
+  }
+}

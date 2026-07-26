@@ -51,6 +51,9 @@ import likeShout from "./app/rocksky/like/likeShout";
 import likeSong from "./app/rocksky/like/likeSong";
 import getMirrorSources from "./app/rocksky/mirror/getMirrorSources";
 import putMirrorSource from "./app/rocksky/mirror/putMirrorSource";
+import getUnreadCount from "./app/rocksky/notification/getUnreadCount";
+import listNotifications from "./app/rocksky/notification/listNotifications";
+import updateSeen from "./app/rocksky/notification/updateSeen";
 import registerLibrary from "./app/rocksky/library";
 import getAudioSettings from "./app/rocksky/rockbox/getAudioSettings";
 import putAudioSettings from "./app/rocksky/rockbox/putAudioSettings";
@@ -194,6 +197,9 @@ export default function (server: Server, ctx: Context) {
   getAlbumRecommendations(server, ctx);
   getMirrorSources(server, ctx);
   putMirrorSource(server, ctx);
+  listNotifications(server, ctx);
+  getUnreadCount(server, ctx);
+  updateSeen(server, ctx);
   getAudioSettings(server, ctx);
   putAudioSettings(server, ctx);
 

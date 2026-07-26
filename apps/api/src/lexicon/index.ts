@@ -61,6 +61,9 @@ import type * as AppRockskyGraphGetFollowers from "./types/app/rocksky/graph/get
 import type * as AppRockskyGraphGetFollows from "./types/app/rocksky/graph/getFollows";
 import type * as AppRockskyGraphGetKnownFollowers from "./types/app/rocksky/graph/getKnownFollowers";
 import type * as AppRockskyGraphUnfollowAccount from "./types/app/rocksky/graph/unfollowAccount";
+import type * as AppRockskyNotificationGetUnreadCount from "./types/app/rocksky/notification/getUnreadCount";
+import type * as AppRockskyNotificationListNotifications from "./types/app/rocksky/notification/listNotifications";
+import type * as AppRockskyNotificationUpdateSeen from "./types/app/rocksky/notification/updateSeen";
 import type * as AppRockskyLibraryCreatePlaylist from "./types/app/rocksky/library/createPlaylist";
 import type * as AppRockskyLibraryDeleteAlbum from "./types/app/rocksky/library/deleteAlbum";
 import type * as AppRockskyLibraryDeletePlaylist from "./types/app/rocksky/library/deletePlaylist";
@@ -302,6 +305,7 @@ export class AppRockskyNS {
   graph: AppRockskyGraphNS;
   library: AppRockskyLibraryNS;
   like: AppRockskyLikeNS;
+  notification: AppRockskyNotificationNS;
   mirror: AppRockskyMirrorNS;
   player: AppRockskyPlayerNS;
   playlist: AppRockskyPlaylistNS;
@@ -325,6 +329,7 @@ export class AppRockskyNS {
     this.graph = new AppRockskyGraphNS(server);
     this.library = new AppRockskyLibraryNS(server);
     this.like = new AppRockskyLikeNS(server);
+    this.notification = new AppRockskyNotificationNS(server);
     this.mirror = new AppRockskyMirrorNS(server);
     this.player = new AppRockskyPlayerNS(server);
     this.playlist = new AppRockskyPlaylistNS(server);
@@ -1433,6 +1438,47 @@ export class AppRockskyLikeNS {
     >,
   ) {
     const nsid = "app.rocksky.like.likeSong"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+}
+
+export class AppRockskyNotificationNS {
+  _server: Server;
+
+  constructor(server: Server) {
+    this._server = server;
+  }
+
+  getUnreadCount<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyNotificationGetUnreadCount.Handler<ExtractAuth<AV>>,
+      AppRockskyNotificationGetUnreadCount.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.notification.getUnreadCount"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  listNotifications<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyNotificationListNotifications.Handler<ExtractAuth<AV>>,
+      AppRockskyNotificationListNotifications.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.notification.listNotifications"; // @ts-ignore
+    return this._server.xrpc.method(nsid, cfg);
+  }
+
+  updateSeen<AV extends AuthVerifier>(
+    cfg: ConfigOf<
+      AV,
+      AppRockskyNotificationUpdateSeen.Handler<ExtractAuth<AV>>,
+      AppRockskyNotificationUpdateSeen.HandlerReqCtx<ExtractAuth<AV>>
+    >,
+  ) {
+    const nsid = "app.rocksky.notification.updateSeen"; // @ts-ignore
     return this._server.xrpc.method(nsid, cfg);
   }
 }

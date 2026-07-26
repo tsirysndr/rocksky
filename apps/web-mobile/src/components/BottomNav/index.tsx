@@ -1,21 +1,37 @@
 import {
+  IconBell,
   IconChartBar,
   IconHome,
   IconSearch,
-  IconSparkles,
   IconUser,
   IconVinyl,
 } from "@tabler/icons-react";
 import { useAtomValue } from "jotai";
 import { Link, useLocation } from "react-router-dom";
 import { profileAtom } from "../../atoms/profile";
+import {
+  useNotificationStream,
+  useUnreadCountQuery,
+} from "../../hooks/useNotifications";
+
+type NavTab = {
+  to: string;
+  icon: typeof IconHome;
+  label: string;
+  badge?: number;
+};
 
 export default function BottomNav() {
   const location = useLocation();
   const profile = useAtomValue(profileAtom);
   const jwt = localStorage.getItem("token");
 
-  const baseTabs = [
+  // BottomNav is mounted on every screen, so it's the natural home for the
+  // live notification subscription that keeps the badge up to date app-wide.
+  useNotificationStream();
+  const { data: unreadCount = 0 } = useUnreadCountQuery();
+
+  const baseTabs: NavTab[] = [
     { to: "/", icon: IconHome, label: "Home" },
     { to: "/charts", icon: IconChartBar, label: "Charts" },
     { to: "/search", icon: IconSearch, label: "Search" },
@@ -27,7 +43,12 @@ export default function BottomNav() {
     profile && jwt
       ? [
           baseTabs[0],
-          { to: "/recommendations", icon: IconSparkles, label: "For You" },
+          {
+            to: "/notifications",
+            icon: IconBell,
+            label: "Alerts",
+            badge: unreadCount,
+          },
           baseTabs[1],
           baseTabs[2],
           baseTabs[3],
@@ -45,7 +66,7 @@ export default function BottomNav() {
       }}
     >
       <div className="flex h-14">
-        {tabs.map(({ to, icon: Icon, label }) => {
+        {tabs.map(({ to, icon: Icon, label, badge }) => {
           const active =
             to === "/"
               ? location.pathname === "/"
@@ -57,7 +78,26 @@ export default function BottomNav() {
               className="flex flex-1 flex-col items-center justify-center gap-0.5 no-underline"
               style={{ color: active ? "var(--color-primary)" : "var(--color-text-muted)" }}
             >
-              <Icon size={22} strokeWidth={active ? 2.2 : 1.8} />
+              <span className="relative flex items-center justify-center">
+                <Icon size={22} strokeWidth={active ? 2.2 : 1.8} />
+                {typeof badge === "number" && badge > 0 && (
+                  <span
+                    className="absolute flex items-center justify-center rounded-full font-bold text-white"
+                    style={{
+                      top: "-6px",
+                      left: "12px",
+                      minWidth: "16px",
+                      height: "16px",
+                      padding: "0 4px",
+                      fontSize: "10px",
+                      lineHeight: "16px",
+                      backgroundColor: "#e0245e",
+                    }}
+                  >
+                    {badge > 99 ? "99+" : badge}
+                  </span>
+                )}
+              </span>
               <span className="text-[10px] font-medium">{label}</span>
             </Link>
           );
