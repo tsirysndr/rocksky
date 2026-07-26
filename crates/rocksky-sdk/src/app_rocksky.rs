@@ -16,6 +16,7 @@ pub mod graph;
 pub mod library;
 pub mod like;
 pub mod mirror;
+pub mod notification;
 pub mod player;
 pub mod playlist;
 pub mod playlist_item;

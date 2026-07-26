@@ -16,6 +16,7 @@ import type {
   ArtistRecord,
   ActorTrackView,
   ScrobbleRecord,
+  ShoutGif,
   SongRecord,
 } from "./generated/types.js";
 import type { IndexStats, RockskyIndex } from "./dedup.js";
@@ -303,23 +304,33 @@ export class Agent {
     return this.create(C_FOLLOW, { subject: did, createdAt: nowISO() });
   }
 
-  /** Post a shout on a subject. Returns the shout URI. */
-  shout(subjectUri: string, subjectCid: string, message: string): Promise<string> {
-    return this.create(C_SHOUT, { subject: { uri: subjectUri, cid: subjectCid }, message, createdAt: nowISO() });
+  /** Post a shout on a subject. Returns the shout URI. Pass at least one of
+   * `message` / `gif` — `message` may be omitted when a GIF/sticker/clip is
+   * attached. */
+  shout(subjectUri: string, subjectCid: string, message?: string, gif?: ShoutGif): Promise<string> {
+    return this.create(C_SHOUT, {
+      subject: { uri: subjectUri, cid: subjectCid },
+      ...(message !== undefined ? { message } : {}),
+      ...(gif ? { gif } : {}),
+      createdAt: nowISO(),
+    });
   }
 
-  /** Reply to a shout, with a parent strong-ref. */
+  /** Reply to a shout, with a parent strong-ref. Pass at least one of `message`
+   * / `gif` — `message` may be omitted when a GIF/sticker/clip is attached. */
   replyShout(
     subjectUri: string,
     subjectCid: string,
     parentUri: string,
     parentCid: string,
-    message: string,
+    message?: string,
+    gif?: ShoutGif,
   ): Promise<string> {
     return this.create(C_SHOUT, {
       subject: { uri: subjectUri, cid: subjectCid },
       parent: { uri: parentUri, cid: parentCid },
-      message,
+      ...(message !== undefined ? { message } : {}),
+      ...(gif ? { gif } : {}),
       createdAt: nowISO(),
     });
   }

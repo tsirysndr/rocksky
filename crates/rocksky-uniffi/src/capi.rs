@@ -191,6 +191,35 @@ pub extern "C" fn rocksky_library_post(
     }
 }
 
+/// Mark notifications as viewed (`app.rocksky.notification.updateSeen`). `token`
+/// is required (empty → error at the server). `ids_json` is a JSON array of
+/// notification ids, or `[]`/empty to mark **all** as viewed. Returns the typed
+/// `{ "unreadCount": <int> }` result as JSON.
+#[no_mangle]
+pub extern "C" fn rocksky_update_seen(
+    base: *const c_char,
+    token: *const c_char,
+    ids_json: *const c_char,
+) -> *mut c_char {
+    let mut av = appview(base);
+    let t = cstr(token);
+    if !t.is_empty() {
+        av.set_token(Some(t));
+    }
+    let ids: Vec<String> = serde_json::from_str(&cstr(ids_json)).unwrap_or_default();
+    respond(RT.block_on(av.update_seen(&ids)).map_err(|e| e.to_string()))
+}
+
+/// Parse a JSON GIF embed (`app.rocksky.shout.defs#gif`) into a
+/// [`rocksky_sdk::ShoutGif`]. Empty or invalid input yields `None`.
+fn parse_gif(gif_json: *const c_char) -> Option<rocksky_sdk::ShoutGif> {
+    let s = cstr(gif_json);
+    if s.is_empty() {
+        return None;
+    }
+    serde_json::from_str::<rocksky_sdk::ShoutGif>(&s).ok()
+}
+
 /// Parse a JSON object of params into string pairs, coercing scalar values
 /// (numbers, bools) to their string form so callers can pass `{"limit": 20}`.
 pub(crate) fn json_params(s: &str) -> Vec<(String, String)> {
@@ -490,6 +519,68 @@ pub unsafe extern "C" fn rocksky_agent_shout(
     respond(
         RT.block_on(a.shout(&cstr(subject_uri), &cstr(subject_cid), &cstr(message)))
             .map_err(|e| e.to_string()),
+    )
+}
+
+/// Post a shout with an optional GIF/sticker/clip. `message` may be empty when a
+/// `gif_json` embed is supplied (pass at least one). `gif_json` is a JSON GIF
+/// embed or empty for none. Returns the shout URI.
+///
+/// # Safety
+/// `agent` must be a live handle; the string args valid C strings.
+#[no_mangle]
+pub unsafe extern "C" fn rocksky_agent_shout_with_gif(
+    agent: *mut Agent,
+    subject_uri: *const c_char,
+    subject_cid: *const c_char,
+    message: *const c_char,
+    gif_json: *const c_char,
+) -> *mut c_char {
+    let a = with_agent(agent);
+    let msg = cstr(message);
+    let message = if msg.is_empty() { None } else { Some(msg) };
+    let gif = parse_gif(gif_json);
+    respond(
+        RT.block_on(a.shout_with_gif(
+            &cstr(subject_uri),
+            &cstr(subject_cid),
+            message.as_deref(),
+            gif,
+        ))
+        .map_err(|e| e.to_string()),
+    )
+}
+
+/// Reply to a shout with an optional GIF/sticker/clip. Semantics match
+/// [`rocksky_agent_shout_with_gif`], plus a `parent` strong-ref. Returns the
+/// shout URI.
+///
+/// # Safety
+/// `agent` must be a live handle; the string args valid C strings.
+#[no_mangle]
+pub unsafe extern "C" fn rocksky_agent_reply_shout_with_gif(
+    agent: *mut Agent,
+    subject_uri: *const c_char,
+    subject_cid: *const c_char,
+    parent_uri: *const c_char,
+    parent_cid: *const c_char,
+    message: *const c_char,
+    gif_json: *const c_char,
+) -> *mut c_char {
+    let a = with_agent(agent);
+    let msg = cstr(message);
+    let message = if msg.is_empty() { None } else { Some(msg) };
+    let gif = parse_gif(gif_json);
+    respond(
+        RT.block_on(a.reply_shout_with_gif(
+            &cstr(subject_uri),
+            &cstr(subject_cid),
+            &cstr(parent_uri),
+            &cstr(parent_cid),
+            message.as_deref(),
+            gif,
+        ))
+        .map_err(|e| e.to_string()),
     )
 }
 

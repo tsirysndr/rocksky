@@ -408,6 +408,30 @@ func (a *Agent) ReplyShout(ctx context.Context, subjectURI, subjectCID, parentUR
 	})
 }
 
+// ShoutWithGif posts a shout with an optional GIF/sticker/clip attachment
+// (app.rocksky.shout). Pass at least one of message / gif — message may be empty
+// when a gif is attached. Returns the URI.
+func (a *Agent) ShoutWithGif(ctx context.Context, subjectURI, subjectCID, message string, gif *gen.ShoutGif) (string, error) {
+	return a.create(ctx, colShout, gen.ShoutRecord{
+		Subject:   &gen.StrongRef{URI: subjectURI, CID: subjectCID},
+		Message:   message,
+		Gif:       gif,
+		CreatedAt: nowRFC3339(),
+	})
+}
+
+// ReplyShoutWithGif replies to a shout with an optional GIF/sticker/clip
+// attachment, with a parent strong-ref. Pass at least one of message / gif.
+func (a *Agent) ReplyShoutWithGif(ctx context.Context, subjectURI, subjectCID, parentURI, parentCID, message string, gif *gen.ShoutGif) (string, error) {
+	return a.create(ctx, colShout, gen.ShoutRecord{
+		Subject:   &gen.StrongRef{URI: subjectURI, CID: subjectCID},
+		Parent:    &gen.StrongRef{URI: parentURI, CID: parentCID},
+		Message:   message,
+		Gif:       gif,
+		CreatedAt: nowRFC3339(),
+	})
+}
+
 // SetNowPlaying upserts the actor's now-playing status singleton (rkey "self").
 func (a *Agent) SetNowPlaying(ctx context.Context, track gen.ActorTrackView) (string, error) {
 	return a.put(ctx, colStatus, "self", gen.StatusRecord{

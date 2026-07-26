@@ -26,7 +26,7 @@ use crate::app_rocksky::artist::Artist;
 use crate::app_rocksky::graph::follow::Follow;
 use crate::app_rocksky::like::Like;
 use crate::app_rocksky::scrobble::Scrobble;
-use crate::app_rocksky::shout::Shout;
+use crate::app_rocksky::shout::{Gif, Shout};
 use crate::app_rocksky::song::Song;
 use crate::appview::AppView;
 use crate::auth::{fetch_profile, rocksky_scopes, Profile};
@@ -137,6 +137,30 @@ pub struct ArtistDraft {
     pub tags: Vec<String>,
     pub picture_url: Option<String>,
     pub bio: Option<String>,
+}
+
+/// A GIF / sticker / clip attachment for a shout
+/// (`app.rocksky.shout.defs#gif`). Only `url` is required — it may point at an
+/// image (GIF/WebP) or a video (MP4); the client decides how to render it from
+/// the file extension. The rest enrich the embed when known.
+///
+/// ```
+/// use rocksky_sdk::ShoutGif;
+/// let _ = ShoutGif { url: "https://media.klipy.com/x.mp4".into(), ..Default::default() };
+/// ```
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct ShoutGif {
+    /// Direct URL of the animated GIF/MP4.
+    pub url: String,
+    /// Smaller still / preview image URL.
+    pub preview_url: Option<String>,
+    /// Alternative text describing the media.
+    pub alt: Option<String>,
+    /// Intrinsic width of the media in pixels.
+    pub width: Option<i64>,
+    /// Intrinsic height of the media in pixels.
+    pub height: Option<i64>,
 }
 
 /// The four records a [`scrobble`](RockskyAgent::scrobble) touches. Each URI is
@@ -1003,9 +1027,24 @@ impl RockskyAgent {
         subject_cid: &str,
         message: &str,
     ) -> Result<String> {
+        self.shout_with_gif(subject_uri, subject_cid, Some(message), None)
+            .await
+    }
+
+    /// Post a shout with an optional GIF/sticker/clip attachment
+    /// (`app.rocksky.shout`). `message` may be omitted when a `gif` is attached;
+    /// pass at least one of the two. Returns the shout URI.
+    pub async fn shout_with_gif(
+        &self,
+        subject_uri: &str,
+        subject_cid: &str,
+        message: Option<&str>,
+        gif: Option<ShoutGif>,
+    ) -> Result<String> {
         let record = Shout::new()
             .subject(strong_ref(subject_uri, subject_cid)?)
-            .message(message.to_string())
+            .maybe_message(message.map(Into::into))
+            .maybe_gif(gif.map(build_gif).transpose()?)
             .created_at(Datetime::now())
             .build();
         self.create(record, "create shout").await
@@ -1021,14 +1060,53 @@ impl RockskyAgent {
         parent_cid: &str,
         message: &str,
     ) -> Result<String> {
+        self.reply_shout_with_gif(
+            subject_uri,
+            subject_cid,
+            parent_uri,
+            parent_cid,
+            Some(message),
+            None,
+        )
+        .await
+    }
+
+    /// Reply to a shout with an optional GIF/sticker/clip attachment. Like
+    /// [`shout_with_gif`](Self::shout_with_gif) but with a `parent` strong-ref
+    /// pointing at the shout being replied to.
+    pub async fn reply_shout_with_gif(
+        &self,
+        subject_uri: &str,
+        subject_cid: &str,
+        parent_uri: &str,
+        parent_cid: &str,
+        message: Option<&str>,
+        gif: Option<ShoutGif>,
+    ) -> Result<String> {
         let record = Shout::new()
             .subject(strong_ref(subject_uri, subject_cid)?)
             .maybe_parent(Some(strong_ref(parent_uri, parent_cid)?))
-            .message(message.to_string())
+            .maybe_message(message.map(Into::into))
+            .maybe_gif(gif.map(build_gif).transpose()?)
             .created_at(Datetime::now())
             .build();
         self.create(record, "create shout reply").await
     }
+}
+
+/// Convert a user-facing [`ShoutGif`] into the generated
+/// `app.rocksky.shout.defs#gif` record embed. Errors when `url` is not a valid
+/// URI.
+fn build_gif(g: ShoutGif) -> Result<Gif> {
+    let url =
+        parse_uri(&g.url).ok_or_else(|| SdkError::Other(format!("invalid gif url: {}", g.url)))?;
+    Ok(Gif::new()
+        .url(url)
+        .maybe_preview_url(g.preview_url.as_deref().and_then(parse_uri))
+        .maybe_alt(g.alt.map(Into::into))
+        .maybe_width(g.width)
+        .maybe_height(g.height)
+        .build())
 }
 
 /// Duplicate-prevention index management (the `dedup` feature).

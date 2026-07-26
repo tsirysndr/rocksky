@@ -26,7 +26,8 @@
          agent_scrobble_match/2, agent_sync_repo/1, agent_hydrate_from_jetstream/1,
          agent_create_song/2, agent_create_album/2, agent_create_artist/2,
          agent_like/3, agent_unlike/2, agent_follow/2, agent_unfollow/2,
-         agent_shout/4, agent_reply_shout/6, agent_set_now_playing/2,
+         agent_shout/4, agent_reply_shout/6, agent_shout_with_gif/5,
+         agent_reply_shout_with_gif/7, update_seen/3, agent_set_now_playing/2,
          agent_clear_now_playing/1]).
 
 -on_load(init/0).
@@ -211,6 +212,7 @@ top_artists(_Base, _Limit, _Offset) -> ?NOT_LOADED.
 top_tracks(_Base, _Limit, _Offset) -> ?NOT_LOADED.
 global_stats(_Base) -> ?NOT_LOADED.
 get(_Base, _Nsid, _ParamsJson, _Token) -> ?NOT_LOADED.
+update_seen(_Base, _Token, _IdsJson) -> ?NOT_LOADED.
 library_get(_Base, _Token, _Nsid, _ParamsJson) -> ?NOT_LOADED.
 library_post(_Base, _Token, _Nsid, _BodyJson) -> ?NOT_LOADED.
 match_song(_Base, _Title, _Artist, _MbId, _Isrc) -> ?NOT_LOADED.
@@ -278,5 +280,7 @@ agent_follow(_Agent, _Did) -> ?NOT_LOADED.
 agent_unfollow(_Agent, _Did) -> ?NOT_LOADED.
 agent_shout(_Agent, _SubjectUri, _SubjectCid, _Message) -> ?NOT_LOADED.
 agent_reply_shout(_Agent, _SubjectUri, _SubjectCid, _ParentUri, _ParentCid, _Message) -> ?NOT_LOADED.
+agent_shout_with_gif(_Agent, _SubjectUri, _SubjectCid, _Message, _GifJson) -> ?NOT_LOADED.
+agent_reply_shout_with_gif(_Agent, _SubjectUri, _SubjectCid, _ParentUri, _ParentCid, _Message, _GifJson) -> ?NOT_LOADED.
 agent_set_now_playing(_Agent, _Json) -> ?NOT_LOADED.
 agent_clear_now_playing(_Agent) -> ?NOT_LOADED.

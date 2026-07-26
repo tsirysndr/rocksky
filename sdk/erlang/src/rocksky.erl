@@ -19,7 +19,11 @@
          agent_login/3, agent_login/4, agent_login/5, agent_scrobble/2,
          agent_scrobble_match/2, agent_scrobble_match/7, agent_sync_repo/1,
          agent_hydrate_from_jetstream/1, agent_like/3,
-         agent_follow/2, agent_shout/4, agent_refresh_session/1]).
+         agent_follow/2, agent_shout/4, agent_shout_with_gif/5,
+         agent_reply_shout_with_gif/7, agent_refresh_session/1,
+         unread_count/1, unread_count/2, notifications/1, notifications/2,
+         notifications/3, update_seen/2, update_seen/3, update_seen_raw/3,
+         agent_shout_with_gif_raw/5, agent_reply_shout_with_gif_raw/7]).
 
 %% Decode a NIF JSON-envelope binary into {ok, Value} | {error, Message}.
 unwrap(Bin) ->
@@ -62,6 +66,32 @@ get(Nsid, Params, Base, Token) ->
 %% Flat form for cross-language callers passing a pre-encoded JSON params object.
 get_raw(Base, Nsid, ParamsJson, Token) ->
     unwrap(rocksky_nif:get(b(Base), b(Nsid), b(ParamsJson), b(Token))).
+
+%% ---- notifications (auth-gated; `Token` required) ----
+
+%% The authenticated viewer's unread-notification count. Returns
+%% {ok, #{<<"count">> => N}}.
+unread_count(Token) -> unread_count(Token, <<>>).
+unread_count(Token, Base) ->
+    get(<<"app.rocksky.notification.getUnreadCount">>, #{}, Base, Token).
+
+%% The authenticated viewer's notifications, most recent first. `Params` is a map
+%% that may contain <<"limit">> (default 30) and <<"cursor">>. Returns
+%% {ok, #{<<"notifications">> => [...], <<"unreadCount">> => N, <<"cursor">> => C}}.
+notifications(Token) -> notifications(Token, #{}, <<>>).
+notifications(Token, Params) -> notifications(Token, Params, <<>>).
+notifications(Token, Params, Base) ->
+    get(<<"app.rocksky.notification.listNotifications">>, Params, Base, Token).
+
+%% Mark notifications as viewed. `Ids` is a list of notification id binaries, or
+%% [] to mark all. Returns {ok, #{<<"unreadCount">> => N}}.
+update_seen(Token, Ids) -> update_seen(Token, Ids, <<>>).
+update_seen(Token, Ids, Base) ->
+    unwrap(rocksky_nif:update_seen(b(Base), b(Token), iolist_to_binary(json:encode(Ids)))).
+
+%% Flat form for cross-language callers passing a pre-encoded JSON ids array.
+update_seen_raw(Token, IdsJson, Base) ->
+    unwrap(rocksky_nif:update_seen(b(Base), b(Token), b(IdsJson))).
 
 %% ---- authenticated library.* (uploaded-music) escape hatches ----
 %% Every app.rocksky.library.* call requires auth — `Token` must be non-empty.
@@ -173,4 +203,34 @@ agent_like(Agent, Uri, Cid) -> unwrap(rocksky_nif:agent_like(Agent, b(Uri), b(Ci
 agent_follow(Agent, Did) -> unwrap(rocksky_nif:agent_follow(Agent, b(Did))).
 agent_shout(Agent, SubjectUri, SubjectCid, Message) ->
     unwrap(rocksky_nif:agent_shout(Agent, b(SubjectUri), b(SubjectCid), b(Message))).
+
+%% Post a shout with an optional GIF/sticker/clip. Pass at least one of `Message`
+%% / `Gif`. `Gif` is a map (<<"url">> required, plus <<"previewUrl">>, <<"alt">>,
+%% <<"width">>, <<"height">>) or `undefined`.
+agent_shout_with_gif(Agent, SubjectUri, SubjectCid, Message, Gif) ->
+    unwrap(rocksky_nif:agent_shout_with_gif(
+        Agent, b(SubjectUri), b(SubjectCid), b(Message), gif_json(Gif))).
+
+%% Reply to a shout with an optional GIF/sticker/clip (see agent_shout_with_gif),
+%% plus a parent strong-ref (`ParentUri`/`ParentCid`).
+agent_reply_shout_with_gif(Agent, SubjectUri, SubjectCid, ParentUri, ParentCid, Message, Gif) ->
+    unwrap(rocksky_nif:agent_reply_shout_with_gif(
+        Agent, b(SubjectUri), b(SubjectCid), b(ParentUri), b(ParentCid),
+        b(Message), gif_json(Gif))).
+
 agent_refresh_session(Agent) -> unwrap(rocksky_nif:agent_refresh_session(Agent)).
+
+%% Encode a GIF embed map to a JSON binary; `undefined` yields an empty binary.
+gif_json(undefined) -> <<>>;
+gif_json(Gif) -> iolist_to_binary(json:encode(Gif)).
+
+%% Flat forms for cross-language callers passing a pre-encoded JSON gif embed
+%% (empty binary for none) and a plain message binary.
+agent_shout_with_gif_raw(Agent, SubjectUri, SubjectCid, Message, GifJson) ->
+    unwrap(rocksky_nif:agent_shout_with_gif(
+        Agent, b(SubjectUri), b(SubjectCid), b(Message), b(GifJson))).
+
+agent_reply_shout_with_gif_raw(Agent, SubjectUri, SubjectCid, ParentUri, ParentCid, Message, GifJson) ->
+    unwrap(rocksky_nif:agent_reply_shout_with_gif(
+        Agent, b(SubjectUri), b(SubjectCid), b(ParentUri), b(ParentCid),
+        b(Message), b(GifJson))).

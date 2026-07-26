@@ -492,10 +492,6 @@ export interface DescribeFeedGeneratorOutput {
   feeds?: FeedUriView[];
 }
 
-export interface DescribeFeedGeneratorParams {
-
-}
-
 export interface DislikeShoutInput {
   /** The unique identifier of the shout to dislike */
   uri?: AtUri;
@@ -1407,6 +1403,11 @@ export interface GetTrackShoutsParams {
   uri: AtUri;
 }
 
+export interface GetUnreadCountOutput {
+  /** The number of unread notifications. */
+  count: number;
+}
+
 export interface GetUserOutput {
 
 }
@@ -1570,6 +1571,19 @@ export interface LikeSongInput {
   uri?: AtUri;
 }
 
+export interface ListNotificationsOutput {
+  notifications: NotificationView[];
+  /** The number of unread notifications. */
+  unreadCount: number;
+  /** A cursor value to pass to subsequent calls to get the next page of results. */
+  cursor?: string;
+}
+
+export interface ListNotificationsParams {
+  limit?: number;
+  cursor?: string;
+}
+
 export interface MatchSongParams {
   /** The title of the song to retrieve */
   title: string;
@@ -1594,6 +1608,38 @@ export interface MirrorSourceView {
   lastPolledAt?: DateTime;
   /** Watermark — scrobbles from the external service older than this are skipped. */
   lastScrobbleSeenAt?: DateTime;
+}
+
+/** The user who triggered a notification. */
+export interface NotificationActor {
+  /** The unique identifier of the actor. */
+  id?: string;
+  /** The decentralized identifier of the actor. */
+  did?: Did;
+  /** The handle of the actor. */
+  handle?: AtIdentifier;
+  /** The display name of the actor. */
+  displayName?: string;
+  /** The URL of the actor's avatar image. */
+  avatar?: Uri;
+}
+
+export interface NotificationView {
+  /** The unique identifier of the notification. */
+  id: string;
+  /** The notification type: like_scrobble, follow, comment_scrobble, comment_profile, reply, or react_comment. */
+  type: string;
+  /** Whether the notification has been viewed. */
+  read: boolean;
+  /** When the notification was created. */
+  createdAt: DateTime;
+  /** The at-uri of the subject the notification relates to. */
+  subjectUri?: string;
+  /** The id of the related shout, if any. */
+  shoutId?: string;
+  /** The content of the related shout, if any. */
+  shoutContent?: string;
+  actor?: NotificationActor;
 }
 
 export interface PingOutput {
@@ -2135,13 +2181,41 @@ export interface ShoutAuthor {
   avatar?: Uri;
 }
 
+/** A GIF, sticker, or clip embedded in a shout. `url` may point at an image (GIF/WebP) or a video (MP4); the client decides how to render it from the file extension. */
+export interface ShoutGif {
+  /** Direct URL of the animated GIF/MP4. */
+  url: Uri;
+  /** Smaller still/preview image URL. */
+  previewUrl?: Uri;
+  /** Alternative text describing the media. */
+  alt?: string;
+  /** The intrinsic width of the media in pixels. */
+  width?: number;
+  /** The intrinsic height of the media in pixels. */
+  height?: number;
+}
+
+/** A mention of another actor within the shout message, anchored to a UTF-8 byte range in the message. */
+export interface ShoutMention {
+  /** The DID of the mentioned actor. */
+  did: Did;
+  /** Inclusive UTF-8 byte offset of the mention start. */
+  byteStart: number;
+  /** Exclusive UTF-8 byte offset of the mention end. */
+  byteEnd: number;
+}
+
 export interface ShoutRecord {
-  /** The message of the shout. */
-  message: string;
+  /** The message of the shout. Optional when a gif/sticker/clip is attached. */
+  message?: string;
   /** The date when the shout was created. */
   createdAt: DateTime;
   parent?: StrongRef;
   subject: StrongRef;
+  /** An attached GIF, sticker, or clip (e.g. from KLIPY). */
+  gif?: ShoutGif;
+  /** Mentions of other actors within the message, anchored to UTF-8 byte ranges. */
+  facets?: ShoutMention[];
 }
 
 export interface ShoutView {
@@ -2155,6 +2229,10 @@ export interface ShoutView {
   createdAt?: DateTime;
   /** The author of the shout. */
   author?: ShoutAuthor;
+  /** An attached GIF, sticker, or clip. */
+  gif?: ShoutGif;
+  /** Mentions of other actors within the message, anchored to UTF-8 byte ranges. */
+  facets?: ShoutMention[];
 }
 
 export interface SongFirstScrobbleView {
@@ -2596,6 +2674,16 @@ export interface UpdatePlaylistOutput {
 
 }
 
+export interface UpdateSeenInput {
+  /** The ids of the notifications to mark as viewed. Omit to mark all. */
+  ids?: string[];
+}
+
+export interface UpdateSeenOutput {
+  /** The number of unread notifications remaining. */
+  unreadCount: number;
+}
+
 /**
  * Map of every XRPC method (NSID) to the type of its response body.
  * Endpoints with no output map to `void`. Used by the SDK to type method
@@ -2697,6 +2785,9 @@ export interface Endpoints {
   "app.rocksky.like.likeSong": SongViewDetailed;
   "app.rocksky.mirror.getMirrorSources": GetMirrorSourcesOutput;
   "app.rocksky.mirror.putMirrorSource": MirrorSourceView;
+  "app.rocksky.notification.getUnreadCount": GetUnreadCountOutput;
+  "app.rocksky.notification.listNotifications": ListNotificationsOutput;
+  "app.rocksky.notification.updateSeen": UpdateSeenOutput;
   "app.rocksky.player.addDirectoryToQueue": void;
   "app.rocksky.player.addItemsToQueue": void;
   "app.rocksky.player.getCurrentlyPlaying": PlayerCurrentlyPlayingViewDetailed;

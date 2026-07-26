@@ -27,6 +27,7 @@ module Rocksky
       "char* rocksky_top_tracks(const char*, unsigned int, unsigned int)",
       "char* rocksky_global_stats(const char*)",
       "char* rocksky_get(const char*, const char*, const char*, const char*)",
+      "char* rocksky_update_seen(const char*, const char*, const char*)",
       "char* rocksky_library_get(const char*, const char*, const char*, const char*)",
       "char* rocksky_library_post(const char*, const char*, const char*, const char*)",
       "char* rocksky_match_song(const char*, const char*, const char*, const char*, const char*)",
@@ -44,6 +45,8 @@ module Rocksky
       "char* rocksky_agent_like(void*, const char*, const char*)",
       "char* rocksky_agent_follow(void*, const char*)",
       "char* rocksky_agent_shout(void*, const char*, const char*, const char*)",
+      "char* rocksky_agent_shout_with_gif(void*, const char*, const char*, const char*, const char*)",
+      "char* rocksky_agent_reply_shout_with_gif(void*, const char*, const char*, const char*, const char*, const char*, const char*)",
       "char* rocksky_agent_refresh_session(void*)"
     ].each { |sig| extern sig }
   end
@@ -100,6 +103,30 @@ module Rocksky
   # auth-gated queries.
   def self.get(nsid, params = {}, base: nil, token: nil)
     unwrap(C.rocksky_get(base.to_s, nsid, JSON.generate(params), token.to_s))
+  end
+
+  # ---- notifications (auth-gated; +token+ required) ----
+
+  # The authenticated viewer's unread-notification count. Returns
+  # { "count" => Integer }.
+  def self.unread_count(token:, base: nil)
+    get("app.rocksky.notification.getUnreadCount", {}, base: base, token: token)
+  end
+
+  # The authenticated viewer's notifications, most recent first. +limit+ defaults
+  # to 30 server-side; +cursor+ paginates. Returns
+  # { "notifications" => [...], "unreadCount" => Integer, "cursor" => String? }.
+  def self.notifications(token:, limit: nil, cursor: nil, base: nil)
+    params = {}
+    params[:limit] = limit unless limit.nil?
+    params[:cursor] = cursor unless cursor.nil?
+    get("app.rocksky.notification.listNotifications", params, base: base, token: token)
+  end
+
+  # Mark notifications as viewed. +ids+ is an array of notification ids, or an
+  # empty array to mark *all* as viewed. Returns { "unreadCount" => Integer }.
+  def self.update_seen(token:, ids: [], base: nil)
+    unwrap(C.rocksky_update_seen(base.to_s, token.to_s, JSON.generate(ids)))
   end
 
   # Resolve full canonical metadata for a bare title + artist (matchSong).
@@ -198,6 +225,24 @@ module Rocksky
 
     def shout(subject_uri, subject_cid, message)
       Rocksky.unwrap(C.rocksky_agent_shout(@ptr, subject_uri, subject_cid, message))
+    end
+
+    # Post a shout with an optional GIF/sticker/clip attachment. Pass at least
+    # one of +message+ / +gif+. +gif+ is a Hash with camelCase keys ("url"
+    # required, plus "previewUrl", "alt", "width", "height").
+    def shout_with_gif(subject_uri, subject_cid, message: nil, gif: nil)
+      Rocksky.unwrap(C.rocksky_agent_shout_with_gif(
+                       @ptr, subject_uri, subject_cid, message.to_s, gif ? JSON.generate(gif) : ""
+                     ))
+    end
+
+    # Reply to a shout with an optional GIF/sticker/clip attachment. Semantics
+    # match #shout_with_gif, plus a parent strong-ref (+parent_uri+/+parent_cid+).
+    def reply_shout_with_gif(subject_uri, subject_cid, parent_uri, parent_cid, message: nil, gif: nil)
+      Rocksky.unwrap(C.rocksky_agent_reply_shout_with_gif(
+                       @ptr, subject_uri, subject_cid, parent_uri, parent_cid,
+                       message.to_s, gif ? JSON.generate(gif) : ""
+                     ))
     end
 
     def refresh_session

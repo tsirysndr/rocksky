@@ -38,6 +38,7 @@
 (def ^:private h-toptracks (delay (downcall "rocksky_top_tracks" ADDR [ADDR I32 I32])))
 (def ^:private h-stats    (delay (downcall "rocksky_global_stats" ADDR [ADDR])))
 (def ^:private h-get      (delay (downcall "rocksky_get" ADDR [ADDR ADDR ADDR ADDR])))
+(def ^:private h-update-seen (delay (downcall "rocksky_update_seen" ADDR [ADDR ADDR ADDR])))
 (def ^:private h-lib-get  (delay (downcall "rocksky_library_get" ADDR [ADDR ADDR ADDR ADDR])))
 (def ^:private h-lib-post (delay (downcall "rocksky_library_post" ADDR [ADDR ADDR ADDR ADDR])))
 (def ^:private h-match    (delay (downcall "rocksky_match_song" ADDR [ADDR ADDR ADDR ADDR ADDR])))
@@ -55,6 +56,8 @@
 (def ^:private h-like     (delay (downcall "rocksky_agent_like" ADDR [ADDR ADDR ADDR])))
 (def ^:private h-follow   (delay (downcall "rocksky_agent_follow" ADDR [ADDR ADDR])))
 (def ^:private h-shout    (delay (downcall "rocksky_agent_shout" ADDR [ADDR ADDR ADDR ADDR])))
+(def ^:private h-shout-gif (delay (downcall "rocksky_agent_shout_with_gif" ADDR [ADDR ADDR ADDR ADDR ADDR])))
+(def ^:private h-reply-shout-gif (delay (downcall "rocksky_agent_reply_shout_with_gif" ADDR [ADDR ADDR ADDR ADDR ADDR ADDR ADDR])))
 (def ^:private h-refresh  (delay (downcall "rocksky_agent_refresh_session" ADDR [ADDR])))
 
 (defn- read-free
@@ -151,6 +154,37 @@
                                                   (.allocateFrom a (str token))
                                                   (.allocateFrom a (str nsid))
                                                   (.allocateFrom a (json/generate-string body))]))))))
+
+;; ---- notifications (auth-gated; `token` required) -----------------------
+
+(defn unread-count
+  "The authenticated viewer's unread-notification count. Returns
+  {\"count\" n}. `token` is required."
+  ([token] (unread-count token nil))
+  ([token base]
+   (query "app.rocksky.notification.getUnreadCount" {} base token)))
+
+(defn notifications
+  "The authenticated viewer's notifications, most recent first. `token` is
+  required; `opts` may contain :limit (default 30) and :cursor. Returns
+  {\"notifications\" [...] \"unreadCount\" n \"cursor\" c?}."
+  ([token] (notifications token {} nil))
+  ([token opts] (notifications token opts nil))
+  ([token opts base]
+   (query "app.rocksky.notification.listNotifications"
+          (into {} (filter (comp some? val) {:limit (:limit opts) :cursor (:cursor opts)}))
+          base token)))
+
+(defn update-seen
+  "Mark notifications as viewed. `ids` is a vector of notification ids, or [] to
+  mark all. `token` is required. Returns {\"unreadCount\" n}."
+  ([token ids] (update-seen token ids nil))
+  ([token ids base]
+   (with-open [^Arena a (Arena/ofConfined)]
+     (unwrap (.invokeWithArguments ^MethodHandle @h-update-seen
+                                   (object-array [(.allocateFrom a (str (or base "")))
+                                                  (.allocateFrom a (str token))
+                                                  (.allocateFrom a (json/generate-string (or ids [])))]))))))
 
 (defn match-song
   "Resolve full canonical metadata for a bare title + artist (matchSong)."
@@ -266,6 +300,18 @@
 (defn follow     [agent did]     (agent-call @h-follow agent did))
 (defn shout      [agent subject-uri subject-cid message]
   (agent-call @h-shout agent subject-uri subject-cid message))
+(defn shout-with-gif
+  "Post a shout with an optional GIF/sticker/clip. Pass at least one of `message`
+  / `gif` (a map: :url required, plus :previewUrl :alt :width :height)."
+  [agent subject-uri subject-cid message gif]
+  (agent-call @h-shout-gif agent subject-uri subject-cid
+              (or message "") (if gif (json/generate-string gif) "")))
+(defn reply-shout-with-gif
+  "Reply to a shout with an optional GIF/sticker/clip (see shout-with-gif), plus
+  a parent strong-ref (`parent-uri`/`parent-cid`)."
+  [agent subject-uri subject-cid parent-uri parent-cid message gif]
+  (agent-call @h-reply-shout-gif agent subject-uri subject-cid parent-uri parent-cid
+              (or message "") (if gif (json/generate-string gif) "")))
 (defn refresh-session [agent]    (agent-call @h-refresh agent))
 
 (defn agent-close

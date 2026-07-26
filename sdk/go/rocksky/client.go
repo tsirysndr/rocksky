@@ -123,6 +123,37 @@ func (c *Client) GlobalStats(ctx context.Context) (*gen.StatsGlobalStatsView, er
 	return &out, err
 }
 
+// UnreadCount returns the authenticated viewer's unread-notification count
+// (app.rocksky.notification.getUnreadCount, auth-gated).
+func (c *Client) UnreadCount(ctx context.Context) (*gen.GetUnreadCountOutput, error) {
+	var out gen.GetUnreadCountOutput
+	err := c.query(ctx, "app.rocksky.notification.getUnreadCount", nil, &out)
+	return &out, err
+}
+
+// Notifications returns the authenticated viewer's notifications, most recent
+// first (app.rocksky.notification.listNotifications, auth-gated). limit defaults
+// to 30 server-side when <= 0; paginate via cursor.
+func (c *Client) Notifications(ctx context.Context, limit int, cursor string) (*gen.ListNotificationsOutput, error) {
+	var out gen.ListNotificationsOutput
+	params := map[string]any{"cursor": cursor}
+	if limit > 0 {
+		params["limit"] = limit
+	}
+	err := c.query(ctx, "app.rocksky.notification.listNotifications", params, &out)
+	return &out, err
+}
+
+// UpdateSeen marks notifications as viewed (app.rocksky.notification.updateSeen,
+// auth-gated). Pass the notification ids to mark, or nil/empty to mark all of
+// the viewer's notifications. Returns the number remaining unread.
+func (c *Client) UpdateSeen(ctx context.Context, ids []string) (*gen.UpdateSeenOutput, error) {
+	var out gen.UpdateSeenOutput
+	err := c.xrpc.Do(ctx, xrpc.Procedure, "application/json",
+		"app.rocksky.notification.updateSeen", nil, gen.UpdateSeenInput{Ids: ids}, &out)
+	return &out, err
+}
+
 // Local response envelopes keyed on the production JSON (some generated Output
 // types drift from what the AppView actually returns, e.g. getActorSongs -> tracks).
 type (
