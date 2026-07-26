@@ -89,7 +89,9 @@ const handleCreate = ({
         const profile = await ctx.db
           .select()
           .from(tables.users)
-          .where(or(eq(tables.users.did, target), eq(tables.users.handle, target)))
+          .where(
+            or(eq(tables.users.did, target), eq(tables.users.handle, target)),
+          )
           .limit(1)
           .then((rows) => rows[0]);
         if (!profile) {
