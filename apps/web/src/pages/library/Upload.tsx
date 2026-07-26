@@ -3,6 +3,7 @@ import {
   IconCheck,
   IconCloudUpload,
   IconMusic,
+  IconServer,
   IconX,
 } from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
@@ -88,6 +89,26 @@ const MetaLink = styled.a`
   &:hover {
     text-decoration: underline;
   }
+`;
+
+const StreamNote = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 32px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 20%, transparent);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+`;
+
+const StreamIcon = styled.div`
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--color-primary);
 `;
 
 const DropZone = styled.div<{ active: boolean }>`
@@ -370,6 +391,34 @@ export default function UploadPage() {
             is a free, open-source tagger that auto-fills metadata from the MusicBrainz database.
           </div>
         </MetaInfo>
+
+        <StreamNote>
+          <StreamIcon>
+            <IconServer size={18} />
+          </StreamIcon>
+          <div>
+            <strong style={{ color: "var(--color-text)" }}>
+              Stream it anywhere
+            </strong>
+            {" — "}Music you upload can be played through any Navidrome or
+            Subsonic-compatible client, or the{" "}
+            <MetaLink
+              href="https://docs.rocksky.app/cli/overview"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              @rocksky/cli
+            </MetaLink>
+            .{" "}
+            <MetaLink
+              href="https://docs.rocksky.app/integrations/navidrome-server"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Learn more
+            </MetaLink>
+          </div>
+        </StreamNote>
 
         <DropZone {...getRootProps()} active={isDragActive}>
           <input {...getInputProps()} />

@@ -2,6 +2,7 @@ import {
   IconCheck,
   IconCloudUpload,
   IconMusic,
+  IconServer,
   IconX,
 } from "@tabler/icons-react";
 import { useCallback, useRef, useState } from "react";
@@ -122,6 +123,48 @@ export default function UploadPage() {
         >
           <span style={{ color: "var(--color-text)", fontWeight: 600 }}>Required metadata</span>
           {" — "}Title · Artist · Album · Album artist · Duration · Album art
+        </div>
+
+        {/* Streaming info */}
+        <div
+          className="flex items-start gap-3 rounded-xl p-4 mb-5 text-sm"
+          style={{
+            backgroundColor: "color-mix(in srgb, var(--color-primary) 8%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--color-primary) 20%, transparent)",
+            color: "var(--color-text-muted)",
+          }}
+        >
+          <IconServer
+            size={18}
+            className="shrink-0 mt-0.5"
+            style={{ color: "var(--color-primary)" }}
+          />
+          <div>
+            <span style={{ color: "var(--color-text)", fontWeight: 600 }}>
+              Stream it anywhere
+            </span>
+            {" — "}Music you upload can be played through any Navidrome or
+            Subsonic-compatible client, or the{" "}
+            <a
+              href="https://docs.rocksky.app/cli/overview"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="no-underline font-semibold"
+              style={{ color: "var(--color-primary)" }}
+            >
+              @rocksky/cli
+            </a>
+            .{" "}
+            <a
+              href="https://docs.rocksky.app/integrations/navidrome-server"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="no-underline font-semibold"
+              style={{ color: "var(--color-primary)" }}
+            >
+              Learn more
+            </a>
+          </div>
         </div>
 
         {/* File picker */}

@@ -20,9 +20,10 @@ import {
   useDeleteApikeyMutation,
   useUpdateApikeyMutation,
 } from "../../hooks/useApikey";
+import { IconHelpCircle } from "@tabler/icons-react";
 import Main from "../../layouts/Main";
 import { ApiKey } from "../../types/apikey";
-import { Code, Header } from "./styles";
+import { Code, Header, HelpNote } from "./styles";
 
 const schema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -189,6 +190,20 @@ function ApiKeys() {
             New API Key
           </Button>
         </Header>
+        <HelpNote>
+          <IconHelpCircle size={16} />
+          <span>
+            Need help using your API Application keys?{" "}
+            <a
+              href="https://docs.rocksky.app/integrations"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Read the integrations guide
+            </a>
+            .
+          </span>
+        </HelpNote>
         {apiKeys.isLoading && !apiKeys.data && <ApiKeysSkeleton />}
         <TableBuilder
           data={apiKeys.data}
