@@ -10,26 +10,32 @@ import type * as AppRockskyArtistDefs from "../artist/defs";
 export interface ScrobbleViewBasic {
   /** The unique identifier of the scrobble. */
   id?: string;
-  /** The handle of the user who created the scrobble. */
-  user?: string;
-  /** The display name of the user who created the scrobble. */
-  userDisplayName?: string;
-  /** The avatar URL of the user who created the scrobble. */
-  userAvatar?: string;
+  /** The unique identifier of the track this scrobble is of. */
+  trackId?: string;
   /** The title of the scrobble. */
   title?: string;
   /** The artist of the song. */
   artist?: string;
   /** The URI of the artist. */
   artistUri?: string;
+  /** The album artist of the song. */
+  albumArtist?: string;
   /** The album of the song. */
   album?: string;
   /** The URI of the album. */
   albumUri?: string;
   /** The album art URL of the song. */
-  cover?: string;
+  albumArt?: string;
+  /** The URI of the track (song) this scrobble is of. */
+  trackUri?: string;
+  /** The handle of the user who created the scrobble. */
+  handle?: string;
+  /** The DID of the user who created the scrobble. */
+  did?: string;
+  /** The avatar URL of the user who created the scrobble. */
+  avatar?: string;
   /** The timestamp when the scrobble was created. */
-  date?: string;
+  createdAt?: string;
   /** The URI of the scrobble. */
   uri?: string;
   /** The SHA256 hash of the scrobble data. */

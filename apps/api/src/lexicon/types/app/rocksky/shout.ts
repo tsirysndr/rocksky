@@ -15,7 +15,6 @@ export interface Record {
   createdAt: string;
   parent?: ComAtprotoRepoStrongRef.Main;
   subject: ComAtprotoRepoStrongRef.Main;
-  /** An attached GIF, sticker, or clip (e.g. from KLIPY). */
   gif?: AppRockskyShoutDefs.Gif;
   /** Mentions of other actors within the message, anchored to UTF-8 byte ranges. */
   facets?: AppRockskyShoutDefs.Mention[];

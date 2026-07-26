@@ -34,6 +34,7 @@ import dropbox from "./dropbox/app";
 import googledrive from "./googledrive/app";
 import importApp from "./import/app";
 import { requestCounter, requestDuration } from "./metrics";
+import notificationsSse from "./notifications/sse";
 import storageApp from "./storage/app";
 import uploadsApp from "./uploads/app";
 import "./profiling";
@@ -98,6 +99,8 @@ app.route("/apikeys", apikeys);
 app.route("/access-tokens", accessTokensApp);
 
 app.route("/import", importApp);
+
+app.route("/notifications", notificationsSse);
 
 app.route("/public/og", opengraph);
 

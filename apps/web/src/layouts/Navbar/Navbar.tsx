@@ -24,6 +24,7 @@ import LogoLight from "../../assets/rocksky-logo-light.png";
 import WebScrobblerScreenshot from "../../assets/webscrobbler.png";
 import { IconUser, IconMenu2, IconX } from "@tabler/icons-react";
 import { displayDrawerAtom } from "../../atoms/drawer";
+import NotificationBell from "./NotificationBell";
 
 const Container = styled.div`
   position: fixed;
@@ -214,6 +215,8 @@ function Navbar() {
           )}
         </button>
       </Menu>
+
+      {profile && jwt && <NotificationBell />}
 
       {profile && jwt && (
         <StatefulPopover

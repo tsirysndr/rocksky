@@ -14,6 +14,7 @@ import LibraryArtistPage from "./pages/library/artist";
 import LibraryPlaylistPage from "./pages/library/playlist";
 import UploadPage from "./pages/library/upload";
 import Me from "./pages/me";
+import NotificationsPage from "./pages/notifications";
 import ProfilePage from "./pages/profile";
 import Recommendations from "./pages/recommendations";
 import Search from "./pages/search";
@@ -28,6 +29,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/charts" element={<Charts />} />
         <Route path="/recommendations" element={<Recommendations />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/wrapped" element={<WrappedPage />} />
         <Route path="/search" element={<Search />} />
         <Route path="/me" element={<Me />} />

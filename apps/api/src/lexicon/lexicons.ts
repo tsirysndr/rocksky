@@ -4,646 +4,6 @@
 import { type LexiconDoc, Lexicons } from "@atproto/lexicon";
 
 export const schemaDict = {
-  FmTealAlphaActorDefs: {
-    lexicon: 1,
-    id: "fm.teal.alpha.actor.defs",
-    defs: {
-      profileView: {
-        type: "object",
-        properties: {
-          did: {
-            type: "string",
-            description: "The decentralized identifier of the actor",
-          },
-          displayName: {
-            type: "string",
-          },
-          description: {
-            type: "string",
-            description: "Free-form profile description text.",
-          },
-          descriptionFacets: {
-            type: "array",
-            description:
-              "Annotations of text in the profile description (mentions, URLs, hashtags, etc). May be changed to another (backwards compatible) lexicon.",
-            items: {
-              type: "ref",
-              ref: "lex:app.bsky.richtext.facet",
-            },
-          },
-          featuredItem: {
-            type: "ref",
-            description:
-              "The user's most recent item featured on their profile.",
-            ref: "lex:fm.teal.alpha.actor.profile#featuredItem",
-          },
-          avatar: {
-            type: "string",
-            description: "IPLD of the avatar",
-          },
-          banner: {
-            type: "string",
-            description: "IPLD of the banner image",
-          },
-          status: {
-            type: "ref",
-            ref: "lex:fm.teal.alpha.actor.defs#statusView",
-          },
-          createdAt: {
-            type: "string",
-            format: "datetime",
-          },
-        },
-      },
-      miniProfileView: {
-        type: "object",
-        properties: {
-          did: {
-            type: "string",
-            description: "The decentralized identifier of the actor",
-          },
-          displayName: {
-            type: "string",
-          },
-          handle: {
-            type: "string",
-          },
-          avatar: {
-            type: "string",
-            description: "IPLD of the avatar",
-          },
-        },
-      },
-      statusView: {
-        type: "object",
-        description: "A declaration of the status of the actor.",
-        properties: {
-          time: {
-            type: "string",
-            format: "datetime",
-            description: "The unix timestamp of when the item was recorded",
-          },
-          expiry: {
-            type: "string",
-            format: "datetime",
-            description:
-              "The unix timestamp of the expiry time of the item. If unavailable, default to 10 minutes past the start time.",
-          },
-          item: {
-            type: "ref",
-            ref: "lex:fm.teal.alpha.feed.defs#playView",
-          },
-        },
-      },
-    },
-  },
-  FmTealAlphaActorGetProfile: {
-    lexicon: 1,
-    id: "fm.teal.alpha.actor.getProfile",
-    description:
-      "This lexicon is in a not officially released state. It is subject to change. | Retrieves a play given an author DID and record key.",
-    defs: {
-      main: {
-        type: "query",
-        parameters: {
-          type: "params",
-          required: ["actor"],
-          properties: {
-            actor: {
-              type: "string",
-              format: "at-identifier",
-              description: "The author's DID",
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            required: ["actor"],
-            properties: {
-              actor: {
-                type: "ref",
-                ref: "lex:fm.teal.alpha.actor.defs#profileView",
-              },
-            },
-          },
-        },
-      },
-    },
-  },
-  FmTealAlphaActorGetProfiles: {
-    lexicon: 1,
-    id: "fm.teal.alpha.actor.getProfiles",
-    description:
-      "This lexicon is in a not officially released state. It is subject to change. | Retrieves the associated profile.",
-    defs: {
-      main: {
-        type: "query",
-        parameters: {
-          type: "params",
-          required: ["actors"],
-          properties: {
-            actors: {
-              type: "array",
-              items: {
-                type: "string",
-                format: "at-identifier",
-              },
-              description: "Array of actor DIDs",
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            required: ["actors"],
-            properties: {
-              actors: {
-                type: "array",
-                items: {
-                  type: "ref",
-                  ref: "lex:fm.teal.alpha.actor.defs#miniProfileView",
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  },
-  FmTealAlphaActorProfile: {
-    lexicon: 1,
-    id: "fm.teal.alpha.actor.profile",
-    defs: {
-      main: {
-        type: "record",
-        description:
-          "This lexicon is in a not officially released state. It is subject to change. | A declaration of a teal.fm account profile.",
-        key: "literal:self",
-        record: {
-          type: "object",
-          properties: {
-            displayName: {
-              type: "string",
-              maxGraphemes: 64,
-              maxLength: 640,
-            },
-            description: {
-              type: "string",
-              description: "Free-form profile description text.",
-              maxGraphemes: 256,
-              maxLength: 2560,
-            },
-            descriptionFacets: {
-              type: "array",
-              description:
-                "Annotations of text in the profile description (mentions, URLs, hashtags, etc).",
-              items: {
-                type: "ref",
-                ref: "lex:app.bsky.richtext.facet",
-              },
-            },
-            featuredItem: {
-              type: "ref",
-              description:
-                "The user's most recent item featured on their profile.",
-              ref: "lex:fm.teal.alpha.actor.profile#featuredItem",
-            },
-            avatar: {
-              type: "blob",
-              description:
-                "Small image to be displayed next to posts from account. AKA, 'profile picture'",
-              accept: ["image/png", "image/jpeg"],
-              maxSize: 1000000,
-            },
-            banner: {
-              type: "blob",
-              description:
-                "Larger horizontal image to display behind profile view.",
-              accept: ["image/png", "image/jpeg"],
-              maxSize: 1000000,
-            },
-            createdAt: {
-              type: "string",
-              format: "datetime",
-            },
-          },
-        },
-      },
-      featuredItem: {
-        type: "object",
-        required: ["mbid", "type"],
-        properties: {
-          mbid: {
-            type: "string",
-            format: "uri",
-            description:
-              "The MusicBrainz ID URI of the item, formatted as mbid:<uuid>",
-          },
-          type: {
-            type: "string",
-            description:
-              "The type of the item. Must be a valid Musicbrainz type, e.g. album, track, recording, etc.",
-          },
-        },
-      },
-    },
-  },
-  FmTealAlphaActorSearchActors: {
-    lexicon: 1,
-    id: "fm.teal.alpha.actor.searchActors",
-    description:
-      "This lexicon is in a not officially released state. It is subject to change. | Searches for actors based on profile contents.",
-    defs: {
-      main: {
-        type: "query",
-        parameters: {
-          type: "params",
-          required: ["q"],
-          properties: {
-            q: {
-              type: "string",
-              description: "The search query",
-              maxGraphemes: 128,
-              maxLength: 640,
-            },
-            limit: {
-              type: "integer",
-              description: "The maximum number of actors to return",
-              minimum: 1,
-              maximum: 25,
-            },
-            cursor: {
-              type: "string",
-              description: "Cursor for pagination",
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            required: ["actors"],
-            properties: {
-              actors: {
-                type: "array",
-                items: {
-                  type: "ref",
-                  ref: "lex:fm.teal.alpha.actor.defs#miniProfileView",
-                },
-              },
-              cursor: {
-                type: "string",
-                description: "Cursor for pagination",
-              },
-            },
-          },
-        },
-      },
-    },
-  },
-  FmTealAlphaActorStatus: {
-    lexicon: 1,
-    id: "fm.teal.alpha.actor.status",
-    defs: {
-      main: {
-        type: "record",
-        description:
-          "This lexicon is in a not officially released state. It is subject to change. | A declaration of the status of the actor. Only one can be shown at a time. If there are multiple, the latest record should be picked and earlier records should be deleted or tombstoned.",
-        key: "literal:self",
-        record: {
-          type: "object",
-          required: ["time", "item"],
-          properties: {
-            time: {
-              type: "string",
-              format: "datetime",
-              description:
-                "The RFC 3339 formatted time of when the item was recorded",
-            },
-            expiry: {
-              type: "string",
-              format: "datetime",
-              description:
-                "The RFC 3339 formatted time of the expiry time of the item. If unavailable, default to 10 minutes past the start time.",
-            },
-            item: {
-              type: "ref",
-              ref: "lex:fm.teal.alpha.feed.defs#playView",
-            },
-          },
-        },
-      },
-    },
-  },
-  FmTealAlphaFeedDefs: {
-    lexicon: 1,
-    id: "fm.teal.alpha.feed.defs",
-    description:
-      "This lexicon is in a not officially released state. It is subject to change. | Misc. items related to feeds.",
-    defs: {
-      playView: {
-        type: "object",
-        required: ["trackName", "artists"],
-        properties: {
-          trackName: {
-            type: "string",
-            minLength: 1,
-            maxLength: 256,
-            maxGraphemes: 2560,
-            description: "The name of the track",
-          },
-          trackMbId: {
-            type: "string",
-            format: "uri",
-            description:
-              "The MusicBrainz ID URI of the track, formatted as mbid:<uuid>",
-          },
-          recordingMbId: {
-            type: "string",
-            format: "uri",
-            description:
-              "The MusicBrainz recording ID URI of the track, formatted as mbid:<uuid>",
-          },
-          duration: {
-            type: "integer",
-            description: "The length of the track in seconds",
-          },
-          artists: {
-            type: "array",
-            items: {
-              type: "ref",
-              ref: "lex:fm.teal.alpha.feed.defs#artist",
-            },
-            description: "Array of artists in order of original appearance.",
-          },
-          releaseName: {
-            type: "string",
-            maxLength: 256,
-            maxGraphemes: 2560,
-            description: "The name of the release/album",
-          },
-          releaseMbId: {
-            type: "string",
-            format: "uri",
-            description:
-              "The MusicBrainz release ID URI, formatted as mbid:<uuid>",
-          },
-          isrc: {
-            type: "string",
-            description: "The ISRC code associated with the recording",
-          },
-          originUrl: {
-            type: "string",
-            description: "The URL associated with this track",
-          },
-          musicServiceBaseDomain: {
-            type: "string",
-            description:
-              "The base domain of the music service. e.g. music.apple.com, tidal.com, spotify.com. Defaults to 'local' if not provided.",
-          },
-          submissionClientAgent: {
-            type: "string",
-            maxLength: 256,
-            maxGraphemes: 2560,
-            description:
-              "A user-agent style string specifying the user agent. e.g. tealtracker/0.0.1b (Linux; Android 13; SM-A715F). Defaults to 'manual/unknown' if not provided.",
-          },
-          playedTime: {
-            type: "string",
-            format: "datetime",
-            description: "The unix timestamp of when the track was played",
-          },
-        },
-      },
-      artist: {
-        type: "object",
-        required: ["artistName"],
-        properties: {
-          artistName: {
-            type: "string",
-            minLength: 1,
-            maxLength: 256,
-            maxGraphemes: 2560,
-            description: "The name of the artist",
-          },
-          artistMbId: {
-            type: "string",
-            format: "uri",
-            description:
-              "The MusicBrainz artist ID URI, formatted as mbid:<uuid>",
-          },
-        },
-      },
-    },
-  },
-  FmTealAlphaFeedGetActorFeed: {
-    lexicon: 1,
-    id: "fm.teal.alpha.feed.getActorFeed",
-    description:
-      "This lexicon is in a not officially released state. It is subject to change. | Retrieves multiple plays from the index or via an author's DID.",
-    defs: {
-      main: {
-        type: "query",
-        parameters: {
-          type: "params",
-          required: ["authorDID"],
-          properties: {
-            authorDID: {
-              type: "string",
-              format: "at-identifier",
-              description: "The author's DID for the play",
-            },
-            cursor: {
-              type: "string",
-              description: "The cursor to start the query from",
-            },
-            limit: {
-              type: "integer",
-              description:
-                "The upper limit of tracks to get per request. Default is 20, max is 50.",
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            required: ["plays"],
-            properties: {
-              plays: {
-                type: "array",
-                items: {
-                  type: "ref",
-                  ref: "lex:fm.teal.alpha.feed.defs#playView",
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  },
-  FmTealAlphaFeedGetPlay: {
-    lexicon: 1,
-    id: "fm.teal.alpha.feed.getPlay",
-    description:
-      "This lexicon is in a not officially released state. It is subject to change. | Retrieves a play given an author DID and record key.",
-    defs: {
-      main: {
-        type: "query",
-        parameters: {
-          type: "params",
-          required: ["authorDID", "rkey"],
-          properties: {
-            authorDID: {
-              type: "string",
-              format: "at-identifier",
-              description: "The author's DID for the play",
-            },
-            rkey: {
-              type: "string",
-              description: "The record key of the play",
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            required: ["play"],
-            properties: {
-              play: {
-                type: "ref",
-                ref: "lex:fm.teal.alpha.feed.defs#playView",
-              },
-            },
-          },
-        },
-      },
-    },
-  },
-  FmTealAlphaFeedPlay: {
-    lexicon: 1,
-    id: "fm.teal.alpha.feed.play",
-    description:
-      "This lexicon is in a not officially released state. It is subject to change. | A declaration of a teal.fm play. Plays are submitted as a result of a user listening to a track. Plays should be marked as tracked when a user has listened to the entire track if it's under 2 minutes long, or half of the track's duration up to 4 minutes, whichever is longest.",
-    defs: {
-      main: {
-        type: "record",
-        key: "tid",
-        record: {
-          type: "object",
-          required: ["trackName"],
-          properties: {
-            trackName: {
-              type: "string",
-              minLength: 1,
-              maxLength: 256,
-              maxGraphemes: 2560,
-              description: "The name of the track",
-            },
-            trackMbId: {
-              type: "string",
-              format: "uri",
-              description:
-                "The MusicBrainz ID URI of the track, formatted as mbid:<uuid>",
-            },
-            recordingMbId: {
-              type: "string",
-              format: "uri",
-              description:
-                "The MusicBrainz recording ID URI of the track, formatted as mbid:<uuid>",
-            },
-            duration: {
-              type: "integer",
-              description: "The length of the track in seconds",
-            },
-            artistNames: {
-              type: "array",
-              items: {
-                type: "string",
-                minLength: 1,
-                maxLength: 256,
-                maxGraphemes: 2560,
-              },
-              description:
-                "DEPRECATED: USE 'artists' INSTEAD. Array of artist names in order of original appearance.",
-            },
-            artistMbIds: {
-              type: "array",
-              items: {
-                type: "string",
-              },
-              description:
-                "DEPRECATED: USE 'artists' INSTEAD. Array of Musicbrainz artist IDs.",
-            },
-            artists: {
-              type: "array",
-              items: {
-                type: "ref",
-                ref: "lex:fm.teal.alpha.feed.defs#artist",
-              },
-              description: "Array of artists in order of original appearance.",
-            },
-            releaseName: {
-              type: "string",
-              maxLength: 256,
-              maxGraphemes: 2560,
-              description: "The name of the release/album",
-            },
-            releaseMbId: {
-              type: "string",
-              format: "uri",
-              description:
-                "The MusicBrainz release ID URI, formatted as mbid:<uuid>",
-            },
-            isrc: {
-              type: "string",
-              description: "The ISRC code associated with the recording",
-            },
-            originUrl: {
-              type: "string",
-              description: "The URL associated with this track",
-            },
-            musicServiceBaseDomain: {
-              type: "string",
-              description:
-                "The base domain of the music service. e.g. music.apple.com, tidal.com, spotify.com. Defaults to 'local' if unavailable or not provided.",
-            },
-            submissionClientAgent: {
-              type: "string",
-              maxLength: 256,
-              maxGraphemes: 2560,
-              description:
-                "A metadata string specifying the user agent where the format is `<app-identifier>/<version> (<kernel/OS-base>; <platform/OS-version>; <device-model>)`. If string is provided, only `app-identifier` and `version` are required. `app-identifier` is recommended to be in reverse dns format. Defaults to 'manual/unknown' if unavailable or not provided.",
-            },
-            playedTime: {
-              type: "string",
-              format: "datetime",
-              description: "The unix timestamp of when the track was played",
-            },
-            trackDiscriminant: {
-              type: "string",
-              maxLength: 128,
-              maxGraphemes: 1280,
-              description:
-                "Distinguishing information for track variants (e.g. 'Acoustic Version', 'Live at Wembley', 'Radio Edit', 'Demo'). Used to differentiate between different versions of the same base track while maintaining grouping capabilities.",
-            },
-            releaseDiscriminant: {
-              type: "string",
-              maxLength: 128,
-              maxGraphemes: 1280,
-              description:
-                "Distinguishing information for release variants (e.g. 'Deluxe Edition', 'Remastered', '2023 Remaster', 'Special Edition'). Used to differentiate between different versions of the same base release while maintaining grouping capabilities.",
-            },
-          },
-        },
-      },
-    },
-  },
   AppRockskyActorDefs: {
     lexicon: 1,
     id: "app.rocksky.actor.defs",
@@ -1614,6 +974,42 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyAlbumGetAlbumTracks: {
+    lexicon: 1,
+    id: "app.rocksky.album.getAlbumTracks",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get tracks for an album",
+        parameters: {
+          type: "params",
+          required: ["uri"],
+          properties: {
+            uri: {
+              type: "string",
+              description: "The URI of the album to retrieve tracks from",
+              format: "at-uri",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {
+              tracks: {
+                type: "array",
+                items: {
+                  type: "ref",
+                  ref: "lex:app.rocksky.song.defs#songViewBasic",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
   AppRockskyAlbumGetAlbums: {
     lexicon: 1,
     id: "app.rocksky.album.getAlbums",
@@ -1650,42 +1046,6 @@ export const schemaDict = {
                 items: {
                   type: "ref",
                   ref: "lex:app.rocksky.album.defs#albumViewBasic",
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  },
-  AppRockskyAlbumGetAlbumTracks: {
-    lexicon: 1,
-    id: "app.rocksky.album.getAlbumTracks",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get tracks for an album",
-        parameters: {
-          type: "params",
-          required: ["uri"],
-          properties: {
-            uri: {
-              type: "string",
-              description: "The URI of the album to retrieve tracks from",
-              format: "at-uri",
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {
-              tracks: {
-                type: "array",
-                items: {
-                  type: "ref",
-                  ref: "lex:app.rocksky.song.defs#songViewBasic",
                 },
               },
             },
@@ -2292,6 +1652,51 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyArtistGetArtistTracks: {
+    lexicon: 1,
+    id: "app.rocksky.artist.getArtistTracks",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get artist's tracks",
+        parameters: {
+          type: "params",
+          properties: {
+            uri: {
+              type: "string",
+              description: "The URI of the artist to retrieve albums from",
+              format: "at-uri",
+            },
+            limit: {
+              type: "integer",
+              description: "The maximum number of tracks to return",
+              minimum: 1,
+            },
+            offset: {
+              type: "integer",
+              description: "The offset for pagination",
+              minimum: 0,
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {
+              tracks: {
+                type: "array",
+                items: {
+                  type: "ref",
+                  ref: "lex:app.rocksky.song.defs#songViewBasic",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
   AppRockskyArtistGetArtists: {
     lexicon: 1,
     id: "app.rocksky.artist.getArtists",
@@ -2332,51 +1737,6 @@ export const schemaDict = {
                 items: {
                   type: "ref",
                   ref: "lex:app.rocksky.artist.defs#artistViewBasic",
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  },
-  AppRockskyArtistGetArtistTracks: {
-    lexicon: 1,
-    id: "app.rocksky.artist.getArtistTracks",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get artist's tracks",
-        parameters: {
-          type: "params",
-          properties: {
-            uri: {
-              type: "string",
-              description: "The URI of the artist to retrieve albums from",
-              format: "at-uri",
-            },
-            limit: {
-              type: "integer",
-              description: "The maximum number of tracks to return",
-              minimum: 1,
-            },
-            offset: {
-              type: "integer",
-              description: "The offset for pagination",
-              minimum: 0,
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {
-              tracks: {
-                type: "array",
-                items: {
-                  type: "ref",
-                  ref: "lex:app.rocksky.song.defs#songViewBasic",
                 },
               },
             },
@@ -3083,10 +2443,6 @@ export const schemaDict = {
       main: {
         type: "query",
         description: "Get information about a feed generator",
-        parameters: {
-          type: "params",
-          properties: {},
-        },
         output: {
           encoding: "application/json",
           schema: {
@@ -3924,6 +3280,1246 @@ export const schemaDict = {
       },
     },
   },
+  AppRockskyLibraryCreatePlaylist: {
+    lexicon: 1,
+    id: "app.rocksky.library.createPlaylist",
+    defs: {
+      main: {
+        type: "procedure",
+        description: "Create a new playlist.",
+        input: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["name"],
+            properties: {
+              name: {
+                type: "string",
+                description: "The playlist name.",
+              },
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryDeleteAlbum: {
+    lexicon: 1,
+    id: "app.rocksky.library.deleteAlbum",
+    defs: {
+      main: {
+        type: "procedure",
+        description:
+          "Delete an uploaded album owned by the authenticated user. Removes every upload the user owns for the album (storage objects + library entries); shared album/track metadata and scrobble history are preserved.",
+        input: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["id"],
+            properties: {
+              id: {
+                type: "string",
+                description:
+                  "The album id (album xata_id, as exposed by the library API).",
+              },
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["status", "deleted"],
+            properties: {
+              status: {
+                type: "string",
+                description: 'Always "ok" on success.',
+              },
+              deleted: {
+                type: "integer",
+                description: "Number of uploads deleted for the album.",
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryDeletePlaylist: {
+    lexicon: 1,
+    id: "app.rocksky.library.deletePlaylist",
+    defs: {
+      main: {
+        type: "procedure",
+        description: "Delete a playlist.",
+        input: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["id"],
+            properties: {
+              id: {
+                type: "string",
+                description: "The playlist id to delete.",
+              },
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryDeleteSong: {
+    lexicon: 1,
+    id: "app.rocksky.library.deleteSong",
+    defs: {
+      main: {
+        type: "procedure",
+        description:
+          "Delete an uploaded song owned by the authenticated user. Removes the user's upload (storage object + library entry); the shared track metadata and scrobble history are preserved.",
+        input: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["id"],
+            properties: {
+              id: {
+                type: "string",
+                description:
+                  "The song id (track xata_id, as exposed by the library API).",
+              },
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["status", "deleted"],
+            properties: {
+              status: {
+                type: "string",
+                description: 'Always "ok" on success.',
+              },
+              deleted: {
+                type: "integer",
+                description: "Number of uploads deleted (0 or 1).",
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetAlbum: {
+    lexicon: 1,
+    id: "app.rocksky.library.getAlbum",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get details for an album, including a list of songs.",
+        parameters: {
+          type: "params",
+          required: ["id"],
+          properties: {
+            id: {
+              type: "string",
+              description: "The album id",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetAlbumInfo: {
+    lexicon: 1,
+    id: "app.rocksky.library.getAlbumInfo",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get album notes, images and similar info.",
+        parameters: {
+          type: "params",
+          required: ["id"],
+          properties: {
+            id: {
+              type: "string",
+              description: "The album id",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetAlbumList: {
+    lexicon: 1,
+    id: "app.rocksky.library.getAlbumList",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get a list of albums by various criteria.",
+        parameters: {
+          type: "params",
+          required: ["type"],
+          properties: {
+            type: {
+              type: "string",
+              description:
+                "List type: newest, alphabeticalByName, alphabeticalByArtist, random, recent, byYear, byGenre, starred.",
+            },
+            size: {
+              type: "integer",
+              description: "Number of albums to return (max 500).",
+            },
+            offset: {
+              type: "integer",
+              description: "Offset for pagination.",
+              minimum: 0,
+            },
+            fromYear: {
+              type: "integer",
+              description: "First year in a byYear range.",
+            },
+            toYear: {
+              type: "integer",
+              description: "Last year in a byYear range.",
+            },
+            genre: {
+              type: "string",
+              description: "Genre name when type is byGenre.",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetArtist: {
+    lexicon: 1,
+    id: "app.rocksky.library.getArtist",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get details for an artist, including a list of albums.",
+        parameters: {
+          type: "params",
+          required: ["id"],
+          properties: {
+            id: {
+              type: "string",
+              description: "The artist id",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetArtistInfo: {
+    lexicon: 1,
+    id: "app.rocksky.library.getArtistInfo",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get artist biography, images and similar artists.",
+        parameters: {
+          type: "params",
+          required: ["id"],
+          properties: {
+            id: {
+              type: "string",
+              description: "The artist id",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetArtists: {
+    lexicon: 1,
+    id: "app.rocksky.library.getArtists",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get all artists in the library, indexed alphabetically.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetCoverArtUrl: {
+    lexicon: 1,
+    id: "app.rocksky.library.getCoverArtUrl",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get a cover-art URL for an album, artist or song.",
+        parameters: {
+          type: "params",
+          required: ["id"],
+          properties: {
+            id: {
+              type: "string",
+              description: "The cover-art id (album, artist or song).",
+            },
+            size: {
+              type: "integer",
+              description: "Requested square size in pixels.",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["url"],
+            properties: {
+              url: {
+                type: "string",
+                description: "The resolved media or cover-art URL.",
+                format: "uri",
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetDownloadUrl: {
+    lexicon: 1,
+    id: "app.rocksky.library.getDownloadUrl",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get a download URL for a song.",
+        parameters: {
+          type: "params",
+          required: ["id"],
+          properties: {
+            id: {
+              type: "string",
+              description: "The song id.",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["url"],
+            properties: {
+              url: {
+                type: "string",
+                description: "The resolved media or cover-art URL.",
+                format: "uri",
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetGenres: {
+    lexicon: 1,
+    id: "app.rocksky.library.getGenres",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get all genres in the library.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetIndexes: {
+    lexicon: 1,
+    id: "app.rocksky.library.getIndexes",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get an indexed list of all artists.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetInternetRadioStations: {
+    lexicon: 1,
+    id: "app.rocksky.library.getInternetRadioStations",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get all internet radio stations.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetLicense: {
+    lexicon: 1,
+    id: "app.rocksky.library.getLicense",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get details about the software license.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetLyrics: {
+    lexicon: 1,
+    id: "app.rocksky.library.getLyrics",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get lyrics for a song.",
+        parameters: {
+          type: "params",
+          properties: {
+            artist: {
+              type: "string",
+              description: "The artist name.",
+            },
+            title: {
+              type: "string",
+              description: "The song title.",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetMusicDirectory: {
+    lexicon: 1,
+    id: "app.rocksky.library.getMusicDirectory",
+    defs: {
+      main: {
+        type: "query",
+        description: "Browse a music directory (artist, album or root).",
+        parameters: {
+          type: "params",
+          required: ["id"],
+          properties: {
+            id: {
+              type: "string",
+              description: "The directory id",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetMusicFolders: {
+    lexicon: 1,
+    id: "app.rocksky.library.getMusicFolders",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get all configured top-level music folders.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetNowPlaying: {
+    lexicon: 1,
+    id: "app.rocksky.library.getNowPlaying",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get what the user is currently playing.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetPlayQueue: {
+    lexicon: 1,
+    id: "app.rocksky.library.getPlayQueue",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get the saved play queue for the user.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetPlaylist: {
+    lexicon: 1,
+    id: "app.rocksky.library.getPlaylist",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get a playlist and its entries.",
+        parameters: {
+          type: "params",
+          required: ["id"],
+          properties: {
+            id: {
+              type: "string",
+              description: "The playlist id",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetPlaylists: {
+    lexicon: 1,
+    id: "app.rocksky.library.getPlaylists",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get all playlists owned by the user.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetRandomSongs: {
+    lexicon: 1,
+    id: "app.rocksky.library.getRandomSongs",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get a list of random songs.",
+        parameters: {
+          type: "params",
+          properties: {
+            size: {
+              type: "integer",
+              description: "Number of songs to return (max 500).",
+            },
+            genre: {
+              type: "string",
+              description: "Only return songs in this genre.",
+            },
+            fromYear: {
+              type: "integer",
+              description: "Only return songs published after or in this year.",
+            },
+            toYear: {
+              type: "integer",
+              description:
+                "Only return songs published before or in this year.",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetScanStatus: {
+    lexicon: 1,
+    id: "app.rocksky.library.getScanStatus",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get the current status of the media library scan.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetSimilarSongs: {
+    lexicon: 1,
+    id: "app.rocksky.library.getSimilarSongs",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get songs similar to the given artist.",
+        parameters: {
+          type: "params",
+          required: ["id"],
+          properties: {
+            id: {
+              type: "string",
+              description: "The artist, album or song id",
+            },
+            count: {
+              type: "integer",
+              description: "Number of songs to return.",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetSong: {
+    lexicon: 1,
+    id: "app.rocksky.library.getSong",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get details for a single song.",
+        parameters: {
+          type: "params",
+          required: ["id"],
+          properties: {
+            id: {
+              type: "string",
+              description: "The song id",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetSongsByGenre: {
+    lexicon: 1,
+    id: "app.rocksky.library.getSongsByGenre",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get songs in a given genre.",
+        parameters: {
+          type: "params",
+          required: ["genre"],
+          properties: {
+            genre: {
+              type: "string",
+              description: "The genre name.",
+            },
+            count: {
+              type: "integer",
+              description: "Number of songs to return (max 500).",
+            },
+            offset: {
+              type: "integer",
+              description: "Offset for pagination.",
+              minimum: 0,
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetStarred: {
+    lexicon: 1,
+    id: "app.rocksky.library.getStarred",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get starred songs, albums and artists.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetStreamUrl: {
+    lexicon: 1,
+    id: "app.rocksky.library.getStreamUrl",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get a playable stream URL for a song.",
+        parameters: {
+          type: "params",
+          required: ["id"],
+          properties: {
+            id: {
+              type: "string",
+              description: "The song id.",
+            },
+            maxBitRate: {
+              type: "integer",
+              description: "Maximum bitrate (kbps); 0 means no limit.",
+            },
+            format: {
+              type: "string",
+              description: "Preferred transcode format.",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["url"],
+            properties: {
+              url: {
+                type: "string",
+                description: "The resolved media or cover-art URL.",
+                format: "uri",
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetTopSongs: {
+    lexicon: 1,
+    id: "app.rocksky.library.getTopSongs",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get the top songs for an artist.",
+        parameters: {
+          type: "params",
+          required: ["artist"],
+          properties: {
+            artist: {
+              type: "string",
+              description: "The artist name.",
+            },
+            count: {
+              type: "integer",
+              description: "Number of songs to return.",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryGetUser: {
+    lexicon: 1,
+    id: "app.rocksky.library.getUser",
+    defs: {
+      main: {
+        type: "query",
+        description: "Get details about the authenticated user.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryPing: {
+    lexicon: 1,
+    id: "app.rocksky.library.ping",
+    defs: {
+      main: {
+        type: "query",
+        description: "Test connectivity with the server.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibrarySavePlayQueue: {
+    lexicon: 1,
+    id: "app.rocksky.library.savePlayQueue",
+    defs: {
+      main: {
+        type: "procedure",
+        description: "Save the play queue for the user.",
+        input: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {
+              id: {
+                type: "string",
+                description: "Comma-separated song ids in the queue.",
+              },
+              current: {
+                type: "string",
+                description: "The id of the currently playing song.",
+              },
+              position: {
+                type: "integer",
+                description:
+                  "Position within the current song, in milliseconds.",
+              },
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryScrobble: {
+    lexicon: 1,
+    id: "app.rocksky.library.scrobble",
+    defs: {
+      main: {
+        type: "procedure",
+        description: "Register a play (scrobble) for a song.",
+        input: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["id"],
+            properties: {
+              id: {
+                type: "string",
+                description: "The song id.",
+              },
+              time: {
+                type: "integer",
+                description: "Play time as a Unix timestamp in milliseconds.",
+              },
+              submission: {
+                type: "boolean",
+                description:
+                  "True for a final submission, false for a now-playing update.",
+              },
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibrarySearch: {
+    lexicon: 1,
+    id: "app.rocksky.library.search",
+    defs: {
+      main: {
+        type: "query",
+        description: "Search for artists, albums and songs.",
+        parameters: {
+          type: "params",
+          required: ["query"],
+          properties: {
+            query: {
+              type: "string",
+              description: "The search query.",
+            },
+            artistCount: {
+              type: "integer",
+              description: "Maximum number of artists to return.",
+            },
+            artistOffset: {
+              type: "integer",
+              description: "Artist result offset.",
+              minimum: 0,
+            },
+            albumCount: {
+              type: "integer",
+              description: "Maximum number of albums to return.",
+            },
+            albumOffset: {
+              type: "integer",
+              description: "Album result offset.",
+              minimum: 0,
+            },
+            songCount: {
+              type: "integer",
+              description: "Maximum number of songs to return.",
+            },
+            songOffset: {
+              type: "integer",
+              description: "Song result offset.",
+              minimum: 0,
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryStar: {
+    lexicon: 1,
+    id: "app.rocksky.library.star",
+    defs: {
+      main: {
+        type: "procedure",
+        description: "Star a song, album or artist.",
+        input: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["id"],
+            properties: {
+              id: {
+                type: "string",
+                description: "The song id to star.",
+              },
+              albumId: {
+                type: "string",
+                description: "An album id to star.",
+              },
+              artistId: {
+                type: "string",
+                description: "An artist id to star.",
+              },
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryStartScan: {
+    lexicon: 1,
+    id: "app.rocksky.library.startScan",
+    defs: {
+      main: {
+        type: "query",
+        description: "Initiate a rescan of the media library.",
+        parameters: {
+          type: "params",
+          properties: {},
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryUnstar: {
+    lexicon: 1,
+    id: "app.rocksky.library.unstar",
+    defs: {
+      main: {
+        type: "procedure",
+        description: "Remove a star from a song, album or artist.",
+        input: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["id"],
+            properties: {
+              id: {
+                type: "string",
+                description: "The song id to unstar.",
+              },
+              albumId: {
+                type: "string",
+                description: "An album id to unstar.",
+              },
+              artistId: {
+                type: "string",
+                description: "An artist id to unstar.",
+              },
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryUpdateNowPlaying: {
+    lexicon: 1,
+    id: "app.rocksky.library.updateNowPlaying",
+    defs: {
+      main: {
+        type: "procedure",
+        description: "Update the now-playing song for the user.",
+        input: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["id"],
+            properties: {
+              id: {
+                type: "string",
+                description: "The song id.",
+              },
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
+  AppRockskyLibraryUpdatePlaylist: {
+    lexicon: 1,
+    id: "app.rocksky.library.updatePlaylist",
+    defs: {
+      main: {
+        type: "procedure",
+        description: "Update an existing playlist.",
+        input: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["playlistId"],
+            properties: {
+              playlistId: {
+                type: "string",
+                description: "The playlist id to update.",
+              },
+              name: {
+                type: "string",
+                description: "New playlist name.",
+              },
+              comment: {
+                type: "string",
+                description: "New playlist comment.",
+              },
+              songIdToAdd: {
+                type: "string",
+                description: "A song id to add to the playlist.",
+              },
+              songIndexToRemove: {
+                type: "integer",
+                description: "A track index to remove from the playlist.",
+              },
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {},
+          },
+        },
+      },
+    },
+  },
   AppRockskyLikeDislikeShout: {
     lexicon: 1,
     id: "app.rocksky.like.dislikeShout",
@@ -4184,6 +4780,204 @@ export const schemaDict = {
           schema: {
             type: "ref",
             ref: "lex:app.rocksky.mirror.defs#mirrorSourceView",
+          },
+        },
+      },
+    },
+  },
+  AppRockskyNotificationDefs: {
+    lexicon: 1,
+    id: "app.rocksky.notification.defs",
+    defs: {
+      notificationActor: {
+        type: "object",
+        description: "The user who triggered a notification.",
+        properties: {
+          id: {
+            type: "string",
+            description: "The unique identifier of the actor.",
+          },
+          did: {
+            type: "string",
+            description: "The decentralized identifier of the actor.",
+            format: "did",
+          },
+          handle: {
+            type: "string",
+            description: "The handle of the actor.",
+            format: "at-identifier",
+          },
+          displayName: {
+            type: "string",
+            description: "The display name of the actor.",
+          },
+          avatar: {
+            type: "string",
+            description: "The URL of the actor's avatar image.",
+            format: "uri",
+          },
+        },
+      },
+      notificationView: {
+        type: "object",
+        required: ["id", "type", "read", "createdAt"],
+        properties: {
+          id: {
+            type: "string",
+            description: "The unique identifier of the notification.",
+          },
+          type: {
+            type: "string",
+            description:
+              "The notification type: like_scrobble, follow, comment_scrobble, comment_profile, reply, or react_comment.",
+            knownValues: [
+              "like_scrobble",
+              "follow",
+              "comment_scrobble",
+              "comment_profile",
+              "reply",
+              "react_comment",
+            ],
+          },
+          read: {
+            type: "boolean",
+            description: "Whether the notification has been viewed.",
+          },
+          createdAt: {
+            type: "string",
+            description: "When the notification was created.",
+            format: "datetime",
+          },
+          subjectUri: {
+            type: "string",
+            description:
+              "The at-uri of the subject the notification relates to.",
+          },
+          shoutId: {
+            type: "string",
+            description: "The id of the related shout, if any.",
+          },
+          shoutContent: {
+            type: "string",
+            description: "The content of the related shout, if any.",
+          },
+          actor: {
+            type: "ref",
+            ref: "lex:app.rocksky.notification.defs#notificationActor",
+          },
+        },
+      },
+    },
+  },
+  AppRockskyNotificationGetUnreadCount: {
+    lexicon: 1,
+    id: "app.rocksky.notification.getUnreadCount",
+    defs: {
+      main: {
+        type: "query",
+        description:
+          "Get the number of unread notifications for the authenticated user.",
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["count"],
+            properties: {
+              count: {
+                type: "integer",
+                description: "The number of unread notifications.",
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyNotificationListNotifications: {
+    lexicon: 1,
+    id: "app.rocksky.notification.listNotifications",
+    defs: {
+      main: {
+        type: "query",
+        description:
+          "List notifications for the authenticated user, most recent first.",
+        parameters: {
+          type: "params",
+          properties: {
+            limit: {
+              type: "integer",
+              maximum: 100,
+              minimum: 1,
+              default: 30,
+            },
+            cursor: {
+              type: "string",
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["notifications", "unreadCount"],
+            properties: {
+              notifications: {
+                type: "array",
+                items: {
+                  type: "ref",
+                  ref: "lex:app.rocksky.notification.defs#notificationView",
+                },
+              },
+              unreadCount: {
+                type: "integer",
+                description: "The number of unread notifications.",
+              },
+              cursor: {
+                type: "string",
+                description:
+                  "A cursor value to pass to subsequent calls to get the next page of results.",
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  AppRockskyNotificationUpdateSeen: {
+    lexicon: 1,
+    id: "app.rocksky.notification.updateSeen",
+    defs: {
+      main: {
+        type: "procedure",
+        description:
+          "Mark notifications as viewed. When no ids are provided, marks all of the authenticated user's notifications as viewed.",
+        input: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            properties: {
+              ids: {
+                type: "array",
+                description:
+                  "The ids of the notifications to mark as viewed. Omit to mark all.",
+                items: {
+                  type: "string",
+                },
+              },
+            },
+          },
+        },
+        output: {
+          encoding: "application/json",
+          schema: {
+            type: "object",
+            required: ["unreadCount"],
+            properties: {
+              unreadCount: {
+                type: "integer",
+                description: "The number of unread notifications remaining.",
+              },
+            },
           },
         },
       },
@@ -5511,19 +6305,10 @@ export const schemaDict = {
             type: "string",
             description: "The unique identifier of the scrobble.",
           },
-          user: {
-            type: "string",
-            description: "The handle of the user who created the scrobble.",
-          },
-          userDisplayName: {
+          trackId: {
             type: "string",
             description:
-              "The display name of the user who created the scrobble.",
-          },
-          userAvatar: {
-            type: "string",
-            description: "The avatar URL of the user who created the scrobble.",
-            format: "uri",
+              "The unique identifier of the track this scrobble is of.",
           },
           title: {
             type: "string",
@@ -5538,6 +6323,10 @@ export const schemaDict = {
             description: "The URI of the artist.",
             format: "at-uri",
           },
+          albumArtist: {
+            type: "string",
+            description: "The album artist of the song.",
+          },
           album: {
             type: "string",
             description: "The album of the song.",
@@ -5547,12 +6336,31 @@ export const schemaDict = {
             description: "The URI of the album.",
             format: "at-uri",
           },
-          cover: {
+          albumArt: {
             type: "string",
             description: "The album art URL of the song.",
             format: "uri",
           },
-          date: {
+          trackUri: {
+            type: "string",
+            description: "The URI of the track (song) this scrobble is of.",
+            format: "at-uri",
+          },
+          handle: {
+            type: "string",
+            description: "The handle of the user who created the scrobble.",
+          },
+          did: {
+            type: "string",
+            description: "The DID of the user who created the scrobble.",
+            format: "at-identifier",
+          },
+          avatar: {
+            type: "string",
+            description: "The avatar URL of the user who created the scrobble.",
+            format: "uri",
+          },
+          createdAt: {
             type: "string",
             description: "The timestamp when the scrobble was created.",
             format: "datetime",
@@ -7693,262 +8501,280 @@ export const schemaDict = {
       },
     },
   },
-  AppRockskyLibraryCreatePlaylist: {
+  FmTealAlphaActorDefs: {
     lexicon: 1,
-    id: "app.rocksky.library.createPlaylist",
+    id: "fm.teal.alpha.actor.defs",
+    defs: {
+      profileView: {
+        type: "object",
+        properties: {
+          did: {
+            type: "string",
+            description: "The decentralized identifier of the actor",
+          },
+          displayName: {
+            type: "string",
+          },
+          description: {
+            type: "string",
+            description: "Free-form profile description text.",
+          },
+          descriptionFacets: {
+            type: "array",
+            description:
+              "Annotations of text in the profile description (mentions, URLs, hashtags, etc). May be changed to another (backwards compatible) lexicon.",
+            items: {
+              type: "ref",
+              ref: "lex:app.bsky.richtext.facet",
+            },
+          },
+          featuredItem: {
+            type: "ref",
+            description:
+              "The user's most recent item featured on their profile.",
+            ref: "lex:fm.teal.alpha.actor.profile#featuredItem",
+          },
+          avatar: {
+            type: "string",
+            description: "IPLD of the avatar",
+          },
+          banner: {
+            type: "string",
+            description: "IPLD of the banner image",
+          },
+          status: {
+            type: "ref",
+            ref: "lex:fm.teal.alpha.actor.defs#statusView",
+          },
+          createdAt: {
+            type: "string",
+            format: "datetime",
+          },
+        },
+      },
+      miniProfileView: {
+        type: "object",
+        properties: {
+          did: {
+            type: "string",
+            description: "The decentralized identifier of the actor",
+          },
+          displayName: {
+            type: "string",
+          },
+          handle: {
+            type: "string",
+          },
+          avatar: {
+            type: "string",
+            description: "IPLD of the avatar",
+          },
+        },
+      },
+      statusView: {
+        type: "object",
+        description: "A declaration of the status of the actor.",
+        properties: {
+          time: {
+            type: "string",
+            format: "datetime",
+            description: "The unix timestamp of when the item was recorded",
+          },
+          expiry: {
+            type: "string",
+            format: "datetime",
+            description:
+              "The unix timestamp of the expiry time of the item. If unavailable, default to 10 minutes past the start time.",
+          },
+          item: {
+            type: "ref",
+            ref: "lex:fm.teal.alpha.feed.defs#playView",
+          },
+        },
+      },
+    },
+  },
+  FmTealAlphaActorGetProfile: {
+    lexicon: 1,
+    id: "fm.teal.alpha.actor.getProfile",
+    description:
+      "This lexicon is in a not officially released state. It is subject to change. | Retrieves a play given an author DID and record key.",
     defs: {
       main: {
-        type: "procedure",
-        description: "Create a new playlist.",
-        input: {
+        type: "query",
+        parameters: {
+          type: "params",
+          required: ["actor"],
+          properties: {
+            actor: {
+              type: "string",
+              format: "at-identifier",
+              description: "The author's DID",
+            },
+          },
+        },
+        output: {
           encoding: "application/json",
           schema: {
             type: "object",
-            required: ["name"],
+            required: ["actor"],
             properties: {
-              name: {
-                type: "string",
-                description: "The playlist name.",
+              actor: {
+                type: "ref",
+                ref: "lex:fm.teal.alpha.actor.defs#profileView",
               },
             },
           },
         },
+      },
+    },
+  },
+  FmTealAlphaActorGetProfiles: {
+    lexicon: 1,
+    id: "fm.teal.alpha.actor.getProfiles",
+    description:
+      "This lexicon is in a not officially released state. It is subject to change. | Retrieves the associated profile.",
+    defs: {
+      main: {
+        type: "query",
+        parameters: {
+          type: "params",
+          required: ["actors"],
+          properties: {
+            actors: {
+              type: "array",
+              items: {
+                type: "string",
+                format: "at-identifier",
+              },
+              description: "Array of actor DIDs",
+            },
+          },
+        },
         output: {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryDeletePlaylist: {
-    lexicon: 1,
-    id: "app.rocksky.library.deletePlaylist",
-    defs: {
-      main: {
-        type: "procedure",
-        description: "Delete a playlist.",
-        input: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            required: ["id"],
+            required: ["actors"],
             properties: {
-              id: {
-                type: "string",
-                description: "The playlist id to delete.",
+              actors: {
+                type: "array",
+                items: {
+                  type: "ref",
+                  ref: "lex:fm.teal.alpha.actor.defs#miniProfileView",
+                },
               },
             },
           },
         },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
       },
     },
   },
-  AppRockskyLibraryGetAlbum: {
+  FmTealAlphaActorProfile: {
     lexicon: 1,
-    id: "app.rocksky.library.getAlbum",
+    id: "fm.teal.alpha.actor.profile",
     defs: {
       main: {
-        type: "query",
-        description: "Get details for an album, including a list of songs.",
-        parameters: {
-          type: "params",
-          required: ["id"],
+        type: "record",
+        description:
+          "This lexicon is in a not officially released state. It is subject to change. | A declaration of a teal.fm account profile.",
+        key: "literal:self",
+        record: {
+          type: "object",
           properties: {
-            id: {
+            displayName: {
               type: "string",
-              description: "The album id",
+              maxGraphemes: 64,
+              maxLength: 640,
             },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryGetAlbumInfo: {
-    lexicon: 1,
-    id: "app.rocksky.library.getAlbumInfo",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get album notes, images and similar info.",
-        parameters: {
-          type: "params",
-          required: ["id"],
-          properties: {
-            id: {
+            description: {
               type: "string",
-              description: "The album id",
+              description: "Free-form profile description text.",
+              maxGraphemes: 256,
+              maxLength: 2560,
             },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryGetAlbumList: {
-    lexicon: 1,
-    id: "app.rocksky.library.getAlbumList",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get a list of albums by various criteria.",
-        parameters: {
-          type: "params",
-          required: ["type"],
-          properties: {
-            type: {
-              type: "string",
+            descriptionFacets: {
+              type: "array",
               description:
-                "List type: newest, alphabeticalByName, alphabeticalByArtist, random, recent, byYear, byGenre, starred.",
+                "Annotations of text in the profile description (mentions, URLs, hashtags, etc).",
+              items: {
+                type: "ref",
+                ref: "lex:app.bsky.richtext.facet",
+              },
             },
-            size: {
-              type: "integer",
-              description: "Number of albums to return (max 500).",
+            featuredItem: {
+              type: "ref",
+              description:
+                "The user's most recent item featured on their profile.",
+              ref: "lex:fm.teal.alpha.actor.profile#featuredItem",
             },
-            offset: {
-              type: "integer",
-              description: "Offset for pagination.",
-              minimum: 0,
+            avatar: {
+              type: "blob",
+              description:
+                "Small image to be displayed next to posts from account. AKA, 'profile picture'",
+              accept: ["image/png", "image/jpeg"],
+              maxSize: 1000000,
             },
-            fromYear: {
-              type: "integer",
-              description: "First year in a byYear range.",
+            banner: {
+              type: "blob",
+              description:
+                "Larger horizontal image to display behind profile view.",
+              accept: ["image/png", "image/jpeg"],
+              maxSize: 1000000,
             },
-            toYear: {
-              type: "integer",
-              description: "Last year in a byYear range.",
-            },
-            genre: {
+            createdAt: {
               type: "string",
-              description: "Genre name when type is byGenre.",
+              format: "datetime",
             },
           },
         },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
+      },
+      featuredItem: {
+        type: "object",
+        required: ["mbid", "type"],
+        properties: {
+          mbid: {
+            type: "string",
+            format: "uri",
+            description:
+              "The MusicBrainz ID URI of the item, formatted as mbid:<uuid>",
+          },
+          type: {
+            type: "string",
+            description:
+              "The type of the item. Must be a valid Musicbrainz type, e.g. album, track, recording, etc.",
           },
         },
       },
     },
   },
-  AppRockskyLibraryGetArtist: {
+  FmTealAlphaActorSearchActors: {
     lexicon: 1,
-    id: "app.rocksky.library.getArtist",
+    id: "fm.teal.alpha.actor.searchActors",
+    description:
+      "This lexicon is in a not officially released state. It is subject to change. | Searches for actors based on profile contents.",
     defs: {
       main: {
         type: "query",
-        description: "Get details for an artist, including a list of albums.",
         parameters: {
           type: "params",
-          required: ["id"],
+          required: ["q"],
           properties: {
-            id: {
+            q: {
               type: "string",
-              description: "The artist id",
+              description: "The search query",
+              maxGraphemes: 128,
+              maxLength: 640,
             },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryGetArtistInfo: {
-    lexicon: 1,
-    id: "app.rocksky.library.getArtistInfo",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get artist biography, images and similar artists.",
-        parameters: {
-          type: "params",
-          required: ["id"],
-          properties: {
-            id: {
-              type: "string",
-              description: "The artist id",
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryGetArtists: {
-    lexicon: 1,
-    id: "app.rocksky.library.getArtists",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get all artists in the library, indexed alphabetically.",
-        parameters: {
-          type: "params",
-          properties: {},
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryGetCoverArtUrl: {
-    lexicon: 1,
-    id: "app.rocksky.library.getCoverArtUrl",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get a cover-art URL for an album, artist or song.",
-        parameters: {
-          type: "params",
-          required: ["id"],
-          properties: {
-            id: {
-              type: "string",
-              description: "The cover-art id (album, artist or song).",
-            },
-            size: {
+            limit: {
               type: "integer",
-              description: "Requested square size in pixels.",
+              description: "The maximum number of actors to return",
+              minimum: 1,
+              maximum: 25,
+            },
+            cursor: {
+              type: "string",
+              description: "Cursor for pagination",
             },
           },
         },
@@ -7956,12 +8782,18 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            required: ["url"],
+            required: ["actors"],
             properties: {
-              url: {
+              actors: {
+                type: "array",
+                items: {
+                  type: "ref",
+                  ref: "lex:fm.teal.alpha.actor.defs#miniProfileView",
+                },
+              },
+              cursor: {
                 type: "string",
-                description: "The resolved media or cover-art URL.",
-                format: "uri",
+                description: "Cursor for pagination",
               },
             },
           },
@@ -7969,318 +8801,166 @@ export const schemaDict = {
       },
     },
   },
-  AppRockskyLibraryGetDownloadUrl: {
+  FmTealAlphaActorStatus: {
     lexicon: 1,
-    id: "app.rocksky.library.getDownloadUrl",
+    id: "fm.teal.alpha.actor.status",
     defs: {
       main: {
-        type: "query",
-        description: "Get a download URL for a song.",
-        parameters: {
-          type: "params",
-          required: ["id"],
+        type: "record",
+        description:
+          "This lexicon is in a not officially released state. It is subject to change. | A declaration of the status of the actor. Only one can be shown at a time. If there are multiple, the latest record should be picked and earlier records should be deleted or tombstoned.",
+        key: "literal:self",
+        record: {
+          type: "object",
+          required: ["time", "item"],
           properties: {
-            id: {
+            time: {
               type: "string",
-              description: "The song id.",
+              format: "datetime",
+              description:
+                "The RFC 3339 formatted time of when the item was recorded",
+            },
+            expiry: {
+              type: "string",
+              format: "datetime",
+              description:
+                "The RFC 3339 formatted time of the expiry time of the item. If unavailable, default to 10 minutes past the start time.",
+            },
+            item: {
+              type: "ref",
+              ref: "lex:fm.teal.alpha.feed.defs#playView",
             },
           },
         },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            required: ["url"],
-            properties: {
-              url: {
-                type: "string",
-                description: "The resolved media or cover-art URL.",
-                format: "uri",
-              },
+      },
+    },
+  },
+  FmTealAlphaFeedDefs: {
+    lexicon: 1,
+    id: "fm.teal.alpha.feed.defs",
+    description:
+      "This lexicon is in a not officially released state. It is subject to change. | Misc. items related to feeds.",
+    defs: {
+      playView: {
+        type: "object",
+        required: ["trackName", "artists"],
+        properties: {
+          trackName: {
+            type: "string",
+            minLength: 1,
+            maxLength: 256,
+            maxGraphemes: 2560,
+            description: "The name of the track",
+          },
+          trackMbId: {
+            type: "string",
+            format: "uri",
+            description:
+              "The MusicBrainz ID URI of the track, formatted as mbid:<uuid>",
+          },
+          recordingMbId: {
+            type: "string",
+            format: "uri",
+            description:
+              "The MusicBrainz recording ID URI of the track, formatted as mbid:<uuid>",
+          },
+          duration: {
+            type: "integer",
+            description: "The length of the track in seconds",
+          },
+          artists: {
+            type: "array",
+            items: {
+              type: "ref",
+              ref: "lex:fm.teal.alpha.feed.defs#artist",
             },
+            description: "Array of artists in order of original appearance.",
+          },
+          releaseName: {
+            type: "string",
+            maxLength: 256,
+            maxGraphemes: 2560,
+            description: "The name of the release/album",
+          },
+          releaseMbId: {
+            type: "string",
+            format: "uri",
+            description:
+              "The MusicBrainz release ID URI, formatted as mbid:<uuid>",
+          },
+          isrc: {
+            type: "string",
+            description: "The ISRC code associated with the recording",
+          },
+          originUrl: {
+            type: "string",
+            description: "The URL associated with this track",
+          },
+          musicServiceBaseDomain: {
+            type: "string",
+            description:
+              "The base domain of the music service. e.g. music.apple.com, tidal.com, spotify.com. Defaults to 'local' if not provided.",
+          },
+          submissionClientAgent: {
+            type: "string",
+            maxLength: 256,
+            maxGraphemes: 2560,
+            description:
+              "A user-agent style string specifying the user agent. e.g. tealtracker/0.0.1b (Linux; Android 13; SM-A715F). Defaults to 'manual/unknown' if not provided.",
+          },
+          playedTime: {
+            type: "string",
+            format: "datetime",
+            description: "The unix timestamp of when the track was played",
+          },
+        },
+      },
+      artist: {
+        type: "object",
+        required: ["artistName"],
+        properties: {
+          artistName: {
+            type: "string",
+            minLength: 1,
+            maxLength: 256,
+            maxGraphemes: 2560,
+            description: "The name of the artist",
+          },
+          artistMbId: {
+            type: "string",
+            format: "uri",
+            description:
+              "The MusicBrainz artist ID URI, formatted as mbid:<uuid>",
           },
         },
       },
     },
   },
-  AppRockskyLibraryGetGenres: {
+  FmTealAlphaFeedGetActorFeed: {
     lexicon: 1,
-    id: "app.rocksky.library.getGenres",
+    id: "fm.teal.alpha.feed.getActorFeed",
+    description:
+      "This lexicon is in a not officially released state. It is subject to change. | Retrieves multiple plays from the index or via an author's DID.",
     defs: {
       main: {
         type: "query",
-        description: "Get all genres in the library.",
         parameters: {
           type: "params",
-          properties: {},
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryGetIndexes: {
-    lexicon: 1,
-    id: "app.rocksky.library.getIndexes",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get an indexed list of all artists.",
-        parameters: {
-          type: "params",
-          properties: {},
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryGetInternetRadioStations: {
-    lexicon: 1,
-    id: "app.rocksky.library.getInternetRadioStations",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get all internet radio stations.",
-        parameters: {
-          type: "params",
-          properties: {},
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryGetLicense: {
-    lexicon: 1,
-    id: "app.rocksky.library.getLicense",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get details about the software license.",
-        parameters: {
-          type: "params",
-          properties: {},
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryGetLyrics: {
-    lexicon: 1,
-    id: "app.rocksky.library.getLyrics",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get lyrics for a song.",
-        parameters: {
-          type: "params",
+          required: ["authorDID"],
           properties: {
-            artist: {
+            authorDID: {
               type: "string",
-              description: "The artist name.",
+              format: "at-identifier",
+              description: "The author's DID for the play",
             },
-            title: {
+            cursor: {
               type: "string",
-              description: "The song title.",
+              description: "The cursor to start the query from",
             },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryGetMusicDirectory: {
-    lexicon: 1,
-    id: "app.rocksky.library.getMusicDirectory",
-    defs: {
-      main: {
-        type: "query",
-        description: "Browse a music directory (artist, album or root).",
-        parameters: {
-          type: "params",
-          required: ["id"],
-          properties: {
-            id: {
-              type: "string",
-              description: "The directory id",
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryGetMusicFolders: {
-    lexicon: 1,
-    id: "app.rocksky.library.getMusicFolders",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get all configured top-level music folders.",
-        parameters: {
-          type: "params",
-          properties: {},
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryGetNowPlaying: {
-    lexicon: 1,
-    id: "app.rocksky.library.getNowPlaying",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get what the user is currently playing.",
-        parameters: {
-          type: "params",
-          properties: {},
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryGetPlaylist: {
-    lexicon: 1,
-    id: "app.rocksky.library.getPlaylist",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get a playlist and its entries.",
-        parameters: {
-          type: "params",
-          required: ["id"],
-          properties: {
-            id: {
-              type: "string",
-              description: "The playlist id",
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryGetPlaylists: {
-    lexicon: 1,
-    id: "app.rocksky.library.getPlaylists",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get all playlists owned by the user.",
-        parameters: {
-          type: "params",
-          properties: {},
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryGetPlayQueue: {
-    lexicon: 1,
-    id: "app.rocksky.library.getPlayQueue",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get the saved play queue for the user.",
-        parameters: {
-          type: "params",
-          properties: {},
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryGetRandomSongs: {
-    lexicon: 1,
-    id: "app.rocksky.library.getRandomSongs",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get a list of random songs.",
-        parameters: {
-          type: "params",
-          properties: {
-            size: {
-              type: "integer",
-              description: "Number of songs to return (max 500).",
-            },
-            genre: {
-              type: "string",
-              description: "Only return songs in this genre.",
-            },
-            fromYear: {
-              type: "integer",
-              description: "Only return songs published after or in this year.",
-            },
-            toYear: {
+            limit: {
               type: "integer",
               description:
-                "Only return songs published before or in this year.",
+                "The upper limit of tracks to get per request. Default is 20, max is 50.",
             },
           },
         },
@@ -8288,51 +8968,41 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            required: ["plays"],
+            properties: {
+              plays: {
+                type: "array",
+                items: {
+                  type: "ref",
+                  ref: "lex:fm.teal.alpha.feed.defs#playView",
+                },
+              },
+            },
           },
         },
       },
     },
   },
-  AppRockskyLibraryGetScanStatus: {
+  FmTealAlphaFeedGetPlay: {
     lexicon: 1,
-    id: "app.rocksky.library.getScanStatus",
+    id: "fm.teal.alpha.feed.getPlay",
+    description:
+      "This lexicon is in a not officially released state. It is subject to change. | Retrieves a play given an author DID and record key.",
     defs: {
       main: {
         type: "query",
-        description: "Get the current status of the media library scan.",
         parameters: {
           type: "params",
-          properties: {},
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryGetSimilarSongs: {
-    lexicon: 1,
-    id: "app.rocksky.library.getSimilarSongs",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get songs similar to the given artist.",
-        parameters: {
-          type: "params",
-          required: ["id"],
+          required: ["authorDID", "rkey"],
           properties: {
-            id: {
+            authorDID: {
               type: "string",
-              description: "The artist, album or song id",
+              format: "at-identifier",
+              description: "The author's DID for the play",
             },
-            count: {
-              type: "integer",
-              description: "Number of songs to return.",
+            rkey: {
+              type: "string",
+              description: "The record key of the play",
             },
           },
         },
@@ -8340,593 +9010,131 @@ export const schemaDict = {
           encoding: "application/json",
           schema: {
             type: "object",
-            properties: {},
+            required: ["play"],
+            properties: {
+              play: {
+                type: "ref",
+                ref: "lex:fm.teal.alpha.feed.defs#playView",
+              },
+            },
           },
         },
       },
     },
   },
-  AppRockskyLibraryGetSong: {
+  FmTealAlphaFeedPlay: {
     lexicon: 1,
-    id: "app.rocksky.library.getSong",
+    id: "fm.teal.alpha.feed.play",
+    description:
+      "This lexicon is in a not officially released state. It is subject to change. | A declaration of a teal.fm play. Plays are submitted as a result of a user listening to a track. Plays should be marked as tracked when a user has listened to the entire track if it's under 2 minutes long, or half of the track's duration up to 4 minutes, whichever is longest.",
     defs: {
       main: {
-        type: "query",
-        description: "Get details for a single song.",
-        parameters: {
-          type: "params",
-          required: ["id"],
+        type: "record",
+        key: "tid",
+        record: {
+          type: "object",
+          required: ["trackName"],
           properties: {
-            id: {
+            trackName: {
               type: "string",
-              description: "The song id",
+              minLength: 1,
+              maxLength: 256,
+              maxGraphemes: 2560,
+              description: "The name of the track",
             },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryGetSongsByGenre: {
-    lexicon: 1,
-    id: "app.rocksky.library.getSongsByGenre",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get songs in a given genre.",
-        parameters: {
-          type: "params",
-          required: ["genre"],
-          properties: {
-            genre: {
+            trackMbId: {
               type: "string",
-              description: "The genre name.",
+              format: "uri",
+              description:
+                "The MusicBrainz ID URI of the track, formatted as mbid:<uuid>",
             },
-            count: {
-              type: "integer",
-              description: "Number of songs to return (max 500).",
-            },
-            offset: {
-              type: "integer",
-              description: "Offset for pagination.",
-              minimum: 0,
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryGetStarred: {
-    lexicon: 1,
-    id: "app.rocksky.library.getStarred",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get starred songs, albums and artists.",
-        parameters: {
-          type: "params",
-          properties: {},
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryGetStreamUrl: {
-    lexicon: 1,
-    id: "app.rocksky.library.getStreamUrl",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get a playable stream URL for a song.",
-        parameters: {
-          type: "params",
-          required: ["id"],
-          properties: {
-            id: {
+            recordingMbId: {
               type: "string",
-              description: "The song id.",
+              format: "uri",
+              description:
+                "The MusicBrainz recording ID URI of the track, formatted as mbid:<uuid>",
             },
-            maxBitRate: {
+            duration: {
               type: "integer",
-              description: "Maximum bitrate (kbps); 0 means no limit.",
+              description: "The length of the track in seconds",
             },
-            format: {
+            artistNames: {
+              type: "array",
+              items: {
+                type: "string",
+                minLength: 1,
+                maxLength: 256,
+                maxGraphemes: 2560,
+              },
+              description:
+                "DEPRECATED: USE 'artists' INSTEAD. Array of artist names in order of original appearance.",
+            },
+            artistMbIds: {
+              type: "array",
+              items: {
+                type: "string",
+              },
+              description:
+                "DEPRECATED: USE 'artists' INSTEAD. Array of Musicbrainz artist IDs.",
+            },
+            artists: {
+              type: "array",
+              items: {
+                type: "ref",
+                ref: "lex:fm.teal.alpha.feed.defs#artist",
+              },
+              description: "Array of artists in order of original appearance.",
+            },
+            releaseName: {
               type: "string",
-              description: "Preferred transcode format.",
+              maxLength: 256,
+              maxGraphemes: 2560,
+              description: "The name of the release/album",
             },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            required: ["url"],
-            properties: {
-              url: {
-                type: "string",
-                description: "The resolved media or cover-art URL.",
-                format: "uri",
-              },
-            },
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryGetTopSongs: {
-    lexicon: 1,
-    id: "app.rocksky.library.getTopSongs",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get the top songs for an artist.",
-        parameters: {
-          type: "params",
-          required: ["artist"],
-          properties: {
-            artist: {
+            releaseMbId: {
               type: "string",
-              description: "The artist name.",
+              format: "uri",
+              description:
+                "The MusicBrainz release ID URI, formatted as mbid:<uuid>",
             },
-            count: {
-              type: "integer",
-              description: "Number of songs to return.",
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryGetUser: {
-    lexicon: 1,
-    id: "app.rocksky.library.getUser",
-    defs: {
-      main: {
-        type: "query",
-        description: "Get details about the authenticated user.",
-        parameters: {
-          type: "params",
-          properties: {},
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryPing: {
-    lexicon: 1,
-    id: "app.rocksky.library.ping",
-    defs: {
-      main: {
-        type: "query",
-        description: "Test connectivity with the server.",
-        parameters: {
-          type: "params",
-          properties: {},
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibrarySavePlayQueue: {
-    lexicon: 1,
-    id: "app.rocksky.library.savePlayQueue",
-    defs: {
-      main: {
-        type: "procedure",
-        description: "Save the play queue for the user.",
-        input: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {
-              id: {
-                type: "string",
-                description: "Comma-separated song ids in the queue.",
-              },
-              current: {
-                type: "string",
-                description: "The id of the currently playing song.",
-              },
-              position: {
-                type: "integer",
-                description:
-                  "Position within the current song, in milliseconds.",
-              },
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryScrobble: {
-    lexicon: 1,
-    id: "app.rocksky.library.scrobble",
-    defs: {
-      main: {
-        type: "procedure",
-        description: "Register a play (scrobble) for a song.",
-        input: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            required: ["id"],
-            properties: {
-              id: {
-                type: "string",
-                description: "The song id.",
-              },
-              time: {
-                type: "integer",
-                description: "Play time as a Unix timestamp in milliseconds.",
-              },
-              submission: {
-                type: "boolean",
-                description:
-                  "True for a final submission, false for a now-playing update.",
-              },
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibrarySearch: {
-    lexicon: 1,
-    id: "app.rocksky.library.search",
-    defs: {
-      main: {
-        type: "query",
-        description: "Search for artists, albums and songs.",
-        parameters: {
-          type: "params",
-          required: ["query"],
-          properties: {
-            query: {
+            isrc: {
               type: "string",
-              description: "The search query.",
+              description: "The ISRC code associated with the recording",
             },
-            artistCount: {
-              type: "integer",
-              description: "Maximum number of artists to return.",
+            originUrl: {
+              type: "string",
+              description: "The URL associated with this track",
             },
-            artistOffset: {
-              type: "integer",
-              description: "Artist result offset.",
-              minimum: 0,
+            musicServiceBaseDomain: {
+              type: "string",
+              description:
+                "The base domain of the music service. e.g. music.apple.com, tidal.com, spotify.com. Defaults to 'local' if unavailable or not provided.",
             },
-            albumCount: {
-              type: "integer",
-              description: "Maximum number of albums to return.",
+            submissionClientAgent: {
+              type: "string",
+              maxLength: 256,
+              maxGraphemes: 2560,
+              description:
+                "A metadata string specifying the user agent where the format is `<app-identifier>/<version> (<kernel/OS-base>; <platform/OS-version>; <device-model>)`. If string is provided, only `app-identifier` and `version` are required. `app-identifier` is recommended to be in reverse dns format. Defaults to 'manual/unknown' if unavailable or not provided.",
             },
-            albumOffset: {
-              type: "integer",
-              description: "Album result offset.",
-              minimum: 0,
+            playedTime: {
+              type: "string",
+              format: "datetime",
+              description: "The unix timestamp of when the track was played",
             },
-            songCount: {
-              type: "integer",
-              description: "Maximum number of songs to return.",
+            trackDiscriminant: {
+              type: "string",
+              maxLength: 128,
+              maxGraphemes: 1280,
+              description:
+                "Distinguishing information for track variants (e.g. 'Acoustic Version', 'Live at Wembley', 'Radio Edit', 'Demo'). Used to differentiate between different versions of the same base track while maintaining grouping capabilities.",
             },
-            songOffset: {
-              type: "integer",
-              description: "Song result offset.",
-              minimum: 0,
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryStar: {
-    lexicon: 1,
-    id: "app.rocksky.library.star",
-    defs: {
-      main: {
-        type: "procedure",
-        description: "Star a song, album or artist.",
-        input: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            required: ["id"],
-            properties: {
-              id: {
-                type: "string",
-                description: "The song id to star.",
-              },
-              albumId: {
-                type: "string",
-                description: "An album id to star.",
-              },
-              artistId: {
-                type: "string",
-                description: "An artist id to star.",
-              },
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryStartScan: {
-    lexicon: 1,
-    id: "app.rocksky.library.startScan",
-    defs: {
-      main: {
-        type: "query",
-        description: "Initiate a rescan of the media library.",
-        parameters: {
-          type: "params",
-          properties: {},
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryUnstar: {
-    lexicon: 1,
-    id: "app.rocksky.library.unstar",
-    defs: {
-      main: {
-        type: "procedure",
-        description: "Remove a star from a song, album or artist.",
-        input: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            required: ["id"],
-            properties: {
-              id: {
-                type: "string",
-                description: "The song id to unstar.",
-              },
-              albumId: {
-                type: "string",
-                description: "An album id to unstar.",
-              },
-              artistId: {
-                type: "string",
-                description: "An artist id to unstar.",
-              },
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryUpdateNowPlaying: {
-    lexicon: 1,
-    id: "app.rocksky.library.updateNowPlaying",
-    defs: {
-      main: {
-        type: "procedure",
-        description: "Update the now-playing song for the user.",
-        input: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            required: ["id"],
-            properties: {
-              id: {
-                type: "string",
-                description: "The song id.",
-              },
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryUpdatePlaylist: {
-    lexicon: 1,
-    id: "app.rocksky.library.updatePlaylist",
-    defs: {
-      main: {
-        type: "procedure",
-        description: "Update an existing playlist.",
-        input: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            required: ["playlistId"],
-            properties: {
-              playlistId: {
-                type: "string",
-                description: "The playlist id to update.",
-              },
-              name: {
-                type: "string",
-                description: "New playlist name.",
-              },
-              comment: {
-                type: "string",
-                description: "New playlist comment.",
-              },
-              songIdToAdd: {
-                type: "string",
-                description: "A song id to add to the playlist.",
-              },
-              songIndexToRemove: {
-                type: "integer",
-                description: "A track index to remove from the playlist.",
-              },
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            properties: {},
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryDeleteAlbum: {
-    lexicon: 1,
-    id: "app.rocksky.library.deleteAlbum",
-    defs: {
-      main: {
-        type: "procedure",
-        description:
-          "Delete an uploaded album owned by the authenticated user. Removes every upload the user owns for the album (storage objects + library entries); shared album/track metadata and scrobble history are preserved.",
-        input: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            required: ["id"],
-            properties: {
-              id: {
-                type: "string",
-                description:
-                  "The album id (album xata_id, as exposed by the library API).",
-              },
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            required: ["status", "deleted"],
-            properties: {
-              status: {
-                type: "string",
-                description: 'Always "ok" on success.',
-              },
-              deleted: {
-                type: "integer",
-                description: "Number of uploads deleted for the album.",
-              },
-            },
-          },
-        },
-      },
-    },
-  },
-  AppRockskyLibraryDeleteSong: {
-    lexicon: 1,
-    id: "app.rocksky.library.deleteSong",
-    defs: {
-      main: {
-        type: "procedure",
-        description:
-          "Delete an uploaded song owned by the authenticated user. Removes the user's upload (storage object + library entry); the shared track metadata and scrobble history are preserved.",
-        input: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            required: ["id"],
-            properties: {
-              id: {
-                type: "string",
-                description:
-                  "The song id (track xata_id, as exposed by the library API).",
-              },
-            },
-          },
-        },
-        output: {
-          encoding: "application/json",
-          schema: {
-            type: "object",
-            required: ["status", "deleted"],
-            properties: {
-              status: {
-                type: "string",
-                description: 'Always "ok" on success.',
-              },
-              deleted: {
-                type: "integer",
-                description: "Number of uploads deleted (0 or 1).",
-              },
+            releaseDiscriminant: {
+              type: "string",
+              maxLength: 128,
+              maxGraphemes: 1280,
+              description:
+                "Distinguishing information for release variants (e.g. 'Deluxe Edition', 'Remastered', '2023 Remaster', 'Special Edition'). Used to differentiate between different versions of the same base release while maintaining grouping capabilities.",
             },
           },
         },
@@ -8938,16 +9146,6 @@ export const schemaDict = {
 export const schemas = Object.values(schemaDict);
 export const lexicons: Lexicons = new Lexicons(schemas);
 export const ids = {
-  FmTealAlphaActorDefs: "fm.teal.alpha.actor.defs",
-  FmTealAlphaActorGetProfile: "fm.teal.alpha.actor.getProfile",
-  FmTealAlphaActorGetProfiles: "fm.teal.alpha.actor.getProfiles",
-  FmTealAlphaActorProfile: "fm.teal.alpha.actor.profile",
-  FmTealAlphaActorSearchActors: "fm.teal.alpha.actor.searchActors",
-  FmTealAlphaActorStatus: "fm.teal.alpha.actor.status",
-  FmTealAlphaFeedDefs: "fm.teal.alpha.feed.defs",
-  FmTealAlphaFeedGetActorFeed: "fm.teal.alpha.feed.getActorFeed",
-  FmTealAlphaFeedGetPlay: "fm.teal.alpha.feed.getPlay",
-  FmTealAlphaFeedPlay: "fm.teal.alpha.feed.play",
   AppRockskyActorDefs: "app.rocksky.actor.defs",
   AppRockskyActorGetActorAlbums: "app.rocksky.actor.getActorAlbums",
   AppRockskyActorGetActorArtists: "app.rocksky.actor.getActorArtists",
@@ -8964,8 +9162,8 @@ export const ids = {
   AppRockskyAlbum: "app.rocksky.album",
   AppRockskyAlbumDefs: "app.rocksky.album.defs",
   AppRockskyAlbumGetAlbum: "app.rocksky.album.getAlbum",
-  AppRockskyAlbumGetAlbums: "app.rocksky.album.getAlbums",
   AppRockskyAlbumGetAlbumTracks: "app.rocksky.album.getAlbumTracks",
+  AppRockskyAlbumGetAlbums: "app.rocksky.album.getAlbums",
   AppRockskyApikeyCreateApikey: "app.rocksky.apikey.createApikey",
   AppRockskyApikeyDefs: "app.rocksky.apikey.defs",
   AppRockskyApikeysDefs: "app.rocksky.apikeys.defs",
@@ -8979,8 +9177,8 @@ export const ids = {
   AppRockskyArtistGetArtistListeners: "app.rocksky.artist.getArtistListeners",
   AppRockskyArtistGetArtistRecentListeners:
     "app.rocksky.artist.getArtistRecentListeners",
-  AppRockskyArtistGetArtists: "app.rocksky.artist.getArtists",
   AppRockskyArtistGetArtistTracks: "app.rocksky.artist.getArtistTracks",
+  AppRockskyArtistGetArtists: "app.rocksky.artist.getArtists",
   AppRockskyChartsDefs: "app.rocksky.charts.defs",
   AppRockskyChartsGetScrobblesChart: "app.rocksky.charts.getScrobblesChart",
   AppRockskyChartsGetTopArtists: "app.rocksky.charts.getTopArtists",
@@ -9015,6 +9213,48 @@ export const ids = {
   AppRockskyGraphGetFollows: "app.rocksky.graph.getFollows",
   AppRockskyGraphGetKnownFollowers: "app.rocksky.graph.getKnownFollowers",
   AppRockskyGraphUnfollowAccount: "app.rocksky.graph.unfollowAccount",
+  AppRockskyLibraryCreatePlaylist: "app.rocksky.library.createPlaylist",
+  AppRockskyLibraryDeleteAlbum: "app.rocksky.library.deleteAlbum",
+  AppRockskyLibraryDeletePlaylist: "app.rocksky.library.deletePlaylist",
+  AppRockskyLibraryDeleteSong: "app.rocksky.library.deleteSong",
+  AppRockskyLibraryGetAlbum: "app.rocksky.library.getAlbum",
+  AppRockskyLibraryGetAlbumInfo: "app.rocksky.library.getAlbumInfo",
+  AppRockskyLibraryGetAlbumList: "app.rocksky.library.getAlbumList",
+  AppRockskyLibraryGetArtist: "app.rocksky.library.getArtist",
+  AppRockskyLibraryGetArtistInfo: "app.rocksky.library.getArtistInfo",
+  AppRockskyLibraryGetArtists: "app.rocksky.library.getArtists",
+  AppRockskyLibraryGetCoverArtUrl: "app.rocksky.library.getCoverArtUrl",
+  AppRockskyLibraryGetDownloadUrl: "app.rocksky.library.getDownloadUrl",
+  AppRockskyLibraryGetGenres: "app.rocksky.library.getGenres",
+  AppRockskyLibraryGetIndexes: "app.rocksky.library.getIndexes",
+  AppRockskyLibraryGetInternetRadioStations:
+    "app.rocksky.library.getInternetRadioStations",
+  AppRockskyLibraryGetLicense: "app.rocksky.library.getLicense",
+  AppRockskyLibraryGetLyrics: "app.rocksky.library.getLyrics",
+  AppRockskyLibraryGetMusicDirectory: "app.rocksky.library.getMusicDirectory",
+  AppRockskyLibraryGetMusicFolders: "app.rocksky.library.getMusicFolders",
+  AppRockskyLibraryGetNowPlaying: "app.rocksky.library.getNowPlaying",
+  AppRockskyLibraryGetPlayQueue: "app.rocksky.library.getPlayQueue",
+  AppRockskyLibraryGetPlaylist: "app.rocksky.library.getPlaylist",
+  AppRockskyLibraryGetPlaylists: "app.rocksky.library.getPlaylists",
+  AppRockskyLibraryGetRandomSongs: "app.rocksky.library.getRandomSongs",
+  AppRockskyLibraryGetScanStatus: "app.rocksky.library.getScanStatus",
+  AppRockskyLibraryGetSimilarSongs: "app.rocksky.library.getSimilarSongs",
+  AppRockskyLibraryGetSong: "app.rocksky.library.getSong",
+  AppRockskyLibraryGetSongsByGenre: "app.rocksky.library.getSongsByGenre",
+  AppRockskyLibraryGetStarred: "app.rocksky.library.getStarred",
+  AppRockskyLibraryGetStreamUrl: "app.rocksky.library.getStreamUrl",
+  AppRockskyLibraryGetTopSongs: "app.rocksky.library.getTopSongs",
+  AppRockskyLibraryGetUser: "app.rocksky.library.getUser",
+  AppRockskyLibraryPing: "app.rocksky.library.ping",
+  AppRockskyLibrarySavePlayQueue: "app.rocksky.library.savePlayQueue",
+  AppRockskyLibraryScrobble: "app.rocksky.library.scrobble",
+  AppRockskyLibrarySearch: "app.rocksky.library.search",
+  AppRockskyLibraryStar: "app.rocksky.library.star",
+  AppRockskyLibraryStartScan: "app.rocksky.library.startScan",
+  AppRockskyLibraryUnstar: "app.rocksky.library.unstar",
+  AppRockskyLibraryUpdateNowPlaying: "app.rocksky.library.updateNowPlaying",
+  AppRockskyLibraryUpdatePlaylist: "app.rocksky.library.updatePlaylist",
   AppRockskyLikeDislikeShout: "app.rocksky.like.dislikeShout",
   AppRockskyLikeDislikeSong: "app.rocksky.like.dislikeSong",
   AppRockskyLike: "app.rocksky.like",
@@ -9023,6 +9263,12 @@ export const ids = {
   AppRockskyMirrorDefs: "app.rocksky.mirror.defs",
   AppRockskyMirrorGetMirrorSources: "app.rocksky.mirror.getMirrorSources",
   AppRockskyMirrorPutMirrorSource: "app.rocksky.mirror.putMirrorSource",
+  AppRockskyNotificationDefs: "app.rocksky.notification.defs",
+  AppRockskyNotificationGetUnreadCount:
+    "app.rocksky.notification.getUnreadCount",
+  AppRockskyNotificationListNotifications:
+    "app.rocksky.notification.listNotifications",
+  AppRockskyNotificationUpdateSeen: "app.rocksky.notification.updateSeen",
   AppRockskyPlayerAddDirectoryToQueue: "app.rocksky.player.addDirectoryToQueue",
   AppRockskyPlayerAddItemsToQueue: "app.rocksky.player.addItemsToQueue",
   AppRockskyPlayerDefs: "app.rocksky.player.defs",
@@ -9089,46 +9335,14 @@ export const ids = {
   AppRockskyStatsGetStats: "app.rocksky.stats.getStats",
   AppRockskyStatsGetWrapped: "app.rocksky.stats.getWrapped",
   ComAtprotoRepoStrongRef: "com.atproto.repo.strongRef",
-  AppRockskyLibraryCreatePlaylist: "app.rocksky.library.createPlaylist",
-  AppRockskyLibraryDeletePlaylist: "app.rocksky.library.deletePlaylist",
-  AppRockskyLibraryGetAlbum: "app.rocksky.library.getAlbum",
-  AppRockskyLibraryGetAlbumInfo: "app.rocksky.library.getAlbumInfo",
-  AppRockskyLibraryGetAlbumList: "app.rocksky.library.getAlbumList",
-  AppRockskyLibraryGetArtist: "app.rocksky.library.getArtist",
-  AppRockskyLibraryGetArtistInfo: "app.rocksky.library.getArtistInfo",
-  AppRockskyLibraryGetArtists: "app.rocksky.library.getArtists",
-  AppRockskyLibraryGetCoverArtUrl: "app.rocksky.library.getCoverArtUrl",
-  AppRockskyLibraryGetDownloadUrl: "app.rocksky.library.getDownloadUrl",
-  AppRockskyLibraryGetGenres: "app.rocksky.library.getGenres",
-  AppRockskyLibraryGetIndexes: "app.rocksky.library.getIndexes",
-  AppRockskyLibraryGetInternetRadioStations:
-    "app.rocksky.library.getInternetRadioStations",
-  AppRockskyLibraryGetLicense: "app.rocksky.library.getLicense",
-  AppRockskyLibraryGetLyrics: "app.rocksky.library.getLyrics",
-  AppRockskyLibraryGetMusicDirectory: "app.rocksky.library.getMusicDirectory",
-  AppRockskyLibraryGetMusicFolders: "app.rocksky.library.getMusicFolders",
-  AppRockskyLibraryGetNowPlaying: "app.rocksky.library.getNowPlaying",
-  AppRockskyLibraryGetPlaylist: "app.rocksky.library.getPlaylist",
-  AppRockskyLibraryGetPlaylists: "app.rocksky.library.getPlaylists",
-  AppRockskyLibraryGetPlayQueue: "app.rocksky.library.getPlayQueue",
-  AppRockskyLibraryGetRandomSongs: "app.rocksky.library.getRandomSongs",
-  AppRockskyLibraryGetScanStatus: "app.rocksky.library.getScanStatus",
-  AppRockskyLibraryGetSimilarSongs: "app.rocksky.library.getSimilarSongs",
-  AppRockskyLibraryGetSong: "app.rocksky.library.getSong",
-  AppRockskyLibraryGetSongsByGenre: "app.rocksky.library.getSongsByGenre",
-  AppRockskyLibraryGetStarred: "app.rocksky.library.getStarred",
-  AppRockskyLibraryGetStreamUrl: "app.rocksky.library.getStreamUrl",
-  AppRockskyLibraryGetTopSongs: "app.rocksky.library.getTopSongs",
-  AppRockskyLibraryGetUser: "app.rocksky.library.getUser",
-  AppRockskyLibraryPing: "app.rocksky.library.ping",
-  AppRockskyLibrarySavePlayQueue: "app.rocksky.library.savePlayQueue",
-  AppRockskyLibraryScrobble: "app.rocksky.library.scrobble",
-  AppRockskyLibrarySearch: "app.rocksky.library.search",
-  AppRockskyLibraryStar: "app.rocksky.library.star",
-  AppRockskyLibraryStartScan: "app.rocksky.library.startScan",
-  AppRockskyLibraryUnstar: "app.rocksky.library.unstar",
-  AppRockskyLibraryUpdateNowPlaying: "app.rocksky.library.updateNowPlaying",
-  AppRockskyLibraryUpdatePlaylist: "app.rocksky.library.updatePlaylist",
-  AppRockskyLibraryDeleteAlbum: "app.rocksky.library.deleteAlbum",
-  AppRockskyLibraryDeleteSong: "app.rocksky.library.deleteSong",
+  FmTealAlphaActorDefs: "fm.teal.alpha.actor.defs",
+  FmTealAlphaActorGetProfile: "fm.teal.alpha.actor.getProfile",
+  FmTealAlphaActorGetProfiles: "fm.teal.alpha.actor.getProfiles",
+  FmTealAlphaActorProfile: "fm.teal.alpha.actor.profile",
+  FmTealAlphaActorSearchActors: "fm.teal.alpha.actor.searchActors",
+  FmTealAlphaActorStatus: "fm.teal.alpha.actor.status",
+  FmTealAlphaFeedDefs: "fm.teal.alpha.feed.defs",
+  FmTealAlphaFeedGetActorFeed: "fm.teal.alpha.feed.getActorFeed",
+  FmTealAlphaFeedGetPlay: "fm.teal.alpha.feed.getPlay",
+  FmTealAlphaFeedPlay: "fm.teal.alpha.feed.play",
 };

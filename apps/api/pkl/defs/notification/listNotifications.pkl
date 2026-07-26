@@ -1,0 +1,47 @@
+amends "../../schema/lexicon.pkl"
+
+lexicon = 1
+id = "app.rocksky.notification.listNotifications"
+defs = new Mapping<String, Query> {
+  ["main"] {
+    type = "query"
+    description = "List notifications for the authenticated user, most recent first."
+    parameters = new Params {
+      properties {
+        ["limit"] = new IntegerType {
+          type = "integer"
+          maximum = 100
+          minimum = 1
+          default = 30
+        }
+        ["cursor"] = new StringType {
+          type = "string"
+        }
+      }
+    }
+    output {
+      encoding = "application/json"
+      schema = new ObjectType {
+        type = "object"
+        required = List("notifications", "unreadCount")
+        properties {
+          ["notifications"] = new Array {
+            type = "array"
+            items = new Ref {
+              type = "ref"
+              ref = "app.rocksky.notification.defs#notificationView"
+            }
+          }
+          ["unreadCount"] = new IntegerType {
+            type = "integer"
+            description = "The number of unread notifications."
+          }
+          ["cursor"] = new StringType {
+            type = "string"
+            description = "A cursor value to pass to subsequent calls to get the next page of results."
+          }
+        }
+      }
+    }
+  }
+}

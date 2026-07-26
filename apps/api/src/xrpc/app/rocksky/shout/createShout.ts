@@ -1,26 +1,29 @@
-import type { Agent } from "@atproto/api";
-import { consola } from "consola";
 import type { HandlerAuth } from "@atproto/xrpc-server";
+import { consola } from "consola";
 import type { Context } from "context";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import { Effect, pipe } from "effect";
 import type { Server } from "lexicon";
 import type { InputSchema } from "lexicon/types/app/rocksky/shout/createShout";
 import { createAgent } from "lib/agent";
 import tables from "schema";
-import type { SelectUser } from "schema/users";
+import { createShout as createShoutService } from "shouts/shouts.service";
+import { shoutSchema } from "types/shout";
+
+/**
+ * The subject of a shout is carried in the request body alongside `message`.
+ * The lexicon only formally declares `message`, but the input schema is open
+ * (`[k: string]: unknown`), so the subject `uri` (a scrobble/song/album/artist
+ * at-uri, or a bare user DID for a profile shout) travels through untouched.
+ */
+type CreateShoutInput = InputSchema & { uri?: string };
 
 export default function (server: Server, ctx: Context) {
-  const createShout = (input, auth: HandlerAuth) =>
+  const createShout = (input: CreateShoutInput, auth: HandlerAuth) =>
     pipe(
-      { input, ctx, did: auth.credentials?.did },
-      withAgent,
-      Effect.flatMap(withUser),
-      Effect.flatMap(putRecord),
-      Effect.flatMap(saveIntoDatabase),
+      handleCreate({ input, ctx, did: auth.credentials?.did }),
       Effect.flatMap(presentation),
-      Effect.retry({ times: 3 }),
-      Effect.timeout("10 seconds"),
+      Effect.timeout("15 seconds"),
       Effect.catchAll((err) => {
         consola.error(err);
         return Effect.succeed({});
@@ -29,7 +32,9 @@ export default function (server: Server, ctx: Context) {
   server.app.rocksky.shout.createShout({
     auth: ctx.authVerifier,
     handler: async ({ input, auth }) => {
-      const result = await Effect.runPromise(createShout(input.body, auth));
+      const result = await Effect.runPromise(
+        createShout(input.body as CreateShoutInput, auth),
+      );
       return {
         encoding: "application/json",
         body: result,
@@ -38,86 +43,67 @@ export default function (server: Server, ctx: Context) {
   });
 }
 
-const withAgent = ({
+const handleCreate = ({
   input,
   ctx,
   did,
 }: {
-  input: InputSchema;
-  ctx: Context;
-  did: string;
-}): Effect.Effect<
-  {
-    agent: Agent;
-    ctx: Context;
-    did: string;
-    input: InputSchema;
-  },
-  Error
-> => {
-  return Effect.tryPromise({
-    try: async () =>
-      createAgent(ctx.oauthClient, did).then((agent) => ({
-        agent,
-        ctx,
-        did,
-        input,
-      })),
-    catch: (error) => new Error(`Failed to create agent: ${error}`),
-  });
-};
-
-const withUser = ({
-  input,
-  ctx,
-  did,
-  agent,
-}: {
-  input: InputSchema;
+  input: CreateShoutInput;
   ctx: Context;
   did?: string;
-  agent: Agent;
-}) => {
-  return Effect.tryPromise({
-    try: async () =>
-      ctx.db
+}) =>
+  Effect.tryPromise({
+    try: async () => {
+      if (!did) {
+        throw new Error("User is not authenticated");
+      }
+      if (!input.uri) {
+        throw new Error("Missing shout subject uri");
+      }
+
+      const parsed = shoutSchema.safeParse(input);
+      if (!parsed.success) {
+        throw new Error(`Invalid shout data: ${parsed.error.message}`);
+      }
+
+      const user = await ctx.db
         .select()
         .from(tables.users)
         .where(eq(tables.users.did, did))
-        .execute()
-        .then((users) => ({ user: users[0], ctx, input, agent })),
-    catch: (error) => new Error(`Failed to retrieve current user: ${error}`),
-  });
-};
+        .limit(1)
+        .then((rows) => rows[0]);
+      if (!user) {
+        throw new Error("User not found");
+      }
 
-const putRecord = ({
-  input,
-  ctx,
-  did,
-  user,
-  agent,
-}: {
-  input: InputSchema;
-  ctx: Context;
-  did?: string;
-  user: SelectUser;
-  agent: Agent;
-}) => {
-  return Effect.tryPromise({
-    try: async () => {},
-    catch: (error) => new Error(`Failed to put shout record: ${error}`),
-  });
-};
+      const agent = await createAgent(ctx.oauthClient, did);
+      if (!agent) {
+        throw new Error("Unauthorized");
+      }
 
-const saveIntoDatabase = () => {
-  return Effect.tryPromise({
-    try: async () => {},
+      // A bare `at://<did>` (or handle) targets a user profile; the shout
+      // service resolves it to the profile owner and writes a profile_shout.
+      let subjectUri = input.uri;
+      if (!subjectUri.includes("/app.rocksky.")) {
+        const target = subjectUri.replace("at://", "");
+        const profile = await ctx.db
+          .select()
+          .from(tables.users)
+          .where(
+            or(eq(tables.users.did, target), eq(tables.users.handle, target)),
+          )
+          .limit(1)
+          .then((rows) => rows[0]);
+        if (!profile) {
+          throw new Error("Profile not found");
+        }
+        subjectUri = `at://${profile.did}`;
+      }
+
+      await createShoutService(ctx, parsed.data, subjectUri, user, agent);
+      return {};
+    },
     catch: (error) => new Error(`Failed to create shout: ${error}`),
   });
-};
 
-const presentation = () => {
-  return Effect.sync(() => ({
-    shouts: [],
-  }));
-};
+const presentation = () => Effect.sync(() => ({}));

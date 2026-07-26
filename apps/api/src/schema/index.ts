@@ -21,6 +21,7 @@ import lovedTracks from "./loved-tracks";
 import mirrorSources from "./mirror-sources";
 import navidromePlaylistTracks from "./navidrome-playlist-tracks";
 import navidromePlaylists from "./navidrome-playlists";
+import notifications from "./notifications";
 import playlistTracks from "./playlist-tracks";
 import playlists from "./playlists";
 import profileShouts from "./profile-shouts";
@@ -45,6 +46,7 @@ import webscrobblers from "./webscrobblers";
 
 export default {
   importJobs,
+  notifications,
   profileShouts,
   shoutLikes,
   shouts,

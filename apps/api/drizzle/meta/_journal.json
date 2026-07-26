@@ -113,6 +113,13 @@
 			"when": 1780800100000,
 			"tag": "0017_shouts_facets",
 			"breakpoints": true
+		},
+		{
+			"idx": 18,
+			"version": "7",
+			"when": 1780800200000,
+			"tag": "0018_notifications",
+			"breakpoints": true
 		}
 	]
 }

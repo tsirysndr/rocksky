@@ -1,0 +1,40 @@
+{
+  "lexicon": 1,
+  "id": "app.rocksky.notification.updateSeen",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Mark notifications as viewed. When no ids are provided, marks all of the authenticated user's notifications as viewed.",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "ids": {
+              "type": "array",
+              "description": "The ids of the notifications to mark as viewed. Omit to mark all.",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [
+            "unreadCount"
+          ],
+          "properties": {
+            "unreadCount": {
+              "type": "integer",
+              "description": "The number of unread notifications remaining."
+            }
+          }
+        }
+      }
+    }
+  }
+}

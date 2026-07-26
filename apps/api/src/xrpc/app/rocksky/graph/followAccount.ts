@@ -8,6 +8,7 @@ import type { Server } from "lexicon";
 import type { ProfileViewBasic } from "lexicon/types/app/rocksky/actor/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/graph/followAccount";
 import { createAgent } from "lib/agent";
+import { createNotification } from "notifications/notifications.service";
 import tables from "schema";
 import type { SelectUser } from "schema/users";
 import * as FollowLexicon from "lexicon/types/app/rocksky/graph/follow";
@@ -100,7 +101,7 @@ const handleFollow = ({
         .onConflictDoNothing()
         .execute();
 
-      return Promise.all([
+      const [subject, followers] = await Promise.all([
         ctx.db
           .select()
           .from(tables.users)
@@ -120,6 +121,22 @@ const handleFollow = ({
           .execute()
           .then((rows) => rows.map(({ users }) => users)),
       ]);
+
+      // Notify the followed user. `did` is the follower; look up their row id.
+      const follower = await ctx.db
+        .select({ id: tables.users.id })
+        .from(tables.users)
+        .where(eq(tables.users.did, did))
+        .limit(1)
+        .then((rows) => rows[0]);
+      await createNotification(ctx, {
+        userId: subject?.id,
+        actorId: follower?.id,
+        type: "follow",
+        subjectUri: `at://${did}`,
+      });
+
+      return [subject, followers] as [SelectUser | undefined, SelectUser[]];
     },
     catch: (error) => new Error(`Failed to retrieve follow: ${error}`),
   });

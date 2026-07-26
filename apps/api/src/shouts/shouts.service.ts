@@ -7,6 +7,7 @@ import * as LikeLexicon from "lexicon/types/app/rocksky/like";
 import * as ShoutLexicon from "lexicon/types/app/rocksky/shout";
 import { validateMain } from "lexicon/types/com/atproto/repo/strongRef";
 import _ from "lodash";
+import { createNotification } from "notifications/notifications.service";
 import type { Shout } from "types/shout";
 import albums, { type SelectAlbum } from "../schema/albums";
 import artists, { type SelectArtist } from "../schema/artists";
@@ -154,6 +155,27 @@ export async function createShout(
       await ctx.db.insert(profileShouts).values({
         shoutId: createdShout.id,
         userId: profile.id,
+      });
+    }
+
+    // Notify the owner of the commented-on subject. Only scrobbles and
+    // profiles have a single owner to notify (tracks/albums/artists are
+    // shared entities), matching the notification spec.
+    if (scrobble?.scrobble) {
+      await createNotification(ctx, {
+        userId: scrobble.scrobble.userId,
+        actorId: user.id,
+        type: "comment_scrobble",
+        shoutId: createdShout.id,
+        subjectUri: scrobble.scrobble.uri,
+      });
+    } else if (profile) {
+      await createNotification(ctx, {
+        userId: profile.id,
+        actorId: user.id,
+        type: "comment_profile",
+        shoutId: createdShout.id,
+        subjectUri: `at://${profile.did}`,
       });
     }
   } catch (e) {
@@ -330,6 +352,15 @@ export async function replyShout(
         userId: profileShout.userId,
       });
     }
+
+    // Notify the author of the parent comment that someone replied.
+    await createNotification(ctx, {
+      userId: shout.shout.authorId,
+      actorId: user.id,
+      type: "reply",
+      shoutId: createdShout.id,
+      subjectUri: shout.shout.uri,
+    });
   } catch (e) {
     consola.error(`Error creating reply record: ${e.message}`);
   }
@@ -417,6 +448,15 @@ export async function likeShout(
       shoutId: shout.id,
       userId: user.id,
       uri,
+    });
+
+    // Notify the shout's author that someone reacted to their comment.
+    await createNotification(ctx, {
+      userId: shout.authorId,
+      actorId: user.id,
+      type: "react_comment",
+      shoutId: shout.id,
+      subjectUri: shout.uri,
     });
   } catch (e) {
     consola.error(`Error creating like record: ${e.message}`);
