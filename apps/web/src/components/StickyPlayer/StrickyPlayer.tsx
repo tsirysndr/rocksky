@@ -52,11 +52,14 @@ const MiniPlayerWrapper = styled.div<{ embedded?: boolean }>`
 
 const MiniPlayer = styled.div<{ embedded?: boolean }>`
   ${({ embedded }) => embedded ? `
-    background: rgba(19, 8, 37, 0.25);
-    backdrop-filter: blur(12px);
+    /* Frosted-glass tint of the theme background (adapts to light and dark),
+       rather than a hardcoded dark purple. */
+    background: color-mix(in srgb, var(--color-background) 70%, transparent);
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
     width: 1120px;
     border-radius: 16px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
     @media (max-width: 1120px) {
       width: 100vw;
     }
