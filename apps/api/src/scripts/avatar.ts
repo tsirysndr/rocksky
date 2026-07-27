@@ -2,7 +2,7 @@ import chalk from "chalk";
 import { consola } from "consola";
 import { ctx } from "context";
 import { eq, or } from "drizzle-orm";
-import _ from "lodash";
+import { fetchBskyProfile } from "lib/bskyProfile";
 import users, { type SelectUser } from "schema/users";
 
 const args = process.argv.slice(2);
@@ -10,29 +10,29 @@ const BATCH_SIZE = 100; // Process 100 users at a time
 
 async function processUser(user: SelectUser) {
   if (!process.env.SKIP_AVATAR_UPDATE) {
-    const plc = await fetch(`https://plc.directory/${user.did}`).then((res) =>
-      res.json(),
-    );
+    // Resolve via the Bluesky public AppView (globally reachable, so this works
+    // from egress that self-hosted PDSes block). No agent is passed, so there
+    // is no direct-PDS fallback — a batch sync has no per-user sessions anyway.
+    const resolved = await fetchBskyProfile(user.did);
 
-    const serviceEndpoint = _.get(plc, "service.0.serviceEndpoint");
-    if (!serviceEndpoint) {
-      consola.info(`Service endpoint not found for ${user.did}`);
-      return;
+    if (resolved.avatar === undefined && resolved.displayName === undefined) {
+      consola.info(
+        `No profile data resolved for ${user.did}; leaving existing values`,
+      );
+    } else {
+      await ctx.db
+        .update(users)
+        .set({
+          // Only overwrite fields the AppView actually returned, so a partial
+          // lookup never clobbers good data.
+          ...(resolved.displayName !== undefined
+            ? { displayName: resolved.displayName }
+            : {}),
+          ...(resolved.avatar !== undefined ? { avatar: resolved.avatar } : {}),
+        })
+        .where(eq(users.did, user.did))
+        .execute();
     }
-
-    const profile = await fetch(
-      `${serviceEndpoint}/xrpc/com.atproto.repo.getRecord?repo=${user.did}&collection=app.bsky.actor.profile&rkey=self`,
-    ).then((res) => res.json());
-    const ref = _.get(profile, "value.avatar.ref.$link");
-    const type = _.get(profile, "value.avatar.mimeType", "").split("/")[1];
-    await ctx.db
-      .update(users)
-      .set({
-        displayName: _.get(profile, "value.displayName"),
-        avatar: `https://cdn.bsky.app/img/avatar/plain/${user.did}/${ref}@${type}`,
-      })
-      .where(eq(users.did, user.did))
-      .execute();
   } else {
     consola.info(`Skipping avatar update for ${user.did}`);
   }
