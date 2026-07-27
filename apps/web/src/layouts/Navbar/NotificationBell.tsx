@@ -373,7 +373,10 @@ function NotificationBell() {
       overrides={{
         Body: {
           style: {
-            zIndex: 2,
+            // Above the feed's sticky pills (z-50) and stories carousel (z-60)
+            // so timeline chrome never covers the dropdown, but below the modal
+            // tier (dialogs at z-50/60, KeyboardShortcuts at z-1000).
+            zIndex: 100,
             backgroundColor: "var(--color-background)",
           },
         },
