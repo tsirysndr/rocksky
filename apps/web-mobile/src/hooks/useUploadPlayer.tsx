@@ -1,6 +1,7 @@
 import { useAtomValue, useSetAtom } from "jotai";
 import { useCallback } from "react";
 import { InsertMode } from "rockbox-wasm";
+import { deviceCommandAtom } from "../atoms/devices";
 import { nowPlayingAtom } from "../atoms/nowpaying";
 import { playerAtom } from "../atoms/player";
 import { queueAtom, queueIndexAtom, type QueueTrack } from "../atoms/queue";
@@ -11,6 +12,22 @@ import {
   registerTracks,
   streamUrlFor,
 } from "../lib/audio/rockbox-engine";
+
+// A QueueTrack → the descriptor the CLI's `enqueue` command expects. Library
+// tracks come from Navidrome, where QueueTrack.uploadId is the Subsonic song id
+// (= the CLI's trackId), so the remote player streams them via Navidrome.
+function toDescriptor(t: QueueTrack) {
+  return {
+    trackId: t.uploadId,
+    title: t.title,
+    artist: t.artist,
+    album: t.album,
+    album_artist: t.albumArtist,
+    album_art: t.albumArt,
+    duration: t.duration,
+    song_uri: t.songUri || undefined,
+  };
+}
 
 // useUploadPlayer — orchestrates the in-browser rockbox-wasm queue for the
 // "My Library" (upload) player. Playback + DSP + crossfade run locally in wasm;
@@ -38,10 +55,20 @@ export function useUploadPlayer() {
   const queueIndex = useAtomValue(queueIndexAtom);
   const setNowPlaying = useSetAtom(nowPlayingAtom);
   const setPlayer = useSetAtom(playerAtom);
+  // When a remote device is the active player, these actions relay to it.
+  const deviceCommand = useAtomValue(deviceCommandAtom);
 
   const playNow = useCallback(
     async (tracks: QueueTrack[], startIndex = 0) => {
       if (!tracks.length) return;
+      if (deviceCommand.active) {
+        deviceCommand.send("enqueue", {
+          tracks: tracks.map(toDescriptor),
+          mode: "now",
+          startIndex,
+        });
+        return;
+      }
       // Start the silent Media Session anchor synchronously, inside this click's
       // user gesture — starting it later (from a React effect) is blocked by the
       // autoplay policy, so the OS media controls would never appear.
@@ -69,38 +96,54 @@ export function useUploadPlayer() {
       if (after.length) p.insert(after, InsertMode.PlayLast);
       if (before.length) p.insert(before, InsertMode.Prepend);
     },
-    [setNowPlaying, setPlayer],
+    [setNowPlaying, setPlayer, deviceCommand],
   );
 
   const playNext = useCallback(async (track: QueueTrack) => {
+    if (deviceCommand.active) {
+      deviceCommand.send("enqueue", { tracks: [toDescriptor(track)], mode: "next" });
+      return;
+    }
     const p = await ensureRockboxReady();
     await ensureStreamToken();
     registerTracks([track]);
     p.insert(streamUrlFor(track), InsertMode.PlayNext);
-  }, []);
+  }, [deviceCommand]);
 
   const playLast = useCallback(async (track: QueueTrack) => {
+    if (deviceCommand.active) {
+      deviceCommand.send("enqueue", { tracks: [toDescriptor(track)], mode: "last" });
+      return;
+    }
     const p = await ensureRockboxReady();
     await ensureStreamToken();
     registerTracks([track]);
     p.insert(streamUrlFor(track), InsertMode.PlayLast);
-  }, []);
+  }, [deviceCommand]);
 
   const playNextAll = useCallback(async (tracks: QueueTrack[]) => {
     if (!tracks.length) return;
+    if (deviceCommand.active) {
+      deviceCommand.send("enqueue", { tracks: tracks.map(toDescriptor), mode: "next" });
+      return;
+    }
     const p = await ensureRockboxReady();
     await ensureStreamToken();
     registerTracks(tracks);
     p.insert(tracks.map(streamUrlFor), InsertMode.PlayNext);
-  }, []);
+  }, [deviceCommand]);
 
   const playLastAll = useCallback(async (tracks: QueueTrack[]) => {
     if (!tracks.length) return;
+    if (deviceCommand.active) {
+      deviceCommand.send("enqueue", { tracks: tracks.map(toDescriptor), mode: "last" });
+      return;
+    }
     const p = await ensureRockboxReady();
     await ensureStreamToken();
     registerTracks(tracks);
     p.insert(tracks.map(streamUrlFor), InsertMode.PlayLast);
-  }, []);
+  }, [deviceCommand]);
 
   return { queue, queueIndex, playNow, playNext, playLast, playNextAll, playLastAll };
 }

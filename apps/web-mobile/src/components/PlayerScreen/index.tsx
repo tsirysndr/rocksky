@@ -19,6 +19,7 @@ import { playerAtom } from "../../atoms/player";
 import { playerScreenOpenAtom } from "../../atoms/playerScreen";
 import type { QueueTrack } from "../../atoms/queue";
 import type { RepeatMode } from "../../atoms/playback";
+import AlbumArt from "../AlbumArt";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -225,11 +226,7 @@ function QueueRow({
         className="w-10 h-10 rounded-lg shrink-0 overflow-hidden flex items-center justify-center"
         style={{ backgroundColor: "var(--color-menu-hover)" }}
       >
-        {track.albumArt ? (
-          <img src={track.albumArt} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <IconMusic size={16} color="var(--color-text-muted)" />
-        )}
+        <AlbumArt src={track.albumArt} alt="" className="w-full h-full object-cover" />
       </div>
       <div className="flex-1 min-w-0">
         <p

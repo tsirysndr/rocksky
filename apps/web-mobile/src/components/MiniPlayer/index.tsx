@@ -18,12 +18,13 @@ import { nowPlayingAtom } from "../../atoms/nowpaying";
 import { playerAtom } from "../../atoms/player";
 import {
   activeDeviceIdAtom,
+  deviceCommandAtom,
   devicesAtom,
   type RemoteDevice,
   type RemoteNowPlaying,
 } from "../../atoms/devices";
 import { playerScreenOpenAtom } from "../../atoms/playerScreen";
-import { queueAtom, queueIndexAtom } from "../../atoms/queue";
+import { queueAtom, queueIndexAtom, type QueueTrack } from "../../atoms/queue";
 import { shuffleAtom, repeatModeAtom, type RepeatMode } from "../../atoms/playback";
 import useLike from "../../hooks/useLike";
 import useSpotify from "../../hooks/useSpotify";
@@ -173,6 +174,22 @@ function toRemoteNowPlaying(
     sha256: data.sha256 ?? "",
     liked:
       liked[data.song_uri] !== undefined ? liked[data.song_uri] : !!data.liked,
+  };
+}
+
+// Map a CLI queue-message item to the QueueTrack shape the queue panel renders.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toRemoteQueueTrack(q: any): QueueTrack {
+  return {
+    uploadId: q.uploadId || q.trackId || "",
+    title: q.title ?? "",
+    artist: q.album_artist || q.artist || "",
+    albumArtist: q.album_artist ?? "",
+    album: q.album ?? "",
+    albumArt: q.album_art ?? null,
+    duration: q.duration ?? 0,
+    sha256: "",
+    songUri: q.song_uri ?? "",
   };
 }
 
@@ -357,6 +374,17 @@ export default function MiniPlayer() {
     }));
   }, []);
 
+  // Publish the device-command bridge so library context menus enqueue on the
+  // active remote device instead of the local engine. Active while a device is
+  // the current player ("rockbox").
+  const setDeviceCommand = useSetAtom(deviceCommandAtom);
+  useEffect(() => {
+    setDeviceCommand({
+      active: player === "rockbox" && !!activeDeviceId,
+      send: sendDeviceCommand,
+    });
+  }, [player, activeDeviceId, sendDeviceCommand, setDeviceCommand]);
+
   // Adopt `id` as the active device (on a server `primary_changed`, keeping every
   // client in sync). Doesn't steal focus from Spotify / the local engine.
   const adoptDevice = useCallback((id: string, map?: Record<string, RemoteDevice>) => {
@@ -421,6 +449,8 @@ export default function MiniPlayer() {
               nowPlaying: d.now_playing
                 ? toRemoteNowPlaying(d.now_playing, likedRef.current)
                 : null,
+              queue: Array.isArray(d.queue?.queue) ? d.queue.queue.map(toRemoteQueueTrack) : [],
+              queueIndex: d.queue?.index ?? 0,
             };
           }
           setDevices(map);
@@ -436,7 +466,19 @@ export default function MiniPlayer() {
           const name = msg.data?.device_name ?? msg.device_name ?? "Rockbox";
           const prevNp = devicesRef.current[id]?.nowPlaying ?? null;
           const np = toRemoteNowPlaying(msg.data, likedRef.current, prevNp);
-          setDevices((prev) => ({ ...prev, [id]: { deviceId: id, name, nowPlaying: np } }));
+          setDevices((prev) => {
+            const prevDev = prev[id];
+            return {
+              ...prev,
+              [id]: {
+                deviceId: id,
+                name,
+                nowPlaying: np,
+                queue: prevDev?.queue ?? [],
+                queueIndex: prevDev?.queueIndex ?? 0,
+              },
+            };
+          });
           // Mirror into the miniplayer when this is the active device. If nothing
           // is playing yet, promote the device source (covers the race where
           // primary_changed arrived before the first track).
@@ -448,6 +490,27 @@ export default function MiniPlayer() {
             if (playerRef.current === null) setPlayer("rockbox");
             lastFetchedRef.current = Date.now();
           }
+          return;
+        }
+
+        // A player pushed its queue → mirror it (kept per-device for the panel).
+        if (msg.type === "message" && msg.data?.type === "queue") {
+          const id = msg.device_id;
+          if (!id) return;
+          const q = Array.isArray(msg.data.queue)
+            ? msg.data.queue.map(toRemoteQueueTrack)
+            : [];
+          const qi = msg.data.index ?? 0;
+          setDevices((prev) => {
+            const dev = prev[id] ?? {
+              deviceId: id,
+              name: "Rockbox",
+              nowPlaying: null,
+              queue: [],
+              queueIndex: 0,
+            };
+            return { ...prev, [id]: { ...dev, queue: q, queueIndex: qi } };
+          });
           return;
         }
 
@@ -560,6 +623,11 @@ export default function MiniPlayer() {
   }, [setNowPlaying, sendDeviceCommand]);
 
   const onSelectQueueIndex = useCallback((idx: number) => {
+    // Remote device active → jump on it via a targeted command.
+    if (playerRef.current === "rockbox") {
+      sendDeviceCommand("queue_jump", { index: idx });
+      return;
+    }
     const track = queueRef.current[idx];
     if (!track) return;
     // Pin the chosen index so a late status from the outgoing track can't
@@ -581,11 +649,15 @@ export default function MiniPlayer() {
       sha256: track.sha256,
       liked: false,
     });
-  }, [setQueueIndex, setNowPlaying]);
+  }, [setQueueIndex, setNowPlaying, sendDeviceCommand]);
 
   const onRemoveFromQueue = useCallback((idx: number) => {
+    if (playerRef.current === "rockbox") {
+      sendDeviceCommand("queue_remove", { index: idx });
+      return;
+    }
     getRockboxPlayer().removeAt(idx);
-  }, []);
+  }, [sendDeviceCommand]);
 
   // Media Session API — Android/iOS lock-screen / notification. Mirrors the
   // mini-player: title, artist, album + artwork, live play/pause state, a
@@ -685,6 +757,12 @@ export default function MiniPlayer() {
 
   const showSourceBtn = rockboxAvailable || queue.length > 0;
 
+  // When a remote device is active, show ITS queue; otherwise the local one.
+  const activeDevice = activeDeviceId ? devices[activeDeviceId] : undefined;
+  const isRemote = player === "rockbox";
+  const shownQueue = isRemote ? (activeDevice?.queue ?? []) : queue;
+  const shownQueueIndex = isRemote ? (activeDevice?.queueIndex ?? 0) : queueIndex;
+
   return (
     <>
       <EqualizerSheet open={eqSheetOpen} onClose={() => setEqSheetOpen(false)} />
@@ -697,8 +775,8 @@ export default function MiniPlayer() {
         onSelectQueueIndex={onSelectQueueIndex}
         onRemoveFromQueue={onRemoveFromQueue}
         onEqualizer={() => setEqSheetOpen(true)}
-        queue={queue}
-        queueIndex={queueIndex}
+        queue={shownQueue}
+        queueIndex={shownQueueIndex}
         shuffle={shuffle}
         repeatMode={repeatMode}
         onShuffle={() => setShuffle((s) => !s)}
