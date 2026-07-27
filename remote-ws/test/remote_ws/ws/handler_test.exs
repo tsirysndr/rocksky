@@ -125,6 +125,26 @@ defmodule RemoteWs.Ws.HandlerTest do
     assert env["data"]["liked"] == false
   end
 
+  test "a track message is tagged with the CONNECTION's device_id, not the payload's" do
+    did = new_did()
+    token = Token.sign(%{"did" => did})
+    cli = FakeDevice.start(did, "real-cli", "Rocksky CLI", self())
+    st = %{device_id: "real-cli", did: did}
+    RedisMemory.put("primary_device:#{did}", "real-cli")
+
+    # The payload lies about its device_id — the server must ignore it and use the
+    # connection's registered id, so commands from the miniplayer route correctly.
+    data = %{"type" => "track", "title" => "t", "artist" => "a", "album" => "al"}
+
+    Handler.handle(
+      %{"type" => "message", "data" => data, "device_id" => "spoofed", "token" => token},
+      st
+    )
+
+    assert_receive {:pushed, ^cli, frame}
+    assert Jason.decode!(frame)["device_id"] == "real-cli"
+  end
+
   test "an invalid token is ignored (no reply, no broadcast)" do
     did = new_did()
     _dev = FakeDevice.start(did, "a", "A", self())

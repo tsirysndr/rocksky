@@ -133,12 +133,17 @@ defmodule RemoteWs.Ws.Handler do
 
   # ---- device message: track / status (handler.ts lines 64-283) ----
 
-  defp device_message(%{"data" => data, "device_id" => device_id, "token" => token}, state)
-       when is_map(data) do
+  defp device_message(%{"data" => data, "token" => token}, state) when is_map(data) do
     case Auth.verify_token(token) do
-      {:ok, %{did: did}} when is_binary(did) ->
-        name =
-          Devices.name_of(did, device_id) || Devices.name_of(did, state.device_id) || "websocket"
+      # Use the CONNECTION's registered device_id — the authoritative routing id
+      # assigned at register — NOT the `device_id` the client puts in the payload.
+      # A client's self-reported id can be wrong (e.g. an old CLI that clobbered
+      # its own id from a device_registered broadcast); that would tag its tracks
+      # with another device's id, so the miniplayer would send commands to the
+      # wrong place (they'd never reach the player) even though state still syncs.
+      {:ok, %{did: did}} when is_binary(did) and is_binary(state.device_id) ->
+        device_id = state.device_id
+        name = Devices.name_of(did, device_id) || "websocket"
 
         data =
           if data["type"] == "track" do
