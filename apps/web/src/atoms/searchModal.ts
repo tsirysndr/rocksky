@@ -22,3 +22,11 @@ export const searchModalOpenAtom = atom<boolean>(false);
  * → artists); the sidebar trigger and "/" use "all".
  */
 export const searchModalScopeAtom = atom<SearchScope>("all");
+
+/**
+ * Whether the LIBRARY quick-search palette is open — searches the authenticated
+ * user's own library (Navidrome) for songs/albums/artists, with add-to-queue
+ * actions on results. Opened with Shift+L (see components/KeyboardShortcuts);
+ * only meaningful for signed-in users.
+ */
+export const librarySearchOpenAtom = atom<boolean>(false);

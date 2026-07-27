@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react";
 import { playerControlsAtom } from "../../atoms/playerControls";
 import { profileAtom } from "../../atoms/profile";
 import {
+  librarySearchOpenAtom,
   searchModalOpenAtom,
   searchModalScopeAtom,
   type SearchScope,
@@ -53,6 +54,7 @@ const GROUPS: Group[] = [
       { keys: ["a"], label: "Search artists" },
       { keys: ["l"], label: "Search albums" },
       { keys: ["u"], label: "Search people" },
+      { keys: ["⇧", "L"], label: "Search your library" },
     ],
   },
   {
@@ -175,6 +177,7 @@ function KeyboardShortcuts() {
   const [helpOpen, setHelpOpen] = useAtom(shortcutsHelpOpenAtom);
   const [searchOpen, setSearchOpen] = useAtom(searchModalOpenAtom);
   const setSearchScope = useSetAtom(searchModalScopeAtom);
+  const setLibrarySearchOpen = useSetAtom(librarySearchOpenAtom);
 
   // The keydown listener is installed once; read the latest values through a
   // ref so it never closes over stale state.
@@ -189,6 +192,7 @@ function KeyboardShortcuts() {
     searchOpen,
     setSearchOpen,
     setSearchScope,
+    setLibrarySearchOpen,
   });
   stateRef.current = {
     navigate,
@@ -201,6 +205,7 @@ function KeyboardShortcuts() {
     searchOpen,
     setSearchOpen,
     setSearchScope,
+    setLibrarySearchOpen,
   };
 
   useEffect(() => {
@@ -221,6 +226,7 @@ function KeyboardShortcuts() {
       if (e.key === "Escape") {
         if (s.helpOpen) s.setHelpOpen(false);
         if (s.searchOpen) s.setSearchOpen(false);
+        s.setLibrarySearchOpen(false);
         pendingGoAt = 0;
         return;
       }
@@ -264,6 +270,13 @@ function KeyboardShortcuts() {
           e.preventDefault();
           s.setSearchScope("all");
           s.setSearchOpen(true);
+          break;
+        // Shift+L → quick-search the signed-in user's own library.
+        case "L":
+          if (s.profile?.handle) {
+            e.preventDefault();
+            s.setLibrarySearchOpen(true);
+          }
           break;
         case "?":
           e.preventDefault();

@@ -43,6 +43,8 @@ import Main from "../../layouts/Main";
 import { DropdownPortal } from "../../components/DropdownPortal";
 import { AddToPlaylistMenu } from "../../components/AddToPlaylistMenu";
 import { IconPlaylist, IconPlus } from "@tabler/icons-react";
+import { useSetAtom } from "jotai";
+import { librarySearchOpenAtom } from "../../atoms/searchModal";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -193,6 +195,28 @@ const ClearBtn = styled.button`
   &:hover {
     color: var(--color-text);
     background: color-mix(in srgb, var(--color-text-muted) 15%, transparent);
+  }
+`;
+
+// Keyboard-shortcut hint shown at the right of the search field.
+const ShortcutHint = styled.span`
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  pointer-events: none;
+
+  kbd {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1;
+    color: var(--color-text-muted);
+    padding: 3px 6px;
+    border: 1px solid rgba(128, 128, 128, 0.3);
+    border-radius: 5px;
   }
 `;
 
@@ -846,6 +870,7 @@ export default function Library() {
   const [openAlbumMenuKey, setOpenAlbumMenuKey] = useState<string | null>(null);
   const [albumMenuAnchor, setAlbumMenuAnchor] = useState<HTMLElement | null>(null);
   const [searchInput, setSearchInput] = useState("");
+  const setLibrarySearchOpen = useSetAtom(librarySearchOpenAtom);
   const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
 
   useEffect(() => {
@@ -904,12 +929,17 @@ export default function Library() {
 
         <SearchWrap>
           <SearchIconWrap><IconSearch size={15} /></SearchIconWrap>
+          {/* Opens the library quick-search palette (also Shift+L). */}
           <SearchInput
             type="text"
+            readOnly
             placeholder="Search your library…"
             value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
+            style={{ cursor: "pointer" }}
+            onMouseDown={(e) => { e.preventDefault(); setLibrarySearchOpen(true); }}
+            onFocus={() => setLibrarySearchOpen(true)}
           />
+          <ShortcutHint aria-hidden><kbd>⇧</kbd><kbd>L</kbd></ShortcutHint>
           {searchInput && (
             <ClearBtn onClick={() => setSearchInput("")}><IconX size={14} /></ClearBtn>
           )}
