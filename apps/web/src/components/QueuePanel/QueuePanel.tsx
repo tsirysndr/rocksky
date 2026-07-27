@@ -14,9 +14,10 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { IconGripVertical, IconMusic, IconPlayerPlay, IconX } from "@tabler/icons-react";
+import { IconGripVertical, IconPlayerPlay, IconX } from "@tabler/icons-react";
 import { useState } from "react";
 import type { QueueTrack } from "../../atoms/queue";
+import AlbumArt from "../AlbumArt";
 
 // ---------------------------------------------------------------------------
 // Styled components
@@ -237,11 +238,7 @@ function SortableRow({ track, id, active, onPlay, onRemove }: SortableRowProps) 
             onPlay();
           }}
         >
-          {track.albumArt ? (
-            <img src={track.albumArt} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          ) : (
-            <IconMusic size={14} color="var(--color-text-muted)" />
-          )}
+          <AlbumArt src={track.albumArt} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           <ArtPlayOverlay className="art-play">
             <IconPlayerPlay size={14} color="#fff" fill="#fff" />
           </ArtPlayOverlay>
@@ -281,11 +278,7 @@ function HistoryRow({ track, active, onPlay }: { track: QueueTrack; active: bool
           onPlay();
         }}
       >
-        {track.albumArt ? (
-          <img src={track.albumArt} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-        ) : (
-          <IconMusic size={14} color="var(--color-text-muted)" />
-        )}
+        <AlbumArt src={track.albumArt} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         <ArtPlayOverlay className="art-play">
           <IconPlayerPlay size={14} color="#fff" fill="#fff" />
         </ArtPlayOverlay>
@@ -368,11 +361,7 @@ export function QueuePanel({
                 <SectionLabel>Now Playing</SectionLabel>
                 <Row active={true}>
                   <ArtWrapper>
-                    {nowPlaying.albumArt ? (
-                      <img src={nowPlaying.albumArt} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    ) : (
-                      <IconMusic size={14} color="var(--color-text-muted)" />
-                    )}
+                    <AlbumArt src={nowPlaying.albumArt} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   </ArtWrapper>
                   <TrackInfo>
                     <TrackTitle active={true}>{nowPlaying.title}</TrackTitle>
