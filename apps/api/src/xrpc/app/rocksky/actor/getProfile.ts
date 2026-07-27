@@ -396,7 +396,7 @@ const presentation = ([
     createdAt: profile.user?.createdAt.toISOString(),
     updatedAt: profile.user?.updatedAt.toISOString(),
     spotifyUser: {
-      ...spotifyUser,
+      ...R.omit(["email"], spotifyUser),
       createdAt: spotifyUser?.createdAt.toISOString(),
       updatedAt: spotifyUser?.updatedAt.toISOString(),
     },
