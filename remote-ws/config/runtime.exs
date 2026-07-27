@@ -27,15 +27,16 @@ if database_url = System.get_env("XATA_POSTGRES_URL") do
 end
 
 if config_env() == :prod do
-  secret_key_base =
-    System.get_env("SECRET_KEY_BASE") ||
-      raise "SECRET_KEY_BASE is required in production"
-
+  # This service is a raw-WebSocket relay — no cookies, sessions, CSRF, or
+  # LiveView — so it never actually uses secret_key_base. Phoenix only requires
+  # one to be present to boot, so we generate a random value per boot. There is
+  # no SECRET_KEY_BASE env var to set, and nothing signed needs to survive a
+  # restart.
   config :remote_ws, RemoteWsWeb.Endpoint,
     http: [
       ip: {0, 0, 0, 0},
       port: String.to_integer(System.get_env("REMOTE_WS_PORT") || "4000")
     ],
-    secret_key_base: secret_key_base,
+    secret_key_base: Base.encode64(:crypto.strong_rand_bytes(48)),
     server: true
 end

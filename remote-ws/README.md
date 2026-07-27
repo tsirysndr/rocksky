@@ -53,7 +53,10 @@ Reuses the **same variable names** as `apps/api` (share one environment):
 | `REDIS_URL` | Redis URL (default `redis://localhost:6379`) |
 | `NATS_URL` | NATS URL (default `nats://localhost:4222`) |
 | `REMOTE_WS_PORT` | HTTP listen port (service-specific; default `4000`) |
-| `SECRET_KEY_BASE` | Phoenix endpoint secret (prod only) |
+
+No `SECRET_KEY_BASE` is needed: this is a raw-WebSocket relay with no cookies /
+sessions / CSRF / LiveView, so the endpoint's `secret_key_base` (which Phoenix
+requires only to boot) is generated at runtime and never used.
 
 ## Develop
 
