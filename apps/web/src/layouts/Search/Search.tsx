@@ -24,6 +24,18 @@ const Header = styled.div`
   padding: 16px;
 `;
 
+// "/" affordance shown at the trailing edge of the search input — press "/"
+// anywhere to focus it (see components/KeyboardShortcuts).
+const SlashHint = styled.kbd`
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1;
+  color: var(--color-text-muted);
+  padding: 3px 8px;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 6px;
+`;
+
 const schema = z.object({
   keyword: z.string().nonempty(),
 });
@@ -317,6 +329,9 @@ function Search() {
                 startEnhancer={
                   <SearchIcon size={20} color="var(--color-text-muted)" />
                 }
+                endEnhancer={
+                  keyword.length > 0 ? undefined : <SlashHint>/</SlashHint>
+                }
                 placeholder="Search"
                 clearable
                 clearOnEscape
@@ -332,6 +347,12 @@ function Search() {
                       backgroundColor: "var(--color-input-background)",
                     },
                   },
+                  EndEnhancer: {
+                    style: {
+                      backgroundColor: "var(--color-input-background)",
+                      paddingLeft: "0px",
+                    },
+                  },
                   InputContainer: {
                     style: {
                       backgroundColor: "var(--color-input-background)",
@@ -341,6 +362,9 @@ function Search() {
                     style: {
                       color: "var(--color-text)",
                       caretColor: "var(--color-text)",
+                    },
+                    props: {
+                      "data-search-input": "true",
                     },
                   },
                   ClearIcon: {

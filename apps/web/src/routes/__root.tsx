@@ -2,6 +2,7 @@ import { Outlet, createRootRoute } from "@tanstack/react-router";
 import { useAtomValue } from "jotai";
 import * as React from "react";
 import { themeAtom } from "../atoms/theme";
+import KeyboardShortcuts from "../components/KeyboardShortcuts";
 import StickyPlayer from "../components/StickyPlayer";
 
 export const Route = createRootRoute({
@@ -41,6 +42,7 @@ function RootComponent() {
     <React.Fragment>
       <Outlet />
       <StickyPlayer />
+      <KeyboardShortcuts />
     </React.Fragment>
   );
 }

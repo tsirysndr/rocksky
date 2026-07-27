@@ -1,11 +1,12 @@
 import styled from "@emotion/styled";
 import axios from "axios";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import _ from "lodash";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { nowPlayingAtom } from "../../atoms/nowpaying";
 import { playerAtom } from "../../atoms/player";
+import { playerControlsAtom } from "../../atoms/playerControls";
 import { queueAtom, queueIndexAtom, queuePanelOpenAtom } from "../../atoms/queue";
 import { fullscreenPlayerAtom } from "../../atoms/fullscreenPlayer";
 import { profileAtom } from "../../atoms/profile";
@@ -297,6 +298,54 @@ function StickyPlayerWithData() {
     const p = getRockboxPlayer();
     if (p.ready) p.setVolume(nextMuted ? 0 : volume);
   };
+
+  // ── Global keyboard-shortcut bridge ───────────────────────────────────────
+  // Publish stable transport wrappers so the app-wide shortcut handler can
+  // drive playback (see components/KeyboardShortcuts). The transport closures
+  // are captured through a ref so the published callbacks stay referentially
+  // stable; controls are cleared when nothing is playing so media shortcuts
+  // stay inert on pages with no active track.
+  const setPlayerControls = useSetAtom(playerControlsAtom);
+  const transportRef = useRef({
+    onPlay,
+    onPause,
+    onNext,
+    onPrevious,
+    onToggleMute,
+    onSeek,
+  });
+  transportRef.current = {
+    onPlay,
+    onPause,
+    onNext,
+    onPrevious,
+    onToggleMute,
+    onSeek,
+  };
+  const hasNowPlaying = !!nowPlaying;
+  useEffect(() => {
+    if (!hasNowPlaying) {
+      setPlayerControls(null);
+      return;
+    }
+    setPlayerControls({
+      toggle: () =>
+        nowPlayingRef.current?.isPlaying
+          ? transportRef.current.onPause()
+          : transportRef.current.onPlay(),
+      next: () => transportRef.current.onNext(),
+      previous: () => transportRef.current.onPrevious(),
+      toggleMute: () => transportRef.current.onToggleMute(),
+      seekBy: (deltaMs) => {
+        const np = nowPlayingRef.current;
+        if (!np) return;
+        const max = np.duration ?? Number.MAX_SAFE_INTEGER;
+        const target = Math.min(Math.max(0, (np.progress ?? 0) + deltaMs), max);
+        transportRef.current.onSeek(target);
+      },
+    });
+    return () => setPlayerControls(null);
+  }, [hasNowPlaying, setPlayerControls]);
 
   // ── Like / dislike ────────────────────────────────────────────────────────
 
