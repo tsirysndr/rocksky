@@ -133,6 +133,23 @@ function toRemoteNowPlaying(
   };
 }
 
+// Map a CLI queue-message item to the QueueTrack shape the QueuePanel renders.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toRemoteQueueTrack(q: any) {
+  return {
+    uploadId: q.uploadId || q.trackId || "",
+    title: q.title ?? "",
+    artist: q.album_artist || q.artist || "",
+    albumArtist: q.album_artist ?? "",
+    album: q.album ?? "",
+    albumArt: q.album_art ?? null,
+    duration: q.duration ?? 0,
+    sha256: "",
+    songUri: q.song_uri ?? "",
+    trackNumber: q.track_number ?? null,
+  };
+}
+
 function StickyPlayerWithData() {
   useUploadScrobble();
   // Bridge the in-browser rockbox-wasm engine → jotai atoms (track/progress/
@@ -354,6 +371,8 @@ function StickyPlayerWithData() {
             nowPlaying: d.now_playing
               ? toRemoteNowPlaying(d.now_playing, likedRef.current)
               : null,
+            queue: Array.isArray(d.queue?.queue) ? d.queue.queue.map(toRemoteQueueTrack) : [],
+            queueIndex: d.queue?.index ?? 0,
           };
         }
         setDevices(map);
@@ -369,7 +388,19 @@ function StickyPlayerWithData() {
         const name = msg.data?.device_name ?? msg.device_name ?? "Remote device";
         const prevNp = devicesRef.current[id]?.nowPlaying ?? null;
         const np = toRemoteNowPlaying(msg.data, likedRef.current, prevNp);
-        setDevices((prev) => ({ ...prev, [id]: { deviceId: id, name, nowPlaying: np } }));
+        setDevices((prev) => {
+          const prevDev = prev[id];
+          return {
+            ...prev,
+            [id]: {
+              deviceId: id,
+              name,
+              nowPlaying: np,
+              queue: prevDev?.queue ?? [],
+              queueIndex: prevDev?.queueIndex ?? 0,
+            },
+          };
+        });
         // Mirror into the miniplayer when this is the active device. If nothing
         // is playing yet (player === null), promote the device source — this also
         // covers the race where `primary_changed` arrived before the first track.
@@ -381,6 +412,27 @@ function StickyPlayerWithData() {
           if (playerRef.current === null) setPlayer("device");
           lastFetchedRef.current = Date.now();
         }
+        return;
+      }
+
+      // A player pushed its queue → mirror it (kept per-device for the panel).
+      if (msg.type === "message" && msg.data?.type === "queue") {
+        const id = msg.device_id;
+        if (!id) return;
+        const queue = Array.isArray(msg.data.queue)
+          ? msg.data.queue.map(toRemoteQueueTrack)
+          : [];
+        const queueIndex = msg.data.index ?? 0;
+        setDevices((prev) => {
+          const dev = prev[id] ?? {
+            deviceId: id,
+            name: "Remote device",
+            nowPlaying: null,
+            queue: [],
+            queueIndex: 0,
+          };
+          return { ...prev, [id]: { ...dev, queue, queueIndex } };
+        });
         return;
       }
 
@@ -697,6 +749,9 @@ function StickyPlayerWithData() {
   if (!nowPlaying) return <></>;
 
   const isRockbox = player === "rockbox";
+  const activeDevice = activeDeviceId ? devices[activeDeviceId] : undefined;
+  // Show the queue button for the local engine OR a remote device with a queue.
+  const showQueue = isRockbox || (player === "device" && !!activeDevice?.queue.length);
 
   return (
     <>
@@ -745,6 +800,25 @@ function StickyPlayerWithData() {
         </>
       )}
 
+      {/* Remote device queue: the real CLI/device queue, kept in sync via `queue`
+          pushes. Actions are relayed to that device as targeted commands. */}
+      {queuePanelOpen && player === "device" && activeDevice && (
+        <>
+          <QueueOverlay onClick={() => setQueuePanelOpen(false)} />
+          <QueuePanel
+            queue={activeDevice.queue}
+            queueIndex={activeDevice.queueIndex}
+            onClose={() => setQueuePanelOpen(false)}
+            onPlayIndex={(idx) => sendDeviceCommand("queue_jump", { index: idx })}
+            onRemove={(idx) => sendDeviceCommand("queue_remove", { index: idx })}
+            onReorder={() => {
+              // No remote reorder — the device re-pushes its queue, which snaps
+              // any optimistic change back to the device's real order.
+            }}
+          />
+        </>
+      )}
+
       {fullscreenOpen && (
         <FullscreenPlayer
           nowPlaying={nowPlaying}
@@ -756,7 +830,7 @@ function StickyPlayerWithData() {
           isPlaying={nowPlaying.isPlaying}
           onLike={onLike}
           onDislike={onDislike}
-          showQueueButton={isRockbox}
+          showQueueButton={showQueue}
           queuePanelOpen={queuePanelOpen}
           onPlaylist={() => setQueuePanelOpen((o) => !o)}
           onClose={() => setFullscreenOpen(false)}
@@ -840,7 +914,7 @@ function StickyPlayerWithData() {
         isPlaying={nowPlaying.isPlaying}
         onLike={onLike}
         onDislike={onDislike}
-        showQueueButton={isRockbox}
+        showQueueButton={showQueue}
         queuePanelOpen={queuePanelOpen}
         fullscreenOpen={fullscreenOpen}
         onOpenFullscreen={() => setFullscreenOpen(true)}

@@ -1,4 +1,5 @@
 import { atom } from "jotai";
+import type { QueueTrack } from "./queue";
 
 // One connected remote player's now-playing (same shape the miniplayer reads).
 export type RemoteNowPlaying = {
@@ -19,6 +20,10 @@ export type RemoteDevice = {
   deviceId: string;
   name: string;
   nowPlaying: RemoteNowPlaying | null;
+  // The device's real playback queue + current index, mirrored from its `queue`
+  // pushes so the miniplayer's queue panel stays in sync.
+  queue: QueueTrack[];
+  queueIndex: number;
 };
 
 // Every connected player device, keyed by device_id — the source of truth for
