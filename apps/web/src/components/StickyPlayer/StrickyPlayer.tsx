@@ -225,7 +225,7 @@ function StickyPlayer(props: StickyPlayerProps) {
   return (
     <Container embedded={embedded}>
       <MiniPlayerWrapper embedded={embedded}>
-        <MiniPlayer embedded={embedded} className={embedded ? "" : "!bg-[var(--color-background)]"}>
+        <MiniPlayer embedded={embedded}>
           {!fullscreenOpen && (
             <CoverWrapper onClick={onOpenFullscreen}>
               {(() => {
