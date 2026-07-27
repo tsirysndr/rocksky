@@ -227,8 +227,14 @@ export function startRockskyRemote(
       } catch {
         return;
       }
-      // Registration reply carries our device id.
-      if (typeof msg.deviceId === "string") {
+      // Our device id comes ONLY from the registration reply, which the server
+      // marks with `status: "registered"`. Crucially, do NOT read `deviceId`
+      // from any message: the server also broadcasts `device_registered` events
+      // (carrying ANOTHER device's id) whenever a new device — e.g. the web
+      // miniplayer "rocksky-web" — joins. Capturing that would clobber our own
+      // id, so our track pushes would be tagged with the other device's id and
+      // every miniplayer would mislabel the source as that device.
+      if (msg.status === "registered" && typeof msg.deviceId === "string") {
         deviceId = msg.deviceId;
         debug("registered", deviceId);
         // Start pushing state now that we have an id.
@@ -239,6 +245,8 @@ export function startRockskyRemote(
         if (!pushTimer) pushTimer = setInterval(tick, PUSH_INTERVAL_MS);
         return;
       }
+      // Ignore `device_registered` announcements about other devices.
+      if (msg.type === "device_registered") return;
       if (msg.type === "command") {
         void handleCommand(msg as { action?: string; args?: unknown });
       }

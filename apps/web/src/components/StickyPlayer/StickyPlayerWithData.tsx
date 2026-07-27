@@ -261,7 +261,10 @@ function StickyPlayerWithData() {
       // user is on another source, adopt it as the active player.
       if (msg.type === "message" && msg.data?.type === "track") {
         setDeviceAvailable(true);
-        const name = msg.device_name ?? msg.data?.device_name;
+        // Prefer the name the player embeds in its own payload (authoritative,
+        // regardless of device-id routing) over the server-computed top-level
+        // one; fall back to the latter for players that don't embed a name.
+        const name = msg.data?.device_name ?? msg.device_name;
         if (name) setDeviceName(name);
         if (playerRef.current !== null && playerRef.current !== "device") return;
         if (!msg.data.title && !msg.data.artist && !msg.data.album_artist) return;

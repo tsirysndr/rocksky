@@ -308,7 +308,11 @@ export default function MiniPlayer() {
 
         if (msg.type === "message" && msg.data?.type === "track") {
           setRockboxAvailable(true);
-          const name = msg.device_name ?? msg.data?.device_name;
+          // Prefer the player's self-reported name (embedded in its payload,
+          // authoritative regardless of device-id routing) over the server's
+          // top-level one; fall back to the latter for players like Rockbox that
+          // don't embed a name.
+          const name = msg.data?.device_name ?? msg.device_name;
           if (name) setDeviceName(name);
           if (playerRef.current !== null && playerRef.current !== "rockbox") return;
           if (!msg.data.title && !msg.data.artist && !msg.data.album_artist) return;
