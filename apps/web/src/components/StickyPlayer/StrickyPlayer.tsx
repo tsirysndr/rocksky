@@ -66,7 +66,7 @@ const MiniPlayer = styled.div<{ embedded?: boolean }>`
   ` : `
     /* Frosted-glass panel: a translucent tint of the theme background with a
        blur of the content behind it (works in both light and dark). */
-    background: color-mix(in srgb, var(--color-background) 68%, transparent);
+    background: color-mix(in srgb, var(--color-background) 80%, transparent);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     border: 1px solid color-mix(in srgb, var(--color-text-muted) 16%, transparent);
