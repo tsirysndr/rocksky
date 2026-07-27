@@ -272,6 +272,31 @@ const retrieveProfile = ({
   });
 };
 
+// Derive avatar URL + displayName from the fetched bsky profile record.
+// Returns `undefined` for a field when the record didn't provide it (e.g. the
+// profile fetch in `retrieveProfile` failed and left `profileRecord` empty), so
+// callers can preserve existing good data instead of clobbering it.
+const resolveProfileFields = (
+  profile: Profile,
+): { avatar?: string; displayName?: string } => {
+  const displayName = _.get(profile, "profileRecord.value.displayName") as
+    | string
+    | undefined;
+  const ref = _.get(profile, "profileRecord.value.avatar.ref") as
+    | { toString(): string }
+    | undefined;
+  const cid = ref ? ref.toString() : "";
+  const ext =
+    _.get(profile, "profileRecord.value.avatar.mimeType", "").split("/")[1] ||
+    "jpeg";
+  return {
+    avatar: cid
+      ? `https://cdn.bsky.app/img/avatar/plain/${profile.did}/${cid}@${ext}`
+      : undefined,
+    displayName: displayName || undefined,
+  };
+};
+
 const refreshProfile = ([
   profile,
   handle,
@@ -289,14 +314,19 @@ const refreshProfile = ([
 ]) => {
   return Effect.tryPromise({
     try: async () => {
+      const fetched = resolveProfileFields(profile);
+
       if (!profile.user) {
+        // Brand new user: nothing to preserve. `avatar` is NOT NULL, so fall
+        // back to "" when the fetch yielded no avatar — a later successful
+        // getProfile will fill it in via the update path below.
         await profile.ctx.db
           .insert(tables.users)
           .values({
             did: profile.did,
             handle,
-            avatar: `https://cdn.bsky.app/img/avatar/plain/${profile.did}/${_.get(profile, "profileRecord.value.avatar.ref", "").toString()}@jpeg`,
-            displayName: _.get(profile, "profileRecord.value.displayName", ""),
+            avatar: fetched.avatar ?? "",
+            displayName: fetched.displayName ?? null,
           })
           .execute();
         const users = await profile.ctx.db
@@ -321,24 +351,24 @@ const refreshProfile = ([
           ),
         );
       } else {
-        // Update existing user in background if handle or avatar or displayName changed
+        // Existing user: only take avatar/displayName from the fetch when it
+        // actually provided them. A failed or partial profile fetch must never
+        // overwrite good data with an empty name or a CID-less avatar URL.
+        const nextAvatar = fetched.avatar ?? profile.user.avatar;
+        const nextDisplayName =
+          fetched.displayName ?? profile.user.displayName;
+
         if (
           profile.user.handle !== handle ||
-          profile.user.avatar !==
-            `https://cdn.bsky.app/img/avatar/plain/${profile.did}/${_.get(profile, "profileRecord.value.avatar.ref", "").toString()}@jpeg` ||
-          profile.user.displayName !==
-            _.get(profile, "profileRecord.value.displayName")
+          profile.user.avatar !== nextAvatar ||
+          profile.user.displayName !== nextDisplayName
         ) {
           profile.ctx.db
             .update(tables.users)
             .set({
               handle,
-              avatar: `https://cdn.bsky.app/img/avatar/plain/${profile.did}/${_.get(profile, "profileRecord.value.avatar.ref", "").toString()}@jpeg`,
-              displayName: _.get(
-                profile,
-                "profileRecord.value.displayName",
-                "",
-              ),
+              avatar: nextAvatar,
+              displayName: nextDisplayName,
               updatedAt: new Date(),
             })
             .where(eq(tables.users.id, profile.user.id))
@@ -350,12 +380,8 @@ const refreshProfile = ([
                 xata_id: profile.user.id,
                 did: profile.user.did,
                 handle,
-                display_name: _.get(
-                  profile,
-                  "profileRecord.value.displayName",
-                  "",
-                ),
-                avatar: `https://cdn.bsky.app/img/avatar/plain/${profile.did}/${_.get(profile, "profileRecord.value.avatar.ref", "").toString()}@jpeg`,
+                display_name: nextDisplayName,
+                avatar: nextAvatar,
                 xata_createdat: profile.user.createdAt.toISOString(),
                 xata_updatedat: new Date().toISOString(),
                 xata_version: (profile.user.xataVersion || 1) + 1,
@@ -363,6 +389,12 @@ const refreshProfile = ([
             ),
           );
         }
+
+        // Reflect the resolved values back onto the in-memory user so the
+        // response (built in `presentation`) is consistent with the DB.
+        profile.user.handle = handle;
+        profile.user.avatar = nextAvatar;
+        profile.user.displayName = nextDisplayName;
       }
 
       return [
@@ -397,8 +429,8 @@ const presentation = ([
     id: profile.user?.id,
     did: profile.did,
     handle,
-    displayName: _.get(profile, "profileRecord.value.displayName"),
-    avatar: `https://cdn.bsky.app/img/avatar/plain/${profile.did}/${_.get(profile, "profileRecord.value.avatar.ref", "").toString()}@jpeg`,
+    displayName: profile.user?.displayName ?? undefined,
+    avatar: profile.user?.avatar || undefined,
     createdAt: profile.user?.createdAt.toISOString(),
     updatedAt: profile.user?.updatedAt.toISOString(),
     spotifyUser: {
