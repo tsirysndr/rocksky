@@ -6,6 +6,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { nowPlayingAtom } from "../../atoms/nowpaying";
 import { playerAtom } from "../../atoms/player";
+import {
+  activeDeviceIdAtom,
+  devicesAtom,
+  type RemoteDevice,
+  type RemoteNowPlaying,
+} from "../../atoms/devices";
 import { playerControlsAtom } from "../../atoms/playerControls";
 import { queueAtom, queueIndexAtom, queuePanelOpenAtom } from "../../atoms/queue";
 import { fullscreenPlayerAtom } from "../../atoms/fullscreenPlayer";
@@ -92,6 +98,41 @@ const PlayerDot = styled.span<{ active: boolean }>`
 // StickyPlayerWithData
 // ---------------------------------------------------------------------------
 
+// Build the miniplayer's now-playing shape from a device's `track` payload.
+// `prev` (the same device's previous state) lets us keep the smooth local
+// progress and only snap on a track change or a large (seek) jump.
+function toRemoteNowPlaying(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data: any,
+  liked: Record<string, boolean>,
+  prev?: RemoteNowPlaying | null,
+): RemoteNowPlaying {
+  const title = data.title;
+  const artist = data.album_artist || data.artist;
+  const incoming = data.elapsed ?? 0;
+  const sameTrack = !!prev && prev.title === title && prev.artist === artist;
+  const progress =
+    sameTrack && Math.abs((prev?.progress ?? 0) - incoming) < 2000
+      ? (prev?.progress ?? incoming)
+      : incoming;
+  const isPlaying =
+    typeof data.is_playing === "boolean" ? data.is_playing : (prev?.isPlaying ?? true);
+  return {
+    title,
+    artist,
+    artistUri: data.artist_uri ?? "",
+    songUri: data.song_uri ?? "",
+    albumUri: data.album_uri ?? "",
+    duration: data.length,
+    progress,
+    albumArt: _.get(data, "album_art"),
+    isPlaying,
+    sha256: data.sha256 ?? "",
+    liked:
+      liked[data.song_uri] !== undefined ? liked[data.song_uri] : !!data.liked,
+  };
+}
+
 function StickyPlayerWithData() {
   useUploadScrobble();
   // Bridge the in-browser rockbox-wasm engine → jotai atoms (track/progress/
@@ -121,8 +162,14 @@ function StickyPlayerWithData() {
   // as commands, so the web miniplayer stays in sync with the device.
   const socketRef = useRef<WebSocket | null>(null);
   const heartbeatRef = useRef<number | null>(null);
-  const [deviceAvailable, setDeviceAvailable] = useState(false);
-  const [deviceName, setDeviceName] = useState("Remote device");
+  // Every connected player device (device_id → state), plus which one is active
+  // (= the user's primary). A user can run several players at once; each has its
+  // own entry so their states never conflict, and the picker can switch between
+  // them.
+  const [devices, setDevices] = useAtom(devicesAtom);
+  const [activeDeviceId, setActiveDeviceId] = useAtom(activeDeviceIdAtom);
+  const devicesRef = useRef(devices);
+  const activeDeviceIdRef = useRef(activeDeviceId);
   // Hidden silent <audio> that plays while the wasm engine plays, so the
   // browser surfaces the Media Session / OS media controls (Web Audio alone
   // doesn't trigger them).
@@ -148,7 +195,9 @@ function StickyPlayerWithData() {
     nowPlayingRef.current = nowPlaying;
     playerRef.current = player;
     likedRef.current = liked;
-  }, [nowPlaying, player, liked]);
+    devicesRef.current = devices;
+    activeDeviceIdRef.current = activeDeviceId;
+  }, [nowPlaying, player, liked, devices, activeDeviceId]);
 
   // Publish shuffle/repeat to the engine. No player/ready guard: publish*
   // remembers the value and (re)applies it on the engine's next init, so
@@ -226,6 +275,8 @@ function StickyPlayerWithData() {
   // ── Remote device over the /ws relay ──────────────────────────────────────
   // Send a transport command to the active device. Seek carries its position in
   // `args` because the relay forwards only { type, action, args }.
+  // Transport command → the ACTIVE device only (targeted, so controlling one
+  // player never disturbs the others). Seek carries its position in `args`.
   const sendDeviceCommand = useCallback((action: string, args?: unknown) => {
     const ws = socketRef.current;
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
@@ -233,8 +284,42 @@ function StickyPlayerWithData() {
       type: "command",
       action,
       args,
+      target: activeDeviceIdRef.current ?? undefined,
       token: localStorage.getItem("token"),
     }));
+  }, []);
+
+  // Adopt `id` as the active device the miniplayer shows. Called on a server
+  // `primary_changed` (keeps every client in sync). It does NOT steal focus from
+  // Spotify / the local engine — it only mirrors into the miniplayer when the
+  // device source is (or becomes) active.
+  const adoptDevice = useCallback((id: string, map?: Record<string, RemoteDevice>) => {
+    setActiveDeviceId(id);
+    const dev = (map ?? devicesRef.current)[id];
+    if (!dev) return;
+    if (playerRef.current === null || playerRef.current === "device") {
+      if (dev.nowPlaying) setNowPlaying(dev.nowPlaying);
+      setPlayer("device");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // The user picked a device in the source selector → show/control it AND make it
+  // the primary (scrobble source), synced to the server + the user's other UIs.
+  const selectDevice = useCallback((id: string) => {
+    setActiveDeviceId(id);
+    const dev = devicesRef.current[id];
+    if (dev?.nowPlaying) setNowPlaying(dev.nowPlaying);
+    setPlayer("device");
+    const ws = socketRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        type: "set_primary",
+        device_id: id,
+        token: localStorage.getItem("token"),
+      }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -257,64 +342,84 @@ function StickyPlayerWithData() {
       let msg: any;
       try { msg = JSON.parse(event.data); } catch { return; }
 
-      // A device is announcing now-playing → make it selectable and, unless the
-      // user is on another source, adopt it as the active player.
-      if (msg.type === "message" && msg.data?.type === "track") {
-        setDeviceAvailable(true);
-        // Prefer the name the player embeds in its own payload (authoritative,
-        // regardless of device-id routing) over the server-computed top-level
-        // one; fall back to the latter for players that don't embed a name.
-        const name = msg.data?.device_name ?? msg.device_name;
-        if (name) setDeviceName(name);
-        if (playerRef.current !== null && playerRef.current !== "device") return;
-        if (!msg.data.title && !msg.data.artist && !msg.data.album_artist) return;
-
-        const prev = nowPlayingRef.current;
-        const title = msg.data.title;
-        const artist = msg.data.album_artist || msg.data.artist;
-        const incoming = msg.data.elapsed ?? 0;
-        // Progress is computed locally by the 100ms ticker; the device's push
-        // (every ~4s) only reconciles real drift. Keep the smooth local value
-        // unless it's a different track or the gap is large (a seek), so the
-        // periodic sync doesn't produce visible jumps.
-        const sameTrack = !!prev && prev.title === title && prev.artist === artist;
-        const progress =
-          sameTrack && Math.abs((prev?.progress ?? 0) - incoming) < 2000
-            ? (prev?.progress ?? incoming)
-            : incoming;
-        const isPlaying =
-          typeof msg.data.is_playing === "boolean"
-            ? msg.data.is_playing
-            : (prev?.isPlaying ?? true);
-
-        setNowPlaying({
-          title,
-          artist,
-          artistUri: msg.data.artist_uri ?? "",
-          songUri: msg.data.song_uri ?? "",
-          albumUri: msg.data.album_uri ?? "",
-          duration: msg.data.length,
-          progress,
-          albumArt: _.get(msg, "data.album_art"),
-          isPlaying,
-          sha256: msg.data.sha256 ?? "",
-          liked:
-            likedRef.current[msg.data.song_uri] !== undefined
-              ? likedRef.current[msg.data.song_uri]
-              : !!msg.data.liked,
-        });
-        setPlayer("device");
-        lastFetchedRef.current = Date.now();
+      // Snapshot of the players already streaming when we connected.
+      if (msg.type === "devices" && Array.isArray(msg.devices)) {
+        const map: Record<string, RemoteDevice> = {};
+        for (const d of msg.devices) {
+          if (!d.device_id) continue;
+          const name = d.now_playing?.device_name ?? d.name ?? "Remote device";
+          map[d.device_id] = {
+            deviceId: d.device_id,
+            name,
+            nowPlaying: d.now_playing
+              ? toRemoteNowPlaying(d.now_playing, likedRef.current)
+              : null,
+          };
+        }
+        setDevices(map);
+        if (msg.primary_device && map[msg.primary_device]) adoptDevice(msg.primary_device, map);
         return;
       }
 
-      // Transport status only matters while the device is the active player.
-      if (playerRef.current !== "device") return;
-      if (msg.data?.type === "status") {
-        const s = msg.data.status;
-        if (s === 0) { setNowPlaying(null); setPlayer((p) => (p === "device" ? null : p)); }
-        else if (s === 1) setNowPlaying((prev) => prev ? { ...prev, isPlaying: true } : prev);
-        else if (s === 2 || s === 3) setNowPlaying((prev) => prev ? { ...prev, isPlaying: false } : prev);
+      // A player pushed a track → upsert its entry in the device map.
+      if (msg.type === "message" && msg.data?.type === "track") {
+        const id = msg.device_id;
+        if (!id) return;
+        if (!msg.data.title && !msg.data.artist && !msg.data.album_artist) return;
+        const name = msg.data?.device_name ?? msg.device_name ?? "Remote device";
+        const prevNp = devicesRef.current[id]?.nowPlaying ?? null;
+        const np = toRemoteNowPlaying(msg.data, likedRef.current, prevNp);
+        setDevices((prev) => ({ ...prev, [id]: { deviceId: id, name, nowPlaying: np } }));
+        // Mirror into the miniplayer when this is the active device. If nothing
+        // is playing yet (player === null), promote the device source — this also
+        // covers the race where `primary_changed` arrived before the first track.
+        if (
+          activeDeviceIdRef.current === id &&
+          (playerRef.current === "device" || playerRef.current === null)
+        ) {
+          setNowPlaying(np);
+          if (playerRef.current === null) setPlayer("device");
+          lastFetchedRef.current = Date.now();
+        }
+        return;
+      }
+
+      // A device left → drop it; if it was active, clear the miniplayer.
+      if (msg.type === "device_unregistered" && msg.device_id) {
+        const gone = msg.device_id;
+        setDevices((prev) => {
+          if (!prev[gone]) return prev;
+          const next = { ...prev };
+          delete next[gone];
+          return next;
+        });
+        if (activeDeviceIdRef.current === gone) {
+          setActiveDeviceId(null);
+          if (playerRef.current === "device") { setNowPlaying(null); setPlayer(null); }
+        }
+        return;
+      }
+
+      // The primary device changed (this client, another client, or auto-adopt)
+      // → converge on it.
+      if (msg.type === "primary_changed" && msg.device_id) {
+        adoptDevice(msg.device_id);
+        return;
+      }
+
+      // Transport status for a device: 1 = playing, 0/2/3 = not playing.
+      if (msg.data?.type === "status" && msg.device_id) {
+        const id = msg.device_id;
+        const playing = msg.data.status === 1;
+        setDevices((prev) => {
+          const dev = prev[id];
+          if (!dev?.nowPlaying) return prev;
+          return { ...prev, [id]: { ...dev, nowPlaying: { ...dev.nowPlaying, isPlaying: playing } } };
+        });
+        if (activeDeviceIdRef.current === id && playerRef.current === "device") {
+          setNowPlaying((prev) => prev ? { ...prev, isPlaying: playing } : prev);
+        }
+        return;
       }
     };
 
@@ -694,20 +799,28 @@ function StickyPlayerWithData() {
                 <PlayerDot active={isRockbox} />
                 Rockbox
               </PlayerSelectorItem>
-              {deviceAvailable && (
-                <PlayerSelectorItem
-                  active={player === "device"}
-                  onClick={() => {
-                    // Silence the local engine before handing off to the device.
-                    if (player === "rockbox") getRockboxPlayer().pause();
-                    setPlayer("device");
-                    setPlayerSelectorOpen(false);
-                  }}
-                >
-                  <PlayerDot active={player === "device"} />
-                  {deviceName}
-                </PlayerSelectorItem>
-              )}
+              {/* One entry per connected player device. Several can be playing
+                  at once — selecting one shows/controls it and makes it the
+                  primary (scrobble source), synced across the user's clients. */}
+              {Object.values(devices).map((dev) => {
+                const isActive = player === "device" && activeDeviceId === dev.deviceId;
+                return (
+                  <PlayerSelectorItem
+                    key={dev.deviceId}
+                    active={isActive}
+                    onClick={() => {
+                      // Silence the local engine before handing off to the device.
+                      if (player === "rockbox") getRockboxPlayer().pause();
+                      selectDevice(dev.deviceId);
+                      setPlayerSelectorOpen(false);
+                    }}
+                  >
+                    <PlayerDot active={isActive} />
+                    {dev.name}
+                    {dev.nowPlaying?.title ? ` — ${dev.nowPlaying.title}` : ""}
+                  </PlayerSelectorItem>
+                );
+              })}
             </PlayerSelectorPopup>
           </>,
           document.body,

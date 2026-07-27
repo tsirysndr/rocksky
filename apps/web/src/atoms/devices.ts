@@ -1,0 +1,32 @@
+import { atom } from "jotai";
+
+// One connected remote player's now-playing (same shape the miniplayer reads).
+export type RemoteNowPlaying = {
+  title: string;
+  artist: string;
+  artistUri: string;
+  songUri: string;
+  albumUri: string;
+  duration: number;
+  progress: number;
+  albumArt?: string;
+  isPlaying: boolean;
+  liked: boolean;
+  sha256: string;
+};
+
+export type RemoteDevice = {
+  deviceId: string;
+  name: string;
+  nowPlaying: RemoteNowPlaying | null;
+};
+
+// Every connected player device, keyed by device_id — the source of truth for
+// the device picker. A user can have several players streaming at once; each
+// gets its own entry, so their states never conflict.
+export const devicesAtom = atom<Record<string, RemoteDevice>>({});
+
+// The device the miniplayer currently shows/controls. It is also the user's
+// "primary" (the profile/scrobble source), kept in sync across all the user's
+// clients via the server's `primary_changed` broadcast.
+export const activeDeviceIdAtom = atom<string | null>(null);
