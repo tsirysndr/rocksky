@@ -12,9 +12,57 @@
 // output would corrupt the screen. Set ROCKSKY_WS_DEBUG=1 for stderr tracing.
 
 import { ROCKSKY_API_URL } from "client";
-import { skipNext, skipPrev } from "./playback";
-import { playerController } from "./player";
+import {
+  enqueueLast,
+  enqueueNext,
+  jumpTo,
+  skipNext,
+  skipPrev,
+  streamAndPlay,
+} from "./playback";
+import { playerController, type QueueItem } from "./player";
 import { loadSettings } from "./settings";
+
+// A track descriptor sent by the miniplayers' context-menu / queue actions. The
+// web resolves the tracks locally and sends these, so we don't re-resolve — we
+// just build QueueItems and play/enqueue them (streaming via uploadId or trackId).
+interface TrackDescriptor {
+  uploadId?: string;
+  trackId?: string;
+  title?: string;
+  artist?: string;
+  album?: string;
+  album_artist?: string;
+  album_art?: string;
+  duration?: number;
+  song_uri?: string;
+  album_uri?: string;
+}
+
+function descriptorToItem(d: TrackDescriptor): QueueItem {
+  return {
+    uploadId: d.uploadId ?? "",
+    trackId: d.trackId,
+    title: d.title ?? "",
+    artist: d.artist ?? "",
+    album: d.album,
+    albumArtist: d.album_artist,
+    albumArt: d.album_art,
+    duration: d.duration,
+    uri: d.song_uri,
+    albumUri: d.album_uri,
+  };
+}
+
+// Fisher–Yates shuffle (for "play shuffled album" / "add shuffled album").
+function shuffled<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 const WS_URL =
   process.env.ROCKSKY_WS ||
@@ -65,6 +113,7 @@ export function startRockskyRemote(
   let lastStatusCode = -1;
   let lastTrackKey = "";
   let lastTrackPushAt = 0;
+  let lastQueueKey = "";
 
   const send = (payload: unknown) => {
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -130,8 +179,46 @@ export function startRockskyRemote(
     });
   };
 
+  // Push the real playback queue + current index so the miniplayers can display
+  // and stay in sync with it. Deduped by contents + index; `force` bypasses it.
+  const pushQueue = (force = false) => {
+    const token = getToken();
+    if (!token || !deviceId) return;
+    const status = playerController.status();
+    const items = playerController.queueItems;
+    const index = status?.index ?? 0;
+    const key = `${index}|${items
+      .map((t) => t.uploadId || t.trackId || t.title)
+      .join(",")}`;
+    if (!force && key === lastQueueKey) return;
+    lastQueueKey = key;
+
+    send({
+      type: "message",
+      device_id: deviceId,
+      token,
+      data: {
+        type: "queue",
+        index,
+        queue: items.map((t) => ({
+          uploadId: t.uploadId,
+          trackId: t.trackId,
+          title: t.title,
+          artist: t.artist,
+          album: t.album,
+          album_artist: t.albumArtist,
+          album_art: t.albumArt,
+          duration: t.duration,
+          song_uri: t.uri,
+          album_uri: t.albumUri,
+          track_number: t.trackNumber,
+        })),
+      },
+    });
+  };
+
   // One tick: emit status transitions immediately, and the current track on
-  // change or every TRACK_REPUSH_MS while playing.
+  // change or every TRACK_REPUSH_MS while playing. Queue is deduped internally.
   const tick = () => {
     const status = playerController.status();
     const code = statusCode(status?.state ?? "stopped");
@@ -141,6 +228,7 @@ export function startRockskyRemote(
       if (code === 0) lastTrackKey = ""; // force a fresh track push on resume
     }
     if (code !== 0) pushTrack();
+    pushQueue();
   };
 
   const handleCommand = async (msg: {
@@ -176,6 +264,50 @@ export function startRockskyRemote(
         playerController.seekMs(pos);
         break;
       }
+
+      // ── Queue UI actions ─────────────────────────────────────────────────
+      case "queue_jump": {
+        const a = msg.args as { index?: number } | undefined;
+        const idx = a?.index ?? 0;
+        if (token) await jumpTo(token, idx);
+        else playerController.skipTo(idx);
+        break;
+      }
+      case "queue_remove": {
+        const a = msg.args as { index?: number } | undefined;
+        if (typeof a?.index === "number") playerController.removeAt(a.index);
+        break;
+      }
+
+      // ── Context-menu play / enqueue (track or album) ─────────────────────
+      // args: { tracks: TrackDescriptor[], mode: "now"|"next"|"last",
+      //         shuffle?: boolean, startIndex?: number }
+      case "enqueue": {
+        if (!token) break;
+        const a = msg.args as
+          | {
+              tracks?: TrackDescriptor[];
+              mode?: "now" | "next" | "last";
+              shuffle?: boolean;
+              startIndex?: number;
+            }
+          | undefined;
+        let items = (a?.tracks ?? []).map(descriptorToItem);
+        if (items.length === 0) break;
+        if (a?.shuffle) items = shuffled(items);
+        switch (a?.mode ?? "now") {
+          case "next":
+            await enqueueNext(token, items);
+            break;
+          case "last":
+            await enqueueLast(token, items);
+            break;
+          default:
+            await streamAndPlay(token, items, a?.shuffle ? 0 : (a?.startIndex ?? 0));
+        }
+        break;
+      }
+
       default:
         debug("unknown command", msg.action);
         return;
@@ -185,6 +317,7 @@ export function startRockskyRemote(
     setTimeout(() => {
       tick();
       pushTrack(true);
+      pushQueue(true);
     }, 50);
   };
 
@@ -240,8 +373,10 @@ export function startRockskyRemote(
         // Start pushing state now that we have an id.
         lastStatusCode = -1;
         lastTrackKey = "";
+        lastQueueKey = "";
         tick();
         pushTrack(true);
+        pushQueue(true);
         if (!pushTimer) pushTimer = setInterval(tick, PUSH_INTERVAL_MS);
         return;
       }
