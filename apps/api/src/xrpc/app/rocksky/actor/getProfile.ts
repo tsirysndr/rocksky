@@ -1,7 +1,6 @@
 import { type Agent, AtpAgent } from "@atproto/api";
-import { consola } from "consola";
-import type { OutputSchema } from "@atproto/api/dist/client/types/com/atproto/repo/getRecord";
 import type { HandlerAuth } from "@atproto/xrpc-server";
+import { consola } from "consola";
 import type { Context } from "context";
 import { eq } from "drizzle-orm";
 import { Effect, pipe } from "effect";
@@ -9,6 +8,7 @@ import type { Server } from "lexicon";
 import type { ProfileViewDetailed } from "lexicon/types/app/rocksky/actor/defs";
 import type { QueryParams } from "lexicon/types/app/rocksky/actor/getProfile";
 import { createAgent } from "lib/agent";
+import { fetchBskyProfile, type ResolvedBskyProfile } from "lib/bskyProfile";
 import _ from "lodash";
 import * as R from "ramda";
 import tables from "schema";
@@ -194,7 +194,7 @@ const retrieveProfile = ({
   user,
 }: WithUser): Effect.Effect<
   [
-    Profile | {},
+    Profile,
     string,
     SelectSpotifyAccount,
     SelectSpotifyToken,
@@ -205,22 +205,10 @@ const retrieveProfile = ({
 > => {
   return Effect.tryPromise({
     try: async () => {
-      let record = {};
-      try {
-        if (agent) {
-          const { data } = await agent.com.atproto.repo.getRecord({
-            repo: did,
-            collection: "app.bsky.actor.profile",
-            rkey: "self",
-          });
-          record = data;
-        }
-      } catch (error) {
-        consola.error("Failed to retrieve profile record:", error);
-      }
+      const resolved = await fetchBskyProfile(did, agent);
       return Promise.all([
         Promise.resolve({
-          profileRecord: record,
+          resolved,
           ctx,
           did,
           user,
@@ -272,31 +260,6 @@ const retrieveProfile = ({
   });
 };
 
-// Derive avatar URL + displayName from the fetched bsky profile record.
-// Returns `undefined` for a field when the record didn't provide it (e.g. the
-// profile fetch in `retrieveProfile` failed and left `profileRecord` empty), so
-// callers can preserve existing good data instead of clobbering it.
-const resolveProfileFields = (
-  profile: Profile,
-): { avatar?: string; displayName?: string } => {
-  const displayName = _.get(profile, "profileRecord.value.displayName") as
-    | string
-    | undefined;
-  const ref = _.get(profile, "profileRecord.value.avatar.ref") as
-    | { toString(): string }
-    | undefined;
-  const cid = ref ? ref.toString() : "";
-  const ext =
-    _.get(profile, "profileRecord.value.avatar.mimeType", "").split("/")[1] ||
-    "jpeg";
-  return {
-    avatar: cid
-      ? `https://cdn.bsky.app/img/avatar/plain/${profile.did}/${cid}@${ext}`
-      : undefined,
-    displayName: displayName || undefined,
-  };
-};
-
 const refreshProfile = ([
   profile,
   handle,
@@ -314,7 +277,7 @@ const refreshProfile = ([
 ]) => {
   return Effect.tryPromise({
     try: async () => {
-      const fetched = resolveProfileFields(profile);
+      const fetched = profile.resolved;
 
       if (!profile.user) {
         // Brand new user: nothing to preserve. `avatar` is NOT NULL, so fall
@@ -355,8 +318,7 @@ const refreshProfile = ([
         // actually provided them. A failed or partial profile fetch must never
         // overwrite good data with an empty name or a CID-less avatar URL.
         const nextAvatar = fetched.avatar ?? profile.user.avatar;
-        const nextDisplayName =
-          fetched.displayName ?? profile.user.displayName;
+        const nextDisplayName = fetched.displayName ?? profile.user.displayName;
 
         if (
           profile.user.handle !== handle ||
@@ -458,7 +420,7 @@ const presentation = ([
 };
 
 type Profile = {
-  profileRecord: OutputSchema;
+  resolved: ResolvedBskyProfile;
   ctx: Context;
   did: string;
   user?: SelectUser;

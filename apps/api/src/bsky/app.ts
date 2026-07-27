@@ -1,14 +1,14 @@
 import { AtpAgent } from "@atproto/api";
-import { consola } from "consola";
-import type { BlobRef } from "@atproto/lexicon";
 import { isValidHandle } from "@atproto/syntax";
+import { SCOPES } from "auth/client";
+import { consola } from "consola";
 import { ctx } from "context";
 import { and, desc, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import jwt from "jsonwebtoken";
-import * as Profile from "lexicon/types/app/bsky/actor/profile";
 import { deepSnakeCaseKeys } from "lib";
 import { createAgent } from "lib/agent";
+import { fetchBskyProfile } from "lib/bskyProfile";
 import { env } from "lib/env";
 import extractPdsFromDid from "lib/extractPdsFromDid";
 import { verifyToken } from "lib/verifyToken";
@@ -18,7 +18,6 @@ import googleDriveAccounts from "schema/google-drive-accounts";
 import spotifyAccounts from "schema/spotify-accounts";
 import spotifyTokens from "schema/spotify-tokens";
 import users from "schema/users";
-import { SCOPES } from "auth/client";
 
 const app = new Hono();
 
@@ -187,26 +186,18 @@ app.get("/profile", async (c) => {
     return c.text("Unauthorized");
   }
 
-  const { data: profileRecord } = await agent.com.atproto.repo.getRecord({
-    repo: agent.assertDid,
-    collection: "app.bsky.actor.profile",
-    rkey: "self",
-  });
   const handle = await ctx.resolver.resolveDidToHandle(did);
-  const profile: { handle?: string; displayName?: string; avatar?: BlobRef } =
-    Profile.isRecord(profileRecord.value)
-      ? { ...profileRecord.value, handle }
-      : {};
+  const resolved = await fetchBskyProfile(did, agent);
 
-  if (profile.handle) {
+  if (handle) {
     try {
       await ctx.db
         .insert(users)
         .values({
           did,
           handle,
-          displayName: profile.displayName,
-          avatar: `https://cdn.bsky.app/img/avatar/plain/${did}/${profile.avatar.ref.toString()}@jpeg`,
+          displayName: resolved.displayName ?? null,
+          avatar: resolved.avatar ?? "",
         })
         .execute();
     } catch (e) {
@@ -217,8 +208,14 @@ app.get("/profile", async (c) => {
           .update(users)
           .set({
             handle,
-            displayName: profile.displayName,
-            avatar: `https://cdn.bsky.app/img/avatar/plain/${did}/${profile.avatar.ref.toString()}@jpeg`,
+            // Only overwrite avatar/displayName when the lookup actually
+            // returned them, so a failed/partial fetch never clobbers good data.
+            ...(resolved.displayName !== undefined
+              ? { displayName: resolved.displayName }
+              : {}),
+            ...(resolved.avatar !== undefined
+              ? { avatar: resolved.avatar }
+              : {}),
           })
           .where(eq(users.did, did))
           .execute();
@@ -286,7 +283,9 @@ app.get("/profile", async (c) => {
   ]).then(([s, t, g, d]) => deepSnakeCaseKeys([s[0], t[0], g[0], d[0]]));
 
   return c.json({
-    ...profile,
+    handle,
+    displayName: resolved.displayName,
+    avatar: resolved.avatar,
     spotifyUser,
     spotifyConnected: !!spotifyToken,
     googledrive,

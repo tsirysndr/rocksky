@@ -1,4 +1,3 @@
-import type { BlobRef } from "@atproto/lexicon";
 import { ctx } from "context";
 import {
   aliasedTable,
@@ -12,8 +11,8 @@ import {
   sql,
 } from "drizzle-orm";
 import { Hono } from "hono";
-import * as Profile from "lexicon/types/app/bsky/actor/profile";
 import { createAgent } from "lib/agent";
+import { fetchBskyProfile } from "lib/bskyProfile";
 import { verifyToken } from "lib/verifyToken";
 import { likeTrack, unLikeTrack } from "lovedtracks/lovedtracks.service";
 import { requestCounter } from "metrics";
@@ -551,29 +550,22 @@ app.get("/:did", async (c) => {
     const agent = await createAgent(ctx.oauthClient, claims.did);
 
     if (agent) {
-      const { data: profileRecord } = await agent.com.atproto.repo.getRecord({
-        repo: did,
-        collection: "app.bsky.actor.profile",
-        rkey: "self",
-      });
       const handle = await ctx.resolver.resolveDidToHandle(did);
-      const profile: {
-        handle?: string;
-        displayName?: string;
-        avatar?: BlobRef;
-      } =
-        Profile.isRecord(profileRecord.value) &&
-        Profile.validateRecord(profileRecord.value).success
-          ? { ...profileRecord.value, handle }
-          : {};
+      const resolved = await fetchBskyProfile(did, agent);
 
-      if (profile.handle) {
+      if (handle) {
         await ctx.db
           .update(tables.users)
           .set({
             handle,
-            displayName: profile.displayName,
-            avatar: `https://cdn.bsky.app/img/avatar/plain/${did}/${profile.avatar.ref.toString()}@jpeg`,
+            // Only overwrite avatar/displayName when the lookup actually
+            // returned them, so a failed/partial fetch never clobbers good data.
+            ...(resolved.displayName !== undefined
+              ? { displayName: resolved.displayName }
+              : {}),
+            ...(resolved.avatar !== undefined
+              ? { avatar: resolved.avatar }
+              : {}),
           })
           .where(eq(tables.users.did, did))
           .execute();
