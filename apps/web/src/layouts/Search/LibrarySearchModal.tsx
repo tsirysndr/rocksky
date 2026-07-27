@@ -552,7 +552,9 @@ function Palette({ onClose }: { onClose: () => void }) {
               </MenuItem>
             </Menu>
           </>,
-          document.body,
+          // Portal into #root (which carries the `.dark` class) — NOT document.body,
+          // which is outside #root and so never gets the themed CSS variables.
+          document.getElementById("root") ?? document.body,
         )}
     </Panel>
   );

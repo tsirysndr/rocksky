@@ -921,7 +921,9 @@ function StickyPlayerWithData() {
               })}
             </PlayerSelectorPopup>
           </>,
-          document.body,
+          // Portal into #root (which carries the `.dark` class) — NOT document.body,
+          // which is outside #root and never gets the themed CSS variables.
+          document.getElementById("root") ?? document.body,
         );
       })()}
 
