@@ -20,6 +20,14 @@ defmodule RemoteWs.Devices do
   @doc "All {pid, %{device_id, name}} entries for a user."
   def list(did), do: Registry.lookup(@registry, did)
 
+  @doc "The %{device_id, name} metadata for every connected device of a user."
+  def metas(did), do: Enum.map(list(did), fn {_pid, meta} -> meta end)
+
+  @doc "Whether `device_id` is currently connected under `did`."
+  def connected?(did, device_id) do
+    Enum.any?(list(did), fn {_pid, %{device_id: id}} -> id == device_id end)
+  end
+
   @doc "The clientName registered for a given device_id under `did`, or nil."
   def name_of(_did, nil), do: nil
 

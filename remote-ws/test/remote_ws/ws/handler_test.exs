@@ -16,12 +16,18 @@ defmodule RemoteWs.Ws.HandlerTest do
         state()
       )
 
-    assert [reply] = frames
+    # Reply, then a device snapshot for the newly-connected client.
+    assert [reply, snapshot] = frames
     decoded = Jason.decode!(reply)
     assert decoded["status"] == "registered"
     assert is_binary(decoded["deviceId"])
     assert new_state.did == did
     assert new_state.device_id == decoded["deviceId"]
+
+    snap = Jason.decode!(snapshot)
+    assert snap["type"] == "devices"
+    # No player has streamed yet, so the list is empty (controllers are excluded).
+    assert snap["devices"] == []
 
     assert_receive {:pushed, ^other, frame}
     ann = Jason.decode!(frame)
@@ -92,6 +98,9 @@ defmodule RemoteWs.Ws.HandlerTest do
 
     cli = FakeDevice.start(did, "cli", "Rocksky CLI", self())
     st = %{device_id: "cli", did: did}
+    # Pre-mark cli primary so this test only observes the message broadcast (not
+    # the primary_changed that auto-adoption would also push).
+    RedisMemory.put("primary_device:#{did}", "cli")
 
     data = %{
       "type" => "track",
@@ -125,5 +134,31 @@ defmodule RemoteWs.Ws.HandlerTest do
 
     assert frames == []
     refute_receive {:pushed, _, _}, 100
+  end
+
+  test "set_primary broadcasts primary_changed to all the user's devices" do
+    did = new_did()
+    token = Token.sign(%{"did" => did})
+    a = FakeDevice.start(did, "a", "A", self())
+    b = FakeDevice.start(did, "b", "B", self())
+
+    Handler.handle(
+      %{"type" => "set_primary", "device_id" => "b", "token" => token},
+      %{device_id: "a", did: did}
+    )
+
+    assert_receive {:pushed, ^a, frame}
+    assert Jason.decode!(frame) == %{"type" => "primary_changed", "device_id" => "b"}
+    assert_receive {:pushed, ^b, _}
+  end
+
+  test "on_disconnect announces device_unregistered to the other devices" do
+    did = new_did()
+    a = FakeDevice.start(did, "a", "A", self())
+
+    Handler.on_disconnect(%{did: did, device_id: "gone"})
+
+    assert_receive {:pushed, ^a, frame}
+    assert Jason.decode!(frame) == %{"type" => "device_unregistered", "device_id" => "gone"}
   end
 end

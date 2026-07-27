@@ -1,76 +1,167 @@
 defmodule RemoteWs.NowPlaying do
   @moduledoc """
-  Now-playing enrichment and the song.changed / song.stopped gating — a faithful
-  port of apps/api/src/websocket/handler.ts (the `data.type === "track"` and the
-  status branches).
+  Now-playing enrichment, per-device caching, primary-device selection, and the
+  profile `song.changed` / `song.stopped` gating.
 
-  All Redis keys, TTLs, and the `ws_lastsong` gate semantics match the Node
-  implementation 1:1 so both servers behave identically against shared Redis.
+  A user (DID) can have several players streaming at once. Each device's enriched
+  now-playing is cached under `np:{did}:{device_id}` so a newly-connected client
+  can be handed a snapshot and list every player. But the user's PUBLIC profile
+  now-playing + scrobble is inherently one stream, so it is driven only by the
+  **primary device** — the one the user selected in the UI (`set_primary`), or,
+  when none is selected/connected, the sole active player (auto-adopted).
+
+  The profile machinery (`nowplaying:{did}`, `nowplaying:{did}:status`,
+  `lastsong:{did}`, `ws_lastsong:{did}`, `stopped:{did}` and the NATS events) is
+  unchanged from the original port and still per-DID — it just runs only for the
+  primary device, so non-primary players never touch it (and never fight over it,
+  or over the Navidrome coordination in apps/api).
   """
 
-  alias RemoteWs.{Nats, Redis, StopDebouncer, Store}
+  alias RemoteWs.{Devices, Nats, Redis, StopDebouncer, Store}
 
   @day_seconds 86_400
+  # Per-device now-playing cache lifetime. Players re-push every few seconds, so
+  # this only needs to outlive one push gap (it seeds the register snapshot).
+  @np_ttl 30
+
+  # ── track ──────────────────────────────────────────────────────────────────
 
   @doc """
-  Enrich a "track" now-playing payload and emit song.changed when appropriate.
-  Returns the enriched `data` map (string keys) to broadcast. `source` is the
-  device name used in the song.changed event.
+  Handle a `track` push from `device_id`: enrich it, cache it per-device, adopt a
+  primary if none is connected, and — only when this device is the primary —
+  drive the profile now-playing (`song.changed`). Returns the enriched `data` map
+  to broadcast. `name` is the device's display name (the song.changed `source`).
   """
-  def handle_track(did, data, source) do
-    title = data["title"]
-    artist = data["artist"]
-    album = data["album"]
-    sha256 = sha256_hex(String.downcase("#{title} - #{artist} - #{album}"))
+  def handle_track(did, device_id, name, data) do
+    {data, sha256, duration_ms, liked} = enrich(did, data)
+    cache_device_np(did, device_id, data, sha256, liked)
+    ensure_primary(did, device_id)
 
-    cached_track = Redis.get("track:#{sha256}")
-    cached_likes = Redis.get("likes:#{did}:#{sha256}")
+    if primary_device(did) == device_id do
+      write_nowplaying(did, data, sha256, liked)
 
-    {data, liked} = resolve_liked(data, did, sha256, cached_likes)
-
-    duration_ms = data["duration_ms"] || data["duration"] || 0
-    {data, duration_ms} = resolve_metadata(data, did, sha256, liked, duration_ms, cached_track)
-
-    maybe_emit_song_changed(did, sha256, %{
-      title: title,
-      artist: artist,
-      album: album,
-      album_art: data["album_art"],
-      duration_ms: duration_ms,
-      source: source
-    })
+      maybe_emit_song_changed(did, sha256, %{
+        title: data["title"],
+        artist: data["artist"],
+        album: data["album"],
+        album_art: data["album_art"],
+        duration_ms: duration_ms,
+        source: name
+      })
+    end
 
     data
   end
 
+  @doc "Handle a `status` push from `device_id` — drives the profile only if primary."
+  def handle_status(did, device_id, data) do
+    if primary_device(did) == device_id, do: profile_status(did, data)
+    :ok
+  end
+
+  # ── primary selection ────────────────────────────────────────────────────────
+
+  @doc "The user's current primary device id (scrobble/profile source), or nil."
+  def primary_device(did), do: Redis.get("primary_device:#{did}")
+
   @doc """
-  Handle a status payload (`data.status`): persist the status, and drive the
-  song.stopped debounce / ws_lastsong reactivation exactly like the Node handler.
+  Explicitly set the user's primary device from a UI selection and re-point the
+  profile now-playing at that device's current track. Broadcasts `primary_changed`
+  so every one of the user's clients converges on the same active device.
   """
-  def handle_status(did, data) do
-    status = data["status"]
-    Redis.set_ex("nowplaying:#{did}:status", 3, "#{status}")
+  def set_primary(did, device_id, name) do
+    Redis.set_ex("primary_device:#{did}", @day_seconds, device_id)
+    broadcast_primary(did, device_id)
+    # Force the profile to republish for the newly-selected device's track.
+    Redis.del("lastsong:#{did}")
 
-    ws_was_playing = Redis.exists("ws_lastsong:#{did}")
-
-    cond do
-      status == 0 and ws_was_playing ->
-        # Do NOT delete ws_lastsong here — only the debounce timer does, so a
-        # status=1 within the window keeps the gate intact.
-        Redis.set_ex("stopped:#{did}", @day_seconds, "1")
-        StopDebouncer.schedule(did)
-
-      status == 1 ->
-        handle_resume(did)
-
-      true ->
+    case device_np(did, device_id) do
+      nil ->
         :ok
+
+      np ->
+        write_nowplaying_raw(did, np)
+
+        publish_song_changed(did, np["sha256"], %{
+          title: np["title"],
+          artist: np["artist"],
+          album: np["album"],
+          album_art: np["album_art"],
+          duration_ms: np["duration_ms"] || np["length"] || 0,
+          source: name
+        })
     end
 
     :ok
   end
 
-  # ---- liked resolution (handler.ts lines 82-98) ----
+  @doc """
+  Handle a device disconnecting: forget its cached now-playing, and if it was the
+  primary, end the profile now-playing (so the public profile stops cleanly).
+  """
+  def on_disconnect(did, device_id) do
+    Redis.del("np:#{did}:#{device_id}")
+
+    if primary_device(did) == device_id do
+      Enum.each(
+        [
+          "primary_device:#{did}",
+          "lastsong:#{did}",
+          "ws_lastsong:#{did}",
+          "nowplaying:#{did}",
+          "stopped:#{did}"
+        ],
+        &Redis.del/1
+      )
+
+      StopDebouncer.cancel(did)
+      Nats.publish("rocksky.song.stopped", Jason.encode!(%{did: did}))
+    end
+
+    :ok
+  end
+
+  @doc "The cached enriched now-playing for one device (for the register snapshot), or nil."
+  def device_np(did, device_id) do
+    case Redis.get("np:#{did}:#{device_id}") do
+      nil -> nil
+      json -> Jason.decode!(json)
+    end
+  end
+
+  # ── primary internals ────────────────────────────────────────────────────────
+
+  # Adopt `device_id` as primary when there is no primary, or the current one is
+  # no longer connected — so a lone player scrobbles with zero UI, and the profile
+  # doesn't get stuck on a device that went away.
+  defp ensure_primary(did, device_id) do
+    cur = primary_device(did)
+
+    if is_nil(cur) or not Devices.connected?(did, cur) do
+      Redis.set_ex("primary_device:#{did}", @day_seconds, device_id)
+      broadcast_primary(did, device_id)
+    end
+
+    :ok
+  end
+
+  defp broadcast_primary(did, device_id) do
+    Devices.broadcast(did, Jason.encode!(%{type: "primary_changed", device_id: device_id}))
+  end
+
+  # ── enrichment (liked + metadata + sha) ──────────────────────────────────────
+
+  defp enrich(did, data) do
+    sha256 =
+      sha256_hex(String.downcase("#{data["title"]} - #{data["artist"]} - #{data["album"]}"))
+
+    cached_track = Redis.get("track:#{sha256}")
+    cached_likes = Redis.get("likes:#{did}:#{sha256}")
+    {data, liked} = resolve_liked(data, did, sha256, cached_likes)
+    duration_ms = data["duration_ms"] || data["duration"] || 0
+    {data, duration_ms} = resolve_metadata(data, did, sha256, liked, duration_ms, cached_track)
+    {data, sha256, duration_ms, liked}
+  end
 
   defp resolve_liked(data, _did, _sha256, cached_likes) when is_binary(cached_likes) do
     liked = Jason.decode!(cached_likes)["liked"]
@@ -83,9 +174,7 @@ defmodule RemoteWs.NowPlaying do
     {Map.put(data, "liked", liked), liked}
   end
 
-  # ---- track metadata resolution (handler.ts lines 100-146) ----
-
-  defp resolve_metadata(data, did, sha256, liked, duration_ms, cached_track)
+  defp resolve_metadata(data, _did, _sha256, _liked, duration_ms, cached_track)
        when is_binary(cached_track) do
     cached = Jason.decode!(cached_track)
 
@@ -96,12 +185,10 @@ defmodule RemoteWs.NowPlaying do
       |> Map.put("album_uri", cached["albumUri"])
       |> Map.put("artist_uri", cached["artistUri"])
 
-    duration_ms = cached["duration"] || duration_ms
-    write_nowplaying(did, data, sha256, liked)
-    {data, duration_ms}
+    {data, cached["duration"] || duration_ms}
   end
 
-  defp resolve_metadata(data, did, sha256, liked, duration_ms, _cached_track_nil) do
+  defp resolve_metadata(data, _did, sha256, liked, duration_ms, _cached_track_nil) do
     case Store.get_track_by_sha256(sha256) do
       nil ->
         {data, duration_ms}
@@ -113,8 +200,6 @@ defmodule RemoteWs.NowPlaying do
           |> Map.put("song_uri", track.uri)
           |> Map.put("album_uri", track.album_uri)
           |> Map.put("artist_uri", track.artist_uri)
-
-        duration_ms = track.duration || duration_ms
 
         Redis.set_ex(
           "track:#{sha256}",
@@ -129,60 +214,87 @@ defmodule RemoteWs.NowPlaying do
           })
         )
 
-        write_nowplaying(did, data, sha256, liked)
-        {data, duration_ms}
+        {data, track.duration || duration_ms}
     end
   end
 
-  defp write_nowplaying(did, data, sha256, liked) do
-    payload = data |> Map.put("sha256", sha256) |> Map.put("liked", liked)
-    Redis.set_ex("nowplaying:#{did}", 3, Jason.encode!(payload))
-  end
+  # ── profile now-playing (primary only) ───────────────────────────────────────
 
-  # ---- song.changed gate (handler.ts lines 159-208) ----
+  defp enriched_payload(data, sha256, liked),
+    do: data |> Map.put("sha256", sha256) |> Map.put("liked", liked)
 
+  defp write_nowplaying(did, data, sha256, liked),
+    do: Redis.set_ex("nowplaying:#{did}", 3, Jason.encode!(enriched_payload(data, sha256, liked)))
+
+  defp write_nowplaying_raw(did, np),
+    do: Redis.set_ex("nowplaying:#{did}", 3, Jason.encode!(np))
+
+  defp cache_device_np(did, device_id, data, sha256, liked),
+    do:
+      Redis.set_ex(
+        "np:#{did}:#{device_id}",
+        @np_ttl,
+        Jason.encode!(enriched_payload(data, sha256, liked))
+      )
+
+  # song.changed only when the track actually changed AND the WS source is active
+  # (ws_lastsong present) — same gate as the original port.
   defp maybe_emit_song_changed(did, sha256, track) do
-    last_song_sha = Redis.get("lastsong:#{did}")
-
-    if last_song_sha != sha256 do
-      if Redis.exists("ws_lastsong:#{did}") do
-        StopDebouncer.cancel(did)
-        Redis.set_ex("lastsong:#{did}", @day_seconds, sha256)
-        Redis.set_ex("ws_lastsong:#{did}", @day_seconds, sha256)
-        Redis.del("stopped:#{did}")
-
-        Nats.publish(
-          "rocksky.song.changed",
-          Jason.encode!(%{
-            did: did,
-            track: %{
-              name: track.title,
-              artist: track.artist,
-              album: track.album,
-              albumCoverUrl: track.album_art,
-              duration_ms: track.duration_ms,
-              source: track.source
-            }
-          })
-        )
-      end
+    if Redis.get("lastsong:#{did}") != sha256 and Redis.exists("ws_lastsong:#{did}") do
+      publish_song_changed(did, sha256, track)
     end
 
     :ok
   end
 
-  # ---- status=1 resume (handler.ts lines 243-272) ----
+  defp publish_song_changed(did, sha256, track) do
+    StopDebouncer.cancel(did)
+    Redis.set_ex("lastsong:#{did}", @day_seconds, sha256)
+    Redis.set_ex("ws_lastsong:#{did}", @day_seconds, sha256)
+    Redis.del("stopped:#{did}")
+
+    Nats.publish(
+      "rocksky.song.changed",
+      Jason.encode!(%{
+        did: did,
+        track: %{
+          name: track.title,
+          artist: track.artist,
+          album: track.album,
+          albumCoverUrl: track.album_art,
+          duration_ms: track.duration_ms,
+          source: track.source
+        }
+      })
+    )
+  end
+
+  defp profile_status(did, data) do
+    status = data["status"]
+    Redis.set_ex("nowplaying:#{did}:status", 3, "#{status}")
+
+    ws_was_playing = Redis.exists("ws_lastsong:#{did}")
+
+    cond do
+      status == 0 and ws_was_playing ->
+        Redis.set_ex("stopped:#{did}", @day_seconds, "1")
+        StopDebouncer.schedule(did)
+
+      status == 1 ->
+        handle_resume(did)
+
+      true ->
+        :ok
+    end
+
+    :ok
+  end
 
   defp handle_resume(did) do
     if StopDebouncer.has_pending?(did) do
-      # Cancelled before firing — song.stopped was never published, PDS record
-      # still exists, ws_lastsong still set.
       StopDebouncer.cancel(did)
       Redis.del("stopped:#{did}")
     else
-      # No pending timer — the 15s stop already fired: ws_lastsong was deleted and
-      # song.stopped published. Restore ws_lastsong from the saved value, then
-      # delete lastsong so the next heartbeat re-publishes song.changed.
       case Redis.get("stopped:#{did}") do
         nil ->
           :ok
@@ -196,7 +308,5 @@ defmodule RemoteWs.NowPlaying do
     end
   end
 
-  defp sha256_hex(str) do
-    :crypto.hash(:sha256, str) |> Base.encode16(case: :lower)
-  end
+  defp sha256_hex(str), do: :crypto.hash(:sha256, str) |> Base.encode16(case: :lower)
 end

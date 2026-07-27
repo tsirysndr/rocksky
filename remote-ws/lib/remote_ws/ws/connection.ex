@@ -46,7 +46,13 @@ defmodule RemoteWs.Ws.Connection do
   def handle_info(_other, state), do: {:ok, state}
 
   @impl true
-  def terminate(_reason, _state), do: :ok
+  def terminate(_reason, state) do
+    # Announce departure to the user's other devices and, if this was the
+    # primary, end the profile now-playing. The Registry entry is auto-removed
+    # when the process dies.
+    Handler.on_disconnect(state)
+    :ok
+  end
 
   defp push([], state), do: {:ok, state}
   defp push(frames, state), do: {:push, Enum.map(frames, &{:text, &1}), state}
