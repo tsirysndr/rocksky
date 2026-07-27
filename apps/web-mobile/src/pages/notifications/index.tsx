@@ -74,13 +74,13 @@ const actorName = (a: NotificationActor): string =>
 function ActorAvatar({ actor }: { actor: NotificationActor }) {
   const isJpegPlaceholder = actor.avatar?.endsWith("/@jpeg");
   return actor.avatar && !isJpegPlaceholder ? (
-    <Avatar src={actor.avatar} name={actorName(actor)} size="40px" />
+    <Avatar src={actor.avatar} name={actorName(actor)} size="32px" />
   ) : (
     <div
-      className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+      className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
       style={{ backgroundColor: "var(--color-avatar-background)" }}
     >
-      <IconUser size={22} color="#fff" />
+      <IconUser size={18} color="#fff" />
     </div>
   );
 }
@@ -136,7 +136,7 @@ function NotificationRow({ group }: { group: NotificationGroup }) {
               key={i}
               className="rounded-full"
               style={{
-                marginLeft: i === 0 ? 0 : -14,
+                marginLeft: i === 0 ? 0 : -10,
                 border: "2px solid var(--color-background)",
                 zIndex: avatars.length - i,
               }}
@@ -154,22 +154,19 @@ function NotificationRow({ group }: { group: NotificationGroup }) {
           {latest.shoutContent ? `: "${latest.shoutContent}"` : ""}
         </p>
         {subject && (subject.title || subject.albumArt) ? (
-          <div
-            className="flex items-center gap-2 mt-1.5 p-1.5 rounded-md"
-            style={{ border: "1px solid var(--color-border)" }}
-          >
+          <div className="flex items-center gap-2 mt-1.5 p-1.5 rounded-md">
             {subject.albumArt ? (
               <img
                 src={subject.albumArt}
                 alt=""
-                className="w-9 h-9 rounded object-cover flex-shrink-0"
+                className="w-11 h-11 rounded object-cover flex-shrink-0"
               />
             ) : (
               <div
-                className="w-9 h-9 rounded flex items-center justify-center flex-shrink-0"
+                className="w-11 h-11 rounded flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: "var(--color-avatar-background)" }}
               >
-                <IconMusic size={18} color="var(--color-text-muted)" />
+                <IconMusic size={20} color="var(--color-text-muted)" />
               </div>
             )}
             <div className="min-w-0 flex-1">

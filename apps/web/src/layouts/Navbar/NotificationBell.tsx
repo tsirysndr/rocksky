@@ -5,6 +5,7 @@ import BellIcon from "./BellIcon";
 import { Avatar } from "baseui/avatar";
 import { PLACEMENT, StatefulPopover } from "baseui/popover";
 import { useState } from "react";
+import ContentLoader from "react-content-loader";
 import type {
   NotificationActor,
   NotificationGroup,
@@ -70,6 +71,11 @@ const EmptyState = styled.div`
   color: var(--color-text-muted);
 `;
 
+const SkeletonRow = styled.div`
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+`;
+
 const Row = styled(Link)`
   display: flex;
   align-items: flex-start;
@@ -96,8 +102,8 @@ const RowTime = styled.div`
 `;
 
 const AvatarFallback = styled.div`
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   border-radius: 999px;
   background: var(--color-avatar-background);
   display: flex;
@@ -116,7 +122,7 @@ const AvatarStackItem = styled.div`
   border: 2px solid var(--color-background);
 
   &:not(:first-of-type) {
-    margin-left: -12px;
+    margin-left: -10px;
   }
 `;
 
@@ -128,19 +134,23 @@ const SubjectBlock = styled.div`
   padding: 6px 8px;
   border: 1px solid var(--color-border);
   border-radius: 6px;
+
+  .dark & {
+    border-color: transparent;
+  }
 `;
 
 const SubjectArt = styled.img`
-  width: 32px;
-  height: 32px;
+  width: 42px;
+  height: 42px;
   border-radius: 4px;
   object-fit: cover;
   flex-shrink: 0;
 `;
 
 const SubjectArtFallback = styled.div`
-  width: 32px;
-  height: 32px;
+  width: 42px;
+  height: 42px;
   border-radius: 4px;
   background: var(--color-avatar-background);
   display: flex;
@@ -231,10 +241,10 @@ const actorName = (a: NotificationActor): string =>
 function ActorAvatar({ actor }: { actor: NotificationActor }) {
   const isJpegPlaceholder = actor.avatar?.endsWith("/@jpeg");
   return actor.avatar && !isJpegPlaceholder ? (
-    <Avatar src={actor.avatar} name={actorName(actor)} size="36px" />
+    <Avatar src={actor.avatar} name={actorName(actor)} size="30px" />
   ) : (
     <AvatarFallback>
-      <IconUser size={20} color="#fff" />
+      <IconUser size={16} color="#fff" />
     </AvatarFallback>
   );
 }
@@ -302,7 +312,7 @@ function NotificationRow({
               <SubjectArt src={subject.albumArt} alt="" />
             ) : (
               <SubjectArtFallback>
-                <IconMusic size={16} color="var(--color-text-muted)" />
+                <IconMusic size={20} color="var(--color-text-muted)" />
               </SubjectArtFallback>
             )}
             <SubjectText>
@@ -319,11 +329,34 @@ function NotificationRow({
   );
 }
 
+/** Placeholder rows shown while the first notification page is loading. */
+function NotificationsSkeleton() {
+  return (
+    <>
+      {[0, 1, 2, 3].map((i) => (
+        <SkeletonRow key={i}>
+          <ContentLoader
+            width="100%"
+            height={58}
+            viewBox="0 0 328 58"
+            backgroundColor="var(--color-skeleton-background)"
+            foregroundColor="var(--color-skeleton-foreground)"
+          >
+            <circle cx={15} cy={15} r={15} />
+            <rect x={42} y={8} rx={3} ry={3} width={190} height={12} />
+            <rect x={42} y={30} rx={5} ry={5} width={230} height={28} />
+          </ContentLoader>
+        </SkeletonRow>
+      ))}
+    </>
+  );
+}
+
 function NotificationBell() {
   const [opened, setOpened] = useState(false);
   useNotificationStream();
   const { data: unreadCount = 0 } = useUnreadCountQuery();
-  const { data: list } = useNotificationListQuery(opened);
+  const { data: list, isLoading } = useNotificationListQuery(opened);
   const markSeen = useMarkSeenMutation();
 
   return (
@@ -353,7 +386,9 @@ function NotificationBell() {
       content={({ close }) => (
         <Dropdown>
           <DropdownHeader>Notifications</DropdownHeader>
-          {!list || list.notifications.length === 0 ? (
+          {isLoading ? (
+            <NotificationsSkeleton />
+          ) : !list || list.notifications.length === 0 ? (
             <EmptyState>No notifications yet</EmptyState>
           ) : (
             groupNotifications(list.notifications).map((g) => (
