@@ -1,12 +1,14 @@
 # remote-ws
 
-An **Elixir / Phoenix / Ecto** port of the player remote-control WebSocket
-server that currently lives in `apps/api/src/websocket/handler.ts`.
+The **Elixir / Phoenix / Ecto** service that serves the player remote-control
+WebSocket at `GET /ws`.
 
-Phase 1: this is a **1:1 port** — the existing Node `/ws` endpoint stays
-authoritative. This service speaks the identical wire protocol and publishes the
-same NATS events so it can eventually replace the Node relay with no client or
-consumer changes.
+It began as a 1:1 port of the old Node relay (`apps/api/src/websocket/handler.ts`)
+and is now **the sole implementation** — that Node handler has been removed
+entirely, and Caddy routes `api.rocksky.app/ws` here. It speaks the same wire
+protocol and publishes the same NATS events, so every existing client and
+consumer (the CLI, the web/mobile miniplayers, `apps/api/src/subscribers/status`)
+works against it unchanged.
 
 ## What it does
 
@@ -17,8 +19,8 @@ player devices (the Rocksky CLI, the Rockbox companion) control each other:
 - broadcast a device's now-playing (`track`) and transport (`status`) to the
   user's other devices, enriched from Redis/Postgres
 - relay `command`s (play/pause/next/previous/seek) to a `target` device
-- publish `rocksky.song.changed` / `rocksky.song.stopped` to NATS (with the same
-  15s stop debounce and `ws_lastsong` gating as the Node server)
+- publish `rocksky.song.changed` / `rocksky.song.stopped` to NATS (with a 15s
+  stop debounce and `ws_lastsong` gating)
 
 Because it's a raw-JSON protocol (not Phoenix Channel envelopes), the socket is a
 `WebSock` handler served by Bandit — **not** a Phoenix Channel — so every existing
@@ -51,7 +53,7 @@ Message types: inbound `register`, `command` (with optional `target`),
 `devices` snapshot, `device_registered`, `device_unregistered`, `primary_changed`,
 and the relayed `message` / `command` frames.
 
-## Architecture (map from the Node handler)
+## Architecture (map from the original Node handler, now removed)
 
 | Node (`handler.ts`) | Elixir |
 | --- | --- |
