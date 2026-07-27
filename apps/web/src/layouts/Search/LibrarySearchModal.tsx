@@ -33,7 +33,6 @@ import type { QueueTrack } from "../../atoms/queue";
 
 // ── Result model ──────────────────────────────────────────────────────────────
 
-type Kind = "song" | "album" | "artist";
 type Item =
   | { kind: "song"; id: string; song: NavidromeSong }
   | { kind: "album"; id: string; album: NavidromeAlbum }
