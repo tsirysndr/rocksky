@@ -16,6 +16,12 @@ import { Link } from "react-router-dom";
 import { InsertMode } from "rockbox-wasm";
 import { nowPlayingAtom } from "../../atoms/nowpaying";
 import { playerAtom } from "../../atoms/player";
+import {
+  activeDeviceIdAtom,
+  devicesAtom,
+  type RemoteDevice,
+  type RemoteNowPlaying,
+} from "../../atoms/devices";
 import { playerScreenOpenAtom } from "../../atoms/playerScreen";
 import { queueAtom, queueIndexAtom } from "../../atoms/queue";
 import { shuffleAtom, repeatModeAtom, type RepeatMode } from "../../atoms/playback";
@@ -52,18 +58,20 @@ function SourceSheet({
   open,
   onClose,
   player,
-  rockboxAvailable,
-  rockboxLabel,
+  devices,
+  activeDeviceId,
   queueLength,
+  onSelectDevice,
   onSelect,
 }: {
   open: boolean;
   onClose: () => void;
   player: string | null;
-  rockboxAvailable: boolean;
-  rockboxLabel: string;
+  devices: Record<string, RemoteDevice>;
+  activeDeviceId: string | null;
   queueLength: number;
-  onSelect: (src: "spotify" | "rockbox" | "upload") => void;
+  onSelectDevice: (deviceId: string) => void;
+  onSelect: (src: "spotify" | "upload") => void;
 }) {
   if (!open) return null;
   return (
@@ -86,9 +94,17 @@ function SourceSheet({
             <IconX size={18} />
           </button>
         </div>
-        {rockboxAvailable && (
-          <SourceItem label={rockboxLabel} active={player === "rockbox"} onClick={() => { onSelect("rockbox"); onClose(); }} />
-        )}
+        {/* One entry per connected player device. Several can play at once —
+            selecting one shows/controls it and makes it the primary (scrobble
+            source), synced across the user's clients. */}
+        {Object.values(devices).map((dev) => (
+          <SourceItem
+            key={dev.deviceId}
+            label={dev.name + (dev.nowPlaying?.title ? ` — ${dev.nowPlaying.title}` : "")}
+            active={player === "rockbox" && activeDeviceId === dev.deviceId}
+            onClick={() => { onSelectDevice(dev.deviceId); onClose(); }}
+          />
+        ))}
         {queueLength > 0 && (
           <SourceItem label="My Library" active={player === "upload"} onClick={() => { onSelect("upload"); onClose(); }} />
         )}
@@ -125,6 +141,41 @@ function SourceItem({ label, active, onClick }: { label: string; active: boolean
   );
 }
 
+// Build the miniplayer's now-playing shape from a device's `track` payload.
+// `prev` (the same device's previous state) keeps smooth local progress and only
+// snaps on a track change or a large (seek) jump.
+function toRemoteNowPlaying(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data: any,
+  liked: Record<string, boolean>,
+  prev?: RemoteNowPlaying | null,
+): RemoteNowPlaying {
+  const title = data.title;
+  const artist = data.album_artist || data.artist;
+  const incoming = data.elapsed ?? 0;
+  const sameTrack = !!prev && prev.title === title && prev.artist === artist;
+  const progress =
+    sameTrack && Math.abs((prev?.progress ?? 0) - incoming) < 2000
+      ? (prev?.progress ?? incoming)
+      : incoming;
+  const isPlaying =
+    typeof data.is_playing === "boolean" ? data.is_playing : (prev?.isPlaying ?? true);
+  return {
+    title,
+    artist,
+    artistUri: data.artist_uri ?? "",
+    songUri: data.song_uri ?? "",
+    albumUri: data.album_uri ?? "",
+    duration: data.length,
+    progress,
+    albumArt: _.get(data, "album_art"),
+    isPlaying,
+    sha256: data.sha256 ?? "",
+    liked:
+      liked[data.song_uri] !== undefined ? liked[data.song_uri] : !!data.liked,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // MiniPlayer
 // ---------------------------------------------------------------------------
@@ -152,10 +203,15 @@ export default function MiniPlayer() {
   const queueIndexRef = useRef(queueIndex);
   const [liked, setLiked] = useState<Record<string, boolean>>({});
   const likedRef = useRef(liked);
-  const [rockboxAvailable, setRockboxAvailable] = useState(false);
-  // Name of the remote device currently reporting (e.g. "Rocksky CLI"), shown
-  // in the source sheet instead of a generic label.
-  const [deviceName, setDeviceName] = useState("Rockbox");
+  // Every connected player device (device_id → state), plus which one is active
+  // (= the user's primary). A user can run several players at once; each has its
+  // own entry so their states never conflict, and the sheet can switch between
+  // them.
+  const [devices, setDevices] = useAtom(devicesAtom);
+  const [activeDeviceId, setActiveDeviceId] = useAtom(activeDeviceIdAtom);
+  const devicesRef = useRef(devices);
+  const activeDeviceIdRef = useRef(activeDeviceId);
+  const rockboxAvailable = Object.keys(devices).length > 0;
   const [sourceSheetOpen, setSourceSheetOpen] = useState(false);
   const [eqSheetOpen, setEqSheetOpen] = useState(false);
   const [shuffle, setShuffle] = useAtom(shuffleAtom);
@@ -171,7 +227,9 @@ export default function MiniPlayer() {
     likedRef.current = liked;
     queueRef.current = queue;
     queueIndexRef.current = queueIndex;
-  }, [nowPlaying, player, liked, queue, queueIndex]);
+    devicesRef.current = devices;
+    activeDeviceIdRef.current = activeDeviceId;
+  }, [nowPlaying, player, liked, queue, queueIndex, devices, activeDeviceId]);
 
   // Publish shuffle/repeat to the engine. No player/ready guard: publish*
   // remembers the value and (re)applies it on the engine's next init, so
@@ -285,7 +343,51 @@ export default function MiniPlayer() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // WebSocket for Rockbox device (companion hardware — monitors its now-playing)
+  // Transport command → the ACTIVE device only (targeted, so controlling one
+  // player never disturbs the others).
+  const sendDeviceCommand = useCallback((action: string, args?: unknown) => {
+    const ws = socketRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    ws.send(JSON.stringify({
+      type: "command",
+      action,
+      args,
+      target: activeDeviceIdRef.current ?? undefined,
+      token: localStorage.getItem("token"),
+    }));
+  }, []);
+
+  // Adopt `id` as the active device (on a server `primary_changed`, keeping every
+  // client in sync). Doesn't steal focus from Spotify / the local engine.
+  const adoptDevice = useCallback((id: string, map?: Record<string, RemoteDevice>) => {
+    setActiveDeviceId(id);
+    const dev = (map ?? devicesRef.current)[id];
+    if (!dev) return;
+    if (playerRef.current === null || playerRef.current === "rockbox") {
+      if (dev.nowPlaying) setNowPlaying(dev.nowPlaying);
+      setPlayer("rockbox");
+    }
+  }, [setActiveDeviceId, setNowPlaying, setPlayer]);
+
+  // The user picked a device in the source sheet → show/control it AND make it
+  // the primary (scrobble source), synced to the server + the user's other UIs.
+  const selectDevice = useCallback((id: string) => {
+    setActiveDeviceId(id);
+    const dev = devicesRef.current[id];
+    if (dev?.nowPlaying) setNowPlaying(dev.nowPlaying);
+    setPlayer("rockbox");
+    const ws = socketRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        type: "set_primary",
+        device_id: id,
+        token: localStorage.getItem("token"),
+      }));
+    }
+  }, [setActiveDeviceId, setNowPlaying, setPlayer]);
+
+  // WebSocket relay: lists every connected player device and mirrors the active
+  // one into the miniplayer; transport is sent back as targeted commands.
   useEffect(() => {
     if (!localStorage.getItem("token")) return;
     const wsUrl = API_URL.replace("https", "wss").replace("http", "ws");
@@ -304,63 +406,86 @@ export default function MiniPlayer() {
       }, 3000);
 
       ws.onmessage = (event) => {
+        if (event.data === "pong") return;
         const msg = JSON.parse(event.data);
 
-        if (msg.type === "message" && msg.data?.type === "track") {
-          setRockboxAvailable(true);
-          // Prefer the player's self-reported name (embedded in its payload,
-          // authoritative regardless of device-id routing) over the server's
-          // top-level one; fall back to the latter for players like Rockbox that
-          // don't embed a name.
-          const name = msg.data?.device_name ?? msg.device_name;
-          if (name) setDeviceName(name);
-          if (playerRef.current !== null && playerRef.current !== "rockbox") return;
-          if (!msg.data.title && !msg.data.artist && !msg.data.album_artist) return;
-
-          const prev = nowPlayingRef.current;
-          const title = msg.data.title;
-          const artist = msg.data.album_artist || msg.data.artist;
-          const incoming = msg.data.elapsed ?? 0;
-          // Progress ticks locally (100ms); the device push only reconciles real
-          // drift, so keep the smooth local value unless the track changed or the
-          // gap is large (a seek) — otherwise the periodic sync visibly jumps.
-          const sameTrack = !!prev && prev.title === title && prev.artist === artist;
-          const progress =
-            sameTrack && Math.abs((prev?.progress ?? 0) - incoming) < 2000
-              ? (prev?.progress ?? incoming)
-              : incoming;
-          const isPlaying =
-            typeof msg.data.is_playing === "boolean"
-              ? msg.data.is_playing
-              : !!prev?.isPlaying;
-
-          setNowPlaying({
-            ...(prev ?? {}),
-            title,
-            artist,
-            artistUri: msg.data.artist_uri,
-            songUri: msg.data.song_uri,
-            albumUri: msg.data.album_uri,
-            duration: msg.data.length,
-            progress,
-            albumArt: _.get(msg, "data.album_art"),
-            isPlaying,
-            sha256: msg.data.sha256,
-            liked:
-              likedRef.current[msg.data.song_uri] !== undefined
-                ? likedRef.current[msg.data.song_uri]
-                : msg.data.liked,
-          } as NonNullable<typeof nowPlaying>);
-          setPlayer("rockbox");
-          lastFetchedRef.current = Date.now();
+        // Snapshot of the players already streaming when we connected.
+        if (msg.type === "devices" && Array.isArray(msg.devices)) {
+          const map: Record<string, RemoteDevice> = {};
+          for (const d of msg.devices) {
+            if (!d.device_id) continue;
+            const name = d.now_playing?.device_name ?? d.name ?? "Rockbox";
+            map[d.device_id] = {
+              deviceId: d.device_id,
+              name,
+              nowPlaying: d.now_playing
+                ? toRemoteNowPlaying(d.now_playing, likedRef.current)
+                : null,
+            };
+          }
+          setDevices(map);
+          if (msg.primary_device && map[msg.primary_device]) adoptDevice(msg.primary_device, map);
+          return;
         }
 
-        if (playerRef.current !== "rockbox") return;
-        if (msg.data?.status === 0) setNowPlaying(null);
-        if (msg.data?.status === 1 && nowPlayingRef.current)
-          setNowPlaying({ ...nowPlayingRef.current, isPlaying: true });
-        if ((msg.data?.status === 2 || msg.data?.status === 3) && nowPlayingRef.current)
-          setNowPlaying({ ...nowPlayingRef.current, isPlaying: false });
+        // A player pushed a track → upsert its entry in the device map.
+        if (msg.type === "message" && msg.data?.type === "track") {
+          const id = msg.device_id;
+          if (!id) return;
+          if (!msg.data.title && !msg.data.artist && !msg.data.album_artist) return;
+          const name = msg.data?.device_name ?? msg.device_name ?? "Rockbox";
+          const prevNp = devicesRef.current[id]?.nowPlaying ?? null;
+          const np = toRemoteNowPlaying(msg.data, likedRef.current, prevNp);
+          setDevices((prev) => ({ ...prev, [id]: { deviceId: id, name, nowPlaying: np } }));
+          // Mirror into the miniplayer when this is the active device. If nothing
+          // is playing yet, promote the device source (covers the race where
+          // primary_changed arrived before the first track).
+          if (
+            activeDeviceIdRef.current === id &&
+            (playerRef.current === "rockbox" || playerRef.current === null)
+          ) {
+            setNowPlaying(np);
+            if (playerRef.current === null) setPlayer("rockbox");
+            lastFetchedRef.current = Date.now();
+          }
+          return;
+        }
+
+        // A device left → drop it; if it was active, clear the miniplayer.
+        if (msg.type === "device_unregistered" && msg.device_id) {
+          const gone = msg.device_id;
+          setDevices((prev) => {
+            if (!prev[gone]) return prev;
+            const next = { ...prev };
+            delete next[gone];
+            return next;
+          });
+          if (activeDeviceIdRef.current === gone) {
+            setActiveDeviceId(null);
+            if (playerRef.current === "rockbox") { setNowPlaying(null); setPlayer(null); }
+          }
+          return;
+        }
+
+        // The primary device changed (this client, another, or auto-adopt).
+        if (msg.type === "primary_changed" && msg.device_id) {
+          adoptDevice(msg.device_id);
+          return;
+        }
+
+        // Transport status for a device: 1 = playing, 0/2/3 = not playing.
+        if (msg.data?.type === "status" && msg.device_id) {
+          const id = msg.device_id;
+          const playing = msg.data.status === 1;
+          setDevices((prev) => {
+            const dev = prev[id];
+            if (!dev?.nowPlaying) return prev;
+            return { ...prev, [id]: { ...dev, nowPlaying: { ...dev.nowPlaying, isPlaying: playing } } };
+          });
+          if (activeDeviceIdRef.current === id && playerRef.current === "rockbox") {
+            setNowPlaying((prev) => prev ? { ...prev, isPlaying: playing } : prev);
+          }
+        }
       };
     };
 
@@ -396,12 +521,8 @@ export default function MiniPlayer() {
       if (!loaded) p.toggle();
       return;
     }
-    if (player === "rockbox" && socketRef.current) {
-      socketRef.current.send(JSON.stringify({
-        type: "command",
-        action: nowPlaying.isPlaying ? "pause" : "play",
-        token: localStorage.getItem("token"),
-      }));
+    if (player === "rockbox") {
+      sendDeviceCommand(nowPlaying.isPlaying ? "pause" : "play");
       return;
     }
     nowPlaying.isPlaying ? pause() : play();
@@ -412,20 +533,16 @@ export default function MiniPlayer() {
       getRockboxPlayer().next();
       return;
     }
-    if (player === "rockbox" && socketRef.current) {
-      socketRef.current.send(JSON.stringify({
-        type: "command", action: "next", token: localStorage.getItem("token"),
-      }));
+    if (player === "rockbox") {
+      sendDeviceCommand("next");
       return;
     }
     next();
   };
 
   const onPrevious = () => {
-    if (player === "rockbox" && socketRef.current) {
-      socketRef.current.send(JSON.stringify({
-        type: "command", action: "previous", token: localStorage.getItem("token"),
-      }));
+    if (player === "rockbox") {
+      sendDeviceCommand("previous");
       return;
     }
     if (player !== "upload") return;
@@ -436,17 +553,11 @@ export default function MiniPlayer() {
     if (playerRef.current === "upload") {
       const p = getRockboxPlayer();
       if (p.ready) p.seek(positionMs);
-    } else if (playerRef.current === "rockbox" && socketRef.current) {
-      // Seek position rides in `args` — the relay forwards only {type, action, args}.
-      socketRef.current.send(JSON.stringify({
-        type: "command",
-        action: "seek",
-        args: { position: positionMs },
-        token: localStorage.getItem("token"),
-      }));
+    } else if (playerRef.current === "rockbox") {
+      sendDeviceCommand("seek", { position: positionMs });
     }
     setNowPlaying((prev) => prev ? { ...prev, progress: positionMs } : prev);
-  }, [setNowPlaying]);
+  }, [setNowPlaying, sendDeviceCommand]);
 
   const onSelectQueueIndex = useCallback((idx: number) => {
     const track = queueRef.current[idx];
@@ -598,8 +709,9 @@ export default function MiniPlayer() {
         open={sourceSheetOpen}
         onClose={() => setSourceSheetOpen(false)}
         player={player}
-        rockboxAvailable={rockboxAvailable}
-        rockboxLabel={deviceName}
+        devices={devices}
+        activeDeviceId={activeDeviceId}
+        onSelectDevice={(id) => selectDevice(id)}
         queueLength={queue.length}
         onSelect={(src) => {
           if (src === "upload" && player !== "upload") {
