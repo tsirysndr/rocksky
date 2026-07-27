@@ -1,9 +1,11 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { render } from "ink";
+import { loadToken } from "lib/token";
 import React from "react";
 import { App } from "../tui/App";
 import { playerController } from "../tui/player";
 import { queryClient } from "../tui/queryClient";
+import { startRockskyRemote } from "../tui/rockskyWs";
 import { saveSession } from "../tui/session";
 import { loadSession } from "../tui/session";
 import { loadSettings, saveSettings } from "../tui/settings";
@@ -46,6 +48,10 @@ export async function tui() {
     });
   }
 
+  // Expose this player to the web/mobile miniplayers as a controllable device
+  // and mirror its now-playing there in real time.
+  const remote = startRockskyRemote(() => loadToken());
+
   const { waitUntilExit } = render(
     <QueryClientProvider client={queryClient}>
       <App />
@@ -57,6 +63,7 @@ export async function tui() {
   // Ink has fully unmounted here; leave the alternate screen last so the TUI is
   // cleared and the pre-launch terminal is restored without artifacts.
   clearTimeout(saveTimer!);
+  remote.stop();
   saveSettings(playerController.snapshotSettings());
   saveSession(playerController.sessionSnapshot());
   restoreTerminal();
