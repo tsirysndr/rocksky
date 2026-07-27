@@ -16,13 +16,40 @@ player devices (the Rocksky CLI, the Rockbox companion) control each other:
 - `register` a device, scoped by the JWT's DID
 - broadcast a device's now-playing (`track`) and transport (`status`) to the
   user's other devices, enriched from Redis/Postgres
-- relay `command`s (play/pause/next/previous/seek) to devices
+- relay `command`s (play/pause/next/previous/seek) to a `target` device
 - publish `rocksky.song.changed` / `rocksky.song.stopped` to NATS (with the same
   15s stop debounce and `ws_lastsong` gating as the Node server)
 
 Because it's a raw-JSON protocol (not Phoenix Channel envelopes), the socket is a
 `WebSock` handler served by Bandit — **not** a Phoenix Channel — so every existing
 client works unchanged.
+
+### Multiple players per user (device-scoped sessions)
+
+A user (DID) can have several players streaming at once (e.g. two Rocksky CLIs)
+without them conflicting. The relay is device-addressed: every broadcast carries
+`device_id`, and clients keep a **per-device** now-playing map so each player has
+its own state and the miniplayer can list and switch between them.
+
+- **Per-device cache** `np:{did}:{device_id}` seeds a `devices` snapshot handed to
+  each newly-connected client, so it lists every active player immediately. Only
+  devices that have actually sent a track appear (controllers are excluded).
+- **Presence**: `device_registered` / `device_unregistered` announce joins and
+  departures; the register reply is followed by the `devices` snapshot.
+- **Primary device**: the public profile now-playing + scrobble is inherently one
+  stream, so it is driven only by the user's **primary** device. A `set_primary`
+  message stores `primary_device:{did}` and broadcasts `primary_changed`, so every
+  one of the user's clients converges on the same active device. A lone player is
+  auto-adopted when none is selected/connected (headless CLI still scrobbles).
+- The per-user profile machinery (`nowplaying:{did}`, `lastsong`, `ws_lastsong`,
+  `stopped` + the NATS events, incl. the Navidrome coordination in `apps/api`) is
+  unchanged — it just runs only for the primary device, so non-primary players
+  never touch it.
+
+Message types: inbound `register`, `command` (with optional `target`),
+`set_primary`, `message` (`track`|`status`); outbound `registered` reply,
+`devices` snapshot, `device_registered`, `device_unregistered`, `primary_changed`,
+and the relayed `message` / `command` frames.
 
 ## Architecture (map from the Node handler)
 
@@ -35,7 +62,7 @@ client works unchanged.
 | `ctx.redis` | `RemoteWs.Redis` behaviour → `RemoteWs.Redis.Redix` |
 | `ctx.db` (drizzle) | `RemoteWs.Store` behaviour → `RemoteWs.Store.Ecto` + `RemoteWs.Repo` |
 | `ctx.nc` (NATS) | `RemoteWs.Nats` behaviour → `RemoteWs.Nats.Gnat` |
-| enrichment + gating (lines 64-273) | `RemoteWs.NowPlaying` |
+| enrichment + gating (lines 64-273) | `RemoteWs.NowPlaying` (per-device cache + primary selection) |
 | `onMessage` dispatch | `RemoteWs.Ws.Handler` |
 
 Redis, NATS, and the read store sit behind behaviours so the intricate gating and
@@ -117,6 +144,7 @@ matching on `"type"`:
 ```elixir
 def handle(%{"type" => "register"} = msg, state), do: register(msg, state)
 def handle(%{"type" => "command"} = msg, state), do: command(msg, state)
+def handle(%{"type" => "set_primary"} = msg, state), do: set_primary(msg, state)
 def handle(%{"type" => "message"} = msg, state), do: device_message(msg, state)
 def handle(_msg, state), do: {[], state}   # unknown → drop, like the Node try/catch
 ```
@@ -126,15 +154,23 @@ Each branch first calls `RemoteWs.Auth.verify_token/1`; on failure it returns
 
 - **`register`** → mint a UUID `device_id`, `Devices.register(did, device_id, name)`
   (registers *this* process under the DID), broadcast `device_registered` to the
-  user's *other* devices, reply `{status: "registered", deviceId}`, and store
+  user's *other* devices, reply `{status: "registered", deviceId}` **followed by a
+  `devices` snapshot** of the players currently streaming, and store
   `device_id`/`did` in the connection state.
 - **`command`** (play/pause/next/previous/seek) → build `{type, action, args}`; if a
   `target` device is named, `Devices.send_to/3` it, otherwise `Devices.broadcast/2`
   to all the user's devices.
+- **`set_primary`** → `NowPlaying.set_primary/3`: record the user's chosen scrobble
+  source, broadcast `primary_changed`, and re-point the profile now-playing at that
+  device's current track.
 - **`message`** (a player pushing now-playing) → if `data.type == "track"`, run
-  `RemoteWs.NowPlaying.handle_track/3` (enrich + gate), else `handle_status/2`; then
-  broadcast the enriched `{type: "message", data, device_id, device_name}` to all
-  the user's devices.
+  `NowPlaying.handle_track/4` (enrich + cache per-device + drive the profile only if
+  primary), else `handle_status/3`; then broadcast the enriched
+  `{type: "message", data, device_id, device_name}` to all the user's devices.
+
+On disconnect, `Connection.terminate/2` calls `Handler.on_disconnect/1`, which
+broadcasts `device_unregistered` and — if the departing device was the primary —
+ends the profile now-playing.
 
 ### End-to-end: CLI plays a track, web sees it
 
