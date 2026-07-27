@@ -151,10 +151,24 @@ defmodule RemoteWs.Ws.HandlerTest do
     cli = FakeDevice.start(did, "cli", "Rocksky CLI", self())
     st = %{device_id: "cli", did: did}
 
+    # Item "a" is in the DB (gets canonical album art); item "z" is not.
+    sha_a = sha_of("a", "x", "al")
+
+    StoreStub.put_track(sha_a, %{
+      album_art: "https://cdn/a.jpg",
+      uri: "s",
+      album_uri: "au",
+      artist_uri: "ar",
+      duration: 1000
+    })
+
     data = %{
       "type" => "queue",
       "index" => 1,
-      "queue" => [%{"title" => "a"}, %{"title" => "b"}]
+      "queue" => [
+        %{"title" => "a", "artist" => "x", "album" => "al", "album_art" => nil},
+        %{"title" => "z", "artist" => "y", "album" => "bl"}
+      ]
     }
 
     Handler.handle(
@@ -168,6 +182,8 @@ defmodule RemoteWs.Ws.HandlerTest do
     assert env["device_id"] == "cli"
     assert env["data"]["type"] == "queue"
     assert env["data"]["index"] == 1
+    # Album art enriched from the DB for the known track.
+    assert Enum.at(env["data"]["queue"], 0)["album_art"] == "https://cdn/a.jpg"
     # Cached for the snapshot; profile now-playing untouched.
     assert RemoteWs.NowPlaying.device_queue(did, "cli")["index"] == 1
     refute RedisMemory.exists("nowplaying:#{did}")

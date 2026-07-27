@@ -46,6 +46,12 @@ defmodule RemoteWs.Test.StoreStub do
   def get_track_by_sha256(sha256), do: Agent.get(__MODULE__, &Map.get(&1.tracks, sha256))
 
   @impl true
+  def get_tracks_by_sha256(shas) do
+    tracks = Agent.get(__MODULE__, & &1.tracks)
+    for sha <- shas, t = tracks[sha], into: %{}, do: {sha, t}
+  end
+
+  @impl true
   def liked?(did, sha256), do: Agent.get(__MODULE__, &MapSet.member?(&1.likes, {did, sha256}))
 
   @impl true

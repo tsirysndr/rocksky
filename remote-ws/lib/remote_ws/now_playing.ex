@@ -68,9 +68,41 @@ defmodule RemoteWs.NowPlaying do
   per-device — never touches the profile. Returns `data` (broadcast unchanged).
   """
   def handle_queue(did, device_id, data) do
+    data = enrich_queue(data)
     Redis.set_ex("queue:#{did}:#{device_id}", @queue_ttl, Jason.encode!(data))
     data
   end
+
+  # Fill each queue item's album art (and song/album URIs) from the canonical DB
+  # values, keyed by the same sha256 as now-playing. The CLI's queue items often
+  # carry no cover (Navidrome/playlist tracks) or a stale one, so without this the
+  # miniplayer queue shows broken/placeholder art everywhere. One batched query.
+  defp enrich_queue(%{"queue" => items} = data) when is_list(items) do
+    shas = Enum.map(items, &queue_item_sha/1)
+    found = Store.get_tracks_by_sha256(Enum.uniq(shas))
+
+    enriched =
+      Enum.zip(items, shas)
+      |> Enum.map(fn {item, sha} ->
+        case Map.get(found, sha) do
+          nil ->
+            item
+
+          t ->
+            item
+            |> Map.put("album_art", t.album_art || item["album_art"])
+            |> Map.put("song_uri", t.uri || item["song_uri"])
+            |> Map.put("album_uri", t.album_uri || item["album_uri"])
+        end
+      end)
+
+    Map.put(data, "queue", enriched)
+  end
+
+  defp enrich_queue(data), do: data
+
+  defp queue_item_sha(item),
+    do: sha256_hex(String.downcase("#{item["title"]} - #{item["artist"]} - #{item["album"]}"))
 
   @doc "The cached queue for one device (for the register snapshot), or nil."
   def device_queue(did, device_id) do

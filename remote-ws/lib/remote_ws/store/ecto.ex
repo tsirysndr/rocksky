@@ -24,6 +24,27 @@ defmodule RemoteWs.Store.Ecto do
   end
 
   @impl true
+  def get_tracks_by_sha256([]), do: %{}
+
+  def get_tracks_by_sha256(shas) do
+    from(t in Track,
+      where: t.sha256 in ^shas,
+      select: {
+        t.sha256,
+        %{
+          album_art: t.album_art,
+          uri: t.uri,
+          album_uri: t.album_uri,
+          artist_uri: t.artist_uri,
+          duration: t.duration
+        }
+      }
+    )
+    |> Repo.all()
+    |> Map.new()
+  end
+
+  @impl true
   def liked?(did, sha256) do
     from(lt in LovedTrack,
       join: t in Track,
