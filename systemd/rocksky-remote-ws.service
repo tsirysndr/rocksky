@@ -10,8 +10,8 @@ WorkingDirectory=/root/github/rocksky/remote-ws
 # Fetch/compile prod deps on (re)deploy, then start the Phoenix endpoint that
 # serves the /ws relay. Secrets (JWT_SECRET, XATA_POSTGRES_URL, REDIS_URL,
 # NATS_URL, SECRET_KEY_BASE, REMOTE_WS_PORT) are injected by doppler.
-ExecStartPre=/bin/bash -ic 'mix deps.get --only prod && MIX_ENV=prod mix compile'
-ExecStart=/bin/bash -ic 'exec doppler run -- env MIX_ENV=prod mix phx.server'
+ExecStartPre=/bin/bash -ic 'mix deps.get && mix compile'
+ExecStart=/bin/bash -ic 'exec doppler run -- mix phx.server'
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal
