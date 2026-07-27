@@ -61,9 +61,14 @@ const MiniPlayer = styled.div<{ embedded?: boolean }>`
       width: 100vw;
     }
   ` : `
-    background-color: white;
+    /* Frosted-glass panel: a translucent tint of the theme background with a
+       blur of the content behind it (works in both light and dark). */
+    background: color-mix(in srgb, var(--color-background) 68%, transparent);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid color-mix(in srgb, var(--color-text-muted) 16%, transparent);
     width: 1120px;
-    box-shadow: 0px 0px 24px rgba(19, 19, 19, 0.08);
+    box-shadow: 0px 8px 32px rgba(19, 19, 19, 0.14);
     border-radius: 16px;
     @media (max-width: 1120px) {
       width: 100vw;
