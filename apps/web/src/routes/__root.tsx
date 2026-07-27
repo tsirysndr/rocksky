@@ -4,6 +4,7 @@ import * as React from "react";
 import { themeAtom } from "../atoms/theme";
 import KeyboardShortcuts from "../components/KeyboardShortcuts";
 import StickyPlayer from "../components/StickyPlayer";
+import SearchModal from "../layouts/Search/SearchModal";
 
 export const Route = createRootRoute({
   component: RootComponent,
@@ -43,6 +44,7 @@ function RootComponent() {
       <Outlet />
       <StickyPlayer />
       <KeyboardShortcuts />
+      <SearchModal />
     </React.Fragment>
   );
 }

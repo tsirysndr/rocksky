@@ -5,6 +5,7 @@ import { useAtom, useAtomValue } from "jotai";
 import { useEffect, useRef } from "react";
 import { playerControlsAtom } from "../../atoms/playerControls";
 import { profileAtom } from "../../atoms/profile";
+import { searchModalOpenAtom } from "../../atoms/searchModal";
 import { shortcutsHelpOpenAtom } from "../../atoms/shortcuts";
 import { themeAtom } from "../../atoms/theme";
 
@@ -26,9 +27,9 @@ const GROUPS: Group[] = [
   {
     title: "General",
     items: [
-      { keys: ["/"], label: "Focus search" },
+      { keys: ["/"], label: "Open search" },
       { keys: ["?"], label: "Show this help" },
-      { keys: ["Esc"], label: "Close dialog / clear search" },
+      { keys: ["Esc"], label: "Close dialog / search" },
       { keys: ["t"], label: "Toggle light / dark theme" },
       { keys: ["e"], label: "Equalizer (audio settings)" },
     ],
@@ -145,24 +146,13 @@ function isEditableTarget(target: EventTarget | null): boolean {
   );
 }
 
-function focusSearch() {
-  const inputs = Array.from(
-    document.querySelectorAll<HTMLInputElement>("[data-search-input]"),
-  );
-  // Search is rendered twice (drawer + right pane); focus the visible one.
-  const input = inputs.find((el) => el.offsetParent !== null) ?? inputs[0];
-  if (input) {
-    input.focus();
-    input.select();
-  }
-}
-
 function KeyboardShortcuts() {
   const navigate = useNavigate();
   const profile = useAtomValue(profileAtom);
   const controls = useAtomValue(playerControlsAtom);
   const [{ darkMode }, setTheme] = useAtom(themeAtom);
   const [helpOpen, setHelpOpen] = useAtom(shortcutsHelpOpenAtom);
+  const [searchOpen, setSearchOpen] = useAtom(searchModalOpenAtom);
 
   // The keydown listener is installed once; read the latest values through a
   // ref so it never closes over stale state.
@@ -174,6 +164,8 @@ function KeyboardShortcuts() {
     setTheme,
     helpOpen,
     setHelpOpen,
+    searchOpen,
+    setSearchOpen,
   });
   stateRef.current = {
     navigate,
@@ -183,6 +175,8 @@ function KeyboardShortcuts() {
     setTheme,
     helpOpen,
     setHelpOpen,
+    searchOpen,
+    setSearchOpen,
   };
 
   useEffect(() => {
@@ -198,10 +192,11 @@ function KeyboardShortcuts() {
     const onKeyDown = (e: KeyboardEvent) => {
       const s = stateRef.current;
 
-      // Escape closes the help modal (baseui also closes on Escape, but this
+      // Escape closes any open overlay (baseui also closes on Escape, but this
       // covers focus edge-cases and keeps the pending `g` state clean).
       if (e.key === "Escape") {
         if (s.helpOpen) s.setHelpOpen(false);
+        if (s.searchOpen) s.setSearchOpen(false);
         pendingGoAt = 0;
         return;
       }
@@ -234,7 +229,7 @@ function KeyboardShortcuts() {
       switch (e.key) {
         case "/":
           e.preventDefault();
-          focusSearch();
+          s.setSearchOpen(true);
           break;
         case "?":
           e.preventDefault();
