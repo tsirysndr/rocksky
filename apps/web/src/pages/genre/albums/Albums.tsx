@@ -1,4 +1,5 @@
 import { Link, useParams } from "@tanstack/react-router";
+import { uriToPath } from "../../../lib/uri";
 import { IconMusic } from "@tabler/icons-react";
 import { useAlbumsByGenreInfiniteQuery } from "../../../hooks/useLibrary";
 import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
@@ -89,9 +90,7 @@ function Albums() {
               <FlexGridItem {...itemProps} key={album.id}>
                 <div className="flex flex-col items-start">
                   <Link
-                    to={
-                      `/${album.uri.split("at://")[1]?.replace("app.rocksky.", "")}` as string
-                    }
+                    to={uriToPath(album.uri)}
                     className="text-initial"
                   >
                     {album.albumArt
@@ -99,17 +98,13 @@ function Albums() {
                       : <div className="w-[230px] h-[230px] mb-[20px] rounded-lg bg-[var(--color-menu-hover)] flex items-center justify-center text-[var(--color-text-muted)]"><IconMusic size={48} /></div>}
                   </Link>
                   <Link
-                    to={
-                      `/${album.uri.split("at://")[1]?.replace("app.rocksky.", "")}` as string
-                    }
+                    to={uriToPath(album.uri)}
                     className="!text-[var(--color-text)] no-underline line-clamp-2 text-start max-w-[230px]"
                   >
                     <b>{album.title}</b>
                   </Link>
                   <Link
-                    to={
-                      `/${album.artistUri.split("at://")[1]?.replace("app.rocksky.", "")}` as string
-                    }
+                    to={uriToPath(album.artistUri)}
                     className="!text-[var(--color-text)] no-underline"
                   >
                     <span className="text-[14px] line-clamp-2 text-start max-w-[230px]">

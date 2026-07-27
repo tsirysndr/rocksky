@@ -1,4 +1,5 @@
 import { Link, useParams } from "@tanstack/react-router";
+import { uriToPath } from "../../../lib/uri";
 import { useTracksByGenreInfiniteQuery } from "../../../hooks/useLibrary";
 import { TableBuilder, TableBuilderColumn } from "baseui/table-semantic";
 import numeral from "numeral";
@@ -158,9 +159,7 @@ function Tracks() {
                   </div>
                   {row.albumUri && (
                     <Link
-                      to={
-                        `/${row.albumUri?.split("at://")[1].replace("app.rocksky.", "")}` as string
-                      }
+                      to={uriToPath(row.albumUri)}
                     >
                       {!!row.albumArt && (
                         <img
@@ -192,18 +191,14 @@ function Tracks() {
                   )}
                   <div className="flex flex-col">
                     <Link
-                      to={
-                        `/${row.uri?.split("at://")[1]?.replace("app.rocksky.", "")}` as string
-                      }
+                      to={uriToPath(row.uri)}
                       className="!text-[var(--color-text)] no-underline"
                     >
                       {row.title}
                     </Link>
                     {row.artistUri && (
                       <Link
-                        to={
-                          `/${row.artistUri?.split("at://")[1]?.replace("app.rocksky.", "")}` as string
-                        }
+                        to={uriToPath(row.artistUri)}
                         className="!text-[var(--color-text-muted)] no-underline"
                       >
                         {row.albumArtist}

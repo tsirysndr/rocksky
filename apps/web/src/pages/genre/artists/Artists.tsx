@@ -1,4 +1,5 @@
 import { Link, useParams } from "@tanstack/react-router";
+import { uriToPath } from "../../../lib/uri";
 import { useArtistsByGenreInfiniteQuery } from "../../../hooks/useLibrary";
 import { FlexGrid, FlexGridItem } from "baseui/flex-grid";
 import { BlockProps } from "baseui/block";
@@ -83,9 +84,7 @@ function Artists() {
               <FlexGridItem {...itemProps} key={artist.id}>
                 <div className="flex flex-col items-center">
                   <Link
-                    to={
-                      `/${artist.uri.split("at://")[1]?.replace("app.rocksky.", "")}` as string
-                    }
+                    to={uriToPath(artist.uri)}
                     className="text-initial"
                   >
                     {artist.picture && (
@@ -110,9 +109,7 @@ function Artists() {
                     )}
                   </Link>
                   <Link
-                    to={
-                      `/${artist.uri.split("at://")[1]?.replace("app.rocksky.", "")}` as string
-                    }
+                    to={uriToPath(artist.uri)}
                     className="!text-[var(--color-text)] no-underline"
                   >
                     <b>{artist.name}</b>
