@@ -759,8 +759,8 @@ export default function MiniPlayer() {
 
         <div
           className="flex items-center h-[calc(var(--player-height)-2px)] px-4 gap-3"
-          onClick={() => { if (player === "upload") setPlayerScreenOpen(true); }}
-          style={{ cursor: player === "upload" ? "pointer" : "default" }}
+          onClick={() => { if (player === "upload" || player === "rockbox") setPlayerScreenOpen(true); }}
+          style={{ cursor: (player === "upload" || player === "rockbox") ? "pointer" : "default" }}
         >
           {/* Album art */}
           {nowPlaying.albumArt ? (

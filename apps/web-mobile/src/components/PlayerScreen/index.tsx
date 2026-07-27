@@ -304,9 +304,9 @@ export default function PlayerScreen({
   const [seekValue, setSeekValue] = useState(0);
   const progressRef = useRef(0);
 
-  // Close if upload player stops
+  // Close if the playback source goes away (local library, or a remote device).
   useEffect(() => {
-    if (player !== "upload") setOpen(false);
+    if (player !== "upload" && player !== "rockbox") setOpen(false);
   }, [player, setOpen]);
 
   // Close queue when screen closes
@@ -327,7 +327,7 @@ export default function PlayerScreen({
     onSeek(value);
   }, [onSeek]);
 
-  if (!open || !nowPlaying || player !== "upload") return null;
+  if (!open || !nowPlaying || (player !== "upload" && player !== "rockbox")) return null;
 
   const progress = nowPlaying.duration > 0 ? (seekValue / nowPlaying.duration) * 100 : 0;
 
