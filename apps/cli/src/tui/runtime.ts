@@ -4,6 +4,7 @@
 
 import { prefetchTick } from "./playback";
 import { playerController } from "./player";
+import { startRockskyRemote } from "./rockskyWs";
 import { scrobblerTick } from "./scrobbler";
 import { loadSession, saveSession } from "./session";
 import { loadSettings, saveSettings } from "./settings";
@@ -50,11 +51,16 @@ export function startHeadlessRuntime(
     prefetchTick(token);
   }, 2000);
 
+  // Expose the player to the web/mobile miniplayers as a controllable device,
+  // and mirror its now-playing there in real time.
+  const remote = startRockskyRemote(getToken);
+
   return {
     stop() {
       clearInterval(sessionSaver);
       clearInterval(ticker);
       clearTimeout(saveTimer);
+      remote.stop();
       playerController.onSettingsChange = null;
       // Flush the latest settings + session on the way out.
       saveSettings(playerController.snapshotSettings());

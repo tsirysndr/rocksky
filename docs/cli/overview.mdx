@@ -51,3 +51,23 @@ rocksky stats                        # listening stats
 | [`scrobble-api`](/cli/scrobble-api)             | Run a local Last.fm / ListenBrainz-compatible server       |
 | [`mpd`](/cli/mpd)                               | Serve your library over the MPD protocol                   |
 | [`help`](/cli/help)                             | Show help for any command                                  |
+
+## Remote control
+
+Whenever the CLI player is running (the interactive TUI, or the
+[`mpd`](/cli/mpd) daemon), it connects to Rocksky over a WebSocket and appears
+as a controllable device in the Rocksky web and mobile miniplayers — just like
+the Rockbox companion. What you play on the CLI shows up there in real time, and
+play / pause / next / previous / seek from the miniplayer drive the CLI, with
+elapsed time kept in sync both ways. It authenticates with the same session
+token from `rocksky login`, so no extra setup is needed.
+
+The name shown in the miniplayer's source selector is configurable in
+`~/.rocksky/settings.toml`:
+
+```toml
+[remote]
+name = "Living Room"
+```
+
+Set `ROCKSKY_NO_REMOTE=1` to disable the connection entirely.

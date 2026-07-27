@@ -116,6 +116,13 @@ function StickyPlayerWithData() {
   const playerRef = useRef(player);
   const likedRef = useRef(liked);
   const profile = useAtomValue(profileAtom);
+  // Remote controllable device (the Rocksky CLI, or the Rockbox daemon) on the
+  // /ws relay: now-playing streams in over the socket and transport is sent back
+  // as commands, so the web miniplayer stays in sync with the device.
+  const socketRef = useRef<WebSocket | null>(null);
+  const heartbeatRef = useRef<number | null>(null);
+  const [deviceAvailable, setDeviceAvailable] = useState(false);
+  const [deviceName, setDeviceName] = useState("Remote device");
   // Hidden silent <audio> that plays while the wasm engine plays, so the
   // browser surfaces the Media Session / OS media controls (Web Audio alone
   // doesn't trigger them).
@@ -155,15 +162,18 @@ function StickyPlayerWithData() {
     publishRepeat(repeatMode === "one" ? 1 : repeatMode === "all" ? 2 : 0);
   }, [repeatMode]);
 
-  // Progress ticker for Spotify only — rockbox progress comes from the engine's
-  // `progress` events, so skip it here to avoid double-counting.
+  // Progress ticker for Spotify and remote devices — rockbox progress comes
+  // from the engine's own `progress` events, so skip it there to avoid double-
+  // counting. For a remote device we tick locally between the device's periodic
+  // now-playing pushes (which reconcile any drift).
   useEffect(() => {
     const id = window.setInterval(() => {
       setNowPlaying((prev) => {
         if (!prev || !prev.isPlaying) return prev;
-        if (playerRef.current !== "spotify") return prev;
+        const p = playerRef.current;
+        if (p !== "spotify" && p !== "device") return prev;
         if (prev.progress >= prev.duration) {
-          setTimeout(fetchCurrentlyPlaying, 2000);
+          if (p === "spotify") setTimeout(fetchCurrentlyPlaying, 2000);
           return prev;
         }
         return { ...prev, progress: prev.progress + 100 };
@@ -177,7 +187,7 @@ function StickyPlayerWithData() {
 
   const fetchCurrentlyPlaying = useCallback(async () => {
     const currentPlayer = playerRef.current;
-    if (currentPlayer === "rockbox") return;
+    if (currentPlayer === "rockbox" || currentPlayer === "device") return;
     const { data } = await axios.get(`${API_URL}/spotify/currently-playing`, {
       headers: { authorization: `Bearer ${localStorage.getItem("token")}` },
     });
@@ -213,9 +223,99 @@ function StickyPlayerWithData() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ── Remote device over the /ws relay ──────────────────────────────────────
+  // Send a transport command to the active device. Seek carries its position in
+  // `args` because the relay forwards only { type, action, args }.
+  const sendDeviceCommand = useCallback((action: string, args?: unknown) => {
+    const ws = socketRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    ws.send(JSON.stringify({
+      type: "command",
+      action,
+      args,
+      token: localStorage.getItem("token"),
+    }));
+  }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const wsUrl = API_URL.replace("https", "wss").replace("http", "ws");
+    const ws = new WebSocket(`${wsUrl}/ws`);
+    socketRef.current = ws;
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ type: "register", clientName: "rocksky-web", token }));
+      heartbeatRef.current = window.setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) ws.send("ping");
+      }, 10000);
+    };
+
+    ws.onmessage = (event) => {
+      if (event.data === "pong") return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let msg: any;
+      try { msg = JSON.parse(event.data); } catch { return; }
+
+      // A device is announcing now-playing → make it selectable and, unless the
+      // user is on another source, adopt it as the active player.
+      if (msg.type === "message" && msg.data?.type === "track") {
+        setDeviceAvailable(true);
+        if (msg.device_name) setDeviceName(msg.device_name);
+        if (playerRef.current !== null && playerRef.current !== "device") return;
+        if (lastFetchedRef.current && Date.now() - lastFetchedRef.current < 3000) return;
+        if (!msg.data.title && !msg.data.artist && !msg.data.album_artist) return;
+        setNowPlaying({
+          title: msg.data.title,
+          artist: msg.data.album_artist || msg.data.artist,
+          artistUri: msg.data.artist_uri ?? "",
+          songUri: msg.data.song_uri ?? "",
+          albumUri: msg.data.album_uri ?? "",
+          duration: msg.data.length,
+          progress: msg.data.elapsed,
+          albumArt: _.get(msg, "data.album_art"),
+          isPlaying: nowPlayingRef.current?.isPlaying ?? true,
+          sha256: msg.data.sha256 ?? "",
+          liked:
+            likedRef.current[msg.data.song_uri] !== undefined
+              ? likedRef.current[msg.data.song_uri]
+              : !!msg.data.liked,
+        });
+        setPlayer("device");
+        lastFetchedRef.current = Date.now();
+        return;
+      }
+
+      // Transport status only matters while the device is the active player.
+      if (playerRef.current !== "device") return;
+      if (msg.data?.type === "status") {
+        const s = msg.data.status;
+        if (s === 0) { setNowPlaying(null); setPlayer((p) => (p === "device" ? null : p)); }
+        else if (s === 1) setNowPlaying((prev) => prev ? { ...prev, isPlaying: true } : prev);
+        else if (s === 2 || s === 3) setNowPlaying((prev) => prev ? { ...prev, isPlaying: false } : prev);
+      }
+    };
+
+    ws.onclose = () => {
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+    };
+
+    return () => {
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+      ws.close();
+      socketRef.current = null;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ── Playback controls ─────────────────────────────────────────────────────
 
   const onPlay = async () => {
+    if (player === "device") {
+      sendDeviceCommand("play");
+      setNowPlaying((prev) => prev ? { ...prev, isPlaying: true } : prev);
+      return;
+    }
     if (player === "rockbox") {
       const p = await ensureRockboxReady();
       // Resume after a reload: the queue was rehydrated from localStorage but
@@ -250,6 +350,11 @@ function StickyPlayerWithData() {
   };
 
   const onPause = () => {
+    if (player === "device") {
+      sendDeviceCommand("pause");
+      setNowPlaying((prev) => prev ? { ...prev, isPlaying: false } : prev);
+      return;
+    }
     if (player === "rockbox") {
       getRockboxPlayer().pause();
       setNowPlaying((prev) => prev ? { ...prev, isPlaying: false } : prev);
@@ -259,6 +364,10 @@ function StickyPlayerWithData() {
   };
 
   const onNext = () => {
+    if (player === "device") {
+      sendDeviceCommand("next");
+      return;
+    }
     if (player === "rockbox") {
       getRockboxPlayer().next();
       return;
@@ -267,6 +376,10 @@ function StickyPlayerWithData() {
   };
 
   const onPrevious = () => {
+    if (player === "device") {
+      sendDeviceCommand("previous");
+      return;
+    }
     if (player === "rockbox") {
       getRockboxPlayer().prev();
       return;
@@ -275,6 +388,11 @@ function StickyPlayerWithData() {
   };
 
   const onSeek = (position: number) => {
+    if (player === "device") {
+      sendDeviceCommand("seek", { position });
+      setNowPlaying((prev) => prev ? { ...prev, progress: position } : prev);
+      return;
+    }
     if (player === "rockbox") {
       getRockboxPlayer().seek(position);
       setNowPlaying((prev) => prev ? { ...prev, progress: position } : prev);
@@ -288,6 +406,8 @@ function StickyPlayerWithData() {
   const onVolumeChange = (v: number) => {
     setVolumeState(v);
     if (v > 0 && muted) setMutedState(false);
+    // A remote device manages its own volume — don't spin up the local engine.
+    if (player === "device") return;
     const p = getRockboxPlayer();
     if (p.ready) p.setVolume(muted ? 0 : v);
   };
@@ -295,6 +415,7 @@ function StickyPlayerWithData() {
   const onToggleMute = () => {
     const nextMuted = !muted;
     setMutedState(nextMuted);
+    if (player === "device") return;
     const p = getRockboxPlayer();
     if (p.ready) p.setVolume(nextMuted ? 0 : volume);
   };
@@ -551,6 +672,20 @@ function StickyPlayerWithData() {
                 <PlayerDot active={isRockbox} />
                 Rockbox
               </PlayerSelectorItem>
+              {deviceAvailable && (
+                <PlayerSelectorItem
+                  active={player === "device"}
+                  onClick={() => {
+                    // Silence the local engine before handing off to the device.
+                    if (player === "rockbox") getRockboxPlayer().pause();
+                    setPlayer("device");
+                    setPlayerSelectorOpen(false);
+                  }}
+                >
+                  <PlayerDot active={player === "device"} />
+                  {deviceName}
+                </PlayerSelectorItem>
+              )}
             </PlayerSelectorPopup>
           </>,
           document.body,

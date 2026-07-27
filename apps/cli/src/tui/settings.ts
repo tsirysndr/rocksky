@@ -16,6 +16,11 @@ export interface Settings {
     port: number;
     bind: string;
   };
+  // How this player advertises itself to the web/mobile miniplayers over the
+  // /ws relay. `name` is the label shown in their source selector.
+  remote: {
+    name: string;
+  };
   equalizer: {
     enabled: boolean;
     bands: number[];
@@ -41,6 +46,9 @@ export const DEFAULT_SETTINGS: Settings = {
     enabled: false,
     port: 6600,
     bind: "127.0.0.1",
+  },
+  remote: {
+    name: "Rocksky CLI",
   },
   equalizer: {
     enabled: false,
@@ -108,6 +116,9 @@ function serialize(s: Settings): string {
     `port = ${s.mpd.port}`,
     `bind = "${s.mpd.bind}"`,
     ``,
+    `[remote]`,
+    `name = "${s.remote.name}"`,
+    ``,
     `[equalizer]`,
     `enabled = ${s.equalizer.enabled}`,
     `bands = [${s.equalizer.bands.join(", ")}]`,
@@ -135,6 +146,7 @@ export function loadSettings(): Settings {
     const parsed = parseToml(fs.readFileSync(settingsPath(), "utf-8"));
     const eq = parsed.equalizer || {};
     const mpd = parsed.mpd || {};
+    const remote = parsed.remote || {};
     const bands = Array.isArray(eq.bands)
       ? DEFAULT_SETTINGS.equalizer.bands.map((d, i) => num(eq.bands[i], d))
       : DEFAULT_SETTINGS.equalizer.bands;
@@ -149,6 +161,12 @@ export function loadSettings(): Settings {
         port: num(mpd.port, DEFAULT_SETTINGS.mpd.port),
         bind:
           typeof mpd.bind === "string" ? mpd.bind : DEFAULT_SETTINGS.mpd.bind,
+      },
+      remote: {
+        name:
+          typeof remote.name === "string" && remote.name.trim().length > 0
+            ? remote.name
+            : DEFAULT_SETTINGS.remote.name,
       },
       equalizer: {
         enabled: bool(eq.enabled, false),
@@ -171,14 +189,17 @@ export function loadSettings(): Settings {
   }
 }
 
-// The player only owns the playback settings; the [mpd] section is config the
-// player never mutates. Accept playback settings and preserve [mpd] from disk
-// so a playback-triggered save doesn't clobber the user's MPD config.
-export function saveSettings(s: Omit<Settings, "mpd">): void {
+// The player only owns the playback settings; the [mpd] and [remote] sections
+// are config the player never mutates. Accept playback settings and preserve
+// those sections from disk so a playback-triggered save doesn't clobber them.
+export function saveSettings(s: Omit<Settings, "mpd" | "remote">): void {
   try {
-    const mpd = loadSettings().mpd;
+    const disk = loadSettings();
     fs.mkdirSync(path.dirname(settingsPath()), { recursive: true });
-    fs.writeFileSync(settingsPath(), serialize({ ...s, mpd }));
+    fs.writeFileSync(
+      settingsPath(),
+      serialize({ ...s, mpd: disk.mpd, remote: disk.remote }),
+    );
   } catch {
     // best-effort; ignore write errors
   }

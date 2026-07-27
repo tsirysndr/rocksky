@@ -53,6 +53,7 @@ function SourceSheet({
   onClose,
   player,
   rockboxAvailable,
+  rockboxLabel,
   queueLength,
   onSelect,
 }: {
@@ -60,6 +61,7 @@ function SourceSheet({
   onClose: () => void;
   player: string | null;
   rockboxAvailable: boolean;
+  rockboxLabel: string;
   queueLength: number;
   onSelect: (src: "spotify" | "rockbox" | "upload") => void;
 }) {
@@ -85,7 +87,7 @@ function SourceSheet({
           </button>
         </div>
         {rockboxAvailable && (
-          <SourceItem label="Rockbox" active={player === "rockbox"} onClick={() => { onSelect("rockbox"); onClose(); }} />
+          <SourceItem label={rockboxLabel} active={player === "rockbox"} onClick={() => { onSelect("rockbox"); onClose(); }} />
         )}
         {queueLength > 0 && (
           <SourceItem label="My Library" active={player === "upload"} onClick={() => { onSelect("upload"); onClose(); }} />
@@ -151,6 +153,9 @@ export default function MiniPlayer() {
   const [liked, setLiked] = useState<Record<string, boolean>>({});
   const likedRef = useRef(liked);
   const [rockboxAvailable, setRockboxAvailable] = useState(false);
+  // Name of the remote device currently reporting (e.g. "Rocksky CLI"), shown
+  // in the source sheet instead of a generic label.
+  const [deviceName, setDeviceName] = useState("Rockbox");
   const [sourceSheetOpen, setSourceSheetOpen] = useState(false);
   const [eqSheetOpen, setEqSheetOpen] = useState(false);
   const [shuffle, setShuffle] = useAtom(shuffleAtom);
@@ -303,6 +308,7 @@ export default function MiniPlayer() {
 
         if (msg.type === "message" && msg.data?.type === "track") {
           setRockboxAvailable(true);
+          if (msg.device_name) setDeviceName(msg.device_name);
           if (playerRef.current !== null && playerRef.current !== "rockbox") return;
           if (lastFetchedRef.current && Date.now() - lastFetchedRef.current < 3000) return;
           if (!msg.data.title && !msg.data.artist && !msg.data.album_artist) return;
@@ -394,6 +400,12 @@ export default function MiniPlayer() {
   };
 
   const onPrevious = () => {
+    if (player === "rockbox" && socketRef.current) {
+      socketRef.current.send(JSON.stringify({
+        type: "command", action: "previous", token: localStorage.getItem("token"),
+      }));
+      return;
+    }
     if (player !== "upload") return;
     getRockboxPlayer().prev();
   };
@@ -402,6 +414,14 @@ export default function MiniPlayer() {
     if (playerRef.current === "upload") {
       const p = getRockboxPlayer();
       if (p.ready) p.seek(positionMs);
+    } else if (playerRef.current === "rockbox" && socketRef.current) {
+      // Seek position rides in `args` — the relay forwards only {type, action, args}.
+      socketRef.current.send(JSON.stringify({
+        type: "command",
+        action: "seek",
+        args: { position: positionMs },
+        token: localStorage.getItem("token"),
+      }));
     }
     setNowPlaying((prev) => prev ? { ...prev, progress: positionMs } : prev);
   }, [setNowPlaying]);
@@ -557,6 +577,7 @@ export default function MiniPlayer() {
         onClose={() => setSourceSheetOpen(false)}
         player={player}
         rockboxAvailable={rockboxAvailable}
+        rockboxLabel={deviceName}
         queueLength={queue.length}
         onSelect={(src) => {
           if (src === "upload" && player !== "upload") {
