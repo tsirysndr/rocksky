@@ -2,7 +2,10 @@ import styled from "@emotion/styled";
 import { Search as SearchIcon } from "@styled-icons/evaicons-solid";
 import { Input } from "baseui/input";
 import { useSetAtom } from "jotai";
-import { searchModalOpenAtom } from "../../atoms/searchModal";
+import {
+  searchModalOpenAtom,
+  searchModalScopeAtom,
+} from "../../atoms/searchModal";
 
 // "/" affordance shown at the trailing edge — press "/" anywhere to open the
 // command palette (see components/KeyboardShortcuts).
@@ -30,7 +33,11 @@ const Trigger = styled.div`
 // Raycast-style command palette (see SearchModal) rather than searching inline.
 function Search() {
   const openSearch = useSetAtom(searchModalOpenAtom);
-  const open = () => openSearch(true);
+  const setScope = useSetAtom(searchModalScopeAtom);
+  const open = () => {
+    setScope("all");
+    openSearch(true);
+  };
 
   return (
     <Trigger

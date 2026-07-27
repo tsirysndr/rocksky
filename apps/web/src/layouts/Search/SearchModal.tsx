@@ -8,10 +8,14 @@ import styled from "@emotion/styled";
 import { Search as SearchIcon } from "@styled-icons/evaicons-solid";
 import { useNavigate } from "@tanstack/react-router";
 import { IconUser } from "@tabler/icons-react";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import _ from "lodash";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { searchModalOpenAtom } from "../../atoms/searchModal";
+import {
+  searchModalOpenAtom,
+  searchModalScopeAtom,
+  type SearchScope,
+} from "../../atoms/searchModal";
 import Artist from "../../components/Icons/Artist";
 import Disc from "../../components/Icons/Disc";
 import Playlist from "../../components/Icons/Playlist";
@@ -134,10 +138,8 @@ const SECTION_ORDER: { index: SearchIndex; label: string }[] = [
   { index: "users", label: "People" },
 ];
 
-// Scope filter shown as a dropdown next to the query.
-type FilterKey = "all" | SearchIndex;
-
-const FILTER_OPTIONS: { key: FilterKey; label: string }[] = [
+// Scope filter shown as a dropdown next to the query (SearchScope from the atom).
+const FILTER_OPTIONS: { key: SearchScope; label: string }[] = [
   { key: "all", label: "All" },
   { key: "tracks", label: "Songs" },
   { key: "albums", label: "Albums" },
@@ -369,8 +371,11 @@ function Artwork({ item }: { item: NavItem }) {
 
 function Palette({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
+  // The palette mounts fresh each open, so this captures the requested scope
+  // (set by the trigger/shortcut) at open time.
+  const initialScope = useAtomValue(searchModalScopeAtom);
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<FilterKey>("all");
+  const [filter, setFilter] = useState<SearchScope>(initialScope);
   const [active, setActive] = useState(0);
   const { mutate, data, reset } = useSearchMutation();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -473,7 +478,7 @@ function Palette({ onClose }: { onClose: () => void }) {
         <FilterSelect
           value={filter}
           onChange={(e) => {
-            setFilter(e.target.value as FilterKey);
+            setFilter(e.target.value as SearchScope);
             // Return focus to the query so arrow-key navigation resumes.
             inputRef.current?.focus();
           }}

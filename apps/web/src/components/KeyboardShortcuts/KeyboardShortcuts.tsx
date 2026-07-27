@@ -1,11 +1,15 @@
 import styled from "@emotion/styled";
 import { useNavigate } from "@tanstack/react-router";
 import { Modal, ModalBody, ModalHeader } from "baseui/modal";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useEffect, useRef } from "react";
 import { playerControlsAtom } from "../../atoms/playerControls";
 import { profileAtom } from "../../atoms/profile";
-import { searchModalOpenAtom } from "../../atoms/searchModal";
+import {
+  searchModalOpenAtom,
+  searchModalScopeAtom,
+  type SearchScope,
+} from "../../atoms/searchModal";
 import { shortcutsHelpOpenAtom } from "../../atoms/shortcuts";
 import { themeAtom } from "../../atoms/theme";
 
@@ -23,15 +27,32 @@ const GO_ROUTES: Record<string, string> = {
   w: "/wrapped",
 };
 
+// Single-key shortcuts that open the search palette pre-scoped to one type.
+const SEARCH_SCOPE_KEYS: Record<string, SearchScope> = {
+  s: "tracks",
+  a: "artists",
+  l: "albums",
+  u: "users",
+};
+
 const GROUPS: Group[] = [
   {
     title: "General",
     items: [
-      { keys: ["/"], label: "Open search" },
       { keys: ["?"], label: "Show this help" },
       { keys: ["Esc"], label: "Close dialog / search" },
       { keys: ["t"], label: "Toggle light / dark theme" },
       { keys: ["e"], label: "Equalizer (audio settings)" },
+    ],
+  },
+  {
+    title: "Search",
+    items: [
+      { keys: ["/"], label: "Search everything" },
+      { keys: ["s"], label: "Search songs" },
+      { keys: ["a"], label: "Search artists" },
+      { keys: ["l"], label: "Search albums" },
+      { keys: ["u"], label: "Search people" },
     ],
   },
   {
@@ -153,6 +174,7 @@ function KeyboardShortcuts() {
   const [{ darkMode }, setTheme] = useAtom(themeAtom);
   const [helpOpen, setHelpOpen] = useAtom(shortcutsHelpOpenAtom);
   const [searchOpen, setSearchOpen] = useAtom(searchModalOpenAtom);
+  const setSearchScope = useSetAtom(searchModalScopeAtom);
 
   // The keydown listener is installed once; read the latest values through a
   // ref so it never closes over stale state.
@@ -166,6 +188,7 @@ function KeyboardShortcuts() {
     setHelpOpen,
     searchOpen,
     setSearchOpen,
+    setSearchScope,
   });
   stateRef.current = {
     navigate,
@@ -177,6 +200,7 @@ function KeyboardShortcuts() {
     setHelpOpen,
     searchOpen,
     setSearchOpen,
+    setSearchScope,
   };
 
   useEffect(() => {
@@ -226,9 +250,19 @@ function KeyboardShortcuts() {
         return;
       }
 
+      // Single-key shortcuts that open the palette scoped to one type.
+      const scope = SEARCH_SCOPE_KEYS[e.key];
+      if (scope) {
+        e.preventDefault();
+        s.setSearchScope(scope);
+        s.setSearchOpen(true);
+        return;
+      }
+
       switch (e.key) {
         case "/":
           e.preventDefault();
+          s.setSearchScope("all");
           s.setSearchOpen(true);
           break;
         case "?":
