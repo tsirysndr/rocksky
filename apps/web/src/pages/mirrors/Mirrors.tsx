@@ -14,7 +14,6 @@ import { Input } from "baseui/input";
 import { Tab, Tabs } from "baseui/tabs-motion";
 import { LabelSmall } from "baseui/typography";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useAtomValue } from "jotai";
 import ContentLoader from "react-content-loader";
 import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -25,7 +24,6 @@ import {
   getMirrorSources,
   putMirrorSource,
 } from "../../api/mirror";
-import { profileAtom } from "../../atoms/profile";
 import Main from "../../layouts/Main";
 
 const inputOverrides = {
@@ -537,7 +535,6 @@ function ProviderPanel({
 }
 
 export default function MirrorsPage() {
-  const profile = useAtomValue(profileAtom);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const jwt = localStorage.getItem("token");
@@ -555,16 +552,17 @@ export default function MirrorsPage() {
       queryClient.invalidateQueries({ queryKey: ["mirror-sources"] }),
   });
 
-  // Redirect home only when there's genuinely no session. On a hard reload the
-  // profile hydrates asynchronously (fetched after mount), so it is briefly null
-  // even while `jwt` is present — redirecting on that transient null is what
-  // bounced a reloaded /mirrors back to home. Wait for the profile instead (an
-  // invalid token is handled by useProfile, which clears it and redirects).
+  // Redirect home only when genuinely signed out. Do NOT gate on `profile`: it's
+  // fetched by <Main>'s useProfile AFTER mount, so on a direct load/reload it's
+  // briefly null. Gating on it either bounced to home (the original bug) or,
+  // once that was fixed, returned null before <Main> ever mounted — so
+  // useProfile never ran and the page stayed blank. The content only needs
+  // `jwt`; the profile loads in <Main> in the background.
   useEffect(() => {
     if (!jwt) navigate({ to: "/" });
   }, [jwt, navigate]);
 
-  if (!jwt || !profile) return null;
+  if (!jwt) return null;
 
   // Index for fast lookup. If the API somehow returned fewer than three rows
   // (older deployment, transient error), fall back to a disabled stub so each

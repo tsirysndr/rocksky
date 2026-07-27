@@ -6,8 +6,7 @@ import { FormControl } from "baseui/form-control";
 import { Input } from "baseui/input";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "baseui/modal";
 import { LabelMedium, LabelSmall } from "baseui/typography";
-import { useAtomValue } from "jotai";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   StorageProvider,
@@ -15,7 +14,6 @@ import {
   deleteStorageProvider,
   getStorageProviders,
 } from "../../api/storage";
-import { profileAtom } from "../../atoms/profile";
 import Main from "../../layouts/Main";
 
 const inputOverrides = {
@@ -150,7 +148,6 @@ function ProviderRow({
 }
 
 export default function StoragePage() {
-  const profile = useAtomValue(profileAtom);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const jwt = localStorage.getItem("token");
@@ -189,10 +186,15 @@ export default function StoragePage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["storage-providers"] }),
   });
 
-  if (!jwt || !profile) {
-    navigate({ to: "/" });
-    return null;
-  }
+  // Redirect home only when genuinely signed out — NOT when `profile` is null.
+  // The profile is fetched by <Main>'s useProfile after mount, so on a direct
+  // load it is briefly null; gating on it bounced to home / blanked the page
+  // before <Main> could mount and load it. The content only needs `jwt`.
+  useEffect(() => {
+    if (!jwt) navigate({ to: "/" });
+  }, [jwt, navigate]);
+
+  if (!jwt) return null;
 
   const onSubmit = (values: FormValues) => {
     setApiError(null);
