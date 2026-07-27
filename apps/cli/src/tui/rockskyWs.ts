@@ -55,6 +55,7 @@ export function startRockskyRemote(
 
   let ws: WebSocket | null = null;
   let deviceId = "";
+  let clientName = "Rocksky CLI";
   let stopped = false;
   let pushTimer: ReturnType<typeof setInterval> | undefined;
   let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
@@ -107,6 +108,13 @@ export function startRockskyRemote(
         elapsed: elapsedMs,
         duration_ms: durationMs,
         album_art: item.albumArt,
+        // Play-state travels with the track so clients know it's playing even
+        // if they adopted the device after the initial `status` message.
+        is_playing: status.state === "playing",
+        // Carry the device name inside `data` too: the relay passes `data`
+        // through untouched, so clients can label the source even on an API
+        // build that doesn't add the top-level `device_name` field.
+        device_name: clientName,
       },
     });
   };
@@ -204,7 +212,7 @@ export function startRockskyRemote(
       debug("connected");
       // The advertised name is configurable via ~/.rocksky/settings.toml
       // ([remote] name = "…"); read fresh on each connect so edits take effect.
-      const clientName = loadSettings().remote.name;
+      clientName = loadSettings().remote.name;
       send({ type: "register", clientName, token: getToken() });
       heartbeatTimer = setInterval(() => {
         if (socket.readyState === WebSocket.OPEN) socket.send("ping");

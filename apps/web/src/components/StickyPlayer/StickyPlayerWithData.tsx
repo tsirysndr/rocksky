@@ -261,20 +261,39 @@ function StickyPlayerWithData() {
       // user is on another source, adopt it as the active player.
       if (msg.type === "message" && msg.data?.type === "track") {
         setDeviceAvailable(true);
-        if (msg.device_name) setDeviceName(msg.device_name);
+        const name = msg.device_name ?? msg.data?.device_name;
+        if (name) setDeviceName(name);
         if (playerRef.current !== null && playerRef.current !== "device") return;
-        if (lastFetchedRef.current && Date.now() - lastFetchedRef.current < 3000) return;
         if (!msg.data.title && !msg.data.artist && !msg.data.album_artist) return;
+
+        const prev = nowPlayingRef.current;
+        const title = msg.data.title;
+        const artist = msg.data.album_artist || msg.data.artist;
+        const incoming = msg.data.elapsed ?? 0;
+        // Progress is computed locally by the 100ms ticker; the device's push
+        // (every ~4s) only reconciles real drift. Keep the smooth local value
+        // unless it's a different track or the gap is large (a seek), so the
+        // periodic sync doesn't produce visible jumps.
+        const sameTrack = !!prev && prev.title === title && prev.artist === artist;
+        const progress =
+          sameTrack && Math.abs((prev?.progress ?? 0) - incoming) < 2000
+            ? (prev?.progress ?? incoming)
+            : incoming;
+        const isPlaying =
+          typeof msg.data.is_playing === "boolean"
+            ? msg.data.is_playing
+            : (prev?.isPlaying ?? true);
+
         setNowPlaying({
-          title: msg.data.title,
-          artist: msg.data.album_artist || msg.data.artist,
+          title,
+          artist,
           artistUri: msg.data.artist_uri ?? "",
           songUri: msg.data.song_uri ?? "",
           albumUri: msg.data.album_uri ?? "",
           duration: msg.data.length,
-          progress: msg.data.elapsed,
+          progress,
           albumArt: _.get(msg, "data.album_art"),
-          isPlaying: nowPlayingRef.current?.isPlaying ?? true,
+          isPlaying,
           sha256: msg.data.sha256 ?? "",
           liked:
             likedRef.current[msg.data.song_uri] !== undefined

@@ -308,21 +308,39 @@ export default function MiniPlayer() {
 
         if (msg.type === "message" && msg.data?.type === "track") {
           setRockboxAvailable(true);
-          if (msg.device_name) setDeviceName(msg.device_name);
+          const name = msg.device_name ?? msg.data?.device_name;
+          if (name) setDeviceName(name);
           if (playerRef.current !== null && playerRef.current !== "rockbox") return;
-          if (lastFetchedRef.current && Date.now() - lastFetchedRef.current < 3000) return;
           if (!msg.data.title && !msg.data.artist && !msg.data.album_artist) return;
+
+          const prev = nowPlayingRef.current;
+          const title = msg.data.title;
+          const artist = msg.data.album_artist || msg.data.artist;
+          const incoming = msg.data.elapsed ?? 0;
+          // Progress ticks locally (100ms); the device push only reconciles real
+          // drift, so keep the smooth local value unless the track changed or the
+          // gap is large (a seek) — otherwise the periodic sync visibly jumps.
+          const sameTrack = !!prev && prev.title === title && prev.artist === artist;
+          const progress =
+            sameTrack && Math.abs((prev?.progress ?? 0) - incoming) < 2000
+              ? (prev?.progress ?? incoming)
+              : incoming;
+          const isPlaying =
+            typeof msg.data.is_playing === "boolean"
+              ? msg.data.is_playing
+              : !!prev?.isPlaying;
+
           setNowPlaying({
-            ...(nowPlayingRef.current ?? {}),
-            title: msg.data.title,
-            artist: msg.data.album_artist || msg.data.artist,
+            ...(prev ?? {}),
+            title,
+            artist,
             artistUri: msg.data.artist_uri,
             songUri: msg.data.song_uri,
             albumUri: msg.data.album_uri,
             duration: msg.data.length,
-            progress: msg.data.elapsed,
+            progress,
             albumArt: _.get(msg, "data.album_art"),
-            isPlaying: !!nowPlayingRef.current?.isPlaying,
+            isPlaying,
             sha256: msg.data.sha256,
             liked:
               likedRef.current[msg.data.song_uri] !== undefined
