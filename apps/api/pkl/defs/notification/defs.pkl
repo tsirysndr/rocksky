@@ -77,6 +77,34 @@ defs = new Mapping<String, ObjectType> {
         type = "ref"
         ref = "app.rocksky.notification.defs#notificationActor"
       }
+      ["subject"] = new Ref {
+        type = "ref"
+        ref = "app.rocksky.notification.defs#subjectView"
+      }
+    }
+  }
+  ["subjectView"] = new ObjectType {
+    type = "object"
+    description = "The song, album, or scrobble a notification relates to, for rich display."
+    required = List("uri")
+    properties {
+      ["uri"] = new StringType {
+        type = "string"
+        description = "The at-uri of the subject."
+      }
+      ["title"] = new StringType {
+        type = "string"
+        description = "The title of the track or album."
+      }
+      ["artist"] = new StringType {
+        type = "string"
+        description = "The artist of the track or album."
+      }
+      ["albumArt"] = new StringType {
+        type = "string"
+        format = "uri"
+        description = "The album art image URL."
+      }
     }
   }
 }

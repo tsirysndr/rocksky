@@ -80,6 +80,36 @@
         "actor": {
           "type": "ref",
           "ref": "app.rocksky.notification.defs#notificationActor"
+        },
+        "subject": {
+          "type": "ref",
+          "ref": "app.rocksky.notification.defs#subjectView"
+        }
+      }
+    },
+    "subjectView": {
+      "type": "object",
+      "description": "The song, album, or scrobble a notification relates to, for rich display.",
+      "required": [
+        "uri"
+      ],
+      "properties": {
+        "uri": {
+          "type": "string",
+          "description": "The at-uri of the subject."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the track or album."
+        },
+        "artist": {
+          "type": "string",
+          "description": "The artist of the track or album."
+        },
+        "albumArt": {
+          "type": "string",
+          "description": "The album art image URL.",
+          "format": "uri"
         }
       }
     }

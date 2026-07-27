@@ -1,8 +1,13 @@
-import { IconUser } from "@tabler/icons-react";
+import { IconMusic, IconUser } from "@tabler/icons-react";
 import { Avatar } from "baseui/avatar";
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import type { NotificationView } from "../../api/notifications";
+import type {
+  NotificationActor,
+  NotificationGroup,
+  NotificationView,
+} from "../../api/notifications";
+import { groupNotifications } from "../../api/notifications";
 import Main from "../../layouts/Main";
 import {
   useMarkSeenMutation,
@@ -63,38 +68,138 @@ const timeAgo = (iso: string): string => {
   return new Date(iso).toLocaleDateString();
 };
 
-function NotificationRow({ notification }: { notification: NotificationView }) {
-  const actor = notification.actor;
-  const name = actor?.displayName || actor?.handle || "Someone";
-  const verb = VERB[notification.type] ?? "sent you a notification";
-  const isJpegPlaceholder = actor?.avatar?.endsWith("/@jpeg");
+const actorName = (a: NotificationActor): string =>
+  a.displayName || a.handle || "Someone";
+
+function ActorAvatar({ actor }: { actor: NotificationActor }) {
+  const isJpegPlaceholder = actor.avatar?.endsWith("/@jpeg");
+  return actor.avatar && !isJpegPlaceholder ? (
+    <Avatar src={actor.avatar} name={actorName(actor)} size="40px" />
+  ) : (
+    <div
+      className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+      style={{ backgroundColor: "var(--color-avatar-background)" }}
+    >
+      <IconUser size={22} color="#fff" />
+    </div>
+  );
+}
+
+/** "A liked", "A and B liked", "A, B and 3 others liked" — names bolded. */
+function ActorSummary({
+  actors,
+  verb,
+}: {
+  actors: NotificationActor[];
+  verb: string;
+}) {
+  if (actors.length === 0) return <>Someone {verb}</>;
+  if (actors.length === 1) {
+    return (
+      <>
+        <b>{actorName(actors[0])}</b> {verb}
+      </>
+    );
+  }
+  if (actors.length === 2) {
+    return (
+      <>
+        <b>{actorName(actors[0])}</b> and <b>{actorName(actors[1])}</b> {verb}
+      </>
+    );
+  }
+  const others = actors.length - 2;
+  return (
+    <>
+      <b>{actorName(actors[0])}</b>, <b>{actorName(actors[1])}</b> and {others}{" "}
+      {others === 1 ? "other" : "others"} {verb}
+    </>
+  );
+}
+
+function NotificationRow({ group }: { group: NotificationGroup }) {
+  const verb = VERB[group.type] ?? "sent you a notification";
+  const { latest } = group;
+  const avatars = group.actors.slice(0, 3);
+  const subject = latest.subject;
 
   return (
     <Link
-      to={notificationTarget(notification)}
+      to={notificationTarget(latest)}
       className="flex items-start gap-3 px-4 py-3 no-underline"
       style={{ borderBottom: "1px solid var(--color-border)" }}
     >
-      {actor?.avatar && !isJpegPlaceholder ? (
-        <Avatar src={actor.avatar} name={name} size="40px" />
-      ) : (
-        <div
-          className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-          style={{ backgroundColor: "var(--color-avatar-background)" }}
-        >
-          <IconUser size={22} color="#fff" />
+      {avatars.length > 1 ? (
+        <div className="flex flex-shrink-0">
+          {avatars.map((a, i) => (
+            <div
+              key={i}
+              className="rounded-full"
+              style={{
+                marginLeft: i === 0 ? 0 : -14,
+                border: "2px solid var(--color-background)",
+                zIndex: avatars.length - i,
+              }}
+            >
+              <ActorAvatar actor={a} />
+            </div>
+          ))}
         </div>
+      ) : (
+        <ActorAvatar actor={group.actors[0] ?? {}} />
       )}
       <div className="min-w-0 flex-1">
         <p className="text-sm m-0" style={{ color: "var(--color-text)" }}>
-          <b>{name}</b> {verb}
-          {notification.shoutContent ? `: "${notification.shoutContent}"` : ""}
+          <ActorSummary actors={group.actors} verb={verb} />
+          {latest.shoutContent ? `: "${latest.shoutContent}"` : ""}
         </p>
+        {subject && (subject.title || subject.albumArt) ? (
+          <div
+            className="flex items-center gap-2 mt-1.5 p-1.5 rounded-md"
+            style={{ border: "1px solid var(--color-border)" }}
+          >
+            {subject.albumArt ? (
+              <img
+                src={subject.albumArt}
+                alt=""
+                className="w-9 h-9 rounded object-cover flex-shrink-0"
+              />
+            ) : (
+              <div
+                className="w-9 h-9 rounded flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: "var(--color-avatar-background)" }}
+              >
+                <IconMusic size={18} color="var(--color-text-muted)" />
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              {subject.title ? (
+                <p
+                  className="text-sm font-semibold m-0 truncate"
+                  style={{ color: "var(--color-text)" }}
+                >
+                  {subject.title}
+                </p>
+              ) : null}
+              {subject.artist ? (
+                <p
+                  className="text-xs m-0 truncate"
+                  style={{ color: "var(--color-text-muted)" }}
+                >
+                  {subject.artist}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
         <p
           className="text-xs m-0 mt-0.5"
-          style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-mono)" }}
+          style={{
+            color: "var(--color-text-muted)",
+            fontFamily: "var(--font-mono)",
+          }}
         >
-          {timeAgo(notification.createdAt)}
+          {timeAgo(latest.createdAt)}
         </p>
       </div>
     </Link>
@@ -128,8 +233,8 @@ export default function NotificationsPage() {
             No notifications yet
           </p>
         ) : (
-          data?.notifications.map((n) => (
-            <NotificationRow key={n.id} notification={n} />
+          groupNotifications(data?.notifications ?? []).map((g) => (
+            <NotificationRow key={g.key} group={g} />
           ))
         )}
       </div>

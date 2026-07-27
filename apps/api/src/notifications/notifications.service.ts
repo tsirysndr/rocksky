@@ -1,10 +1,14 @@
 import { consola } from "consola";
 import type { Context } from "context";
 import { and, desc, eq, inArray, lt, sql } from "drizzle-orm";
+import { withFallbackAlbumArt } from "../lib";
+import albums from "../schema/albums";
 import notifications, {
   type SelectNotification,
 } from "../schema/notifications";
+import scrobbles from "../schema/scrobbles";
 import shouts from "../schema/shouts";
+import tracks from "../schema/tracks";
 import users from "../schema/users";
 
 export type NotificationType =
@@ -36,6 +40,14 @@ export interface NotificationActor {
   avatar: string;
 }
 
+/** The song/album behind a notification's subjectUri, for rich display. */
+export interface NotificationSubject {
+  uri: string;
+  title?: string;
+  artist?: string;
+  albumArt?: string;
+}
+
 export interface NotificationView {
   id: string;
   type: NotificationType;
@@ -45,6 +57,7 @@ export interface NotificationView {
   shoutId?: string;
   shoutContent?: string;
   actor?: NotificationActor;
+  subject?: NotificationSubject;
 }
 
 /**
@@ -196,6 +209,8 @@ async function hydrate(
     for (const s of shoutRows) shoutById.set(s.id, s.content);
   }
 
+  const subjectByUri = await resolveSubjects(ctx, rows);
+
   return rows.map((r) => {
     const actor = actorById.get(r.actorId);
     return {
@@ -217,8 +232,97 @@ async function hydrate(
             avatar: actor.avatar,
           }
         : undefined,
+      subject: r.subjectUri ? subjectByUri.get(r.subjectUri) : undefined,
     };
   });
+}
+
+/**
+ * Resolve the track/album behind each notification's subjectUri so the client
+ * can show album art + title/artist without an extra round-trip. Batched by
+ * collection: scrobble URIs join through to their track; song/album URIs hit
+ * their own table. Profile / bare-did subjects (follows, profile comments)
+ * have nothing to show and are simply absent from the map.
+ */
+async function resolveSubjects(
+  ctx: Context,
+  rows: SelectNotification[],
+): Promise<Map<string, NotificationSubject>> {
+  const byUri = new Map<string, NotificationSubject>();
+  const uris = [
+    ...new Set(rows.map((r) => r.subjectUri).filter((v): v is string => !!v)),
+  ];
+  if (!uris.length) return byUri;
+
+  const scrobbleUris = uris.filter((u) => u.includes("app.rocksky.scrobble"));
+  const songUris = uris.filter((u) => u.includes("app.rocksky.song"));
+  const albumUris = uris.filter((u) => u.includes("app.rocksky.album"));
+
+  if (scrobbleUris.length) {
+    const scrobbleRows = await ctx.db
+      .select({
+        uri: scrobbles.uri,
+        title: tracks.title,
+        artist: tracks.artist,
+        albumArt: tracks.albumArt,
+      })
+      .from(scrobbles)
+      .leftJoin(tracks, eq(scrobbles.trackId, tracks.id))
+      .where(inArray(scrobbles.uri, scrobbleUris));
+    for (const s of scrobbleRows) {
+      if (!s.uri) continue;
+      byUri.set(s.uri, {
+        uri: s.uri,
+        title: s.title ?? undefined,
+        artist: s.artist ?? undefined,
+        albumArt: withFallbackAlbumArt(s.albumArt),
+      });
+    }
+  }
+
+  if (songUris.length) {
+    const songRows = await ctx.db
+      .select({
+        uri: tracks.uri,
+        title: tracks.title,
+        artist: tracks.artist,
+        albumArt: tracks.albumArt,
+      })
+      .from(tracks)
+      .where(inArray(tracks.uri, songUris));
+    for (const t of songRows) {
+      if (!t.uri) continue;
+      byUri.set(t.uri, {
+        uri: t.uri,
+        title: t.title ?? undefined,
+        artist: t.artist ?? undefined,
+        albumArt: withFallbackAlbumArt(t.albumArt),
+      });
+    }
+  }
+
+  if (albumUris.length) {
+    const albumRows = await ctx.db
+      .select({
+        uri: albums.uri,
+        title: albums.title,
+        artist: albums.artist,
+        albumArt: albums.albumArt,
+      })
+      .from(albums)
+      .where(inArray(albums.uri, albumUris));
+    for (const a of albumRows) {
+      if (!a.uri) continue;
+      byUri.set(a.uri, {
+        uri: a.uri,
+        title: a.title ?? undefined,
+        artist: a.artist ?? undefined,
+        albumArt: withFallbackAlbumArt(a.albumArt),
+      });
+    }
+  }
+
+  return byUri;
 }
 
 function publish(ctx: Context, userId: string, payload: unknown): void {

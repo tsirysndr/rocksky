@@ -1,11 +1,16 @@
 import styled from "@emotion/styled";
-import { IconUser } from "@tabler/icons-react";
+import { IconMusic, IconUser } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 import BellIcon from "./BellIcon";
 import { Avatar } from "baseui/avatar";
 import { PLACEMENT, StatefulPopover } from "baseui/popover";
 import { useState } from "react";
-import type { NotificationView } from "../../api/notifications";
+import type {
+  NotificationActor,
+  NotificationGroup,
+  NotificationView,
+} from "../../api/notifications";
+import { groupNotifications } from "../../api/notifications";
 import {
   useMarkSeenMutation,
   useNotificationListQuery,
@@ -101,6 +106,71 @@ const AvatarFallback = styled.div`
   flex-shrink: 0;
 `;
 
+const AvatarStack = styled.div`
+  display: flex;
+  flex-shrink: 0;
+`;
+
+const AvatarStackItem = styled.div`
+  border-radius: 999px;
+  border: 2px solid var(--color-background);
+
+  &:not(:first-of-type) {
+    margin-left: -12px;
+  }
+`;
+
+const SubjectBlock = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+`;
+
+const SubjectArt = styled.img`
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+`;
+
+const SubjectArtFallback = styled.div`
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  background: var(--color-avatar-background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+`;
+
+const SubjectText = styled.div`
+  min-width: 0;
+  flex: 1;
+`;
+
+const SubjectTitle = styled.div`
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const SubjectArtist = styled.div`
+  font-size: 12px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
 const VERB: Record<string, string> = {
   like_scrobble: "liked your scrobble",
   follow: "followed you",
@@ -155,34 +225,95 @@ const timeAgo = (iso: string): string => {
   return new Date(iso).toLocaleDateString();
 };
 
+const actorName = (a: NotificationActor): string =>
+  a.displayName || a.handle || "Someone";
+
+function ActorAvatar({ actor }: { actor: NotificationActor }) {
+  const isJpegPlaceholder = actor.avatar?.endsWith("/@jpeg");
+  return actor.avatar && !isJpegPlaceholder ? (
+    <Avatar src={actor.avatar} name={actorName(actor)} size="36px" />
+  ) : (
+    <AvatarFallback>
+      <IconUser size={20} color="#fff" />
+    </AvatarFallback>
+  );
+}
+
+/** "A liked", "A and B liked", "A, B and 3 others liked" — names bolded. */
+function ActorSummary({ actors, verb }: { actors: NotificationActor[]; verb: string }) {
+  if (actors.length === 0) return <>Someone {verb}</>;
+  if (actors.length === 1) {
+    return (
+      <>
+        <b>{actorName(actors[0])}</b> {verb}
+      </>
+    );
+  }
+  if (actors.length === 2) {
+    return (
+      <>
+        <b>{actorName(actors[0])}</b> and <b>{actorName(actors[1])}</b> {verb}
+      </>
+    );
+  }
+  const others = actors.length - 2;
+  return (
+    <>
+      <b>{actorName(actors[0])}</b>, <b>{actorName(actors[1])}</b> and {others}{" "}
+      {others === 1 ? "other" : "others"} {verb}
+    </>
+  );
+}
+
 function NotificationRow({
-  notification,
+  group,
   onNavigate,
 }: {
-  notification: NotificationView;
+  group: NotificationGroup;
   onNavigate: () => void;
 }) {
-  const actor = notification.actor;
-  const name = actor?.displayName || actor?.handle || "Someone";
-  const verb = VERB[notification.type] ?? "sent you a notification";
-  const isJpegPlaceholder = actor?.avatar?.endsWith("/@jpeg");
-  const { to, hash } = notificationTarget(notification);
+  const verb = VERB[group.type] ?? "sent you a notification";
+  const { latest } = group;
+  const { to, hash } = notificationTarget(latest);
+  const avatars = group.actors.slice(0, 3);
+  const subject = latest.subject;
 
   return (
     <Row to={to} hash={hash} onClick={onNavigate}>
-      {actor?.avatar && !isJpegPlaceholder ? (
-        <Avatar src={actor.avatar} name={name} size="36px" />
+      {avatars.length > 1 ? (
+        <AvatarStack>
+          {avatars.map((a, i) => (
+            <AvatarStackItem key={i} style={{ zIndex: avatars.length - i }}>
+              <ActorAvatar actor={a} />
+            </AvatarStackItem>
+          ))}
+        </AvatarStack>
       ) : (
-        <AvatarFallback>
-          <IconUser size={20} color="#fff" />
-        </AvatarFallback>
+        <ActorAvatar actor={group.actors[0] ?? {}} />
       )}
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
         <RowText>
-          <b>{name}</b> {verb}
-          {notification.shoutContent ? `: "${notification.shoutContent}"` : ""}
+          <ActorSummary actors={group.actors} verb={verb} />
+          {latest.shoutContent ? `: "${latest.shoutContent}"` : ""}
         </RowText>
-        <RowTime>{timeAgo(notification.createdAt)}</RowTime>
+        {subject && (subject.title || subject.albumArt) ? (
+          <SubjectBlock>
+            {subject.albumArt ? (
+              <SubjectArt src={subject.albumArt} alt="" />
+            ) : (
+              <SubjectArtFallback>
+                <IconMusic size={16} color="var(--color-text-muted)" />
+              </SubjectArtFallback>
+            )}
+            <SubjectText>
+              {subject.title ? <SubjectTitle>{subject.title}</SubjectTitle> : null}
+              {subject.artist ? (
+                <SubjectArtist>{subject.artist}</SubjectArtist>
+              ) : null}
+            </SubjectText>
+          </SubjectBlock>
+        ) : null}
+        <RowTime>{timeAgo(latest.createdAt)}</RowTime>
       </div>
     </Row>
   );
@@ -225,12 +356,8 @@ function NotificationBell() {
           {!list || list.notifications.length === 0 ? (
             <EmptyState>No notifications yet</EmptyState>
           ) : (
-            list.notifications.map((n) => (
-              <NotificationRow
-                key={n.id}
-                notification={n}
-                onNavigate={close}
-              />
+            groupNotifications(list.notifications).map((g) => (
+              <NotificationRow key={g.key} group={g} onNavigate={close} />
             ))
           )}
         </Dropdown>

@@ -59,6 +59,7 @@ export interface NotificationView {
   /** The content of the related shout, if any. */
   shoutContent?: string;
   actor?: NotificationActor;
+  subject?: SubjectView;
   [k: string]: unknown;
 }
 
@@ -72,4 +73,29 @@ export function isNotificationView(v: unknown): v is NotificationView {
 
 export function validateNotificationView(v: unknown): ValidationResult {
   return lexicons.validate("app.rocksky.notification.defs#notificationView", v);
+}
+
+/** The song, album, or scrobble a notification relates to, for rich display. */
+export interface SubjectView {
+  /** The at-uri of the subject. */
+  uri: string;
+  /** The title of the track or album. */
+  title?: string;
+  /** The artist of the track or album. */
+  artist?: string;
+  /** The album art image URL. */
+  albumArt?: string;
+  [k: string]: unknown;
+}
+
+export function isSubjectView(v: unknown): v is SubjectView {
+  return (
+    isObj(v) &&
+    hasProp(v, "$type") &&
+    v.$type === "app.rocksky.notification.defs#subjectView"
+  );
+}
+
+export function validateSubjectView(v: unknown): ValidationResult {
+  return lexicons.validate("app.rocksky.notification.defs#subjectView", v);
 }
