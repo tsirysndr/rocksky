@@ -1,6 +1,5 @@
 import dns from "node:dns";
 import { serve } from "@hono/node-server";
-import { createNodeWebSocket } from "@hono/node-ws";
 import { trace } from "@opentelemetry/api";
 import chalk from "chalk";
 import { consola } from "consola";
@@ -26,7 +25,6 @@ import { rateLimiter } from "ratelimiter";
 import subscribe from "subscribers";
 import { saveTrack } from "tracks/tracks.service";
 import { trackSchema } from "types/track";
-import handleWebsocket from "websocket/handler";
 import accessTokensApp from "./access-tokens/app";
 import apikeys from "./apikeys/app";
 import bsky from "./bsky/app";
@@ -56,7 +54,6 @@ dns.setDefaultResultOrder("ipv4first");
 subscribe(ctx);
 
 const app = new Hono();
-const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 
 app.use(
   "*",
@@ -120,7 +117,8 @@ app.get("/proxy-image", async (c) => {
   }
 });
 
-app.get("/ws", upgradeWebSocket(handleWebsocket));
+// The player remote-control WebSocket (/ws) is now served by the Elixir
+// `remote-ws` service; Caddy routes /ws there. See remote-ws/README.md.
 
 app.get("/", async (c) => {
   return c.json({ status: "ok" });
@@ -671,9 +669,7 @@ app.route("/users", usersApp);
 
 app.route("/webscrobbler", webscrobbler);
 
-const server = serve({
+serve({
   fetch: app.fetch,
   port: 8000,
 });
-
-injectWebSocket(server);
