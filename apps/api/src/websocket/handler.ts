@@ -273,11 +273,19 @@ function handleWebsocket(c: Context) {
           }
 
           // ── Broadcast enriched data to all connected devices ──
+          // Include the source device's name so miniplayers can label which
+          // device is playing (e.g. "Rocksky CLI") rather than a generic source.
+          const deviceName = deviceNames[device_id] ?? deviceNames[ws.deviceId];
           userDevices[did]?.forEach((id) => {
             const targetDevice = devices[id];
             if (targetDevice) {
               targetDevice.send(
-                JSON.stringify({ type: "message", data, device_id }),
+                JSON.stringify({
+                  type: "message",
+                  data,
+                  device_id,
+                  device_name: deviceName,
+                }),
               );
             }
           });
