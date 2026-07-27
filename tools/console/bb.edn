@@ -84,6 +84,46 @@
   d:webscrobbler  {:task (do (require 'console.daemons) ((resolve 'console.daemons/webscrobbler)))}
   d:tracklist     {:task (do (require 'console.daemons) ((resolve 'console.daemons/tracklist)))}
 
+  ;; ── remote-ws (Elixir WebSocket relay, prod systemd) ─────────
+  rws:dev       {:doc  "Run remote-ws locally: mix phx.server"
+                 :task (do (require 'console.remote-ws) ((resolve 'console.remote-ws/dev)))}
+  rws:status    {:task (do (require 'console.remote-ws) ((resolve 'console.remote-ws/status)))}
+  rws:health    {:task (do (require 'console.remote-ws) ((resolve 'console.remote-ws/health)))}
+  rws:logs      {:doc  "journald logs on prod. Add `follow` to tail, or a number for line count."
+                 :task (do (require 'console.remote-ws)
+                           (apply (resolve 'console.remote-ws/logs)
+                                  (map (fn [a] (cond (#{"follow" "f"} a) (keyword a)
+                                                     (re-matches (re-pattern "\\d+") a) (parse-long a)
+                                                     :else a))
+                                       *command-line-args*)))}
+  rws:restart   {:task (do (require 'console.remote-ws) ((resolve 'console.remote-ws/restart)))}
+  rws:start     {:task (do (require 'console.remote-ws) ((resolve 'console.remote-ws/start)))}
+  rws:stop      {:task (do (require 'console.remote-ws) ((resolve 'console.remote-ws/stop)))}
+  rws:deploy    {:doc  "git pull the monorepo on prod, then restart remote-ws"
+                 :task (do (require 'console.remote-ws) ((resolve 'console.remote-ws/deploy)))}
+  rws:ssh       {:doc  "Interactive SSH shell on prod in remote-ws/"
+                 :task (do (require 'console.remote-ws) ((resolve 'console.remote-ws/ssh)))}
+
+  ;; ── deezer (Go metadata microservice, prod systemd) ──────────
+  dz:dev        {:doc  "Run deezer locally: go run main.go"
+                 :task (do (require 'console.deezer) ((resolve 'console.deezer/dev)))}
+  dz:status     {:task (do (require 'console.deezer) ((resolve 'console.deezer/status)))}
+  dz:health     {:task (do (require 'console.deezer) ((resolve 'console.deezer/health)))}
+  dz:logs       {:doc  "journald logs on prod. Add `follow` to tail, or a number for line count."
+                 :task (do (require 'console.deezer)
+                           (apply (resolve 'console.deezer/logs)
+                                  (map (fn [a] (cond (#{"follow" "f"} a) (keyword a)
+                                                     (re-matches (re-pattern "\\d+") a) (parse-long a)
+                                                     :else a))
+                                       *command-line-args*)))}
+  dz:restart    {:task (do (require 'console.deezer) ((resolve 'console.deezer/restart)))}
+  dz:start      {:task (do (require 'console.deezer) ((resolve 'console.deezer/start)))}
+  dz:stop       {:task (do (require 'console.deezer) ((resolve 'console.deezer/stop)))}
+  dz:deploy     {:doc  "git pull the monorepo on prod, then restart deezer"
+                 :task (do (require 'console.deezer) ((resolve 'console.deezer/deploy)))}
+  dz:ssh        {:doc  "Interactive SSH shell on prod in deezer/"
+                 :task (do (require 'console.deezer) ((resolve 'console.deezer/ssh)))}
+
   ;; ── devops & dev tools ───────────────────────────────────────
   backup:ddb    {:task (do (require 'console.devops) ((resolve 'console.devops/backup-ddb)))}
   build:raichu  {:task (do (require 'console.devops) ((resolve 'console.devops/build-raichu)))}

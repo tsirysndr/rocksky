@@ -64,6 +64,28 @@
            [:webscrobbler    "rockskyd webscrobbler"]
            [:tracklist       "rockskyd tracklist"]]}
 
+   {:group "remote-ws" :ns 'console.remote-ws
+    :cmds [[:dev             "Run locally: mix phx.server"]
+           [:status          "systemctl status on prod"]
+           [:health          "Curl GET /health on prod (:4000)"]
+           [:logs            "journald logs on prod (:follow to tail, n for line count)"]
+           [:restart         "Restart the prod service"]
+           [:start           "Start the prod service"]
+           [:stop            "Stop the prod service"]
+           [:deploy          "git pull the monorepo on prod, then restart"]
+           [:ssh             "Interactive SSH shell on prod in remote-ws/"]]}
+
+   {:group "deezer" :ns 'console.deezer
+    :cmds [[:dev             "Run locally: go run main.go"]
+           [:status          "systemctl status on prod"]
+           [:health          "Curl GET /health on prod (:8090)"]
+           [:logs            "journald logs on prod (:follow to tail, n for line count)"]
+           [:restart         "Restart the prod service"]
+           [:start           "Start the prod service"]
+           [:stop            "Stop the prod service"]
+           [:deploy          "git pull the monorepo on prod, then restart"]
+           [:ssh             "Interactive SSH shell on prod in deezer/"]]}
+
    {:group "devops" :ns 'console.devops
     :cmds [[:backup-ddb      "Back up DuckDB analytics+feed databases to R2"]
            [:build-raichu    "wasm-pack build crates/raichu and copy into apps/web"]
