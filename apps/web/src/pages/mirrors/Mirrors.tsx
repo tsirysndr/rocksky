@@ -555,10 +555,16 @@ export default function MirrorsPage() {
       queryClient.invalidateQueries({ queryKey: ["mirror-sources"] }),
   });
 
-  if (!jwt || !profile) {
-    navigate({ to: "/" });
-    return null;
-  }
+  // Redirect home only when there's genuinely no session. On a hard reload the
+  // profile hydrates asynchronously (fetched after mount), so it is briefly null
+  // even while `jwt` is present — redirecting on that transient null is what
+  // bounced a reloaded /mirrors back to home. Wait for the profile instead (an
+  // invalid token is handled by useProfile, which clears it and redirects).
+  useEffect(() => {
+    if (!jwt) navigate({ to: "/" });
+  }, [jwt, navigate]);
+
+  if (!jwt || !profile) return null;
 
   // Index for fast lookup. If the API somehow returned fewer than three rows
   // (older deployment, transient error), fall back to a disabled stub so each
