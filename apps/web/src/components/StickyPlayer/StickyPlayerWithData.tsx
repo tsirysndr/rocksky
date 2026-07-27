@@ -8,6 +8,7 @@ import { nowPlayingAtom } from "../../atoms/nowpaying";
 import { playerAtom } from "../../atoms/player";
 import {
   activeDeviceIdAtom,
+  deviceCommandAtom,
   devicesAtom,
   type RemoteDevice,
   type RemoteNowPlaying,
@@ -315,6 +316,17 @@ function StickyPlayerWithData() {
       token: localStorage.getItem("token"),
     }));
   }, []);
+
+  // Publish the device-command bridge so library context menus (Play / Play Next
+  // / Add to queue …) can enqueue on the active remote device instead of the
+  // local engine. `active` is true only while a device is the current player.
+  const setDeviceCommand = useSetAtom(deviceCommandAtom);
+  useEffect(() => {
+    setDeviceCommand({
+      active: player === "device" && !!activeDeviceId,
+      send: sendDeviceCommand,
+    });
+  }, [player, activeDeviceId, sendDeviceCommand, setDeviceCommand]);
 
   // Adopt `id` as the active device the miniplayer shows. Called on a server
   // `primary_changed` (keeps every client in sync). It does NOT steal focus from

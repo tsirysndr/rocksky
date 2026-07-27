@@ -35,3 +35,16 @@ export const devicesAtom = atom<Record<string, RemoteDevice>>({});
 // "primary" (the profile/scrobble source), kept in sync across all the user's
 // clients via the server's `primary_changed` broadcast.
 export const activeDeviceIdAtom = atom<string | null>(null);
+
+// A bridge so anything in the app (e.g. library context menus) can send a
+// command to the active remote device without owning the WebSocket. StickyPlayer
+// publishes it; `active` is true when a remote device is the current player.
+export type DeviceCommand = {
+  active: boolean;
+  send: (action: string, args?: unknown) => void;
+};
+
+export const deviceCommandAtom = atom<DeviceCommand>({
+  active: false,
+  send: () => {},
+});
