@@ -35,6 +35,13 @@ api.rocksky.app {
 		reverse_proxy http://localhost:3004
 	}
 
+	# Player remote-control WebSocket → Elixir remote-ws service (REMOTE_WS_PORT).
+	# Caddy upgrades the connection automatically. Route the whole path here so
+	# device registries never split between the Node and Elixir relays.
+	handle /ws {
+		reverse_proxy http://localhost:4000
+	}
+
 	handle {
 		reverse_proxy http://localhost:8000
 	}

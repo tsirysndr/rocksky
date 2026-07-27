@@ -24,6 +24,7 @@ jobs:
       go_sdk: ${{ steps.filter.outputs.go_sdk }}
       rust_sdk: ${{ steps.filter.outputs.rust_sdk }}
       deezer: ${{ steps.filter.outputs.deezer }}
+      remote_ws: ${{ steps.filter.outputs.remote_ws }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -44,6 +45,9 @@ jobs:
               - '.github/workflows/tests.yml'
             deezer:
               - 'deezer/**'
+              - '.github/workflows/tests.yml'
+            remote_ws:
+              - 'remote-ws/**'
               - '.github/workflows/tests.yml'
 
   cli:
@@ -128,3 +132,31 @@ jobs:
       # CI so the suite never depends on the external API or its rate limits.
       - name: Run Deezer service tests
         run: go test ./...
+
+  remote-ws:
+    needs: changes
+    if: needs.changes.outputs.remote_ws == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: remote-ws
+    steps:
+      - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "27"
+          elixir-version: "1.18"
+      # The relay's unit tests use in-memory doubles (config/test.exs
+      # start_externals: false), so no Postgres / Redis / NATS services are needed.
+      - name: Cache deps and build
+        uses: actions/cache@v4
+        with:
+          path: |
+            remote-ws/deps
+            remote-ws/_build
+          key: ${{ runner.os }}-mix-${{ hashFiles('remote-ws/mix.lock') }}
+          restore-keys: ${{ runner.os }}-mix-
+      - name: Install dependencies
+        run: mix deps.get
+      - name: Run tests
+        run: mix test
