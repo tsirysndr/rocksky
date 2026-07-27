@@ -136,7 +136,7 @@ function SourceItem({ label, active, onClick }: { label: string; active: boolean
         className="w-2 h-2 rounded-full shrink-0"
         style={{ backgroundColor: active ? "var(--color-primary)" : "var(--color-text-muted)" }}
       />
-      <span className="text-sm font-semibold">{label}</span>
+      <span className="text-sm font-semibold truncate min-w-0 flex-1">{label}</span>
     </button>
   );
 }

@@ -67,6 +67,7 @@ const PlayerSelectorPopup = styled.div`
   z-index: 9001;
   padding: 8px 0;
   min-width: 180px;
+  max-width: 320px;
   transform: translateX(-50%);
 `;
 
@@ -92,6 +93,15 @@ const PlayerDot = styled.span<{ active: boolean }>`
   border-radius: 50%;
   flex-shrink: 0;
   background: ${({ active }) => active ? "var(--color-primary)" : "var(--color-text-muted)"};
+`;
+
+// Keeps a device label (name — long song title) to a single line with ellipsis.
+const PlayerSelectorLabel = styled.span`
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 // ---------------------------------------------------------------------------
@@ -890,8 +900,10 @@ function StickyPlayerWithData() {
                     }}
                   >
                     <PlayerDot active={isActive} />
-                    {dev.name}
-                    {dev.nowPlaying?.title ? ` — ${dev.nowPlaying.title}` : ""}
+                    <PlayerSelectorLabel>
+                      {dev.name}
+                      {dev.nowPlaying?.title ? ` — ${dev.nowPlaying.title}` : ""}
+                    </PlayerSelectorLabel>
                   </PlayerSelectorItem>
                 );
               })}
