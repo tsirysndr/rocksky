@@ -23,6 +23,9 @@ defmodule RemoteWs.NowPlaying do
   # Per-device now-playing cache lifetime. Players re-push every few seconds, so
   # this only needs to outlive one push gap (it seeds the register snapshot).
   @np_ttl 30
+  # The queue changes less often (only on user edits), so it's cached longer so a
+  # newly-connected client's snapshot still has it. Cleared on disconnect.
+  @queue_ttl 3600
 
   # ── track ──────────────────────────────────────────────────────────────────
 
@@ -57,6 +60,24 @@ defmodule RemoteWs.NowPlaying do
   def handle_status(did, device_id, data) do
     if primary_device(did) == device_id, do: profile_status(did, data)
     :ok
+  end
+
+  @doc """
+  Handle a `queue` push from `device_id`: cache the device's playback queue so the
+  miniplayers can display and stay in sync with the real remote queue. Purely
+  per-device — never touches the profile. Returns `data` (broadcast unchanged).
+  """
+  def handle_queue(did, device_id, data) do
+    Redis.set_ex("queue:#{did}:#{device_id}", @queue_ttl, Jason.encode!(data))
+    data
+  end
+
+  @doc "The cached queue for one device (for the register snapshot), or nil."
+  def device_queue(did, device_id) do
+    case Redis.get("queue:#{did}:#{device_id}") do
+      nil -> nil
+      json -> Jason.decode!(json)
+    end
   end
 
   # ── primary selection ────────────────────────────────────────────────────────
@@ -101,6 +122,7 @@ defmodule RemoteWs.NowPlaying do
   """
   def on_disconnect(did, device_id) do
     Redis.del("np:#{did}:#{device_id}")
+    Redis.del("queue:#{did}:#{device_id}")
 
     if primary_device(did) == device_id do
       Enum.each(

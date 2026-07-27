@@ -82,7 +82,7 @@ defmodule RemoteWs.Ws.Handler do
       for %{device_id: id, name: name} <- Devices.metas(did),
           np = NowPlaying.device_np(did, id),
           not is_nil(np) do
-        %{device_id: id, name: name, now_playing: np}
+        %{device_id: id, name: name, now_playing: np, queue: NowPlaying.device_queue(did, id)}
       end
 
     %{type: "devices", primary_device: NowPlaying.primary_device(did), devices: devices}
@@ -146,11 +146,16 @@ defmodule RemoteWs.Ws.Handler do
         name = Devices.name_of(did, device_id) || "websocket"
 
         data =
-          if data["type"] == "track" do
-            NowPlaying.handle_track(did, device_id, name, data)
-          else
-            NowPlaying.handle_status(did, device_id, data)
-            data
+          case data["type"] do
+            "track" ->
+              NowPlaying.handle_track(did, device_id, name, data)
+
+            "queue" ->
+              NowPlaying.handle_queue(did, device_id, data)
+
+            _ ->
+              NowPlaying.handle_status(did, device_id, data)
+              data
           end
 
         Devices.broadcast(did, Jason.encode!(broadcast_envelope(data, device_id, name)))

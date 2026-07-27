@@ -145,6 +145,34 @@ defmodule RemoteWs.Ws.HandlerTest do
     assert Jason.decode!(frame)["device_id"] == "real-cli"
   end
 
+  test "a queue message is cached per-device and broadcast, without touching the profile" do
+    did = new_did()
+    token = Token.sign(%{"did" => did})
+    cli = FakeDevice.start(did, "cli", "Rocksky CLI", self())
+    st = %{device_id: "cli", did: did}
+
+    data = %{
+      "type" => "queue",
+      "index" => 1,
+      "queue" => [%{"title" => "a"}, %{"title" => "b"}]
+    }
+
+    Handler.handle(
+      %{"type" => "message", "data" => data, "token" => token},
+      st
+    )
+
+    assert_receive {:pushed, ^cli, frame}
+    env = Jason.decode!(frame)
+    assert env["type"] == "message"
+    assert env["device_id"] == "cli"
+    assert env["data"]["type"] == "queue"
+    assert env["data"]["index"] == 1
+    # Cached for the snapshot; profile now-playing untouched.
+    assert RemoteWs.NowPlaying.device_queue(did, "cli")["index"] == 1
+    refute RedisMemory.exists("nowplaying:#{did}")
+  end
+
   test "an invalid token is ignored (no reply, no broadcast)" do
     did = new_did()
     _dev = FakeDevice.start(did, "a", "A", self())
