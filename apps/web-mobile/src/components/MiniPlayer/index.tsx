@@ -50,6 +50,11 @@ import PlayerScreen from "../PlayerScreen";
 import axios from "axios";
 import { API_URL } from "../../consts";
 import _ from "lodash";
+import {
+  RemoteController,
+  type RemoteNowPlaying as SdkNowPlaying,
+  type RemoteQueueItem as SdkQueueItem,
+} from "@rocksky/sdk";
 
 // ---------------------------------------------------------------------------
 // Source selector bottom sheet
@@ -146,50 +151,48 @@ function SourceItem({ label, active, onClick }: { label: string; active: boolean
 // `prev` (the same device's previous state) keeps smooth local progress and only
 // snaps on a track change or a large (seek) jump.
 function toRemoteNowPlaying(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data: any,
+  track: SdkNowPlaying,
   liked: Record<string, boolean>,
   prev?: RemoteNowPlaying | null,
 ): RemoteNowPlaying {
-  const title = data.title;
-  const artist = data.album_artist || data.artist;
-  const incoming = data.elapsed ?? 0;
+  const title = track.title;
+  const artist = track.albumArtist || track.artist;
+  const incoming = track.elapsedMs ?? 0;
   const sameTrack = !!prev && prev.title === title && prev.artist === artist;
   const progress =
     sameTrack && Math.abs((prev?.progress ?? 0) - incoming) < 2000
       ? (prev?.progress ?? incoming)
       : incoming;
   const isPlaying =
-    typeof data.is_playing === "boolean" ? data.is_playing : (prev?.isPlaying ?? true);
+    typeof track.isPlaying === "boolean" ? track.isPlaying : (prev?.isPlaying ?? true);
+  const songUri = track.songUri ?? "";
   return {
     title,
     artist,
-    artistUri: data.artist_uri ?? "",
-    songUri: data.song_uri ?? "",
-    albumUri: data.album_uri ?? "",
-    duration: data.length,
+    artistUri: track.artistUri ?? "",
+    songUri,
+    albumUri: track.albumUri ?? "",
+    duration: track.durationMs ?? 0,
     progress,
-    albumArt: _.get(data, "album_art"),
+    albumArt: track.albumArt,
     isPlaying,
-    sha256: data.sha256 ?? "",
-    liked:
-      liked[data.song_uri] !== undefined ? liked[data.song_uri] : !!data.liked,
+    sha256: track.sha256 ?? "",
+    liked: liked[songUri] !== undefined ? liked[songUri] : !!track.liked,
   };
 }
 
-// Map a CLI queue-message item to the QueueTrack shape the queue panel renders.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function toRemoteQueueTrack(q: any): QueueTrack {
+// Map an SDK queue item to the QueueTrack shape the queue panel renders.
+function toRemoteQueueTrack(q: SdkQueueItem): QueueTrack {
   return {
     uploadId: q.uploadId || q.trackId || "",
     title: q.title ?? "",
-    artist: q.album_artist || q.artist || "",
-    albumArtist: q.album_artist ?? "",
+    artist: q.albumArtist || q.artist || "",
+    albumArtist: q.albumArtist ?? "",
     album: q.album ?? "",
-    albumArt: q.album_art ?? null,
-    duration: q.duration ?? 0,
+    albumArt: q.albumArt ?? null,
+    duration: q.durationMs ?? 0,
     sha256: "",
-    songUri: q.song_uri ?? "",
+    songUri: q.songUri ?? "",
   };
 }
 
@@ -210,8 +213,7 @@ export default function MiniPlayer() {
   const [queueIndex, setQueueIndex] = useAtom(queueIndexAtom);
   const { like, unlike } = useLike();
   const { play, pause, next } = useSpotify();
-  const socketRef = useRef<WebSocket | null>(null);
-  const heartbeatRef = useRef<number | null>(null);
+  const controllerRef = useRef<RemoteController | null>(null);
   const progressInterval = useRef<number | null>(null);
   const lastFetchedRef = useRef(0);
   const nowPlayingRef = useRef(nowPlaying);
@@ -363,15 +365,7 @@ export default function MiniPlayer() {
   // Transport command → the ACTIVE device only (targeted, so controlling one
   // player never disturbs the others).
   const sendDeviceCommand = useCallback((action: string, args?: unknown) => {
-    const ws = socketRef.current;
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    ws.send(JSON.stringify({
-      type: "command",
-      action,
-      args,
-      target: activeDeviceIdRef.current ?? undefined,
-      token: localStorage.getItem("token"),
-    }));
+    controllerRef.current?.command(action, activeDeviceIdRef.current ?? undefined, args);
   }, []);
 
   // Publish the device-command bridge so library context menus enqueue on the
@@ -404,203 +398,127 @@ export default function MiniPlayer() {
     const dev = devicesRef.current[id];
     if (dev?.nowPlaying) setNowPlaying(dev.nowPlaying);
     setPlayer("rockbox");
-    const ws = socketRef.current;
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({
-        type: "set_primary",
-        device_id: id,
-        token: localStorage.getItem("token"),
-      }));
-    }
+    controllerRef.current?.setPrimary(id);
   }, [setActiveDeviceId, setNowPlaying, setPlayer]);
 
-  // WebSocket relay: lists every connected player device and mirrors the active
-  // one into the miniplayer; transport is sent back as targeted commands.
+  // Remote-control relay via the SDK's RemoteController: it lists every connected
+  // player device and mirrors the active one into the miniplayer; transport is
+  // sent back as targeted commands. The SDK owns the socket lifecycle — register
+  // handshake, heartbeat, auto-reconnect, and state resync on reconnect (which
+  // also covers the backgrounded-tab timeout: the reconnect re-registers and the
+  // server re-sends the `devices` snapshot).
   useEffect(() => {
     if (!localStorage.getItem("token")) return;
-    const wsUrl = API_URL.replace("https", "wss").replace("http", "ws");
-    let closed = false;
-    let reconnectTimer: number | undefined;
+    const controller = new RemoteController({
+      token: () => localStorage.getItem("token") ?? undefined,
+      name: "rocksky-mobile",
+      url: `${API_URL.replace("https", "wss").replace("http", "ws")}/ws`,
+    });
+    controllerRef.current = controller;
 
-    // Decoded-message handler, defined once and reused across reconnects.
-    const handleMessage = (event: MessageEvent) => {
-        if (event.data === "pong") return;
-        const msg = JSON.parse(event.data);
-
-        // Snapshot of the players already streaming when we connected.
-        if (msg.type === "devices" && Array.isArray(msg.devices)) {
-          const map: Record<string, RemoteDevice> = {};
-          for (const d of msg.devices) {
-            if (!d.device_id) continue;
-            const name = d.now_playing?.device_name ?? d.name ?? "Rockbox";
-            map[d.device_id] = {
-              deviceId: d.device_id,
+    controller
+      // Snapshot of the players already streaming when we connected.
+      .on("devices", ({ primaryDevice, devices }) => {
+        const map: Record<string, RemoteDevice> = {};
+        for (const d of devices) {
+          if (!d.deviceId) continue;
+          map[d.deviceId] = {
+            deviceId: d.deviceId,
+            name: d.name || "Remote device",
+            nowPlaying: d.nowPlaying
+              ? toRemoteNowPlaying(d.nowPlaying, likedRef.current)
+              : null,
+            queue: Array.isArray(d.queue) ? d.queue.map(toRemoteQueueTrack) : [],
+            queueIndex: d.queueIndex ?? 0,
+          };
+        }
+        setDevices(map);
+        if (primaryDevice && map[primaryDevice]) adoptDevice(primaryDevice, map);
+      })
+      // A player pushed a track → upsert its entry in the device map.
+      .on("nowPlaying", ({ deviceId, deviceName, track }) => {
+        if (!deviceId) return;
+        if (!track.title && !track.artist && !track.albumArtist) return;
+        const name = deviceName || "Remote device";
+        const prevNp = devicesRef.current[deviceId]?.nowPlaying ?? null;
+        const np = toRemoteNowPlaying(track, likedRef.current, prevNp);
+        setDevices((prev) => {
+          const prevDev = prev[deviceId];
+          return {
+            ...prev,
+            [deviceId]: {
+              deviceId,
               name,
-              nowPlaying: d.now_playing
-                ? toRemoteNowPlaying(d.now_playing, likedRef.current)
-                : null,
-              queue: Array.isArray(d.queue?.queue) ? d.queue.queue.map(toRemoteQueueTrack) : [],
-              queueIndex: d.queue?.index ?? 0,
-            };
-          }
-          setDevices(map);
-          if (msg.primary_device && map[msg.primary_device]) adoptDevice(msg.primary_device, map);
-          return;
+              nowPlaying: np,
+              queue: prevDev?.queue ?? [],
+              queueIndex: prevDev?.queueIndex ?? 0,
+            },
+          };
+        });
+        // Mirror into the miniplayer when this is the active device. If nothing
+        // is playing yet, promote the device source (covers the race where
+        // primaryChanged arrived before the first track).
+        if (
+          activeDeviceIdRef.current === deviceId &&
+          (playerRef.current === "rockbox" || playerRef.current === null)
+        ) {
+          setNowPlaying(np);
+          if (playerRef.current === null) setPlayer("rockbox");
+          lastFetchedRef.current = Date.now();
         }
-
-        // A player pushed a track → upsert its entry in the device map.
-        if (msg.type === "message" && msg.data?.type === "track") {
-          const id = msg.device_id;
-          if (!id) return;
-          if (!msg.data.title && !msg.data.artist && !msg.data.album_artist) return;
-          const name = msg.data?.device_name ?? msg.device_name ?? "Rockbox";
-          const prevNp = devicesRef.current[id]?.nowPlaying ?? null;
-          const np = toRemoteNowPlaying(msg.data, likedRef.current, prevNp);
-          setDevices((prev) => {
-            const prevDev = prev[id];
-            return {
-              ...prev,
-              [id]: {
-                deviceId: id,
-                name,
-                nowPlaying: np,
-                queue: prevDev?.queue ?? [],
-                queueIndex: prevDev?.queueIndex ?? 0,
-              },
-            };
-          });
-          // Mirror into the miniplayer when this is the active device. If nothing
-          // is playing yet, promote the device source (covers the race where
-          // primary_changed arrived before the first track).
-          if (
-            activeDeviceIdRef.current === id &&
-            (playerRef.current === "rockbox" || playerRef.current === null)
-          ) {
-            setNowPlaying(np);
-            if (playerRef.current === null) setPlayer("rockbox");
-            lastFetchedRef.current = Date.now();
-          }
-          return;
+      })
+      // A player pushed its queue → mirror it (kept per-device for the panel).
+      .on("queue", ({ deviceId, deviceName, index, queue }) => {
+        if (!deviceId) return;
+        const q = Array.isArray(queue) ? queue.map(toRemoteQueueTrack) : [];
+        setDevices((prev) => {
+          const dev = prev[deviceId] ?? {
+            deviceId,
+            name: deviceName || "Remote device",
+            nowPlaying: null,
+            queue: [],
+            queueIndex: 0,
+          };
+          return { ...prev, [deviceId]: { ...dev, queue: q, queueIndex: index ?? 0 } };
+        });
+      })
+      // A device left → drop it; if it was active, clear the miniplayer.
+      .on("deviceUnregistered", ({ deviceId }) => {
+        if (!deviceId) return;
+        setDevices((prev) => {
+          if (!prev[deviceId]) return prev;
+          const next = { ...prev };
+          delete next[deviceId];
+          return next;
+        });
+        if (activeDeviceIdRef.current === deviceId) {
+          setActiveDeviceId(null);
+          if (playerRef.current === "rockbox") { setNowPlaying(null); setPlayer(null); }
         }
-
-        // A player pushed its queue → mirror it (kept per-device for the panel).
-        if (msg.type === "message" && msg.data?.type === "queue") {
-          const id = msg.device_id;
-          if (!id) return;
-          const q = Array.isArray(msg.data.queue)
-            ? msg.data.queue.map(toRemoteQueueTrack)
-            : [];
-          const qi = msg.data.index ?? 0;
-          setDevices((prev) => {
-            const dev = prev[id] ?? {
-              deviceId: id,
-              name: "Rockbox",
-              nowPlaying: null,
-              queue: [],
-              queueIndex: 0,
-            };
-            return { ...prev, [id]: { ...dev, queue: q, queueIndex: qi } };
-          });
-          return;
+      })
+      // The primary device changed (this client, another, or auto-adopt).
+      .on("primaryChanged", ({ deviceId }) => {
+        if (deviceId) adoptDevice(deviceId);
+      })
+      // Transport status for a device: playing vs paused/stopped.
+      .on("status", ({ deviceId, status }) => {
+        if (!deviceId) return;
+        const playing = status === "playing";
+        setDevices((prev) => {
+          const dev = prev[deviceId];
+          if (!dev?.nowPlaying) return prev;
+          return { ...prev, [deviceId]: { ...dev, nowPlaying: { ...dev.nowPlaying, isPlaying: playing } } };
+        });
+        if (activeDeviceIdRef.current === deviceId && playerRef.current === "rockbox") {
+          setNowPlaying((prev) => prev ? { ...prev, isPlaying: playing } : prev);
         }
+      });
 
-        // A device left → drop it; if it was active, clear the miniplayer.
-        if (msg.type === "device_unregistered" && msg.device_id) {
-          const gone = msg.device_id;
-          setDevices((prev) => {
-            if (!prev[gone]) return prev;
-            const next = { ...prev };
-            delete next[gone];
-            return next;
-          });
-          if (activeDeviceIdRef.current === gone) {
-            setActiveDeviceId(null);
-            if (playerRef.current === "rockbox") { setNowPlaying(null); setPlayer(null); }
-          }
-          return;
-        }
-
-        // The primary device changed (this client, another, or auto-adopt).
-        if (msg.type === "primary_changed" && msg.device_id) {
-          adoptDevice(msg.device_id);
-          return;
-        }
-
-        // Transport status for a device: 1 = playing, 0/2/3 = not playing.
-        if (msg.data?.type === "status" && msg.device_id) {
-          const id = msg.device_id;
-          const playing = msg.data.status === 1;
-          setDevices((prev) => {
-            const dev = prev[id];
-            if (!dev?.nowPlaying) return prev;
-            return { ...prev, [id]: { ...dev, nowPlaying: { ...dev.nowPlaying, isPlaying: playing } } };
-          });
-          if (activeDeviceIdRef.current === id && playerRef.current === "rockbox") {
-            setNowPlaying((prev) => prev ? { ...prev, isPlaying: playing } : prev);
-          }
-        }
-    };
-
-    const connect = () => {
-      if (closed) return;
-      const ws = new WebSocket(`${wsUrl}/ws`);
-      socketRef.current = ws;
-
-      ws.onopen = () => {
-        ws.send(JSON.stringify({
-          type: "register",
-          clientName: "rocksky",
-          token: localStorage.getItem("token"),
-        }));
-        if (heartbeatRef.current) clearInterval(heartbeatRef.current);
-        heartbeatRef.current = window.setInterval(() => {
-          if (ws.readyState === WebSocket.OPEN)
-            ws.send(JSON.stringify({ type: "heartbeat", token: localStorage.getItem("token") }));
-        }, 3000);
-      };
-
-      ws.onmessage = handleMessage;
-
-      ws.onclose = () => {
-        if (heartbeatRef.current) clearInterval(heartbeatRef.current);
-        if (socketRef.current === ws) socketRef.current = null;
-        // Auto-reconnect. A backgrounded/minimized tab is throttled, so the
-        // heartbeat stalls and the server times the socket out (~60s), which
-        // would otherwise freeze the miniplayer until a manual reload. On
-        // reconnect the server re-sends the device snapshot, resyncing everything.
-        if (!closed) {
-          clearTimeout(reconnectTimer);
-          reconnectTimer = window.setTimeout(connect, 3000);
-        }
-      };
-
-      ws.onerror = () => {
-        try { ws.close(); } catch { /* ignore */ }
-      };
-    };
-
-    connect();
-
-    // Reconnect immediately when the tab becomes visible again if the socket
-    // died while backgrounded — so metadata + progress resync at once.
-    const onVisible = () => {
-      if (document.visibilityState !== "visible") return;
-      const s = socketRef.current;
-      if (!s || s.readyState === WebSocket.CLOSED || s.readyState === WebSocket.CLOSING) {
-        clearTimeout(reconnectTimer);
-        connect();
-      }
-    };
-    document.addEventListener("visibilitychange", onVisible);
+    controller.connect();
 
     return () => {
-      closed = true;
-      clearTimeout(reconnectTimer);
-      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
-      document.removeEventListener("visibilitychange", onVisible);
-      const s = socketRef.current;
-      if (s) { try { s.close(); } catch { /* ignore */ } }
-      socketRef.current = null;
+      controller.disconnect();
+      if (controllerRef.current === controller) controllerRef.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

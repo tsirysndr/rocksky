@@ -36,6 +36,19 @@ export interface RemoteNowPlaying {
   /** Current position, ms. */
   elapsedMs?: number;
   isPlaying?: boolean;
+  // The following are filled in by the server on the broadcast a controller
+  // receives (a player leaves them unset — the server resolves them from the
+  // library). They let a controller UI deep-link and show like state.
+  /** The song's `at://` URI. */
+  songUri?: string;
+  /** The album's `at://` URI. */
+  albumUri?: string;
+  /** The artist's `at://` URI. */
+  artistUri?: string;
+  /** Content hash (matches the server's `sha256`). */
+  sha256?: string;
+  /** Whether the current user has liked this track. */
+  liked?: boolean;
 }
 
 /** One queue entry. `uploadId` (Rocksky uploads) or `trackId` (Navidrome id). */

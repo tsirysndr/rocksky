@@ -4,6 +4,19 @@ All notable changes to `@rocksky/sdk` are documented here. This project adheres
 to [Semantic Versioning](https://semver.org) — while pre-1.0, the **minor**
 version is the breaking slot.
 
+## [0.10.1] - 2026-07-28
+
+A **backwards-compatible** patch release.
+
+### Added
+
+- **`RemoteNowPlaying`** gained optional server-enriched fields — `songUri`,
+  `albumUri`, `artistUri`, `sha256`, and `liked` — populated on the broadcast a
+  `RemoteController` receives (a player leaves them unset; the server resolves
+  them from the library). This lets a controller UI deep-link to the song / album
+  / artist and show like state without re-fetching. Purely additive; existing
+  code is unaffected.
+
 ## [0.10.0] - 2026-07-28
 
 A **backwards-compatible** release — it only *adds* the remote-controller
