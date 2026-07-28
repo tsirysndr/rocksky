@@ -365,17 +365,11 @@ function StickyPlayerWithData() {
     const token = localStorage.getItem("token");
     if (!token) return;
     const wsUrl = API_URL.replace("https", "wss").replace("http", "ws");
-    const ws = new WebSocket(`${wsUrl}/ws`);
-    socketRef.current = ws;
+    let closed = false;
+    let reconnectTimer: number | undefined;
 
-    ws.onopen = () => {
-      ws.send(JSON.stringify({ type: "register", clientName: "rocksky-web", token }));
-      heartbeatRef.current = window.setInterval(() => {
-        if (ws.readyState === WebSocket.OPEN) ws.send("ping");
-      }, 10000);
-    };
-
-    ws.onmessage = (event) => {
+    // Decoded-message handler, defined once and reused across reconnects.
+    const handleMessage = (event: MessageEvent) => {
       if (event.data === "pong") return;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let msg: any;
@@ -497,13 +491,65 @@ function StickyPlayerWithData() {
       }
     };
 
-    ws.onclose = () => {
-      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+    const connect = () => {
+      if (closed) return;
+      const ws = new WebSocket(`${wsUrl}/ws`);
+      socketRef.current = ws;
+
+      ws.onopen = () => {
+        ws.send(JSON.stringify({
+          type: "register",
+          clientName: "rocksky-web",
+          token: localStorage.getItem("token"),
+        }));
+        if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+        heartbeatRef.current = window.setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) ws.send("ping");
+        }, 10000);
+      };
+
+      ws.onmessage = handleMessage;
+
+      ws.onclose = () => {
+        if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+        if (socketRef.current === ws) socketRef.current = null;
+        // Auto-reconnect. A backgrounded/minimized tab is throttled, so the
+        // heartbeat stalls and the server times the socket out (~60s), which
+        // would otherwise freeze the miniplayer (metadata + progress) until a
+        // manual reload. On reconnect the server re-sends the device snapshot,
+        // resyncing everything.
+        if (!closed) {
+          clearTimeout(reconnectTimer);
+          reconnectTimer = window.setTimeout(connect, 3000);
+        }
+      };
+
+      ws.onerror = () => {
+        try { ws.close(); } catch { /* ignore */ }
+      };
     };
 
+    connect();
+
+    // Reconnect immediately when the tab becomes visible again if the socket
+    // died while backgrounded — so metadata + progress resync at once.
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      const s = socketRef.current;
+      if (!s || s.readyState === WebSocket.CLOSED || s.readyState === WebSocket.CLOSING) {
+        clearTimeout(reconnectTimer);
+        connect();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
     return () => {
+      closed = true;
+      clearTimeout(reconnectTimer);
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
-      ws.close();
+      document.removeEventListener("visibilitychange", onVisible);
+      const s = socketRef.current;
+      if (s) { try { s.close(); } catch { /* ignore */ } }
       socketRef.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
