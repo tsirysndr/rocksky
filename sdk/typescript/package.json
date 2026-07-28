@@ -1,6 +1,6 @@
 {
   "name": "@rocksky/sdk",
-  "version": "0.10.1",
+  "version": "0.10.2",
   "description": "TypeScript SDK for Rocksky \u2014 built on atcute: AppView reads, AT Protocol PDS writes (scrobble, like, follow, shout), a local dedup index, and Jetstream real-time sync.",
   "license": "MIT",
   "repository": {
@@ -21,6 +21,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./remote": {
+      "types": "./dist/remote.d.ts",
+      "import": "./dist/remote.js",
+      "default": "./dist/remote.js"
     }
   },
   "files": [
@@ -29,7 +34,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target node --format esm --packages external && bun run build:types",
+    "build": "bun build ./src/index.ts ./src/remote.ts --outdir ./dist --target node --format esm --packages external && bun run build:types",
     "build:types": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "bun test",

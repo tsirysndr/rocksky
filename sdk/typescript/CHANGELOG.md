@@ -4,6 +4,18 @@ All notable changes to `@rocksky/sdk` are documented here. This project adheres
 to [Semantic Versioning](https://semver.org) — while pre-1.0, the **minor**
 version is the breaking slot.
 
+## [0.10.2] - 2026-07-28
+
+A **backwards-compatible** patch release.
+
+### Added
+
+- **`@rocksky/sdk/remote`** — a browser-safe subpath that exports only the
+  remote-control surface (`RemotePlayer`, `RemoteController`, and their types).
+  The main entry pulls in the dedup index (`classic-level`) and identity hashes
+  (`node:crypto`), which are Node-only; the remote player/controller are pure
+  WebSocket + JSON, so import them from this subpath in browser bundles.
+
 ## [0.10.1] - 2026-07-28
 
 A **backwards-compatible** patch release.

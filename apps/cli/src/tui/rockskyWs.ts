@@ -18,7 +18,7 @@ import {
   RemotePlayer,
   type EnqueueCommand,
   type RemoteQueueItem,
-} from "@rocksky/sdk";
+} from "@rocksky/sdk/remote";
 import { ROCKSKY_API_URL } from "client";
 import {
   enqueueLast,

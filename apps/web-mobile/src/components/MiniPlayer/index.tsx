@@ -54,7 +54,7 @@ import {
   RemoteController,
   type RemoteNowPlaying as SdkNowPlaying,
   type RemoteQueueItem as SdkQueueItem,
-} from "@rocksky/sdk";
+} from "@rocksky/sdk/remote";
 
 // ---------------------------------------------------------------------------
 // Source selector bottom sheet

@@ -31,7 +31,7 @@ import {
   RemoteController,
   type RemoteNowPlaying as SdkRemoteNowPlaying,
   type RemoteQueueItem as SdkRemoteQueueItem,
-} from "@rocksky/sdk";
+} from "@rocksky/sdk/remote";
 import {
   ensureRockboxReady,
   getRockboxPlayer,
