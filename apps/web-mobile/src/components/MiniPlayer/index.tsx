@@ -662,7 +662,13 @@ export default function MiniPlayer() {
   // Media Session API — Android/iOS lock-screen / notification. Mirrors the
   // mini-player: title, artist, album + artwork, live play/pause state, a
   // scrubbable position, and every transport action.
-  const msAlbum = queue[queueIndex]?.album;
+  // The active remote device (if one is the current player). Also used for the
+  // queue panel + OS metadata album.
+  const activeDevice = activeDeviceId ? devices[activeDeviceId] : undefined;
+  const msAlbum =
+    player === "rockbox"
+      ? (activeDevice?.queue[activeDevice.queueIndex]?.album ?? "")
+      : queue[queueIndex]?.album;
 
   useEffect(() => {
     if (!("mediaSession" in navigator) || !nowPlaying) return;
@@ -720,12 +726,20 @@ export default function MiniPlayer() {
     navigator.mediaSession.playbackState = nowPlaying?.isPlaying ? "playing" : "paused";
   }, [nowPlaying?.isPlaying]);
 
-  // Keep the silent Media Session anchor in sync with engine playback. The
-  // in-gesture start happens in the click handlers (playNow / resume / media
-  // keys); this effect only mirrors state afterwards and pauses when idle.
+  // Keep the silent Media Session anchor in sync with playback so the OS media
+  // controls stay live — for the local engine ("upload") AND a remote device
+  // ("rockbox"). Without a live media element the controls never surface for the
+  // remote player. The in-gesture start happens in the click/media-key handlers;
+  // this effect mirrors state afterwards and pauses when idle.
   useEffect(() => {
-    if (player === "upload" && nowPlaying?.isPlaying) playMediaAnchor();
-    else pauseMediaAnchor();
+    if (
+      (player === "upload" || player === "rockbox") &&
+      nowPlaying?.isPlaying
+    ) {
+      playMediaAnchor();
+    } else {
+      pauseMediaAnchor();
+    }
   }, [player, nowPlaying?.isPlaying]);
 
   useEffect(() => {
@@ -758,7 +772,6 @@ export default function MiniPlayer() {
   const showSourceBtn = rockboxAvailable || queue.length > 0;
 
   // When a remote device is active, show ITS queue; otherwise the local one.
-  const activeDevice = activeDeviceId ? devices[activeDeviceId] : undefined;
   const isRemote = player === "rockbox";
   const shownQueue = isRemote ? (activeDevice?.queue ?? []) : queue;
   const shownQueueIndex = isRemote ? (activeDevice?.queueIndex ?? 0) : queueIndex;

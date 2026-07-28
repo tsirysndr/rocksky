@@ -688,7 +688,13 @@ function StickyPlayerWithData() {
   // Mirrors the sticky player: title, artist, album + artwork, live play/pause
   // state, a scrubbable position, and every transport action.
 
-  const album = queue[queueIndex]?.album;
+  // Album for the OS metadata: from the active remote device's current queue
+  // track when a device is the source, else the local engine's queue.
+  const activeDevice = activeDeviceId ? devices[activeDeviceId] : undefined;
+  const album =
+    player === "device"
+      ? (activeDevice?.queue[activeDevice.queueIndex]?.album ?? "")
+      : queue[queueIndex]?.album;
 
   // Metadata (track identity + artwork).
   useEffect(() => {
@@ -743,12 +749,21 @@ function StickyPlayerWithData() {
     navigator.mediaSession.playbackState = nowPlaying?.isPlaying ? "playing" : "paused";
   }, [nowPlaying?.isPlaying]);
 
-  // Keep the silent Media Session anchor playing whenever the engine plays.
+  // Keep the silent Media Session anchor playing whenever a source that relies on
+  // it is playing — the local wasm engine ("rockbox") OR a remote device
+  // ("device"). A live media element is what lets the OS surface the media
+  // controls; without it they never appear for the remote player.
   useEffect(() => {
     const el = silentRef.current;
     if (!el) return;
-    if (player === "rockbox" && nowPlaying?.isPlaying) el.play().catch(() => {});
-    else el.pause();
+    if (
+      (player === "rockbox" || player === "device") &&
+      nowPlaying?.isPlaying
+    ) {
+      el.play().catch(() => {});
+    } else {
+      el.pause();
+    }
   }, [player, nowPlaying?.isPlaying]);
 
   // Scrubber position (units: mediaSession wants seconds; nowPlaying is ms).
@@ -771,7 +786,6 @@ function StickyPlayerWithData() {
   if (!nowPlaying) return <></>;
 
   const isRockbox = player === "rockbox";
-  const activeDevice = activeDeviceId ? devices[activeDeviceId] : undefined;
   // Show the queue button for the local engine OR a remote device with a queue.
   const showQueue = isRockbox || (player === "device" && !!activeDevice?.queue.length);
 
