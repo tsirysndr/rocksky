@@ -21,6 +21,15 @@ export {
 } from "./agent.js";
 export { RockskyIndex, totalIndexed, type IndexStats } from "./dedup.js";
 export { runJetstream, DEFAULT_JETSTREAM_SERVERS, type JetstreamOptions } from "./jetstream.js";
+export {
+  RemotePlayer,
+  DEFAULT_REMOTE_WS,
+  type RemotePlayerOptions,
+  type RemotePlayerHandlers,
+  type RemoteNowPlaying,
+  type RemoteQueueItem,
+  type EnqueueCommand,
+} from "./remote-player.js";
 export { songHash, albumHash, artistHash } from "./hash.js";
 export { RockskyError } from "./errors.js";
 export type * from "./generated/types.js";
